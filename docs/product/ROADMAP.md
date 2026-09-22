@@ -42,7 +42,7 @@
 
 **First customer:** A pilot gym owner who is also a PT and works with other trainers. Today they run on Excel, a separate calendar, notes and manual booking.
 
-**How it is built:** AI coding agents (Claude Code and Codex) implement the work in parallel, one branch and worktree per change. They review each other's PRs. The product owner approves each milestone gate. The plan is therefore **sequence- and gate-based, not date-based**: a milestone is done when its exit criteria pass, not when a calendar date arrives.
+**How it is built:** AI coding agents (Claude Code and Codex) implement the work in parallel, one branch and worktree per change. They review their changes locally before pushing; another agent may help locally when useful. The product owner approves each milestone gate. The plan is therefore **sequence- and gate-based, not date-based**: a milestone is done when its exit criteria pass, not when a calendar date arrives.
 
 **Strategy in horizons:**
 
@@ -68,7 +68,7 @@ These principles govern *how* we deliver. The product principles in `PRODUCT.md 
 5. **Walking skeleton first.** Web, iOS, Android, API, database, email and CI are all connected in M1, before any feature work.
 6. **Pilot evidence beats opinion.** After MVP, a release is scoped only from observed pilot usage, and each post-MVP release has an entry gate.
 7. **Security and privacy by default.** Notes can contain health information. Least-privilege access, trainer-only by default, EU data residency and a processor agreement with every workspace.
-8. **Agents build, the owner decides.** Agents work in small, reviewable PRs, one per worktree. They cross-review each other's work, and every gate needs the owner's approval. Rules for agents live in `AGENTS.md`, which both Claude and Codex read.
+8. **Agents build, the owner decides.** Agents work in small, reviewable PRs, one per worktree. Agent review is local and is not a GitHub PR or CI gate. Every milestone gate needs the owner's approval. Rules for agents live in `AGENTS.md`, which both Claude and Codex read.
 9. **Free-tier first.** Every service starts on a free plan. Moving to a paid plan is triggered by real clients (Gate G4) or a hard limit, never by convenience (§12).
 10. **Documentation is part of the change.** The feature doc and the `FEATURES.md` status are updated in the same PR as the code.
 11. **One change, one branch, one worktree. Clean up afterwards.** See `WORKFLOW.md`.
@@ -432,9 +432,9 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 **Scope:** E014 Privacy tooling (export, deletion, retention), E015 Data import tooling, E016 Backups, restore drill and runbooks, plus the checklist below.
 
 **Launch checklist**
-- [ ] Security review (cross-agent + owner sign-off): authn/authz on every route, tenant isolation suite green, rate limits, security headers, secrets rotation, dependency audit, native secure storage for tokens (Keychain / EncryptedSharedPreferences or DataStore).
+- [ ] Local security review + owner sign-off: authn/authz on every route, tenant isolation suite green, rate limits, security headers, secrets rotation, dependency audit, native secure storage for tokens (Keychain / EncryptedSharedPreferences or DataStore).
 - [ ] Privacy: data export and deletion work per client and per workspace (§79); retention jobs run; processor agreement signed.
-- [ ] **Full bilingual QA pass:** an LLM review of every string against the glossary and tone guide, on web, iOS, Android and email. Dates/times checked (`22 september 2026`, 24h, Europe/Amsterdam). The pilot owner flags anything that reads oddly.
+- [ ] **Full bilingual QA pass:** review every string locally against the glossary and tone guide, on web, iOS, Android and email. Dates/times checked (`22 september 2026`, 24h, Europe/Amsterdam). The pilot owner flags anything that reads oddly.
 - [ ] Accessibility: public booking and client web meet WCAG 2.2 AA. Native apps support Dynamic Type / font scaling, VoiceOver / TalkBack labels, and have sufficient contrast.
 - [ ] Performance: public page budget met; calendar loads a busy week quickly.
 - [ ] Backups verified by an **actual restore** to a scratch Postgres service on Railway.
@@ -455,7 +455,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - **Contract freezes are the sync points:** the mobile-facing contract freezes at the end of M4 (scheduling) and at the end of M7 (logging/notes). Any later contract change comes as a versioned, additive change with regenerated clients, never a silent break.
 - **The real bottleneck is review and integration, not typing.** To keep it moving:
   - Keep PRs small (one feature or sub-feature each).
-  - Each PR is cross-reviewed by the other agent (Claude ↔ Codex) before the owner sees it.
+  - The author completes the local review checklist before pushing. A second agent can review locally when useful; no agent review is required on GitHub.
   - At most **3–4 open worktrees at once**, to limit merge conflicts and review load.
 - **Scope levers, in order, if a gate is at risk:** F036 (Open Gym suggestions) → a minimal version of F033 client web → the size of the exercise library baseline. **Never cut:** bilingual, tenant isolation, booking capacity correctness, iOS/Android parity, privacy basics.
 
@@ -571,14 +571,14 @@ These run continuously from M1 onward. They are not phases.
 
 | Track | Standard | Enforced by |
 |---|---|---|
-| **Localization** | Every string is a key in `packages/i18n`; nl-NL and en always in parity; ICU plurals; generated `.xcstrings` / `strings.xml` never edited by hand; dates/times via the platform's locale APIs with the workspace/user timezone; user content never auto-translated | CI checks (E005); per-locale e2e on all platforms; **LLM translation review** on every PR that touches strings, against `GLOSSARY.md` and the tone guide (informal "je", friendly and short) |
+| **Localization** | Every string is a key in `packages/i18n`; nl-NL and en always in parity; ICU plurals; generated `.xcstrings` / `strings.xml` never edited by hand; dates/times via the platform's locale APIs with the workspace/user timezone; user content never auto-translated | CI checks (E005); per-locale e2e on all platforms; **local copy review** before pushing string changes against `GLOSSARY.md` and the tone guide (informal "je", friendly and short) |
 | **Platform parity** | Every mobile feature exists on iOS and Android, in both languages, before it counts as done | Parity checklist in PRs; shared Maestro flows |
 | **API contract** | All clients use generated clients; changes are additive and versioned after a freeze | OpenAPI drift check in CI |
-| **Security** | Least privilege; tenant isolation; hashed single-use tokens; rate limits; secure token storage on devices; dependency updates | E011 suite in CI; cross-agent security review at M9 and before each major release |
+| **Security** | Least privilege; tenant isolation; hashed single-use tokens; rate limits; secure token storage on devices; dependency updates | E011 suite in CI; local security review at M9 and before each major release |
 | **Privacy (AVG/GDPR)** | Minimal data (name + email for booking); trainer-only notes by default; EU residency; export and deletion; retention; processor agreements | Definition of Done checklist for any feature touching personal data |
 | **Accessibility** | WCAG 2.2 AA on public and client web; Dynamic Type, VoiceOver/TalkBack and contrast on native | axe checks in web e2e; native accessibility audits at M9 |
 | **Observability** | Errors, logs, uptime, crash-free rate; **product events captured from MVP** (bookings, attendance, logging) so 3.2 analytics has history | E009; event list maintained in `docs/engineering/` |
-| **Quality** | Test pyramid; e2e for booking, tenancy, scheduling; tests ship with every change (`docs/engineering/TESTING.md`) | CI required checks on `main`; feature Test plans; cross-agent review |
+| **Quality** | Test pyramid; e2e for booking, tenancy, scheduling; tests ship with every change (`docs/engineering/TESTING.md`) | Deterministic CI checks on `main`; feature Test plans; local review checklist |
 | **Documentation** | Feature docs + registry updated in the same PR | PR checklist (WORKFLOW.md) |
 
 ---
@@ -669,9 +669,9 @@ flowchart TB
 | R5 | **Hold spam blocks classes** | L | M | Rate limits; hold caps per email; Turnstile | M5 |
 | R6 | **Single pilot = single point of failure and bias** | M | H | Recruit 1–2 "friendly" extra trainers/gyms during the pilot to sanity-check findings before 2.0 | M10 |
 | R7 | **Scope creep** from pilot requests during the build | H | M | Requests go to a 1.1 backlog unless they block a success criterion; roadmap changelog | All |
-| R8 | **AI-agent drift:** inconsistent patterns, duplicated logic, or plausible-but-wrong code across Claude and Codex | M | H | `AGENTS.md` rules + ADRs; strict CI; small PRs; mandatory cross-agent review; owner approval at every gate; business logic only in `packages/domain` | All |
+| R8 | **AI-agent drift:** inconsistent patterns, duplicated logic, or plausible-but-wrong code across Claude and Codex | M | H | `AGENTS.md` rules + ADRs; deterministic CI; small PRs; local review checklist; optional local second-agent review; owner approval at every gate; business logic only in `packages/domain` | All |
 | R9 | **Native doubles the UI work; iOS and Android drift apart** | H | M | Generated API clients, strings and tokens; parity checklist; shared Maestro flows; parallel tracks | M8, 1.2 |
-| R10 | **LLM Dutch reads unnatural or inconsistent** and hurts trust | M | M | Glossary + tone guide; LLM review on every string PR; the pilot owner flags oddities; fix quickly | All |
+| R10 | **LLM Dutch reads unnatural or inconsistent** and hurts trust | M | M | Glossary + tone guide; local copy review before pushing string changes; the pilot owner flags oddities; fix quickly | All |
 | R11 | **Health data in notes (GDPR special category)** | M | H | Trainer-only default; access audit log; DPIA assessment; EU residency; processor agreement | M0, M7, M9 |
 | R12 | **Weak gym connectivity** breaks live logging | M | M | Offline-tolerant logging API + local queue from M7; full offline in 1.1 | M7, M8 |
 | R13 | **Pilot data import is messier than expected** | H | M | M0: the gym owner describes the Excel structure (no files); go-live data entered by hand or imported from a template the gym owner fills in; import dry-runs in M9 | M0, M9 |
@@ -692,7 +692,7 @@ flowchart TB
 | 2 | Team and capacity | **Built by AI agents (Claude Code + Codex)**; no human-capacity timeline; sequence- and gate-based plan |
 | 3 | Stack (ADRs) | **Native iOS (Swift/SwiftUI) + native Android (Kotlin/Compose)**; the rest as recommended; API switched to REST + OpenAPI because of native |
 | 4 | Hosting and budget | **Free tiers until real clients**; upgrades at G4 (§12) |
-| 5 | Dutch copy review | **LLM review** with a glossary and tone guide |
+| 5 | Dutch copy review | **Local review** with a glossary and tone guide; an LLM may assist locally, without a GitHub review job |
 | 6 | Owner alpha on web at M4 | **Yes:** the owner runs the real timetable in parallel with Excel from Gate G2 |
 | 7 | Repository visibility | **Private**, with path-filtered iOS CI and local Xcode builds to stay within free CI minutes |
 
@@ -725,3 +725,4 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-09-22 | 1.1 | Owner decisions applied: built by AI agents (no human-capacity timeline; sequence/gate-based with parallel tracks); **native iOS + Android** instead of React Native/Expo; API → REST + OpenAPI with generated clients; i18n exported to native catalogs; **free-tier-first cost plan**; Dutch review by LLM with glossary; Apple/Google accounts deferred to M8; name "Trainer Hub". Added E018, R14, R15. |
 | 2026-09-22 | 1.2 | **Approved.** Owner alpha at M4: yes. Repository: private. Billing model, AI provider and client-app shape are decided iteratively at their entry gates. |
 | 2026-09-22 | 1.3 | ADRs 001–015 written up in [`docs/decisions/`](../decisions/README.md) and linked from §4.3. **ADR-011 (hosting) revised and accepted:** the owner already pays for Railway Hobby, and Vercel Hobby is non-commercial only. Everything runs on Railway EU West (Amsterdam): Hobby during the build → Pro at G4. Vercel and Neon are dropped. §4.5, M1, M9, §11 and §12, E003 in `FEATURES.md`, `WORKFLOW.md §5` and `TESTING.md §5.3` updated to match. |
+| 2026-09-22 | 1.4 | Owner removed Claude/Codex review from the GitHub PR and CI/CD flow. Authors review locally before pushing; a second local agent is optional. Deterministic CI checks remain. Updated `WORKFLOW.md`, `TESTING.md` and `GLOSSARY.md` to match. |
