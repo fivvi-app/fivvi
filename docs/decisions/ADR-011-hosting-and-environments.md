@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | **Proposed** (re-evaluation, awaiting the owner's decision) |
+| **Status** | Accepted (2026-09-22), by the owner in PR #3 after re-evaluation |
 | **Date** | 2026-09-22 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
-| **Supersedes (if accepted)** | The accepted 2026-09-22 choice "Vercel Hobby (web + API) + Neon free (Postgres, Frankfurt)", `ROADMAP.md` v1.2 §4.3 |
+| **Replaces** | The earlier 2026-09-22 choice "Vercel Hobby (web + API) + Neon free (Postgres, Frankfurt)", `ROADMAP.md` v1.2 §4.3 |
 | **Related** | PRODUCT.md §75, §79; ROADMAP.md §2 (principles 7, 9), M1, M9, §11, §12, §13 (R14); ADR-002, ADR-004, ADR-005, ADR-006, ADR-010, ADR-013; E003, E004, E012, E016 |
 
 ## Context
@@ -76,9 +76,9 @@ What the host must provide:
 
 Option D (Cloudflare Workers) allows commercial use on the free tier, but running Next.js there needs the OpenNext adapter, Node-compatibility work for Better Auth and the Postgres driver, and Hyperdrive for DB connections. That is a lot of platform risk for the M1 walking skeleton, so it's not recommended now.
 
-## Decision (proposed)
+## Decision
 
-**Option B: host everything on Railway, in the EU West (Amsterdam) region.**
+**Option B: host everything on Railway, in the EU West (Amsterdam) region.** Vercel and Neon are not used.
 
 - **Production:** one Railway project with:
   - `web`: the Next.js app, including the Hono API (ADR-002/004), built as a standalone Node server (Dockerfile or Railpack);
@@ -91,7 +91,7 @@ Option D (Cloudflare Workers) allows commercial use on the free tier, but runnin
 
 ### Conditions to verify in the M1 spike (E003)
 
-The recommendation holds only if these are true. If one fails, fall back to Option A (with Vercel Pro from G4):
+The decision assumes these hold. If one fails, stop and bring it to the owner. Option A (Vercel Pro + Neon) is the documented fallback, but switching to it needs a new ADR that supersedes this one:
 
 1. PR environments give each PR its own Postgres service that can be migrated and seeded automatically, and the cost of 3–4 open PRs stays within a few dollars a month (use Railway's service sleeping for idle previews if needed).
 2. Scheduled Postgres backups and a restore into a scratch service work on the plan we are on at G4 (E016 restore drill).
@@ -108,13 +108,14 @@ The recommendation holds only if these are true. If one fails, fall back to Opti
 - **Negative:** no global CDN or Vercel preview comments. Previews are a bit slower to come up (a full service build per PR).
 - **Negative:** Hobby has community support only and 7-day logs; fine during the build, not for the pilot (hence Pro at G4).
 - **Negative:** it's not strictly "€0 until G4": the build runs on a plan the owner already pays, and heavy preview usage could go above the $5 credit.
-- **Follow-ups if accepted:** update E003, the M1 environments note, the M9 restore drill ("Neon branch" → Railway scratch service), `ROADMAP.md §4.5` accounts, and the `WORKFLOW.md §5` cleanup item about Neon preview branches.
+- **Applied with this decision:** E003, the M1 environments note, the M9 restore drill (Railway scratch service instead of a Neon branch), `ROADMAP.md §4.5` accounts, `WORKFLOW.md §5` cleanup and `TESTING.md §5.3` were updated in the same PR.
+- **Follow-ups:** the M1 spike (E003) checks the conditions above; sign Railway's DPA and add Railway to the sub-processor list before G4 (`ROADMAP.md §4.4`).
 
 ## Alternatives considered
 
-| Option | Why not recommended |
+| Option | Why not |
 |---|---|
-| **A. Vercel Hobby + Neon Free → Vercel Pro + Neon Launch at G4** (the v1.2 decision) | Viable and lowest-ops, with the best preview DX. But it costs ≈ $20–40/month from G4, splits data across two US processors, has Neon Free cold starts and a 6-hour restore window, and Vercel Hobby's commercial-use clause is already a grey area while building a commercial product. **This is the fallback if the M1 spike fails.** |
+| **A. Vercel Hobby + Neon Free → Vercel Pro + Neon Launch at G4** (the v1.2 decision) | Viable and lowest-ops, with the best preview DX. But it costs ≈ $20–40/month from G4, splits data across two US processors, has Neon Free cold starts and a 6-hour restore window, and Vercel Hobby's commercial-use clause is already a grey area while building a commercial product. It remains the documented fallback if the M1 spike fails (via a new ADR). |
 | **C. Vercel + Railway Postgres** | Highest cost (two paid plans), DB traffic over the public internet between Frankfurt and Amsterdam, most moving parts |
 | **D. Cloudflare Workers** | Commercial use allowed for free, but Next.js + Better Auth + Postgres on Workers adds adapter and compatibility risk to the walking skeleton |
 | **Railway Hobby in production after G4** | Probably allowed by the current ToS, but Railway recommends Pro for commercial apps, and Hobby lacks support, has 7-day logs and may lack backups. Not worth the risk for real client and health data |

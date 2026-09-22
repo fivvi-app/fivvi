@@ -18,13 +18,13 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [008](ADR-008-localization.md) | Localization: ICU catalogs in `packages/i18n`, exported to native catalogs | Accepted |
 | [009](ADR-009-transactional-email.md) | Transactional email: React Email + a free-tier provider | Accepted |
 | [010](ADR-010-background-jobs.md) | Background jobs: lazy expiry + daily cron, no job runner | Accepted |
-| [011](ADR-011-hosting-and-environments.md) | Hosting & environments: Railway EU West (Amsterdam) for web, API, Postgres and cron | **Proposed** (re-evaluation of the accepted Vercel + Neon choice) |
+| [011](ADR-011-hosting-and-environments.md) | Hosting & environments: Railway EU West (Amsterdam) for web, API, Postgres and cron | Accepted (re-evaluated; replaces Vercel + Neon) |
 | [012](ADR-012-time-and-recurrence.md) | Time & recurrence: UTC `timestamptz` + IANA zones, RRULE in wall-clock time, materialized occurrences | Accepted |
 | [013](ADR-013-observability.md) | Observability: Sentry EU, uptime checks, PostHog EU cookieless | Accepted |
 | [014](ADR-014-testing.md) | Testing: Vitest, Playwright, XCTest, JUnit/Compose, Maestro | Accepted |
 | [015](ADR-015-ui-foundation.md) | UI foundation: shared design tokens, native UI per platform | Accepted |
 
-ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
+ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. ADR-011 was re-evaluated during the write-up and accepted in its new form (Railway) the same day. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
 
 ## Statuses
 

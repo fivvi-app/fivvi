@@ -128,7 +128,7 @@ These are not user-facing, so they don't need NL/EN columns. They still go throu
 |---|---|---|---|---|
 | E001 | Monorepo & tooling | PLANNED | M1 | pnpm, Turborepo, TS strict, ESLint, Prettier; `apps/ios` (Xcode) and `apps/android` (Gradle) in the same repo (ADR-001) |
 | E002 | CI pipeline | PLANNED | M1 | Lint, typecheck, test, build, required checks on `main`; path-filtered iOS jobs (free macOS minutes) |
-| E003 | Environments & deployment | PLANNED | M1 | local, preview (Vercel + Neon branch), production; EU; free tiers (ADR-011) |
+| E003 | Environments & deployment | PLANNED | M1 | local, preview (Railway PR environment with seeded Postgres), production (Railway EU West, Amsterdam); cron service (ADR-011) |
 | E004 | Database, ORM & migrations | PLANNED | M1 | Postgres + Drizzle, seed data (ADR-005) |
 | E005 | i18n package, native export & guardrails | PLANNED | M1 | ICU catalogs, typed keys, exporters → `.xcstrings` / `strings.xml`, parity check, no-literal-string lint (web + native), `GLOSSARY.md` (ADR-008) |
 | E006 | Email infrastructure | PLANNED | M1 | Free-tier provider, React Email, preview; domain + SPF/DKIM/DMARC before M5 (ADR-009) |
