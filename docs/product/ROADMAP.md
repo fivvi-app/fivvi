@@ -233,9 +233,12 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 
 ### 4.5 Accounts and setup (free-first)
 
-- [ ] **Name:** Trainer Hub (working name). **Domain:** decided later. Buy one before M5 (see §12), because email deliverability and deep links need it.
-- [ ] GitHub repository (private) + branch protection on `main`.
-- [ ] Accounts: Railway (Hobby, already paid; EU West Amsterdam, ADR-011), Brevo (account created), plus free tiers for Sentry, PostHog and the uptime monitor (EU regions).
+- [x] **Working name:** Trainer Hub.
+- [ ] **Domain:** decide and buy one before M5 (see §12), because email deliverability and deep links need it.
+- [x] GitHub repository is private.
+- [ ] Branch protection on `main`: GitHub reports this unavailable on the current private-repository plan; revisit the plan or repository visibility before enabling it.
+- [x] Accounts: Railway Hobby (already paid; EU West Amsterdam, ADR-011) and Brevo (account created).
+- [ ] Create the free-tier Sentry, PostHog and uptime-monitor accounts in EU regions where available.
 - [ ] **Apple Developer Program and Google Play Console: deferred to M8.** During development, use Xcode's free on-device provisioning and Android debug builds. Enroll as an *individual* for the pilot to avoid the D-U-N-S wait (§12).
 
 ### 4.6 M0 exit criteria (Gate G0)
