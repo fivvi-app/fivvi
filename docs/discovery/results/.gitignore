@@ -1,0 +1,21 @@
+# Safety net: source files and exports with personal data never go into git.
+# Only typed-up, anonymised Markdown results belong here (see ../README.md).
+*.xlsx
+*.xls
+*.xlsm
+*.ods
+*.numbers
+*.csv
+*.tsv
+*.ics
+*.vcf
+*.zip
+*.7z
+*.dmg
+*.sparseimage
+# Photos and scans of filled-in paper forms: type the results up instead.
+*.jpg
+*.jpeg
+*.png
+*.heic
+*.pdf
