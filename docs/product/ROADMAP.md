@@ -168,8 +168,10 @@ Size is relative complexity (S / M / L / XL), not a duration.
 
 ### 4.1 Pilot discovery
 
+Run it with the printable kit in [`docs/discovery/`](../discovery/README.md) (shadow day, baseline, phone inventory, import checklist, metric targets, prototype validation).
+
 - [ ] **Shadow day** with the pilot owner: observe a real day of scheduling, booking, logging and notes.
-- [ ] Collect **real artefacts**: current Excel sheets, calendar exports, note formats, the weekly class timetable.
+- [ ] Understand the **real artefacts**: current Excel sheets, calendar, note formats, the weekly class timetable. The gym owner describes them; files are only shared if they choose to.
 - [ ] Inventory: number of trainers, clients, recurring classes, Open Gym demand, and private sessions per week.
 - [ ] Inventory **which phones the trainers use** (iOS vs Android split, OS versions). This sets the minimum OS versions (ADR-003).
 - [ ] **Measure the baseline:** hours per week spent on admin, number of tools used, booking method, no-show rate. This is what M10 success is compared against.
@@ -672,7 +674,7 @@ flowchart TB
 | R10 | **LLM Dutch reads unnatural or inconsistent** and hurts trust | M | M | Glossary + tone guide; LLM review on every string PR; the pilot owner flags oddities; fix quickly | All |
 | R11 | **Health data in notes (GDPR special category)** | M | H | Trainer-only default; access audit log; DPIA assessment; EU residency; processor agreement | M0, M7, M9 |
 | R12 | **Weak gym connectivity** breaks live logging | M | M | Offline-tolerant logging API + local queue from M7; full offline in 1.1 | M7, M8 |
-| R13 | **Pilot data import is messier than expected** | H | M | Get real Excel files in M0; import dry-runs in M9 | M0, M9 |
+| R13 | **Pilot data import is messier than expected** | H | M | M0: the gym owner describes the Excel structure (no files); go-live data entered by hand or imported from a template the gym owner fills in; import dry-runs in M9 | M0, M9 |
 | R14 | **A free-tier limit bites at the worst moment** (email cap blocks magic links; DB cold starts slow booking; CI minutes run out) | M | H | Know the limits (§12); usage alerts; upgrade path ready before G4 | M1, M9, M10 |
 | R15 | **No over-the-air updates for native apps**, so pilot fixes are slower | M | M | Keep business rules server-side; TestFlight/internal builds are fast to ship; feature flags from the API for risky features | M8, M10 |
 
