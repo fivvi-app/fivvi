@@ -41,6 +41,7 @@ git push -u origin feature/F031-open-gym-booking
 ```
 
 - Worktrees live in `.worktrees/<slug>` (git-ignored). The slug is the branch name without the type prefix.
+- Write the feature doc's **Test plan** before implementing, and put the local test results in the PR description (`TESTING.md`).
 - Update the feature doc and the `FEATURES.md` status **in the same PR**.
 - An API change regenerates `packages/contract` (OpenAPI + TS/Swift/Kotlin clients) in the same PR.
 - A string change edits only `packages/i18n/*.json` and regenerates the native catalogs in the same PR.
@@ -51,7 +52,7 @@ git push -u origin feature/F031-open-gym-booking
 - **One agent per worktree.** Two agents never share a worktree or a branch.
 - **Parallel work limit:** at most 3–4 open worktrees at once, to limit merge conflicts and review load.
 - **Before starting, an agent reads:** `AGENTS.md`, the relevant feature spec in `docs/features/`, and the relevant ADRs.
-- **Cross-review:** every PR is reviewed by the *other* agent (Claude-written → Codex reviews; Codex-written → Claude reviews) for correctness, tenant isolation, i18n and parity. Findings are fixed before the owner's review.
+- **Cross-review:** every PR is reviewed by the *other* agent (Claude-written → Codex reviews; Codex-written → Claude reviews) for correctness, tenant isolation, i18n, parity and test quality (`TESTING.md §9`). Findings are fixed before the owner's review.
 - **Small PRs:** one feature or one platform slice per PR. Split anything that touches backend + iOS + Android heavily into contract PR → platform PRs.
 - **No silent contract breaks:** after a contract freeze (end of M4, end of M7), API changes are additive only.
 - **Agents never** push to `main`, force-push shared branches, commit secrets, or edit generated files by hand.
@@ -91,7 +92,7 @@ From `PRODUCT.md §86`, extended for native apps. A user-facing feature is **not
 - [ ] Relevant emails exist in nl-NL and en
 - [ ] No hard-coded user-facing strings (CI enforced)
 - [ ] Generated contract and string catalogs are up to date (CI enforced)
-- [ ] Tests cover the acceptance criteria (e2e runs in both locales for user flows)
+- [ ] Tests cover the acceptance criteria per the feature's Test plan and the checklist in [`TESTING.md §3`](TESTING.md) (e2e runs in both locales for user flows)
 - [ ] Cross-agent review done
 - [ ] Feature documentation updated
 - [ ] Feature registry status updated

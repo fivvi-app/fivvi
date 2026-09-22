@@ -46,8 +46,16 @@ What pain does this solve, and for whom?
 
 ## Acceptance criteria
 
-- [ ] Given …, when …, then … (**NL**)
-- [ ] Given …, when …, then … (**EN**)
+- [ ] **AC1:** Given …, when …, then … (**NL**)
+- [ ] **AC2:** Given …, when …, then … (**EN**)
+
+## Test plan
+
+Written before implementation. Every acceptance criterion maps to at least one test (`docs/engineering/TESTING.md §6`).
+
+| AC | Layer | Test |
+|---|---|---|
+| AC1 (NL/EN) | Playwright / Maestro / API integration / Domain unit | `path/to/file` → `AC1: …` |
 
 ## Implementation references
 

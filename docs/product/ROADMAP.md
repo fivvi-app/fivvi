@@ -576,7 +576,7 @@ These run continuously from M1 onward. They are not phases.
 | **Privacy (AVG/GDPR)** | Minimal data (name + email for booking); trainer-only notes by default; EU residency; export and deletion; retention; processor agreements | Definition of Done checklist for any feature touching personal data |
 | **Accessibility** | WCAG 2.2 AA on public and client web; Dynamic Type, VoiceOver/TalkBack and contrast on native | axe checks in web e2e; native accessibility audits at M9 |
 | **Observability** | Errors, logs, uptime, crash-free rate; **product events captured from MVP** (bookings, attendance, logging) so 3.2 analytics has history | E009; event list maintained in `docs/engineering/` |
-| **Quality** | Test pyramid; e2e for booking, tenancy, scheduling | CI required checks on `main`; cross-agent review |
+| **Quality** | Test pyramid; e2e for booking, tenancy, scheduling; tests ship with every change (`docs/engineering/TESTING.md`) | CI required checks on `main`; feature Test plans; cross-agent review |
 | **Documentation** | Feature docs + registry updated in the same PR | PR checklist (WORKFLOW.md) |
 
 ---
