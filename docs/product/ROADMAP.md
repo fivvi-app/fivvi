@@ -217,6 +217,8 @@ Each decision gets a short ADR in `docs/decisions/`. All ADRs are accepted by th
 
 *This is not legal advice. Before go-live, have the result checked (at least an LLM-assisted review against AVG/GDPR guidance; ideally a privacy professional once there is revenue).*
 
+**Drafts (v0.1):** [`docs/legal/`](../legal/README.md). The boxes below get ticked once the owner has answered the [open questions](../legal/open-questions.md) and the review is done.
+
 - [ ] **Role mapping:** each workspace (gym/trainer) is the *controller* of its client data; the platform is the *processor*.
 - [ ] **Processor agreement (verwerkersovereenkomst)** template, signed with the pilot gym before real data is imported.
 - [ ] Sub-processor list (hosting, DB, email, error tracking, analytics), each with its region and DPA.
