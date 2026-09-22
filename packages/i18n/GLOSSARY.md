@@ -2,7 +2,7 @@
 
 This is the **single terminology source** for every user-facing string on every surface: trainer web, iOS, Android, public booking, client web and email. Humans and LLM translators both use it. If a string and this glossary disagree, the string is wrong.
 
-- **Status:** v0.1, started in M0 (`ROADMAP.md §4.2`). Terms marked ⚠️ still need to be validated with the pilot owner (see [§8 Open questions](#8-open-questions-validate-with-the-pilot-owner)).
+- **Status:** v0.2, started in M0 (`ROADMAP.md §4.2`). Terms marked ⚠️ still need to be validated with the pilot owner (see [§8 Open questions](#8-open-questions-validate-with-the-pilot-owner)).
 - **Scope:** UI strings, emails, notifications, validation messages, empty states, public booking pages and QR posters. Legal documents (privacy policy, terms, verwerkersovereenkomst) follow their own register and are out of scope.
 - **Catalogs:** `packages/i18n/nl-NL.json` and `packages/i18n/en.json` (ICU MessageFormat, ADR-008). Native catalogs (`.xcstrings`, `strings.xml`) are generated from them and are never edited by hand.
 - **Precedence:** `PRODUCT.md` owns requirements. This file owns terminology, tone and copy style. Where it deliberately differs from example copy in `PRODUCT.md`, [§7](#7-deviations-from-productmd-example-copy) lists why.
@@ -95,7 +95,7 @@ Timestamps are stored in UTC. Render them in the **workspace timezone** (default
 
 - **Always format with the platform formatter** (`Intl.DateTimeFormat`/next-intl on web, `FormatStyle`/`DateFormatter` on iOS, `java.time` `DateTimeFormatter` on Android) with an explicit locale and timezone. Never build date strings by hand or hard-code month/weekday names in the catalog.
 - **Pass formatted values into placeholders.** Until E005 decides otherwise, format dates, times and numbers in code and pass the result as a plain `{date}` / `{time}` argument. ICU `{d, date, …}` skeletons don't survive export to `.xcstrings`/`strings.xml` reliably.
-- **Formatting locale for English is `en-GB`**, not `en`/`en-US`. Our English users are in the Netherlands and expect day-month order and 24-hour time. The catalog locale stays `en`.
+- **Formatting locale for English is `en-GB`**, not `en`/`en-US` (owner decision, 2026-09-22). Our English users are in the Netherlands and expect day-month order and 24-hour time. The catalog locale stays `en`; E005 maps it to `en-GB` for formatting.
 - **24-hour time in both languages.** No AM/PM, and no "uur" after the time in UI labels.
 - **Weeks start on Monday** in both languages.
 - **Avoid numeric-only dates** (`22-9-2026`) in UI. They're ambiguous for English readers.
@@ -447,7 +447,7 @@ Follow this whenever you add or change a key in `packages/i18n/nl-NL.json` or `e
 
 ## 7. Deviations from PRODUCT.md example copy
 
-`PRODUCT.md` contains example UI copy. Where this glossary differs, the glossary wins for strings, for these reasons:
+`PRODUCT.md` contains example UI copy. Where this glossary differs, the glossary wins for strings. The owner approved these deviations on 2026-09-22:
 
 | PRODUCT.md | Glossary | Why |
 |---|---|---|
@@ -465,7 +465,6 @@ These terms are the best current choice. Confirm them in the M0 wireframe review
 2. **private session → privésessie.** Dutch trainers often say *PT-sessie*. Check which word the pilot gym uses with its clients.
 3. **workout template → trainingsschema.** Trainers say *schema*. Confirm it isn't confused with the timetable (*rooster*).
 4. **substitution → vervanger.** *Invaller* is also common in Dutch sport. Pick the one the pilot trainers use.
-5. **English formatting and spelling → en-GB.** A recommendation for E005 to implement. Overturn it if the pilot has US-English users.
 
 ---
 
@@ -474,3 +473,4 @@ These terms are the best current choice. Confirm them in the M0 wireframe review
 | Date | Version | Change |
 |---|---|---|
 | 2026-09-22 | 0.1 | First version (M0, `ROADMAP.md §4.2`): tone rules (informal "je"), capitalization, date/time/number formats, term table for the MVP domain, UI verb and message conventions, agent workflow. |
+| 2026-09-22 | 0.2 | Owner approved: en-GB formatting and spelling for English, sentence case in both languages (§7). ⚠️ terms stay open until the M0 wireframe review. |
