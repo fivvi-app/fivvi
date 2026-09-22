@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.next/
+.turbo/
+.expo/
+coverage/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Local git worktrees (one per branch, see docs/engineering/WORKFLOW.md)
+.worktrees/
+
+# Local tooling
+.claude/settings.local.json
+.DS_Store
+*.log
