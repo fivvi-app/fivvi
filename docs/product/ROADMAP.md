@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.3 |
+| **Version** | 1.5 |
 | **Date** | 22 September 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
 | **Builders** | AI coding agents: Claude Code + Codex, working in parallel worktrees |
-| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3 |
+| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5 |
 | **Requirements source** | [`PRODUCT.md`](PRODUCT.md) (what we build and why) |
 | **Feature registry** | [`FEATURES.md`](FEATURES.md) (status of every feature) |
 | **Engineering workflow** | [`../engineering/WORKFLOW.md`](../engineering/WORKFLOW.md) (branches, worktrees, reviews, cleanup, Definition of Done) |
@@ -42,7 +42,7 @@
 
 **First customer:** A pilot gym owner who is also a PT and works with other trainers. Today they run on Excel, a separate calendar, notes and manual booking.
 
-**How it is built:** AI coding agents (Claude Code and Codex) implement the work in parallel, one branch and worktree per change. They review each other's PRs. The product owner approves each milestone gate. The plan is therefore **sequence- and gate-based, not date-based**: a milestone is done when its exit criteria pass, not when a calendar date arrives.
+**How it is built:** AI coding agents (Claude Code and Codex) implement the work in parallel, one branch and worktree per change. They review their changes locally before pushing; another agent may help locally when useful. The product owner approves each milestone gate. The plan is therefore **sequence- and gate-based, not date-based**: a milestone is done when its exit criteria pass, not when a calendar date arrives.
 
 **Strategy in horizons:**
 
@@ -68,7 +68,7 @@ These principles govern *how* we deliver. The product principles in `PRODUCT.md 
 5. **Walking skeleton first.** Web, iOS, Android, API, database, email and CI are all connected in M1, before any feature work.
 6. **Pilot evidence beats opinion.** After MVP, a release is scoped only from observed pilot usage, and each post-MVP release has an entry gate.
 7. **Security and privacy by default.** Notes can contain health information. Least-privilege access, trainer-only by default, EU data residency and a processor agreement with every workspace.
-8. **Agents build, the owner decides.** Agents work in small, reviewable PRs, one per worktree. They cross-review each other's work, and every gate needs the owner's approval. Rules for agents live in `AGENTS.md`, which both Claude and Codex read.
+8. **Agents build, the owner decides.** Agents work in small, reviewable PRs, one per worktree. Agent review is local and is not a GitHub PR or CI gate. Every milestone gate needs the owner's approval. Rules for agents live in `AGENTS.md`, which both Claude and Codex read.
 9. **Free-tier first.** Every service starts on a free plan. Moving to a paid plan is triggered by real clients (Gate G4) or a hard limit, never by convenience (§12).
 10. **Documentation is part of the change.** The feature doc and the `FEATURES.md` status are updated in the same PR as the code.
 11. **One change, one branch, one worktree. Clean up afterwards.** See `WORKFLOW.md`.
@@ -180,15 +180,15 @@ Run it with the printable kit in [`docs/discovery/`](../discovery/README.md) (sh
 
 ### 4.2 UX design
 
-- [ ] Information architecture for trainer web, iOS/Android trainer apps, public booking and client web.
-- [ ] Wireframes for the **6 critical flows**, **written in Dutch first**:
+- [x] Draft [information architecture](../design/information-architecture.md) for trainer web, iOS/Android trainer apps, public booking and client web; pending pilot validation.
+- [x] Draft [wireframes for the 6 critical flows](../design/README.md), **written in Dutch first**; pending pilot validation:
   1. Public booking on a phone (QR → class → name/email → verify → confirmed → optional account)
   2. Trainer "Today" on mobile
   3. Workspace calendar on web (owner view)
   4. Create / reschedule a private session (with location inference)
   5. Live workout logging with previous values
   6. Manage a class occurrence (substitution, cancellation, attendance)
-- [ ] The mobile flows follow **platform conventions**: iOS Human Interface Guidelines and Android Material 3. Same flow and content, native look on each.
+- [x] The [mobile flow drafts](../design/README.md) specify **platform conventions**: iOS Human Interface Guidelines and Android Material 3, with the same flow and content; pending prototype validation on both platforms.
 - [ ] Clickable prototype validated with the pilot owner and at least 1 other trainer.
 - [ ] Visual direction and **design tokens** (colour, type, spacing) as a single source that exports to web CSS, Swift and Kotlin (ADR-015).
 - [x] Start the **Dutch terminology glossary** (`packages/i18n/GLOSSARY.md`), e.g. Klanten, Lessen, Boekingslinks, Aanwezig, Niet verschenen. It keeps LLM translations consistent.
@@ -207,7 +207,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 | [006](../decisions/ADR-006-tenant-isolation.md) | Tenant isolation | **Org-scoped data-access layer + Postgres RLS as defence in depth + automated cross-tenant tests** | Accepted | Per spec §77; two independent barriers against data leaks |
 | [007](../decisions/ADR-007-authentication.md) | Authentication | **Better Auth** (organization/member/invitation plugins + email magic link **and** 6-digit email code; bearer tokens for native apps) | Accepted | Our own tables and our own localized emails. The 6-digit code lets native apps sign in without needing Universal/App Links on day one, and it survives email link scanners. *Spike in M1: native bearer-token flow* |
 | [008](../decisions/ADR-008-localization.md) | Localization | **One source of truth:** ICU MessageFormat catalogs in `packages/i18n` (`nl-NL.json`, `en.json`). Web uses next-intl. A generator **exports the catalogs to iOS String Catalogs (`.xcstrings`) and Android `strings.xml`/plurals**. Emails use the same catalogs | Accepted | One set of keys and translations for three platforms; CI checks parity on the source and on the generated files |
-| [009](../decisions/ADR-009-transactional-email.md) | Transactional email | **React Email templates + a free-tier provider** (Resend or Brevo; Brevo is EU-based) | Accepted | One template structure with localized strings (§74); free tier covers pilot volume |
+| [009](../decisions/ADR-009-transactional-email.md) | Transactional email | **React Email templates + Brevo** (owner account created; free tier initially) | Accepted (provider selected) | One template structure with localized strings (§74); E006 checks delivery, DPA and send limits |
 | [010](../decisions/ADR-010-background-jobs.md) | Background jobs | **Avoid needing a job runner:** holds expire *lazily* (`expires_at` is checked when capacity is read) and a daily cron cleans up; emails are sent inline with retry; recurrence is materialized by a daily cron plus on-demand at edit time | Accepted | Works within free-tier cron limits; add a queue (e.g. Inngest free tier) only if needed |
 | [011](../decisions/ADR-011-hosting-and-environments.md) | Hosting & environments | All on **Railway, EU West (Amsterdam)**: Next.js web + API, Postgres and a cron service in one project; a PR environment per PR. Hobby (already paid) during the build → **Pro ($20/month) at G4**. *Replaces v1.2: Vercel Hobby + Neon free* | Accepted (revised in v1.3) | Vercel Hobby is non-commercial only, so G4 needs a paid plan anyway. Railway keeps app and DB in one EU location with one DPA, no DB cold starts, and costs a flat $20/month at pilot volume vs ≈ $20–40 for Vercel Pro + Neon |
 | [012](../decisions/ADR-012-time-and-recurrence.md) | Time & recurrence model | **UTC `timestamptz` + IANA timezone on workspace/location; recurrence as RRULE in local wall-clock time; occurrences materialized as rows for a rolling horizon (e.g. 12 weeks)** | Accepted | "Every Tuesday 18:00" must stay 18:00 across daylight-saving changes; each occurrence needs its own trainer, capacity and bookings (§20) |
@@ -219,18 +219,26 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 
 *This is not legal advice. Before go-live, have the result checked (at least an LLM-assisted review against AVG/GDPR guidance; ideally a privacy professional once there is revenue).*
 
-- [ ] **Role mapping:** each workspace (gym/trainer) is the *controller* of its client data; the platform is the *processor*.
-- [ ] **Processor agreement (verwerkersovereenkomst)** template, signed with the pilot gym before real data is imported.
-- [ ] Sub-processor list (hosting, DB, email, error tracking, analytics), each with its region and DPA.
-- [ ] Assess whether a **DPIA** is needed, because free-form notes may contain health data (special-category data).
-- [ ] Privacy policy and terms in **NL and EN**.
-- [ ] Data retention policy (guest bookings, expired holds, deleted clients).
+**Drafts (v0.1):** [`docs/legal/`](../legal/README.md). Drafting is complete; the agreements and public texts remain subject to the [open questions](../legal/open-questions.md) and the checks below.
+
+- [x] **Role mapping drafted:** each workspace (gym/trainer) is the *controller* of its client data; the platform is the *processor* for that data.
+- [x] **Processor agreement (verwerkersovereenkomst) template drafted** in Dutch with an English translation.
+- [x] **Sub-processor list drafted** for Railway, Brevo, error tracking, bot protection and analytics, with regions and DPA links.
+- [x] **Initial DPIA screening drafted** for the MVP and pilot, because free-form notes may contain health data (special-category data).
+- [x] **Privacy policy and terms drafted** in **NL and EN**.
+- [x] **Data retention policy drafted** for guest bookings, expired holds, deleted clients and backups.
+- [ ] Complete the remaining legal-entity details and review the agreement and public texts before signing or publishing them.
+- [ ] Confirm Railway's signed DPA before real data enters at G2; resolve its special-category-data scope before health notes at M7.
+- [ ] Sign the processor agreement with the pilot gym before real personal data enters at G2; complete the pilot gym's DPIA assessment before G4.
 
 ### 4.5 Accounts and setup (free-first)
 
-- [ ] **Name:** Trainer Hub (working name). **Domain:** decided later. Buy one before M5 (see §12), because email deliverability and deep links need it.
-- [ ] GitHub repository (private) + branch protection on `main`.
-- [ ] Accounts: Railway (Hobby, already paid; EU West Amsterdam, ADR-011), plus free tiers for the email provider, Sentry, PostHog and the uptime monitor (EU regions).
+- [x] **Working name:** Trainer Hub.
+- [ ] **Domain:** decide and buy one before M5 (see §12), because email deliverability and deep links need it.
+- [x] GitHub repository is private.
+- [ ] Branch protection on `main`: GitHub reports this unavailable on the current private-repository plan; revisit the plan or repository visibility before enabling it.
+- [x] Accounts: Railway Hobby (already paid; EU West Amsterdam, ADR-011) and Brevo (account created).
+- [ ] Create the free-tier Sentry, PostHog and uptime-monitor accounts in EU regions where available.
 - [ ] **Apple Developer Program and Google Play Console: deferred to M8.** During development, use Xcode's free on-device provisioning and Android debug builds. Enroll as an *individual* for the pilot to avoid the D-U-N-S wait (§12).
 
 ### 4.6 M0 exit criteria (Gate G0)
@@ -432,9 +440,9 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 **Scope:** E014 Privacy tooling (export, deletion, retention), E015 Data import tooling, E016 Backups, restore drill and runbooks, plus the checklist below.
 
 **Launch checklist**
-- [ ] Security review (cross-agent + owner sign-off): authn/authz on every route, tenant isolation suite green, rate limits, security headers, secrets rotation, dependency audit, native secure storage for tokens (Keychain / EncryptedSharedPreferences or DataStore).
+- [ ] Local security review + owner sign-off: authn/authz on every route, tenant isolation suite green, rate limits, security headers, secrets rotation, dependency audit, native secure storage for tokens (Keychain / EncryptedSharedPreferences or DataStore).
 - [ ] Privacy: data export and deletion work per client and per workspace (§79); retention jobs run; processor agreement signed.
-- [ ] **Full bilingual QA pass:** an LLM review of every string against the glossary and tone guide, on web, iOS, Android and email. Dates/times checked (`22 september 2026`, 24h, Europe/Amsterdam). The pilot owner flags anything that reads oddly.
+- [ ] **Full bilingual QA pass:** review every string locally against the glossary and tone guide, on web, iOS, Android and email. Dates/times checked (`22 september 2026`, 24h, Europe/Amsterdam). The pilot owner flags anything that reads oddly.
 - [ ] Accessibility: public booking and client web meet WCAG 2.2 AA. Native apps support Dynamic Type / font scaling, VoiceOver / TalkBack labels, and have sufficient contrast.
 - [ ] Performance: public page budget met; calendar loads a busy week quickly.
 - [ ] Backups verified by an **actual restore** to a scratch Postgres service on Railway.
@@ -455,7 +463,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - **Contract freezes are the sync points:** the mobile-facing contract freezes at the end of M4 (scheduling) and at the end of M7 (logging/notes). Any later contract change comes as a versioned, additive change with regenerated clients, never a silent break.
 - **The real bottleneck is review and integration, not typing.** To keep it moving:
   - Keep PRs small (one feature or sub-feature each).
-  - Each PR is cross-reviewed by the other agent (Claude ↔ Codex) before the owner sees it.
+  - The author completes the local review checklist before pushing. A second agent can review locally when useful; no agent review is required on GitHub.
   - At most **3–4 open worktrees at once**, to limit merge conflicts and review load.
 - **Scope levers, in order, if a gate is at risk:** F036 (Open Gym suggestions) → a minimal version of F033 client web → the size of the exercise library baseline. **Never cut:** bilingual, tenant isolation, booking capacity correctness, iOS/Android parity, privacy basics.
 
@@ -571,14 +579,14 @@ These run continuously from M1 onward. They are not phases.
 
 | Track | Standard | Enforced by |
 |---|---|---|
-| **Localization** | Every string is a key in `packages/i18n`; nl-NL and en always in parity; ICU plurals; generated `.xcstrings` / `strings.xml` never edited by hand; dates/times via the platform's locale APIs with the workspace/user timezone; user content never auto-translated | CI checks (E005); per-locale e2e on all platforms; **LLM translation review** on every PR that touches strings, against `GLOSSARY.md` and the tone guide (informal "je", friendly and short) |
+| **Localization** | Every string is a key in `packages/i18n`; nl-NL and en always in parity; ICU plurals; generated `.xcstrings` / `strings.xml` never edited by hand; dates/times via the platform's locale APIs with the workspace/user timezone; user content never auto-translated | CI checks (E005); per-locale e2e on all platforms; **local copy review** before pushing string changes against `GLOSSARY.md` and the tone guide (informal "je", friendly and short) |
 | **Platform parity** | Every mobile feature exists on iOS and Android, in both languages, before it counts as done | Parity checklist in PRs; shared Maestro flows |
 | **API contract** | All clients use generated clients; changes are additive and versioned after a freeze | OpenAPI drift check in CI |
-| **Security** | Least privilege; tenant isolation; hashed single-use tokens; rate limits; secure token storage on devices; dependency updates | E011 suite in CI; cross-agent security review at M9 and before each major release |
+| **Security** | Least privilege; tenant isolation; hashed single-use tokens; rate limits; secure token storage on devices; dependency updates | E011 suite in CI; local security review at M9 and before each major release |
 | **Privacy (AVG/GDPR)** | Minimal data (name + email for booking); trainer-only notes by default; EU residency; export and deletion; retention; processor agreements | Definition of Done checklist for any feature touching personal data |
 | **Accessibility** | WCAG 2.2 AA on public and client web; Dynamic Type, VoiceOver/TalkBack and contrast on native | axe checks in web e2e; native accessibility audits at M9 |
 | **Observability** | Errors, logs, uptime, crash-free rate; **product events captured from MVP** (bookings, attendance, logging) so 3.2 analytics has history | E009; event list maintained in `docs/engineering/` |
-| **Quality** | Test pyramid; e2e for booking, tenancy, scheduling; tests ship with every change (`docs/engineering/TESTING.md`) | CI required checks on `main`; feature Test plans; cross-agent review |
+| **Quality** | Test pyramid; e2e for booking, tenancy, scheduling; tests ship with every change (`docs/engineering/TESTING.md`) | Deterministic CI checks on `main`; feature Test plans; local review checklist |
 | **Documentation** | Feature docs + registry updated in the same PR | PR checklist (WORKFLOW.md) |
 
 ---
@@ -643,7 +651,7 @@ flowchart TB
 |---|---|---|---|
 | Web + API hosting, cron, previews | Railway Hobby, EU West (Amsterdam): **already paid by the owner** ($5/month incl. $5 usage) | Usage above the $5 credit is billed (watch PR environments); community support only; 7-day logs | **G4 → Railway Pro**, $20/month incl. $20 usage (≈ $5–10 expected usage at pilot volume) |
 | Database | Railway Postgres in the same project (EU West, Amsterdam) | Hobby: 5 GB volume; backup/PITR availability per plan to verify in M1 | Covered by Railway Pro at G4; storage $0.15/GB-month |
-| Email | Resend free or Brevo free | Daily/monthly send caps; one domain | Send volume near the cap → paid tier |
+| Email | Brevo free (account created) | Daily/monthly send caps; domain authentication | Send volume near the cap → paid tier |
 | Domain | Not needed until M5 (use the provider's test sending and `*.up.railway.app` before then) | — | **Before M5:** buy the domain (~€10–15/year), the first small cost |
 | Errors / crashes | Sentry free (EU) | Event quota, 1 user | Quota hit → paid |
 | Product analytics | PostHog free (EU, cookieless) | Event quota | Quota hit → paid |
@@ -669,9 +677,9 @@ flowchart TB
 | R5 | **Hold spam blocks classes** | L | M | Rate limits; hold caps per email; Turnstile | M5 |
 | R6 | **Single pilot = single point of failure and bias** | M | H | Recruit 1–2 "friendly" extra trainers/gyms during the pilot to sanity-check findings before 2.0 | M10 |
 | R7 | **Scope creep** from pilot requests during the build | H | M | Requests go to a 1.1 backlog unless they block a success criterion; roadmap changelog | All |
-| R8 | **AI-agent drift:** inconsistent patterns, duplicated logic, or plausible-but-wrong code across Claude and Codex | M | H | `AGENTS.md` rules + ADRs; strict CI; small PRs; mandatory cross-agent review; owner approval at every gate; business logic only in `packages/domain` | All |
+| R8 | **AI-agent drift:** inconsistent patterns, duplicated logic, or plausible-but-wrong code across Claude and Codex | M | H | `AGENTS.md` rules + ADRs; deterministic CI; small PRs; local review checklist; optional local second-agent review; owner approval at every gate; business logic only in `packages/domain` | All |
 | R9 | **Native doubles the UI work; iOS and Android drift apart** | H | M | Generated API clients, strings and tokens; parity checklist; shared Maestro flows; parallel tracks | M8, 1.2 |
-| R10 | **LLM Dutch reads unnatural or inconsistent** and hurts trust | M | M | Glossary + tone guide; LLM review on every string PR; the pilot owner flags oddities; fix quickly | All |
+| R10 | **LLM Dutch reads unnatural or inconsistent** and hurts trust | M | M | Glossary + tone guide; local copy review before pushing string changes; the pilot owner flags oddities; fix quickly | All |
 | R11 | **Health data in notes (GDPR special category)** | M | H | Trainer-only default; access audit log; DPIA assessment; EU residency; processor agreement | M0, M7, M9 |
 | R12 | **Weak gym connectivity** breaks live logging | M | M | Offline-tolerant logging API + local queue from M7; full offline in 1.1 | M7, M8 |
 | R13 | **Pilot data import is messier than expected** | H | M | M0: the gym owner describes the Excel structure (no files); go-live data entered by hand or imported from a template the gym owner fills in; import dry-runs in M9 | M0, M9 |
@@ -692,7 +700,7 @@ flowchart TB
 | 2 | Team and capacity | **Built by AI agents (Claude Code + Codex)**; no human-capacity timeline; sequence- and gate-based plan |
 | 3 | Stack (ADRs) | **Native iOS (Swift/SwiftUI) + native Android (Kotlin/Compose)**; the rest as recommended; API switched to REST + OpenAPI because of native |
 | 4 | Hosting and budget | **Free tiers until real clients**; upgrades at G4 (§12) |
-| 5 | Dutch copy review | **LLM review** with a glossary and tone guide |
+| 5 | Dutch copy review | **Local review** with a glossary and tone guide; an LLM may assist locally, without a GitHub review job |
 | 6 | Owner alpha on web at M4 | **Yes:** the owner runs the real timetable in parallel with Excel from Gate G2 |
 | 7 | Repository visibility | **Private**, with path-filtered iOS CI and local Xcode builds to stay within free CI minutes |
 
@@ -725,3 +733,5 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-09-22 | 1.1 | Owner decisions applied: built by AI agents (no human-capacity timeline; sequence/gate-based with parallel tracks); **native iOS + Android** instead of React Native/Expo; API → REST + OpenAPI with generated clients; i18n exported to native catalogs; **free-tier-first cost plan**; Dutch review by LLM with glossary; Apple/Google accounts deferred to M8; name "Trainer Hub". Added E018, R14, R15. |
 | 2026-09-22 | 1.2 | **Approved.** Owner alpha at M4: yes. Repository: private. Billing model, AI provider and client-app shape are decided iteratively at their entry gates. |
 | 2026-09-22 | 1.3 | ADRs 001–015 written up in [`docs/decisions/`](../decisions/README.md) and linked from §4.3. **ADR-011 (hosting) revised and accepted:** the owner already pays for Railway Hobby, and Vercel Hobby is non-commercial only. Everything runs on Railway EU West (Amsterdam): Hobby during the build → Pro at G4. Vercel and Neon are dropped. §4.5, M1, M9, §11 and §12, E003 in `FEATURES.md`, `WORKFLOW.md §5` and `TESTING.md §5.3` updated to match. |
+| 2026-09-22 | 1.4 | Owner removed Claude/Codex review from the GitHub PR and CI/CD flow. Authors review locally before pushing; a second local agent is optional. Deterministic CI checks remain. Updated `WORKFLOW.md`, `TESTING.md` and `GLOSSARY.md` to match. |
+| 2026-09-22 | 1.5 | **Brevo selected** for transactional email (ADR-009; owner account created). M0 §4.4 legal drafts completed and checked off separately from signing, DPA execution and publication. Drafts synchronized with Railway hosting and Postgres, including the DPA checks before real data. Release 2.0 DPIA need will be reassessed at its entry gate. |

@@ -131,7 +131,7 @@ These are not user-facing, so they don't need NL/EN columns. They still go throu
 | E003 | Environments & deployment | PLANNED | M1 | local, preview (Railway PR environment with seeded Postgres), production (Railway EU West, Amsterdam); cron service (ADR-011) |
 | E004 | Database, ORM & migrations | PLANNED | M1 | Postgres + Drizzle, seed data (ADR-005) |
 | E005 | i18n package, native export & guardrails | PLANNED | M1 | ICU catalogs, typed keys, exporters → `.xcstrings` / `strings.xml`, parity check, no-literal-string lint (web + native), `GLOSSARY.md` (ADR-008) |
-| E006 | Email infrastructure | PLANNED | M1 | Free-tier provider, React Email, preview; domain + SPF/DKIM/DMARC before M5 (ADR-009) |
+| E006 | Email infrastructure | PLANNED | M1 | Brevo, React Email, preview; verify DPA and delivery; domain + SPF/DKIM/DMARC before M5 (ADR-009) |
 | E007 | Design tokens & UI foundation | PLANNED | M1 | M0 draft in `docs/design/tokens.draft.json` and `visual-direction.md`; M1 adopts it with Style Dictionary → CSS / Swift / Kotlin and web kit (Tailwind + shadcn/ui) (ADR-015) |
 | E008 | Native app shells | PLANNED | M1 | iOS (Swift + SwiftUI) and Android (Kotlin + Compose) with generated API client + strings wired (ADR-003) |
 | E009 | Observability | PLANNED | M1 | Sentry (web/iOS/Android/API), uptime, PostHog EU cookieless events; free tiers (ADR-013) |
