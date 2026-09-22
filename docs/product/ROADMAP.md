@@ -219,14 +219,17 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 
 *This is not legal advice. Before go-live, have the result checked (at least an LLM-assisted review against AVG/GDPR guidance; ideally a privacy professional once there is revenue).*
 
-**Drafts (v0.1):** [`docs/legal/`](../legal/README.md). The boxes below get ticked once the owner has answered the [open questions](../legal/open-questions.md) and the review is done.
+**Drafts (v0.1):** [`docs/legal/`](../legal/README.md). Drafting is complete; the agreements and public texts remain subject to the [open questions](../legal/open-questions.md) and the checks below.
 
-- [ ] **Role mapping:** each workspace (gym/trainer) is the *controller* of its client data; the platform is the *processor*.
-- [ ] **Processor agreement (verwerkersovereenkomst)** template, signed with the pilot gym before real data is imported.
-- [ ] Sub-processor list (hosting, DB, email, error tracking, analytics), each with its region and DPA.
-- [ ] Assess whether a **DPIA** is needed, because free-form notes may contain health data (special-category data).
-- [ ] Privacy policy and terms in **NL and EN**.
-- [ ] Data retention policy (guest bookings, expired holds, deleted clients).
+- [x] **Role mapping drafted:** each workspace (gym/trainer) is the *controller* of its client data; the platform is the *processor* for that data.
+- [x] **Processor agreement (verwerkersovereenkomst) template drafted** in Dutch with an English translation.
+- [x] **Sub-processor list drafted** for Railway, Brevo, error tracking, bot protection and analytics, with regions and DPA links.
+- [x] **Initial DPIA screening drafted** for the MVP and pilot, because free-form notes may contain health data (special-category data).
+- [x] **Privacy policy and terms drafted** in **NL and EN**.
+- [x] **Data retention policy drafted** for guest bookings, expired holds, deleted clients and backups.
+- [ ] Complete the remaining legal-entity details and review the agreement and public texts before signing or publishing them.
+- [ ] Confirm Railway's signed DPA before real data enters at G2; resolve its special-category-data scope before health notes at M7.
+- [ ] Sign the processor agreement with the pilot gym before real personal data enters at G2; complete the pilot gym's DPIA assessment before G4.
 
 ### 4.5 Accounts and setup (free-first)
 
@@ -728,4 +731,4 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-09-22 | 1.2 | **Approved.** Owner alpha at M4: yes. Repository: private. Billing model, AI provider and client-app shape are decided iteratively at their entry gates. |
 | 2026-09-22 | 1.3 | ADRs 001–015 written up in [`docs/decisions/`](../decisions/README.md) and linked from §4.3. **ADR-011 (hosting) revised and accepted:** the owner already pays for Railway Hobby, and Vercel Hobby is non-commercial only. Everything runs on Railway EU West (Amsterdam): Hobby during the build → Pro at G4. Vercel and Neon are dropped. §4.5, M1, M9, §11 and §12, E003 in `FEATURES.md`, `WORKFLOW.md §5` and `TESTING.md §5.3` updated to match. |
 | 2026-09-22 | 1.4 | Owner removed Claude/Codex review from the GitHub PR and CI/CD flow. Authors review locally before pushing; a second local agent is optional. Deterministic CI checks remain. Updated `WORKFLOW.md`, `TESTING.md` and `GLOSSARY.md` to match. |
-| 2026-09-22 | 1.5 | **Brevo selected** for transactional email (ADR-009; owner account created). Legal drafts synchronized with Railway hosting and Postgres, including the DPA checks before real data. Release 2.0 DPIA need will be reassessed at its entry gate. |
+| 2026-09-22 | 1.5 | **Brevo selected** for transactional email (ADR-009; owner account created). M0 §4.4 legal drafts completed and checked off separately from signing, DPA execution and publication. Drafts synchronized with Railway hosting and Postgres, including the DPA checks before real data. Release 2.0 DPIA need will be reassessed at its entry gate. |

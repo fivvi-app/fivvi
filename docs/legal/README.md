@@ -10,6 +10,8 @@
 | **Datum / Date** | 22 september 2026 |
 | **Eigenaar / Owner** | Keyvan Mahmoudi |
 | **Roadmap** | M0, §4.4 Legal and privacy preparation |
+| **Status** | Drafts complete; signatures, provider checks and publication remain open / Concepten afgerond; ondertekening, controles bij aanbieders en publicatie staan nog open |
+| **Pull request** | [#5 — Legal and privacy drafts](https://github.com/thekeyvan/trainer-hub/pull/5) |
 
 ## Documenten / Documents
 
