@@ -25,6 +25,8 @@ Low-fidelity UX for the MVP (roadmap task **M0 / §4.2**). Everything here is wr
 | [flows/06-class-occurrence.md](flows/06-class-occurrence.md) | Manage a class occurrence: substitution, cancellation, attendance |
 | [open-questions.md](open-questions.md) | Questions to validate with the pilot owner, plus spec gaps for the product owner |
 
+The [clickable prototype](prototype/README.md) implements the six flows for M0 validation. The [visual direction](visual-direction.md) and [draft tokens](tokens.draft.json) are inputs to E007 in M1.
+
 ## How to read the flow documents
 
 Every flow document uses the same structure:
@@ -87,5 +89,5 @@ Wireframes are deliberately rough. They show **content, hierarchy and actions**,
 
 1. Walk the pilot owner through the six flows and [open-questions.md](open-questions.md) (ideally during the shadow day, `ROADMAP.md §4.1`).
 2. Record the answers in `open-questions.md`, update the affected screens, and move the resolved terms into `GLOSSARY.md`.
-3. The clickable-prototype task builds on these screen IDs and copy.
+3. Test the [clickable prototype](prototype/README.md) with the pilot owner and another trainer using the [validation script](../discovery/prototype-validation-script.md).
 4. Each feature doc (`docs/features/F0xx-*.md`) links the screens it implements under **UX** (see [`_TEMPLATE.md`](../features/_TEMPLATE.md)).

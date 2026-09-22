@@ -8,7 +8,7 @@ const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
 const { chromium } = require('playwright');
 
-const url = pathToFileURL(resolve(__dirname, 'index.html')).href;
+const url = process.env.PROTO_URL || pathToFileURL(resolve(__dirname, 'index.html')).href;
 let browser;
 async function pageFor(flow, viewport = { width: 390, height: 844 }) {
   browser ||= await chromium.launch(process.env.CHROME_BIN
