@@ -16,7 +16,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [006](ADR-006-tenant-isolation.md) | Tenant isolation: org-scoped data layer + Postgres RLS + cross-tenant tests | Accepted |
 | [007](ADR-007-authentication.md) | Authentication: Better Auth with magic link + 6-digit code, bearer tokens for native | Accepted |
 | [008](ADR-008-localization.md) | Localization: ICU catalogs in `packages/i18n`, exported to native catalogs | Accepted |
-| [009](ADR-009-transactional-email.md) | Transactional email: React Email + a free-tier provider | Accepted |
+| [009](ADR-009-transactional-email.md) | Transactional email: React Email + Brevo | Accepted; provider selected |
 | [010](ADR-010-background-jobs.md) | Background jobs: lazy expiry + daily cron, no job runner | Accepted |
 | [011](ADR-011-hosting-and-environments.md) | Hosting & environments: Railway EU West (Amsterdam) for web, API, Postgres and cron | Accepted (re-evaluated; replaces Vercel + Neon) |
 | [012](ADR-012-time-and-recurrence.md) | Time & recurrence: UTC `timestamptz` + IANA zones, RRULE in wall-clock time, materialized occurrences | Accepted |
