@@ -168,6 +168,8 @@ Size is relative complexity (S / M / L / XL), not a duration.
 
 ### 4.1 Pilot discovery
 
+Run it with the printable kit in [`docs/discovery/`](../discovery/README.md) (shadow day, baseline, phone inventory, import checklist, metric targets, prototype validation).
+
 - [ ] **Shadow day** with the pilot owner: observe a real day of scheduling, booking, logging and notes.
 - [ ] Collect **real artefacts**: current Excel sheets, calendar exports, note formats, the weekly class timetable.
 - [ ] Inventory: number of trainers, clients, recurring classes, Open Gym demand, and private sessions per week.
