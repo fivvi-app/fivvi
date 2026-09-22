@@ -139,6 +139,12 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
 - Done when: the participant points out a free time slot.
 - Observe: [ ] filters on their own schedule · [ ] sees sessions at other locations.
 
+**Task 3.3** Voeg in de agenda een eenmalige groepsles **[Strength Express]** toe en plan daarna **Open Gym** voor een ander vrij uur.\
+*Add a one-off [Strength Express] group class in the calendar, then schedule Open Gym for another free hour.*
+
+- Done when: both appear in the owner calendar with the intended time and capacity.
+- Observe: [ ] finds both under *+ Nieuw* · [ ] understands a group class needs a trainer while Open Gym does not · [ ] understands that group class and Open Gym publishing is an owner/admin action under the current permission model.
+
 **Follow-up:** *Mis je iets wat je nu wel in je Excel of agenda ziet?*\
 *Is anything missing that you do see in your Excel or calendar today?*
 
@@ -163,10 +169,10 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
 
 ### Flow 5 — Live workout logging with previous values
 
-*Start: the trainer app, the session with [Sanne], workout assigned. Hold the phone as you would in the gym, ideally standing up.*
+*Start: the trainer app, the session with [Mark], workout assigned. Hold the phone as you would in the gym, ideally standing up.*
 
-**Task 5.1** Je bent met [Sanne] in de gym. De eerste oefening is **bankdrukken**. Vorige keer deed ze **60 kg × 8**. Vandaag doet ze **3 sets van 62,5 kg × 8**, en de **laatste set was zwaar**. Houd dat bij.\
-*You're in the gym with [Sanne]. The first exercise is the bench press. Last time she did 60 kg × 8. Today she does 3 sets of 62.5 kg × 8, and the last set was hard. Log it.*
+**Task 5.1** Je bent met [Mark] in de gym. De eerste oefening is **bankdrukken**. Vorige keer deed hij **60 kg × 8**. Vandaag doet hij **3 sets van 62,5 kg × 8**, en de **laatste set was zwaar**. Houd dat bij.\
+*You're in the gym with [Mark]. The first exercise is the bench press. Last time he did 60 kg × 8. Today he does 3 sets of 62.5 kg × 8, and the last set was hard. Log it.*
 
 - Done when: 3 sets are logged at 62.5 kg × 8, with the last one marked **Zwaar** (hard).
 - Observe:
@@ -177,16 +183,25 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
   - [ ] Finds the difficulty options (Makkelijk / Normaal / Zwaar).
   - [ ] Time per set: ____ s (it should fit between sets).
 
-**Task 5.2** Voeg bij deze training een notitie toe: **"Volgende keer zelfde gewicht."**\
-*Add a note to this session: "Same weight next time."*
+**Task 5.2** Voeg voor jezelf en de andere trainers een interne notitie toe: **"Volgende keer zelfde gewicht."** Rond de training af.\
+*Add an internal note for yourself and the other trainers: "Same weight next time." Finish the workout.*
 
-- Done when: the note is saved on the session.
-- Observe: [ ] session note vs client note · [ ] notices the visibility (trainer-only by default).
+- Done when: the workout is saved, attendance is set, and the internal note appears only on the trainer's session view.
+- Observe: [ ] recognizes the note is for trainers · [ ] does not expect it to be sent to the client on finishing.
 
-**Task 5.3** De training is klaar. Rond de training af.\
-*The session is over. Finish it.*
+**Task 5.3** Stuur [Mark] nu de training met het bericht **"Goed gewerkt vandaag!"**. Bekijk daarna de e-mail en zijn profiel.\
+*Now send [Mark] the workout with the message "Great work today!" Check the email and his profile afterwards.*
 
-- Done when: the session is finished, and attendance is set if the prototype asks for it.
+- Done when: the trainer reviews and shares the workout, the message appears in both previews, and the internal note appears in neither.
+- Observe: [ ] finds the separate client message · [ ] notices the review step · [ ] trusts that the internal note is excluded · [ ] understands the email language follows the client preference.
+
+**Task 5.4** Stel dat je de training eerst alleen had opgeslagen. Zoek waar je hem later alsnog met [Mark] kunt delen.\
+*Suppose you saved the workout without sharing it. Find where you can share it with [Mark] later.*
+
+*Facilitator: reset flow 5, finish the sample workout again, and choose “Nu niet delen” before reading this task.*
+
+- Done when: the participant finds *Training delen met klant* from the finished session.
+- Observe: [ ] understands that saving and sharing are separate actions.
 
 **Follow-up:** *Zou je dit tussen de sets door echt zo doen? Wat zou je anders willen?*\
 *Would you really do this between sets? What would you want to be different?*
@@ -250,11 +265,13 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
 | 2.3 | | | | | |
 | 3.1 | | | | | |
 | 3.2 | | | | | |
+| 3.3 | | | | | |
 | 4.1 | | | | | |
 | 4.2 | | | | | |
 | 5.1 | | | | | |
 | 5.2 | | | | | |
 | 5.3 | | | | | |
+| 5.4 | | | | | |
 | 6.1 | | | | | |
 | 6.2 | | | | | |
 | 6.3 | | | | | |
