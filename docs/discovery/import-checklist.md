@@ -9,9 +9,8 @@
 ## 1. Before anything is shared
 
 - [ ] **Roles are clear.** The gym is the *controller* of its client data. The platform (you) is the *processor* (`ROADMAP.md §4.4`).
-- [ ] **No real client data changes hands until the processor agreement (*verwerkersovereenkomst*) is signed.** Until then:
-  - you look at real files **on the gym owner's screen only**, and
-  - you receive only **pseudonymised samples**: the header row plus at most 5 rows, with names replaced by `Klant 001`, `Klant 002`…, email addresses by `klant001@example.com`, phone numbers removed, and note or comment text replaced by `[tekst]`.
+- [ ] **No files are needed in M0.** Don't ask for the gym owner's Excel or client lists. Ask them to *describe* what they keep ([`quick-questions.md`](quick-questions.md) question 16, or the walkthrough questions in §3). If they offer to show something, look at it **on their screen only**.
+- [ ] **No real client data changes hands until the processor agreement (*verwerkersovereenkomst*) is signed**, and even then only if the gym owner chooses the import route in §2.
 - [ ] **Only data the gym controls.** Trainers' own independent clients (outside the gym) belong to a separate workspace (`PRODUCT.md §5, §11`). They are not part of this import.
 
 ---
@@ -20,12 +19,18 @@
 
 | When | What | Output |
 |---|---|---|
-| **M0 (now)** | Agree the scope (§3) and the format (§4). Receive pseudonymised samples of every source file | `results/import-plan.md`; samples stored per §6 (never in git) |
-| **M9** | Dry-run the importer against a **copy** of the real data in a scratch database (`ROADMAP.md §5 M9`) | Dry-run report: counts and errors only |
-| **Pilot week 0** | Final export by the gym owner → data-quality check (§5) → import → the gym owner checks it | Import done; freeze window closed |
-| **Go-live + 30 days** | Delete source files and intermediate files (§6) | Deletion date recorded in `results/import-plan.md` |
+| **M0 (now)** | Agree the scope (§3) from the gym owner's description. No files | `results/import-plan.md` (or the D answers in `results/quick-questions.md`) |
+| **M9** | Choose how the data gets in (below). Only for a file route: dry-run the importer against a copy in a scratch database (`ROADMAP.md §5 M9`) | Route chosen; dry-run report (counts and errors only) if applicable |
+| **Pilot week 0** | Data entered by hand, or final template/export → data-quality check (§5) → import. Then the gym owner checks it | Data in; freeze window closed |
+| **Go-live + 30 days** | File route only: delete source files and intermediate files (§6) | Deletion date recorded in `results/import-plan.md` |
 
-**Freeze window:** between the final export and the gym owner's "import looks right", changes in the old system are written on a list and entered in the platform by hand afterwards. Agree how long it lasts: ____ days.
+**How the data gets in at go-live** (decide in M9, not now):
+
+- ☐ **Entered by hand** during onboarding (week 0). Works for small numbers: clients, the weekly timetable and a few weeks of sessions. No file ever changes hands.
+- ☐ **The gym owner fills in the template** (§4) from their own Excel and hands it over, after the processor agreement is signed.
+- ☐ **The gym owner uploads the file themselves** with the importer (E015), so nobody else sees it. Only if E015 supports self-service upload.
+
+**Freeze window:** between the final export (or the start of entry by hand) and the gym owner's "import looks right", changes in the old system are written on a list and entered in the platform by hand afterwards. Agree how long it lasts: ____ days.
 
 ---
 
@@ -180,7 +185,7 @@ Not part of the §4.1 list. Notes can contain **health data** (special-category 
 - **Emails:** one per cell, no spaces.
 - **Fixed values** (weekday, language, status, location type, difficulty) exactly as listed in §3.
 - One `client_key` per client, used the same way in every sheet.
-- For the **M0 samples** only, the gym owner's original files are fine as they are (pseudonymised, §1). Seeing the real, messy structure is the point (R13).
+- The format only matters if the data is imported from a file (see "How the data gets in" in §2). It doesn't matter for entry by hand.
 
 ---
 
@@ -212,7 +217,7 @@ Not part of the §4.1 list. Notes can contain **health data** (special-category 
 | **Never in git** | Not in the repository, not in `docs/discovery/results/`, not pseudonymised. `results/.gitignore` blocks spreadsheet, CSV and calendar/contact export formats as a safety net. |
 | **Never in AI context** | Don't open real or pseudonymised source files in Claude Code or Codex, and don't paste rows into a prompt. Agents build and test the importer (E015) against **synthetic fixtures** with the same columns. You run the M9 dry-run yourself and review its output yourself. Only counts and error types go into a PR or an issue. |
 | **Databases** | The dry-run uses a scratch database (e.g. a Neon branch), which is deleted right after the dry-run. The real import only goes into production, in week 0. |
-| **Retention** | Delete source files, samples, cleaned exports and any logs with personal data **within 30 days after go-live**, once the gym owner confirms the import is correct. Record the date in `results/import-plan.md`. |
+| **Retention** | Delete source files, cleaned exports and any logs with personal data **within 30 days after go-live**, once the gym owner confirms the import is correct. Record the date in `results/import-plan.md`. |
 | **Informing clients** | Telling clients that their data moves to the new system is the gym's job as controller (privacy notice). The platform's NL/EN privacy policy (§4.4) supports this. |
 | **Requests** | If a client objects or asks for deletion before the import, remove them from the source. After the import, use the platform's deletion (E014). |
 
@@ -222,17 +227,17 @@ Not part of the §4.1 list. Notes can contain **health data** (special-category 
 
 No client data in this table. Counts and decisions only.
 
-| Item | Import? | Scope / horizon | Source (tool, no file contents) | Exported by | Sample received (date) | Notes |
-|---|---|---|---|---|---|---|
-| Locations | | | | | | |
-| Trainers | | | | | | |
-| Clients | | ≈ ___ clients | | | | |
-| Class schedule | | ≈ ___ classes/week | | | | |
-| Future private sessions | | ___ weeks | | | | |
-| Future class bookings | | ___ weeks | | | | |
-| Open Gym slots | | | | | | |
-| Workout history | | | | | | |
-| Client notes | | | | | | |
+| Item | Import? | Scope / horizon | Source (tool, no file contents) | By hand / file | Notes |
+|---|---|---|---|---|---|
+| Locations | | | | | |
+| Trainers | | | | | |
+| Clients | | ≈ ___ clients | | | |
+| Class schedule | | ≈ ___ classes/week | | | |
+| Future private sessions | | ___ weeks | | | |
+| Future class bookings | | ___ weeks | | | |
+| Open Gym slots | | | | | |
+| Workout history | | | | | |
+| Client notes | | | | | |
 
 - Emails on import: ☐ none ☐ confirmations
 - Freeze window: ____ days

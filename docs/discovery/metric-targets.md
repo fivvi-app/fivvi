@@ -2,7 +2,7 @@
 
 **Purpose:** agree the MVP success targets with the gym owner (`ROADMAP.md §4.1`, `§8`). Three targets are marked ⚑ in the roadmap and **must** get a number here. The others are defaults that the gym owner confirms or adjusts. At the pilot review (Gate G5, `§7`) the pilot is judged against these targets.
 
-**When:** after the [baseline](baseline-sheet.md) is complete, because most targets are set relative to it. Takes about 30 minutes with the gym owner.
+**When:** after the [baseline](baseline-sheet.md) or the [quick questions](quick-questions.md) (questions 19–22 already cover Part A) are done, because most targets are set relative to it. Takes about 30 minutes with the gym owner.
 
 **You** = the product owner. **Gym owner** = the pilot gym's owner.
 
@@ -61,7 +61,7 @@
 | **Metric** | Gym owner's admin hours per week, **MVP scope** (codes P–O; excludes invoices, payroll and marketing, see [admin-time scope](baseline-sheet.md#admin-time-scope)) |
 | **Baseline** (A2.1) | ______ h/week (diary week: ______) |
 | **Roadmap default** | e.g. −50 % |
-| **Measured in the pilot** | **The same 7-day diary** ([baseline sheet Part B](baseline-sheet.md#part-b--7-day-admin-diary)), repeated by the gym owner in **pilot week 5**. Same categories, same rules |
+| **Measured in the pilot** | The same method as the baseline: if the baseline was the quick-questions estimate (question 9), ask that question again. If it was the diary, **the same 7-day diary** ([baseline sheet Part B](baseline-sheet.md#part-b--7-day-admin-diary)), repeated by the gym owner in **pilot week 5**. Same categories, same rules |
 | **Measured when** | Pilot week 5; reported at G5 |
 
 **Vraag:** Je besteedt nu ongeveer ____ uur per week aan planning, boekingen, trainingen bijhouden en notities. Hoeveel uur zou het na de overstap moeten zijn om het de moeite waard te vinden? Wat ga je met die tijd doen?\

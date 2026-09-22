@@ -18,7 +18,7 @@
 - [ ] Pick a **typical, busy day**, preferably one that has private sessions, at least one group class and an evening block. Avoid holiday weeks.
 - [ ] The gym owner has told the trainers working that day that you will be there.
 - [ ] Before each private session, the trainer asks the client whether you may watch. If the client says no, you wait outside and only note start and end times.
-- [ ] Agree that you will **not photograph screens or paper that show client data**. If an artefact matters, ask for a pseudonymised copy later ([`import-checklist.md` §1](import-checklist.md#1-before-anything-is-shared)).
+- [ ] Agree that you will **not photograph screens or paper that show client data**. Don't ask for files; if something matters, ask the gym owner to describe it ([`import-checklist.md` §1](import-checklist.md#1-before-anything-is-shared)).
 - [ ] Bring the printed timing log (§4), this guide, [`phone-inventory.md`](phone-inventory.md) forms, a stopwatch and spare paper.
 - [ ] Book 45 minutes with the gym owner **after** the day (or the next morning) for the interview (§5).
 
@@ -56,7 +56,7 @@ Look for:
 - [ ] Whether the gym owner has an overview of **all trainers' schedules** in one place, and whether trainers have one overview across several workplaces.
 - [ ] Double bookings, clashes, or "wait, where am I at 10?" moments.
 
-Artefacts to ask for (pseudonymised later): the weekly class timetable, a week of the calendar, the Excel planning sheet (column headers are enough).
+Things to ask the gym owner to describe (no files): the weekly class timetable, what a week in the calendar looks like, what columns the Excel planning sheet has.
 
 ### B — Booking / Boekingen
 
@@ -371,10 +371,10 @@ Fill in during or after the interview. Numbers only, no names. Copy these values
 | Locations used (types, `PRODUCT.md §12`) | | |
 | Clients preferring English (estimate) | | |
 
-**Artefacts requested** (as pseudonymised copies; see [`import-checklist.md`](import-checklist.md)):
+**Described by the gym owner** (no files needed; tick what you now understand, see [`import-checklist.md`](import-checklist.md)):
 
 - [ ] Weekly class timetable
-- [ ] Excel planning and client sheets (structure + a few pseudonymised rows)
-- [ ] Calendar export or a screenshot of one week, names covered
-- [ ] Example of a workout log / programme (pseudonymised)
-- [ ] Example of note formats (pseudonymised, no health content)
+- [ ] Excel planning and client sheets (which columns)
+- [ ] How the calendar is used (one shared calendar or one per trainer)
+- [ ] How a workout log / programme looks
+- [ ] What kinds of notes are kept (no content)
