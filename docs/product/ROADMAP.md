@@ -180,15 +180,15 @@ Run it with the printable kit in [`docs/discovery/`](../discovery/README.md) (sh
 
 ### 4.2 UX design
 
-- [ ] Information architecture for trainer web, iOS/Android trainer apps, public booking and client web.
-- [ ] Wireframes for the **6 critical flows**, **written in Dutch first**:
+- [x] Draft [information architecture](../design/information-architecture.md) for trainer web, iOS/Android trainer apps, public booking and client web; pending pilot validation.
+- [x] Draft [wireframes for the 6 critical flows](../design/README.md), **written in Dutch first**; pending pilot validation:
   1. Public booking on a phone (QR → class → name/email → verify → confirmed → optional account)
   2. Trainer "Today" on mobile
   3. Workspace calendar on web (owner view)
   4. Create / reschedule a private session (with location inference)
   5. Live workout logging with previous values
   6. Manage a class occurrence (substitution, cancellation, attendance)
-- [ ] The mobile flows follow **platform conventions**: iOS Human Interface Guidelines and Android Material 3. Same flow and content, native look on each.
+- [x] The [mobile flow drafts](../design/README.md) specify **platform conventions**: iOS Human Interface Guidelines and Android Material 3, with the same flow and content; pending prototype validation on both platforms.
 - [ ] Clickable prototype validated with the pilot owner and at least 1 other trainer.
 - [ ] Visual direction and **design tokens** (colour, type, spacing) as a single source that exports to web CSS, Swift and Kotlin (ADR-015).
 - [x] Start the **Dutch terminology glossary** (`packages/i18n/GLOSSARY.md`), e.g. Klanten, Lessen, Boekingslinks, Aanwezig, Niet verschenen. It keeps LLM translations consistent.
