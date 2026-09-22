@@ -45,14 +45,15 @@ git push -u origin feature/F031-open-gym-booking
 - Update the feature doc and the `FEATURES.md` status **in the same PR**.
 - An API change regenerates `packages/contract` (OpenAPI + TS/Swift/Kotlin clients) in the same PR.
 - A string change edits only `packages/i18n/*.json` and regenerates the native catalogs in the same PR.
-- Merge strategy: **squash merge** into `main` after CI is green, the cross-review is done, and the owner approves.
+- Merge strategy: **squash merge** into `main` after the applicable deterministic CI checks are green and the owner approves. Agent review happens locally before the PR and is not a GitHub merge requirement.
 
 ## 4. Working with AI agents
 
 - **One agent per worktree.** Two agents never share a worktree or a branch.
 - **Parallel work limit:** at most 3–4 open worktrees at once, to limit merge conflicts and review load.
 - **Before starting, an agent reads:** `AGENTS.md`, the relevant feature spec in `docs/features/`, and the relevant ADRs.
-- **Cross-review:** every PR is reviewed by the *other* agent (Claude-written → Codex reviews; Codex-written → Claude reviews) for correctness, tenant isolation, i18n, parity and test quality (`TESTING.md §9`). Findings are fixed before the owner's review.
+- **Local review:** before pushing, the author checks correctness, tenant isolation, i18n, platform parity and test quality (`TESTING.md §9`). A second agent may review locally when useful, but it is optional. Fix findings on the branch before the PR.
+- **No agent review in GitHub CI/CD:** do not add Claude or Codex review jobs, bot PR reviewers, required agent-review status checks or required cross-agent approvals. GitHub CI is for deterministic checks such as tests, lint, generated-file drift and security scans.
 - **Small PRs:** one feature or one platform slice per PR. Split anything that touches backend + iOS + Android heavily into contract PR → platform PRs.
 - **No silent contract breaks:** after a contract freeze (end of M4, end of M7), API changes are additive only.
 - **Agents never** push to `main`, force-push shared branches, commit secrets, or edit generated files by hand.
@@ -86,14 +87,14 @@ From `PRODUCT.md §86`, extended for native apps. A user-facing feature is **not
 - [ ] iOS **and** Android behaviour works where required (parity: same screens and states on both)
 - [ ] Permissions are correct (Owner / Admin / Trainer / Client)
 - [ ] Tenant isolation holds (covered by the isolation suite)
-- [ ] Dutch UI exists and has passed the LLM review against `GLOSSARY.md`
+- [ ] Dutch UI exists and has passed the local copy review against `GLOSSARY.md`
 - [ ] English UI exists
 - [ ] Dates/times localize correctly (nl-NL: `22 september 2026`, `18:00`, Europe/Amsterdam)
 - [ ] Relevant emails exist in nl-NL and en
 - [ ] No hard-coded user-facing strings (CI enforced)
 - [ ] Generated contract and string catalogs are up to date (CI enforced)
 - [ ] Tests cover the acceptance criteria per the feature's Test plan and the checklist in [`TESTING.md §3`](TESTING.md) (e2e runs in both locales for user flows)
-- [ ] Cross-agent review done
+- [ ] Local review checklist completed
 - [ ] Feature documentation updated
 - [ ] Feature registry status updated
 - [ ] Acceptance criteria pass

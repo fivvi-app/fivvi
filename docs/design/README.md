@@ -77,7 +77,7 @@ Wireframes are deliberately rough. They show **content, hierarchy and actions**,
 - Never show technical words to users: no "magic link", "token", "occurrence", "workspace ID" or "pending_verification".
 - Dates and times follow the formats in [information-architecture.md §9.3](information-architecture.md#93-dates-times-and-numbers). The Dutch examples use `22 september 2026` and `18:00`.
 - Plurals are written as ICU MessageFormat where they matter, e.g. `{count, plural, one {# plek} other {# plekken}} beschikbaar`.
-- Copy in these documents is **proposed copy**. It goes into `packages/i18n/{nl-NL,en}.json` when the feature is built and passes the LLM review against `GLOSSARY.md`.
+- Copy in these documents is **proposed copy**. It goes into `packages/i18n/{nl-NL,en}.json` when the feature is built and passes the local copy review against `GLOSSARY.md`.
 
 ### Terminology
 

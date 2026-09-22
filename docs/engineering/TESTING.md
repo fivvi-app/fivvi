@@ -143,5 +143,5 @@ Commands (`pnpm test`, `pnpm test:integration`, `pnpm test:e2e`, …) are define
 1. Read the feature doc and write or update its **Test plan** (§6) first.
 2. Write the failing tests for the next small step, then implement until green (test-first is expected for domain rules and bug fixes).
 3. Run the relevant suites locally and paste the results into the PR description.
-4. **Cross-review checks the tests too:** do they actually assert the acceptance criteria, cover the roles and both locales, and would they fail if the feature broke? A test that can't fail is worse than no test.
+4. **Review the tests locally before pushing:** do they actually assert the acceptance criteria, cover the roles and both locales, and would they fail if the feature broke? A second agent may help locally, but no agent review is required in GitHub. A test that can't fail is worse than no test.
 5. Never mark a feature `IMPLEMENTED` in `FEATURES.md` while its Test plan has gaps.
