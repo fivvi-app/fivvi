@@ -1,6 +1,6 @@
 # Flow 05: Live workout logging with previous values
 
-**Session → start workout → per exercise: see last time, log today's sets between sets → finish with a note**
+**Session → start workout → log sets → finish with an internal note → optionally share a recap and client message**
 
 | | |
 |---|---|
@@ -16,11 +16,12 @@
 |---|---|---|
 | F043 | Live Workout Logging | WL-02, WL-03, WL-06, WL-07 |
 | F044 | Previous Workout Display | *Vorige training* column on WL-03 / WL-06 |
-| F045 | Workout History | The result; *Alles bekijken* on TD-02; client profile |
+| F045 | Workout History | The result; *Alles bekijken* on TD-02; shared recap in the client profile |
 | F042 | Client Workouts | The assigned workout on WL-01 |
 | F041 | Workout Templates | *Schema kiezen* on WL-01 |
 | F039 / F040 | Exercise Library / Custom Exercises | WL-04 |
-| F047 / F048 | Session Notes / Note Visibility | WL-05 |
+| F047 / F048 | Session Notes / Note Visibility | WL-05 internal note; WL-08 separate client message and explicit share |
+| F049 | Localized Transactional Emails | EM-12 shared workout email |
 | F025 | Attendance | Set to *Aanwezig* on finishing ⚑ [Q34](../open-questions.md#q34) |
 
 ## Flow diagram
@@ -45,8 +46,13 @@ flowchart TD
   log -- "volgende set" --> log
   log -- "laatste set" --> diff["Hoe zwaar was het?<br/>Makkelijk · Normaal · Zwaar"]
   diff -- "Volgende oefening" --> wl03
-  wl02 -- "Afronden" --> wl05["WL-05 Training afronden<br/>sessienotitie · aanwezig"]
+  wl02 -- "Afronden" --> wl05["WL-05 Training afronden<br/>interne notitie · aanwezig"]
   wl05 --> hist["Geschiedenis (F045)<br/>'Vorige keer' voor de volgende sessie"]
+  wl05 --> wl08["WL-08 Delen?<br/>bericht voor klant · voorbeeld"]
+  wl08 -- "Nu niet" --> td02
+  td02 -- "Later delen" --> wl08
+  wl08 -- "Versturen" --> em12["EM-12 E-mail met overzicht"]
+  wl08 -- "Versturen" --> cw05["CW-05 Mijn trainingen<br/>ingelogd klantprofiel"]
   wl02 -- "Sluiten (niet afgerond)" --> td02b["TD-02: Doorgaan met training"]
 ```
 
@@ -248,12 +254,10 @@ After the last set:
 │ 4 van 5 oefeningen · 13 sets           │
 │ Niet gedaan: Face pull                 │
 │────────────────────────────────────────│
-│ Sessienotitie                          │
+│ Notitie voor trainers                  │
 │ [ Bankdrukken laatste set zwaar.     ] │
 │ [ Volgende keer zelfde gewicht.      ] │
-│ Zichtbaarheid                          │
-│ ● Alleen voor trainers                 │
-│ ○ Zichtbaar voor klant                 │
+│ Alleen trainers lezen dit.             │
 │────────────────────────────────────────│
 │ Aanwezigheid: Aanwezig        Wijzigen │
 ├────────────────────────────────────────┤
@@ -261,22 +265,55 @@ After the last set:
 └────────────────────────────────────────┘
 ```
 
-- The **session note** (F047) is free text, stored as typed (`§35–36`). Visibility defaults to *Alleen voor trainers* (`§37`, F048). The client surface for *Zichtbaar voor klant* must be defined before F048 is implemented ([QE04](../open-questions.md#qe04)).
+- The **internal session note** (F047) is free text, stored as typed (`§35–36`). It is *Alleen voor trainers* (`§37`, F048): authorized workspace staff can read it; the client cannot. A separate message for the client is composed in WL-08. The distinction is explicit, without a visibility toggle that could accidentally expose the internal note.
 - **Attendance** is set to *Aanwezig* when a workout is finished ⚑ [Q34](../open-questions.md#q34).
 - Exercises with no sets are listed as *Niet gedaan*. They're kept in the planned workout, but no empty set logs are created.
 - Finishing with **zero sets** asks: *Je hebt nog niets gelogd. Toch afronden?*
-- After finishing, the workout becomes history (F045) and is next session's *Vorige training*.
+- After finishing, the workout becomes history (F045) and is next session's *Vorige training*. Saving alone does not share it. WL-08 can be opened now or later from the finished session.
 
 | Element | NL | EN |
 |---|---|---|
 | Title / button | Training afronden | Finish workout |
 | Summary | {done} van {total} oefeningen · `{sets, plural, one {# set} other {# sets}}` | {done} of {total} exercises · `{sets, plural, one {# set} other {# sets}}` |
 | Skipped | Niet gedaan: {list} | Not done: {list} |
-| Note | Sessienotitie | Session note |
-| Visibility (`§37`) | Zichtbaarheid · Alleen voor trainers · Zichtbaar voor klant | Visibility · Trainer-only · Visible to client |
+| Note | Notitie voor trainers · Alleen trainers van deze workspace zien dit. | Note for trainers · Only trainers in this workspace see this. |
 | Attendance | Aanwezigheid: Aanwezig · Wijzigen | Attendance: Attended · Change |
 | Zero sets | Je hebt nog niets gelogd. Toch afronden? [ Afronden ] [ Terug ] | You haven't logged anything yet. Finish anyway? [ Finish ] [ Back ] |
 | Done | Training opgeslagen. | Workout saved. |
+
+### WL-08 · Training delen / Share workout
+
+**Features:** F045, F048, F049 · Available immediately after WL-05 and later from the finished session.
+
+```text
+┌────────────────────────────────────────┐
+│ Training opgeslagen                    │
+│ Training delen met Anna?               │
+│ Anna ziet het overzicht in haar        │
+│ profiel en krijgt een e-mail.          │
+│                                        │
+│ Bericht voor de klant (optioneel)      │
+│ [ Goed gewerkt vandaag!              ] │
+│                                        │
+│ [ Voorbeeld bekijken ]                 │
+│ [ Nu niet delen ]                      │
+└────────────────────────────────────────┘
+```
+
+- *Voorbeeld bekijken* shows the exact workout summary, recipient, and optional message that the client will see. The internal note must be absent. The trainer confirms with *Training en bericht versturen* (or *Training versturen* when the message is empty).
+- Confirmation makes the recap available in the authenticated client's *Mijn trainingen* (CW-05) and sends EM-12. Both use the same shared content. The email template is in the recipient's language; the trainer's free text stays as entered.
+- *Nu niet delen* leaves the workout and internal note saved, with no client view or email. The trainer can share it from the session later. Re-sending an already shared workout requires a separate explicit action; never send another email merely by opening or editing it.
+- The email link opens the client's authenticated workout view. No internal note or health-sensitive content is placed in the link itself.
+
+| Element | NL | EN |
+|---|---|---|
+| Title | Training delen met {client}? | Share the workout with {client}? |
+| Message | Bericht voor de klant (optioneel) | Message for the client (optional) |
+| Review | Voorbeeld bekijken | Preview |
+| Confirm | Training en bericht versturen | Send workout and message |
+| Later | Nu niet delen | Don't share now |
+| Client view | Mijn trainingen | My workouts |
+| Email subject | Je training staat klaar, {client} | Your workout is ready, {client} |
 
 ### WL-06 · Training bijhouden (web) / Log workout (web)
 

@@ -1134,6 +1134,8 @@ Default:
 Trainer-only
 ```
 
+After a workout, the trainer can save an internal session note and separately write an optional message for the client. The internal note remains visible only to authorized workspace staff. Finishing the workout does not share either the workout or the note automatically. The trainer can review and explicitly share the workout recap and client message immediately or later. Shared workouts appear in the signed-in client's profile and are also sent by email. The internal note is never included in that recap, email, or client profile. Trainer-written messages are displayed exactly as entered, without translation.
+
 ---
 
 # 38. Exercise library
@@ -1379,6 +1381,7 @@ MVP client emails:
 - cancellation
 - schedule change
 - class cancellation
+- trainer-shared workout recap and optional client message
 
 Trainer emails:
 

@@ -128,6 +128,9 @@
       np: null,
       mv: null,
       log: null,
+      completedWorkouts: {},
+      previewLang: null,
+      newOcc: null,
       web: { view: "day", date: TODAY, ws: "jg", flow: 3, panel: null, panelMode: null, drawer: false },
       sheet: null,
     };
@@ -145,8 +148,9 @@
   }
 
   // ---------------------------------------------------------------- i18n + formatting
+  const activeLang = () => ["l-email", "l-profile"].includes(current().s) ? state.previewLang || state.lang : state.lang;
   function t(key, vars = {}) {
-    const table = STR[state.lang] || STR.nl;
+    const table = STR[activeLang()] || STR.nl;
     let k = key;
     if (typeof vars.n === "number") {
       const form = key + (vars.n === 1 ? "_one" : "_other");
@@ -155,7 +159,7 @@
     const s = table[k] ?? STR.nl[k] ?? key;
     return s.replace(/\{(\w+)\}/g, (m, v) => (v in vars ? vars[v] : m));
   }
-  const locale = () => (state.lang === "nl" ? "nl-NL" : "en-GB");
+  const locale = () => (activeLang() === "nl" ? "nl-NL" : "en-GB");
   const fmt = (d, o) => new Intl.DateTimeFormat(locale(), { timeZone: TZ, ...o }).format(d);
   const time = (d) => fmt(d, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   const dayLong = (d) => fmt(d, { weekday: "long", day: "numeric", month: "long" });
@@ -187,7 +191,7 @@
     if (!l) return esc(id);
     return l.key ? t(l.key, l.vars) : esc(l.name);
   };
-  const exName = (id) => EXERCISES[id][state.lang] || EXERCISES[id].nl;
+  const exName = (id) => EXERCISES[id][activeLang()] || EXERCISES[id].nl;
   const initials = (name) => name.split(/\s+/).filter(Boolean).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
   // ---------------------------------------------------------------- domain stand-ins
@@ -690,13 +694,17 @@
             ${x.workout ? `<li class="row row--static">${icon("dumbbell", "row-ico")}<span class="row-main"><span class="row-sub">${t("s.workout")}</span><span class="row-title">${esc(WORKOUTS[x.workout].name)}</span></span></li>` : ""}
           </ul>
           <div class="stack">
-            ${x.workout === "upper-a" ? `<button type="button" class="btn btn--primary btn--block btn--lg" data-act="start-log" data-id="${x.id}">${icon("dumbbell", "ico--sm")}${t("s.start")}</button>` : ""}
+            ${state.completedWorkouts[x.id]
+              ? `<button type="button" class="btn btn--primary btn--block btn--lg" data-act="open-share" data-id="${x.id}">${icon("dumbbell", "ico--sm")}${t(state.completedWorkouts[x.id].shared ? "l.viewShared" : "l.shareLater")}</button>`
+              : x.workout === "upper-a" ? `<button type="button" class="btn btn--primary btn--block btn--lg" data-act="start-log" data-id="${x.id}">${icon("dumbbell", "ico--sm")}${t("s.start")}</button>` : ""}
             <button type="button" class="btn btn--tonal btn--block" data-act="move-session" data-id="${x.id}">${icon("calendar", "ico--sm")}${t("s.move")}</button>
           </div>
           <h2 class="t-caption section-label">${t("s.attendance")}</h2>
           ${seg("session-att", [["attended", t("att.attended")], ["noShow", t("att.noShow")]], x.status, { label: t("s.attendance") })}
           ${last ? `<h2 class="t-caption section-label">${t("s.lastNote")}</h2>
             <div class="note"><p class="note-meta">${icon("lock", "ico--sm")}<span>${t("s.trainerOnly")} · ${dayMonth(at(last.date, "12:00"))}</span></p><p class="note-text">${esc(last.text)}</p></div>` : ""}
+          ${state.completedWorkouts[x.id]?.internalNote ? `<h2 class="t-caption section-label">${t("l.internalNote")}</h2>
+            <div class="note"><p class="note-meta">${icon("lock", "ico--sm")}<span>${t("s.trainerOnly")}</span></p><p class="note-text">${esc(state.completedWorkouts[x.id].internalNote)}</p></div>` : ""}
           ${CLIENT_NOTES[x.client] ? `<h2 class="t-caption section-label">${t("s.clientNotes")}</h2>
             <div class="note"><p class="note-meta">${icon("lock", "ico--sm")}<span>${t("s.trainerOnly")}</span></p><p class="note-text">${esc(CLIENT_NOTES[x.client])}</p></div>` : ""}
         `,
@@ -814,7 +822,7 @@
     if (!state.log || state.log.id !== id) {
       const ex = WORKOUTS[findSession(id).workout].ex;
       state.log = {
-        id, i: 0, ex, editing: null, note: "", visible: false,
+        id, i: 0, ex, editing: null, internalNote: "",
         sets: Object.fromEntries(ex.map((e) => [e, []])),
         draft: Object.fromEntries(ex.map((e) => [e, { w: EXERCISES[e].prev.sets[0][0], r: EXERCISES[e].prev.sets[0][1] }])),
         diff: {},
@@ -902,22 +910,100 @@
         body: `
           <h2 class="t-title2 screen-h" tabindex="-1">${esc(c.name)} · ${esc(WORKOUTS[x.workout].name)}</h2>
           <p class="t-subhead muted">${t("l.summary", { sets: total, ex: L.ex.length })}</p>
-          <ul class="list">${L.ex.map((e) => `<li class="row row--static"><span class="row-main">
-              <span class="row-title">${exName(e)}</span>
-              <span class="row-sub t-num">${L.sets[e].map((s) => `${num(s[0])} × ${s[1]}`).join(" · ") || "–"}</span>
-            </span>${Object.entries(L.diff[e] || {}).map(([i, difficulty]) => `<span class="chip chip--${difficulty === "hard" ? "warning" : "neutral"}">${t("l.set", { n: Number(i) + 1 })} · ${t("l." + difficulty)}</span>`).join("")}</li>`).join("")}</ul>
+          ${workoutRows(L)}
           <div class="field">
-            <label class="field-label" for="log-note">${t("l.noteLabel")}</label>
-            <textarea id="log-note" class="input" rows="4" placeholder="${t("l.notePh")}">${esc(L.note)}</textarea>
-          </div>
-          <div class="switch-row">
-            <label for="log-visible" class="row-main"><span class="row-title">${t("l.visible", { name: esc(c.first) })}</span>
-              <span class="row-sub">${t(L.visible ? "l.visibleOn" : "l.visibleOff", { name: esc(c.first) })}</span></label>
-            <input id="log-visible" type="checkbox" role="switch" class="switch" data-act="log-visible" ${L.visible ? "checked" : ""}>
+            <label class="field-label" for="internal-note">${t("l.internalNote")}</label>
+            <textarea id="internal-note" class="input" rows="4" placeholder="${t("l.internalNotePh")}">${esc(L.internalNote)}</textarea>
+            <p class="t-footnote muted">${t("l.internalHint")}</p>
           </div>
           <button type="button" class="btn btn--primary btn--block btn--lg" data-act="log-done">${t("l.save")}</button>
         `,
       };
+    },
+  };
+  function workoutRows(record) {
+    return `<ul class="list">${record.ex.map((e) => `<li class="row row--static"><span class="row-main">
+      <span class="row-title">${exName(e)}</span>
+      <span class="row-sub t-num">${record.sets[e].map((s) => `${num(s[0])} kg × ${s[1]}`).join(" · ") || "–"}</span>
+    </span>${Object.entries(record.diff?.[e] || {}).map(([i, difficulty]) => `<span class="chip chip--${difficulty === "hard" ? "warning" : "neutral"}">${t("l.set", { n: Number(i) + 1 })} · ${t("l." + difficulty)}</span>`).join("")}</li>`).join("")}</ul>`;
+  }
+  function sharedWorkoutBody(record) {
+    const x = findSession(record.id);
+    const total = record.ex.reduce((n, e) => n + record.sets[e].length, 0);
+    return `<h2 class="t-title2 screen-h" tabindex="-1">${esc(WORKOUTS[x.workout].name)}</h2>
+      <p class="t-subhead muted">${ucfirst(dayLong(startOf(x)))} · ${t("l.summary", { sets: total, ex: record.ex.length })}</p>
+      ${workoutRows(record)}
+      ${record.clientNote.trim() ? `<h3 class="t-caption section-label">${t("l.clientNoteFrom", { name: esc(TRAINERS[x.trainer].name) })}</h3><div class="note"><p class="note-text">${esc(record.clientNote)}</p></div>` : ""}`;
+  }
+  SCREENS["l-complete"] = {
+    shell: "app",
+    render() {
+      const record = state.completedWorkouts[current().id];
+      const x = findSession(record.id);
+      const c = CLIENTS[x.client];
+      return { nav: { title: t("l.savedTitle"), large: false, back: esc(c.first) }, body: `
+        <p class="banner banner--success">${icon("check", "ico--sm")}<span>${t("l.saved")}</span></p>
+        <h2 class="t-title2 screen-h" tabindex="-1">${t("l.shareQuestion", { name: esc(c.first) })}</h2>
+        <p class="t-subhead muted">${t("l.shareExplainer", { name: esc(c.first) })}</p>
+        <div class="field"><label class="field-label" for="client-note">${t("l.clientNote")}</label>
+          <textarea id="client-note" class="input" rows="4" placeholder="${t("l.clientNotePh")}">${esc(record.clientNote)}</textarea>
+          <p class="t-footnote muted">${t("l.clientNoteHint")}</p></div>
+        <div class="stack"><button type="button" class="btn btn--primary btn--block btn--lg" data-act="share-review">${t("l.reviewShare")}</button>
+          <button type="button" class="btn btn--text btn--block" data-act="share-later">${t("l.notNow")}</button></div>` };
+    },
+  };
+  SCREENS["l-review"] = {
+    shell: "app",
+    render() {
+      const record = state.completedWorkouts[current().id];
+      const x = findSession(record.id);
+      return { nav: { title: t("l.reviewTitle"), large: false, back: t("common.back") }, body: `
+        <p class="t-subhead muted">${t("l.reviewExplainer")}</p>
+        <div class="note"><p class="note-meta">${t("l.emailTo")}: ${esc(CLIENTS[x.client].first.toLowerCase())}@example.com</p></div>
+        ${sharedWorkoutBody(record)}
+        <button type="button" class="btn btn--primary btn--block btn--lg" data-act="share-confirm">${t(record.clientNote.trim() ? "l.sendWithNote" : "l.sendWorkout")}</button>` };
+    },
+  };
+  SCREENS["l-sent"] = {
+    shell: "app",
+    render() {
+      const record = state.completedWorkouts[current().id];
+      const c = CLIENTS[findSession(record.id).client];
+      return { nav: { title: t("l.sentTitle"), large: false, back: esc(c.first) }, body: `
+        <h2 class="t-title2 screen-h" tabindex="-1">${t("l.sentTo", { name: esc(c.first) })}</h2>
+        <p class="t-subhead muted">${t("l.sentExplainer", { name: esc(c.first) })}</p>
+        <div class="stack"><button type="button" class="btn btn--tonal btn--block" data-act="view-email">${t("l.viewEmail")}</button>
+          <button type="button" class="btn btn--tonal btn--block" data-act="view-profile">${t("l.viewProfile", { name: esc(c.first) })}</button></div>` };
+    },
+  };
+  SCREENS["l-email"] = {
+    shell: "public",
+    render() {
+      const record = state.completedWorkouts[current().id];
+      const x = findSession(record.id);
+      const c = CLIENTS[x.client];
+      return `<div class="pub-lang">${seg("set-preview-lang", [["nl", "NL"], ["en", "EN"]], activeLang(), { label: t("common.language"), small: true })}</div>
+        <div class="mail-card"><p class="t-footnote muted">${t("l.emailTo")}: ${esc(c.first.toLowerCase())}@example.com</p>
+        <p class="t-footnote muted">${t("mail.from", { ws: esc(WS[x.ws].name) })}</p>
+        <h1 class="t-title2">${t("l.emailSubject", { name: esc(c.first) })}</h1>
+        <p>${t("l.emailGreeting", { name: esc(c.first) })}</p>
+        <p>${t("l.emailIntro", { name: esc(TRAINERS[x.trainer].name) })}</p>
+        ${sharedWorkoutBody(record)}
+        <button type="button" class="btn btn--primary btn--block" data-act="view-profile">${t("l.openProfile")}</button>
+        <p class="t-footnote muted">${t("l.emailAccess")}</p></div>`;
+    },
+  };
+  SCREENS["l-profile"] = {
+    shell: "public",
+    render() {
+      const record = state.completedWorkouts[current().id];
+      const x = findSession(record.id);
+      const c = CLIENTS[x.client];
+      return `<div class="pub-lang">${seg("set-preview-lang", [["nl", "NL"], ["en", "EN"]], activeLang(), { label: t("common.language"), small: true })}</div>
+        <h1 class="t-title1">${t("l.profileTitle", { name: esc(c.first) })}</h1>
+        <p class="t-subhead muted">${t("l.profileDemo")}</p>
+        <h2 class="t-title2">${t("l.myWorkouts")}</h2>
+        ${sharedWorkoutBody(record)}`;
     },
   };
 
@@ -1088,13 +1174,39 @@
         <button type="submit" class="btn btn--primary btn--block btn--lg">${t("p.save")}</button>
       </form>`;
   }
+  function newOccurrenceForm() {
+    const m = state.newOcc;
+    const group = m.kind === "group";
+    return `<form data-form="new-occurrence" novalidate class="form">
+        ${group ? field("occ-title", t("w.className"), `<input id="occ-title" class="input" value="${esc(m.title)}" required>`, m.errors.title ? t("w.classNameRequired") : "") : ""}
+        <div class="field-row">
+          ${field("occ-date", t("p.date"), `<input id="occ-date" class="input" type="date" value="${m.date}" required>`)}
+          ${field("occ-start", t("w.start"), `<input id="occ-start" class="input" type="time" value="${m.start}" required>`)}
+        </div>
+        <div class="field-row">
+          ${field("occ-end", t("w.end"), `<input id="occ-end" class="input" type="time" value="${m.end}" required>`, m.errors.end ? t("w.endError") : "")}
+          ${field("occ-cap", t("w.capacity"), `<input id="occ-cap" class="input" type="number" min="1" max="99" value="${m.cap}" required>`, m.errors.cap ? t("w.capacityError") : "")}
+        </div>
+        ${group ? field("occ-trainer", t("o.trainer"), `<select id="occ-trainer" class="input"><option value="">${t("o.trainerNeeded")}</option>${GYM_TRAINERS.map((id) => `<option value="${id}" ${m.trainer === id ? "selected" : ""}>${esc(TRAINERS[id].name)}</option>`).join("")}</select>`) : ""}
+        <p class="t-footnote muted">${t("w.locationFixed", { name: esc(WS[state.web.ws].name) })}</p>
+        <button type="submit" class="btn btn--primary btn--block btn--lg">${t(group ? "w.createClass" : "w.publishGym")}</button>
+      </form>`;
+  }
   function webPanel() {
     const w = state.web;
-    if (!w.panel && w.panelMode !== "create") return "";
+    if (!w.panel && !["pick", "create", "create-group", "create-openGym"].includes(w.panelMode)) return "";
     const x = w.panel ? findItem(w.panel) : null;
     let body;
-    if (w.panelMode === "create") {
+    if (w.panelMode === "pick") {
+      body = `<div class="stack">
+        <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="private">${t("type.private")}</button>
+        <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="group">${t("type.group")}</button>
+        <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="openGym">${t("type.openGym")}</button>
+      </div>`;
+    } else if (w.panelMode === "create") {
       body = newWebSessionForm();
+    } else if (w.panelMode === "create-group" || w.panelMode === "create-openGym") {
+      body = newOccurrenceForm();
     } else if (x.kind === "private") {
       if (w.panelMode === "move") {
         ensureMove(x);
@@ -1113,7 +1225,7 @@
     }
     return `<div class="panel-scrim" data-act="w-close"></div>
       <aside class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-h">
-        <header class="panel-head"><h2 class="t-title2" id="panel-h" tabindex="-1">${w.panelMode === "create" ? t("p.newTitle") : x.kind === "private" ? esc(CLIENTS[x.client].name) : esc(x.title)}</h2>
+        <header class="panel-head"><h2 class="t-title2" id="panel-h" tabindex="-1">${w.panelMode === "pick" ? t("w.new") : w.panelMode === "create" ? t("p.newTitle") : w.panelMode === "create-group" ? t("w.newClass") : w.panelMode === "create-openGym" ? t("w.newGym") : x.kind === "private" ? esc(CLIENTS[x.client].name) : esc(x.title)}</h2>
           <button type="button" class="btn btn--icon btn--ghost" data-act="w-close" aria-label="${t("common.close")}">${icon("x")}</button></header>
         <div class="panel-body">${body}</div>
       </aside>`;
@@ -1135,7 +1247,7 @@
             <header class="web-top">
               <button type="button" class="btn btn--icon btn--ghost web-menu" data-act="w-drawer" aria-label="${t("w.menu")}">${icon("menu")}</button>
               <h1 class="t-title1" tabindex="-1">${t("w.nav.calendar")}</h1>
-              <button type="button" class="btn btn--primary web-new" data-act="w-new">${icon("plus", "ico--sm")}<span>${t("w.newSession")}</span></button>
+              <button type="button" class="btn btn--primary web-new" data-act="w-new">${icon("plus", "ico--sm")}<span>${t("w.new")}</span></button>
             </header>
             <div class="web-toolbar">
               <div class="date-nav">
@@ -1161,7 +1273,7 @@
   }
   function protobar(kind) {
     const flowTitle = {
-      public: t("flow1.title"), web: t(`flow${state.web.flow}.title`), app: "",
+      public: current().s.startsWith("l-") ? t("flow5.title") : t("flow1.title"), web: t(`flow${state.web.flow}.title`), app: "",
     }[kind];
     return `<div class="protobar" role="region" aria-label="${t("proto.label")}">
         <button type="button" class="pb-home" data-act="home">${icon("home", "ico--sm")}<span>${t("proto.home")}</span></button>
@@ -1225,7 +1337,7 @@
     const key = JSON.stringify(cur);
     const prevScroll = !opts.nav && root.dataset.key === key ? [...root.querySelectorAll("[data-scroll]")].map((el) => el.scrollTop) : null;
 
-    document.documentElement.lang = state.lang === "nl" ? "nl" : "en";
+    document.documentElement.lang = activeLang() === "nl" ? "nl" : "en";
     document.documentElement.dataset.platform = kind === "app" ? state.platform : "web";
     document.documentElement.dataset.shell = kind;
 
@@ -1311,6 +1423,7 @@
       toast(t("proto.resetDone"));
     },
     "set-lang": (el) => { state.lang = el.dataset.v; prefs.set("lang", state.lang); render(); },
+    "set-preview-lang": (el) => { state.previewLang = el.dataset.v; render(); },
     "set-platform": (el) => { state.platform = el.dataset.v; prefs.set("platform", state.platform); render(); },
 
     // flow 1
@@ -1420,13 +1533,28 @@
       L.i = Math.min(L.ex.length - 1, Math.max(0, L.i + dir));
       render({ nav: true });
     },
-    "log-visible": (el) => { state.log.note = root.querySelector("#log-note")?.value ?? state.log.note; state.log.visible = el.checked; render(); },
     "log-done": () => {
       const L = state.log;
+      L.internalNote = root.querySelector("#internal-note")?.value ?? L.internalNote;
+      state.completedWorkouts[L.id] = { id: L.id, ex: [...L.ex], sets: JSON.parse(JSON.stringify(L.sets)), diff: JSON.parse(JSON.stringify(L.diff)),
+        internalNote: L.internalNote, clientNote: "", shared: false };
       findSession(L.id).status = "attended";
       state.log = null;
-      reset([{ s: "hub" }, { s: "t-today" }]);
+      reset([{ s: "hub" }, { s: "t-today" }, { s: "t-session", id: L.id }, { s: "l-complete", id: L.id }]);
       toast(t("l.saved"));
+    },
+    "open-share": (el) => go(state.completedWorkouts[el.dataset.id].shared ? "l-sent" : "l-complete", { id: el.dataset.id }),
+    "share-later": () => reset([{ s: "hub" }, { s: "t-today" }, { s: "t-session", id: current().id }]),
+    "share-review": () => go("l-review", { id: current().id }),
+    "share-confirm": () => {
+      const id = current().id;
+      state.completedWorkouts[id].shared = true;
+      reset([{ s: "hub" }, { s: "t-today" }, { s: "t-session", id }, { s: "l-sent", id }]);
+    },
+    "view-email": () => { state.previewLang = CLIENTS[findSession(current().id).client].lang; go("l-email", { id: current().id }); },
+    "view-profile": () => {
+      if (current().s !== "l-email") state.previewLang = CLIENTS[findSession(current().id).client].lang;
+      go("l-profile", { id: current().id });
     },
 
     // flow 6 + web panel
@@ -1477,9 +1605,22 @@
     "w-drawer": () => { state.web.drawer = !state.web.drawer; render(); },
     "w-nav": (el) => { state.web.drawer = false; render(); if (el.dataset.v !== "calendar") toast(t("proto.notInScope")); },
     "w-new": () => {
+      state.web.panel = null;
+      state.web.panelMode = "pick";
+      render();
+      root.querySelector("#panel-h")?.focus({ preventScroll: true });
+    },
+    "w-pick": (el) => {
+      const kind = el.dataset.v;
+      if (kind !== "private") {
+        state.newOcc = { kind, title: "", date: state.web.date, start: "12:00", end: "13:00", cap: kind === "group" ? 8 : 2, trainer: "", errors: {} };
+        state.web.panelMode = `create-${kind}`;
+        render();
+        root.querySelector("#panel-h")?.focus({ preventScroll: true });
+        return;
+      }
       state.np = { client: null, trainer: state.web.ws === "jg" ? "john" : "sarah", date: state.web.date,
         time: "12:00", dur: 60, workout: "", locChoice: null, locOther: "", showLocOptions: false, errors: {} };
-      state.web.panel = null;
       state.web.panelMode = "create";
       render();
       root.querySelector("#panel-h")?.focus({ preventScroll: true });
@@ -1515,7 +1656,8 @@
       const q = e.target.value.trim().toLowerCase();
       root.querySelectorAll("[data-client-list] li").forEach((li) => { li.hidden = !!q && !li.dataset.name.includes(q); });
     }
-    if (e.target.id === "log-note" && state.log) state.log.note = e.target.value;
+    if (e.target.id === "internal-note" && state.log) state.log.internalNote = e.target.value;
+    if (e.target.id === "client-note" && state.completedWorkouts[current().id]) state.completedWorkouts[current().id].clientNote = e.target.value;
     if (e.target.id === "cancel-message" && state.sheet?.kind === "cancel") state.sheet.message = e.target.value;
   });
   root.addEventListener("change", (e) => {
@@ -1587,11 +1729,33 @@
         toast(t("p.moved"));
       }
     }
+    if (form === "new-occurrence") {
+      const m = state.newOcc;
+      m.title = root.querySelector("#occ-title")?.value.trim() || "";
+      m.date = root.querySelector("#occ-date").value;
+      m.start = root.querySelector("#occ-start").value;
+      m.end = root.querySelector("#occ-end").value;
+      m.cap = Number(root.querySelector("#occ-cap").value);
+      m.trainer = root.querySelector("#occ-trainer")?.value || null;
+      m.errors = { title: m.kind === "group" && !m.title, end: !m.date || !m.start || !m.end || m.end <= m.start, cap: !Number.isInteger(m.cap) || m.cap < 1 || m.cap > 99 };
+      if (Object.values(m.errors).some(Boolean)) { render(); return; }
+      const id = `o-new-${Date.now()}`;
+      state.classes.push({ id, kind: m.kind, title: m.kind === "openGym" ? "Open Gym" : m.title,
+        ws: state.web.ws, loc: WS[state.web.ws].loc, date: m.date, start: m.start, end: m.end,
+        cap: m.cap, trainer: m.trainer, origTrainer: null, status: "scheduled", attendees: [] });
+      state.web.date = m.date;
+      state.web.panel = id;
+      state.web.panelMode = null;
+      const createdKind = m.kind;
+      state.newOcc = null;
+      render();
+      toast(t(createdKind === "group" ? "w.classCreated" : "w.gymPublished"));
+    }
   });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (state.sheet) A["sheet-close"]();
-    else if ((state.web.panel || state.web.panelMode === "create") && shellOf(current().s) === "web") A["w-close"]();
+    else if ((state.web.panel || ["pick", "create", "create-group", "create-openGym"].includes(state.web.panelMode)) && shellOf(current().s) === "web") A["w-close"]();
   });
 
   // Deep link: #flow1 … #flow6 (bare tokens survive the artifact viewer).

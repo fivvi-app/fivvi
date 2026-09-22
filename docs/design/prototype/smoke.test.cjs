@@ -103,7 +103,29 @@ test('owner web creates one private session and moves Mark home', async () => {
   await moved.page.close();
 });
 
-test('workout logger records three sets and difficulty on the last set', async () => {
+test('owner calendar creates a group class and Open Gym from the new menu', async () => {
+  const { page, errors } = await pageFor(3, { width: 1280, height: 800 });
+  await page.locator('[data-act="w-new"]').click();
+  assert.ok(await page.locator('[data-act="w-pick"][data-v="private"]').isVisible());
+  await page.locator('[data-act="w-pick"][data-v="group"]').click();
+  await page.locator('#occ-title').fill('Strength Express');
+  await page.locator('#occ-start').fill('13:00');
+  await page.locator('#occ-end').fill('14:00');
+  await page.locator('#occ-trainer').selectOption('sarah');
+  await page.locator('[data-form="new-occurrence"] button[type="submit"]').click();
+  assert.ok((await page.locator('#panel-h').textContent()).includes('Strength Express'));
+  await page.locator('[data-act="w-close"]').last().click();
+  await page.locator('[data-act="w-new"]').click();
+  await page.locator('[data-act="w-pick"][data-v="openGym"]').click();
+  await page.locator('#occ-start').fill('14:00');
+  await page.locator('#occ-end').fill('15:00');
+  await page.locator('[data-form="new-occurrence"] button[type="submit"]').click();
+  assert.ok((await page.locator('.panel-body').textContent()).includes('Open Gym'));
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('workout saves an internal note and shares only the client message and sets', async () => {
   const { page, errors } = await pageFor(5);
   await page.locator('[data-act="log-step"][data-k="w"][data-v="1"]').click();
   for (let i = 0; i < 3; i++) await page.locator('[data-act="log-save"]').click();
@@ -112,8 +134,41 @@ test('workout logger records three sets and difficulty on the last set', async (
   await page.locator('[data-act="log-ex"][data-v="1"]').click();
   await page.locator('[data-act="log-ex"][data-v="1"]').click();
   assert.ok((await page.locator('.list').textContent()).includes('Set 3'));
-  await page.locator('#log-note').fill('Volgende keer zelfde gewicht.');
+  await page.locator('#internal-note').fill('PRIVATE: knee concern');
   await page.locator('[data-act="log-done"]').click();
+  await page.locator('#client-note').fill('Great work, Mark. Keep the same weight.');
+  await page.locator('[data-act="share-review"]').click();
+  let body = await page.locator('.content').textContent();
+  assert.ok(body.includes('Great work, Mark.'));
+  assert.ok(body.includes('62,5 kg'));
+  assert.ok(!body.includes('PRIVATE: knee concern'));
+  await page.locator('[data-act="share-confirm"]').click();
+  await page.locator('[data-act="view-email"]').click();
+  body = await page.locator('.pub').textContent();
+  assert.ok(body.includes('Great work, Mark.'));
+  assert.ok(body.includes('62.5 kg'));
+  assert.ok(!body.includes('PRIVATE: knee concern'));
+  assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+  await page.locator('[data-act="view-profile"]').click();
+  body = await page.locator('.pub').textContent();
+  assert.ok(body.includes('Great work, Mark.'));
+  assert.ok(!body.includes('PRIVATE: knee concern'));
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('workout can be saved privately and shared later', async () => {
+  const { page, errors } = await pageFor(5);
+  await page.locator('[data-act="log-ex"][data-v="1"]').click();
+  await page.locator('[data-act="log-ex"][data-v="1"]').click();
+  await page.locator('[data-act="log-ex"][data-v="1"]').click();
+  await page.locator('#internal-note').fill('Trainer only');
+  await page.locator('[data-act="log-done"]').click();
+  await page.locator('[data-act="share-later"]').click();
+  assert.ok((await page.locator('.content').textContent()).includes('Trainer only'));
+  await page.locator('[data-act="open-share"]').click();
+  await page.locator('[data-act="share-review"]').click();
+  assert.ok(!(await page.locator('.content').textContent()).includes('Trainer only'));
   assert.deepEqual(errors, []);
   await page.close();
 });

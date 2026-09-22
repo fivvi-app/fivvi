@@ -144,7 +144,7 @@ Decide whether private-session creation email (EM-11) belongs in F049/F020 and w
 **Resolved by the owner-approved glossary v0.2:** English uses en-GB formatting, day-month dates and 24-hour time. The catalog remains `en`. Keep this entry as the record for older flow references; no further pilot decision is needed.
 
 ### QE04
-Resolve where a client can read a *Zichtbaar voor klant* note in MVP. A visibility flag with no client view cannot fulfil the intent of F048. Also decide whether trainer-created private sessions appear in client web (CW-02/03, WL-05).
+**Resolved by owner, 22 September 2026.** A trainer saves an internal note separately from an optional client message. After explicit review and share, the client sees the workout recap and client message in *Mijn trainingen* in the signed-in profile and receives the same in a localized email. The internal note is excluded. A private session does not become a client booking in CW-02/03 solely because its workout was shared.
 
 ### QE05
 Decide whether a signed-in client sees bookings across all workspaces sharing the verified email, with per-workspace authorization on each booking (CW-02).
