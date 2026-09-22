@@ -189,7 +189,7 @@ Size is relative complexity (S / M / L / XL), not a duration.
 - [ ] The mobile flows follow **platform conventions**: iOS Human Interface Guidelines and Android Material 3. Same flow and content, native look on each.
 - [ ] Clickable prototype validated with the pilot owner and at least 1 other trainer.
 - [ ] Visual direction and **design tokens** (colour, type, spacing) as a single source that exports to web CSS, Swift and Kotlin (ADR-015).
-- [ ] Start the **Dutch terminology glossary** (`packages/i18n/GLOSSARY.md`), e.g. Klanten, Lessen, Boekingslinks, Aanwezig, Niet verschenen. It keeps LLM translations consistent.
+- [x] Start the **Dutch terminology glossary** (`packages/i18n/GLOSSARY.md`), e.g. Klanten, Lessen, Boekingslinks, Aanwezig, Niet verschenen. It keeps LLM translations consistent.
 
 ### 4.3 Architecture Decision Records (ADRs)
 
