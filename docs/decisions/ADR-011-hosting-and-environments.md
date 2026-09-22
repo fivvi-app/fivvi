@@ -85,9 +85,9 @@ Option D (Cloudflare Workers) allows commercial use on the free tier, but runnin
   - `postgres`: Railway PostgreSQL with a volume, reachable only over the private network;
   - `cron`: a cron service that runs the daily jobs from ADR-010 (hold cleanup, recurrence horizon, retention) with the same code from `packages/domain`, then exits.
 - **Environments:** `local` (Docker Postgres) → `preview` (a **Railway PR environment** per PR, with its own Postgres, migrated and seeded with demo data, deleted automatically on merge/close) → `production` (deployed only from `main`; migrations forward-only).
-- **Plan:** stay on the **Hobby** plan the owner already pays during the build. **Upgrade to Pro ($20/month, includes $20 of usage) at Gate G4**, before real client data arrives. Pro gives us support, 30-day logs and the backup features E016 needs, and removes any doubt about commercial use.
+- **Plan:** stay on the **Hobby** plan the owner already pays during the build. **Upgrade to Pro ($20/month, includes $20 of usage) at Gate G4**, before pilot go-live. Real timetable data may arrive earlier at G2; the DPA and data safeguards therefore apply before G2. Pro gives us support, 30-day logs and the backup features E016 needs, and removes any doubt about commercial use.
 - **Neon is not used.** The Vercel accounts stay unused for this project (no cost).
-- **Before G4:** sign Railway's DPA and add Railway to the sub-processor list (`ROADMAP.md §4.4`).
+- **Before G2:** submit Railway's DPA form and confirm Railway has signed it; Railway is listed in the sub-processor list (`ROADMAP.md §4.4`). Before storing health information in notes at M7, resolve the published DPA's Exhibit A entry of “None” for special-category data in writing.
 
 ### Conditions to verify in the M1 spike (E003)
 
@@ -109,7 +109,7 @@ The decision assumes these hold. If one fails, stop and bring it to the owner. O
 - **Negative:** Hobby has community support only and 7-day logs; fine during the build, not for the pilot (hence Pro at G4).
 - **Negative:** it's not strictly "€0 until G4": the build runs on a plan the owner already pays, and heavy preview usage could go above the $5 credit.
 - **Applied with this decision:** E003, the M1 environments note, the M9 restore drill (Railway scratch service instead of a Neon branch), `ROADMAP.md §4.5` accounts, `WORKFLOW.md §5` cleanup and `TESTING.md §5.3` were updated in the same PR.
-- **Follow-ups:** the M1 spike (E003) checks the conditions above; sign Railway's DPA and add Railway to the sub-processor list before G4 (`ROADMAP.md §4.4`).
+- **Follow-ups:** the M1 spike (E003) checks the conditions above; confirm the executed Railway DPA before G2 and resolve its special-category-data scope before M7 (`ROADMAP.md §4.4`, `docs/legal/sub-processors.md` §3).
 
 ## Alternatives considered
 

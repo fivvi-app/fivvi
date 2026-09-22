@@ -7,7 +7,7 @@
 |---|---|
 | **Versie / Version** | 0.1 · 22 september 2026 |
 | **Status** | Bijlage 3 bij de [verwerkersovereenkomst](verwerkersovereenkomst.md) / Annex 3 to the [processor agreement](verwerkersovereenkomst.md) |
-| **Bron / Source** | ADR-005, 009, 011, 013 and the E013 Turnstile choice, **as listed in `ROADMAP.md` §4.3 and §12**. The ADR write-ups in `docs/decisions/` weren't merged when this was drafted. |
+| **Bron / Source** | ADR-005, 009, 011, 013 and the E013 Turnstile choice; `ROADMAP.md` §4.3 and §12. |
 | **DPA's gecontroleerd / DPAs checked** | 22 september 2026 |
 
 **NL.** Dit is de lijst van derde partijen die persoonsgegevens verwerken voor Trainer Hub. Een workspace geeft met de verwerkersovereenkomst algemene toestemming voor deze subverwerkers (art. 28(2) AVG). Wijzigingen melden we vooraf (verwerkersovereenkomst art. 7). Voorwaarden van aanbieders veranderen vaak. Controleer de links opnieuw vóór G2 en vóór G4.
@@ -20,11 +20,8 @@
 
 | Dienst | Entiteit | Doel | Verwerkte gegevens | Regio (opslag) | Doorgifte buiten EER | DPA | ADR | Status |
 |---|---|---|---|---|---|---|---|---|
-| **Vercel** (nu Hobby; Pro nodig voor echte gegevens) | Vercel Inc., Delaware, VS | Hosting web + API, serverless functies, CDN, runtime-logs | Alle requestgegevens tijdens transport; runtime-logs (vrij houden van persoonsgegevens, zie D6 in `role-mapping.md`) | Functies vastgezet op `fra1` (Frankfurt); CDN-edge wereldwijd | VS-moeder → SCC 2021 (volgens de DPA) | [vercel.com/legal/dpa](https://vercel.com/legal/dpa). **Geldt alleen voor Pro en Enterprise, niet voor Hobby** | 011 | ⚠️ **Geblokkeerd voor echte gegevens op Hobby**, zie §3 |
-| **Railway** (alternatief voor web + API) | Railway Corporation, San Francisco, VS | Hosting web + API (containers) | Als Vercel | EU West Metal, Amsterdam (`europe-west4-drams3a`) | VS-moeder → DPF waar van toepassing + SCC | [railway.com/legal/dpa](https://railway.com/legal/dpa). Geen planbeperking genoemd; subverwerkers op trust.railway.com | 011 (herbeoordeling) | Kandidaat, zie §3 |
-| **Neon** | Databricks, Inc. (moeder van Neon, LLC), VS | PostgreSQL-database, branches, point-in-time restore | **Alles in de database**, inclusief notities (mogelijk gezondheidsgegevens) | AWS `eu-central-1`, Frankfurt | VS-moeder → Databricks-DPA met SCC 2021 | [neon.com/dpa](https://neon.com/dpa) (Neon-productschema) + [Databricks-DPA](https://www.databricks.com/legal/databricks-data-processing-addendum); subverwerkers op [databricks.com/legal/databricks-subprocessors](https://www.databricks.com/legal/databricks-subprocessors) (o.a. Grafana Labs, VS, voor infrastructuurmonitoring) | 005, 011 | ✅ Gebruiken; bevestigen dat de DPA het gratis plan dekt (open vraag Q6) |
-| **Brevo** (aanbevolen e-mailoptie) | Sendinblue SAS (Brevo), Parijs, FR | Transactionele e-mail: magic link, 6-cijferige code, bevestigingen, annuleringen, uitnodigingen | E-mailadres ontvanger, naam, taal, inhoud van de mail (sessienaam, tijd, locatie), bezorg- en openlogs | EU | Niet nodig voor de kerndienst (EU-onderneming) | DPA als bijlage bij de [Brevo-voorwaarden](https://www.brevo.com/legal/termsofuse/) | 009 | Aanbevolen, zie §4 |
-| **Resend** (alternatieve e-mailoptie) | Plus Five Five, Inc., VS | Als Brevo | Als Brevo | Verzenden kan via `eu-west-1` (Ierland), maar **account-, log- en metagegevens staan in de VS** | DPF + SCC | [resend.com/legal/dpa](https://resend.com/legal/dpa) | 009 | Alternatief, zie §4 |
+| **Railway** | Railway Corporation, San Francisco, VS | Hosting web + API, cron en PostgreSQL | Requestgegevens, runtime-logs; **alle databasegegevens**, inclusief notities die gezondheidsgegevens kunnen bevatten | App en database: EU West, Amsterdam (`europe-west4-drams3a`) | Railway noemt primaire verwerking in de VS; DPF waar van toepassing of SCC volgens de DPA | [railway.com/legal/dpa](https://railway.com/legal/dpa). Ondertekening en bijzondere persoonsgegevens: zie §3 | 005, 011 | Gekozen; DPA-controle vóór echte gegevens |
+| **Brevo** | Sendinblue SAS (Brevo), Parijs, FR | Transactionele e-mail: magic link, 6-cijferige code, bevestigingen, annuleringen, uitnodigingen | E-mailadres ontvanger, naam, taal, inhoud van de mail (sessienaam, tijd, locatie), bezorglogs | EU | Kerndienst in de EU; controleer de actuele subverwerkerslijst | DPA als bijlage bij de [Brevo-voorwaarden](https://www.brevo.com/legal/termsofuse/) | 009 | Gekozen; account aangemaakt, configuratie in E006 |
 | **Sentry** | Functional Software, Inc. (h.o.d.n. Sentry), VS | Fout- en crashrapportage voor web, API, iOS en Android | Stacktraces, route, app-/OS-versie, pseudoniem gebruikers-ID. **Geen** request bodies, notitie-inhoud of e-mail (`sendDefaultPii: false` + scrubbing) | **EU-regio, Frankfurt** (`de.sentry.io`). Keuze bij het aanmaken van de organisatie, later niet te wijzigen; beschikbaar op het gratis plan | DPF, met SCC als terugvaloptie | [sentry.io/legal/dpa](https://sentry.io/legal/dpa/). Accepteren in de juridische instellingen van de organisatie | 013 | ✅ Gebruiken; organisatie in de EU-regio aanmaken |
 | **Cloudflare Turnstile** | Cloudflare, Inc., VS | Botbescherming op het publieke boekingsformulier (E013) | IP-adres, TLS-fingerprint, user-agent, sitekey/origin | Wereldwijd edge-netwerk (voor Nederlandse bezoekers meestal EU-locaties; niet gegarandeerd) | SCC; DPF | [Cloudflare-DPA](https://www.cloudflare.com/cloudflare-customer-dpa/) (v6.4, 3 april 2026). **Let op:** Cloudflare is zelf verwerkingsverantwoordelijke als het deze signalen gebruikt om botdetectie te verbeteren. Vermelden in de privacyverklaring | E013 | ✅ Gebruiken (M5) |
 
@@ -33,11 +30,8 @@
 
 | Service | Entity | Purpose | Data processed | Region (at rest) | Transfer outside the EEA | DPA | ADR | Status |
 |---|---|---|---|---|---|---|---|---|
-| **Vercel** (Hobby now; Pro needed for real data) | Vercel Inc., Delaware, US | Hosting web + API, serverless functions, CDN, runtime logs | All request data in transit; runtime logs (keep free of personal data, see D6 in `role-mapping.md`) | Functions pinned to `fra1` (Frankfurt); CDN edge is global | US parent → SCC 2021 (per the DPA) | [vercel.com/legal/dpa](https://vercel.com/legal/dpa). **Covers Pro and Enterprise only, not Hobby** | 011 | ⚠️ **Blocked for real data on Hobby**, see §3 |
-| **Railway** (alternative for web + API) | Railway Corporation, San Francisco, US | Hosting web + API (containers) | As Vercel | EU West Metal, Amsterdam (`europe-west4-drams3a`) | US parent → DPF where applicable + SCC | [railway.com/legal/dpa](https://railway.com/legal/dpa). No plan restriction stated; sub-processors at trust.railway.com | 011 (re-evaluation) | Candidate, see §3 |
-| **Neon** | Databricks, Inc. (parent of Neon, LLC), US | PostgreSQL database, branches, point-in-time restore | **Everything in the database**, including notes (possibly health data) | AWS `eu-central-1`, Frankfurt | US parent → Databricks DPA with SCC 2021 | [neon.com/dpa](https://neon.com/dpa) (Neon product schedule) + [Databricks DPA](https://www.databricks.com/legal/databricks-data-processing-addendum); sub-processors at [databricks.com/legal/databricks-subprocessors](https://www.databricks.com/legal/databricks-subprocessors) (includes Grafana Labs, US, for infrastructure monitoring) | 005, 011 | ✅ Use; confirm the DPA covers the free plan (open question Q6) |
-| **Brevo** (recommended email option) | Sendinblue SAS (Brevo), Paris, FR | Transactional email: magic link, 6-digit code, confirmations, cancellations, invitations | Recipient email, name, language, email content (session name, time, location), delivery and open logs | EU | None needed for the core service (EU company) | DPA annex to the [Brevo terms](https://www.brevo.com/legal/termsofuse/) | 009 | Recommended, see §4 |
-| **Resend** (alternative email option) | Plus Five Five, Inc., US | As Brevo | As Brevo | Sending can use `eu-west-1` (Ireland), but **account data, logs and metadata are stored in the US** | DPF + SCC | [resend.com/legal/dpa](https://resend.com/legal/dpa) | 009 | Alternative, see §4 |
+| **Railway** | Railway Corporation, San Francisco, US | Hosting web + API, cron and PostgreSQL | Request data, runtime logs; **all database data**, including notes that may contain health data | App and database: EU West, Amsterdam (`europe-west4-drams3a`) | Railway states that its primary processing takes place in the US; DPF where applicable or SCC under the DPA | [railway.com/legal/dpa](https://railway.com/legal/dpa). Execution and special-category data: see §3 | 005, 011 | Selected; DPA check before real data |
+| **Brevo** | Sendinblue SAS (Brevo), Paris, FR | Transactional email: magic link, 6-digit code, confirmations, cancellations, invitations | Recipient email, name, language, email content (session name, time, location), delivery logs | EU | Core service in the EU; check the current sub-processor list | DPA annex to the [Brevo terms](https://www.brevo.com/legal/termsofuse/) | 009 | Selected; account created, configure in E006 |
 | **Sentry** | Functional Software, Inc. (d/b/a Sentry), US | Error and crash reporting for web, API, iOS and Android | Stack traces, route, app/OS version, pseudonymous user ID. **No** request bodies, note content or email (`sendDefaultPii: false` + scrubbing) | **EU region, Frankfurt** (`de.sentry.io`). Chosen when the org is created and can't be changed later; available on the free plan | DPF, with SCC as fallback | [sentry.io/legal/dpa](https://sentry.io/legal/dpa/). Accept it in the org's legal settings | 013 | ✅ Use; create the org in the EU region |
 | **Cloudflare Turnstile** | Cloudflare, Inc., US | Bot protection on the public booking form (E013) | IP address, TLS fingerprint, user agent, site key/origin | Global edge network (for Dutch visitors, usually EU edge locations; not guaranteed) | SCC; DPF | [Cloudflare DPA](https://www.cloudflare.com/cloudflare-customer-dpa/) (v6.4, 3 April 2026). **Note:** Cloudflare acts as an independent controller when it uses these signals to improve bot detection. Mention this in the privacy policy | E013 | ✅ Use (M5) |
 
@@ -45,57 +39,43 @@
 
 ## 2. Verwerkers voor eigen doelen van de aanbieder / Processors for the provider's own purposes
 
-**NL.** Deze dienst verwerkt geen klantgegevens van workspaces. Daarom is hij geen subverwerker in de zin van art. 28(4). We vermelden hem voor de transparantie.
+**NL.** Deze dienst verwerkt geen boekings-, trainings- of notitie-inhoud van klanten. Pseudonieme gebruikers- en workspace-ID's blijven wel persoonsgegevens. Wij zijn voor deze productanalyse verwerkingsverantwoordelijke; daarom staat de dienst apart van de subverwerkers die workspace-gegevens in onze opdracht verwerken.
 
-**EN.** This service doesn't process workspace client data, so it is not a sub-processor under art. 28(4). We list it for transparency.
+**EN.** This service receives no client booking, workout or note content. Pseudonymous user and workspace IDs still count as personal data. We are the controller for this product analytics processing, so the service is listed separately from sub-processors that handle workspace data on our behalf.
 
 | Dienst / Service | Entiteit / Entity | Doel / Purpose | Gegevens / Data | Regio / Region | DPA | ADR |
 |---|---|---|---|---|---|---|
-| **PostHog** | PostHog, Inc., VS / US | Productanalyse, cookieloze modus (P4 in `role-mapping.md`) / Product analytics, cookieless mode | Type gebeurtenis, pseudonieme gebruikers- en workspace-ID's, pagina. **Geen** namen, e-mail, notitie-inhoud of vrije tekst / Event type, pseudonymous user and workspace IDs, page. **No** names, email, note content or free text | **EU Cloud, Frankfurt** | [posthog.com/dpa](https://posthog.com/dpa). Op elk plan, ook gratis; zelf te ondertekenen in de PostHog-app / Available on every plan including free; self-serve signature in the app | 013 |
+| **PostHog** | PostHog, Inc., VS / US | Productanalyse, cookieloze modus (P4 in `role-mapping.md`) / Product analytics, cookieless mode | Toegestane gebeurtenistypen, pseudonieme gebruikers- en workspace-ID's, veilige paginacategorie; **geen** namen, e-mail, boekings-, trainings- of notitie-inhoud, vrije tekst of URL-parameters / Allowlisted event types, pseudonymous user and workspace IDs, safe page category; **no** names, email, booking, workout or note content, free text or URL parameters | **EU Cloud, Frankfurt** | [posthog.com/dpa](https://posthog.com/dpa). Op elk plan, ook gratis; zelf te ondertekenen in de PostHog-app / Available on every plan including free; self-serve signature in the app | 013 |
 
-## 3. Hosting: de Vercel Hobby-kwestie / Hosting: the Vercel Hobby issue
+## 3. Railway DPA vóór echte gegevens / Railway DPA before real data
 
 **NL.**
 
-- De [DPA van Vercel](https://vercel.com/legal/dpa) geldt alleen voor klanten op **Pro- en Enterprise-plannen** (versie 17 maart 2026). Hobby valt erbuiten. Hobby is daarnaast alleen voor niet-commercieel gebruik (`ROADMAP.md §12`).
-- Zonder DPA kunnen wij de eisen van art. 28(4) AVG niet doorgeven aan de hostingpartij. Dan mogen er **geen echte persoonsgegevens** op Vercel Hobby staan.
-- De roadmap plant de upgrade bij **G4**. Maar echte gegevens komen al eerder binnen:
-  - bij **G2 (M4)**, als de eigenaar het echte rooster invoert, inclusief privésessies met klantnamen;
-  - en zeker bij **G3 (M6)**, als echte klanten via een QR-code boeken.
-- **Opties:**
-  - **A.** Web + API naar **Railway** in Amsterdam. De eigenaar betaalt Railway Hobby al. Railway's DPA noemt geen planbeperking. Neon Frankfurt blijft de database. Dit sluit aan bij de geplande herbeoordeling van ADR-011.
-  - **B.** Vercel **Pro** vanaf G2 in plaats van G4 (betaald per teamlid per maand).
-  - **C.** Vercel Hobby houden tot G4 en tot die tijd alleen synthetische gegevens gebruiken. Dat botst met de owner alpha bij G2.
-- **Voorstel:** optie A, vast te leggen in de uitwerking van ADR-011. Tot die beslissing: alleen seed-/testgegevens op Vercel Hobby. Zie open vraag Q1.
+- ADR-011 kiest Railway in Amsterdam voor web, API, cron **en PostgreSQL**. Vercel en Neon maken geen deel uit van de geplande verwerking.
+- De [Railway-DPA](https://railway.com/legal/dpa) zegt dat zij pas bindend wordt nadat de klant het DocuSign-formulier indient **en Railway tekent**. Controleer de ondertekende overeenkomst vóór G2, wanneer echte klantnamen in het rooster komen.
+- Bijlage A van de gepubliceerde Railway-DPA vermeldt voor bijzondere persoonsgegevens **“None”**. Notities kunnen gezondheidsgegevens bevatten. Leg vóór M7 schriftelijk vast dat de DPA deze verwerking dekt, of zorg dat er geen gezondheidsgegevens op Railway worden opgeslagen tot dit is opgelost.
+- De DPA noemt primaire verwerking in de VS, ook wanneer app en database in Amsterdam staan. Documenteer de toepasselijke doorgiftegrondslag en bevestig de ingestelde regio voor app, database en back-ups.
 
 **EN.**
 
-- [Vercel's DPA](https://vercel.com/legal/dpa) only applies to customers on **Pro and Enterprise plans** (version of 17 March 2026). Hobby is excluded. Hobby is also for non-commercial use only (`ROADMAP.md §12`).
-- Without a DPA we can't pass the art. 28(4) GDPR obligations on to the host. So **no real personal data** may sit on Vercel Hobby.
-- The roadmap schedules the upgrade at **G4**. But real data arrives earlier:
-  - at **G2 (M4)**, when the owner enters the real timetable, including private sessions with client names;
-  - and certainly at **G3 (M6)**, when real clients book through a QR code.
-- **Options:**
-  - **A.** Move web + API to **Railway** in Amsterdam. The owner already pays for Railway Hobby. Railway's DPA states no plan restriction. Neon Frankfurt stays the database. This fits the planned re-evaluation of ADR-011.
-  - **B.** Vercel **Pro** from G2 instead of G4 (paid per team member per month).
-  - **C.** Keep Vercel Hobby until G4 and use only synthetic data until then. This conflicts with the owner alpha at G2.
-- **Proposal:** option A, recorded in the ADR-011 write-up. Until that decision: only seed/test data on Vercel Hobby. See open question Q1.
+- ADR-011 selects Railway in Amsterdam for web, API, cron **and PostgreSQL**. Vercel and Neon are not part of the planned processing.
+- The [Railway DPA](https://railway.com/legal/dpa) says it becomes binding only after the customer submits the DocuSign form **and Railway signs**. Check the executed agreement before G2, when real client names enter the timetable.
+- Exhibit A of Railway's published DPA lists **“None”** for special-category personal data. Notes may contain health data. Obtain written confirmation that the DPA covers this processing before M7, or keep health data off Railway until resolved.
+- The DPA says primary processing takes place in the US, even if the app and database are in Amsterdam. Document the applicable transfer mechanism and confirm the configured region for app, database and backups.
 
-## 4. E-mail: Brevo of Resend / Email: Brevo or Resend
+## 4. E-mail: Brevo gekozen / Email: Brevo selected
 
-**NL.** ADR-009 laat de keuze tussen Resend en Brevo open. Voor privacy heeft **Brevo** de voorkeur:
+**NL.** De eigenaar heeft een Brevo-account aangemaakt en Brevo gekozen voor transactionele e-mail (ADR-009):
 
 - Het is een EU-onderneming (Frankrijk) die in de EU opslaat. Er is dus geen doorgifte naar de VS nodig voor de kerndienst.
-- Resend kan vanuit Ierland versturen, maar bewaart account- en loggegevens altijd in de VS.
 - E-mails bevatten naam, e-mailadres en sessiegegevens, en de magic link is een inlogmiddel. Dat past bij het roadmap-principe "EU-dataresidentie" (`ROADMAP.md §2`, principe 7).
-- Leg de keuze vast in de uitwerking van ADR-009 (open vraag Q5).
+- E006 controleert de DPA, verzendlimieten, domeinauthenticatie en retentie van bezorglogs voordat echte e-mails worden verstuurd.
 
-**EN.** ADR-009 leaves the choice between Resend and Brevo open. For privacy, **Brevo** is preferred:
+**EN.** The owner has created a Brevo account and selected Brevo for transactional email (ADR-009):
 
 - It is an EU company (France) that stores data in the EU, so the core service needs no transfer to the US.
-- Resend can send from Ireland, but always stores account and log data in the US.
 - Emails contain names, email addresses and session details, and the magic link is a sign-in credential. This fits the roadmap principle "EU data residency" (`ROADMAP.md §2`, principle 7).
-- Record the choice in the ADR-009 write-up (open question Q5).
+- E006 checks the DPA, sending limits, domain authentication and delivery-log retention before real emails are sent.
 
 ## 5. Geen subverwerker (onder voorwaarden) / Not a sub-processor (on conditions)
 
@@ -126,14 +106,14 @@
 
 **NL.**
 
-- Alle diensten hierboven behalve Brevo hebben een Amerikaanse moederonderneming. Ook als de opslag in de EU staat, kan die moeder in theorie toegang krijgen, bijvoorbeeld voor support of door Amerikaanse wetgeving.
+- Railway, Sentry, Cloudflare en PostHog zijn Amerikaanse aanbieders. EU-opslag sluit toegang of verwerking buiten de EER niet uit; Railway noemt primaire verwerking in de VS in zijn DPA.
 - De doorgifte steunt op het EU-VS Data Privacy Framework (adequaatheidsbesluit juli 2023) en/of de standaardcontractbepalingen (SCC 2021) in de DPA's.
 - Het DPF blijft onderwerp van procedures. Houd de SCC's daarom als terugvaloptie en controleer dit bij elke herziening.
 - Maatregelen: EU-regio's kiezen waar dat kan, versleuteling in transit en in rust, en dataminimalisatie (geen notities in e-mails, logs, foutrapporten of analytics).
 
 **EN.**
 
-- Every service above except Brevo has a US parent company. Even when storage is in the EU, that parent could in theory get access, for example for support or under US law.
+- Railway, Sentry, Cloudflare and PostHog are US providers. EU storage does not rule out access or processing outside the EEA; Railway states in its DPA that primary processing takes place in the US.
 - Transfers rely on the EU-US Data Privacy Framework (adequacy decision of July 2023) and/or the standard contractual clauses (SCC 2021) in the DPAs.
 - The DPF is still being litigated, so keep the SCCs as the fallback and re-check this at every review.
 - Measures: EU regions wherever possible, encryption in transit and at rest, and data minimization (no notes in emails, logs, error reports or analytics).
@@ -143,3 +123,4 @@
 | Datum / Date | Wijziging / Change |
 |---|---|
 | 2026-09-22 | First draft from the ROADMAP ADR table; DPA links checked |
+| 2026-09-22 | Railway hosting and Postgres; Brevo email selected; Railway DPA checks recorded |

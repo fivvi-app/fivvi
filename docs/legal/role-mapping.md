@@ -18,16 +18,16 @@ Each section is in Dutch first, then English. Tables are bilingual.
 **NL.** Trainer Hub heeft twee rollen tegelijk:
 
 1. **Verwerker** (AVG art. 4(8), art. 28) voor alle bedrijfsgegevens van een workspace: klanten, boekingen, sessies, aanwezigheid, trainingen en notities. De **workspace** (gym, studio of zelfstandige trainer) is daarvoor de **verwerkingsverantwoordelijke**. Zij bepaalt waarom en welke klantgegevens ze vastlegt; wij verwerken alleen in opdracht. Daarvoor sluiten we met elke workspace een verwerkersovereenkomst.
-2. **Verwerkingsverantwoordelijke** voor een klein aantal eigen doelen: gebruikersaccounts en inloggen, de klantrelatie met workspaces, beveiliging en misbruikpreventie van het platform als geheel, en productanalyse zonder klantgegevens.
+2. **Verwerkingsverantwoordelijke** voor een klein aantal eigen doelen: gebruikersaccounts en inloggen, de klantrelatie met workspaces, beveiliging en misbruikpreventie van het platform als geheel, en productanalyse met pseudonieme ID's maar zonder boekings-, trainings- of notitie-inhoud.
 
-De scheidslijn volgt het datamodel: alles met een `organization_id` is van de workspace (verwerker). Alles wat de workspace overstijgt (het account van een persoon, platformbeveiliging) is van ons (verwerkingsverantwoordelijke).
+De rol volgt het doel van de verwerking. Bedrijfsgegevens met een `organization_id` verwerken we in opdracht van de workspace. Account-, beveiligings- en beperkte gebruiksgegevens voor onze eigen platformdoelen verwerken we als verwerkingsverantwoordelijke; een pseudoniem workspace-ID in een productevent verandert dat niet.
 
 **EN.** Trainer Hub has two roles at once:
 
 1. **Processor** (GDPR art. 4(8), art. 28) for all of a workspace's business data: clients, bookings, sessions, attendance, workouts and notes. The **workspace** (gym, studio or independent trainer) is the **controller** for that data. It decides why and which client data it records; we only process it on its behalf. We sign a processor agreement with every workspace for this.
-2. **Controller** for a small set of our own purposes: user accounts and sign-in, the customer relationship with workspaces, security and abuse prevention for the platform as a whole, and product analytics that contain no client data.
+2. **Controller** for a small set of our own purposes: user accounts and sign-in, the customer relationship with workspaces, security and abuse prevention for the platform as a whole, and product analytics using pseudonymous identifiers but no booking, workout or note content.
 
-The dividing line follows the data model. Everything that carries an `organization_id` belongs to the workspace (we are the processor). Everything that spans workspaces (a person's account, platform security) is ours (we are the controller).
+The role follows the purpose of processing. We process business records carrying an `organization_id` on the workspace's behalf. We process account, security and limited usage data for our own platform purposes as controller; a pseudonymous workspace ID in a product event does not change that.
 
 ---
 
@@ -53,7 +53,7 @@ The dividing line follows the data model. Everything that carries an `organizati
 | P1 | Gebruikersaccount en inloggen (magic link, 6-cijferige code, sessies, taalvoorkeur) / User account and sign-in (magic link, 6-digit code, sessions, language preference) | Owners, admins, trainers, klanten met account / clients with an account | Naam, e-mail, `preferredLocale`, gehashte tokens, sessie-ID's, apparaat-/app-versie / Name, email, `preferredLocale`, hashed tokens, session IDs, device/app version | Art. 6(1)(b), uitvoering overeenkomst / contract |
 | P2 | Klantrelatie met workspaces (contract, support, service-mededelingen) / Customer relationship with workspaces (contract, support, service notices) | Owners/admins, contactpersonen / contacts | Naam, e-mail, organisatie, correspondentie / Name, email, organization, correspondence | Art. 6(1)(b); art. 6(1)(f) voor service-mededelingen / for service notices |
 | P3 | Beveiliging en misbruikpreventie van het platform (rate limits, hold-caps, Turnstile, beveiligingslogs) / Platform security and abuse prevention (rate limits, hold caps, Turnstile, security logs) | Alle bezoekers en gebruikers / All visitors and users | IP-adres (kort), gehasht e-mailadres, user-agent, tijdstip / IP address (short-lived), hashed email, user agent, timestamp | Art. 6(1)(f), gerechtvaardigd belang: veilige dienst / legitimate interest: a secure service |
-| P4 | Productanalyse (PostHog EU, cookieloos) / Product analytics (PostHog EU, cookieless) | Gebruikers; anonieme bezoekers van boekingspagina's / Users; anonymous booking-page visitors | Gebeurtenissen met pseudonieme gebruikers-/workspace-ID's; **geen** klantnamen, e-mail of notitie-inhoud / Events with pseudonymous user/workspace IDs; **no** client names, email or note content | Art. 6(1)(f), productverbetering / product improvement |
+| P4 | Productanalyse (PostHog EU, cookieloos) / Product analytics (PostHog EU, cookieless) | Gebruikers, ook klanten met account; bezoekers van boekingspagina's / Users, including clients with accounts; booking-page visitors | Gebeurtenistype en pseudonieme gebruikers-/workspace-ID's; **persoonsgegevens**, maar geen klantnamen, e-mail, boekings-, trainings- of notitie-inhoud / Event type and pseudonymous user/workspace IDs; **personal data**, but no client names, email, booking, workout or note content | Art. 6(1)(f), productverbetering / product improvement |
 | P5 | Wettelijke verplichtingen en geschillen (o.a. administratie zodra er facturen zijn) / Legal obligations and disputes (e.g. bookkeeping once there are invoices) | Workspace-contacten / Workspace contacts | Contract- en factuurgegevens / Contract and invoice data | Art. 6(1)(c); art. 6(1)(f) |
 
 ### 3.2 Workspace is verwerkingsverantwoordelijke, aanbieder is verwerker / Workspace is controller, provider is processor
@@ -111,7 +111,7 @@ flowchart LR
     CRON[Dagelijkse cron / Daily cron<br/>holds, retention]
   end
 
-  DB[(PostgreSQL<br/>Neon, Frankfurt)]
+  DB[(PostgreSQL<br/>Railway, Amsterdam)]
   BK[(Back-ups / Backups<br/>EU)]
   MAIL[E-maildienst / Email provider]
   TS[Cloudflare Turnstile]
@@ -129,7 +129,7 @@ flowchart LR
   API -->|magic link, bevestiging / confirmation| MAIL --> C
   API -.->|gescrubde fouten / scrubbed errors| SEN
   NA -.->|crashes, gescrubd / scrubbed| SEN
-  API -.->|events zonder klantgegevens / events without client data| PH
+  API -.->|beperkte events met pseudonieme ID's / limited events with pseudonymous IDs| PH
 ```
 
 | # | Stroom / Flow | Gegevens / Data | Rol aanbieder / Provider role |
@@ -192,10 +192,10 @@ flowchart LR
 | D1 | Elke bedrijfsrecord heeft een `organization_id`; geen query zonder tenant-scope | Every business record has an `organization_id`; no query without tenant scope | ADR-006, E011 |
 | D2 | Geen klantprofiel dat over workspaces heen gedeeld wordt | No client profile shared across workspaces | M2/M5 data model |
 | D3 | Notities zijn standaard alleen voor trainers; toegang wordt gelogd | Notes are trainer-only by default; access is logged | F046–F048, E014 |
-| D4 | PostHog-events bevatten geen klantnamen, e-mail, notitie-inhoud of vrije tekst | PostHog events contain no client names, email, note content or free text | E009 |
+| D4 | Alleen toegestane PostHog-events met gebeurtenistype, pseudonieme ID's en veilige paginacategorie; autocapture en sessie-opnames uit; geen namen, e-mail, boekings-, trainings- of notitie-inhoud, vrije tekst of URL-parameters | Only allowlisted PostHog events with event type, pseudonymous IDs and safe page category; autocapture and session replay off; no names, email, booking, workout or note content, free text or URL parameters | E009 |
 | D5 | Sentry: `sendDefaultPii` uit, geen request bodies, scrubbing van e-mail en tokens | Sentry: `sendDefaultPii` off, no request bodies, scrubbing of email and tokens | E009 |
 | D6 | Logs bevatten geen notitie-inhoud of tokens; e-mailadressen worden gemaskeerd | Logs contain no note content or tokens; email addresses are masked | E009, E013 |
-| D7 | Preview-omgevingen en Neon-branches bevatten **nooit** productiegegevens; ze worden vanaf seed-data gebrancht, niet vanaf productie | Preview environments and Neon branches **never** contain production data; they branch from seed data, not from production | E003 |
+| D7 | Railway preview-omgevingen en -databases bevatten **nooit** productiegegevens; ze worden met seed-data gevuld, niet uit productie gekopieerd | Railway preview environments and databases **never** contain production data; they are seeded, not copied from production | E003 |
 | D8 | AI-agents krijgen geen toegang tot productie, echte exports of pilotbestanden | AI agents get no access to production, real exports or pilot files | `AGENTS.md` (proposed addition) |
 | D9 | Geen echte persoonsgegevens in het platform vóór een getekende verwerkersovereenkomst **en** een host met DPA | No real personal data in the platform before a signed processor agreement **and** a host with a DPA | Gate G2 (see `sub-processors.md` §3) |
 | D10 | Gegevens die de workspace verwijdert zijn na 30 dagen definitief weg, en uit back-ups binnen de back-uptermijn | Data the workspace deletes is permanently gone after 30 days, and from backups within the backup window | `retention-policy.md` |

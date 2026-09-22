@@ -38,7 +38,9 @@ Begrippen uit de AVG (zoals *persoonsgegevens*, *verwerking*, *betrokkene*, *inb
 
 1. Verwerker verwerkt persoonsgegevens alleen in opdracht van Verwerkingsverantwoordelijke en alleen om de Dienst te leveren. **Bijlage 1** beschrijft de verwerking: aard, doel, soorten persoonsgegevens, categorieën betrokkenen en duur.
 2. Deze overeenkomst loopt zolang de Hoofdovereenkomst loopt. Daarna gelden de verplichtingen die naar hun aard doorlopen, zoals geheimhouding (art. 4) en verwijdering (art. 11), totdat ze zijn nagekomen.
-3. Verwerker gebruikt de persoonsgegevens niet voor eigen doeleinden. Verwerker verkoopt ze niet, gebruikt ze niet voor advertenties en maakt geen profielen van betrokkenen. Geaggregeerde, anonieme statistieken over het gebruik van de Dienst vallen hier niet onder, zoals het aantal boekingen per week over alle workspaces heen. Die bevatten geen persoonsgegevens meer.
+3. Verwerker gebruikt de workspace-gegevens die onder deze overeenkomst worden verwerkt niet voor eigen doeleinden. Verwerker verkoopt ze niet, gebruikt ze niet voor advertenties en maakt geen profielen van betrokkenen. Geaggregeerde, anonieme statistieken over het gebruik van de Dienst vallen hier niet onder, zoals het aantal boekingen per week over alle workspaces heen. Die bevatten geen persoonsgegevens meer.
+
+   Beperkte gebruiksgegevens met pseudonieme gebruikers- en workspace-ID's voor productanalyse verwerkt Verwerker als zelfstandig verwerkingsverantwoordelijke, zoals uitgelegd in de privacyverklaring. Daarbij worden geen boekings-, trainings- of notitie-inhoud, namen of e-mailadressen gebruikt.
 
 ## Artikel 3. Instructies
 
@@ -203,13 +205,12 @@ Verwerker geeft Verwerkingsverantwoordelijke de informatie en hulp die zij redel
 
 ## Bijlage 3. Subverwerkers
 
-Zie [`sub-processors.md`](sub-processors.md), versie {{versie}} van {{datum}}. Verwerkingsverantwoordelijke geeft toestemming voor de subverwerkers met status "Gebruiken" of "Aanbevolen", en voor de hostingpartij die wordt gekozen volgens `sub-processors.md` §3. Voor de pilot vult Verwerker hier de definitieve lijst in voordat partijen tekenen:
+Zie [`sub-processors.md`](sub-processors.md), versie {{versie}} van {{datum}}. Verwerkingsverantwoordelijke geeft toestemming voor de hieronder genoemde subverwerkers. Verwerker controleert vóór ondertekening de actuele DPA's en vult de definitieve lijst in, inclusief diensten die dan al in gebruik zijn:
 
 | Dienst | Doel | Regio |
 |---|---|---|
-| {{hosting web + API}} | Hosting | {{regio}} |
-| Neon (Databricks, Inc.) | Database | Frankfurt (EU) |
-| {{e-maildienst}} | Transactionele e-mail | {{regio}} |
+| Railway Corporation | Hosting web + API, cron, PostgreSQL | Amsterdam (EU West); verwerking buiten EER volgens Railway-DPA |
+| Sendinblue SAS (Brevo) | Transactionele e-mail | EU |
 | Sentry (Functional Software, Inc.) | Foutrapportage | Frankfurt (EU) |
 | Cloudflare, Inc. (Turnstile) | Botbescherming | Wereldwijd edge-netwerk |
 
@@ -243,7 +244,9 @@ Terms from the GDPR (such as *personal data*, *processing*, *data subject*, *per
 
 1. Processor processes personal data only on Controller's behalf and only to provide the Service. **Annex 1** describes the processing: nature, purpose, types of personal data, categories of data subjects and duration.
 2. This agreement runs for as long as the Main Agreement. After that, obligations that by their nature continue, such as confidentiality (art. 4) and deletion (art. 11), apply until they are fulfilled.
-3. Processor doesn't use the personal data for its own purposes. It doesn't sell it, use it for advertising or build profiles of data subjects. This doesn't cover aggregated, anonymous statistics about the use of the Service, such as the number of bookings per week across all workspaces. Those no longer contain personal data.
+3. Processor doesn't use the workspace data processed under this agreement for its own purposes. It doesn't sell it, use it for advertising or build profiles of data subjects. This doesn't cover aggregated, anonymous statistics about the use of the Service, such as the number of bookings per week across all workspaces. Those no longer contain personal data.
+
+   Processor processes limited usage data with pseudonymous user and workspace IDs for product analytics as an independent controller, as explained in the privacy policy. It does not use booking, workout or note content, names or email addresses for that purpose.
 
 ## Article 3. Instructions
 
@@ -406,12 +409,11 @@ Processor gives Controller the information and help it reasonably needs for (GDP
 
 ## Annex 3. Sub-processors
 
-See [`sub-processors.md`](sub-processors.md), version {{version}} of {{date}}. Controller authorizes the sub-processors with status "Use" or "Recommended", and the host chosen per `sub-processors.md` §3. For the pilot, Processor fills in the final list here before the parties sign:
+See [`sub-processors.md`](sub-processors.md), version {{version}} of {{date}}. Controller authorizes the sub-processors named below. Before signing, Processor checks the current DPAs and completes the final list, including services already in use:
 
 | Service | Purpose | Region |
 |---|---|---|
-| {{web + API host}} | Hosting | {{region}} |
-| Neon (Databricks, Inc.) | Database | Frankfurt (EU) |
-| {{email provider}} | Transactional email | {{region}} |
+| Railway Corporation | Web + API hosting, cron, PostgreSQL | Amsterdam (EU West); processing outside the EEA under Railway's DPA |
+| Sendinblue SAS (Brevo) | Transactional email | EU |
 | Sentry (Functional Software, Inc.) | Error reporting | Frankfurt (EU) |
 | Cloudflare, Inc. (Turnstile) | Bot protection | Global edge network |

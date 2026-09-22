@@ -22,9 +22,9 @@
   - Andere criteria spelen niet of nauwelijks.
   - Daarmee valt ze niet onder de categorie *gezondheidsgegevens* van de AP-lijst. Die gaat over **grootschalige** verwerking.
 - **De DPIA-plicht ligt bij de verwerkingsverantwoordelijke**, dus bij de workspace (art. 35). Wij zijn verwerker en moeten helpen (art. 28(3)(f)). Omdat bijna geen kleine gym dit zelf kan, levert Trainer Hub een ingevulde DPIA die de pilotgym kan overnemen en aanvullen.
-- **Een DPIA wordt wel verplicht** zodra één van de triggers in §6 optreedt. De belangrijkste zijn:
+- **Een DPIA kan wel verplicht worden** bij de veranderingen in §6. Beoordeel die vóór de betreffende release. De belangrijkste zijn:
   - **AI-notities (1.3) en AI-briefing (1.4)**: nieuwe technologie + gezondheidsgegevens + evaluatie;
-  - **publieke SaaS (2.0)**: het platform verwerkt dan gezondheidsnotities van veel workspaces tegelijk;
+  - **publieke SaaS (2.0)**: beoordeel vóór die release opnieuw per verwerkingsverantwoordelijke of aard en schaal van de verwerking een DPIA vereisen;
   - **HealthKit/Health Connect (6.0)**: stelselmatige gezondheidsgegevens;
   - **structurele verwerking van gegevens van minderjarigen**.
 
@@ -36,9 +36,9 @@
   - Other criteria apply barely or not at all.
   - It therefore doesn't fall under the *health data* category of the AP list, which covers **large-scale** processing.
 - **The DPIA obligation lies with the controller**, i.e. the workspace (art. 35). We are the processor and must assist (art. 28(3)(f)). Since almost no small gym can do this alone, Trainer Hub provides a pre-filled DPIA that the pilot gym can adopt and complete.
-- **A DPIA does become required** as soon as one of the triggers in §6 occurs. The main ones are:
+- **A DPIA may become required** with the changes in §6. Assess them before the relevant release. The main ones are:
   - **AI notes (1.3) and AI briefing (1.4)**: new technology + health data + evaluation;
-  - **public SaaS (2.0)**: the platform then processes health notes from many workspaces at once;
+  - **public SaaS (2.0)**: reassess before that release whether the nature and scale of processing require a DPIA for each relevant controller;
   - **HealthKit/Health Connect (6.0)**: systematic health data;
   - **structural processing of minors' data**.
 
@@ -76,7 +76,7 @@
 | 4 | Creditscores | Nee | — |
 | 5 | Financiële situatie | Nee | Geen betalingen in de MVP (`PRODUCT.md §53`); opnieuw toetsen bij 4.0 |
 | 6 | Genetische gegevens | Nee | — |
-| 7 | **Gezondheidsgegevens** | **Niet grootschalig → nee (nu)** | De categorie gaat over *grootschalige* verwerking van gezondheidsgegevens. De AP-lijst noemt instellingen (zorg, verzekeraars, re-integratie) en zondert individuele zorgverleners uit met een verwijzing naar overweging 91. Eén gym met een beperkt klantenbestand lijkt meer op het laatste. **Op platformniveau (veel workspaces, 2.0) verandert dit** |
+| 7 | **Gezondheidsgegevens** | **Niet grootschalig → nee (nu)** | De categorie gaat over *grootschalige* verwerking van gezondheidsgegevens. De AP-lijst noemt instellingen (zorg, verzekeraars, re-integratie) en zondert individuele zorgverleners uit met een verwijzing naar overweging 91. Eén gym met een beperkt klantenbestand lijkt meer op het laatste. **Opnieuw beoordelen vóór 2.0, per verwerkingsverantwoordelijke** |
 | 8 | Samenwerkingsverbanden | Nee | Workspaces delen niets met elkaar (D2 in `role-mapping.md`) |
 | 9–10 | (Flexibel) cameratoezicht | Nee | — |
 | 11 | Controle werknemers | Nee (licht) | De owner ziet de planning en aanwezigheidsregistratie van trainers. Dat is roosteren, geen stelselmatige controle van prestaties of gedrag. **Ontwerpregel:** geen productiviteitsscores voor trainers in de MVP; opnieuw toetsen bij 3.2 (analytics: "werkdruk trainers") |
@@ -98,7 +98,7 @@
 | 4 | Creditscores / Credit scores | Nee / No | — |
 | 5 | Financiële situatie / Financial situation | Nee / No | No payments in the MVP (`PRODUCT.md §53`); reassess at 4.0 |
 | 6 | Genetische gegevens / Genetic data | Nee / No | — |
-| 7 | **Gezondheidsgegevens** / **Health data** | **Niet grootschalig → nee (nu)** / **Not large scale → no (now)** | The category covers *large-scale* processing of health data. The AP's list names institutions (care, insurers, reintegration) and exempts individual care professionals with a reference to recital 91. A single gym with a limited client base is closer to the latter. **At platform level (many workspaces, 2.0) this changes** |
+| 7 | **Gezondheidsgegevens** / **Health data** | **Niet grootschalig → nee (nu)** / **Not large scale → no (now)** | The category covers *large-scale* processing of health data. The AP's list names institutions (care, insurers, reintegration) and exempts individual care professionals with a reference to recital 91. A single gym with a limited client base is closer to the latter. **Reassess before 2.0 for each controller** |
 | 8 | Samenwerkingsverbanden / Data-sharing partnerships | Nee / No | Workspaces share nothing with each other (D2 in `role-mapping.md`) |
 | 9–10 | (Flexibel) cameratoezicht / (Flexible) camera surveillance | Nee / No | — |
 | 11 | Controle werknemers / Employee monitoring | Nee / No (licht / slight) | The owner sees trainers' schedules and attendance records. That is scheduling, not systematic monitoring of performance or behaviour. **Design rule:** no trainer productivity scores in the MVP; reassess at 3.2 (analytics: "trainer workload") |
@@ -113,18 +113,18 @@
 
 ### 3.2 WP248-criteria (twee of meer = DPIA meestal nodig) / WP248 criteria (two or more = DPIA usually needed)
 
-| # | Criterium / Criterion | MVP / pilot | Platform at 2.0 scale | With AI (1.3/1.4) |
+| # | Criterium / Criterion | MVP / pilot | Release 2.0 reassessment | With AI (1.3/1.4) |
 |---|---|---|---|---|
 | 1 | Evaluatie of scoren / Evaluation or scoring | ✗ | ✗ | **✓** (summaries, "insights") |
 | 2 | Geautomatiseerde besluitvorming met rechtsgevolg / Automated decisions with legal effect | ✗ | ✗ | ✗ (the trainer confirms, `PRODUCT.md §56`) |
 | 3 | Stelselmatige monitoring / Systematic monitoring | ✗ | ✗ | ✗ |
 | 4 | **Gevoelige gegevens** / **Sensitive data** | **✓** | **✓** | **✓** |
-| 5 | Grootschalig / Large scale | ✗ | **✓** (aggregated across workspaces) | depends |
+| 5 | Grootschalig / Large scale | ✗ | **?** (assess each controller's processing) | depends |
 | 6 | Koppelen van datasets / Matching datasets | ✗ (no cross-workspace client profile) | ✗ | ✗ |
 | 7 | Kwetsbare betrokkenen / Vulnerable data subjects | **?** (minors? clients in rehabilitation? trainers in an employment relationship) | **?** | **?** |
 | 8 | Innovatieve technologie / Innovative technology | ✗ | ✗ | **✓** (LLM on health notes) |
 | 9 | Blokkeert een recht of dienst / Prevents exercising a right or using a service | ✗ | ✗ | ✗ |
-| | **Totaal / Total** | **1 (+ possibly 7)** | **2 → DPIA** | **3 → DPIA** |
+| | **Totaal / Total** | **1 (+ possibly 7)** | **Reassess before 2.0** | **3 → DPIA** |
 
 **NL.**
 
@@ -203,12 +203,12 @@
 
 ---
 
-## 6. Triggers die een DPIA verplicht maken / Triggers that make a DPIA required
+## 6. DPIA-triggers en herbeoordelingen / DPIA triggers and reassessments
 
 | Trigger | Waarom | Wanneer |
 |---|---|---|
 | AI-notities (1.3) / AI-briefing (1.4) | Nieuwe technologie + gezondheidsgegevens + evaluatie (3 criteria); plus een nieuwe subverwerker, mogelijk buiten de EU | **Vóór** de entry gate van 1.3 (staat al in `ROADMAP.md §3.3`: "AI processor DPA signed") |
-| Publieke SaaS (2.0) | Grootschalig op platformniveau | Vóór de entry gate van 2.0 |
+| Publieke SaaS (2.0) | Herbeoordeel per verwerkingsverantwoordelijke de aard, schaal en risico's; de totale omvang van de verwerker maakt een DPIA niet automatisch verplicht voor elke workspace | Vóór de entry gate van 2.0 |
 | Structureel gezondheidsinformatie van minderjarigen vastleggen | Kwetsbare betrokkenen + gevoelige gegevens | Zodra dat bekend is (Q9) |
 | Analytics over trainers (3.2) | Controle werknemers (AP-lijst) | Vóór 3.2 |
 | Betalingen (4.0) | Financiële gegevens | Vóór 4.0 |
@@ -221,7 +221,7 @@
 | Trigger | Waarom / Why | Wanneer / When |
 |---|---|---|
 | AI note capture (1.3) / AI briefing (1.4) | New technology + health data + evaluation (3 criteria); plus a new sub-processor, possibly outside the EU | **Before** the 1.3 entry gate (already in `ROADMAP.md §3.3`: "AI processor DPA signed") |
-| Public SaaS (2.0) | Large scale at platform level | Before the 2.0 entry gate |
+| Public SaaS (2.0) | Reassess nature, scale and risks for each controller; the processor's aggregate scale does not automatically require every workspace to perform a DPIA | Before the 2.0 entry gate |
 | Structurally recording minors' health information | Vulnerable data subjects + sensitive data | As soon as it's known (Q9) |
 | Analytics about trainers (3.2) | Employee monitoring (AP list) | Before 3.2 |
 | Payments (4.0) | Financial data | Before 4.0 |

@@ -25,7 +25,7 @@ Bij Trainer Hub zijn er twee partijen die over jouw gegevens gaan. Welke partij 
 
 - je Trainer Hub-account en het inloggen;
 - de beveiliging van het platform;
-- geanonimiseerde productstatistieken;
+- productstatistieken met pseudonieme ID's;
 - onze relatie met de sportscholen en trainers die Trainer Hub gebruiken.
 
 Voor die gegevens geldt deze privacyverklaring.
@@ -36,9 +36,9 @@ Voor die gegevens geldt deze privacyverklaring.
 
 | Wat | Welke gegevens | Waarom | Grondslag (AVG) |
 |---|---|---|---|
-| **Je account en inloggen** | Naam, e-mailadres, taalvoorkeur (Nederlands of Engels), inlogcodes en -links (versleuteld opgeslagen), sessiegegevens, app- en apparaatversie | Zodat je kunt inloggen zonder wachtwoord en Trainer Hub in je eigen taal werkt | Uitvoering van de overeenkomst (art. 6 lid 1 sub b) |
-| **Beveiliging en misbruik voorkomen** | IP-adres, browser- en apparaatgegevens, versleuteld e-mailadres, tijdstippen | Om te voorkomen dat iemand lessen blokkeert met nepboekingen of het platform aanvalt | Gerechtvaardigd belang: een veilige, betrouwbare dienst (art. 6 lid 1 sub f) |
-| **Productstatistieken** | Welke functies worden gebruikt, met een pseudonieme code in plaats van je naam. **Geen** namen, e-mailadressen of notities | Om Trainer Hub te verbeteren | Gerechtvaardigd belang: productverbetering (art. 6 lid 1 sub f) |
+| **Je account en inloggen** | Naam, e-mailadres, taalvoorkeur (Nederlands of Engels), gehashte inlogcodes en -links, sessiegegevens, app- en apparaatversie | Zodat je kunt inloggen zonder wachtwoord en Trainer Hub in je eigen taal werkt | Uitvoering van de overeenkomst (art. 6 lid 1 sub b) |
+| **Beveiliging en misbruik voorkomen** | IP-adres, browser- en apparaatgegevens, gehasht e-mailadres, tijdstippen | Om te voorkomen dat iemand lessen blokkeert met nepboekingen of het platform aanvalt | Gerechtvaardigd belang: een veilige, betrouwbare dienst (art. 6 lid 1 sub f) |
+| **Productstatistieken** | Welke functies worden gebruikt, met pseudonieme gebruikers- en workspace-ID's. Dit zijn persoonsgegevens. **Geen** namen, e-mailadressen, boekings-, trainings- of notitie-inhoud | Om Trainer Hub te verbeteren | Gerechtvaardigd belang: productverbetering (art. 6 lid 1 sub f) |
 | **Contact met sportscholen en trainers die Trainer Hub gebruiken** | Naam, e-mailadres, organisatie, berichten | Support, afspraken, belangrijke mededelingen over de dienst | Uitvoering van de overeenkomst; gerechtvaardigd belang (art. 6 lid 1 sub b en f) |
 | **Wettelijke plichten** | Contract- en (later) factuurgegevens | Administratie- en bewaarplichten | Wettelijke plicht (art. 6 lid 1 sub c) |
 
@@ -69,8 +69,8 @@ Trainer Hub gebruikt **alleen functionele cookies en vergelijkbare opslag**, bij
 
 ## 6. Waar worden je gegevens opgeslagen?
 
-- We slaan je gegevens op in de **Europese Unie**. De database staat bijvoorbeeld in Frankfurt.
-- Sommige dienstverleners zijn onderdeel van een Amerikaans bedrijf. Soms kunnen gegevens daardoor in de Verenigde Staten worden verwerkt of ingezien. Dat gebeurt alleen met de waarborgen die de AVG eist: het EU-VS Data Privacy Framework of standaardcontractbepalingen van de Europese Commissie.
+- De applicatie en PostgreSQL-database draaien bij Railway in Amsterdam. Back-upopslag en -retentie worden vóór gebruik met echte gegevens geverifieerd.
+- Railway is een Amerikaans bedrijf en noemt primaire verwerking in de Verenigde Staten in zijn DPA. Ook andere dienstverleners kunnen gegevens buiten de EER verwerken of inzien. Doorgifte vereist een toepasselijk waarborg, zoals het EU-VS Data Privacy Framework of standaardcontractbepalingen van de Europese Commissie.
 
 ## 7. Hoe lang bewaren we je gegevens?
 

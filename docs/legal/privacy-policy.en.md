@@ -25,7 +25,7 @@ At Trainer Hub, two parties are responsible for your data. Which one depends on 
 
 - your Trainer Hub account and signing in;
 - the security of the platform;
-- anonymized product statistics;
+- product statistics using pseudonymous IDs;
 - our relationship with the gyms and trainers that use Trainer Hub.
 
 This privacy policy covers that data.
@@ -36,9 +36,9 @@ This privacy policy covers that data.
 
 | What | Which data | Why | Legal basis (GDPR) |
 |---|---|---|---|
-| **Your account and signing in** | Name, email address, language preference (Dutch or English), sign-in codes and links (stored encrypted), session data, app and device version | So you can sign in without a password and use Trainer Hub in your own language | Performance of a contract (art. 6(1)(b)) |
-| **Security and abuse prevention** | IP address, browser and device data, encrypted email address, timestamps | To stop anyone from blocking classes with fake bookings or attacking the platform | Legitimate interest: a secure, reliable service (art. 6(1)(f)) |
-| **Product statistics** | Which features are used, with a pseudonymous code instead of your name. **No** names, email addresses or notes | To improve Trainer Hub | Legitimate interest: product improvement (art. 6(1)(f)) |
+| **Your account and signing in** | Name, email address, language preference (Dutch or English), hashed sign-in codes and links, session data, app and device version | So you can sign in without a password and use Trainer Hub in your own language | Performance of a contract (art. 6(1)(b)) |
+| **Security and abuse prevention** | IP address, browser and device data, hashed email address, timestamps | To stop anyone from blocking classes with fake bookings or attacking the platform | Legitimate interest: a secure, reliable service (art. 6(1)(f)) |
+| **Product statistics** | Which features are used, with pseudonymous user and workspace IDs. These are personal data. **No** names, email addresses, booking, workout or note content | To improve Trainer Hub | Legitimate interest: product improvement (art. 6(1)(f)) |
 | **Contact with the gyms and trainers that use Trainer Hub** | Name, email address, organization, messages | Support, agreements, important notices about the service | Performance of a contract; legitimate interest (art. 6(1)(b) and (f)) |
 | **Legal obligations** | Contract and (later) invoice data | Bookkeeping and retention obligations | Legal obligation (art. 6(1)(c)) |
 
@@ -69,8 +69,8 @@ Trainer Hub uses **only functional cookies and similar storage**, for example to
 
 ## 6. Where is your data stored?
 
-- We store your data in the **European Union**. The database, for example, is in Frankfurt.
-- Some service providers are part of a US company, so data may sometimes be processed or accessed in the United States. That only happens with the safeguards the GDPR requires: the EU-US Data Privacy Framework or the European Commission's standard contractual clauses.
+- The app and PostgreSQL database run on Railway in Amsterdam. Backup location and retention will be verified before real data is used.
+- Railway is a US company and states in its DPA that primary processing takes place in the United States. Other service providers may also process or access data outside the EEA. Transfers require an applicable safeguard, such as the EU-US Data Privacy Framework or the European Commission's standard contractual clauses.
 
 ## 7. How long do we keep your data?
 

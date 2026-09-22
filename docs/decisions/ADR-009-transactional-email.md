@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted (2026-09-22) |
+| **Status** | Accepted (2026-09-22); Brevo selected (2026-09-22) |
 | **Date** | 2026-09-22 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | PRODUCT.md §3, §51, §74; ROADMAP.md M1, M5, §12, §13 (R1, R14); ADR-007, ADR-008, ADR-010; E006, F049, F050 |
@@ -14,7 +14,7 @@ Email carries critical flows: sign-in (magic link + code), booking verification,
 ## Decision
 
 - Templates are written with **React Email**, one template per email type, with all text from the shared i18n catalogs (ADR-008). No per-language copies of a template.
-- Sending goes through a **free-tier transactional provider: Resend or Brevo** (Brevo is EU-based). The final pick is made in M1 (E006), based on the free-tier limits and EU data handling at that time, and recorded in this ADR.
+- Sending goes through **Brevo** (EU-based); the owner has created an account. E006 checks its free-tier limits, DPA, EU data handling and delivery before real emails are sent.
 - Emails are sent **inline** with retry (ADR-010), behind a small `sendEmail` interface so the provider can be swapped.
 - Before M5, a **custom domain** is bought and authenticated with SPF, DKIM and DMARC.
 
@@ -24,7 +24,7 @@ Email carries critical flows: sign-in (magic link + code), booking verification,
 - **Positive:** the provider is replaceable behind one interface.
 - **Negative:** free tiers have daily/monthly caps and usually one domain (R14): a cap hit would block magic links. Usage alerts, and an upgrade ready before G4.
 - **Negative:** until the domain exists, only test sending is possible.
-- **Follow-ups:** E006 in M1 (pick provider, test delivery to inbox, not spam); deliverability tests against Gmail, Outlook/Hotmail and a Dutch ISP in M5. Add the provider to the sub-processor list (`ROADMAP.md §4.4`).
+- **Follow-ups:** E006 in M1 (configure Brevo and test delivery to inbox, not spam); deliverability tests against Gmail, Outlook/Hotmail and a Dutch ISP in M5. Brevo is recorded in the sub-processor list (`ROADMAP.md §4.4`).
 
 ## Alternatives considered
 
