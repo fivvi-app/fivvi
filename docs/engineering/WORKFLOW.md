@@ -74,7 +74,7 @@ Also make sure that:
 
 - [ ] Dev servers, watchers, simulators/emulators and Docker containers started for this change are stopped.
 - [ ] Temporary files, scratch scripts and debug output are deleted (never committed).
-- [ ] Preview deployments and Neon preview branches for this change are removed.
+- [ ] The Railway PR environment for this change is gone (it is deleted automatically on merge/close; check anyway).
 - [ ] `FEATURES.md` shows the new status; the feature doc lists its implementation references (PR link).
 - [ ] `git worktree list` shows only the worktrees for changes still in progress.
 

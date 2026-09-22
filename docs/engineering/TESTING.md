@@ -90,7 +90,7 @@ These are the bugs that hurt most (`ROADMAP.md §13`: R2, R3, R4). They get dedi
 
 ### 5.3 Database
 
-- Local: Postgres in Docker (same major version as production). CI: a Postgres service container. Never run tests against Neon production or preview databases.
+- Local: Postgres in Docker (same major version as production). CI: a Postgres service container. Never run tests against the Railway production or preview databases.
 - Migrations are applied once per test run; each test worker gets its own database, so workers don't interfere.
 - Concurrency tests use real, separate connections and are allowed to be slower.
 

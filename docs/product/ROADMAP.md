@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 22 September 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
 | **Builders** | AI coding agents: Claude Code + Codex, working in parallel worktrees |
-| **Status** | Approved (22 September 2026) |
+| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3 |
 | **Requirements source** | [`PRODUCT.md`](PRODUCT.md) (what we build and why) |
 | **Feature registry** | [`FEATURES.md`](FEATURES.md) (status of every feature) |
 | **Engineering workflow** | [`../engineering/WORKFLOW.md`](../engineering/WORKFLOW.md) (branches, worktrees, reviews, cleanup, Definition of Done) |
@@ -193,25 +193,25 @@ Size is relative complexity (S / M / L / XL), not a duration.
 
 ### 4.3 Architecture Decision Records (ADRs)
 
-Each decision gets a short ADR in `docs/decisions/`. All ADRs are accepted by the owner (22 September 2026) and get written up in `docs/decisions/` during M0.
+Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) with its context, consequences and alternatives. All ADRs were accepted by the owner on 22 September 2026. **ADR-011 (hosting) was re-evaluated** during the write-up, because the owner already pays for Railway Hobby and Vercel Hobby is non-commercial only; the owner accepted the Railway option the same day.
 
 | ADR | Decision | Choice | Status | Why |
 |---|---|---|---|---|
-| 001 | Monorepo tooling | **pnpm workspaces + Turborepo** for TS; native projects live in the same repo (`apps/ios`, `apps/android`) with their own build tools (Xcode, Gradle) | Accepted | One repo, one PR per change across all platforms |
-| 002 | Web framework | **Next.js (App Router) + TypeScript strict** | Accepted | Per spec §71; server rendering is good for public booking speed |
-| 003 | Mobile | **Native: iOS in Swift + SwiftUI; Android in Kotlin + Jetpack Compose** (min OS versions set in M0 from the trainers' phones) | **Accepted, deviates from spec §72** | Owner decision: best platform fit, performance and native feel. The cost is two UI codebases, offset by the shared API contract, i18n and design tokens |
-| 004 | API layer | **REST + OpenAPI 3.1**, built with Hono + `@hono/zod-openapi` in `packages/api` and served from Next.js route handlers. The OpenAPI spec is generated and committed; **typed clients are generated** for TS (web), Swift (swift-openapi-generator) and Kotlin (openapi-generator) | Accepted (replaces tRPC) | Native clients need a language-neutral contract. One backend still serves all clients (§75) |
-| 005 | Database & ORM | **PostgreSQL (EU region) + Drizzle ORM + versioned SQL migrations** | Accepted | Per spec §76; SQL-first, works cleanly with Row-Level Security |
-| 006 | Tenant isolation | **Org-scoped data-access layer + Postgres RLS as defence in depth + automated cross-tenant tests** | Accepted | Per spec §77; two independent barriers against data leaks |
-| 007 | Authentication | **Better Auth** (organization/member/invitation plugins + email magic link **and** 6-digit email code; bearer tokens for native apps) | Accepted | Our own tables and our own localized emails. The 6-digit code lets native apps sign in without needing Universal/App Links on day one, and it survives email link scanners. *Spike in M1: native bearer-token flow* |
-| 008 | Localization | **One source of truth:** ICU MessageFormat catalogs in `packages/i18n` (`nl-NL.json`, `en.json`). Web uses next-intl. A generator **exports the catalogs to iOS String Catalogs (`.xcstrings`) and Android `strings.xml`/plurals**. Emails use the same catalogs | Accepted | One set of keys and translations for three platforms; CI checks parity on the source and on the generated files |
-| 009 | Transactional email | **React Email templates + a free-tier provider** (Resend or Brevo; Brevo is EU-based) | Accepted | One template structure with localized strings (§74); free tier covers pilot volume |
-| 010 | Background jobs | **Avoid needing a job runner:** holds expire *lazily* (`expires_at` is checked when capacity is read) and a daily cron cleans up; emails are sent inline with retry; recurrence is materialized by a daily cron plus on-demand at edit time | Accepted | Works within free-tier cron limits; add a queue (e.g. Inngest free tier) only if needed |
-| 011 | Hosting & environments | **Free tiers in EU regions:** Vercel Hobby (web + API) + Neon free (Postgres, Frankfurt; branches for previews) | Accepted | €0 during build. Vercel Hobby is for non-commercial use, so move to a paid plan or Cloudflare at Gate G4 (§12) |
-| 012 | Time & recurrence model | **UTC `timestamptz` + IANA timezone on workspace/location; recurrence as RRULE in local wall-clock time; occurrences materialized as rows for a rolling horizon (e.g. 12 weeks)** | Accepted | "Every Tuesday 18:00" must stay 18:00 across daylight-saving changes; each occurrence needs its own trainer, capacity and bookings (§20) |
-| 013 | Observability | **Free tiers:** Sentry (EU region; web, iOS, Android, API), UptimeRobot / Better Stack uptime checks, PostHog EU (cookieless mode) for product events | Accepted | Pilot observation (§85 J) needs data; cookieless means no consent banner |
-| 014 | Testing | **Vitest** (unit + integration against real Postgres), **Playwright** (web e2e in NL and EN), **XCTest/XCUITest** (iOS), **JUnit + Compose UI tests** (Android), **Maestro** for shared cross-platform mobile flows | Accepted | Booking and tenancy bugs are the most expensive; Maestro runs the same flow on both native apps |
-| 015 | UI foundation | **Shared design tokens** (Style Dictionary) → web (Tailwind + shadcn/ui), iOS (SwiftUI), Android (Compose + Material 3) | Accepted | Share tokens, contract and strings, not components |
+| [001](../decisions/ADR-001-monorepo-tooling.md) | Monorepo tooling | **pnpm workspaces + Turborepo** for TS; native projects live in the same repo (`apps/ios`, `apps/android`) with their own build tools (Xcode, Gradle) | Accepted | One repo, one PR per change across all platforms |
+| [002](../decisions/ADR-002-web-framework.md) | Web framework | **Next.js (App Router) + TypeScript strict** | Accepted | Per spec §71; server rendering is good for public booking speed |
+| [003](../decisions/ADR-003-native-mobile-apps.md) | Mobile | **Native: iOS in Swift + SwiftUI; Android in Kotlin + Jetpack Compose** (min OS versions set in M0 from the trainers' phones) | **Accepted, deviates from spec §72** | Owner decision: best platform fit, performance and native feel. The cost is two UI codebases, offset by the shared API contract, i18n and design tokens |
+| [004](../decisions/ADR-004-api-layer.md) | API layer | **REST + OpenAPI 3.1**, built with Hono + `@hono/zod-openapi` in `packages/api` and served from Next.js route handlers. The OpenAPI spec is generated and committed; **typed clients are generated** for TS (web), Swift (swift-openapi-generator) and Kotlin (openapi-generator) | Accepted (replaces tRPC) | Native clients need a language-neutral contract. One backend still serves all clients (§75) |
+| [005](../decisions/ADR-005-database-and-orm.md) | Database & ORM | **PostgreSQL (EU region) + Drizzle ORM + versioned SQL migrations** | Accepted | Per spec §76; SQL-first, works cleanly with Row-Level Security |
+| [006](../decisions/ADR-006-tenant-isolation.md) | Tenant isolation | **Org-scoped data-access layer + Postgres RLS as defence in depth + automated cross-tenant tests** | Accepted | Per spec §77; two independent barriers against data leaks |
+| [007](../decisions/ADR-007-authentication.md) | Authentication | **Better Auth** (organization/member/invitation plugins + email magic link **and** 6-digit email code; bearer tokens for native apps) | Accepted | Our own tables and our own localized emails. The 6-digit code lets native apps sign in without needing Universal/App Links on day one, and it survives email link scanners. *Spike in M1: native bearer-token flow* |
+| [008](../decisions/ADR-008-localization.md) | Localization | **One source of truth:** ICU MessageFormat catalogs in `packages/i18n` (`nl-NL.json`, `en.json`). Web uses next-intl. A generator **exports the catalogs to iOS String Catalogs (`.xcstrings`) and Android `strings.xml`/plurals**. Emails use the same catalogs | Accepted | One set of keys and translations for three platforms; CI checks parity on the source and on the generated files |
+| [009](../decisions/ADR-009-transactional-email.md) | Transactional email | **React Email templates + a free-tier provider** (Resend or Brevo; Brevo is EU-based) | Accepted | One template structure with localized strings (§74); free tier covers pilot volume |
+| [010](../decisions/ADR-010-background-jobs.md) | Background jobs | **Avoid needing a job runner:** holds expire *lazily* (`expires_at` is checked when capacity is read) and a daily cron cleans up; emails are sent inline with retry; recurrence is materialized by a daily cron plus on-demand at edit time | Accepted | Works within free-tier cron limits; add a queue (e.g. Inngest free tier) only if needed |
+| [011](../decisions/ADR-011-hosting-and-environments.md) | Hosting & environments | All on **Railway, EU West (Amsterdam)**: Next.js web + API, Postgres and a cron service in one project; a PR environment per PR. Hobby (already paid) during the build → **Pro ($20/month) at G4**. *Replaces v1.2: Vercel Hobby + Neon free* | Accepted (revised in v1.3) | Vercel Hobby is non-commercial only, so G4 needs a paid plan anyway. Railway keeps app and DB in one EU location with one DPA, no DB cold starts, and costs a flat $20/month at pilot volume vs ≈ $20–40 for Vercel Pro + Neon |
+| [012](../decisions/ADR-012-time-and-recurrence.md) | Time & recurrence model | **UTC `timestamptz` + IANA timezone on workspace/location; recurrence as RRULE in local wall-clock time; occurrences materialized as rows for a rolling horizon (e.g. 12 weeks)** | Accepted | "Every Tuesday 18:00" must stay 18:00 across daylight-saving changes; each occurrence needs its own trainer, capacity and bookings (§20) |
+| [013](../decisions/ADR-013-observability.md) | Observability | **Free tiers:** Sentry (EU region; web, iOS, Android, API), UptimeRobot / Better Stack uptime checks, PostHog EU (cookieless mode) for product events | Accepted | Pilot observation (§85 J) needs data; cookieless means no consent banner |
+| [014](../decisions/ADR-014-testing.md) | Testing | **Vitest** (unit + integration against real Postgres), **Playwright** (web e2e in NL and EN), **XCTest/XCUITest** (iOS), **JUnit + Compose UI tests** (Android), **Maestro** for shared cross-platform mobile flows | Accepted | Booking and tenancy bugs are the most expensive; Maestro runs the same flow on both native apps |
+| [015](../decisions/ADR-015-ui-foundation.md) | UI foundation | **Shared design tokens** (Style Dictionary) → web (Tailwind + shadcn/ui), iOS (SwiftUI), Android (Compose + Material 3) | Accepted | Share tokens, contract and strings, not components |
 
 ### 4.4 Legal and privacy preparation
 
@@ -228,13 +228,13 @@ Each decision gets a short ADR in `docs/decisions/`. All ADRs are accepted by th
 
 - [ ] **Name:** Trainer Hub (working name). **Domain:** decided later. Buy one before M5 (see §12), because email deliverability and deep links need it.
 - [ ] GitHub repository (private) + branch protection on `main`.
-- [ ] Free-tier accounts: Vercel, Neon, email provider, Sentry, PostHog, uptime monitor (EU regions).
+- [ ] Accounts: Railway (Hobby, already paid; EU West Amsterdam, ADR-011), plus free tiers for the email provider, Sentry, PostHog and the uptime monitor (EU regions).
 - [ ] **Apple Developer Program and Google Play Console: deferred to M8.** During development, use Xcode's free on-device provisioning and Android debug builds. Enroll as an *individual* for the pilot to avoid the D-U-N-S wait (§12).
 
 ### 4.6 M0 exit criteria (Gate G0)
 
 - Critical flows validated by the pilot owner.
-- ADRs 001–015 written up in `docs/decisions/` (the decisions themselves are already accepted).
+- ADRs 001–015 written up in `docs/decisions/` (the decisions themselves are accepted).
 - Baseline metrics recorded; trainer phone inventory known.
 - Free-tier accounts created.
 
@@ -271,7 +271,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
   ```
 - CI on every PR: lint, typecheck, tests, build, **i18n key parity**, **ICU syntax**, **no hard-coded strings** (web lint; SwiftLint/ktlint custom rules for native), and an **OpenAPI drift check** (the committed spec must match the code; generated clients must be up to date).
 - **CI minutes on the free plan:** Linux jobs (web, API, Android) run on every PR. iOS builds run only when `apps/ios` or the contract changes, and agents also build locally with Xcode. macOS minutes count 10× against the free quota (§12).
-- Environments: `local` (Docker Postgres), `preview` (Vercel preview + Neon branch per PR), `production`. A separate `staging` is only added if it's needed. It's free-tier friendly.
+- Environments (ADR-011): `local` (Docker Postgres), `preview` (a Railway PR environment per PR with its own migrated and seeded Postgres, removed on merge/close), `production` (Railway, EU West Amsterdam). A separate `staging` is only added if it's needed. The M1 spike checks the ADR-011 conditions (per-PR databases, backup/restore, cron, cost).
 - Native shells: an iOS app and an Android app that call a generated API client and show a translated screen, running on a simulator/emulator and on a real device.
 
 **Exit criteria (Gate G1: architecture sign-off)**
@@ -435,7 +435,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - [ ] **Full bilingual QA pass:** an LLM review of every string against the glossary and tone guide, on web, iOS, Android and email. Dates/times checked (`22 september 2026`, 24h, Europe/Amsterdam). The pilot owner flags anything that reads oddly.
 - [ ] Accessibility: public booking and client web meet WCAG 2.2 AA. Native apps support Dynamic Type / font scaling, VoiceOver / TalkBack labels, and have sufficient contrast.
 - [ ] Performance: public page budget met; calendar loads a busy week quickly.
-- [ ] Backups verified by an **actual restore** to a scratch database (Neon branch).
+- [ ] Backups verified by an **actual restore** to a scratch Postgres service on Railway.
 - [ ] Runbooks: incident response, rollback, "a client says they didn't get the email", "wrong booking".
 - [ ] Import scripts dry-run against a copy of the pilot's real data.
 - [ ] **Free-tier limits reviewed** and the paid upgrades triggered by G4 are ready to switch on (§12).
@@ -599,14 +599,14 @@ flowchart TB
     TOK[Design tokens<br/>→ CSS / Swift / Kotlin]
   end
 
-  subgraph Backend["One backend (Next.js on Vercel, EU)"]
+  subgraph Backend["One backend (Next.js on Railway, EU West Amsterdam)"]
     API[packages/api<br/>Hono + zod-openapi REST]
     AUTH[packages/auth<br/>Better Auth: magic link + code,<br/>orgs, roles, bearer tokens]
     DOM[packages/domain<br/>scheduling, capacity,<br/>location inference, recurrence]
-    CRON[Daily cron<br/>hold cleanup, recurrence,<br/>retention]
+    CRON[Daily cron service<br/>hold cleanup, recurrence,<br/>retention]
   end
 
-  DB[(PostgreSQL — Neon EU<br/>RLS per organization)]
+  DB[(PostgreSQL — Railway EU West<br/>private network, RLS per organization)]
   MAIL[Transactional email]
   OBS[Sentry · PostHog EU · uptime]
 
@@ -629,20 +629,20 @@ flowchart TB
   API --> OBS
 ```
 
-**Environments:** `local` → `preview` (per PR: Vercel preview + Neon branch) → `production`. Migrations run forward-only; production deploys come only from `main`.
+**Environments** (per [ADR-011](../decisions/ADR-011-hosting-and-environments.md)): `local` (Docker Postgres) → `preview` (per PR: a Railway PR environment with its own Postgres, migrated and seeded with demo data, removed on merge/close) → `production` (Railway, EU West Amsterdam). Migrations run forward-only; production deploys come only from `main`. All decisions behind this architecture are in [`docs/decisions/`](../decisions/README.md).
 
 ---
 
 ## 12. Cost plan: free-tier first
 
-**Rule:** €0 until real clients use the platform. Paid upgrades are switched on at **Gate G4 (pilot go-live)** or when a free-tier limit is actually hit. *Free-tier limits change often; re-check them at M0 and at M9.*
+**Rule:** no new spend until real clients use the platform. Paid upgrades are switched on at **Gate G4 (pilot go-live)** or when a free-tier limit is actually hit. *Free-tier limits change often; re-check them at M0 and at M9.* Hosting follows [ADR-011](../decisions/ADR-011-hosting-and-environments.md) (terms checked 22 September 2026).
 
 | Need | Free choice now | Limit to watch | Upgrade trigger → option |
 |---|---|---|---|
-| Web + API hosting | Vercel Hobby | Hobby is **non-commercial only**; function/cron limits | G4 → Vercel Pro, or Cloudflare (Workers free tier allows commercial use) |
-| Database | Neon free (EU) | Storage cap; scales to zero (cold starts) | Storage or performance → Neon paid |
+| Web + API hosting, cron, previews | Railway Hobby, EU West (Amsterdam): **already paid by the owner** ($5/month incl. $5 usage) | Usage above the $5 credit is billed (watch PR environments); community support only; 7-day logs | **G4 → Railway Pro**, $20/month incl. $20 usage (≈ $5–10 expected usage at pilot volume) |
+| Database | Railway Postgres in the same project (EU West, Amsterdam) | Hobby: 5 GB volume; backup/PITR availability per plan to verify in M1 | Covered by Railway Pro at G4; storage $0.15/GB-month |
 | Email | Resend free or Brevo free | Daily/monthly send caps; one domain | Send volume near the cap → paid tier |
-| Domain | Not needed until M5 (use the provider's test sending and `*.vercel.app` before then) | — | **Before M5:** buy the domain (~€10–15/year), the first small cost |
+| Domain | Not needed until M5 (use the provider's test sending and `*.up.railway.app` before then) | — | **Before M5:** buy the domain (~€10–15/year), the first small cost |
 | Errors / crashes | Sentry free (EU) | Event quota, 1 user | Quota hit → paid |
 | Product analytics | PostHog free (EU, cookieless) | Event quota | Quota hit → paid |
 | Uptime | UptimeRobot / Better Stack free | Check interval | — |
@@ -652,7 +652,7 @@ flowchart TB
 | Android distribution | Debug builds / APK to own devices | — | **M8 (pilot):** Google Play Console, $25 one-time |
 | Push notifications (1.2) | APNs + FCM | Free | — |
 
-**Expected spend until pilot go-live:** a domain (~€10–15/year) plus Apple ($99/year) and Google ($25 once) at M8. Everything else is €0.
+**Expected spend until pilot go-live:** a domain (~€10–15/year) plus Apple ($99/year) and Google ($25 once) at M8. Hosting runs on the Railway Hobby plan the owner already pays ($5/month); everything else is €0. **From G4:** Railway Pro, $20/month.
 
 ---
 
@@ -722,3 +722,4 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-09-22 | 1.0 | Initial roadmap derived from `PRODUCT.md`. Added Phase 0, walking-skeleton foundation, hardening milestone, gates, metrics, risks, ADR proposals and post-MVP entry gates. |
 | 2026-09-22 | 1.1 | Owner decisions applied: built by AI agents (no human-capacity timeline; sequence/gate-based with parallel tracks); **native iOS + Android** instead of React Native/Expo; API → REST + OpenAPI with generated clients; i18n exported to native catalogs; **free-tier-first cost plan**; Dutch review by LLM with glossary; Apple/Google accounts deferred to M8; name "Trainer Hub". Added E018, R14, R15. |
 | 2026-09-22 | 1.2 | **Approved.** Owner alpha at M4: yes. Repository: private. Billing model, AI provider and client-app shape are decided iteratively at their entry gates. |
+| 2026-09-22 | 1.3 | ADRs 001–015 written up in [`docs/decisions/`](../decisions/README.md) and linked from §4.3. **ADR-011 (hosting) revised and accepted:** the owner already pays for Railway Hobby, and Vercel Hobby is non-commercial only. Everything runs on Railway EU West (Amsterdam): Hobby during the build → Pro at G4. Vercel and Neon are dropped. §4.5, M1, M9, §11 and §12, E003 in `FEATURES.md`, `WORKFLOW.md §5` and `TESTING.md §5.3` updated to match. |
