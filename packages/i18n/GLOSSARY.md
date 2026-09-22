@@ -434,7 +434,7 @@ Follow this whenever you add or change a key in `packages/i18n/nl-NL.json` or `e
 7. **Check length.** Dutch is often 20–35% longer than English. Check tabs, buttons and badges at 375 pt/dp width on iOS and Android. If a Dutch string doesn't fit, shorten both languages, don't truncate.
 8. **Missing term?** Add a row to §4 in the **same PR**, mark it ⚠️, and list it under "New glossary terms" in the PR description so the owner can approve it. Don't invent a term silently.
 9. **Changing a term** is a PR of its own: update this file, every string that uses the old term (both catalogs and email templates), and the changelog in §9.
-10. **LLM review checklist.** On every PR that touches strings (`ROADMAP.md §10`), the reviewing agent checks each new or changed string for:
+10. **Local copy review checklist.** Before pushing a change that touches strings (`ROADMAP.md §10`), the author checks each new or changed string locally. An LLM may help, but no Claude or Codex GitHub review is required. Check for:
     - [ ] "je", never "u"; friendly and short; no officialese (§1.1)
     - [ ] glossary terms used, no forbidden alternatives, no collisions (§4, §5.4)
     - [ ] sentence case, Dutch compounds and hyphens, punctuation (§2)
@@ -474,3 +474,4 @@ These terms are the best current choice. Confirm them in the M0 wireframe review
 |---|---|---|
 | 2026-09-22 | 0.1 | First version (M0, `ROADMAP.md §4.2`): tone rules (informal "je"), capitalization, date/time/number formats, term table for the MVP domain, UI verb and message conventions, agent workflow. |
 | 2026-09-22 | 0.2 | Owner approved: en-GB formatting and spelling for English, sentence case in both languages (§7). ⚠️ terms stay open until the M0 wireframe review. |
+| 2026-09-22 | 0.3 | Copy review checklist moved to the local author workflow; no GitHub Claude/Codex reviewer or CI job is required. Terminology is unchanged. |

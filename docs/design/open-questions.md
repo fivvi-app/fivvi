@@ -1,0 +1,168 @@
+# UX questions for M0 validation
+
+These questions record assumptions in the [information architecture](information-architecture.md) and [six flows](README.md). None is an approved requirement. The wireframes show a proposal so the pilot owner and another trainer can react to a concrete screen. Record the answer, participant, date and affected screen IDs here after validation; then update the flow, feature spec and glossary where relevant. Product scope or permission changes require an owner decision before implementation.
+
+**Status:** Open for the M0 prototype review. The [validation script](../discovery/prototype-validation-script.md) covers the six tasks; use the questions below as follow-ups, not as a replacement for observing the tasks.
+
+## Pilot workflow and terminology
+
+### Q01
+Should the owner default to the workspace day on web and their own day on mobile? Is a switch between the two useful? **Proposal:** workspace on web, personal on mobile (WC-01, TD-01).
+
+### Q02
+Should trainers see the whole workspace calendar, or only their assigned sessions? **Proposal:** read-only workspace calendar; their own sessions remain editable where permitted (WC-02). Check this against client privacy.
+
+### Q03
+Which workspace clients may a trainer open: all, assigned only, or clients they have trained? **Proposal:** workspace client list, with access to notes determined separately by Q04 (TW-01/02).
+
+### Q04
+Who may read trainer-only notes about a client within a workspace? **Proposal:** owner, admin and trainers with access to that client. Health-related content makes this a privacy decision (TW-02, TD-02).
+
+### Q05
+Which administrative actions may an admin perform, and may a trainer copy or share booking links? **Proposal:** admin manages classes, Open Gym and links; only owner changes roles/settings; trainers may share a published link (TW-06/07/08, TD-03).
+
+### Q06
+Does the gym say *privésessie* for a private appointment? Confirm *werkruimte*, *trainingsschema* and *vervanger* against the [glossary's open terms](../../packages/i18n/GLOSSARY.md#8-open-questions-validate-with-the-pilot-owner). **Proposal:** use glossary terms until validated (PS-01, CO-02).
+
+### Q07
+How far ahead do clients expect to browse available lessons? **Proposal:** 14 days, with another 14 on request (PB-01).
+
+### Q08
+When should a class stop accepting bookings? **Proposal:** at its start time (PB-01/03).
+
+### Q09
+When may a client cancel a booking, and must that differ for Open Gym? **Proposal:** until the start time. A cancellation cutoff is listed for release 1.1, so any MVP cutoff changes roadmap scope (CW-03).
+
+### Q10
+How long should a pending email confirmation hold a place? **Proposal:** 15 minutes, ending earlier if the class starts (PB-04).
+
+### Q11
+Which details make a class choice clear: exact available places, trainer, location, or only a full/available label? **Proposal:** show trainer and remaining places (PB-01/02).
+
+### Q12
+If verification arrives after the hold expires but capacity remains, may the client confirm immediately? **Proposal:** offer a fresh capacity check and confirmation, never silently reclaim the old hold (PB-08).
+
+### Q13
+Is a six-digit code beside the email link useful for clients who read mail on another device? **Proposal:** both in the same email; code entry on PB-04 (ADR-007).
+
+### Q14
+How much location detail does a class or Open Gym listing need, and must an Open Gym slot name a trainer? **Proposal:** show the venue/address in details; no trainer line for Open Gym unless assigned (PB-02, WC-03).
+
+### Q15
+Do clients use an add-to-calendar action from a booking confirmation? **Proposal:** one-event calendar download (PB-06).
+
+### Q16
+What makes an optional account worthwhile after a guest booking? **Proposal:** access to all upcoming and past bookings; management of one booking remains possible by email link (PB-06/07, CW-02).
+
+### Q17
+What must appear on a trainer's Today row to choose the next action quickly? **Proposal:** time, client/class, location, workspace and attendance cue (TD-01).
+
+### Q18
+When should Today prompt a trainer for missing attendance, and should private and class attendance use different shortcuts? **Proposal:** cue after the session ends (TD-01/02, CO-05).
+
+### Q19
+Which timezone should a travelling trainer's personal calendar use? **Proposal:** profile timezone, default Europe/Amsterdam; label it when device timezone differs (TD-01/04).
+
+### Q20
+Which calendar view and visible hours match the pilot's timetable? **Proposal:** week first, with day-by-trainer and list alternatives (WC-02/03/04).
+
+### Q21
+Is a month view or printable week needed for MVP? **Proposal:** print the week; no month grid until validated (WC-02).
+
+### Q22
+Should calendar colour primarily identify session type or trainer? **Proposal:** type; text labels remain visible (WC-02).
+
+### Q23
+Will the owner move sessions by dragging them, or is a form enough? **Proposal:** both paths lead to the same confirmation (WC-07, PS-05).
+
+### Q24
+What should happen when a trainer is already assigned elsewhere at the proposed time? **Proposal:** visible warning, with a decision on whether a true conflict must block saving (PS-07).
+
+### Q25
+Which private-session durations should be one tap away? **Proposal:** common pilot durations, with a custom duration option (PS-01).
+
+### Q26
+Should new, moved and cancelled private sessions email the client automatically? **Proposal:** show the email effect before saving; notification scope also needs QE02 (PS-01/05/06).
+
+### Q27
+May trainers create, move or cancel their own private sessions, and may they do so for another trainer? **Proposal:** own sessions only; owner/admin manage all in their workspace (PS-01/05/06).
+
+### Q28
+Which locations do trainers actually use, and when should the system remember a client's preferred location? **Proposal:** infer from client/workspace, ask only when ambiguous (PS-03).
+
+### Q29
+Does the gym need to record who initiated a private-session cancellation? **Proposal:** optional reason/initiator; omit if it adds administration without present value (PS-06).
+
+### Q30
+Is workout difficulty rated per set, per exercise, or per workout? **Proposal:** per exercise after the last set (WL-03).
+
+### Q31
+Which exercise measures beyond weight × reps are needed now, such as bodyweight, duration or distance? **Proposal:** bodyweight can omit weight; duration/distance need an explicit data-model decision (WL-03, QE10).
+
+### Q32
+Do trainers log between sets, after the session, or both? What can they operate with one hand? **Proposal:** between-set logging on phone and later editing on web (WL-02/03/06).
+
+### Q33
+Which weight increments match the pilot's equipment and should quick controls follow those increments? **Proposal:** large step buttons plus direct number entry (WL-03).
+
+### Q34
+Should finishing a workout mark private-session attendance automatically? **Proposal:** mark attended, with a visible confirmation or correction path (WL-05).
+
+### Q35
+Should previous exercise values logged by another trainer in the same workspace be visible? **Proposal:** yes, with trainer attribution; never cross workspace boundaries (WL-03).
+
+### Q36
+Should a trainer substitution notify booked clients? **Proposal:** optional, off by default when only the trainer changes (CO-02).
+
+### Q37
+How does a substitute learn about an assignment, and should the original trainer get a notice? **Proposal:** email the substitute; this adds a template to the MVP email list (CO-02, QE01).
+
+### Q38
+Who records class attendance, and when? **Proposal:** assigned trainer or owner/admin from 30 minutes before start (CO-05/06).
+
+### Q39
+May staff add walk-ins, including when capacity is full? **Proposal:** add a participant within capacity only; anything else needs a capacity policy (CO-07).
+
+### Q40
+May an assigned trainer substitute themselves or cancel a class occurrence? **Proposal:** owner/admin handle those changes; trainer handles attendance (CO-01/02/03).
+
+### Q41
+Does the owner need to undo a cancelled class after notifications have gone out? **Proposal:** no undo in MVP; validate the recovery action before building (CO-03).
+
+### Q42
+Should a class cancellation offer a custom message to booked clients? **Proposal:** optional message in the required cancellation email (CO-03).
+
+## Product and engineering decisions exposed by the flows
+
+### QE01
+Decide whether the substitute-trainer email (EM-10) belongs in F049/F024. `PRODUCT.md §51` does not list it. If approved, add it to the feature specification and both language catalogs before implementation.
+
+### QE02
+Decide whether private-session creation email (EM-11) belongs in F049/F020 and what happens when the client has no email. `PRODUCT.md §51` lists schedule changes and cancellations but does not explicitly list a new private-session email.
+
+### QE03
+**Resolved by the owner-approved glossary v0.2:** English uses en-GB formatting, day-month dates and 24-hour time. The catalog remains `en`. Keep this entry as the record for older flow references; no further pilot decision is needed.
+
+### QE04
+Resolve where a client can read a *Zichtbaar voor klant* note in MVP. A visibility flag with no client view cannot fulfil the intent of F048. Also decide whether trainer-created private sessions appear in client web (CW-02/03, WL-05).
+
+### QE05
+Decide whether a signed-in client sees bookings across all workspaces sharing the verified email, with per-workspace authorization on each booking (CW-02).
+
+### QE06
+Decide whether an authenticated, verified client can book without a new email confirmation, while still using the same atomic capacity check (PB-03/06).
+
+### QE07
+Decide whether a short booking link may change target after a QR code is printed. Define how inactive or retargeted links behave, including safeguards against redirecting a class-specific link to another class (PB-09).
+
+### QE10
+Specify the workout log model for non-weight measures, per-set difficulty, previous-value lookup and idempotent writes before F043 implementation (WL-03/07).
+
+### QE11
+Cross-workspace conflict warnings may expose another workspace's session details. Decide a privacy-safe response before implementing PS-07; a generic “you are busy” warning may be sufficient, and workspace-scoped screens must never query another workspace's business records.
+
+### QE12
+Decide whether substitution and class cancellation are necessary on the M8 trainer apps. The current M8 mobile scope explicitly covers attendance; web can handle administration (CO-02/03/05).
+
+### QE14
+Define concurrent edits to the same workout or set before implementing the proposed offline queue and web/phone sync. “Last edit wins” could discard work; server conflict handling and recovery must be designed and tested (WL-07).

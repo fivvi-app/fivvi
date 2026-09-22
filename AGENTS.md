@@ -24,6 +24,7 @@ Stack: Next.js web + API (Hono + zod-openapi, REST), native iOS (Swift + SwiftUI
 - Notes are trainer-only by default and may contain health data. Treat them as sensitive.
 - Mobile features need iOS **and** Android parity before they count as done.
 - **Every behaviour change ships with tests** (`TESTING.md §3`). Bug fixes start with a failing test. Never delete, skip or weaken a test to get CI green.
+- **Agent review stays local.** Review changes against `WORKFLOW.md §4` before pushing. Do not add Claude or Codex GitHub PR reviewers, review jobs, or required agent-review checks; a second local agent review is optional.
 - Update the feature doc and `FEATURES.md` status in the same PR as the code.
 - Prefer free-tier services; don't add a paid dependency without the owner's approval.
 - Don't build anything in `PRODUCT.md §53` (MVP exclusions).
