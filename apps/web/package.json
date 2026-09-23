@@ -7,10 +7,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint --max-warnings=0 .",
+    "lint": "biome check --formatter-enabled=false --error-on-warnings .",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "format:check": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore"
+    "format:check": "biome format ."
   },
   "dependencies": {
     "next": "catalog:",
@@ -18,12 +18,10 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@biomejs/biome": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "eslint": "catalog:",
-    "eslint-config-next": "catalog:",
-    "prettier": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

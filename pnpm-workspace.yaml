@@ -8,24 +8,29 @@ engineStrict: true
 
 # Shared dependency versions. Workspace packages reference them as "catalog:".
 catalog:
-  '@eslint/js': ^9.39.5
-  '@types/node': ^24.0.0
-  '@types/react': ^19.2.0
-  '@types/react-dom': ^19.2.0
-  eslint: ^9.39.5
-  eslint-config-next: 16.3.5
-  eslint-config-prettier: ^10.1.8
-  globals: ^16.4.0
-  next: 16.3.5
-  prettier: ^3.8.1
+  # Exact: we enable nursery rules, which may change in minor releases.
+  '@biomejs/biome': 2.5.14
+  '@types/node': ^26.6.2
+  '@types/react': ^19.3.0
+  '@types/react-dom': ^19.3.0
+  next: 16.3.6
   react: ^19.3.0
   react-dom: ^19.3.0
   turbo: ^2.11.2
-  typescript: ~6.0.3
-  typescript-eslint: ^8.70.1
+  typescript: ~7.0.2
   vitest: ^5.0.1
 
-# Dependencies allowed to run install scripts. unrs-resolver's postinstall only
-# re-fetches a native binary that pnpm already installs as an optional dependency.
-allowBuilds:
-  unrs-resolver: false
+# Next.js 16.3.6 (latest, requested by the owner) was published on 2026-09-22,
+# inside pnpm's 1-day minimum release age. These exact versions are exempt;
+# remove this list once they are older than a day (after 2026-09-23 16:21 UTC).
+minimumReleaseAgeExclude:
+  - next@16.3.6
+  - '@next/env@16.3.6'
+  - '@next/swc-darwin-arm64@16.3.6'
+  - '@next/swc-darwin-x64@16.3.6'
+  - '@next/swc-linux-arm64-gnu@16.3.6'
+  - '@next/swc-linux-arm64-musl@16.3.6'
+  - '@next/swc-linux-x64-gnu@16.3.6'
+  - '@next/swc-linux-x64-musl@16.3.6'
+  - '@next/swc-win32-arm64-msvc@16.3.6'
+  - '@next/swc-win32-x64-msvc@16.3.6'

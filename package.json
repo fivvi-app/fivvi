@@ -4,12 +4,12 @@
   "type": "module",
   "packageManager": "pnpm@12.5.1",
   "engines": {
-    "node": ">=24.8.0 <25"
+    "node": ">=26.8.0 <27"
   },
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": ">=24.8.0 <25",
+      "version": ">=26.8.0 <27",
       "onFail": "error"
     }
   },
@@ -19,18 +19,14 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "format": "prettier --write .",
     "format:check": "turbo run format:check",
-    "format:check:root": "prettier --check . \"!apps/**\" \"!packages/**\""
+    "format:check:root": "biome format ./*.json",
+    "format": "biome format --write .",
+    "fix": "biome check --write ."
   },
   "devDependencies": {
-    "@eslint/js": "catalog:",
-    "eslint": "catalog:",
-    "eslint-config-prettier": "catalog:",
-    "globals": "catalog:",
-    "prettier": "catalog:",
+    "@biomejs/biome": "catalog:",
     "turbo": "catalog:",
-    "typescript": "catalog:",
-    "typescript-eslint": "catalog:"
+    "typescript": "catalog:"
   }
 }

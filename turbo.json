@@ -1,14 +1,7 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "ui": "stream",
-  "globalDependencies": [
-    ".nvmrc",
-    "tsconfig.base.json",
-    "eslint.config.js",
-    ".prettierrc.json",
-    ".prettierignore",
-    ".gitignore"
-  ],
+  "globalDependencies": [".nvmrc", "tsconfig.base.json", "biome.json", ".gitignore"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

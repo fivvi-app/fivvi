@@ -20,6 +20,7 @@ The work is done by AI agents in parallel worktrees, with one PR per change (`WO
 - **Native projects live in the same repo** but keep their own build tools: `apps/ios` (Xcode project, Swift Package Manager) and `apps/android` (Gradle). They are not pnpm packages.
 - Generated artefacts that cross the TS/native boundary (OpenAPI clients, string catalogs, design tokens) are produced by scripts in the TS workspace and **committed**, so native builds don't need Node to be installed. CI checks that they are up to date (ADR-004, ADR-008, ADR-015).
 - TypeScript is `strict` everywhere.
+- **Toolchain** (owner decision, 2026-09-23, E001): Node 26 and pnpm pinned in the repo (`.nvmrc`, `devEngines`, `packageManager`); TypeScript 7; **Biome** for linting and formatting instead of ESLint + Prettier.
 
 Layout (from `ROADMAP.md` M1):
 
@@ -34,7 +35,8 @@ Layout (from `ROADMAP.md` M1):
 - **Positive:** worktrees (`WORKFLOW.md §3`) work on the whole product, not one slice.
 - **Negative:** two build worlds in one repo. CI must path-filter so an iOS build runs only when `apps/ios` or the contract changes (macOS minutes count 10×).
 - **Negative:** Xcode and Gradle don't understand the pnpm graph. The codegen → native dependency is kept explicit through committed generated files plus a CI drift check.
-- **Follow-ups:** E001 sets up the workspace, ESLint/Prettier, SwiftLint and ktlint; E002 adds path filters.
+- **Negative:** Biome has fewer rules than ESLint's plugin ecosystem (e.g. no Next.js `no-html-link-for-pages`), and its promise rules are still in the nursery group, so Biome is pinned to an exact version. Project-specific checks, such as E005's no-hard-coded-strings rule, are written as Biome GritQL plugins or small scripts.
+- **Follow-ups:** E001 sets up the workspace and Biome; SwiftLint and ktlint come with the native shells (E008); E002 adds path filters.
 
 ## Alternatives considered
 
@@ -43,6 +45,7 @@ Layout (from `ROADMAP.md` M1):
 | Separate repos per platform | One logical change becomes 3–4 PRs that must land in order; contract drift becomes likely; harder for agents to see the whole change |
 | Nx | Capable, but heavier configuration than this project needs. Turborepo + pnpm covers task orchestration and caching with less setup |
 | npm/yarn workspaces | pnpm is faster and stricter about undeclared dependencies, which catches mistakes agents make |
+| ESLint + Prettier | Two tools and a large plugin tree; Biome lints and formats in one fast binary (owner choice, 2026-09-23) |
 | Bazel (one build tool for all platforms) | Far too much setup and upkeep for a small team; fights Xcode and Gradle conventions |
 
 ## References
