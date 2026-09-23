@@ -127,7 +127,7 @@ These are not user-facing, so they don't need NL/EN columns. They still go throu
 | ID | Enabler | Status | Milestone | Notes |
 |---|---|---|---|---|
 | E001 | Monorepo & tooling | IMPLEMENTED | M1 | pnpm workspaces + Turborepo (`lint`, `typecheck`, `test`, `build`, `format:check`), Node 26 + pnpm pinned, TypeScript 7 strict, Biome (lint + format); empty `apps/web` Next.js skeleton (React Server Components). `apps/ios` / `apps/android` and SwiftLint/ktlint come with E008 (ADR-001) |
-| E002 | CI pipeline | PLANNED | M1 | Lint, typecheck, test, build, required checks on `main`; path-filtered iOS jobs (free macOS minutes) |
+| E002 | CI pipeline | IMPLEMENTED | M1 | GitHub Actions (`.github/workflows/ci.yml`) on every PR and push to `main`: one Linux job runs `turbo run lint typecheck test build format:check check` with pnpm and turbo caches; later static checks (i18n parity, OpenAPI drift) plug in as `check` tasks. Path-filtered `iOS` (macOS, `apps/ios`/contract only) and `Android` placeholder jobs skip until E008. Branch protection isn't on the current plan, so the intended required checks are documented in `WORKFLOW.md §7` |
 | E003 | Environments & deployment | PLANNED | M1 | local, preview (Railway PR environment with seeded Postgres), production (Railway EU West, Amsterdam); cron service (ADR-011) |
 | E004 | Database, ORM & migrations | PLANNED | M1 | Postgres + Drizzle, seed data (ADR-005) |
 | E005 | i18n package, native export & guardrails | PLANNED | M1 | ICU catalogs, typed keys, exporters → `.xcstrings` / `strings.xml`, parity check, no-literal-string lint (web + native), `GLOSSARY.md` (ADR-008) |

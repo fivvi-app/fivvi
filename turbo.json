@@ -4,7 +4,7 @@
   "globalDependencies": [".nvmrc", "tsconfig.base.json", "biome.json", ".gitignore"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "typecheck"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "typecheck": {
@@ -14,6 +14,9 @@
       "dependsOn": ["^build"]
     },
     "test": {
+      "dependsOn": ["^build"]
+    },
+    "check": {
       "dependsOn": ["^build"]
     },
     "format:check": {

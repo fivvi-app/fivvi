@@ -45,7 +45,7 @@ git push -u origin feature/F031-open-gym-booking
 - Update the feature doc and the `FEATURES.md` status **in the same PR**.
 - An API change regenerates `packages/contract` (OpenAPI + TS/Swift/Kotlin clients) in the same PR.
 - A string change edits only `packages/i18n/*.json` and regenerates the native catalogs in the same PR.
-- Merge strategy: **squash merge** into `main` after the applicable deterministic CI checks are green and the owner approves. Agent review happens locally before the PR and is not a GitHub merge requirement.
+- Merge strategy: **squash merge** into `main` after the applicable deterministic CI checks (§7) are green and the owner approves. Agent review happens locally before the PR and is not a GitHub merge requirement.
 
 ## 4. Working with AI agents
 
@@ -99,3 +99,20 @@ From `PRODUCT.md §86`, extended for native apps. A user-facing feature is **not
 - [ ] Feature registry status updated
 - [ ] Acceptance criteria pass
 - [ ] Cleanup checklist (§5) completed after merge
+
+## 7. CI and required checks
+
+CI is GitHub Actions ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)). It runs on every pull request and every push to `main`. A new push to a PR cancels that PR's previous run; runs on `main` are never cancelled.
+
+| Check (job name) | Runner | Runs when | What it does |
+|---|---|---|---|
+| `Detect changes` | Linux | Always | Works out which native jobs need to run. Required because a skipped job counts as passed: if this job broke, the native jobs would pass without running |
+| `Checks (Linux)` | Linux | Always | `pnpm install`, then one `turbo run lint typecheck test build format:check check` with the turbo cache |
+| `iOS` | macOS | `apps/ios/**` or `packages/contract/**` changed **and** `apps/ios` exists | Placeholder until E008 adds the build and tests. macOS minutes count 10× (`ROADMAP.md §12`) |
+| `Android` | Linux | `apps/android/**` or `packages/contract/**` changed **and** `apps/android` exists | Placeholder until E008 adds the build and tests |
+
+**Intended required checks on `main`:** all four jobs above. Branch protection and rulesets aren't available for this private repo on the current GitHub plan, so nothing enforces them yet. Until then, the owner only merges when all four show as passed or skipped. When the plan allows it, add exactly these job names as required status checks. Renaming a job renames its check, so change this table in the same PR.
+
+**Adding a check:** a new deterministic check (i18n parity, ICU syntax, OpenAPI drift, generated files up to date, …) is a `check` script in the package that owns it. `turbo run check` in `Checks (Linux)` picks it up, so the workflow file doesn't change. Keep `Checks (Linux)` under ~10 minutes (`TESTING.md §7`).
+
+**Native jobs:** until E008, `iOS` and `Android` skip cleanly. If `apps/ios` or `apps/android` exists while its job is still the placeholder, the job fails on purpose, so a native project can't land without real CI. E008 replaces the placeholder steps and keeps the job names.
