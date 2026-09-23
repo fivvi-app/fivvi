@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.5 |
+| **Version** | 1.6 |
 | **Date** | 22 September 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
 | **Builders** | AI coding agents: Claude Code + Codex, working in parallel worktrees |
-| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5 |
+| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6 |
 | **Requirements source** | [`PRODUCT.md`](PRODUCT.md) (what we build and why) |
 | **Feature registry** | [`FEATURES.md`](FEATURES.md) (status of every feature) |
 | **Engineering workflow** | [`../engineering/WORKFLOW.md`](../engineering/WORKFLOW.md) (branches, worktrees, reviews, cleanup, Definition of Done) |
@@ -237,9 +237,14 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 - [ ] **Domain:** decide and buy one before M5 (see §12), because email deliverability and deep links need it.
 - [x] GitHub repository is private.
 - [ ] Branch protection on `main`: GitHub reports this unavailable on the current private-repository plan; revisit the plan or repository visibility before enabling it.
-- [x] Accounts: Railway Hobby (already paid; EU West Amsterdam, ADR-011) and Brevo (account created).
-- [ ] Create the free-tier Sentry, PostHog and uptime-monitor accounts in EU regions where available.
-- [ ] **Apple Developer Program and Google Play Console: deferred to M8.** During development, use Xcode's free on-device provisioning and Android debug builds. Enroll as an *individual* for the pilot to avoid the D-U-N-S wait (§12).
+- [x] Accounts: Railway Hobby (already paid; EU West Amsterdam, ADR-011) and Brevo (owner account created).
+- [x] Sentry account created by the owner on a personal account. Confirm that the Trainer Hub organization uses the EU data region and complete the DPA and privacy configuration in E009 before sending data.
+- [x] PostHog account created by the owner on a personal account. Confirm EU Cloud and configure cookieless, allowlisted events and privacy settings in E009 before sending data.
+- [ ] Create the free-tier uptime-monitor account and configure checks in E009.
+- [x] Apple Developer Program: the owner reports an existing company membership. Verify active membership, team access and distribution setup in E017 at M8.
+- [ ] Google Play Console: the owner believes an account exists; confirm enrollment and access before E017 distribution work at M8.
+
+The Sentry, Brevo and PostHog accounts currently belong to the owner's personal account; moving them to company ownership is planned later and does not block M0. Account creation does not complete E006, E009 or E017.
 
 ### 4.6 M0 exit criteria (Gate G0)
 
@@ -424,7 +429,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - **Platform parity checklist** per screen: every screen and state (loading, empty, error, offline) exists on both platforms in both languages before the milestone closes.
 - The workout logger is designed for one hand, big targets and use between sets, and keeps working on weak gym Wi-Fi (local queue from M7).
 - The same Maestro flows run on iOS and Android as the shared acceptance test.
-- **Distribution for the pilot:** TestFlight (iOS) and Play internal testing (Android). This needs the Apple Developer Program ($99/year) and Google Play ($25 once), the first unavoidable costs, paid only now (§12). Native apps have no over-the-air updates, so pilot fixes ship as new TestFlight/internal builds.
+- **Distribution for the pilot:** TestFlight (iOS) and Play internal testing (Android). Reuse the owner's existing Apple company membership after verifying access; confirm whether the Google Play Console account exists and enroll at M8 if needed (§12). Native apps have no over-the-air updates, so pilot fixes ship as new TestFlight/internal builds.
 - App Store requirements: in-app account deletion, a privacy nutrition label, and a demo account for review.
 
 **Exit criteria**
@@ -653,16 +658,16 @@ flowchart TB
 | Database | Railway Postgres in the same project (EU West, Amsterdam) | Hobby: 5 GB volume; backup/PITR availability per plan to verify in M1 | Covered by Railway Pro at G4; storage $0.15/GB-month |
 | Email | Brevo free (account created) | Daily/monthly send caps; domain authentication | Send volume near the cap → paid tier |
 | Domain | Not needed until M5 (use the provider's test sending and `*.up.railway.app` before then) | — | **Before M5:** buy the domain (~€10–15/year), the first small cost |
-| Errors / crashes | Sentry free (EU) | Event quota, 1 user | Quota hit → paid |
-| Product analytics | PostHog free (EU, cookieless) | Event quota | Quota hit → paid |
+| Errors / crashes | Sentry account created; confirm EU data region in E009 | Event quota, 1 user | Quota hit → paid |
+| Product analytics | PostHog account created; confirm EU Cloud and configure cookieless mode in E009 | Event quota | Quota hit → paid |
 | Uptime | UptimeRobot / Better Stack free | Check interval | — |
 | Bot protection | Cloudflare Turnstile | Free | — |
 | Source + CI | GitHub private repo + Actions free minutes | **macOS minutes count 10×** | Path-filtered iOS CI + local Xcode builds; if still short → make the repo public (unlimited free minutes) or pay for minutes |
-| iOS distribution | Free Xcode provisioning to own devices during build | Apps expire after 7 days; no TestFlight | **M8 (pilot):** Apple Developer Program, $99/year (individual enrollment: no D-U-N-S wait) |
-| Android distribution | Debug builds / APK to own devices | — | **M8 (pilot):** Google Play Console, $25 one-time |
+| iOS distribution | Existing Apple Developer Program company membership (owner-reported); verify access in E017 | Membership and team access must be active for TestFlight | **M8 (pilot):** use the existing company membership; renew if required |
+| Android distribution | Debug builds / APK to own devices; Play Console account unconfirmed | — | **M8 (pilot):** confirm access or enroll if needed |
 | Push notifications (1.2) | APNs + FCM | Free | — |
 
-**Expected spend until pilot go-live:** a domain (~€10–15/year) plus Apple ($99/year) and Google ($25 once) at M8. Hosting runs on the Railway Hobby plan the owner already pays ($5/month); everything else is €0. **From G4:** Railway Pro, $20/month.
+**Expected new spend until pilot go-live:** a domain (~€10–15/year), plus Google Play Console enrollment at M8 only if the owner's account does not already exist. The Apple company membership and Railway Hobby plan are already paid by the owner; Apple renewal or additional membership cost depends on the account check in E017. **From G4:** Railway Pro, $20/month.
 
 ---
 
@@ -735,3 +740,4 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-09-22 | 1.3 | ADRs 001–015 written up in [`docs/decisions/`](../decisions/README.md) and linked from §4.3. **ADR-011 (hosting) revised and accepted:** the owner already pays for Railway Hobby, and Vercel Hobby is non-commercial only. Everything runs on Railway EU West (Amsterdam): Hobby during the build → Pro at G4. Vercel and Neon are dropped. §4.5, M1, M9, §11 and §12, E003 in `FEATURES.md`, `WORKFLOW.md §5` and `TESTING.md §5.3` updated to match. |
 | 2026-09-22 | 1.4 | Owner removed Claude/Codex review from the GitHub PR and CI/CD flow. Authors review locally before pushing; a second local agent is optional. Deterministic CI checks remain. Updated `WORKFLOW.md`, `TESTING.md` and `GLOSSARY.md` to match. |
 | 2026-09-22 | 1.5 | **Brevo selected** for transactional email (ADR-009; owner account created). M0 §4.4 legal drafts completed and checked off separately from signing, DPA execution and publication. Drafts synchronized with Railway hosting and Postgres, including the DPA checks before real data. Release 2.0 DPIA need will be reassessed at its entry gate. |
+| 2026-09-22 | 1.6 | Owner reported Sentry and PostHog accounts created on personal accounts and an existing Apple Developer Program company membership. Split the M0 account checklist to show what is created versus still unconfirmed (uptime monitor and Google Play Console). Updated M8 and §12 distribution costs; E006, E009 and E017 remain planned. |
