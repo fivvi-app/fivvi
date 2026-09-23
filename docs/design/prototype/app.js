@@ -37,9 +37,12 @@
     tmz: { name: "TrainMore Zuid" },
     bfo: { name: "Basic-Fit Oost" },
     fs: { name: "Fit Studio" },
+    vondelpark: { name: "Vondelpark" },
     "home-lisa": { key: "loc.homeOf", vars: { name: "Lisa" } },
     "home-mark": { key: "loc.homeOf", vars: { name: "Mark" } },
   };
+  // Locations an independent workspace uses; a gym workspace always uses its own location.
+  const WS_LOCS = { spt: ["tmz", "bfo", "vondelpark"] };
   const TRAINERS = {
     john: { name: "John" },
     sarah: { name: "Sarah" },
@@ -47,16 +50,21 @@
     nadia: { name: "Nadia" },
   };
   const GYM_TRAINERS = ["john", "sarah", "mike", "nadia"];
+  // Who holds the phone. The role per workspace decides what "+" may create (information-architecture.md §3.1).
+  const PERSONAS = {
+    sarah: { roles: { spt: "owner", jg: "trainer", fs: "trainer" } },
+    john: { roles: { jg: "owner" } },
+  };
+  // Seed clients. Clients added during the demo are marked `created`; "Demo opnieuw beginnen" removes them.
   const CLIENTS = {
-    anna: { name: "Anna de Vries", first: "Anna", ws: "spt", pref: "tmz", lang: "nl" },
-    mark: { name: "Mark Peters", first: "Mark", ws: "spt", history: ["bfo", "tmz"], lang: "en" },
-    koen: { name: "Koen Meijer", first: "Koen", ws: "jg", lang: "nl" },
+    anna: { name: "Anna de Vries", first: "Anna", ws: "spt", pref: "tmz", lang: "nl", email: "anna@example.com" },
+    mark: { name: "Mark Peters", first: "Mark", ws: "spt", history: ["bfo", "tmz"], lang: "en", email: "mark@example.com" },
+    koen: { name: "Koen Meijer", first: "Koen", ws: "jg", lang: "nl", email: "koen@example.com" },
     lisa: { name: "Lisa Smit", first: "Lisa", ws: "spt", pref: "home-lisa", lang: "nl" },
-    priya: { name: "Priya Sharma", first: "Priya", ws: "jg", lang: "en" },
-    sanne: { name: "Sanne de Boer", first: "Sanne", ws: "jg", lang: "nl" },
+    priya: { name: "Priya Sharma", first: "Priya", ws: "jg", lang: "en", email: "priya@example.com" },
+    sanne: { name: "Sanne de Boer", first: "Sanne", ws: "jg", lang: "nl", email: "sanne@example.com" },
     daan: { name: "Daan Mulder", first: "Daan", ws: "jg", lang: "nl" },
   };
-  const SARAH_CLIENTS = ["anna", "mark", "koen", "lisa"];
   // Trainer-written content: stored and shown exactly as entered, never translated (PRODUCT.md §3, §35).
   const CLIENT_NOTES = {
     mark: "Houdt van techno.\nLiever geen Bulgarian split squats.\nTraint het liefst 's ochtends.",
@@ -66,16 +74,44 @@
   const LAST_NOTE = {
     mark: { date: "2026-09-15", text: "Laatste set bankdrukken was zwaar.\nVolgende keer zelfde gewicht houden." },
   };
-  const WORKOUTS = {
-    "upper-a": { name: "Upper A", ex: ["bench", "row", "ohp"] },
-    "lower-a": { name: "Lower A", ex: [] },
-    "full-body": { name: "Full body", ex: [] },
-  };
-  // Exercise library: localized names (PRODUCT.md §38).
+  // Exercise library (PRODUCT.md §38): Dutch and English names, extra search aliases, weight step in kg.
   const EXERCISES = {
-    bench: { nl: "Bankdrukken", en: "Bench press", target: "3 × 8", step: 2.5, prev: { date: "2026-09-15", sets: [[60, 8], [60, 8], [60, 7]] } },
-    row: { nl: "Kabelroeien", en: "Seated cable row", target: "3 × 10", step: 2.5, prev: { date: "2026-09-15", sets: [[45, 10], [45, 10], [45, 10]] } },
-    ohp: { nl: "Schouderdrukken met dumbbells", en: "Dumbbell shoulder press", target: "3 × 10", step: 2, prev: { date: "2026-09-15", sets: [[16, 10], [16, 10], [16, 9]] } },
+    bench: { nl: "Bankdrukken", en: "Bench press", step: 2.5 },
+    incline: { nl: "Schuine bankdrukken met dumbbells", en: "Incline dumbbell press", step: 2 },
+    row: { nl: "Kabelroeien", en: "Seated cable row", step: 2.5 },
+    ohp: { nl: "Schouderdrukken met dumbbells", en: "Dumbbell shoulder press", step: 2 },
+    lat: { nl: "Lat pulldown", en: "Lat pulldown", step: 2.5 },
+    squat: { nl: "Squat", en: "Back squat", step: 2.5, aliases: ["kniebuiging"] },
+    goblet: { nl: "Goblet squat", en: "Goblet squat", step: 2 },
+    rdl: { nl: "Roemeense deadlift", en: "Romanian deadlift", step: 2.5, aliases: ["RDL"] },
+    legpress: { nl: "Beenpers", en: "Leg press", step: 5 },
+    lunge: { nl: "Lunges met dumbbells", en: "Dumbbell lunges", step: 2 },
+    kbswing: { nl: "Kettlebell swing", en: "Kettlebell swing", step: 4 },
+    facepull: { nl: "Face pull", en: "Face pull", step: 2.5 },
+  };
+  // Workout templates (PRODUCT.md §39): [exercise, target sets, target reps].
+  const TEMPLATE_SEED = {
+    "upper-a": { name: "Upper A", items: [["bench", 3, 8], ["row", 3, 10], ["ohp", 3, 10]] },
+    "lower-a": { name: "Lower A", items: [["squat", 3, 6], ["rdl", 3, 8], ["legpress", 3, 10]] },
+    "full-body": { name: "Full body", items: [["goblet", 3, 10], ["row", 3, 10], ["lunge", 3, 10], ["kbswing", 3, 15]] },
+  };
+  // Templates used with a client before, most recent first (F042).
+  const ASSIGNED_SEED = { mark: ["upper-a", "lower-a"], anna: ["lower-a", "upper-a"], koen: ["full-body"] };
+  // Logged workouts per client, newest first (PRODUCT.md §42). `name: null` = logged without a template.
+  const HISTORY_SEED = {
+    mark: [
+      { date: "2026-09-18", trainer: "sarah", name: "Lower A", items: [["squat", [[80, 6], [80, 6], [80, 5]]], ["rdl", [[70, 8], [70, 8], [70, 8]]], ["legpress", [[140, 10], [140, 10], [140, 9]]]] },
+      { date: "2026-09-15", trainer: "sarah", name: "Upper A", items: [["bench", [[60, 8], [60, 8], [60, 7]]], ["row", [[45, 10], [45, 10], [45, 10]]], ["ohp", [[16, 10], [16, 10], [16, 9]]]] },
+    ],
+    anna: [
+      { date: "2026-09-15", trainer: "sarah", name: "Lower A", items: [["squat", [[40, 6], [40, 6], [40, 6]]], ["rdl", [[35, 8], [35, 8], [35, 8]]], ["legpress", [[80, 10], [80, 10], [80, 10]]]] },
+    ],
+    koen: [
+      { date: "2026-09-17", trainer: "sarah", name: null, items: [["goblet", [[20, 12], [20, 12], [24, 10]]], ["lat", [[40, 12], [40, 12], [45, 10]]], ["kbswing", [[16, 15], [16, 15], [16, 15]]]] },
+    ],
+    priya: [
+      { date: "2026-09-19", trainer: "john", name: null, items: [["squat", [[50, 8], [50, 8], [55, 6]]], ["bench", [[35, 10], [35, 10], [35, 8]]]] },
+    ],
   };
   const PEOPLE = [
     ["Jeroen Bakker", "nl", false], ["Fatima el Amrani", "nl", true], ["Lotte Visser", "nl", false],
@@ -97,7 +133,7 @@
       sessions: [
         priv("p-anna", "anna", "sarah", "spt", "tmz", TODAY, "07:00", "08:00", { status: "attended", workout: "lower-a" }),
         priv("p-mark", "mark", "sarah", "spt", "bfo", TODAY, "09:00", "10:00", { workout: "upper-a" }),
-        priv("p-koen", "koen", "sarah", "jg", "jg", TODAY, "15:00", "16:00", { workout: "full-body" }),
+        priv("p-koen", "koen", "sarah", "jg", "jg", TODAY, "15:00", "16:00"),
         priv("p-priya", "priya", "john", "jg", "jg", TODAY, "09:00", "10:00"),
         priv("p-sanne", "sanne", "mike", "jg", "jg", TODAY, "11:00", "12:00"),
         priv("p-daan", "daan", "john", "jg", "jg", TODAY, "18:00", "19:00"),
@@ -124,6 +160,10 @@
         cls("o-og25", "openGym", "Open Gym", "jg", "2026-09-25", "10:00", "11:00", 2, null, 1),
         cls("o-og26", "openGym", "Open Gym", "jg", "2026-09-26", "09:00", "10:30", 2, null, 0),
       ],
+      templates: JSON.parse(JSON.stringify(TEMPLATE_SEED)),
+      assigned: JSON.parse(JSON.stringify(ASSIGNED_SEED)),
+      history: JSON.parse(JSON.stringify(HISTORY_SEED)),
+      customEx: {},
       booking: { mode: "group", occ: null, name: "", email: "", errors: {}, holdAt: null, attId: null, confirmCancel: false },
       np: null,
       mv: null,
@@ -131,6 +171,7 @@
       completedWorkouts: {},
       previewLang: null,
       newOcc: null,
+      cn: null,
       web: { view: "day", date: TODAY, ws: "jg", flow: 3, panel: null, panelMode: null, drawer: false },
       sheet: null,
     };
@@ -139,6 +180,7 @@
 
   const state = Object.assign(fresh(), {
     lang: prefs.get("lang") === "en" ? "en" : "nl",
+    me: prefs.get("me") === "john" ? "john" : "sarah",
     platform: prefs.get("platform") || detectPlatform(),
     stack: [{ s: "hub" }],
   });
@@ -167,6 +209,7 @@
   const dayMonth = (d) => fmt(d, { day: "numeric", month: "long" });
   const weekdayName = (d) => fmt(d, { weekday: "long" });
   const ucfirst = (s) => s.charAt(0).toLocaleUpperCase(locale()) + s.slice(1);
+  const listFmt = (arr) => new Intl.ListFormat(locale(), { type: "conjunction" }).format(arr);
   const num = (n) => new Intl.NumberFormat(locale(), { maximumFractionDigits: 2 }).format(n);
   const startOf = (item) => at(item.date, item.start);
   const endOf = (item) => at(item.date, item.end);
@@ -191,7 +234,11 @@
     if (!l) return esc(id);
     return l.key ? t(l.key, l.vars) : esc(l.name);
   };
-  const exName = (id) => EXERCISES[id][activeLang()] || EXERCISES[id].nl;
+  // Custom exercises are trainer content: shown exactly as typed, never translated (F040).
+  const exDef = (id) => EXERCISES[id] || state.customEx[id];
+  const exName = (id) => { const e = exDef(id); return e.custom ? esc(e.name) : e[activeLang()] || e.nl; };
+  const kg = (w) => `${num(w)} kg`;
+  const fold = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const initials = (name) => name.split(/\s+/).filter(Boolean).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
   // ---------------------------------------------------------------- domain stand-ins
@@ -205,6 +252,31 @@
     }
     return { ambiguous: true, options: c.history || [] };
   }
+  // Roles decide what "+" offers and which clients are visible (information-architecture.md §3.1, ⚑ Q03).
+  const roleIn = (ws) => PERSONAS[state.me].roles[ws] || null;
+  const canManage = (ws) => roleIn(ws) === "owner" || roleIn(ws) === "admin";
+  const myWorkspaces = () => Object.keys(PERSONAS[state.me].roles);
+  const manageWorkspaces = () => myWorkspaces().filter(canManage);
+  function myClients() {
+    return Object.keys(CLIENTS).filter((id) => {
+      const c = CLIENTS[id];
+      const role = roleIn(c.ws);
+      if (!role) return false;
+      if (role !== "trainer") return true;
+      return c.createdBy === state.me || state.sessions.some((x) => x.client === id && x.trainer === state.me);
+    });
+  }
+  // Previous values: the client's last logged performance of this exercise (F044).
+  function prevFor(clientId, exId) {
+    for (const w of state.history[clientId] || []) {
+      const hit = w.items.find(([e]) => e === exId);
+      if (hit) return { date: w.date, trainer: w.trainer, sets: hit[1] };
+    }
+    return null;
+  }
+  const workoutName = (name) => (name ? esc(name) : t("l.noTemplateName"));
+  const lastSeen = (id) => (state.history[id] || [])[0]?.date
+    || state.sessions.filter((x) => x.client === id && x.date < TODAY).map((x) => x.date).sort().pop() || null;
   const liveAttendees = (occ) => occ.attendees.filter((a) => a.status !== "pending");
   const bookedCount = (occ) => occ.attendees.filter((a) => a.status !== "pending" && a.status !== "cancelledByClient").length;
   const spotsLeft = (occ) => occ.cap - occ.attendees.filter((a) => a.status !== "cancelledByClient").length;
@@ -244,6 +316,7 @@
     alert: "M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z",
     cloud: "M17.5 19H7a5 5 0 11.9-9.9A6 6 0 0119 10.5a4.5 4.5 0 01-1.5 8.5zM9 14l2 2 4-4",
     home: "M3 11l9-8 9 8M5 9.5V21h14V9.5",
+    repeat: "M17 2l4 4-4 4M3 11V9a3 3 0 013-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 01-3 3H3",
   };
   const icon = (name, cls = "") =>
     `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${ICONS[name]}"/></svg>`;
@@ -266,6 +339,8 @@
     render({ nav: true });
   }
 
+  // Scripted flows use Sarah's sessions; flow 2 and 7 follow the "Ik ben" choice on the hub.
+  const asSarah = () => { state.me = "sarah"; };
   const FLOWS = {
     1: () => { state.booking = fresh().booking; reset([{ s: "hub" }, { s: "b-list" }]); },
     2: () => reset([{ s: "hub" }, { s: "t-today" }]),
@@ -277,10 +352,21 @@
       reset([{ s: "hub" }, { s: "w-cal" }]);
     },
     "4move": () => { state.web = { ...fresh().web, ws: "spt", flow: 4, panel: "p-mark" }; state.mv = null; reset([{ s: "hub" }, { s: "w-cal" }]); },
-    "4app": () => { state.np = null; reset([{ s: "hub" }, { s: "t-today" }, { s: "p-client" }]); },
-    5: () => { state.log = null; reset([{ s: "hub" }, { s: "t-today" }, { s: "t-session", id: "p-mark" }, { s: "l-log", id: "p-mark" }]); },
+    "4app": () => { asSarah(); state.np = null; reset([{ s: "hub" }, { s: "t-today" }, { s: "p-client" }]); },
+    5: () => {
+      asSarah();
+      if (!state.completedWorkouts["p-mark"]) startLog("p-mark", "template", "upper-a");
+      reset([{ s: "hub" }, { s: "t-today" }, { s: "t-session", id: "p-mark" }, { s: "l-overview", id: "p-mark" }]);
+    },
+    "5free": () => {
+      asSarah();
+      if (state.log?.id === "p-koen") state.log = null;
+      reset([{ s: "hub" }, { s: "t-today" }, { s: "t-session", id: "p-koen" }, { s: "l-start", id: "p-koen" }]);
+    },
     6: () => { state.web = { ...fresh().web, flow: 6, panel: "o-str22" }; reset([{ s: "hub" }, { s: "w-cal" }]); },
-    "6app": () => reset([{ s: "hub" }, { s: "t-today" }, { s: "t-occ", id: "o-str22" }]),
+    "6app": () => { asSarah(); reset([{ s: "hub" }, { s: "t-today" }, { s: "t-occ", id: "o-str22" }]); },
+    7: () => { reset([{ s: "hub" }, { s: "t-today" }]); A["app-new-menu"](); },
+    "7clients": () => reset([{ s: "hub" }, { s: "t-clients" }]),
   };
 
   // ---------------------------------------------------------------- shared UI pieces
@@ -330,8 +416,9 @@
         [2, "flow2", [["2", "hub.start"]]],
         [3, "flow3", [["3", "hub.start"]]],
         [4, "flow4", [["4new", "flow4.new"], ["4move", "flow4.move"], ["4app", "flow4.app"]]],
-        [5, "flow5", [["5", "hub.start"]]],
+        [5, "flow5", [["5free", "flow5.free"], ["5", "flow5.planned"]]],
         [6, "flow6", [["6", "flow6.web"], ["6app", "flow6.app"]]],
+        [7, "flow7", [["7", "flow7.new"], ["7clients", "flow7.clients"]]],
       ];
       return `<div class="hub">
         <header class="hub-head">
@@ -344,6 +431,8 @@
           <div class="hub-setting"><span>${t("proto.lang")}</span>${seg("set-lang", [["nl", "Nederlands"], ["en", "English"]], state.lang, { label: t("proto.lang") })}</div>
           <div class="hub-setting"><span>${t("proto.style")}</span>${seg("set-platform", [["ios", "iOS"], ["android", "Android"]], state.platform, { label: t("proto.style") })}</div>
           <p class="t-footnote muted">${t("hub.styleHint")}</p>
+          <div class="hub-setting"><span>${t("proto.me")}</span>${seg("set-me", [["sarah", t("proto.meSarah")], ["john", t("proto.meJohn")]], state.me, { label: t("proto.me") })}</div>
+          <p class="t-footnote muted">${t("hub.meHint")}</p>
         </section>
         <section aria-labelledby="flows-h">
           <h2 class="t-caption section-label" id="flows-h">${t("hub.flows")}</h2>
@@ -595,25 +684,29 @@
   };
 
   // ---------------------------------------------------------------- screens: trainer app (flows 2, 4, 5, 6)
-  function sarahToday() {
-    const privs = state.sessions.filter((s) => s.trainer === "sarah" && s.date === TODAY);
-    const cls = state.classes.filter((c) => c.date === TODAY && (c.trainer === "sarah" || c.origTrainer === "sarah"));
+  function myToday() {
+    const me = state.me;
+    const privs = state.sessions.filter((x) => x.trainer === me && x.date === TODAY);
+    const cls = state.classes.filter((c) => c.date === TODAY && (c.trainer === me || c.origTrainer === me));
     return [...privs, ...cls].sort((a, z) => startOf(a) - startOf(z));
   }
   const itemTitle = (x) => (x.kind === "private" ? esc(CLIENTS[x.client].name) : esc(x.title));
   function itemMeta(x) {
-    return `${esc(WS[x.ws].name)} · ${locName(x.loc)}`;
+    const ws = esc(WS[x.ws].name);
+    const loc = locName(x.loc);
+    return loc === ws ? ws : `${ws} · ${loc}`;
   }
+  const subbedAway = (x) => x.kind !== "private" && x.origTrainer === state.me;
   function itemState(x) {
     if (x.status === "cancelled") return `<span class="chip chip--neutral">${t("today.cancelled")}</span>`;
-    if (x.kind !== "private" && x.origTrainer === "sarah") return `<span class="chip chip--warning">${t("o.subDone", { name: TRAINERS[x.trainer].name })}</span>`;
+    if (subbedAway(x)) return `<span class="chip chip--warning">${t("o.subDone", { name: TRAINERS[x.trainer].name })}</span>`;
     if (x.kind === "private" && x.status !== "booked") return attChip(x.status);
     if (x.kind !== "private") return `<span class="t-footnote muted t-num">${t("today.bookedOf", { booked: bookedCount(x), cap: x.cap })}</span>`;
     return "";
   }
   function sessionRow(x) {
     const act = x.kind === "private" ? `data-act="open-session" data-id="${x.id}"` : `data-act="open-occ" data-id="${x.id}"`;
-    const muted = x.status === "cancelled" || (x.kind !== "private" && x.origTrainer === "sarah");
+    const muted = x.status === "cancelled" || subbedAway(x);
     return `<li><button type="button" class="row session-row${muted ? " is-muted" : ""}" ${act}>
         <span class="row-time"><span class="t-num">${time(startOf(x))}</span><span class="t-num row-time-end">${time(endOf(x))}</span></span>
         <span class="type-bar type-bar--${x.kind === "private" ? "private" : x.kind === "openGym" ? "open-gym" : "group"}" aria-hidden="true"></span>
@@ -625,13 +718,23 @@
         ${state.platform === "ios" ? icon("chevR", "row-chev") : ""}
       </button></li>`;
   }
+  // The start button reflects the workout state of a private session.
+  function workoutButton(x, cls = "btn--block") {
+    const done = state.completedWorkouts[x.id];
+    if (done) return `<button type="button" class="btn btn--primary ${cls}" data-act="open-share" data-id="${x.id}">${icon("dumbbell", "ico--sm")}${t(done.shared ? "l.viewShared" : "l.shareLater")}</button>`;
+    const going = state.log?.id === x.id;
+    return `<button type="button" class="btn btn--primary ${cls}" data-act="start-log" data-id="${x.id}">${icon("dumbbell", "ico--sm")}${t(going ? "s.continue" : "s.start")}</button>`;
+  }
+  // "+" in the app: iOS toolbar button, Android FAB (flows/02-trainer-today.md, platform table).
+  const addNav = (act, label) => (state.platform === "ios" ? [{ icon: "plus", act, label }] : []);
+  const addFab = (act, label) => (state.platform === "android" ? { icon: "plus", act, label } : null);
 
   SCREENS["t-today"] = {
     shell: "app",
     tab: "today",
     render() {
-      const items = sarahToday();
-      const upcoming = items.filter((x) => endOf(x) > NOW && x.status !== "cancelled" && !(x.origTrainer === "sarah"));
+      const items = myToday();
+      const upcoming = items.filter((x) => endOf(x) > NOW && x.status !== "cancelled" && !subbedAway(x));
       const next = upcoming[0];
       const later = items.filter((x) => x !== next && endOf(x) > NOW);
       const earlier = items.filter((x) => x !== next && endOf(x) <= NOW);
@@ -641,9 +744,9 @@
         nav: {
           title: t("today.title"), large: true,
           subtitle: `${ucfirst(dayLong(NOW))} · ${t("today.summary", { n: items.length })} · ${t("today.workspaces", { n: wsCount })}`,
-          actions: state.platform === "ios" ? [{ icon: "plus", act: "new-session", label: t("today.add") }] : [],
+          actions: addNav("app-new-menu", t("today.add")),
         },
-        fab: state.platform === "android" ? { icon: "plus", act: "new-session", label: t("today.add") } : null,
+        fab: addFab("app-new-menu", t("today.add")),
         body: `
           ${next ? `<section class="next" aria-labelledby="next-h">
               <p class="next-kicker"><span id="next-h">${t("today.next")}</span><span>${mins > 0 ? t("today.startsIn", { n: mins }) : ""}</span></p>
@@ -651,11 +754,11 @@
                 <span class="next-time t-num">${range(next)}</span>
                 <span class="next-title">${itemTitle(next)}</span>
                 <span class="row-sub">${typeChip(next.kind)} <span>${esc(WS[next.ws].name)}</span></span>
-                <span class="next-line">${icon("pin", "ico--sm")}${locName(next.loc)}</span>
-                ${next.workout ? `<span class="next-line">${icon("dumbbell", "ico--sm")}${esc(WORKOUTS[next.workout].name)}</span>` : ""}
+                ${locName(next.loc) === esc(WS[next.ws].name) ? "" : `<span class="next-line">${icon("pin", "ico--sm")}${locName(next.loc)}</span>`}
+                ${next.workout ? `<span class="next-line">${icon("dumbbell", "ico--sm")}${esc(state.templates[next.workout].name)}</span>` : ""}
               </button>
-              ${next.kind === "private" && next.workout === "upper-a" ? `<button type="button" class="btn btn--primary btn--block" data-act="start-log" data-id="${next.id}">${t("s.start")}</button>` : ""}
-            </section>` : ""}
+              ${next.kind === "private" ? workoutButton(next) : ""}
+            </section>` : `<div class="empty">${icon("today", "ico--xl")}<h2 class="t-headline">${t("today.none")}</h2></div>`}
           ${later.length ? `<h2 class="t-caption section-label">${t("today.later")}</h2><ul class="list">${later.map(sessionRow).join("")}</ul>` : ""}
           ${earlier.length ? `<h2 class="t-caption section-label">${t("today.earlier")}</h2><ul class="list">${earlier.map(sessionRow).join("")}</ul>` : ""}
         `,
@@ -675,8 +778,105 @@
     },
   });
   SCREENS["t-calendar"] = placeholder("calendar", "tab.calendar");
-  SCREENS["t-clients"] = placeholder("clients", "tab.clients");
   SCREENS["t-more"] = placeholder("more", "tab.more");
+
+  // ---- clients (TM-02, TM-03, PS-02)
+  function clientMeta(id) {
+    const c = CLIENTS[id];
+    const seen = lastSeen(id);
+    return [c.email ? esc(c.email) : t("c.noEmail"), seen ? t("c.lastSession", { date: dayMonth(at(seen, "12:00")) }) : t("c.noSessions")].join(" · ");
+  }
+  function clientRow(id, act) {
+    const c = CLIENTS[id];
+    return `<li data-name="${esc(fold(c.name + " " + (c.email || "")))}"><button type="button" class="row" data-act="${act}" data-v="${id}">
+        <span class="avatar" aria-hidden="true">${initials(c.name)}</span>
+        <span class="row-main"><span class="row-title">${esc(c.name)}${c.created ? ` <span class="chip chip--tonal">${t("o.new")}</span>` : ""}</span><span class="row-sub">${clientMeta(id)}</span></span>
+        ${state.platform === "ios" ? icon("chevR", "row-chev") : ""}
+      </button></li>`;
+  }
+  // Grouped per workspace: the same person at two workspaces is two client profiles (PRODUCT.md §10–11).
+  function clientGroups(act) {
+    const ids = myClients();
+    return myWorkspaces().map((ws) => [ws, ids.filter((id) => CLIENTS[id].ws === ws)]).filter(([, list]) => list.length)
+      .map(([ws, list]) => `<section class="client-group" data-client-group><h2 class="t-caption section-label">${esc(WS[ws].name)}</h2>
+        <ul class="list" data-client-list>${list.map((id) => clientRow(id, act)).join("")}</ul></section>`).join("");
+  }
+  const clientSearch = () => `<div class="search">${icon("search", "ico--sm")}<input id="client-search" type="search" placeholder="${t("p.search")}" aria-label="${t("p.search")}" autocomplete="off"></div>`;
+
+  SCREENS["t-clients"] = {
+    shell: "app",
+    tab: "clients",
+    render() {
+      return {
+        nav: { title: t("tab.clients"), large: true, actions: addNav("c-new", t("c.new")) },
+        fab: addFab("c-new", t("c.new")),
+        body: `${clientSearch()}${clientGroups("open-client")}
+          <p class="t-subhead muted" data-no-results hidden>${t("c.noResults")}</p>`,
+      };
+    },
+  };
+
+  SCREENS["t-client"] = {
+    shell: "app",
+    render() {
+      const id = current().id;
+      const c = CLIENTS[id];
+      const hist = state.history[id] || [];
+      return {
+        nav: { title: esc(c.name), large: true, back: t("tab.clients") },
+        body: `
+          <p class="screen-sub"><span class="chip chip--tonal">${esc(WS[c.ws].name)}</span></p>
+          <ul class="list">
+            <li class="row row--static">${icon("mail", "row-ico")}<span class="row-main"><span class="row-sub">${t("c.email")}</span><span class="row-title">${c.email ? esc(c.email) : ucfirst(t("c.noEmail"))}</span></span></li>
+            <li class="row row--static">${icon("sliders", "row-ico")}<span class="row-main"><span class="row-sub">${t("c.lang")}</span><span class="row-title">${t("lang." + c.lang)}</span></span></li>
+            ${c.pref ? `<li class="row row--static">${icon("pin", "row-ico")}<span class="row-main"><span class="row-sub">${t("c.loc")}</span><span class="row-title">${locName(c.pref)}</span></span></li>` : ""}
+          </ul>
+          <div class="stack">
+            <button type="button" class="btn btn--primary btn--block btn--lg" data-act="c-train" data-v="${id}">${icon("dumbbell", "ico--sm")}${t("c.trainNow")}</button>
+            <button type="button" class="btn btn--tonal btn--block" data-act="c-plan" data-v="${id}">${icon("calendar", "ico--sm")}${t("c.plan")}</button>
+          </div>
+          ${CLIENT_NOTES[id] ? `<h2 class="t-caption section-label">${t("s.clientNotes")}</h2>
+            <div class="note"><p class="note-meta">${icon("lock", "ico--sm")}<span>${t("s.trainerOnly")}</span></p><p class="note-text">${esc(CLIENT_NOTES[id])}</p></div>` : ""}
+          <h2 class="t-caption section-label">${t("c.workouts")}</h2>
+          ${hist.length ? `<ul class="list">${hist.map((w) => `<li class="row row--static"><span class="row-main"><span class="row-title">${workoutName(w.name)}</span>
+              <span class="row-sub">${ucfirst(dayLong(at(w.date, "12:00")))} · ${t("l.exCount", { n: w.items.length })} · ${TRAINERS[w.trainer].name}</span></span></li>`).join("")}</ul>`
+            : `<p class="t-subhead muted">${t("c.noWorkouts")}</p>`}
+        `,
+      };
+    },
+  };
+
+  // New client: only a name is required (flows/04-private-session.md, PS-02).
+  function newClientModel(from, extra = {}) {
+    const wsList = from.startsWith("web") ? [state.web.ws] : myWorkspaces();
+    const ws = wsList.find(canManage) || wsList[0];
+    return { from, name: "", email: "", lang: "nl", ws, loc: "", errors: {}, dup: null, ...extra };
+  }
+  function clientForm(inWeb) {
+    const m = state.cn;
+    const wsList = inWeb ? [m.ws] : myWorkspaces();
+    const locs = WS[m.ws].kind === "gym" ? [] : WS_LOCS[m.ws] || [];
+    return `<form data-form="new-client" novalidate class="form">
+        ${field("cn-name", t("c.name"), `<input id="cn-name" class="input" type="text" autocomplete="off" value="${esc(m.name)}" ${m.errors.name ? `aria-invalid="true" aria-describedby="cn-name-err"` : ""}>`, m.errors.name && t("c.nameErr"))}
+        ${field("cn-email", t("c.emailOpt"), `<input id="cn-email" class="input" type="email" inputmode="email" autocapitalize="off" spellcheck="false" value="${esc(m.email)}">`, "")}
+        ${m.dup ? `<div class="confirm-inline confirm-inline--info"><p class="t-subhead">${t("c.dup", { name: esc(CLIENTS[m.dup].name) })}</p>
+            <div class="row-actions"><button type="button" class="btn btn--tonal" data-act="cn-use" data-v="${m.dup}">${t("c.useThem")}</button></div></div>` : ""}
+        <div class="field"><span class="field-label">${t("c.lang")}</span>${seg("cn-lang", [["nl", "Nederlands"], ["en", "English"]], m.lang, { label: t("c.lang") })}</div>
+        ${wsList.length > 1 ? `<div class="field"><span class="field-label">${t("s.workspace")}</span>${choiceList("cn-ws", wsList.map((w) => [w, esc(WS[w].name), t("role." + roleIn(w))]), m.ws, { name: t("s.workspace") })}</div>`
+          : `<p class="t-footnote muted">${t("c.inWs", { ws: esc(WS[m.ws].name) })}</p>`}
+        ${locs.length ? field("cn-loc", t("c.locOpt"), `<select id="cn-loc" class="input"><option value="">${t("p.none")}</option>
+            ${locs.map((l) => `<option value="${l}" ${m.loc === l ? "selected" : ""}>${locName(l)}</option>`).join("")}
+            <option value="home" ${m.loc === "home" ? "selected" : ""}>${t("c.home")}</option></select>`, "") : ""}
+        <button type="submit" class="btn btn--primary btn--block btn--lg">${t("c.add")}</button>
+      </form>`;
+  }
+  SCREENS["c-new"] = {
+    shell: "app",
+    modal: true,
+    render() {
+      return { nav: { title: t("c.new"), large: false, cancel: true }, body: clientForm(false) };
+    },
+  };
 
   SCREENS["t-session"] = {
     shell: "app",
@@ -691,12 +891,10 @@
           <ul class="list">
             <li class="row row--static">${icon("pin", "row-ico")}<span class="row-main"><span class="row-sub">${t("s.location")}</span><span class="row-title">${locName(x.loc)}</span></span></li>
             <li class="row row--static">${icon("grid", "row-ico")}<span class="row-main"><span class="row-sub">${t("s.workspace")}</span><span class="row-title">${esc(WS[x.ws].name)}</span></span></li>
-            ${x.workout ? `<li class="row row--static">${icon("dumbbell", "row-ico")}<span class="row-main"><span class="row-sub">${t("s.workout")}</span><span class="row-title">${esc(WORKOUTS[x.workout].name)}</span></span></li>` : ""}
+            ${x.workout ? `<li class="row row--static">${icon("dumbbell", "row-ico")}<span class="row-main"><span class="row-sub">${t("s.workout")}</span><span class="row-title">${esc(state.templates[x.workout].name)}</span></span></li>` : ""}
           </ul>
           <div class="stack">
-            ${state.completedWorkouts[x.id]
-              ? `<button type="button" class="btn btn--primary btn--block btn--lg" data-act="open-share" data-id="${x.id}">${icon("dumbbell", "ico--sm")}${t(state.completedWorkouts[x.id].shared ? "l.viewShared" : "l.shareLater")}</button>`
-              : x.workout === "upper-a" ? `<button type="button" class="btn btn--primary btn--block btn--lg" data-act="start-log" data-id="${x.id}">${icon("dumbbell", "ico--sm")}${t("s.start")}</button>` : ""}
+            ${workoutButton(x, "btn--block btn--lg")}
             <button type="button" class="btn btn--tonal btn--block" data-act="move-session" data-id="${x.id}">${icon("calendar", "ico--sm")}${t("s.move")}</button>
           </div>
           <h2 class="t-caption section-label">${t("s.attendance")}</h2>
@@ -707,6 +905,7 @@
             <div class="note"><p class="note-meta">${icon("lock", "ico--sm")}<span>${t("s.trainerOnly")}</span></p><p class="note-text">${esc(state.completedWorkouts[x.id].internalNote)}</p></div>` : ""}
           ${CLIENT_NOTES[x.client] ? `<h2 class="t-caption section-label">${t("s.clientNotes")}</h2>
             <div class="note"><p class="note-meta">${icon("lock", "ico--sm")}<span>${t("s.trainerOnly")}</span></p><p class="note-text">${esc(CLIENT_NOTES[x.client])}</p></div>` : ""}
+          <button type="button" class="btn btn--text" data-act="open-client" data-v="${x.client}">${t("c.openProfile", { name: esc(c.first) })}${icon("chevR", "ico--sm")}</button>
         `,
       };
     },
@@ -742,16 +941,13 @@
         nav: { title: t("p.newTitle"), large: false, close: true },
         body: `
           <h2 class="t-title2 screen-h" tabindex="-1">${t("p.pickClient")}</h2>
-          <div class="search">${icon("search", "ico--sm")}<input id="client-search" type="search" placeholder="${t("p.search")}" aria-label="${t("p.search")}" autocomplete="off"></div>
-          <ul class="list" data-client-list>${SARAH_CLIENTS.map((id) => {
-            const c = CLIENTS[id];
-            const inf = inferLocation(id);
-            return `<li data-name="${esc(c.name.toLowerCase())}"><button type="button" class="row" data-act="np-client" data-v="${id}">
-                <span class="avatar" aria-hidden="true">${initials(c.name)}</span>
-                <span class="row-main"><span class="row-title">${esc(c.name)}</span><span class="row-sub">${esc(WS[c.ws].name)}${inf.loc ? ` · ${locName(inf.loc)}` : ""}</span></span>
-                ${state.platform === "ios" ? icon("chevR", "row-chev") : ""}
-              </button></li>`;
-          }).join("")}</ul>`,
+          ${clientSearch()}
+          <ul class="list"><li><button type="button" class="row row--add" data-act="np-new-client">
+            <span class="avatar avatar--add" aria-hidden="true">${icon("plus", "ico--sm")}</span>
+            <span class="row-main"><span class="row-title" data-new-client-label>${t("c.newQuick")}</span><span class="row-sub">${t("c.newQuickHint")}</span></span>
+          </button></li></ul>
+          ${clientGroups("np-client")}
+          <p class="t-subhead muted" data-no-results hidden>${t("c.noResults")}</p>`,
       };
     },
   };
@@ -775,7 +971,7 @@
               ${seg("np-dur", [30, 45, 60, 90].map((n) => [String(n), t("p.min", { n })]), String(m.dur), { label: t("p.duration") })}</div>
             <div class="field"><span class="field-label">${t("s.location")}</span>${locationBlock(m, m.client)}</div>
             ${field("np-workout", t("p.workoutOpt"), `<select id="np-workout" class="input">
-                <option value="">${t("p.none")}</option>${Object.entries(WORKOUTS).map(([id, w]) => `<option value="${id}" ${m.workout === id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select>`)}
+                <option value="">${t("p.none")}</option>${Object.entries(state.templates).map(([id, w]) => `<option value="${id}" ${m.workout === id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select>`)}
             <button type="submit" class="btn btn--primary btn--block btn--lg">${t("p.save")}</button>
           </form>`,
       };
@@ -817,122 +1013,276 @@
     },
   };
 
-  // ---- flow 5: live logging
-  function ensureLog(id) {
-    if (!state.log || state.log.id !== id) {
-      const ex = WORKOUTS[findSession(id).workout].ex;
-      state.log = {
-        id, i: 0, ex, editing: null, internalNote: "",
-        sets: Object.fromEntries(ex.map((e) => [e, []])),
-        draft: Object.fromEntries(ex.map((e) => [e, { w: EXERCISES[e].prev.sets[0][0], r: EXERCISES[e].prev.sets[0][1] }])),
-        diff: {},
-      };
+  // ---- flow 5: live logging (flows/05-live-workout-logging.md, WL-01 … WL-05)
+  // Each set row is prefilled: today's set just logged, else last time's same set, else the target reps (WL-03).
+  function logItem(clientId, exId, targetSets = null, targetReps = null) {
+    const prev = prevFor(clientId, exId);
+    const n = targetSets || (prev ? prev.sets.length : 1);
+    const rows = Array.from({ length: n }, (_, i) => {
+      const p = prev ? prev.sets[Math.min(i, prev.sets.length - 1)] : null;
+      return { w: p ? p[0] : 0, r: p ? p[1] : targetReps || 10, done: false, touched: false };
+    });
+    return { ex: exId, target: targetSets ? [targetSets, targetReps] : null, rows, diff: "normal" };
+  }
+  // source: "template" (a schema), "repeat" (the client's previous workout) or "empty" (on the fly).
+  function startLog(id, source, tplId) {
+    const x = findSession(id);
+    let name = null;
+    let items = [];
+    if (source === "template") {
+      const tpl = state.templates[tplId];
+      name = tpl.name;
+      items = tpl.items.map(([e, sets, reps]) => logItem(x.client, e, sets, reps));
+    } else if (source === "repeat") {
+      const w = state.history[x.client][0];
+      name = w.name;
+      items = w.items.map(([e, sets]) => logItem(x.client, e, sets.length));
     }
+    state.log = { id, source, name, items, i: 0, sel: null, internalNote: "", saveTpl: false, tplName: "", tplErr: false, changed: false, confirmEmpty: false };
     return state.log;
   }
-  SCREENS["l-log"] = {
+  const activeRow = (it, L) => (L.sel != null ? L.sel : it.rows.findIndex((r) => !r.done));
+  const doneCount = (it) => it.rows.filter((r) => r.done).length;
+  function nextPending(L) {
+    for (let i = 0; i < L.items.length; i++) {
+      const j = L.items[i].rows.findIndex((r) => !r.done);
+      if (j >= 0) return { i, set: j + 1 };
+    }
+    return null;
+  }
+  function prevLine(prev) {
+    if (!prev) return t("l.noPrevShort");
+    const w = prev.sets.map((x) => x[0]);
+    const sets = w.every((v) => v === w[0])
+      ? `${kg(w[0])} × ${prev.sets.map((x) => x[1]).join(", ")}`
+      : prev.sets.map((x) => `${kg(x[0])} × ${x[1]}`).join(", ");
+    return t("l.prevLine", { sets });
+  }
+  // Later sets that the trainer hasn't touched follow the set just logged or changed (WL-03).
+  function carry(it, i, keys = ["w", "r"]) {
+    for (let j = i + 1; j < it.rows.length; j++) {
+      const r = it.rows[j];
+      if (!r.done && !r.touched) keys.forEach((k) => { r[k] = it.rows[i][k]; });
+    }
+  }
+  const recordItems = (L) => L.items.filter((it) => doneCount(it))
+    .map((it) => ({ ex: it.ex, sets: it.rows.filter((r) => r.done).map((r) => [r.w, r.r]), diff: it.diff }));
+  function addExercise(exId) {
+    const L = state.log;
+    L.items.push(logItem(findSession(L.id).client, exId));
+    Object.assign(L, { changed: true, i: L.items.length - 1, sel: null });
+    state.stack.pop();
+    go("l-log", { id: L.id });
+  }
+  const chev = () => (state.platform === "ios" ? icon("chevR", "row-chev") : "");
+
+  SCREENS["l-start"] = {
     shell: "app",
+    modal: true,
+    render() {
+      const x = findSession(current().id);
+      const c = CLIENTS[x.client];
+      const last = (state.history[x.client] || [])[0];
+      const mine = (state.assigned[x.client] || []).filter((id) => state.templates[id]);
+      const others = Object.keys(state.templates).filter((id) => !mine.includes(id));
+      const tplRow = (id) => `<li><button type="button" class="row" data-act="log-begin" data-v="template" data-id="${id}">
+          <span class="row-main"><span class="row-title">${esc(state.templates[id].name)}</span>
+          <span class="row-sub">${state.templates[id].items.map(([e]) => exName(e)).join(" · ")}</span></span>${chev()}</button></li>`;
+      return {
+        nav: { title: t("s.start"), large: false, close: true },
+        body: `
+          <p class="t-subhead muted screen-h">${esc(c.name)} · ${ucfirst(dayShort(startOf(x)))} ${time(startOf(x))}</p>
+          <ul class="list">
+            <li><button type="button" class="row row--add" data-act="log-begin" data-v="empty">
+              <span class="avatar avatar--add" aria-hidden="true">${icon("plus", "ico--sm")}</span>
+              <span class="row-main"><span class="row-title">${t("l.empty")}</span><span class="row-sub">${t("l.emptyHint")}</span></span>${chev()}</button></li>
+            ${last ? `<li><button type="button" class="row row--add" data-act="log-begin" data-v="repeat">
+              <span class="avatar avatar--add" aria-hidden="true">${icon("repeat", "ico--sm")}</span>
+              <span class="row-main"><span class="row-title">${t("l.repeat")}</span>
+              <span class="row-sub">${workoutName(last.name)} · ${dayMonth(at(last.date, "12:00"))} · ${t("l.exCount", { n: last.items.length })}</span></span>${chev()}</button></li>` : ""}
+          </ul>
+          ${mine.length ? `<h2 class="t-caption section-label">${t("l.clientTemplates", { name: esc(c.first) })}</h2><ul class="list">${mine.map(tplRow).join("")}</ul>` : ""}
+          ${others.length ? `<h2 class="t-caption section-label">${t(mine.length ? "l.otherTemplates" : "l.allTemplates")}</h2><ul class="list">${others.map(tplRow).join("")}</ul>` : ""}
+        `,
+      };
+    },
+  };
+
+  SCREENS["l-overview"] = {
+    shell: "app",
+    modal: true,
     dock: true,
     render() {
-      const L = ensureLog(current().id);
+      const L = state.log;
       const x = findSession(L.id);
-      const exId = L.ex[L.i];
-      const ex = EXERCISES[exId];
-      const done = L.sets[exId];
-      const setNo = L.editing != null ? L.editing + 1 : done.length + 1;
-      const rows = Math.max(ex.prev.sets.length, done.length + (L.editing == null ? 1 : 0));
-      const d = L.draft[exId];
-      const last = L.i === L.ex.length - 1;
-      const targetMet = done.length >= ex.prev.sets.length;
-      const kg = (w) => `${num(w)} kg`;
+      const c = CLIENTS[x.client];
+      const np = nextPending(L);
       return {
-        nav: { title: `${esc(CLIENTS[x.client].first)} · ${esc(WORKOUTS[x.workout].name)}`, large: false, back: esc(CLIENTS[x.client].first) },
+        nav: { title: `${esc(c.first)} · ${L.name ? esc(L.name) : t("s.workout")}`, large: false, close: true, closeLabel: t("common.close"),
+          text: [{ act: "log-finish", label: t("l.finish") }] },
         body: `
-          <div class="log-top">
-            <span class="t-footnote muted">${t("l.exerciseOf", { i: L.i + 1, n: L.ex.length })}</span>
-            <span class="sync">${icon("cloud", "ico--sm")}${t("l.savedLocal")}</span>
-          </div>
-          <div class="progress" aria-hidden="true">${L.ex.map((e, i) => `<span class="${i < L.i ? "is-done" : i === L.i ? "is-now" : ""}"></span>`).join("")}</div>
-          <h2 class="t-title1 log-ex" tabindex="-1">${exName(exId)}</h2>
-          <p class="t-subhead muted">${ex.target}</p>
+          <div class="log-top"><span class="t-footnote muted">${L.items.length ? t("l.exCount", { n: L.items.length }) : ""}</span><span class="sync">${icon("cloud", "ico--sm")}${t("l.savedLocal")}</span></div>
+          ${L.items.length ? `<ol class="list ex-list">${L.items.map((it, i) => {
+              const d = doneCount(it);
+              const all = d > 0 && d === it.rows.length;
+              return `<li><button type="button" class="row" data-act="log-open" data-v="${i}">
+                  <span class="ex-no t-num" aria-hidden="true">${i + 1}</span>
+                  <span class="row-main"><span class="row-title">${exName(it.ex)}</span><span class="row-sub t-num">${prevLine(prevFor(x.client, it.ex))}</span></span>
+                  <span class="ex-count t-num${all ? " is-done" : ""}">${all ? icon("check", "ico--sm") : ""}${d}/${it.rows.length}</span>
+                </button></li>`;
+            }).join("")}</ol>`
+            : `<div class="empty empty--tight">${icon("dumbbell", "ico--xl")}<h2 class="t-headline">${t("l.noExercises")}</h2><p class="t-subhead">${t("l.noExercisesHint", { name: esc(c.first) })}</p></div>`}
+          <button type="button" class="btn btn--tonal btn--block" data-act="log-add">${icon("plus", "ico--sm")}${t("l.addExercise")}</button>
+        `,
+        dock: np
+          ? `<button type="button" class="btn btn--primary btn--xl btn--block" data-act="log-open" data-v="${np.i}">${t("l.continue", { ex: exName(L.items[np.i].ex), n: np.set })}${icon("chevR", "ico--sm")}</button>`
+          : L.items.length ? `<button type="button" class="btn btn--primary btn--xl btn--block" data-act="log-finish">${icon("check", "ico--sm")}${t("l.finishTitle")}</button>` : "",
+      };
+    },
+  };
+
+  SCREENS["l-log"] = {
+    shell: "app",
+    modal: true,
+    dock: true,
+    render() {
+      const L = state.log;
+      const x = findSession(L.id);
+      const it = L.items[L.i];
+      const prev = prevFor(x.client, it.ex);
+      const a = activeRow(it, L);
+      const row = a >= 0 ? it.rows[a] : null;
+      const last = L.i === L.items.length - 1;
+      const prevHead = prev
+        ? t("l.prevHead", { date: dayMonth(at(prev.date, "12:00")) }) + (prev.trainer !== state.me ? ` · ${TRAINERS[prev.trainer].name}` : "")
+        : t("l.noPrev");
+      return {
+        nav: { title: t("l.position", { i: L.i + 1, n: L.items.length }), large: false, back: t("l.overview") },
+        body: `
+          <h2 class="t-title1 log-ex" tabindex="-1">${exName(it.ex)}</h2>
+          <p class="t-subhead muted">${it.target ? `${t("l.target", { sets: it.target[0], reps: it.target[1] })} · ` : ""}${prevHead}</p>
           <table class="sets">
-            <caption class="sr-only">${exName(exId)}</caption>
-            <thead><tr><th scope="col"></th><th scope="col">${t("l.previous")}<span class="sets-date">${dayMonth(at(ex.prev.date, "12:00"))}</span></th><th scope="col">${t("l.today")}</th></tr></thead>
-            <tbody>${Array.from({ length: rows }, (_, i) => {
-              const p = ex.prev.sets[i];
-              const s = done[i];
-              const isCurrent = (L.editing == null && i === done.length) || L.editing === i;
-              return `<tr class="${isCurrent ? "is-current" : ""}">
+            <caption class="sr-only">${exName(it.ex)}</caption>
+            <thead><tr><th scope="col">${t("l.setCol")}</th><th scope="col">${t("l.previous")}</th><th scope="col">${t("l.today")}</th><th scope="col"><span class="sr-only">${t("l.doneCol")}</span></th></tr></thead>
+            <tbody>${it.rows.map((r, i) => {
+              const p = prev?.sets[i];
+              return `<tr class="${i === a ? "is-current" : ""}${r.done ? " is-done" : ""}">
                   <th scope="row">${i + 1}</th>
                   <td class="prev t-num">${p ? `${kg(p[0])} × ${p[1]}` : "–"}</td>
-                  <td class="now t-num">${s && !isCurrent ? `<button type="button" class="set-chip" data-act="log-edit" data-v="${i}" aria-label="${t("l.set", { n: i + 1 })}: ${kg(s[0])} × ${s[1]}">${kg(s[0])} × ${s[1]} ${icon("check", "ico--sm")}</button>`
-                    : isCurrent ? `<span class="set-pending">${kg(d.w)} × ${d.r}</span>` : ""}</td>
+                  <td class="now t-num"><button type="button" class="set-cell" data-act="log-sel" data-v="${i}" aria-label="${t("l.editSet", { n: i + 1 })}: ${kg(r.w)} × ${r.r}">${kg(r.w)} × ${r.r}</button></td>
+                  <td class="tick"><button type="button" class="set-check" data-act="log-check" data-v="${i}" aria-pressed="${r.done}" aria-label="${t(r.done ? "l.undoSet" : "l.setDone", { n: i + 1 })}">${icon("check")}</button></td>
                 </tr>`;
             }).join("")}</tbody>
           </table>
-          ${done.length ? `<p class="t-footnote muted">${t("l.tapToEdit")}</p>` : ""}
-          ${done.length ? `<h3 class="t-caption section-label">${t("l.difficultySet", { n: done.length })}</h3>
-            ${seg("log-diff", [["easy", t("l.easy")], ["normal", t("l.normal")], ["hard", t("l.hard")]], L.diff[exId]?.[done.length - 1] || "", { label: t("l.difficultySet", { n: done.length }) })}` : ""}
+          <button type="button" class="btn btn--text btn--add-set" data-act="log-add-set">${icon("plus", "ico--sm")}${t("l.addSet")}</button>
+          ${doneCount(it) ? `<h3 class="t-caption section-label">${t("l.difficulty")}</h3>
+            ${seg("log-diff", [["easy", t("l.easy")], ["normal", t("l.normal")], ["hard", t("l.hard")]], it.diff, { label: t("l.difficulty") })}` : ""}
         `,
         dock: `
-          <div class="steppers">
-            ${stepper("w", t("l.weight"), kg(d.w))}
-            ${stepper("r", t("l.reps"), String(d.r))}
-          </div>
+          ${row ? `<div class="steppers">${stepper("w", t("l.weightKg"), num(row.w), row.w)}${stepper("r", t("l.reps"), String(row.r), row.r)}</div>` : ""}
           <div class="dock-row">
             <button type="button" class="btn btn--icon btn--tonal btn--xl" data-act="log-ex" data-v="-1" ${L.i === 0 ? "disabled" : ""} aria-label="${t("l.prevExercise")}">${icon("chevL")}</button>
-            <button type="button" class="btn ${targetMet && L.editing == null ? "btn--tonal" : "btn--primary"} btn--xl btn--grow" data-act="log-save">${icon("check", "ico--sm")}${t(L.editing != null ? "l.updateSet" : "l.saveSet", { n: setNo })}</button>
-            <button type="button" class="btn btn--icon ${targetMet ? "btn--primary" : "btn--tonal"} btn--xl" data-act="log-ex" data-v="1" aria-label="${last ? t("l.finish") : t("l.nextExercise")}">${icon(last ? "check" : "chevR")}</button>
+            ${row
+              ? `<button type="button" class="btn btn--primary btn--xl btn--grow" data-act="log-save">${icon("check", "ico--sm")}${t(row.done ? "l.updateSet" : "l.setDone", { n: a + 1 })}</button>
+                 <button type="button" class="btn btn--icon btn--tonal btn--xl" data-act="log-ex" data-v="1" aria-label="${last ? t("l.toOverview") : t("l.nextExercise")}">${icon("chevR")}</button>`
+              : `<button type="button" class="btn btn--primary btn--xl btn--grow" data-act="log-ex" data-v="1">${last ? t("l.toOverview") : t("l.next", { ex: exName(L.items[L.i + 1].ex) })}${icon("chevR", "ico--sm")}</button>`}
           </div>`,
       };
     },
   };
-  function stepper(key, label, value) {
-    return `<div class="stepper" role="group" aria-label="${label}">
-        <span class="stepper-label">${label}</span>
+  // The number is editable too, for big jumps (WL-03: tapping the number opens the keyboard).
+  function stepper(key, label, value, raw) {
+    return `<div class="stepper" role="group" aria-labelledby="st-${key}">
+        <span class="stepper-label" id="st-${key}">${label}</span>
         <div class="stepper-row">
-          <button type="button" class="btn btn--icon btn--tonal btn--xl" data-act="log-step" data-k="${key}" data-v="-1" aria-label="${t("l.less", { what: label.toLowerCase() })}">${icon("minus")}</button>
-          <output class="stepper-value t-num" aria-live="polite">${value}</output>
+          <button type="button" class="btn btn--icon btn--tonal btn--xl" data-act="log-step" data-k="${key}" data-v="-1" aria-label="${t("l.less", { what: label.toLowerCase() })}" ${raw <= 0 ? "disabled" : ""}>${icon("minus")}</button>
+          <input class="stepper-value t-num" id="step-${key}" type="text" inputmode="${key === "w" ? "decimal" : "numeric"}" value="${value}" aria-labelledby="st-${key}" autocomplete="off">
           <button type="button" class="btn btn--icon btn--tonal btn--xl" data-act="log-step" data-k="${key}" data-v="1" aria-label="${t("l.more", { what: label.toLowerCase() })}">${icon("plus")}</button>
         </div>
       </div>`;
   }
 
-  SCREENS["l-finish"] = {
+  SCREENS["l-add"] = {
     shell: "app",
+    modal: true,
     render() {
       const L = state.log;
       const x = findSession(L.id);
       const c = CLIENTS[x.client];
-      const total = L.ex.reduce((n, e) => n + L.sets[e].length, 0);
+      const inLog = new Set(L.items.map((it) => it.ex));
+      const recent = [...new Set((state.history[x.client] || []).flatMap((w) => w.items.map(([e]) => e)))].filter(exDef);
+      const rest = [...Object.keys(state.customEx), ...Object.keys(EXERCISES)].filter((e) => !recent.includes(e));
+      const row = (e) => {
+        const d = exDef(e);
+        const other = d.custom ? "" : activeLang() === "nl" ? d.en : d.nl;
+        const keys = fold([d.nl, d.en, d.name, ...(d.aliases || [])].filter(Boolean).join(" "));
+        const prev = prevFor(x.client, e);
+        const sub = [other && other !== exName(e) ? t("l.alias", { name: esc(other) }) : "", d.custom ? t("l.customEx") : "",
+          inLog.has(e) ? t("l.inWorkout") : prev ? prevLine(prev) : ""].filter(Boolean).join(" · ");
+        return `<li data-name="${esc(keys)}"><button type="button" class="row" data-act="log-add-ex" data-v="${e}" ${inLog.has(e) ? "disabled" : ""}>
+            <span class="row-main"><span class="row-title">${exName(e)}</span>${sub ? `<span class="row-sub">${sub}</span>` : ""}</span>
+            ${icon(inLog.has(e) ? "check" : "plus", "row-chev")}</button></li>`;
+      };
       return {
-        nav: { title: t("l.finishTitle"), large: false, back: t("common.back") },
+        nav: { title: t("l.addExercise"), large: false, cancel: true },
         body: `
-          <h2 class="t-title2 screen-h" tabindex="-1">${esc(c.name)} · ${esc(WORKOUTS[x.workout].name)}</h2>
-          <p class="t-subhead muted">${t("l.summary", { sets: total, ex: L.ex.length })}</p>
-          ${workoutRows(L)}
-          <div class="field">
-            <label class="field-label" for="internal-note">${t("l.internalNote")}</label>
-            <textarea id="internal-note" class="input" rows="4" placeholder="${t("l.internalNotePh")}">${esc(L.internalNote)}</textarea>
-            <p class="t-footnote muted">${t("l.internalHint")}</p>
-          </div>
-          <button type="button" class="btn btn--primary btn--block btn--lg" data-act="log-done">${t("l.save")}</button>
+          <div class="search">${icon("search", "ico--sm")}<input id="ex-search" type="search" placeholder="${t("l.searchEx")}" aria-label="${t("l.searchEx")}" autocomplete="off"></div>
+          ${recent.length ? `<section data-filter-group><h2 class="t-caption section-label">${t("l.recentFor", { name: esc(c.first) })}</h2><ul class="list">${recent.map(row).join("")}</ul></section>` : ""}
+          <section data-filter-group><h2 class="t-caption section-label">${t("l.library")}</h2><ul class="list">${rest.map(row).join("")}</ul></section>
+          <p class="t-subhead muted" data-no-results hidden>${t("l.noExFound")}</p>
+          <button type="button" class="btn btn--tonal btn--block" data-act="log-new-ex" data-new-ex hidden></button>
         `,
       };
     },
   };
-  function workoutRows(record) {
-    return `<ul class="list">${record.ex.map((e) => `<li class="row row--static"><span class="row-main">
-      <span class="row-title">${exName(e)}</span>
-      <span class="row-sub t-num">${record.sets[e].map((s) => `${num(s[0])} kg × ${s[1]}`).join(" · ") || "–"}</span>
-    </span>${Object.entries(record.diff?.[e] || {}).map(([i, difficulty]) => `<span class="chip chip--${difficulty === "hard" ? "warning" : "neutral"}">${t("l.set", { n: Number(i) + 1 })} · ${t("l." + difficulty)}</span>`).join("")}</li>`).join("")}</ul>`;
+
+  SCREENS["l-finish"] = {
+    shell: "app",
+    modal: true,
+    render() {
+      const L = state.log;
+      const x = findSession(L.id);
+      const c = CLIENTS[x.client];
+      const items = recordItems(L);
+      const skipped = L.items.filter((it) => !doneCount(it));
+      const sets = items.reduce((n, it) => n + it.sets.length, 0);
+      const offerTpl = items.length && (L.source !== "template" || L.changed);
+      return {
+        nav: { title: t("l.finishTitle"), large: false, back: t("common.back") },
+        body: `
+          <h2 class="t-title2 screen-h" tabindex="-1">${esc(c.name)} · ${L.name ? esc(L.name) : t("s.workout")}</h2>
+          <p class="t-subhead muted">${t("l.doneOf", { done: items.length, total: L.items.length })} · ${t("l.sets", { n: sets })}</p>
+          ${skipped.length ? `<p class="t-subhead muted">${t("l.skipped", { list: skipped.map((it) => exName(it.ex)).join(", ") })}</p>` : ""}
+          ${items.length ? workoutRows(items) : ""}
+          <div class="field">
+            <label class="field-label" for="internal-note">${t("l.internalNote")}</label>
+            <textarea id="internal-note" class="input" rows="3" placeholder="${t("l.internalNotePh")}">${esc(L.internalNote)}</textarea>
+            <p class="t-footnote muted">${t("l.internalHint")}</p>
+          </div>
+          ${offerTpl ? `<label class="switch-row"><span class="row-main"><span class="row-title">${t("l.saveTpl")}</span><span class="row-sub">${t("l.saveTplHint", { name: esc(c.first) })}</span></span>
+              <input type="checkbox" class="switch" data-act="log-save-tpl" ${L.saveTpl ? "checked" : ""}></label>
+            ${L.saveTpl ? field("tpl-name", t("l.tplName"), `<input id="tpl-name" class="input" type="text" value="${esc(L.tplName)}">`, L.tplErr ? t("l.tplNameErr") : "") : ""}` : ""}
+          <p class="t-footnote muted">${icon("check", "ico--sm")} ${t("l.attendanceSet")}</p>
+          ${L.confirmEmpty
+            ? `<div class="confirm-inline" role="group"><p class="t-subhead">${t("l.zeroSets")}</p>
+                <div class="row-actions"><button type="button" class="btn btn--primary" data-act="log-done" data-force="1">${t("l.finish")}</button><button type="button" class="btn btn--tonal" data-act="log-empty-back">${t("common.back")}</button></div></div>`
+            : `<button type="button" class="btn btn--primary btn--block btn--lg" data-act="log-done">${t("l.save")}</button>`}
+        `,
+      };
+    },
+  };
+  function workoutRows(items) {
+    return `<ul class="list">${items.map((it) => `<li class="row row--static"><span class="row-main">
+      <span class="row-title">${exName(it.ex)}</span>
+      <span class="row-sub t-num">${it.sets.map((x) => `${kg(x[0])} × ${x[1]}`).join(" · ")}</span>
+    </span>${it.diff && it.diff !== "normal" ? `<span class="chip chip--${it.diff === "hard" ? "warning" : "neutral"}">${t("l." + it.diff)}</span>` : ""}</li>`).join("")}</ul>`;
   }
   function sharedWorkoutBody(record) {
     const x = findSession(record.id);
-    const total = record.ex.reduce((n, e) => n + record.sets[e].length, 0);
-    return `<h2 class="t-title2 screen-h" tabindex="-1">${esc(WORKOUTS[x.workout].name)}</h2>
-      <p class="t-subhead muted">${ucfirst(dayLong(startOf(x)))} · ${t("l.summary", { sets: total, ex: record.ex.length })}</p>
-      ${workoutRows(record)}
+    const total = record.items.reduce((n, it) => n + it.sets.length, 0);
+    return `<h2 class="t-title2 screen-h" tabindex="-1">${workoutName(record.name)}</h2>
+      <p class="t-subhead muted">${ucfirst(dayLong(startOf(x)))} · ${t("l.summary", { sets: total, ex: record.items.length })}</p>
+      ${workoutRows(record.items)}
       ${record.clientNote.trim() ? `<h3 class="t-caption section-label">${t("l.clientNoteFrom", { name: esc(TRAINERS[x.trainer].name) })}</h3><div class="note"><p class="note-text">${esc(record.clientNote)}</p></div>` : ""}`;
   }
   SCREENS["l-complete"] = {
@@ -1017,13 +1367,13 @@
       <p class="screen-sub">${typeChip(occ.kind)} <span class="t-subhead muted">${ucfirst(dayLong(startOf(occ)))} · <span class="t-num">${range(occ)}</span></span></p>
       <ul class="list">
         <li class="row row--static">${icon("pin", "row-ico")}<span class="row-main"><span class="row-sub">${t("s.location")}</span><span class="row-title">${locName(occ.loc)}${occ.loc === WS[occ.ws].loc ? "" : ` · ${esc(WS[occ.ws].name)}`}</span></span></li>
-        <li class="row row--static">${icon("user", "row-ico")}<span class="row-main"><span class="row-sub">${t("o.trainer")}</span>
+        ${occ.kind === "openGym" ? "" : `<li class="row row--static">${icon("user", "row-ico")}<span class="row-main"><span class="row-sub">${t("o.trainer")}</span>
           <span class="row-title">${occ.trainer ? TRAINERS[occ.trainer].name : `<span class="chip chip--warning">${icon("alert", "ico--sm")}${t("o.trainerNeeded")}</span>`}</span>
-          ${occ.origTrainer ? `<span class="row-sub">${t("o.subBadge", { name: TRAINERS[occ.origTrainer].name })}</span>` : ""}</span></li>
+          ${occ.origTrainer ? `<span class="row-sub">${t("o.subBadge", { name: TRAINERS[occ.origTrainer].name })}</span>` : ""}</span></li>`}
         <li class="row row--static">${icon("users", "row-ico")}<span class="row-main"><span class="row-sub">${t("o.bookedOf", { booked: bookedCount(occ), cap: occ.cap })}</span>${meter(bookedCount(occ), occ.cap)}</span></li>
       </ul>
-      ${cancelled ? "" : `<div class="action-row">
-          <button type="button" class="btn btn--tonal" data-act="open-sub" data-id="${occ.id}">${icon("swap", "ico--sm")}${t("o.substitute")}</button>
+      ${cancelled || occ.kind === "openGym" || !canManage(occ.ws) && shellOf(current().s) === "app" ? "" : `<div class="action-row">
+          ${WS[occ.ws].kind === "gym" ? `<button type="button" class="btn btn--tonal" data-act="open-sub" data-id="${occ.id}">${icon("swap", "ico--sm")}${t("o.substitute")}</button>` : ""}
           <button type="button" class="btn btn--tonal btn--danger-text" data-act="open-cancel" data-id="${occ.id}">${icon("ban", "ico--sm")}${t("o.cancelClass")}</button>
         </div>`}
       <div class="list-head"><h2 class="t-caption section-label">${t("o.participants")}</h2><span class="t-footnote muted">${t("o.attendedCount", { n: attended })}</span></div>
@@ -1049,6 +1399,7 @@
   // Bottom sheets (app) / dialogs (web) for substitution and cancellation
   function sheetContent() {
     const sh = state.sheet;
+    if (sh.kind === "new") return newMenu();
     const occ = findClass(sh.occ);
     const when = `${esc(occ.title)} · ${ucfirst(dayLong(startOf(occ)))} · ${time(startOf(occ))}`;
     const scopeOpts = [["this", t("o.scopeThis")], ["following", t("o.scopeFollowing")]];
@@ -1084,6 +1435,27 @@
           <button type="button" class="btn btn--danger btn--block btn--lg" data-act="cancel-confirm">${t("o.cancelClass")}</button>
           <button type="button" class="btn btn--tonal btn--block" data-act="sheet-close">${t("o.cancelKeep")}</button>
         </div>`,
+    };
+  }
+
+  // "+" in the app offers only what the role may create (information-architecture.md §3.1).
+  function newMenu() {
+    const manage = manageWorkspaces();
+    const notMine = myWorkspaces().filter((w) => !canManage(w));
+    const item = (v, ic, title, sub) => `<li><button type="button" class="row" data-act="app-new" data-v="${v}">
+        <span class="avatar avatar--add" aria-hidden="true">${icon(ic, "ico--sm")}</span>
+        <span class="row-main"><span class="row-title">${title}</span><span class="row-sub">${sub}</span></span>${chev()}</button></li>`;
+    const where = esc(manage.map((w) => WS[w].name).join(", "));
+    return {
+      title: t("new.title"),
+      body: `<ul class="list">
+          ${item("private", "user", t("new.private"), t("new.privateHint"))}
+          ${manage.length ? item("group", "users", t("type.group"), t("new.inWs", { ws: where })) : ""}
+          ${manage.length ? item("openGym", "door", t("type.openGym"), t("new.inWs", { ws: where })) : ""}
+          ${item("client", "plus", t("c.client"), t("c.newQuickHint"))}
+        </ul>
+        ${notMine.length ? `<p class="t-footnote muted">${t("new.ownerOnly", { ws: esc(notMine.map((w) => WS[w].name).join(" en ")) })}</p>` : ""}`,
+      actions: "",
     };
   }
 
@@ -1161,6 +1533,7 @@
           <option value="">${t("p.pickClient")}</option>
           ${clients.map(([id, c]) => `<option value="${id}" ${m.client === id ? "selected" : ""}>${esc(c.name)}</option>`).join("")}
         </select>`, m.errors.client ? t("p.chooseClient") : "")}
+        <button type="button" class="btn btn--text btn--inline" data-act="w-new-client">${icon("plus", "ico--sm")}${t("c.new")}</button>
         <div class="field-row">
           ${field("np-date", t("p.date"), `<input id="np-date" class="input" type="date" value="${m.date}">`)}
           ${field("np-time", t("p.time"), `<input id="np-time" class="input" type="time" step="900" value="${m.time}">`)}
@@ -1169,15 +1542,24 @@
           ${seg("np-dur", [30, 45, 60, 90].map((n) => [String(n), t("p.min", { n })]), String(m.dur), { label: t("p.duration") })}</div>
         ${m.client ? `<div class="field"><span class="field-label">${t("s.location")}</span>${locationBlock(m, m.client)}</div>` : ""}
         ${field("np-workout", t("p.workoutOpt"), `<select id="np-workout" class="input">
-          <option value="">${t("p.none")}</option>${Object.entries(WORKOUTS).map(([id, workout]) => `<option value="${id}" ${m.workout === id ? "selected" : ""}>${esc(workout.name)}</option>`).join("")}
+          <option value="">${t("p.none")}</option>${Object.entries(state.templates).map(([id, workout]) => `<option value="${id}" ${m.workout === id ? "selected" : ""}>${esc(workout.name)}</option>`).join("")}
         </select>`)}
         <button type="submit" class="btn btn--primary btn--block btn--lg">${t("p.save")}</button>
       </form>`;
   }
+  // Group class and Open Gym: web panel and app modal share this form. A weekly series repeats on the same weekday (PRODUCT.md §20).
+  function newOccModel(kind, ws) {
+    return { kind, ws, title: "", date: shellOf(current().s) === "web" ? state.web.date : TODAY, start: kind === "group" ? "18:00" : "12:00",
+      end: kind === "group" ? "19:00" : "13:00", cap: kind === "group" ? 8 : 2, trainer: kind === "group" && WS[ws].kind !== "gym" ? state.me : "",
+      loc: WS[ws].loc || (WS_LOCS[ws] || [])[0], repeat: "none", errors: {} };
+  }
   function newOccurrenceForm() {
     const m = state.newOcc;
     const group = m.kind === "group";
+    const gym = WS[m.ws].kind === "gym";
+    const trainers = gym ? GYM_TRAINERS : [state.me];
     return `<form data-form="new-occurrence" novalidate class="form">
+        ${manageWorkspaces().length > 1 && shellOf(current().s) === "app" ? `<p class="t-footnote muted">${esc(WS[m.ws].name)}</p>` : ""}
         ${group ? field("occ-title", t("w.className"), `<input id="occ-title" class="input" value="${esc(m.title)}" required>`, m.errors.title ? t("w.classNameRequired") : "") : ""}
         <div class="field-row">
           ${field("occ-date", t("p.date"), `<input id="occ-date" class="input" type="date" value="${m.date}" required>`)}
@@ -1185,16 +1567,38 @@
         </div>
         <div class="field-row">
           ${field("occ-end", t("w.end"), `<input id="occ-end" class="input" type="time" value="${m.end}" required>`, m.errors.end ? t("w.endError") : "")}
-          ${field("occ-cap", t("w.capacity"), `<input id="occ-cap" class="input" type="number" min="1" max="99" value="${m.cap}" required>`, m.errors.cap ? t("w.capacityError") : "")}
+          ${field("occ-cap", t("w.capacity"), `<input id="occ-cap" class="input" type="number" inputmode="numeric" min="1" max="99" value="${m.cap}" required>`, m.errors.cap ? t("w.capacityError") : "")}
         </div>
-        ${group ? field("occ-trainer", t("o.trainer"), `<select id="occ-trainer" class="input"><option value="">${t("o.trainerNeeded")}</option>${GYM_TRAINERS.map((id) => `<option value="${id}" ${m.trainer === id ? "selected" : ""}>${esc(TRAINERS[id].name)}</option>`).join("")}</select>`) : ""}
-        <p class="t-footnote muted">${t("w.locationFixed", { name: esc(WS[state.web.ws].name) })}</p>
+        ${group ? field("occ-trainer", t("o.trainer"), `<select id="occ-trainer" class="input">${gym ? `<option value="">${t("o.trainerNeeded")}</option>` : ""}${trainers.map((id) => `<option value="${id}" ${m.trainer === id ? "selected" : ""}>${esc(TRAINERS[id].name)}</option>`).join("")}</select>`) : ""}
+        ${gym ? `<p class="t-footnote muted">${t("w.locationFixed", { name: esc(WS[m.ws].name) })}</p>`
+          : field("occ-loc", t("s.location"), `<select id="occ-loc" class="input">${(WS_LOCS[m.ws] || []).map((l) => `<option value="${l}" ${m.loc === l ? "selected" : ""}>${locName(l)}</option>`).join("")}</select>`)}
+        ${field("occ-repeat", t("w.repeat"), `<select id="occ-repeat" class="input">
+            <option value="none" ${m.repeat === "none" ? "selected" : ""}>${t("w.repeatNone")}</option>
+            <option value="weekly" ${m.repeat === "weekly" ? "selected" : ""}>${t("w.repeatWeekly", { day: weekdayName(at(m.date || TODAY, "12:00")) })}</option>
+          </select>`)}
+        ${m.repeat === "weekly" ? `<p class="t-footnote muted">${t("w.repeatHint", { n: 8 })}</p>` : ""}
         <button type="submit" class="btn btn--primary btn--block btn--lg">${t(group ? "w.createClass" : "w.publishGym")}</button>
       </form>`;
   }
+  function captureOcc() {
+    const m = state.newOcc;
+    const v = (id) => root.querySelector("#" + id)?.value;
+    if (v("occ-title") != null) m.title = v("occ-title").trim();
+    ["date", "start", "end", "loc", "repeat"].forEach((k) => { if (v("occ-" + k) != null) m[k] = v("occ-" + k); });
+    if (v("occ-cap") != null) m.cap = Number(v("occ-cap"));
+    if (v("occ-trainer") != null) m.trainer = v("occ-trainer") || null;
+  }
+  SCREENS["o-new"] = {
+    shell: "app",
+    modal: true,
+    render() {
+      return { nav: { title: t(state.newOcc.kind === "group" ? "w.newClass" : "w.newGym"), large: false, close: true }, body: newOccurrenceForm() };
+    },
+  };
+  const PANEL_MODES = ["pick", "create", "create-client", "create-group", "create-openGym"];
   function webPanel() {
     const w = state.web;
-    if (!w.panel && !["pick", "create", "create-group", "create-openGym"].includes(w.panelMode)) return "";
+    if (!w.panel && !PANEL_MODES.includes(w.panelMode)) return "";
     const x = w.panel ? findItem(w.panel) : null;
     let body;
     if (w.panelMode === "pick") {
@@ -1202,9 +1606,12 @@
         <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="private">${t("type.private")}</button>
         <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="group">${t("type.group")}</button>
         <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="openGym">${t("type.openGym")}</button>
+        <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="client">${t("c.client")}</button>
       </div>`;
     } else if (w.panelMode === "create") {
       body = newWebSessionForm();
+    } else if (w.panelMode === "create-client") {
+      body = clientForm(true);
     } else if (w.panelMode === "create-group" || w.panelMode === "create-openGym") {
       body = newOccurrenceForm();
     } else if (x.kind === "private") {
@@ -1225,7 +1632,7 @@
     }
     return `<div class="panel-scrim" data-act="w-close"></div>
       <aside class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-h">
-        <header class="panel-head"><h2 class="t-title2" id="panel-h" tabindex="-1">${w.panelMode === "pick" ? t("w.new") : w.panelMode === "create" ? t("p.newTitle") : w.panelMode === "create-group" ? t("w.newClass") : w.panelMode === "create-openGym" ? t("w.newGym") : x.kind === "private" ? esc(CLIENTS[x.client].name) : esc(x.title)}</h2>
+        <header class="panel-head"><h2 class="t-title2" id="panel-h" tabindex="-1">${w.panelMode === "pick" ? t("w.new") : w.panelMode === "create" ? t("p.newTitle") : w.panelMode === "create-client" ? t("c.new") : w.panelMode === "create-group" ? t("w.newClass") : w.panelMode === "create-openGym" ? t("w.newGym") : x.kind === "private" ? esc(CLIENTS[x.client].name) : esc(x.title)}</h2>
           <button type="button" class="btn btn--icon btn--ghost" data-act="w-close" aria-label="${t("common.close")}">${icon("x")}</button></header>
         <div class="panel-body">${body}</div>
       </aside>`;
@@ -1286,18 +1693,23 @@
   }
   function navbar(nav) {
     const ios = state.platform === "ios";
+    // close: leave the whole modal task; cancel: leave only this screen.
     const lead = nav.close
-      ? (ios ? `<button type="button" class="nav-text" data-act="close-modal">${t("common.cancel")}</button>`
-        : `<button type="button" class="nav-icon" data-act="close-modal" aria-label="${t("common.close")}">${icon("x")}</button>`)
-      : nav.back
-        ? (ios ? `<button type="button" class="nav-back" data-act="back">${icon("chevL")}<span>${nav.back}</span></button>`
-          : `<button type="button" class="nav-icon" data-act="back" aria-label="${t("common.back")}">${icon("arrowL")}</button>`)
-        : "";
+      ? (ios ? `<button type="button" class="nav-text" data-act="close-modal">${nav.closeLabel || t("common.cancel")}</button>`
+        : `<button type="button" class="nav-icon" data-act="close-modal" aria-label="${nav.closeLabel || t("common.close")}">${icon("x")}</button>`)
+      : nav.cancel
+        ? (ios ? `<button type="button" class="nav-text" data-act="back">${t("common.cancel")}</button>`
+          : `<button type="button" class="nav-icon" data-act="back" aria-label="${t("common.cancel")}">${icon("x")}</button>`)
+        : nav.back
+          ? (ios ? `<button type="button" class="nav-back" data-act="back">${icon("chevL")}<span>${nav.back}</span></button>`
+            : `<button type="button" class="nav-icon" data-act="back" aria-label="${t("common.back")}">${icon("arrowL")}</button>`)
+          : "";
     const actions = (nav.actions || []).map((a) =>
-      `<button type="button" class="nav-icon" data-act="${a.act}" aria-label="${a.label}">${icon(a.icon)}</button>`).join("");
+      `<button type="button" class="nav-icon" data-act="${a.act}" aria-label="${a.label}">${icon(a.icon)}</button>`).join("")
+      + (nav.text || []).map((a) => `<button type="button" class="nav-text nav-text--strong" data-act="${a.act}">${a.label}</button>`).join("");
     if (ios) {
       return `<header class="nav nav--ios${nav.large ? " nav--large" : ""}">
-          <div class="nav-bar"><div class="nav-lead">${lead}</div>${nav.large ? "" : `<p class="nav-title">${nav.title}</p>`}<div class="nav-trail">${actions}</div></div>
+          <div class="nav-bar"><div class="nav-lead">${lead}</div>${nav.large ? "<span></span>" : `<p class="nav-title">${nav.title}</p>`}<div class="nav-trail">${actions}</div></div>
           ${nav.large ? `<h1 class="nav-large-title" tabindex="-1">${nav.title}</h1>` : ""}
           ${nav.subtitle ? `<p class="nav-subtitle">${nav.subtitle}</p>` : ""}
         </header>`;
@@ -1325,7 +1737,7 @@
         ${kind === "app" ? `<span class="grabber" aria-hidden="true"></span>` : ""}
         ${head}
         <div class="sheet-body">${c.body}</div>
-        <div class="sheet-actions">${c.actions}</div>
+        ${c.actions ? `<div class="sheet-actions">${c.actions}</div>` : ""}
       </section>`;
   }
 
@@ -1418,6 +1830,7 @@
     back,
     flow: (el) => FLOWS[el.dataset.v](),
     "reset-demo": () => {
+      Object.keys(CLIENTS).forEach((id) => { if (CLIENTS[id].created) delete CLIENTS[id]; });
       Object.assign(state, fresh());
       reset([{ s: "hub" }]);
       toast(t("proto.resetDone"));
@@ -1425,6 +1838,7 @@
     "set-lang": (el) => { state.lang = el.dataset.v; prefs.set("lang", state.lang); render(); },
     "set-preview-lang": (el) => { state.previewLang = el.dataset.v; render(); },
     "set-platform": (el) => { state.platform = el.dataset.v; prefs.set("platform", state.platform); render(); },
+    "set-me": (el) => { state.me = el.dataset.v; state.log = null; prefs.set("me", state.me); render(); },
 
     // flow 1
     "b-mode": (el) => { state.booking.mode = el.dataset.v; render(); },
@@ -1476,11 +1890,49 @@
       render();
     },
 
+    // "+" menu (app)
+    "app-new-menu": () => { state.sheet = { kind: "new" }; render({ focusSheet: true }); },
+    "app-new": (el) => {
+      const v = el.dataset.v;
+      state.sheet = null;
+      if (v === "private") { state.np = null; return go("p-client"); }
+      if (v === "client") { state.cn = newClientModel("clients"); return go("c-new"); }
+      state.newOcc = newOccModel(v, manageWorkspaces()[0]);
+      go("o-new");
+    },
+
+    // clients
+    "open-client": (el) => go("t-client", { id: el.dataset.v }),
+    "c-new": () => { state.cn = newClientModel("clients"); go("c-new"); },
+    "np-new-client": () => {
+      state.cn = newClientModel("picker", { name: root.querySelector("#client-search")?.value.trim() || "" });
+      go("c-new");
+    },
+    "cn-lang": (el) => { captureClient(); state.cn.lang = el.dataset.v; render(); },
+    "cn-ws": (el) => { captureClient(); Object.assign(state.cn, { ws: el.dataset.v, loc: "", dup: null }); render(); },
+    "cn-use": (el) => finishClient(el.dataset.v),
+    "cn-back": () => { state.cn = null; state.web.panelMode = "create"; render(); },
+    "c-plan": (el) => { A["np-client"](el); },
+    // A workout without a planned session: create a private session that starts now (flows/05 WL-01).
+    "c-train": (el) => {
+      const id = el.dataset.v;
+      const c = CLIENTS[id];
+      const inf = inferLocation(id);
+      const sid = `p-now-${Date.now()}`;
+      const start = time(NOW);
+      const endAt = new Date(NOW.getTime() + 3600000);
+      state.sessions.push({ id: sid, kind: "private", client: id, trainer: state.me, ws: c.ws,
+        loc: inf.loc || inf.options?.[0] || (WS_LOCS[c.ws] || [])[0], date: TODAY, start, end: time(endAt), status: "booked", workout: "" });
+      state.log = null;
+      state.stack.push({ s: "t-session", id: sid });
+      go("l-start", { id: sid });
+      toast(t("c.sessionNow", { time: start }));
+    },
+
     // flow 4
-    "new-session": () => { state.np = null; go("p-client"); },
     "np-client": (el) => {
       const inf = inferLocation(el.dataset.v);
-      state.np = { client: el.dataset.v, date: TODAY, time: "12:00", dur: 60, workout: "", locChoice: inf.ambiguous ? null : inf.loc, locOther: "", showLocOptions: false, errors: {} };
+      state.np = { client: el.dataset.v, trainer: state.me, date: TODAY, time: "12:00", dur: 60, workout: "", locChoice: inf.ambiguous ? null : inf.loc, locOther: "", showLocOptions: false, errors: {} };
       go("p-form");
     },
     "np-dur": (el) => { captureForm(); state.np.dur = Number(el.dataset.v); render(); },
@@ -1489,59 +1941,123 @@
     "move-session": (el) => { state.mv = null; go("p-move", { id: el.dataset.id }); },
 
     // flow 5
-    "start-log": (el) => { state.log = null; go("l-log", { id: el.dataset.id }); },
-    "log-step": (el) => {
+    "start-log": (el) => {
+      const x = findSession(el.dataset.id);
+      if (state.log?.id !== x.id) {
+        if (!x.workout) { state.log = null; return go("l-start", { id: x.id }); }
+        startLog(x.id, "template", x.workout);
+      }
+      go("l-overview", { id: x.id });
+    },
+    "log-begin": (el) => {
+      const id = current().id;
+      startLog(id, el.dataset.v, el.dataset.id);
+      state.stack.pop();
+      if (el.dataset.v === "empty") {
+        state.stack.push({ s: "l-overview", id });
+        return go("l-add", { id });
+      }
+      go("l-overview", { id });
+    },
+    "log-open": (el) => { const L = state.log; L.i = Number(el.dataset.v); L.sel = null; go("l-log", { id: L.id }); },
+    "log-add": () => go("l-add", { id: state.log.id }),
+    "log-add-ex": (el) => addExercise(el.dataset.v),
+    "log-new-ex": () => {
+      const q = root.querySelector("#ex-search")?.value.trim();
+      if (!q) return;
+      const id = `cx-${Date.now()}`;
+      state.customEx[id] = { custom: true, name: q, step: 2.5 };
+      addExercise(id);
+      toast(t("l.exCreated"));
+    },
+    "log-sel": (el) => { const L = state.log; const i = Number(el.dataset.v); L.sel = L.sel === i ? null : i; render(); },
+    "log-check": (el) => {
       const L = state.log;
-      const exId = L.ex[L.i];
-      const d = L.draft[exId];
-      const dir = Number(el.dataset.v);
-      if (el.dataset.k === "w") d.w = Math.max(0, Math.round((d.w + dir * EXERCISES[exId].step) * 100) / 100);
-      else d.r = Math.max(0, d.r + dir);
+      const it = L.items[L.i];
+      const i = Number(el.dataset.v);
+      const r = it.rows[i];
+      r.done = !r.done;
+      if (r.done) carry(it, i);
+      L.sel = null;
       render();
     },
     "log-save": () => {
       const L = state.log;
-      const exId = L.ex[L.i];
-      const d = L.draft[exId];
-      const sets = L.sets[exId];
-      if (L.editing != null) { sets[L.editing] = [d.w, d.r]; L.editing = null; }
-      else sets.push([d.w, d.r]);
-      // Next set starts from what you just did, not from last time's numbers.
+      const it = L.items[L.i];
+      const a = activeRow(it, L);
+      if (a < 0) return;
+      if (!it.rows[a].done) { it.rows[a].done = true; carry(it, a); }
+      L.sel = null;
       render();
     },
-    "log-edit": (el) => {
+    "log-step": (el) => {
       const L = state.log;
-      const exId = L.ex[L.i];
-      const i = Number(el.dataset.v);
-      const s = L.sets[exId][i];
-      L.editing = i;
-      L.draft[exId] = { w: s[0], r: s[1] };
+      const it = L.items[L.i];
+      const a = activeRow(it, L);
+      if (a < 0) return;
+      const r = it.rows[a];
+      const dir = Number(el.dataset.v);
+      if (el.dataset.k === "w") {
+        r.w = Math.max(0, Math.round((r.w + dir * exDef(it.ex).step) * 100) / 100);
+        carry(it, a, ["w"]);
+      } else r.r = Math.max(0, r.r + dir);
+      r.touched = true;
       render();
     },
-    "log-diff": (el) => {
+    "log-add-set": () => {
       const L = state.log;
-      const exId = L.ex[L.i];
-      L.diff[exId] ||= {};
-      L.diff[exId][L.sets[exId].length - 1] = el.dataset.v;
+      const it = L.items[L.i];
+      const last = it.rows[it.rows.length - 1] || { w: 0, r: 10 };
+      it.rows.push({ w: last.w, r: last.r, done: false, touched: false });
+      Object.assign(L, { changed: true, sel: null });
       render();
     },
+    "log-diff": (el) => { state.log.items[state.log.i].diff = el.dataset.v; render(); },
     "log-ex": (el) => {
       const L = state.log;
       const dir = Number(el.dataset.v);
-      L.editing = null;
-      if (dir > 0 && L.i === L.ex.length - 1) return go("l-finish");
-      L.i = Math.min(L.ex.length - 1, Math.max(0, L.i + dir));
+      L.sel = null;
+      if (dir > 0 && L.i === L.items.length - 1) return back();
+      L.i = Math.min(L.items.length - 1, Math.max(0, L.i + dir));
       render({ nav: true });
     },
-    "log-done": () => {
+    "log-finish": () => { state.log.confirmEmpty = false; go("l-finish", { id: state.log.id }); },
+    "log-save-tpl": (el) => {
       const L = state.log;
-      L.internalNote = root.querySelector("#internal-note")?.value ?? L.internalNote;
-      state.completedWorkouts[L.id] = { id: L.id, ex: [...L.ex], sets: JSON.parse(JSON.stringify(L.sets)), diff: JSON.parse(JSON.stringify(L.diff)),
-        internalNote: L.internalNote, clientNote: "", shared: false };
-      findSession(L.id).status = "attended";
+      captureFinish();
+      L.saveTpl = el.checked;
+      L.tplErr = false;
+      if (L.saveTpl && !L.tplName) {
+        const x = findSession(L.id);
+        L.tplName = L.name || `${CLIENTS[x.client].first} · ${dayMonth(startOf(x))}`;
+      }
+      render();
+    },
+    "log-empty-back": () => { state.log.confirmEmpty = false; render(); },
+    "log-done": (el) => {
+      const L = state.log;
+      captureFinish();
+      const x = findSession(L.id);
+      const items = recordItems(L);
+      if (!items.length && !el.dataset.force) { L.confirmEmpty = true; return render(); }
+      if (L.saveTpl && !L.tplName.trim()) { L.tplErr = true; return render(); }
+      x.status = "attended";
       state.log = null;
-      reset([{ s: "hub" }, { s: "t-today" }, { s: "t-session", id: L.id }, { s: "l-complete", id: L.id }]);
-      toast(t("l.saved"));
+      if (!items.length) {
+        reset([{ s: "hub" }, { s: "t-today" }, { s: "t-session", id: x.id }]);
+        return toast(t("l.closedEmpty"));
+      }
+      let name = L.name;
+      if (L.saveTpl) {
+        const tid = `tpl-${Date.now()}`;
+        name = L.tplName.trim();
+        state.templates[tid] = { name, items: items.map((it) => [it.ex, it.sets.length, it.sets[0][1]]) };
+        (state.assigned[x.client] ||= []).unshift(tid);
+      }
+      state.completedWorkouts[x.id] = { id: x.id, name, items, internalNote: L.internalNote, clientNote: "", shared: false };
+      (state.history[x.client] ||= []).unshift({ date: x.date, trainer: x.trainer, name, items: items.map((it) => [it.ex, it.sets]) });
+      reset([{ s: "hub" }, { s: "t-today" }, { s: "t-session", id: x.id }, { s: "l-complete", id: x.id }]);
+      toast(L.saveTpl ? t("l.savedTpl", { name: esc(name) }) : t("l.saved"));
     },
     "open-share": (el) => go(state.completedWorkouts[el.dataset.id].shared ? "l-sent" : "l-complete", { id: el.dataset.id }),
     "share-later": () => reset([{ s: "hub" }, { s: "t-today" }, { s: "t-session", id: current().id }]),
@@ -1597,7 +2113,7 @@
 
     // flow 3
     "w-open": (el) => { state.web.panel = el.dataset.id; state.web.panelMode = null; state.mv = null; render(); root.querySelector("#panel-h")?.focus({ preventScroll: true }); },
-    "w-close": () => { state.web.panel = null; state.web.panelMode = null; state.np = null; render(); },
+    "w-close": () => { state.web.panel = null; state.web.panelMode = null; state.np = null; state.cn = null; render(); },
     "w-view": (el) => { state.web.view = el.dataset.v; render(); },
     "w-step": (el) => { const w = state.web; w.date = addDays(w.date, Number(el.dataset.v) * (w.view === "day" ? 1 : 7)); w.panel = null; render(); },
     "w-today": () => { state.web.date = TODAY; render(); },
@@ -1612,8 +2128,15 @@
     },
     "w-pick": (el) => {
       const kind = el.dataset.v;
+      if (kind === "client") {
+        state.cn = newClientModel("web");
+        state.web.panelMode = "create-client";
+        render();
+        root.querySelector("#panel-h")?.focus({ preventScroll: true });
+        return;
+      }
       if (kind !== "private") {
-        state.newOcc = { kind, title: "", date: state.web.date, start: "12:00", end: "13:00", cap: kind === "group" ? 8 : 2, trainer: "", errors: {} };
+        state.newOcc = newOccModel(kind, state.web.ws);
         state.web.panelMode = `create-${kind}`;
         render();
         root.querySelector("#panel-h")?.focus({ preventScroll: true });
@@ -1625,6 +2148,7 @@
       render();
       root.querySelector("#panel-h")?.focus({ preventScroll: true });
     },
+    "w-new-client": () => { captureForm(); state.cn = newClientModel("web-session"); state.web.panelMode = "create-client"; render(); },
     "panel-move": () => { state.web.panelMode = "move"; render(); },
     "panel-details": () => { state.web.panelMode = null; state.mv = null; render(); },
   };
@@ -1644,6 +2168,50 @@
     if (v("loc-other") != null) m.locOther = v("loc-other");
   }
 
+  function captureClient() {
+    const m = state.cn;
+    const v = (id) => root.querySelector("#" + id)?.value;
+    if (v("cn-name") != null) m.name = v("cn-name");
+    if (v("cn-email") != null) m.email = v("cn-email");
+    if (v("cn-loc") != null) m.loc = v("cn-loc");
+  }
+  function selectWebClient(id) {
+    const inf = inferLocation(id);
+    Object.assign(state.np, { client: id || null, locChoice: inf && !inf.ambiguous ? inf.loc : null, locOther: "", showLocOptions: false, errors: {} });
+  }
+  // After adding (or reusing) a client, continue where the trainer came from.
+  function finishClient(id) {
+    const from = state.cn.from;
+    state.cn = null;
+    if (from === "clients") { state.stack.pop(); go("t-client", { id }); }
+    else if (from === "picker") { state.stack.pop(); A["np-client"]({ dataset: { v: id } }); }
+    else if (from === "web-session") { selectWebClient(id); state.web.panelMode = "create"; render(); }
+    else { state.web.panelMode = null; render(); }
+  }
+  function captureFinish() {
+    const L = state.log;
+    const v = (id) => root.querySelector("#" + id)?.value;
+    if (v("internal-note") != null) L.internalNote = v("internal-note");
+    if (v("tpl-name") != null) L.tplName = v("tpl-name");
+  }
+  // Search ignores case and accents and matches Dutch and English names (PS-02, WL-04).
+  function filterList(input) {
+    const q = fold(input.value.trim());
+    let shown = 0;
+    root.querySelectorAll(".content li[data-name]").forEach((li) => {
+      li.hidden = !!q && !li.dataset.name.includes(q);
+      if (!li.hidden) shown++;
+    });
+    root.querySelectorAll("[data-client-group], [data-filter-group]").forEach((g) => { g.hidden = !g.querySelector("li[data-name]:not([hidden])"); });
+    const none = root.querySelector("[data-no-results]");
+    if (none) none.hidden = shown > 0;
+    const raw = esc(input.value.trim());
+    const newClient = root.querySelector("[data-new-client-label]");
+    if (newClient) newClient.innerHTML = raw ? t("c.newNamed", { name: raw }) : t("c.newQuick");
+    const newEx = root.querySelector("[data-new-ex]");
+    if (newEx) { newEx.hidden = !raw; newEx.innerHTML = `${icon("plus", "ico--sm")}${t("l.newEx", { name: raw })}`; }
+  }
+
   root.addEventListener("click", (e) => {
     const el = e.target.closest("[data-act]");
     if (!el || el.disabled) return;
@@ -1652,22 +2220,35 @@
     if (fn) fn(el);
   });
   root.addEventListener("input", (e) => {
-    if (e.target.id === "client-search") {
-      const q = e.target.value.trim().toLowerCase();
-      root.querySelectorAll("[data-client-list] li").forEach((li) => { li.hidden = !!q && !li.dataset.name.includes(q); });
-    }
+    if (e.target.id === "client-search" || e.target.id === "ex-search") filterList(e.target);
+    if (e.target.id === "tpl-name" && state.log) state.log.tplName = e.target.value;
     if (e.target.id === "internal-note" && state.log) state.log.internalNote = e.target.value;
     if (e.target.id === "client-note" && state.completedWorkouts[current().id]) state.completedWorkouts[current().id].clientNote = e.target.value;
     if (e.target.id === "cancel-message" && state.sheet?.kind === "cancel") state.sheet.message = e.target.value;
   });
   root.addEventListener("change", (e) => {
-    if (e.target.id !== "web-client") return;
-    captureForm();
-    const id = e.target.value;
-    const inf = id ? inferLocation(id) : null;
-    Object.assign(state.np, { client: id || null, locChoice: inf && !inf.ambiguous ? inf.loc : null,
-      locOther: "", showLocOptions: false, errors: {} });
-    render();
+    const id = e.target.id;
+    if (id === "web-client") {
+      captureForm();
+      if (e.target.value) selectWebClient(e.target.value);
+      else Object.assign(state.np, { client: null, locChoice: null, errors: {} });
+      render();
+    }
+    if ((id === "occ-date" || id === "occ-repeat") && state.newOcc) { captureOcc(); render(); }
+    if (id === "cn-loc" && state.cn) state.cn.loc = e.target.value;
+    if ((id === "step-w" || id === "step-r") && state.log) {
+      const L = state.log;
+      const it = L.items[L.i];
+      const a = activeRow(it, L);
+      const n = Number(e.target.value.replace(",", "."));
+      if (a >= 0 && Number.isFinite(n) && n >= 0) {
+        const k = id === "step-w" ? "w" : "r";
+        it.rows[a][k] = k === "r" ? Math.round(n) : Math.round(n * 100) / 100;
+        it.rows[a].touched = true;
+        if (k === "w") carry(it, a, ["w"]);
+      }
+      render();
+    }
   });
   root.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -1704,7 +2285,7 @@
         const endMin = h * 60 + min + m.dur;
         const end = `${String(Math.floor(endMin / 60) % 24).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
         const id = `p-new-${Date.now()}`;
-        state.sessions.push({ id, kind: "private", client: clientId, trainer: m.trainer || "sarah", ws: CLIENTS[clientId].ws, loc, date: m.date, start: m.time, end, status: "booked", workout: m.workout });
+        state.sessions.push({ id, kind: "private", client: clientId, trainer: m.trainer || state.me, ws: CLIENTS[clientId].ws, loc, date: m.date, start: m.time, end, status: "booked", workout: m.workout });
         state.np = null;
         if (shellOf(current().s) === "web") {
           state.web.date = m.date;
@@ -1731,35 +2312,58 @@
     }
     if (form === "new-occurrence") {
       const m = state.newOcc;
-      m.title = root.querySelector("#occ-title")?.value.trim() || "";
-      m.date = root.querySelector("#occ-date").value;
-      m.start = root.querySelector("#occ-start").value;
-      m.end = root.querySelector("#occ-end").value;
-      m.cap = Number(root.querySelector("#occ-cap").value);
-      m.trainer = root.querySelector("#occ-trainer")?.value || null;
+      captureOcc();
       m.errors = { title: m.kind === "group" && !m.title, end: !m.date || !m.start || !m.end || m.end <= m.start, cap: !Number.isInteger(m.cap) || m.cap < 1 || m.cap > 99 };
       if (Object.values(m.errors).some(Boolean)) { render(); return; }
-      const id = `o-new-${Date.now()}`;
-      state.classes.push({ id, kind: m.kind, title: m.kind === "openGym" ? "Open Gym" : m.title,
-        ws: state.web.ws, loc: WS[state.web.ws].loc, date: m.date, start: m.start, end: m.end,
-        cap: m.cap, trainer: m.trainer, origTrainer: null, status: "scheduled", attendees: [] });
-      state.web.date = m.date;
-      state.web.panel = id;
-      state.web.panelMode = null;
+      const base = `o-new-${Date.now()}`;
+      const dates = m.repeat === "weekly" ? Array.from({ length: 8 }, (_, i) => addDays(m.date, i * 7)) : [m.date];
+      dates.forEach((date, i) => state.classes.push({ id: i ? `${base}-${i}` : base, kind: m.kind, title: m.kind === "openGym" ? "Open Gym" : m.title,
+        ws: m.ws, loc: WS[m.ws].loc || m.loc, date, start: m.start, end: m.end,
+        cap: m.cap, trainer: m.kind === "group" ? m.trainer || null : null, origTrainer: null, status: "scheduled", attendees: [] }));
       const createdKind = m.kind;
       state.newOcc = null;
-      render();
-      toast(t(createdKind === "group" ? "w.classCreated" : "w.gymPublished"));
+      if (shellOf(current().s) === "web") {
+        state.web.date = m.date;
+        state.web.panel = base;
+        state.web.panelMode = null;
+        render();
+      } else {
+        state.stack.pop();
+        go("t-occ", { id: base });
+      }
+      toast(t(createdKind === "group" ? (dates.length > 1 ? "w.seriesCreated" : "w.classCreated") : "w.gymPublished", { n: dates.length }));
+    }
+    if (form === "new-client") {
+      captureClient();
+      const m = state.cn;
+      m.errors = { name: !m.name.trim() };
+      if (m.errors.name) { render(); root.querySelector("#cn-name")?.focus(); return; }
+      const email = m.email.trim().toLowerCase();
+      const dup = email && Object.keys(CLIENTS).find((id) => CLIENTS[id].ws === m.ws && (CLIENTS[id].email || "").toLowerCase() === email);
+      if (dup) { m.dup = dup; render(); return; }
+      const id = `c-${Date.now()}`;
+      const name = m.name.trim();
+      const first = name.split(/\s+/)[0];
+      let pref = m.loc || undefined;
+      if (m.loc === "home") { pref = `home-${id}`; LOCS[pref] = { key: "loc.homeOf", vars: { name: esc(first) } }; }
+      CLIENTS[id] = { name, first, ws: m.ws, lang: m.lang, email: m.email.trim() || undefined, pref, created: true, createdBy: state.me };
+      toast(t("c.added", { name: esc(first) }));
+      finishClient(id);
     }
   });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (state.sheet) A["sheet-close"]();
-    else if ((state.web.panel || ["pick", "create", "create-group", "create-openGym"].includes(state.web.panelMode)) && shellOf(current().s) === "web") A["w-close"]();
+    else if ((state.web.panel || PANEL_MODES.includes(state.web.panelMode)) && shellOf(current().s) === "web") A["w-close"]();
   });
 
-  // Deep link: #flow1 … #flow6 (bare tokens survive the artifact viewer).
-  const m = /^#flow([1-6])/.exec(location.hash || "");
-  if (m) FLOWS[m[1] === "4" ? "4new" : m[1]]();
-  else render({ nav: true });
+  // Deep link: #flow1 … #flow7, also when the hash changes on an open page.
+  function openFromHash() {
+    const m = /^#flow([1-7])/.exec(location.hash || "");
+    if (!m) return false;
+    FLOWS[m[1] === "4" ? "4new" : m[1] === "5" ? "5free" : m[1]]();
+    return true;
+  }
+  window.addEventListener("hashchange", openFromHash);
+  if (!openFromHash()) render({ nav: true });
 })();

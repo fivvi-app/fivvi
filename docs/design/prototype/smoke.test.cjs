@@ -29,8 +29,8 @@ test('prototype-only Dutch and English keys remain in parity', () => {
   assert.deepEqual(Object.keys(nl).sort(), Object.keys(en).sort());
 });
 
-test('all six flow links open without a script error', async () => {
-  for (let flow = 1; flow <= 6; flow++) {
+test('all seven flow links open without a script error', async () => {
+  for (let flow = 1; flow <= 7; flow++) {
     const { page, errors } = await pageFor(flow);
     assert.ok(await page.locator('#app button').count() > 0, `flow ${flow} has controls`);
     assert.deepEqual(errors, [], `flow ${flow} script errors`);
@@ -125,22 +125,28 @@ test('owner calendar creates a group class and Open Gym from the new menu', asyn
   await page.close();
 });
 
-test('workout saves an internal note and shares only the client message and sets', async () => {
-  const { page, errors } = await pageFor(5);
+async function startFlow(page, id) {
+  await page.locator(`[data-act="flow"][data-v="${id}"]`).click();
+}
+const content = (page) => page.locator('.content').textContent();
+
+test('planned workout saves an internal note and shares only the client message and sets', async () => {
+  const { page, errors } = await pageFor(null);
+  await startFlow(page, '5');
+  await page.locator('[data-act="log-open"][data-v="0"]').first().click();
   await page.locator('[data-act="log-step"][data-k="w"][data-v="1"]').click();
   for (let i = 0; i < 3; i++) await page.locator('[data-act="log-save"]').click();
   await page.locator('[data-act="log-diff"][data-v="hard"]').click();
-  await page.locator('[data-act="log-ex"][data-v="1"]').click();
-  await page.locator('[data-act="log-ex"][data-v="1"]').click();
-  await page.locator('[data-act="log-ex"][data-v="1"]').click();
-  assert.ok((await page.locator('.list').textContent()).includes('Set 3'));
+  await page.locator('[data-act="back"]').click();
+  await page.locator('.nav [data-act="log-finish"]').click();
+  assert.ok((await content(page)).includes('Niet gedaan'));
   await page.locator('#internal-note').fill('PRIVATE: knee concern');
   await page.locator('[data-act="log-done"]').click();
   await page.locator('#client-note').fill('Great work, Mark. Keep the same weight.');
   await page.locator('[data-act="share-review"]').click();
-  let body = await page.locator('.content').textContent();
+  let body = await content(page);
   assert.ok(body.includes('Great work, Mark.'));
-  assert.ok(body.includes('62,5 kg'));
+  assert.ok(body.includes('62,5 kg × 8 · 62,5 kg × 8 · 62,5 kg × 8'));
   assert.ok(!body.includes('PRIVATE: knee concern'));
   await page.locator('[data-act="share-confirm"]').click();
   await page.locator('[data-act="view-email"]').click();
@@ -158,17 +164,145 @@ test('workout saves an internal note and shares only the client message and sets
 });
 
 test('workout can be saved privately and shared later', async () => {
-  const { page, errors } = await pageFor(5);
-  await page.locator('[data-act="log-ex"][data-v="1"]').click();
-  await page.locator('[data-act="log-ex"][data-v="1"]').click();
-  await page.locator('[data-act="log-ex"][data-v="1"]').click();
+  const { page, errors } = await pageFor(null);
+  await startFlow(page, '5');
+  await page.locator('[data-act="log-open"][data-v="0"]').first().click();
+  await page.locator('[data-act="log-check"][data-v="0"]').click();
+  await page.locator('[data-act="back"]').click();
+  await page.locator('.nav [data-act="log-finish"]').click();
   await page.locator('#internal-note').fill('Trainer only');
   await page.locator('[data-act="log-done"]').click();
   await page.locator('[data-act="share-later"]').click();
-  assert.ok((await page.locator('.content').textContent()).includes('Trainer only'));
+  assert.ok((await content(page)).includes('Trainer only'));
   await page.locator('[data-act="open-share"]').click();
   await page.locator('[data-act="share-review"]').click();
-  assert.ok(!(await page.locator('.content').textContent()).includes('Trainer only'));
+  assert.ok(!(await content(page)).includes('Trainer only'));
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('workout without a template: add library and custom exercises, one-tap sets, save as template', async () => {
+  const { page, errors } = await pageFor(5);
+  await page.locator('[data-act="log-begin"][data-v="empty"]').click();
+  await page.locator('#ex-search').fill('bench');
+  assert.equal(await page.locator('li[data-name]:visible').count(), 1);
+  assert.ok(await page.locator('[data-new-ex]').isVisible());
+  await page.locator('[data-act="log-add-ex"][data-v="bench"]').click();
+  await page.locator('#step-w').fill('40');
+  await page.locator('#step-w').dispatchEvent('change');
+  await page.locator('[data-act="log-check"][data-v="0"]').click();
+  assert.equal(await page.locator('[data-act="log-check"][data-v="0"]').getAttribute('aria-pressed'), 'true');
+  await page.locator('[data-act="log-add-set"]').click();
+  assert.ok((await page.locator('.sets tbody tr').nth(1).textContent()).includes('40 kg × 10'));
+  await page.locator('[data-act="back"]').click();
+  await page.locator('[data-act="log-add"]').click();
+  await page.locator('#ex-search').fill('Sled push');
+  await page.locator('[data-act="log-new-ex"]').click();
+  assert.ok((await page.locator('.log-ex').textContent()).includes('Sled push'));
+  await page.locator('[data-act="log-check"][data-v="0"]').click();
+  await page.locator('[data-act="back"]').click();
+  assert.equal(await page.locator(".ex-list [data-act=\"log-open\"]").count(), 2);
+  await page.locator('.nav [data-act="log-finish"]').click();
+  await page.locator('[data-act="log-save-tpl"]').check();
+  await page.locator('#tpl-name').fill('Koen kracht');
+  await page.locator('[data-act="log-done"]').click();
+  assert.ok((await page.locator('#toast').textContent()).includes('Koen kracht'));
+  await page.locator('[data-act="home"]').click();
+  await startFlow(page, '5free');
+  const start = await content(page);
+  assert.ok(start.includes('Koen kracht'));
+  assert.ok(start.includes('Sled push') || start.includes('2 oefeningen'));
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('repeat previous workout prefills last time\'s values', async () => {
+  const { page, errors } = await pageFor(5);
+  await page.locator('[data-act="log-begin"][data-v="repeat"]').click();
+  assert.equal(await page.locator(".ex-list [data-act=\"log-open\"]").count(), 3);
+  await page.locator('[data-act="log-open"][data-v="0"]').first().click();
+  assert.ok((await page.locator('.sets tbody tr').first().textContent()).includes('20 kg × 12'));
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('app + menu follows the role; owner creates a weekly class, Open Gym and a client', async () => {
+  const { page, errors } = await pageFor(null);
+  await page.locator('[data-act="set-me"][data-v="john"]').click();
+  await startFlow(page, '7');
+  assert.ok((await page.locator('.sheet').textContent()).includes("John's Gym"));
+  await page.locator('[data-act="app-new"][data-v="group"]').click();
+  await page.locator('#occ-title').fill('HIIT');
+  await page.locator('#occ-repeat').selectOption('weekly');
+  await page.locator('[data-form="new-occurrence"] button[type="submit"]').click();
+  assert.ok((await page.locator('.nav').textContent()).includes('HIIT'));
+  assert.ok((await page.locator('#toast').textContent()).includes('8'));
+  await page.locator('[data-act="home"]').click();
+  await startFlow(page, '7');
+  await page.locator('[data-act="app-new"][data-v="openGym"]').click();
+  await page.locator('[data-form="new-occurrence"] button[type="submit"]').click();
+  assert.ok((await page.locator('.nav').textContent()).includes('Open Gym'));
+  await page.locator('[data-act="home"]').click();
+  await startFlow(page, '7');
+  await page.locator('[data-act="app-new"][data-v="client"]').click();
+  await page.locator('#cn-name').fill('Eva Janssen');
+  await page.locator('#cn-email').fill('priya@example.com');
+  await page.locator('[data-form="new-client"] button[type="submit"]').click();
+  await page.locator('[data-act="cn-use"]').click();
+  assert.ok((await page.locator('.nav').textContent()).includes('Priya Sharma'));
+  await page.locator('[data-act="home"]').click();
+  await page.locator('[data-act="set-me"][data-v="sarah"]').click();
+  await startFlow(page, '7');
+  assert.ok((await page.locator('.sheet').textContent()).includes('plant de eigenaar'));
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('trainer adds a client while planning, and starts a workout from a client profile', async () => {
+  const { page, errors } = await pageFor(null);
+  await startFlow(page, '4app');
+  await page.locator('#client-search').fill('Nina Vos');
+  assert.ok((await page.locator('[data-new-client-label]').textContent()).includes('Nina Vos'));
+  await page.locator('[data-act="np-new-client"]').click();
+  assert.equal(await page.locator('#cn-name').inputValue(), 'Nina Vos');
+  await page.locator('[data-form="new-client"] button[type="submit"]').click();
+  assert.ok((await page.locator('.picked').textContent()).includes('Nina Vos'));
+  await page.locator('[data-act="home"]').click();
+  await startFlow(page, '7clients');
+  assert.ok((await content(page)).includes('Nina Vos'));
+  await page.locator('[data-act="open-client"]', { hasText: 'Mark Peters' }).click();
+  await page.locator('[data-act="c-train"]').click();
+  assert.ok(await page.locator('[data-act="log-begin"][data-v="empty"]').isVisible());
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('owner web adds a client from + Nieuw and inline while creating a session', async () => {
+  const { page, errors } = await pageFor(3, { width: 1280, height: 800 });
+  await page.locator('[data-act="w-new"]').click();
+  await page.locator('[data-act="w-pick"][data-v="client"]').click();
+  await page.locator('#cn-name').fill('Walk-in Guest');
+  await page.locator('[data-form="new-client"] button[type="submit"]').click();
+  assert.ok((await page.locator('#toast').textContent()).includes('Walk-in'));
+  await page.locator('[data-act="w-new"]').click();
+  await page.locator('[data-act="w-pick"][data-v="private"]').click();
+  await page.locator('[data-act="w-new-client"]').click();
+  await page.locator('#cn-name').fill('Ruben de Wit');
+  await page.locator('[data-form="new-client"] button[type="submit"]').click();
+  assert.ok((await page.locator('#web-client option:checked').textContent()).includes('Ruben de Wit'));
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('deep links follow hash changes; narrow hub and iOS toolbar stay in place', async () => {
+  const { page, errors } = await pageFor(null, { width: 340, height: 740 });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= 340));
+  await page.evaluate(() => { location.hash = '#flow3'; });
+  await page.locator('.web-top').waitFor();
+  await page.evaluate(() => { location.hash = '#flow2'; });
+  await page.locator('[data-act="set-platform"][data-v="ios"]').first().click();
+  assert.equal(await page.locator('.nav-trail [data-act="app-new-menu"]').count(), 1);
+  assert.ok(!(await content(page)).includes("John's Gym · John's Gym"));
   assert.deepEqual(errors, []);
   await page.close();
 });

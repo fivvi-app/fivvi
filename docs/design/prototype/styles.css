@@ -25,6 +25,7 @@ a { color: var(--color-text-link); }
 h1, h2, h3 { text-wrap: balance; }
 [tabindex="-1"]:focus { outline: none; }
 :focus-visible { outline: var(--border-width-focus) solid var(--color-border-focus); outline-offset: 2px; }
+[hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 
@@ -537,3 +538,42 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
   .week-day ul { flex: 1; }
   .panel { top: auto; left: 0; width: 100%; max-height: 88%; border-radius: var(--radius-xl) var(--radius-xl) 0 0; animation: rise var(--motion-duration-medium) var(--motion-easing-standard); }
 }
+
+/* ------------------------------------------------------------------ iteration 2: clients, "+" menu, logging without a template */
+/* Hub settings wrap on narrow phones instead of overflowing the card */
+.hub-setting { flex-wrap: wrap; }
+.hub-setting .seg { flex: 1 1 220px; width: auto; max-width: 320px; }
+.hub-setting .seg-btn { min-width: 0; padding: 0 var(--space-2); }
+
+.nav-text--strong { font-weight: var(--font-weight-semibold); }
+.nav--md .nav-text { color: var(--color-text-link); font-size: var(--typography-label-font-size); font-weight: var(--font-weight-semibold); padding: 0 var(--space-3); }
+
+.row--add .row-title { color: var(--color-text-link); }
+.avatar--add { background: var(--color-action-tonal-bg); color: var(--color-action-tonal-fg); }
+.avatar--add .ico { width: 20px; height: 20px; }
+.btn--inline { align-self: flex-start; margin: calc(-1 * var(--space-2)) 0 0 calc(-1 * var(--space-3)); }
+.confirm-inline--info { background: var(--color-action-tonal-bg); }
+.confirm-inline--info .t-subhead { color: var(--color-action-tonal-fg); }
+.empty--tight { padding: var(--space-8) var(--space-4) var(--space-4); }
+.empty--tight .t-subhead { max-width: 32ch; }
+
+/* WL-02 overview */
+.ex-no { flex: none; width: 28px; height: 28px; border-radius: var(--radius-full); display: grid; place-items: center; background: var(--color-bg-subtle); color: var(--color-text-secondary); font-size: var(--typography-footnote-font-size); font-weight: var(--font-weight-bold); }
+.ex-count { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: var(--typography-subhead-font-size); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); }
+.ex-count.is-done { color: var(--color-status-success-fg); }
+
+/* WL-03 set table: every row prefilled, one tap on the check logs it */
+.sets th:last-child, .sets td.tick { width: 60px; padding-left: 0; padding-right: var(--space-2); text-align: right; }
+.sets tbody tr:not(.is-done) td.now .set-cell { color: var(--color-text-secondary); font-weight: var(--font-weight-regular); }
+.sets tr.is-current td.now .set-cell { color: var(--color-action-tonal-fg); font-weight: var(--font-weight-bold); }
+.sets tr.is-done td.now .set-cell { font-weight: var(--font-weight-semibold); }
+.set-cell { min-height: 44px; padding: 0 var(--space-2); margin-left: calc(-1 * var(--space-2)); border-radius: var(--radius-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.set-cell:active { background: var(--color-bg-subtle); }
+.set-check { width: 48px; height: 48px; border-radius: var(--radius-full); display: inline-grid; place-items: center; border: 2px solid var(--color-border-control); color: var(--color-border-control); background: var(--color-bg-surface); }
+.set-check .ico { width: 22px; height: 22px; stroke-width: 2.6; }
+.set-check[aria-pressed="true"] { background: var(--color-status-success-fg); border-color: var(--color-status-success-fg); color: var(--color-bg-surface); }
+.sets tr.is-current .set-check[aria-pressed="false"] { border-color: var(--color-action-primary-bg); color: var(--color-action-primary-bg); }
+.btn--add-set { align-self: flex-start; margin-left: calc(-1 * var(--space-3)); }
+input.stepper-value { width: 100%; border: 0; background: transparent; padding: 0; color: var(--color-text-primary); border-radius: var(--radius-sm); min-height: 56px; font-size: 26px; }
+input.stepper-value:focus-visible { outline-offset: -2px; }
+@media (min-width: 380px) { input.stepper-value { font-size: 30px; } }
