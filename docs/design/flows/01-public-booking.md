@@ -107,6 +107,7 @@ flowchart TD
 ```
 
 - Grouped by day, in the workspace timezone. Shows the next **14 days** ⚑ [Q07](../open-questions.md#q07); *Meer dagen tonen* loads 14 more.
+- **Date strip (added 23 September 2026 after prototype feedback):** above the list, a horizontally scrolling strip of the next **21 days** (weekday, date, month on the first chip and on the 1st). Days without bookable items are dimmed but tappable. Tapping a day shows only that day, with *Volgende: {day}* to jump to the next day that has something. On first open the strip selects today, or the first day with something to book. The prototype uses this pattern; validate with P-K whether clients prefer the strip or the long list.
 - The segmented filter appears only for the *All bookings* scope, and only for types that have upcoming items. For the *class* scope the title becomes the class name ("Strength") and the filter is hidden.
 - The location line appears only when the workspace has more than one location.
 - **Availability** counts confirmed bookings **and** active holds against capacity (F028). When every remaining spot is held but not confirmed, the card says *Alle plekken zijn gereserveerd* instead of *Vol*, because a spot may free up within 15 minutes.
@@ -118,6 +119,7 @@ flowchart TD
 | Page title (all / classes / Open Gym) | Boek een les · Groepslessen · Open Gym | Book a class · Group classes · Open Gym |
 | Filter | Alles · Groepslessen · Open Gym | All · Group classes · Open Gym |
 | Day header | Vandaag · dinsdag 22 september / Morgen · … / woensdag 23 september | Today · Tuesday 22 September / Tomorrow · … |
+| Date strip | Kies een dag · vandaag · Op deze dag is er niets te boeken. · Volgende: {day} | Choose a day · today · Nothing to book on this day. · Next: {day} |
 | Trainer line | Trainer: Sarah | Trainer: Sarah |
 | Availability | `{n, plural, one {Nog 1 plek} other {# plekken beschikbaar}}` | `{n, plural, one {1 spot left} other {# spots available}}` |
 | Full | Vol | Full |

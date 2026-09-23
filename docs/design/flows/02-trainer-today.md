@@ -263,12 +263,14 @@ flowchart TD
 - A week strip (Monday first) with dots for busy days, and the selected day's list underneath. It's the same row component as TD-01, so every item opens TD-02 or TD-03.
 - Swipe the strip for the previous/next week. *Vandaag* jumps back.
 - **DST weeks** show a one-line note under the strip, e.g. *zo 25 okt: wintertijd, de klok gaat 1 uur terug*.
-- A full month/grid view isn't in MVP; the workspace grid calendar is on web (flow 03).
+- **Week | Maand** (updated 23 September 2026 after prototype feedback): besides the week strip, a **month grid** (Monday first, days outside the month dimmed) with up to three dots per day, so a trainer can look weeks ahead. Tapping a day shows its list below the grid. The time-grid calendar of the whole workspace stays on web (flow 03).
 
 | Element | NL | EN |
 |---|---|---|
 | Week label | week {n} · {start}–{end} | week {n} · {start}–{end} |
 | Today button | Vandaag | Today |
+| View | Week · Maand | Week · Month |
+| Month navigation | Vorige maand · Volgende maand | Previous month · Next month |
 | DST (autumn) | zo 25 okt: wintertijd, de klok gaat 1 uur terug | Sun 25 Oct: clocks go back 1 hour |
 | DST (spring) | zo 28 mrt: zomertijd, de klok gaat 1 uur vooruit | Sun 28 Mar: clocks go forward 1 hour |
 | Empty day | Geen sessies op deze dag. | No sessions on this day. |

@@ -160,6 +160,7 @@
         cls("o-og25", "openGym", "Open Gym", "jg", "2026-09-25", "10:00", "11:00", 2, null, 1),
         cls("o-og26", "openGym", "Open Gym", "jg", "2026-09-26", "09:00", "10:30", 2, null, 0),
       ],
+      agenda: { date: TODAY, view: "week" },
       templates: JSON.parse(JSON.stringify(TEMPLATE_SEED)),
       assigned: JSON.parse(JSON.stringify(ASSIGNED_SEED)),
       history: JSON.parse(JSON.stringify(HISTORY_SEED)),
@@ -172,9 +173,38 @@
       previewLang: null,
       newOcc: null,
       cn: null,
-      web: { view: "day", date: TODAY, ws: "jg", flow: 3, panel: null, panelMode: null, drawer: false },
+      web: { view: "day", date: TODAY, ws: "jg", flow: 3, panel: null, panelMode: null, drawer: false, trainer: "", slot: null },
       sheet: null,
     };
+    // Four more weeks of the weekly timetable and regular clients, so clients and trainers can look ahead.
+    const WEEKLY = [
+      [0, "group", "Bootcamp", "jg", "07:00", "08:00", 12, "mike"], [0, "group", "Mobility", "jg", "19:15", "20:15", 10, "mike"],
+      [1, "openGym", "Open Gym", "jg", "12:00", "13:00", 2, null], [1, "group", "Strength", "jg", "18:00", "19:00", 10, "sarah"],
+      [1, "group", "Mobility", "jg", "19:15", "20:15", 10, "mike"], [1, "group", "Core & Mobility", "fs", "19:30", "20:15", 12, "sarah"],
+      [2, "group", "Bootcamp", "jg", "07:00", "08:00", 12, "mike"], [2, "group", "Kettlebell", "jg", "19:00", "20:00", 8, "john"],
+      [3, "group", "Bootcamp", "jg", "07:00", "08:00", 12, "mike"], [3, "group", "Strength", "jg", "19:00", "20:00", 10, "sarah"],
+      [4, "openGym", "Open Gym", "jg", "10:00", "11:00", 2, null], [5, "openGym", "Open Gym", "jg", "09:00", "10:30", 2, null],
+    ];
+    const REGULARS = [
+      [0, "sanne", "mike", "jg", "jg", "11:00", "12:00"], [1, "mark", "sarah", "spt", "bfo", "09:00", "10:00"],
+      [1, "anna", "sarah", "spt", "tmz", "07:00", "08:00"], [1, "priya", "john", "jg", "jg", "09:00", "10:00"],
+      [2, "lisa", "sarah", "spt", "home-lisa", "11:00", "12:00"], [3, "koen", "sarah", "jg", "jg", "15:00", "16:00"],
+      [3, "priya", "john", "jg", "jg", "09:00", "10:00"], [4, "daan", "john", "jg", "jg", "17:00", "18:00"],
+    ];
+    for (let w = 0; w < 5; w++) {
+      const monday = addDays(mondayOf(TODAY), w * 7);
+      WEEKLY.forEach(([wd, kind, title, ws, start, end, cap, trainer]) => {
+        const date = addDays(monday, wd);
+        if (date < TODAY || s.classes.some((c) => c.ws === ws && c.title === title && c.date === date)) return;
+        const booked = Math.max(0, Math.min(cap - 1, cap - 2 - w * 2 - (title.length % 3)));
+        s.classes.push(cls(`g-${ws}-${title.replace(/\W+/g, "")}-${date}`, kind, title, ws, date, start, end, cap, trainer, booked));
+      });
+      REGULARS.forEach(([wd, client, trainer, ws, loc, start, end]) => {
+        const date = addDays(monday, wd);
+        if (date < TODAY || s.sessions.some((x) => x.client === client && x.date === date)) return;
+        s.sessions.push(priv(`g-${client}-${date}`, client, trainer, ws, loc, date, start, end));
+      });
+    }
     return s;
   }
 
@@ -214,11 +244,12 @@
   const startOf = (item) => at(item.date, item.start);
   const endOf = (item) => at(item.date, item.end);
   const range = (item) => `${time(startOf(item))}–${time(endOf(item))}`;
-  const addDays = (iso, n) => {
+  // Function declarations: fresh() uses them before this point.
+  function addDays(iso, n) {
     const d = new Date(`${iso}T12:00:00Z`);
     d.setUTCDate(d.getUTCDate() + n);
     return d.toISOString().slice(0, 10);
-  };
+  }
   function isoWeek(iso) {
     const d = new Date(`${iso}T12:00:00Z`);
     const day = (d.getUTCDay() + 6) % 7;
@@ -226,7 +257,7 @@
     const first = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
     return 1 + Math.round(((d - first) / 86400000 - 3 + ((first.getUTCDay() + 6) % 7)) / 7);
   }
-  const mondayOf = (iso) => addDays(iso, -((new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7));
+  function mondayOf(iso) { return addDays(iso, -((new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7)); }
 
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const locName = (id) => {
@@ -481,38 +512,53 @@
       </div>`;
   }
 
+  // Clients see the coming three weeks as a date strip; the chosen day's classes are listed below (flows/01, PB-01).
+  const STRIP_DAYS = 21;
   SCREENS["b-list"] = {
     shell: "public",
     render() {
       const b = state.booking;
       const kind = b.mode === "group" ? "group" : "openGym";
       const items = state.classes.filter((c) => c.ws === "jg" && c.kind === kind && c.date >= TODAY).sort((a, z) => startOf(a) - startOf(z));
-      const days = [...new Set(items.map((i) => i.date))];
+      const days = Array.from({ length: STRIP_DAYS }, (_, i) => addDays(TODAY, i));
+      const has = (iso) => items.some((i) => i.date === iso);
+      const day = b.day && days.includes(b.day) ? b.day : days.find(has) || TODAY;
+      const list = items.filter((i) => i.date === day);
+      const next = days.find((iso) => iso > day && has(iso));
       return `${publicHeader()}
         <main class="pub-main">
           <h1 class="pub-title" tabindex="-1">${t(b.mode === "group" ? "b.groupClasses" : "b.openGym")}</h1>
           <p class="lede">${t(b.mode === "group" ? "b.intro" : "b.openGymIntro")}</p>
           <div class="pub-tabs">${seg("b-mode", [["group", t("b.groupClasses")], ["openGym", t("b.openGym")]], b.mode, { label: t("b.groupClasses") })}</div>
-          ${days.map((iso) => `<section class="day-group">
-              <h2 class="t-caption section-label">${dayLabel(iso)}</h2>
-              <ul class="class-list">${items.filter((i) => i.date === iso).map((occ) => {
-                const left = spotsLeft(occ);
-                const full = left <= 0;
-                const cancelled = occ.status === "cancelled";
-                const status = cancelled ? `<span class="chip chip--neutral">${t("att.cancelled")}</span>`
-                  : full ? `<span class="chip chip--neutral">${t("b.full")}</span>`
-                  : `<span class="spots${left <= 2 ? " spots--low" : ""}">${t("b.spots", { n: left })}</span>`;
-                return `<li><button type="button" class="class-card" data-act="b-pick" data-id="${occ.id}" ${full || cancelled ? "disabled" : ""}>
-                    <span class="class-time"><span class="t-num">${time(startOf(occ))}</span><span class="class-end">${time(endOf(occ))}</span></span>
-                    <span class="class-body">
-                      <span class="class-title">${esc(occ.title)}</span>
-                      ${occ.trainer ? `<span class="class-meta">${t("b.trainer", { name: TRAINERS[occ.trainer].name })}</span>` : ""}
-                      ${status}
-                    </span>
-                    ${full || cancelled ? "" : icon("chevR", "class-chev")}
-                  </button></li>`;
-              }).join("")}</ul>
-            </section>`).join("")}
+          <div class="day-strip" role="group" aria-label="${t("b.pickDay")}">${days.map((iso, i) => {
+            const d = at(iso, "12:00");
+            const showMonth = i === 0 || iso.endsWith("-01");
+            return `<button type="button" class="day-chip${has(iso) ? "" : " is-empty"}" data-act="b-day" data-v="${iso}" aria-pressed="${iso === day}" aria-label="${ucfirst(dayLong(d))}">
+                <span class="dc-wd">${fmt(d, { weekday: "short" })}</span><span class="dc-num t-num">${Number(iso.slice(8))}</span>
+                <span class="dc-m">${iso === TODAY ? t("b.today").toLocaleLowerCase(locale()) : showMonth ? fmt(d, { month: "short" }) : has(iso) ? "•" : ""}</span></button>`;
+          }).join("")}</div>
+          <section class="day-group">
+            <h2 class="t-caption section-label">${dayLabel(day)}</h2>
+            ${list.length ? `<ul class="class-list">${list.map((occ) => {
+              const left = spotsLeft(occ);
+              const full = left <= 0;
+              const cancelled = occ.status === "cancelled";
+              const status = cancelled ? `<span class="chip chip--neutral">${t("att.cancelled")}</span>`
+                : full ? `<span class="chip chip--neutral">${t("b.full")}</span>`
+                : `<span class="spots${left <= 2 ? " spots--low" : ""}">${t("b.spots", { n: left })}</span>`;
+              return `<li><button type="button" class="class-card" data-act="b-pick" data-id="${occ.id}" ${full || cancelled ? "disabled" : ""}>
+                  <span class="class-time"><span class="t-num">${time(startOf(occ))}</span><span class="class-end">${time(endOf(occ))}</span></span>
+                  <span class="class-body">
+                    <span class="class-title">${esc(occ.title)}</span>
+                    ${occ.trainer ? `<span class="class-meta">${t("b.trainer", { name: TRAINERS[occ.trainer].name })}</span>` : ""}
+                    ${status}
+                  </span>
+                  ${full || cancelled ? "" : icon("chevR", "class-chev")}
+                </button></li>`;
+            }).join("")}</ul>`
+            : `<p class="t-subhead muted">${t("b.noneThisDay")}</p>`}
+            ${next ? `<button type="button" class="btn btn--text btn--next-day" data-act="b-day" data-v="${next}">${t("b.nextDay", { day: ucfirst(dayLong(at(next, "12:00"))) })}${icon("chevR", "ico--sm")}</button>` : ""}
+          </section>
         </main>`;
     },
   };
@@ -777,7 +823,54 @@
       };
     },
   });
-  SCREENS["t-calendar"] = placeholder("calendar", "tab.calendar");
+  // ---- Agenda tab (TD-04): week strip or month grid, then the chosen day's list.
+  function myItemsOn(iso) {
+    const me = state.me;
+    return [...state.sessions.filter((x) => x.trainer === me && x.date === iso),
+      ...state.classes.filter((c) => c.date === iso && (c.trainer === me || c.origTrainer === me))].sort((a, z) => startOf(a) - startOf(z));
+  }
+  function dayCell(iso, outside) {
+    const n = myItemsOn(iso).filter((x) => x.status !== "cancelled").length;
+    const sel = iso === state.agenda.date;
+    return `<button type="button" class="day-cell${sel ? " is-selected" : ""}${iso === TODAY ? " is-today" : ""}${outside ? " is-outside" : ""}" data-act="ag-day" data-v="${iso}" aria-pressed="${sel}" aria-label="${ucfirst(dayLong(at(iso, "12:00")))}: ${t("today.summary", { n })}">
+        <span class="day-num t-num">${Number(iso.slice(8))}</span><span class="day-dots" aria-hidden="true">${"<i></i>".repeat(Math.min(3, n))}</span></button>`;
+  }
+  SCREENS["t-calendar"] = {
+    shell: "app",
+    tab: "calendar",
+    render() {
+      const a = state.agenda;
+      const week = a.view === "week";
+      const mon = mondayOf(a.date);
+      const first = a.date.slice(0, 8) + "01";
+      const nextFirst = addDays(first, 32).slice(0, 8) + "01";
+      let cells = [];
+      if (week) cells = Array.from({ length: 7 }, (_, i) => dayCell(addDays(mon, i), false));
+      else for (let d = mondayOf(first); d < nextFirst || cells.length % 7; d = addDays(d, 1)) cells.push(dayCell(d, d < first || d >= nextFirst));
+      const title = week
+        ? `${t("w.weekNo", { n: isoWeek(a.date) })} · ${dayMonth(at(mon, "12:00"))} – ${dayMonth(at(addDays(mon, 6), "12:00"))}`
+        : ucfirst(fmt(at(first, "12:00"), { month: "long", year: "numeric" }));
+      const items = myItemsOn(a.date);
+      return {
+        nav: { title: t("tab.calendar"), large: true, actions: addNav("app-new-menu", t("today.add")) },
+        fab: addFab("app-new-menu", t("today.add")),
+        body: `
+          <div class="ag-bar">${seg("ag-view", [["week", t("w.week")], ["month", t("ag.month")]], a.view, { label: t("tab.calendar"), small: true })}
+            <button type="button" class="btn btn--text" data-act="ag-today">${t("w.today")}</button></div>
+          <div class="ag-cal">
+            <div class="ag-head">
+              <button type="button" class="btn btn--icon btn--ghost" data-act="ag-step" data-v="-1" aria-label="${t(week ? "w.prevWeek" : "ag.prevMonth")}">${icon("chevL")}</button>
+              <p class="t-headline" aria-live="polite">${title}</p>
+              <button type="button" class="btn btn--icon btn--ghost" data-act="ag-step" data-v="1" aria-label="${t(week ? "w.nextWeek" : "ag.nextMonth")}">${icon("chevR")}</button>
+            </div>
+            <div class="ag-days">${Array.from({ length: 7 }, (_, i) => `<span class="ag-wd" aria-hidden="true">${fmt(at(addDays("2026-09-21", i), "12:00"), { weekday: "narrow" })}</span>`).join("")}${cells.join("")}</div>
+          </div>
+          <h2 class="t-caption section-label">${ucfirst(dayLong(at(a.date, "12:00")))}</h2>
+          ${items.length ? `<ul class="list">${items.map(sessionRow).join("")}</ul>` : `<p class="t-subhead muted">${t("ag.empty")}</p>`}
+        `,
+      };
+    },
+  };
   SCREENS["t-more"] = placeholder("more", "tab.more");
 
   // ---- clients (TM-02, TM-03, PS-02)
@@ -1464,66 +1557,105 @@
     ["dashboard", "grid"], ["calendar", "calendar"], ["clients", "users"], ["classes", "layers"], ["openGym", "door"],
     ["workouts", "dumbbell"], ["trainers", "user"], ["links", "link"], ["settings", "sliders"],
   ];
-  const H0 = 7, H1 = 21, HOUR_PX = 60;
+  // 06:00–22:00 at 48px per hour: a whole working day fits a laptop screen; the grid snaps to 15 minutes.
+  const H0 = 6, H1 = 22, HOUR_PX = 48;
+  const hhmm = (mins) => `${String(Math.floor(mins / 60) % 24).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+  const plusMinutes = (t0, n) => { const [h, m] = t0.split(":").map(Number); return hhmm(h * 60 + m + n); };
 
   function gymItems(date) {
+    const f = state.web.trainer;
     return [...state.sessions.filter((s) => s.ws === state.web.ws), ...state.classes.filter((c) => c.ws === state.web.ws)]
-      .filter((x) => x.date === date).sort((a, z) => startOf(a) - startOf(z));
+      .filter((x) => x.date === date && (!f || x.trainer === f || x.origTrainer === f)).sort((a, z) => startOf(a) - startOf(z));
   }
   function eventLabel(x) {
     return x.kind === "private" ? t("w.privateWith", { name: esc(CLIENTS[x.client].first) }) : esc(x.title);
-  }
-  function eventMeta(x) {
-    if (x.kind === "private") return "";
-    return `<span class="t-num">${bookedCount(x)}/${x.cap}</span>`;
   }
   function eventCls(x) {
     const k = x.kind === "private" ? "private" : x.kind === "openGym" ? "open-gym" : "group";
     return `ev ev--${k}${x.status === "cancelled" ? " is-cancelled" : ""}${x.kind === "group" && !x.trainer ? " needs-trainer" : ""}${state.web.panel === x.id ? " is-selected" : ""}`;
   }
+  // Side-by-side columns for overlapping items within one lane or day.
+  function columns(items) {
+    const out = new Map();
+    let cluster = [];
+    let clusterEnd = 0;
+    const flush = () => {
+      const ends = [];
+      cluster.forEach((x) => {
+        let c = ends.findIndex((end) => end <= +startOf(x));
+        if (c < 0) { c = ends.length; ends.push(0); }
+        ends[c] = +endOf(x);
+        out.set(x.id, { col: c });
+      });
+      cluster.forEach((x) => { out.get(x.id).n = ends.length; });
+      cluster = [];
+      clusterEnd = 0;
+    };
+    items.forEach((x) => {
+      if (cluster.length && +startOf(x) >= clusterEnd) flush();
+      cluster.push(x);
+      clusterEnd = Math.max(clusterEnd, +endOf(x));
+    });
+    flush();
+    return out;
+  }
+  function eventButton(x, date, pos, withTrainer) {
+    const top = ((startOf(x) - at(date, hhmm(H0 * 60))) / 3600000) * HOUR_PX;
+    const mins = (endOf(x) - startOf(x)) / 60000;
+    const meta = [
+      withTrainer && x.kind !== "openGym" ? (x.trainer ? TRAINERS[x.trainer].name : `<span class="chip chip--warning">${t("o.trainerNeeded")}</span>`) : "",
+      x.kind === "private" ? "" : `<span class="t-num">${bookedCount(x)}/${x.cap}</span>`,
+    ].filter(Boolean).join(" · ");
+    return `<button type="button" class="${eventCls(x)}${mins <= 45 ? " ev--short" : ""}" style="top:${top}px;height:${(mins / 60) * HOUR_PX - 2}px;left:calc(${pos.col} * 100% / ${pos.n} + 2px);width:calc(100% / ${pos.n} - 4px)" data-act="w-open" data-id="${x.id}">
+        <span class="ev-time t-num">${time(startOf(x))}</span><span class="ev-title">${eventLabel(x)}</span>${meta ? `<span class="ev-meta">${meta}</span>` : ""}
+      </button>`;
+  }
+  function timeAxis(date) {
+    const hours = Array.from({ length: H1 - H0 }, (_, i) => H0 + i);
+    return `<div class="cal-times">${hours.map((h) => `<span style="top:${(h - H0) * HOUR_PX}px">${time(at(date, hhmm(h * 60)))}</span>`).join("")}</div>`;
+  }
+  const nowLine = (show) => (show ? `<div class="cal-now" style="top:${((NOW - at(TODAY, hhmm(H0 * 60))) / 3600000) * HOUR_PX}px" aria-hidden="true"><span>${time(NOW)}</span></div>` : "");
+  const calStyle = (lanes) => `--lanes:${lanes};--hour:${HOUR_PX}px;--hours:${H1 - H0}`;
+
   function dayView(date) {
     const items = gymItems(date);
-    const lanes = state.web.ws === "jg" ? ["john", "sarah", "mike"] : ["sarah"];
+    const f = state.web.trainer;
+    const lanes = f ? [f] : state.web.ws === "jg" ? ["john", "sarah", "mike"] : ["sarah"];
     items.forEach((x) => { if (x.trainer && !lanes.includes(x.trainer)) lanes.push(x.trainer); });
     if (items.some((x) => x.kind === "openGym")) lanes.push("og");
     if (items.some((x) => x.kind === "group" && !x.trainer)) lanes.push("none");
-    const laneOf = (x) => (x.kind === "openGym" ? "og" : x.trainer || "none");
+    const laneOf = (x) => (x.kind === "openGym" ? "og" : f && x.origTrainer === f ? f : x.trainer || "none");
     const laneName = (l) => (l === "og" ? t("type.openGym") : l === "none" ? t("o.trainerNeeded") : TRAINERS[l].name);
-    const hours = Array.from({ length: H1 - H0 }, (_, i) => H0 + i);
-    const nowTop = date === TODAY ? ((NOW - at(date, "07:00")) / 3600000) * HOUR_PX : null;
-    return `<div class="cal-scroll">
-        <div class="cal" style="--lanes:${lanes.length};--hour:${HOUR_PX}px;--hours:${H1 - H0}">
+    return `<div class="cal-scroll" data-scroll>
+        <div class="cal" style="${calStyle(lanes.length)}">
           <div class="cal-corner"></div>
           ${lanes.map((l) => `<div class="cal-lane-head">${l === "og" || l === "none" ? "" : `<span class="avatar avatar--sm" aria-hidden="true">${initials(TRAINERS[l].name)}</span>`}<span>${laneName(l)}</span></div>`).join("")}
-          <div class="cal-times">${hours.map((h) => `<span style="top:${(h - H0) * HOUR_PX}px">${time(at(date, String(h).padStart(2, "0") + ":00"))}</span>`).join("")}</div>
-          ${lanes.map((l) => `<div class="cal-lane">${items.filter((x) => laneOf(x) === l).map((x) => {
-            const top = ((startOf(x) - at(date, "07:00")) / 3600000) * HOUR_PX;
-            const h = ((endOf(x) - startOf(x)) / 3600000) * HOUR_PX;
-            return `<button type="button" class="${eventCls(x)}" style="top:${top}px;height:${h - 2}px" data-act="w-open" data-id="${x.id}">
-                <span class="ev-time t-num">${time(startOf(x))}</span><span class="ev-title">${eventLabel(x)}</span>${eventMeta(x) ? `<span class="ev-meta">${eventMeta(x)}</span>` : ""}
-              </button>`;
-          }).join("")}</div>`).join("")}
-          ${nowTop != null ? `<div class="cal-now" style="top:${nowTop}px" aria-hidden="true"><span>${time(NOW)}</span></div>` : ""}
+          ${timeAxis(date)}
+          ${lanes.map((l) => {
+            const mine = items.filter((x) => laneOf(x) === l);
+            const cols = columns(mine);
+            return `<div class="cal-lane" data-act="w-slot" data-date="${date}" data-lane="${l}" title="${t("w.slotHint")}">${mine.map((x) => eventButton(x, date, cols.get(x.id), false)).join("")}</div>`;
+          }).join("")}
+          ${nowLine(date === TODAY)}
         </div>
       </div>`;
   }
+  // A real week grid: seven day columns on one time axis (flows/03, WC-02).
   function weekView(date) {
-    const mon = mondayOf(date);
-    const days = Array.from({ length: 7 }, (_, i) => addDays(mon, i));
-    return `<div class="week">${days.map((iso) => {
-      const items = gymItems(iso);
-      return `<section class="week-day${iso === TODAY ? " is-today" : ""}">
-          <h3 class="week-day-head"><button type="button" class="btn btn--text" data-act="w-goto-day" data-v="${iso}">${ucfirst(dayShort(at(iso, "12:00")))}</button></h3>
-          ${items.length ? `<ul>${items.map((x) => `<li><button type="button" class="${eventCls(x)} ev--compact" data-act="w-open" data-id="${x.id}">
-              <span class="ev-time t-num">${time(startOf(x))}</span>
-              <span class="ev-title">${eventLabel(x)}</span>
-              <span class="ev-meta">${[
-                x.kind === "openGym" ? "" : x.trainer ? TRAINERS[x.trainer].name : `<span class="chip chip--warning">${t("o.trainerNeeded")}</span>`,
-                eventMeta(x),
-              ].filter(Boolean).join(" · ")}</span>
-            </button></li>`).join("")}</ul>` : `<p class="t-footnote muted">${t("w.empty")}</p>`}
-        </section>`;
-    }).join("")}</div>`;
+    const days = Array.from({ length: 7 }, (_, i) => addDays(mondayOf(date), i));
+    return `<div class="cal-scroll" data-scroll>
+        <div class="cal cal--week" style="${calStyle(7)}">
+          <div class="cal-corner"></div>
+          ${days.map((iso) => `<div class="cal-lane-head${iso === TODAY ? " is-today" : ""}"><button type="button" class="day-link" data-act="w-goto-day" data-v="${iso}">${ucfirst(dayShort(at(iso, "12:00")))}</button></div>`).join("")}
+          ${timeAxis(date)}
+          ${days.map((iso) => {
+            const items = gymItems(iso);
+            const cols = columns(items);
+            return `<div class="cal-lane${iso === TODAY ? " is-today" : ""}" data-act="w-slot" data-date="${iso}" data-lane="" title="${t("w.slotHint")}">${items.map((x) => eventButton(x, iso, cols.get(x.id), true)).join("")}</div>`;
+          }).join("")}
+          ${nowLine(days.includes(TODAY))}
+        </div>
+      </div>`;
   }
   function newWebSessionForm() {
     const m = state.np;
@@ -1602,7 +1734,7 @@
     const x = w.panel ? findItem(w.panel) : null;
     let body;
     if (w.panelMode === "pick") {
-      body = `<div class="stack">
+      body = `${w.slot ? `<p class="t-subhead muted">${ucfirst(dayLong(at(w.slot.date, "12:00")))} · <span class="t-num">${w.slot.time}</span></p>` : ""}<div class="stack">
         <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="private">${t("type.private")}</button>
         <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="group">${t("type.group")}</button>
         <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="openGym">${t("type.openGym")}</button>
@@ -1654,7 +1786,7 @@
             <header class="web-top">
               <button type="button" class="btn btn--icon btn--ghost web-menu" data-act="w-drawer" aria-label="${t("w.menu")}">${icon("menu")}</button>
               <h1 class="t-title1" tabindex="-1">${t("w.nav.calendar")}</h1>
-              <button type="button" class="btn btn--primary web-new" data-act="w-new">${icon("plus", "ico--sm")}<span>${t("w.new")}</span></button>
+              <button type="button" class="btn btn--primary web-new" data-act="w-new" aria-label="${t("w.new")}">${icon("plus", "ico--sm")}<span>${t("new.title")}</span></button>
             </header>
             <div class="web-toolbar">
               <div class="date-nav">
@@ -1663,10 +1795,11 @@
                 <button type="button" class="btn btn--icon btn--outline" data-act="w-step" data-v="1" aria-label="${t(w.view === "day" ? "w.nextDay" : "w.nextWeek")}">${icon("chevR", "ico--sm")}</button>
               </div>
               <p class="date-title t-headline" aria-live="polite">${title}</p>
+              ${w.ws === "jg" ? `<select id="w-trainer" class="input input--sm" aria-label="${t("w.trainerFilter")}"><option value="">${t("w.allTrainers")}</option>${GYM_TRAINERS.map((id) => `<option value="${id}" ${w.trainer === id ? "selected" : ""}>${TRAINERS[id].name}</option>`).join("")}</select>` : ""}
               ${seg("w-view", [["day", t("w.day")], ["week", t("w.week")]], w.view, { label: t("w.week"), small: true })}
             </div>
             <p class="t-footnote muted web-scope">${t("w.onlyWs", { ws: esc(WS[w.ws].name) })}</p>
-            <div class="legend">${typeChip("private")}${typeChip("group")}${typeChip("openGym")}</div>
+            <div class="legend">${typeChip("private")}${typeChip("group")}${typeChip("openGym")}<span class="t-footnote muted legend-hint">${t("w.slotHint")}</span></div>
             ${w.view === "day" ? dayView(w.date) : weekView(w.date)}
           </div>
           ${webPanel()}
@@ -1778,6 +1911,10 @@
     if (prevScroll) {
       root.querySelectorAll("[data-scroll]").forEach((el, i) => { el.scrollTop = prevScroll[i] || 0; });
     }
+    const cal = root.querySelector(".cal-scroll");
+    const calKey = cal ? `${state.web.view}|${state.web.date}|${state.web.ws}` : "";
+    if (cal && render.calKey !== calKey) cal.scrollTop = (7 - H0) * HOUR_PX - 12;
+    render.calKey = calKey;
     if (opts.nav) {
       const target = root.querySelector(state.sheet ? "#sheet-h" : ".web-panel-focus, h1[tabindex], .screen-h[tabindex], .log-ex[tabindex]");
       if (target) target.focus({ preventScroll: true });
@@ -1841,7 +1978,8 @@
     "set-me": (el) => { state.me = el.dataset.v; state.log = null; prefs.set("me", state.me); render(); },
 
     // flow 1
-    "b-mode": (el) => { state.booking.mode = el.dataset.v; render(); },
+    "b-mode": (el) => { state.booking.mode = el.dataset.v; state.booking.day = null; render(); },
+    "b-day": (el) => { state.booking.day = el.dataset.v; render(); },
     "b-pick": (el) => {
       const b = state.booking;
       if (b.occ !== el.dataset.id) Object.assign(b, { occ: el.dataset.id, errors: {} });
@@ -1887,6 +2025,23 @@
     "session-att": (el) => {
       const x = findSession(current().id);
       x.status = x.status === el.dataset.v ? "booked" : el.dataset.v;
+      render();
+    },
+
+    // Agenda tab
+    "ag-day": (el) => { state.agenda.date = el.dataset.v; render(); },
+    "ag-view": (el) => { state.agenda.view = el.dataset.v; render(); },
+    "ag-today": () => { state.agenda.date = TODAY; render(); },
+    "ag-step": (el) => {
+      const a = state.agenda;
+      const dir = Number(el.dataset.v);
+      if (a.view === "week") a.date = addDays(a.date, dir * 7);
+      else {
+        const [y, m] = a.date.split("-").map(Number);
+        const d = new Date(Date.UTC(y, m - 1 + dir, 1));
+        const iso = d.toISOString().slice(0, 10);
+        a.date = iso.slice(0, 7) === TODAY.slice(0, 7) ? TODAY : iso;
+      }
       render();
     },
 
@@ -2120,7 +2275,17 @@
     "w-goto-day": (el) => { Object.assign(state.web, { date: el.dataset.v, view: "day" }); render(); },
     "w-drawer": () => { state.web.drawer = !state.web.drawer; render(); },
     "w-nav": (el) => { state.web.drawer = false; render(); if (el.dataset.v !== "calendar") toast(t("proto.notInScope")); },
+    // Clicking an empty moment opens "+ Nieuw" at that time, snapped to 15 minutes.
+    "w-slot": (el, e) => {
+      const y = e.clientY - el.getBoundingClientRect().top;
+      const mins = Math.min((H1 * 60) - 60, H0 * 60 + Math.max(0, Math.floor((y / HOUR_PX) * 4)) * 15);
+      const lane = el.dataset.lane;
+      Object.assign(state.web, { slot: { date: el.dataset.date, time: hhmm(mins), trainer: TRAINERS[lane] ? lane : "" }, panel: null, panelMode: "pick" });
+      render();
+      root.querySelector("#panel-h")?.focus({ preventScroll: true });
+    },
     "w-new": () => {
+      state.web.slot = null;
       state.web.panel = null;
       state.web.panelMode = "pick";
       render();
@@ -2135,15 +2300,17 @@
         root.querySelector("#panel-h")?.focus({ preventScroll: true });
         return;
       }
+      const slot = state.web.slot;
       if (kind !== "private") {
         state.newOcc = newOccModel(kind, state.web.ws);
+        if (slot) Object.assign(state.newOcc, { date: slot.date, start: slot.time, end: plusMinutes(slot.time, 60), trainer: kind === "group" ? slot.trainer : "" });
         state.web.panelMode = `create-${kind}`;
         render();
         root.querySelector("#panel-h")?.focus({ preventScroll: true });
         return;
       }
-      state.np = { client: null, trainer: state.web.ws === "jg" ? "john" : "sarah", date: state.web.date,
-        time: "12:00", dur: 60, workout: "", locChoice: null, locOther: "", showLocOptions: false, errors: {} };
+      state.np = { client: null, trainer: slot?.trainer || (state.web.ws === "jg" ? "john" : "sarah"), date: slot?.date || state.web.date,
+        time: slot?.time || "12:00", dur: 60, workout: "", locChoice: null, locOther: "", showLocOptions: false, errors: {} };
       state.web.panelMode = "create";
       render();
       root.querySelector("#panel-h")?.focus({ preventScroll: true });
@@ -2217,7 +2384,7 @@
     if (!el || el.disabled) return;
     if (el.tagName === "A") e.preventDefault();
     const fn = A[el.dataset.act];
-    if (fn) fn(el);
+    if (fn) fn(el, e);
   });
   root.addEventListener("input", (e) => {
     if (e.target.id === "client-search" || e.target.id === "ex-search") filterList(e.target);
@@ -2228,6 +2395,7 @@
   });
   root.addEventListener("change", (e) => {
     const id = e.target.id;
+    if (id === "w-trainer") { state.web.trainer = e.target.value; state.web.panel = null; render(); }
     if (id === "web-client") {
       captureForm();
       if (e.target.value) selectWebClient(e.target.value);

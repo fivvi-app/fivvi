@@ -331,7 +331,34 @@
     "touch-large": { "$value": "64px", "$description": "Logger steppers and 'save set': one hand, sweaty thumbs, glanced at between sets." },
     "icon": { "$value": "24px" },
     "icon-sm": { "$value": "20px" },
-    "content-max": { "$value": "640px", "$description": "Max width of public booking content on large screens." }
+    "content-max": { "$value": "640px", "$description": "Max width of public booking content on large screens." },
+    "control": {
+      "$description": "Visible control height (buttons, inputs, list rows). The hit target never drops below touch-min on touch, or 24px (WCAG 2.2 target size) with a mouse.",
+      "touch": { "$value": "48px", "$description": "Android and touch web default." },
+      "ios": { "$value": "44px", "$description": "iOS HIG minimum; buttons and rows in the iOS app." },
+      "compact": { "$value": "36px", "$description": "Trainer Web with a mouse or trackpad." },
+      "compact-sm": { "$value": "32px", "$description": "Toolbars and segmented controls in Trainer Web." }
+    }
+  },
+  "density": {
+    "$type": "typography",
+    "$description": "Compact density for Trainer Web on a desktop pointer: it replaces the default (touch) type scale there so a calendar day or week fits on a laptop screen. Native apps keep their platform text styles; public booking keeps the touch scale. Colours and contrast pairs are unchanged.",
+    "compact": {
+      "title-1": { "$value": { "fontSize": "22px", "lineHeight": "28px" } },
+      "title-2": { "$value": { "fontSize": "18px", "lineHeight": "24px" } },
+      "headline": { "$value": { "fontSize": "15px", "lineHeight": "20px" } },
+      "body": { "$value": { "fontSize": "14px", "lineHeight": "20px" } },
+      "subhead": { "$value": { "fontSize": "13px", "lineHeight": "18px" } },
+      "label": { "$value": { "fontSize": "13px", "lineHeight": "18px" } },
+      "footnote": { "$value": { "fontSize": "12px", "lineHeight": "16px" } },
+      "caption": { "$value": { "fontSize": "11px", "lineHeight": "14px" } }
+    },
+    "android": {
+      "$description": "Material 3 roles: bodyLarge 16/24, bodyMedium and labelLarge 14/20.",
+      "body": { "$value": { "fontSize": "16px", "lineHeight": "24px" } },
+      "subhead": { "$value": { "fontSize": "14px", "lineHeight": "20px" } },
+      "label": { "$value": { "fontSize": "14px", "lineHeight": "20px" } }
+    }
   },
   "border-width": {
     "$type": "dimension",

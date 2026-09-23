@@ -53,6 +53,7 @@ test('public booking verifies a class and keeps the EN toggle on Open Gym', asyn
   await page.locator('[data-act="b-restart"]').click();
   await page.locator('.pub-lang [data-act="set-lang"][data-v="en"]').click();
   await page.locator('[data-act="b-mode"][data-v="openGym"]').click();
+  await page.locator('.day-chip[data-v="2026-09-25"]').click();
   assert.equal(await page.locator('html').getAttribute('lang'), 'en');
   assert.ok(await page.locator('[data-act="b-pick"][data-id="o-og25"]').isVisible());
   assert.deepEqual(errors, []);
@@ -71,7 +72,7 @@ test('Today, calendar and mobile styles expose their critical data', async () =>
 
   const calendar = await pageFor(3, { width: 1280, height: 800 });
   await calendar.page.locator('[data-act="w-view"][data-v="week"]').click();
-  assert.ok(await calendar.page.locator('.week-day').count() === 7);
+  assert.equal(await calendar.page.locator('.cal--week .cal-lane').count(), 7);
   await calendar.page.locator('[data-act="w-open"][data-id="o-str24"]').click();
   assert.ok(await calendar.page.locator('#panel-h').isVisible());
   assert.deepEqual(calendar.errors, []);
@@ -290,6 +291,42 @@ test('owner web adds a client from + Nieuw and inline while creating a session',
   await page.locator('#cn-name').fill('Ruben de Wit');
   await page.locator('[data-form="new-client"] button[type="submit"]').click();
   assert.ok((await page.locator('#web-client option:checked').textContent()).includes('Ruben de Wit'));
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('owner clicks an empty calendar slot and filters by trainer', async () => {
+  const { page, errors } = await pageFor(3, { width: 1280, height: 800 });
+  const lane = page.locator('.cal-lane[data-lane="mike"]');
+  const box = await lane.boundingBox();
+  await page.evaluate(() => { document.querySelector('.cal-scroll').scrollTop = 0; });
+  const top = (await lane.boundingBox()).y;
+  await page.mouse.click(box.x + 20, top + 48 * 8 + 10); // 06:00 + 8 h = 14:00
+  assert.ok((await page.locator('.panel-body').textContent()).includes('14:00'));
+  await page.locator('[data-act="w-pick"][data-v="group"]').click();
+  assert.equal(await page.locator('#occ-start').inputValue(), '14:00');
+  assert.equal(await page.locator('#occ-trainer').inputValue(), 'mike');
+  await page.locator('[data-act="w-close"]').last().click();
+  await page.locator('#w-trainer').selectOption('sarah');
+  assert.equal(await page.locator('.cal-lane-head').count(), 1);
+  assert.ok((await page.locator('.cal-lane-head').textContent()).includes('Sarah'));
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('trainers and clients can look weeks ahead', async () => {
+  const { page, errors } = await pageFor(2);
+  await page.locator('[data-act="tab"][data-v="calendar"]').click();
+  await page.locator('[data-act="ag-view"][data-v="month"]').click();
+  assert.ok(await page.locator('.day-cell').count() >= 28);
+  await page.locator('[data-act="ag-step"][data-v="1"]').click();
+  await page.locator('[data-act="ag-day"][data-v="2026-10-13"]').click();
+  assert.ok((await content(page)).includes('Mark Peters'));
+  await page.locator('[data-act="home"]').click();
+  await startFlow(page, '1');
+  assert.equal(await page.locator('.day-chip').count(), 21);
+  await page.locator('.day-chip[data-v="2026-10-08"]').click();
+  assert.ok((await page.locator('.class-list').textContent()).includes('Strength'));
   assert.deepEqual(errors, []);
   await page.close();
 });

@@ -128,7 +128,8 @@ flowchart TD
   ▌ gepland   ░ geannuleerd   ┆ ┆ suggestie   P = privésessie   ⇄ vervanger   ! actie nodig
 ```
 
-- **Monday first**, 24 h. The visible hours fit the week's content (default 07:00–21:00) and scroll to *now* on open. A red now-line runs across today's column.
+- **Monday first**, 24 h. The visible hours fit the week's content (default 06:00–22:00 at compact density, 48 px per hour with a 15-minute grid, so a working day fits a laptop screen) and open scrolled to 07:00 or *now*. A red now-line runs across the grid; today's column is tinted.
+- **Click an empty moment** (day or week view) to open *+ Nieuw* at that time, snapped to 15 minutes; in the day view the lane's trainer is pre-filled.
 - **Event block** content by type:
   - **Private**: client name, trainer, `P`.
   - **Group**: class name, trainer, `booked/capacity`.

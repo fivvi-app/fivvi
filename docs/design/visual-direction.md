@@ -36,6 +36,21 @@ The token checker measures the foreground/background pairs used in the prototype
 
 Web body text uses the system stack. Bricolage Grotesque is an optional web display accent with a system fallback; it never carries form labels. iOS uses SF Pro through semantic SwiftUI text styles and Dynamic Type; Android uses the Material 3 type roles and system font scaling. Default token sizes are references for web and native mappings, not fixed native font sizes. Web inputs stay at 16 px or above. See [Apple typography](https://developer.apple.com/design/human-interface-guidelines/typography) and [Material 3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3).
 
+## Density
+
+*Added 23 September 2026 after owner feedback that the prototype felt too big.* One scale doesn't fit every surface, so the tokens carry two densities (`size.control`, `density.*`):
+
+| Surface | Text | Controls | Why |
+|---|---|---|---|
+| Trainer Web with a mouse or trackpad | Compact: body 14/20, subhead and label 13/18, title 22/28 | 36 px (32 px in toolbars) | A calendar day or week has to fit a laptop screen. WCAG 2.2 target size (24 × 24 px) still holds. |
+| Trainer Web on touch | Compact text | 48 px | Touch still needs finger-size targets. |
+| iOS app | Platform text styles (Body 17 pt) with Dynamic Type | 44 pt rows and buttons (HIG) | Feels like the rest of the phone; the user's text size setting still applies. |
+| Android app | Material 3 roles (bodyLarge 16/24, labelLarge 14/20) with font scaling | 48 dp targets | Matches Material 3. |
+| Public booking | Touch scale | 48 px | Mostly used on a phone after a QR scan. |
+| Workout logger | Large, on purpose | 64 pt/dp steppers and *Set klaar* | One hand, between sets. |
+
+Colours and contrast pairs don't change with density. E007 maps compact density to a Tailwind/shadcn size scale on web; native apps keep native controls and only take spacing and colour from the tokens.
+
 ## Spacing, shape, and targets
 
 - Spacing follows a 4 px scale: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64. Phone gutters start at 16; wider layouts use 24.

@@ -434,7 +434,16 @@ window.PROTO_STRINGS = {
     "w.repeatNone": "Niet herhalen",
     "w.repeatWeekly": "Elke week op {day}",
     "w.repeatHint": "We zetten de komende {n} weken in de agenda.",
-    "w.seriesCreated": "{n} groepslessen toegevoegd"
+    "w.seriesCreated": "{n} groepslessen toegevoegd",
+    "ag.month": "Maand",
+    "ag.prevMonth": "Vorige maand",
+    "ag.nextMonth": "Volgende maand",
+    "ag.empty": "Geen sessies op deze dag.",
+    "b.pickDay": "Kies een dag",
+    "b.noneThisDay": "Op deze dag is er niets te boeken.",
+    "b.nextDay": "Volgende: {day}",
+    "w.slotHint": "Klik op een leeg moment om iets toe te voegen.",
+    "w.trainerFilter": "Trainer"
   },
 
   en: {
@@ -861,6 +870,15 @@ window.PROTO_STRINGS = {
     "w.repeatNone": "Don't repeat",
     "w.repeatWeekly": "Every week on {day}",
     "w.repeatHint": "We'll add the next {n} weeks to the calendar.",
-    "w.seriesCreated": "{n} group classes added"
+    "w.seriesCreated": "{n} group classes added",
+    "ag.month": "Month",
+    "ag.prevMonth": "Previous month",
+    "ag.nextMonth": "Next month",
+    "ag.empty": "No sessions on this day.",
+    "b.pickDay": "Choose a day",
+    "b.noneThisDay": "Nothing to book on this day.",
+    "b.nextDay": "Next: {day}",
+    "w.slotHint": "Click an empty time to add something.",
+    "w.trainerFilter": "Trainer"
   }
 };
