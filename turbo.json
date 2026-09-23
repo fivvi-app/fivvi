@@ -1,0 +1,28 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "globalDependencies": [".nvmrc", "tsconfig.base.json", "biome.json", ".gitignore"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"]
+    },
+    "format:check": {
+      "dependsOn": ["//#format:check:root"]
+    },
+    "//#format:check:root": {},
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
