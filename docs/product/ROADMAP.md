@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.6 |
-| **Date** | 22 September 2026 |
+| **Version** | 1.7 |
+| **Date** | 23 September 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
 | **Builders** | AI coding agents: Claude Code + Codex, working in parallel worktrees |
-| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6 |
+| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; prototype feedback on workouts, clients and app creation applied in v1.7 |
 | **Requirements source** | [`PRODUCT.md`](PRODUCT.md) (what we build and why) |
 | **Feature registry** | [`FEATURES.md`](FEATURES.md) (status of every feature) |
 | **Engineering workflow** | [`../engineering/WORKFLOW.md`](../engineering/WORKFLOW.md) (branches, worktrees, reviews, cleanup, Definition of Done) |
@@ -134,8 +134,8 @@ Size is relative complexity (S / M / L / XL), not a duration.
 | **M4** | Scheduling core | Owner runs the real weekly schedule: private sessions, recurring classes, substitution, attendance | F013, F014, F020–F026, E012 | XL |
 | **M5** | Public booking | A client scans a link, books a class with name + email, verifies, gets a localized confirmation | F027–F033, F049, F050, E013 | L |
 | **M6** | Open Gym & sharing | Owner publishes Open Gym; clients book it; booking links and QR posters are printable | F034–F038 | M |
-| **M7** | Training & notes | Trainer builds templates, assigns workouts, logs live sets with previous values, keeps notes | F039–F048 | L |
-| **M8** | Native trainer apps (iOS + Android) | A trainer's day runs from the phone: Today, calendar, clients, logging, notes, attendance | Mobile surfaces of F013, F020, F025, F043–F048; E017 | XL (×2 platforms) |
+| **M7** | Training & notes | Trainer logs live sets with or without a template, repeats the previous workout, keeps notes | F039–F048, F051 | L |
+| **M8** | Native trainer apps (iOS + Android) | A trainer's day runs from the phone: Today, calendar, clients, logging, notes, attendance, and **+** by role | Mobile surfaces of F006, F013, F020–F022, F025, F034, F043–F048, F051; E017 | XL (×2 platforms) |
 | **M9** | Hardening & launch readiness | Security, privacy, accessibility, NL/EN QA, import tooling, backups, runbooks are all done | E014–E016 | M |
 | **M10** | Pilot | The pilot gym runs on the platform for 6 weeks; evidence collected; Release 1.1 defined | — | 6 weeks |
 
@@ -403,17 +403,19 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 **Goal:** Workouts and notes replace Excel and scattered notes.
 
-**Scope:** F039 Exercise Library, F040 Custom Exercises, F041 Workout Templates, F042 Client Workouts, F043 Live Workout Logging, F044 Previous Workout Display, F045 Workout History, F046 Client Notes, F047 Session Notes, F048 Note Visibility.
+**Scope:** F039 Exercise Library, F040 Custom Exercises, F041 Workout Templates, F042 Client Workouts, F043 Live Workout Logging, F044 Previous Workout Display, F045 Workout History, F046 Client Notes, F047 Session Notes, F048 Note Visibility, F051 Repeat Previous Workout.
 
 **Key notes**
 - **Exercise library baseline:** curate about 150 core exercises with Dutch and English names and aliases. Check the license of any open dataset before using it. Custom exercises are stored as entered (§38).
 - Data model per §42: exercise, sets, reps, weight, difficulty (Easy/Normal/Hard), date, session, trainer, notes.
 - "Previous" values come from the client's last logged performance of that exercise (§41). Indexed for instant display.
+- **Logging never requires a template** (§41): start empty, repeat the previous workout (F051) or pick a template; add library or custom exercises mid-session; prefilled sets are logged with one tap; a finished workout can be saved as a template (F041). A workout can start from a client profile without a planned session (it creates a private session that starts now).
 - **Design the logging API for offline from day one:** client-generated IDs (UUIDv7), idempotent writes and a batch sync endpoint. The native apps queue writes locally (SwiftData / Room). Full offline resilience is scoped for 1.1, but it must not need a rewrite.
 - Notes are free-form, stored as entered, **trainer-only by default**, with an optional client-visible flag (§35–37). Access to notes is permission-checked and audit-logged.
 
 **Exit criteria**
 - A trainer completes a real private session on web: assigns a template, logs sets against previous values, adds a session note and a trainer-only client note.
+- A trainer completes a session without a template: adds exercises during the session, then saves it as a template; the next session can repeat it.
 - The logging API contract is frozen for the native tracks.
 
 ---
@@ -422,7 +424,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 **Goal:** A trainer's day runs from the phone, on either platform.
 
-**Scope:** Native screens for Today, personal calendar, clients, session screen, workout logger, notes, attendance, and the NL/EN switch (§85 I), built **in parallel**: one iOS track and one Android track. E017 App distribution.
+**Scope:** Native screens for Today, personal calendar, clients (list, profile, quick add), session screen, workout logger, notes, attendance, the **+** menu by role (private session, client; owner/admin also group class with weekly repeat and Open Gym; §15), and the NL/EN switch (§85 I), built **in parallel**: one iOS track and one Android track. E017 App distribution.
 
 **Key notes**
 - Both apps consume the **generated API clients** and **generated string catalogs**. No hand-written API models and no hand-written strings.
@@ -525,7 +527,7 @@ Near-term releases have concrete scope. Later releases are **themes**, and their
 
 #### Release 1.1: Pilot refinement
 - **Goal:** Close the gaps the pilot exposes.
-- **Candidate scope (from `PRODUCT.md §54`, re-ranked by evidence):** waitlists, cancellation cutoff, recurring private appointments, schedule exceptions, holidays, blocked time, workout duplication, previous-session duplication, warm-up sets, supersets, workout reordering, pinned notes, note search, offline resilience, bulk attendance.
+- **Candidate scope (from `PRODUCT.md §54`, re-ranked by evidence):** waitlists, cancellation cutoff, recurring private appointments, schedule exceptions, holidays, blocked time, workout duplication, warm-up sets, supersets, workout reordering, pinned notes, note search, offline resilience, bulk attendance.
 - **Suggested additions (not in spec, validate in pilot):**
   - **Session reminder emails** (e.g. 24 h before): a cheap way to reduce no-shows.
   - **Read-only calendar feed (ICS)** per trainer: covers much of the Google/Apple/Outlook need well before 6.0.
@@ -740,4 +742,5 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-09-22 | 1.3 | ADRs 001–015 written up in [`docs/decisions/`](../decisions/README.md) and linked from §4.3. **ADR-011 (hosting) revised and accepted:** the owner already pays for Railway Hobby, and Vercel Hobby is non-commercial only. Everything runs on Railway EU West (Amsterdam): Hobby during the build → Pro at G4. Vercel and Neon are dropped. §4.5, M1, M9, §11 and §12, E003 in `FEATURES.md`, `WORKFLOW.md §5` and `TESTING.md §5.3` updated to match. |
 | 2026-09-22 | 1.4 | Owner removed Claude/Codex review from the GitHub PR and CI/CD flow. Authors review locally before pushing; a second local agent is optional. Deterministic CI checks remain. Updated `WORKFLOW.md`, `TESTING.md` and `GLOSSARY.md` to match. |
 | 2026-09-22 | 1.5 | **Brevo selected** for transactional email (ADR-009; owner account created). M0 §4.4 legal drafts completed and checked off separately from signing, DPA execution and publication. Drafts synchronized with Railway hosting and Postgres, including the DPA checks before real data. Release 2.0 DPIA need will be reassessed at its entry gate. |
+| 2026-09-23 | 1.7 | **Prototype feedback (owner):** workouts must work without a prior plan. §41 now starts a workout empty, by repeating the previous workout or from a template, adds exercises mid-session, logs prefilled sets with one tap and saves a finished workout as a template. **Previous-session duplication moved from 1.1 into the MVP** as F051 (M7). Clients can be added wherever one is chosen (F006). The trainer apps get a **+** menu by role: owners/admins create group classes (optionally weekly) and Open Gym on the phone; series edits and templates stay on web (§15). M7, M8 and `FEATURES.md` updated; the clickable prototype and flow specs 02, 04 and 05 follow. |
 | 2026-09-22 | 1.6 | Owner reported Sentry and PostHog accounts created on personal accounts and an existing Apple Developer Program company membership. Split the M0 account checklist to show what is created versus still unconfirmed (uptime monitor and Google Play Console). Updated M8 and §12 distribution costs; E006, E009 and E017 remain planned. |

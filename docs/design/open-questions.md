@@ -166,3 +166,9 @@ Decide whether substitution and class cancellation are necessary on the M8 train
 
 ### QE14
 Define concurrent edits to the same workout or set before implementing the proposed offline queue and web/phone sync. “Last edit wins” could discard work; server conflict handling and recovery must be designed and tested (WL-07).
+
+### QE15
+Starting a workout from a client profile creates a private session that starts now (flow 05, WL-01). Confirm the default duration (proposal: 60 min), that it counts in *Mijn dag* and reports like a planned session, and whether a trainer in someone else's workspace may do this (same rule as creating their own private sessions, Q27).
+
+### QE16
+The trainer apps can now create group classes (one-off or weekly) and Open Gym for owners/admins (flow 02, TD-05). Confirm the weekly series horizon (prototype: 8 weeks; ADR-012 proposes a rolling 12-week window) and that editing or ending a series stays web-only in MVP.

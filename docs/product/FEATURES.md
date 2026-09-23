@@ -12,7 +12,7 @@ The single source of truth for feature status. Update it **in the same PR** as t
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 50 (F001–F050) + 18 engineering enablers (E001–E018) | 0 |
+| MVP | 51 (F001–F051) + 18 engineering enablers (E001–E018) | 0 |
 
 ---
 
@@ -27,7 +27,7 @@ The single source of truth for feature status. Update it **in the same PR** as t
 | F003 | Workspace Membership | PLANNED | Must | M2 | F002 | ⬜ | ⬜ | §6 |
 | F004 | Roles | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9, §50 |
 | F005 | Trainer Profile | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9 |
-| F006 | Client Profile | PLANNED | Must | M2 | F002 | ⬜ | ⬜ | §10, §34 |
+| F006 | Client Profile | PLANNED | Must | M2 (+M8 mobile) | F002 | ⬜ | ⬜ | §10, §34 (quick add, name only) |
 | F007 | Localization Infrastructure | PLANNED | Must | M1–M2 | E005 | ⬜ | ⬜ | §3, §73 |
 | F008 | Dutch UI | PLANNED | Must | continuous | F007 | ⬜ | — | §2.2 |
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |
@@ -57,8 +57,8 @@ The single source of truth for feature status. Update it **in the same PR** as t
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | F020 | Private Sessions | PLANNED | Must | M4 (+M8 mobile) | F005, F006, F015 | ⬜ | ⬜ | §17 |
-| F021 | Group Class Templates | PLANNED | Must | M4 | F005, F015 | ⬜ | ⬜ | §18, §19 |
-| F022 | Recurring Classes | PLANNED | Must | M4 | F021, E012 | ⬜ | ⬜ | §20 |
+| F021 | Group Class Templates | PLANNED | Must | M4 (+M8 mobile: create a class) | F005, F015 | ⬜ | ⬜ | §15, §18, §19 |
+| F022 | Recurring Classes | PLANNED | Must | M4 (+M8 mobile: weekly repeat) | F021, E012 | ⬜ | ⬜ | §15, §20 |
 | F023 | Trainer Assignment | PLANNED | Must | M4 | F020, F021 | ⬜ | ⬜ | §17, §19 |
 | F024 | Trainer Substitution | PLANNED | Must | M4 | F022, F023 | ⬜ | ⬜ | §19 |
 | F025 | Attendance | PLANNED | Must | M4 (+M8 mobile) | F020, F022 | ⬜ | ⬜ | §43 |
@@ -80,7 +80,7 @@ The single source of truth for feature status. Update it **in the same PR** as t
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F034 | Open Gym Slots | PLANNED | Must | M6 | F015, F020 | ⬜ | ⬜ | §2.7, §28 |
+| F034 | Open Gym Slots | PLANNED | Must | M6 (+M8 mobile) | F015, F020 | ⬜ | ⬜ | §2.7, §15, §28 |
 | F035 | Open Gym Public Booking | PLANNED | Must | M6 | F034, F027–F031 | ⬜ | ⬜ | §30 |
 | F036 | Open Gym Suggestions | PLANNED | **Should** | M6 | F034, F013 | ⬜ | ⬜ | §29 |
 
@@ -97,11 +97,12 @@ The single source of truth for feature status. Update it **in the same PR** as t
 |---|---|---|---|---|---|---|---|---|
 | F039 | Exercise Library | PLANNED | Must | M7 | F007 | ⬜ | ⬜ | §38 |
 | F040 | Custom Exercises | PLANNED | Must | M7 | F039 | ⬜ | ⬜ | §38 |
-| F041 | Workout Templates | PLANNED | Must | M7 | F039 | ⬜ | ⬜ | §39 |
+| F041 | Workout Templates | PLANNED | Must | M7 | F039 | ⬜ | ⬜ | §39 (save a logged workout as template) |
 | F042 | Client Workouts | PLANNED | Must | M7 | F041, F006 | ⬜ | ⬜ | §40 |
-| F043 | Live Workout Logging | PLANNED | Must | M7 (+M8 mobile) | F042, F020 | ⬜ | ⬜ | §41 |
+| F043 | Live Workout Logging | PLANNED | Must | M7 (+M8 mobile) | F039, F020 | ⬜ | ⬜ | §41 (with or without a template) |
 | F044 | Previous Workout Display | PLANNED | Must | M7 (+M8 mobile) | F043 | ⬜ | ⬜ | §41 |
 | F045 | Workout History | PLANNED | Must | M7 (+M8 mobile) | F043 | ⬜ | ⬜ | §42, §37 (shared recap) |
+| F051 | Repeat Previous Workout | PLANNED | Must | M7 (+M8 mobile) | F043, F045 | ⬜ | ⬜ | §41 (moved from §54) |
 
 ### Notes
 
@@ -153,7 +154,7 @@ These get `F0xx` IDs when they move to `PLANNED`. Full context is in [`ROADMAP.m
 
 | Release | Candidate items |
 |---|---|
-| 1.1 | Waitlists · cancellation cutoff · recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · previous-session duplication · warm-up sets · supersets · workout reordering · pinned notes · note search · offline resilience · bulk attendance · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *Universal Links / App Links (suggested)* |
+| 1.1 | Waitlists · cancellation cutoff · recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · warm-up sets · supersets · workout reordering · pinned notes · note search · offline resilience · bulk attendance · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *Universal Links / App Links (suggested)* |
 | 1.2 | Native client iOS/Android apps · push (APNs + FCM) · email → app deep links |
 | 1.3 | AI note capture (NL/EN, speech + text, trainer confirms) |
 | 1.4 | AI pre-session client briefing |

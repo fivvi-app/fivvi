@@ -232,8 +232,8 @@ Four top-level destinations, identical on both platforms. They're a **tab bar** 
 | Tab (NL / EN) | Scope | Content | Features |
 |---|---|---|---|
 | **Vandaag** / Today | Personal (all workspaces) | Today's sessions and classes, next up, attendance to fill in | F013, F025 |
-| **Agenda** / Calendar | Personal (all workspaces) | Day and week list; *+* creates a private session | F013, F020 |
-| **Klanten** / Clients | Per workspace, grouped | Search, client profile, notes, workout history | F006, F045, F046 |
+| **Agenda** / Calendar | Personal (all workspaces) | Day and week list; *+* opens *Nieuw* (TD-05) | F013, F020 |
+| **Klanten** / Clients | Per workspace, grouped | Search, client profile, notes, workout history, *+ Nieuwe klant*, *Nu training starten* | F006, F045, F046 |
 | **Profiel** / Profile | Me | Language, my workspaces, sign out, delete account, feedback | F005, F010, F012, E017 |
 
 The rest is pushed or presented from these tabs:
@@ -253,7 +253,10 @@ flowchart LR
   today --> cd["Les / Open Gym<br/>TD-03"]
   agenda --> sd
   agenda --> cd
-  agenda -- "+" --> create["Nieuwe privésessie<br/>PS-04 (modal)"]
+  agenda -- "+" --> nieuw["Nieuw TD-05 (sheet)<br/>privésessie · klant ·<br/>groepsles · Open Gym (eigenaar/beheerder)"]
+  nieuw --> create["Nieuwe privésessie<br/>PS-04 (modal)"]
+  klanten -- "+" --> newc["Nieuwe klant (modal)"]
+  cp -- "Nu training starten" --> logger
   klanten --> cp["Klantprofiel<br/>TM-03"]
   cp --> sd
   cp --> note["Notitie<br/>(modal)"]
@@ -264,7 +267,7 @@ flowchart LR
 ```
 
 - **Navigation depth stays at most 2 pushes** from a tab. The workout logger is a **full-screen modal** because it's a focused task with its own exit (*Afronden*).
-- **Owner/Admin on mobile.** M8 scopes the app to the trainer's day. Owners get one extra: a *Mijn dag | John's Gym* toggle on *Vandaag* to see the whole workspace today, read-mostly ⚑ [Q01](open-questions.md#q01). Workspace administration (classes, trainers, links, settings) stays on web. The app links out to it (*Beheer op het web* / *Manage on the web*).
+- **Owner/Admin on mobile.** M8 scopes the app to the trainer's day. Owners get two extras: a *Mijn dag | John's Gym* toggle on *Vandaag* to see the whole workspace today, read-mostly ⚑ [Q01](open-questions.md#q01), and **creating a group class (one-off or weekly) or Open Gym from *+*** (TD-05, `PRODUCT.md §15`, added 23 September 2026) ⚑ [QE16](open-questions.md#qe16). Other workspace administration (class templates, series edits, trainers, links, settings) stays on web. The app links out to it (*Beheer op het web* / *Manage on the web*).
 - **Sign-in** uses email + **6-digit code** (ADR-007); deep links come in 1.1. The code field uses the platform's one-time-code autofill.
 - **Language** is set in *Profiel → Taal* and follows the in-app choice, not only the OS language (`ROADMAP M2`). Changing it re-renders immediately without a restart.
 

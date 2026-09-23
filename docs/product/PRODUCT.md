@@ -632,6 +632,15 @@ Primary daily operational interface:
 - notes
 - attendance
 
+A **+** action creates what the user's role allows, without switching to web:
+
+- private session (every trainer, for their own sessions)
+- client (name only; email and language can follow)
+- group class, one-off or repeating every week (owner/admin only)
+- Open Gym (owner/admin only)
+
+Class templates, series edits, trainers, booking links and settings stay on Trainer Web.
+
 Available in Dutch and English.
 
 ---
@@ -1065,6 +1074,8 @@ QR should lead to responsive bilingual pages.
 
 # 34. Client profile
 
+A client can be added wherever a client is chosen (new session, the client list, the app's **+**). Only a name is required; email, language for emails and default training location are optional. A matching email in the same workspace offers the existing client instead of a duplicate.
+
 Contains:
 
 ```text
@@ -1177,6 +1188,8 @@ Cable Row
 3 × 10
 ```
 
+A logged workout can be saved as a new template when the trainer finishes it. This turns a workout built on the fly into one that can be reused.
+
 ---
 
 # 40. Client workouts
@@ -1188,6 +1201,22 @@ Group programming can come later.
 ---
 
 # 41. Live workout logging
+
+A trainer can start a workout in three ways:
+
+- **empty**: no template, exercises are added during the session (on the fly);
+- **repeat the previous workout**: the client's last logged workout, prefilled with its values;
+- **from a template**: an assigned or any workspace template.
+
+An assigned workout opens directly. A workout can also start from the client profile without a planned session; this creates a private session that starts now.
+
+During the workout:
+
+- an overview lists all exercises with progress; any exercise can be opened;
+- exercises can be added at any time, from the library (Dutch and English search, the client's recent exercises first) or as a new custom exercise;
+- each set is prefilled (today's previous set, else last time's same set, else the target reps) and logged with one tap;
+- extra sets can be added;
+- difficulty is asked once per exercise and defaults to Normal.
 
 Example:
 
@@ -1462,7 +1491,9 @@ versions.
 - custom exercises
 - workout templates
 - client workouts
-- live logging
+- live logging, with or without a template
+- repeat previous workout
+- save a logged workout as a template
 - previous performance
 - history
 
@@ -1523,7 +1554,6 @@ Based on actual usage:
 - holidays
 - blocked time
 - workout duplication
-- previous-session duplication
 - warm-up sets
 - supersets
 - workout reordering
@@ -1531,6 +1561,8 @@ Based on actual usage:
 - note search
 - offline resilience
 - bulk attendance
+
+Previous-session duplication moved to the MVP (§41) on 23 September 2026, after prototype feedback.
 
 All additions must work in Dutch and English.
 

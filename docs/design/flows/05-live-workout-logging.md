@@ -1,6 +1,8 @@
 # Flow 05: Live workout logging with previous values
 
-**Session → start workout → log sets → finish with an internal note → optionally share a recap and client message**
+**Session → start workout (empty, repeat previous, or template) → log sets → finish with an internal note → optionally save as template and share a recap**
+
+> **Updated 23 September 2026 (prototype feedback, `ROADMAP` v1.7).** A workout never needs a prior plan. WL-01 puts *Lege training* first and adds *Vorige training herhalen* (F051, moved from Release 1.1). Sets are prefilled and logged with one tap on their check. WL-05 can save the workout as a template. A workout can also start from a client profile without a planned session.
 
 | | |
 |---|---|
@@ -18,7 +20,9 @@
 | F044 | Previous Workout Display | *Vorige training* column on WL-03 / WL-06 |
 | F045 | Workout History | The result; *Alles bekijken* on TD-02; shared recap in the client profile |
 | F042 | Client Workouts | The assigned workout on WL-01 |
-| F041 | Workout Templates | *Schema kiezen* on WL-01 |
+| F041 | Workout Templates | *Schema kiezen* on WL-01; *Opslaan als schema* on WL-05 |
+| F051 | Repeat Previous Workout | *Vorige training herhalen* on WL-01 |
+| F006 / F020 | Client Profile / Private Sessions | *Nu training starten* on TM-03 creates a private session that starts now |
 | F039 / F040 | Exercise Library / Custom Exercises | WL-04 |
 | F047 / F048 | Session Notes / Note Visibility | WL-05 internal note; WL-08 separate client message and explicit share |
 | F049 | Localized Transactional Emails | EM-12 shared workout email |
@@ -29,9 +33,11 @@
 ```mermaid
 flowchart TD
   td02["TD-02 Sessie"] -- "Training starten" --> hasw{"Training toegewezen?"}
+  tm03["TM-03 Klantprofiel"] -- "Nu training starten<br/>(maakt sessie van nu)" --> wl01
   hasw -- "ja" --> wl02
-  hasw -- "nee" --> wl01["WL-01 Training starten<br/>Schema kiezen · Lege training"]
-  wl01 --> wl02["WL-02 Overzicht"]
+  hasw -- "nee" --> wl01["WL-01 Training starten<br/>Lege training · Vorige herhalen · Schema"]
+  wl01 -- "Lege training" --> wl04
+  wl01 -- "Vorige herhalen / Schema" --> wl02["WL-02 Overzicht"]
   wl02 -- "tik oefening" --> wl03["WL-03 Oefening loggen"]
   wl02 -- "+ Oefening" --> wl04["WL-04 Oefening toevoegen"]
   wl04 -- "uit bibliotheek / nieuw" --> wl03
@@ -46,7 +52,7 @@ flowchart TD
   log -- "volgende set" --> log
   log -- "laatste set" --> diff["Hoe zwaar was het?<br/>Makkelijk · Normaal · Zwaar"]
   diff -- "Volgende oefening" --> wl03
-  wl02 -- "Afronden" --> wl05["WL-05 Training afronden<br/>interne notitie · aanwezig"]
+  wl02 -- "Afronden" --> wl05["WL-05 Training afronden<br/>interne notitie · opslaan als schema · aanwezig"]
   wl05 --> hist["Geschiedenis (F045)<br/>'Vorige keer' voor de volgende sessie"]
   wl05 --> wl08["WL-08 Delen?<br/>bericht voor klant · voorbeeld"]
   wl08 -- "Nu niet" --> td02
@@ -60,40 +66,45 @@ flowchart TD
 
 ### WL-01 · Training starten / Start workout
 
-**Features:** F042, F041 · Only shown when the session has no workout assigned.
+**Features:** F051, F042, F041 · Shown when the session has no workout assigned. An assigned workout opens WL-02 directly.
 
 ```text
 ┌────────────────────────────────────────┐
 │ Annuleren     Training starten         │
 ├────────────────────────────────────────┤
-│ Anna de Vries · di 22 sep 09:00        │
+│ Koen Meijer · di 22 15:00              │
 │                                        │
-│ SCHEMA'S VAN ANNA                      │
-│ Upper A · 5 oefeningen              ›  │
-│ Lower A · 6 oefeningen              ›  │
+│ (+) Lege training                   ›  │
+│     Begin zonder schema en voeg        │
+│     oefeningen toe terwijl je traint.  │
+│ (⟲) Vorige training herhalen        ›  │
+│     Training zonder schema · 17 sep ·  │
+│     3 oefeningen                       │
 │                                        │
-│ ALLE SCHEMA'S                          │
-│ [ Zoek schema…                       ] │
-│ Full body beginner                  ›  │
-│ Push                                ›  │
-│ …                                      │
-│────────────────────────────────────────│
-│ [ Lege training ]                      │
+│ SCHEMA'S VAN KOEN                      │
+│ Full body                           ›  │
+│                                        │
+│ ANDERE SCHEMA'S                        │
+│ Upper A                             ›  │
+│ Lower A                             ›  │
 └────────────────────────────────────────┘
 ```
 
-- **Schema's van Anna** = templates assigned to this client before (F042), most recent first.
-- *Lege training* starts with no exercises (→ WL-04).
-- Repeating the previous session as a copy is *previous-session duplication*, a Release 1.1 item, so it's not here.
+- **Lege training comes first**: training on the fly is a normal way to work, not an exception. It opens WL-02 with WL-04 on top, so the first exercise is one search away.
+- **Vorige training herhalen** (F051) copies the client's last logged workout: same exercises, same number of sets, prefilled with last time's values. Hidden when the client has no history.
+- **Schema's van Koen** = templates used with this client before (F042), most recent first; then the other workspace templates. With many templates, a search field appears above *Andere schema's*.
+- **Without a planned session**: *Nu training starten* on the client profile (TM-03) creates a private session for the trainer that starts now, with the inferred location (F019), then opens WL-01. ⚑ [QE15](../open-questions.md#qe15)
 
 | Element | NL | EN |
 |---|---|---|
 | Title | Training starten | Start workout |
-| Sections | Schema's van {client} · Alle schema's | {client}'s templates · All templates |
+| Empty | Lege training · Begin zonder schema en voeg oefeningen toe terwijl je traint. | Empty workout · Start without a template and add exercises as you train. |
+| Repeat | Vorige training herhalen · {name} · {date} · {count} | Repeat previous workout · {name} · {date} · {count} |
+| Unnamed workout | Training zonder schema | Workout without template |
+| Sections | Schema's van {client} · Andere schema's (· Alle schema's when none are assigned) | {client}'s templates · Other templates (· All templates) |
 | Count | `{n, plural, one {# oefening} other {# oefeningen}}` | `{n, plural, one {# exercise} other {# exercises}}` |
 | Search | Zoek schema… | Search templates… |
-| Empty | Lege training | Empty workout |
-| No templates | Nog geen schema's. Begin met een lege training of maak een schema op het web. | No templates yet. Start an empty workout or create a template on the web. |
+| From profile | Nu training starten · Sessie aangemaakt voor nu, {time} | Start workout now · Session created for now, {time} |
 
 ### WL-02 · Trainingsoverzicht / Workout overview
 
@@ -125,7 +136,8 @@ flowchart TD
 
 - A **full-screen modal** with its own exit: *Sluiten* (keep going later) or *Afronden* (WL-05).
 - Exercise names show in the **UI language** when the library has both (F039: *Bankdrukken* / *Bench press*). Custom exercises show as entered (F040).
-- The bottom bar *Doorgaan* jumps to the next set to log.
+- The bottom bar *Doorgaan* jumps to the next set to log. With every set done it becomes *Training afronden*.
+- **Empty state** (Lege training): *Nog geen oefeningen. Voeg de eerste oefening toe. Wat {client} eerder deed, staat bovenaan.* with *Oefening toevoegen*.
 - Reordering exercises is a Release 1.1 item. Exercises run in template order, but the trainer can open any of them.
 
 | Element | NL | EN |
@@ -150,10 +162,10 @@ flowchart TD
 │ Vorige training · di 15 sep            │
 ├────────────────────────────────────────┤
 │ SET   VORIGE         VANDAAG           │
-│ 1     45 kg × 10     47,5 kg × 10   ✓  │
-│ 2     45 kg × 10   ▶ 47,5 kg × 10      │
-│ 3     45 kg × 9        –               │
-│ [ + Set ]                              │
+│ 1     45 kg × 10     47,5 kg × 10  (✓) │
+│ 2     45 kg × 10   ▶ 47,5 kg × 10  ( ) │
+│ 3     45 kg × 9      47,5 kg × 10  ( ) │
+│ [ + Set toevoegen ]                    │
 ├────────────────────────────────────────┤
 │ Gewicht (kg)                           │
 │ [  −  ]         47,5         [  +  ]   │
@@ -181,11 +193,11 @@ After the last set:
   2. otherwise the previous workout's same set;
   3. otherwise the template target reps, with weight empty.
 
-  Most sets are therefore one tap: *Set klaar*. Changing the weight on set 1 carries over to sets 2 and 3.
-- **Steppers**: weight ± 2,5 kg ⚑ [Q33](../open-questions.md#q33), reps ± 1. Long-press repeats. Tapping the number opens the decimal keyboard.
+  **Every row shows its prefilled value**, so the trainer sees the whole plan for the exercise. Most sets are one tap: the row's check (48 pt/dp) or *Set klaar* for the active set. Changing the weight on set 1 carries over to later sets the trainer hasn't changed. Tapping a checked row's check opens it again.
+- **Steppers**: weight ± 2,5 kg ⚑ [Q33](../open-questions.md#q33), reps ± 1. Long-press repeats. Tapping the number opens the decimal keyboard, for big jumps and for exercises without history (weight starts at 0).
 - **Set klaar** saves the set **locally first**, then syncs (WL-07). The button is at the bottom (thumb zone), full width, at least 56 pt/dp tall, with a haptic tick.
 - **Editing a logged set**: tap its row; the steppers load its values and the button becomes *Set 1 bijwerken*. Delete via swipe (iOS) or long-press menu (Android).
-- **Difficulty** (`§41`: *Makkelijk / Normaal / Zwaar*) is asked **once per exercise**, after the last set ⚑ [Q30](../open-questions.md#q30). It's pre-selected *Normaal* and changing it is one tap.
+- **Difficulty** (`§41`: *Makkelijk / Normaal / Zwaar*) is asked **once per exercise**, shown after the first logged set ⚑ [Q30](../open-questions.md#q30). It's pre-selected *Normaal*, so it costs no tap unless it differs.
 - **Extra sets** beyond the template: *+ Set*. Their *Vorige* cell shows `–` when last time had fewer sets.
 - **Bodyweight / time / distance** exercises: open question ⚑ [Q31](../open-questions.md#q31). Proposal: weight may be empty (shown as *lichaamsgewicht*); time/distance need a data-model change ([QE10](../open-questions.md#qe10)).
 - The screen **stays awake** while the logger is open.
@@ -229,7 +241,8 @@ After the last set:
 ```
 
 - Search matches **Dutch and English names and aliases**, whatever the UI language, so a trainer can type "bench" in a Dutch UI. The name is shown in the UI language; *ook:* shows the matching alias.
-- Empty field: *Recent gebruikt* (this trainer's last 10) first.
+- Empty field: **the client's recent exercises first** (*Recent bij {client}*, with last time's values), then the library. An exercise already in the workout is shown but disabled.
+- The custom-exercise button appears below the results as soon as something is typed. The new exercise gets one set row; its weight starts empty.
 - **Custom exercise**: just a name, stored exactly as typed (F040, no translation). Equipment and muscles are optional and can be filled in later on the web.
 
 | Element | NL | EN |
@@ -237,7 +250,7 @@ After the last set:
 | Title | Oefening toevoegen | Add exercise |
 | Placeholder | Zoek oefening (NL of EN) | Search exercise (Dutch or English) |
 | Alias | ook: {alias} | also: {alias} |
-| Recent | Recent gebruikt | Recently used |
+| Recent | Recent bij {client} | Recent for {client} |
 | New | + Nieuwe oefening "{query}" aanmaken | + Create new exercise "{query}" |
 | Created | Oefening aangemaakt. Je vindt hem terug onder Trainingen. | Exercise created. You'll find it under Workouts. |
 | No results | Geen oefening gevonden. | No exercise found. |
@@ -259,6 +272,10 @@ After the last set:
 │ [ Volgende keer zelfde gewicht.      ] │
 │ Alleen trainers lezen dit.             │
 │────────────────────────────────────────│
+│ Opslaan als schema               [ ◯ ] │
+│ Naam van het schema                    │
+│ [ Koen · 22 september                ] │
+│────────────────────────────────────────│
 │ Aanwezigheid: Aanwezig        Wijzigen │
 ├────────────────────────────────────────┤
 │ [         Training afronden          ] │
@@ -268,7 +285,8 @@ After the last set:
 - The **internal session note** (F047) is free text, stored as typed (`§35–36`). It is *Alleen voor trainers* (`§37`, F048): authorized workspace staff can read it; the client cannot. A separate message for the client is composed in WL-08. The distinction is explicit, without a visibility toggle that could accidentally expose the internal note.
 - **Attendance** is set to *Aanwezig* when a workout is finished ⚑ [Q34](../open-questions.md#q34).
 - Exercises with no sets are listed as *Niet gedaan*. They're kept in the planned workout, but no empty set logs are created.
-- Finishing with **zero sets** asks: *Je hebt nog niets gelogd. Toch afronden?*
+- Finishing with **zero sets** asks: *Je hebt nog niets bijgehouden. Toch afronden?* Confirming closes the workout without history or a share step.
+- **Opslaan als schema** (F041) is offered when the workout didn't come from a template unchanged (empty, repeated, or exercises/sets added). It saves the logged exercises, set count and reps as a template, adds it to *Schema's van {client}*, and names the workout after it. The name defaults to the template's name or *{client} · {date}*.
 - After finishing, the workout becomes history (F045) and is next session's *Vorige training*. Saving alone does not share it. WL-08 can be opened now or later from the finished session.
 
 | Element | NL | EN |
@@ -278,7 +296,9 @@ After the last set:
 | Skipped | Niet gedaan: {list} | Not done: {list} |
 | Note | Notitie voor trainers · Alleen trainers van deze workspace zien dit. | Note for trainers · Only trainers in this workspace see this. |
 | Attendance | Aanwezigheid: Aanwezig · Wijzigen | Attendance: Attended · Change |
-| Zero sets | Je hebt nog niets gelogd. Toch afronden? [ Afronden ] [ Terug ] | You haven't logged anything yet. Finish anyway? [ Finish ] [ Back ] |
+| Zero sets | Je hebt nog niets bijgehouden. Toch afronden? [ Afronden ] [ Terug ] | You haven't logged anything yet. Finish anyway? [ Finish ] [ Back ] |
+| Save as template | Opslaan als schema · Dan kun je deze training later opnieuw kiezen, ook bij {client}. · Naam van het schema | Save as template · Then you can choose this workout again later, also for {client}. · Template name |
+| Saved with template | Training opgeslagen. Schema {name} staat klaar. | Workout saved. Template {name} is ready. |
 | Done | Training opgeslagen. | Workout saved. |
 
 ### WL-08 · Training delen / Share workout
