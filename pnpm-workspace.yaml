@@ -1,0 +1,30 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Fail the install when the Node version doesn't match "engines" in package.json.
+engineStrict: true
+
+# Shared dependency versions. Workspace packages reference them as "catalog:".
+catalog:
+  '@eslint/js': ^9.39.5
+  '@types/node': ^24.0.0
+  '@types/react': ^19.2.0
+  '@types/react-dom': ^19.2.0
+  eslint: ^9.39.5
+  eslint-config-next: 16.3.5
+  eslint-config-prettier: ^10.1.8
+  globals: ^16.4.0
+  next: 16.3.5
+  prettier: ^3.8.1
+  react: ^19.3.0
+  react-dom: ^19.3.0
+  turbo: ^2.11.2
+  typescript: ~6.0.3
+  typescript-eslint: ^8.70.1
+  vitest: ^5.0.1
+
+# Dependencies allowed to run install scripts. unrs-resolver's postinstall only
+# re-fetches a native binary that pnpm already installs as an optional dependency.
+allowBuilds:
+  unrs-resolver: false

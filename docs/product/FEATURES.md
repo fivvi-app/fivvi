@@ -126,7 +126,7 @@ These are not user-facing, so they don't need NL/EN columns. They still go throu
 
 | ID | Enabler | Status | Milestone | Notes |
 |---|---|---|---|---|
-| E001 | Monorepo & tooling | PLANNED | M1 | pnpm, Turborepo, TS strict, ESLint, Prettier; `apps/ios` (Xcode) and `apps/android` (Gradle) in the same repo (ADR-001) |
+| E001 | Monorepo & tooling | IN REVIEW | M1 | pnpm workspaces + Turborepo (`lint`, `typecheck`, `test`, `build`, `format:check`), Node 24 + pnpm pinned, TS strict, ESLint (type-aware + Next.js), Prettier; empty `apps/web` Next.js skeleton. `apps/ios` / `apps/android` and SwiftLint/ktlint come with E008 (ADR-001) |
 | E002 | CI pipeline | PLANNED | M1 | Lint, typecheck, test, build, required checks on `main`; path-filtered iOS jobs (free macOS minutes) |
 | E003 | Environments & deployment | PLANNED | M1 | local, preview (Railway PR environment with seeded Postgres), production (Railway EU West, Amsterdam); cron service (ADR-011) |
 | E004 | Database, ORM & migrations | PLANNED | M1 | Postgres + Drizzle, seed data (ADR-005) |

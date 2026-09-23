@@ -1,10 +1,14 @@
 # Dependencies
 node_modules/
+.pnpm-store/
 
 # Build output
 dist/
 build/
+out/
 .next/
+next-env.d.ts
+*.tsbuildinfo
 .turbo/
 .expo/
 coverage/
@@ -16,6 +20,7 @@ coverage/
 
 # Local git worktrees (one per branch, see docs/engineering/WORKFLOW.md)
 .worktrees/
+.claude/worktrees/
 
 # Local tooling
 .claude/settings.local.json
