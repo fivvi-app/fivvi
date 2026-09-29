@@ -1,0 +1,5 @@
+{
+  "hello.greeting": "Greeting above the home screen. {name} is the user's first name.",
+  "hello.sessionsToday": "Number of sessions the trainer has today, 1 or more. For 0, use hello.noSessionsToday.",
+  "hello.nextSession": "{date} is a weekday and date without year, e.g. 'dinsdag 22 september'. {time} is a 24-hour time, e.g. '18:00'. Both are formatted in code in the workspace time zone."
+}

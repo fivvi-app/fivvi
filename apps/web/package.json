@@ -13,7 +13,9 @@
     "format:check": "biome format ."
   },
   "dependencies": {
+    "@trainer-hub/i18n": "workspace:*",
     "next": "catalog:",
+    "next-intl": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },

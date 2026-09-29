@@ -10,6 +10,7 @@ engineStrict: true
 catalog:
   # Exact: we enable nursery rules, which may change in minor releases.
   '@biomejs/biome': 2.5.14
+  '@formatjs/icu-messageformat-parser': ^3.5.20
   '@types/node': ^26.6.2
   '@types/pg': ^8.23.1
   '@types/react': ^19.3.0
@@ -17,6 +18,7 @@ catalog:
   drizzle-kit: ^0.31.11
   drizzle-orm: ^0.45.3
   next: 16.3.6
+  next-intl: ^4.14.6
   pg: ^8.23.0
   react: ^19.3.0
   react-dom: ^19.3.0
@@ -39,7 +41,12 @@ minimumReleaseAgeExclude:
   - '@next/swc-win32-arm64-msvc@16.3.6'
   - '@next/swc-win32-x64-msvc@16.3.6'
 
-# Dependency install scripts we have reviewed. esbuild (via drizzle-kit) works
-# without its postinstall step, because pnpm installs the platform binary anyway.
+# Dependency install scripts we have reviewed and keep disabled:
+# - esbuild (via drizzle-kit) works without its postinstall step, because pnpm
+#   installs the platform binary anyway.
+# - @parcel/watcher and @swc/core belong to next-intl's optional message
+#   extractor, which we don't use.
 allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
   esbuild: false

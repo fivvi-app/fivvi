@@ -21,6 +21,7 @@
     "test": "turbo run test",
     "test:integration": "turbo run test:integration",
     "format:check": "turbo run format:check",
+    "check": "turbo run check",
     "format:check:root": "biome format ./*.json",
     "format": "biome format --write .",
     "fix": "biome check --write .",

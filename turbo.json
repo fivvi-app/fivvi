@@ -4,7 +4,7 @@
   "globalDependencies": [".nvmrc", "tsconfig.base.json", "biome.json", ".gitignore"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "typecheck"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "typecheck": {
@@ -20,6 +20,9 @@
       "dependsOn": ["^build"],
       "cache": false,
       "passThroughEnv": ["TEST_DATABASE_URL", "DATABASE_URL"]
+    },
+    "check": {
+      "dependsOn": ["^build"]
     },
     "format:check": {
       "dependsOn": ["//#format:check:root"]

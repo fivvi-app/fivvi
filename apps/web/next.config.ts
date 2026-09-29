@@ -1,9 +1,14 @@
 import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   typedRoutes: true,
+  // Workspace packages ship TypeScript source.
+  transpilePackages: ['@trainer-hub/i18n'],
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

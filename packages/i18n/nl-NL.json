@@ -1,0 +1,13 @@
+{
+  "hello": {
+    "title": "Welkom bij Trainer Hub",
+    "greeting": "Hoi {name},",
+    "sessionsToday": "{count, plural, one {Je hebt vandaag # sessie.} other {Je hebt vandaag # sessies.}}",
+    "noSessionsToday": "Je hebt vandaag geen sessies.",
+    "nextSession": "Je volgende sessie is op {date} om {time}."
+  },
+  "notFound": {
+    "title": "Pagina niet gevonden",
+    "body": "We kunnen deze pagina niet vinden. Controleer de link en probeer het opnieuw."
+  }
+}
