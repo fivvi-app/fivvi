@@ -48,12 +48,12 @@ Adding a template: write `src/templates/<type>.tsx`, add the keys to both catalo
 
 | Failure | Retried? |
 |---|---|
-| Network error, timeout (10 s per attempt) | Yes |
+| Network error, timeout (5 s per attempt) | Yes |
 | HTTP 429 | Yes, after `Retry-After` / `x-sib-ratelimit-reset`; gives up at once if that is more than 2 s |
 | HTTP 5xx | Yes |
 | Other 4xx (invalid address, 401 wrong key or unauthorized IP, out of credits, …) | No |
 
-- At most **3 attempts**, full-jitter exponential backoff (≤ 250 ms, then ≤ 500 ms). The worst case adds about a second to the request.
+- At most **3 attempts**, full-jitter exponential backoff (≤ 250 ms, then ≤ 500 ms), so the waits add at most 0.75 s. The worst case, three timeouts, holds the request for about 16 s; Brevo normally answers well within a second.
 - Every send gets a UUID **idempotency key**, reused on each retry. Brevo processes a key once within 30 minutes, so a retry after a lost response doesn't send twice. A `duplicate_parameter` answer on a retry counts as sent.
 - After the last attempt it throws `EmailSendError`. Its `message` holds only the provider, status and error code (never the recipient, content or API key), so it is safe to log and to report to Sentry (E009). The provider's own message is in `detail`.
 - `onRetry` is called before each retry, for logging.

@@ -18,7 +18,7 @@ export interface BrevoTransportOptions {
 export function createBrevoTransport({
   apiKey,
   fetch: fetchFn = fetch,
-  timeoutMs = 10_000,
+  timeoutMs = 5_000,
 }: BrevoTransportOptions): EmailTransport {
   return {
     name: 'brevo',
