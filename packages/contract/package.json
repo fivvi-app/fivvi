@@ -21,6 +21,7 @@
     "@biomejs/biome": "catalog:",
     "@hono/zod-openapi": "catalog:",
     "@trainer-hub/api": "workspace:*",
+    "@trainer-hub/testing": "workspace:*",
     "@trainer-hub/typescript-generator": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",

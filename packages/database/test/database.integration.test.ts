@@ -1,18 +1,24 @@
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import {
+  cloneTemplateDatabase,
+  createTestDatabase,
+  type TestDatabase,
+  withRollback,
+} from '@trainer-hub/testing/database';
 import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   createDatabase,
   type DatabaseClient,
+  type DatabaseExecutor,
   findSystemGreeting,
   systemGreetings,
 } from '../src/index.ts';
 import { migrationsFolder, runMigrations } from '../src/migrate.ts';
 import { HELLO_GREETING, seed } from '../src/seed.ts';
-import { createTestDatabase, type TestDatabase } from './support/test-database.ts';
 
 /**
  * Tables that are not business data and therefore have no `organization_id`.
@@ -28,10 +34,11 @@ async function readJournal(folder: string): Promise<Journal> {
   return JSON.parse(await readFile(join(folder, 'meta', '_journal.json'), 'utf8')) as Journal;
 }
 
-async function rows<T>(client: DatabaseClient, query: ReturnType<typeof sql>): Promise<T[]> {
-  return (await client.db.execute(query)).rows as T[];
+async function rows<T>(db: DatabaseExecutor, query: ReturnType<typeof sql>): Promise<T[]> {
+  return (await db.execute(query)).rows as T[];
 }
 
+// Migration tests start from an empty database and commit, so each gets its own.
 async function withFreshDatabase(test: (client: DatabaseClient) => Promise<void>): Promise<void> {
   const database = await createTestDatabase();
   const client = createDatabase({ url: database.url, maxConnections: 2 });
@@ -59,7 +66,7 @@ describe('E004 migrations', () => {
 
       const journal = await readJournal(migrationsFolder);
       const applied = await rows<{ count: number }>(
-        client,
+        client.db,
         sql`select count(*)::int as count from drizzle.__drizzle_migrations`,
       );
       expect(journal.entries.length).toBeGreaterThan(0);
@@ -95,7 +102,7 @@ describe('E004 migrations', () => {
 
       const journal = await readJournal(migrationsFolder);
       const applied = await rows<{ count: number }>(
-        client,
+        client.db,
         sql`select count(*)::int as count from drizzle.__drizzle_migrations`,
       );
       expect(applied[0]?.count).toBe(journal.entries.length);
@@ -104,17 +111,16 @@ describe('E004 migrations', () => {
 });
 
 describe('E004 database', () => {
+  // One migrated clone for this file; every test runs in a transaction that is rolled
+  // back, so tests see an empty, migrated database and never each other's rows.
   let database: TestDatabase;
   let client: DatabaseClient;
+  let db: DatabaseClient['db'];
 
   beforeAll(async () => {
-    database = await createTestDatabase();
+    database = await cloneTemplateDatabase();
     client = createDatabase({ url: database.url, maxConnections: 2 });
-    await runMigrations(client.db);
-  });
-
-  afterEach(async () => {
-    await client.db.delete(systemGreetings);
+    db = client.db;
   });
 
   afterAll(async () => {
@@ -124,69 +130,86 @@ describe('E004 database', () => {
 
   describe('seed', () => {
     it('is idempotent', async () => {
-      await seed(client.db);
-      await seed(client.db);
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
 
-      expect(await client.db.$count(systemGreetings)).toBe(1);
-      expect(await findSystemGreeting(client.db, 'hello')).toEqual(HELLO_GREETING);
+        expect(await tx.$count(systemGreetings)).toBe(1);
+        expect(await findSystemGreeting(tx, 'hello')).toEqual(HELLO_GREETING);
+      });
     });
 
     it('restores a changed greeting when run again', async () => {
-      await seed(client.db);
-      await client.db.update(systemGreetings).set({ i18nKey: 'system.changed' });
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await tx.update(systemGreetings).set({ i18nKey: 'system.changed' });
 
-      await seed(client.db);
+        await seed(tx);
 
-      expect(await findSystemGreeting(client.db, 'hello')).toEqual(HELLO_GREETING);
+        expect(await findSystemGreeting(tx, 'hello')).toEqual(HELLO_GREETING);
+      });
     });
 
     it('stores the greeting as an i18n key, not as copy', async () => {
-      await seed(client.db);
+      await withRollback(db, async (tx) => {
+        await seed(tx);
 
-      const [row] = await client.db.select().from(systemGreetings);
-      expect(row?.i18nKey).toBe('system.hello');
+        const [row] = await tx.select().from(systemGreetings);
+        expect(row?.i18nKey).toBe('system.hello');
+      });
     });
   });
 
   describe('system greetings', () => {
     it('returns undefined for an unknown slug', async () => {
-      await seed(client.db);
+      await withRollback(db, async (tx) => {
+        await seed(tx);
 
-      expect(await findSystemGreeting(client.db, 'goodbye')).toBeUndefined();
+        expect(await findSystemGreeting(tx, 'goodbye')).toBeUndefined();
+      });
     });
 
     it.each(['Hallo, welkom bij Trainer Hub!', 'hello', 'system hello'])(
       'rejects %j as an i18n key',
       async (i18nKey) => {
-        await expect(
-          client.db.insert(systemGreetings).values({ slug: 'hello', i18nKey }),
-        ).rejects.toMatchObject({ cause: { constraint: 'system_greetings_i18n_key_format' } });
+        await withRollback(db, async (tx) => {
+          await expect(
+            tx.insert(systemGreetings).values({ slug: 'hello', i18nKey }),
+          ).rejects.toMatchObject({ cause: { constraint: 'system_greetings_i18n_key_format' } });
+        });
       },
     );
 
     it('refreshes updated_at on update and keeps created_at', async () => {
-      const longAgo = new Date('2000-01-01T00:00:00Z');
-      await client.db
-        .insert(systemGreetings)
-        .values({ ...HELLO_GREETING, createdAt: longAgo, updatedAt: longAgo });
+      await withRollback(db, async (tx) => {
+        const longAgo = new Date('2000-01-01T00:00:00Z');
+        await tx
+          .insert(systemGreetings)
+          .values({ ...HELLO_GREETING, createdAt: longAgo, updatedAt: longAgo });
 
-      await client.db.update(systemGreetings).set({ i18nKey: 'system.helloAgain' });
+        await tx.update(systemGreetings).set({ i18nKey: 'system.helloAgain' });
 
-      const [row] = await client.db.select().from(systemGreetings);
-      expect(row?.createdAt).toEqual(longAgo);
-      expect(row?.updatedAt.getTime()).toBeGreaterThan(longAgo.getTime());
+        const [row] = await tx.select().from(systemGreetings);
+        expect(row?.createdAt).toEqual(longAgo);
+        expect(row?.updatedAt.getTime()).toBeGreaterThan(longAgo.getTime());
+      });
     });
+  });
+
+  // Runs after the tests above, which Vitest guarantees within a file.
+  it('leaves nothing behind: every test above was rolled back', async () => {
+    expect(await db.$count(systemGreetings)).toBe(0);
   });
 
   describe('conventions', () => {
     it('runs every session in UTC', async () => {
-      const [setting] = await rows<{ TimeZone: string }>(client, sql`show timezone`);
+      const [setting] = await rows<{ TimeZone: string }>(db, sql`show timezone`);
       expect(setting?.TimeZone).toBe('UTC');
     });
 
     it('stores every timestamp column as timestamptz', async () => {
       const columns = await rows<{ table_name: string; column_name: string; data_type: string }>(
-        client,
+        db,
         sql`select table_name, column_name, data_type from information_schema.columns
             where table_schema = 'public' and data_type like 'timestamp%'`,
       );
@@ -200,7 +223,7 @@ describe('E004 database', () => {
 
     it('gives every table a uuid primary key named id', async () => {
       const keys = await rows<{ table_name: string; columns: string[]; types: string[] }>(
-        client,
+        db,
         sql`select c.relname as table_name,
                    array_agg(a.attname::text) as columns,
                    array_agg(format_type(a.atttypid, a.atttypmod)) as types
@@ -211,7 +234,7 @@ describe('E004 database', () => {
             where i.indisprimary and n.nspname = 'public'
             group by c.relname`,
       );
-      const tables = await publicTables(client);
+      const tables = await publicTables(db);
       expect(keys.map((key) => key.table_name).sort()).toEqual(tables);
       for (const key of keys) {
         expect(key, key.table_name).toMatchObject({ columns: ['id'], types: ['uuid'] });
@@ -219,9 +242,9 @@ describe('E004 database', () => {
     });
 
     it('puts organization_id on every business table', async () => {
-      const tables = await publicTables(client);
+      const tables = await publicTables(db);
       const withOrganization = await rows<{ table_name: string }>(
-        client,
+        db,
         sql`select table_name from information_schema.columns
             where table_schema = 'public' and column_name = 'organization_id'`,
       );
@@ -237,9 +260,9 @@ describe('E004 database', () => {
   });
 });
 
-async function publicTables(client: DatabaseClient): Promise<string[]> {
+async function publicTables(db: DatabaseExecutor): Promise<string[]> {
   const tables = await rows<{ table_name: string }>(
-    client,
+    db,
     sql`select table_name from information_schema.tables
         where table_schema = 'public' and table_type = 'BASE TABLE'
         order by table_name`,

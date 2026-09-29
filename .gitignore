@@ -13,6 +13,11 @@ next-env.d.ts
 .expo/
 coverage/
 
+# Playwright output (apps/web)
+playwright-report/
+test-results/
+blob-report/
+
 # Swift packages (packages/contract)
 .build/
 .swiftpm/

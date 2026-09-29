@@ -1,8 +1,3 @@
-import { defineConfig } from 'vitest/config';
+import { unitConfig } from '@trainer-hub/testing/vitest';
 
-export default defineConfig({
-  test: {
-    environment: 'node',
-    include: ['test/**/*.test.ts'],
-  },
-});
+export default unitConfig();

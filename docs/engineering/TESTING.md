@@ -17,17 +17,19 @@ How we test Trainer Hub so that AI agents and humans can change it often without
 | Layer | Tool | Lives in | Proves | Speed |
 |---|---|---|---|---|
 | **Domain unit** | Vitest | `packages/domain/**/*.test.ts` (next to the code) | Business rules: recurrence, capacity, holds, permissions matrix, time and locale formatting | ms, no I/O |
-| **API integration** | Vitest + real Postgres | `packages/api/test/` | Routes end to end in-process: validation, auth, roles, tenant scoping, RLS, transactions, migrations, response matches the OpenAPI schema | seconds |
-| **Tenant isolation suite** (E011) | Vitest + real Postgres | `packages/api/test/isolation/` | Workspace A can never read or write workspace B's data, through **any** route (§4.1) | seconds |
+| **API integration** | Vitest + real Postgres | `packages/api/test/**/*.integration.test.ts` | Routes end to end in-process: validation, auth, roles, tenant scoping, RLS, transactions, migrations, response matches the OpenAPI schema | seconds |
+| **Tenant isolation suite** (E011) | Vitest + real Postgres | `packages/api/test/isolation/*.integration.test.ts` | Workspace A can never read or write workspace B's data, through **any** route (§4.1) | seconds |
 | **Email** | Vitest | `packages/email/**/*.test.ts` | Every template renders in nl-NL and en with no missing keys; links and dates are correct | ms |
 | **Web component** | Vitest + Testing Library | `apps/web/**/*.test.tsx` | Only for components with real logic (forms, pickers, stateful widgets). Not for static markup | ms |
-| **Web e2e** | Playwright | `apps/web/e2e/` | Critical user flows in a real browser, **in NL and EN**, with axe accessibility checks; mobile viewport for public pages | minutes |
+| **Web e2e** | Playwright | `apps/web/e2e/*.spec.ts` | Critical user flows in a real browser, **in NL and EN**, with axe accessibility checks; mobile viewport for public pages | minutes |
 | **iOS unit** | XCTest | `apps/ios/TrainerHubTests/` | View models, state handling, API-client mapping, error states | seconds |
 | **iOS UI** | XCUITest | `apps/ios/TrainerHubUITests/` | A few platform-specific flows Maestro can't cover | minutes |
 | **Android unit** | JUnit | `apps/android/app/src/test/` | View models, state handling, API-client mapping, error states | seconds |
 | **Android UI** | Compose UI tests | `apps/android/app/src/androidTest/` | Screen states and interactions | minutes |
 | **Mobile e2e** | Maestro | `e2e/maestro/` | **The same flow YAML on iOS and Android**, in both locales. This is the parity acceptance test (M8) | minutes |
 | **Static checks** | CI (E002, E005, E018) | — | Lint, typecheck, i18n parity, ICU syntax, no hard-coded strings, OpenAPI drift, generated clients up to date | seconds |
+
+The file name picks the suite: `*.test.ts(x)` is a unit test (`pnpm test`, no database), `*.integration.test.ts` an integration test (`pnpm test:integration`, real Postgres), and `apps/web/e2e/*.spec.ts` a Playwright spec (`pnpm test:e2e`). The shared Vitest presets in `packages/testing` (`unitConfig`, `integrationConfig`) apply this split, run tests with `TZ=UTC`, restore mocks, stubbed env and globals after every test, and turn retries off.
 
 Rough shape: many domain tests, a solid layer of API integration tests, a small number of e2e flows. If an e2e test is the only thing catching a rule, add a lower-level test for that rule.
 
@@ -83,20 +85,34 @@ These are the bugs that hurt most (`ROADMAP.md §13`: R2, R3, R4). They get dedi
 
 ### 5.2 Test data
 
-- **Factories, not fixtures files.** Shared builders live in `packages/testing` (e.g. `createWorkspace()`, `createTrainer(ws)`, `createClass(ws, { capacity: 1 })`). They create valid records with sensible defaults, so a test only states what matters to it.
+- **Factories, not fixtures files.** Shared builders will live in `packages/testing` once the first business tables exist (M2), e.g. `createWorkspace()`, `createTrainer(ws)`, `createClass(ws, { capacity: 1 })`. They create valid records with sensible defaults, so a test only states what matters to it.
 - **Every test creates its own workspace.** Tests never depend on each other's data or on order, and they can run in parallel. This also exercises tenant scoping by default.
 - **Seed data is for local development and the e2e baseline only.** Tests don't modify shared seed data.
 - **No real personal data**, ever. Use obviously fake names and `@example.com` addresses.
 
 ### 5.3 Database
 
-- Local: Postgres in Docker (same major version as production). CI: a Postgres service container. Never run tests against the Railway production or preview databases.
-- Migrations are applied once per test run; each test worker gets its own database, so workers don't interfere.
+- Local: Postgres in Docker (`pnpm db:up`, same major version as production). CI: a `postgres:18-alpine` service container in `Checks (Linux)`. Never run tests against the Railway production or preview databases: the helpers refuse any server that isn't on `localhost`.
+- Tests never share data. `@trainer-hub/testing/database` isolates them at three levels:
+
+| Level | How | Helper |
+|---|---|---|
+| **Run** | The package's Vitest global setup creates a **template database** and applies the migrations once. Nobody may connect to it afterwards. Teardown drops the template and every database the run created | `setupTemplateDatabase(migrate)` from `@trainer-hub/testing/database/setup`, in `test/global-setup.ts` |
+| **Test file** | `beforeAll` clones the template into the file's own database (`CREATE DATABASE … TEMPLATE`, milliseconds, no migrations), `afterAll` drops it. Files run in parallel on different workers without seeing each other | `cloneTemplateDatabase()` |
+| **Test** | The test body runs in one transaction that is **always rolled back**, so every test starts from the migrated, empty state | `withRollback(db, async (tx) => …)` |
+
+- **Transaction rollback is the default** for API integration tests and the E011 isolation suite. It fits the RLS model: the per-request context (`SET LOCAL ROLE`, `set_config('app.organization_id', …, true)`) is transaction-local, so a test sets it inside `withRollback` and it disappears with the rollback. For this to work, code under test takes the executor it runs on (`DatabaseExecutor`: the database or a transaction) instead of opening its own pool, and the in-process API gets its executor injected per request.
+- **Commit instead** when rollback can't prove the behaviour: concurrency tests with separate connections (§4.2), anything a second connection must see, deferred constraints (checked only at commit), `now()` differences (it is the transaction's start time inside one transaction), and migrations. Such a test creates its own database, `cloneTemplateDatabase()` (migrated) or `createTestDatabase()` (empty, for migration tests), and drops it in `finally`.
+- **Rejected: a schema per worker.** RLS policies, grants and the migrator's `drizzle` schema are schema-qualified, so `search_path` tricks would test a different setup than production. A database clone keeps the real schema names and is just as fast.
+- **Roles are per server, not per database** (E011): create the app role and the migration role idempotently in the global setup, before the template is migrated; a clone doesn't copy them.
 - Concurrency tests use real, separate connections and are allowed to be slower.
 
 ### 5.4 Time, locale and external services
 
-- **Clock:** domain code gets "now" from an injected `Clock`, never `Date.now()` / `Date()` / `new Date()` directly. Tests use a fixed clock. The test process runs with `TZ=UTC` so the machine's timezone never leaks in.
+- **Clock:** domain code gets "now" from an injected `Clock` (`{ now(): Date }`), never `Date.now()` / `Date()` / `new Date()` directly. Tests use a fixed clock. The test process runs with `TZ=UTC` so the machine's timezone never leaks in. `@trainer-hub/testing/clock` has the helpers:
+  - `fixedClock(instant)`, `manualClock(start)` with `advance({ hours: 25 })`, and `freezeSystemTime(instant)` for code that can't take a clock (it restores the real clock after the test);
+  - `zonedTime('2026-03-31T18:00')` turns Europe/Amsterdam wall-clock time into an instant, and `wallTime(instant)` goes back. A time in the skipped or repeated DST hour throws unless the test passes `disambiguation` (`earlier`, `later`, `compatible`), so no test picks one by accident;
+  - `dstTransitions(2026)` gives the §4.3 fixtures from the time zone database: the instant, local date, offsets and the skipped/repeated hour of the March and October changes.
 - **Locale-independent selectors:** e2e and UI tests find elements by role + accessible name from the catalog, or by test ID / accessibility identifier, so **the same test runs in both locales**. Assert on visible text only where the text is the point, and read it from `packages/i18n`, never hard-code Dutch or English in a test.
 - **Mock only at boundaries:** email provider (a capture transport that records to, locale, subject and links), Cloudflare Turnstile (official test keys), Sentry/PostHog (disabled), the clock. Don't mock the database, the domain package or our own API.
 - **No network** in unit and integration tests. E2E hits only our own local stack.
@@ -123,14 +139,53 @@ The reviewer checks this table against the code.
 | When | What runs |
 |---|---|
 | **Locally, before opening a PR** | Everything for the areas you touched. Agents paste the commands and results in the PR description. Mobile changes: build and run the unit tests and the affected Maestro flows on both platforms locally |
-| **Every PR (Linux, required)** | Static checks, domain unit, API integration, isolation suite, email, web component, Playwright (NL + EN), Android unit + Compose tests |
+| **Every PR (Linux, required)** | `Checks (Linux)`: static checks, domain unit, API integration, isolation suite, email, web component. `E2E (Linux)`: Playwright (NL + EN). `Android`: unit + Compose tests (E008) |
 | **PR touching `apps/ios` or the contract (macOS, required when triggered)** | iOS build, XCTest, XCUITest. Path-filtered to save macOS minutes (ROADMAP §12) |
 | **PR touching mobile apps, contract or strings** | Maestro flows on the platforms affected. If CI minutes run short, Maestro runs locally and nightly instead; the PR description must say it ran |
 | **Before a TestFlight / Play internal build** | Full suite on both platforms, both locales |
 
 **Budget:** keep the required Linux checks under ~10 minutes. If they get slower, speed them up (parallelise, move logic tests down a layer), don't drop them.
 
-Commands (`pnpm test`, `pnpm test:integration`, `pnpm test:e2e`, …) are defined in E010. Add them to this section when E010 lands.
+### 7.1 Commands
+
+Run from the repo root. Turbo runs the task in every package that has it; add `--filter <package>` to run one package, e.g. `pnpm test --filter @trainer-hub/database`.
+
+| Command | Runs | Needs |
+|---|---|---|
+| `pnpm test` | Every unit suite (`*.test.ts(x)`) | Nothing |
+| `pnpm test:integration` | Every integration suite (`*.integration.test.ts`) against real Postgres | `pnpm db:up`, and `TEST_DATABASE_URL` set to it (below) |
+| `pnpm test:e2e` | Builds `apps/web`, starts it on port 3100 (`E2E_PORT`) and runs every Playwright spec in **nl-NL and en** with axe | Chromium, once: `pnpm --filter @trainer-hub/web exec playwright install chromium --only-shell` |
+| `pnpm lint`, `pnpm typecheck`, `pnpm check`, `pnpm format:check` | Static checks (§2) | Nothing |
+
+```bash
+pnpm db:up
+export TEST_DATABASE_URL=postgres://trainer_hub:trainer_hub@localhost:5432/trainer_hub
+pnpm test:integration
+```
+
+`TEST_DATABASE_URL` falls back to `DATABASE_URL`; `packages/database` also reads either from its git-ignored `.env`. Without one, integration tests fail with a message instead of being skipped. Tests only create and drop their own `trainer_hub_test_*` databases, so they don't disturb the dev database on the same server.
+
+Inside a package, `pnpm exec vitest` watches unit tests, `pnpm exec vitest --config vitest.integration.config.ts` integration tests, and in `apps/web`, `pnpm exec playwright test --ui` debugs e2e specs (after `pnpm build`). Playwright writes `playwright-report/` and `test-results/` (git-ignored); CI uploads them when `E2E (Linux)` fails.
+
+**Writing a Playwright spec:** import `test` and `expect` from `apps/web/e2e/fixtures.ts`. Each spec runs once per locale project (`nl-NL`, `en`); the browser language is set to the project's locale. The `messages` fixture is that locale's catalog, `otherLocale` the other one, for switching. Every test ends with an automatic axe check (WCAG 2.2 A and AA) on the page it left open; call `expectNoAxeViolations(page, 'the open dialog')` for states in between.
+
+### 7.2 Native tests (E008)
+
+The native apps don't exist yet, so these suites can't run. E008 creates them and must add:
+
+| Suite | Location | E008 adds |
+|---|---|---|
+| **iOS unit** (XCTest) | `apps/ios/TrainerHubTests/` | A unit test target in the Xcode project and a shared scheme with a **test plan** that runs every test twice: once with `-AppleLanguages (nl)` / `-AppleLocale nl_NL`, once with `(en)` / `en_GB`, time zone `Europe/Amsterdam` |
+| **iOS UI** (XCUITest) | `apps/ios/TrainerHubUITests/` | A UI test target in the same scheme and test plan. Find elements by `accessibilityIdentifier`, never by visible text |
+| **Android unit** (JUnit) | `apps/android/app/src/test/` | JUnit dependencies in the app module; run with `./gradlew testDebugUnitTest`. Locale-dependent tests run for `nl-NL` and `en` (parameterised) |
+| **Android UI** (Compose UI tests) | `apps/android/app/src/androidTest/` | `androidx.compose.ui:ui-test-junit4` and the `testInstrumentationRunner`; run with `./gradlew connectedDebugAndroidTest` on an emulator. Find nodes by `testTag`, never by visible text |
+| **Mobile e2e** (Maestro) | `e2e/maestro/` at the repo root, one flow per feature (`<feature>.yaml`) plus a shared `config.yaml` | The **same flow file** runs on both apps: the apps use the same `accessibilityIdentifier` / `testTag` for the same element, and one bundle/application id per platform goes in the flow's `env`. Each flow runs once per locale, by setting the device or simulator language before launch |
+
+Also for E008:
+
+- **Scripts** so every suite starts the same way: `pnpm test:ios`, `pnpm test:android` and `pnpm test:maestro`, each wrapping the native command above. Add them to §7.1.
+- **CI:** replace the `iOS` and `Android` placeholder jobs (keep the job names) with build + unit + UI tests; run Maestro on the platforms a PR touches, or nightly when CI minutes run short (§7).
+- **Selectors:** assert on visible text only where the text is the point, and read the expected copy from the generated catalogs, like the web does (§5.4).
 
 ## 8. Flaky tests
 

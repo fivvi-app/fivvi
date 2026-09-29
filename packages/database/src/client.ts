@@ -1,9 +1,16 @@
-import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { drizzle, type NodePgDatabase, type NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
+import type { PgDatabase } from 'drizzle-orm/pg-core';
 import pg from 'pg';
 import { type DatabaseConfig, readDatabaseConfig } from './env.ts';
 import * as schema from './schema/index.ts';
 
 export type Database = NodePgDatabase<typeof schema>;
+
+/**
+ * The database or a transaction on it. Queries and seeds take this, so they also run
+ * inside a transaction: a request's RLS context (E011) or a `withRollback` test.
+ */
+export type DatabaseExecutor = PgDatabase<NodePgQueryResultHKT, typeof schema>;
 
 export interface DatabaseClient {
   db: Database;
