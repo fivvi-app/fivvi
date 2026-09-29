@@ -1,0 +1,29 @@
+{
+  "name": "@trainer-hub/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./nl-NL.json": "./nl-NL.json",
+    "./en.json": "./en.json"
+  },
+  "scripts": {
+    "generate": "node src/cli.ts generate",
+    "check": "node src/cli.ts check",
+    "check:parity": "node src/cli.ts check parity",
+    "check:icu": "node src/cli.ts check icu",
+    "check:generated": "node src/cli.ts check generated",
+    "lint": "biome check --formatter-enabled=false --error-on-warnings .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "format:check": "biome format ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@formatjs/icu-messageformat-parser": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

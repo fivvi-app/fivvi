@@ -1,4 +1,10 @@
-// Intentionally empty: no user-facing copy until the i18n package lands (E005).
+import { useTranslations } from 'next-intl';
+
 export default function HomePage() {
-  return <main />;
+  const t = useTranslations('hello');
+  return (
+    <main>
+      <h1>{t('title')}</h1>
+    </main>
+  );
 }

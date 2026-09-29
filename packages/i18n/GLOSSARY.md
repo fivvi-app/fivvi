@@ -94,7 +94,7 @@ Timestamps are stored in UTC. Render them in the **workspace timezone** (default
 ### 3.1 Formatting rules
 
 - **Always format with the platform formatter** (`Intl.DateTimeFormat`/next-intl on web, `FormatStyle`/`DateFormatter` on iOS, `java.time` `DateTimeFormatter` on Android) with an explicit locale and timezone. Never build date strings by hand or hard-code month/weekday names in the catalog.
-- **Pass formatted values into placeholders.** Until E005 decides otherwise, format dates, times and numbers in code and pass the result as a plain `{date}` / `{time}` argument. ICU `{d, date, …}` skeletons don't survive export to `.xcstrings`/`strings.xml` reliably.
+- **Pass formatted values into placeholders.** Format dates, times and numbers in code (web: `dateTimeFormats` from `@trainer-hub/i18n`) and pass the result as a plain `{date}` / `{time}` argument. ICU `{d, date, …}` skeletons don't survive export to `.xcstrings`/`strings.xml`, so the `icu` check rejects them (E005).
 - **Formatting locale for English is `en-GB`**, not `en`/`en-US` (owner decision, 2026-09-22). Our English users are in the Netherlands and expect day-month order and 24-hour time. The catalog locale stays `en`; E005 maps it to `en-GB` for formatting.
 - **24-hour time in both languages.** No AM/PM, and no "uur" after the time in UI labels.
 - **Weeks start on Monday** in both languages.
@@ -125,12 +125,14 @@ Timestamps are stored in UTC. Render them in the **workspace timezone** (default
 
 ### 3.3 Plurals and placeholders (ICU)
 
-- Dutch and English both use the plural categories `one` and `other`. Add `=0` when zero needs its own wording.
+- Dutch and English both use the plural categories `one` and `other`, and every plural needs both. When zero needs its own wording, use a separate key and choose it in code: Android ignores `=0` in Dutch and English, so the `icu` check rejects exact selectors (E005).
 - Always write full sentences with placeholders. **Never concatenate fragments**, because Dutch word order differs (the verb moves to the end in subordinate clauses).
 
 ```json
-"booking.spotsAvailable": "{count, plural, =0 {Vol} one {Nog # plek beschikbaar} other {Nog # plekken beschikbaar}}"
-"booking.spotsAvailable": "{count, plural, =0 {Full} one {# spot left} other {# spots left}}"
+"booking.spotsAvailable": "{count, plural, one {Nog # plek beschikbaar} other {Nog # plekken beschikbaar}}"
+"booking.spotsAvailable": "{count, plural, one {# spot left} other {# spots left}}"
+"booking.full": "Vol"
+"booking.full": "Full"
 ```
 
 ---
@@ -427,10 +429,10 @@ Follow this whenever you add or change a key in `packages/i18n/nl-NL.json` or `e
 
 1. **Look up every domain noun and verb** in §4 and §5 before writing a string. Use the listed NL and EN term exactly. Never use a forbidden alternative, even if it sounds more natural to you.
 2. **Write both languages in the same change.** Never add a key to one catalog only (CI checks parity). Dutch is the primary language: it must read like a Dutch product, not like a translation of English. Draft both, then read the Dutch aloud.
-3. **Key names use the English glossary term** (`class`, `session`, `booking`, `hold`, `workspace`), never a synonym (`lesson`, `appointment`, `reservation`). The key naming scheme itself is set by E005.
+3. **Key names use the English glossary term** (`class`, `session`, `booking`, `hold`, `workspace`), never a synonym (`lesson`, `appointment`, `reservation`). Keys are dot paths of lowerCamelCase segments, grouped by screen or feature (`booking.spotsAvailable`); see `packages/i18n/README.md`.
 4. **One key per context.** Don't reuse a key because the text happens to match today. *Annuleren* as a dialog dismiss and *Annuleren* as "cancel this booking" are two keys, and they may diverge.
 5. **Full sentences with placeholders, ICU plurals, no concatenation** (§3.3). Format dates, times and numbers in code (§3.1).
-6. **Add context for ambiguous strings** where the catalog format allows it (a description or comment), e.g. "button that dismisses the dialog" vs "button that cancels the booking". Native exporters pass it on as translator comments.
+6. **Add context for ambiguous strings** in `packages/i18n/comments.json`, e.g. "button that dismisses the dialog" vs "button that cancels the booking". Native exporters pass it on as translator comments.
 7. **Check length.** Dutch is often 20–35% longer than English. Check tabs, buttons and badges at 375 pt/dp width on iOS and Android. If a Dutch string doesn't fit, shorten both languages, don't truncate.
 8. **Missing term?** Add a row to §4 in the **same PR**, mark it ⚠️, and list it under "New glossary terms" in the PR description so the owner can approve it. Don't invent a term silently.
 9. **Changing a term** is a PR of its own: update this file, every string that uses the old term (both catalogs and email templates), and the changelog in §9.
@@ -475,3 +477,4 @@ These terms are the best current choice. Confirm them in the M0 wireframe review
 | 2026-09-22 | 0.1 | First version (M0, `ROADMAP.md §4.2`): tone rules (informal "je"), capitalization, date/time/number formats, term table for the MVP domain, UI verb and message conventions, agent workflow. |
 | 2026-09-22 | 0.2 | Owner approved: en-GB formatting and spelling for English, sentence case in both languages (§7). ⚠️ terms stay open until the M0 wireframe review. |
 | 2026-09-22 | 0.3 | Copy review checklist moved to the local author workflow; no GitHub Claude/Codex reviewer or CI job is required. Terminology is unchanged. |
+| 2026-09-23 | 0.4 | E005: §3.3 drops `=0` plural selectors (not portable to Android; use a separate key). §3.1, §6.3 and §6.6 point to the i18n package (date formats, key naming, `comments.json`). Terminology is unchanged. |
