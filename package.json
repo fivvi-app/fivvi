@@ -19,11 +19,17 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
     "format:check": "turbo run format:check",
     "check": "turbo run check",
     "format:check:root": "biome format ./*.json",
     "format": "biome format --write .",
-    "fix": "biome check --write ."
+    "fix": "biome check --write .",
+    "db:up": "docker compose up --detach --wait postgres",
+    "db:down": "docker compose down",
+    "db:generate": "pnpm --filter @trainer-hub/database db:generate",
+    "db:migrate": "pnpm --filter @trainer-hub/database db:migrate",
+    "db:seed": "pnpm --filter @trainer-hub/database db:seed"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
