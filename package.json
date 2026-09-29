@@ -30,7 +30,9 @@
     "db:down": "docker compose down",
     "db:generate": "pnpm --filter @trainer-hub/database db:generate",
     "db:migrate": "pnpm --filter @trainer-hub/database db:migrate",
-    "db:seed": "pnpm --filter @trainer-hub/database db:seed"
+    "db:seed": "pnpm --filter @trainer-hub/database db:seed",
+    "email:preview": "pnpm --filter @trainer-hub/email preview",
+    "email:send-test": "pnpm --filter @trainer-hub/email send:test"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

@@ -1,5 +1,10 @@
 {
   "hello.greeting": "Greeting above the home screen. {name} is the user's first name.",
   "hello.sessionsToday": "Number of sessions the trainer has today, 1 or more. For 0, use hello.noSessionsToday.",
-  "hello.nextSession": "{date} is a weekday and date without year, e.g. 'dinsdag 22 september'. {time} is a 24-hour time, e.g. '18:00'. Both are formatted in code in the workspace time zone."
+  "hello.nextSession": "{date} is a weekday and date without year, e.g. 'dinsdag 22 september'. {time} is a 24-hour time, e.g. '18:00'. Both are formatted in code in the workspace time zone.",
+  "email.layout.footer": "Last line of every email, below the content.",
+  "email.hello.subject": "Subject of the test email that checks email delivery (E006). Only sent by the team, never to clients.",
+  "email.hello.preview": "Preview text that inbox lists show next to the subject.",
+  "email.hello.greeting": "{firstName} is the recipient's first name. When unknown, use email.hello.greetingWithoutName.",
+  "email.hello.sentAt": "{date} is a weekday and date with year, e.g. 'dinsdag 29 september 2026'. {time} is a 24-hour time, e.g. '18:00'. Both are formatted in code in the workspace time zone."
 }

@@ -1,0 +1,33 @@
+{
+  "name": "@trainer-hub/email",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "preview": "tsx watch --clear-screen=false scripts/preview.ts",
+    "send:test": "tsx --env-file-if-exists=.env scripts/send-test.ts",
+    "lint": "biome check --formatter-enabled=false --error-on-warnings .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "format:check": "biome format ."
+  },
+  "dependencies": {
+    "@trainer-hub/i18n": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-email": "catalog:",
+    "use-intl": "catalog:"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

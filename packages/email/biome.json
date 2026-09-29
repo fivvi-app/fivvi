@@ -1,0 +1,6 @@
+{
+  "$schema": "../../node_modules/@biomejs/biome/configuration_schema.json",
+  "root": false,
+  "extends": "//",
+  "plugins": ["../i18n/lint/no-hard-coded-jsx-text.grit"]
+}
