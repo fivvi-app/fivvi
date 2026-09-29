@@ -13,6 +13,11 @@ next-env.d.ts
 .expo/
 coverage/
 
+# Swift packages (packages/contract)
+.build/
+.swiftpm/
+packages/contract/swift/Package.resolved
+
 # Environment
 .env
 .env.*
