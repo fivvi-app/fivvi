@@ -1,0 +1,51 @@
+// Biome plugin (ADR-001, ADR-008): user-facing text in JSX must come from
+// packages/i18n, never from a literal. Flags text children, string and template
+// literals rendered as children (also behind `cond ? … : …` and `cond && …`), and
+// literals in user-facing attributes. Text without letters, e.g. " · ", is allowed.
+// Tested by apps/web/lint/no-hard-coded-jsx-text.test.ts.
+language js
+
+pattern has_letter() { r"[\s\S]*\p{L}[\s\S]*" }
+
+pattern literal_text() {
+  or {
+    JsStringLiteralExpression() as $string where { $string <: has_letter() },
+    JsTemplateExpression(elements=contains JsTemplateChunkElement() as $chunk where {
+      $chunk <: has_letter()
+    }),
+    JsConditionalExpression(consequent=$then, alternate=$else) where {
+      or { $then <: literal_text(), $else <: literal_text() }
+    },
+    JsLogicalExpression(right=$right) where { $right <: literal_text() },
+    JsParenthesizedExpression(expression=$inner) where { $inner <: literal_text() }
+  }
+}
+
+or {
+  JsxText() as $text where {
+    $text <: has_letter(),
+    register_diagnostic(span=$text, message="Hard-coded text in JSX. Add a key to packages/i18n/nl-NL.json and en.json and render it with useTranslations().")
+  },
+  JsxExpressionChild(expression=$expression) where {
+    $expression <: literal_text(),
+    register_diagnostic(span=$expression, message="Hard-coded string rendered in JSX. Add a key to packages/i18n/nl-NL.json and en.json and render it with useTranslations().")
+  },
+  JsxAttribute(name=$name, initializer=JsxAttributeInitializerClause(value=$value)) where {
+    $name <: or {
+      "alt",
+      "title",
+      "placeholder",
+      "label",
+      "aria-label",
+      "aria-description",
+      "aria-placeholder",
+      "aria-roledescription",
+      "aria-valuetext"
+    },
+    or {
+      $value <: JsxString() where { $value <: has_letter() },
+      $value <: JsxExpressionAttributeValue(expression=literal_text())
+    },
+    register_diagnostic(span=$value, message="Hard-coded user-facing attribute. Add a key to packages/i18n/nl-NL.json and en.json and pass the translated string.")
+  }
+}
