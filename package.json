@@ -20,6 +20,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format:check": "turbo run format:check",
+    "check": "turbo run check",
     "format:check:root": "biome format ./*.json",
     "format": "biome format --write .",
     "fix": "biome check --write ."
