@@ -8,7 +8,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/*.md", "!**/next-env.d.ts"]
+    "includes": ["**", "!**/*.md", "!**/next-env.d.ts", "!**/migrations"]
   },
   "formatter": {
     "enabled": true,
