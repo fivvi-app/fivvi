@@ -8,7 +8,14 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/*.md", "!**/next-env.d.ts", "!**/migrations"]
+    "includes": [
+      "**",
+      "!**/*.md",
+      "!**/next-env.d.ts",
+      "!**/migrations",
+      "!packages/contract/openapi.json",
+      "!packages/contract/src/generated"
+    ]
   },
   "formatter": {
     "enabled": true,

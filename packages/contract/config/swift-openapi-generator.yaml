@@ -1,0 +1,7 @@
+# swift-openapi-generator settings for the TrainerHubAPI Swift package (swift/).
+# Docs: https://swiftpackageindex.com/apple/swift-openapi-generator/documentation/swift-openapi-generator/configuring-the-generator
+generate:
+  - types
+  - client
+accessModifier: public
+namingStrategy: idiomatic

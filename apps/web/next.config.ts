@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   typedRoutes: true,
   // Workspace packages ship TypeScript source.
-  transpilePackages: ['@trainer-hub/i18n'],
+  transpilePackages: ['@trainer-hub/api', '@trainer-hub/i18n'],
 };
 
 export default withNextIntl(nextConfig);

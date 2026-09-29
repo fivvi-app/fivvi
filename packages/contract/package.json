@@ -1,0 +1,29 @@
+{
+  "name": "@trainer-hub/contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "node scripts/generate.ts",
+    "check": "node scripts/check.ts",
+    "lint": "biome check --formatter-enabled=false --error-on-warnings .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "format:check": "biome format ."
+  },
+  "dependencies": {
+    "openapi-fetch": "catalog:"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@hono/zod-openapi": "catalog:",
+    "@trainer-hub/api": "workspace:*",
+    "@trainer-hub/typescript-generator": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
