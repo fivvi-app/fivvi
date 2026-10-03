@@ -75,7 +75,7 @@
 
 **Open punten vóór echte e-mails (G2), voor de eigenaar:**
 
-1. ~~**Bezorglogs en e-mailvoorbeelden**~~ Gedaan op 3 oktober 2026: logs en voorbeelden worden na 1 maand verwijderd, het minimum dat Brevo toestaat (standaard: onbeperkt, met de volledige inhoud). Dat is een paar dagen langer dan de 30 dagen in de bewaartermijnen (R18); neem dat daar op. Overweeg "Never store previews": de logs zijn genoeg voor support.
+1. ~~**Bezorglogs en e-mailvoorbeelden**~~ Gedaan op 3 oktober 2026: Brevo bewaart **geen e-mailvoorbeelden** ("Never store previews"), dus geen inhoud of inloglinks. Bezorglogs worden na 1 maand verwijderd, het minimum dat Brevo toestaat (standaard: onbeperkt). Dat is een paar dagen langer dan de 30 dagen in de bewaartermijnen (R18); neem dat daar op.
 2. **Open- en kliktracking:** Brevo voegt een trackingpixel toe en leidt links om via een eigen domein. Op het gratis plan is dat in de instellingen niet uit te zetten. Anoniem tracken staat aan sinds 3 oktober 2026. Nog te doen: vraag Brevo-support om tracking voor transactionele e-mail uit te zetten. We hebben het niet nodig, en inlog- en bevestigingslinks horen niet via een omleiding te lopen.
 3. ~~**Toegestane IP-adressen**~~ Gedaan op 3 oktober 2026: IP-blokkering staat uit voor API-sleutels, omdat Railway geen vaste IP-adressen heeft. Gebruik aparte sleutels voor ontwikkeling en productie, en vervang een sleutel direct als die uitlekt.
 4. Bewaar een pdf van de DPA-versie die geldt wanneer echte gegevens starten.
@@ -90,7 +90,7 @@
 
 **Open items before real emails (G2), for the owner:**
 
-1. ~~**Delivery logs and email previews**~~ Done on 3 October 2026: logs and previews are deleted after 1 month, the minimum Brevo allows (default: indefinitely, with the full content). That is a few days longer than the 30 days in the retention policy (R18); record it there. Consider "Never store previews": the logs are enough for support.
+1. ~~**Delivery logs and email previews**~~ Done on 3 October 2026: Brevo stores **no email previews** ("Never store previews"), so no content or sign-in links. Delivery logs are deleted after 1 month, the minimum Brevo allows (default: indefinitely). That is a few days longer than the 30 days in the retention policy (R18); record it there.
 2. **Open and click tracking:** Brevo adds a tracking pixel and redirects links through its own domain. The free plan can't switch this off in the settings. Anonymous tracking is on since 3 October 2026. Still to do: ask Brevo support to disable tracking for transactional email. We don't need it, and sign-in and confirmation links shouldn't go through a redirect.
 3. ~~**Authorized IPs**~~ Done on 3 October 2026: IP blocking is off for API keys, because Railway has no fixed IP addresses. Use separate keys for development and production, and rotate a key at once if it leaks.
 4. Keep a PDF of the DPA version in force when real data starts.
