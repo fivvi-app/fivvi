@@ -12,6 +12,81 @@ public import struct Foundation.Date
 extension Components {
     /// Types generated from the `#/components/schemas` section of the OpenAPI document.
     public enum Schemas {
+        /// Liveness of the API and its dependencies. Contains no error details.
+        ///
+        /// - Remark: Generated from `#/components/schemas/HealthResponse`.
+        public struct HealthResponse: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/HealthResponse/status`.
+            public var status: Components.Schemas.HealthCheckStatus
+            /// - Remark: Generated from `#/components/schemas/HealthResponse/checks`.
+            public struct ChecksPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/HealthResponse/checks/database`.
+                public struct DatabasePayload: Codable, Hashable, Sendable {
+                    /// - Remark: Generated from `#/components/schemas/HealthResponse/checks/database/value1`.
+                    public var value1: Components.Schemas.HealthCheckStatus
+                    /// Postgres answered a ping.
+                    ///
+                    /// - Remark: Generated from `#/components/schemas/HealthResponse/checks/database/value2`.
+                    public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                    /// Creates a new `DatabasePayload`.
+                    ///
+                    /// - Parameters:
+                    ///   - value1:
+                    ///   - value2: Postgres answered a ping.
+                    public init(
+                        value1: Components.Schemas.HealthCheckStatus,
+                        value2: OpenAPIRuntime.OpenAPIValueContainer
+                    ) {
+                        self.value1 = value1
+                        self.value2 = value2
+                    }
+                    public init(from decoder: any Swift.Decoder) throws {
+                        self.value1 = try decoder.decodeFromSingleValueContainer()
+                        self.value2 = try .init(from: decoder)
+                    }
+                    public func encode(to encoder: any Swift.Encoder) throws {
+                        try encoder.encodeToSingleValueContainer(self.value1)
+                    }
+                }
+                /// - Remark: Generated from `#/components/schemas/HealthResponse/checks/database`.
+                public var database: Components.Schemas.HealthResponse.ChecksPayload.DatabasePayload
+                /// Creates a new `ChecksPayload`.
+                ///
+                /// - Parameters:
+                ///   - database:
+                public init(database: Components.Schemas.HealthResponse.ChecksPayload.DatabasePayload) {
+                    self.database = database
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case database
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/HealthResponse/checks`.
+            public var checks: Components.Schemas.HealthResponse.ChecksPayload
+            /// Creates a new `HealthResponse`.
+            ///
+            /// - Parameters:
+            ///   - status:
+            ///   - checks:
+            public init(
+                status: Components.Schemas.HealthCheckStatus,
+                checks: Components.Schemas.HealthResponse.ChecksPayload
+            ) {
+                self.status = status
+                self.checks = checks
+            }
+            public enum CodingKeys: String, CodingKey {
+                case status
+                case checks
+            }
+        }
+        /// `ok` only when every check is `ok`.
+        ///
+        /// - Remark: Generated from `#/components/schemas/HealthCheckStatus`.
+        @frozen public enum HealthCheckStatus: String, Codable, Hashable, Sendable, CaseIterable {
+            case ok = "ok"
+            case unavailable = "unavailable"
+        }
         /// - Remark: Generated from `#/components/schemas/HelloResponse`.
         public struct HelloResponse: Codable, Hashable, Sendable {
             /// i18n message key that the client renders in `locale`.

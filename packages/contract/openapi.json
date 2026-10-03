@@ -11,6 +11,45 @@
   ],
   "components": {
     "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/HealthCheckStatus"
+          },
+          "checks": {
+            "type": "object",
+            "properties": {
+              "database": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/HealthCheckStatus"
+                  },
+                  {
+                    "description": "Postgres answered a ping."
+                  }
+                ]
+              }
+            },
+            "required": [
+              "database"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "checks"
+        ],
+        "description": "Liveness of the API and its dependencies. Contains no error details."
+      },
+      "HealthCheckStatus": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "unavailable"
+        ],
+        "description": "`ok` only when every check is `ok`."
+      },
       "HelloResponse": {
         "type": "object",
         "properties": {
@@ -76,6 +115,38 @@
     "parameters": {}
   },
   "paths": {
+    "/v1/health": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": [
+          "health"
+        ],
+        "summary": "Health check",
+        "description": "Pings the database. Railway uses it as the deploy health check, so a deployment that can't reach Postgres never receives traffic.",
+        "responses": {
+          "200": {
+            "description": "The API and all its dependencies are healthy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/hello": {
       "get": {
         "operationId": "getHello",

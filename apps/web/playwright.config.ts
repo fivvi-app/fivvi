@@ -31,8 +31,10 @@ export default defineConfig<E2EOptions>({
       locale: formattingLocales[locale],
     },
   })),
+  // The standalone server, as in production (Dockerfile), not `next start`.
   webServer: {
-    command: `pnpm exec next start --port ${port}`,
+    command: 'node .next/standalone/apps/web/server.js',
+    env: { PORT: String(port), HOSTNAME: 'localhost' },
     url: baseURL,
     reuseExistingServer: !ci,
     timeout: 60_000,

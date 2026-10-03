@@ -45,6 +45,7 @@ git push -u origin feature/F031-open-gym-booking
 - Update the feature doc and the `FEATURES.md` status **in the same PR**.
 - An API change regenerates `packages/contract` (OpenAPI + TS/Swift/Kotlin clients) in the same PR.
 - A string change edits only `packages/i18n/*.json` and regenerates the native catalogs in the same PR.
+- Every PR gets a Railway preview (a PR environment with its own migrated and seeded Postgres). Smoke-check its URL and put the result in the PR description. Merging to `main` deploys production. Environments, deploys, rollback and variables: [`ENVIRONMENTS.md`](ENVIRONMENTS.md).
 - Merge strategy: **squash merge** into `main` after the applicable deterministic CI checks (§7) are green and the owner approves. Agent review happens locally before the PR and is not a GitHub merge requirement.
 
 ## 4. Working with AI agents
@@ -75,7 +76,7 @@ Also make sure that:
 
 - [ ] Dev servers, watchers, simulators/emulators and Docker containers started for this change are stopped.
 - [ ] Temporary files, scratch scripts and debug output are deleted (never committed).
-- [ ] The Railway PR environment for this change is gone (it is deleted automatically on merge/close; check anyway).
+- [ ] The Railway PR environment for this change is gone (it is deleted automatically on merge/close; check anyway). Scratch Railway services or environments created for the change are deleted ([`ENVIRONMENTS.md`](ENVIRONMENTS.md)).
 - [ ] `FEATURES.md` shows the new status; the feature doc lists its implementation references (PR link).
 - [ ] `git worktree list` shows only the worktrees for changes still in progress.
 

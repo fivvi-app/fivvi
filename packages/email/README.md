@@ -71,7 +71,7 @@ Transports implement `EmailTransport` (`send(email) → { messageId }`, one atte
 | `EMAIL_FROM_NAME` | `Trainer Hub` | Display name of the sender |
 
 - **Local:** put the three variables in `packages/email/.env` (git-ignored; every worktree needs its own). The `send:test` script loads it.
-- **Preview and production:** Railway service variables (E003). Never commit a key; rotate it in Brevo if it leaks.
+- **Preview and production:** Railway variables on `web`, declared in `.railway/railway.ts` (`preserve()` for the key and address, so the file holds no value) and listed in [`docs/engineering/ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). The owner sets the values: the real key only in `production`, a separate test key in `development` (every preview copies it). Never commit a key; rotate it in Brevo if it leaks.
 - The sender comes from config, not code, because it changes when the own domain arrives (before M5).
 
 ## Scripts

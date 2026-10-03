@@ -15,10 +15,13 @@ import {
   type DatabaseClient,
   type DatabaseExecutor,
   findSystemGreeting,
+  HELLO_GREETING,
+  pingDatabase,
   systemGreetings,
 } from '../src/index.ts';
 import { migrationsFolder, runMigrations } from '../src/migrate.ts';
-import { HELLO_GREETING, seed } from '../src/seed.ts';
+import { release } from '../src/release.ts';
+import { seed } from '../src/seed.ts';
 
 /**
  * Tables that are not business data and therefore have no `organization_id`.
@@ -56,6 +59,15 @@ describe('E004 migrations', () => {
       await runMigrations(client.db);
       await seed(client.db);
 
+      expect(await findSystemGreeting(client.db, 'hello')).toEqual(HELLO_GREETING);
+    });
+  });
+
+  it('inserts the hello greeting without the seed, as production needs it (E003)', async () => {
+    await withFreshDatabase(async (client) => {
+      await runMigrations(client.db);
+
+      expect(await client.db.$count(systemGreetings)).toBe(1);
       expect(await findSystemGreeting(client.db, 'hello')).toEqual(HELLO_GREETING);
     });
   });
@@ -110,9 +122,41 @@ describe('E004 migrations', () => {
   });
 });
 
+describe('E003 release step', () => {
+  it('migrates a new database and seeds it only when asked', async () => {
+    await withFreshDatabase(async (client) => {
+      const logs: string[] = [];
+
+      await release(client.db, { seed: false }, (message) => logs.push(message));
+      await release(client.db, { seed: true }, (message) => logs.push(message));
+
+      expect(await findSystemGreeting(client.db, 'hello')).toEqual(HELLO_GREETING);
+      expect(logs).toEqual(['Migrations applied.', 'Migrations applied.', 'Seed data inserted.']);
+    });
+  });
+
+  it('pings a reachable database', async () => {
+    await withFreshDatabase(async (client) => {
+      await expect(pingDatabase(client.db)).resolves.toBeUndefined();
+    });
+  });
+
+  it('fails the ping when the database is unreachable', async () => {
+    const database = await createTestDatabase();
+    await database.drop();
+    const client = createDatabase({ url: database.url, maxConnections: 1 });
+    try {
+      await expect(pingDatabase(client.db)).rejects.toThrow();
+    } finally {
+      await client.close();
+    }
+  });
+});
+
 describe('E004 database', () => {
   // One migrated clone for this file; every test runs in a transaction that is rolled
-  // back, so tests see an empty, migrated database and never each other's rows.
+  // back, so tests see a freshly migrated database (only the system rows the data
+  // migrations insert) and never each other's rows.
   let database: TestDatabase;
   let client: DatabaseClient;
   let db: DatabaseClient['db'];
@@ -129,7 +173,7 @@ describe('E004 database', () => {
   });
 
   describe('seed', () => {
-    it('is idempotent', async () => {
+    it('is idempotent and keeps the system rows', async () => {
       await withRollback(db, async (tx) => {
         await seed(tx);
         await seed(tx);
@@ -138,33 +182,18 @@ describe('E004 database', () => {
         expect(await findSystemGreeting(tx, 'hello')).toEqual(HELLO_GREETING);
       });
     });
+  });
 
-    it('restores a changed greeting when run again', async () => {
+  describe('system greetings', () => {
+    it('stores the migrated greeting as an i18n key, not as copy', async () => {
       await withRollback(db, async (tx) => {
-        await seed(tx);
-        await tx.update(systemGreetings).set({ i18nKey: 'system.changed' });
-
-        await seed(tx);
-
-        expect(await findSystemGreeting(tx, 'hello')).toEqual(HELLO_GREETING);
-      });
-    });
-
-    it('stores the greeting as an i18n key, not as copy', async () => {
-      await withRollback(db, async (tx) => {
-        await seed(tx);
-
         const [row] = await tx.select().from(systemGreetings);
         expect(row?.i18nKey).toBe('system.hello');
       });
     });
-  });
 
-  describe('system greetings', () => {
     it('returns undefined for an unknown slug', async () => {
       await withRollback(db, async (tx) => {
-        await seed(tx);
-
         expect(await findSystemGreeting(tx, 'goodbye')).toBeUndefined();
       });
     });
@@ -173,6 +202,7 @@ describe('E004 database', () => {
       'rejects %j as an i18n key',
       async (i18nKey) => {
         await withRollback(db, async (tx) => {
+          await tx.delete(systemGreetings);
           await expect(
             tx.insert(systemGreetings).values({ slug: 'hello', i18nKey }),
           ).rejects.toMatchObject({ cause: { constraint: 'system_greetings_i18n_key_format' } });
@@ -183,6 +213,7 @@ describe('E004 database', () => {
     it('refreshes updated_at on update and keeps created_at', async () => {
       await withRollback(db, async (tx) => {
         const longAgo = new Date('2000-01-01T00:00:00Z');
+        await tx.delete(systemGreetings);
         await tx
           .insert(systemGreetings)
           .values({ ...HELLO_GREETING, createdAt: longAgo, updatedAt: longAgo });
@@ -198,7 +229,9 @@ describe('E004 database', () => {
 
   // Runs after the tests above, which Vitest guarantees within a file.
   it('leaves nothing behind: every test above was rolled back', async () => {
-    expect(await db.$count(systemGreetings)).toBe(0);
+    expect(await db.select().from(systemGreetings)).toEqual([
+      expect.objectContaining(HELLO_GREETING),
+    ]);
   });
 
   describe('conventions', () => {
