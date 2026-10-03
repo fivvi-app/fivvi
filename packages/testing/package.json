@@ -1,0 +1,30 @@
+{
+  "name": "@trainer-hub/testing",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./clock": "./src/clock.ts",
+    "./database": "./src/database.ts",
+    "./database/setup": "./src/database-setup.ts",
+    "./vitest": "./src/vitest.ts"
+  },
+  "scripts": {
+    "lint": "biome check --formatter-enabled=false --error-on-warnings .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "format:check": "biome format ."
+  },
+  "dependencies": {
+    "pg": "catalog:",
+    "vitest": "catalog:"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "drizzle-orm": "catalog:",
+    "typescript": "catalog:"
+  }
+}

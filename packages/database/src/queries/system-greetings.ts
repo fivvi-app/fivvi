@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import type { Database } from '../client.ts';
+import type { DatabaseExecutor } from '../client.ts';
 import { systemGreetings } from '../schema/index.ts';
 
 export interface SystemGreetingView {
@@ -8,7 +8,7 @@ export interface SystemGreetingView {
 }
 
 export async function findSystemGreeting(
-  db: Database,
+  db: DatabaseExecutor,
   slug: string,
 ): Promise<SystemGreetingView | undefined> {
   const [row] = await db

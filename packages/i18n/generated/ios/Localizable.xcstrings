@@ -1,6 +1,24 @@
 {
   "sourceLanguage" : "nl",
   "strings" : {
+    "app.title" : {
+      "comment" : "Browser tab title (HTML <title>) of web pages that don't set their own. The product name, the same in both languages.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer Hub"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer Hub"
+          }
+        }
+      }
+    },
     "hello.greeting" : {
       "comment" : "Greeting above the home screen. {name} is the user's first name.",
       "extractionState" : "manual",

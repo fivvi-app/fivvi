@@ -107,11 +107,12 @@ CI is GitHub Actions ([`.github/workflows/ci.yml`](../../.github/workflows/ci.ym
 | Check (job name) | Runner | Runs when | What it does |
 |---|---|---|---|
 | `Detect changes` | Linux | Always | Works out which native jobs need to run. Required because a skipped job counts as passed: if this job broke, the native jobs would pass without running |
-| `Checks (Linux)` | Linux | Always | `pnpm install`, then one `turbo run lint typecheck test build format:check check` with the turbo cache |
+| `Checks (Linux)` | Linux | Always | `pnpm install`, then one `turbo run lint typecheck test test:integration build format:check check` with the turbo cache. Integration tests run against a Postgres 18 service container (`TEST_DATABASE_URL`) |
+| `E2E (Linux)` | Linux | Always | Builds `apps/web` and runs the Playwright specs in nl-NL and en with axe checks (`turbo run test:e2e`). Chromium is cached per Playwright version; the report is uploaded when the job fails |
 | `iOS` | macOS | `apps/ios/**` or `packages/contract/**` changed **and** `apps/ios` exists | Placeholder until E008 adds the build and tests. macOS minutes count 10× (`ROADMAP.md §12`) |
 | `Android` | Linux | `apps/android/**` or `packages/contract/**` changed **and** `apps/android` exists | Placeholder until E008 adds the build and tests |
 
-**Intended required checks on `main`:** all four jobs above. Branch protection and rulesets aren't available for this private repo on the current GitHub plan, so nothing enforces them yet. Until then, the owner only merges when all four show as passed or skipped. When the plan allows it, add exactly these job names as required status checks. Renaming a job renames its check, so change this table in the same PR.
+**Intended required checks on `main`:** all five jobs above. Branch protection and rulesets aren't available for this private repo on the current GitHub plan, so nothing enforces them yet. Until then, the owner only merges when all five show as passed or skipped. When the plan allows it, add exactly these job names as required status checks. Renaming a job renames its check, so change this table in the same PR.
 
 **Adding a check:** a new deterministic check (i18n parity, ICU syntax, OpenAPI drift, generated files up to date, …) is a `check` script in the package that owns it. `turbo run check` in `Checks (Linux)` picks it up, so the workflow file doesn't change. Keep `Checks (Linux)` under ~10 minutes (`TESTING.md §7`).
 
