@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { runMain } from './run-main.ts';
+import { runMain, SPAWN_TEST_TIMEOUT_MS } from './run-main.ts';
 
-describe('E003 cron entrypoint', () => {
+describe('E003 cron entrypoint', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => {
   it('exits 1 with a clear message when DATABASE_URL is missing', async () => {
     const result = await runMain({});
 
