@@ -9,7 +9,7 @@ const { db, close } = createDatabaseFromEnv(); // reads DATABASE_URL; one per pr
 const greeting = await findSystemGreeting(db, 'hello'); // { slug: 'hello', i18nKey: 'system.hello' }
 ```
 
-Entry points: `@trainer-hub/database` (client, schema, queries), `@trainer-hub/database/migrate` (`runMigrations`), `@trainer-hub/database/seed` (`seed`). Server-side only.
+Entry points: `@trainer-hub/database` (client, schema, queries, `pingDatabase`, `HELLO_GREETING`), `@trainer-hub/database/migrate` (`runMigrations`), `@trainer-hub/database/seed` (`seed`). Server-side only.
 
 ## Local setup
 
@@ -43,7 +43,7 @@ Entry points: `@trainer-hub/database` (client, schema, queries), `@trainer-hub/d
 | `db:up` / `db:down` | root | Start / stop local Postgres |
 | `db:generate` | root or package | Write a new SQL migration from the schema diff (`pnpm db:generate --name <what>`) |
 | `db:migrate` | root or package | Apply pending migrations to `DATABASE_URL` |
-| `db:seed` | root or package | Insert seed data into `DATABASE_URL` (idempotent) |
+| `db:seed` | root or package | Insert demo data into `DATABASE_URL` (idempotent; never in production) |
 | `db:check` | package | Check the migration history for conflicts (`drizzle-kit check`) |
 | `test` | turbo | Unit tests, no database. Includes the schema ↔ migrations drift check |
 | `test:integration` | turbo | Migrations, seed, queries and schema conventions against real Postgres (below) |
@@ -59,7 +59,7 @@ Rules:
 - **Forward-only.** Never edit or delete a migration that has been merged; fix mistakes with a new one. Destructive changes go expand → migrate → contract.
 - **Plain SQL** for what Drizzle can't express (RLS policies, triggers, functions): `pnpm --filter @trainer-hub/database exec drizzle-kit generate --custom --name <what>` creates an empty migration to write it in.
 - `migrations/` is generated: Biome skips it; never hand-edit `meta/`.
-- Migrations run from one process at a time (the deploy step, E003), never from app instances on start-up.
+- Migrations run from one process at a time (the Railway pre-deploy step, `src/scripts/release.ts`), never from app instances on start-up.
 
 ## Conventions
 
@@ -70,7 +70,7 @@ Rules:
 - **Tenancy:** every business table has a non-null `organization_id` (`PRODUCT.md §77`, ADR-006). Business data is read and written only through repository functions that take a tenant context; route handlers don't query business tables. A non-business table (system data such as `system_greetings`) must be added to `NON_BUSINESS_TABLES` in the integration test, with the reason in the PR.
 - **Row-Level Security** is added in **E011** (M2): RLS enabled on every business table, per-request transaction-local `set_config`, an app role without `BYPASSRLS`, and a separate privileged role for migrations. Until then there are no business tables.
 - **Copy stays out of the database.** Rows store i18n keys (`system.hello`), and clients translate them from `packages/i18n`. User-entered content is stored as typed.
-- **Seed data** is for local development, previews and tests. It is idempotent and never contains real personal data (`@example.com`, obviously fake names).
+- **Seed data** is demo data for local development, previews and tests, never production. It is idempotent and never contains real personal data (`@example.com`, obviously fake names). Data every environment needs is a data migration (see [Environments](#environments)).
 
 The integration test enforces the id, timestamp and `organization_id` conventions on every table.
 
@@ -87,9 +87,21 @@ Isolation follows `docs/engineering/TESTING.md §5.3` with the helpers from `@tr
 
 ## Environments
 
-Preview and production get `DATABASE_URL` from Railway (ADR-011). Previews are migrated and seeded; production is migrated from `main` only. Wiring that into deploys is E003.
+Preview and production get `DATABASE_URL` from Railway (ADR-011, [`ENVIRONMENTS.md`](../../docs/engineering/ENVIRONMENTS.md)). On every deploy, Railway runs the release step before the new version gets traffic:
 
-Open points:
+```bash
+node src/scripts/release.ts          # production: migrations only
+node src/scripts/release.ts --seed   # development and previews: migrations, then the seed
+```
 
-- The M1 "hello" slice needs the `hello` greeting in production too. Today it comes from the seed. E003 decides whether production runs the seed or the row moves into a data migration, before demo data is added to the seed.
-- Ids use `gen_random_uuid()` (v4). Switching the default to Postgres 18's `uuidv7()` is a default-only change, once every environment (including CI) runs Postgres 18.
+### System data vs. seed data (decided in E003)
+
+**Rows that every environment needs, production included, are data migrations.** The `hello` greeting is inserted by `migrations/0001_system_greeting_hello.sql` (`INSERT … ON CONFLICT DO NOTHING`), not by the seed. `HELLO_GREETING` in `src/system-data.ts` holds the same values, and the integration test checks that a migrated database contains exactly that row.
+
+**The seed is demo data only, and production never runs it.** It's empty until the first business tables (M2).
+
+Why not run an idempotent seed in production as well: the seed is going to fill up with demo workspaces, fake clients and test bookings. If production ran it, one missed check would put demo data next to real client data. A data migration runs exactly once per database, in order with the schema it depends on, is reviewed as SQL like any other migration, and needs no extra deploy step.
+
+To add system data: `pnpm --filter @trainer-hub/database exec drizzle-kit generate --custom --name <what>`, write an idempotent `INSERT … ON CONFLICT DO NOTHING`, and add a test.
+
+Open point: ids use `gen_random_uuid()` (v4). Switching the default to Postgres 18's `uuidv7()` is a default-only change, once every environment (including CI) runs Postgres 18.
