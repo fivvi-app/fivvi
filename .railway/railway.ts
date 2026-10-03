@@ -59,7 +59,12 @@ export default defineRailway((ctx) => {
     // settings equal to a default, so declaring them would show as drift on every plan.
     // Idle previews sleep after 10 minutes and wake on the next request (ADR-011 cond. 1).
     ...(production ? {} : { deploy: { sleepApplication: true } }),
-    env: { DATABASE_URL: db.env.DATABASE_URL },
+    env: {
+      DATABASE_URL: db.env.DATABASE_URL,
+      // Railway injects PORT=8080 otherwise. The Railway domain targets 3000 (EXPOSE in the
+      // Dockerfile), so pin it: a mismatch passes the health check but answers 502 publicly.
+      PORT: '3000',
+    },
   });
 
   const cron = service('cron', {
