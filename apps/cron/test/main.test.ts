@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { runMain } from './run-main.ts';
+import { runMain, SPAWN_TEST_TIMEOUT_MS } from './run-main.ts';
 
-// Each test starts a Node process that type-strips the database package. On a loaded CI
-// runner that takes 4–5 s, so Vitest's 5 s default made these tests time out. Give them
-// the same budget as runMain's own 20 s process timeout, plus margin.
-describe('E003 cron entrypoint', { timeout: 30_000 }, () => {
+describe('E003 cron entrypoint', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => {
   it('exits 1 with a clear message when DATABASE_URL is missing', async () => {
     const result = await runMain({});
 
