@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.6 |
+| **Version** | 1.7 |
 | **Date** | 22 September 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
 | **Builders** | AI coding agents: Claude Code + Codex, working in parallel worktrees |
-| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6 |
+| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7 |
 | **Requirements source** | [`PRODUCT.md`](PRODUCT.md) (what we build and why) |
 | **Feature registry** | [`FEATURES.md`](FEATURES.md) (status of every feature) |
 | **Engineering workflow** | [`../engineering/WORKFLOW.md`](../engineering/WORKFLOW.md) (branches, worktrees, reviews, cleanup, Definition of Done) |
@@ -207,7 +207,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 | [006](../decisions/ADR-006-tenant-isolation.md) | Tenant isolation | **Org-scoped data-access layer + Postgres RLS as defence in depth + automated cross-tenant tests** | Accepted | Per spec §77; two independent barriers against data leaks |
 | [007](../decisions/ADR-007-authentication.md) | Authentication | **Better Auth** (organization/member/invitation plugins + email magic link **and** 6-digit email code; bearer tokens for native apps) | Accepted | Our own tables and our own localized emails. The 6-digit code lets native apps sign in without needing Universal/App Links on day one, and it survives email link scanners. *Spike in M1: native bearer-token flow* |
 | [008](../decisions/ADR-008-localization.md) | Localization | **One source of truth:** ICU MessageFormat catalogs in `packages/i18n` (`nl-NL.json`, `en.json`). Web uses next-intl. A generator **exports the catalogs to iOS String Catalogs (`.xcstrings`) and Android `strings.xml`/plurals**. Emails use the same catalogs | Accepted | One set of keys and translations for three platforms; CI checks parity on the source and on the generated files |
-| [009](../decisions/ADR-009-transactional-email.md) | Transactional email | **React Email templates + Brevo** (owner account created; free tier initially) | Accepted (provider selected) | One template structure with localized strings (§74); E006 checks delivery, DPA and send limits |
+| [009](../decisions/ADR-009-transactional-email.md) | Transactional email | **React Email templates + Brevo** (free tier initially) | Accepted; implemented in E006 | One template structure with localized strings (§74); E006 checked the DPA, send limits, EU storage, tracking and log retention (`docs/legal/sub-processors.md §4`). Own domain before M5 |
 | [010](../decisions/ADR-010-background-jobs.md) | Background jobs | **Avoid needing a job runner:** holds expire *lazily* (`expires_at` is checked when capacity is read) and a daily cron cleans up; emails are sent inline with retry; recurrence is materialized by a daily cron plus on-demand at edit time | Accepted | Works within free-tier cron limits; add a queue (e.g. Inngest free tier) only if needed |
 | [011](../decisions/ADR-011-hosting-and-environments.md) | Hosting & environments | All on **Railway, EU West (Amsterdam)**: Next.js web + API, Postgres and a cron service in one project; a PR environment per PR. Hobby (already paid) during the build → **Pro ($20/month) at G4**. *Replaces v1.2: Vercel Hobby + Neon free* | Accepted (revised in v1.3) | Vercel Hobby is non-commercial only, so G4 needs a paid plan anyway. Railway keeps app and DB in one EU location with one DPA, no DB cold starts, and costs a flat $20/month at pilot volume vs ≈ $20–40 for Vercel Pro + Neon |
 | [012](../decisions/ADR-012-time-and-recurrence.md) | Time & recurrence model | **UTC `timestamptz` + IANA timezone on workspace/location; recurrence as RRULE in local wall-clock time; occurrences materialized as rows for a rolling horizon (e.g. 12 weeks)** | Accepted | "Every Tuesday 18:00" must stay 18:00 across daylight-saving changes; each occurrence needs its own trainer, capacity and bookings (§20) |
@@ -291,7 +291,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 **Exit criteria (Gate G1: architecture sign-off)**
 - A translated "hello" screen on web, iOS and Android reads from the DB through the generated API client.
-- A localized test email is delivered and lands in the inbox, not spam.
+- A localized test email is delivered and lands in the inbox, not spam. ✅ Gmail, NL and EN (2026-10-03, E006); other mailbox providers in M5.
 - A PR opens a preview deploy; merging to `main` deploys production (not yet public).
 - Adding a string to only one locale fails CI, and so does changing an API route without regenerating the contract.
 
@@ -656,7 +656,7 @@ flowchart TB
 |---|---|---|---|
 | Web + API hosting, cron, previews | Railway Hobby, EU West (Amsterdam): **already paid by the owner** ($5/month incl. $5 usage) | Usage above the $5 credit is billed (watch PR environments); community support only; 7-day logs | **G4 → Railway Pro**, $20/month incl. $20 usage (≈ $5–10 expected usage at pilot volume) |
 | Database | Railway Postgres in the same project (EU West, Amsterdam) | Hobby: 5 GB volume; backup/PITR availability per plan to verify in M1 | Covered by Railway Pro at G4; storage $0.15/GB-month |
-| Email | Brevo free (account created) | Daily/monthly send caps; domain authentication | Send volume near the cap → paid tier |
+| Email | Brevo free (set up in E006) | **300 emails/day**, shared by transactional and marketing; no own domain yet (From is rewritten to `@brevosend.com`) | Send volume near the cap, and before G4 → paid plan; own domain before M5 |
 | Domain | Not needed until M5 (use the provider's test sending and `*.up.railway.app` before then) | — | **Before M5:** buy the domain (~€10–15/year), the first small cost |
 | Errors / crashes | Sentry account created; confirm EU data region in E009 | Event quota, 1 user | Quota hit → paid |
 | Product analytics | PostHog account created; confirm EU Cloud and configure cookieless mode in E009 | Event quota | Quota hit → paid |
@@ -675,7 +675,7 @@ flowchart TB
 
 | ID | Risk | L | I | Mitigation | Watch in |
 |---|---|---|---|---|---|
-| R1 | **Magic-link emails land in spam or links get pre-clicked by scanners** → bookings fail | M | H | Authenticated domain (SPF/DKIM/DMARC) before M5; confirm-click page; 6-digit code fallback; deliverability tests | M1, M5 |
+| R1 | **Magic-link emails land in spam or links get pre-clicked by scanners** → bookings fail | M | H | Authenticated domain (SPF/DKIM/DMARC) before M5; Brevo open/click tracking (link rewriting) switched off before G2; confirm-click page; 6-digit code fallback; deliverability tests | M1, M5 |
 | R2 | **Daylight-saving/timezone bugs** in recurring classes | M | H | ADR-012; UTC + IANA TZ; DST test fixtures (March/October) | M4 |
 | R3 | **Overbooking via race conditions** | M | H | Transactional capacity checks; concurrency tests | M5 |
 | R4 | **Cross-tenant data leak** | L | Critical | Org-scoped data layer + RLS + CI isolation suite | M2 onward |
@@ -741,3 +741,4 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-09-22 | 1.4 | Owner removed Claude/Codex review from the GitHub PR and CI/CD flow. Authors review locally before pushing; a second local agent is optional. Deterministic CI checks remain. Updated `WORKFLOW.md`, `TESTING.md` and `GLOSSARY.md` to match. |
 | 2026-09-22 | 1.5 | **Brevo selected** for transactional email (ADR-009; owner account created). M0 §4.4 legal drafts completed and checked off separately from signing, DPA execution and publication. Drafts synchronized with Railway hosting and Postgres, including the DPA checks before real data. Release 2.0 DPIA need will be reassessed at its entry gate. |
 | 2026-09-22 | 1.6 | Owner reported Sentry and PostHog accounts created on personal accounts and an existing Apple Developer Program company membership. Split the M0 account checklist to show what is created versus still unconfirmed (uptime monitor and Google Play Console). Updated M8 and §12 distribution costs; E006, E009 and E017 remain planned. |
+| 2026-10-04 | 1.7 | **E006 email infrastructure** implemented (`packages/email`: React Email templates from the i18n catalogs, `sendEmail` with Brevo and inline retry). G1 email criterion met for Gmail (NL and EN in the inbox, 2026-10-03); other mailbox providers stay with the M5 deliverability tests. Brevo terms checked: 300 emails/day on the free plan, EU storage with support access from the US and India, DPA part of the terms; previews off, logs kept 1 month, anonymous tracking on. Updated ADR-009 row, §12 email row and R1 (tracking off before G2). |

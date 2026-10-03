@@ -42,6 +42,6 @@ Each question has a recommendation, so a short "agree" is a valid answer.
 | # | Decision | Outcome |
 |---|---|---|
 | **Q1** | Hosting and database | Railway EU West (Amsterdam) for web, API, cron and Postgres; ADR-011 accepted. DPA execution remains Q6 |
-| **Q5** | Transactional email | Brevo selected; owner account created. E006 still configures and tests it |
+| **Q5** | Transactional email | Brevo selected and set up in E006 (2026-10-03): DPA (part of the terms), EU storage, limits, tracking and log retention checked; see `sub-processors.md §4` for what remains before G2 |
 | **Q19** | Reconcile with merged ADRs | `sub-processors.md` synchronized with ADR-009, 011 and 013 |
 | **Q21** | Hosting cost plan | `ROADMAP.md §12` already reflects Railway Hobby during the build and Pro at G4 |
