@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  // Sources run directly on Node's type stripping (no build step), like packages/database.
+  "include": ["src", "test", "*.ts"],
+  "exclude": ["node_modules"]
+}
