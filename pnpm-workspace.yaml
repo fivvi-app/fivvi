@@ -12,8 +12,11 @@ engineStrict: true
 catalog:
   # Exact: we enable nursery rules, which may change in minor releases.
   '@biomejs/biome': 2.5.14
+  '@axe-core/playwright': ^4.13.0
   '@formatjs/icu-messageformat-parser': ^3.5.20
   '@hono/zod-openapi': ^1.6.3
+  # Exact: CI caches the browsers per Playwright version.
+  '@playwright/test': 1.63.0
   '@types/node': ^26.6.2
   '@types/pg': ^8.23.1
   '@types/react': ^19.3.0

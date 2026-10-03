@@ -1,10 +1,3 @@
-import { defineConfig } from 'vitest/config';
+import { unitConfig } from '@trainer-hub/testing/vitest';
 
-export default defineConfig({
-  test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
-    // The machine's time zone must never leak into formatting (TESTING.md §5.4).
-    env: { TZ: 'UTC' },
-  },
-});
+export default unitConfig();

@@ -20,6 +20,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:integration": "turbo run test:integration",
+    "test:e2e": "turbo run test:e2e",
     "format:check": "turbo run format:check",
     "check": "turbo run check",
     "generate:contract": "pnpm --filter @trainer-hub/contract generate",

@@ -46,7 +46,7 @@ Entry points: `@trainer-hub/database` (client, schema, queries), `@trainer-hub/d
 | `db:seed` | root or package | Insert seed data into `DATABASE_URL` (idempotent) |
 | `db:check` | package | Check the migration history for conflicts (`drizzle-kit check`) |
 | `test` | turbo | Unit tests, no database. Includes the schema ↔ migrations drift check |
-| `test:integration` | turbo | Migrate → seed → read against real Postgres (below) |
+| `test:integration` | turbo | Migrations, seed, queries and schema conventions against real Postgres (below) |
 
 ## Changing the schema
 
@@ -66,6 +66,7 @@ Rules:
 - **Ids:** every table has `id uuid primary key default gen_random_uuid()`. Use `id()` from `src/schema/columns.ts`.
 - **Time:** every instant is `timestamptz`, stored in UTC (ADR-012). Use `instant()` / `timestamps()` from `columns.ts`; never `timestamp` without time zone. The client sets `TimeZone=UTC` on every session, so `now()` and text output never depend on the server. Rendering in the workspace/user time zone (default `Europe/Amsterdam`) happens in the apps, not here.
 - **Names:** `snake_case` tables and columns in SQL, `camelCase` in TypeScript, named explicitly in the schema.
+- **Executors:** queries, repositories and the seed take a `DatabaseExecutor` (the database or a transaction on it), never a pool of their own, so they run inside a request's transaction (RLS context, E011) and inside `withRollback` in tests.
 - **Tenancy:** every business table has a non-null `organization_id` (`PRODUCT.md §77`, ADR-006). Business data is read and written only through repository functions that take a tenant context; route handlers don't query business tables. A non-business table (system data such as `system_greetings`) must be added to `NON_BUSINESS_TABLES` in the integration test, with the reason in the PR.
 - **Row-Level Security** is added in **E011** (M2): RLS enabled on every business table, per-request transaction-local `set_config`, an app role without `BYPASSRLS`, and a separate privileged role for migrations. Until then there are no business tables.
 - **Copy stays out of the database.** Rows store i18n keys (`system.hello`), and clients translate them from `packages/i18n`. User-entered content is stored as typed.
@@ -76,10 +77,13 @@ The integration test enforces the id, timestamp and `organization_id` convention
 ## Tests
 
 ```bash
+pnpm db:up
 TEST_DATABASE_URL=postgres://trainer_hub:trainer_hub@localhost:5432/trainer_hub pnpm test:integration
 ```
 
-`TEST_DATABASE_URL` falls back to `DATABASE_URL`, and both are also read from `packages/database/.env`. The tests only accept a server on `localhost` and need `CREATEDB`. Each test creates its own uniquely named database, migrates it, and drops it afterwards, so tests never share data and never touch the dev database. They run with `TZ=UTC`.
+`TEST_DATABASE_URL` falls back to `DATABASE_URL`, and both are also read from `packages/database/.env`. The tests only accept a server on `localhost` and need `CREATEDB`. CI runs them against a Postgres 18 service container.
+
+Isolation follows `docs/engineering/TESTING.md §5.3` with the helpers from `@trainer-hub/testing/database`: `test/global-setup.ts` migrates a template database once per run, the test file clones it, and each test runs in `withRollback`. Migration tests start from an empty database per test instead. Everything the run created is dropped afterwards, so tests never touch the dev database. They run with `TZ=UTC`.
 
 ## Environments
 

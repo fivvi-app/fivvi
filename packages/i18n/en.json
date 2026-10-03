@@ -1,4 +1,7 @@
 {
+  "app": {
+    "title": "Trainer Hub"
+  },
   "hello": {
     "title": "Welcome to Trainer Hub",
     "greeting": "Hi {name},",
