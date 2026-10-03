@@ -77,7 +77,7 @@
 
 1. **Bezorglogs en e-mailvoorbeelden** bewaart Brevo standaard **onbeperkt**, met de volledige inhoud. Zet de bewaartermijn op **1 maand**, het minimum dat Brevo toestaat. Dat is een paar dagen langer dan de 30 dagen in de bewaartermijnen (R18); neem dat daar op.
 2. **Open- en kliktracking:** Brevo voegt een trackingpixel toe en leidt links om via een eigen domein. Op het gratis plan is dat in de instellingen niet uit te zetten. Zet nu anoniem tracken aan, en vraag Brevo-support om tracking voor transactionele e-mail uit te zetten. We hebben het niet nodig, en inlog- en bevestigingslinks horen niet via een omleiding te lopen.
-3. **Toegestane IP-adressen:** Settings → Security → Authorized IPs → rij "API keys" = onbekende IP-adressen automatisch toestaan. Railway heeft geen vaste IP-adressen.
+3. ~~**Toegestane IP-adressen**~~ Gedaan op 3 oktober 2026: IP-blokkering staat uit voor API-sleutels, omdat Railway geen vaste IP-adressen heeft. Gebruik aparte sleutels voor ontwikkeling en productie, en vervang een sleutel direct als die uitlekt.
 4. Bewaar een pdf van de DPA-versie die geldt wanneer echte gegevens starten.
 
 **EN.** The owner selected Brevo for transactional email (ADR-009). E006 checked the terms on 29 September 2026 (details and sources: [`packages/email/README.md`](../../packages/email/README.md#brevo)):
@@ -92,7 +92,7 @@
 
 1. **Delivery logs and email previews** are kept **indefinitely** by default, with the full content. Set the retention to **1 month**, the minimum Brevo allows. That is a few days longer than the 30 days in the retention policy (R18); record it there.
 2. **Open and click tracking:** Brevo adds a tracking pixel and redirects links through its own domain. The free plan can't switch this off in the settings. Turn on anonymous tracking now, and ask Brevo support to disable tracking for transactional email. We don't need it, and sign-in and confirmation links shouldn't go through a redirect.
-3. **Authorized IPs:** Settings → Security → Authorized IPs → "API keys" row = automatically authorize unknown IPs. Railway has no fixed IP addresses.
+3. ~~**Authorized IPs**~~ Done on 3 October 2026: IP blocking is off for API keys, because Railway has no fixed IP addresses. Use separate keys for development and production, and rotate a key at once if it leaks.
 4. Keep a PDF of the DPA version in force when real data starts.
 
 ## 5. Geen subverwerker (onder voorwaarden) / Not a sub-processor (on conditions)
