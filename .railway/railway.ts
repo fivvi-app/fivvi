@@ -3,7 +3,7 @@
 //
 // Apply it to `production` and to `development` (the base environment that every PR
 // environment is copied from). PR environments are never applied to directly.
-import { defineRailway, github, postgres, project, service } from 'railway/iac';
+import { defineRailway, github, postgres, preserve, project, service } from 'railway/iac';
 
 const REPO = 'thekeyvan/trainer-hub';
 
@@ -64,6 +64,11 @@ export default defineRailway((ctx) => {
       // Railway injects PORT=8080 otherwise. The Railway domain targets 3000 (EXPOSE in the
       // Dockerfile), so pin it: a mismatch passes the health check but answers 502 publicly.
       PORT: '3000',
+      // Transactional email (E006, packages/email). Values are set in the dashboard, never
+      // here: production gets the real Brevo key, development (and so previews) a test key.
+      BREVO_API_KEY: preserve(),
+      EMAIL_FROM_ADDRESS: preserve(),
+      EMAIL_FROM_NAME: 'Trainer Hub',
     },
   });
 

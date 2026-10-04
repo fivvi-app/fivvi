@@ -32,8 +32,11 @@ catalog:
   railway: 3.11.0
   react: ^19.3.0
   react-dom: ^19.3.0
+  react-email: ^6.11.0
+  tsx: ^4.23.15
   turbo: ^2.11.2
   typescript: ~7.0.2
+  use-intl: ^4.14.6
   vitest: ^5.0.1
   zod: ^4.6.5
 

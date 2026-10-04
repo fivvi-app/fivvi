@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Locale } from '../config.ts';
 import { analyze } from './analyze.ts';
 import { renderStringsXml } from './android.ts';
+import { renderNativeCatalogs } from './generate.ts';
 import { catalogSet } from './testing.ts';
 import { renderXcstrings } from './xcstrings.ts';
 
@@ -282,5 +283,27 @@ describe('E005 iOS String Catalog exporter', () => {
       },
     );
     expect(catalog.strings['x.y']?.comment).toBe('Dismisses the dialog');
+  });
+});
+
+describe('E006 server-only namespaces', () => {
+  const nl = { 'hello.title': 'Welkom', 'email.hello.subject': 'Testbericht' };
+  const en = { 'hello.title': 'Welcome', 'email.hello.subject': 'Test message' };
+
+  it('leaves email keys out of the iOS and Android catalogs', () => {
+    const files = renderNativeCatalogs(analysisOf(nl, en));
+    expect(files.size).toBe(3);
+    for (const [file, content] of files) {
+      expect(content, file).toContain('Wel');
+      expect(content, file).not.toContain('Test');
+      expect(content, file).not.toContain('email');
+    }
+  });
+
+  it('still checks email keys for parity', () => {
+    const analysis = analyze(catalogSet(nl, { 'hello.title': 'Welcome' }));
+    expect(analysis.parity).toEqual([
+      '"email.hello.subject" is in nl-NL.json but missing from en.json',
+    ]);
   });
 });

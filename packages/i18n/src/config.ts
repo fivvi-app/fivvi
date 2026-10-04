@@ -3,6 +3,13 @@ export const locales = ['nl-NL', 'en'] as const;
 export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = 'nl-NL';
 
+/**
+ * Top-level namespaces rendered only on the server. Their keys follow every catalog rule
+ * (parity, ICU subset), but the native exporters leave them out: the apps never show them.
+ * `email`: transactional email copy, rendered by `packages/email` (ADR-009).
+ */
+export const serverOnlyNamespaces = ['email'] as const;
+
 /** Workspace time zone used when nothing more specific is known (ADR-012). */
 export const defaultTimeZone = 'Europe/Amsterdam';
 

@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { locales } from '../config.ts';
+import { locales, serverOnlyNamespaces } from '../config.ts';
 import { type Analysis, analyze } from './analyze.ts';
 import { androidValuesDir, renderStringsXml } from './android.ts';
 import { type CatalogSet, readCatalogSet } from './catalog.ts';
@@ -17,10 +17,17 @@ export class CatalogError extends Error {
   }
 }
 
+/** Whether a key goes into the iOS and Android catalogs (not a `serverOnlyNamespaces` key). */
+export function isNativeKey(key: string): boolean {
+  const namespace = key.split('.')[0];
+  return !(serverOnlyNamespaces as readonly string[]).includes(namespace ?? '');
+}
+
 /** Renders every native catalog, keyed by path relative to the package root. */
-export function renderNativeCatalogs(analysis: Analysis): Map<string, string> {
-  const problems = [...analysis.parity, ...analysis.icu];
+export function renderNativeCatalogs(fullAnalysis: Analysis): Map<string, string> {
+  const problems = [...fullAnalysis.parity, ...fullAnalysis.icu];
   if (problems.length > 0) throw new CatalogError(problems);
+  const analysis = { ...fullAnalysis, keys: fullAnalysis.keys.filter(isNativeKey) };
   const files = new Map<string, string>();
   files.set(`${generatedDir}/ios/Localizable.xcstrings`, renderXcstrings(analysis));
   for (const locale of locales) {

@@ -18,6 +18,8 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 2. `pnpm --filter @trainer-hub/i18n generate` and commit the regenerated `generated/` files.
 3. `pnpm check` must pass.
 
+**Email copy** goes under the `email` namespace (`email.hello.subject`). It follows the same rules and checks, but the native exporters leave `email.*` out (`serverOnlyNamespaces` in `src/config.ts`), because only `packages/email` renders it.
+
 **Keys** are dot paths grouped by screen or feature: `hello.title`, `notFound.body`, `booking.spotsAvailable`. Every segment is lowerCamelCase (`[a-z][a-zA-Z0-9]*`) and every key has at least two segments. Name keys after the English glossary term (`GLOSSARY.md §6.3`). The same key is used on iOS (`"hello.title"`); Android turns it into snake_case (`hello_title`, `not_found_body`).
 
 ## Supported ICU
