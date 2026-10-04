@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.7 |
+| **Version** | 1.8 |
 | **Date** | 22 September 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
 | **Builders** | AI coding agents: Claude Code + Codex, working in parallel worktrees |
-| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7 |
+| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7; E006 owner to-dos placed at M2, G2 and G4 in v1.8 |
 | **Requirements source** | [`PRODUCT.md`](PRODUCT.md) (what we build and why) |
 | **Feature registry** | [`FEATURES.md`](FEATURES.md) (status of every feature) |
 | **Engineering workflow** | [`../engineering/WORKFLOW.md`](../engineering/WORKFLOW.md) (branches, worktrees, reviews, cleanup, Definition of Done) |
@@ -309,6 +309,9 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - Roles: Owner, Admin, Trainer (§50). No custom permissions. Owner + Trainer on the same person is a normal case.
 - Every business table carries `organization_id`; RLS policies are active; the cross-tenant test suite runs in CI.
 - **Sign-in email contains a magic link and a 6-digit code.** Web uses either one; native apps use the code, and deep links come later. Tokens are hashed, single-use, short-lived and rate-limited, with no account enumeration. The link opens a **confirm-click page**, so email scanners (e.g. Outlook Safe Links) can't consume it.
+- **Owner setup before F001 sends real email (E006):**
+  - [ ] Apply `.railway/railway.ts` to `development`, then `production` (`docs/engineering/ENVIRONMENTS.md §3`). It declares `BREVO_API_KEY`, `EMAIL_FROM_ADDRESS` and `EMAIL_FROM_NAME` on `web`.
+  - [ ] Set the values (ENVIRONMENTS.md §7): `development` gets the `trainer-hub-dev` key; `production` gets a **new, separate** Brevo key (e.g. `trainer-hub-prod`); `EMAIL_FROM_ADDRESS` = the verified sender in both.
 
 **Exit criteria**
 - Owner signs in on web, iOS and Android, creates "John's Gym", sees the UI in Dutch by default, switches to English, and the choice persists across devices.
@@ -354,6 +357,9 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 **Exit criteria**
 - A full real week of the pilot gym is represented correctly, including a substitution and a cancellation.
 - Owner sees the workspace-wide "Today" (§45); a trainer sees "My day" across workspaces (§46–47).
+- Email is ready for real names (`docs/legal/sub-processors.md §4`):
+  - [ ] Brevo support has switched off open/click tracking (link rewriting) and the unsubscribe header for transactional email, or the owner has accepted the risk with a reason (R1).
+  - [ ] A PDF of the Brevo terms and DPA (Annex 2) in force on that day is saved.
 
 ---
 
@@ -454,6 +460,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - [ ] Runbooks: incident response, rollback, "a client says they didn't get the email", "wrong booking".
 - [ ] Import scripts dry-run against a copy of the pilot's real data.
 - [ ] **Free-tier limits reviewed** and the paid upgrades triggered by G4 are ready to switch on (§12).
+- [ ] **Email capacity:** a usage alert for Brevo's 300 emails/day free limit is set up, and the paid Brevo plan is ready to switch on, so sign-in and booking emails never stop at the cap (R14).
 - [ ] Support channel with the pilot agreed (response times, how to report issues).
 
 **Exit criteria (Gate G4: pilot go-live)**
@@ -742,3 +749,4 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-09-22 | 1.5 | **Brevo selected** for transactional email (ADR-009; owner account created). M0 §4.4 legal drafts completed and checked off separately from signing, DPA execution and publication. Drafts synchronized with Railway hosting and Postgres, including the DPA checks before real data. Release 2.0 DPIA need will be reassessed at its entry gate. |
 | 2026-09-22 | 1.6 | Owner reported Sentry and PostHog accounts created on personal accounts and an existing Apple Developer Program company membership. Split the M0 account checklist to show what is created versus still unconfirmed (uptime monitor and Google Play Console). Updated M8 and §12 distribution costs; E006, E009 and E017 remain planned. |
 | 2026-10-04 | 1.7 | **E006 email infrastructure** implemented (`packages/email`: React Email templates from the i18n catalogs, `sendEmail` with Brevo and inline retry). G1 email criterion met for Gmail (NL and EN in the inbox, 2026-10-03); other mailbox providers stay with the M5 deliverability tests. Brevo terms checked: 300 emails/day on the free plan, EU storage with support access from the US and India, DPA part of the terms; previews off, logs kept 1 month, anonymous tracking on. Updated ADR-009 row, §12 email row and R1 (tracking off before G2). |
+| 2026-10-04 | 1.8 | E006 owner to-dos moved to where they are due: Railway email variables in M2 (before F001 sends email), Brevo tracking off and a DPA copy in the G2 exit criteria, Brevo usage alert and paid plan in the M9 launch checklist (G4). |
