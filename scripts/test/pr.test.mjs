@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
+import {
+  chmodSync,
+  cpSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
@@ -11,11 +19,23 @@ const HEAD = 'c'.repeat(40);
 const CI = ['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android'];
 
 const NO_PREVIEW = `**Railway preview smoke check:** on \`${HEAD}\`: no preview for this PR (it touches no Railway watch pattern).`;
+// GitHub's combined status of a commit; Railway posts `trainer-hub - web` also when it skips the deploy.
+const SKIPPED = 'No deployment needed - watched paths not modified';
+const statuses = (...entries) => ({
+  total_count: entries.length,
+  statuses: entries.map(([context, state, description]) => ({ context, state, description })),
+});
+const WEB_SKIPPED = statuses(
+  ['trainer-hub - cron', 'success', SKIPPED],
+  ['trainer-hub - web', 'success', SKIPPED],
+);
+const WEB_DEPLOYED = statuses(['trainer-hub - web', 'success', 'Deployment succeeded']);
+const STATUS = `^api repos/[^ ]+/commits/${HEAD}/status`;
 const threads = (nodes, hasNextPage = false) => ({
   data: { repository: { pullRequest: { reviewThreads: { pageInfo: { hasNextPage }, nodes } } } },
 });
 
-const github = ({ files = ['apps/web/page.tsx'], body, behind = 0 } = {}) => [
+const github = ({ files = ['apps/web/page.tsx'], body, behind = 0, status = statuses() } = {}) => [
   { match: '^pr list ', out: [{ number: 60 }] },
   { match: '^api repos/[^ ]+/pulls/60/files', out: files.map((filename) => ({ filename })) },
   {
@@ -49,6 +69,7 @@ const github = ({ files = ['apps/web/page.tsx'], body, behind = 0 } = {}) => [
   { match: '^issue view 57 ', out: { number: 57, labels: [], parent: null } },
   { match: '^api repos/[^ ]+/compare/main\\.\\.\\.', out: { behind_by: behind } },
   { match: '^api graphql ', out: threads([]) },
+  { match: STATUS, out: status },
   { match: '^pr edit 60 ', out: '' },
   { match: '^pr merge 60 ', out: '' },
   { match: '^api --method DELETE ', out: '' },
@@ -144,6 +165,27 @@ describe('pr.sh merge', () => {
     refuses(rules, /could not decide the risk of PR #60/);
   });
 
+  it('merges a PR without a preview when Railway skipped the deploy', () => {
+    const result = merge(github({ status: WEB_SKIPPED }));
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /✓ preview smoke-checked: no preview/);
+  });
+
+  it('refuses a "no preview" record when Railway deployed a preview', () => {
+    const result = merge(github({ status: WEB_DEPLOYED }));
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /✗ preview smoke-checked: the PR has a preview/);
+    assert.ok(!result.calls.some((call) => /^pr merge|--method DELETE/.test(call)));
+  });
+
+  it("merges nothing when it can't read the head commit's statuses", () => {
+    refuses([{ match: STATUS, out: '', status: 1 }, ...github()], /could not read the statuses/);
+    refuses(
+      [{ match: STATUS, out: { total_count: 31, statuses: [] } }, ...github()],
+      /could not read the statuses/,
+    );
+  });
+
   it("merges nothing when it can't tell whether the branch is behind main", () => {
     refuses(
       [{ match: '^api repos/[^ ]+/compare/', out: '', status: 1 }, ...github()],
@@ -229,37 +271,80 @@ describe('pr.sh reviewed', () => {
 
 describe('pr.sh smoke', () => {
   const gh = fakeGh();
-  after(() => gh.cleanup());
+  // A stand-in for curl: logs the URL and answers like a healthy preview.
+  const bin = mkdtempSync(join(tmpdir(), 'fake-curl-'));
+  writeFileSync(
+    join(bin, 'curl'),
+    '#!/bin/sh\necho "$*" >> "$FAKE_CURL_LOG"\necho \'{"status":"ok"}\'\n',
+  );
+  chmodSync(join(bin, 'curl'), 0o755);
+  const curlLog = join(bin, 'curl.log');
+  after(() => {
+    gh.cleanup();
+    rmSync(bin, { recursive: true, force: true });
+  });
 
-  const smoke = (checks) => {
-    const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['smoke'], {
+  const smoke = (status, args = []) => {
+    writeFileSync(curlLog, '');
+    const env = gh.env([
+      { match: '^pr list ', out: [{ number: 60 }] },
+      { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: HEAD } },
+      { match: STATUS, ...status },
+      { match: '^pr view 60 .*--json body', out: { body: 'Closes #57' } },
+      { match: '^pr edit 60 ', out: '' },
+    ]);
+    const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['smoke', ...args], {
       encoding: 'utf8',
-      env: gh.env([
-        { match: '^pr list ', out: [{ number: 60 }] },
-        { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: HEAD } },
-        { match: '^pr checks 60 ', ...checks },
-        { match: '^pr view 60 .*--json body', out: { body: 'Closes #57' } },
-        { match: '^pr edit 60 ', out: '' },
-      ]),
+      env: { ...env, PATH: `${bin}:${env.PATH}`, FAKE_CURL_LOG: curlLog },
     });
     const bodies = gh
       .calls()
       .filter((call) => call.args[1] === 'edit')
       .map((call) => call.args[call.args.indexOf('--body') + 1]);
-    return { ...result, bodies };
+    return { ...result, bodies, curls: readFileSync(curlLog, 'utf8').split('\n').filter(Boolean) };
   };
 
-  it('records that the PR has no preview when no check is the preview', () => {
-    const result = smoke({ out: [{ name: 'Detect changes' }, { name: 'Checks (Linux)' }] });
+  it('records that the PR has no preview when Railway posted no preview status', () => {
+    const result = smoke({ out: statuses() });
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.bodies, [`Closes #57\n\n${NO_PREVIEW}`]);
+    assert.deepEqual(result.curls, []);
   });
 
-  it("records nothing when it can't read the checks", () => {
-    const result = smoke({ out: '', status: 1 });
+  it('records that the PR has no preview right away when Railway skipped the deploy', () => {
+    const result = smoke({ out: WEB_SKIPPED });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.bodies, [`Closes #57\n\n${NO_PREVIEW}`]);
+    assert.deepEqual(result.curls, []);
+  });
+
+  it("checks the preview's health when Railway deployed one", () => {
+    const result = smoke({ out: WEB_DEPLOYED });
+    assert.equal(result.status, 0, result.stderr);
+    const url = 'https://web-trainer-hub-pr-60.up.railway.app/api/v1/health';
+    assert.ok(result.curls.length > 0 && result.curls.every((args) => args.endsWith(url)));
+    assert.deepEqual(result.bodies, [
+      `Closes #57\n\n**Railway preview smoke check:** on \`${HEAD}\`: \`curl -fsS ${url}\` → \`{"status":"ok"}\` ✅`,
+    ]);
+  });
+
+  it('records nothing while the preview is still deploying', () => {
+    const deploying = statuses(['trainer-hub - web', 'pending', 'Deployment in progress']);
+    const result = smoke({ out: deploying }, ['--timeout', '0']);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /could not read the checks of PR #60/);
+    assert.match(result.stderr, /still deploying/);
     assert.deepEqual(result.bodies, []);
+    assert.deepEqual(result.curls, []);
+  });
+
+  it("records nothing when it can't read the head commit's statuses", () => {
+    for (const status of [{ out: '', status: 1 }, { out: { total_count: 31, statuses: [] } }]) {
+      const result = smoke(status);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /could not read the statuses of [0-9a-f]{7}/);
+      assert.deepEqual(result.bodies, []);
+      assert.deepEqual(result.curls, []);
+    }
   });
 });
 

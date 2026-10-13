@@ -9,7 +9,6 @@ const GATE_JQ = join(import.meta.dirname, '../merge-gate.jq');
 const MARKS = [
   ['review_mark', 'Self-review'],
   ['smoke_mark', 'Railway preview smoke check'],
-  ['preview_check', 'trainer-hub - web'],
   ['no_preview', 'no preview for this PR'],
 ].flatMap(([name, value]) => ['--arg', name, value]);
 
@@ -60,6 +59,7 @@ const facts = (overrides = {}) => ({
     run('Android', 'SKIPPED'),
     run('GitGuardian Security Checks'),
   ],
+  preview: 'no',
   behind: 0,
   threads: 0,
   ...overrides,
@@ -138,12 +138,11 @@ describe('merge gate', () => {
   });
 
   it('requires a passed smoke check for the head commit when the PR has a preview', () => {
-    const preview = [...facts().checks, status('trainer-hub - web', 'SUCCESS')];
     const body = `Closes #57\n\n${reviewed()}`;
     const recorded = (record) =>
-      facts({ checks: preview, pr: { ...facts().pr, body: `${body}\n\n${record}` } });
+      facts({ preview: 'yes', pr: { ...facts().pr, body: `${body}\n\n${record}` } });
 
-    const unchecked = facts({ checks: preview, pr: { ...facts().pr, body } });
+    const unchecked = facts({ preview: 'yes', pr: { ...facts().pr, body } });
     assert.deepEqual(failed(gate(unchecked)), ['preview smoke-checked']);
 
     assert.deepEqual(failed(gate(recorded(smoked(OLD)))), ['preview smoke-checked']);
@@ -153,6 +152,27 @@ describe('merge gate', () => {
     assert.match(noPreviewRecorded.conditions[3].detail, /has a preview/);
 
     assert.equal(gate(recorded(smoked())).merge, true);
+  });
+
+  it('takes whether the PR has a preview from pr.sh, not from the checks', () => {
+    // Railway posts a green `trainer-hub - web` status also when it skips the deploy (no preview).
+    const skipped = facts({
+      checks: [...facts().checks, status('trainer-hub - web', 'SUCCESS')],
+      preview: 'no',
+    });
+    assert.equal(gate(skipped).merge, true);
+  });
+
+  it('refuses while the preview is deploying, or when nobody knows whether there is one', () => {
+    const deploying = gate(facts({ preview: 'pending' }));
+    assert.deepEqual(failed(deploying), ['preview smoke-checked']);
+    assert.match(deploying.conditions[3].detail, /still deploying/);
+
+    for (const preview of [undefined, null, '', 'maybe']) {
+      const unknown = gate(facts({ preview }));
+      assert.deepEqual(failed(unknown), ['preview smoke-checked'], String(preview));
+      assert.match(unknown.conditions[3].detail, /unknown/, String(preview));
+    }
   });
 
   it('fails closed without a head commit, required checks or a commit in a record', () => {

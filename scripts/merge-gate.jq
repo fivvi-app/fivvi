@@ -1,10 +1,12 @@
 # Whether an agent may merge a PR (ADR-016, decision 3), from the facts scripts/pr.sh merge collects. Pure: no I/O.
 # Input:  {head, default_branch, pr: {number, state, draft, base, body}, risk: {risk, reasons},
-#          required: [check name], checks: [statusCheckRollup entry], behind, threads}
+#          required: [check name], checks: [statusCheckRollup entry], preview, behind, threads}
+# preview: whether the head commit has a Railway preview, "yes", "no" or "pending" (pr.sh preview_of, the definition
+# pr.sh smoke uses too; the checks can't tell: Railway's status is green also when it skipped the deploy).
 # $review_mark, $smoke_mark: the marks of the records pr.sh writes in the PR body (`**<mark>:** …`).
-# $preview_check: the name of the Railway preview's check; $no_preview: what pr.sh smoke records when there is none.
+# $no_preview: what pr.sh smoke records when there is no preview.
 # Output: {merge, conditions: [{name, ok, detail}]}; merge only when every condition holds. A missing fact fails:
-# a head that isn't a full commit SHA, no required checks, or a record that names no commit.
+# a head that isn't a full commit SHA, no required checks, an unknown preview, or a record that names no commit.
 
 def short: .[:7];
 def is_sha: type == "string" and test("^[0-9a-f]{40}$");
@@ -59,11 +61,12 @@ def on_head($what; $line):
     {name: "self-review clean"} + on_head("self-review"; $f | record($review_mark)),
     {name: "preview smoke-checked"} + (
       ($f | record($smoke_mark)) as $line
-      | any(results[]; .name == $preview_check) as $preview
-      | on_head("smoke check"; $line)
+      | if $f.preview | IN("yes", "no", "pending") | not then {ok: false, detail: "whether the PR has a preview is unknown"}
+        elif $f.preview == "pending" then {ok: false, detail: "the preview of \($f.head | short) is still deploying"}
+        else on_head("smoke check"; $line) end
       | if .ok | not then .
         elif $line | contains("✅") then .
-        elif $preview then {ok: false, detail: "the PR has a preview, but the smoke check record says it has none"}
+        elif $f.preview == "yes" then {ok: false, detail: "the PR has a preview, but the smoke check record says it has none"}
         elif $line | contains($no_preview) then {ok: true, detail: "no preview, recorded for \($f.head | short)"}
         else {ok: false, detail: "the smoke check did not pass"}
         end),

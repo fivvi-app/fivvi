@@ -12,7 +12,8 @@
 #   pr.sh threads                                 open review threads with their ids
 #   pr.sh reply <thread-id> (--body <md>|--body-file <f|->) [--resolve]
 #   pr.sh smoke [--timeout <minutes>]             smoke-check the Railway preview and record the result for the PR's head
-#                                                 commit in the PR body
+#                                                 commit in the PR body; the head has a preview when Railway's
+#                                                 `trainer-hub - web` status on it is not a skipped deploy (preview_of)
 #   pr.sh reviewed                                record in the PR body that both reviewers (standards and spec) found
 #                                                 nothing to fix on the PR's head commit; local HEAD must be that commit
 #   pr.sh merge                                   squash-merge a low-risk PR and delete its branch, only when every
@@ -31,13 +32,16 @@ REPO="$(repo_slug)"
 OWNER="${REPO%%/*}"
 NAME="${REPO#*/}"
 BRANCH="$(git branch --show-current)"
-# The records pr.sh writes in the PR body and the preview's check name; scripts/merge-gate.jq gets them from here, and
-# scripts/flow.sh reads refusals with pr.sh refusal.
+# The records pr.sh writes in the PR body; scripts/merge-gate.jq gets them from here, and scripts/flow.sh reads refusals
+# with pr.sh refusal.
 SMOKE_MARK="Railway preview smoke check"
 REVIEW_MARK="Self-review"
 REFUSAL_MARK="Merge gate"
-PREVIEW_CHECK="trainer-hub - web"
 NO_PREVIEW="no preview for this PR"
+# Railway's commit status for the web preview, and how its description starts when Railway skipped the deploy because
+# the PR touches no watch pattern (the status is then green, but there is no preview).
+PREVIEW_CHECK="trainer-hub - web"
+PREVIEW_SKIPPED="No deployment needed"
 
 open_pr() { gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty'; }
 current_pr() {
@@ -207,6 +211,24 @@ cmd_reply() {
 
 head_of() { gh pr view "$1" --repo "$REPO" --json headRefOid --jq .headRefOid; }
 
+# Whether commit $1 has a Railway preview, the one definition pr.sh smoke and the merge gate use: yes, no, or pending
+# (Railway is still deploying). Yes when the latest $PREVIEW_CHECK status on the commit is not a skipped deploy; no when
+# there is no such status or Railway skipped the deploy. Dies when the statuses can't all be read: never a guessed "no".
+preview_of() {
+  local sha="$1" combined
+  combined="$(gh api "repos/$REPO/commits/$sha/status?per_page=100")" \
+    || die "could not read the statuses of ${sha:0:7}"
+  # The combined status holds the latest status per context; more contexts than one page means some are unread.
+  jq -r --arg check "$PREVIEW_CHECK" --arg skipped "$PREVIEW_SKIPPED" '
+    if (.statuses | type) != "array" or .total_count != (.statuses | length) then error("unread statuses")
+    else [.statuses[] | select(.context == $check)] | first
+      | if . == null then "no"
+        elif .state == "pending" then "pending"
+        elif (.description // "") | startswith($skipped) then "no"
+        else "yes" end
+    end' <<<"$combined" 2>/dev/null || die "could not read the statuses of ${sha:0:7}"
+}
+
 # Records a result in the PR body as one line, **<mark>:** …, replacing the previous one. scripts/merge-gate.jq reads it.
 record() {
   local pr="$1" mark="$2" line="$3" body
@@ -218,9 +240,10 @@ record() {
   echo "📝 $line"
 }
 
-# The preview exists only when the PR touches a Railway watch pattern (docs/engineering/ENVIRONMENTS.md).
+# The preview exists only when the PR touches a Railway watch pattern (docs/engineering/ENVIRONMENTS.md); preview_of
+# decides. While Railway is still deploying, it waits (within the timeout) before it decides.
 cmd_smoke() {
-  local timeout=15 pr head checks url deadline result line
+  local timeout=15 pr head preview url deadline result line
   while [ $# -gt 0 ]; do
     case "$1" in
       --timeout) timeout="${2:?}"; shift ;;
@@ -230,14 +253,18 @@ cmd_smoke() {
   done
   pr="$(current_pr)"
   head="$(head_of "$pr")" || die "could not read the head commit of PR #$pr; nothing recorded"
-  # Read first, then match: a failed read is an error, never "no preview".
-  checks="$(gh pr checks "$pr" --repo "$REPO" --json name --jq '.[].name')" \
-    || die "could not read the checks of PR #$pr; nothing recorded"
-  if ! grep -qFx "$PREVIEW_CHECK" <<<"$checks"; then
+  deadline=$(( $(date +%s) + timeout * 60 ))
+  while :; do
+    preview="$(preview_of "$head")" || die "nothing recorded on PR #$pr"
+    [ "$preview" = pending ] || break
+    [ "$(date +%s)" -lt "$deadline" ] \
+      || die "the preview of ${head:0:7} is still deploying after $timeout min; nothing recorded"
+    sleep 20
+  done
+  if [ "$preview" = no ]; then
     line="**$SMOKE_MARK:** on \`$head\`: $NO_PREVIEW (it touches no Railway watch pattern)."
   else
     url="https://web-trainer-hub-pr-$pr.up.railway.app/api/v1/health"
-    deadline=$(( $(date +%s) + timeout * 60 ))
     until result="$(curl -fsS --max-time 20 "$url" 2>/dev/null)" && jq -e '.status == "ok"' <<<"$result" >/dev/null; do
       [ "$(date +%s)" -lt "$deadline" ] || die "preview not healthy after $timeout min: $url (${result:-no response})"
       sleep 20
@@ -263,7 +290,7 @@ cmd_reviewed() {
 # The facts of scripts/merge-gate.jq. Required checks come from .github/rulesets/main.json in this worktree, the file
 # scripts/github-settings.sh applies to GitHub. Dies when a fact can't be read, so the gate never decides on a guess.
 merge_facts() {
-  local pr="$1" view head base behind threads risk required
+  local pr="$1" view head base behind threads risk preview required
   view="$(gh pr view "$pr" --repo "$REPO" --json number,state,isDraft,baseRefName,headRefName,headRefOid,body,statusCheckRollup)" \
     || die "could not read PR #$pr"
   head="$(jq -r .headRefOid <<<"$view")" || die "could not read PR #$pr"
@@ -271,14 +298,16 @@ merge_facts() {
   behind="$(gh api "repos/$REPO/compare/$base...$head" --jq .behind_by)" || die "could not compare ${head:0:7} with $base"
   threads="$(unresolved_threads "$pr")" || exit 1
   risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr"
+  preview="$(preview_of "$head")" || exit 1
   required="$(jq '[.rules[] | select(.type == "required_status_checks")
     | .parameters.required_status_checks[].context]' "$ROOT/.github/rulesets/main.json")" \
     || die "could not read the required checks from .github/rulesets/main.json"
   jq --arg base "$base" --argjson behind "$behind" --argjson threads "$(jq length <<<"$threads")" \
-    --argjson risk "$risk" --argjson required "$required" '{
+    --argjson risk "$risk" --argjson required "$required" --arg preview "$preview" '{
     head: .headRefOid, branch: .headRefName, default_branch: $base,
     pr: {number, state, draft: .isDraft, base: .baseRefName, body: (.body // "")},
-    risk: $risk, required: $required, checks: (.statusCheckRollup // []), behind: $behind, threads: $threads}' <<<"$view"
+    risk: $risk, required: $required, checks: (.statusCheckRollup // []), preview: $preview,
+    behind: $behind, threads: $threads}' <<<"$view"
 }
 
 cmd_merge() {
@@ -288,8 +317,8 @@ cmd_merge() {
   if ! facts="$(merge_facts "$pr")" || [ -z "$facts" ]; then
     die "could not read the facts of PR #$pr; nothing merged"
   fi
-  decision="$(jq -c --arg review_mark "$REVIEW_MARK" --arg smoke_mark "$SMOKE_MARK" --arg preview_check "$PREVIEW_CHECK" \
-    --arg no_preview "$NO_PREVIEW" -f "$ROOT/scripts/merge-gate.jq" <<<"$facts")" \
+  decision="$(jq -c --arg review_mark "$REVIEW_MARK" --arg smoke_mark "$SMOKE_MARK" --arg no_preview "$NO_PREVIEW" \
+    -f "$ROOT/scripts/merge-gate.jq" <<<"$facts")" \
     || die "could not decide the merge gate of PR #$pr; nothing merged"
   jq -r '.conditions[] | "\(if .ok then "✓" else "✗" end) \(.name): \(.detail)"' <<<"$decision"
   head="$(jq -r .head <<<"$facts")"
