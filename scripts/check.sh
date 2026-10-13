@@ -11,7 +11,7 @@ FAST=false
 case "${1:-}" in
   --fast) FAST=true ;;
   "") ;;
-  *) sed -n '3,6p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  *) usage_of "$0" ;;
 esac
 
 cd "$ROOT"

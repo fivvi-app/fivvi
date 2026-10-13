@@ -21,6 +21,12 @@ SPEC_LABEL="spec"
 
 die() { echo "error: $*" >&2; exit 1; }
 
+# Prints the comment block at the top of a script (after the shebang and any shellcheck directives) and exits.
+usage_of() {
+  awk 'NR == 1 || /^# shellcheck / { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "$1" >&2
+  exit 1
+}
+
 need_cmd() { command -v "$1" >/dev/null || die "$1 not found — run scripts/bootstrap.sh"; }
 
 default_branch() {

@@ -76,6 +76,17 @@ describe('naming rules', () => {
   });
 });
 
+describe('usage', () => {
+  it('prints the commands of every script, never its code', () => {
+    for (const script of ['flow', 'issue', 'wt', 'pr', 'skills']) {
+      const result = spawnSync(join(SCRIPTS, `${script}.sh`), [], { encoding: 'utf8' });
+      assert.equal(result.status, 1, script);
+      assert.match(result.stderr, new RegExp(`${script}\\.sh \\w`), script);
+      assert.doesNotMatch(result.stderr, /set -euo|source /, script);
+    }
+  });
+});
+
 describe('commit-msg hook', () => {
   const hook = join(SCRIPTS, '../.githooks/commit-msg');
   const run = (message) => {

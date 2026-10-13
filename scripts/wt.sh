@@ -9,7 +9,7 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
-usage() { sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+usage() { usage_of "$0"; }
 
 cmd_add() {
   { [ $# -ge 1 ] && [ $# -le 2 ]; } || usage
