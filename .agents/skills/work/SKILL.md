@@ -43,6 +43,7 @@ You orchestrate; the user only talks. Run every script, skill and subagent yours
 | `draft-pr` | **Ship** from step 2 |
 | `changes-requested` | **Review loop** |
 | `ready-to-merge` | **Ship** from step 6 |
+| `merge-refused` | Report and stop: `pr.sh merge` refused this commit, so the owner decides. Never run `pr.sh merge` on it again; only a fix pushed with `pr.sh create` (a new commit) makes it `ready-to-merge` again. |
 | `in-review`, `approved` | Report and stop: high-risk (or risk unknown), so the owner reviews and merges. |
 | `merged` | `scripts/flow.sh finish <n>` from the main checkout, then continue with what it reports for the spec. |
 | `complete` | Check `FEATURES.md` says `IMPLEMENTED` on `main`, then close the spec with `scripts/issue.sh close <n>`. |
@@ -56,7 +57,7 @@ You orchestrate; the user only talks. Run every script, skill and subagent yours
 New work. Keep these steps in this conversation; don't delegate or compact between them.
 
 1. **Grill**: `.agents/skills/grill-with-docs/SKILL.md`. It updates `GLOSSARY.md` and proposes ADRs as decisions settle.
-2. **Spec**: `.agents/skills/to-spec/SKILL.md` → a spec issue, following `docs/agents/issue-tracker.md` (`[F0xx]` title, ACs in NL/EN, Test plan, platforms, languages). The owner reviews it and approves it with the `spec-approved` label. Report and stop here; continue with step 3 only once the spec is approved (`flow.sh status` no longer says `needs-approval`).
+2. **Spec**: `.agents/skills/to-spec/SKILL.md` → a spec issue, following `docs/agents/issue-tracker.md` (`[F0xx]` title, ACs in NL/EN, Test plan, platforms, languages). A spec that touches auth, tenant data, health notes, legal or money gets the `owner-merge` label when you create it: `scripts/issue.sh create spec … --label owner-merge`, so every PR of it goes to the owner (high-risk paths match those areas only by name until their code exists). The owner reviews it and approves it with the `spec-approved` label. Report and stop here; continue with step 3 only once the spec is approved (`flow.sh status` no longer says `needs-approval`).
 3. **Tickets**: `.agents/skills/to-tickets/SKILL.md` → sub-issues with blocking edges via `scripts/issue.sh create ticket --parent <spec> [--blocked-by <n>]...`, each with an `## Acceptance criteria` checklist. Size each to merge within a day or two.
 4. **Build** the ready tickets unless the user wants to stop.
 
@@ -86,7 +87,7 @@ Run `pr.sh` inside the worktree: `cd <worktree> && scripts/pr.sh …`.
 3. `pr.sh wait`: exit 0, CI passed; 1, a check failed: fix it with an implementer, self-review again and push with `pr.sh create` (back to step 2); 2, still running after 20 minutes: report and stop.
 4. `pr.sh smoke` checks the Railway preview and records the result for the head commit.
 5. `pr.sh ready`, note the PR in the notes file.
-6. `scripts/flow.sh status <n>`. On `ready-to-merge`, run `pr.sh merge`: it checks the merge gate and squash-merges only when every condition holds. When it merged, run `scripts/flow.sh finish <n>` from the main checkout and continue with what it reports. When it refuses, or the phase is `in-review`, report why and stop: the PR stays for the owner. If the only failure is that the branch is behind `main`, merge `origin/main` in the worktree, run `scripts/check.sh`, self-review the new commit and continue from step 1 instead.
+6. `scripts/flow.sh status <n>`. On `ready-to-merge`, run `pr.sh merge`: it checks the merge gate and squash-merges only when every condition holds. When it merged, run `scripts/flow.sh finish <n>` from the main checkout and continue with what it reports. When it refuses, it records the refusal and its reasons on the PR for the head commit: report it to the owner and stop, and never retry the merge. The PR stays for the owner (`merge-refused`, under "Waiting on the owner" in `flow.sh next`) until the owner decides or a fix is pushed. Same when the phase is `in-review`. If the only failure is that the branch is behind `main` (nothing is recorded then), merge `origin/main` in the worktree, run `scripts/check.sh`, self-review the new commit and continue from step 1 instead.
 
 ## Review loop
 
@@ -101,12 +102,12 @@ Run `pr.sh` inside the worktree: `cd <worktree> && scripts/pr.sh …`.
 The owner says "run the factory": work through everything that doesn't need the owner, then report what does.
 
 1. `scripts/flow.sh next`.
-2. For each issue under "Assigned to you", act on its phase with the playbook (resume `in-progress`, ship `draft-pr`, merge `ready-to-merge`, fix `changes-requested`, clean up `merged`). Skip what waits on a human.
+2. For each issue under "Assigned to you", act on its phase with the playbook (resume `in-progress`, ship `draft-pr`, merge `ready-to-merge`, fix `changes-requested`, clean up `merged`). Skip what waits on a human, including `merge-refused`.
 3. For each approved spec in `needs-tickets`, cut its tickets (**Shape** step 3).
 4. **Build** the tickets under "Ready for an agent", at most three in progress at a time, each through **Ship** to `pr.sh merge` and `flow.sh finish`. Run `flow.sh next` again after each merge: it unblocks the next tickets.
-5. Stop when nothing is ready and every open item waits on the owner. Report the "Waiting on the owner" list from `flow.sh next`, the PRs merged in this run and any ticket that stopped as `blocked`.
+5. Stop when nothing is ready and every open item waits on the owner. Report the "Waiting on the owner" list from `flow.sh next`, the PRs merged in this run, the PRs `pr.sh merge` refused with their reasons, and any ticket that stopped as `blocked`.
 
-Never merge around a refusal of `pr.sh merge`. Only the owner adds `spec-approved` and `owner-merge`; never remove `owner-merge`. Questions only the owner can answer go on the issue with `needs-info`.
+A PR that `pr.sh merge` refused is reported to the owner, not retried: never merge around a refusal or run `pr.sh merge` again on the refused commit. Only the owner adds `spec-approved`. Add `owner-merge` only when creating a spec that touches auth, tenant data, health notes, legal or money (**Shape** step 2); never remove it. Questions only the owner can answer go on the issue with `needs-info`.
 
 ## Subagents
 
