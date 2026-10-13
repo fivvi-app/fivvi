@@ -198,7 +198,7 @@ Verwerker geeft Verwerkingsverantwoordelijke de informatie en hulp die zij redel
 | T9 | **Scheiding van omgevingen:** preview- en testomgevingen bevatten nooit productiegegevens; AI-codeeragents hebben geen toegang tot productie of echte gegevens | Doorlopend |
 | T10 | **Beheer van provideraccounts:** meerfactorauthenticatie op alle hosting-, database-, e-mail- en monitoringaccounts; secrets alleen in de secret-opslag van de provider en nooit in de repository; secrets rouleren bij M9 | Gepland M1, M9 |
 | T11 | **Back-ups en herstel:** dagelijkse back-ups in de EU, 30 dagen bewaard; hersteltest vóór go-live; verwijderlog wordt na herstel opnieuw toegepast | Gepland M9 (E016) |
-| T12 | **Veilige ontwikkeling:** de auteur voert een lokale review uit vóór de pull request; een tweede agent kan lokaal meekijken; de eigenaar keurt de merge goed; automatische tests en dependency-audits | Doorlopend |
+| T12 | **Veilige ontwikkeling:** de auteur voert een lokale review uit vóór de pull request; een tweede agent kan lokaal meekijken; de eigenaar keurt elke merge van een wijziging met hoog risico goed (authenticatie, tenantgegevens, gezondheidsnotities, juridische zaken, geld, dependencies, de regels voor de agents); andere wijzigingen worden gemerged na de verplichte CI-checks en twee reviews door agents; automatische tests en dependency-audits | Doorlopend |
 | T13 | **Beveiligingsreview** vóór go-live en vóór elke grote release | Gepland M9 |
 | T14 | **Incidentrespons:** runbook voor incidenten en datalekken; register van datalekken | Gepland M9 |
 | T15 | **Bewaartermijnen** worden automatisch uitgevoerd door een dagelijkse taak (`retention-policy.md`) | Gepland M4/M9 |
@@ -402,7 +402,7 @@ Processor gives Controller the information and help it reasonably needs for (GDP
 | T9 | **Separate environments:** preview and test environments never contain production data; AI coding agents have no access to production or real data | Ongoing |
 | T10 | **Provider account management:** multi-factor authentication on every hosting, database, email and monitoring account; secrets only in the provider's secret store and never in the repository; secrets rotated at M9 | Planned M1, M9 |
 | T11 | **Backups and restore:** daily backups in the EU, kept 30 days; restore test before go-live; the deletion log is re-applied after a restore | Planned M9 (E016) |
-| T12 | **Secure development:** the author completes a local review before the pull request; a second agent may review locally; the owner approves the merge; automated tests and dependency audits | Ongoing |
+| T12 | **Secure development:** the author completes a local review before the pull request; a second agent may review locally; the owner approves every merge of a high-risk change (auth, tenant data, health notes, legal, money, dependencies, the agent rules); other changes merge after the required CI checks and two agent reviews; automated tests and dependency audits | Ongoing |
 | T13 | **Security review** before go-live and before every major release | Planned M9 |
 | T14 | **Incident response:** runbook for incidents and data breaches; data breach register | Planned M9 |
 | T15 | **Retention periods** are enforced automatically by a daily job (`retention-policy.md`) | Planned M4/M9 |

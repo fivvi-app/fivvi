@@ -36,7 +36,7 @@ You orchestrate; the user only talks. Run every script, skill and subagent yours
 |---|---|
 | `needs-spec` | **Shape** on this issue; publish with `scripts/issue.sh update <n>` instead of creating a new one. Keep its intent and show the new body before writing. |
 | `needs-approval` | Report and stop: the owner approves the spec on GitHub with the `spec-approved` label. |
-| `needs-tickets` | **Shape** from step 3. If one PR is enough, add `## Acceptance criteria` and the `ready-for-agent` label to the spec itself and **Build** it as a ticket. |
+| `needs-tickets` | **Shape** from step 3. If one PR is enough, add `## Acceptance criteria` and the `ready-for-agent` label to the spec itself. Adding ACs is a material change: `issue.sh update` removes `spec-approved`, so the spec waits for the owner to approve it again (`needs-approval`); report and stop, and **Build** it as a ticket once approved. Use `--minor` only for edits that change nothing material. |
 | `building` | **Build** every ready ticket in parallel (at most three at a time); **Refine** tickets that aren't `ready-for-agent`, one at a time with the user. |
 | `needs-refinement` | **Refine** |
 | `ready`, `in-progress` | **Build** (for `in-progress`, resume from the notes file and the worktree's commits) |
@@ -56,7 +56,7 @@ You orchestrate; the user only talks. Run every script, skill and subagent yours
 New work. Keep these steps in this conversation; don't delegate or compact between them.
 
 1. **Grill**: `.agents/skills/grill-with-docs/SKILL.md`. It updates `GLOSSARY.md` and proposes ADRs as decisions settle.
-2. **Spec**: `.agents/skills/to-spec/SKILL.md` → a spec issue, following `docs/agents/issue-tracker.md` (`[F0xx]` title, ACs in NL/EN, Test plan, platforms, languages). The owner reviews it.
+2. **Spec**: `.agents/skills/to-spec/SKILL.md` → a spec issue, following `docs/agents/issue-tracker.md` (`[F0xx]` title, ACs in NL/EN, Test plan, platforms, languages). The owner reviews it and approves it with the `spec-approved` label. Report and stop here; continue with step 3 only once the spec is approved (`flow.sh status` no longer says `needs-approval`).
 3. **Tickets**: `.agents/skills/to-tickets/SKILL.md` → sub-issues with blocking edges via `scripts/issue.sh create ticket --parent <spec> [--blocked-by <n>]...`, each with an `## Acceptance criteria` checklist. Size each to merge within a day or two.
 4. **Build** the ready tickets unless the user wants to stop.
 

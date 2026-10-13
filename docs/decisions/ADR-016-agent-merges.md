@@ -29,18 +29,20 @@ Agents merge a PR when a script finds it **low-risk** and every condition of the
    - auth; tenant data (`packages/database`: schema, migrations, RLS); health notes; `docs/legal`; billing and payments;
    - product and decision docs: `docs/product`, `docs/decisions`;
    - the factory's own guardrails, so agents can never loosen their own rules: `AGENTS.md`, `CLAUDE.md`, `CODING_STANDARDS.md`, `.agents/`, `.claude/`, `.github/`, `.githooks/`, `scripts/`;
-   - dependencies and infrastructure, for supply-chain risk and paid dependencies: every `package.json`, `pnpm-lock.yaml`, `Dockerfile`s and `.railway/`.
+   - dependencies and infrastructure, for supply-chain risk and paid dependencies: every `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.npmrc`, `Dockerfile`s and `.railway/`.
 
-   The list lives in one versioned file inside a high-risk path (`scripts/`), so changing it is itself high-risk.
+   The list lives in one versioned file inside a high-risk path (`scripts/`), so changing it is itself high-risk. A malformed line in it is an error, not a rule that is skipped.
 2. **GitHub enforces the required checks.** The ruleset `.github/rulesets/main.json` requires a PR, the five CI jobs of `WORKFLOW.md §7` and an up-to-date branch on `main`, and blocks force-pushes and deletion. `.github/repo-settings.json` allows squash merges only and no auto-merge, and holds the `spec-approved` and `owner-merge` labels. `scripts/github-settings.sh apply` applies both files, idempotently.
-3. **The merge gate.** `scripts/pr.sh merge` squash-merges the PR and deletes its branch only when all of these hold; otherwise it merges nothing, prints why and exits 1, and the PR stays for the owner. The pure decision is `scripts/merge-gate.jq`.
+3. **The merge gate.** `scripts/pr.sh merge` squash-merges the PR and deletes its branch only when all of these hold; otherwise it merges nothing, prints why and exits 1, and the PR stays for the owner. The pure decision is `scripts/merge-gate.jq`. The gate fails closed: when a fact can't be read (risk, review threads, the PR body, the comparison with `main`), it merges nothing.
    - The PR is low-risk (1).
    - Every check on the head commit passed (or was skipped), and the five required ones exist.
    - Both local reviewers (standards and spec) were clean on the head commit: no must-fix or should-fix finding. `pr.sh reviewed` records this in the PR body with the commit's SHA, the way `pr.sh smoke` records its result. Any later push makes the record stale.
-   - The Railway preview smoke check passed on the head commit, or the PR has no preview.
+   - `pr.sh smoke` recorded for the head commit that the Railway preview passed, or that the PR has no preview. A missing record fails.
    - The branch is up to date with `main`.
-   - No unresolved review threads.
+   - No unresolved review threads. More than 100 threads count as unknown, so the gate fails.
    - The PR is open, ready for review (not a draft) and targets `main`.
+
+   When the only failure is that the branch is behind `main`, the agent merges `origin/main` into the branch and continues. The new head commit makes the self-review and smoke records stale, so the self-review and the smoke check run again on it before `pr.sh merge`.
 4. **Where it runs.** Phase 1 is local: the owner says "run the factory" and the `work` skill works through every ready ticket until only owner items remain (`flow.sh next` lists them). Running unattended in GitHub Actions is a separate, later decision. There is still no agent review in GitHub CI.
 5. **Spec approval is a label.** The owner approves a spec by adding `spec-approved`. Tickets are cut and built only for approved specs (`flow.sh` phase `needs-approval`; `issue.sh create ticket` refuses an unapproved spec), and tickets cut from an approved spec are `ready-for-agent` at once. A material change to an approved spec (acceptance criteria or scope) removes the label: `issue.sh update` does it unless `--minor` is passed for a typo fix.
 6. **Production releases.** Before G2 an agent merge is a production release. From G2 (real names) the owner approves production releases separately; this is a G2 exit criterion (`ROADMAP.md` M4). The release step is built before G2, not now.
@@ -54,7 +56,8 @@ The parallel limit stays at three tickets. The owner keeps merging their own hig
   - The merge gate runs in the agent's own session; GitHub can't tell a gated merge from any other merge with the same token. The ruleset is the hard floor (PR, green CI, up to date); the rest relies on agents following `AGENTS.md`. Because the guardrails are high-risk paths, a PR that changes the gate, the path list or the rules always goes to the owner.
   - Paths decide risk. Auth, health notes and billing aren't built yet, so they are matched by name (`*auth*`, `*note*`, `*billing*`, `*payment*`); a file outside those names is low-risk even if it touches such data. Add paths when the code lands, and label sensitive specs `owner-merge`.
   - Until G2, an agent merge deploys production, which holds no real personal data until then.
-  - Existing specs need `spec-approved` before their tickets are ready again.
+  - Existing specs need `spec-approved` before their tickets are ready again. After `scripts/github-settings.sh apply`, the orchestrator lists the open specs without `spec-approved` for the owner to approve.
+  - The processor agreement promised that the owner approves every merge (`docs/legal/verwerkersovereenkomst.md`, measure T12). The owner approved new wording on 13 October 2026, in Dutch and English: the owner approves every merge of a high-risk change; other changes merge after the required CI checks and two agent reviews.
 - **Follow-ups:**
   - Build the separate production-release approval before G2 (decision 6).
   - Decide later whether the factory runs unattended in GitHub Actions (decision 4).
