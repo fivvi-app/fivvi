@@ -15,5 +15,7 @@ When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the 
 Trainer Hub additions:
 
 - `spec`: the issue is a feature or enabler spec (`[F0xx]` / `[E0xx]`); its tickets are sub-issues.
+- `spec-approved`: the owner approved the spec. Only then are its tickets cut and built; tickets cut from it get `ready-for-agent` at once. A material change to the spec (acceptance criteria or scope) removes the label, so the owner approves again: `scripts/issue.sh update` does it unless you pass `--minor` (a typo fix). Only the owner adds it.
+- `owner-merge`: the owner merges the PRs of this issue, or of every ticket of this spec, even when their paths are low-risk ([ADR-016](../decisions/ADR-016-agent-merges.md)).
 - Anything in `docs/product/PRODUCT.md §53` (MVP exclusions) is out of scope for the MVP: triage it as `wontfix` with a pointer to §53, or as a post-MVP idea (`ROADMAP.md §9`) if the owner wants to keep it.
 - Owner-only work (accounts, dashboards, legal sign-off, store submissions) is `ready-for-human`.
