@@ -101,7 +101,7 @@
 |---|---|---|
 | Uptime-monitor (UptimeRobot / Better Stack) | Pingt alleen publieke URL's | Health-endpoint geeft geen gegevens terug; meldingen bevatten geen persoonsgegevens |
 | GitHub (repo, Actions CI) | Alleen broncode en synthetische testgegevens | Geen productiegegevens, dumps, pilotbestanden of echte namen in de repo, issues, PR's of CI-logs |
-| AI-codeeragents (Anthropic Claude Code, OpenAI Codex) | Zij bouwen de software; ze voeren de dienst niet uit | **Nooit** productietoegang, echte exports, Excel-bestanden van de pilot of screenshots met echte gegevens (D8 in `role-mapping.md`). Verandert dat, dan worden ze subverwerker en zijn DPA's nodig |
+| AI-codeeragents (GitHub Copilot, Anthropic Claude Code, OpenAI Codex) | Zij bouwen de software; ze voeren de dienst niet uit | **Nooit** productietoegang, echte exports, Excel-bestanden van de pilot of screenshots met echte gegevens (D8 in `role-mapping.md`). Verandert dat, dan worden ze subverwerker en zijn DPA's nodig |
 | Better Auth | Een bibliotheek die in onze eigen backend draait, geen externe dienst | — |
 | Apple (TestFlight, App Store), Google (Play Console) | App-distributie. Apple en Google zijn zelf verwerkingsverantwoordelijke voor store- en testeraccounts | Opnieuw bekijken bij 1.2 als pushmeldingen (APNs/FCM) komen; pushberichten zonder persoonsgegevens |
 | Domeinregistrar / DNS | DNS bevat geen persoonsgegevens | Registrar nog niet gekozen (`ROADMAP.md §4.5`) |
@@ -113,7 +113,7 @@
 |---|---|---|
 | Uptime monitor (UptimeRobot / Better Stack) | Pings public URLs only / Only pings public URLs | Health endpoint returns no data; alerts contain no personal data |
 | GitHub (repo, Actions CI) | Source code and synthetic test data only | No production data, dumps, pilot files or real names in the repo, issues, PRs or CI logs |
-| AI coding agents (Anthropic Claude Code, OpenAI Codex) | They build the software; they don't operate the service | **Never** give them production access, real exports, pilot Excel files or screenshots with real data (D8 in `role-mapping.md`). If that ever changes, they become sub-processors and need DPAs |
+| AI coding agents (GitHub Copilot, Anthropic Claude Code, OpenAI Codex) | They build the software; they don't operate the service | **Never** give them production access, real exports, pilot Excel files or screenshots with real data (D8 in `role-mapping.md`). If that ever changes, they become sub-processors and need DPAs |
 | Better Auth | A library running inside our own backend, not a third-party service | — |
 | Apple (TestFlight, App Store), Google (Play Console) | App distribution. Apple and Google are independent controllers for store and tester accounts | Revisit at 1.2 when push notifications (APNs/FCM) arrive; keep push payloads free of personal data |
 | Domain registrar / DNS | DNS contains no personal data | Registrar not yet chosen (`ROADMAP.md §4.5`) |
@@ -143,3 +143,4 @@
 | 2026-09-22 | First draft from the ROADMAP ADR table; DPA links checked |
 | 2026-09-22 | Railway hosting and Postgres; Brevo email selected; Railway DPA checks recorded |
 | 2026-09-29 | E006: Brevo terms checked (storage, access from the US and India, DPA, free plan, tracking, log retention); open items in §4 |
+| 2026-10-13 | GitHub Copilot added to the AI coding agents in §5: not a sub-processor, on the same conditions (no production data, real exports or pilot files) |

@@ -436,7 +436,7 @@ Follow this whenever you add or change a key in `packages/i18n/nl-NL.json` or `e
 7. **Check length.** Dutch is often 20–35% longer than English. Check tabs, buttons and badges at 375 pt/dp width on iOS and Android. If a Dutch string doesn't fit, shorten both languages, don't truncate.
 8. **Missing term?** Add a row to §4 in the **same PR**, mark it ⚠️, and list it under "New glossary terms" in the PR description so the owner can approve it. Don't invent a term silently.
 9. **Changing a term** is a PR of its own: update this file, every string that uses the old term (both catalogs and email templates), and the changelog in §9.
-10. **Local copy review checklist.** Before pushing a change that touches strings (`ROADMAP.md §10`), the author checks each new or changed string locally. An LLM may help, but no Claude or Codex GitHub review is required. Check for:
+10. **Local copy review checklist.** Before pushing a change that touches strings (`ROADMAP.md §10`), the author checks each new or changed string locally. An LLM may help, but no Copilot, Claude or Codex GitHub review is required. Check for:
     - [ ] "je", never "u"; friendly and short; no officialese (§1.1)
     - [ ] glossary terms used, no forbidden alternatives, no collisions (§4, §5.4)
     - [ ] sentence case, Dutch compounds and hyphens, punctuation (§2)

@@ -11,10 +11,10 @@
       "dependsOn": ["^build"]
     },
     "lint": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "//#lint:root"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "//#test:root"]
     },
     "test:integration": {
       "dependsOn": ["^build"],
@@ -33,6 +33,12 @@
       "dependsOn": ["//#format:check:root"]
     },
     "//#format:check:root": {},
+    "//#lint:root": {
+      "inputs": [".claude/**"]
+    },
+    "//#test:root": {
+      "inputs": [".claude/**"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

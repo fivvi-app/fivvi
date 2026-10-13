@@ -175,8 +175,8 @@ flowchart LR
 
 **6.6 AI-codeeragents / AI coding agents**
 
-- **NL.** Het platform wordt gebouwd door AI-codeeragents (Claude Code, Codex). Zolang die **nooit** productiegegevens of echte pilotgegevens te zien krijgen, zijn hun aanbieders geen subverwerker. Dat geldt ook voor importbestanden, logs, screenshots en databasedumps. Zie §7.
-- **EN.** The platform is built by AI coding agents (Claude Code, Codex). As long as they **never** see production data or real pilot data, their providers are not sub-processors. That includes import files, logs, screenshots and database dumps. See §7.
+- **NL.** Het platform wordt gebouwd door AI-codeeragents (GitHub Copilot, Claude Code, Codex). Zolang die **nooit** productiegegevens of echte pilotgegevens te zien krijgen, zijn hun aanbieders geen subverwerker. Dat geldt ook voor importbestanden, logs, screenshots en databasedumps. Zie §7.
+- **EN.** The platform is built by AI coding agents (GitHub Copilot, Claude Code, Codex). As long as they **never** see production data or real pilot data, their providers are not sub-processors. That includes import files, logs, screenshots and database dumps. See §7.
 
 **6.7 Toekomstige releases / Future releases**
 
@@ -196,6 +196,6 @@ flowchart LR
 | D5 | Sentry: `sendDefaultPii` uit, geen request bodies, scrubbing van e-mail en tokens | Sentry: `sendDefaultPii` off, no request bodies, scrubbing of email and tokens | E009 |
 | D6 | Logs bevatten geen notitie-inhoud of tokens; e-mailadressen worden gemaskeerd | Logs contain no note content or tokens; email addresses are masked | E009, E013 |
 | D7 | Railway preview-omgevingen en -databases bevatten **nooit** productiegegevens; ze worden met seed-data gevuld, niet uit productie gekopieerd | Railway preview environments and databases **never** contain production data; they are seeded, not copied from production | E003 |
-| D8 | AI-agents krijgen geen toegang tot productie, echte exports of pilotbestanden | AI agents get no access to production, real exports or pilot files | `AGENTS.md` (proposed addition) |
+| D8 | AI-agents krijgen geen toegang tot productie, echte exports of pilotbestanden | AI agents get no access to production, real exports or pilot files | `AGENTS.md` |
 | D9 | Geen echte persoonsgegevens in het platform vóór een getekende verwerkersovereenkomst **en** een host met DPA | No real personal data in the platform before a signed processor agreement **and** a host with a DPA | Gate G2 (see `sub-processors.md` §3) |
 | D10 | Gegevens die de workspace verwijdert zijn na 30 dagen definitief weg, en uit back-ups binnen de back-uptermijn | Data the workspace deletes is permanently gone after 30 days, and from backups within the backup window | `retention-policy.md` |
