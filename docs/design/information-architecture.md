@@ -504,7 +504,7 @@ Every screen in the flow documents specifies these four states. The defaults:
 
 ## 11. Screen inventory
 
-All screens with an ID. **Critical-flow** screens are wireframed in `flows/`. The others are listed so feature docs can reference them; they get wireframes when their feature moves to `DESIGNED`.
+All screens with an ID. **Critical-flow** screens are wireframed in `flows/`. The others are listed so spec issues can reference them; they get wireframes when their feature moves to `DESIGNED`.
 
 ### 11.1 Critical-flow screens
 

@@ -1,6 +1,6 @@
 ---
 name: finish-change
-description: 'Clean up after a Trainer Hub PR is merged: verify the merge, stop processes started for the change, remove the worktree, delete the local and remote branch, prune, and check the Railway PR environment and docs status. Use when a PR has been merged or closed, or when asked to "clean up", "finish" or "wrap up" a change.'
+description: 'Clean up after a Trainer Hub PR is merged: verify the merge, stop processes started for the change, remove the integration and ticket worktrees, delete local and remote branches, prune, and check the spec issue, the Railway PR environment and FEATURES.md. Use when a PR has been merged or closed, or when asked to "clean up", "finish" or "wrap up" a change.'
 argument-hint: 'The branch name or PR number'
 ---
 
@@ -22,11 +22,22 @@ Then check that nothing local is missing from the PR: `git rev-parse <branch>` m
 
 Stop the dev servers, watchers, simulators/emulators and Docker containers this change started (by PID, never by name). The Postgres container from `pnpm db:up` is shared by all worktrees: leave it running if other worktrees still exist.
 
-## 3. Remove the worktree and branches
+## 3. Remove the worktrees and branches
+
+First any ticket worktrees and branches `/implement-spec` left behind (`.worktrees/<slug>--<issue>`, branches `<branch>--<issue>`), while the integration branch still exists to compare against:
 
 ```bash
 git switch main && git pull --ff-only
-git worktree list                                  # find the change's worktree path
+git worktree list                                  # find the change's worktree paths
+git branch --list '<branch>--*'                    # leftover ticket branches
+git branch --merged <branch> --list '<branch>--*'  # the ones safe to delete
+```
+
+For each leftover ticket branch that is merged into the integration branch: `git worktree remove <ticket-worktree>` (if it has one) and `git branch -D <ticket-branch>`. Ask before deleting one that isn't merged.
+
+Then the integration branch:
+
+```bash
 git -C <worktree-path> status --short              # must be empty; otherwise stop and ask
 git worktree remove <worktree-path>
 git branch -D <branch>                             # -D is needed after a squash merge
@@ -41,7 +52,8 @@ The worktree path is `.worktrees/<slug>`, or the folder your tool created for th
 
 - [ ] Temporary files, scratch scripts and debug output are gone.
 - [ ] The Railway PR environment `pr-<number>` is deleted (Railway deletes it on merge or close; check the dashboard). Scratch Railway services or environments created for the change are deleted (`docs/engineering/ENVIRONMENTS.md`).
-- [ ] On `main`, `docs/product/FEATURES.md` shows the new status and the feature doc lists the PR under *Implementation references*. If not, report it: fixing it is a new `docs/<slug>` change, never an edit on `main`.
+- [ ] The spec issue and its tickets are closed (`gh issue view <spec> --json state,subIssuesSummary`). Close any the PR missed, with a comment linking the PR.
+- [ ] On `main`, `docs/product/FEATURES.md` shows the new status and its ID links the spec issue. If not, report it: fixing it is a new `docs/<slug>` change, never an edit on `main`.
 - [ ] `git worktree list` shows only changes that are still in progress.
 
 ## 5. Report

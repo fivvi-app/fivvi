@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
@@ -28,6 +28,13 @@ describe('agent edit guard', () => {
     writeFileSync(join(main, '.gitignore'), '.env\n.worktrees/\n');
     writeFileSync(join(main, 'AGENTS.md'), 'rules\n');
     writeFileSync(join(main, 'packages/i18n/generated/strings.xml'), '<resources/>\n');
+    mkdirSync(join(main, '.agents/skills/tdd'), { recursive: true });
+    mkdirSync(join(main, '.agents/skills/finish-change'), { recursive: true });
+    writeFileSync(join(main, '.agents/skills/tdd/SKILL.md'), 'vendored\n');
+    writeFileSync(join(main, '.agents/skills/finish-change/SKILL.md'), 'local\n');
+    writeFileSync(join(main, '.agents/skills.lock.json'), JSON.stringify({ skills: ['tdd'] }));
+    mkdirSync(join(main, '.claude'));
+    symlinkSync('../.agents/skills', join(main, '.claude/skills'));
     git(main, 'init', '--quiet', '--initial-branch=main');
     git(main, 'add', '.');
     git(
@@ -71,6 +78,24 @@ describe('agent edit guard', () => {
     );
     assert.match(reason, /is generated/);
     assert.match(reason, /pnpm --filter @trainer-hub\/i18n generate/);
+  });
+
+  it('blocks hand-edits of vendored skills, also through the .claude/skills symlink', () => {
+    assert.match(
+      evaluate(claudeEdit(join(worktree, '.agents/skills/tdd/SKILL.md')), gitDir),
+      /vendored skill/,
+    );
+    assert.match(
+      evaluate(claudeEdit(join(worktree, '.claude/skills/tdd/SKILL.md')), gitDir),
+      /vendored skill/,
+    );
+  });
+
+  it('allows edits of local skills that are not vendored', () => {
+    assert.equal(
+      evaluate(claudeEdit(join(worktree, '.agents/skills/finish-change/SKILL.md')), gitDir),
+      null,
+    );
   });
 
   it('ignores files outside the repository', () => {

@@ -2,7 +2,7 @@
 // configured in .claude/settings.json. It blocks file edits on `main` and hand-edits of generated
 // files (AGENTS.md, WORKFLOW.md §4). Exit code 2 blocks the tool call in both tools.
 import { execFileSync } from 'node:child_process';
-import { existsSync, realpathSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 const PROTECTED_BRANCHES = new Set(['main']);
@@ -18,6 +18,16 @@ export const GENERATED_PATHS = [
 ];
 
 const PATCH_FILE_LINE = /^\*\*\* (?:(?:Add|Update|Delete) File|Move to): (.+)$/gm;
+
+/** Skills vendored by .agents/sync-skills.mjs, read from the lock file of this checkout. */
+function vendoredSkills(root) {
+  try {
+    const lock = JSON.parse(readFileSync(join(root, '.agents/skills.lock.json'), 'utf8'));
+    return new Set(Array.isArray(lock.skills) ? lock.skills : []);
+  } catch {
+    return new Set();
+  }
+}
 
 /** File paths a tool call writes to. Claude: file_path / notebook_path; Copilot: path or a patch. */
 export function targetPaths(toolInput) {
@@ -90,6 +100,11 @@ export function denialReason(filePath, repoGitDir) {
     if (path === prefix || (prefix.endsWith('/') && path.startsWith(prefix))) {
       return `${path} is generated. Don't edit it by hand: change the source, run \`${command}\` and commit the output.`;
     }
+  }
+
+  const skill = /^\.agents\/skills\/([^/]+)\//.exec(path)?.[1];
+  if (skill && vendoredSkills(root).has(skill)) {
+    return `${path} is a vendored skill (mattpocock/skills, pinned in .agents/skills.lock.json). Don't edit it by hand: adapt the behaviour in AGENTS.md or docs/agents/, or update the pin with \`node .agents/sync-skills.mjs --update\`.`;
   }
 
   const branch = git(root, ['symbolic-ref', '--quiet', '--short', 'HEAD']);

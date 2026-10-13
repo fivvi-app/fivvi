@@ -27,17 +27,20 @@
       "passThroughEnv": ["CI", "E2E_PORT", "PLAYWRIGHT_BROWSERS_PATH"]
     },
     "check": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "//#check:root"]
     },
     "format:check": {
       "dependsOn": ["//#format:check:root"]
     },
     "//#format:check:root": {},
     "//#lint:root": {
-      "inputs": [".claude/**"]
+      "inputs": [".claude/**", ".agents/sync-skills.mjs"]
     },
     "//#test:root": {
       "inputs": [".claude/**"]
+    },
+    "//#check:root": {
+      "inputs": [".agents/**"]
     },
     "dev": {
       "cache": false,
