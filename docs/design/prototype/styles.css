@@ -757,6 +757,7 @@ input.stepper-value:focus-visible { outline-offset: -2px; }
 .ev-title, .cal-lane-head, .day-link, .ag-wd, .dc-wd, .dc-num,
 .ex-no, .ex-count, .att-btn, .nav-text--strong, .nav--md .nav-text,
 .tabbar--android .tab.is-active .tab-label, .pub-lang .seg-btn,
+.seg-btn[aria-checked="true"], .web-nav.is-active,
 .demo-tag, .lang-tag, .pb-home, .avatar, .cal-now span,
 .cal-lane-head.is-today .day-link, .day-cell.is-today .day-num {
   font-weight: var(--font-weight-medium);

@@ -22,6 +22,32 @@ async function pageFor(flow, viewport = { width: 390, height: 844 }) {
 }
 after(async () => { await browser?.close(); });
 
+async function assertPaintedSessionType(page, selector, label) {
+  const chip = page.locator(selector).first();
+  await chip.scrollIntoViewIfNeeded();
+  assert.equal(await chip.innerText(), label);
+  assert.ok(await chip.isVisible());
+  assert.equal(await viewportWords(page, chip), label.split(/\s+/).length,
+    `${selector}: painted localized label "${label}"`);
+}
+
+test('painted session identity assertions reject sr-only chips', async () => {
+  const { page, errors } = await pageFor(2);
+  await page.addStyleTag({ content: `
+    .chip {
+      position: absolute !important; width: 1px !important; height: 1px !important;
+      padding: 0 !important; overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important;
+    }
+  ` });
+  const selector = '.next .chip--private';
+  assert.equal(await page.locator(selector).innerText(), 'Privé');
+  assert.ok(await page.locator(selector).isVisible(), 'locator visibility alone misses clipped text');
+  await assert.rejects(() => assertPaintedSessionType(page, selector, 'Privé'), /painted localized label/);
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
 test('session identity is visible localized text on Today, agenda, detail, add menu and booking', async () => {
   for (const [lang, labels] of [['nl', ['Privé', 'Groepsles', 'Open Gym']], ['en', ['Private', 'Group class', 'Open Gym']]]) {
     const { page, errors } = await pageFor(2);
@@ -29,27 +55,35 @@ test('session identity is visible localized text on Today, agenda, detail, add m
     for (const platform of ['ios', 'android']) {
       await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
       assert.equal(await page.locator('.next .chip--private').innerText(), labels[0]);
+      await assertPaintedSessionType(page, '.next .chip--private', labels[0]);
       assert.equal(await page.locator('.agenda-list .chip--group').first().innerText(), labels[1]);
       assert.ok(await page.locator('.agenda-list .chip--group').first().isVisible());
+      await assertPaintedSessionType(page, '.agenda-list .chip--group', labels[1]);
       await page.locator('.next [data-act="open-session"]').click();
       assert.equal(await page.locator('.detail-focus .chip--private').innerText(), labels[0]);
+      await assertPaintedSessionType(page, '.detail-focus .chip--private', labels[0]);
       await page.locator('[data-act="back"]').first().click();
       await page.locator('[data-act="tab"][data-v="calendar"]').click();
       assert.ok(await page.locator('.chip--private').first().isVisible());
+      await assertPaintedSessionType(page, '.chip--private', labels[0]);
+      await assertPaintedSessionType(page, '.chip--group', labels[1]);
       await page.locator('[data-act="tab"][data-v="today"]').click();
       await page.locator('[data-act="app-new-menu"]').click();
       assert.equal(await page.locator('.create-tile .chip--private').innerText(), labels[0]);
+      await assertPaintedSessionType(page, '.create-tile .chip--private', labels[0]);
       await page.locator('.sheet [data-act="sheet-close"]').click();
     }
     await page.locator('[data-act="home"]').click();
     await startFlow(page, '1');
     await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
     assert.equal(await page.locator('.booking-heading .chip--group').innerText(), labels[1]);
+    await assertPaintedSessionType(page, '.booking-heading .chip--group', labels[1]);
     await page.locator('[data-act="back"]').first().click();
     await page.locator('[data-act="b-mode"][data-v="openGym"]').click();
     await page.locator('.day-chip[data-v="2026-09-25"]').click();
     await page.locator('[data-act="b-pick"][data-id="o-og25"]').click();
     assert.equal(await page.locator('.booking-heading .chip--open-gym').innerText(), labels[2]);
+    await assertPaintedSessionType(page, '.booking-heading .chip--open-gym', labels[2]);
     assert.deepEqual(errors, []);
     await page.close();
   }
@@ -58,7 +92,7 @@ test('session identity is visible localized text on Today, agenda, detail, add m
 // Count words actually painted in the viewport, excluding clipped/offscreen text,
 // closed disclosures and text covered by nav, sheets or the prototype toolbar.
 async function viewportWords(page, selector) {
-  return page.locator(selector).evaluate((root) => {
+  return (typeof selector === 'string' ? page.locator(selector) : selector).evaluate((root) => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let node, count = 0;
     while ((node = walker.nextNode())) {
@@ -339,6 +373,62 @@ test('typography prioritises headings without bold names, times, labels or logge
   await weights('.stepper-value', 600);
   assert.ok(await page.locator('.stepper-value').first().evaluate((el) => parseFloat(getComputedStyle(el).fontSize) >= 30));
   await page.close();
+});
+
+test('selected language, appearance, calendar view and active Agenda labels use medium weight', async () => {
+  const nonMedium = [];
+  for (const lang of ['nl', 'en']) {
+    for (const [flow, surface] of [[null, 'hub'], [1, 'booking'], [2, 'ios'], [2, 'android'], [3, 'web']]) {
+      const { page, errors } = await pageFor(flow, surface === 'web'
+        ? { width: 1280, height: 800 } : { width: 390, height: 844 });
+      async function mediumControl(selector) {
+        const control = page.locator(selector);
+        await control.scrollIntoViewIfNeeded();
+        assert.ok(await control.isVisible(), `${lang}/${surface} ${selector} remains visible`);
+        await control.focus();
+        assert.ok(await control.evaluate((el) => el === document.activeElement),
+          `${lang}/${surface} ${selector} remains focusable`);
+        const weight = await control.evaluate((el) => Number(getComputedStyle(el).fontWeight));
+        if (weight !== 500) nonMedium.push({ lang, surface, selector, weight });
+      }
+      await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).click();
+      if (surface === 'ios' || surface === 'android') {
+        await page.locator(`[data-act="set-platform"][data-v="${surface}"]`).click();
+        await mediumControl('[data-act="set-platform"][aria-checked="true"]');
+      }
+      await mediumControl('[data-act="set-lang"][aria-checked="true"]');
+      for (const theme of ['light', 'dark']) {
+        if (surface !== 'hub') await page.locator('.appearance summary').click();
+        await page.locator(`[data-act="set-theme"][data-v="${theme}"]`).click();
+        await mediumControl(`[data-act="set-theme"][data-v="${theme}"][aria-checked="true"]`);
+        if (surface !== 'hub') await page.locator('.appearance summary').click();
+      }
+      if (surface === 'ios' || surface === 'android') {
+        assert.equal(await page.locator('.nav h1').evaluate((el) => getComputedStyle(el).fontWeight),
+          surface === 'ios' ? '600' : '400', 'platform page-title hierarchy is preserved');
+        await page.locator('[data-act="tab"][data-v="calendar"]').click();
+        for (const view of ['week', 'month']) {
+          await page.locator(`[data-act="ag-view"][data-v="${view}"]`).click();
+          await mediumControl(`[data-act="ag-view"][data-v="${view}"][aria-checked="true"]`);
+        }
+        await page.locator('[data-act="home"]').click();
+        await startFlow(page, '5');
+        await page.locator('[data-act="log-open"][data-v="0"]').first().click();
+        assert.equal(await page.locator('.stepper-value').first().evaluate((el) => getComputedStyle(el).fontWeight), '600');
+      }
+      if (surface === 'web') {
+        assert.equal(await page.locator('.web-top h1').evaluate((el) => getComputedStyle(el).fontWeight), '600');
+        for (const view of ['day', 'week']) {
+          await page.locator(`[data-act="w-view"][data-v="${view}"]`).click();
+          await mediumControl(`[data-act="w-view"][data-v="${view}"][aria-checked="true"]`);
+          await mediumControl('.web-nav.is-active[aria-current="page"]');
+        }
+      }
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  }
+  assert.deepEqual(nonMedium, [], 'ordinary selected controls render at weight 500');
 });
 
 test('warm emoji accents are sparse, decorative and never identify session types', async () => {
