@@ -15,7 +15,7 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 | `GLOSSARY.md`, `docs/decisions/` | Domain language; ADRs |
 | `CODING_STANDARDS.md`, `.github/instructions/` | How code is written and reviewed; rules per area |
 | `.agents/skills/`, `.agents/agents/` | `work` (the orchestrator) plus [Matt Pocock's skills](https://github.com/mattpocock/skills), pinned in `.agents/skills.yaml`; the `implementer` and `reviewer` subagents |
-| `scripts/` | `bootstrap.sh`, `flow.sh`, `issue.sh`, `wt.sh`, `pr.sh`, `check.sh`, `skills.sh` |
+| `scripts/` | `bootstrap.sh`, `flow.sh`, `issue.sh`, `wt.sh`, `pr.sh`, `risk.sh`, `check.sh`, `skills.sh`, `github-settings.sh` |
 | `.worktrees/<branch>/` | Git worktrees: all work happens here |
 
 ## Rules
@@ -38,12 +38,14 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 
 ## Push and merge
 
-- Never push to `main` or force-push shared branches. Every change goes through a PR.
-- AI may: commit and push its own branch, open a PR, push fixes for review comments. AI may not: approve or merge a PR, or enable auto-merge. The owner merges.
-- Open or update PRs only with `scripts/pr.sh create` (draft, runs `scripts/check.sh`, pushes, adds `Closes #<issue>`). Publish with `scripts/pr.sh ready`; record the Railway preview with `scripts/pr.sh smoke`.
+- Never push to `main` or force-push shared branches. Every change goes through a PR. A ruleset on `main` enforces the PR, the CI checks and an up-to-date branch (`WORKFLOW.md §7`).
+- AI may: commit and push its own branch, open a PR, push fixes for review comments, and merge a **low-risk** PR with `scripts/pr.sh merge` ([ADR-016](docs/decisions/ADR-016-agent-merges.md)). AI may not: approve a PR, merge a high-risk PR, merge in any other way, or enable auto-merge.
+- Risk is decided by `scripts/risk.sh`, never by judgment: a PR is high-risk when it touches a path in `scripts/high-risk-paths.txt` (auth, tenant data, health notes, legal, billing, product and decision docs, these guardrails, dependencies and infrastructure) or its issue or spec has the `owner-merge` label. The owner merges high-risk PRs.
+- `pr.sh merge` merges only when the whole merge gate holds: low-risk, every check passed on the head commit, both reviewers clean on it, the preview smoke-checked, up to date with `main`, no open threads, ready for review. When it refuses, it records the refusal on the PR for the head commit and the PR stays for the owner; never work around it or retry it on that commit.
+- Open or update PRs only with `scripts/pr.sh create` (draft, runs `scripts/check.sh`, pushes, adds `Closes #<issue>`). Record a clean self-review with `scripts/pr.sh reviewed` and the Railway preview with `scripts/pr.sh smoke`, both for the head commit; publish with `scripts/pr.sh ready`.
 - Branch: `<type>/<issue>-<slug>` (type `feature`, `fix`, `chore` or `docs`), or `<type>/<slug>` without an issue. Commits: Conventional Commits with the feature ID as scope, `feat(F031): hold a spot` (a commit hook checks it). PR title: the issue title, `[F031] …`. One ticket per PR; squash merge.
 - After the merge: `scripts/flow.sh finish <n>` from the main checkout.
-- Agent review stays local: two `reviewer` subagents before the PR. No Copilot, Claude or Codex reviewers or review jobs in GitHub.
+- Agent review stays local: two `reviewer` subagents before the PR, and again after every push. No Copilot, Claude or Codex reviewers or review jobs in GitHub.
 
 ## Agent skills
 
@@ -53,11 +55,11 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 
 ### Issue tracker
 
-GitHub issues via `scripts/issue.sh`: spec = issue labelled `spec`, ticket = sub-issue, blocked by = native dependency. See `docs/agents/issue-tracker.md`.
+GitHub issues via `scripts/issue.sh`: spec = issue labelled `spec`, ticket = sub-issue, blocked by = native dependency. Tickets are cut and built only for a spec the owner approved with `spec-approved`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-The five defaults (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) plus `spec`. See `docs/agents/triage-labels.md`.
+The five defaults (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) plus `spec`, `spec-approved` and `owner-merge`. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

@@ -76,7 +76,7 @@ railway environment config --json | jq '.services[].deploy.multiRegionConfig'
 
 5. **Merge.** The PR environment is deleted. CI runs on `main`; when it is green, `development` and `production` build `main`. In production, `release.ts` only migrates. Traffic switches after the health check passes.
 
-Watch patterns limit rebuilds: `web` rebuilds for `apps/web`, `packages/**` and root build files; `cron` for `apps/cron`, `packages/database` and root build files. A docs-only change deploys nothing.
+Watch patterns limit rebuilds: `web` rebuilds for `apps/web`, `packages/**` and root build files; `cron` for `apps/cron`, `packages/database` and root build files. A docs-only change deploys nothing, but Railway still posts a green `trainer-hub - web` status on the commit, described "No deployment needed - watched paths not modified". `scripts/pr.sh smoke` and the merge gate read that status's description, not just its presence, to tell whether a PR has a preview.
 
 ## 5. Migrations
 

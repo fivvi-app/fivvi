@@ -18,6 +18,10 @@ COMMIT_RE="^($(tr ' ' '|' <<<"$COMMIT_TYPES"))(\([A-Za-z0-9_-]+\))?!?: [^[:space
 READY_LABEL="ready-for-agent"
 HUMAN_LABEL="ready-for-human"
 SPEC_LABEL="spec"
+# The owner approved the spec: its tickets may be cut and built (ADR-016). A material change removes it.
+APPROVED_LABEL="spec-approved"
+# The PRs of this issue, or of every ticket of this spec, go to the owner to merge (ADR-016).
+OWNER_MERGE_LABEL="owner-merge"
 
 die() { echo "error: $*" >&2; exit 1; }
 

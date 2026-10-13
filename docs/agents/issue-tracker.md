@@ -5,7 +5,8 @@ Specs and tickets for this repo are GitHub issues in `thekeyvan/trainer-hub`. Us
 | Skill term | GitHub |
 |---|---|
 | Spec (`/to-spec`), issue (`/triage`) | Issue labelled `spec` |
-| Ticket (`/to-tickets`) | Sub-issue of the spec, labelled `ready-for-agent` |
+| Spec approved by the owner | `spec-approved` label on the spec |
+| Ticket (`/to-tickets`) | Sub-issue of an approved spec, labelled `ready-for-agent` |
 | Bug report | Issue labelled `bug` and `needs-triage` |
 | Blocked by | Native issue dependency |
 | Closed | Closed by the merged PR (`Closes #<n>`), or `scripts/issue.sh close` |
@@ -14,11 +15,11 @@ Specs and tickets for this repo are GitHub issues in `thekeyvan/trainer-hub`. Us
 
 - **Create**: `scripts/issue.sh create <spec|ticket|bug> --title "..." --body-file - [--parent <n>] [--blocked-by <n>]... [--label <l>]...`
 - **Read**: `scripts/issue.sh show <n>` prints labels, assignees, parent, open blockers, sub-issues and the body.
-- **Update**: `scripts/issue.sh update <n> [--title "..."] [--body-file -]` replaces the title or body.
+- **Update**: `scripts/issue.sh update <n> [--title "..."] [--body-file -] [--minor]` replaces the title or body. On an approved spec it removes `spec-approved`, so the owner approves the change; pass `--minor` only for a typo fix that changes no acceptance criterion or scope.
 - **Comment**: `scripts/issue.sh comment <n> --body-file -`
 - **Apply / remove labels**: `scripts/issue.sh label <n> --add "..." --remove "..."`
 - **Link**: `scripts/issue.sh block <n> --by <m>`; a parent is set with `create --parent`.
-- **Frontier**: `scripts/issue.sh ready [--parent <spec>]` lists open, unassigned `ready-for-agent` tickets with no open blocker.
+- **Frontier**: `scripts/issue.sh ready [--parent <spec>]` lists open, unassigned `ready-for-agent` tickets with no open blocker whose spec is approved.
 - **Claim**: `scripts/issue.sh claim <n>` (`scripts/flow.sh start` does it).
 - **Close**: `scripts/issue.sh close <n> [--comment "..."] [--not-planned]`
 
@@ -32,10 +33,10 @@ GitHub shares one number space across issues and PRs, so a bare `#42` may be eit
 
 ## Trainer Hub rules for specs (`/to-spec`)
 
-A spec issue is the requirement of record for one feature (`F0xx`) or enabler (`E0xx`). The owner reviews it on GitHub before tickets are cut.
+A spec issue is the requirement of record for one feature (`F0xx`) or enabler (`E0xx`). The owner reviews it on GitHub and approves it with the `spec-approved` label; tickets are cut only after that (`scripts/issue.sh create ticket` refuses an unapproved spec, `scripts/flow.sh` reports `needs-approval`).
 
 - **Title:** `[F0xx] <Feature name from FEATURES.md>`. Use the ID from `FEATURES.md`. A feature that isn't in the registry yet first gets the next free ID in a small `docs/` PR that adds its row as `PLANNED` (`ROADMAP.md §15`), so two parallel specs never take the same ID.
-- **Labels:** `spec` (`scripts/issue.sh create spec` sets it).
+- **Labels:** `spec` (`scripts/issue.sh create spec` sets it). A spec that touches auth, tenant data, health notes, legal or money also gets `owner-merge` when it is created: `scripts/issue.sh create spec --title "..." --body-file - --label owner-merge`. Until their code exists, `scripts/high-risk-paths.txt` matches those areas only by name (ADR-016), so the label is what sends every PR of such a spec to the owner. The owner adds `spec-approved`, and may add `owner-merge` to any other spec when every PR of it must be merged by the owner whatever paths it touches. Never remove `owner-merge`.
 - **Body:** Matt's spec template, plus these sections after *Solution*:
   - **Feature:** ID, milestone, priority, `PRODUCT.md §…` references, and dependencies. A dependency that isn't `IMPLEMENTED` blocks the spec: stop and tell the user.
   - **Platforms:** checklist of trainer web, trainer iOS, trainer Android, public booking web, client web.
@@ -48,7 +49,7 @@ A spec issue is the requirement of record for one feature (`F0xx`) or enabler (`
 
 ## Trainer Hub rules for tickets (`/to-tickets`)
 
-- **Title:** `[F0xx] <slice>`. Each ticket is a sub-issue of its spec (`--parent`), with native blocking edges (`--blocked-by`), labelled `ready-for-agent`.
+- **Title:** `[F0xx] <slice>`. Each ticket is a sub-issue of its approved spec (`--parent`), with native blocking edges (`--blocked-by`), labelled `ready-for-agent` (`scripts/issue.sh create ticket` sets it).
 - Each ticket has an `## Acceptance criteria` checklist; `scripts/flow.sh status` reports a ticket without one as `needs-refinement`.
 - Vertical slices through DB → API (+ regenerated contract) → web → email, in NL and EN. Each ticket names the spec ACs it delivers (`Delivers: AC2, AC3`).
 - A mobile slice is two tickets, one for iOS and one for Android, with the same ACs (platform parity).
