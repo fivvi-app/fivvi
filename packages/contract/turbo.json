@@ -3,6 +3,9 @@
   "extends": ["//"],
   "tasks": {
     "check": {
+      // Replaces the root "check" dependsOn, which adds //#check:root: the contract result doesn't
+      // depend on .agents/** or the skill scripts, and editing them shouldn't re-run a slow check.
+      // CI still runs //#check:root, through the other packages' check tasks (e.g. i18n#check).
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "!README.md", "!test/**", "!vitest.config.ts"],
       "outputs": [],

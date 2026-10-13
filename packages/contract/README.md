@@ -33,7 +33,9 @@ Requirements, besides Node and pnpm:
 | Swift 6 toolchain | Builds and runs swift-openapi-generator | Xcode (Command Line Tools) |
 | Java 17+ | Runs openapi-generator | `brew install openjdk@21`, then `export JAVA_HOME="$(brew --prefix openjdk@21)"` |
 
-The first run builds swift-openapi-generator (about 1–2 minutes) and downloads the openapi-generator jar (30 MB, from Maven Central, SHA-256 checked). Both are kept in `node_modules/.cache/contract`: the generator per Swift version and `Package.swift` + `Package.resolved`, the jar per version. Later runs take a few seconds. CI caches that directory with the same keys.
+The first run builds swift-openapi-generator (about 1–2 minutes) and downloads the openapi-generator jar (30 MB, from Maven Central, SHA-256 checked). Both are kept in `node_modules/.cache/contract` and reused while their names match: the generator binary is named by a hash of the full `swift --version` output, `Package.swift` and `Package.resolved`; the jar by its pinned version (its SHA-256 is checked on every use). Later runs take a few seconds.
+
+CI (`Checks (Linux)`) caches that directory under one key: the runner OS, the Swift version number, and one hash of `Package.swift`, `Package.resolved` and `config/openapi-generator.json`. A change to any of them misses the cache and starts from an empty directory, so old tools don't accumulate. CI saves the directory even when another check fails, but only after a miss and once both tools exist.
 
 ## Drift check
 
@@ -41,7 +43,7 @@ The first run builds swift-openapi-generator (about 1–2 minutes) and downloads
 pnpm check            # all packages, via Turborepo
 ```
 
-`scripts/check.ts` generates the spec and all three clients into a temp directory. It fails and lists every file that differs from the committed one, is missing, or is no longer generated. Turborepo caches the result (`turbo.json`). The task hash covers this package's files except `README.md` and the tests (the pipeline, `config/`, the generator pins in `tools/`, `openapi.json` and the generated clients), and through `^build` the packages it imports: `packages/api` and its dependencies. So a route, schema or generator change re-runs it, and a change elsewhere reuses the result. It runs in `Checks (Linux)` in CI; that job needs the Swift toolchain and Java too.
+`scripts/check.ts` generates the spec and all three clients into a temp directory. It fails and lists every file that differs from the committed one, is missing, or is no longer generated. Turborepo caches the result (`turbo.json`). The task hash covers this package's files except `README.md` and the tests (the pipeline, `config/`, the generator pins in `tools/`, `openapi.json` and the generated clients), and through `^build` the packages it imports: `packages/api` and its dependencies. So a route, schema or generator change re-runs it, and a change elsewhere reuses the result. Unlike the other packages' `check`, it doesn't depend on the root `//#check:root` (vendored skills under `.agents/`), which can't change its result; CI still runs that through the other packages' `check`. It runs in `Checks (Linux)` in CI; that job needs the Swift toolchain and Java too.
 
 `test/drift.test.ts` runs the spec + TypeScript part of the same comparison under `pnpm test`, and proves that a route change without a regeneration fails. `test/check-cache.test.ts` reads turbo's dry run and fails when the check is no longer cached or its hash loses one of these inputs.
 
