@@ -3,7 +3,8 @@
 #
 #   flow.sh status <n>                      facts, phase and next step for an issue
 #   flow.sh facts <n>                       the facts as JSON (input of scripts/flow-phase.jq)
-#   flow.sh next                            your open issues with their phase, the open specs, then the ready tickets
+#   flow.sh next                            your open issues with their phase, the open specs, the ready tickets, then
+#                                           what waits on the owner: specs to approve, high-risk PRs, needs-info questions
 #   flow.sh start <n> [--type <t>] [--force]  claim a ready ticket and create its <type>/<n>-<slug> worktree and notes;
 #                                           refuses when 3 tickets are already in progress (--force to override)
 #   flow.sh finish <n>                      after its PR is merged: remove worktree and branches, close the issue,
@@ -41,13 +42,14 @@ issue_branches() {
 }
 
 pr_facts() {
-  local branch="$1" pr number threads
+  local branch="$1" pr number threads risk
   pr="$(gh pr list --repo "$REPO" --head "$branch" --state all \
     --json number,state,isDraft,reviewDecision,statusCheckRollup,url,createdAt --jq 'sort_by(.number) | last // empty')"
   [ -n "$pr" ] || { echo null; return; }
   number="$(jq -r .number <<<"$pr")"
-  threads=0
+  threads=0 risk=null
   if [ "$(jq -r .state <<<"$pr")" = OPEN ]; then
+    risk="$("$ROOT/scripts/risk.sh" "$number" --json 2>/dev/null)" || risk=null
     # shellcheck disable=SC2016 # GraphQL variables, not shell
     threads="$(gh api graphql -F owner="$OWNER" -F name="$NAME" -F n="$number" -f query='
       query($owner: String!, $name: String!, $n: Int!) {
@@ -55,9 +57,9 @@ pr_facts() {
       }' --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)] | length')"
   fi
   # GitHub reports unfinished conclusions and a missing review as "", not null.
-  jq --argjson threads "$threads" 'def value(f): [f[] | select(. != null and . != "")] | first // "";
+  jq --argjson threads "$threads" --argjson risk "$risk" 'def value(f): [f[] | select(. != null and . != "")] | first // "";
     {
-    number, state, url, draft: .isDraft, threads: $threads,
+    number, state, url, draft: .isDraft, threads: $threads, risk: $risk.risk, risk_reasons: ($risk.reasons // []),
     review: (if (.reviewDecision // "") == "" then null else .reviewDecision end),
     failing: [.statusCheckRollup[]? | select(value([.conclusion, .state])
       | IN("FAILURE", "ERROR", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE"))] | length,
@@ -92,8 +94,9 @@ facts() {
   done
   p="$(jq -r '.parent.number // empty' <<<"$item")"
   if [ -n "$p" ]; then
-    parent="$(gh issue view "$p" --repo "$REPO" --json number,title,state,subIssues --jq '{number, title, state,
-      open: ([.subIssues.nodes[] | select(.state == "OPEN")] | length), total: .subIssues.totalCount}')"
+    parent="$(gh issue view "$p" --repo "$REPO" --json number,title,state,labels,subIssues --jq '{number, title, state,
+      labels: [.labels[].name], open: ([.subIssues.nodes[] | select(.state == "OPEN")] | length),
+      total: .subIssues.totalCount}')"
   fi
   for branch in $(issue_branches "$n"); do
     branches="$(jq --argjson b "$(branch_facts "$branch")" '. + [$b]' <<<"$branches")"
@@ -118,7 +121,8 @@ render() {
     (if (.children | length) == 0 then empty else "Tickets:",
       (.children[] | "  \(ref)\(if (.labels | length) > 0 then " [\(.labels | join(", "))]" else "" end)\(if (.assignees | length) > 0 then " (\(.assignees | join(", ")))" else "" end)\(if .blocked then " ⛓" else "" end)") end),
     (.branches[] | "Branch: \(.name)\(if .ahead != null then " · \(.ahead) ahead of main" else "" end)\(if .worktree then " · worktree \(.worktree) · \(if .dirty == 0 then "clean" else "\(.dirty) uncommitted" end)" else "" end)",
-      (.pr // empty | "PR: #\(.number) \(.state)\(if .draft then " draft" else "" end) · \(.age_days) days old · failing checks \(.failing) · pending \(.pending) · open threads \(.threads) · review \(.review // "none") · \(.url)")),
+      (.pr // empty | "PR: #\(.number) \(.state)\(if .draft then " draft" else "" end) · \(.age_days) days old · failing checks \(.failing) · pending \(.pending) · open threads \(.threads) · review \(.review // "none")\(if .risk then " · \(.risk)-risk" else "" end) · \(.url)",
+        (.risk_reasons[]? | "  high-risk: \(.)"))),
     (if $notes != "" then "Notes: \($notes)" else empty end),
     "Phase: \($d.phase)",
     "Next: \($d.next)",
@@ -151,10 +155,30 @@ cmd_next() {
     echo "#$n $(jq -r .title <<<"$f") → $(jq -r .phase <<<"$(jq -f "$PHASE_JQ" <<<"$f")")"
   done
   echo "== Open specs"
-  gh issue list --repo "$REPO" --label "$SPEC_LABEL" --state open --json number,title,subIssuesSummary \
-    --jq 'if length == 0 then "(none)" else .[] | "#\(.number) \(.title) — \(.subIssuesSummary.completed) of \(.subIssuesSummary.total) tickets done" end'
+  local specs
+  specs="$(gh issue list --repo "$REPO" --label "$SPEC_LABEL" --state open --limit 200 \
+    --json number,title,labels,subIssuesSummary)"
+  jq -r 'if length == 0 then "(none)" else .[] | "#\(.number) \(.title) — \(.subIssuesSummary.completed) of \(.subIssuesSummary.total) tickets done" end' <<<"$specs"
   echo "== Ready for an agent"
   "$ROOT/scripts/issue.sh" ready | awk -F'\t' '{ print "#" $1 " " $2 }' | grep . || echo "(none)"
+  echo "== Waiting on the owner"
+  owner_items "$specs" | grep . || echo "(none)"
+}
+
+# Specs without approval, ready high-risk PRs (scripts/risk.sh) and needs-info questions.
+owner_items() {
+  local pr title risk
+  jq -r --arg approved "$APPROVED_LABEL" '.[] | select([.labels[].name] | index($approved) | not)
+    | "Approve spec #\(.number) \(.title) (add \($approved))"' <<<"$1"
+  while IFS=$'\t' read -r pr title; do
+    [ -n "$pr" ] || continue
+    risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || risk='{"risk": "high", "reasons": ["risk unknown"]}'
+    jq -r --arg pr "$pr" --arg title "$title" \
+      'select(.risk == "high") | "Merge PR #\($pr) \($title) (high-risk: \(.reasons[:3] | join("; "))\(if (.reasons | length) > 3 then "; +\(.reasons | length - 3) more" else "" end))"' <<<"$risk"
+  done < <(gh pr list --repo "$REPO" --state open --limit 100 --json number,title,isDraft \
+    --jq '.[] | select(.isDraft | not) | [.number, .title] | @tsv')
+  gh issue list --repo "$REPO" --label needs-info --state open --limit 100 --json number,title \
+    --jq '.[] | "Answer #\(.number) \(.title) (needs-info)"'
 }
 
 tickets_in_progress() {

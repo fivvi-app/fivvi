@@ -1,0 +1,27 @@
+# High-risk paths (ADR-016). A PR that changes, adds, deletes or renames any of these goes to the owner to merge.
+# scripts/risk.sh reads this file; this file is itself high-risk (scripts/), so agents can't loosen it.
+#
+# One rule per line: <group> <pattern>. Patterns are case-insensitive globs; `*` matches within one path segment. A
+# pattern that starts with `/` is anchored at the repo root, any other matches at every depth. A pattern also matches
+# everything below it.
+
+auth                  *auth*
+tenant-data           /packages/database
+health-notes          *note*
+legal                 /docs/legal
+billing               *billing*
+billing               *payment*
+product-docs          /docs/product
+product-docs          /docs/decisions
+guardrails            /AGENTS.md
+guardrails            /CLAUDE.md
+guardrails            /CODING_STANDARDS.md
+guardrails            /.agents
+guardrails            /.claude
+guardrails            /.github
+guardrails            /.githooks
+guardrails            /scripts
+dependencies          package.json
+dependencies          /pnpm-lock.yaml
+infrastructure        Dockerfile*
+infrastructure        /.railway

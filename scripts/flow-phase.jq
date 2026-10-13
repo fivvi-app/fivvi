@@ -1,12 +1,16 @@
 # The phase of an issue and the next step, decided from the facts flow.sh collects. Pure: no I/O.
 # Input: {number, title, state, labels, assignees, me, has_criteria, described,
-#         parent: null|{number, title, state, open, total}, blockers: [{number, title}],
+#         parent: null|{number, title, state, labels, open, total}, blockers: [{number, title}],
 #         children: [{number, title, state, labels, assignees, blocked}],
-#         branches: [{name, local, worktree, dirty, pr: null|{number, state, draft, review, failing, threads, age_days}}]}
+#         branches: [{name, local, worktree, dirty,
+#                     pr: null|{number, state, draft, review, failing, threads, age_days, risk, risk_reasons}}]}
+# risk is "low", "high" or null (unknown) for an open PR (scripts/risk.sh).
 # Output: {phase, next, hint}
 
 def has($l): (.labels | index($l)) != null;
 def open: .state == "OPEN";
+# Only a spec needs the owner's approval before its tickets are cut and built (ADR-016).
+def unapproved_spec: has("spec") and (has("spec-approved") | not);
 
 def code_phase:
   if .pr == null then {phase: "in-progress", rank: 0}
@@ -14,20 +18,27 @@ def code_phase:
   elif .pr.state == "CLOSED" then {phase: "abandoned", rank: -1}
   elif .pr.draft then {phase: "draft-pr", rank: 1}
   elif .pr.failing > 0 or .pr.review == "CHANGES_REQUESTED" or .pr.threads > 0 then {phase: "changes-requested", rank: 1}
+  elif .pr.risk == "low" then {phase: "ready-to-merge", rank: 4}
   elif .pr.review == "APPROVED" then {phase: "approved", rank: 4}
   else {phase: "in-review", rank: 3}
   end;
 
+def owner_review:
+  if .risk == "high" then "High-risk (\(.risk_reasons // [] | join("; "))): the owner reviews"
+  else "Risk unknown: the owner reviews" end;
+
+# Input: {phase, pr} of the least advanced branch.
 def code_next($n):
   {
     "in-progress": "Build it in its worktree (implementer), self-review (two reviewers), then scripts/pr.sh create from the worktree.",
-    "draft-pr": "Finish checks and self-review, then scripts/pr.sh ready from the worktree.",
+    "draft-pr": "Finish checks and self-review (scripts/pr.sh reviewed), then scripts/pr.sh ready from the worktree.",
     "changes-requested": "Fix what is open: scripts/pr.sh status and scripts/pr.sh threads in the worktree, fix with an implementer, push with scripts/pr.sh create, reply with scripts/pr.sh reply.",
-    "in-review": "Waiting for the owner's review. Nothing to do.",
-    "approved": "Approved. The owner merges it on GitHub; then scripts/flow.sh finish \($n).",
+    "ready-to-merge": "Low-risk: scripts/pr.sh merge in the worktree. It merges only when the whole merge gate holds; otherwise the PR stays for the owner. Then scripts/flow.sh finish \($n).",
+    "in-review": "\(.pr | owner_review) and merges it. Nothing to do.",
+    "approved": "Approved. \(.pr | owner_review | sub(": the owner reviews"; "")): the owner merges it on GitHub; then scripts/flow.sh finish \($n).",
     "merged": "scripts/flow.sh finish \($n)",
     "abandoned": "The PR was closed without merging. Ask the user what to do."
-  }[.];
+  }[.phase];
 
 def ready_children:
   [.children[] | select(open and has("ready-for-agent") and (has("spec") | not)
@@ -42,7 +53,9 @@ def features_hint:
   end;
 
 def ticket_phase($n):
-  if has("ready-for-agent") and .has_criteria then {phase: "ready", next: "scripts/flow.sh start \($n)"}
+  if .parent != null and (.parent | unapproved_spec) then
+    {phase: "needs-approval", next: "Its spec #\(.parent.number) waits for the owner to approve it (the spec-approved label). Report and stop."}
+  elif has("ready-for-agent") and .has_criteria then {phase: "ready", next: "scripts/flow.sh start \($n)"}
   elif has("ready-for-agent") then
     {phase: "needs-refinement", next: "Labelled ready-for-agent but it has no ## Acceptance criteria. Add them with the user: scripts/issue.sh update \($n) --body-file -."}
   else
@@ -51,24 +64,25 @@ def ticket_phase($n):
 
 . as $f
 | $f.number as $n
-| ([$f.branches[] | code_phase + {name}] | sort_by(.rank)) as $code
+| ([$f.branches[] | code_phase + {name, pr}] | sort_by(.rank)) as $code
 | (if ($f.branches | length) > 0
       and (($f | open) or any($f.branches[]; .local or .worktree != null) or any($f.branches[]; .pr.state == "OPEN"))
-   then {phase: $code[0].phase, next: ($code[0].phase | code_next($n))}
+   then {phase: $code[0].phase, next: ($code[0] | code_next($n))}
    elif ($f | open | not) then {phase: "done", next: "Nothing to do."}
    elif ($f.blockers | length) > 0 then
      {phase: "blocked", next: "Wait for \([$f.blockers[] | "#\(.number)"] | join(", ")) to be done."}
    elif ($f | has("spec")) or ($f.children | length) > 0 then
-     if ($f.children | length) == 0 and ($f | has("ready-for-agent")) then
+     if ($f.children | length) > 0 and ([$f.children[] | select(open)] | length) == 0 then
+       {phase: "complete", next: "All \($f.children | length) tickets are done. Check FEATURES.md shows it IMPLEMENTED, then scripts/issue.sh close \($n)."}
+     elif ($f.children | length) == 0 and ($f | has("ready-for-agent") | not)
+       and (($f | has("needs-triage")) or ($f.described | not)) then
+       {phase: "needs-spec", next: "Grill the owner (grill-with-docs), then rewrite it with to-spec: scripts/issue.sh update \($n) --body-file -."}
+     elif $f | unapproved_spec then
+       {phase: "needs-approval", next: "The owner reviews the spec on GitHub and approves it with the spec-approved label. Report and stop."}
+     elif ($f.children | length) == 0 and ($f | has("ready-for-agent")) then
        $f | ticket_phase($n)
      elif ($f.children | length) == 0 then
-       if ($f | has("needs-triage")) or ($f.described | not) then
-         {phase: "needs-spec", next: "Grill the owner (grill-with-docs), then rewrite it with to-spec: scripts/issue.sh update \($n) --body-file -."}
-       else
-         {phase: "needs-tickets", next: "Split it with to-tickets: scripts/issue.sh create ticket --parent \($n) [--blocked-by <n>]..."}
-       end
-     elif ([$f.children[] | select(open)] | length) == 0 then
-       {phase: "complete", next: "All \($f.children | length) tickets are done. Check FEATURES.md shows it IMPLEMENTED, then scripts/issue.sh close \($n)."}
+       {phase: "needs-tickets", next: "Split it with to-tickets: scripts/issue.sh create ticket --parent \($n) [--blocked-by <n>]..."}
      else
        ($f | ready_children) as $ready
        | {phase: "building",

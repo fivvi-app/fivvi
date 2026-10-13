@@ -19,7 +19,14 @@ const issue = (overrides = {}) => ({
   me: 'owner',
   has_criteria: true,
   described: true,
-  parent: { number: 50, title: '[F031] Open Gym booking', state: 'OPEN', open: 2, total: 3 },
+  parent: {
+    number: 50,
+    title: '[F031] Open Gym booking',
+    state: 'OPEN',
+    labels: ['spec', 'spec-approved'],
+    open: 2,
+    total: 3,
+  },
   blockers: [],
   children: [],
   branches: [],
@@ -71,6 +78,21 @@ describe('flow phase of a ticket', () => {
     assert.equal(decide(issue({ labels: [] })).phase, 'needs-refinement');
   });
 
+  it('waits for the owner while its spec is not approved', () => {
+    const unapproved = issue({ parent: { ...issue().parent, labels: ['spec'] } });
+    assert.deepEqual(decide(unapproved), {
+      phase: 'needs-approval',
+      next: 'Its spec #50 waits for the owner to approve it (the spec-approved label). Report and stop.',
+      hint: '',
+    });
+    const underIssue = issue({ parent: { ...issue().parent, labels: [] } });
+    assert.equal(
+      decide(underIssue).phase,
+      'ready',
+      'a parent that is not a spec needs no approval',
+    );
+  });
+
   it('is blocked while a blocker is open', () => {
     const decision = decide(issue({ blockers: [{ number: 55, title: 'schema' }] }));
     assert.equal(decision.phase, 'blocked');
@@ -94,17 +116,17 @@ describe('flow phase of a ticket', () => {
 
   it('hints the FEATURES.md status for the first and the last ticket of a spec', () => {
     const first = issue({
-      parent: { number: 50, title: 'spec', state: 'OPEN', open: 3, total: 3 },
+      parent: { ...issue().parent, open: 3, total: 3 },
     });
     assert.match(decide(first).hint, /IN PROGRESS/);
-    const last = issue({ parent: { number: 50, title: 'spec', state: 'OPEN', open: 1, total: 3 } });
+    const last = issue({ parent: { ...issue().parent, open: 1, total: 3 } });
     assert.match(decide(last).hint, /IMPLEMENTED/);
     assert.equal(decide(issue()).hint, '');
     assert.equal(decide(issue({ parent: null })).hint, '');
   });
 
   it('hints IMPLEMENTED for the only ticket of a spec', () => {
-    const only = issue({ parent: { number: 50, title: 'spec', state: 'OPEN', open: 1, total: 1 } });
+    const only = issue({ parent: { ...issue().parent, open: 1, total: 1 } });
     assert.match(decide(only).hint, /IMPLEMENTED/);
   });
 });
@@ -116,10 +138,34 @@ describe('flow phase from the code', () => {
   it('follows the PR through its states', () => {
     assert.equal(phaseOf(null), 'in-progress');
     assert.equal(phaseOf(pr({ draft: true })), 'draft-pr');
-    assert.equal(phaseOf(pr()), 'in-review');
-    assert.equal(phaseOf(pr({ review: 'APPROVED' })), 'approved');
+    assert.equal(phaseOf(pr({ risk: 'high' })), 'in-review');
+    assert.equal(phaseOf(pr({ risk: 'high', review: 'APPROVED' })), 'approved');
     assert.equal(phaseOf(pr({ state: 'MERGED' })), 'merged');
     assert.equal(phaseOf(pr({ state: 'CLOSED' })), 'abandoned');
+  });
+
+  it('lets an agent merge a low-risk PR and leaves a high-risk one to the owner', () => {
+    const low = decide(issue({ branches: [branch(pr({ risk: 'low' }))] }));
+    assert.equal(low.phase, 'ready-to-merge');
+    assert.match(
+      low.next,
+      /^Low-risk: scripts\/pr\.sh merge in the worktree.*scripts\/flow\.sh finish 57/,
+    );
+    assert.equal(phaseOf(pr({ risk: 'low', review: 'APPROVED' })), 'ready-to-merge');
+
+    const high = decide(
+      issue({
+        branches: [
+          branch(pr({ risk: 'high', risk_reasons: ['scripts/pr.sh: guardrails (/scripts)'] })),
+        ],
+      }),
+    );
+    assert.equal(high.phase, 'in-review');
+    assert.match(
+      high.next,
+      /^High-risk \(scripts\/pr\.sh: guardrails \(\/scripts\)\): the owner reviews/,
+    );
+    assert.equal(phaseOf(pr({ risk: null })), 'in-review', 'unknown risk waits for the owner');
   });
 
   it('asks for changes on failing checks, open threads or a change request', () => {
@@ -142,7 +188,7 @@ describe('flow phase from the code', () => {
 
   it('keeps the FEATURES.md hint while the ticket is in progress', () => {
     const last = issue({
-      parent: { number: 50, title: 'spec', state: 'OPEN', open: 1, total: 3 },
+      parent: { ...issue().parent, open: 1, total: 3 },
       branches: [branch(null)],
     });
     assert.match(decide(last).hint, /IMPLEMENTED/);
@@ -151,12 +197,32 @@ describe('flow phase from the code', () => {
 
 describe('flow phase of a spec', () => {
   const spec = (overrides) =>
-    issue({ number: 50, labels: ['spec'], parent: null, has_criteria: false, ...overrides });
+    issue({
+      number: 50,
+      labels: ['spec', 'spec-approved'],
+      parent: null,
+      has_criteria: false,
+      ...overrides,
+    });
 
-  it('needs tickets when described, a spec when empty or untriaged', () => {
+  it('needs tickets when described and approved, a spec when empty or untriaged', () => {
     assert.equal(decide(spec()).phase, 'needs-tickets');
-    assert.equal(decide(spec({ described: false })).phase, 'needs-spec');
+    assert.equal(decide(spec({ described: false, labels: ['spec'] })).phase, 'needs-spec');
     assert.equal(decide(spec({ labels: ['spec', 'needs-triage'] })).phase, 'needs-spec');
+  });
+
+  it('waits for the owner to approve a described spec before it gets tickets', () => {
+    assert.deepEqual(decide(spec({ labels: ['spec'] })), {
+      phase: 'needs-approval',
+      next: 'The owner reviews the spec on GitHub and approves it with the spec-approved label. Report and stop.',
+      hint: '',
+    });
+    const own = spec({ labels: ['spec', 'ready-for-agent'], has_criteria: true });
+    assert.equal(decide(own).phase, 'needs-approval', 'a spec built as its own ticket');
+    const building = spec({ labels: ['spec'], children: [child(51), child(52)] });
+    assert.equal(decide(building).phase, 'needs-approval', 'a spec whose approval was removed');
+    const complete = spec({ labels: ['spec'], children: [child(51, { state: 'CLOSED' })] });
+    assert.equal(decide(complete).phase, 'complete');
   });
 
   it('lists only unblocked, unassigned ready tickets while building', () => {
@@ -181,10 +247,11 @@ describe('flow phase of a spec', () => {
   });
 
   it('builds a spec without tickets as its own ticket once it is ready-for-agent', () => {
-    const own = spec({ labels: ['spec', 'ready-for-agent'], has_criteria: true });
+    const labels = ['spec', 'spec-approved', 'ready-for-agent'];
+    const own = spec({ labels, has_criteria: true });
     assert.equal(decide(own).phase, 'ready');
     assert.match(decide(own).hint, /its own ticket: .*IMPLEMENTED/);
-    assert.equal(decide(spec({ labels: ['spec', 'ready-for-agent'] })).phase, 'needs-refinement');
+    assert.equal(decide(spec({ labels })).phase, 'needs-refinement');
     assert.equal(decide({ ...own, branches: [branch(null)] }).phase, 'in-progress');
   });
 

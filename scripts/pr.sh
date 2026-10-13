@@ -11,7 +11,13 @@
 #   pr.sh wait [--timeout <minutes>]              wait for CI: exit 0 passed, 1 failed, 2 still running at the timeout
 #   pr.sh threads                                 open review threads with their ids
 #   pr.sh reply <thread-id> (--body <md>|--body-file <f|->) [--resolve]
-#   pr.sh smoke [--timeout <minutes>]             smoke-check the Railway preview and record the result in the PR body
+#   pr.sh smoke [--timeout <minutes>]             smoke-check the Railway preview and record the result for the PR's head
+#                                                 commit in the PR body
+#   pr.sh reviewed                                record in the PR body that both reviewers (standards and spec) found
+#                                                 nothing to fix on the PR's head commit; local HEAD must be that commit
+#   pr.sh merge                                   squash-merge a low-risk PR and delete its branch, only when every
+#                                                 condition of the merge gate holds (ADR-016); otherwise merge nothing,
+#                                                 print why and exit 1: the PR stays for the owner
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -24,6 +30,7 @@ OWNER="${REPO%%/*}"
 NAME="${REPO#*/}"
 BRANCH="$(git branch --show-current)"
 SMOKE_MARK="Railway preview smoke check"
+REVIEW_MARK="Self-review"
 
 open_pr() { gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty'; }
 current_pr() {
@@ -184,9 +191,19 @@ cmd_reply() {
   echo "💬 replied to thread $thread$($resolve && echo " (resolved)")"
 }
 
+head_of() { gh pr view "$1" --repo "$REPO" --json headRefOid --jq .headRefOid; }
+
+# Records a result in the PR body as one line, **<mark>:** …, replacing the previous one. scripts/merge-gate.jq reads it.
+record() {
+  local pr="$1" mark="$2" line="$3" body
+  body="$(gh pr view "$pr" --repo "$REPO" --json body --jq .body | grep -v "^\*\*$mark:\*\*" || true)"
+  gh pr edit "$pr" --repo "$REPO" --body "$body"$'\n\n'"$line" >/dev/null
+  echo "✅ $line"
+}
+
 # The preview exists only when the PR touches a Railway watch pattern (docs/engineering/ENVIRONMENTS.md).
 cmd_smoke() {
-  local timeout=15 pr url deadline result body line
+  local timeout=15 pr head url deadline result line
   while [ $# -gt 0 ]; do
     case "$1" in
       --timeout) timeout="${2:?}"; shift ;;
@@ -195,8 +212,9 @@ cmd_smoke() {
     shift
   done
   pr="$(current_pr)"
+  head="$(head_of "$pr")"
   if ! gh pr checks "$pr" --repo "$REPO" --json name --jq '.[].name' 2>/dev/null | grep -q '^trainer-hub - web$'; then
-    line="**$SMOKE_MARK:** no preview for this PR (it touches no Railway watch pattern)."
+    line="**$SMOKE_MARK:** on \`$head\`: no preview for this PR (it touches no Railway watch pattern)."
   else
     url="https://web-trainer-hub-pr-$pr.up.railway.app/api/v1/health"
     deadline=$(( $(date +%s) + timeout * 60 ))
@@ -204,11 +222,62 @@ cmd_smoke() {
       [ "$(date +%s)" -lt "$deadline" ] || die "preview not healthy after $timeout min: $url (${result:-no response})"
       sleep 20
     done
-    line="**$SMOKE_MARK:** \`curl -fsS $url\` → \`$result\` ✅"
+    line="**$SMOKE_MARK:** on \`$head\`: \`curl -fsS $url\` → \`$result\` ✅"
   fi
-  body="$(gh pr view "$pr" --repo "$REPO" --json body --jq .body | grep -v "^\*\*$SMOKE_MARK:\*\*" || true)"
-  gh pr edit "$pr" --repo "$REPO" --body "$body"$'\n\n'"$line" >/dev/null
-  echo "✅ $line"
+  record "$pr" "$SMOKE_MARK" "$line"
+}
+
+# Run only when both reviewers report no must-fix or should-fix finding. A later push makes the record stale.
+cmd_reviewed() {
+  [ $# -eq 0 ] || usage
+  local pr head local_head
+  pr="$(current_pr)"
+  [ -z "$(git status --porcelain)" ] || die "uncommitted changes: the reviewers did not see what is on the PR"
+  head="$(head_of "$pr")"
+  local_head="$(git rev-parse HEAD)"
+  [ "$local_head" = "$head" ] \
+    || die "local HEAD ${local_head:0:7} is not the PR head ${head:0:7}: push with scripts/pr.sh create, then review again"
+  record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** standards and spec reviewers clean on \`$head\` ✅"
+}
+
+# The facts of scripts/merge-gate.jq. Required checks come from the ruleset GitHub enforces on main.
+merge_facts() {
+  local pr="$1" view head base
+  view="$(gh pr view "$pr" --repo "$REPO" --json number,state,isDraft,baseRefName,headRefName,headRefOid,body,statusCheckRollup)"
+  head="$(jq -r .headRefOid <<<"$view")"
+  base="$(default_branch)"
+  jq --arg base "$base" \
+    --argjson behind "$(gh api "repos/$REPO/compare/$base...$head" --jq .behind_by)" \
+    --argjson threads "$(unresolved_threads "$pr" | jq length)" \
+    --argjson risk "$("$ROOT/scripts/risk.sh" "$pr" --json)" \
+    --argjson required "$(jq '[.rules[] | select(.type == "required_status_checks")
+      | .parameters.required_status_checks[].context]' "$ROOT/.github/rulesets/main.json")" '{
+    head: .headRefOid, branch: .headRefName, default_branch: $base,
+    pr: {number, state, draft: .isDraft, base: .baseRefName, body: (.body // "")},
+    risk: $risk, required: $required, checks: (.statusCheckRollup // []), behind: $behind, threads: $threads}' <<<"$view"
+}
+
+cmd_merge() {
+  [ $# -eq 0 ] || usage
+  local pr facts decision head branch issue out
+  pr="$(current_pr)"
+  facts="$(merge_facts "$pr")" && [ -n "$facts" ] || die "could not read the facts of PR #$pr; nothing merged"
+  decision="$(jq -c -f "$ROOT/scripts/merge-gate.jq" <<<"$facts")"
+  jq -r '.conditions[] | "\(if .ok then "✓" else "✗" end) \(.name): \(.detail)"' <<<"$decision"
+  jq -e .merge <<<"$decision" >/dev/null \
+    || die "PR #$pr stays for the owner: $(jq -r '[.conditions[] | select(.ok | not) | .name] | join(", ")' <<<"$decision")"
+
+  head="$(jq -r .head <<<"$facts")"
+  branch="$(jq -r .branch <<<"$facts")"
+  out="$(gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$head" 2>&1)" || die "merge failed: $out"
+  echo "✅ PR #$pr squash-merged"
+  if gh api --method DELETE "repos/$REPO/git/refs/heads/$branch" >/dev/null 2>&1; then
+    echo "🗑  deleted '$branch' on GitHub"
+  else
+    echo "⚠  could not delete '$branch' on GitHub; flow.sh finish removes it"
+  fi
+  issue="$(branch_issue "$branch")"
+  echo "Next: scripts/flow.sh finish ${issue:-<issue>} from the main checkout"
 }
 
 case "${1:-}" in
@@ -220,5 +289,7 @@ case "${1:-}" in
   threads) shift; cmd_threads "$@" ;;
   reply)   shift; cmd_reply "$@" ;;
   smoke)   shift; cmd_smoke "$@" ;;
+  reviewed) shift; cmd_reviewed "$@" ;;
+  merge)   shift; cmd_merge "$@" ;;
   *)       usage ;;
 esac
