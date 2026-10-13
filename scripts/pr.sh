@@ -114,8 +114,10 @@ cmd_status() {
       "Open threads: \($threads)"'
 }
 
+# Waits for the CI workflow run of the PR's head commit (.github/workflows/ci.yml), not for whatever checks exist yet:
+# right after a push, the jobs behind "Detect changes" don't exist, so "nothing pending" is not "passed".
 cmd_wait() {
-  local timeout=20 pr deadline checks failed pending
+  local timeout=20 pr head deadline run failed
   while [ $# -gt 0 ]; do
     case "$1" in
       --timeout) timeout="${2:?}"; shift ;;
@@ -124,17 +126,23 @@ cmd_wait() {
     shift
   done
   pr="$(current_pr)"
+  head="$(gh pr view "$pr" --repo "$REPO" --json headRefOid --jq .headRefOid)"
   deadline=$(( $(date +%s) + timeout * 60 ))
-  sleep 10
   while :; do
-    checks="$(gh pr checks "$pr" --repo "$REPO" --json name,bucket 2>/dev/null || echo '[]')"
-    failed="$(jq -r '[.[] | select(.bucket == "fail" or .bucket == "cancel") | .name] | join(", ")' <<<"$checks")"
-    pending="$(jq '[.[] | select(.bucket == "pending")] | length' <<<"$checks")"
+    run="$(gh run list --repo "$REPO" --workflow CI --commit "$head" --limit 1 --json status,conclusion \
+      --jq '.[0] // {} | "\(.status // "") \(.conclusion // "")"')"
+    failed="$(gh pr checks "$pr" --repo "$REPO" --json name,bucket \
+      --jq '[.[] | select(.bucket == "fail" or .bucket == "cancel") | .name] | join(", ")' 2>/dev/null || true)"
     if [ -n "$failed" ]; then echo "✗ PR #$pr checks failed: $failed"; return 1; fi
-    if [ "$pending" = 0 ] && [ "$(jq length <<<"$checks")" -gt 0 ]; then
-      echo "✓ PR #$pr checks passed ($(jq length <<<"$checks") checks)"; return 0
+    case "$run" in
+      "completed success") echo "✓ PR #$pr: CI passed on ${head:0:7}"; return 0 ;;
+      completed\ *) echo "✗ PR #$pr: CI ${run#completed } on ${head:0:7}"; return 1 ;;
+    esac
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      run="${run% *}"
+      echo "⏱ PR #$pr: CI ${run:-not started} after $timeout min"
+      return 2
     fi
-    if [ "$(date +%s)" -ge "$deadline" ]; then echo "⏱ PR #$pr: $pending checks still running after $timeout min"; return 2; fi
     sleep 30
   done
 }
