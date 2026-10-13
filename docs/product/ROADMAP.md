@@ -6,7 +6,7 @@
 | **Date** | 22 September 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
 | **Builders** | AI coding agents: GitHub Copilot (VS Code + CLI), Claude Code and Codex, working in parallel worktrees |
-| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7; GitHub Copilot added as a builder in v1.8; Matt Pocock's skills and GitHub issue specs in v1.9; agents merge low-risk PRs in v1.12 (ADR-016, proposed) |
+| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7; GitHub Copilot added as a builder in v1.8; Matt Pocock's skills and GitHub issue specs in v1.9; E006 owner to-dos placed at M2, G2 and G4 in v1.10; agents merge low-risk PRs in v1.12 (ADR-016, proposed) |
 | **Requirements source** | [`PRODUCT.md`](PRODUCT.md) (what we build and why) |
 | **Feature registry** | [`FEATURES.md`](FEATURES.md) (status of every feature) |
 | **Engineering workflow** | [`../engineering/WORKFLOW.md`](../engineering/WORKFLOW.md) (branches, worktrees, reviews, cleanup, Definition of Done) |
@@ -310,6 +310,9 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - Roles: Owner, Admin, Trainer (§50). No custom permissions. Owner + Trainer on the same person is a normal case.
 - Every business table carries `organization_id`; RLS policies are active; the cross-tenant test suite runs in CI.
 - **Sign-in email contains a magic link and a 6-digit code.** Web uses either one; native apps use the code, and deep links come later. Tokens are hashed, single-use, short-lived and rate-limited, with no account enumeration. The link opens a **confirm-click page**, so email scanners (e.g. Outlook Safe Links) can't consume it.
+- **Owner setup before F001 sends real email (E006):**
+  - [ ] Apply `.railway/railway.ts` to `development`, then `production` (`docs/engineering/ENVIRONMENTS.md §3`). It declares `BREVO_API_KEY`, `EMAIL_FROM_ADDRESS` and `EMAIL_FROM_NAME` on `web`.
+  - [ ] Set the values (ENVIRONMENTS.md §7): `development` gets the `trainer-hub-dev` key; `production` gets a **new, separate** Brevo key (e.g. `trainer-hub-prod`); `EMAIL_FROM_ADDRESS` = the verified sender in both.
 
 **Exit criteria**
 - Owner signs in on web, iOS and Android, creates "John's Gym", sees the UI in Dutch by default, switches to English, and the choice persists across devices.
@@ -355,6 +358,10 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 **Exit criteria**
 - A full real week of the pilot gym is represented correctly, including a substitution and a cancellation.
 - Owner sees the workspace-wide "Today" (§45); a trainer sees "My day" across workspaces (§46–47).
+- Email is ready for real names (`docs/legal/sub-processors.md §4`):
+  - [ ] Brevo support has switched off open/click tracking (link rewriting) and the unsubscribe header for transactional email, or the owner has accepted the risk with a reason (R1).
+  - [ ] A PDF of the Brevo terms and DPA (Annex 2) in force on that day is saved.
+  - [ ] R18 in `docs/legal/retention-policy.md` records that Brevo deletes delivery logs after 1 month, the minimum it allows and a few days over the 30-day maximum (owner approves the wording).
 - Production releases need the owner's approval: once real names are in production, an agent merge to `main` no longer releases by itself. The release step is built before G2 (ADR-016, decision 6).
 
 ---
@@ -456,6 +463,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - [ ] Runbooks: incident response, rollback, "a client says they didn't get the email", "wrong booking".
 - [ ] Import scripts dry-run against a copy of the pilot's real data.
 - [ ] **Free-tier limits reviewed** and the paid upgrades triggered by G4 are ready to switch on (§12).
+- [ ] **Email capacity:** a usage alert for Brevo's 300 emails/day free limit is set up, and the paid Brevo plan is ready to switch on, so sign-in and booking emails never stop at the cap (R14).
 - [ ] Support channel with the pilot agreed (response times, how to report issues).
 
 **Exit criteria (Gate G4: pilot go-live)**
@@ -746,4 +754,5 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-10-04 | 1.7 | **E006 email infrastructure** implemented (`packages/email`: React Email templates from the i18n catalogs, `sendEmail` with Brevo and inline retry). G1 email criterion met for Gmail (NL and EN in the inbox, 2026-10-03); other mailbox providers stay with the M5 deliverability tests. Brevo terms checked: 300 emails/day on the free plan, EU storage with support access from the US and India, DPA part of the terms; previews off, logs kept 1 month, anonymous tracking on. Updated ADR-009 row, §12 email row and R1 (tracking off before G2). |
 | 2026-10-13 | 1.8 | Owner added **GitHub Copilot** (VS Code + CLI, not the cloud agent) as a builder next to Claude Code and Codex. `AGENTS.md` is the single, tool-neutral rule file, with area rules in `.github/instructions/`, workflow skills in `.agents/skills/` (start, local review, cleanup) and an edit guard hook (`.claude/settings.json`) that blocks edits on `main` and of generated files for Copilot and Claude Code. Agent review stays local; Copilot code review is not used in GitHub. Updated `WORKFLOW.md` and the legal drafts (`role-mapping.md` §6.6, `sub-processors.md` §5). |
 | 2026-10-13 | 1.9 | Owner adopted **Matt Pocock's way of working** (github.com/mattpocock/skills, MIT) for all three agents, modelled on the owner's mijn-hcs repo. Matt's skills are vendored and pinned in `.agents/skills/` (`scripts/skills.sh`; symlinks for Claude Code); our `work` skill orchestrates them with the `implementer` and `reviewer` subagents, so the owner only talks. Deterministic scripts do the repetitive steps: `flow.sh` (phase and next step per issue, decided by a tested `flow-phase.jq`), `issue.sh`, `wt.sh`, `pr.sh`, `check.sh`, `bootstrap.sh`, plus a commit-msg hook. Specs and tickets move to **GitHub issues** (sub-issues with native blocking edges, triage labels); `docs/features/` and its template are retired, which deviates from the location in `PRODUCT.md §80–82` (the fields stay). One PR per ticket, at most three in parallel. The domain language moves to a root `GLOSSARY.md`; `packages/i18n/GLOSSARY.md` keeps the NL/EN wording. New `CODING_STANDARDS.md` for reviews. Updated `AGENTS.md`, `WORKFLOW.md`, `TESTING.md`, `FEATURES.md`. |
+| 2026-10-13 | 1.10 | E006 owner to-dos moved to where they are due: Railway email variables in M2 (before F001 sends email), Brevo tracking off, a DPA copy and the Brevo log retention in R18 in the G2 exit criteria, Brevo usage alert and paid plan in the M9 launch checklist (G4). |
 | 2026-10-13 | 1.12 | Owner decided the **software factory** (#28, ADR-016 proposed): agents take approved work to `main` and stop only for the owner. A script decides risk from the changed paths (`scripts/high-risk-paths.txt`: auth, tenant data, health notes, legal, billing, product and decision docs, the factory's own guardrails, dependencies and infrastructure) and the `owner-merge` label (`scripts/risk.sh`). Agents merge low-risk PRs with `scripts/pr.sh merge`, only when every check passed on the head commit, both local reviewers were clean on it (`pr.sh reviewed`), the preview smoke check is recorded for the head commit, the branch is up to date and no thread is open; high-risk PRs go to the owner. The owner moved to GitHub Pro, so a versioned ruleset on `main` now enforces the five CI jobs, a PR and an up-to-date branch, and blocks force-pushes and deletion; squash merge only (`scripts/github-settings.sh`). Specs need the owner's `spec-approved` label before tickets are cut; a material change removes it. The `work` skill gets a "run the factory" route. New G2 exit criterion: the owner approves production releases once real names are in production. Measure T12 of the processor agreement now says the owner approves every merge of a high-risk change (owner-approved wording). Updated `AGENTS.md`, `WORKFLOW.md`, `docs/agents/`, `docs/legal/verwerkersovereenkomst.md`. |
