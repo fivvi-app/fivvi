@@ -1,10 +1,14 @@
 # Trainer Hub visual direction (M0 draft)
 
-**Status:** draft for pilot validation, 22 September 2026. This is the visual direction for the [six critical flows](README.md), not a final component library. E007 adopts and builds the [draft tokens](tokens.draft.json) in M1 under ADR-015.
+**Status:** draft for pilot validation, refined 13 October 2026 after owner feedback. This is the visual direction for the [critical flows](README.md), not a final component library. E007 adopts and builds the [draft tokens](tokens.draft.json) in M1 under ADR-015.
 
 ## Character and hierarchy
 
 Trainer Hub should read clearly in a busy gym: time, client, location, capacity, and the next action come first. The palette uses cool neutral surfaces and deep petrol for actions. Blue identifies private sessions, violet group classes, and amber Open Gym. Every use of these colours also has a text label or icon. Destructive actions use red and an explicit confirmation.
+
+**Calm light first.** The prototype starts light even on a dark OS; a deliberate Light/Dark appearance control does not persist between visits. Dark uses softened green-grey layers and off-white text, not near-black walls. Colour is concentrated in meaningful SVG badges and the main action. Ambiguous controls retain labels, and compact session/capacity graphics have programmatic labels.
+
+**Fewer competing facts.** The hub is a grid of flow tiles, not seven explanatory paragraphs. Today highlights the next client and workout action; its time agenda drops repeated type/workspace words. Contact details, workspace context, attendance and trainer-only notes use deliberate, named disclosures. Booking shows class/time above the two inputs; privacy, capacity and auth warnings stay explicit. Workout results use two numeric blocks with an expandable set breakdown; client-message review remains mandatory before sharing. See the [prototype measurements](prototype/README.md#owner-feedback-refinement-13-october-2026) for before/after viewport text counts.
 
 The web prototype uses restrained branded headings. Forms, calendars, and mobile app content use system text. Trainer data and notes stay legible at arm's length. The prototype's sample names and notes are fictional; note content is trainer-only by default.
 
@@ -12,14 +16,14 @@ The web prototype uses restrained branded headings. Forms, calendars, and mobile
 
 | Role | Light | Dark | Use |
 |---|---|---|---|
-| Canvas / surface | `#F6F8F7` / `#FFFFFF` | `#0E1312` / `#161C1B` | Page and card hierarchy |
-| Primary / secondary text | `#161C1B` / `#46524F` | `#F6F8F7` / `#A9B5B2` | Main copy and metadata |
+| Canvas / surface | `#F6F8F7` / `#FFFFFF` | `#1D2928` / `#253330` | Page and card hierarchy |
+| Primary / secondary text | `#161C1B` / `#46524F` | `#E6EDEB` / `#B7C7C0` | Main copy and metadata |
 | Primary action / on action | `#0C6A5C` / white | `#5DB8A8` / `#0E1312` | Main action and selected state |
 | Tonal action | `#E6F4F1` / `#0A433B` | `#09332E` / `#C4E6DF` | Secondary actions and chips |
 | Destructive action | `#A3261A` / white | `#F09A8E` / `#0E1312` | Cancel class confirmation |
 | Private / group / Open Gym | Blue / violet / amber | Lighter blue / violet / amber | Calendar type, always with text |
 
-The token checker measures the foreground/background pairs used in the prototype in both appearances. All **25 pairs pass**: ordinary text and labels meet at least **4.5:1**; control outlines, focus rings, and calendar bars meet at least **3:1**. The tightest checked text pair is dark placeholder text on a surface at **4.93:1**. The tightest checked non-text pair is the light Open Gym calendar bar on a surface at **3.17:1**. Decorative hairlines are not used to identify controls. Run `node docs/design/prototype/gen-tokens.mjs --check` for the complete current table. These are token-pair checks, not a claim that every possible rendered combination has been audited. The thresholds come from [WCAG 2.2 text contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum) and [non-text contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast).
+The token checker measures the foreground/background pairs used in the prototype in both appearances. All **29 pairs pass**: ordinary text and labels meet at least **4.5:1**; control outlines, focus rings, and calendar bars meet at least **3:1**. It includes primary and secondary text on the Material next-session tonal surface. The tightest checked text pair is light placeholder text on a surface at **5.66:1**. The tightest checked non-text pair is the light Open Gym calendar bar on a surface at **3.17:1**. Decorative hairlines are not used to identify controls. Run `node docs/design/prototype/gen-tokens.mjs --check` for the complete current table. These are token-pair checks, not a claim that every possible rendered combination has been audited. The thresholds come from [WCAG 2.2 text contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum) and [non-text contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast).
 
 ## Typography
 
@@ -57,6 +61,7 @@ Colours and contrast pairs don't change with density. E007 maps compact density 
 - Radii are 4, 8, 12, 16, 28, and full pill. iOS uses continuous corners and inset grouped lists. Material 3 maps these to its extra small through extra large shape roles.
 - Interactive targets are at least 48 pt/dp in the native interpretation; the workout logger uses 64 for set controls. Web focus is a visible 2 px ring with offset. Reduced-motion preferences suppress decorative transitions.
 - Safe areas, back navigation, sheets, tab bars, pickers, and destructive confirmations follow each platform's native controls in the product. The HTML prototype approximates these patterns to test flow and hierarchy. iOS uses a large title and back label; Android uses a top app bar, selected navigation indicator, and segmented buttons. [Apple colour guidance](https://developer.apple.com/design/human-interface-guidelines/color) and [Material 3 theming](https://developer.android.com/develop/ui/compose/designsystems/material3) guide the M1/M8 mapping.
+- The platform difference is structural: iOS Today uses a flat large-title header, client-first inset summary, joined agenda rows and a blue pill action; Android uses a small app bar, a day overview inside content, time-first tonal summary, separated elevated agenda cards and an anchored FAB. The app's add sheet is a grouped list on iOS and visual tiles on Android. Capability is identical. Phone frames appear only on sufficiently tall desktop screens; short landscape logging puts its large controls beside the scrollable values.
 
 ## Token handoff to E007
 

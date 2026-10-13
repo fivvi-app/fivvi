@@ -79,22 +79,22 @@
       "canvas": {
         "$value": "{color.base.neutral.25}",
         "$description": "App/page background. iOS: systemGroupedBackground role. M3: surface.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.950}" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#1D2928" } }
       },
       "surface": {
         "$value": "{color.base.white}",
         "$description": "Cards, list rows, inputs. iOS: secondarySystemGroupedBackground. M3: surfaceContainerLowest.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.900}" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#253330" } }
       },
       "raised": {
         "$value": "{color.base.white}",
         "$description": "Sheets, dialogs, menus. iOS: sheet material. M3: surfaceContainerHigh.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.850}" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#2B3B37" } }
       },
       "subtle": {
         "$value": "{color.base.neutral.50}",
         "$description": "Quiet fills: segmented tracks, table stripes, read-only fields. M3: surfaceContainer.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.800}" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#30423D" } }
       },
       "inverse": {
         "$value": "{color.base.neutral.900}",
@@ -106,17 +106,17 @@
       "$type": "color",
       "primary": {
         "$value": "{color.base.neutral.900}",
-        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.25}" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#E6EDEB" } }
       },
       "secondary": {
         "$value": "{color.base.neutral.600}",
         "$description": "Meta lines (workspace, location). Must still pass 4.5:1 on canvas and surface.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.300}" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#B7C7C0" } }
       },
       "tertiary": {
         "$value": "{color.base.neutral.500}",
         "$description": "Placeholders and hints. Still AA (4.5:1) on surface: placeholders are real text.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.400}" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#A0B2AA" } }
       },
       "inverse": {
         "$value": "{color.base.neutral.25}",
@@ -132,12 +132,12 @@
       "default": {
         "$value": "{color.base.neutral.100}",
         "$description": "Decorative separators only (hairlines between rows). Not used for control boundaries.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.800}" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#3C504A" } }
       },
       "control": {
         "$value": "{color.base.neutral.400}",
         "$description": "Input and control outlines: 3:1 non-text contrast (WCAG 1.4.11).",
-        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.400}" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#92A69D" } }
       },
       "focus": {
         "$value": "{color.base.petrol.500}",

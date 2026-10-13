@@ -22,11 +22,159 @@ async function pageFor(flow, viewport = { width: 390, height: 844 }) {
 }
 after(async () => { await browser?.close(); });
 
+// Count words actually painted in the viewport, excluding clipped/offscreen text,
+// closed disclosures and text covered by nav, sheets or the prototype toolbar.
+async function viewportWords(page, selector) {
+  return page.locator(selector).evaluate((root) => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node, count = 0;
+    while ((node = walker.nextNode())) {
+      for (const match of node.textContent.matchAll(/\S+/g)) {
+        const range = document.createRange();
+        range.setStart(node, match.index);
+        range.setEnd(node, match.index + match[0].length);
+        if ([...range.getClientRects()].some((rect) => {
+          const x = (rect.left + rect.right) / 2, y = (rect.top + rect.bottom) / 2;
+          const hit = document.elementFromPoint(x, y);
+          return rect.width > 0 && x >= 0 && x < innerWidth && y >= 0 && y < innerHeight
+            && hit && node.parentElement.contains(hit);
+        })) count++;
+      }
+    }
+    return count;
+  });
+}
+
+test('Today prioritises next client and action with at least 25% fewer viewport words', async () => {
+  for (const lang of ['nl', 'en']) {
+    const { page, errors } = await pageFor(2);
+    await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).first().click();
+    for (const platform of ['ios', 'android']) {
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      assert.ok(await viewportWords(page, '.app') <= 44, `${lang}/${platform} exceeds Today word budget (baseline NL iOS: 59)`);
+      assert.ok(await page.locator('.next [data-act="start-log"]').isVisible());
+      assert.ok(await page.locator('.next [data-act="open-session"][data-id="p-mark"]').isVisible());
+      assert.ok(await page.locator('[data-act="open-session"][data-id="p-koen"]').isVisible());
+      assert.ok(await page.locator('[data-act="open-occ"][data-id="o-str22"]').isVisible());
+      await page.locator('.next [data-act="open-session"]').click();
+      assert.ok((await content(page)).includes('Sarah Personal Training'), 'workspace remains reachable');
+      assert.ok((await content(page)).includes('Basic-Fit Oost'), 'location remains reachable');
+      await page.locator('[data-act="back"]').first().click();
+    }
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
+test('platforms arrange Today differently: inset iOS groups vs Material dashboard and elevated agenda cards', async () => {
+  const { page } = await pageFor(2);
+  await page.locator('[data-act="set-platform"][data-v="ios"]').click();
+  assert.ok(await page.locator('.nav--ios .nav-large-title').isVisible());
+  assert.equal(await page.locator('main .day-overview').count(), 0);
+  const iosRow = await page.locator('.agenda-list .session-row').first().evaluate((el) => ({
+    radius: getComputedStyle(el).borderRadius,
+    shadow: getComputedStyle(el).boxShadow,
+  }));
+  assert.equal(await page.locator('.fab').count(), 0);
+  await page.locator('[data-act="set-platform"][data-v="android"]').click();
+  assert.ok(await page.locator('.nav--md .nav-bar h1').isVisible());
+  assert.ok(await page.locator('main .day-overview').isVisible(), 'day overview moves into Material content');
+  const androidRow = await page.locator('.agenda-list .session-row').first().evaluate((el) => ({
+    radius: getComputedStyle(el).borderRadius,
+    shadow: getComputedStyle(el).boxShadow,
+  }));
+  assert.notDeepEqual(androidRow, iosRow, 'agenda cards differ structurally, not just type');
+  assert.ok(await page.locator('.fab').isVisible());
+  const activeIcon = page.locator('.tab[aria-current="page"] .tab-ico');
+  assert.notEqual(await activeIcon.evaluate((el) => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)');
+  await page.locator('.next [data-act="open-session"]').click();
+  assert.ok(await page.locator('[data-act="start-log"]').isVisible(), 'same capability on Android');
+  await page.close();
+});
+
+test('hub presents seven compact visual flow tiles, with instructions deliberately disclosed', async () => {
+  for (const lang of ['nl', 'en']) {
+    const { page, errors } = await pageFor(null);
+    await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).click();
+    assert.equal(await page.locator('.flow-card').count(), 7);
+    assert.equal(await page.locator('.flow-card .icon-badge').count(), 7);
+    const fourth = await page.locator('.flow-entry').nth(3).boundingBox();
+    assert.ok(fourth.y + fourth.height <= 844, 'at least four flow entry points fit above the fold');
+    assert.ok(await viewportWords(page, '.hub') <= 80, 'hub viewport word budget (baseline NL: 142)');
+    const painted = await page.locator('.hub').innerText();
+    assert.ok(painted.trim().split(/\s+/).length <= 180, 'whole hub is concise, not just pushed below viewport');
+    assert.ok(await page.locator('.flow-card').last().isVisible());
+    await page.locator('.hub-guide summary').click();
+    assert.ok(await page.locator('.hub-guide .disclosure-body').isVisible());
+    await page.locator('.hub-guide summary').click();
+    await startFlow(page, '4move');
+    assert.ok(await page.locator('[data-act="panel-move"]').isVisible(), 'alternate entry points remain one click away');
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
+test('appearance starts light on a dark OS; explicit changes keep booking drafts and workout sets', async () => {
+  const { page, errors } = await pageFor(1);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.reload();
+  const palette = () => page.evaluate(() => ({
+    canvas: getComputedStyle(document.body).backgroundColor,
+    scheme: getComputedStyle(document.documentElement).colorScheme,
+  }));
+  assert.equal(await page.locator('html').getAttribute('data-theme'), 'light');
+  const light = await palette();
+  assert.equal(light.scheme, 'light');
+  await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
+  await page.locator('#b-name').fill('Demo Guest');
+  await page.locator('#b-email').fill('demo@example.com');
+  await page.locator('.appearance summary').click();
+  await page.locator('[data-act="set-theme"][data-v="dark"]').click();
+  assert.notEqual((await palette()).canvas, light.canvas);
+  assert.equal((await palette()).scheme, 'dark');
+  assert.equal(await page.locator('#b-name').inputValue(), 'Demo Guest');
+  assert.equal(await page.locator('#b-email').inputValue(), 'demo@example.com');
+  await page.locator('[data-act="set-theme"][data-v="light"]').click();
+  assert.deepEqual(await palette(), light);
+  await page.locator('[data-form="booking"] button[type="submit"]').click();
+  assert.ok(await page.locator('[data-countdown]').isVisible());
+  await page.locator('[data-act="home"]').click();
+  await startFlow(page, '5');
+  await page.locator('[data-act="log-open"][data-v="0"]').first().click();
+  await page.locator('[data-act="log-check"][data-v="0"]').click();
+  await page.locator('.appearance summary').click();
+  await page.locator('[data-act="set-theme"][data-v="dark"]').click();
+  assert.equal(await page.locator('[data-act="log-check"][data-v="0"]').getAttribute('aria-pressed'), 'true');
+  await page.reload();
+  assert.equal(await page.locator('html').getAttribute('data-theme'), 'light', 'appearance is not silently persisted');
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
 test('prototype-only Dutch and English keys remain in parity', () => {
   const context = { window: {} };
   vm.runInNewContext(readFileSync(resolve(__dirname, 'strings.js'), 'utf8'), context);
   const { nl, en } = context.window.PROTO_STRINGS;
   assert.deepEqual(Object.keys(nl).sort(), Object.keys(en).sort());
+});
+
+test('session and client details disclose secondary information without burying workout actions or note privacy', async () => {
+  const { page, errors } = await pageFor(2);
+  await page.locator('.next [data-act="open-session"]').click();
+  assert.ok(await viewportWords(page, '.app') <= 55, 'session details have a concise first view');
+  assert.ok(await page.locator('[data-act="start-log"]').isVisible());
+  assert.equal(await page.locator('.session-notes').getAttribute('open'), null);
+  assert.equal(await page.locator('.session-notes .note-text').first().isVisible(), false);
+  await page.locator('.session-notes summary').click();
+  assert.ok(await page.locator('.session-notes .note-text').first().isVisible());
+  assert.ok(await page.locator('.session-notes .note-meta').first().isVisible(), 'trainer-only visibility travels with notes');
+  await page.locator('[data-act="open-client"]').click();
+  assert.ok(await page.locator('[data-act="c-train"]').isVisible());
+  assert.equal(await page.locator('.client-contact').getAttribute('open'), null);
+  await page.locator('.client-contact summary').click();
+  assert.ok((await page.locator('.client-contact').innerText()).includes('mark@example.com'));
+  assert.deepEqual(errors, []);
+  await page.close();
 });
 
 test('all seven flow links open without a script error', async () => {
@@ -36,6 +184,21 @@ test('all seven flow links open without a script error', async () => {
     assert.deepEqual(errors, [], `flow ${flow} script errors`);
     await page.close();
   }
+});
+
+test('booking leads with the time and class, while privacy and capacity remain explicit', async () => {
+  const { page, errors } = await pageFor(1);
+  await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
+  assert.ok(await page.locator('.booking-time').isVisible());
+  assert.ok((await page.locator('.booking-time').innerText()).includes('18:00'));
+  assert.equal(await page.locator('.summary-title').innerText(), 'Strength');
+  assert.ok(await page.locator('.privacy').isVisible());
+  assert.ok(await viewportWords(page, '.pub') <= 50, 'booking focuses on facts and two inputs');
+  await page.locator('[data-act="back"]').click();
+  await page.locator('.day-chip[data-v="2026-09-23"]').click();
+  assert.ok(await page.locator('[data-act="b-pick"][data-id="o-boot23"]').isDisabled(), '12/12 Bootcamp still prevents booking');
+  assert.deepEqual(errors, []);
+  await page.close();
 });
 
 test('public booking verifies a class and keeps the EN toggle on Open Gym', async () => {
@@ -56,6 +219,45 @@ test('public booking verifies a class and keeps the EN toggle on Open Gym', asyn
   await page.locator('.day-chip[data-v="2026-09-25"]').click();
   assert.equal(await page.locator('html').getAttribute('lang'), 'en');
   assert.ok(await page.locator('[data-act="b-pick"][data-id="o-og25"]').isVisible());
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('workout finish leads with numeric results and keeps set breakdown reachable before sharing review', async () => {
+  const { page, errors } = await pageFor(null);
+  await startFlow(page, '5');
+  await page.locator('[data-act="log-open"][data-v="0"]').first().click();
+  await page.locator('[data-act="log-check"][data-v="0"]').click();
+  await page.locator('[data-act="back"]').click();
+  await page.locator('.nav [data-act="log-finish"]').click();
+  assert.deepEqual(await page.locator('.workout-metrics .metric-value').allTextContents(), ['1/3', '1']);
+  assert.equal(await page.locator('.workout-breakdown').getAttribute('open'), null);
+  await page.locator('.workout-breakdown summary').click();
+  assert.ok((await page.locator('.workout-breakdown').innerText()).includes('60 kg × 8'));
+  assert.ok(await page.locator('#internal-note').isVisible());
+  await page.locator('#internal-note').fill('Synthetic trainer-only note');
+  await page.locator('[data-act="log-done"]').click();
+  await page.locator('[data-act="share-review"]').click();
+  assert.ok(!(await content(page)).includes('Synthetic trainer-only note'));
+  assert.ok(await page.locator('[data-act="share-confirm"]').isVisible());
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('app and web add menus use visual action tiles without repeating workspace explanations', async () => {
+  const { page, errors } = await pageFor(null);
+  await page.locator('[data-act="set-me"][data-v="john"]').click();
+  await startFlow(page, '7');
+  assert.equal(await page.locator('.sheet .create-grid .icon-badge').count(), 4);
+  assert.ok(await viewportWords(page, '.sheet') <= 25);
+  assert.ok((await page.locator('.sheet').innerText()).includes("John's Gym"));
+  await page.locator('[data-act="sheet-close"]').first().click();
+  await page.locator('[data-act="home"]').click();
+  await startFlow(page, '3');
+  await page.locator('[data-act="w-new"]').click();
+  assert.equal(await page.locator('.panel .create-grid .icon-badge').count(), 4);
+  await page.locator('[data-act="w-pick"][data-v="private"]').click();
+  assert.ok(await page.locator('#web-client').isVisible());
   assert.deepEqual(errors, []);
   await page.close();
 });
@@ -386,6 +588,64 @@ test('owner web fills a phone screen; the class panel shows full names and detai
     assert.ok(!clipped, `class details are clipped at ${viewport.width}px`);
     const name = page.locator('.att-row .row-title').first();
     assert.equal(await name.evaluate((el) => el.getClientRects().length), 1, `attendee name wraps at ${viewport.width}px`);
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
+test('all surfaces fit narrow, short, landscape and desktop screens; forms and large logger controls remain reachable', async () => {
+  for (const viewport of [
+    { width: 340, height: 740 }, { width: 390, height: 540 },
+    { width: 844, height: 390 }, { width: 1280, height: 800 },
+  ]) {
+    const { page, errors } = await pageFor(null, viewport);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    for (const platform of ['ios', 'android']) {
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).first().click();
+      for (const flow of ['2', '4app', '5', '7', '1', '3', '6']) {
+        await startFlow(page, flow);
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          `${platform}/${flow} body overflow at ${viewport.width}×${viewport.height}`);
+        if (flow === '4app') {
+          await page.locator('[data-act="np-client"][data-v="mark"]').click();
+          await page.locator('#np-date').fill('2026-09-30');
+          assert.equal(await page.locator('#np-date').inputValue(), '2026-09-30');
+          await page.locator('[data-act="loc-pick"][data-v="bfo"]').click();
+          await page.locator('[data-form="new-session"] button[type="submit"]').click();
+          assert.ok(await page.locator('[data-act="start-log"]').isVisible());
+        }
+        if (flow === '5') {
+          await page.locator('[data-act="log-open"][data-v="0"]').first().click();
+          const scroll = page.locator('.app > .scroll');
+          assert.ok(await scroll.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), 'logger table is not horizontally clipped');
+          assert.ok((await scroll.boundingBox()).height >= 100, 'logger values get usable scroll space, even in landscape');
+          const controls = page.locator('[data-act="log-step"], [data-act="log-save"]');
+          for (const box of await controls.evaluateAll((els) => els.map((el) => {
+            const b = el.getBoundingClientRect(); return { w: b.width, h: b.height, bottom: b.bottom };
+          }))) {
+            assert.ok(box.w >= 44 && box.h >= 64 && box.bottom <= viewport.height, 'large logger controls stay onscreen');
+          }
+          await page.locator('[data-act="log-check"][data-v="0"]').click();
+          assert.equal(await page.locator('[data-act="log-check"][data-v="0"]').getAttribute('aria-pressed'), 'true');
+        }
+        if (flow === '7') {
+          const body = page.locator('.sheet-body');
+          assert.ok(await body.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), 'sheet content is not clipped horizontally');
+          await page.locator('[data-act="app-new"][data-v="client"]').click();
+          await page.locator('#cn-name').fill('Demo Landscape Client');
+          await page.locator('[data-form="new-client"] button[type="submit"]').click();
+          assert.ok((await page.locator('.app').innerText()).includes('Demo Landscape Client'));
+        }
+        if (flow === '1') {
+          await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
+          await page.locator('#b-name').fill('Demo Guest');
+          await page.locator('#b-email').fill('demo@example.com');
+          await page.locator('[data-form="booking"] button[type="submit"]').click();
+          assert.ok(await page.locator('[data-countdown]').isVisible());
+        }
+        await page.locator('[data-act="home"]').click();
+      }
+    }
     assert.deepEqual(errors, []);
     await page.close();
   }

@@ -16,6 +16,26 @@ The demo date is 22 September 2026, 08:40 Amsterdam time. The weekly timetable a
 
 Copy in [strings.js](strings.js) is **prototype-only**. It must not be copied into `packages/i18n/{nl-NL,en}.json`; feature implementation creates and reviews production strings against [`GLOSSARY.md`](../../../packages/i18n/GLOSSARY.md).
 
+## Owner-feedback refinement (13 October 2026)
+
+Light is the default, including on a dark OS. **Weergave / Appearance** offers explicit Light/Dark choices; appearance is held only in memory and resets on reload. Switching it keeps the flow, scroll position, open disclosures, form drafts and logged sets. The existing iOS/Android control remains the only platform switch.
+
+The hub uses icon-led flow tiles with direct alternate entry points; instructions and persona explanations live under the flow guide. Today puts the next client, time, location and workout action first. Session types use tinted, labelled SVG badges; compact capacity numbers have full programmatic labels. Workspace context, attendance, contact information and trainer-only notes remain reachable in named disclosures. Notes keep their visibility label when opened. Booking keeps its privacy and verification warnings; workout sharing still requires a separate client-message review.
+
+iOS uses a large title, inset grouped rows, blue pill actions and a rounded tab bar. Android moves the day overview into the content under its app bar, uses tonal/elevated cards, an active-icon navigation indicator and an anchored FAB. In short landscape logging, large controls sit beside the scrollable set table instead of obscuring it.
+
+Measured locally at **390 × 844**, Dutch, Sarah, fresh flow, dark OS, excluding the prototype toolbar:
+
+| Screen | Before: viewport words | After: viewport words | Before / after whole `innerText` words |
+|---|---:|---:|---:|
+| Hub | 142 | 51 | 331 / 62 |
+| Today, iOS | 59 | 42 | 74 / 48 |
+| Today, Android | — | 35 | — / 49 |
+
+The baseline is commit `31ff918`. Viewport counts use word-range rectangles and hit testing, excluding closed disclosures, clipped/covered text and offscreen content. Whole `innerText` counts are supplementary, **not** viewport measurements (they can include accessible-only labels). The reduction comes from less repeated copy and deliberate disclosure, not removing flow capability. Both appearances use the same hierarchy.
+
 ## Checks
 
 Run `node docs/design/prototype/gen-tokens.mjs --check` to verify the selected light/dark WCAG contrast pairs. Run `node docs/design/prototype/gen-tokens.mjs` after changing `tokens.draft.json` to regenerate the committed CSS. With Playwright available, `node --test docs/design/prototype/smoke.test.cjs` checks the local file in Chrome; set `PROTO_URL` to check a deployment. Use the [validation script](../../discovery/prototype-validation-script.md) with the owner and another trainer; the prototype itself does not complete that pilot validation.
+
+For this worktree: `NODE_PATH="$PWD/node_modules/.pnpm/playwright@1.63.0/node_modules" node --test docs/design/prototype/smoke.test.cjs`. The 27 smoke checks retain all 18 original checks and cover light-on-dark-OS defaults, theme/state preservation, native-style composition, text budgets, disclosures, booking capacity/privacy, numeric workout results, and 340 px, short-phone, landscape and desktop form/logger safety. The token check covers 29 pairs in each appearance, including text on the Material next-session tonal surface.

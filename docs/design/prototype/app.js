@@ -212,6 +212,7 @@
     lang: prefs.get("lang") === "en" ? "en" : "nl",
     me: prefs.get("me") === "john" ? "john" : "sarah",
     platform: prefs.get("platform") || detectPlatform(),
+    theme: "light", // Explicit comfort default, independent of OS; never persisted.
     stack: [{ s: "hub" }],
   });
 
@@ -404,7 +405,8 @@
 
   // ---------------------------------------------------------------- shared UI pieces
   function seg(name, options, value, { label = "", small = false } = {}) {
-    const md = state.platform === "android" && shellOf(current().s) === "app";
+    const md = state.platform === "android" && shellOf(current().s) === "app"
+      && !["set-lang", "set-platform", "set-theme"].includes(name);
     return `<div class="seg ${small ? "seg--sm" : ""}" role="radiogroup" aria-label="${esc(label)}">${options
       .map(([v, text]) => `<button type="button" role="radio" aria-checked="${v === value}" class="seg-btn" data-act="${name}" data-v="${v}">${
         md && v === value ? icon("check", "ico--sm") : ""}<span>${text}</span></button>`)
@@ -425,6 +427,16 @@
     const [cls, key] = map[kind];
     return `<span class="chip chip--${cls}">${t(key)}</span>`;
   };
+  const typeBadge = (kind) => {
+    const map = { private: ["private", "user", "type.private"], group: ["group", "users", "type.group"], openGym: ["open-gym", "door", "type.openGym"] };
+    const [tone, glyph, label] = map[kind];
+    return `<span class="icon-badge icon-badge--${tone}">${icon(glyph, "ico--sm")}<span class="sr-only">${t(label)}</span></span>`;
+  };
+  const disclosure = (label, body, cls = "") => `<details class="disclosure ${cls}"><summary>${label}${icon("chevR", "ico--sm")}</summary><div class="disclosure-body">${body}</div></details>`;
+  const fact = (glyph, label, value) => `<div class="fact-row">${icon(glyph, "ico--sm")}<span class="sr-only">${label}: </span><span>${value}</span></div>`;
+  function createTile(act, value, glyph, tone, label) {
+    return `<li><button type="button" class="create-tile" data-act="${act}" data-v="${value}"><span class="icon-badge icon-badge--${tone}">${icon(glyph)}</span><span>${label}</span>${icon("chevR", "row-chev")}</button></li>`;
+  }
   const attChip = (status) => {
     const map = { booked: "neutral", attended: "success", noShow: "danger", cancelled: "neutral" };
     return `<span class="chip chip--${map[status] || "neutral"}">${t("att." + status)}</span>`;
@@ -445,40 +457,43 @@
     shell: "hub",
     render() {
       const flows = [
-        [1, "flow1", [["1", "hub.start"]]],
-        [2, "flow2", [["2", "hub.start"]]],
-        [3, "flow3", [["3", "hub.start"]]],
-        [4, "flow4", [["4new", "flow4.new"], ["4move", "flow4.move"], ["4app", "flow4.app"]]],
-        [5, "flow5", [["5free", "flow5.free"], ["5", "flow5.planned"]]],
-        [6, "flow6", [["6", "flow6.web"], ["6app", "flow6.app"]]],
-        [7, "flow7", [["7", "flow7.new"], ["7clients", "flow7.clients"]]],
+        [1, "flow1", "link", "private", [["1", "hub.start"]]],
+        [2, "flow2", "today", "teal", [["2", "hub.start"]]],
+        [3, "flow3", "calendar", "group", [["3", "hub.start"]]],
+        [4, "flow4", "user", "private", [["4new", "flow4.new"], ["4move", "hub.move"], ["4app", "hub.app"]]],
+        [5, "flow5", "dumbbell", "teal", [["5free", "flow5.free"], ["5", "flow5.planned"]]],
+        [6, "flow6", "users", "group", [["6", "flow6.web"], ["6app", "hub.app"]]],
+        [7, "flow7", "plus", "open-gym", [["7", "flow7.new"], ["7clients", "tab.clients"]]],
       ];
       return `<div class="hub">
         <header class="hub-head">
           <p class="eyebrow">${t("proto.label")} · M0</p>
           <h1 class="t-display" tabindex="-1">Trainer Hub</h1>
-          <p class="lede">${t("hub.subtitle")}</p>
+          <p class="lede">${t("hub.calmIntro")}</p>
         </header>
         <section class="hub-settings" aria-labelledby="set-h">
-          <h2 class="t-caption section-label" id="set-h">${t("hub.settings")}</h2>
-          <div class="hub-setting"><span>${t("proto.lang")}</span>${seg("set-lang", [["nl", "Nederlands"], ["en", "English"]], state.lang, { label: t("proto.lang") })}</div>
+          <h2 class="sr-only" id="set-h">${t("hub.settings")}</h2>
+          <div class="hub-setting"><span>${t("proto.lang")}</span>${seg("set-lang", [["nl", "NL"], ["en", "EN"]], state.lang, { label: t("proto.lang") })}</div>
           <div class="hub-setting"><span>${t("proto.style")}</span>${seg("set-platform", [["ios", "iOS"], ["android", "Android"]], state.platform, { label: t("proto.style") })}</div>
-          <p class="t-footnote muted">${t("hub.styleHint")}</p>
-          <div class="hub-setting"><span>${t("proto.me")}</span>${seg("set-me", [["sarah", t("proto.meSarah")], ["john", t("proto.meJohn")]], state.me, { label: t("proto.me") })}</div>
-          <p class="t-footnote muted">${t("hub.meHint")}</p>
+          <div class="hub-setting"><span>${t("proto.me")}</span>${seg("set-me", [["sarah", "Sarah"], ["john", "John"]], state.me, { label: t("proto.me") })}</div>
+          <div class="hub-setting"><span>${t("proto.appearance")}</span>${seg("set-theme", [["light", t("proto.light")], ["dark", t("proto.dark")]], state.theme, { label: t("proto.appearance") })}</div>
         </section>
         <section aria-labelledby="flows-h">
           <h2 class="t-caption section-label" id="flows-h">${t("hub.flows")}</h2>
-          <ol class="flow-list">${flows.map(([n, key, starts]) => `<li class="flow-card">
-              <div class="flow-meta"><span class="flow-no">${t("hub.flow", { n })}</span><span class="flow-who">${t(key + ".who")}</span></div>
-              <h3 class="t-headline">${t(key + ".title")}</h3>
-              <p class="t-subhead muted">${t(key + ".desc")}</p>
-              <div class="flow-actions">${starts.map(([id, label], i) =>
-                `<button type="button" class="btn ${i === 0 ? "btn--primary" : "btn--tonal"}" data-act="flow" data-v="${id}">${t(label)}${icon("chevR", "ico--sm")}</button>`).join("")}</div>
+          <ol class="flow-list">${flows.map(([n, key, glyph, tone, starts]) => `<li class="flow-card">
+              <button type="button" class="flow-entry" data-act="flow" data-v="${starts[0][0]}">
+                <span class="flow-meta"><span class="icon-badge icon-badge--${tone}">${icon(glyph)}</span><span class="flow-no" aria-label="${t("hub.flow", { n })}">${n}</span></span>
+                <span class="flow-title">${t(key + ".short")}</span>
+              </button>
+              ${starts.length > 1 ? `<div class="flow-actions">${starts.slice(1).map(([id, label]) =>
+                `<button type="button" class="btn btn--text" data-act="flow" data-v="${id}">${t(label)}</button>`).join("")}</div>` : ""}
             </li>`).join("")}</ol>
         </section>
-        <section class="hub-tips" aria-labelledby="tips-h">
-          <h2 class="t-caption section-label" id="tips-h">${t("hub.tips")}</h2>
+        ${disclosure(t("hub.guide"), `<section class="hub-tips">
+          <p class="t-subhead muted">${t("hub.subtitle")}</p>
+          <p class="t-subhead muted">${t("hub.styleHint")}</p>
+          <p class="t-subhead muted">${t("hub.meHint")}</p>
+          ${flows.map(([, key]) => `<h3 class="t-headline">${t(key + ".title")}</h3><p class="t-subhead muted">${t(key + ".who")} · ${t(key + ".desc")}</p>`).join("")}
           <ul>
             <li>${t("hub.tip1")}</li>
             <li>${t("hub.tip2")}</li>
@@ -486,7 +501,7 @@
             <li>${t("hub.demoNote")}</li>
           </ul>
           <button type="button" class="btn btn--text" data-act="reset-demo">${t("proto.reset")}</button>
-        </section>
+        </section>`, "hub-guide")}
       </div>`;
     },
   };
@@ -506,11 +521,10 @@
   function classSummary(occ) {
     const d = startOf(occ);
     return `<div class="summary">
-        <p class="summary-kicker">${occ.kind === "openGym" ? typeChip("openGym") : typeChip("group")}</p>
-        <p class="summary-title">${esc(occ.title)}</p>
-        <p class="summary-line">${icon("calendar", "ico--sm")}<span>${ucfirst(dayLong(d))} · ${range(occ)}</span></p>
-        ${occ.trainer ? `<p class="summary-line">${icon("user", "ico--sm")}<span>${t("b.trainer", { name: TRAINERS[occ.trainer].name })}</span></p>` : ""}
-        <p class="summary-line">${icon("pin", "ico--sm")}<span>${locName(occ.loc)}</span></p>
+        <div class="booking-heading">${typeBadge(occ.kind)}<p class="summary-title">${esc(occ.title)}</p></div>
+        <p class="booking-time t-num">${range(occ)}</p>
+        <p class="summary-line">${icon("calendar", "ico--sm")}<span>${ucfirst(dayLong(d))}</span></p>
+        <div class="booking-facts">${occ.trainer ? fact("user", t("o.trainer"), TRAINERS[occ.trainer].name) : ""}${fact("pin", t("s.location"), locName(occ.loc))}</div>
       </div>`;
   }
 
@@ -530,7 +544,7 @@
       return `${publicHeader()}
         <main class="pub-main">
           <h1 class="pub-title" tabindex="-1">${t(b.mode === "group" ? "b.groupClasses" : "b.openGym")}</h1>
-          <p class="lede">${t(b.mode === "group" ? "b.intro" : "b.openGymIntro")}</p>
+          <p class="lede">${t(b.mode === "group" ? "b.introShort" : "b.openGymIntro")}</p>
           <div class="pub-tabs">${seg("b-mode", [["group", t("b.groupClasses")], ["openGym", t("b.openGym")]], b.mode, { label: t("b.groupClasses") })}</div>
           <div class="day-strip" role="group" aria-label="${t("b.pickDay")}">${days.map((iso, i) => {
             const d = at(iso, "12:00");
@@ -552,7 +566,7 @@
                   <span class="class-time"><span class="t-num">${time(startOf(occ))}</span><span class="class-end">${time(endOf(occ))}</span></span>
                   <span class="class-body">
                     <span class="class-title">${esc(occ.title)}</span>
-                    ${occ.trainer ? `<span class="class-meta">${t("b.trainer", { name: TRAINERS[occ.trainer].name })}</span>` : ""}
+                    ${occ.trainer ? `<span class="class-meta">${icon("user", "ico--sm")}<span class="sr-only">${t("o.trainer")}: </span>${TRAINERS[occ.trainer].name}</span>` : ""}
                     ${status}
                   </span>
                   ${full || cancelled ? "" : icon("chevR", "class-chev")}
@@ -749,7 +763,7 @@
     if (x.status === "cancelled") return `<span class="chip chip--neutral">${t("today.cancelled")}</span>`;
     if (subbedAway(x)) return `<span class="chip chip--warning">${t("o.subDone", { name: TRAINERS[x.trainer].name })}</span>`;
     if (x.kind === "private" && x.status !== "booked") return attChip(x.status);
-    if (x.kind !== "private") return `<span class="t-footnote muted t-num">${t("today.bookedOf", { booked: bookedCount(x), cap: x.cap })}</span>`;
+    if (x.kind !== "private") return `<span class="capacity-mini t-num" role="img" aria-label="${t("today.bookedOf", { booked: bookedCount(x), cap: x.cap })}">${icon("users", "ico--sm")}${bookedCount(x)}/${x.cap}</span>`;
     return "";
   }
   function sessionRow(x) {
@@ -757,10 +771,10 @@
     const muted = x.status === "cancelled" || subbedAway(x);
     return `<li><button type="button" class="row session-row${muted ? " is-muted" : ""}" ${act}>
         <span class="row-time"><span class="t-num">${time(startOf(x))}</span><span class="t-num row-time-end">${time(endOf(x))}</span></span>
-        <span class="type-bar type-bar--${x.kind === "private" ? "private" : x.kind === "openGym" ? "open-gym" : "group"}" aria-hidden="true"></span>
+        ${typeBadge(x.kind)}
         <span class="row-main">
           <span class="row-title">${itemTitle(x)}</span>
-          <span class="row-sub">${typeChip(x.kind)} <span>${itemMeta(x)}</span></span>
+          <span class="row-sub">${locName(x.loc)}</span>
           ${itemState(x) ? `<span class="row-state">${itemState(x)}</span>` : ""}
         </span>
         ${state.platform === "ios" ? icon("chevR", "row-chev") : ""}
@@ -787,28 +801,29 @@
       const later = items.filter((x) => x !== next && endOf(x) > NOW);
       const earlier = items.filter((x) => x !== next && endOf(x) <= NOW);
       const mins = next ? Math.round((startOf(next) - NOW) / 60000) : 0;
-      const wsCount = new Set(items.map((x) => x.ws)).size;
+      const ios = state.platform === "ios";
+      const date = ucfirst(fmt(NOW, { weekday: "short", day: "numeric", month: "short" }));
+      const overview = `<div class="day-overview"><p>${date}</p><span class="day-count" role="img" aria-label="${t("today.summary", { n: items.length })}">${icon("calendar", "ico--sm")}<span class="t-num">${items.length}</span></span></div>`;
       return {
         nav: {
           title: t("today.title"), large: true,
-          subtitle: `${ucfirst(dayLong(NOW))} · ${t("today.summary", { n: items.length })} · ${t("today.workspaces", { n: wsCount })}`,
+          subtitle: ios ? date : "",
           actions: addNav("app-new-menu", t("today.add")),
         },
         fab: addFab("app-new-menu", t("today.add")),
         body: `
+          ${ios ? "" : overview}
           ${next ? `<section class="next" aria-labelledby="next-h">
-              <p class="next-kicker"><span id="next-h">${t("today.next")}</span><span>${mins > 0 ? t("today.startsIn", { n: mins }) : ""}</span></p>
+              <p class="next-kicker"><span id="next-h">${t("today.next")}</span><span>${mins > 0 ? t("today.inMinutes", { n: mins }) : ""}</span></p>
               <button type="button" class="next-main" data-act="${next.kind === "private" ? "open-session" : "open-occ"}" data-id="${next.id}">
-                <span class="next-time t-num">${range(next)}</span>
-                <span class="next-title">${itemTitle(next)}</span>
-                <span class="row-sub">${typeChip(next.kind)} <span>${esc(WS[next.ws].name)}</span></span>
-                ${locName(next.loc) === esc(WS[next.ws].name) ? "" : `<span class="next-line">${icon("pin", "ico--sm")}${locName(next.loc)}</span>`}
-                ${next.workout ? `<span class="next-line">${icon("dumbbell", "ico--sm")}${esc(state.templates[next.workout].name)}</span>` : ""}
+                ${ios ? `<span class="next-person">${typeBadge(next.kind)}<span class="next-title">${itemTitle(next)}</span></span><span class="next-time t-num">${range(next)}</span>`
+                  : `<span class="next-time t-num">${range(next)}</span><span class="next-person">${typeBadge(next.kind)}<span class="next-title">${itemTitle(next)}</span></span>`}
+                <span class="next-line">${icon("pin", "ico--sm")}${locName(next.loc)}${next.workout ? `<span class="workout-tag">${icon("dumbbell", "ico--sm")}${esc(state.templates[next.workout].name)}</span>` : ""}</span>
               </button>
               ${next.kind === "private" ? workoutButton(next) : ""}
             </section>` : `<div class="empty">${icon("today", "ico--xl")}<h2 class="t-headline">${t("today.none")}</h2></div>`}
-          ${later.length ? `<h2 class="t-caption section-label">${t("today.later")}</h2><ul class="list">${later.map(sessionRow).join("")}</ul>` : ""}
-          ${earlier.length ? `<h2 class="t-caption section-label">${t("today.earlier")}</h2><ul class="list">${earlier.map(sessionRow).join("")}</ul>` : ""}
+          ${later.length ? `<h2 class="t-caption section-label">${t("today.laterShort")}</h2><ul class="list agenda-list">${later.map(sessionRow).join("")}</ul>` : ""}
+          ${earlier.length ? disclosure(t("today.earlier"), `<ul class="list agenda-list">${earlier.map(sessionRow).join("")}</ul>`, "earlier") : ""}
         `,
       };
     },
@@ -921,17 +936,14 @@
         nav: { title: esc(c.name), large: true, back: t("tab.clients") },
         body: `
           <p class="screen-sub"><span class="chip chip--tonal">${esc(WS[c.ws].name)}</span></p>
-          <ul class="list">
-            <li class="row row--static">${icon("mail", "row-ico")}<span class="row-main"><span class="row-sub">${t("c.email")}</span><span class="row-title">${c.email ? esc(c.email) : ucfirst(t("c.noEmail"))}</span></span></li>
-            <li class="row row--static">${icon("sliders", "row-ico")}<span class="row-main"><span class="row-sub">${t("c.lang")}</span><span class="row-title">${t("lang." + c.lang)}</span></span></li>
-            ${c.pref ? `<li class="row row--static">${icon("pin", "row-ico")}<span class="row-main"><span class="row-sub">${t("c.loc")}</span><span class="row-title">${locName(c.pref)}</span></span></li>` : ""}
-          </ul>
+          <div class="profile-focus"><span class="avatar profile-avatar" aria-hidden="true">${initials(c.name)}</span><div><p class="t-footnote muted">${t("c.lastSeen")}</p><p class="t-headline">${lastSeen(id) ? dayMonth(at(lastSeen(id), "12:00")) : t("c.noWorkouts")}</p></div></div>
           <div class="stack">
             <button type="button" class="btn btn--primary btn--block btn--lg" data-act="c-train" data-v="${id}">${icon("dumbbell", "ico--sm")}${t("c.trainNow")}</button>
-            <button type="button" class="btn btn--tonal btn--block" data-act="c-plan" data-v="${id}">${icon("calendar", "ico--sm")}${t("c.plan")}</button>
+            <button type="button" class="btn btn--text btn--block" data-act="c-plan" data-v="${id}">${icon("calendar", "ico--sm")}${t("c.plan")}</button>
           </div>
-          ${CLIENT_NOTES[id] ? `<h2 class="t-caption section-label">${t("s.clientNotes")}</h2>
-            <div class="note"><p class="note-meta">${icon("lock", "ico--sm")}<span>${t("s.trainerOnly")}</span></p><p class="note-text">${esc(CLIENT_NOTES[id])}</p></div>` : ""}
+          ${disclosure(t("c.contactDetails"), `${fact("mail", t("c.email"), c.email ? esc(c.email) : ucfirst(t("c.noEmail")))}${fact("sliders", t("c.lang"), t("lang." + c.lang))}${c.pref ? fact("pin", t("c.loc"), locName(c.pref)) : ""}`, "client-contact")}
+          ${CLIENT_NOTES[id] ? disclosure(`${icon("lock", "ico--sm")}<span>${t("s.clientNotes")}<small>${t("s.trainerOnly")}</small></span>`,
+            `<div class="note"><p class="note-meta">${icon("lock", "ico--sm")}<span>${t("s.trainerOnly")}</span></p><p class="note-text">${esc(CLIENT_NOTES[id])}</p></div>`, "client-notes") : ""}
           <h2 class="t-caption section-label">${t("c.workouts")}</h2>
           ${hist.length ? `<ul class="list">${hist.map((w) => `<li class="row row--static"><span class="row-main"><span class="row-title">${workoutName(w.name)}</span>
               <span class="row-sub">${ucfirst(dayLong(at(w.date, "12:00")))} · ${t("l.exCount", { n: w.items.length })} · ${TRAINERS[w.trainer].name}</span></span></li>`).join("")}</ul>`
@@ -982,24 +994,26 @@
       return {
         nav: { title: esc(c.name), large: true, back: t("today.title") },
         body: `
-          <p class="screen-sub">${typeChip("private")} <span class="t-subhead muted">${ucfirst(dayLong(startOf(x)))} · <span class="t-num">${range(x)}</span></span></p>
-          <ul class="list">
-            <li class="row row--static">${icon("pin", "row-ico")}<span class="row-main"><span class="row-sub">${t("s.location")}</span><span class="row-title">${locName(x.loc)}</span></span></li>
-            <li class="row row--static">${icon("grid", "row-ico")}<span class="row-main"><span class="row-sub">${t("s.workspace")}</span><span class="row-title">${esc(WS[x.ws].name)}</span></span></li>
-            ${x.workout ? `<li class="row row--static">${icon("dumbbell", "row-ico")}<span class="row-main"><span class="row-sub">${t("s.workout")}</span><span class="row-title">${esc(state.templates[x.workout].name)}</span></span></li>` : ""}
-          </ul>
+          <section class="detail-focus"><p class="screen-sub">${typeChip("private")}<span class="t-footnote muted">${ucfirst(dayShort(startOf(x)))}</span></p>
+            <p class="detail-time t-num">${range(x)}</p>
+            ${fact("pin", t("s.location"), locName(x.loc))}
+            ${x.workout ? fact("dumbbell", t("s.workout"), esc(state.templates[x.workout].name)) : ""}
+          </section>
           <div class="stack">
             ${workoutButton(x, "btn--block btn--lg")}
-            <button type="button" class="btn btn--tonal btn--block" data-act="move-session" data-id="${x.id}">${icon("calendar", "ico--sm")}${t("s.move")}</button>
+            <button type="button" class="btn btn--text btn--block" data-act="move-session" data-id="${x.id}">${icon("calendar", "ico--sm")}${t("s.move")}</button>
           </div>
-          <h2 class="t-caption section-label">${t("s.attendance")}</h2>
-          ${seg("session-att", [["attended", t("att.attended")], ["noShow", t("att.noShow")]], x.status, { label: t("s.attendance") })}
+          ${disclosure(t("s.details"), `${fact("grid", t("s.workspace"), esc(WS[x.ws].name))}
+            <h2 class="t-caption">${t("s.attendance")}</h2>
+            ${seg("session-att", [["attended", t("att.attended")], ["noShow", t("att.noShow")]], x.status, { label: t("s.attendance") })}`, "session-info")}
+          ${disclosure(`${icon("lock", "ico--sm")}<span>${t("s.notes")}<small>${t("s.trainerOnly")}</small></span>`, `
           ${last ? `<h2 class="t-caption section-label">${t("s.lastNote")}</h2>
             <div class="note"><p class="note-meta">${icon("lock", "ico--sm")}<span>${t("s.trainerOnly")} · ${dayMonth(at(last.date, "12:00"))}</span></p><p class="note-text">${esc(last.text)}</p></div>` : ""}
           ${state.completedWorkouts[x.id]?.internalNote ? `<h2 class="t-caption section-label">${t("l.internalNote")}</h2>
             <div class="note"><p class="note-meta">${icon("lock", "ico--sm")}<span>${t("s.trainerOnly")}</span></p><p class="note-text">${esc(state.completedWorkouts[x.id].internalNote)}</p></div>` : ""}
           ${CLIENT_NOTES[x.client] ? `<h2 class="t-caption section-label">${t("s.clientNotes")}</h2>
             <div class="note"><p class="note-meta">${icon("lock", "ico--sm")}<span>${t("s.trainerOnly")}</span></p><p class="note-text">${esc(CLIENT_NOTES[x.client])}</p></div>` : ""}
+          `, "session-notes")}
           <button type="button" class="btn btn--text" data-act="open-client" data-v="${x.client}">${t("c.openProfile", { name: esc(c.first) })}${icon("chevR", "ico--sm")}</button>
         `,
       };
@@ -1182,7 +1196,7 @@
       const others = Object.keys(state.templates).filter((id) => !mine.includes(id));
       const tplRow = (id) => `<li><button type="button" class="row" data-act="log-begin" data-v="template" data-id="${id}">
           <span class="row-main"><span class="row-title">${esc(state.templates[id].name)}</span>
-          <span class="row-sub">${state.templates[id].items.map(([e]) => exName(e)).join(" · ")}</span></span>${chev()}</button></li>`;
+          <span class="row-sub">${t("l.exCount", { n: state.templates[id].items.length })}</span></span>${chev()}</button></li>`;
       return {
         nav: { title: t("s.start"), large: false, close: true },
         body: `
@@ -1346,13 +1360,16 @@
         nav: { title: t("l.finishTitle"), large: false, back: t("common.back") },
         body: `
           <h2 class="t-title2 screen-h" tabindex="-1">${esc(c.name)} · ${L.name ? esc(L.name) : t("s.workout")}</h2>
-          <p class="t-subhead muted">${t("l.doneOf", { done: items.length, total: L.items.length })} · ${t("l.sets", { n: sets })}</p>
-          ${skipped.length ? `<p class="t-subhead muted">${t("l.skipped", { list: skipped.map((it) => exName(it.ex)).join(", ") })}</p>` : ""}
-          ${items.length ? workoutRows(items) : ""}
+          <div class="workout-metrics">
+            <div class="result-stat"><span class="icon-badge icon-badge--teal">${icon("dumbbell", "ico--sm")}</span><strong class="metric-value t-num">${items.length}/${L.items.length}</strong><span>${t("l.exercisesDone")}</span></div>
+            <div class="result-stat"><span class="icon-badge icon-badge--private">${icon("check", "ico--sm")}</span><strong class="metric-value t-num">${sets}</strong><span>${t("l.setsLabel")}</span></div>
+          </div>
+          ${disclosure(t("l.resultsDetails"), `${skipped.length ? `<p class="t-subhead muted">${t("l.skipped", { list: skipped.map((it) => exName(it.ex)).join(", ") })}</p>` : ""}
+            ${items.length ? workoutRows(items) : ""}`, "workout-breakdown")}
           <div class="field">
             <label class="field-label" for="internal-note">${t("l.internalNote")}</label>
             <textarea id="internal-note" class="input" rows="3" placeholder="${t("l.internalNotePh")}">${esc(L.internalNote)}</textarea>
-            <p class="t-footnote muted">${t("l.internalHint")}</p>
+            <p class="t-footnote muted privacy">${icon("lock", "ico--sm")}<span>${t("l.internalHintShort")}</span></p>
           </div>
           ${offerTpl ? `<label class="switch-row"><span class="row-main"><span class="row-title">${t("l.saveTpl")}</span><span class="row-sub">${t("l.saveTplHint", { name: esc(c.first) })}</span></span>
               <input type="checkbox" class="switch" data-act="log-save-tpl" ${L.saveTpl ? "checked" : ""}></label>
@@ -1537,19 +1554,17 @@
   function newMenu() {
     const manage = manageWorkspaces();
     const notMine = myWorkspaces().filter((w) => !canManage(w));
-    const item = (v, ic, title, sub) => `<li><button type="button" class="row" data-act="app-new" data-v="${v}">
-        <span class="avatar avatar--add" aria-hidden="true">${icon(ic, "ico--sm")}</span>
-        <span class="row-main"><span class="row-title">${title}</span><span class="row-sub">${sub}</span></span>${chev()}</button></li>`;
     const where = esc(manage.map((w) => WS[w].name).join(", "));
     return {
       title: t("new.title"),
-      body: `<ul class="list">
-          ${item("private", "user", t("new.private"), t("new.privateHint"))}
-          ${manage.length ? item("group", "users", t("type.group"), t("new.inWs", { ws: where })) : ""}
-          ${manage.length ? item("openGym", "door", t("type.openGym"), t("new.inWs", { ws: where })) : ""}
-          ${item("client", "plus", t("c.client"), t("c.newQuickHint"))}
+      body: `<ul class="create-grid">
+          ${createTile("app-new", "private", "user", "private", t("new.private"))}
+          ${createTile("app-new", "client", "plus", "teal", t("c.client"))}
+          ${manage.length ? createTile("app-new", "group", "users", "group", t("type.group")) : ""}
+          ${manage.length ? createTile("app-new", "openGym", "door", "open-gym", t("type.openGym")) : ""}
         </ul>
-        ${notMine.length ? `<p class="t-footnote muted">${t("new.ownerOnly", { ws: esc(notMine.map((w) => WS[w].name).join(" en ")) })}</p>` : ""}`,
+        ${manage.length ? `<p class="t-footnote muted creation-scope">${t("new.managedScope", { ws: where })}</p>` : ""}
+        ${notMine.length ? `<p class="notice">${icon("lock", "ico--sm")}<span>${t("new.ownerOnly", { ws: esc(listFmt(notMine.map((w) => WS[w].name))) })}</span></p>` : ""}`,
       actions: "",
     };
   }
@@ -1736,12 +1751,12 @@
     const x = w.panel ? findItem(w.panel) : null;
     let body;
     if (w.panelMode === "pick") {
-      body = `${w.slot ? `<p class="t-subhead muted">${ucfirst(dayLong(at(w.slot.date, "12:00")))} · <span class="t-num">${w.slot.time}</span></p>` : ""}<div class="stack">
-        <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="private">${t("type.private")}</button>
-        <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="group">${t("type.group")}</button>
-        <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="openGym">${t("type.openGym")}</button>
-        <button type="button" class="btn btn--tonal btn--block" data-act="w-pick" data-v="client">${t("c.client")}</button>
-      </div>`;
+      body = `${w.slot ? `<p class="t-subhead muted">${ucfirst(dayLong(at(w.slot.date, "12:00")))} · <span class="t-num">${w.slot.time}</span></p>` : ""}<ul class="create-grid">
+        ${createTile("w-pick", "private", "user", "private", t("new.private"))}
+        ${createTile("w-pick", "client", "plus", "teal", t("c.client"))}
+        ${createTile("w-pick", "group", "users", "group", t("type.group"))}
+        ${createTile("w-pick", "openGym", "door", "open-gym", t("type.openGym"))}
+      </ul>`;
     } else if (w.panelMode === "create") {
       body = newWebSessionForm();
     } else if (w.panelMode === "create-client") {
@@ -1753,12 +1768,10 @@
         ensureMove(x);
         body = moveForm(x, true);
       } else {
-        body = `<p class="screen-sub">${typeChip("private")} <span class="t-subhead muted">${ucfirst(dayLong(startOf(x)))} · <span class="t-num">${range(x)}</span></span></p>
-          <ul class="list">
-            <li class="row row--static">${icon("user", "row-ico")}<span class="row-main"><span class="row-sub">${t("w.client")}</span><span class="row-title">${esc(CLIENTS[x.client].name)}</span></span></li>
-            <li class="row row--static">${icon("dumbbell", "row-ico")}<span class="row-main"><span class="row-sub">${t("o.trainer")}</span><span class="row-title">${TRAINERS[x.trainer].name}</span></span></li>
-            <li class="row row--static">${icon("pin", "row-ico")}<span class="row-main"><span class="row-sub">${t("s.location")}</span><span class="row-title">${locName(x.loc)}</span></span></li>
-          </ul>
+        body = `<p class="screen-sub">${typeChip("private")}<span class="t-subhead muted">${ucfirst(dayLong(startOf(x)))}</span></p>
+          <p class="detail-time t-num">${range(x)}</p>
+          <div class="panel-facts">${fact("user", t("w.client"), esc(CLIENTS[x.client].name))}
+            ${fact("dumbbell", t("o.trainer"), TRAINERS[x.trainer].name)}${fact("pin", t("s.location"), locName(x.loc))}</div>
           <button type="button" class="btn btn--tonal btn--block" data-act="panel-move">${icon("calendar", "ico--sm")}${t("s.move")}</button>`;
       }
     } else {
@@ -1818,11 +1831,15 @@
       public: current().s.startsWith("l-") ? t("flow5.title") : t("flow1.title"), web: t(`flow${state.web.flow}.title`), app: "",
     }[kind];
     return `<div class="protobar" role="region" aria-label="${t("proto.label")}">
-        <button type="button" class="pb-home" data-act="home">${icon("home", "ico--sm")}<span>${t("proto.home")}</span></button>
+        <button type="button" class="pb-home" data-act="home" aria-label="${t("proto.home")}">${icon("home", "ico--sm")}<span>${t("proto.home")}</span></button>
         <span class="pb-title">${t("proto.label")}${flowTitle ? ` · ${flowTitle}` : ""}</span>
         <div class="pb-controls">
           ${kind === "public" ? "" : seg("set-lang", [["nl", "NL"], ["en", "EN"]], state.lang, { label: t("proto.lang"), small: true })}
           ${kind === "app" ? seg("set-platform", [["ios", "iOS"], ["android", "Android"]], state.platform, { label: t("proto.style"), small: true }) : ""}
+          <details class="appearance">
+            <summary aria-label="${t("proto.appearance")}">${icon("sliders", "ico--sm")}<span>${t("proto." + state.theme)}</span></summary>
+            <div class="appearance-panel"><p class="t-label">${t("proto.appearance")}</p>${seg("set-theme", [["light", t("proto.light")], ["dark", t("proto.dark")]], state.theme, { label: t("proto.appearance") })}</div>
+          </details>
         </div>
       </div>`;
   }
@@ -1887,6 +1904,7 @@
     document.documentElement.lang = activeLang() === "nl" ? "nl" : "en";
     document.documentElement.dataset.platform = kind === "app" ? state.platform : "web";
     document.documentElement.dataset.shell = kind;
+    document.documentElement.dataset.theme = state.theme;
 
     const out = def.render();
     let html;
@@ -1977,6 +1995,20 @@
     "set-lang": (el) => { state.lang = el.dataset.v; prefs.set("lang", state.lang); render(); },
     "set-preview-lang": (el) => { state.previewLang = el.dataset.v; render(); },
     "set-platform": (el) => { state.platform = el.dataset.v; prefs.set("platform", state.platform); render(); },
+    "set-theme": (el) => {
+      // Appearance is presentation only: retain even unsubmitted native form values.
+      const fields = [...root.querySelectorAll("input, select, textarea")].filter((node) => node.id)
+        .map((node) => ({ id: node.id, value: node.value, checked: node.checked }));
+      const open = [...root.querySelectorAll("details[open]")].map((node) => node.className);
+      state.theme = el.dataset.v;
+      render();
+      fields.forEach(({ id, value, checked }) => {
+        const node = document.getElementById(id);
+        if (node) { node.value = value; if ("checked" in node) node.checked = checked; }
+      });
+      root.querySelectorAll("details").forEach((node) => { node.open = open.includes(node.className); });
+      root.querySelector(`[data-act="set-theme"][data-v="${state.theme}"]`)?.focus({ preventScroll: true });
+    },
     "set-me": (el) => { state.me = el.dataset.v; state.log = null; prefs.set("me", state.me); render(); },
 
     // flow 1

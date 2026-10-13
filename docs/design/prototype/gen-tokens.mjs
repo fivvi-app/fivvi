@@ -73,13 +73,8 @@ if (!process.argv.includes("--check")) {
   }
   const css = `/* GENERATED from docs/design/tokens.draft.json by gen-tokens.mjs. Do not edit by hand. */
 :root {
+  color-scheme: light;
 ${light.join("\n")}
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-${dark.map((l) => "  " + l).join("\n")}
-  }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -117,6 +112,8 @@ const pairs = [
   ["color.action.primary.fg", "color.action.primary.bg", 4.5, "Primary button label"],
   ["color.action.primary.bg", "color.bg.canvas", 3, "Primary button edge vs page (1.4.11)"],
   ["color.action.tonal.fg", "color.action.tonal.bg", 4.5, "Tonal button / selected chip"],
+  ["color.text.primary", "color.action.tonal.bg", 4.5, "Material next-session title"],
+  ["color.text.secondary", "color.action.tonal.bg", 4.5, "Material next-session location"],
   ["color.action.danger.fg", "color.action.danger.bg", 4.5, "Destructive button label"],
   ["color.border.control", "color.bg.surface", 3, "Input outline (1.4.11)"],
   ["color.border.control", "color.bg.raised", 3, "Input outline in a sheet"],

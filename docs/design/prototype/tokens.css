@@ -1,5 +1,6 @@
 /* GENERATED from docs/design/tokens.draft.json by gen-tokens.mjs. Do not edit by hand. */
 :root {
+  color-scheme: light;
   --color-bg-canvas: #F6F8F7;
   --color-bg-surface: #FFFFFF;
   --color-bg-raised: #FFFFFF;
@@ -152,62 +153,20 @@
   --motion-duration-medium: 250ms;
   --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --color-bg-canvas: #0E1312;
-    --color-bg-surface: #161C1B;
-    --color-bg-raised: #1B2221;
-    --color-bg-subtle: #222A29;
-    --color-bg-inverse: #E2E8E6;
-    --color-text-primary: #F6F8F7;
-    --color-text-secondary: #A9B5B2;
-    --color-text-tertiary: #7E8C89;
-    --color-text-inverse: #161C1B;
-    --color-text-link: #94D2C6;
-    --color-border-default: #222A29;
-    --color-border-control: #7E8C89;
-    --color-border-focus: #5DB8A8;
-    --color-action-primary-bg: #5DB8A8;
-    --color-action-primary-bg-pressed: #94D2C6;
-    --color-action-primary-fg: #0E1312;
-    --color-action-tonal-bg: #09332E;
-    --color-action-tonal-fg: #C4E6DF;
-    --color-action-danger-bg: #F09A8E;
-    --color-action-danger-fg: #0E1312;
-    --color-status-success-fg: #C9E8D2;
-    --color-status-success-bg: #123F23;
-    --color-status-warning-fg: #FAE3B8;
-    --color-status-warning-bg: #4A2F03;
-    --color-status-danger-fg: #F9D2CD;
-    --color-status-danger-bg: #5E150E;
-    --color-status-neutral-fg: #CBD4D2;
-    --color-status-neutral-bg: #222A29;
-    --color-session-private-solid: #8EADF3;
-    --color-session-private-fg: #D2DFFB;
-    --color-session-private-bg: #142B5E;
-    --color-session-group-solid: #B7A2EE;
-    --color-session-group-fg: #E0D6F8;
-    --color-session-group-bg: #2E1C66;
-    --color-session-open-gym-solid: #F0B54A;
-    --color-session-open-gym-fg: #FAE3B8;
-    --color-session-open-gym-bg: #4A2F03;
-  }
-}
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-bg-canvas: #0E1312;
-  --color-bg-surface: #161C1B;
-  --color-bg-raised: #1B2221;
-  --color-bg-subtle: #222A29;
+  --color-bg-canvas: #1D2928;
+  --color-bg-surface: #253330;
+  --color-bg-raised: #2B3B37;
+  --color-bg-subtle: #30423D;
   --color-bg-inverse: #E2E8E6;
-  --color-text-primary: #F6F8F7;
-  --color-text-secondary: #A9B5B2;
-  --color-text-tertiary: #7E8C89;
+  --color-text-primary: #E6EDEB;
+  --color-text-secondary: #B7C7C0;
+  --color-text-tertiary: #A0B2AA;
   --color-text-inverse: #161C1B;
   --color-text-link: #94D2C6;
-  --color-border-default: #222A29;
-  --color-border-control: #7E8C89;
+  --color-border-default: #3C504A;
+  --color-border-control: #92A69D;
   --color-border-focus: #5DB8A8;
   --color-action-primary-bg: #5DB8A8;
   --color-action-primary-bg-pressed: #94D2C6;
