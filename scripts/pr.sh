@@ -285,7 +285,9 @@ cmd_merge() {
   [ $# -eq 0 ] || usage
   local pr facts decision head branch issue out failed
   pr="$(current_pr)"
-  facts="$(merge_facts "$pr")" && [ -n "$facts" ] || die "could not read the facts of PR #$pr; nothing merged"
+  if ! facts="$(merge_facts "$pr")" || [ -z "$facts" ]; then
+    die "could not read the facts of PR #$pr; nothing merged"
+  fi
   decision="$(jq -c --arg review_mark "$REVIEW_MARK" --arg smoke_mark "$SMOKE_MARK" --arg preview_check "$PREVIEW_CHECK" \
     --arg no_preview "$NO_PREVIEW" -f "$ROOT/scripts/merge-gate.jq" <<<"$facts")" \
     || die "could not decide the merge gate of PR #$pr; nothing merged"
@@ -315,7 +317,7 @@ cmd_merge() {
 }
 
 cmd_refusal() {
-  [ $# -eq 1 ] && [[ "$1" =~ ^[0-9]+$ ]] || usage
+  { [ $# -eq 1 ] && [[ "$1" =~ ^[0-9]+$ ]]; } || usage
   local body
   body="$(gh pr view "$1" --repo "$REPO" --json body --jq .body)" || die "could not read the body of PR #$1"
   jq -Rn --arg mark "**$REFUSAL_MARK:**" '[inputs | rtrimstr("\r") | select(startswith($mark))] | last
