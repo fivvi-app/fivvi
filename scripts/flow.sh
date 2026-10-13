@@ -4,7 +4,8 @@
 #   flow.sh status <n>                      facts, phase and next step for an issue
 #   flow.sh facts <n>                       the facts as JSON (input of scripts/flow-phase.jq)
 #   flow.sh next                            your open issues with their phase, the open specs, the ready tickets, then
-#                                           what waits on the owner: specs to approve, high-risk PRs, needs-info questions
+#                                           what waits on the owner: specs to approve, high-risk PRs, PRs the merge
+#                                           gate refused, needs-info questions
 #   flow.sh start <n> [--type <t>] [--force]  claim a ready ticket and create its <type>/<n>-<slug> worktree and notes;
 #                                           refuses when 3 tickets are already in progress (--force to override)
 #   flow.sh finish <n>                      after its PR is merged: remove worktree and branches, close the issue,
@@ -42,14 +43,17 @@ issue_branches() {
 }
 
 pr_facts() {
-  local branch="$1" pr number threads risk
+  local branch="$1" pr number threads risk refusal
   pr="$(gh pr list --repo "$REPO" --head "$branch" --state all \
-    --json number,state,isDraft,reviewDecision,statusCheckRollup,url,createdAt --jq 'sort_by(.number) | last // empty')"
+    --json number,state,isDraft,reviewDecision,statusCheckRollup,url,createdAt,headRefOid \
+    --jq 'sort_by(.number) | last // empty')"
   [ -n "$pr" ] || { echo null; return; }
   number="$(jq -r .number <<<"$pr")"
-  threads=0 risk=null
+  threads=0 risk=null refusal=null
   if [ "$(jq -r .state <<<"$pr")" = OPEN ]; then
     risk="$("$ROOT/scripts/risk.sh" "$number" --json 2>/dev/null)" || risk=null
+    # A refusal of the merge gate for the head commit makes the PR wait on the owner (flow-phase.jq).
+    refusal="$("$ROOT/scripts/pr.sh" refusal "$number")" || die "could not read the refusal of PR #$number"
     # shellcheck disable=SC2016 # GraphQL variables, not shell
     threads="$(gh api graphql -F owner="$OWNER" -F name="$NAME" -F n="$number" -f query='
       query($owner: String!, $name: String!, $n: Int!) {
@@ -57,9 +61,11 @@ pr_facts() {
       }' --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)] | length')"
   fi
   # GitHub reports unfinished conclusions and a missing review as "", not null.
-  jq --argjson threads "$threads" --argjson risk "$risk" 'def value(f): [f[] | select(. != null and . != "")] | first // "";
+  jq --argjson threads "$threads" --argjson risk "$risk" --argjson refusal "$refusal" \
+    'def value(f): [f[] | select(. != null and . != "")] | first // "";
     {
     number, state, url, draft: .isDraft, threads: $threads, risk: $risk.risk, risk_reasons: ($risk.reasons // []),
+    head: .headRefOid, refusal: $refusal,
     review: (if (.reviewDecision // "") == "" then null else .reviewDecision end),
     failing: [.statusCheckRollup[]? | select(value([.conclusion, .state])
       | IN("FAILURE", "ERROR", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE"))] | length,
@@ -145,31 +151,34 @@ cmd_facts() {
 
 cmd_next() {
   [ $# -eq 0 ] || usage
-  local n f
+  local n f mine specs ready owner
   echo "== Assigned to you"
-  local mine
-  mine="$(gh issue list --repo "$REPO" --assignee @me --state open --json number --jq '.[].number')"
+  mine="$(gh issue list --repo "$REPO" --assignee @me --state open --json number --jq '.[].number')" \
+    || die "could not read the issues assigned to you"
   [ -n "$mine" ] || echo "(none)"
   for n in $mine; do
     f="$(facts "$n")"
     echo "#$n $(jq -r .title <<<"$f") → $(jq -r .phase <<<"$(jq -f "$PHASE_JQ" <<<"$f")")"
   done
   echo "== Open specs"
-  local specs
   specs="$(gh issue list --repo "$REPO" --label "$SPEC_LABEL" --state open --limit 200 \
-    --json number,title,body,labels,subIssuesSummary)"
+    --json number,title,body,labels,subIssuesSummary)" || die "could not read the open specs"
   jq -r 'if length == 0 then "(none)" else .[] | "#\(.number) \(.title) — \(.subIssuesSummary.completed) of \(.subIssuesSummary.total) tickets done" end' <<<"$specs"
   echo "== Ready for an agent"
-  "$ROOT/scripts/issue.sh" ready | awk -F'\t' '{ print "#" $1 " " $2 }' | grep . || echo "(none)"
+  # Read first, then print: a failed read is an error, never "(none)".
+  ready="$("$ROOT/scripts/issue.sh" ready)" || die "could not read the ready tickets"
+  awk -F'\t' '{ print "#" $1 " " $2 }' <<<"$ready" | grep . || echo "(none)"
   echo "== Waiting on the owner"
-  owner_items "$specs" | grep . || echo "(none)"
+  owner="$(owner_items "$specs")" || exit 1
+  grep . <<<"$owner" || echo "(none)"
 }
 
-# Specs to approve, ready high-risk PRs (scripts/risk.sh) and needs-info questions. A spec is to approve when
-# flow-phase.jq would call it needs-approval: not approved, not complete, and not still needs-spec (no tickets, not
-# ready-for-agent, and needs-triage or no body).
+# Specs to approve, high-risk PRs (scripts/risk.sh), low-risk PRs the merge gate refused on their head commit
+# (scripts/pr.sh refusal) and needs-info questions. A spec is to approve when flow-phase.jq would call it
+# needs-approval: not approved, not complete, and not still needs-spec (no tickets, not ready-for-agent, and
+# needs-triage or no body). Dies when a read fails, so an empty list means nothing waits.
 owner_items() {
-  local pr title risk
+  local prs pr title head risk refusal questions
   jq -r --arg approved "$APPROVED_LABEL" --arg ready "$READY_LABEL" '.[]
     | [.labels[].name] as $labels
     | ((.body // "") | gsub("\\s"; "") | length > 0) as $described
@@ -177,16 +186,27 @@ owner_items() {
     | select((.subIssuesSummary.total > 0 and .subIssuesSummary.completed == .subIssuesSummary.total) | not)
     | select((.subIssuesSummary.total == 0 and ($labels | index($ready) | not)
         and (($labels | index("needs-triage")) or ($described | not))) | not)
-    | "Approve spec #\(.number) \(.title) (add \($approved))"' <<<"$1"
-  while IFS=$'\t' read -r pr title; do
+    | "Approve spec #\(.number) \(.title) (add \($approved))"' <<<"$1" || die "could not read the open specs"
+  prs="$(gh pr list --repo "$REPO" --state open --limit 100 --json number,title,isDraft,headRefOid \
+    --jq '.[] | select(.isDraft | not) | [.number, .title, .headRefOid] | @tsv')" || die "could not read the open PRs"
+  while IFS=$'\t' read -r pr title head; do
     [ -n "$pr" ] || continue
     risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || risk='{"risk": "high", "reasons": ["risk unknown"]}'
-    jq -r --arg pr "$pr" --arg title "$title" \
-      'select(.risk == "high") | "Merge PR #\($pr) \($title) (high-risk: \(.reasons[:3] | join("; "))\(if (.reasons | length) > 3 then "; +\(.reasons | length - 3) more" else "" end))"' <<<"$risk"
-  done < <(gh pr list --repo "$REPO" --state open --limit 100 --json number,title,isDraft \
-    --jq '.[] | select(.isDraft | not) | [.number, .title] | @tsv')
-  gh issue list --repo "$REPO" --label needs-info --state open --limit 100 --json number,title \
-    --jq '.[] | "Answer #\(.number) \(.title) (needs-info)"'
+    if [ "$(jq -r .risk <<<"$risk")" = high ]; then
+      jq -r --arg pr "$pr" --arg title "$title" \
+        '"Merge PR #\($pr) \($title) (high-risk: \(.reasons[:3] | join("; "))\(if (.reasons | length) > 3 then "; +\(.reasons | length - 3) more" else "" end))"' <<<"$risk" \
+        || die "could not read the risk of PR #$pr"
+      continue
+    fi
+    refusal="$("$ROOT/scripts/pr.sh" refusal "$pr")" || die "could not read the refusal of PR #$pr"
+    jq -r --arg pr "$pr" --arg title "$title" --arg head "$head" \
+      'select(. != null and .sha != null and .sha == $head)
+       | "Decide on PR #\($pr) \($title) (the merge gate refused it on \($head[:7]): \(.reasons); or fix it and push)"' \
+      <<<"$refusal" || die "could not read the refusal of PR #$pr"
+  done <<<"$prs"
+  questions="$(gh issue list --repo "$REPO" --label needs-info --state open --limit 100 --json number,title \
+    --jq '.[] | "Answer #\(.number) \(.title) (needs-info)"')" || die "could not read the needs-info questions"
+  [ -z "$questions" ] || echo "$questions"
 }
 
 tickets_in_progress() {

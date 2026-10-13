@@ -17,7 +17,9 @@
 #                                                 nothing to fix on the PR's head commit; local HEAD must be that commit
 #   pr.sh merge                                   squash-merge a low-risk PR and delete its branch, only when every
 #                                                 condition of the merge gate holds (ADR-016); otherwise merge nothing,
-#                                                 print why and exit 1: the PR stays for the owner
+#                                                 record the refusal for the head commit in the PR body, print why and
+#                                                 exit 1: the PR stays for the owner. Only behind main records nothing
+#   pr.sh refusal <pr>                            the last refusal recorded in the PR body as {sha, reasons}, or null
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -29,9 +31,11 @@ REPO="$(repo_slug)"
 OWNER="${REPO%%/*}"
 NAME="${REPO#*/}"
 BRANCH="$(git branch --show-current)"
-# The records pr.sh writes in the PR body and the preview's check name; scripts/merge-gate.jq gets them from here.
+# The records pr.sh writes in the PR body and the preview's check name; scripts/merge-gate.jq gets them from here, and
+# scripts/flow.sh reads refusals with pr.sh refusal.
 SMOKE_MARK="Railway preview smoke check"
 REVIEW_MARK="Self-review"
+REFUSAL_MARK="Merge gate"
 PREVIEW_CHECK="trainer-hub - web"
 NO_PREVIEW="no preview for this PR"
 
@@ -211,12 +215,12 @@ record() {
   # grep exits 1 when no line is left (the body was only the old record); that's fine, a failure (2) isn't.
   body="$(grep -v "^\*\*$mark:\*\*" <<<"$body")" || [ $? -eq 1 ] || die "could not update the body of PR #$pr"
   gh pr edit "$pr" --repo "$REPO" --body "${body:+$body$'\n\n'}$line" >/dev/null
-  echo "✅ $line"
+  echo "📝 $line"
 }
 
 # The preview exists only when the PR touches a Railway watch pattern (docs/engineering/ENVIRONMENTS.md).
 cmd_smoke() {
-  local timeout=15 pr head url deadline result line
+  local timeout=15 pr head checks url deadline result line
   while [ $# -gt 0 ]; do
     case "$1" in
       --timeout) timeout="${2:?}"; shift ;;
@@ -225,8 +229,11 @@ cmd_smoke() {
     shift
   done
   pr="$(current_pr)"
-  head="$(head_of "$pr")"
-  if ! gh pr checks "$pr" --repo "$REPO" --json name --jq '.[].name' 2>/dev/null | grep -qFx "$PREVIEW_CHECK"; then
+  head="$(head_of "$pr")" || die "could not read the head commit of PR #$pr; nothing recorded"
+  # Read first, then match: a failed read is an error, never "no preview".
+  checks="$(gh pr checks "$pr" --repo "$REPO" --json name --jq '.[].name')" \
+    || die "could not read the checks of PR #$pr; nothing recorded"
+  if ! grep -qFx "$PREVIEW_CHECK" <<<"$checks"; then
     line="**$SMOKE_MARK:** on \`$head\`: $NO_PREVIEW (it touches no Railway watch pattern)."
   else
     url="https://web-trainer-hub-pr-$pr.up.railway.app/api/v1/health"
@@ -276,17 +283,25 @@ merge_facts() {
 
 cmd_merge() {
   [ $# -eq 0 ] || usage
-  local pr facts decision head branch issue out
+  local pr facts decision head branch issue out failed
   pr="$(current_pr)"
   facts="$(merge_facts "$pr")" && [ -n "$facts" ] || die "could not read the facts of PR #$pr; nothing merged"
   decision="$(jq -c --arg review_mark "$REVIEW_MARK" --arg smoke_mark "$SMOKE_MARK" --arg preview_check "$PREVIEW_CHECK" \
     --arg no_preview "$NO_PREVIEW" -f "$ROOT/scripts/merge-gate.jq" <<<"$facts")" \
     || die "could not decide the merge gate of PR #$pr; nothing merged"
   jq -r '.conditions[] | "\(if .ok then "✓" else "✗" end) \(.name): \(.detail)"' <<<"$decision"
-  jq -e .merge <<<"$decision" >/dev/null \
-    || die "PR #$pr stays for the owner: $(jq -r '[.conditions[] | select(.ok | not) | .name] | join(", ")' <<<"$decision")"
-
   head="$(jq -r .head <<<"$facts")"
+  if ! jq -e .merge <<<"$decision" >/dev/null; then
+    failed="$(jq -r '[.conditions[] | select(.ok | not) | .name] | join(", ")' <<<"$decision")"
+    # Behind main is the one refusal an agent fixes itself (the work skill's Ship step 6); the push makes a new head.
+    [ "$failed" != "up to date" ] \
+      || die "PR #$pr is behind $(default_branch): merge origin/$(default_branch) in the worktree, check, self-review, push and run it again; nothing merged"
+    # A refusal for the head commit makes the PR wait on the owner (flow.sh); a new push makes it stale.
+    record "$pr" "$REFUSAL_MARK" "**$REFUSAL_MARK:** refused on \`$head\`: $(jq -r \
+      '[.conditions[] | select(.ok | not) | "\(.name) (\(.detail))"] | join("; ")' <<<"$decision")"
+    die "PR #$pr stays for the owner: $failed; nothing merged"
+  fi
+
   branch="$(jq -r .branch <<<"$facts")"
   out="$(gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$head" 2>&1)" || die "merge failed: $out"
   echo "✅ PR #$pr squash-merged"
@@ -297,6 +312,15 @@ cmd_merge() {
   fi
   issue="$(branch_issue "$branch")"
   echo "Next: scripts/flow.sh finish ${issue:-<issue>} from the main checkout"
+}
+
+cmd_refusal() {
+  [ $# -eq 1 ] && [[ "$1" =~ ^[0-9]+$ ]] || usage
+  local body
+  body="$(gh pr view "$1" --repo "$REPO" --json body --jq .body)" || die "could not read the body of PR #$1"
+  jq -Rn --arg mark "**$REFUSAL_MARK:**" '[inputs | rtrimstr("\r") | select(startswith($mark))] | last
+    | if . == null then null
+      else (capture("refused on `(?<sha>[0-9a-f]{40})`: (?<reasons>.*)$") // {sha: null, reasons: .}) end' <<<"$body"
 }
 
 case "${1:-}" in
@@ -310,5 +334,6 @@ case "${1:-}" in
   smoke)   shift; cmd_smoke "$@" ;;
   reviewed) shift; cmd_reviewed "$@" ;;
   merge)   shift; cmd_merge "$@" ;;
+  refusal) shift; cmd_refusal "$@" ;;
   *)       usage ;;
 esac

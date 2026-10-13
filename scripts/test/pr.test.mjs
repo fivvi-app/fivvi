@@ -15,12 +15,16 @@ const threads = (nodes, hasNextPage = false) => ({
   data: { repository: { pullRequest: { reviewThreads: { pageInfo: { hasNextPage }, nodes } } } },
 });
 
-const github = ({ files = ['apps/web/page.tsx'], body } = {}) => [
+const github = ({ files = ['apps/web/page.tsx'], body, behind = 0 } = {}) => [
   { match: '^pr list ', out: [{ number: 60 }] },
   { match: '^api repos/[^ ]+/pulls/60/files', out: files.map((filename) => ({ filename })) },
   {
     match: '^pr view 60 .*--json headRefName,closingIssuesReferences',
-    out: { headRefName: 'feature/57-hold-a-spot', closingIssuesReferences: [{ number: 57 }] },
+    out: {
+      headRefName: 'feature/57-hold-a-spot',
+      closingIssuesReferences: [{ number: 57 }],
+      changedFiles: files.length,
+    },
   },
   {
     match: '^pr view 60 ',
@@ -43,8 +47,9 @@ const github = ({ files = ['apps/web/page.tsx'], body } = {}) => [
     },
   },
   { match: '^issue view 57 ', out: { number: 57, labels: [], parent: null } },
-  { match: '^api repos/[^ ]+/compare/main\\.\\.\\.', out: { behind_by: 0 } },
+  { match: '^api repos/[^ ]+/compare/main\\.\\.\\.', out: { behind_by: behind } },
   { match: '^api graphql ', out: threads([]) },
+  { match: '^pr edit 60 ', out: '' },
   { match: '^pr merge 60 ', out: '' },
   { match: '^api --method DELETE ', out: '' },
 ];
@@ -58,7 +63,11 @@ describe('pr.sh merge', () => {
       encoding: 'utf8',
       env: gh.env(rules),
     });
-    return { ...result, calls: gh.calls().map((call) => call.args.join(' ')) };
+    const bodies = gh
+      .calls()
+      .filter((call) => call.args[1] === 'edit')
+      .map((call) => call.args[call.args.indexOf('--body') + 1]);
+    return { ...result, bodies, calls: gh.calls().map((call) => call.args.join(' ')) };
   };
 
   it('squash-merges the head commit and deletes the branch when every condition holds', () => {
@@ -88,12 +97,28 @@ describe('pr.sh merge', () => {
     assert.ok(!result.calls.some((call) => /^pr merge|--method DELETE/.test(call)));
   });
 
+  it('records the refusal and its reasons for the head commit, so the owner decides', () => {
+    const result = merge(github({ body: `Closes #57\n\n${NO_PREVIEW}` }));
+    assert.equal(result.status, 1);
+    assert.deepEqual(result.bodies, [
+      `Closes #57\n\n${NO_PREVIEW}\n\n**Merge gate:** refused on \`${HEAD}\`: self-review clean (no self-review record in the PR body)`,
+    ]);
+  });
+
+  it('records no refusal when the branch is only behind main: merge main and run it again', () => {
+    const result = merge(github({ behind: 2 }));
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /behind main: merge origin\/main/);
+    assert.deepEqual(result.bodies, []);
+    assert.ok(!result.calls.some((call) => /^pr merge|--method DELETE/.test(call)));
+  });
+
   const refuses = (rules, reason) => {
     const result = merge(rules);
     assert.equal(result.status, 1, result.stdout);
     assert.match(result.stderr, reason);
     assert.match(result.stderr, /nothing merged/);
-    assert.ok(!result.calls.some((call) => /^pr merge|--method DELETE/.test(call)));
+    assert.ok(!result.calls.some((call) => /^pr merge|--method DELETE|^pr edit/.test(call)));
   };
 
   it("merges nothing when the PR's risk can't be read", () => {
@@ -111,6 +136,12 @@ describe('pr.sh merge', () => {
       [{ match: '^api graphql ', out: threads([], true) }, ...github()],
       /more than 100 review threads/,
     );
+  });
+
+  it('merges nothing when GitHub lists fewer files than the PR changes', () => {
+    const rules = github();
+    rules[2].out.changedFiles = 3001;
+    refuses(rules, /could not decide the risk of PR #60/);
   });
 
   it("merges nothing when it can't tell whether the branch is behind main", () => {
@@ -193,5 +224,71 @@ describe('pr.sh reviewed', () => {
     assert.equal(result.status, 1);
     assert.match(result.stderr, /is not the PR head ddddddd/);
     assert.deepEqual(result.edits, []);
+  });
+});
+
+describe('pr.sh smoke', () => {
+  const gh = fakeGh();
+  after(() => gh.cleanup());
+
+  const smoke = (checks) => {
+    const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['smoke'], {
+      encoding: 'utf8',
+      env: gh.env([
+        { match: '^pr list ', out: [{ number: 60 }] },
+        { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: HEAD } },
+        { match: '^pr checks 60 ', ...checks },
+        { match: '^pr view 60 .*--json body', out: { body: 'Closes #57' } },
+        { match: '^pr edit 60 ', out: '' },
+      ]),
+    });
+    const bodies = gh
+      .calls()
+      .filter((call) => call.args[1] === 'edit')
+      .map((call) => call.args[call.args.indexOf('--body') + 1]);
+    return { ...result, bodies };
+  };
+
+  it('records that the PR has no preview when no check is the preview', () => {
+    const result = smoke({ out: [{ name: 'Detect changes' }, { name: 'Checks (Linux)' }] });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.bodies, [`Closes #57\n\n${NO_PREVIEW}`]);
+  });
+
+  it("records nothing when it can't read the checks", () => {
+    const result = smoke({ out: '', status: 1 });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /could not read the checks of PR #60/);
+    assert.deepEqual(result.bodies, []);
+  });
+});
+
+describe('pr.sh refusal', () => {
+  const gh = fakeGh();
+  after(() => gh.cleanup());
+
+  const refusal = (rule) =>
+    spawnSync(join(SCRIPTS, 'pr.sh'), ['refusal', '60'], {
+      encoding: 'utf8',
+      env: gh.env([{ match: '^pr view 60 .*--json body', ...rule }]),
+    });
+
+  it('prints the last refusal of the merge gate with its commit and reasons', () => {
+    const old = `**Merge gate:** refused on \`${'b'.repeat(40)}\`: up to date (2 commits behind main)`;
+    const last = `**Merge gate:** refused on \`${HEAD}\`: self-review clean (no self-review record in the PR body)`;
+    const result = refusal({ out: { body: `Closes #57\r\n\r\n${old}\n\n${last}` } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout), {
+      sha: HEAD,
+      reasons: 'self-review clean (no self-review record in the PR body)',
+    });
+  });
+
+  it('prints null without a refusal, and fails when it cannot read the PR', () => {
+    assert.equal(refusal({ out: { body: 'Closes #57' } }).stdout, 'null\n');
+    const failed = refusal({ out: '', status: 1 });
+    assert.equal(failed.status, 1);
+    assert.equal(failed.stdout, '');
+    assert.match(failed.stderr, /could not read the body of PR #60/);
   });
 });

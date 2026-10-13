@@ -3,8 +3,10 @@
 #         parent: null|{number, title, state, labels, open, total}, blockers: [{number, title}],
 #         children: [{number, title, state, labels, assignees, blocked}],
 #         branches: [{name, local, worktree, dirty,
-#                     pr: null|{number, state, draft, review, failing, threads, age_days, risk, risk_reasons}}]}
-# risk is "low", "high" or null (unknown) for an open PR (scripts/risk.sh).
+#                     pr: null|{number, state, draft, review, failing, threads, age_days, risk, risk_reasons,
+#                               head, refusal: null|{sha, reasons}}}]}
+# risk is "low", "high" or null (unknown) for an open PR (scripts/risk.sh). refusal is the last refusal of the merge
+# gate recorded on the PR (scripts/pr.sh refusal); it holds only for the head commit it names.
 # Output: {phase, next, hint}
 
 def has($l): (.labels | index($l)) != null;
@@ -12,12 +14,15 @@ def open: .state == "OPEN";
 # Only a spec needs the owner's approval before its tickets are cut and built (ADR-016).
 def unapproved_spec: has("spec") and (has("spec-approved") | not);
 
+def refused: .refusal != null and .refusal.sha != null and .refusal.sha == .head;
+
 def code_phase:
   if .pr == null then {phase: "in-progress", rank: 0}
   elif .pr.state == "MERGED" then {phase: "merged", rank: 5}
   elif .pr.state == "CLOSED" then {phase: "abandoned", rank: -1}
   elif .pr.draft then {phase: "draft-pr", rank: 1}
   elif .pr.failing > 0 or .pr.review == "CHANGES_REQUESTED" or .pr.threads > 0 then {phase: "changes-requested", rank: 1}
+  elif .pr.risk == "low" and (.pr | refused) then {phase: "merge-refused", rank: 3}
   elif .pr.risk == "low" then {phase: "ready-to-merge", rank: 4}
   elif .pr.review == "APPROVED" then {phase: "approved", rank: 4}
   else {phase: "in-review", rank: 3}
@@ -34,6 +39,7 @@ def code_next($n):
     "draft-pr": "Finish checks and self-review (scripts/pr.sh reviewed), then scripts/pr.sh ready from the worktree.",
     "changes-requested": "Fix what is open: scripts/pr.sh status and scripts/pr.sh threads in the worktree, fix with an implementer, push with scripts/pr.sh create, reply with scripts/pr.sh reply.",
     "ready-to-merge": "Low-risk: scripts/pr.sh merge in the worktree. It merges only when the whole merge gate holds; otherwise the PR stays for the owner. Then scripts/flow.sh finish \($n).",
+    "merge-refused": "The merge gate refused it on \(.pr.head[:7]): \(.pr.refusal.reasons). The owner decides, or fix it and push (scripts/pr.sh create), which makes the refusal stale. Report and stop; never retry the merge on this commit.",
     "in-review": "\(.pr | owner_review) and merges it. Nothing to do.",
     "approved": "Approved. \(.pr | owner_review | sub(": the owner reviews"; "")): the owner merges it on GitHub; then scripts/flow.sh finish \($n).",
     "merged": "scripts/flow.sh finish \($n)",

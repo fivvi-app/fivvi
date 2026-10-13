@@ -28,14 +28,21 @@ issue_facts() {
 }
 
 # The PR's facts as the input of risk.jq: every path it touches (both sides of a rename) and its issues' labels.
+# The files API lists at most 3000 files, so the count read must be the PR's changedFiles: a file left out could be
+# high-risk.
 risk_facts() {
-  local pr="$1" files numbers issues="[]" n item
-  files="$(gh api "repos/$REPO/pulls/$pr/files" --paginate --jq '.[] | .filename, (.previous_filename // empty)')" \
+  local pr="$1" entries files listed changed view numbers issues="[]" n item
+  entries="$(gh api "repos/$REPO/pulls/$pr/files" --paginate --jq '.[] | {filename, previous_filename}')" \
     || die "could not read the files of PR #$pr"
-  files="$(jq -Rn '[inputs | select(. != "")] | unique' <<<"$files")" || die "could not read the files of PR #$pr"
-  numbers="$(gh pr view "$pr" --repo "$REPO" --json headRefName,closingIssuesReferences \
-    --jq '.closingIssuesReferences[].number, (.headRefName | capture("^[a-z]+/(?<n>[0-9]+)-").n // empty)')" \
+  files="$(jq -s '[.[] | .filename, (.previous_filename // empty)] | unique' <<<"$entries")" \
+    || die "could not read the files of PR #$pr"
+  listed="$(jq -s length <<<"$entries")" || die "could not read the files of PR #$pr"
+  view="$(gh pr view "$pr" --repo "$REPO" --json headRefName,closingIssuesReferences,changedFiles)" \
     || die "could not read the issues of PR #$pr"
+  changed="$(jq -r '.changedFiles // "an unknown number of"' <<<"$view")" || die "could not read PR #$pr"
+  [ "$listed" = "$changed" ] || die "PR #$pr changes $changed files, but only $listed could be read: the owner reviews it"
+  numbers="$(jq -r '.closingIssuesReferences[].number, (.headRefName | capture("^[a-z]+/(?<n>[0-9]+)-").n // empty)' \
+    <<<"$view")" || die "could not read the issues of PR #$pr"
   numbers="$(sort -u <<<"$numbers")"
   for n in $numbers; do
     item="$(issue_facts "$n")" || exit 1

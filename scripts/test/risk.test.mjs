@@ -137,11 +137,20 @@ describe('risk.sh', () => {
   const run = (rules, ...args) =>
     spawnSync(join(SCRIPTS, 'risk.sh'), args, { encoding: 'utf8', env: gh.env(rules) });
 
-  const github = ({ files, ticketLabels = [], specLabels = ['spec'] }) => [
+  const github = ({
+    files,
+    changedFiles = files.length,
+    ticketLabels = [],
+    specLabels = ['spec'],
+  }) => [
     { match: '^api repos/[^ ]+/pulls/60/files', out: files },
     {
       match: '^pr view 60 ',
-      out: { headRefName: 'feature/57-hold-a-spot', closingIssuesReferences: [{ number: 57 }] },
+      out: {
+        headRefName: 'feature/57-hold-a-spot',
+        closingIssuesReferences: [{ number: 57 }],
+        changedFiles,
+      },
     },
     {
       match: '^issue view 57 ',
@@ -179,6 +188,15 @@ describe('risk.sh', () => {
   it('prints low for a PR without high-risk paths or labels', () => {
     const result = run(github({ files: [{ filename: 'apps/web/page.tsx' }] }), '60');
     assert.equal(result.stdout, 'low\n');
+  });
+
+  it('fails without a verdict when GitHub lists fewer files than the PR changes', () => {
+    // The files API stops at 3000 files; a file it leaves out could be high-risk.
+    const rules = github({ files: [{ filename: 'apps/web/page.tsx' }], changedFiles: 3001 });
+    const result = run(rules, '60');
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, /PR #60 changes 3001 files, but only 1 could be read/);
   });
 
   const failing = {

@@ -155,6 +155,32 @@ describe('merge gate', () => {
     assert.equal(gate(recorded(smoked())).merge, true);
   });
 
+  it('fails closed without a head commit, required checks or a commit in a record', () => {
+    const noSha = withPr({
+      body: 'Closes #57\n\n**Self-review:** clean ✅\n\n**Railway preview smoke check:** no preview for this PR.',
+    });
+    assert.deepEqual(failed(gate(noSha)), ['self-review clean', 'preview smoke-checked']);
+    assert.match(gate(noSha).conditions[2].detail, /names no commit/);
+
+    for (const head of [null, '', 'abc1234', 'A'.repeat(40)]) {
+      const unknown = gate({ ...facts({ head }), pr: noSha.pr });
+      assert.equal(unknown.merge, false, String(head));
+      assert.deepEqual(
+        failed(unknown),
+        ['checks passed', 'self-review clean', 'preview smoke-checked'],
+        String(head),
+      );
+      assert.match(unknown.conditions[1].detail, /head commit is unknown/, String(head));
+    }
+
+    const noRequired = gate(facts({ required: [] }));
+    assert.deepEqual(failed(noRequired), ['checks passed']);
+    assert.match(noRequired.conditions[1].detail, /no required checks/);
+
+    const nothing = gate(facts({ head: null, required: [], checks: [], pr: noSha.pr }));
+    assert.equal(nothing.merge, false);
+  });
+
   it('refuses a branch behind main, open threads, a draft, a closed PR or another base', () => {
     assert.deepEqual(failed(gate(facts({ behind: 2 }))), ['up to date']);
     assert.deepEqual(failed(gate(facts({ threads: 1 }))), ['no open threads']);

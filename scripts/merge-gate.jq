@@ -3,9 +3,11 @@
 #          required: [check name], checks: [statusCheckRollup entry], behind, threads}
 # $review_mark, $smoke_mark: the marks of the records pr.sh writes in the PR body (`**<mark>:** …`).
 # $preview_check: the name of the Railway preview's check; $no_preview: what pr.sh smoke records when there is none.
-# Output: {merge, conditions: [{name, ok, detail}]}; merge only when every condition holds. A missing fact fails.
+# Output: {merge, conditions: [{name, ok, detail}]}; merge only when every condition holds. A missing fact fails:
+# a head that isn't a full commit SHA, no required checks, or a record that names no commit.
 
 def short: .[:7];
+def is_sha: type == "string" and test("^[0-9a-f]{40}$");
 def ok_result: IN("SUCCESS", "SKIPPED", "NEUTRAL");
 def pending_result: IN("PENDING", "EXPECTED");
 
@@ -21,7 +23,7 @@ def record($mark):
   [.pr.body | split("\n")[] | rtrimstr("\r") | select(startswith("**\($mark):**"))] | last // null;
 def record_sha: if . == null then null else (capture("`(?<sha>[0-9a-f]{40})`").sha // null) end;
 
-def checks_passed:
+def checks_on_head:
   .head as $head
   | results as $results
   | ([$results[] | select(.result | ok_result | not) | select(.result | pending_result | not) | .name]) as $failing
@@ -33,10 +35,18 @@ def checks_passed:
                (if $missing != [] then "missing: \($missing | join(", "))" else empty end)]
               | if . == [] then "\($results | length) checks passed on \($head | short)" else join("; ") end)};
 
+def checks_passed:
+  if .head | is_sha | not then {name: "checks passed", ok: false, detail: "the head commit is unknown"}
+  elif (.required | length) == 0 then {name: "checks passed", ok: false, detail: "no required checks to check"}
+  else checks_on_head
+  end;
+
 def on_head($what; $line):
   ($line | record_sha) as $sha
   | if $line == null then {ok: false, detail: "no \($what) record in the PR body"}
-    elif $sha != .head then {ok: false, detail: "the \($what) record is for \($sha // "no commit" | short), not the head \(.head | short)"}
+    elif .head | is_sha | not then {ok: false, detail: "the head commit is unknown"}
+    elif $sha == null then {ok: false, detail: "the \($what) record names no commit"}
+    elif $sha != .head then {ok: false, detail: "the \($what) record is for \($sha | short), not the head \(.head | short)"}
     else {ok: true, detail: "recorded for \(.head | short)"}
     end;
 

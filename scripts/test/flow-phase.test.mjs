@@ -168,6 +168,28 @@ describe('flow phase from the code', () => {
     assert.equal(phaseOf(pr({ risk: null })), 'in-review', 'unknown risk waits for the owner');
   });
 
+  it('leaves a low-risk PR the merge gate refused on its head commit to the owner', () => {
+    const head = 'c'.repeat(40);
+    const refused = (sha) =>
+      pr({
+        risk: 'low',
+        head,
+        refusal: { sha, reasons: 'self-review clean (no self-review record in the PR body)' },
+      });
+
+    const waiting = decide(issue({ branches: [branch(refused(head))] }));
+    assert.equal(waiting.phase, 'merge-refused');
+    assert.match(
+      waiting.next,
+      /^The merge gate refused it on ccccccc: self-review clean \(no self-review record in the PR body\)\. The owner decides, or fix it and push/,
+    );
+    assert.doesNotMatch(waiting.next, /scripts\/pr\.sh merge/);
+
+    assert.equal(phaseOf(refused('b'.repeat(40))), 'ready-to-merge', 'a new push makes it stale');
+    assert.equal(phaseOf(pr({ risk: 'low', head, refusal: null })), 'ready-to-merge');
+    assert.equal(phaseOf(refused(null)), 'ready-to-merge', 'a record without a commit is stale');
+  });
+
   it('asks for changes on failing checks, open threads or a change request', () => {
     assert.equal(phaseOf(pr({ failing: 1 })), 'changes-requested');
     assert.equal(phaseOf(pr({ threads: 2 })), 'changes-requested');
