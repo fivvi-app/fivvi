@@ -31,7 +31,7 @@ window.PROTO_STRINGS = {
     "lang.nl": "Nederlands",
     "lang.en": "Engels",
 
-    "hub.subtitle": "Klikbaar prototype van de zes belangrijkste flows. Niets wat je hier doet wordt opgeslagen of verstuurd.",
+    "hub.subtitle": "Klikbaar prototype van de belangrijkste flows. Niets wat je hier doet wordt opgeslagen of verstuurd.",
     "hub.flows": "Flows om te testen",
     "hub.flow": "Flow {n}",
     "hub.start": "Starten",
@@ -467,7 +467,7 @@ window.PROTO_STRINGS = {
     "lang.nl": "Dutch",
     "lang.en": "English",
 
-    "hub.subtitle": "Clickable prototype of the six critical flows. Nothing you do here is saved or sent.",
+    "hub.subtitle": "Clickable prototype of the critical flows. Nothing you do here is saved or sent.",
     "hub.flows": "Flows to test",
     "hub.flow": "Flow {n}",
     "hub.start": "Start",

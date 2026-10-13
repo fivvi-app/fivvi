@@ -526,8 +526,8 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 
 @media (max-width: 859px) {
   .web { grid-template-columns: 1fr; }
-  .web-side { position: absolute; inset: 0 auto 0 0; width: 272px; transform: translateX(-100%); transition: transform var(--motion-duration-medium) var(--motion-easing-standard); box-shadow: 20px 0 40px -20px rgb(0 0 0 / 0.35); }
-  .drawer-open .web-side { transform: none; }
+  .web-side { position: absolute; inset: 0 auto 0 0; width: 272px; transform: translateX(-100%); transition: transform var(--motion-duration-medium) var(--motion-easing-standard); }
+  .drawer-open .web-side { transform: none; box-shadow: 20px 0 40px -20px rgb(0 0 0 / 0.35); }
   .drawer-open .web-scrim { display: block; position: absolute; inset: 0; z-index: 30; background: rgb(0 0 0 / 0.35); }
   .web-menu { display: inline-flex; margin-left: calc(-1 * var(--space-3)); }
   .web-main { padding: var(--space-2) var(--space-gutter) 0; }
@@ -615,16 +615,23 @@ input.stepper-value:focus-visible { outline-offset: -2px; }
 .class-title { font-size: 18px; line-height: 22px; }
 .summary-title { font-size: 20px; line-height: 24px; }
 
-/* Trainer Web chrome in compact density */
-.web { grid-template-columns: 216px 1fr; }
+/* Trainer Web chrome in compact density; below 860px the drawer layout above stays in charge */
+@media (min-width: 860px) {
+  .web { grid-template-columns: 216px 1fr; }
+  .web-main { padding: var(--space-3) var(--space-5) 0; }
+  .panel { width: min(400px, 100%); }
+}
 .web-nav { min-height: 34px; }
-.web-main { padding: var(--space-3) var(--space-5) 0; }
 .web-toolbar { margin-top: var(--space-3); gap: var(--space-2); }
 .date-nav .btn { min-height: var(--size-touch-min); }
 .date-nav .btn--icon { width: var(--size-touch-min); }
 .legend { margin: var(--space-2) 0; }
-.panel { width: min(400px, 100%); }
 .panel-body { padding: 0 var(--space-4) var(--space-6); }
+.panel-body > * { flex-shrink: 0; }
+/* The side panel is phone-width at any viewport, so attendance buttons go under the name there too */
+.panel .att-row { flex-wrap: wrap; }
+.panel .att-btns { width: calc(100% - 52px); margin-left: 52px; }
+.panel .att-btn { flex: 1; }
 .panel-body .form { gap: var(--space-3); }
 .field-row { gap: var(--space-2); }
 .input--sm { min-height: var(--size-touch-min); padding: 0 var(--space-2); width: auto; }

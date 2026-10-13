@@ -237,6 +237,8 @@
   const dayLong = (d) => fmt(d, { weekday: "long", day: "numeric", month: "long" });
   const dayShort = (d) => fmt(d, { weekday: "short", day: "numeric" });
   const dayMonth = (d) => fmt(d, { day: "numeric", month: "long" });
+  const weekRange = (mon) => new Intl.DateTimeFormat(locale(), { timeZone: TZ, day: "numeric", month: "long" })
+    .formatRange(at(mon, "12:00"), at(addDays(mon, 6), "12:00"));
   const weekdayName = (d) => fmt(d, { weekday: "long" });
   const ucfirst = (s) => s.charAt(0).toLocaleUpperCase(locale()) + s.slice(1);
   const listFmt = (arr) => new Intl.ListFormat(locale(), { type: "conjunction" }).format(arr);
@@ -848,7 +850,7 @@
       if (week) cells = Array.from({ length: 7 }, (_, i) => dayCell(addDays(mon, i), false));
       else for (let d = mondayOf(first); d < nextFirst || cells.length % 7; d = addDays(d, 1)) cells.push(dayCell(d, d < first || d >= nextFirst));
       const title = week
-        ? `${t("w.weekNo", { n: isoWeek(a.date) })} · ${dayMonth(at(mon, "12:00"))} – ${dayMonth(at(addDays(mon, 6), "12:00"))}`
+        ? `${t("w.weekNo", { n: isoWeek(a.date) })} · ${weekRange(mon)}`
         : ucfirst(fmt(at(first, "12:00"), { month: "long", year: "numeric" }));
       const items = myItemsOn(a.date);
       return {
@@ -1775,7 +1777,7 @@
     render() {
       const w = state.web;
       const d = at(w.date, "12:00");
-      const title = w.view === "day" ? ucfirst(dayLong(d)) : `${t("w.weekNo", { n: isoWeek(w.date) })} · ${dayMonth(at(mondayOf(w.date), "12:00"))} – ${dayMonth(at(addDays(mondayOf(w.date), 6), "12:00"))}`;
+      const title = w.view === "day" ? ucfirst(dayLong(d)) : `${t("w.weekNo", { n: isoWeek(w.date) })} · ${weekRange(mondayOf(w.date))}`;
       return `<div class="web${w.drawer ? " drawer-open" : ""}">
           <aside class="web-side" aria-label="${t("w.menu")}">
             <div class="web-brand"><span class="pub-mark pub-mark--sm" aria-hidden="true">${w.ws === "jg" ? "JG" : "SP"}</span><div><p class="t-label">${esc(WS[w.ws].name)}</p><p class="t-footnote muted">${t(w.ws === "jg" ? "w.ownerJohn" : "w.ownerSarah")}</p></div></div>

@@ -369,3 +369,24 @@ test('owner substitutes and cancels one class; app records attendance', async ()
   assert.deepEqual(app.errors, []);
   await app.page.close();
 });
+
+test('owner web fills a phone screen; the class panel shows full names and details', async () => {
+  const phone = await pageFor(3);
+  const mainWidth = await phone.page.locator('.web-main').evaluate((el) => el.getBoundingClientRect().width);
+  assert.ok(mainWidth >= 380, `owner calendar main column is ${mainWidth}px on a 390px phone`);
+  await phone.page.locator('[data-act="w-view"][data-v="week"]').click();
+  assert.ok((await phone.page.locator('.web-main').textContent()).includes('21–27 september'));
+  assert.deepEqual(phone.errors, []);
+  await phone.page.close();
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
+    const { page, errors } = await pageFor(6, viewport);
+    const firstList = page.locator('.panel-body > .list').first();
+    const clipped = await firstList.evaluate((el) => el.scrollHeight > el.clientHeight + 1);
+    assert.ok(!clipped, `class details are clipped at ${viewport.width}px`);
+    const name = page.locator('.att-row .row-title').first();
+    assert.equal(await name.evaluate((el) => el.getClientRects().length), 1, `attendee name wraps at ${viewport.width}px`);
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
