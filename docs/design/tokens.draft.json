@@ -5,7 +5,7 @@
       "$type": "color",
       "white": { "$value": "#FFFFFF" },
       "neutral": {
-        "$description": "Owner-selected monochrome foundation: white, light grey and charcoal. Colour is reserved for small semantic markers and meaningful states.",
+        "$description": "Neutral foundation with restrained pastel session chips and a muted violet primary-action accent.",
         "25": { "$value": "#F6F6F7" },
         "50": { "$value": "#EEEEF0" },
         "100": { "$value": "#DFDFE2" },
@@ -149,13 +149,13 @@
       "$type": "color",
       "primary": {
         "bg": {
-          "$value": "{color.base.neutral.900}",
+          "$value": "#595299",
           "$description": "Filled buttons. iOS: app tint/accentColor. M3: primary.",
-          "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.200}" } }
+          "$extensions": { "app.trainerhub.mode": { "dark": "#C1BBEB" } }
         },
         "bg-pressed": {
-          "$value": "{color.base.neutral.950}",
-          "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.100}" } }
+          "$value": "#49427F",
+          "$extensions": { "app.trainerhub.mode": { "dark": "#D2CDF2" } }
         },
         "fg": {
           "$value": "{color.base.white}",
@@ -212,17 +212,17 @@
       "private": {
         "solid": { "$value": "{color.base.blue.500}", "$description": "Calendar bar/dot. 3:1 against surface.", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.blue.300}" } } },
         "fg": { "$value": "{color.base.blue.700}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.blue.100}" } } },
-        "bg": { "$value": "{color.base.neutral.50}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.800}" } } }
+        "bg": { "$value": "{color.base.blue.50}", "$extensions": { "app.trainerhub.mode": { "dark": "#263147" } } }
       },
       "group": {
         "solid": { "$value": "{color.base.violet.500}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.violet.300}" } } },
         "fg": { "$value": "{color.base.violet.700}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.violet.100}" } } },
-        "bg": { "$value": "{color.base.neutral.50}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.800}" } } }
+        "bg": { "$value": "{color.base.violet.50}", "$extensions": { "app.trainerhub.mode": { "dark": "#372D49" } } }
       },
       "open-gym": {
         "solid": { "$value": "{color.base.amber.500}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.amber.300}" } } },
         "fg": { "$value": "{color.base.amber.700}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.amber.100}" } } },
-        "bg": { "$value": "{color.base.neutral.50}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.800}" } } }
+        "bg": { "$value": "{color.base.amber.50}", "$extensions": { "app.trainerhub.mode": { "dark": "#403526" } } }
       }
     }
   },
@@ -252,11 +252,11 @@
     "$type": "typography",
     "$description": "Sizes are the default (100%) size in px on web, pt on iOS, sp on Android. Native apps must use the mapped platform text style so user font scaling applies; the size here is the reference, not a hard-coded value.",
     "display": {
-      "$value": { "fontFamily": "{font.family.display}", "fontSize": "34px", "lineHeight": "40px", "fontWeight": "{font.weight.bold}", "letterSpacing": "-0.01em" },
+      "$value": { "fontFamily": "{font.family.display}", "fontSize": "34px", "lineHeight": "40px", "fontWeight": "{font.weight.semibold}", "letterSpacing": "-0.01em" },
       "$extensions": { "app.trainerhub.platform": { "ios": "largeTitle", "android": "headlineLarge" } }
     },
     "title-1": {
-      "$value": { "fontFamily": "{font.family.text}", "fontSize": "28px", "lineHeight": "34px", "fontWeight": "{font.weight.bold}", "letterSpacing": "-0.005em" },
+      "$value": { "fontFamily": "{font.family.text}", "fontSize": "28px", "lineHeight": "34px", "fontWeight": "{font.weight.semibold}", "letterSpacing": "-0.005em" },
       "$extensions": { "app.trainerhub.platform": { "ios": "title", "android": "headlineMedium" } }
     },
     "title-2": {
@@ -264,7 +264,7 @@
       "$extensions": { "app.trainerhub.platform": { "ios": "title2", "android": "titleLarge" } }
     },
     "headline": {
-      "$value": { "fontFamily": "{font.family.text}", "fontSize": "17px", "lineHeight": "22px", "fontWeight": "{font.weight.semibold}", "letterSpacing": "0" },
+      "$value": { "fontFamily": "{font.family.text}", "fontSize": "17px", "lineHeight": "22px", "fontWeight": "{font.weight.medium}", "letterSpacing": "0" },
       "$extensions": { "app.trainerhub.platform": { "ios": "headline", "android": "titleMedium" } }
     },
     "body": {
@@ -277,7 +277,7 @@
       "$extensions": { "app.trainerhub.platform": { "ios": "subheadline", "android": "bodyMedium" } }
     },
     "label": {
-      "$value": { "fontFamily": "{font.family.text}", "fontSize": "15px", "lineHeight": "20px", "fontWeight": "{font.weight.semibold}", "letterSpacing": "0.01em" },
+      "$value": { "fontFamily": "{font.family.text}", "fontSize": "15px", "lineHeight": "20px", "fontWeight": "{font.weight.medium}", "letterSpacing": "0.01em" },
       "$description": "Buttons, chips, tab labels.",
       "$extensions": { "app.trainerhub.platform": { "ios": "subheadline.weight(.semibold)", "android": "labelLarge" } }
     },

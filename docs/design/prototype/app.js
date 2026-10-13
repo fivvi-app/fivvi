@@ -427,15 +427,12 @@
     const [cls, key] = map[kind];
     return `<span class="chip chip--${cls}">${t(key)}</span>`;
   };
-  const typeBadge = (kind) => {
-    const map = { private: ["private", "user", "type.private"], group: ["group", "users", "type.group"], openGym: ["open-gym", "door", "type.openGym"] };
-    const [tone, glyph, label] = map[kind];
-    return `<span class="icon-badge icon-badge--${tone}">${icon(glyph, "ico--sm")}<span class="sr-only">${t(label)}</span></span>`;
-  };
   const disclosure = (label, body, cls = "") => `<details class="disclosure ${cls}"><summary>${label}${icon("chevR", "ico--sm")}</summary><div class="disclosure-body">${body}</div></details>`;
+  const decoration = (key) => `<span class="warm-accent" aria-hidden="true">${t("decoration." + key)}</span>`;
   const fact = (glyph, label, value) => `<div class="fact-row">${icon(glyph, "ico--sm")}<span class="sr-only">${label}: </span><span>${value}</span></div>`;
   function createTile(act, value, glyph, tone, label) {
-    return `<li><button type="button" class="create-tile" data-act="${act}" data-v="${value}"><span class="icon-badge icon-badge--${tone}">${icon(glyph)}</span><span>${label}</span>${icon("chevR", "row-chev")}</button></li>`;
+    const sessionType = ["private", "group", "openGym"].includes(value);
+    return `<li><button type="button" class="create-tile" data-act="${act}" data-v="${value}">${sessionType ? typeChip(value) : `<span class="icon-badge icon-badge--${tone}">${icon(glyph)}</span><span>${label}</span>`}${icon("chevR", "row-chev")}</button></li>`;
   }
   const attChip = (status) => {
     const map = { booked: "neutral", attended: "success", noShow: "danger", cancelled: "neutral" };
@@ -521,7 +518,7 @@
   function classSummary(occ) {
     const d = startOf(occ);
     return `<div class="summary">
-        <div class="booking-heading">${typeBadge(occ.kind)}<p class="summary-title">${esc(occ.title)}</p></div>
+        <div class="booking-heading">${typeChip(occ.kind)}<p class="summary-title">${esc(occ.title)}</p></div>
         <p class="booking-time t-num">${range(occ)}</p>
         <p class="summary-line">${icon("calendar", "ico--sm")}<span>${ucfirst(dayLong(d))}</span></p>
         <div class="booking-facts">${occ.trainer ? fact("user", t("o.trainer"), TRAINERS[occ.trainer].name) : ""}${fact("pin", t("s.location"), locName(occ.loc))}</div>
@@ -771,9 +768,9 @@
     const muted = x.status === "cancelled" || subbedAway(x);
     return `<li><button type="button" class="row session-row${muted ? " is-muted" : ""}" ${act}>
         <span class="row-time"><span class="t-num">${time(startOf(x))}</span><span class="t-num row-time-end">${time(endOf(x))}</span></span>
-        ${typeBadge(x.kind)}
         <span class="row-main">
           <span class="row-title">${itemTitle(x)}</span>
+          <span>${typeChip(x.kind)}</span>
           <span class="row-sub">${locName(x.loc)}</span>
           ${itemState(x) ? `<span class="row-state">${itemState(x)}</span>` : ""}
         </span>
@@ -785,7 +782,7 @@
     const done = state.completedWorkouts[x.id];
     if (done) return `<button type="button" class="btn btn--primary ${cls}" data-act="open-share" data-id="${x.id}">${icon("dumbbell", "ico--sm")}${t(done.shared ? "l.viewShared" : "l.shareLater")}</button>`;
     const going = state.log?.id === x.id;
-    return `<button type="button" class="btn btn--primary ${cls}" data-act="start-log" data-id="${x.id}">${icon("dumbbell", "ico--sm")}${t(going ? "s.continue" : "s.start")}</button>`;
+    return `<button type="button" class="btn btn--primary ${cls}" data-act="start-log" data-id="${x.id}">${decoration("workout")}${t(going ? "s.continue" : "s.start")}</button>`;
   }
   // "+" in the app: iOS toolbar button, Android FAB (flows/02-trainer-today.md, platform table).
   const addNav = (act, label) => (state.platform === "ios" ? [{ icon: "plus", act, label }] : []);
@@ -800,13 +797,12 @@
       const next = upcoming[0];
       const later = items.filter((x) => x !== next && endOf(x) > NOW);
       const earlier = items.filter((x) => x !== next && endOf(x) <= NOW);
-      const mins = next ? Math.round((startOf(next) - NOW) / 60000) : 0;
       const ios = state.platform === "ios";
       const date = ucfirst(fmt(NOW, { weekday: "short", day: "numeric", month: "short" }));
       const overview = `<div class="day-overview"><p>${date}</p><span class="day-count" role="img" aria-label="${t("today.summary", { n: items.length })}">${icon("calendar", "ico--sm")}<span class="t-num">${items.length}</span></span></div>`;
       return {
         nav: {
-          title: t("today.title"), large: true,
+          title: `${t("today.title")} ${decoration("greeting")}`, large: true,
           subtitle: ios ? date : "",
           actions: addNav("app-new-menu", t("today.add")),
         },
@@ -814,11 +810,11 @@
         body: `
           ${ios ? "" : overview}
           ${next ? `<section class="next" aria-labelledby="next-h">
-              <p class="next-kicker"><span id="next-h">${t("today.next")}</span><span>${mins > 0 ? t("today.inMinutes", { n: mins }) : ""}</span></p>
+              <p class="next-kicker"><span id="next-h">${t("today.next")}</span></p>
               <button type="button" class="next-main" data-act="${next.kind === "private" ? "open-session" : "open-occ"}" data-id="${next.id}">
-                ${ios ? `<span class="next-person">${typeBadge(next.kind)}<span class="next-title">${itemTitle(next)}</span></span><span class="next-time t-num">${range(next)}</span>`
-                  : `<span class="next-time t-num">${range(next)}</span><span class="next-person">${typeBadge(next.kind)}<span class="next-title">${itemTitle(next)}</span></span>`}
-                <span class="next-line">${icon("pin", "ico--sm")}${locName(next.loc)}${next.workout ? `<span class="workout-tag">${icon("dumbbell", "ico--sm")}${esc(state.templates[next.workout].name)}</span>` : ""}</span>
+                ${ios ? `<span class="next-person">${typeChip(next.kind)}<span class="next-title">${itemTitle(next)}</span></span><span class="next-time t-num">${range(next)}</span>`
+                  : `<span class="next-time t-num">${range(next)}</span><span class="next-person">${typeChip(next.kind)}<span class="next-title">${itemTitle(next)}</span></span>`}
+                <span class="next-line">${icon("pin", "ico--sm")}${locName(next.loc)}</span>
               </button>
               ${next.kind === "private" ? workoutButton(next) : ""}
             </section>` : `<div class="empty">${icon("today", "ico--xl")}<h2 class="t-headline">${t("today.none")}</h2></div>`}

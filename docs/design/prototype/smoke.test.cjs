@@ -22,6 +22,39 @@ async function pageFor(flow, viewport = { width: 390, height: 844 }) {
 }
 after(async () => { await browser?.close(); });
 
+test('session identity is visible localized text on Today, agenda, detail, add menu and booking', async () => {
+  for (const [lang, labels] of [['nl', ['Privé', 'Groepsles', 'Open Gym']], ['en', ['Private', 'Group class', 'Open Gym']]]) {
+    const { page, errors } = await pageFor(2);
+    await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).first().click();
+    for (const platform of ['ios', 'android']) {
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      assert.equal(await page.locator('.next .chip--private').innerText(), labels[0]);
+      assert.equal(await page.locator('.agenda-list .chip--group').first().innerText(), labels[1]);
+      assert.ok(await page.locator('.agenda-list .chip--group').first().isVisible());
+      await page.locator('.next [data-act="open-session"]').click();
+      assert.equal(await page.locator('.detail-focus .chip--private').innerText(), labels[0]);
+      await page.locator('[data-act="back"]').first().click();
+      await page.locator('[data-act="tab"][data-v="calendar"]').click();
+      assert.ok(await page.locator('.chip--private').first().isVisible());
+      await page.locator('[data-act="tab"][data-v="today"]').click();
+      await page.locator('[data-act="app-new-menu"]').click();
+      assert.equal(await page.locator('.create-tile .chip--private').innerText(), labels[0]);
+      await page.locator('.sheet [data-act="sheet-close"]').click();
+    }
+    await page.locator('[data-act="home"]').click();
+    await startFlow(page, '1');
+    await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
+    assert.equal(await page.locator('.booking-heading .chip--group').innerText(), labels[1]);
+    await page.locator('[data-act="back"]').first().click();
+    await page.locator('[data-act="b-mode"][data-v="openGym"]').click();
+    await page.locator('.day-chip[data-v="2026-09-25"]').click();
+    await page.locator('[data-act="b-pick"][data-id="o-og25"]').click();
+    assert.equal(await page.locator('.booking-heading .chip--open-gym').innerText(), labels[2]);
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
 // Count words actually painted in the viewport, excluding clipped/offscreen text,
 // closed disclosures and text covered by nav, sheets or the prototype toolbar.
 async function viewportWords(page, selector) {
@@ -243,7 +276,7 @@ for (const screen of ['session disclosures', 'workout results']) {
   });
 }
 
-test('owner palette keeps large surfaces, primary actions and navigation monochrome, with colour only in small semantic markers', async () => {
+test('owner palette keeps large surfaces neutral with pastel text chips and a muted violet primary action', async () => {
   const { page, errors } = await pageFor(2);
   for (const platform of ['ios', 'android']) {
     await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
@@ -251,7 +284,7 @@ test('owner palette keeps large surfaces, primary actions and navigation monochr
       await page.locator('.appearance summary').click();
       await page.locator(`[data-act="set-theme"][data-v="${theme}"]`).click();
       await page.locator('.appearance summary').click();
-      const styles = await page.locator('.app, .next, .next .btn--primary, .nav, .tab.is-active, .tab.is-active .tab-ico, .fab, .protobar')
+      const styles = await page.locator('.app, .next, .nav, .tab.is-active, .tab.is-active .tab-ico, .fab, .protobar')
         .evaluateAll((els) => els.flatMap((el) => ['backgroundColor', 'color'].map((property) => ({
           element: el.className, property, value: getComputedStyle(el)[property],
         }))));
@@ -260,12 +293,14 @@ test('owner palette keeps large surfaces, primary actions and navigation monochr
         assert.ok(Math.max(...channels) - Math.min(...channels) <= 8,
           `${platform}/${theme} ${style.element} ${style.property} should be neutral: ${style.value}`);
       }
-      const marker = await page.locator('.next .icon-badge--private').evaluate((el) => ({
-        color: getComputedStyle(el).color, width: el.getBoundingClientRect().width,
-      }));
-      const channels = marker.color.match(/\d+/g).slice(0, 3).map(Number);
-      assert.ok(Math.max(...channels) - Math.min(...channels) > 12, 'small private-session marker retains semantic colour');
-      assert.ok(marker.width <= 40, 'colour stays in a small marker');
+      for (const [selector, light, dark] of [
+        ['.next .chip--private', 'rgb(234, 240, 253)', 'rgb(38, 49, 71)'],
+        ['.agenda-list .chip--group', 'rgb(241, 236, 252)', 'rgb(55, 45, 73)'],
+        ['.next .btn--primary', 'rgb(89, 82, 153)', 'rgb(193, 187, 235)'],
+      ]) {
+        assert.equal(await page.locator(selector).first().evaluate((el) => getComputedStyle(el).backgroundColor),
+          theme === 'light' ? light : dark, `${platform}/${theme} ${selector} uses the restrained accent`);
+      }
     }
   }
   await page.locator('[data-act="home"]').click();
@@ -275,6 +310,53 @@ test('owner palette keeps large surfaces, primary actions and navigation monochr
   assert.ok(Math.max(...channels) - Math.min(...channels) <= 8, 'public brand block is monochrome too');
   assert.deepEqual(errors, []);
   await page.close();
+});
+
+test('typography prioritises headings without bold names, times, labels or logger rows', async () => {
+  const { page } = await pageFor(2);
+  async function weights(selector, max = 500) {
+    const values = await page.locator(selector).evaluateAll((els) => els.map((el) => Number(getComputedStyle(el).fontWeight)));
+    assert.ok(values.length > 0, `${selector} is rendered`);
+    assert.ok(values.every((weight) => weight >= 400 && weight <= max), `${selector}: ${values}`);
+  }
+  for (const platform of ['ios', 'android']) {
+    await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+    await weights('.next-title, .next-time, .next-kicker, .row-title, .row-time, .chip, .btn');
+    await weights('.nav h1', 600);
+    await page.locator('.next [data-act="open-session"]').click();
+    await weights('.detail-time, .disclosure summary, .chip');
+    await page.locator('[data-act="back"]').first().click();
+  }
+  await page.locator('[data-act="home"]').click();
+  await weights('.flow-entry .flow-title');
+  await startFlow(page, '1');
+  await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
+  await weights('.booking-time, .field-label, .chip');
+  await page.locator('[data-act="home"]').click();
+  await startFlow(page, '5');
+  await page.locator('[data-act="log-open"][data-v="0"]').first().click();
+  await weights('.sets th, .set-chip, .stepper-label');
+  await weights('.stepper-value', 600);
+  assert.ok(await page.locator('.stepper-value').first().evaluate((el) => parseFloat(getComputedStyle(el).fontSize) >= 30));
+  await page.close();
+});
+
+test('warm emoji accents are sparse, decorative and never identify session types', async () => {
+  for (const lang of ['nl', 'en']) {
+    const { page } = await pageFor(2);
+    await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).first().click();
+    for (const platform of ['ios', 'android']) {
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      const accents = page.locator('.app .warm-accent');
+      assert.equal(await accents.count(), 2);
+      assert.deepEqual(await accents.allTextContents(), ['👋', '💪']);
+      for (const accent of await accents.all()) assert.equal(await accent.getAttribute('aria-hidden'), 'true');
+      assert.equal(await page.locator('.chip .warm-accent, .session-row .warm-accent').count(), 0);
+      const action = page.locator('.next [data-act="start-log"]');
+      assert.ok(!(await action.ariaSnapshot()).includes('💪'), 'decoration is absent from the accessible action name');
+    }
+    await page.close();
+  }
 });
 
 test('prototype-only Dutch and English keys remain in parity', () => {
@@ -374,14 +456,16 @@ test('app and web add menus use visual action tiles without repeating workspace 
   const { page, errors } = await pageFor(null);
   await page.locator('[data-act="set-me"][data-v="john"]').click();
   await startFlow(page, '7');
-  assert.equal(await page.locator('.sheet .create-grid .icon-badge').count(), 4);
+  assert.equal(await page.locator('.sheet .create-grid .icon-badge').count(), 1, 'only the non-session client action uses an icon badge');
+  assert.deepEqual(await page.locator('.sheet .create-grid .chip').allTextContents(), ['Privé', 'Groepsles', 'Open Gym']);
   assert.ok(await viewportWords(page, '.sheet') <= 25);
   assert.ok((await page.locator('.sheet').innerText()).includes("John's Gym"));
   await page.locator('[data-act="sheet-close"]').first().click();
   await page.locator('[data-act="home"]').click();
   await startFlow(page, '3');
   await page.locator('[data-act="w-new"]').click();
-  assert.equal(await page.locator('.panel .create-grid .icon-badge').count(), 4);
+  assert.equal(await page.locator('.panel .create-grid .icon-badge').count(), 1);
+  assert.deepEqual(await page.locator('.panel .create-grid .chip').allTextContents(), ['Privé', 'Groepsles', 'Open Gym']);
   await page.locator('[data-act="w-pick"][data-v="private"]').click();
   assert.ok(await page.locator('#web-client').isVisible());
   assert.deepEqual(errors, []);

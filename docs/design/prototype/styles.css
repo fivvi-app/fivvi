@@ -446,7 +446,7 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 
 /* These are different native compositions, not one card with two font scales. */
 [data-platform="ios"] .next { border: 0; box-shadow: none; padding: 20px; border-radius: var(--radius-md); }
-[data-platform="ios"] .next > .btn--primary { background: var(--color-action-tonal-bg); color: var(--color-action-tonal-fg); align-self: flex-start; padding: 0 20px; width: auto; min-height: 48px; }
+[data-platform="ios"] .next > .btn--primary { align-self: flex-start; padding: 0 20px; width: auto; min-height: 48px; }
 [data-platform="ios"] .agenda-list { border-radius: var(--radius-md); }
 [data-platform="ios"] .session-row { border-radius: 0; align-items: center; padding: 14px 12px; }
 [data-platform="ios"] .nav-large-title { letter-spacing: -0.03em; }
@@ -486,7 +486,7 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 .stepper-label { font-size: var(--typography-footnote-font-size); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); text-align: center; }
 .stepper-row { display: flex; align-items: center; gap: 4px; }
 .stepper-row .btn--xl { width: 52px; min-height: 56px; border-radius: var(--radius-lg); }
-.stepper-value { flex: 1; min-width: 0; text-align: center; font-size: 26px; line-height: 30px; font-weight: var(--typography-numeric-xl-font-weight); white-space: nowrap; }
+.stepper-value { flex: 1; min-width: 0; text-align: center; font-size: 26px; line-height: 30px; font-weight: var(--font-weight-semibold); white-space: nowrap; }
 .dock-row { display: flex; gap: var(--space-2); }
 .dock-row .btn--xl { border-radius: var(--radius-lg); }
 [data-platform="ios"] .dock-row .btn--xl { border-radius: var(--radius-full); }
@@ -748,3 +748,23 @@ input.stepper-value:focus-visible { outline-offset: -2px; }
 .dc-num { font-size: 20px; line-height: 24px; font-weight: var(--font-weight-bold); }
 .dc-m { font-size: 11px; line-height: 12px; min-height: 12px; }
 .btn--next-day { align-self: flex-start; margin: var(--space-2) 0 0 calc(-1 * var(--space-3)); }
+
+/* Calm hierarchy: size and spacing lead; only headings/results use semibold. */
+.chip, .row-title, .field-label, .flow-title, .flow-no, .create-tile,
+.disclosure > summary, .next-title, .next-kicker, .class-title, .spots,
+.sets thead th, .sets tbody th, .set-pending, .set-chip, .stepper-label,
+.sets tr.is-current td.now .set-cell, .sets tr.is-done td.now .set-cell,
+.ev-title, .cal-lane-head, .day-link, .ag-wd, .dc-wd, .dc-num,
+.ex-no, .ex-count, .att-btn, .nav-text--strong, .nav--md .nav-text,
+.tabbar--android .tab.is-active .tab-label, .pub-lang .seg-btn,
+.demo-tag, .lang-tag, .pb-home, .avatar, .cal-now span,
+.cal-lane-head.is-today .day-link, .day-cell.is-today .day-num {
+  font-weight: var(--font-weight-medium);
+}
+.next-time, .row-time, .detail-time, .booking-time, .class-time, .ev-time {
+  font-weight: var(--font-weight-regular);
+}
+.nav--ios .nav-large-title, .summary-title, .pub-name, .pub-mark,
+.mail-subject, .hold-time { font-weight: var(--font-weight-semibold); }
+.warm-accent { display: inline-block; font-size: 0.8em; line-height: 1; }
+.pub-mark { background: var(--color-bg-subtle); color: var(--color-text-primary); }

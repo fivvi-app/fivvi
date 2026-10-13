@@ -11,6 +11,8 @@
  */
 window.PROTO_STRINGS = {
   nl: {
+    "decoration.greeting": "👋",
+    "decoration.workout": "💪",
     "proto.label": "Prototype",
     "proto.home": "Overzicht",
     "proto.reset": "Demo opnieuw beginnen",
@@ -473,6 +475,8 @@ window.PROTO_STRINGS = {
   },
 
   en: {
+    "decoration.greeting": "👋",
+    "decoration.workout": "💪",
     "proto.label": "Prototype",
     "proto.home": "Overview",
     "proto.reset": "Start the demo over",
