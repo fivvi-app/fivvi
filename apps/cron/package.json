@@ -1,0 +1,24 @@
+{
+  "name": "@trainer-hub/cron",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=../../packages/database/.env src/main.ts",
+    "lint": "biome check --formatter-enabled=false --error-on-warnings .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "format:check": "biome format ."
+  },
+  "dependencies": {
+    "@trainer-hub/database": "workspace:*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@trainer-hub/testing": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

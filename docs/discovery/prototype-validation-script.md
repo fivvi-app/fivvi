@@ -1,6 +1,6 @@
 # Prototype validation script
 
-**Purpose:** test the clickable prototype of the **6 critical flows** (`ROADMAP.md §4.2`), plus flow 7 (adding clients, classes and Open Gym from the app, added in roadmap v1.7), with the gym owner and at least one other trainer, and turn what you see into a ranked findings list. Gate G0 requires "critical flows validated by the pilot owner" (`§4.6`).
+**Purpose:** test the clickable prototype of the **6 critical flows** (`ROADMAP.md §4.2`), plus flow 7 (adding clients, classes and Open Gym from the app, added in roadmap v1.11), with the gym owner and at least one other trainer, and turn what you see into a ranked findings list. Gate G0 requires "critical flows validated by the pilot owner" (`§4.6`).
 
 **You** = the product owner, as facilitator. **P1** = the gym owner. **P2, P3, …** = other trainers. Optionally, **P-K** = a friendly client, for flow 1 only.
 
@@ -347,7 +347,7 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
 | PV-09 | | | | | | | | |
 | PV-10 | | | | | | | | |
 
-**Decision** is one of: *fix in prototype* · *add to GLOSSARY.md* · *1.1 backlog* · *won't do (reason)*.
+**Decision** is one of: *fix in prototype* · *add to the glossaries* · *1.1 backlog* · *won't do (reason)*.
 
 ### Summary per flow
 
@@ -361,7 +361,7 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
 | 6. Class occurrence | | / | | / | ☐ |
 | 7. Add new in the app | | / | | / | ☐ |
 
-**Terminology for `GLOSSARY.md`:** words that caused doubt, with the word the participants would use instead:
+**Terminology for the glossaries (meaning: root `GLOSSARY.md`; Dutch/English wording: `packages/i18n/GLOSSARY.md`):** words that caused doubt, with the word the participants would use instead:
 
 | Word in prototype | Participant would say | Decision |
 |---|---|---|

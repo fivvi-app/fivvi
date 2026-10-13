@@ -1,0 +1,237 @@
+# CI for every pull request and every push to main (E002, E010).
+#
+# The job names ("Detect changes", "Checks (Linux)", "E2E (Linux)", "iOS",
+# "Android") are the intended required checks; see docs/engineering/WORKFLOW.md §7. Renaming a job
+# renames its check, so update WORKFLOW.md in the same PR.
+#
+# New static checks (i18n parity, OpenAPI drift, ...) are added as a `check`
+# script in the package that owns them. Turbo picks them up; no change here.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to a PR cancels the run for the previous push. Runs on main are
+# never cancelled, so every merged commit keeps its own result.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  TZ: UTC
+  NEXT_TELEMETRY_DISABLED: '1'
+  TURBO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      ios: ${{ steps.filter.outputs.ios }}
+      android: ${{ steps.filter.outputs.android }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # A PR checkout is a merge commit whose first parent is the base branch.
+          fetch-depth: 2
+          persist-credentials: false
+
+      - id: filter
+        name: Filter paths
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          base=''
+          if [[ "$EVENT" == 'pull_request' ]]; then
+            base='HEAD^1'
+          elif [[ -n "$BEFORE" && ! "$BEFORE" =~ ^0+$ ]]; then
+            if git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
+              || git fetch --no-tags --depth=1 origin "$BEFORE"; then
+              base="$BEFORE"
+            fi
+          fi
+
+          if [[ -n "$base" ]]; then
+            changed="$(git diff --name-only "$base" HEAD)"
+          else
+            echo 'No base commit to compare with; treating every path as changed.'
+            changed="$(git ls-files)"
+          fi
+
+          # decide <output> <project dir> <path regex>
+          decide() {
+            local run=false
+            if ! grep -qE "$3" <<<"$changed"; then
+              echo "$1: no relevant changes, skipping."
+            elif [[ ! -d "$2" ]]; then
+              echo "$1: $2 does not exist yet (E008), skipping."
+            else
+              run=true
+              echo "$1: relevant changes, running."
+            fi
+            echo "$1=$run" >>"$GITHUB_OUTPUT"
+          }
+
+          decide ios apps/ios '^(apps/ios|packages/contract)/'
+          decide android apps/android '^(apps/android|packages/contract)/'
+
+  checks:
+    name: Checks (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # Integration tests run against real Postgres, the same major version as
+    # compose.yaml and Railway (TESTING.md §5.3). Tests create their own databases.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: trainer_hub
+          POSTGRES_PASSWORD: trainer_hub
+          POSTGRES_DB: trainer_hub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U trainer_hub -d trainer_hub"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      TEST_DATABASE_URL: postgres://trainer_hub:trainer_hub@localhost:5432/trainer_hub
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Reads the version from "packageManager" in package.json.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Turbo's local cache, plus Next.js's own build cache for turbo misses.
+      # Main's cache is readable by every PR; a PR's cache only by that PR.
+      - name: Restore turbo cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .turbo/cache
+            apps/web/.next/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
+      # One turbo run so independent tasks run in parallel. A failing task
+      # doesn't stop the unrelated ones, so one run reports every failure.
+      - name: Lint, typecheck, unit and integration tests, build, format and static checks
+        run: >-
+          pnpm exec turbo run lint typecheck test test:integration build format:check check
+          --cache-dir=.turbo/cache
+          --continue=dependencies-successful
+
+  e2e:
+    name: E2E (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Reuses the build from the latest "Checks (Linux)" cache when nothing changed.
+      # Restore only: that job saves the cache.
+      - name: Restore turbo cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .turbo/cache
+            apps/web/.next/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
+      - name: Read Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --filter @trainer-hub/web exec playwright --version | awk '{print $2}')" >>"$GITHUB_OUTPUT"
+
+      # Browsers are cached per Playwright version; the OS packages they need are not
+      # cacheable, so they are installed on every run.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Chromium and its OS packages
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @trainer-hub/web exec playwright install --with-deps --only-shell chromium
+
+      - name: Install Chromium's OS packages
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @trainer-hub/web exec playwright install-deps chromium
+
+      # Builds the web app, then runs every spec in nl-NL and en with axe checks.
+      - name: Web e2e (nl-NL and en)
+        run: pnpm exec turbo run test:e2e --cache-dir=.turbo/cache
+
+      # Only on failure: artifact storage counts against the free quota.
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  ios:
+    name: iOS
+    needs: changes
+    if: needs.changes.outputs.ios == 'true'
+    # macOS minutes count 10x against the free quota (ROADMAP §12), so this job
+    # only starts when apps/ios or the contract changed. E008 pins the image and
+    # Xcode version.
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Placeholder until E008
+        run: |
+          echo '::error::apps/ios exists, but this job is still the E002 placeholder. Replace it with the iOS build and tests (E008).'
+          exit 1
+
+  android:
+    name: Android
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Placeholder until E008
+        run: |
+          echo '::error::apps/android exists, but this job is still the E002 placeholder. Replace it with the Android build and tests (E008).'
+          exit 1

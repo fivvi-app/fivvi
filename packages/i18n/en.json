@@ -1,0 +1,29 @@
+{
+  "app": {
+    "title": "Trainer Hub"
+  },
+  "hello": {
+    "title": "Welcome to Trainer Hub",
+    "greeting": "Hi {name},",
+    "sessionsToday": "{count, plural, one {You have # session today.} other {You have # sessions today.}}",
+    "noSessionsToday": "You have no sessions today.",
+    "nextSession": "Your next session is on {date} at {time}."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "We can't find this page. Check the link and try again."
+  },
+  "email": {
+    "layout": {
+      "footer": "This email was sent by Trainer Hub."
+    },
+    "hello": {
+      "subject": "Test message from Trainer Hub",
+      "preview": "If you can read this, emails from Trainer Hub are getting through.",
+      "greeting": "Hi {firstName},",
+      "greetingWithoutName": "Hi,",
+      "body": "This is a test message. If you can read this, emails from Trainer Hub are getting through.",
+      "sentAt": "Sent on {date} at {time}."
+    }
+  }
+}

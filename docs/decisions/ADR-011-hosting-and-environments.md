@@ -98,6 +98,35 @@ The decision assumes these hold. If one fails, stop and bring it to the owner. O
 3. The cron service can run the daily job with the privileged DB role (ADR-006) and report failures to Sentry (ADR-013).
 4. The public booking page meets LCP < 2.5 s on a mid-range phone over 4G when served from Amsterdam (can be measured in M5; Cloudflare in front is the fallback).
 
+### M1 spike results (E003, 3 October 2026)
+
+Measured on the `trainer-hub` project (Railway **Hobby**, EU West Amsterdam) with the setup in [`ENVIRONMENTS.md`](../engineering/ENVIRONMENTS.md): `web`, `postgres` and `cron` from one Dockerfile, managed by `.railway/railway.ts`; `development` is the base environment of every PR environment. Two PR environments were open during the spike (PR #17 and PR #18).
+
+**Condition 1: met.**
+
+- Each PR environment gets its own Postgres (`postgres-ssl:18`, its own volume in `europe-west4-drams3a`), copied from `development`. The web pre-deploy step migrated and seeded it before the first deploy got traffic ("Migrations applied.", "Seed data inserted."). Smoke check on PR #17: `/api/v1/health` 200 with the database `ok`.
+- Measured idle memory: Postgres 42–71 MB, `web` 51 MB while awake, `cron` only runs for seconds a day. Production's idle Postgres cost **$0.059 over 3.7 days ≈ $0.45/month** (memory, plus ~$0.02 for the volume); CPU and egress round to zero.
+- Previews' `web` sleeps after 10 idle minutes and woke in **1.2 s** (warm: 55 ms). An open preview therefore costs about **$0.5–0.8/month**, mostly its Postgres. **3–4 previews open for a whole month: ≈ $2–3**; PRs that live a few days cost cents.
+- Deletion on merge/close is documented by Railway; it is checked again in PR #17's post-merge cleanup (`WORKFLOW.md §5`).
+
+**Condition 2: restore verified on Hobby; scheduled backups need Pro and can only be verified at G4.**
+
+- **Volume backups** (scheduled and on-demand): refused on Hobby (`Not Authorized`). Railway gates them to Pro (community reports; the docs don't state it).
+- **Postgres point-in-time recovery (PITR)** *can* be enabled on Hobby. It creates an S3 bucket in `ams`, takes a base backup when enabled and archives WAL with pgBackRest. Scheduled and on-demand PITR backups are refused on Hobby.
+- **Restore drill (into a scratch service):** in `development`, a marker row `before` at 13:18:18 UTC and `after` at 13:19:29; `railway postgres pitr restore --at 13:18:30Z` created a new service that came up about 2 minutes later containing only `before`. The scratch services, the marker table and PITR were removed afterwards.
+- **Open for G4 (E016):** right after the Pro upgrade, enable daily backups and repeat the drill. **Before real data arrives (G2):** enable PITR on production (works on Hobby; storage-billed, cents at this size). Both are owner decisions.
+
+**Monthly cost estimate.** Build phase (Hobby): production ≈ $1–1.5 (Postgres ≈ $0.45, `web` always on ≈ $0.5–1, `cron` ≈ $0), `development` ≈ $0.5–1, plus ≈ $0.5–0.8 per open preview: **≈ $2–5/month for this project**. The $5 Hobby credit is shared by the workspace, and another project in it already uses about $5/month, so this usage is billed on top; the workspace has a $5 soft and $10 hard usage limit. From G4 (Pro): the estimate of ≈ $5–10 usage at pilot volume stands, inside Pro's $20 credit, so **$20/month flat**.
+
+**Findings that shaped the setup** (details in `ENVIRONMENTS.md`):
+
+- Railway injects `PORT=8080`. The Railway domain targets 3000, so `web` pins `PORT=3000`; without that, the deploy health check passes but the public URL answers 502.
+- When the IaC file adds Postgres to a *second* environment, Railway stores the password generator as plain text: `development`'s `POSTGRES_PASSWORD` was the literal `secret(32, "…")`, and PR environments copied it. Production, created first, got a random value. Fix: the owner sets a random `POSTGRES_PASSWORD` in `development` and re-initialises its (demo-only) database; previews then share that value, which is acceptable for demo data on the private network. To report to Railway.
+- Settings equal to Railway's defaults show as drift on every plan, and a first apply that creates services needs a second run. Both are documented in `ENVIRONMENTS.md`.
+- A PITR bucket stays at project level after PITR is disabled, and neither the CLI nor the API can delete it; it's removed in the dashboard.
+
+Conditions 3 (cron with the privileged role, failures to Sentry) and 4 (LCP) are checked by E012/E009 and in M5.
+
 ## Consequences
 
 - **Positive:** no extra spend during the build (the Hobby plan is already paid); at G4, a flat **$20/month** instead of roughly $20–40.
@@ -133,3 +162,5 @@ Checked 22 September 2026:
 - [Railway regions](https://docs.railway.com/reference/deployment-regions) · [Railway environments](https://docs.railway.com/guides/environments) · [Railway cron jobs](https://docs.railway.com/reference/cron-jobs)
 - [Railway backups](https://docs.railway.com/volumes/backups) · [Railway PITR](https://docs.railway.com/volumes/point-in-time-recovery)
 - [Neon pricing](https://neon.com/pricing) · [Neon regions](https://neon.com/docs/introduction/regions)
+
+Checked 3 October 2026 (M1 spike): [Railway Infrastructure as Code](https://docs.railway.com/infrastructure-as-code) · [`railway config` CLI](https://docs.railway.com/cli/config) · [Station: volume backups on Hobby](https://station.railway.com/feedback/volume-backups-e599f60e)

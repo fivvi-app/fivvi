@@ -1,0 +1,29 @@
+{
+  "app": {
+    "title": "Trainer Hub"
+  },
+  "hello": {
+    "title": "Welkom bij Trainer Hub",
+    "greeting": "Hoi {name},",
+    "sessionsToday": "{count, plural, one {Je hebt vandaag # sessie.} other {Je hebt vandaag # sessies.}}",
+    "noSessionsToday": "Je hebt vandaag geen sessies.",
+    "nextSession": "Je volgende sessie is op {date} om {time}."
+  },
+  "notFound": {
+    "title": "Pagina niet gevonden",
+    "body": "We kunnen deze pagina niet vinden. Controleer de link en probeer het opnieuw."
+  },
+  "email": {
+    "layout": {
+      "footer": "Deze e-mail is verstuurd door Trainer Hub."
+    },
+    "hello": {
+      "subject": "Testbericht van Trainer Hub",
+      "preview": "Als je dit leest, komen e-mails van Trainer Hub goed aan.",
+      "greeting": "Hoi {firstName},",
+      "greetingWithoutName": "Hoi,",
+      "body": "Dit is een testbericht. Als je dit leest, komen e-mails van Trainer Hub goed aan.",
+      "sentAt": "Verstuurd op {date} om {time}."
+    }
+  }
+}

@@ -1,0 +1,51 @@
+packages:
+  - apps/*
+  - packages/*
+  # Pinned code generators for packages/contract (see its README).
+  - packages/contract/tools/*
+
+# Refuse dependencies whose "engines" exclude our Node version. The Node version
+# of this repo itself is enforced by "devEngines.runtime" in package.json.
+engineStrict: true
+
+# Shared dependency versions. Workspace packages reference them as "catalog:".
+catalog:
+  # Exact: we enable nursery rules, which may change in minor releases.
+  '@biomejs/biome': 2.5.14
+  '@axe-core/playwright': ^4.13.0
+  '@formatjs/icu-messageformat-parser': ^3.5.20
+  '@hono/zod-openapi': ^1.6.3
+  # Exact: CI caches the browsers per Playwright version.
+  '@playwright/test': 1.63.0
+  '@types/node': ^26.6.2
+  '@types/pg': ^8.23.1
+  '@types/react': ^19.3.0
+  '@types/react-dom': ^19.3.0
+  drizzle-kit: ^0.31.11
+  drizzle-orm: ^0.45.3
+  hono: ^4.13.8
+  next: 16.3.6
+  next-intl: ^4.14.6
+  openapi-fetch: ^0.17.0
+  pg: ^8.23.0
+  # Exact: the Railway IaC SDK is in beta and may break in minor releases (.railway/).
+  railway: 3.11.0
+  react: ^19.3.0
+  react-dom: ^19.3.0
+  react-email: ^6.11.0
+  tsx: ^4.23.15
+  turbo: ^2.11.2
+  typescript: ~7.0.2
+  use-intl: ^4.14.6
+  vitest: ^5.0.1
+  zod: ^4.6.5
+
+# Dependency install scripts we have reviewed and keep disabled:
+# - esbuild (via drizzle-kit) works without its postinstall step, because pnpm
+#   installs the platform binary anyway.
+# - @parcel/watcher and @swc/core belong to next-intl's optional message
+#   extractor, which we don't use.
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
+  esbuild: false

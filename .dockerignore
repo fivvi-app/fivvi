@@ -1,0 +1,17 @@
+# Keep the build context small and free of secrets and local state.
+.git
+.worktrees
+.claude
+.railway
+docs
+**/node_modules
+**/.next
+**/.turbo
+**/.vitest
+**/coverage
+**/.build
+**/.swiftpm
+**/.env
+**/.env.*
+**/*.log
+**/.DS_Store

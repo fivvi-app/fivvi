@@ -2,7 +2,7 @@
 
 **Session → start workout (empty, repeat previous, or template) → log sets → finish with an internal note → optionally save as template and share a recap**
 
-> **Updated 23 September 2026 (prototype feedback, `ROADMAP` v1.7).** A workout never needs a prior plan. WL-01 puts *Lege training* first and adds *Vorige training herhalen* (F051, moved from Release 1.1). Sets are prefilled and logged with one tap on their check. WL-05 can save the workout as a template. A workout can also start from a client profile without a planned session.
+> **Updated 23 September 2026 (prototype feedback, `ROADMAP` v1.11).** A workout never needs a prior plan. WL-01 puts *Lege training* first and adds *Vorige training herhalen* (F051, moved from Release 1.1). Sets are prefilled and logged with one tap on their check. WL-05 can save the workout as a template. A workout can also start from a client profile without a planned session.
 
 | | |
 |---|---|

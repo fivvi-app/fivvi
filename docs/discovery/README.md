@@ -75,7 +75,7 @@ Each result feeds a follow-up change (each on its own branch, per `WORKFLOW.md`)
 - [ ] Tick the §4.1 checkboxes in `ROADMAP.md` that are done.
 - [ ] Replace the ⚑ targets in `ROADMAP.md §8` with the agreed values, and add a changelog line.
 - [ ] Record the minimum iOS and Android versions in the ADR-003 write-up (`docs/decisions/`).
-- [ ] Use the agreed import scope and formats in the E015 feature doc (data import tooling, M9).
+- [ ] Use the agreed import scope and formats in the E015 spec issue (data import tooling, M9).
 - [ ] Turn prototype findings into wireframe and prototype changes (§4.2). Put confusing Dutch words into `packages/i18n/GLOSSARY.md`, and put post-MVP wishes in the 1.1 backlog (R7).
 
 ### What this covers for Gate G0 (§4.6)

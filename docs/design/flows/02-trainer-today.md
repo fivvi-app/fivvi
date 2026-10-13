@@ -277,7 +277,7 @@ flowchart TD
 
 ### TD-05 · Nieuw (+) / New
 
-**Features:** F020, F006, F021, F022, F034 · Added 23 September 2026 after prototype feedback (`ROADMAP` v1.7). A bottom sheet from **+** on *Vandaag*, *Agenda* and *Klanten* (on *Klanten*, **+** goes straight to *Nieuwe klant*).
+**Features:** F020, F006, F021, F022, F034 · Added 23 September 2026 after prototype feedback (`ROADMAP` v1.11). A bottom sheet from **+** on *Vandaag*, *Agenda* and *Klanten* (on *Klanten*, **+** goes straight to *Nieuwe klant*).
 
 ```text
 ┌────────────────────────────────────────┐

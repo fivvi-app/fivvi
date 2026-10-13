@@ -1,0 +1,50 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "globalDependencies": [".nvmrc", "tsconfig.base.json", "biome.json", ".gitignore"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build", "typecheck"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "dependsOn": ["^build", "//#lint:root"]
+    },
+    "test": {
+      "dependsOn": ["^build", "//#test:root"]
+    },
+    "test:integration": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": ["TEST_DATABASE_URL", "DATABASE_URL"]
+    },
+    "test:e2e": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "passThroughEnv": ["CI", "E2E_PORT", "PLAYWRIGHT_BROWSERS_PATH"]
+    },
+    "check": {
+      "dependsOn": ["^build", "//#check:root"]
+    },
+    "format:check": {
+      "dependsOn": ["//#format:check:root"]
+    },
+    "//#format:check:root": {},
+    "//#lint:root": {
+      "inputs": [".claude/**", "scripts/**", ".githooks/**", ".shellcheckrc"]
+    },
+    "//#test:root": {
+      "inputs": [".claude/**", "scripts/**", ".githooks/**"]
+    },
+    "//#check:root": {
+      "inputs": [".agents/**", "scripts/skills.sh", "scripts/_lib.sh"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

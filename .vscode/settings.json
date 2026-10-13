@@ -1,0 +1,7 @@
+{
+  "git.autoRepositoryDetection": true,
+  "git.repositoryScanMaxDepth": 3,
+  "git.detectWorktrees": true,
+  "chat.useAgentsMdFile": true,
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true
+}

@@ -1,0 +1,195 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Trainer Hub API",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "/api"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/HealthCheckStatus"
+          },
+          "checks": {
+            "type": "object",
+            "properties": {
+              "database": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/HealthCheckStatus"
+                  },
+                  {
+                    "description": "Postgres answered a ping."
+                  }
+                ]
+              }
+            },
+            "required": [
+              "database"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "checks"
+        ],
+        "description": "Liveness of the API and its dependencies. Contains no error details."
+      },
+      "HealthCheckStatus": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "unavailable"
+        ],
+        "description": "`ok` only when every check is `ok`."
+      },
+      "HelloResponse": {
+        "type": "object",
+        "properties": {
+          "greetingKey": {
+            "type": "string",
+            "description": "i18n message key that the client renders in `locale`.",
+            "example": "hello.title"
+          },
+          "locale": {
+            "$ref": "#/components/schemas/Locale"
+          }
+        },
+        "required": [
+          "greetingKey",
+          "locale"
+        ]
+      },
+      "Locale": {
+        "type": "string",
+        "enum": [
+          "nl-NL",
+          "en"
+        ],
+        "description": "Catalog locale from packages/i18n. Dutch (nl-NL) is the default."
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "validation_failed"
+            ]
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Dot-separated path of the invalid field."
+                },
+                "code": {
+                  "type": "string",
+                  "description": "Machine-readable issue code."
+                }
+              },
+              "required": [
+                "path",
+                "code"
+              ]
+            }
+          }
+        },
+        "required": [
+          "code",
+          "issues"
+        ],
+        "description": "The request did not match the contract. Contains no user-facing text."
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": [
+          "health"
+        ],
+        "summary": "Health check",
+        "description": "Pings the database. Railway uses it as the deploy health check, so a deployment that can't reach Postgres never receives traffic.",
+        "responses": {
+          "200": {
+            "description": "The API and all its dependencies are healthy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/hello": {
+      "get": {
+        "operationId": "getHello",
+        "tags": [
+          "hello"
+        ],
+        "summary": "Greeting for the walking skeleton",
+        "description": "Without `locale`, the locale follows the Accept-Language header and falls back to nl-NL.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/Locale"
+            },
+            "required": false,
+            "description": "Catalog locale from packages/i18n. Dutch (nl-NL) is the default.",
+            "name": "locale",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The greeting key and the locale to render it in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HelloResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}

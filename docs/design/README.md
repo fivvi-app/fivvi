@@ -25,7 +25,7 @@ Low-fidelity UX for the MVP (roadmap task **M0 / §4.2**). Everything here is wr
 | [flows/06-class-occurrence.md](flows/06-class-occurrence.md) | Manage a class occurrence: substitution, cancellation, attendance |
 | [open-questions.md](open-questions.md) | Questions to validate with the pilot owner, plus spec gaps for the product owner |
 
-The [clickable prototype](prototype/README.md) implements the six flows for M0 validation, plus flow 7 (adding clients, classes and Open Gym from the app, roadmap v1.7). The [visual direction](visual-direction.md) and [draft tokens](tokens.draft.json) are inputs to E007 in M1.
+The [clickable prototype](prototype/README.md) implements the six flows for M0 validation, plus flow 7 (adding clients, classes and Open Gym from the app, roadmap v1.11). The [visual direction](visual-direction.md) and [draft tokens](tokens.draft.json) are inputs to E007 in M1.
 
 ## How to read the flow documents
 
@@ -42,7 +42,7 @@ Every flow document uses the same structure:
 
 ### Screen IDs
 
-Screen IDs are stable references for feature docs, tests and the prototype. Keep them when you change a screen.
+Screen IDs are stable references for spec issues, tests and the prototype. Keep them when you change a screen.
 
 | Prefix | Area | Defined in |
 |---|---|---|
@@ -79,7 +79,7 @@ Wireframes are deliberately rough. They show **content, hierarchy and actions**,
 - Never show technical words to users: no "magic link", "token", "occurrence", "workspace ID" or "pending_verification".
 - Dates and times follow the formats in [information-architecture.md §9.3](information-architecture.md#93-dates-times-and-numbers). The Dutch examples use `22 september 2026` and `18:00`.
 - Plurals are written as ICU MessageFormat where they matter, e.g. `{count, plural, one {# plek} other {# plekken}} beschikbaar`.
-- Copy in these documents is **proposed copy**. It goes into `packages/i18n/{nl-NL,en}.json` when the feature is built and passes the local copy review against `GLOSSARY.md`.
+- Copy in these documents is **proposed copy**. It goes into `packages/i18n/{nl-NL,en}.json` when the feature is built and passes the local copy review against `packages/i18n/GLOSSARY.md`.
 
 ### Terminology
 
@@ -88,6 +88,6 @@ Wireframes are deliberately rough. They show **content, hierarchy and actions**,
 ## What happens next
 
 1. Walk the pilot owner through the six flows and [open-questions.md](open-questions.md) (ideally during the shadow day, `ROADMAP.md §4.1`).
-2. Record the answers in `open-questions.md`, update the affected screens, and move the resolved terms into `GLOSSARY.md`.
+2. Record the answers in `open-questions.md`, update the affected screens, and move the resolved terms into the glossaries: the meaning into the root `GLOSSARY.md`, the NL/EN wording into `packages/i18n/GLOSSARY.md`.
 3. Test the [clickable prototype](prototype/README.md) with the pilot owner and another trainer using the [validation script](../discovery/prototype-validation-script.md).
-4. Each feature doc (`docs/features/F0xx-*.md`) links the screens it implements under **UX** (see [`_TEMPLATE.md`](../features/_TEMPLATE.md)).
+4. Each spec issue lists the screens it implements under **UX** (`docs/agents/issue-tracker.md`).

@@ -1,0 +1,8 @@
+{
+  "library": "jvm-retrofit2",
+  "serializationLibrary": "kotlinx_serialization",
+  "useCoroutines": true,
+  "packageName": "nl.trainerhub.api",
+  "enumPropertyNaming": "UPPERCASE",
+  "omitGradleWrapper": true
+}

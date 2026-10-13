@@ -1,0 +1,14 @@
+{
+  "name": "@trainer-hub/typescript-generator",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pinned openapi-typescript for packages/contract. It needs the TypeScript 5 compiler API, which TypeScript 7 no longer ships, so it gets its own TypeScript.",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "dependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

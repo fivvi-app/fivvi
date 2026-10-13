@@ -1,21 +1,37 @@
 # Dependencies
 node_modules/
+.pnpm-store/
 
 # Build output
 dist/
 build/
+out/
 .next/
+next-env.d.ts
+*.tsbuildinfo
 .turbo/
 .expo/
 coverage/
+
+# Playwright output (apps/web)
+playwright-report/
+test-results/
+blob-report/
+
+# Swift packages (packages/contract)
+.build/
+.swiftpm/
+packages/contract/swift/Package.resolved
 
 # Environment
 .env
 .env.*
 !.env.example
 
-# Local git worktrees (one per branch, see docs/engineering/WORKFLOW.md)
+# Local git worktrees (one per branch) and per-ticket agent notes (scripts/flow.sh)
 .worktrees/
+.work/
+.claude/worktrees/
 
 # Local tooling
 .claude/settings.local.json

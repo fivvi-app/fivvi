@@ -1,0 +1,47 @@
+{
+  "name": "trainer-hub",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=26.8.0 <27"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=26.8.0 <27",
+      "onFail": "error"
+    }
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "test:e2e": "turbo run test:e2e",
+    "format:check": "turbo run format:check",
+    "check": "turbo run check",
+    "generate:contract": "pnpm --filter @trainer-hub/contract generate",
+    "format:check:root": "biome format ./*.json .claude scripts/test",
+    "lint:root": "biome lint .claude scripts/test && shellcheck -x scripts/*.sh .githooks/*",
+    "check:root": "scripts/skills.sh check",
+    "test:root": "node --test '.claude/hooks/*.test.mjs' 'scripts/test/*.test.mjs'",
+    "format": "biome format --write .",
+    "fix": "biome check --write .",
+    "db:up": "docker compose up --detach --wait postgres",
+    "db:down": "docker compose down",
+    "db:generate": "pnpm --filter @trainer-hub/database db:generate",
+    "db:migrate": "pnpm --filter @trainer-hub/database db:migrate",
+    "db:seed": "pnpm --filter @trainer-hub/database db:seed",
+    "email:preview": "pnpm --filter @trainer-hub/email preview",
+    "email:send-test": "pnpm --filter @trainer-hub/email send:test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "railway": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:"
+  }
+}
