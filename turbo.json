@@ -37,7 +37,14 @@
       "inputs": [".claude/**", "scripts/**", ".githooks/**", ".shellcheckrc"]
     },
     "//#test:root": {
-      "inputs": [".claude/**", "scripts/**", ".githooks/**"]
+      "inputs": [
+        ".claude/**",
+        "scripts/**",
+        ".githooks/**",
+        ".github/rulesets/**",
+        ".github/repo-settings.json",
+        ".github/workflows/ci.yml"
+      ]
     },
     "//#check:root": {
       "inputs": [".agents/**", "scripts/skills.sh", "scripts/_lib.sh"]

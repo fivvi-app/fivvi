@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.9 |
+| **Version** | 1.12 |
 | **Date** | 22 September 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
 | **Builders** | AI coding agents: GitHub Copilot (VS Code + CLI), Claude Code and Codex, working in parallel worktrees |
-| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7; GitHub Copilot added as a builder in v1.8; Matt Pocock's skills and GitHub issue specs in v1.9 |
+| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7; GitHub Copilot added as a builder in v1.8; Matt Pocock's skills and GitHub issue specs in v1.9; agents merge low-risk PRs in v1.12 (ADR-016, proposed) |
 | **Requirements source** | [`PRODUCT.md`](PRODUCT.md) (what we build and why) |
 | **Feature registry** | [`FEATURES.md`](FEATURES.md) (status of every feature) |
 | **Engineering workflow** | [`../engineering/WORKFLOW.md`](../engineering/WORKFLOW.md) (branches, worktrees, reviews, cleanup, Definition of Done) |
@@ -68,7 +68,7 @@ These principles govern *how* we deliver. The product principles in `PRODUCT.md 
 5. **Walking skeleton first.** Web, iOS, Android, API, database, email and CI are all connected in M1, before any feature work.
 6. **Pilot evidence beats opinion.** After MVP, a release is scoped only from observed pilot usage, and each post-MVP release has an entry gate.
 7. **Security and privacy by default.** Notes can contain health information. Least-privilege access, trainer-only by default, EU data residency and a processor agreement with every workspace.
-8. **Agents build, the owner decides.** Agents work in small, reviewable PRs, one per worktree. Agent review is local and is not a GitHub PR or CI gate. Every milestone gate needs the owner's approval. Rules for agents live in `AGENTS.md`, which every agent reads (Copilot and Codex directly, Claude Code through `CLAUDE.md`).
+8. **Agents build, the owner decides.** Agents work in small, reviewable PRs, one per worktree. Agent review is local and is not a GitHub PR or CI gate. The owner approves specs and merges high-risk PRs; agents merge low-risk PRs through a scripted merge gate (ADR-016). Every milestone gate needs the owner's approval. Rules for agents live in `AGENTS.md`, which every agent reads (Copilot and Codex directly, Claude Code through `CLAUDE.md`).
 9. **Free-tier first.** Every service starts on a free plan. Moving to a paid plan is triggered by real clients (Gate G4) or a hard limit, never by convenience (§12).
 10. **Documentation is part of the change.** The spec issue, the `FEATURES.md` status and the domain glossary are updated with the code; the PR closes the spec and its tickets.
 11. **One change, one branch, one worktree. Clean up afterwards.** See `WORKFLOW.md`.
@@ -214,6 +214,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 | [013](../decisions/ADR-013-observability.md) | Observability | **Free tiers:** Sentry (EU region; web, iOS, Android, API), UptimeRobot / Better Stack uptime checks, PostHog EU (cookieless mode) for product events | Accepted | Pilot observation (§85 J) needs data; cookieless means no consent banner |
 | [014](../decisions/ADR-014-testing.md) | Testing | **Vitest** (unit + integration against real Postgres), **Playwright** (web e2e in NL and EN), **XCTest/XCUITest** (iOS), **JUnit + Compose UI tests** (Android), **Maestro** for shared cross-platform mobile flows | Accepted | Booking and tenancy bugs are the most expensive; Maestro runs the same flow on both native apps |
 | [015](../decisions/ADR-015-ui-foundation.md) | UI foundation | **Shared design tokens** (Style Dictionary) → web (Tailwind + shadcn/ui), iOS (SwiftUI), Android (Compose + Material 3) | Accepted | Share tokens, contract and strings, not components |
+| [016](../decisions/ADR-016-agent-merges.md) | Agent merges | **Agents merge low-risk PRs** through a scripted merge gate (`scripts/pr.sh merge`); risk comes from changed paths and the `owner-merge` label (`scripts/risk.sh`); a GitHub ruleset enforces the CI checks on `main`; specs need `spec-approved` | Proposed | The owner's merge was the bottleneck for changes without real risk; high-risk work, including the factory's own guardrails, still goes to the owner |
 
 ### 4.4 Legal and privacy preparation
 
@@ -236,7 +237,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 - [x] **Working name:** Trainer Hub.
 - [ ] **Domain:** decide and buy one before M5 (see §12), because email deliverability and deep links need it.
 - [x] GitHub repository is private.
-- [ ] Branch protection on `main`: GitHub reports this unavailable on the current private-repository plan; revisit the plan or repository visibility before enabling it.
+- [ ] Ruleset on `main` (GitHub Pro): apply `.github/rulesets/main.json`, the squash-only merge settings and the `spec-approved` and `owner-merge` labels with `scripts/github-settings.sh apply` (ADR-016). Then the orchestrator lists the open specs without `spec-approved` for the owner to approve.
 - [x] Accounts: Railway Hobby (already paid; EU West Amsterdam, ADR-011) and Brevo (owner account created).
 - [x] Sentry account created by the owner on a personal account. Confirm that the Trainer Hub organization uses the EU data region and complete the DPA and privacy configuration in E009 before sending data.
 - [x] PostHog account created by the owner on a personal account. Confirm EU Cloud and configure cookieless, allowlisted events and privacy settings in E009 before sending data.
@@ -354,6 +355,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 **Exit criteria**
 - A full real week of the pilot gym is represented correctly, including a substitution and a cancellation.
 - Owner sees the workspace-wide "Today" (§45); a trainer sees "My day" across workspaces (§46–47).
+- Production releases need the owner's approval: once real names are in production, an agent merge to `main` no longer releases by itself. The release step is built before G2 (ADR-016, decision 6).
 
 ---
 
@@ -744,3 +746,4 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-10-04 | 1.7 | **E006 email infrastructure** implemented (`packages/email`: React Email templates from the i18n catalogs, `sendEmail` with Brevo and inline retry). G1 email criterion met for Gmail (NL and EN in the inbox, 2026-10-03); other mailbox providers stay with the M5 deliverability tests. Brevo terms checked: 300 emails/day on the free plan, EU storage with support access from the US and India, DPA part of the terms; previews off, logs kept 1 month, anonymous tracking on. Updated ADR-009 row, §12 email row and R1 (tracking off before G2). |
 | 2026-10-13 | 1.8 | Owner added **GitHub Copilot** (VS Code + CLI, not the cloud agent) as a builder next to Claude Code and Codex. `AGENTS.md` is the single, tool-neutral rule file, with area rules in `.github/instructions/`, workflow skills in `.agents/skills/` (start, local review, cleanup) and an edit guard hook (`.claude/settings.json`) that blocks edits on `main` and of generated files for Copilot and Claude Code. Agent review stays local; Copilot code review is not used in GitHub. Updated `WORKFLOW.md` and the legal drafts (`role-mapping.md` §6.6, `sub-processors.md` §5). |
 | 2026-10-13 | 1.9 | Owner adopted **Matt Pocock's way of working** (github.com/mattpocock/skills, MIT) for all three agents, modelled on the owner's mijn-hcs repo. Matt's skills are vendored and pinned in `.agents/skills/` (`scripts/skills.sh`; symlinks for Claude Code); our `work` skill orchestrates them with the `implementer` and `reviewer` subagents, so the owner only talks. Deterministic scripts do the repetitive steps: `flow.sh` (phase and next step per issue, decided by a tested `flow-phase.jq`), `issue.sh`, `wt.sh`, `pr.sh`, `check.sh`, `bootstrap.sh`, plus a commit-msg hook. Specs and tickets move to **GitHub issues** (sub-issues with native blocking edges, triage labels); `docs/features/` and its template are retired, which deviates from the location in `PRODUCT.md §80–82` (the fields stay). One PR per ticket, at most three in parallel. The domain language moves to a root `GLOSSARY.md`; `packages/i18n/GLOSSARY.md` keeps the NL/EN wording. New `CODING_STANDARDS.md` for reviews. Updated `AGENTS.md`, `WORKFLOW.md`, `TESTING.md`, `FEATURES.md`. |
+| 2026-10-13 | 1.12 | Owner decided the **software factory** (#28, ADR-016 proposed): agents take approved work to `main` and stop only for the owner. A script decides risk from the changed paths (`scripts/high-risk-paths.txt`: auth, tenant data, health notes, legal, billing, product and decision docs, the factory's own guardrails, dependencies and infrastructure) and the `owner-merge` label (`scripts/risk.sh`). Agents merge low-risk PRs with `scripts/pr.sh merge`, only when every check passed on the head commit, both local reviewers were clean on it (`pr.sh reviewed`), the preview smoke check is recorded for the head commit, the branch is up to date and no thread is open; high-risk PRs go to the owner. The owner moved to GitHub Pro, so a versioned ruleset on `main` now enforces the five CI jobs, a PR and an up-to-date branch, and blocks force-pushes and deletion; squash merge only (`scripts/github-settings.sh`). Specs need the owner's `spec-approved` label before tickets are cut; a material change removes it. The `work` skill gets a "run the factory" route. New G2 exit criterion: the owner approves production releases once real names are in production. Measure T12 of the processor agreement now says the owner approves every merge of a high-risk change (owner-approved wording). Updated `AGENTS.md`, `WORKFLOW.md`, `docs/agents/`, `docs/legal/verwerkersovereenkomst.md`. |

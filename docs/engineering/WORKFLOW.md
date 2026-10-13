@@ -31,10 +31,10 @@ We follow [Matt Pocock's skills](https://github.com/mattpocock/skills). The owne
 | Step | Skill | Script | Result | Who decides |
 |---|---|---|---|---|
 | 1. Align | `grill-with-docs` | | Shared understanding; `GLOSSARY.md` and ADR proposals updated | Owner answers |
-| 2. Spec | `to-spec` | `issue.sh create spec` | Spec issue `[F0xx] …`: ACs (NL/EN), Test plan, platforms, languages | Owner reviews on GitHub |
-| 3. Tickets | `to-tickets` | `issue.sh create ticket --parent --blocked-by` | Tracer-bullet sub-issues with blocking edges, `ready-for-agent` | Owner approves the breakdown |
+| 2. Spec | `to-spec` | `issue.sh create spec` | Spec issue `[F0xx] …`: ACs (NL/EN), Test plan, platforms, languages | Owner reviews on GitHub and approves with the `spec-approved` label |
+| 3. Tickets | `to-tickets` | `issue.sh create ticket --parent --blocked-by` | Tracer-bullet sub-issues with blocking edges, `ready-for-agent` | Agents, only for an approved spec |
 | 4. Build | `tdd` (implementer), `code-review` axes (two reviewers) | `flow.sh start`, `check.sh` | One ticket per worktree, at most three in parallel, test-first, self-reviewed | Agents |
-| 5. Ship | `pr` | `pr.sh create`, `wait`, `smoke`, `ready` | One draft → ready PR per ticket that `Closes #<n>`, CI green, preview smoke-checked | Owner approves, squash merge |
+| 5. Ship | `pr` | `pr.sh create`, `reviewed`, `wait`, `smoke`, `ready`, `merge` | One draft → ready PR per ticket that `Closes #<n>`, CI green, self-review and preview smoke check recorded for the head commit, squash-merged | Agents merge low-risk PRs through the merge gate; the owner merges high-risk ones (§4) |
 | 6. Clean up | | `flow.sh finish` | No worktree or branch left; the spec's next ready tickets | Agent |
 
 Bugs go through `triage` and `diagnosing-bugs` (failing test first). `implement-spec` (one integration branch for a whole spec) stays available when the owner asks for it.
@@ -45,7 +45,7 @@ Bugs go through `triage` and `diagnosing-bugs` (failing test first). `implement-
 - The PR of a spec's first ticket sets its `FEATURES.md` status to `IN PROGRESS`, the last one to `IMPLEMENTED` (`flow.sh` prints the hint). The feature's ID links the spec issue.
 - An API change regenerates `packages/contract` (OpenAPI + TS/Swift/Kotlin clients) in the same PR. A string change edits only `packages/i18n/*.json` and regenerates the native catalogs in the same PR.
 - Every PR that touches a Railway watch pattern gets a preview (its own migrated and seeded Postgres); `pr.sh smoke` checks it and records the result in the PR description. Merging to `main` deploys production ([`ENVIRONMENTS.md`](ENVIRONMENTS.md)).
-- Merge strategy: **squash merge** into `main` after the deterministic CI checks (§7) are green and the owner approves.
+- Merge strategy: **squash merge** into `main`, the only method the repo allows, after the required CI checks (§7) pass. Who merges depends on the PR's risk (§4).
 
 ## 4. Working with AI agents
 
@@ -55,11 +55,14 @@ Bugs go through `triage` and `diagnosing-bugs` (failing test first). `implement-
 - **Skills and subagents.** `.agents/skills/` holds our `work` skill and Matt Pocock's skills, vendored by `scripts/skills.sh` at the commit pinned in `.agents/skills.yaml` (each has a `.upstream` marker; MIT licence in `.agents/LICENSE.mattpocock-skills`). `.agents/agents/` holds the `implementer` and `reviewer` subagents. Copilot and Codex read `.agents/`; Claude Code reads it through the `.claude/skills` and `.claude/agents` symlinks, Copilot's custom agents through `.github/agents`. Never edit a vendored skill (the edit guard and `pnpm check` catch it): adapt behaviour in `AGENTS.md` or `docs/agents/`. To take Matt's latest version, run `scripts/skills.sh update` on a `chore/` branch and review the diff like code.
 - **Scripts first.** Repetitive steps are scripts in `scripts/` (`AGENTS.md`); agents call them instead of doing the steps by hand. `scripts/bootstrap.sh` installs what they need.
 - **Edit guard.** `.claude/settings.json` registers a `PreToolUse` hook, [`.claude/hooks/guard-edits.mjs`](../../.claude/hooks/guard-edits.mjs), that Claude Code and Copilot (CLI and Copilot sessions in VS Code) both run before every file edit. It denies edits in a checkout on `main` (git-ignored files such as `.env` stay editable), hand-edits of generated files (`openapi.json` and the generated clients in `packages/contract`, `packages/i18n/generated/`, `packages/database/migrations/meta/`) and of vendored skills. It covers the agents' edit tools, not shell commands, and only runs in folders the tool trusts. Codex and the VS Code Local agent don't run it. Its tests run in `pnpm test`.
-- **Local review:** before the PR, two `reviewer` subagents check the diff, one against `CODING_STANDARDS.md`, one against the ticket and spec. Findings are fixed on the branch.
+- **Local review:** before the PR, two `reviewer` subagents check the diff, one against `CODING_STANDARDS.md`, one against the ticket and spec. Findings are fixed on the branch. When both are clean, `pr.sh reviewed` records it in the PR body for the head commit; any later push makes the record stale, so review again.
+- **Spec approval:** the owner approves a spec with the `spec-approved` label. Only then are its tickets cut and built (`flow.sh` reports `needs-approval` before). A material change to an approved spec removes the label (`issue.sh update`, unless `--minor` for a typo fix), so the owner approves again.
+- **Who merges** ([ADR-016](../decisions/ADR-016-agent-merges.md)): `scripts/risk.sh` classifies each PR from its changed paths (`scripts/high-risk-paths.txt`) and the `owner-merge` label on its issue or spec. Agents merge a low-risk PR with `pr.sh merge`, which squash-merges and deletes the branch only when every condition holds: low-risk, every check passed on the head commit, both reviewers clean on it, `pr.sh smoke` recorded for the head commit that the preview passed or that there is none, the branch up to date with `main`, no unresolved threads, ready for review. Otherwise it merges nothing, records the refusal and its reasons in the PR body for the head commit, and the PR waits for the owner, as every high-risk PR does; agents don't retry it on that commit, and a new push makes the refusal stale. A branch that is only behind `main` is the exception: nothing is recorded, the agent merges `main` in and runs the gate again on the new commit. Until G2 an agent merge is also a production release; from G2 the owner approves production releases separately (`ROADMAP.md` M4).
+- **Run the factory:** when the owner says so, the `work` skill builds, ships and merges every ready ticket, at most three at a time, until only owner items are left: specs to approve, high-risk PRs, refused PRs, `needs-info` questions (`flow.sh next`). This runs locally; running it unattended in GitHub Actions is a later decision.
 - **No agent review in GitHub CI/CD:** do not add Copilot code review, Claude or Codex review jobs, bot PR reviewers, required agent-review status checks or required cross-agent approvals. GitHub CI is for deterministic checks such as tests, lint, generated-file drift and security scans.
 - **Small PRs:** one ticket per PR. A spec that touches backend + iOS + Android heavily gets a contract ticket that blocks the platform tickets.
 - **No silent contract breaks:** after a contract freeze (end of M4, end of M7), API changes are additive only.
-- **Agents never** push to `main`, force-push shared branches, commit secrets, or edit generated files by hand.
+- **Agents never** approve a PR, push to `main`, force-push shared branches, merge outside `pr.sh merge`, commit secrets, or edit generated files by hand.
 
 ## 5. Cleanup checklist (after merge)
 
@@ -105,7 +108,7 @@ CI is GitHub Actions ([`.github/workflows/ci.yml`](../../.github/workflows/ci.ym
 | `iOS` | macOS | `apps/ios/**` or `packages/contract/**` changed **and** `apps/ios` exists | Placeholder until E008 adds the build and tests. macOS minutes count 10× (`ROADMAP.md §12`) |
 | `Android` | Linux | `apps/android/**` or `packages/contract/**` changed **and** `apps/android` exists | Placeholder until E008 adds the build and tests |
 
-**Intended required checks on `main`:** all five jobs above. Branch protection and rulesets aren't available for this private repo on the current GitHub plan, so nothing enforces them yet. Until then, the owner only merges when all five show as passed or skipped. When the plan allows it, add exactly these job names as required status checks. Renaming a job renames its check, so change this table in the same PR.
+**Required checks on `main`:** all five jobs above, enforced by the ruleset in [`.github/rulesets/main.json`](../../.github/rulesets/main.json). It also requires a PR and a branch that is up to date with `main`, and blocks force-pushes and deletion; the repo allows squash merges only ([`.github/repo-settings.json`](../../.github/repo-settings.json)). `scripts/github-settings.sh apply` applies both, and can be run again at any time. Renaming a job renames its check, so change this table and the ruleset in the same PR and apply it after the merge (a test compares the ruleset with `ci.yml`).
 
 **Adding a check:** a new deterministic check (i18n parity, ICU syntax, OpenAPI drift, generated files up to date, …) is a `check` script in the package that owns it. `turbo run check` in `Checks (Linux)` picks it up, so the workflow file doesn't change. Keep `Checks (Linux)` under ~10 minutes (`TESTING.md §7`).
 
