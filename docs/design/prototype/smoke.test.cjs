@@ -48,6 +48,29 @@ test('painted session identity assertions reject sr-only chips', async () => {
   await page.close();
 });
 
+test('painted session identity assertions reject transparent chips', async () => {
+  for (const [lang, label] of [['nl', 'Privé'], ['en', 'Private']]) {
+    const { page, errors } = await pageFor(2);
+    await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).first().click();
+    const selector = '.next .chip--private';
+    for (const css of [
+      '.chip { opacity: 0 !important; }',
+      '.next { opacity: 0 !important; }',
+      '.chip { color: transparent !important; }',
+    ]) {
+      await assertPaintedSessionType(page, selector, label);
+      const style = await page.addStyleTag({ content: css });
+      assert.equal(await page.locator(selector).innerText(), label);
+      assert.ok(await page.locator(selector).isVisible(), 'locator visibility alone misses transparent text');
+      await assert.rejects(() => assertPaintedSessionType(page, selector, label), /painted localized label/);
+      await style.evaluate((element) => element.remove());
+      await assertPaintedSessionType(page, selector, label);
+    }
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
 test('session identity is visible localized text on Today, agenda, detail, add menu and booking', async () => {
   for (const [lang, labels] of [['nl', ['Privé', 'Groepsles', 'Open Gym']], ['en', ['Private', 'Group class', 'Open Gym']]]) {
     const { page, errors } = await pageFor(2);
@@ -89,13 +112,18 @@ test('session identity is visible localized text on Today, agenda, detail, add m
   }
 });
 
-// Count words actually painted in the viewport, excluding clipped/offscreen text,
+// Count words actually painted in the viewport, excluding transparent/clipped/offscreen text,
 // closed disclosures and text covered by nav, sheets or the prototype toolbar.
 async function viewportWords(page, selector) {
   return (typeof selector === 'string' ? page.locator(selector) : selector).evaluate((root) => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let node, count = 0;
     while ((node = walker.nextNode())) {
+      let element = node.parentElement;
+      while (element && Number(getComputedStyle(element).opacity) !== 0) element = element.parentElement;
+      if (element) continue;
+      const color = getComputedStyle(node.parentElement).color;
+      if (color === 'transparent' || /(?:,|\/)\s*0(?:\.0+)?\)$/.test(color)) continue;
       for (const match of node.textContent.matchAll(/\S+/g)) {
         const range = document.createRange();
         range.setStart(node, match.index);
