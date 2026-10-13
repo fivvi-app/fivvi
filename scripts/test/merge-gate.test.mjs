@@ -5,9 +5,20 @@ import { describe, it } from 'node:test';
 
 const GATE_JQ = join(import.meta.dirname, '../merge-gate.jq');
 
+// scripts/pr.sh passes these; the gate has no copy of them.
+const MARKS = [
+  ['review_mark', 'Self-review'],
+  ['smoke_mark', 'Railway preview smoke check'],
+  ['preview_check', 'trainer-hub - web'],
+  ['no_preview', 'no preview for this PR'],
+].flatMap(([name, value]) => ['--arg', name, value]);
+
 const gate = (facts) =>
   JSON.parse(
-    execFileSync('jq', ['-c', '-f', GATE_JQ], { input: JSON.stringify(facts), encoding: 'utf8' }),
+    execFileSync('jq', ['-c', ...MARKS, '-f', GATE_JQ], {
+      input: JSON.stringify(facts),
+      encoding: 'utf8',
+    }),
   );
 
 const HEAD = 'a'.repeat(40);
@@ -24,6 +35,8 @@ const status = (context, state) => ({ __typename: 'StatusContext', context, stat
 
 const reviewed = (sha = HEAD) =>
   `**Self-review:** standards and spec reviewers clean on \`${sha}\` ✅`;
+const noPreview = (sha = HEAD) =>
+  `**Railway preview smoke check:** on \`${sha}\`: no preview for this PR (it touches no Railway watch pattern).`;
 const smoked = (sha = HEAD) =>
   `**Railway preview smoke check:** on \`${sha}\`: \`curl -fsS https://web-trainer-hub-pr-60.up.railway.app/api/v1/health\` → \`{"status":"ok"}\` ✅`;
 
@@ -35,7 +48,7 @@ const facts = (overrides = {}) => ({
     state: 'OPEN',
     draft: false,
     base: 'main',
-    body: `Closes #57\n\n${reviewed()}`,
+    body: `Closes #57\n\n${reviewed()}\n\n${noPreview()}`,
   },
   risk: { risk: 'low', reasons: [] },
   required: REQUIRED,
@@ -104,29 +117,42 @@ describe('merge gate', () => {
   });
 
   it('requires a self-review record for the head commit, and rejects a stale one', () => {
-    const none = withPr({ body: 'Closes #57' });
+    const none = withPr({ body: `Closes #57\n\n${noPreview()}` });
     assert.deepEqual(failed(gate(none)), ['self-review clean']);
     assert.match(gate(none).conditions[2].detail, /no self-review record/);
 
-    const stale = withPr({ body: `Closes #57\r\n\r\n${reviewed(OLD)}` });
+    const stale = withPr({ body: `Closes #57\r\n\r\n${reviewed(OLD)}\r\n\r\n${noPreview()}` });
     assert.deepEqual(failed(gate(stale)), ['self-review clean']);
     assert.match(gate(stale).conditions[2].detail, /bbbbbbb.*not the head aaaaaaa/);
   });
 
+  it('requires a smoke record for the head commit, also when there is no preview', () => {
+    const body = `Closes #57\n\n${reviewed()}`;
+    const none = withPr({ body });
+    assert.deepEqual(failed(gate(none)), ['preview smoke-checked']);
+    assert.match(gate(none).conditions[3].detail, /no smoke check record/);
+
+    const stale = withPr({ body: `${body}\n\n${noPreview(OLD)}` });
+    assert.deepEqual(failed(gate(stale)), ['preview smoke-checked']);
+    assert.match(gate(stale).conditions[3].detail, /bbbbbbb.*not the head aaaaaaa/);
+  });
+
   it('requires a passed smoke check for the head commit when the PR has a preview', () => {
     const preview = [...facts().checks, status('trainer-hub - web', 'SUCCESS')];
-    const unchecked = facts({ checks: preview });
+    const body = `Closes #57\n\n${reviewed()}`;
+    const recorded = (record) =>
+      facts({ checks: preview, pr: { ...facts().pr, body: `${body}\n\n${record}` } });
+
+    const unchecked = facts({ checks: preview, pr: { ...facts().pr, body } });
     assert.deepEqual(failed(gate(unchecked)), ['preview smoke-checked']);
 
-    const body = `Closes #57\n\n${reviewed()}`;
-    const stale = facts({
-      checks: preview,
-      pr: { ...facts().pr, body: `${body}\n\n${smoked(OLD)}` },
-    });
-    assert.deepEqual(failed(gate(stale)), ['preview smoke-checked']);
+    assert.deepEqual(failed(gate(recorded(smoked(OLD)))), ['preview smoke-checked']);
 
-    const smoke = facts({ checks: preview, pr: { ...facts().pr, body: `${body}\n\n${smoked()}` } });
-    assert.equal(gate(smoke).merge, true);
+    const noPreviewRecorded = gate(recorded(noPreview()));
+    assert.deepEqual(failed(noPreviewRecorded), ['preview smoke-checked']);
+    assert.match(noPreviewRecorded.conditions[3].detail, /has a preview/);
+
+    assert.equal(gate(recorded(smoked())).merge, true);
   });
 
   it('refuses a branch behind main, open threads, a draft, a closed PR or another base', () => {

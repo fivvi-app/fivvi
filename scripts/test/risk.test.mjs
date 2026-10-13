@@ -69,7 +69,13 @@ describe('risk of a pull request', () => {
       '.githooks/commit-msg',
       'scripts/high-risk-paths.txt',
     ],
-    dependencies: ['package.json', 'apps/web/package.json', 'pnpm-lock.yaml'],
+    dependencies: [
+      'package.json',
+      'apps/web/package.json',
+      'pnpm-lock.yaml',
+      'pnpm-workspace.yaml',
+      '.npmrc',
+    ],
     infrastructure: ['Dockerfile', 'apps/cron/Dockerfile.cron', '.railway/railway.ts'],
   };
 
@@ -88,7 +94,15 @@ describe('risk of a pull request', () => {
   }
 
   it('anchors root paths: a nested folder with the same name is not a guardrail', () => {
-    assert.equal(pr(['packages/email/scripts/preview.ts', 'apps/web/docs/product.md']).risk, 'low');
+    assert.equal(
+      pr([
+        'packages/email/scripts/preview.ts',
+        'apps/web/docs/product.md',
+        'apps/web/.npmrc',
+        'examples/pnpm-workspace.yaml',
+      ]).risk,
+      'low',
+    );
   });
 
   it('lists every high-risk file with the rule it matched', () => {
@@ -165,5 +179,40 @@ describe('risk.sh', () => {
   it('prints low for a PR without high-risk paths or labels', () => {
     const result = run(github({ files: [{ filename: 'apps/web/page.tsx' }] }), '60');
     assert.equal(result.stdout, 'low\n');
+  });
+
+  const failing = {
+    'the changed files': '^api repos/[^ ]+/pulls/60/files',
+    'the linked issues': '^pr view 60 ',
+    "the ticket's labels": '^issue view 57 ',
+    "the spec's labels": '^issue view 50 ',
+  };
+  for (const [what, match] of Object.entries(failing)) {
+    it(`fails without a verdict when it can't read ${what}`, () => {
+      const rules = [
+        { match, out: '', status: 1 },
+        ...github({ files: [{ filename: 'apps/web/page.tsx' }] }),
+      ];
+      for (const args of [['60'], ['60', '--json']]) {
+        const result = run(rules, ...args);
+        assert.notEqual(result.status, 0, what);
+        assert.equal(result.stdout, '', what);
+        assert.match(result.stderr, /^error: /m, what);
+      }
+    });
+  }
+});
+
+describe('high-risk paths', () => {
+  it('is an error when a rule line does not have exactly a group and a pattern', () => {
+    for (const line of ['dependencies', 'dependencies package.json extra']) {
+      const result = spawnSync(
+        'jq',
+        ['-c', '--arg', 'rules', `${line}\n`, '-f', join(SCRIPTS, 'risk.jq')],
+        { input: JSON.stringify({ files: ['apps/web/page.tsx'], issues: [] }), encoding: 'utf8' },
+      );
+      assert.notEqual(result.status, 0, line);
+      assert.match(result.stderr, /malformed rule/, line);
+    }
   });
 });

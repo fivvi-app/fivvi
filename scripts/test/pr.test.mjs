@@ -10,6 +10,11 @@ const SCRIPTS = join(import.meta.dirname, '..');
 const HEAD = 'c'.repeat(40);
 const CI = ['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android'];
 
+const NO_PREVIEW = `**Railway preview smoke check:** on \`${HEAD}\`: no preview for this PR (it touches no Railway watch pattern).`;
+const threads = (nodes, hasNextPage = false) => ({
+  data: { repository: { pullRequest: { reviewThreads: { pageInfo: { hasNextPage }, nodes } } } },
+});
+
 const github = ({ files = ['apps/web/page.tsx'], body } = {}) => [
   { match: '^pr list ', out: [{ number: 60 }] },
   { match: '^api repos/[^ ]+/pulls/60/files', out: files.map((filename) => ({ filename })) },
@@ -28,7 +33,7 @@ const github = ({ files = ['apps/web/page.tsx'], body } = {}) => [
       headRefOid: HEAD,
       body:
         body ??
-        `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${HEAD}\` ✅`,
+        `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${HEAD}\` ✅\n\n${NO_PREVIEW}`,
       statusCheckRollup: CI.map((name) => ({
         __typename: 'CheckRun',
         name,
@@ -39,10 +44,7 @@ const github = ({ files = ['apps/web/page.tsx'], body } = {}) => [
   },
   { match: '^issue view 57 ', out: { number: 57, labels: [], parent: null } },
   { match: '^api repos/[^ ]+/compare/main\\.\\.\\.', out: { behind_by: 0 } },
-  {
-    match: '^api graphql ',
-    out: { data: { repository: { pullRequest: { reviewThreads: { nodes: [] } } } } },
-  },
+  { match: '^api graphql ', out: threads([]) },
   { match: '^pr merge 60 ', out: '' },
   { match: '^api --method DELETE ', out: '' },
 ];
@@ -85,6 +87,38 @@ describe('pr.sh merge', () => {
     assert.match(result.stderr, /PR #60 stays for the owner: low-risk, self-review clean/);
     assert.ok(!result.calls.some((call) => /^pr merge|--method DELETE/.test(call)));
   });
+
+  const refuses = (rules, reason) => {
+    const result = merge(rules);
+    assert.equal(result.status, 1, result.stdout);
+    assert.match(result.stderr, reason);
+    assert.match(result.stderr, /nothing merged/);
+    assert.ok(!result.calls.some((call) => /^pr merge|--method DELETE/.test(call)));
+  };
+
+  it("merges nothing when the PR's risk can't be read", () => {
+    for (const match of ['^api repos/[^ ]+/pulls/60/files', '^issue view 57 ']) {
+      refuses([{ match, out: '', status: 1 }, ...github()], /could not decide the risk of PR #60/);
+    }
+  });
+
+  it("merges nothing when the review threads can't all be read", () => {
+    refuses(
+      [{ match: '^api graphql ', out: '', status: 1 }, ...github()],
+      /could not read the review threads/,
+    );
+    refuses(
+      [{ match: '^api graphql ', out: threads([], true) }, ...github()],
+      /more than 100 review threads/,
+    );
+  });
+
+  it("merges nothing when it can't tell whether the branch is behind main", () => {
+    refuses(
+      [{ match: '^api repos/[^ ]+/compare/', out: '', status: 1 }, ...github()],
+      /could not compare/,
+    );
+  });
 });
 
 describe('pr.sh reviewed', () => {
@@ -112,34 +146,46 @@ describe('pr.sh reviewed', () => {
     rmSync(repo, { recursive: true, force: true });
   });
 
-  const reviewed = (prHead) => {
+  const OLD_RECORD = `**Self-review:** standards and spec reviewers clean on \`${'b'.repeat(40)}\` ✅`;
+  const reviewed = (prHead, body = { out: { body: `Closes #57\n\n${OLD_RECORD}` } }) => {
     const result = spawnSync(join(repo, 'scripts/pr.sh'), ['reviewed'], {
       cwd: repo,
       encoding: 'utf8',
       env: gh.env([
         { match: '^pr list ', out: [{ number: 60 }] },
         { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: prHead } },
-        {
-          match: '^pr view 60 .*--json body',
-          out: {
-            body: `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${'b'.repeat(40)}\` ✅`,
-          },
-        },
+        { match: '^pr view 60 .*--json body', ...body },
         { match: '^pr edit 60 ', out: '' },
       ]),
     });
-    return { ...result, edits: gh.calls().filter((call) => call.args[1] === 'edit') };
+    const edits = gh.calls().filter((call) => call.args[1] === 'edit');
+    const bodies = edits.map((call) => call.args[call.args.indexOf('--body') + 1]);
+    return { ...result, edits, bodies };
   };
 
   it('replaces the record with one for the head commit', () => {
     const head = git('rev-parse', 'HEAD');
     const result = reviewed(head);
     assert.equal(result.status, 0, result.stderr);
-    const body = result.edits[0].args[result.edits[0].args.indexOf('--body') + 1];
-    assert.equal(
-      body,
+    assert.deepEqual(result.bodies, [
       `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${head}\` ✅`,
-    );
+    ]);
+  });
+
+  it('writes only the record when the body held nothing else', () => {
+    const head = git('rev-parse', 'HEAD');
+    const result = reviewed(head, { out: { body: OLD_RECORD } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.bodies, [
+      `**Self-review:** standards and spec reviewers clean on \`${head}\` ✅`,
+    ]);
+  });
+
+  it("leaves the body alone when it can't read it", () => {
+    const result = reviewed(git('rev-parse', 'HEAD'), { out: '', status: 1 });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /could not read the body of PR #60/);
+    assert.deepEqual(result.edits, []);
   });
 
   it('refuses when the local commit is not the PR head', () => {

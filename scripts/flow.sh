@@ -157,7 +157,7 @@ cmd_next() {
   echo "== Open specs"
   local specs
   specs="$(gh issue list --repo "$REPO" --label "$SPEC_LABEL" --state open --limit 200 \
-    --json number,title,labels,subIssuesSummary)"
+    --json number,title,body,labels,subIssuesSummary)"
   jq -r 'if length == 0 then "(none)" else .[] | "#\(.number) \(.title) — \(.subIssuesSummary.completed) of \(.subIssuesSummary.total) tickets done" end' <<<"$specs"
   echo "== Ready for an agent"
   "$ROOT/scripts/issue.sh" ready | awk -F'\t' '{ print "#" $1 " " $2 }' | grep . || echo "(none)"
@@ -165,10 +165,18 @@ cmd_next() {
   owner_items "$specs" | grep . || echo "(none)"
 }
 
-# Specs without approval, ready high-risk PRs (scripts/risk.sh) and needs-info questions.
+# Specs to approve, ready high-risk PRs (scripts/risk.sh) and needs-info questions. A spec is to approve when
+# flow-phase.jq would call it needs-approval: not approved, not complete, and not still needs-spec (no tickets, not
+# ready-for-agent, and needs-triage or no body).
 owner_items() {
   local pr title risk
-  jq -r --arg approved "$APPROVED_LABEL" '.[] | select([.labels[].name] | index($approved) | not)
+  jq -r --arg approved "$APPROVED_LABEL" --arg ready "$READY_LABEL" '.[]
+    | [.labels[].name] as $labels
+    | ((.body // "") | gsub("\\s"; "") | length > 0) as $described
+    | select($labels | index($approved) | not)
+    | select((.subIssuesSummary.total > 0 and .subIssuesSummary.completed == .subIssuesSummary.total) | not)
+    | select((.subIssuesSummary.total == 0 and ($labels | index($ready) | not)
+        and (($labels | index("needs-triage")) or ($described | not))) | not)
     | "Approve spec #\(.number) \(.title) (add \($approved))"' <<<"$1"
   while IFS=$'\t' read -r pr title; do
     [ -n "$pr" ] || continue

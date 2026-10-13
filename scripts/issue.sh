@@ -27,10 +27,20 @@ FIELDS="number,title,state,labels,assignees,body,url,parent,subIssues,blockedBy"
 
 is_number() { [[ "${1:-}" =~ ^[0-9]+$ ]] || die "not an issue number: ${1:-<missing>}"; }
 view() { gh issue view "$1" --repo "$REPO" --json "${2:-$FIELDS}"; }
-# Exit 0 when the issue has the label.
-has_label() { view "$1" labels | jq -e --arg l "$2" '[.labels[].name] | index($l)' >/dev/null; }
-# A spec the owner has not approved (ADR-016): its tickets are not cut or built.
-unapproved_spec() { has_label "$1" "$SPEC_LABEL" && ! has_label "$1" "$APPROVED_LABEL"; }
+# The issue's labels, one per line, read once. Dies when they can't be read: a failed read is never "no label".
+labels_of() {
+  local out
+  out="$(view "$1" labels)" || die "could not read the labels of #$1"
+  jq -r '.labels[].name' <<<"$out" || die "could not read the labels of #$1"
+}
+# has <labels> <label>: exit 0 when the labels from labels_of include it.
+has() { grep -qFx "$2" <<<"$1"; }
+# A spec the owner has not approved (ADR-016): its tickets are not cut or built. Exits when the labels can't be read.
+unapproved_spec() {
+  local labels
+  labels="$(labels_of "$1")" || exit 1
+  has "$labels" "$SPEC_LABEL" && ! has "$labels" "$APPROVED_LABEL"
+}
 
 cmd_show() {
   [ $# -eq 1 ] || usage
@@ -81,7 +91,7 @@ cmd_create() {
 
 cmd_update() {
   [ $# -ge 1 ] || usage
-  local n="$1" minor=false reapprove=false
+  local n="$1" minor=false reapprove=false labels
   local args=()
   is_number "$n"
   shift
@@ -95,9 +105,12 @@ cmd_update() {
     shift
   done
   [ "${#args[@]}" -gt 0 ] || usage
-  if ! $minor && has_label "$n" "$SPEC_LABEL" && has_label "$n" "$APPROVED_LABEL"; then
-    args+=(--remove-label "$APPROVED_LABEL")
-    reapprove=true
+  if ! $minor; then
+    labels="$(labels_of "$n")" || exit 1
+    if has "$labels" "$SPEC_LABEL" && has "$labels" "$APPROVED_LABEL"; then
+      args+=(--remove-label "$APPROVED_LABEL")
+      reapprove=true
+    fi
   fi
   gh issue edit "$n" --repo "$REPO" "${args[@]}" >/dev/null
   echo "✅ updated #$n"

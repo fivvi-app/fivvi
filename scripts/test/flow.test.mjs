@@ -22,14 +22,37 @@ describe('flow.sh next', () => {
             {
               number: 50,
               title: '[F031] Open Gym booking',
+              body: '## Acceptance criteria',
               labels: labels('spec', 'spec-approved'),
               subIssuesSummary: { completed: 1, total: 3 },
             },
             {
               number: 70,
               title: '[F040] Waiting list',
+              body: '## Acceptance criteria',
               labels: labels('spec'),
               subIssuesSummary: { completed: 0, total: 0 },
+            },
+            {
+              number: 71,
+              title: '[F041] Untriaged idea',
+              body: 'An idea from the owner',
+              labels: labels('spec', 'needs-triage'),
+              subIssuesSummary: { completed: 0, total: 0 },
+            },
+            {
+              number: 73,
+              title: '[F042] Empty spec',
+              body: ' \n',
+              labels: labels('spec'),
+              subIssuesSummary: { completed: 0, total: 0 },
+            },
+            {
+              number: 74,
+              title: '[F043] Done spec',
+              body: '## Acceptance criteria',
+              labels: labels('spec'),
+              subIssuesSummary: { completed: 2, total: 2 },
             },
           ],
         },
@@ -56,6 +79,7 @@ describe('flow.sh next', () => {
     });
 
   it('lists what waits on the owner: specs to approve, high-risk PRs, questions', () => {
+    // #71 and #73 still need a spec written (needs-spec) and #74 is complete: none waits on approval.
     const result = next();
     assert.equal(result.status, 0, result.stderr);
     const owner = result.stdout.slice(result.stdout.indexOf('== Waiting on the owner'));

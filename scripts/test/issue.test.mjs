@@ -53,6 +53,22 @@ describe('issue.sh', () => {
       assert.ok(!edit(result.calls).includes('--remove-label'));
     });
 
+    it("changes nothing when it can't read the labels", () => {
+      const result = issueSh(
+        [
+          { match: '^issue view 50 ', out: '', status: 1 },
+          { match: '^issue edit ', out: '' },
+        ],
+        'update',
+        '50',
+        '--body-file',
+        '-',
+      );
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /could not read the labels of #50/);
+      assert.equal(edit(result.calls), undefined);
+    });
+
     it('leaves the labels of a ticket or an unapproved spec alone', () => {
       for (const names of [['ready-for-agent'], ['spec']]) {
         const result = issueSh(rules(names), 'update', '50', '--body-file', '-');
@@ -92,22 +108,40 @@ describe('issue.sh', () => {
       assert.match(result.stderr, /spec #50 is not approved/);
       assert.equal(create(result.calls), undefined);
     });
+
+    it("refuses when it can't read the spec's labels", () => {
+      const result = issueSh(
+        [{ match: '^issue view 50 ', out: '', status: 1 }, ...rules(['spec', 'spec-approved'])],
+        'create',
+        'ticket',
+        '--title',
+        '[F031] Hold a spot',
+        '--body-file',
+        '-',
+        '--parent',
+        '50',
+      );
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /could not read the labels of #50/);
+      assert.equal(create(result.calls), undefined);
+    });
   });
 
   describe('ready', () => {
+    const item = (number, names, parent) => ({
+      match: `^issue view ${number} `,
+      out: {
+        number,
+        title: `issue ${number}`,
+        labels: labels(...names),
+        assignees: [],
+        parent,
+        subIssues: { totalCount: 0, nodes: [] },
+        blockedBy: { nodes: [] },
+      },
+    });
+
     it('leaves out tickets of unapproved specs and unapproved specs built as their own ticket', () => {
-      const item = (number, names, parent) => ({
-        match: `^issue view ${number} `,
-        out: {
-          number,
-          title: `issue ${number}`,
-          labels: labels(...names),
-          assignees: [],
-          parent,
-          subIssues: { totalCount: 0, nodes: [] },
-          blockedBy: { nodes: [] },
-        },
-      });
       const result = issueSh(
         [
           {
@@ -125,6 +159,20 @@ describe('issue.sh', () => {
       );
       assert.equal(result.status, 0, result.stderr);
       assert.equal(result.stdout, '51\tissue 51\n61\tissue 61\n');
+    });
+
+    it("fails instead of listing a ticket whose spec's labels it can't read", () => {
+      const result = issueSh(
+        [
+          { match: '^issue list ', out: [{ number: 51 }] },
+          item(51, ['ready-for-agent'], { number: 50 }),
+          { match: '^issue view 50 ', out: '', status: 1 },
+        ],
+        'ready',
+      );
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, '');
+      assert.match(result.stderr, /could not read the labels of #50/);
     });
   });
 });

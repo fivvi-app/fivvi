@@ -3,9 +3,12 @@
 # $rules: the text of scripts/high-risk-paths.txt
 # Output: {risk: "low"|"high", reasons: [string]}
 
+# A line that isn't exactly <group> <pattern> is an error, never a rule that is silently dropped.
 def rules:
-  [$rules | split("\n")[] | sub("#.*$"; "") | [splits("\\s+")] | map(select(. != ""))
-    | select(length == 2) | {group: .[0], pattern: .[1]}];
+  [$rules | split("\n") | to_entries[] | (.key + 1) as $line
+    | .value | sub("#.*$"; "") | [splits("\\s+")] | map(select(. != "")) | select(length > 0)
+    | if length == 2 then {group: .[0], pattern: .[1]}
+      else error("malformed rule on line \($line) of scripts/high-risk-paths.txt: \(join(" "))") end];
 
 # A glob as a regex: `*` stays within one segment; `/x` is anchored at the root; a match covers everything below it.
 def glob_regex:

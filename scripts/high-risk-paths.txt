@@ -23,5 +23,7 @@ guardrails            /.githooks
 guardrails            /scripts
 dependencies          package.json
 dependencies          /pnpm-lock.yaml
+dependencies          /pnpm-workspace.yaml
+dependencies          /.npmrc
 infrastructure        Dockerfile*
 infrastructure        /.railway

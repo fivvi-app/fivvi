@@ -1,7 +1,9 @@
 # Whether an agent may merge a PR (ADR-016, decision 3), from the facts scripts/pr.sh merge collects. Pure: no I/O.
 # Input:  {head, default_branch, pr: {number, state, draft, base, body}, risk: {risk, reasons},
 #          required: [check name], checks: [statusCheckRollup entry], behind, threads}
-# Output: {merge, conditions: [{name, ok, detail}]}; merge only when every condition holds.
+# $review_mark, $smoke_mark: the marks of the records pr.sh writes in the PR body (`**<mark>:** …`).
+# $preview_check: the name of the Railway preview's check; $no_preview: what pr.sh smoke records when there is none.
+# Output: {merge, conditions: [{name, ok, detail}]}; merge only when every condition holds. A missing fact fails.
 
 def short: .[:7];
 def ok_result: IN("SUCCESS", "SKIPPED", "NEUTRAL");
@@ -44,13 +46,17 @@ def on_head($what; $line):
      detail: (if .risk.risk == "low" then "no high-risk path or owner-merge label"
               else "high-risk: \(.risk.reasons | join("; "))" end)},
     checks_passed,
-    {name: "self-review clean"} + on_head("self-review"; $f | record("Self-review")),
+    {name: "self-review clean"} + on_head("self-review"; $f | record($review_mark)),
     {name: "preview smoke-checked"} + (
-      if ([results[] | select(.name == "trainer-hub - web")] | length) == 0 then {ok: true, detail: "no preview"}
-      else ($f | record("Railway preview smoke check")) as $line
-        | on_head("smoke check"; $line)
-        | if .ok and ($line | contains("✅") | not) then {ok: false, detail: "the smoke check did not pass"} else . end
-      end),
+      ($f | record($smoke_mark)) as $line
+      | any(results[]; .name == $preview_check) as $preview
+      | on_head("smoke check"; $line)
+      | if .ok | not then .
+        elif $line | contains("✅") then .
+        elif $preview then {ok: false, detail: "the PR has a preview, but the smoke check record says it has none"}
+        elif $line | contains($no_preview) then {ok: true, detail: "no preview, recorded for \($f.head | short)"}
+        else {ok: false, detail: "the smoke check did not pass"}
+        end),
     {name: "up to date", ok: (.behind == 0),
      detail: (if .behind == 0 then "up to date with \(.default_branch)" else "\(.behind) commits behind \(.default_branch)" end)},
     {name: "no open threads", ok: (.threads == 0), detail: "\(.threads) unresolved review threads"},

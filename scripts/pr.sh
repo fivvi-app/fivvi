@@ -29,8 +29,11 @@ REPO="$(repo_slug)"
 OWNER="${REPO%%/*}"
 NAME="${REPO#*/}"
 BRANCH="$(git branch --show-current)"
+# The records pr.sh writes in the PR body and the preview's check name; scripts/merge-gate.jq gets them from here.
 SMOKE_MARK="Railway preview smoke check"
 REVIEW_MARK="Self-review"
+PREVIEW_CHECK="trainer-hub - web"
+NO_PREVIEW="no preview for this PR"
 
 open_pr() { gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty'; }
 current_pr() {
@@ -98,13 +101,20 @@ cmd_ready() {
   echo "✅ PR #$pr ready for review"
 }
 
+# Dies when the threads can't all be read: more than 100 counts as unknown, never as resolved.
 unresolved_threads() {
+  local out
   # shellcheck disable=SC2016 # GraphQL variables, not shell
-  gh api graphql -F owner="$OWNER" -F name="$NAME" -F n="$1" -f query='
+  out="$(gh api graphql -F owner="$OWNER" -F name="$NAME" -F n="$1" -f query='
     query($owner: String!, $name: String!, $n: Int!) {
-      repository(owner: $owner, name: $name) { pullRequest(number: $n) { reviewThreads(first: 100) { nodes {
+      repository(owner: $owner, name: $name) { pullRequest(number: $n) { reviewThreads(first: 100) {
+        pageInfo { hasNextPage } nodes {
         id isResolved path line comments(first: 50) { nodes { author { login } body createdAt } } } } } }
-    }' --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)]'
+    }')" || die "could not read the review threads of PR #$1"
+  out="$(jq '.data.repository.pullRequest.reviewThreads' <<<"$out")" || die "could not read the review threads of PR #$1"
+  [ "$(jq -r '.pageInfo.hasNextPage' <<<"$out")" = false ] \
+    || die "PR #$1 has more than 100 review threads (or their count is unknown): resolve them on GitHub"
+  jq '[.nodes[] | select(.isResolved | not)]' <<<"$out"
 }
 
 cmd_status() {
@@ -196,8 +206,11 @@ head_of() { gh pr view "$1" --repo "$REPO" --json headRefOid --jq .headRefOid; }
 # Records a result in the PR body as one line, **<mark>:** …, replacing the previous one. scripts/merge-gate.jq reads it.
 record() {
   local pr="$1" mark="$2" line="$3" body
-  body="$(gh pr view "$pr" --repo "$REPO" --json body --jq .body | grep -v "^\*\*$mark:\*\*" || true)"
-  gh pr edit "$pr" --repo "$REPO" --body "$body"$'\n\n'"$line" >/dev/null
+  body="$(gh pr view "$pr" --repo "$REPO" --json body --jq .body)" \
+    || die "could not read the body of PR #$pr; nothing recorded"
+  # grep exits 1 when no line is left (the body was only the old record); that's fine, a failure (2) isn't.
+  body="$(grep -v "^\*\*$mark:\*\*" <<<"$body")" || [ $? -eq 1 ] || die "could not update the body of PR #$pr"
+  gh pr edit "$pr" --repo "$REPO" --body "${body:+$body$'\n\n'}$line" >/dev/null
   echo "✅ $line"
 }
 
@@ -213,8 +226,8 @@ cmd_smoke() {
   done
   pr="$(current_pr)"
   head="$(head_of "$pr")"
-  if ! gh pr checks "$pr" --repo "$REPO" --json name --jq '.[].name' 2>/dev/null | grep -q '^trainer-hub - web$'; then
-    line="**$SMOKE_MARK:** on \`$head\`: no preview for this PR (it touches no Railway watch pattern)."
+  if ! gh pr checks "$pr" --repo "$REPO" --json name --jq '.[].name' 2>/dev/null | grep -qFx "$PREVIEW_CHECK"; then
+    line="**$SMOKE_MARK:** on \`$head\`: $NO_PREVIEW (it touches no Railway watch pattern)."
   else
     url="https://web-trainer-hub-pr-$pr.up.railway.app/api/v1/health"
     deadline=$(( $(date +%s) + timeout * 60 ))
@@ -240,18 +253,22 @@ cmd_reviewed() {
   record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** standards and spec reviewers clean on \`$head\` ✅"
 }
 
-# The facts of scripts/merge-gate.jq. Required checks come from the ruleset GitHub enforces on main.
+# The facts of scripts/merge-gate.jq. Required checks come from .github/rulesets/main.json in this worktree, the file
+# scripts/github-settings.sh applies to GitHub. Dies when a fact can't be read, so the gate never decides on a guess.
 merge_facts() {
-  local pr="$1" view head base
-  view="$(gh pr view "$pr" --repo "$REPO" --json number,state,isDraft,baseRefName,headRefName,headRefOid,body,statusCheckRollup)"
-  head="$(jq -r .headRefOid <<<"$view")"
+  local pr="$1" view head base behind threads risk required
+  view="$(gh pr view "$pr" --repo "$REPO" --json number,state,isDraft,baseRefName,headRefName,headRefOid,body,statusCheckRollup)" \
+    || die "could not read PR #$pr"
+  head="$(jq -r .headRefOid <<<"$view")" || die "could not read PR #$pr"
   base="$(default_branch)"
-  jq --arg base "$base" \
-    --argjson behind "$(gh api "repos/$REPO/compare/$base...$head" --jq .behind_by)" \
-    --argjson threads "$(unresolved_threads "$pr" | jq length)" \
-    --argjson risk "$("$ROOT/scripts/risk.sh" "$pr" --json)" \
-    --argjson required "$(jq '[.rules[] | select(.type == "required_status_checks")
-      | .parameters.required_status_checks[].context]' "$ROOT/.github/rulesets/main.json")" '{
+  behind="$(gh api "repos/$REPO/compare/$base...$head" --jq .behind_by)" || die "could not compare ${head:0:7} with $base"
+  threads="$(unresolved_threads "$pr")" || exit 1
+  risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr"
+  required="$(jq '[.rules[] | select(.type == "required_status_checks")
+    | .parameters.required_status_checks[].context]' "$ROOT/.github/rulesets/main.json")" \
+    || die "could not read the required checks from .github/rulesets/main.json"
+  jq --arg base "$base" --argjson behind "$behind" --argjson threads "$(jq length <<<"$threads")" \
+    --argjson risk "$risk" --argjson required "$required" '{
     head: .headRefOid, branch: .headRefName, default_branch: $base,
     pr: {number, state, draft: .isDraft, base: .baseRefName, body: (.body // "")},
     risk: $risk, required: $required, checks: (.statusCheckRollup // []), behind: $behind, threads: $threads}' <<<"$view"
@@ -262,7 +279,9 @@ cmd_merge() {
   local pr facts decision head branch issue out
   pr="$(current_pr)"
   facts="$(merge_facts "$pr")" && [ -n "$facts" ] || die "could not read the facts of PR #$pr; nothing merged"
-  decision="$(jq -c -f "$ROOT/scripts/merge-gate.jq" <<<"$facts")"
+  decision="$(jq -c --arg review_mark "$REVIEW_MARK" --arg smoke_mark "$SMOKE_MARK" --arg preview_check "$PREVIEW_CHECK" \
+    --arg no_preview "$NO_PREVIEW" -f "$ROOT/scripts/merge-gate.jq" <<<"$facts")" \
+    || die "could not decide the merge gate of PR #$pr; nothing merged"
   jq -r '.conditions[] | "\(if .ok then "✓" else "✗" end) \(.name): \(.detail)"' <<<"$decision"
   jq -e .merge <<<"$decision" >/dev/null \
     || die "PR #$pr stays for the owner: $(jq -r '[.conditions[] | select(.ok | not) | .name] | join(", ")' <<<"$decision")"
