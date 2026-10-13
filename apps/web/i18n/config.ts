@@ -25,7 +25,7 @@ export function requestLocale(
 /**
  * next-intl configuration for a catalog locale. next-intl runs on the formatting locale
  * (`en` → `en-GB`), so its formatters and `<html lang>` use day-month order and 24-hour
- * time without extra options (GLOSSARY.md §3.1).
+ * time without extra options (packages/i18n/GLOSSARY.md §3.1).
  */
 export function intlConfig(locale: Locale) {
   return {

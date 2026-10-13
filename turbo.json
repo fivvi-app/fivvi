@@ -11,10 +11,10 @@
       "dependsOn": ["^build"]
     },
     "lint": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "//#lint:root"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "//#test:root"]
     },
     "test:integration": {
       "dependsOn": ["^build"],
@@ -27,12 +27,21 @@
       "passThroughEnv": ["CI", "E2E_PORT", "PLAYWRIGHT_BROWSERS_PATH"]
     },
     "check": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "//#check:root"]
     },
     "format:check": {
       "dependsOn": ["//#format:check:root"]
     },
     "//#format:check:root": {},
+    "//#lint:root": {
+      "inputs": [".claude/**", "scripts/**", ".githooks/**", ".shellcheckrc"]
+    },
+    "//#test:root": {
+      "inputs": [".claude/**", "scripts/**", ".githooks/**"]
+    },
+    "//#check:root": {
+      "inputs": [".agents/**", "scripts/skills.sh", "scripts/_lib.sh"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

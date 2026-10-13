@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Conventional Commits with the feature or enabler ID as scope, e.g. feat(F031): hold a spot. Checked without commitlint.
+set -euo pipefail
+source "$(cd "$(dirname "$0")/.." && pwd)/scripts/_lib.sh"
+
+subject="$(sed -n '/^[^#]/{p;q;}' "$1")"
+case "$subject" in Merge\ *|fixup!\ *|squash!\ *|amend!\ *|Revert\ *) exit 0 ;; esac
+is_conventional "$subject" && exit 0
+
+echo "✗ commit message must be a Conventional Commit: '<type>(<ID>): <description>', e.g. 'feat(F031): hold a spot'" >&2
+echo "  type: $COMMIT_TYPES; at most 100 characters" >&2
+echo "  got: $subject" >&2
+exit 1

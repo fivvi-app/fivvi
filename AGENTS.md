@@ -1,30 +1,64 @@
 # Trainer Hub: rules for coding agents
 
-Dutch-first, bilingual (nl-NL + en) platform for personal trainers and small gyms.
-Stack: Next.js web + API (Hono + zod-openapi, REST), native iOS (Swift + SwiftUI), native Android (Kotlin + Jetpack Compose), PostgreSQL (Drizzle), Better Auth. Free tiers until real clients arrive.
+Dutch-first, bilingual (nl-NL + en) platform for personal trainers and small gyms. Next.js web + API (Hono + zod-openapi, REST), native iOS (Swift + SwiftUI) and Android (Kotlin + Jetpack Compose), PostgreSQL (Drizzle), Better Auth. Free tiers until real clients arrive.
 
-## Read first
+This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI) and Codex read it directly, Claude Code through `CLAUDE.md`.
 
-- Requirements: `docs/product/PRODUCT.md`
-- Sequencing, milestones, ADRs, gates: `docs/product/ROADMAP.md`
-- Feature status: `docs/product/FEATURES.md`
-- Workflow, agent rules, Definition of Done: `docs/engineering/WORKFLOW.md`
-- What to test, where and how: `docs/engineering/TESTING.md`
+| Path | What |
+|---|---|
+| `apps/web`, `apps/cron` | Next.js web app (mounts the API under `/api`); daily cron job |
+| `packages/api`, `packages/contract` | API routes (zod-openapi); committed `openapi.json` + generated TS/Swift/Kotlin clients |
+| `packages/database`, `packages/i18n`, `packages/email`, `packages/testing` | Schema and migrations; the only source of user-facing strings; email; test helpers |
+| `packages/domain`, `apps/ios`, `apps/android` | Planned: business rules (M2), native apps (E008) |
+| `docs/product/` | `PRODUCT.md` (requirements), `ROADMAP.md` (milestones, decisions), `FEATURES.md` (registry and status) |
+| `docs/engineering/` | `WORKFLOW.md` (flow, Definition of Done), `TESTING.md`, `ENVIRONMENTS.md` |
+| `GLOSSARY.md`, `docs/decisions/` | Domain language; ADRs |
+| `CODING_STANDARDS.md`, `.github/instructions/` | How code is written and reviewed; rules per area |
+| `.agents/skills/`, `.agents/agents/` | `work` (the orchestrator) plus [Matt Pocock's skills](https://github.com/mattpocock/skills), pinned in `.agents/skills.yaml`; the `implementer` and `reviewer` subagents |
+| `scripts/` | `bootstrap.sh`, `flow.sh`, `issue.sh`, `wt.sh`, `pr.sh`, `check.sh`, `skills.sh` |
+| `.worktrees/<branch>/` | Git worktrees: all work happens here |
 
-## Non-negotiable rules
+## Rules
 
-- **Every change gets its own branch and git worktree** (`.worktrees/<slug>`). Never edit on `main`. One agent per worktree.
-- **Clean up after merge:** remove the worktree, delete the branch, prune, stop dev servers/simulators, remove temp files and preview resources (`WORKFLOW.md §5`).
-- Branch names: `feature/F0xx-<slug>[-ios|-android]`, `fix/…`, `chore/E0xx-<slug>`, `docs/<slug>`.
-- **No hard-coded user-facing strings** on any platform. The only source is `packages/i18n/{nl-NL,en}.json`; native catalogs are generated. Keep NL and EN in parity; use `packages/i18n/GLOSSARY.md` terminology.
+- **Deterministic first.** If a step can be a script, make it a script and call it; don't do it by hand or by prompt.
+- If a prerequisite is missing, run `scripts/bootstrap.sh` (`--api` adds Java and Swift, needed only to change the API).
+- **Always work in a worktree** (`scripts/flow.sh start <n>` or `scripts/wt.sh add <branch>`). Never edit or commit in the main checkout; an edit guard (`.claude/settings.json`) blocks edits on `main` and of generated files and vendored skills. Never get around it with shell commands.
+- Run `scripts/check.sh` before you call work done; `pr.sh create` runs it before every push.
+- **No hard-coded user-facing strings** on any platform. The only source is `packages/i18n/{nl-NL,en}.json`; native catalogs are generated. NL and EN in parity, with the terms of `GLOSSARY.md` worded as in `packages/i18n/GLOSSARY.md`.
 - **API changes go through the OpenAPI contract**; regenerate the TS/Swift/Kotlin clients in the same PR. Never hand-edit generated code.
 - Business logic lives in `packages/domain` (server-side). Native apps and web don't re-implement rules.
-- Store timestamps in UTC; render with the workspace/user timezone (default Europe/Amsterdam).
+- Store timestamps in UTC; render in the workspace/user time zone (default Europe/Amsterdam).
 - Every business record carries `organization_id`; never query business data without tenant scoping.
 - Notes are trainer-only by default and may contain health data. Treat them as sensitive.
+- **No real data in AI context.** Never open, paste or upload production data, real or pseudonymised pilot files, or screenshots with real data. Synthetic data only (`docs/legal/role-mapping.md`, D8).
 - Mobile features need iOS **and** Android parity before they count as done.
-- **Every behaviour change ships with tests** (`TESTING.md §3`). Bug fixes start with a failing test. Never delete, skip or weaken a test to get CI green.
-- **Agent review stays local.** Review changes against `WORKFLOW.md §4` before pushing. Do not add Claude or Codex GitHub PR reviewers, review jobs, or required agent-review checks; a second local agent review is optional.
-- Update the feature doc and `FEATURES.md` status in the same PR as the code.
-- Prefer free-tier services; don't add a paid dependency without the owner's approval.
-- Don't build anything in `PRODUCT.md §53` (MVP exclusions).
+- **Every behaviour change ships with tests** (`docs/engineering/TESTING.md §3`), test-first. Bug fixes start with a failing test. Never delete, skip or weaken a test to get green.
+- Don't guess product rules: check `docs/product/PRODUCT.md` and `GLOSSARY.md`, otherwise ask. Don't reverse an ADR without a new one. Nothing from `PRODUCT.md §53` (MVP exclusions).
+- Prefer free-tier services; no paid dependency without the owner's approval.
+
+## Push and merge
+
+- Never push to `main` or force-push shared branches. Every change goes through a PR.
+- AI may: commit and push its own branch, open a PR, push fixes for review comments. AI may not: approve or merge a PR, or enable auto-merge. The owner merges.
+- Open or update PRs only with `scripts/pr.sh create` (draft, runs `scripts/check.sh`, pushes, adds `Closes #<issue>`). Publish with `scripts/pr.sh ready`; record the Railway preview with `scripts/pr.sh smoke`.
+- Branch: `<type>/<issue>-<slug>` (type `feature`, `fix`, `chore` or `docs`), or `<type>/<slug>` without an issue. Commits: Conventional Commits with the feature ID as scope, `feat(F031): hold a spot` (a commit hook checks it). PR title: the issue title, `[F031] …`. One ticket per PR; squash merge.
+- After the merge: `scripts/flow.sh finish <n>` from the main checkout.
+- Agent review stays local: two `reviewer` subagents before the PR. No Copilot, Claude or Codex reviewers or review jobs in GitHub.
+
+## Agent skills
+
+**For any delivery request (an idea, an issue, a bug, a PR, "what's next"), follow `.agents/skills/work/SKILL.md`.** It runs the flow, the scripts and the subagents in `.agents/agents/`, so the user only has to talk. Its first command is always `scripts/flow.sh status <n>` for an issue, or `scripts/flow.sh next`; act on the `Phase` and `Next` it prints, never on memory.
+
+`work` and `.agents/agents/` are ours. The other skills are vendored: never edit them; change their behaviour in `docs/agents/`. Update them with `scripts/skills.sh update`. Copilot and Codex read `.agents/`; Claude Code reads it through the `.claude/skills` and `.claude/agents` symlinks, Copilot's custom agents through `.github/agents`.
+
+### Issue tracker
+
+GitHub issues via `scripts/issue.sh`: spec = issue labelled `spec`, ticket = sub-issue, blocked by = native dependency. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five defaults (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) plus `spec`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single context: `GLOSSARY.md` and `docs/decisions/` (not `docs/adr/`). See `docs/agents/domain.md`.

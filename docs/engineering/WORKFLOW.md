@@ -1,6 +1,6 @@
 # Engineering Workflow
 
-How every change gets from idea to `main`, and how we clean up afterwards. It applies equally to Claude Code, Codex and humans.
+How every change gets from idea to `main`, and how we clean up afterwards. It applies equally to every AI coding agent (GitHub Copilot, Claude Code, Codex) and to humans.
 
 ## 1. Golden rules
 
@@ -13,72 +13,64 @@ How every change gets from idea to `main`, and how we clean up afterwards. It ap
 
 | Type | Pattern | Example |
 |---|---|---|
-| Feature | `feature/F0xx-<slug>` | `feature/F031-open-gym-booking` |
-| Platform slice of a feature | `feature/F0xx-<slug>-ios` / `-android` | `feature/F043-live-logging-ios` |
-| Fix | `fix/F0xx-<slug>` or `fix/<slug>` | `fix/F029-hold-expiry-race` |
-| Engineering enabler | `chore/E0xx-<slug>` | `chore/E002-ci-pipeline` |
+| Ticket of a feature (`[F0xx]`) | `feature/<issue>-<slug>` | `feature/57-hold-a-spot` |
+| Bug | `fix/<issue>-<slug>` | `fix/63-hold-expiry-race` |
+| Ticket of an enabler (`[E0xx]`), tooling | `chore/<issue>-<slug>` or `chore/<slug>` | `chore/71-ci-cache` |
 | Docs | `docs/<slug>` | `docs/roadmap` |
 
-- **Issue title:** `[F031] Open Gym public booking`
-- **PR title:** `[F031] Implement Open Gym public booking`
-- **Commits:** Conventional Commits with the ID as scope, e.g. `feat(F031): hold spot during verification`
+`scripts/flow.sh start <n>` picks the name from the issue; `scripts/wt.sh add` refuses anything else.
+
+- **Spec issue title:** `[F031] Open Gym public booking`; ticket titles `[F031] <slice>` (`docs/agents/issue-tracker.md`)
+- **PR title:** the ticket's title, `[F031] Hold a spot during verification` (`pr.sh create` sets it)
+- **Commits:** Conventional Commits with the ID as scope, e.g. `feat(F031): hold a spot during verification` (the `.githooks/commit-msg` hook checks it)
 
 ## 3. Lifecycle of a change
 
-```bash
-# 1. Start from an up-to-date main
-git switch main && git pull --ff-only        # (pull once a remote exists)
+We follow [Matt Pocock's skills](https://github.com/mattpocock/skills). The owner only talks; the `work` skill (`.agents/skills/work/SKILL.md`) runs the skills, scripts and subagents. `scripts/flow.sh status <n>` tells it where an issue is and what comes next, so a fresh session can always pick up.
 
-# 2. Create branch + worktree together
-git worktree add .worktrees/F031-open-gym-booking -b feature/F031-open-gym-booking
+| Step | Skill | Script | Result | Who decides |
+|---|---|---|---|---|
+| 1. Align | `grill-with-docs` | | Shared understanding; `GLOSSARY.md` and ADR proposals updated | Owner answers |
+| 2. Spec | `to-spec` | `issue.sh create spec` | Spec issue `[F0xx] …`: ACs (NL/EN), Test plan, platforms, languages | Owner reviews on GitHub |
+| 3. Tickets | `to-tickets` | `issue.sh create ticket --parent --blocked-by` | Tracer-bullet sub-issues with blocking edges, `ready-for-agent` | Owner approves the breakdown |
+| 4. Build | `tdd` (implementer), `code-review` axes (two reviewers) | `flow.sh start`, `check.sh` | One ticket per worktree, at most three in parallel, test-first, self-reviewed | Agents |
+| 5. Ship | `pr` | `pr.sh create`, `wait`, `smoke`, `ready` | One draft → ready PR per ticket that `Closes #<n>`, CI green, preview smoke-checked | Owner approves, squash merge |
+| 6. Clean up | | `flow.sh finish` | No worktree or branch left; the spec's next ready tickets | Agent |
 
-# 3. Work only inside the worktree
-cd .worktrees/F031-open-gym-booking
-pnpm install
+Bugs go through `triage` and `diagnosing-bugs` (failing test first). `implement-spec` (one integration branch for a whole spec) stays available when the owner asks for it.
 
-# 4. Commit in small steps, then open a PR
-git push -u origin feature/F031-open-gym-booking
-```
-
-- Worktrees live in `.worktrees/<slug>` (git-ignored). The slug is the branch name without the type prefix.
-- Write the feature doc's **Test plan** before implementing, and put the local test results in the PR description (`TESTING.md`).
-- Update the feature doc and the `FEATURES.md` status **in the same PR**.
-- An API change regenerates `packages/contract` (OpenAPI + TS/Swift/Kotlin clients) in the same PR.
-- A string change edits only `packages/i18n/*.json` and regenerates the native catalogs in the same PR.
-- Every PR gets a Railway preview (a PR environment with its own migrated and seeded Postgres). Smoke-check its URL and put the result in the PR description. Merging to `main` deploys production. Environments, deploys, rollback and variables: [`ENVIRONMENTS.md`](ENVIRONMENTS.md).
-- Merge strategy: **squash merge** into `main` after the applicable deterministic CI checks (§7) are green and the owner approves. Agent review happens locally before the PR and is not a GitHub merge requirement.
+- Every branch has its own worktree in `.worktrees/` (git-ignored); `scripts/wt.sh add` creates it, installs dependencies and `packages/database/.env`. `scripts/check.sh` gives each worktree its own `E2E_PORT`, because Playwright reuses a server already running on its port.
+- If an agent tool already isolates its session in a worktree of its own (for example a Copilot or Claude Code background session), work there instead of creating a second one, with a branch named as in §2 (`git branch -m <name>`).
+- The spec's **Test plan** is written before implementing (`TESTING.md §6`).
+- The PR of a spec's first ticket sets its `FEATURES.md` status to `IN PROGRESS`, the last one to `IMPLEMENTED` (`flow.sh` prints the hint). The feature's ID links the spec issue.
+- An API change regenerates `packages/contract` (OpenAPI + TS/Swift/Kotlin clients) in the same PR. A string change edits only `packages/i18n/*.json` and regenerates the native catalogs in the same PR.
+- Every PR that touches a Railway watch pattern gets a preview (its own migrated and seeded Postgres); `pr.sh smoke` checks it and records the result in the PR description. Merging to `main` deploys production ([`ENVIRONMENTS.md`](ENVIRONMENTS.md)).
+- Merge strategy: **squash merge** into `main` after the deterministic CI checks (§7) are green and the owner approves.
 
 ## 4. Working with AI agents
 
 - **One agent per worktree.** Two agents never share a worktree or a branch.
-- **Parallel work limit:** at most 3–4 open worktrees at once, to limit merge conflicts and review load.
-- **Before starting, an agent reads:** `AGENTS.md`, the relevant feature spec in `docs/features/`, and the relevant ADRs.
-- **Local review:** before pushing, the author checks correctness, tenant isolation, i18n, platform parity and test quality (`TESTING.md §9`). A second agent may review locally when useful, but it is optional. Fix findings on the branch before the PR.
-- **No agent review in GitHub CI/CD:** do not add Claude or Codex review jobs, bot PR reviewers, required agent-review status checks or required cross-agent approvals. GitHub CI is for deterministic checks such as tests, lint, generated-file drift and security scans.
-- **Small PRs:** one feature or one platform slice per PR. Split anything that touches backend + iOS + Android heavily into contract PR → platform PRs.
+- **Parallel work:** at most three tickets in progress at once (`flow.sh start` refuses a fourth), to limit merge conflicts and the owner's review load.
+- **Agent instructions live in one place.** `AGENTS.md` holds the rules for every agent; `CLAUDE.md` only imports it. Area rules live in `.github/instructions/*.instructions.md`: Copilot attaches them by path (`applyTo`), other agents read the one for the area they change.
+- **Skills and subagents.** `.agents/skills/` holds our `work` skill and Matt Pocock's skills, vendored by `scripts/skills.sh` at the commit pinned in `.agents/skills.yaml` (each has a `.upstream` marker; MIT licence in `.agents/LICENSE.mattpocock-skills`). `.agents/agents/` holds the `implementer` and `reviewer` subagents. Copilot and Codex read `.agents/`; Claude Code reads it through the `.claude/skills` and `.claude/agents` symlinks, Copilot's custom agents through `.github/agents`. Never edit a vendored skill (the edit guard and `pnpm check` catch it): adapt behaviour in `AGENTS.md` or `docs/agents/`. To take Matt's latest version, run `scripts/skills.sh update` on a `chore/` branch and review the diff like code.
+- **Scripts first.** Repetitive steps are scripts in `scripts/` (`AGENTS.md`); agents call them instead of doing the steps by hand. `scripts/bootstrap.sh` installs what they need.
+- **Edit guard.** `.claude/settings.json` registers a `PreToolUse` hook, [`.claude/hooks/guard-edits.mjs`](../../.claude/hooks/guard-edits.mjs), that Claude Code and Copilot (CLI and Copilot sessions in VS Code) both run before every file edit. It denies edits in a checkout on `main` (git-ignored files such as `.env` stay editable), hand-edits of generated files (`openapi.json` and the generated clients in `packages/contract`, `packages/i18n/generated/`, `packages/database/migrations/meta/`) and of vendored skills. It covers the agents' edit tools, not shell commands, and only runs in folders the tool trusts. Codex and the VS Code Local agent don't run it. Its tests run in `pnpm test`.
+- **Local review:** before the PR, two `reviewer` subagents check the diff, one against `CODING_STANDARDS.md`, one against the ticket and spec. Findings are fixed on the branch.
+- **No agent review in GitHub CI/CD:** do not add Copilot code review, Claude or Codex review jobs, bot PR reviewers, required agent-review status checks or required cross-agent approvals. GitHub CI is for deterministic checks such as tests, lint, generated-file drift and security scans.
+- **Small PRs:** one ticket per PR. A spec that touches backend + iOS + Android heavily gets a contract ticket that blocks the platform tickets.
 - **No silent contract breaks:** after a contract freeze (end of M4, end of M7), API changes are additive only.
 - **Agents never** push to `main`, force-push shared branches, commit secrets, or edit generated files by hand.
 
 ## 5. Cleanup checklist (after merge)
 
-Run from the **main checkout**, not from inside the worktree:
-
-```bash
-git switch main && git pull --ff-only
-git worktree remove .worktrees/F031-open-gym-booking
-git branch -D feature/F031-open-gym-booking          # -D is required after a squash merge; verify it's merged first
-git push origin --delete feature/F031-open-gym-booking
-git worktree prune
-git fetch --prune
-```
+`scripts/flow.sh finish <n>`, from the **main checkout**, checks that the PR is merged and the local branch holds nothing more, then removes the worktree, the local and remote branch and the ticket's notes, updates `main`, closes the issue if the PR didn't, and reports what the spec needs next.
 
 Also make sure that:
 
 - [ ] Dev servers, watchers, simulators/emulators and Docker containers started for this change are stopped.
 - [ ] Temporary files, scratch scripts and debug output are deleted (never committed).
-- [ ] The Railway PR environment for this change is gone (it is deleted automatically on merge/close; check anyway). Scratch Railway services or environments created for the change are deleted ([`ENVIRONMENTS.md`](ENVIRONMENTS.md)).
-- [ ] `FEATURES.md` shows the new status; the feature doc lists its implementation references (PR link).
-- [ ] `git worktree list` shows only the worktrees for changes still in progress.
+- [ ] Scratch Railway services or environments created for the change are deleted ([`ENVIRONMENTS.md`](ENVIRONMENTS.md)); the PR environment is deleted automatically on merge.
+- [ ] When the last ticket of a spec is merged: `FEATURES.md` shows `IMPLEMENTED` and the spec issue is closed (`flow.sh status <spec>` says `complete`, then `done`).
 
 ## 6. Definition of Done
 
@@ -88,18 +80,18 @@ From `PRODUCT.md §86`, extended for native apps. A user-facing feature is **not
 - [ ] iOS **and** Android behaviour works where required (parity: same screens and states on both)
 - [ ] Permissions are correct (Owner / Admin / Trainer / Client)
 - [ ] Tenant isolation holds (covered by the isolation suite)
-- [ ] Dutch UI exists and has passed the local copy review against `GLOSSARY.md`
+- [ ] Dutch UI exists and has passed the local copy review against `packages/i18n/GLOSSARY.md`
 - [ ] English UI exists
 - [ ] Dates/times localize correctly (nl-NL: `22 september 2026`, `18:00`, Europe/Amsterdam)
 - [ ] Relevant emails exist in nl-NL and en
 - [ ] No hard-coded user-facing strings (CI enforced)
 - [ ] Generated contract and string catalogs are up to date (CI enforced)
-- [ ] Tests cover the acceptance criteria per the feature's Test plan and the checklist in [`TESTING.md §3`](TESTING.md) (e2e runs in both locales for user flows)
-- [ ] Local review checklist completed
-- [ ] Feature documentation updated
+- [ ] Tests cover the acceptance criteria per the spec issue's Test plan and the checklist in [`TESTING.md §3`](TESTING.md) (e2e runs in both locales for user flows)
+- [ ] Self-review by the two reviewers completed and findings fixed (`CODING_STANDARDS.md`)
+- [ ] Spec issue up to date with what was built (ACs, languages, platforms)
 - [ ] Feature registry status updated
 - [ ] Acceptance criteria pass
-- [ ] Cleanup checklist (§5) completed after merge
+- [ ] Cleanup (§5) completed after merge
 
 ## 7. CI and required checks
 

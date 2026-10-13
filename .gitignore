@@ -28,8 +28,9 @@ packages/contract/swift/Package.resolved
 .env.*
 !.env.example
 
-# Local git worktrees (one per branch, see docs/engineering/WORKFLOW.md)
+# Local git worktrees (one per branch) and per-ticket agent notes (scripts/flow.sh)
 .worktrees/
+.work/
 .claude/worktrees/
 
 # Local tooling

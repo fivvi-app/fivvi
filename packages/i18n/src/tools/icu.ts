@@ -43,11 +43,11 @@ export type CompileResult =
 
 const UNSUPPORTED: Partial<Record<TYPE, string>> = {
   [TYPE.number]:
-    'number formatting ({n, number}) is not supported; format the number in code and pass it as a plain {placeholder} (GLOSSARY.md §3.1)',
+    'number formatting ({n, number}) is not supported; format the number in code and pass it as a plain {placeholder} (packages/i18n/GLOSSARY.md §3.1)',
   [TYPE.date]:
-    'date formatting ({d, date}) is not supported; format the date in code with dateTimeFormats and pass it as a plain {placeholder} (GLOSSARY.md §3.1)',
+    'date formatting ({d, date}) is not supported; format the date in code with dateTimeFormats and pass it as a plain {placeholder} (packages/i18n/GLOSSARY.md §3.1)',
   [TYPE.time]:
-    'time formatting ({t, time}) is not supported; format the time in code with dateTimeFormats and pass it as a plain {placeholder} (GLOSSARY.md §3.1)',
+    'time formatting ({t, time}) is not supported; format the time in code with dateTimeFormats and pass it as a plain {placeholder} (packages/i18n/GLOSSARY.md §3.1)',
   [TYPE.select]:
     'select is not supported by the native exporters; use a separate key per case and choose in code',
   [TYPE.tag]:

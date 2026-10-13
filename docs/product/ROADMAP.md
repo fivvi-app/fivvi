@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.8 |
+| **Version** | 1.10 |
 | **Date** | 22 September 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
-| **Builders** | AI coding agents: Claude Code + Codex, working in parallel worktrees |
-| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7; E006 owner to-dos placed at M2, G2 and G4 in v1.8 |
+| **Builders** | AI coding agents: GitHub Copilot (VS Code + CLI), Claude Code and Codex, working in parallel worktrees |
+| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7; GitHub Copilot added as a builder in v1.8; Matt Pocock's skills and GitHub issue specs in v1.9; E006 owner to-dos placed at M2, G2 and G4 in v1.10 |
 | **Requirements source** | [`PRODUCT.md`](PRODUCT.md) (what we build and why) |
 | **Feature registry** | [`FEATURES.md`](FEATURES.md) (status of every feature) |
 | **Engineering workflow** | [`../engineering/WORKFLOW.md`](../engineering/WORKFLOW.md) (branches, worktrees, reviews, cleanup, Definition of Done) |
@@ -42,7 +42,7 @@
 
 **First customer:** A pilot gym owner who is also a PT and works with other trainers. Today they run on Excel, a separate calendar, notes and manual booking.
 
-**How it is built:** AI coding agents (Claude Code and Codex) implement the work in parallel, one branch and worktree per change. They review their changes locally before pushing; another agent may help locally when useful. The product owner approves each milestone gate. The plan is therefore **sequence- and gate-based, not date-based**: a milestone is done when its exit criteria pass, not when a calendar date arrives.
+**How it is built:** AI coding agents (GitHub Copilot, Claude Code and Codex) implement the work in parallel, one branch and worktree per change. They review their changes locally before pushing; another agent may help locally when useful. The product owner approves each milestone gate. The plan is therefore **sequence- and gate-based, not date-based**: a milestone is done when its exit criteria pass, not when a calendar date arrives.
 
 **Strategy in horizons:**
 
@@ -68,9 +68,9 @@ These principles govern *how* we deliver. The product principles in `PRODUCT.md 
 5. **Walking skeleton first.** Web, iOS, Android, API, database, email and CI are all connected in M1, before any feature work.
 6. **Pilot evidence beats opinion.** After MVP, a release is scoped only from observed pilot usage, and each post-MVP release has an entry gate.
 7. **Security and privacy by default.** Notes can contain health information. Least-privilege access, trainer-only by default, EU data residency and a processor agreement with every workspace.
-8. **Agents build, the owner decides.** Agents work in small, reviewable PRs, one per worktree. Agent review is local and is not a GitHub PR or CI gate. Every milestone gate needs the owner's approval. Rules for agents live in `AGENTS.md`, which both Claude and Codex read.
+8. **Agents build, the owner decides.** Agents work in small, reviewable PRs, one per worktree. Agent review is local and is not a GitHub PR or CI gate. Every milestone gate needs the owner's approval. Rules for agents live in `AGENTS.md`, which every agent reads (Copilot and Codex directly, Claude Code through `CLAUDE.md`).
 9. **Free-tier first.** Every service starts on a free plan. Moving to a paid plan is triggered by real clients (Gate G4) or a hard limit, never by convenience (§12).
-10. **Documentation is part of the change.** The feature doc and the `FEATURES.md` status are updated in the same PR as the code.
+10. **Documentation is part of the change.** The spec issue, the `FEATURES.md` status and the domain glossary are updated with the code; the PR closes the spec and its tickets.
 11. **One change, one branch, one worktree. Clean up afterwards.** See `WORKFLOW.md`.
 
 ---
@@ -591,7 +591,7 @@ These run continuously from M1 onward. They are not phases.
 
 | Track | Standard | Enforced by |
 |---|---|---|
-| **Localization** | Every string is a key in `packages/i18n`; nl-NL and en always in parity; ICU plurals; generated `.xcstrings` / `strings.xml` never edited by hand; dates/times via the platform's locale APIs with the workspace/user timezone; user content never auto-translated | CI checks (E005); per-locale e2e on all platforms; **local copy review** before pushing string changes against `GLOSSARY.md` and the tone guide (informal "je", friendly and short) |
+| **Localization** | Every string is a key in `packages/i18n`; nl-NL and en always in parity; ICU plurals; generated `.xcstrings` / `strings.xml` never edited by hand; dates/times via the platform's locale APIs with the workspace/user timezone; user content never auto-translated | CI checks (E005); per-locale e2e on all platforms; **local copy review** before pushing string changes against `packages/i18n/GLOSSARY.md` and the tone guide (informal "je", friendly and short) |
 | **Platform parity** | Every mobile feature exists on iOS and Android, in both languages, before it counts as done | Parity checklist in PRs; shared Maestro flows |
 | **API contract** | All clients use generated clients; changes are additive and versioned after a freeze | OpenAPI drift check in CI |
 | **Security** | Least privilege; tenant isolation; hashed single-use tokens; rate limits; secure token storage on devices; dependency updates | E011 suite in CI; local security review at M9 and before each major release |
@@ -599,7 +599,7 @@ These run continuously from M1 onward. They are not phases.
 | **Accessibility** | WCAG 2.2 AA on public and client web; Dynamic Type, VoiceOver/TalkBack and contrast on native | axe checks in web e2e; native accessibility audits at M9 |
 | **Observability** | Errors, logs, uptime, crash-free rate; **product events captured from MVP** (bookings, attendance, logging) so 3.2 analytics has history | E009; event list maintained in `docs/engineering/` |
 | **Quality** | Test pyramid; e2e for booking, tenancy, scheduling; tests ship with every change (`docs/engineering/TESTING.md`) | Deterministic CI checks on `main`; feature Test plans; local review checklist |
-| **Documentation** | Feature docs + registry updated in the same PR | PR checklist (WORKFLOW.md) |
+| **Documentation** | Spec issues + registry + `GLOSSARY.md` updated with the code | PR checklist (WORKFLOW.md) |
 
 ---
 
@@ -689,7 +689,7 @@ flowchart TB
 | R5 | **Hold spam blocks classes** | L | M | Rate limits; hold caps per email; Turnstile | M5 |
 | R6 | **Single pilot = single point of failure and bias** | M | H | Recruit 1–2 "friendly" extra trainers/gyms during the pilot to sanity-check findings before 2.0 | M10 |
 | R7 | **Scope creep** from pilot requests during the build | H | M | Requests go to a 1.1 backlog unless they block a success criterion; roadmap changelog | All |
-| R8 | **AI-agent drift:** inconsistent patterns, duplicated logic, or plausible-but-wrong code across Claude and Codex | M | H | `AGENTS.md` rules + ADRs; deterministic CI; small PRs; local review checklist; optional local second-agent review; owner approval at every gate; business logic only in `packages/domain` | All |
+| R8 | **AI-agent drift:** inconsistent patterns, duplicated logic, or plausible-but-wrong code across Copilot, Claude and Codex | M | H | One shared `AGENTS.md` + area rules + ADRs; edit guard hook (no edits on `main` or of generated files); deterministic CI; small PRs; local review checklist; optional local second-agent review; owner approval at every gate; business logic only in `packages/domain` | All |
 | R9 | **Native doubles the UI work; iOS and Android drift apart** | H | M | Generated API clients, strings and tokens; parity checklist; shared Maestro flows; parallel tracks | M8, 1.2 |
 | R10 | **LLM Dutch reads unnatural or inconsistent** and hurts trust | M | M | Glossary + tone guide; local copy review before pushing string changes; the pilot owner flags oddities; fix quickly | All |
 | R11 | **Health data in notes (GDPR special category)** | M | H | Trainer-only default; access audit log; DPIA assessment; EU residency; processor agreement | M0, M7, M9 |
@@ -709,7 +709,7 @@ flowchart TB
 | # | Decision | Outcome |
 |---|---|---|
 | 1 | Product name and domain | **Trainer Hub** (working name); domain chosen and bought before M5 |
-| 2 | Team and capacity | **Built by AI agents (Claude Code + Codex)**; no human-capacity timeline; sequence- and gate-based plan |
+| 2 | Team and capacity | **Built by AI agents (GitHub Copilot, Claude Code, Codex)**; no human-capacity timeline; sequence- and gate-based plan |
 | 3 | Stack (ADRs) | **Native iOS (Swift/SwiftUI) + native Android (Kotlin/Compose)**; the rest as recommended; API switched to REST + OpenAPI because of native |
 | 4 | Hosting and budget | **Free tiers until real clients**; upgrades at G4 (§12) |
 | 5 | Dutch copy review | **Local review** with a glossary and tone guide; an LLM may assist locally, without a GitHub review job |
@@ -733,7 +733,7 @@ These are intentionally left open. Each one is decided when its release's entry 
 - **Review cadence:** at the end of every milestone, a short review with the owner: exit criteria met?, risks, what changed, next milestone scope. The next milestone starts only after owner approval.
 - **Scope changes:** every change to milestone scope or release order goes in the [changelog](#16-changelog) with a reason.
 - **Feature lifecycle** (`PRODUCT.md §81`): `IDEA → PLANNED → DESIGNED → IN PROGRESS → IN REVIEW → IMPLEMENTED → RELEASED`. Status lives in `FEATURES.md`, and new features get the next free `F0xx` ID when they move to `PLANNED`.
-- **Feature specs:** each feature gets `docs/features/F0xx-<slug>.md` from [`_TEMPLATE.md`](../features/_TEMPLATE.md) before it moves to `DESIGNED`. Agents implement against the spec's acceptance criteria.
+- **Feature specs:** each feature gets a spec issue on GitHub (`/to-spec`, rules in [`docs/agents/issue-tracker.md`](../agents/issue-tracker.md)) before it moves to `DESIGNED`, with the fields of `PRODUCT.md §82`. Its tickets are sub-issues (`/to-tickets`), built one PR per ticket. Agents implement against the acceptance criteria. This replaces the `/docs/features` folder named in `PRODUCT.md §80`, as recorded in the v1.9 changelog.
 
 ---
 
@@ -749,4 +749,6 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-09-22 | 1.5 | **Brevo selected** for transactional email (ADR-009; owner account created). M0 §4.4 legal drafts completed and checked off separately from signing, DPA execution and publication. Drafts synchronized with Railway hosting and Postgres, including the DPA checks before real data. Release 2.0 DPIA need will be reassessed at its entry gate. |
 | 2026-09-22 | 1.6 | Owner reported Sentry and PostHog accounts created on personal accounts and an existing Apple Developer Program company membership. Split the M0 account checklist to show what is created versus still unconfirmed (uptime monitor and Google Play Console). Updated M8 and §12 distribution costs; E006, E009 and E017 remain planned. |
 | 2026-10-04 | 1.7 | **E006 email infrastructure** implemented (`packages/email`: React Email templates from the i18n catalogs, `sendEmail` with Brevo and inline retry). G1 email criterion met for Gmail (NL and EN in the inbox, 2026-10-03); other mailbox providers stay with the M5 deliverability tests. Brevo terms checked: 300 emails/day on the free plan, EU storage with support access from the US and India, DPA part of the terms; previews off, logs kept 1 month, anonymous tracking on. Updated ADR-009 row, §12 email row and R1 (tracking off before G2). |
-| 2026-10-04 | 1.8 | E006 owner to-dos moved to where they are due: Railway email variables in M2 (before F001 sends email), Brevo tracking off and a DPA copy in the G2 exit criteria, Brevo usage alert and paid plan in the M9 launch checklist (G4). |
+| 2026-10-13 | 1.8 | Owner added **GitHub Copilot** (VS Code + CLI, not the cloud agent) as a builder next to Claude Code and Codex. `AGENTS.md` is the single, tool-neutral rule file, with area rules in `.github/instructions/`, workflow skills in `.agents/skills/` (start, local review, cleanup) and an edit guard hook (`.claude/settings.json`) that blocks edits on `main` and of generated files for Copilot and Claude Code. Agent review stays local; Copilot code review is not used in GitHub. Updated `WORKFLOW.md` and the legal drafts (`role-mapping.md` §6.6, `sub-processors.md` §5). |
+| 2026-10-13 | 1.9 | Owner adopted **Matt Pocock's way of working** (github.com/mattpocock/skills, MIT) for all three agents, modelled on the owner's mijn-hcs repo. Matt's skills are vendored and pinned in `.agents/skills/` (`scripts/skills.sh`; symlinks for Claude Code); our `work` skill orchestrates them with the `implementer` and `reviewer` subagents, so the owner only talks. Deterministic scripts do the repetitive steps: `flow.sh` (phase and next step per issue, decided by a tested `flow-phase.jq`), `issue.sh`, `wt.sh`, `pr.sh`, `check.sh`, `bootstrap.sh`, plus a commit-msg hook. Specs and tickets move to **GitHub issues** (sub-issues with native blocking edges, triage labels); `docs/features/` and its template are retired, which deviates from the location in `PRODUCT.md §80–82` (the fields stay). One PR per ticket, at most three in parallel. The domain language moves to a root `GLOSSARY.md`; `packages/i18n/GLOSSARY.md` keeps the NL/EN wording. New `CODING_STANDARDS.md` for reviews. Updated `AGENTS.md`, `WORKFLOW.md`, `TESTING.md`, `FEATURES.md`. |
+| 2026-10-13 | 1.10 | E006 owner to-dos moved to where they are due: Railway email variables in M2 (before F001 sends email), Brevo tracking off and a DPA copy in the G2 exit criteria, Brevo usage alert and paid plan in the M9 launch checklist (G4). |

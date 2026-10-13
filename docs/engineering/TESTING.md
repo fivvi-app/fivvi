@@ -5,7 +5,7 @@ How we test Trainer Hub so that AI agents and humans can change it often without
 ## 1. Principles
 
 1. **Tests ship with the change.** A PR that adds or changes behaviour includes the tests for it. "Tests later" does not exist, just like "translate later".
-2. **Acceptance criteria become tests.** Every acceptance criterion in a feature doc maps to at least one automated test (§6). If a criterion can't be automated, the feature doc says why and how it is checked by hand.
+2. **Acceptance criteria become tests.** Every acceptance criterion in a spec issue maps to at least one automated test (§6). If a criterion can't be automated, the spec says why and how it is checked by hand.
 3. **Bug fix = failing test first.** Reproduce the bug in a test, see it fail, then fix it. The test stays as a regression guard.
 4. **Test at the lowest layer that can prove the rule.** Business rules live in `packages/domain`, so most tests live there too. E2E tests prove that the pieces are wired together; they don't re-test every rule.
 5. **Real Postgres, not mocks, for data.** RLS, constraints, transactions and locks are part of our correctness. Mock only at system boundaries (§5.4).
@@ -80,7 +80,7 @@ These are the bugs that hurt most (`ROADMAP.md §13`: R2, R3, R4). They get dedi
 
 - Group tests by feature ID and name them after the behaviour, not the function:
   `describe('F029 booking hold')` → `it('releases the spot when the hold expires')`
-- Tests that cover an acceptance criterion reference it: `it('AC2: guest receives the confirmation email in their locale')`. A reviewer can then check the feature doc against the test list.
+- Tests that cover an acceptance criterion reference it: `it('AC2: guest receives the confirmation email in their locale')`. A reviewer can then check the spec issue against the test list.
 - Native: the same idea in XCTest/JUnit method names, e.g. `test_F043_AC1_logsSetWhileOffline`.
 
 ### 5.2 Test data
@@ -122,9 +122,9 @@ These are the bugs that hurt most (`ROADMAP.md §13`: R2, R3, R4). They get dedi
 - Coverage is reported on every PR, but **the checklist in §3 is the real bar**, not a number.
 - One hard gate: `packages/domain` line coverage must not drop below **90%**. That package is small, pure and where the rules live, so it is cheap to keep high.
 
-## 6. Test plan in the feature doc
+## 6. Test plan in the spec issue
 
-Every feature doc (`docs/features/_TEMPLATE.md`) has a **Test plan** section, written **before** implementation. It lists each acceptance criterion with the layer(s) that prove it:
+Every spec issue (`docs/agents/issue-tracker.md`) has a **Test plan** in its *Testing Decisions*, written **before** implementation, at the seams `/to-spec` agreed with the owner. It lists each acceptance criterion with the layer(s) that prove it:
 
 | AC | Layer | Test |
 |---|---|---|
@@ -152,6 +152,7 @@ Run from the repo root. Turbo runs the task in every package that has it; add `-
 
 | Command | Runs | Needs |
 |---|---|---|
+| `scripts/check.sh` | Everything below plus repo hygiene (shellcheck, vendored skills, commit messages, doc links); `--fast` skips integration and e2e. The contract check runs only when the branch touches `packages/api` or `packages/contract` (CI always runs it). The pre-PR gate | `scripts/bootstrap.sh` once; `--api` for API changes (Java, Swift) |
 | `pnpm test` | Every unit suite (`*.test.ts(x)`) | Nothing |
 | `pnpm test:integration` | Every integration suite (`*.integration.test.ts`) against real Postgres | `pnpm db:up`, and `TEST_DATABASE_URL` set to it (below) |
 | `pnpm test:e2e` | Builds `apps/web`, starts it on port 3100 (`E2E_PORT`) and runs every Playwright spec in **nl-NL and en** with axe | Chromium, once: `pnpm --filter @trainer-hub/web exec playwright install chromium --only-shell` |
@@ -195,8 +196,8 @@ Also for E008:
 
 ## 9. Agent workflow
 
-1. Read the feature doc and write or update its **Test plan** (§6) first.
-2. Write the failing tests for the next small step, then implement until green (test-first is expected for domain rules and bug fixes).
-3. Run the relevant suites locally and paste the results into the PR description.
-4. **Review the tests locally before pushing:** do they actually assert the acceptance criteria, cover the roles and both locales, and would they fail if the feature broke? A second agent may help locally, but no agent review is required in GitHub. A test that can't fail is worse than no test.
+1. Read the spec issue and your ticket. The spec's **Test plan** (§6) says which tests prove each AC; update it in the spec if the plan has to change.
+2. Build with `/tdd`: write the failing test for the next vertical slice, make it pass, refactor (red-green-refactor). Bugs go through `/diagnosing-bugs`, which starts from a failing regression test.
+3. Run `scripts/check.sh` (every suite, with a per-worktree `E2E_PORT`); `scripts/pr.sh create` runs it again before it pushes.
+4. **Review locally before pushing** (two `reviewer` subagents): do the tests actually assert the acceptance criteria, cover the roles and both locales, and would they fail if the feature broke? No agent review runs in GitHub. A test that can't fail is worse than no test.
 5. Never mark a feature `IMPLEMENTED` in `FEATURES.md` while its Test plan has gaps.
