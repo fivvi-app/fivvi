@@ -458,10 +458,10 @@
     render() {
       const flows = [
         [1, "flow1", "link", "private", [["1", "hub.start"]]],
-        [2, "flow2", "today", "teal", [["2", "hub.start"]]],
+        [2, "flow2", "today", "neutral", [["2", "hub.start"]]],
         [3, "flow3", "calendar", "group", [["3", "hub.start"]]],
         [4, "flow4", "user", "private", [["4new", "flow4.new"], ["4move", "hub.move"], ["4app", "hub.app"]]],
-        [5, "flow5", "dumbbell", "teal", [["5free", "flow5.free"], ["5", "flow5.planned"]]],
+        [5, "flow5", "dumbbell", "neutral", [["5free", "flow5.free"], ["5", "flow5.planned"]]],
         [6, "flow6", "users", "group", [["6", "flow6.web"], ["6app", "hub.app"]]],
         [7, "flow7", "plus", "open-gym", [["7", "flow7.new"], ["7clients", "tab.clients"]]],
       ];
@@ -1361,7 +1361,7 @@
         body: `
           <h2 class="t-title2 screen-h" tabindex="-1">${esc(c.name)} · ${L.name ? esc(L.name) : t("s.workout")}</h2>
           <div class="workout-metrics">
-            <div class="result-stat"><span class="icon-badge icon-badge--teal">${icon("dumbbell", "ico--sm")}</span><strong class="metric-value t-num">${items.length}/${L.items.length}</strong><span>${t("l.exercisesDone")}</span></div>
+            <div class="result-stat"><span class="icon-badge icon-badge--neutral">${icon("dumbbell", "ico--sm")}</span><strong class="metric-value t-num">${items.length}/${L.items.length}</strong><span>${t("l.exercisesDone")}</span></div>
             <div class="result-stat"><span class="icon-badge icon-badge--private">${icon("check", "ico--sm")}</span><strong class="metric-value t-num">${sets}</strong><span>${t("l.setsLabel")}</span></div>
           </div>
           ${disclosure(t("l.resultsDetails"), `${skipped.length ? `<p class="t-subhead muted">${t("l.skipped", { list: skipped.map((it) => exName(it.ex)).join(", ") })}</p>` : ""}
@@ -1559,7 +1559,7 @@
       title: t("new.title"),
       body: `<ul class="create-grid">
           ${createTile("app-new", "private", "user", "private", t("new.private"))}
-          ${createTile("app-new", "client", "plus", "teal", t("c.client"))}
+          ${createTile("app-new", "client", "plus", "neutral", t("c.client"))}
           ${manage.length ? createTile("app-new", "group", "users", "group", t("type.group")) : ""}
           ${manage.length ? createTile("app-new", "openGym", "door", "open-gym", t("type.openGym")) : ""}
         </ul>
@@ -1753,7 +1753,7 @@
     if (w.panelMode === "pick") {
       body = `${w.slot ? `<p class="t-subhead muted">${ucfirst(dayLong(at(w.slot.date, "12:00")))} · <span class="t-num">${w.slot.time}</span></p>` : ""}<ul class="create-grid">
         ${createTile("w-pick", "private", "user", "private", t("new.private"))}
-        ${createTile("w-pick", "client", "plus", "teal", t("c.client"))}
+        ${createTile("w-pick", "client", "plus", "neutral", t("c.client"))}
         ${createTile("w-pick", "group", "users", "group", t("type.group"))}
         ${createTile("w-pick", "openGym", "door", "open-gym", t("type.openGym"))}
       </ul>`;

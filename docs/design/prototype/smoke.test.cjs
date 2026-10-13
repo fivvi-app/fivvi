@@ -151,6 +151,40 @@ test('appearance starts light on a dark OS; explicit changes keep booking drafts
   await page.close();
 });
 
+test('owner palette keeps large surfaces, primary actions and navigation monochrome, with colour only in small semantic markers', async () => {
+  const { page, errors } = await pageFor(2);
+  for (const platform of ['ios', 'android']) {
+    await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+    for (const theme of ['light', 'dark']) {
+      await page.locator('.appearance summary').click();
+      await page.locator(`[data-act="set-theme"][data-v="${theme}"]`).click();
+      await page.locator('.appearance summary').click();
+      const styles = await page.locator('.app, .next, .next .btn--primary, .nav, .tab.is-active, .tab.is-active .tab-ico, .fab, .protobar')
+        .evaluateAll((els) => els.flatMap((el) => ['backgroundColor', 'color'].map((property) => ({
+          element: el.className, property, value: getComputedStyle(el)[property],
+        }))));
+      for (const style of styles) {
+        const channels = style.value.match(/[\d.]+/g).slice(0, 3).map(Number);
+        assert.ok(Math.max(...channels) - Math.min(...channels) <= 8,
+          `${platform}/${theme} ${style.element} ${style.property} should be neutral: ${style.value}`);
+      }
+      const marker = await page.locator('.next .icon-badge--private').evaluate((el) => ({
+        color: getComputedStyle(el).color, width: el.getBoundingClientRect().width,
+      }));
+      const channels = marker.color.match(/\d+/g).slice(0, 3).map(Number);
+      assert.ok(Math.max(...channels) - Math.min(...channels) > 12, 'small private-session marker retains semantic colour');
+      assert.ok(marker.width <= 40, 'colour stays in a small marker');
+    }
+  }
+  await page.locator('[data-act="home"]').click();
+  await startFlow(page, '1');
+  const brand = await page.locator('.pub-mark').evaluate((el) => getComputedStyle(el).backgroundColor);
+  const channels = brand.match(/\d+/g).slice(0, 3).map(Number);
+  assert.ok(Math.max(...channels) - Math.min(...channels) <= 8, 'public brand block is monochrome too');
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
 test('prototype-only Dutch and English keys remain in parity', () => {
   const context = { window: {} };
   vm.runInNewContext(readFileSync(resolve(__dirname, 'strings.js'), 'utf8'), context);

@@ -5,23 +5,23 @@
       "$type": "color",
       "white": { "$value": "#FFFFFF" },
       "neutral": {
-        "$description": "Cool grey with a slight petrol bias, so neutrals read as chosen, not default.",
-        "25": { "$value": "#F6F8F7" },
-        "50": { "$value": "#EEF2F1" },
-        "100": { "$value": "#E2E8E6" },
-        "200": { "$value": "#CBD4D2" },
-        "300": { "$value": "#A9B5B2" },
-        "400": { "$value": "#7E8C89" },
-        "500": { "$value": "#5C6A67" },
-        "600": { "$value": "#46524F" },
-        "700": { "$value": "#333D3B" },
-        "800": { "$value": "#222A29" },
-        "850": { "$value": "#1B2221" },
-        "900": { "$value": "#161C1B" },
-        "950": { "$value": "#0E1312" }
+        "$description": "Owner-selected monochrome foundation: white, light grey and charcoal. Colour is reserved for small semantic markers and meaningful states.",
+        "25": { "$value": "#F6F6F7" },
+        "50": { "$value": "#EEEEF0" },
+        "100": { "$value": "#DFDFE2" },
+        "200": { "$value": "#C8C8CD" },
+        "300": { "$value": "#B1B1B8" },
+        "400": { "$value": "#85858C" },
+        "500": { "$value": "#66666D" },
+        "600": { "$value": "#4D4D54" },
+        "700": { "$value": "#3B3B42" },
+        "800": { "$value": "#303037" },
+        "850": { "$value": "#28282F" },
+        "900": { "$value": "#202026" },
+        "950": { "$value": "#16161B" }
       },
       "petrol": {
-        "$description": "Brand. A deep blue-green: calm and clinical enough for health notes, warm enough for a gym.",
+        "$description": "Legacy exploration palette, retained as primitives only; not used for brand surfaces or actions.",
         "50": { "$value": "#E6F4F1" },
         "100": { "$value": "#C4E6DF" },
         "200": { "$value": "#94D2C6" },
@@ -79,22 +79,22 @@
       "canvas": {
         "$value": "{color.base.neutral.25}",
         "$description": "App/page background. iOS: systemGroupedBackground role. M3: surface.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "#1D2928" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#242428" } }
       },
       "surface": {
         "$value": "{color.base.white}",
         "$description": "Cards, list rows, inputs. iOS: secondarySystemGroupedBackground. M3: surfaceContainerLowest.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "#253330" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#2D2D32" } }
       },
       "raised": {
         "$value": "{color.base.white}",
         "$description": "Sheets, dialogs, menus. iOS: sheet material. M3: surfaceContainerHigh.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "#2B3B37" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#34343A" } }
       },
       "subtle": {
         "$value": "{color.base.neutral.50}",
         "$description": "Quiet fills: segmented tracks, table stripes, read-only fields. M3: surfaceContainer.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "#30423D" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#3A3A41" } }
       },
       "inverse": {
         "$value": "{color.base.neutral.900}",
@@ -106,25 +106,25 @@
       "$type": "color",
       "primary": {
         "$value": "{color.base.neutral.900}",
-        "$extensions": { "app.trainerhub.mode": { "dark": "#E6EDEB" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#E8E8ED" } }
       },
       "secondary": {
         "$value": "{color.base.neutral.600}",
         "$description": "Meta lines (workspace, location). Must still pass 4.5:1 on canvas and surface.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "#B7C7C0" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#C5C5CB" } }
       },
       "tertiary": {
         "$value": "{color.base.neutral.500}",
         "$description": "Placeholders and hints. Still AA (4.5:1) on surface: placeholders are real text.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "#A0B2AA" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#B0B0B8" } }
       },
       "inverse": {
         "$value": "{color.base.neutral.25}",
         "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.900}" } }
       },
       "link": {
-        "$value": "{color.base.petrol.700}",
-        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.petrol.200}" } }
+        "$value": "{color.base.neutral.800}",
+        "$extensions": { "app.trainerhub.mode": { "dark": "#ECECF0" } }
       }
     },
     "border": {
@@ -132,30 +132,30 @@
       "default": {
         "$value": "{color.base.neutral.100}",
         "$description": "Decorative separators only (hairlines between rows). Not used for control boundaries.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "#3C504A" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#484850" } }
       },
       "control": {
         "$value": "{color.base.neutral.400}",
         "$description": "Input and control outlines: 3:1 non-text contrast (WCAG 1.4.11).",
-        "$extensions": { "app.trainerhub.mode": { "dark": "#92A69D" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "#A6A6AF" } }
       },
       "focus": {
-        "$value": "{color.base.petrol.500}",
+        "$value": "{color.base.neutral.600}",
         "$description": "Focus ring, 2px + 2px offset on web. Native uses the platform focus system.",
-        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.petrol.300}" } }
+        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.200}" } }
       }
     },
     "action": {
       "$type": "color",
       "primary": {
         "bg": {
-          "$value": "{color.base.petrol.600}",
+          "$value": "{color.base.neutral.900}",
           "$description": "Filled buttons. iOS: app tint/accentColor. M3: primary.",
-          "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.petrol.300}" } }
+          "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.200}" } }
         },
         "bg-pressed": {
-          "$value": "{color.base.petrol.700}",
-          "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.petrol.200}" } }
+          "$value": "{color.base.neutral.950}",
+          "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.100}" } }
         },
         "fg": {
           "$value": "{color.base.white}",
@@ -165,14 +165,14 @@
       },
       "tonal": {
         "bg": {
-          "$value": "{color.base.petrol.50}",
+          "$value": "{color.base.neutral.50}",
           "$description": "Secondary/tonal buttons, selected chips, selected tab indicator. M3: secondaryContainer.",
-          "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.petrol.900}" } }
+          "$extensions": { "app.trainerhub.mode": { "dark": "{color.bg.subtle}" } }
         },
         "fg": {
-          "$value": "{color.base.petrol.800}",
+          "$value": "{color.base.neutral.900}",
           "$description": "M3: onSecondaryContainer.",
-          "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.petrol.100}" } }
+          "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.200}" } }
         }
       },
       "danger": {
@@ -212,17 +212,17 @@
       "private": {
         "solid": { "$value": "{color.base.blue.500}", "$description": "Calendar bar/dot. 3:1 against surface.", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.blue.300}" } } },
         "fg": { "$value": "{color.base.blue.700}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.blue.100}" } } },
-        "bg": { "$value": "{color.base.blue.50}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.blue.900}" } } }
+        "bg": { "$value": "{color.base.neutral.50}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.800}" } } }
       },
       "group": {
         "solid": { "$value": "{color.base.violet.500}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.violet.300}" } } },
         "fg": { "$value": "{color.base.violet.700}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.violet.100}" } } },
-        "bg": { "$value": "{color.base.violet.50}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.violet.900}" } } }
+        "bg": { "$value": "{color.base.neutral.50}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.800}" } } }
       },
       "open-gym": {
         "solid": { "$value": "{color.base.amber.500}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.amber.300}" } } },
         "fg": { "$value": "{color.base.amber.700}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.amber.100}" } } },
-        "bg": { "$value": "{color.base.amber.50}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.amber.900}" } } }
+        "bg": { "$value": "{color.base.neutral.50}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.800}" } } }
       }
     }
   },
