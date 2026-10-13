@@ -33,7 +33,9 @@ Requirements, besides Node and pnpm:
 | Swift 6 toolchain | Builds and runs swift-openapi-generator | Xcode (Command Line Tools) |
 | Java 17+ | Runs openapi-generator | `brew install openjdk@21`, then `export JAVA_HOME="$(brew --prefix openjdk@21)"` |
 
-The first run builds swift-openapi-generator (about 1–2 minutes) and downloads the openapi-generator jar (30 MB, from Maven Central, SHA-256 checked) into `node_modules/.cache/contract`. Later runs take a few seconds.
+The first run builds swift-openapi-generator (about 1–2 minutes) and downloads the openapi-generator jar (30 MB, from Maven Central, SHA-256 checked). Both are kept in `node_modules/.cache/contract` and reused while their names match: the generator binary is named by a hash of the full `swift --version` output, `Package.swift` and `Package.resolved`; the jar by its pinned version (its SHA-256 is checked on every use). Later runs take a few seconds.
+
+CI (`Checks (Linux)`) caches that directory under one key: the runner OS, the Swift version number, and one hash of `Package.swift`, `Package.resolved` and `config/openapi-generator.json`. A change to any of them misses the cache and starts from an empty directory, so old tools don't accumulate. CI saves the directory even when another check fails, but only after a miss and once both tools exist.
 
 ## Drift check
 
@@ -41,9 +43,9 @@ The first run builds swift-openapi-generator (about 1–2 minutes) and downloads
 pnpm check            # all packages, via Turborepo
 ```
 
-`scripts/check.ts` generates the spec and all three clients into a temp directory. It fails and lists every file that differs from the committed one, is missing, or is no longer generated. The task is never cached, because its inputs include `packages/api` and the toolchains. E002 adds it to CI as a required check; the CI job needs the Swift toolchain and Java too.
+`scripts/check.ts` generates the spec and all three clients into a temp directory. It fails and lists every file that differs from the committed one, is missing, or is no longer generated. Turborepo caches the result (`turbo.json`). The task hash covers this package's files except `README.md` and the tests (the pipeline, `config/`, the generator pins in `tools/`, `openapi.json` and the generated clients), and through `^build` the packages it imports: `packages/api` and its dependencies. So a route, schema or generator change re-runs it, and a change elsewhere reuses the result. Unlike the other packages' `check`, it doesn't depend on the root `//#check:root` (vendored skills under `.agents/`), which can't change its result; CI still runs that through the other packages' `check`. It runs in `Checks (Linux)` in CI; that job needs the Swift toolchain and Java too.
 
-`test/drift.test.ts` runs the spec + TypeScript part of the same comparison under `pnpm test`, and proves that a route change without a regeneration fails.
+`test/drift.test.ts` runs the spec + TypeScript part of the same comparison under `pnpm test`, and proves that a route change without a regeneration fails. `test/check-cache.test.ts` reads turbo's dry run and fails when the check is no longer cached or its hash loses one of these inputs.
 
 ## Generators
 
@@ -54,7 +56,7 @@ Every generator version is pinned, so the output only changes when the API or a 
 | `openapi.json` | `@hono/zod-openapi` `getOpenAPI31Document` | `pnpm-lock.yaml` | `packages/api/src/openapi.ts` |
 | TypeScript | [openapi-typescript](https://openapi-ts.dev) 7.13.0 + [openapi-fetch](https://openapi-ts.dev/openapi-fetch/) | `tools/typescript-generator/package.json` | defaults |
 | Swift | [swift-openapi-generator](https://github.com/apple/swift-openapi-generator) 1.13.1 | `tools/swift-generator/Package.resolved` | `config/swift-openapi-generator.yaml` |
-| Kotlin | [openapi-generator](https://openapi-generator.tech) 7.25.0, `kotlin` generator | `scripts/pipeline.ts` (version + SHA-256) | `config/kotlin.json` |
+| Kotlin | [openapi-generator](https://openapi-generator.tech) 7.25.0, `kotlin` generator | `config/openapi-generator.json` (version + SHA-256) | `config/kotlin.json` |
 
 ### TypeScript: openapi-typescript + openapi-fetch
 
@@ -78,6 +80,6 @@ Every generator version is pinned, so the output only changes when the API or a 
 
 ## Upgrading a generator
 
-1. Bump the version: `tools/typescript-generator/package.json`, `tools/swift-generator/Package.swift` (then `swift package update --package-path tools/swift-generator`), or `OPENAPI_GENERATOR` in `scripts/pipeline.ts` (version **and** SHA-256; Maven Central publishes the SHA-1 next to the jar to cross-check).
+1. Bump the version: `tools/typescript-generator/package.json`, `tools/swift-generator/Package.swift` (then `swift package update --package-path tools/swift-generator`), or `config/openapi-generator.json` (version **and** SHA-256; Maven Central publishes the SHA-1 next to the jar to cross-check).
 2. `pnpm generate:contract`, review the diff of the generated code, and build the clients.
 3. Commit the version bump and the regenerated output together.

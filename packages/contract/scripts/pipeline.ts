@@ -4,7 +4,17 @@
 
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cp, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +22,8 @@ import { promisify } from 'node:util';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { buildOpenApiDocument } from '@trainer-hub/api';
 import { generateTypeScriptSchema } from '@trainer-hub/typescript-generator';
+// Its own file, so CI can key the cached jar on it (.github/workflows/ci.yml).
+import OPENAPI_GENERATOR from '../config/openapi-generator.json' with { type: 'json' };
 
 const run = promisify(execFile);
 
@@ -26,11 +38,6 @@ export const GENERATED_PATHS = {
 } as const;
 
 export const TS_SCHEMA_FILE = 'schema.ts';
-
-const OPENAPI_GENERATOR = {
-  version: '7.25.0',
-  sha256: '41ce4f6b07f196676439d710759fa1ced7a08066d06ff1bf314681470289efae',
-};
 
 const SWIFT_TOOL_PACKAGE = join(CONTRACT_ROOT, 'tools/swift-generator');
 const SWIFT_CONFIG = join(CONTRACT_ROOT, 'config/swift-openapi-generator.yaml');
@@ -61,11 +68,9 @@ export async function generateTypeScript(specFile: string, outRoot: string): Pro
 }
 
 export async function generateSwift(specFile: string, outRoot: string): Promise<void> {
-  const build = ['build', '-c', 'release', '--package-path', SWIFT_TOOL_PACKAGE];
-  await exec('swift', [...build, '--product', 'swift-openapi-generator']);
-  const binPath = (await exec('swift', [...build, '--show-bin-path'])).trim();
+  const generator = await swiftOpenApiGenerator();
   const dir = await resetDir(join(outRoot, GENERATED_PATHS.swift));
-  await exec(join(binPath, 'swift-openapi-generator'), [
+  await exec(generator, [
     'generate',
     specFile,
     '--config',
@@ -186,6 +191,32 @@ async function exec(command: string, args: string[]): Promise<string> {
 function javaBinary(): string {
   const javaHome = process.env.JAVA_HOME;
   return javaHome ? join(javaHome, 'bin/java') : 'java';
+}
+
+/**
+ * The pinned swift-openapi-generator, built once per Swift toolchain and pinned version and kept
+ * in `CACHE_DIR`. A restored `.build` doesn't help: SwiftPM recompiles everything when its files
+ * get new inodes, as they do from a CI cache.
+ */
+async function swiftOpenApiGenerator(): Promise<string> {
+  const fingerprint = createHash('sha256').update(await exec('swift', ['--version']));
+  for (const file of ['Package.swift', 'Package.resolved']) {
+    fingerprint.update(await readFile(join(SWIFT_TOOL_PACKAGE, file)));
+  }
+  const binary = join(
+    CACHE_DIR,
+    `swift-openapi-generator-${fingerprint.digest('hex').slice(0, 16)}`,
+  );
+  if (await stat(binary).catch(() => undefined)) return binary;
+
+  const build = ['build', '-c', 'release', '--package-path', SWIFT_TOOL_PACKAGE];
+  await exec('swift', [...build, '--product', 'swift-openapi-generator']);
+  const binPath = (await exec('swift', [...build, '--show-bin-path'])).trim();
+  await mkdir(CACHE_DIR, { recursive: true });
+  // Copy, then rename, so an interrupted copy is never mistaken for a built binary.
+  await cp(join(binPath, 'swift-openapi-generator'), `${binary}.partial`);
+  await rename(`${binary}.partial`, binary);
+  return binary;
 }
 
 /** The pinned openapi-generator jar from Maven Central, verified against its SHA-256. */

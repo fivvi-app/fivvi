@@ -65,7 +65,7 @@ doc_links() {
 }
 
 # The contract check regenerates the Swift and Kotlin clients (Swift toolchain, Java 17+). Only an API change can make
-# them drift, so it runs only when this branch touches packages/api or packages/contract; CI always runs it.
+# them drift, so it runs only when this branch touches packages/api or packages/contract; CI runs it unless turbo has a cached result.
 API_PATHS='^packages/(api|contract)/'
 touches_api() {
   local files
