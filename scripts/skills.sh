@@ -105,7 +105,7 @@ cmd_update() {
 
 SOURCE="$(config source)"
 REF="$(config ref)"
-[ -n "$SOURCE" ] && [ -n "$REF" ] || die "source and ref must be set in .agents/skills.yaml"
+{ [ -n "$SOURCE" ] && [ -n "$REF" ]; } || die "source and ref must be set in .agents/skills.yaml"
 
 case "${1:-}" in
   sync)   cmd_sync ;;

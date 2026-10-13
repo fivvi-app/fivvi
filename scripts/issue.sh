@@ -88,7 +88,7 @@ cmd_update() {
 }
 
 cmd_comment() {
-  [ $# -eq 3 ] && [ "$2" = --body-file ] || usage
+  { [ $# -eq 3 ] && [ "$2" = --body-file ]; } || usage
   is_number "$1"
   gh issue comment "$1" --repo "$REPO" --body "$(read_body "$3")" >/dev/null
   echo "💬 commented on #$1"
@@ -113,7 +113,7 @@ cmd_label() {
 }
 
 cmd_block() {
-  [ $# -eq 3 ] && [ "$2" = --by ] || usage
+  { [ $# -eq 3 ] && [ "$2" = --by ]; } || usage
   is_number "$1"
   is_number "$3"
   gh issue edit "$1" --repo "$REPO" --add-blocked-by "$3" >/dev/null

@@ -3,8 +3,9 @@
 #
 #   pr.sh check                                   run scripts/check.sh (create runs it too)
 #   pr.sh create [--title <t>] [--body-file <f|->] [--ready] [--no-check]
-#                                                 check, push, then open a draft PR (or update the open one); the title
-#                                                 defaults to the issue title, the body gets "Closes #<issue>"
+#                                                 check, push, then open a draft PR (or update the open one, changing only
+#                                                 what you pass); a new PR's title defaults to the issue title, its body
+#                                                 gets "Closes #<issue>"
 #   pr.sh ready                                   mark the draft ready for review
 #   pr.sh status                                  state, review, checks and open threads
 #   pr.sh wait [--timeout <minutes>]              wait for CI: exit 0 passed, 1 failed, 2 still running at the timeout
@@ -55,7 +56,8 @@ cmd_create() {
   is_branch_name "$BRANCH" || die "branch '$BRANCH' must be <type>/<issue>-<slug> or <type>/<slug>"
   [ -z "$(git status --porcelain)" ] || die "uncommitted changes"
   issue="$(branch_issue "$BRANCH")"
-  if [ -z "$title" ]; then
+  existing="$(open_pr)"
+  if [ -z "$title" ] && [ -z "$existing" ]; then
     [ -n "$issue" ] || die "branch has no issue number: pass --title"
     title="$(gh issue view "$issue" --repo "$REPO" --json title --jq .title)"
   fi
@@ -67,7 +69,6 @@ cmd_create() {
   local out
   out="$(git push --quiet -u origin HEAD 2>&1)" || { echo "$out" >&2; die "push failed"; }
 
-  existing="$(open_pr)"
   if [ -n "$existing" ]; then
     local args=()
     [ -z "$title" ] || args+=(--title "$title")

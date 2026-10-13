@@ -12,7 +12,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 usage() { sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
 
 cmd_add() {
-  [ $# -ge 1 ] && [ $# -le 2 ] || usage
+  { [ $# -ge 1 ] && [ $# -le 2 ]; } || usage
   local branch="$1" dest existing
   is_branch_name "$branch" || die "branch '$branch' must be <type>/<issue>-<slug> or <type>/<slug>; type is one of: $BRANCH_TYPES"
   existing="$(worktree_of "$branch")"

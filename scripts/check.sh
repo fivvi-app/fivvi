@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2329 # check() calls the check functions by name
+# shellcheck disable=SC2317,SC2329 # check() calls the check functions by name (code differs per shellcheck version)
 # The checks pr.sh runs before every push. Run from the main checkout or any worktree.
 #
 #   check.sh          everything: hygiene, lint, types, unit tests, static checks, build, integration and e2e tests
@@ -88,7 +88,7 @@ integration_tests() {
     pnpm turbo run test:integration --output-logs=errors-only
 }
 
-e2e_tests() { E2E_PORT="$(e2e_port)" pnpm turbo run test:e2e --output-logs=errors-only; }
+e2e_tests() { E2E_PORT="$(e2e_port "$ROOT")" pnpm turbo run test:e2e --output-logs=errors-only; }
 
 api_prerequisites() {
   local missing=""
@@ -115,7 +115,7 @@ else
 fi
 if ! $FAST; then
   check "integration tests" integration_tests
-  check "e2e tests (port $(e2e_port))" e2e_tests
+  check "e2e tests (port $(e2e_port "$ROOT"))" e2e_tests
 fi
 
 exit "$FAILED"
