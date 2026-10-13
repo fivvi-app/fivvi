@@ -1,6 +1,6 @@
 # Engineering Workflow
 
-How every change gets from idea to `main`, and how we clean up afterwards. It applies equally to Claude Code, Codex and humans.
+How every change gets from idea to `main`, and how we clean up afterwards. It applies equally to every AI coding agent (GitHub Copilot, Claude Code, Codex) and to humans.
 
 ## 1. Golden rules
 
@@ -41,6 +41,7 @@ git push -u origin feature/F031-open-gym-booking
 ```
 
 - Worktrees live in `.worktrees/<slug>` (git-ignored). The slug is the branch name without the type prefix.
+- If an agent tool already isolates its session in a worktree of its own (for example a Copilot or Claude Code background session), work in that worktree instead of creating a second one. Rename its branch to the pattern in §2 (`git branch -m <name>`) before the first push, and clean it up the same way after merge (§5).
 - Write the feature doc's **Test plan** before implementing, and put the local test results in the PR description (`TESTING.md`).
 - Update the feature doc and the `FEATURES.md` status **in the same PR**.
 - An API change regenerates `packages/contract` (OpenAPI + TS/Swift/Kotlin clients) in the same PR.
@@ -53,8 +54,11 @@ git push -u origin feature/F031-open-gym-booking
 - **One agent per worktree.** Two agents never share a worktree or a branch.
 - **Parallel work limit:** at most 3–4 open worktrees at once, to limit merge conflicts and review load.
 - **Before starting, an agent reads:** `AGENTS.md`, the relevant feature spec in `docs/features/`, and the relevant ADRs.
+- **Agent instructions live in one place.** `AGENTS.md` holds the rules for every agent; `CLAUDE.md` only imports it. Area rules live in `.github/instructions/*.instructions.md`: Copilot attaches them by path (`applyTo`), other agents read the one for the area they change. Don't copy rules into tool-specific files; update the shared file instead.
+- **Workflow skills.** `.agents/skills/` turns §3–§5 into steps an agent can follow: `start-change`, `local-review` and `finish-change`. Copilot and Codex load them as skills; Claude Code reads the `SKILL.md` files through `AGENTS.md`. When this workflow changes, update the skills in the same PR.
+- **Edit guard.** `.claude/settings.json` registers a `PreToolUse` hook, [`.claude/hooks/guard-edits.mjs`](../../.claude/hooks/guard-edits.mjs), that Claude Code and Copilot (CLI and Copilot sessions in VS Code) both run before every file edit. It denies edits in a checkout on `main` (git-ignored files such as `.env` stay editable) and hand-edits of generated files: `openapi.json` and the generated clients in `packages/contract`, `packages/i18n/generated/` and `packages/database/migrations/meta/`. It covers the agents' edit tools, not shell commands, and only runs in folders the tool trusts. Codex and the VS Code Local agent don't run it. Its tests run in `pnpm test`.
 - **Local review:** before pushing, the author checks correctness, tenant isolation, i18n, platform parity and test quality (`TESTING.md §9`). A second agent may review locally when useful, but it is optional. Fix findings on the branch before the PR.
-- **No agent review in GitHub CI/CD:** do not add Claude or Codex review jobs, bot PR reviewers, required agent-review status checks or required cross-agent approvals. GitHub CI is for deterministic checks such as tests, lint, generated-file drift and security scans.
+- **No agent review in GitHub CI/CD:** do not add Copilot code review, Claude or Codex review jobs, bot PR reviewers, required agent-review status checks or required cross-agent approvals. GitHub CI is for deterministic checks such as tests, lint, generated-file drift and security scans.
 - **Small PRs:** one feature or one platform slice per PR. Split anything that touches backend + iOS + Android heavily into contract PR → platform PRs.
 - **No silent contract breaks:** after a contract freeze (end of M4, end of M7), API changes are additive only.
 - **Agents never** push to `main`, force-push shared branches, commit secrets, or edit generated files by hand.
