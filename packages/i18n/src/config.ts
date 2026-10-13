@@ -15,7 +15,7 @@ export const defaultTimeZone = 'Europe/Amsterdam';
 
 /**
  * Locale passed to Intl for dates, times, numbers and plural rules. The `en` catalog
- * formats as `en-GB`: day-month order and 24-hour time (GLOSSARY.md §3.1).
+ * formats as `en-GB`: day-month order and 24-hour time (packages/i18n/GLOSSARY.md §3.1).
  */
 export const formattingLocales = {
   'nl-NL': 'nl-NL',
@@ -26,7 +26,7 @@ export type FormattingLocale = (typeof formattingLocales)[Locale];
 /**
  * Named Intl.DateTimeFormat options. Format dates and times in code with these and pass
  * the result into a `{date}` / `{time}` placeholder; the catalogs never contain ICU
- * date skeletons, because they don't export to native catalogs (GLOSSARY.md §3.1).
+ * date skeletons, because they don't export to native catalogs (packages/i18n/GLOSSARY.md §3.1).
  */
 export const dateTimeFormats = {
   /** nl-NL: dinsdag 22 september 2026 · en: Tuesday, 22 September 2026 */

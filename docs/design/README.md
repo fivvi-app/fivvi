@@ -40,7 +40,7 @@ Every flow document uses the same structure:
 
 ### Screen IDs
 
-Screen IDs are stable references for feature docs, tests and the prototype. Keep them when you change a screen.
+Screen IDs are stable references for spec issues, tests and the prototype. Keep them when you change a screen.
 
 | Prefix | Area | Defined in |
 |---|---|---|
@@ -77,7 +77,7 @@ Wireframes are deliberately rough. They show **content, hierarchy and actions**,
 - Never show technical words to users: no "magic link", "token", "occurrence", "workspace ID" or "pending_verification".
 - Dates and times follow the formats in [information-architecture.md §9.3](information-architecture.md#93-dates-times-and-numbers). The Dutch examples use `22 september 2026` and `18:00`.
 - Plurals are written as ICU MessageFormat where they matter, e.g. `{count, plural, one {# plek} other {# plekken}} beschikbaar`.
-- Copy in these documents is **proposed copy**. It goes into `packages/i18n/{nl-NL,en}.json` when the feature is built and passes the local copy review against `GLOSSARY.md`.
+- Copy in these documents is **proposed copy**. It goes into `packages/i18n/{nl-NL,en}.json` when the feature is built and passes the local copy review against `packages/i18n/GLOSSARY.md`.
 
 ### Terminology
 
@@ -86,6 +86,6 @@ Wireframes are deliberately rough. They show **content, hierarchy and actions**,
 ## What happens next
 
 1. Walk the pilot owner through the six flows and [open-questions.md](open-questions.md) (ideally during the shadow day, `ROADMAP.md §4.1`).
-2. Record the answers in `open-questions.md`, update the affected screens, and move the resolved terms into `GLOSSARY.md`.
+2. Record the answers in `open-questions.md`, update the affected screens, and move the resolved terms into the glossaries: the meaning into the root `GLOSSARY.md`, the NL/EN wording into `packages/i18n/GLOSSARY.md`.
 3. The clickable-prototype task builds on these screen IDs and copy.
-4. Each feature doc (`docs/features/F0xx-*.md`) links the screens it implements under **UX** (see [`_TEMPLATE.md`](../features/_TEMPLATE.md)).
+4. Each spec issue lists the screens it implements under **UX** (`docs/agents/issue-tracker.md`).

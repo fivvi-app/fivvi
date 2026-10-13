@@ -33,7 +33,7 @@ await sendEmail({
 ## Templates
 
 - **One template per email type, never one per language.** Every string comes from the catalogs through `ctx.t('email.…')`; the Biome `no-hard-coded-jsx-text` rule is registered in `biome.json` and fails on literal text in JSX.
-- Copy lives under the `email` namespace in `packages/i18n/{nl-NL,en}.json`, follows `GLOSSARY.md` (greeting *Hoi {firstName},* / *Hi {firstName},*, key fact first) and passes the normal parity and ICU checks. The native exporters skip `email.*`, because the apps never show it.
+- Copy lives under the `email` namespace in `packages/i18n/{nl-NL,en}.json`, follows `packages/i18n/GLOSSARY.md` (greeting *Hoi {firstName},* / *Hi {firstName},*, key fact first) and passes the normal parity and ICU checks. The native exporters skip `email.*`, because the apps never show it.
 - `ctx.t` **throws** on a missing key, a missing placeholder value or broken ICU, so a broken email fails the send and the tests instead of reaching an inbox.
 - Dates and times: `ctx.formatDateTime(instant, 'dateWithYear' | 'date' | 'time')`, in the time zone passed to `sendEmail` (default Europe/Amsterdam) and the locale's formatting locale (`en` → `en-GB`). Pass the result into a `{date}` / `{time}` placeholder.
 - User content (names, class names) is passed as a placeholder value and rendered as text; React escapes it.

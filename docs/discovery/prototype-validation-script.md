@@ -289,7 +289,7 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
 | PV-09 | | | | | | | | |
 | PV-10 | | | | | | | | |
 
-**Decision** is one of: *fix in prototype* · *add to GLOSSARY.md* · *1.1 backlog* · *won't do (reason)*.
+**Decision** is one of: *fix in prototype* · *add to the glossaries* · *1.1 backlog* · *won't do (reason)*.
 
 ### Summary per flow
 
@@ -302,7 +302,7 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
 | 5. Workout logging | | / | | / | ☐ |
 | 6. Class occurrence | | / | | / | ☐ |
 
-**Terminology for `GLOSSARY.md`:** words that caused doubt, with the word the participants would use instead:
+**Terminology for the glossaries (meaning: root `GLOSSARY.md`; Dutch/English wording: `packages/i18n/GLOSSARY.md`):** words that caused doubt, with the word the participants would use instead:
 
 | Word in prototype | Participant would say | Decision |
 |---|---|---|

@@ -19,6 +19,9 @@ export const GENERATED_PATHS = [
 
 const PATCH_FILE_LINE = /^\*\*\* (?:(?:Add|Update|Delete) File|Move to): (.+)$/gm;
 
+/** A skill vendored by scripts/skills.sh has a .upstream marker; ours (work) doesn't. */
+const isVendoredSkill = (root, name) => existsSync(join(root, '.agents/skills', name, '.upstream'));
+
 /** File paths a tool call writes to. Claude: file_path / notebook_path; Copilot: path or a patch. */
 export function targetPaths(toolInput) {
   const patches = [];
@@ -90,6 +93,11 @@ export function denialReason(filePath, repoGitDir) {
     if (path === prefix || (prefix.endsWith('/') && path.startsWith(prefix))) {
       return `${path} is generated. Don't edit it by hand: change the source, run \`${command}\` and commit the output.`;
     }
+  }
+
+  const skill = /^\.agents\/skills\/([^/]+)\//.exec(path)?.[1];
+  if (skill && isVendoredSkill(root, skill)) {
+    return `${path} is a vendored skill (mattpocock/skills, pinned in .agents/skills.yaml). Don't edit it by hand: adapt the behaviour in AGENTS.md or docs/agents/, or update the pin with \`scripts/skills.sh update\`.`;
   }
 
   const branch = git(root, ['symbolic-ref', '--quiet', '--short', 'HEAD']);
