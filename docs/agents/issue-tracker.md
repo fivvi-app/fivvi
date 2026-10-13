@@ -1,29 +1,41 @@
 # Issue tracker: GitHub
 
-Specs and tickets for this repo live as GitHub issues in `thekeyvan/trainer-hub`. Use the `gh` CLI for all operations. `docs/product/FEATURES.md` stays the registry of IDs, milestones and status. Once a spec issue exists, the feature's **ID** links to it; the *Spec* column keeps the `PRODUCT.md` references.
+Specs and tickets for this repo are GitHub issues in `thekeyvan/trainer-hub`. Use `scripts/issue.sh` for every operation; it wraps the `gh` CLI. Bodies and comments are Markdown; pass multi-line text with `--body-file -` and a heredoc. `docs/product/FEATURES.md` stays the registry of IDs, milestones and status: once a spec issue exists, the feature's **ID** links to it.
+
+| Skill term | GitHub |
+|---|---|
+| Spec (`/to-spec`), issue (`/triage`) | Issue labelled `spec` |
+| Ticket (`/to-tickets`) | Sub-issue of the spec, labelled `ready-for-agent` |
+| Bug report | Issue labelled `bug` and `needs-triage` |
+| Blocked by | Native issue dependency |
+| Closed | Closed by the merged PR (`Closes #<n>`), or `scripts/issue.sh close` |
 
 ## Conventions
 
-- **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
-- **Read an issue**: `gh issue view <number> --json number,title,body,labels,comments`.
-- **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
-- **Make an issue a sub-issue of a parent**: `gh issue create --parent <parent> ...`, or `gh issue edit <parent> --add-sub-issue <child>` afterwards (`gh` 2.94+). Older `gh`: `gh api --method POST repos/thekeyvan/trainer-hub/issues/<parent>/sub_issues -F sub_issue_id=<child-db-id>`. Without sub-issues, put `Part of #<parent>` at the top of the child body.
-- **Comment on an issue**: `gh issue comment <number> --body "..."`
-- **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
-- **Close**: `gh issue close <number> --comment "..."`. Normally the merged PR closes the spec and its tickets (one `Closes #<n>` line per issue in the PR body; GitHub only links the first issue after a single keyword).
+- **Create**: `scripts/issue.sh create <spec|ticket|bug> --title "..." --body-file - [--parent <n>] [--blocked-by <n>]... [--label <l>]...`
+- **Read**: `scripts/issue.sh show <n>` prints labels, assignees, parent, open blockers, sub-issues and the body.
+- **Update**: `scripts/issue.sh update <n> [--title "..."] [--body-file -]` replaces the title or body.
+- **Comment**: `scripts/issue.sh comment <n> --body-file -`
+- **Apply / remove labels**: `scripts/issue.sh label <n> --add "..." --remove "..."`
+- **Link**: `scripts/issue.sh block <n> --by <m>`; a parent is set with `create --parent`.
+- **Frontier**: `scripts/issue.sh ready [--parent <spec>]` lists open, unassigned `ready-for-agent` tickets with no open blocker.
+- **Claim**: `scripts/issue.sh claim <n>` (`scripts/flow.sh start` does it).
+- **Close**: `scripts/issue.sh close <n> [--comment "..."] [--not-planned]`
+
+Write titles and bodies in English, in the vocabulary of `GLOSSARY.md`.
 
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
 
-GitHub shares one number space across issues and PRs, so a bare `#42` may be either: resolve with `gh pr view 42` and fall back to `gh issue view 42`.
+GitHub shares one number space across issues and PRs, so a bare `#42` may be either: resolve with `gh pr view 42` and fall back to `scripts/issue.sh show 42`.
 
 ## Trainer Hub rules for specs (`/to-spec`)
 
 A spec issue is the requirement of record for one feature (`F0xx`) or enabler (`E0xx`). The owner reviews it on GitHub before tickets are cut.
 
 - **Title:** `[F0xx] <Feature name from FEATURES.md>`. Use the ID from `FEATURES.md`. A feature that isn't in the registry yet first gets the next free ID in a small `docs/` PR that adds its row as `PLANNED` (`ROADMAP.md §15`), so two parallel specs never take the same ID.
-- **Labels:** `spec` and `ready-for-agent`.
+- **Labels:** `spec` (`scripts/issue.sh create spec` sets it).
 - **Body:** Matt's spec template, plus these sections after *Solution*:
   - **Feature:** ID, milestone, priority, `PRODUCT.md §…` references, and dependencies. A dependency that isn't `IMPLEMENTED` blocks the spec: stop and tell the user.
   - **Platforms:** checklist of trainer web, trainer iOS, trainer Android, public booking web, client web.
@@ -36,26 +48,16 @@ A spec issue is the requirement of record for one feature (`F0xx`) or enabler (`
 
 ## Trainer Hub rules for tickets (`/to-tickets`)
 
-- **Title:** `[F0xx] <slice>`. Each ticket is a sub-issue of its spec, with native blocking edges.
+- **Title:** `[F0xx] <slice>`. Each ticket is a sub-issue of its spec (`--parent`), with native blocking edges (`--blocked-by`), labelled `ready-for-agent`.
+- Each ticket has an `## Acceptance criteria` checklist; `scripts/flow.sh status` reports a ticket without one as `needs-refinement`.
 - Vertical slices through DB → API (+ regenerated contract) → web → email, in NL and EN. Each ticket names the spec ACs it delivers (`Delivers: AC2, AC3`).
 - A mobile slice is two tickets, one for iOS and one for Android, with the same ACs (platform parity).
 - Contract first: a ticket that changes the API blocks the platform tickets that consume it.
 
 ## When a skill says "publish to the issue tracker"
 
-Create a GitHub issue following the rules above.
+Create a GitHub issue with `scripts/issue.sh create`, following the rules above.
 
 ## When a skill says "fetch the relevant ticket"
 
-Read it as in **Read an issue** above.
-
-## Wayfinding operations
-
-Used by `/wayfinder`. The **map** is a single issue with **child** issues as tickets.
-
-- **Map**: a single issue labelled `wayfinder:map`, holding the Notes / Decisions-so-far / Fog body. `gh issue create --label wayfinder:map`.
-- **Child ticket**: an issue linked to the map as a GitHub sub-issue (see **Make an issue a sub-issue of a parent**). Labels: `wayfinder:<type>` (`research`/`prototype`/`grilling`/`task`). Once claimed, the ticket is assigned to the driving dev.
-- **Blocking**: GitHub's native issue dependencies: `gh api --method POST repos/thekeyvan/trainer-hub/issues/<child>/dependencies/blocked_by -F issue_id=<blocker-db-id>`, where `<blocker-db-id>` is `gh api repos/thekeyvan/trainer-hub/issues/<n> --jq .id`. Where dependencies aren't available, fall back to a `Blocked by: #<n>, #<n>` line at the top of the child body. A ticket is unblocked when every blocker is closed.
-- **Frontier query**: list the map's open children, drop any with an open blocker or an assignee; first in map order wins.
-- **Claim**: `gh issue edit <n> --add-assignee @me`, the session's first write.
-- **Resolve**: `gh issue comment <n> --body "<answer>"`, then `gh issue close <n>`, then append a context pointer (gist + link) to the map's Decisions-so-far.
+`scripts/issue.sh show <n>`.

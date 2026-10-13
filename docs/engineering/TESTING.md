@@ -152,6 +152,7 @@ Run from the repo root. Turbo runs the task in every package that has it; add `-
 
 | Command | Runs | Needs |
 |---|---|---|
+| `scripts/check.sh` | Everything below plus repo hygiene (shellcheck, vendored skills, commit messages, doc links); `--fast` skips integration and e2e. The contract check runs only when the branch touches `packages/api` or `packages/contract` (CI always runs it). The pre-PR gate | `scripts/bootstrap.sh` once; `--api` for API changes (Java, Swift) |
 | `pnpm test` | Every unit suite (`*.test.ts(x)`) | Nothing |
 | `pnpm test:integration` | Every integration suite (`*.integration.test.ts`) against real Postgres | `pnpm db:up`, and `TEST_DATABASE_URL` set to it (below) |
 | `pnpm test:e2e` | Builds `apps/web`, starts it on port 3100 (`E2E_PORT`) and runs every Playwright spec in **nl-NL and en** with axe | Chromium, once: `pnpm --filter @trainer-hub/web exec playwright install chromium --only-shell` |
@@ -197,6 +198,6 @@ Also for E008:
 
 1. Read the spec issue and your ticket. The spec's **Test plan** (§6) says which tests prove each AC; update it in the spec if the plan has to change.
 2. Build with `/tdd`: write the failing test for the next vertical slice, make it pass, refactor (red-green-refactor). Bugs go through `/diagnosing-bugs`, which starts from a failing regression test.
-3. Run the relevant suites locally and paste the results into the PR description.
-4. **Review locally before pushing** with `/code-review`: do the tests actually assert the acceptance criteria, cover the roles and both locales, and would they fail if the feature broke? No agent review runs in GitHub. A test that can't fail is worse than no test.
+3. Run `scripts/check.sh` (every suite, with a per-worktree `E2E_PORT`); `scripts/pr.sh create` runs it again before it pushes.
+4. **Review locally before pushing** (two `reviewer` subagents): do the tests actually assert the acceptance criteria, cover the roles and both locales, and would they fail if the feature broke? No agent review runs in GitHub. A test that can't fail is worse than no test.
 5. Never mark a feature `IMPLEMENTED` in `FEATURES.md` while its Test plan has gaps.

@@ -29,10 +29,13 @@ describe('agent edit guard', () => {
     writeFileSync(join(main, 'AGENTS.md'), 'rules\n');
     writeFileSync(join(main, 'packages/i18n/generated/strings.xml'), '<resources/>\n');
     mkdirSync(join(main, '.agents/skills/tdd'), { recursive: true });
-    mkdirSync(join(main, '.agents/skills/finish-change'), { recursive: true });
+    mkdirSync(join(main, '.agents/skills/work'), { recursive: true });
     writeFileSync(join(main, '.agents/skills/tdd/SKILL.md'), 'vendored\n');
-    writeFileSync(join(main, '.agents/skills/finish-change/SKILL.md'), 'local\n');
-    writeFileSync(join(main, '.agents/skills.lock.json'), JSON.stringify({ skills: ['tdd'] }));
+    writeFileSync(
+      join(main, '.agents/skills/tdd/.upstream'),
+      'https://github.com/mattpocock/skills\n',
+    );
+    writeFileSync(join(main, '.agents/skills/work/SKILL.md'), 'local\n');
     mkdirSync(join(main, '.claude'));
     symlinkSync('../.agents/skills', join(main, '.claude/skills'));
     git(main, 'init', '--quiet', '--initial-branch=main');
@@ -93,7 +96,7 @@ describe('agent edit guard', () => {
 
   it('allows edits of local skills that are not vendored', () => {
     assert.equal(
-      evaluate(claudeEdit(join(worktree, '.agents/skills/finish-change/SKILL.md')), gitDir),
+      evaluate(claudeEdit(join(worktree, '.agents/skills/work/SKILL.md')), gitDir),
       null,
     );
   });

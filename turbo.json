@@ -34,13 +34,13 @@
     },
     "//#format:check:root": {},
     "//#lint:root": {
-      "inputs": [".claude/**", ".agents/sync-skills.mjs"]
+      "inputs": [".claude/**", "scripts/**", ".githooks/**", ".shellcheckrc"]
     },
     "//#test:root": {
-      "inputs": [".claude/**"]
+      "inputs": [".claude/**", "scripts/**", ".githooks/**"]
     },
     "//#check:root": {
-      "inputs": [".agents/**"]
+      "inputs": [".agents/**", "scripts/skills.sh", "scripts/_lib.sh"]
     },
     "dev": {
       "cache": false,

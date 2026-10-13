@@ -14,7 +14,6 @@
       "!**/next-env.d.ts",
       "!**/migrations",
       "!packages/contract/openapi.json",
-      "!.agents/skills.lock.json",
       "!packages/contract/src/generated"
     ]
   },

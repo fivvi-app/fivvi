@@ -1,6 +1,6 @@
 # Coding standards
 
-What every change to Trainer Hub must follow. `/code-review` checks a diff against this file (its **Standards** axis); its **Spec** axis checks the diff against the spec issue. Tooling already enforces formatting, lint, types, i18n parity and contract drift, so a review doesn't repeat those. It looks for what tooling can't see.
+What every change to Trainer Hub must follow. Before every PR, the `standards` reviewer (`.agents/agents/reviewer.agent.md`) checks the diff against this file; the `spec` reviewer checks it against the ticket and spec issue. Tooling already enforces formatting, lint, types, i18n parity and contract drift, so a review doesn't repeat those. It looks for what tooling can't see.
 
 ## Where the detailed rules live
 
@@ -34,4 +34,4 @@ Mark every item ✅, ❌ (finding, with a file reference) or n/a.
 - **Docs:** `FEATURES.md` status updated; ADRs still match the code (or a new ADR is proposed).
 - **Hygiene:** no secrets, real personal data, debug output or scratch files; generated and vendored files not hand-edited; commits follow `feat(F0xx): …`.
 
-Run the checks before a review (`AGENTS.md` → Commands) and fix findings on the branch before the PR. A review is local only: never a GitHub reviewer or CI job (`docs/engineering/WORKFLOW.md §4`).
+Run `scripts/check.sh` before a review and fix findings on the branch before the PR. A review is local only: never a GitHub reviewer or CI job (`docs/engineering/WORKFLOW.md §4`).
