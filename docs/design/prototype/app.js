@@ -1928,6 +1928,10 @@
     root.innerHTML = html;
     root.dataset.key = key;
 
+    // Reopen disclosures before restoring scroll so collapsed content cannot clamp it.
+    if (opts.openDetails) {
+      root.querySelectorAll("details").forEach((node) => { node.open = opts.openDetails.includes(node.className); });
+    }
     if (prevScroll) {
       root.querySelectorAll("[data-scroll]").forEach((el, i) => { el.scrollTop = prevScroll[i] || 0; });
     }
@@ -2001,12 +2005,11 @@
         .map((node) => ({ id: node.id, value: node.value, checked: node.checked }));
       const open = [...root.querySelectorAll("details[open]")].map((node) => node.className);
       state.theme = el.dataset.v;
-      render();
+      render({ openDetails: open });
       fields.forEach(({ id, value, checked }) => {
         const node = document.getElementById(id);
         if (node) { node.value = value; if ("checked" in node) node.checked = checked; }
       });
-      root.querySelectorAll("details").forEach((node) => { node.open = open.includes(node.className); });
       root.querySelector(`[data-act="set-theme"][data-v="${state.theme}"]`)?.focus({ preventScroll: true });
     },
     "set-me": (el) => { state.me = el.dataset.v; state.log = null; prefs.set("me", state.me); render(); },

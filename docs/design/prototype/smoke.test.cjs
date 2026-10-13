@@ -114,6 +114,48 @@ test('hub presents seven compact visual flow tiles, with instructions deliberate
   }
 });
 
+test('flow tiles keep a visible 2px keyboard focus ring inside their clipped cards in both appearances', async () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
+    const { page, errors } = await pageFor(null, viewport);
+    for (const theme of ['light', 'dark']) {
+      await page.locator(`[data-act="set-theme"][data-v="${theme}"]`).click();
+      const entries = page.locator('.flow-entry');
+      assert.equal(await entries.count(), 7);
+      for (const entry of await entries.all()) {
+        await entry.focus();
+        await page.keyboard.press('Shift+Tab');
+        await page.keyboard.press('Tab');
+        const ring = await entry.evaluate((el) => {
+          const style = getComputedStyle(el), cardStyle = getComputedStyle(el.parentElement);
+          const rect = el.getBoundingClientRect(), card = el.parentElement.getBoundingClientRect();
+          const width = parseFloat(style.outlineWidth), offset = parseFloat(style.outlineOffset);
+          return {
+            focused: el.matches(':focus-visible'),
+            width, style: style.outlineStyle, color: style.outlineColor,
+            background: cardStyle.backgroundColor, overflow: cardStyle.overflow,
+            // An outline outside the card's padding box is clipped, even when
+            // :focus-visible matches and the computed outline is nonzero.
+            contained: rect.left - offset - width >= card.left + parseFloat(cardStyle.borderLeftWidth)
+              && rect.top - offset - width >= card.top + parseFloat(cardStyle.borderTopWidth)
+              && rect.right + offset + width <= card.right - parseFloat(cardStyle.borderRightWidth)
+              && rect.bottom + offset + width <= card.bottom - parseFloat(cardStyle.borderBottomWidth),
+          };
+        });
+        const label = `${viewport.width}px/${theme}/${await entry.getAttribute('data-v')}`;
+        assert.ok(ring.focused, `${label} receives keyboard focus`);
+        assert.equal(ring.width, 2, `${label} has a 2px focus ring`);
+        assert.equal(ring.style, 'solid');
+        assert.notEqual(ring.color, 'rgba(0, 0, 0, 0)');
+        assert.notEqual(ring.color, ring.background, `${label} ring contrasts with the card`);
+        assert.equal(ring.overflow, 'hidden', 'rounded card clipping is preserved');
+        assert.ok(ring.contained, `${label} focus ring must be inside the card's clipping bounds`);
+      }
+    }
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
 test('appearance starts light on a dark OS; explicit changes keep booking drafts and workout sets', async () => {
   const { page, errors } = await pageFor(1);
   await page.emulateMedia({ colorScheme: 'dark' });
@@ -150,6 +192,56 @@ test('appearance starts light on a dark OS; explicit changes keep booking drafts
   assert.deepEqual(errors, []);
   await page.close();
 });
+
+for (const screen of ['session disclosures', 'workout results']) {
+  test(`appearance preserves deep scroll and expanded ${screen} in both directions`, async () => {
+    for (const lang of ['nl', 'en']) {
+      for (const platform of ['ios', 'android']) {
+        const { page, errors } = await pageFor(screen === 'session disclosures' ? 2 : null, { width: 390, height: 540 });
+        await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).first().click();
+        await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+        if (screen === 'session disclosures') {
+          await page.locator('.next [data-act="open-session"]').click();
+        } else {
+          await startFlow(page, '5');
+          await page.locator('[data-act="log-open"][data-v="0"]').first().click();
+          await page.locator('[data-act="log-check"][data-v="0"]').click();
+          await page.locator('[data-act="back"]').click();
+          await page.locator('.nav [data-act="log-finish"]').click();
+          await page.locator('#internal-note').fill('Synthetic unsaved trainer note');
+        }
+        const scroll = page.locator('main[data-scroll]');
+        const collapsedMax = await scroll.evaluate((el) => el.scrollHeight - el.clientHeight);
+        const disclosures = page.locator(screen === 'session disclosures' ? '.session-info, .session-notes' : '.workout-breakdown');
+        for (const disclosure of await disclosures.all()) await disclosure.locator('summary').click();
+        await page.locator('.appearance summary').click();
+        for (const theme of ['dark', 'light']) {
+          const before = await scroll.evaluate((el) => {
+            el.scrollTop = el.scrollHeight;
+            return { top: el.scrollTop, height: el.scrollHeight, content: el.innerText };
+          });
+          assert.ok(before.top > Math.max(0, collapsedMax) + 40,
+            `${lang}/${platform}/${screen} scrolls beyond the collapsed content height`);
+          await page.locator(`[data-act="set-theme"][data-v="${theme}"]`).click();
+          assert.equal(await page.locator('html').getAttribute('data-theme'), theme);
+          assert.equal(await page.locator('html').getAttribute('lang'), lang);
+          assert.deepEqual(await disclosures.evaluateAll((els) => els.map((el) => el.open)),
+            screen === 'session disclosures' ? [true, true] : [true], 'disclosures stay expanded');
+          const after = await scroll.evaluate((el) => ({ top: el.scrollTop, height: el.scrollHeight, content: el.innerText }));
+          assert.equal(after.height, before.height, 'expanded content keeps its height');
+          assert.equal(after.content, before.content, 'screen and workout results stay unchanged');
+          assert.equal(after.top, before.top, `${lang}/${platform}/${theme} keeps the deep scroll position`);
+          if (screen === 'workout results') {
+            assert.equal(await page.locator('#internal-note').inputValue(), 'Synthetic unsaved trainer note');
+            assert.deepEqual(await page.locator('.workout-metrics .metric-value').allTextContents(), ['1/3', '1']);
+          }
+        }
+        assert.deepEqual(errors, []);
+        await page.close();
+      }
+    }
+  });
+}
 
 test('owner palette keeps large surfaces, primary actions and navigation monochrome, with colour only in small semantic markers', async () => {
   const { page, errors } = await pageFor(2);
