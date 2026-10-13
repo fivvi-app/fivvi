@@ -134,6 +134,21 @@ jobs:
           key: turbo-${{ runner.os }}-${{ github.sha }}
           restore-keys: turbo-${{ runner.os }}-
 
+      # The contract drift check (packages/contract) builds swift-openapi-generator and downloads
+      # the openapi-generator jar when turbo has no cached result for it. The pipeline keeps both
+      # in node_modules/.cache/contract, per Swift version and pinned version, and checks them
+      # itself, so an older cache from the prefix is safe to restore.
+      - name: Read Swift version
+        id: swift
+        run: echo "version=$(swift --version | sed -nE 's/.*Swift version ([0-9.]+).*/\1/p')" >>"$GITHUB_OUTPUT"
+
+      - name: Cache the contract generators
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: packages/contract/node_modules/.cache/contract
+          key: contract-generators-${{ runner.os }}-swift${{ steps.swift.outputs.version }}-${{ hashFiles('packages/contract/tools/swift-generator/Package.swift', 'packages/contract/tools/swift-generator/Package.resolved', 'packages/contract/config/openapi-generator.json') }}
+          restore-keys: contract-generators-${{ runner.os }}-swift${{ steps.swift.outputs.version }}-
+
       # One turbo run so independent tasks run in parallel. A failing task
       # doesn't stop the unrelated ones, so one run reports every failure.
       - name: Lint, typecheck, unit and integration tests, build, format and static checks

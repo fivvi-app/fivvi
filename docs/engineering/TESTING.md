@@ -152,7 +152,7 @@ Run from the repo root. Turbo runs the task in every package that has it; add `-
 
 | Command | Runs | Needs |
 |---|---|---|
-| `scripts/check.sh` | Everything below plus repo hygiene (shellcheck, vendored skills, commit messages, doc links); `--fast` skips integration and e2e. The contract check runs only when the branch touches `packages/api` or `packages/contract` (CI always runs it). The pre-PR gate | `scripts/bootstrap.sh` once; `--api` for API changes (Java, Swift) |
+| `scripts/check.sh` | Everything below plus repo hygiene (shellcheck, vendored skills, commit messages, doc links); `--fast` skips integration and e2e. The contract check runs only when the branch touches `packages/api` or `packages/contract`; CI runs it whenever turbo has no cached result for its inputs. The pre-PR gate | `scripts/bootstrap.sh` once; `--api` for API changes (Java, Swift) |
 | `pnpm test` | Every unit suite (`*.test.ts(x)`) | Nothing |
 | `pnpm test:integration` | Every integration suite (`*.integration.test.ts`) against real Postgres | `pnpm db:up`, and `TEST_DATABASE_URL` set to it (below) |
 | `pnpm test:e2e` | Builds `apps/web`, starts it on port 3100 (`E2E_PORT`) and runs every Playwright spec in **nl-NL and en** with axe | Chromium, once: `pnpm --filter @trainer-hub/web exec playwright install chromium --only-shell` |

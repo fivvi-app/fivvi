@@ -3,7 +3,9 @@
   "extends": ["//"],
   "tasks": {
     "check": {
-      "cache": false,
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!README.md", "!test/**", "!vitest.config.ts"],
+      "outputs": [],
       "passThroughEnv": ["JAVA_HOME"]
     }
   }

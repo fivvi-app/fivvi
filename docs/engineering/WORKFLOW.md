@@ -103,7 +103,7 @@ CI is GitHub Actions ([`.github/workflows/ci.yml`](../../.github/workflows/ci.ym
 | Check (job name) | Runner | Runs when | What it does |
 |---|---|---|---|
 | `Detect changes` | Linux | Always | Works out which native jobs need to run. Required because a skipped job counts as passed: if this job broke, the native jobs would pass without running |
-| `Checks (Linux)` | Linux | Always | `pnpm install`, then one `turbo run lint typecheck test test:integration build format:check check` with the turbo cache. Integration tests run against a Postgres 18 service container (`TEST_DATABASE_URL`) |
+| `Checks (Linux)` | Linux | Always | `pnpm install`, then one `turbo run lint typecheck test test:integration build format:check check` with the turbo cache. Integration tests run against a Postgres 18 service container (`TEST_DATABASE_URL`). The contract drift check is cached like the other tasks, so it only runs when the API, a generator or the generated clients change; its generator tools are cached per version ([`packages/contract/README.md`](../../packages/contract/README.md#drift-check)) |
 | `E2E (Linux)` | Linux | Always | Builds `apps/web` and runs the Playwright specs in nl-NL and en with axe checks (`turbo run test:e2e`). Chromium is cached per Playwright version; the report is uploaded when the job fails |
 | `iOS` | macOS | `apps/ios/**` or `packages/contract/**` changed **and** `apps/ios` exists | Placeholder until E008 adds the build and tests. macOS minutes count 10× (`ROADMAP.md §12`) |
 | `Android` | Linux | `apps/android/**` or `packages/contract/**` changed **and** `apps/android` exists | Placeholder until E008 adds the build and tests |
