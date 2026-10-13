@@ -134,6 +134,22 @@ jobs:
           key: turbo-${{ runner.os }}-${{ github.sha }}
           restore-keys: turbo-${{ runner.os }}-
 
+      # The contract drift check (packages/contract) builds swift-openapi-generator and downloads
+      # the openapi-generator jar when turbo has no cached result for it. The pipeline keeps both
+      # in node_modules/.cache/contract and reuses them when their names match: the binary per
+      # `swift --version` + Package.swift + Package.resolved, the jar per pinned version. Exact key
+      # only, so a generator bump starts from an empty directory and old tools don't pile up.
+      - name: Read Swift version
+        id: swift
+        run: echo "version=$(swift --version | sed -nE 's/.*Swift version ([0-9.]+).*/\1/p')" >>"$GITHUB_OUTPUT"
+
+      - name: Restore the contract generators
+        id: contract-generators
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: packages/contract/node_modules/.cache/contract
+          key: contract-generators-${{ runner.os }}-swift${{ steps.swift.outputs.version }}-${{ hashFiles('packages/contract/tools/swift-generator/Package.swift', 'packages/contract/tools/swift-generator/Package.resolved', 'packages/contract/config/openapi-generator.json') }}
+
       # One turbo run so independent tasks run in parallel. A failing task
       # doesn't stop the unrelated ones, so one run reports every failure.
       - name: Lint, typecheck, unit and integration tests, build, format and static checks
@@ -141,6 +157,19 @@ jobs:
           pnpm exec turbo run lint typecheck test test:integration build format:check check
           --cache-dir=.turbo/cache
           --continue=dependencies-successful
+
+      # Saved even when another task fails, so a freshly built generator isn't lost; only on a
+      # miss, and only once the check has produced both tools (not when turbo reused its result).
+      - name: Save the contract generators
+        if: >-
+          always()
+          && steps.contract-generators.outputs.cache-hit != 'true'
+          && hashFiles('packages/contract/node_modules/.cache/contract/swift-openapi-generator-*', '!**/*.partial') != ''
+          && hashFiles('packages/contract/node_modules/.cache/contract/openapi-generator-cli-*.jar') != ''
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: packages/contract/node_modules/.cache/contract
+          key: ${{ steps.contract-generators.outputs.cache-primary-key }}
 
   e2e:
     name: E2E (Linux)
