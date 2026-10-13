@@ -1,0 +1,122 @@
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
+import { after, describe, it } from 'node:test';
+import { fakeGh } from './fake-gh.mjs';
+
+const SCRIPTS = join(import.meta.dirname, '..');
+const labels = (...names) => names.map((name) => ({ name }));
+
+describe('flow.sh next', () => {
+  const gh = fakeGh();
+  after(() => gh.cleanup());
+
+  const HEAD = 'c'.repeat(40);
+  const refusal = (sha) =>
+    `Closes #63\n\n**Merge gate:** refused on \`${sha}\`: self-review clean (no self-review record in the PR body)`;
+
+  const next = (failing = []) =>
+    spawnSync(join(SCRIPTS, 'flow.sh'), ['next'], {
+      encoding: 'utf8',
+      env: gh.env([
+        ...failing.map((match) => ({ match, out: '', status: 1 })),
+        { match: '^issue list .*--assignee @me', out: [] },
+        {
+          match: '^issue list .*--label spec ',
+          out: [
+            {
+              number: 50,
+              title: '[F031] Open Gym booking',
+              body: '## Acceptance criteria',
+              labels: labels('spec', 'spec-approved'),
+              subIssuesSummary: { completed: 1, total: 3 },
+            },
+            {
+              number: 70,
+              title: '[F040] Waiting list',
+              body: '## Acceptance criteria',
+              labels: labels('spec'),
+              subIssuesSummary: { completed: 0, total: 0 },
+            },
+            {
+              number: 71,
+              title: '[F041] Untriaged idea',
+              body: 'An idea from the owner',
+              labels: labels('spec', 'needs-triage'),
+              subIssuesSummary: { completed: 0, total: 0 },
+            },
+            {
+              number: 73,
+              title: '[F042] Empty spec',
+              body: ' \n',
+              labels: labels('spec'),
+              subIssuesSummary: { completed: 0, total: 0 },
+            },
+            {
+              number: 74,
+              title: '[F043] Done spec',
+              body: '## Acceptance criteria',
+              labels: labels('spec'),
+              subIssuesSummary: { completed: 2, total: 2 },
+            },
+          ],
+        },
+        { match: '^issue list .*--label ready-for-agent', out: [] },
+        {
+          match: '^issue list .*--label needs-info',
+          out: [{ number: 72, title: 'Which reminder time?' }],
+        },
+        {
+          match: '^pr list .*--state open',
+          out: [
+            { number: 60, title: '[F031] Hold a spot', isDraft: false, headRefOid: HEAD },
+            { number: 61, title: '[F031] Show the hold', isDraft: false, headRefOid: HEAD },
+            { number: 62, title: '[F031] Draft', isDraft: true, headRefOid: HEAD },
+            { number: 63, title: '[F031] Release the hold', isDraft: false, headRefOid: HEAD },
+          ],
+        },
+        { match: '^api repos/[^ ]+/pulls/60/files', out: [{ filename: 'scripts/pr.sh' }] },
+        { match: '^api repos/[^ ]+/pulls/6[13]/files', out: [{ filename: 'apps/web/page.tsx' }] },
+        { match: '^pr view 61 .*--json body', out: { body: refusal('b'.repeat(40)) } },
+        { match: '^pr view 63 .*--json body', out: { body: refusal(HEAD) } },
+        {
+          match: '^pr view 6[013] ',
+          out: { headRefName: 'docs/no-issue', closingIssuesReferences: [], changedFiles: 1 },
+        },
+      ]),
+    });
+
+  it('lists what waits on the owner: specs to approve, high-risk and refused PRs, questions', () => {
+    // #71 and #73 still need a spec written (needs-spec) and #74 is complete: none waits on approval.
+    // #61 was refused on an older commit: the push made that stale, so it is the factory's to merge.
+    const result = next();
+    assert.equal(result.status, 0, result.stderr);
+    const owner = result.stdout.slice(result.stdout.indexOf('== Waiting on the owner'));
+    assert.equal(
+      owner,
+      [
+        '== Waiting on the owner',
+        'Approve spec #70 [F040] Waiting list (add spec-approved)',
+        'Merge PR #60 [F031] Hold a spot (high-risk: scripts/pr.sh: guardrails (/scripts))',
+        'Decide on PR #63 [F031] Release the hold (the merge gate refused it on ccccccc: self-review clean (no self-review record in the PR body); or fix it and push)',
+        'Answer #72 Which reminder time? (needs-info)',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it("fails instead of listing nothing when it can't read what waits on the owner", () => {
+    const reads = {
+      'the open PRs': '^pr list .*--state open',
+      "a PR's refusal": '^pr view 63 .*--json body',
+      'the needs-info questions': '^issue list .*--label needs-info',
+      'the ready tickets': '^issue list .*--label ready-for-agent',
+    };
+    for (const [what, match] of Object.entries(reads)) {
+      const result = next([match]);
+      assert.notEqual(result.status, 0, what);
+      assert.match(result.stderr, /^error: could not read/m, what);
+      assert.doesNotMatch(result.stdout, /\(none\)\n$/, what);
+    }
+  });
+});

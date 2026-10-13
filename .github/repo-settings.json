@@ -1,0 +1,20 @@
+{
+  "merge": {
+    "allow_squash_merge": true,
+    "allow_merge_commit": false,
+    "allow_rebase_merge": false,
+    "allow_auto_merge": false
+  },
+  "labels": [
+    {
+      "name": "spec-approved",
+      "color": "0e8a16",
+      "description": "The owner approved this spec: its tickets may be cut and built"
+    },
+    {
+      "name": "owner-merge",
+      "color": "b60205",
+      "description": "The owner merges the PRs of this issue, or of every ticket of this spec"
+    }
+  ]
+}
