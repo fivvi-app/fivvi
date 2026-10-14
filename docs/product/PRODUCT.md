@@ -1216,7 +1216,10 @@ During the workout:
 - exercises can be added at any time, from the library (Dutch and English search, the client's recent exercises first) or as a new custom exercise;
 - each set is prefilled (today's previous set, else last time's same set, else the target reps) and logged with one tap;
 - extra sets can be added;
-- difficulty is asked once per exercise and defaults to Normal.
+- difficulty is asked once per exercise and defaults to Normal;
+- the logger shows the elapsed workout time.
+
+The finished workout records its duration.
 
 Example:
 

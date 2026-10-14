@@ -46,7 +46,7 @@ If verification arrives after the hold expires but capacity remains, may the cli
 Is a six-digit code beside the email link useful for clients who read mail on another device? **Proposal:** both in the same email; code entry on PB-04 (ADR-007).
 
 ### Q14
-How much location detail does a class or Open Gym listing need, and must an Open Gym slot name a trainer? **Proposal:** show the venue/address in details; no trainer line for Open Gym unless assigned (PB-02, WC-03).
+How much location detail does a class or Open Gym listing need, and must an Open Gym slot name a trainer? **Proposal:** show the venue/address in details; no trainer line for Open Gym unless assigned (PB-02, WC-03). **Owner (14 October 2026):** show a short class description, one line on the list and in full on PB-02. The address is still open.
 
 ### Q15
 Do clients use an add-to-calendar action from a booking confirmation? **Proposal:** one-event calendar download (PB-06).

@@ -113,6 +113,7 @@ flowchart TD
 ```text
 ┌────────────────────────────────────────┐
 │ Sluiten   Anna · Upper A    Afronden   │
+│             ◷ 12:05                    │
 │ ✓ Opgeslagen                           │
 ├────────────────────────────────────────┤
 │ 1  Bankdrukken                 3/3  ✓  │
@@ -135,6 +136,7 @@ flowchart TD
 ```
 
 - A **full-screen modal** with its own exit: *Sluiten* (keep going later) or *Afronden* (WL-05).
+- The header shows the **elapsed workout time** under the title, here and on WL-03. It runs from the moment the workout starts (`§41`).
 - Exercise names show in the **UI language** when the library has both (F039: *Bankdrukken* / *Bench press*). Custom exercises show as entered (F040).
 - The bottom bar *Doorgaan* jumps to the next set to log. With every set done it becomes *Training afronden*.
 - **Empty state** (Lege training): *Nog geen oefeningen. Voeg de eerste oefening toe. Wat {client} eerder deed, staat bovenaan.* with *Oefening toevoegen*.
@@ -143,6 +145,7 @@ flowchart TD
 | Element | NL | EN |
 |---|---|---|
 | Bar | Sluiten · Afronden | Close · Finish |
+| Timer (accessible name) | {m:ss} (Trainingstijd) | {m:ss} (Workout time) |
 | Progress | {done}/{total} | {done}/{total} |
 | Previous line | vorige: {weight} × {reps}, … | last: {weight} × {reps}, … |
 | No previous | nog geen eerdere training | no previous workout |
@@ -230,6 +233,8 @@ After the last set:
 ├────────────────────────────────────────┤
 │ [ bench                              ] │
 │────────────────────────────────────────│
+│ +  Nieuwe oefening                  ›  │
+│────────────────────────────────────────│
 │ Bankdrukken                            │
 │ ook: Bench press · borst, triceps      │
 │────────────────────────────────────────│
@@ -242,7 +247,9 @@ After the last set:
 
 - Search matches **Dutch and English names and aliases**, whatever the UI language, so a trainer can type "bench" in a Dutch UI. The name is shown in the UI language; *ook:* shows the matching alias.
 - Empty field: **the client's recent exercises first** (*Recent bij {client}*, with last time's values), then the library. An exercise already in the workout is shown but disabled.
-- The custom-exercise button appears below the results as soon as something is typed. The new exercise gets one set row; its weight starts empty.
+- **+ Nieuwe oefening** is always the first row, so a trainer-specific exercise can be created without searching first. It opens a name field, prefilled with what was typed.
+- The custom-exercise button also appears below the results as soon as something is typed. The new exercise gets one set row; its weight starts empty.
+- Created custom exercises are listed under *Jouw oefeningen*, between *Recent bij {client}* and the library.
 - **Custom exercise**: just a name, stored exactly as typed (F040, no translation). Equipment and muscles are optional and can be filled in later on the web.
 
 | Element | NL | EN |
@@ -251,8 +258,10 @@ After the last set:
 | Placeholder | Zoek oefening (NL of EN) | Search exercise (Dutch or English) |
 | Alias | ook: {alias} | also: {alias} |
 | Recent | Recent bij {client} | Recent for {client} |
-| New | + Nieuwe oefening "{query}" aanmaken | + Create new exercise "{query}" |
-| Created | Oefening aangemaakt. Je vindt hem terug onder Trainingen. | Exercise created. You'll find it under Workouts. |
+| New (first row) | + Nieuwe oefening · Naam van de oefening · Toevoegen | + New exercise · Exercise name · Add |
+| New (from search) | + Nieuwe oefening "{query}" aanmaken | + Create new exercise "{query}" |
+| Own exercises | Jouw oefeningen | Your exercises |
+| Created | Oefening aangemaakt. Je vindt hem voortaan onder Jouw oefeningen. | Exercise created. You'll find it under Your exercises from now on. |
 | No results | Geen oefening gevonden. | No exercise found. |
 
 ### WL-05 · Training afronden / Finish workout
@@ -283,6 +292,7 @@ After the last set:
 ```
 
 - The **internal session note** (F047) is free text, stored as typed (`§35–36`). It is *Alleen voor trainers* (`§37`, F048): authorized workspace staff can read it; the client cannot. A separate message for the client is composed in WL-08. The distinction is explicit, without a visibility toggle that could accidentally expose the internal note.
+- The results show exercises done, sets and a **Duur** tile: the elapsed time from start to *Afronden*, recorded with the workout (`§41`).
 - **Attendance** is set to *Aanwezig* when a workout is finished ⚑ [Q34](../open-questions.md#q34).
 - Exercises with no sets are listed as *Niet gedaan*. They're kept in the planned workout, but no empty set logs are created.
 - Finishing with **zero sets** asks: *Je hebt nog niets bijgehouden. Toch afronden?* Confirming closes the workout without history or a share step.
@@ -293,6 +303,7 @@ After the last set:
 |---|---|---|
 | Title / button | Training afronden | Finish workout |
 | Summary | {done} van {total} oefeningen · `{sets, plural, one {# set} other {# sets}}` | {done} of {total} exercises · `{sets, plural, one {# set} other {# sets}}` |
+| Duration | Duur · {n} min · {h} uur {m} min | Duration · {n} min · {h} hour(s) {m} min |
 | Skipped | Niet gedaan: {list} | Not done: {list} |
 | Note | Notitie voor trainers · Alleen trainers van deze workspace zien dit. | Note for trainers · Only trainers in this workspace see this. |
 | Attendance | Aanwezigheid: Aanwezig · Wijzigen | Attendance: Attended · Change |
