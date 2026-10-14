@@ -1128,6 +1128,10 @@ test('F1: calendar blocks show the type emoji before the content, never a trunca
     await page.locator('[data-act="w-view"][data-v="day"]').click();
     const mark = page.locator('.cal .ev[data-id="p-priya"]');
     assert.ok((await mark.ariaSnapshot()).includes(`${LABELS[lang].private} · Priya`), `${lang}: screen readers hear the type, then the client`);
+    // Open Gym's content is its type label: screen readers hear it once, then its count.
+    const og = await page.locator('.cal .ev[data-id="o-og22"]').ariaSnapshot();
+    assert.equal(og.split('Open Gym').length - 1, 1, `${lang}: "Open Gym" is read once, got ${og}`);
+    assert.match(og, /Open Gym · \d{2}:\d{2} \d+\/2/, `${lang}: Open Gym, then its time and count`);
     assert.deepEqual(errors, []);
     await page.close();
   }
@@ -1857,5 +1861,118 @@ test('R3: creating a custom exercise asks for its type, Weight × reps by defaul
       assert.deepEqual(errors, []);
       await page.close();
     }
+  }
+});
+
+// ---------------------------------------------------------------- PR #8 self-review fixes (14 October 2026)
+
+// Inputs hold plain digits; what the trainer types is read in their language (NL 2.500 / 2,5; EN 2,500 / 2.5).
+test('R3 review: distances of 1000 m or more survive editing, and numbers are read in the trainer\'s language', async () => {
+  for (const [lang, kg, m2000, m2500, m1000, thousand] of [
+    ['nl', '62,5 kg × 12', '2.000 m · 1:45', '2.500 m · 1:45', '1.000 m · 1:45', '1.000'],
+    ['en', '62.5 kg × 12', '2,000 m · 1:45', '2,500 m · 1:45', '1,000 m · 1:45', '1,000'],
+  ]) {
+    const { page, errors } = await pageFor(null);
+    await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).click();
+    await startFlow(page, '5free');
+    await page.locator('[data-act="log-begin"][data-v="repeat"]').click();
+    await fillSet(page, 0, 0, 'w', lang === 'nl' ? '62,5' : '62.5');
+    await page.locator(tick(0, 0)).click();
+    assert.equal(await page.locator(setInput(0, 0, 'w')).inputValue(), lang === 'nl' ? '62,5' : '62.5', `${lang}: kg keeps its decimal`);
+    // Repeat a 2000 m row: the next set is prefilled without a grouping separator.
+    await fillSet(page, 4, 0, 'd', '2000');
+    await page.locator(tick(4, 0)).click();
+    await page.locator('[data-act="log-add-set"][data-ex="4"]').click();
+    const next = page.locator(setInput(4, 1, 'd'));
+    assert.equal(await next.inputValue(), '2000', `${lang}: input values have no grouping separator`);
+    // Edit the prefilled value the way a trainer would: change the last digits.
+    await next.click();
+    await next.evaluate((el) => el.setSelectionRange(el.value.length, el.value.length));
+    for (let i = 0; i < 3; i++) await page.keyboard.press('Backspace');
+    await page.keyboard.type('500');
+    await page.keyboard.press('Tab');
+    await page.locator(tick(4, 1)).click();
+    // A grouped number reads as thousands in the trainer's language.
+    await page.locator('[data-act="log-add-set"][data-ex="4"]').click();
+    await fillSet(page, 4, 2, 'd', thousand);
+    await page.locator(tick(4, 2)).click();
+    assert.equal(await page.locator(setInput(4, 2, 'd')).inputValue(), '1000');
+    await page.locator('.nav [data-act="log-finish"]').click();
+    await page.locator('.workout-breakdown summary').click();
+    const summary = await page.locator('.workout-breakdown').innerText();
+    for (const want of [kg, m2000, m2500, m1000]) assert.ok(summary.includes(want), `${lang}: summary shows ${want}, got ${summary}`);
+    await page.locator('[data-act="log-done"]').click();
+    await page.locator('[data-act="share-review"]').click();
+    await page.locator('[data-act="share-confirm"]').click();
+    await page.locator('[data-act="view-email"]').click();
+    const email = await page.locator('.pub').innerText();
+    assert.ok(email.includes('2.500 m · 1:45') && email.includes('1.000 m · 1:45'), `${lang}: email in Koen's Dutch, got ${email}`);
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
+test('R3 review: an empty or invalid value is not logged; the field says why and keeps focus', async () => {
+  for (const [lang, numErr, wholeErr] of [['nl', 'Vul een getal in', 'Vul een heel getal in'], ['en', 'Enter a number', 'Enter a whole number']]) {
+    const { page, errors } = await pageFor(null);
+    await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).click();
+    await startFlow(page, '5');
+    const reps = page.locator(setInput(0, 0, 'r'));
+    for (const [value, message] of [['', numErr], ['abc', numErr], [lang === 'nl' ? '8,5' : '8.5', wholeErr]]) {
+      await reps.fill(value);
+      await page.locator(tick(0, 0)).click();
+      assert.equal(await page.locator(tick(0, 0)).getAttribute('aria-pressed'), 'false', `${lang} "${value}": the set is not logged`);
+      assert.equal(await reps.getAttribute('aria-invalid'), 'true', `${lang} "${value}": the field is marked invalid`);
+      assert.equal(await reps.inputValue(), value, 'what the trainer typed stays in the field');
+      const described = await reps.getAttribute('aria-describedby');
+      assert.equal((await page.locator(`#${described}`).innerText()).trim(), message, `${lang} "${value}": short inline error`);
+      assert.ok(await reps.evaluate((el) => el === document.activeElement), `${lang} "${value}": focus stays in the field`);
+    }
+    await reps.fill('9');
+    await page.locator(tick(0, 0)).click();
+    assert.equal(await page.locator(tick(0, 0)).getAttribute('aria-pressed'), 'true');
+    assert.equal(await reps.getAttribute('aria-invalid'), null, 'the error clears once the value is valid');
+    assert.equal(await page.locator('[data-ex-card="0"] .set-err').count(), 0);
+    await page.locator('.nav [data-act="log-finish"]').click();
+    await page.locator('.workout-breakdown summary').click();
+    assert.ok((await page.locator('.workout-breakdown').innerText()).includes('60 kg × 9'), 'the corrected value is logged');
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
+test('R3 review: + Set focuses the new set, and a difficulty choice keeps focus', async () => {
+  const { page, errors } = await pageFor(null);
+  await startFlow(page, '5');
+  await page.locator('[data-act="log-add-set"][data-ex="0"]').click();
+  assert.ok(await page.locator(setInput(0, 3, 'w')).evaluate((el) => el === document.activeElement), 'focus moves to the new set\'s first field');
+  await page.locator(tick(0, 0)).click();
+  await page.locator('[data-ex-card="0"] [data-act="log-diff"][data-v="hard"]').click();
+  const hard = page.locator('[data-ex-card="0"] [data-act="log-diff"][data-v="hard"]');
+  assert.equal(await hard.getAttribute('aria-checked'), 'true');
+  assert.ok(await hard.evaluate((el) => el === document.activeElement), 'focus stays on the chosen difficulty');
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('R3 review: set ticks and fields name their exercise, so every label in the list is unique', async () => {
+  for (const [lang, tickName, fieldName] of [
+    ['nl', 'Bankdrukken, set 1 klaar', 'Bankdrukken, set 1, gewicht (kg)'],
+    ['en', 'Bench press, set 1 done', 'Bench press, set 1, weight (kg)'],
+  ]) {
+    const { page, errors } = await pageFor(null);
+    await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).click();
+    await startFlow(page, '5');
+    await page.locator(tick(1, 0)).click();
+    assert.equal(await page.locator(tick(0, 0)).getAttribute('aria-label'), tickName);
+    assert.equal(await page.locator(setInput(0, 0, 'w')).evaluate((el) => el.labels[0].textContent.trim()), fieldName);
+    const names = await page.evaluate(() => [
+      ...[...document.querySelectorAll('[data-act="log-check"]')].map((el) => el.getAttribute('aria-label')),
+      ...[...document.querySelectorAll('[data-set-input]')].map((el) => el.labels[0].textContent.trim()),
+    ]);
+    assert.ok(names.length > 20, 'a multi-exercise list');
+    assert.equal(new Set(names).size, names.length, `${lang}: tick and field labels are unique, got ${names.join(' | ')}`);
+    assert.deepEqual(errors, []);
+    await page.close();
   }
 });

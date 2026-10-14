@@ -281,6 +281,7 @@
     .formatRange(at(mon, "12:00"), at(addDays(mon, 6), "12:00"));
   const weekdayName = (d) => fmt(d, { weekday: "long" });
   const ucfirst = (s) => s.charAt(0).toLocaleUpperCase(locale()) + s.slice(1);
+  const lcfirst = (s) => s.charAt(0).toLocaleLowerCase(locale()) + s.slice(1);
   const listFmt = (arr) => new Intl.ListFormat(locale(), { type: "conjunction" }).format(arr);
   const num = (n) => new Intl.NumberFormat(locale(), { maximumFractionDigits: 2 }).format(n);
   const startOf = (item) => at(item.date, item.start);
@@ -1382,28 +1383,35 @@
 
   // WL-02 is the logger: one scrolling list, every exercise in order with its sets underneath (owner round 3;
   // the separate WL-03 exercise screen and its stepper dock are folded in). Inputs and ticks stay ≥ 44 pt/dp.
+  // Inputs hold plain digits (no grouping separator), so what is shown reads back unchanged; kg keeps the locale's decimal.
+  const plainNum = (n) => new Intl.NumberFormat(locale(), { maximumFractionDigits: 2, useGrouping: false }).format(n);
   function inputValue(k, row) {
-    if (k === "w" || k === "d") return num(row[k]);
+    if (row.bad?.[k]) return esc(row.bad[k].raw);
+    if (k === "w" || k === "d") return plainNum(row[k]);
     if (k === "tm") return String(Math.floor(row.s / 60));
     if (k === "ts") return String(row.s % 60).padStart(2, "0");
     return String(row[k]);
   }
+  const setError = (id, key) => `<p class="field-error set-err" id="${id}-err">${icon("alert", "ico--sm")}<span>${t(key)}</span></p>`;
   function setRow(it, i, j, prev) {
     const r = it.rows[j];
     const type = exType(it.ex);
     const p = prev?.sets[j];
+    const ex = exName(it.ex);
     const fields = EX_TYPES[type].fields.map(([k, label, mode, unit, sep]) => {
       const id = `set-${i}-${j}-${k}`;
+      const err = r.bad?.[k] ? ` aria-invalid="true" aria-describedby="${id}-err"` : "";
       return `${sep ? `<span class="set-x" aria-hidden="true">${sep}</span>` : ""}<span class="set-field">
-          <label class="sr-only" for="${id}">${t("l.setField", { n: j + 1, field: t(label) })}</label>
-          <input class="set-input t-num" id="${id}" type="text" inputmode="${mode}" autocomplete="off" value="${inputValue(k, r)}" data-set-input data-ex="${i}" data-v="${j}" data-k="${k}">
+          <label class="sr-only" for="${id}">${t("l.setField", { ex, n: j + 1, field: lcfirst(t(label)) })}</label>
+          <input class="set-input t-num" id="${id}" type="text" inputmode="${mode}" autocomplete="off" value="${inputValue(k, r)}" data-set-input data-ex="${i}" data-v="${j}" data-k="${k}"${err}>
           ${unit ? `<span class="set-unit" aria-hidden="true">${unit.startsWith("l.") ? t(unit) : unit}</span>` : ""}</span>`;
     }).join("");
     return `<li class="set-row${r.done ? " is-done" : ""}">
         <span class="set-no t-num">${j + 1}</span>
-        <span class="set-fields">${fields}${r.extra && !r.done ? `<button type="button" class="btn btn--icon btn--ghost set-remove" data-act="log-remove-set" data-ex="${i}" data-v="${j}" aria-label="${t("l.removeSet", { n: j + 1 })}">${icon("x", "ico--sm")}</button>` : ""}</span>
+        <span class="set-fields">${fields}${r.extra && !r.done ? `<button type="button" class="btn btn--icon btn--ghost set-remove" data-act="log-remove-set" data-ex="${i}" data-v="${j}" aria-label="${t("l.removeSet", { ex, n: j + 1 })}">${icon("x", "ico--sm")}</button>` : ""}</span>
         ${p ? `<span class="set-prev t-num">${t("l.prevSet", { value: setText(type, p, true) })}</span>` : ""}
-        <button type="button" class="set-check" data-act="log-check" data-ex="${i}" data-v="${j}" aria-pressed="${r.done}" aria-label="${t(r.done ? "l.undoSet" : "l.setDone", { n: j + 1 })}">${icon("check")}</button>
+        <button type="button" class="set-check" data-act="log-check" data-ex="${i}" data-v="${j}" aria-pressed="${r.done}" aria-label="${t(r.done ? "l.undoSet" : "l.setDone", { ex, n: j + 1 })}">${icon("check")}</button>
+        ${Object.keys(r.bad || {}).map((k) => setError(`set-${i}-${j}-${k}`, r.bad[k].err)).join("")}
       </li>`;
   }
   function exerciseCard(it, i, client) {
@@ -1744,7 +1752,10 @@
   function eventLabel(x) {
     const key = TYPE_KEYS[x.kind];
     const name = x.kind === "private" ? esc(CLIENTS[x.client].first) : className(x);
-    return `<span class="ev-ico" aria-hidden="true">${t(key + "Icon")}</span><span class="sr-only">${t(key)} · </span>${name}`;
+    const ico = `<span class="ev-ico" aria-hidden="true">${t(key + "Icon")}</span>`;
+    // Open Gym's content is usually its type label: say it once ("Open Gym · 12:00 1/2"), not "Open Gym · Open Gym".
+    if (name.replace(/<[^>]*>/g, "") === t(key)) return `${ico}${name}<span class="sr-only"> · </span>`;
+    return `${ico}<span class="sr-only">${t(key)} · </span>${name}`;
   }
   function eventCls(x) {
     const k = x.kind === "private" ? "private" : x.kind === "openGym" ? "open-gym" : "group";
@@ -2372,6 +2383,12 @@
       const it = state.log.items[Number(el.dataset.ex)];
       const i = Number(el.dataset.v);
       const r = it.rows[i];
+      // A field the trainer cleared or filled with something that isn't a number blocks logging; it keeps focus and says why.
+      const bad = Object.keys(r.bad || {});
+      if (!r.done && bad.length) {
+        render();
+        return root.querySelector(`#set-${el.dataset.ex}-${i}-${bad[0]}`)?.focus();
+      }
       r.done = !r.done;
       if (r.done) carry(it, i);
       render();
@@ -2385,6 +2402,7 @@
       it.rows.push({ ...toRow(type, last ? toSet(type, last) : DEFAULT_SET[type]), done: false, touched: false, extra: true });
       state.log.changed = true;
       render();
+      root.querySelector(`#set-${el.dataset.ex}-${it.rows.length - 1}-${EX_TYPES[type].fields[0][0]}`)?.focus();
     },
     "log-remove-set": (el) => {
       const it = state.log.items[Number(el.dataset.ex)];
@@ -2393,7 +2411,11 @@
       render();
       root.querySelector(`[data-act="log-add-set"][data-ex="${el.dataset.ex}"]`)?.focus({ preventScroll: true });
     },
-    "log-diff": (el) => { state.log.items[Number(el.dataset.ex)].diff = el.dataset.v; render(); },
+    "log-diff": (el) => {
+      state.log.items[Number(el.dataset.ex)].diff = el.dataset.v;
+      render();
+      root.querySelector(`[data-act="log-diff"][data-ex="${el.dataset.ex}"][data-v="${el.dataset.v}"]`)?.focus({ preventScroll: true });
+    },
     "log-finish": () => { Object.assign(state.log, { confirmEmpty: false, endedAt: Date.now() }); go("l-finish", { id: state.log.id }); },
     "log-save-tpl": (el) => {
       const L = state.log;
@@ -2574,25 +2596,61 @@
     else if (from === "web-session") { selectWebClient(id); state.web.panelMode = "create"; render(); }
     else { state.web.panelMode = null; render(); }
   }
-  const parseNum = (value) => (value.trim() === "" ? NaN : Number(value.trim().replace(",", ".")));
+  // Numbers are read in the trainer's language: NL 2500, 2.500 (thousands) and 2,5; EN 2500, 2,500 and 2.5.
+  // A separator that doesn't group thousands is read as the decimal point, so 62.5 also works in Dutch.
+  function parseNum(value) {
+    const s = value.trim().replace(/\s/g, "");
+    const [group, dec] = activeLang() === "nl" ? [".", ","] : [",", "."];
+    if (new RegExp(`^\\d{1,3}(\\${group}\\d{3})+(\\${dec}\\d+)?$`).test(s)) return Number(s.split(group).join("").replace(dec, "."));
+    return /^\d+([.,]\d+)?$/.test(s) ? Number(s.replace(",", ".")) : NaN;
+  }
+  // Distance, reps, minutes and seconds are whole numbers; only kg takes decimals. Empty minutes or seconds count as 0.
+  function readField(k, text) {
+    if ((k === "tm" || k === "ts") && !text.trim()) return { n: 0 };
+    const n = parseNum(text);
+    if (!Number.isFinite(n)) return { err: "l.numErr" };
+    if (k !== "w" && !Number.isInteger(n)) return { err: "l.wholeErr" };
+    return { n: Math.round(n * 100) / 100 };
+  }
+  // Returns the exercise when the value was stored; an invalid value is kept as typed in row.bad and never logged.
   function setFromInput(input) {
     const it = state.log.items[Number(input.dataset.ex)];
     const r = it?.rows[Number(input.dataset.v)];
     const k = input.dataset.k;
     if (!r) return null;
+    r.touched = true;
+    const read = readField(k, input.value);
+    r.bad ||= {};
+    if (read.err) {
+      r.bad[k] = { raw: input.value, err: read.err };
+      return null;
+    }
+    delete r.bad[k];
     if (k === "tm" || k === "ts") {
       // Time is typed as minutes and seconds and stored in seconds; 75 seconds reads as 1:15.
       const row = input.closest(".set-row");
-      const m = parseNum(row.querySelector('[data-k="tm"]').value || "0"), sec = parseNum(row.querySelector('[data-k="ts"]').value || "0");
-      if (![m, sec].every((n) => Number.isFinite(n) && n >= 0)) return null;
-      r.s = Math.round(m) * 60 + Math.round(sec);
+      const [m, sec] = ["tm", "ts"].map((x) => readField(x, row.querySelector(`[data-k="${x}"]`).value));
+      if (m.err || sec.err) return null;
+      r.s = m.n * 60 + sec.n;
     } else {
-      const n = parseNum(input.value);
-      if (!Number.isFinite(n) || n < 0) return null;
-      r[k] = k === "w" || k === "d" ? Math.round(n * 100) / 100 : Math.round(n);
+      r[k] = read.n;
     }
-    r.touched = true;
     return it;
+  }
+  // Shows or clears a set field's inline error in place, so focus and the next tap are kept. While typing it only clears.
+  function showSetError(input, { clearOnly = false } = {}) {
+    const r = state.log.items[Number(input.dataset.ex)]?.rows[Number(input.dataset.v)];
+    const bad = r?.bad?.[input.dataset.k];
+    if (bad && clearOnly) return;
+    root.querySelector(`#${input.id}-err`)?.remove();
+    if (!bad) {
+      input.removeAttribute("aria-invalid");
+      input.removeAttribute("aria-describedby");
+      return;
+    }
+    input.setAttribute("aria-invalid", "true");
+    input.setAttribute("aria-describedby", `${input.id}-err`);
+    input.closest(".set-row").insertAdjacentHTML("beforeend", setError(input.id, bad.err));
   }
   function captureFinish() {
     const L = state.log;
@@ -2627,7 +2685,10 @@
   });
   root.addEventListener("input", (e) => {
     if (e.target.id === "client-search" || e.target.id === "ex-search") filterList(e.target);
-    if (e.target.matches("[data-set-input]") && state.log) setFromInput(e.target);
+    if (e.target.matches("[data-set-input]") && state.log) {
+      setFromInput(e.target);
+      showSetError(e.target, { clearOnly: true });
+    }
     if (e.target.id === "tpl-name" && state.log) state.log.tplName = e.target.value;
     if (e.target.id === "internal-note" && state.log) state.log.internalNote = e.target.value;
     if (e.target.id === "client-note" && state.completedWorkouts[current().id]) state.completedWorkouts[current().id].clientNote = e.target.value;
@@ -2647,6 +2708,7 @@
     // Editing a set value in its row: later untouched sets follow, patched in place so focus and taps are kept.
     if (e.target.matches("[data-set-input]") && state.log) {
       const it = setFromInput(e.target);
+      showSetError(e.target);
       if (!it) return;
       const i = Number(e.target.dataset.v);
       const key = MODEL_KEY[e.target.dataset.k];
