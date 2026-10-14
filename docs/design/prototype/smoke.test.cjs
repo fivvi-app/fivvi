@@ -1187,3 +1187,37 @@ test('F4: a class without a trainer says the trainer is to be confirmed on list,
     await page.close();
   }
 });
+
+test('F5: list rows show start time and localized duration; details keep the full range', async () => {
+  for (const [lang, hour, ninety] of [['nl', '1 uur', '1 uur 30 min'], ['en', '1 hour', '1 hour 30 min']]) {
+    const { page, errors } = await pageFor(1);
+    await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
+    const cardTime = (id) => page.locator(`[data-act="b-pick"][data-id="${id}"] .class-time`).innerText();
+    assert.match(await cardTime('o-str22'), new RegExp(`18:00\\s+${hour}$`));
+    assert.ok(!(await cardTime('o-str22')).includes('19:00'), 'no stacked end time');
+    await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
+    assert.equal((await page.locator('.booking-time').innerText()).trim(), '18:00–19:00', 'booking summary keeps the range');
+    await page.locator('[data-act="back"]').first().click();
+    await page.locator('[data-act="b-mode"][data-v="openGym"]').click();
+    await page.locator('.day-chip[data-v="2026-09-26"]').click();
+    assert.match(await cardTime('o-og26'), new RegExp(`09:00\\s+${ninety}$`));
+    await page.locator('[data-act="home"]').click();
+    await page.locator('[data-act="set-me"][data-v="sarah"]').click();
+    for (const platform of ['ios', 'android']) {
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      await startFlow(page, '2');
+      const rowTime = (id) => page.locator(`.agenda-list [data-id="${id}"] .row-time`).innerText();
+      assert.match(await rowTime('p-koen'), new RegExp(`15:00\\s+${hour}$`), `${platform} Today Later row`);
+      assert.match(await rowTime('o-core22'), /19:30\s+45 min$/, `${platform} Today 45-minute row`);
+      await page.locator('.next [data-act="open-session"]').click();
+      assert.equal((await page.locator('.detail-time').innerText()).trim(), '09:00–10:00', 'detail header keeps the range');
+      await page.locator('[data-act="back"]').first().click();
+      await page.locator('[data-act="tab"][data-v="calendar"]').click();
+      const agenda = await page.locator('.content .list [data-id="p-mark"] .row-time').innerText();
+      assert.match(agenda, new RegExp(`09:00\\s+${hour}$`), `${platform} Agenda row`);
+      await page.locator('[data-act="home"]').click();
+    }
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});

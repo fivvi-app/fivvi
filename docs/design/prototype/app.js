@@ -247,6 +247,13 @@
   const startOf = (item) => at(item.date, item.start);
   const endOf = (item) => at(item.date, item.end);
   const range = (item) => `${time(startOf(item))}–${time(endOf(item))}`;
+  // Lists show start + duration ("07:00 · 1 uur"); detail headers keep the full range (phone-test finding 5).
+  function durationText(mins) {
+    const h = Math.floor(mins / 60), m = mins % 60;
+    if (!h) return t("dur.min", { n: m });
+    return m ? `${t("dur.hours", { n: h })} ${t("dur.min", { n: m })}` : t("dur.hours", { n: h });
+  }
+  const duration = (item) => durationText(Math.round((endOf(item) - startOf(item)) / 60000));
   // Function declarations: fresh() uses them before this point.
   function addDays(iso, n) {
     const d = new Date(`${iso}T12:00:00Z`);
@@ -570,7 +577,7 @@
                 : full ? `<span class="chip chip--neutral">${t("b.full")}</span>`
                 : `<span class="spots${left <= 2 ? " spots--low" : ""}">${t("b.spots", { n: left })}</span>`;
               return `<li><button type="button" class="class-card" data-act="b-pick" data-id="${occ.id}" ${full || cancelled ? "disabled" : ""}>
-                  <span class="class-time"><span class="t-num">${time(startOf(occ))}</span><span class="class-end">${time(endOf(occ))}</span></span>
+                  <span class="class-time"><span class="t-num">${time(startOf(occ))}</span><span class="class-end">${duration(occ)}</span></span>
                   <span class="class-body">
                     <span class="class-head">${typeChip(occ.kind)}<span class="class-title">${esc(occ.title)}</span></span>
                     ${occ.trainer ? `<span class="class-meta">${icon("user", "ico--sm")}<span class="sr-only">${t("o.trainer")}: </span>${TRAINERS[occ.trainer].name}</span>`
@@ -778,7 +785,7 @@
     const act = x.kind === "private" ? `data-act="open-session" data-id="${x.id}"` : `data-act="open-occ" data-id="${x.id}"`;
     const muted = x.status === "cancelled" || subbedAway(x);
     return `<li><button type="button" class="row session-row${muted ? " is-muted" : ""}" ${act}>
-        <span class="row-time"><span class="t-num">${time(startOf(x))}</span><span class="t-num row-time-end">${time(endOf(x))}</span></span>
+        <span class="row-time"><span class="t-num">${time(startOf(x))}</span><span class="t-num row-time-end">${duration(x)}</span></span>
         <span class="row-main">
           <span class="row-title">${itemTitle(x)}</span>
           <span>${typeChip(x.kind)}</span>
