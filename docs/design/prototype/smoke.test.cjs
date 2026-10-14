@@ -1086,3 +1086,51 @@ test('F1: calendar blocks keep the emoji visible when the type label truncates, 
   assert.deepEqual(errors, []);
   await page.close();
 });
+
+test('F2: app + menu rows share one structure, and a touch hover never greys the Client row', async () => {
+  browser ||= await chromium.launch(process.env.CHROME_BIN
+    ? { executablePath: process.env.CHROME_BIN, headless: true } : { channel: 'chrome', headless: true });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(url);
+  assert.ok(await page.evaluate(() => matchMedia('(hover: none)').matches), 'touch phone emulation');
+  for (const lang of ['nl', 'en']) {
+    await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).tap();
+    await page.locator('[data-act="set-me"][data-v="john"]').tap();
+    for (const platform of ['ios', 'android']) {
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).tap();
+      await startFlow(page, '7');
+      const rows = page.locator('.sheet .create-tile');
+      assert.equal(await rows.count(), 4);
+      const shapes = await rows.evaluateAll((els) => els.map((el) => {
+        const kids = [...el.children].filter((c) => getComputedStyle(c).display !== 'none');
+        const chev = el.querySelector(':scope > .row-chev');
+        return {
+          anatomy: kids.map((c) => c.classList[0]).join(' > '),
+          marker: !!el.querySelector(':scope > .create-mark > :only-child > [aria-hidden="true"]:first-child + .chip-label:last-child'),
+          chevron: !!chev && chev.getBoundingClientRect().width > 0,
+          height: Math.round(el.getBoundingClientRect().height),
+          radius: getComputedStyle(el).borderRadius,
+        };
+      }));
+      for (const shape of shapes) {
+        assert.equal(shape.anatomy, 'create-mark > ico', `${lang}/${platform}: marker pill (icon + title), then chevron`);
+        assert.ok(shape.marker, `${lang}/${platform}: leading marker is a decorative icon beside the title`);
+        assert.ok(shape.chevron, `${lang}/${platform}: every row has a chevron`);
+      }
+      assert.equal(new Set(shapes.map((s) => s.height)).size, 1, `${lang}/${platform}: rows have one height`);
+      assert.equal(new Set(shapes.map((s) => s.radius)).size, 1);
+      const client = page.locator('.sheet .create-tile[data-v="client"]');
+      assert.equal((await client.locator('.chip-label').textContent()).trim(), lang === 'nl' ? 'Klant' : 'Client');
+      const bg = (sel) => page.locator(sel).evaluate((el) => getComputedStyle(el).backgroundColor);
+      const resting = await bg('.sheet .create-tile[data-v="private"]');
+      await page.locator('.sheet .create-tile[data-v="client"]').hover();
+      assert.equal(await bg('.sheet .create-tile[data-v="client"]'), resting, `${lang}/${platform}: no sticky grey hover on touch`);
+      await page.locator('[data-act="home"]').tap();
+    }
+  }
+  assert.deepEqual(errors, []);
+  await context.close();
+});

@@ -432,9 +432,13 @@
   const disclosure = (label, body, cls = "") => `<details class="disclosure ${cls}"><summary>${label}${icon("chevR", "ico--sm")}</summary><div class="disclosure-body">${body}</div></details>`;
   const decoration = (key) => `<span class="warm-accent" aria-hidden="true">${t("decoration." + key)}</span>`;
   const fact = (glyph, label, value) => `<div class="fact-row">${icon(glyph, "ico--sm")}<span class="sr-only">${label}: </span><span>${value}</span></div>`;
+  // Every "+" row has one anatomy: a leading marker (icon + label pill), then a chevron (phone-test finding 2).
+  // Session types use the type marker; Client uses the same pill in a neutral tone.
   function createTile(act, value, glyph, tone, label) {
     const sessionType = ["private", "group", "openGym"].includes(value);
-    return `<li><button type="button" class="create-tile" data-act="${act}" data-v="${value}">${sessionType ? typeChip(value) : `<span class="icon-badge icon-badge--${tone}">${icon(glyph)}</span><span>${label}</span>`}${icon("chevR", "row-chev")}</button></li>`;
+    const mark = sessionType ? typeChip(value)
+      : `<span class="marker marker--${tone}"><span class="icon-badge icon-badge--${tone} marker-ico" aria-hidden="true">${icon(glyph, "ico--sm")}</span><span class="chip-label">${label}</span></span>`;
+    return `<li><button type="button" class="create-tile" data-act="${act}" data-v="${value}"><span class="create-mark">${mark}</span>${icon("chevR", "row-chev")}</button></li>`;
   }
   const attChip = (status) => {
     const map = { booked: "neutral", attended: "success", noShow: "danger", cancelled: "neutral" };
