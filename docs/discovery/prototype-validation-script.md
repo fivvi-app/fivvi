@@ -176,12 +176,15 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
 **Task 5.1** Je bent met [Mark] in de gym. De eerste oefening is **bankdrukken**. Vorige keer deed hij **60 kg × 8**. Vandaag doet hij **3 sets van 62,5 kg × 8**, en de **laatste set was zwaar**. Houd dat bij.\
 *You're in the gym with [Mark]. The first exercise is the bench press. Last time he did 60 kg × 8. Today he does 3 sets of 62.5 kg × 8, and the last set was hard. Log it.*
 
-- Done when: 3 sets are logged at 62.5 kg × 8, with the last one marked **Zwaar** (hard).
+- Done when: 3 sets are logged at 62.5 kg × 8, and the exercise is marked **Zwaar** (hard); difficulty is asked once per exercise.
 - Observe:
   - [ ] Sees the **previous values** without searching ("Vorige training").
-  - [ ] Notices that every set is **prefilled** and can be ticked off with one tap (the check or *Set klaar*).
-  - [ ] Changes the weight once and sees it carry over to the next sets.
-  - [ ] Enters `62,5` without trouble (steppers or typing, decimal comma).
+  - [ ] Sees all exercises in one list, each with its sets underneath.
+  - [ ] Notices that every set is **prefilled** and logs it with one tap on the tick in its row.
+  - [ ] Changes the kg in the first row and sees it carry over to the next sets; edits reps in the row the same way.
+  - [ ] Types `62,5` in the row without trouble (numeric keypad, decimal comma).
+  - [ ] Finds **+ Set** under the exercise if an extra set is needed.
+  - [ ] Understands the fields of a non-weight exercise type (reps only, time or distance + time), if one is shown.
   - [ ] Can do it one-handed; the tap targets are big enough.
   - [ ] Finds the difficulty options (Makkelijk / Normaal / Zwaar).
   - [ ] Time per set: ____ s (it should fit between sets).

@@ -105,6 +105,7 @@ Do trainers log between sets, after the session, or both? What can they operate 
 
 ### Q33
 Which weight increments match the pilot's equipment and should quick controls follow those increments? **Proposal:** large step buttons plus direct number entry (WL-03).
+**Answer (owner, 14 October 2026):** no step buttons. Values are typed directly in each set row on WL-02 with the numeric keypad. Each row is prefilled and logged with one tap (`PRODUCT.md §41`).
 
 ### Q34
 Should finishing a workout mark private-session attendance automatically? **Proposal:** mark attended, with a visible confirmation or correction path (WL-05).

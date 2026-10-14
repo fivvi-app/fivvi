@@ -172,10 +172,11 @@ flowchart TD
 | Previous header (`§41`) | Vorige training · {date} · {trainer} | Previous · {date} · {trainer} |
 | No previous | Nog geen eerdere training | No previous workout |
 | Previous per set | vorige {value} | last {value} |
-| Field labels (screen readers) | Set {n}, Gewicht (kg) · Herhalingen · Minuten · Seconden · Afstand (m) | Set {n}, Weight (kg) · Reps · Minutes · Seconds · Distance (m) |
-| Tick | Set {n} klaar · Set {n} weer openzetten | Set {n} done · Reopen set {n} |
+| Field labels (screen readers) | {exercise}, set {n}, gewicht (kg) · herhalingen · minuten · seconden · afstand (m) | {exercise}, set {n}, weight (kg) · reps · minutes · seconds · distance (m) |
+| Tick | {exercise}, set {n} klaar · {exercise}, set {n} weer openzetten | {exercise}, set {n} done · Reopen {exercise}, set {n} |
 | Add set | + Set (Set toevoegen aan {exercise}) | + Set (Add a set to {exercise}) |
-| Remove extra set | Set {n} verwijderen | Remove set {n} |
+| Remove extra set | {exercise}, set {n} verwijderen | Remove {exercise}, set {n} |
+| Invalid value | Vul een getal in · Vul een heel getal in | Enter a number · Enter a whole number |
 | Difficulty (`§41`) | Hoe zwaar was het? · Makkelijk · Normaal · Zwaar | How hard was it? · Easy · Normal · Hard |
 | Add exercise | + Oefening toevoegen | + Add exercise |
 | Sanity check | Klopt {value} kg? Dat is veel meer dan vorige keer ({prev} kg). [ Ja ] [ Aanpassen ] | Is {value} kg right? That's a lot more than last time ({prev} kg). [ Yes ] [ Edit ] |
@@ -380,15 +381,15 @@ Merged into WL-02 on 14 October 2026 (owner). The ID stays because other documen
 | Numeric input | `.keyboardType(.decimalPad)` shows the locale's separator (`,` for nl) | `KeyboardType.Decimal`; some keyboards show only `.`, so accept both |
 | Set fields | Inline text fields in the row, ≥ 44 pt; `.decimalPad` for kg and metres, `.numberPad` for reps, minutes and seconds | Inline `OutlinedTextField`s, ≥ 48 dp; `KeyboardType.Decimal` / `KeyboardType.Number` |
 | Set done feedback | `sensoryFeedback(.success)` haptic | `HapticFeedbackConstants.CONFIRM` |
-| Delete set | Swipe to delete on the row | Long-press → menu *Set verwijderen* (M3 has no standard swipe-to-delete in lists) |
+| Remove set | Only an unlogged extra set can be removed, with its × in the row (`§41`) | Same: the × on an unlogged extra set |
 | Difficulty | Compact segmented control under the exercise's sets, ≥ 44 pt | `SingleChoiceSegmentedButtonRow` under the sets, ≥ 48 dp |
 | Exercise grouping | Inset grouped section per exercise | Card per exercise |
 | Local queue | SwiftData | Room |
 | Background sync | Sync on foreground and when connectivity returns (`NWPathMonitor`); `BGTaskScheduler` best effort | `WorkManager` with a network constraint |
-| Dynamic Type / font scale | Numbers use tabular figures; at AX sizes the *Vorige* and *Vandaag* columns stack vertically | Same at font scale ≥ 150 % |
-| Screen readers | The exercise name labels its set list; fields read "Set 2, Gewicht (kg)", then "vorige 45 × 10" and the tick "Set 2 klaar" | Same via semantics for TalkBack |
+| Dynamic Type / font scale | Numbers use tabular figures; the set fields wrap and the *vorige* value stays under each set at AX sizes | Same at font scale ≥ 150 % |
+| Screen readers | The exercise name labels its set list; fields read "Bankdrukken, set 2, gewicht (kg)", then "vorige 45 × 10" and the tick "Bankdrukken, set 2 klaar" | Same via semantics for TalkBack |
 | Web (WL-06) | Keyboard-first; the same fields per exercise type | — |
 
 ## Open questions
 
-[Q30](../open-questions.md#q30) difficulty per exercise or per set · [Q31](../open-questions.md#q31) exercises that aren't weight × reps (answered: exercise types) · [Q32](../open-questions.md#q32) when and where trainers log · [Q33](../open-questions.md#q33) weight steps · [Q34](../open-questions.md#q34) attendance on finish · [Q35](../open-questions.md#q35) previous values from other trainers · [QE04](../open-questions.md#qe04) client-visible notes · [QE10](../open-questions.md#qe10) data model · [QE14](../open-questions.md#qe14) concurrent logging
+[Q30](../open-questions.md#q30) difficulty per exercise or per set · [Q31](../open-questions.md#q31) exercises that aren't weight × reps (answered: exercise types) · [Q32](../open-questions.md#q32) when and where trainers log · [Q33](../open-questions.md#q33) weight steps (answered: typed in the row) · [Q34](../open-questions.md#q34) attendance on finish · [Q35](../open-questions.md#q35) previous values from other trainers · [QE04](../open-questions.md#qe04) client-visible notes · [QE10](../open-questions.md#qe10) data model · [QE14](../open-questions.md#qe14) concurrent logging
