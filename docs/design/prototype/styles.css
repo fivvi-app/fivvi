@@ -317,6 +317,9 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 .class-meta { display: flex; gap: 4px; align-items: center; }
 .booking-heading { display: flex; align-items: center; gap: 12px; }
 .class-head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+/* Owner-written class description: one truncated line on the list, full on the form (finding 6). */
+.class-desc { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--color-text-secondary); font-size: var(--typography-subhead-font-size); line-height: var(--typography-subhead-line-height); }
+.summary-desc { color: var(--color-text-secondary); font-size: var(--typography-subhead-font-size); line-height: var(--typography-subhead-line-height); }
 .booking-time { font-size: 32px; line-height: 38px; font-weight: var(--font-weight-semibold); letter-spacing: -0.03em; }
 .booking-facts { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .class-chev { color: var(--color-text-tertiary); }

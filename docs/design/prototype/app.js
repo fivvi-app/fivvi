@@ -74,6 +74,15 @@
   const LAST_NOTE = {
     mark: { date: "2026-09-15", text: "Laatste set bankdrukken was zwaar.\nVolgende keer zelfde gewicht houden." },
   };
+  // Class template descriptions (PRODUCT.md §18): owner-written, shown exactly as entered in every UI language,
+  // never translated (§3; flows/01 PB-02). Synthetic Dutch text.
+  const CLASS_DESCRIPTIONS = {
+    Bootcamp: "Buiten als het kan: kracht en conditie in korte circuits. Alles is te schalen, dus voor elk niveau.",
+    Strength: "Kracht in een kleine groep: squat, deadlift en drukken, met aandacht voor techniek. Voor alle niveaus.",
+    Kettlebell: "Swings, cleans en presses met de kettlebell. Eerst rustig de techniek, daarna voeren we het tempo op.",
+    Mobility: "Rustige les voor soepele heupen, schouders en rug. Fijn na een dag achter je bureau.",
+    "Core & Mobility": "Een sterke romp en soepele heupen in 45 minuten. Zonder zware gewichten.",
+  };
   // Exercise library (PRODUCT.md §38): Dutch and English names, extra search aliases, weight step in kg.
   const EXERCISES = {
     bench: { nl: "Bankdrukken", en: "Bench press", step: 2.5 },
@@ -528,14 +537,16 @@
         <div class="pub-lang">${seg("set-lang", [["nl", "NL"], ["en", "EN"]], state.lang, { label: t("common.language"), small: true })}</div>
       </header>`;
   }
-  function classSummary(occ) {
+  function classSummary(occ, { description = false } = {}) {
     const d = startOf(occ);
+    const desc = description && CLASS_DESCRIPTIONS[occ.title];
     return `<div class="summary">
         <div class="booking-heading">${typeChip(occ.kind)}<p class="summary-title">${esc(occ.title)}</p></div>
         <p class="booking-time t-num">${range(occ)}</p>
         <p class="summary-line">${icon("calendar", "ico--sm")}<span>${ucfirst(dayLong(d))}</span></p>
         <div class="booking-facts">${occ.trainer ? fact("user", t("o.trainer"), TRAINERS[occ.trainer].name)
           : occ.kind === "group" ? `<div class="fact-row">${icon("user", "ico--sm")}<span>${t("b.trainerTbc")}</span></div>` : ""}${fact("pin", t("s.location"), locName(occ.loc))}</div>
+        ${desc ? `<p class="summary-desc" lang="nl">${esc(desc)}</p>` : ""}
       </div>`;
   }
 
@@ -580,6 +591,7 @@
                   <span class="class-time"><span class="t-num">${time(startOf(occ))}</span><span class="class-end">${duration(occ)}</span></span>
                   <span class="class-body">
                     <span class="class-head">${typeChip(occ.kind)}<span class="class-title">${esc(occ.title)}</span></span>
+                    ${CLASS_DESCRIPTIONS[occ.title] ? `<span class="class-desc" lang="nl">${esc(CLASS_DESCRIPTIONS[occ.title])}</span>` : ""}
                     ${occ.trainer ? `<span class="class-meta">${icon("user", "ico--sm")}<span class="sr-only">${t("o.trainer")}: </span>${TRAINERS[occ.trainer].name}</span>`
                       : occ.kind === "group" ? `<span class="class-meta">${icon("user", "ico--sm")}${t("b.trainerTbc")}</span>` : ""}
                     ${status}
@@ -603,7 +615,7 @@
         <main class="pub-main">
           <button type="button" class="btn btn--text btn--back" data-act="back">${icon("chevL", "ico--sm")}${t("common.back")}</button>
           <h1 class="pub-title" tabindex="-1">${t("b.formTitle")}</h1>
-          ${classSummary(occ)}
+          ${classSummary(occ, { description: true })}
           <form class="form" data-form="booking" novalidate>
             ${field("b-name", t("b.name"), `<input id="b-name" name="name" type="text" autocomplete="name" placeholder="${t("b.namePh")}" value="${esc(b.name)}" ${b.errors.name ? `aria-invalid="true" aria-describedby="b-name-err"` : ""}>`, b.errors.name && t("b.nameErr"))}
             ${field("b-email", t("b.email"), `<input id="b-email" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="${t("b.emailPh")}" value="${esc(b.email)}" ${b.errors.email ? `aria-invalid="true" aria-describedby="b-email-err"` : ""}>`, b.errors.email && t("b.emailErr"))}

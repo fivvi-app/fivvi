@@ -1221,3 +1221,25 @@ test('F5: list rows show start time and localized duration; details keep the ful
     await page.close();
   }
 });
+
+test('F6: class descriptions are shown as entered: one truncated line on the list, in full on the booking form', async () => {
+  const strength = 'Kracht in een kleine groep: squat, deadlift en drukken, met aandacht voor techniek. Voor alle niveaus.';
+  for (const lang of ['nl', 'en']) {
+    const { page, errors } = await pageFor(1);
+    await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
+    const desc = page.locator('[data-act="b-pick"][data-id="o-str22"] .class-desc');
+    assert.equal(await desc.textContent(), strength, `${lang}: user content is never translated`);
+    const line = await desc.evaluate((el) => ({
+      lines: Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)),
+      truncated: el.scrollWidth > el.clientWidth + 1,
+      ellipsis: getComputedStyle(el).textOverflow,
+    }));
+    assert.deepEqual(line, { lines: 1, truncated: true, ellipsis: 'ellipsis' }, 'one truncated line on the list');
+    await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
+    const full = page.locator('.summary .summary-desc');
+    assert.equal(await full.innerText(), strength);
+    assert.ok(await full.evaluate((el) => el.scrollWidth <= el.clientWidth + 1 && getComputedStyle(el).textOverflow !== 'ellipsis'), 'form shows it in full');
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
