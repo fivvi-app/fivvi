@@ -1344,3 +1344,35 @@ test('F8: a guest manages a booking from the confirmation and cancelling frees t
     await page.close();
   }
 });
+
+test('F9: the logger header shows a running workout timer and the finish screen records the duration', async () => {
+  for (const [lang, label] of [['nl', 'Duur'], ['en', 'Duration']]) {
+    for (const platform of ['ios', 'android']) {
+      const { page, errors } = await clockedPage(null);
+      await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).click();
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      await startFlow(page, '5');
+      const timer = page.locator('.nav [role="timer"] [data-elapsed]');
+      assert.equal(await timer.textContent(), '0:00', `${lang}/${platform}: overview header timer`);
+      await page.clock.setFixedTime(T0 + (12 * 60 + 5) * 1000);
+      await page.waitForFunction(() => document.querySelector('[data-elapsed]').textContent === '12:05');
+      await page.locator('[data-act="log-open"][data-v="0"]').first().click();
+      assert.equal(await timer.textContent(), '12:05', 'exercise screen header keeps the same elapsed time');
+      assert.ok(await page.locator('.nav [role="timer"]').isVisible());
+      await page.locator('[data-act="log-check"][data-v="0"]').click();
+      await page.clock.setFixedTime(T0 + 58 * 60 * 1000);
+      await page.waitForFunction(() => document.querySelector('[data-elapsed]').textContent === '58:00');
+      await page.locator('[data-act="back"]').click();
+      await page.locator('.nav [data-act="log-finish"]').click();
+      const tile = page.locator('.workout-metrics .result-stat--time');
+      assert.equal(await tile.locator('.metric-time').textContent(), '58 min');
+      assert.ok((await tile.innerText()).includes(label));
+      assert.deepEqual(await page.locator('.workout-metrics .metric-value').allTextContents(), ['1/3', '1'], 'existing results stay');
+      await page.clock.setFixedTime(T0 + 70 * 60 * 1000);
+      await page.waitForTimeout(1100);
+      assert.equal(await tile.locator('.metric-time').textContent(), '58 min', 'finished duration does not keep running');
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  }
+});

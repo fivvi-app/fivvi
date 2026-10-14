@@ -394,6 +394,13 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 .nav--md .nav-icon + .nav-title { padding-left: var(--space-1); }
 .nav--md .nav-subtitle { padding: 0 var(--space-gutter) var(--space-3); color: var(--color-text-secondary); font-size: var(--typography-subhead-font-size); margin-top: -8px; }
 .nav--md .nav-trail { display: flex; }
+/* Live workout timer under the logger title (finding 9). */
+.nav-title-block { min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.nav--md .nav-title-block { flex: 1; align-items: flex-start; }
+.nav--md .nav-title-block .nav-title { flex: none; max-width: 100%; line-height: 24px; font-size: var(--typography-headline-font-size); }
+.nav-timer { display: inline-flex; align-items: center; gap: 4px; color: var(--color-text-secondary); font-size: var(--typography-footnote-font-size); line-height: 16px; font-variant-numeric: tabular-nums; }
+.nav--md .nav-timer { padding-left: var(--space-1); }
+.nav-timer .ico { width: 13px; height: 13px; }
 
 /* tab bars */
 .tabbar { flex: none; display: flex; position: relative; z-index: 5; }
@@ -434,6 +441,11 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 .result-stat { display: grid; grid-template-columns: 36px 1fr; gap: 8px 12px; align-items: center; padding: 16px; border-radius: var(--radius-lg); background: var(--color-bg-surface); }
 .result-stat > span:last-child { grid-column: 1 / -1; font-size: var(--typography-footnote-font-size); color: var(--color-text-secondary); }
 .metric-value { font-size: 32px; line-height: 38px; font-weight: var(--font-weight-semibold); }
+/* Duration sits next to exercises and sets (finding 9): three compact tiles. */
+.workout-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.workout-metrics .result-stat { grid-template-columns: 1fr; gap: 6px; padding: 12px; align-content: start; }
+.workout-metrics .metric-value, .metric-time { font-size: 28px; line-height: 32px; font-weight: var(--font-weight-semibold); }
+.metric-time { font-size: 24px; }
 /* "+" rows: one anatomy for every choice (marker pill, chevron); platforms differ only in the container. */
 .create-grid { display: flex; flex-direction: column; gap: 8px; }
 .create-tile { display: flex; flex-direction: row; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 12px 16px; border: 1px solid var(--color-border-default); border-radius: var(--radius-lg); background: var(--color-bg-surface); font-size: var(--typography-subhead-font-size); font-weight: var(--font-weight-semibold); }

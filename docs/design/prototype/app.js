@@ -1220,9 +1220,18 @@
       name = w.name;
       items = w.items.map(([e, sets]) => logItem(x.client, e, sets.length));
     }
-    state.log = { id, source, name, items, i: 0, sel: null, internalNote: "", saveTpl: false, tplName: "", tplErr: false, changed: false, confirmEmpty: false };
+    state.log = { id, source, name, items, i: 0, sel: null, internalNote: "", saveTpl: false, tplName: "", tplErr: false, changed: false, confirmEmpty: false,
+      startedAt: Date.now(), endedAt: null };
     return state.log;
   }
+  // Elapsed workout time (phone-test finding 9): the header runs live; finishing records the duration.
+  function elapsedText(ms) {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), sec = String(total % 60).padStart(2, "0");
+    return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+  }
+  const workoutTimer = (L) => `<p class="nav-timer" role="timer" aria-label="${t("l.elapsed")}">${icon("clock", "ico--sm")}<span class="t-num" data-elapsed>${elapsedText(Date.now() - L.startedAt)}</span></p>`;
+  const workoutMinutes = (L) => Math.max(1, Math.round(((L.endedAt || Date.now()) - L.startedAt) / 60000));
   const activeRow = (it, L) => (L.sel != null ? L.sel : it.rows.findIndex((r) => !r.done));
   const doneCount = (it) => it.rows.filter((r) => r.done).length;
   function nextPending(L) {
@@ -1301,7 +1310,7 @@
       const np = nextPending(L);
       return {
         nav: { title: `${esc(c.first)} · ${L.name ? esc(L.name) : t("s.workout")}`, large: false, close: true, closeLabel: t("common.close"),
-          text: [{ act: "log-finish", label: t("l.finish") }] },
+          text: [{ act: "log-finish", label: t("l.finish") }], timer: workoutTimer(L) },
         body: `
           <div class="log-top"><span class="t-footnote muted">${L.items.length ? t("l.exCount", { n: L.items.length }) : ""}</span><span class="sync">${icon("cloud", "ico--sm")}${t("l.savedLocal")}</span></div>
           ${L.items.length ? `<ol class="list ex-list">${L.items.map((it, i) => {
@@ -1339,7 +1348,7 @@
         ? t("l.prevHead", { date: dayMonth(at(prev.date, "12:00")) }) + (prev.trainer !== state.me ? ` · ${TRAINERS[prev.trainer].name}` : "")
         : t("l.noPrev");
       return {
-        nav: { title: t("l.position", { i: L.i + 1, n: L.items.length }), large: false, back: t("l.overview") },
+        nav: { title: t("l.position", { i: L.i + 1, n: L.items.length }), large: false, back: t("l.overview"), timer: workoutTimer(L) },
         body: `
           <h2 class="t-title1 log-ex" tabindex="-1">${exName(it.ex)}</h2>
           <p class="t-subhead muted">${it.target ? `${t("l.target", { sets: it.target[0], reps: it.target[1] })} · ` : ""}${prevHead}</p>
@@ -1436,6 +1445,7 @@
           <div class="workout-metrics">
             <div class="result-stat"><span class="icon-badge icon-badge--neutral">${icon("dumbbell", "ico--sm")}</span><strong class="metric-value t-num">${items.length}/${L.items.length}</strong><span>${t("l.exercisesDone")}</span></div>
             <div class="result-stat"><span class="icon-badge icon-badge--private">${icon("check", "ico--sm")}</span><strong class="metric-value t-num">${sets}</strong><span>${t("l.setsLabel")}</span></div>
+            <div class="result-stat result-stat--time"><span class="icon-badge icon-badge--group">${icon("clock", "ico--sm")}</span><strong class="metric-time t-num">${durationText(workoutMinutes(L))}</strong><span>${t("l.durationLabel")}</span></div>
           </div>
           ${disclosure(t("l.resultsDetails"), `${skipped.length ? `<p class="t-subhead muted">${t("l.skipped", { list: skipped.map((it) => exName(it.ex)).join(", ") })}</p>` : ""}
             ${items.length ? workoutRows(items) : ""}`, "workout-breakdown")}
@@ -1935,13 +1945,13 @@
       + (nav.text || []).map((a) => `<button type="button" class="nav-text nav-text--strong" data-act="${a.act}">${a.label}</button>`).join("");
     if (ios) {
       return `<header class="nav nav--ios${nav.large ? " nav--large" : ""}">
-          <div class="nav-bar"><div class="nav-lead">${lead}</div>${nav.large ? "<span></span>" : `<p class="nav-title">${nav.title}</p>`}<div class="nav-trail">${actions}</div></div>
+          <div class="nav-bar"><div class="nav-lead">${lead}</div>${nav.large ? "<span></span>" : nav.timer ? `<div class="nav-title-block"><p class="nav-title">${nav.title}</p>${nav.timer}</div>` : `<p class="nav-title">${nav.title}</p>`}<div class="nav-trail">${actions}</div></div>
           ${nav.large ? `<h1 class="nav-large-title" tabindex="-1">${nav.title}</h1>` : ""}
           ${nav.subtitle ? `<p class="nav-subtitle">${nav.subtitle}</p>` : ""}
         </header>`;
     }
     return `<header class="nav nav--md">
-        <div class="nav-bar">${lead}<h1 class="nav-title" tabindex="-1">${nav.title}</h1><div class="nav-trail">${actions}</div></div>
+        <div class="nav-bar">${lead}${nav.timer ? `<div class="nav-title-block"><h1 class="nav-title" tabindex="-1">${nav.title}</h1>${nav.timer}</div>` : `<h1 class="nav-title" tabindex="-1">${nav.title}</h1>`}<div class="nav-trail">${actions}</div></div>
         ${nav.subtitle ? `<p class="nav-subtitle">${nav.subtitle}</p>` : ""}
       </header>`;
   }
@@ -2044,7 +2054,10 @@
     state.stack = state.stack.filter((f) => !["b-check", "b-mail", "b-confirm"].includes(f.s));
     go("b-expired");
   }
+  // One clock tick drives the hold countdown and the live workout timer.
   setInterval(() => {
+    const elapsed = root.querySelector("[data-elapsed]");
+    if (elapsed && state.log?.startedAt) elapsed.textContent = elapsedText(Date.now() - state.log.startedAt);
     const b = state.booking;
     if (!b.holdAt) return;
     const left = HOLD_MS - (Date.now() - b.holdAt);
@@ -2301,7 +2314,7 @@
       L.i = Math.min(L.items.length - 1, Math.max(0, L.i + dir));
       render({ nav: true });
     },
-    "log-finish": () => { state.log.confirmEmpty = false; go("l-finish", { id: state.log.id }); },
+    "log-finish": () => { Object.assign(state.log, { confirmEmpty: false, endedAt: Date.now() }); go("l-finish", { id: state.log.id }); },
     "log-save-tpl": (el) => {
       const L = state.log;
       captureFinish();
@@ -2334,8 +2347,9 @@
         state.templates[tid] = { name, items: items.map((it) => [it.ex, it.sets.length, it.sets[0][1]]) };
         (state.assigned[x.client] ||= []).unshift(tid);
       }
-      state.completedWorkouts[x.id] = { id: x.id, name, items, internalNote: L.internalNote, clientNote: "", shared: false };
-      (state.history[x.client] ||= []).unshift({ date: x.date, trainer: x.trainer, name, items: items.map((it) => [it.ex, it.sets]) });
+      const minutes = workoutMinutes(L);
+      state.completedWorkouts[x.id] = { id: x.id, name, items, internalNote: L.internalNote, clientNote: "", shared: false, minutes };
+      (state.history[x.client] ||= []).unshift({ date: x.date, trainer: x.trainer, name, minutes, items: items.map((it) => [it.ex, it.sets]) });
       reset([{ s: "hub" }, { s: "t-today" }, { s: "t-session", id: x.id }, { s: "l-complete", id: x.id }]);
       toast(L.saveTpl ? t("l.savedTpl", { name: esc(name) }) : t("l.saved"));
     },
