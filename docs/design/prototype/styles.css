@@ -512,30 +512,32 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 .progress span { flex: 1; height: 4px; border-radius: 2px; background: var(--color-bg-subtle); }
 .progress .is-done { background: var(--color-action-primary-bg); }
 .progress .is-now { background: var(--color-border-focus); opacity: 0.55; }
-.log-ex { margin-top: var(--space-2); }
-.sets { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: var(--space-3); background: var(--color-bg-surface); border-radius: var(--radius-md); overflow: hidden; font-size: var(--typography-headline-font-size); }
-.sets th, .sets td { padding: var(--space-3) var(--space-3); text-align: left; border-top: 1px solid var(--color-border-default); height: 56px; }
-.sets thead th { border-top: 0; height: auto; padding-top: var(--space-3); padding-bottom: var(--space-2); font-size: var(--typography-footnote-font-size); line-height: var(--typography-footnote-line-height); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); vertical-align: bottom; }
-.sets-date { display: block; font-weight: var(--font-weight-regular); }
-.sets tbody th { width: 36px; color: var(--color-text-secondary); font-weight: var(--font-weight-semibold); font-size: var(--typography-subhead-font-size); }
-.sets td.prev { color: var(--color-text-secondary); }
-.sets tr.is-current { background: var(--color-action-tonal-bg); }
-.sets tr.is-current th, .sets tr.is-current td { color: var(--color-action-tonal-fg); }
-.set-pending { font-weight: var(--font-weight-bold); }
-.set-chip { display: inline-flex; gap: 6px; align-items: center; min-height: 40px; padding: 0 var(--space-2); margin-left: calc(-1 * var(--space-2)); border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); }
-.set-chip .ico { color: var(--color-status-success-fg); }
-.set-chip:active { background: var(--color-bg-subtle); }
-.dock { flex: none; background: var(--color-bg-raised); border-top: 1px solid var(--color-border-default); padding: var(--space-3) var(--space-gutter) calc(var(--space-3) + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: var(--space-3); box-shadow: 0 -8px 24px -16px rgb(0 0 0 / 0.2); }
-.steppers { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
-.stepper { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.stepper-label { font-size: var(--typography-footnote-font-size); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); text-align: center; }
-.stepper-row { display: flex; align-items: center; gap: 4px; }
-.stepper-row .btn--xl { width: 52px; min-height: 56px; border-radius: var(--radius-lg); }
-.stepper-value { flex: 1; min-width: 0; text-align: center; font-size: 26px; line-height: 30px; font-weight: var(--font-weight-semibold); white-space: nowrap; }
-.dock-row { display: flex; gap: var(--space-2); }
-.dock-row .btn--xl { border-radius: var(--radius-lg); }
-[data-platform="ios"] .dock-row .btn--xl { border-radius: var(--radius-full); }
-@media (min-width: 380px) { .stepper-value { font-size: 30px; } }
+/* WL-02 one-list logger (owner round 3): every exercise in order, its sets underneath, editable in the row.
+   No fixed dock, so nothing covers rows in short landscape. Inputs and ticks stay at least 44 pt/dp. */
+.log-list { list-style: none; margin: var(--space-3) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-4); }
+.log-card { background: var(--color-bg-surface); padding: var(--space-3) var(--space-3) var(--space-2); }
+[data-platform="ios"] .log-card { border-radius: 10px; }
+[data-platform="android"] .log-card { border-radius: var(--radius-lg); box-shadow: 0 2px 4px rgb(0 0 0 / 0.08); }
+.log-card-head { display: flex; align-items: center; gap: var(--space-2); }
+.log-ex { flex: 1; min-width: 0; margin: 0; font-size: var(--typography-headline-font-size); line-height: var(--typography-headline-line-height); font-weight: var(--font-weight-semibold); }
+.log-card-sub { margin: 2px 0 0 36px; }
+.set-list { list-style: none; margin: var(--space-2) 0 0; padding: 0; }
+.set-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 48px; grid-template-areas: "no fields tick" "no prev tick"; column-gap: var(--space-2); row-gap: 2px; align-items: center; padding: var(--space-2) 0; border-top: 1px solid var(--color-border-default); }
+.set-row:first-child { border-top: 0; }
+.set-no { grid-area: no; text-align: center; color: var(--color-text-secondary); font-size: var(--typography-subhead-font-size); }
+.set-fields { grid-area: fields; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.set-field { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.set-input { width: 76px; min-width: 52px; min-height: 48px; padding: 0 6px; text-align: center; font-size: 20px; line-height: 24px; font-weight: var(--font-weight-semibold); color: var(--color-text-primary); background: var(--color-bg-canvas); border: var(--border-width-control) solid var(--color-border-control); border-radius: var(--radius-sm); }
+.set-input[data-k="r"] { width: 60px; }
+.set-input:focus-visible { outline-offset: 0; }
+.set-unit, .set-x { color: var(--color-text-secondary); font-size: var(--typography-subhead-font-size); }
+.set-prev { grid-area: prev; font-size: var(--typography-footnote-font-size); line-height: var(--typography-footnote-line-height); color: var(--color-text-secondary); }
+.set-row .set-check { grid-area: tick; justify-self: end; }
+.set-row.is-done .set-input { background: var(--color-bg-subtle); border-color: transparent; }
+.set-remove { flex: none; width: 44px; height: 44px; color: var(--color-text-secondary); }
+.log-card-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); padding-top: var(--space-1); border-top: 1px solid var(--color-border-default); }
+.log-diff { display: flex; align-items: center; gap: var(--space-2); }
+.btn--add-ex { margin-top: var(--space-4); }
 
 /* sheets */
 .scrim, .panel-scrim { position: absolute; inset: 0; background: rgb(0 0 0 / 0.4); z-index: 20; animation: fade var(--motion-duration-medium) var(--motion-easing-standard); }
@@ -683,21 +685,11 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 .ex-count { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: var(--typography-subhead-font-size); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); }
 .ex-count.is-done { color: var(--color-status-success-fg); }
 
-/* WL-03 set table: every row prefilled, one tap on the check logs it */
-.sets th:last-child, .sets td.tick { width: 60px; padding-left: 0; padding-right: var(--space-2); text-align: right; }
-.sets tbody tr:not(.is-done) td.now .set-cell { color: var(--color-text-secondary); font-weight: var(--font-weight-regular); }
-.sets tr.is-current td.now .set-cell { color: var(--color-action-tonal-fg); font-weight: var(--font-weight-bold); }
-.sets tr.is-done td.now .set-cell { font-weight: var(--font-weight-semibold); }
-.set-cell { min-height: 44px; padding: 0 var(--space-2); margin-left: calc(-1 * var(--space-2)); border-radius: var(--radius-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.set-cell:active { background: var(--color-bg-subtle); }
+/* Ticks: one tap logs a prefilled set. */
 .set-check { width: 48px; height: 48px; border-radius: var(--radius-full); display: inline-grid; place-items: center; border: 2px solid var(--color-border-control); color: var(--color-border-control); background: var(--color-bg-surface); }
 .set-check .ico { width: 22px; height: 22px; stroke-width: 2.6; }
 .set-check[aria-pressed="true"] { background: var(--color-status-success-fg); border-color: var(--color-status-success-fg); color: var(--color-bg-surface); }
-.sets tr.is-current .set-check[aria-pressed="false"] { border-color: var(--color-action-primary-bg); color: var(--color-action-primary-bg); }
 .btn--add-set { align-self: flex-start; margin-left: calc(-1 * var(--space-3)); }
-input.stepper-value { width: 100%; border: 0; background: transparent; padding: 0; color: var(--color-text-primary); border-radius: var(--radius-sm); min-height: 56px; font-size: 26px; }
-input.stepper-value:focus-visible { outline-offset: -2px; }
-@media (min-width: 380px) { input.stepper-value { font-size: 30px; } }
 
 /* ------------------------------------------------------------------ density (tokens: size.control, density.*) */
 /* Trainer Web (and the prototype hub) use the compact type scale; with a mouse, controls are compact too. */
@@ -725,23 +717,8 @@ input.stepper-value:focus-visible { outline-offset: -2px; }
 :root[data-shell="app"] { --input-font-size: 16px; }
 .app .seg-btn { min-height: 44px; }
 [data-platform="android"] .app .seg-btn { min-height: 48px; }
-[data-platform="android"] .set-cell { min-height: 48px; }
 .pub-lang .seg-btn { min-height: 44px; }
 @media (max-width: 659px) { :root[data-shell="web"] { --size-touch-min: 48px; --input-font-size: 16px; } }
-/* The logger keeps its big targets on purpose: one hand, between sets. */
-.dock .btn--xl, .stepper-row .btn--xl { min-height: var(--size-touch-large); }
-.stepper-row { gap: 2px; }
-.stepper-row .btn--xl { width: 48px; }
-@media (max-width: 379px) { input.stepper-value { font-size: 24px; } }
-/* Landscape logging keeps controls large beside the values, rather than
-   consuming nearly the whole height with a bottom dock or fake phone frame. */
-@media (min-width: 600px) and (max-height: 540px) {
-  .app:has(.steppers) { display: grid; grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto minmax(0, 1fr); }
-  .app:has(.steppers) > .nav { grid-column: 1 / -1; }
-  .app:has(.steppers) > .scroll { grid-column: 1; }
-  .app:has(.steppers) > .dock { grid-column: 2; border-top: 0; border-left: 1px solid var(--color-border-default); overflow-y: auto; justify-content: center; min-height: 0; }
-  .app:has(.steppers) .content { padding-top: 16px; }
-}
 
 /* Tighter spacing on the phone */
 .app .row { padding: 10px var(--space-4); }
@@ -806,8 +783,7 @@ input.stepper-value:focus-visible { outline-offset: -2px; }
 /* Calm hierarchy: size and spacing lead; only headings/results use semibold. */
 .chip, .row-title, .field-label, .flow-title, .flow-no, .create-tile,
 .disclosure > summary, .next-title, .next-kicker, .class-title, .spots,
-.sets thead th, .sets tbody th, .set-pending, .set-chip, .stepper-label,
-.sets tr.is-current td.now .set-cell, .sets tr.is-done td.now .set-cell,
+.set-no, .set-unit,
 .ev-title, .cal-lane-head, .day-link, .ag-wd, .dc-wd, .dc-num,
 .ex-no, .ex-count, .att-btn, .nav-text--strong, .nav--md .nav-text,
 .tabbar--android .tab.is-active .tab-label, .pub-lang .seg-btn,

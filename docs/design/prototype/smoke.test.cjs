@@ -22,6 +22,15 @@ async function pageFor(flow, viewport = { width: 390, height: 844 }) {
 }
 after(async () => { await browser?.close(); });
 
+// The logger is one scrolling list (owner round 3): every set row has a tick, addressed by exercise and set.
+const tick = (ex, set) => `[data-act="log-check"][data-ex="${ex}"][data-v="${set}"]`;
+const setInput = (ex, set, key) => `[data-set-input][data-ex="${ex}"][data-v="${set}"][data-k="${key}"]`;
+async function fillSet(page, ex, set, key, value) {
+  const input = page.locator(setInput(ex, set, key));
+  await input.fill(value);
+  await input.dispatchEvent('change');
+}
+
 // Session-type markers pair a decorative emoji with the visible localized label (phone-test finding 1):
 // colour alone fails colour-blind users, and the emoji is never shown without its label.
 const TYPE_EMOJI = { private: '👤', group: '👥', 'open-gym': '🏋️' };
@@ -287,11 +296,12 @@ test('appearance starts light on a dark OS; explicit changes keep booking drafts
   assert.ok(await page.locator('[data-countdown]').isVisible());
   await page.locator('[data-act="home"]').click();
   await startFlow(page, '5');
-  await page.locator('[data-act="log-open"][data-v="0"]').first().click();
-  await page.locator('[data-act="log-check"][data-v="0"]').click();
+  await page.locator(tick(0, 0)).click();
+  await fillSet(page, 1, 0, 'w', '47,5');
   await page.locator('.appearance summary').click();
   await page.locator('[data-act="set-theme"][data-v="dark"]').click();
-  assert.equal(await page.locator('[data-act="log-check"][data-v="0"]').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator(tick(0, 0)).getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator(setInput(1, 0, 'w')).inputValue(), '47,5', 'an edited set value survives the appearance switch');
   await page.reload();
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'light', 'appearance is not silently persisted');
   assert.deepEqual(errors, []);
@@ -309,9 +319,7 @@ for (const screen of ['session disclosures', 'workout results']) {
           await page.locator('.next [data-act="open-session"]').click();
         } else {
           await startFlow(page, '5');
-          await page.locator('[data-act="log-open"][data-v="0"]').first().click();
-          await page.locator('[data-act="log-check"][data-v="0"]').click();
-          await page.locator('[data-act="back"]').click();
+          await page.locator(tick(0, 0)).click();
           await page.locator('.nav [data-act="log-finish"]').click();
           await page.locator('#internal-note').fill('Synthetic unsaved trainer note');
         }
@@ -406,10 +414,10 @@ test('typography prioritises headings without bold names, times, labels or logge
   await weights('.booking-time, .field-label, .chip');
   await page.locator('[data-act="home"]').click();
   await startFlow(page, '5');
-  await page.locator('[data-act="log-open"][data-v="0"]').first().click();
-  await weights('.sets th, .set-chip, .stepper-label');
-  await weights('.stepper-value', 600);
-  assert.ok(await page.locator('.stepper-value').first().evaluate((el) => parseFloat(getComputedStyle(el).fontSize) >= 30));
+  // One-list logger (owner round 3): set numbers, previous values and units stay light; today's values are the result.
+  await weights('.set-no, .set-prev, .set-unit');
+  await weights('.set-input', 600);
+  assert.ok(await page.locator('.set-input').first().evaluate((el) => parseFloat(getComputedStyle(el).fontSize) >= 20));
   await page.close();
 });
 
@@ -451,8 +459,7 @@ test('selected language, appearance, calendar view and active Agenda labels use 
         }
         await page.locator('[data-act="home"]').click();
         await startFlow(page, '5');
-        await page.locator('[data-act="log-open"][data-v="0"]').first().click();
-        assert.equal(await page.locator('.stepper-value').first().evaluate((el) => getComputedStyle(el).fontWeight), '600');
+        assert.equal(await page.locator('.set-input').first().evaluate((el) => getComputedStyle(el).fontWeight), '600');
       }
       if (surface === 'web') {
         assert.equal(await page.locator('.web-top h1').evaluate((el) => getComputedStyle(el).fontWeight), '600');
@@ -570,9 +577,7 @@ test('public booking verifies a class and keeps the EN toggle on Open Gym', asyn
 test('workout finish leads with numeric results and keeps set breakdown reachable before sharing review', async () => {
   const { page, errors } = await pageFor(null);
   await startFlow(page, '5');
-  await page.locator('[data-act="log-open"][data-v="0"]').first().click();
-  await page.locator('[data-act="log-check"][data-v="0"]').click();
-  await page.locator('[data-act="back"]').click();
+  await page.locator(tick(0, 0)).click();
   await page.locator('.nav [data-act="log-finish"]').click();
   assert.deepEqual(await page.locator('.workout-metrics .metric-value').allTextContents(), ['1/3', '1']);
   assert.equal(await page.locator('.workout-breakdown').getAttribute('open'), null);
@@ -682,11 +687,10 @@ const content = (page) => page.locator('.content').textContent();
 test('planned workout saves an internal note and shares only the client message and sets', async () => {
   const { page, errors } = await pageFor(null);
   await startFlow(page, '5');
-  await page.locator('[data-act="log-open"][data-v="0"]').first().click();
-  await page.locator('[data-act="log-step"][data-k="w"][data-v="1"]').click();
-  for (let i = 0; i < 3; i++) await page.locator('[data-act="log-save"]').click();
-  await page.locator('[data-act="log-diff"][data-v="hard"]').click();
-  await page.locator('[data-act="back"]').click();
+  // Editing set 1's weight in the row carries it to the untouched later sets; each set is one tap.
+  await fillSet(page, 0, 0, 'w', '62,5');
+  for (let i = 0; i < 3; i++) await page.locator(tick(0, i)).click();
+  await page.locator('[data-act="log-diff"][data-ex="0"][data-v="hard"]').click();
   await page.locator('.nav [data-act="log-finish"]').click();
   assert.ok((await content(page)).includes('Niet gedaan'));
   await page.locator('#internal-note').fill('PRIVATE: knee concern');
@@ -715,9 +719,7 @@ test('planned workout saves an internal note and shares only the client message 
 test('workout can be saved privately and shared later', async () => {
   const { page, errors } = await pageFor(null);
   await startFlow(page, '5');
-  await page.locator('[data-act="log-open"][data-v="0"]').first().click();
-  await page.locator('[data-act="log-check"][data-v="0"]').click();
-  await page.locator('[data-act="back"]').click();
+  await page.locator(tick(0, 0)).click();
   await page.locator('.nav [data-act="log-finish"]').click();
   await page.locator('#internal-note').fill('Trainer only');
   await page.locator('[data-act="log-done"]').click();
@@ -737,20 +739,18 @@ test('workout without a template: add library and custom exercises, one-tap sets
   assert.equal(await page.locator('li[data-name]:visible').count(), 1);
   assert.ok(await page.locator('[data-new-ex]').isVisible());
   await page.locator('[data-act="log-add-ex"][data-v="bench"]').click();
-  await page.locator('#step-w').fill('40');
-  await page.locator('#step-w').dispatchEvent('change');
-  await page.locator('[data-act="log-check"][data-v="0"]').click();
-  assert.equal(await page.locator('[data-act="log-check"][data-v="0"]').getAttribute('aria-pressed'), 'true');
-  await page.locator('[data-act="log-add-set"]').click();
-  assert.ok((await page.locator('.sets tbody tr').nth(1).textContent()).includes('40 kg × 10'));
-  await page.locator('[data-act="back"]').click();
+  await fillSet(page, 0, 0, 'w', '40');
+  await page.locator(tick(0, 0)).click();
+  assert.equal(await page.locator(tick(0, 0)).getAttribute('aria-pressed'), 'true');
+  await page.locator('[data-act="log-add-set"][data-ex="0"]').click();
+  assert.equal(await page.locator(setInput(0, 1, 'w')).inputValue(), '40');
+  assert.equal(await page.locator(setInput(0, 1, 'r')).inputValue(), '10');
   await page.locator('[data-act="log-add"]').click();
   await page.locator('#ex-search').fill('Sled push');
   await page.locator('[data-act="log-new-ex"]').click();
-  assert.ok((await page.locator('.log-ex').textContent()).includes('Sled push'));
-  await page.locator('[data-act="log-check"][data-v="0"]').click();
-  await page.locator('[data-act="back"]').click();
-  assert.equal(await page.locator(".ex-list [data-act=\"log-open\"]").count(), 2);
+  assert.ok((await page.locator('.log-ex').nth(1).textContent()).includes('Sled push'));
+  await page.locator(tick(1, 0)).click();
+  assert.equal(await page.locator('.log-ex').count(), 2);
   await page.locator('.nav [data-act="log-finish"]').click();
   await page.locator('[data-act="log-save-tpl"]').check();
   await page.locator('#tpl-name').fill('Koen kracht');
@@ -768,9 +768,10 @@ test('workout without a template: add library and custom exercises, one-tap sets
 test('repeat previous workout prefills last time\'s values', async () => {
   const { page, errors } = await pageFor(5);
   await page.locator('[data-act="log-begin"][data-v="repeat"]').click();
-  assert.equal(await page.locator(".ex-list [data-act=\"log-open\"]").count(), 3);
-  await page.locator('[data-act="log-open"][data-v="0"]').first().click();
-  assert.ok((await page.locator('.sets tbody tr').first().textContent()).includes('20 kg × 12'));
+  assert.equal(await page.locator('.log-ex').count(), 3);
+  assert.equal(await page.locator(setInput(0, 0, 'w')).inputValue(), '20');
+  assert.equal(await page.locator(setInput(0, 0, 'r')).inputValue(), '12');
+  assert.equal(await page.locator(setInput(0, 2, 'w')).inputValue(), '24', 'each set follows last time\'s same set');
   assert.deepEqual(errors, []);
   await page.close();
 });
@@ -961,18 +962,24 @@ test('all surfaces fit narrow, short, landscape and desktop screens; forms and l
           assert.ok(await page.locator('[data-act="start-log"]').isVisible());
         }
         if (flow === '5') {
-          await page.locator('[data-act="log-open"][data-v="0"]').first().click();
           const scroll = page.locator('.app > .scroll');
-          assert.ok(await scroll.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), 'logger table is not horizontally clipped');
+          assert.ok(await scroll.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), 'logger list is not horizontally clipped');
           assert.ok((await scroll.boundingBox()).height >= 100, 'logger values get usable scroll space, even in landscape');
-          const controls = page.locator('[data-act="log-step"], [data-act="log-save"]');
-          for (const box of await controls.evaluateAll((els) => els.map((el) => {
-            const b = el.getBoundingClientRect(); return { w: b.width, h: b.height, bottom: b.bottom };
-          }))) {
-            assert.ok(box.w >= 44 && box.h >= 64 && box.bottom <= viewport.height, 'large logger controls stay onscreen');
+          assert.equal(await page.locator('.dock').count(), 0, 'no fixed dock covers the set rows');
+          // Every set row's inputs and tick are large and can be scrolled into view uncovered, down to the last exercise.
+          const controls = page.locator('[data-set-input], [data-act="log-check"]');
+          for (const control of await controls.all()) {
+            const box = await control.evaluate((el) => {
+              el.scrollIntoView({ block: 'center' });
+              const b = el.getBoundingClientRect();
+              const hit = document.elementFromPoint((b.left + b.right) / 2, (b.top + b.bottom) / 2);
+              return { w: b.width, h: b.height, bottom: b.bottom, right: b.right, hit: !!hit && el.contains(hit) };
+            });
+            assert.ok(box.w >= 44 && box.h >= 44 && box.bottom <= viewport.height && box.right <= viewport.width && box.hit,
+              `${platform} ${viewport.width}×${viewport.height}: logger inputs and ticks stay large and reachable`);
           }
-          await page.locator('[data-act="log-check"][data-v="0"]').click();
-          assert.equal(await page.locator('[data-act="log-check"][data-v="0"]').getAttribute('aria-pressed'), 'true');
+          await page.locator(tick(0, 0)).click();
+          assert.equal(await page.locator(tick(0, 0)).getAttribute('aria-pressed'), 'true');
         }
         if (flow === '7') {
           const body = page.locator('.sheet-body');
@@ -1431,13 +1438,11 @@ test('F9: the logger header shows a running workout timer and the finish screen 
       assert.equal(await timer.textContent(), '0:00', `${lang}/${platform}: overview header timer`);
       await page.clock.setFixedTime(T0 + (12 * 60 + 5) * 1000);
       await page.waitForFunction(() => document.querySelector('[data-elapsed]').textContent === '12:05');
-      await page.locator('[data-act="log-open"][data-v="0"]').first().click();
-      assert.equal(await timer.textContent(), '12:05', 'exercise screen header keeps the same elapsed time');
+      await page.locator(tick(0, 0)).click();
+      assert.equal(await timer.textContent(), '12:05', 'logging a set keeps the same elapsed time in the header');
       assert.ok(await page.locator('.nav [role="timer"]').isVisible());
-      await page.locator('[data-act="log-check"][data-v="0"]').click();
       await page.clock.setFixedTime(T0 + 58 * 60 * 1000);
       await page.waitForFunction(() => document.querySelector('[data-elapsed]').textContent === '58:00');
-      await page.locator('[data-act="back"]').click();
       await page.locator('.nav [data-act="log-finish"]').click();
       const tile = page.locator('.workout-metrics .result-stat--time');
       assert.equal(await tile.locator('.metric-time').textContent(), '58 min');
@@ -1474,8 +1479,8 @@ test('F10: Add exercise offers New exercise without searching; created exercises
       assert.equal(await page.locator('#new-ex-name').getAttribute('aria-invalid'), 'true', 'a name is required');
       await page.locator('#new-ex-name').fill('Sled push');
       await page.locator('[data-form="new-exercise"] button[type="submit"]').click();
-      assert.equal((await page.locator('.log-ex').innerText()).trim(), 'Sled push');
-      await page.locator('[data-act="back"]').click();
+      assert.equal((await page.locator('.log-ex').last().innerText()).trim(), 'Sled push');
+      assert.equal(await page.evaluate(() => document.activeElement.textContent.trim()), 'Sled push', 'focus moves to the new exercise in the list');
       await page.locator('[data-act="log-add"]').click();
       const mine = page.locator('[data-filter-group]', { has: page.locator('h2', { hasText: labels[1] }) });
       assert.ok((await mine.innerText()).includes('Sled push'), 'custom exercise listed under Your exercises');
@@ -1712,5 +1717,53 @@ test('R3: the owner adds an optional English name and description when creating 
     }
     assert.deepEqual(errors, []);
     await page.close();
+  }
+});
+
+test('R3: the logger is one scrolling list with previous values, editable sets, + Set and difficulty per exercise', async () => {
+  for (const [lang, prev, addSet] of [['nl', 'vorige 60 × 8', 'Set'], ['en', 'last 60 × 8', 'Set']]) {
+    for (const platform of ['ios', 'android']) {
+      const { page, errors } = await pageFor(null);
+      await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).click();
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      await startFlow(page, '5');
+      assert.deepEqual((await page.locator('.log-ex').allInnerTexts()).map((x) => x.trim()),
+        lang === 'nl' ? ['Bankdrukken', 'Kabelroeien', 'Schouderdrukken met dumbbells'] : ['Bench press', 'Seated cable row', 'Dumbbell shoulder press'],
+        `${lang}/${platform}: every exercise in order on one screen`);
+      assert.equal(await page.locator('[data-ex-card="0"] .set-row').count(), 3, 'its sets underneath');
+      assert.equal(await page.locator('[data-act="log-open"], .dock, .stepper').count(), 0, 'no per-exercise screen or stepper dock');
+      assert.equal((await page.locator('[data-ex-card="0"] .set-row').first().locator('.set-prev').innerText()).trim(), prev, 'previous value per set');
+      assert.equal(await page.locator(setInput(0, 0, 'w')).getAttribute('inputmode'), 'decimal');
+      assert.equal(await page.locator(setInput(0, 0, 'r')).getAttribute('inputmode'), 'numeric');
+      assert.equal(await page.locator(setInput(0, 2, 'r')).inputValue(), '7', 'prefilled from last time\'s same set');
+      // Edit reps directly in the row, then log with one tap.
+      await fillSet(page, 0, 0, 'r', '10');
+      await page.locator(tick(0, 0)).click();
+      assert.equal(await page.locator(tick(0, 0)).getAttribute('aria-pressed'), 'true');
+      assert.equal(await page.locator(setInput(0, 1, 'r')).inputValue(), '10', 'untouched later sets follow the set just logged');
+      // + Set under the exercise adds a prefilled row; an unlogged extra set can be removed.
+      const add = page.locator('[data-act="log-add-set"][data-ex="0"]');
+      assert.ok((await add.innerText()).includes(addSet));
+      await add.click();
+      assert.equal(await page.locator('[data-ex-card="0"] .set-row').count(), 4);
+      assert.equal(await page.locator(setInput(0, 3, 'w')).inputValue(), '60');
+      assert.equal(await page.locator(setInput(0, 3, 'r')).inputValue(), '10', 'prefilled from the last set');
+      assert.equal(await page.locator('[data-act="log-remove-set"]').count(), 1, 'only the unlogged extra set can be removed');
+      await page.locator('[data-act="log-remove-set"][data-ex="0"][data-v="3"]').click();
+      assert.equal(await page.locator('[data-ex-card="0"] .set-row').count(), 3);
+      // Difficulty once per exercise, compact, under its sets; + Oefening toevoegen ends the list.
+      const diff = page.locator('[data-ex-card="0"] [data-act="log-diff"][aria-checked="true"]');
+      assert.equal((await diff.innerText()).trim(), lang === 'nl' ? 'Normaal' : 'Normal');
+      assert.equal(await page.locator('[data-ex-card="1"] [data-act="log-diff"]').count(), 0, 'asked after the first logged set');
+      assert.ok(await page.evaluate(() => {
+        const add = document.querySelector('[data-act="log-add"]');
+        return [...document.querySelectorAll('[data-ex-card]')].every((card) => card.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING);
+      }), 'Add exercise sits after the last exercise');
+      await page.locator('.nav [data-act="log-finish"]').click();
+      await page.locator('.workout-breakdown summary').click();
+      assert.ok((await page.locator('.workout-breakdown').innerText()).includes(lang === 'nl' ? '60 kg × 10' : '60 kg × 10'), 'the edited value is logged');
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
   }
 });

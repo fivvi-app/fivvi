@@ -453,11 +453,11 @@
   };
 
   // ---------------------------------------------------------------- shared UI pieces
-  function seg(name, options, value, { label = "", small = false } = {}) {
+  function seg(name, options, value, { label = "", small = false, attrs = "" } = {}) {
     const md = state.platform === "android" && shellOf(current().s) === "app"
       && !["set-lang", "set-platform", "set-theme"].includes(name);
     return `<div class="seg ${small ? "seg--sm" : ""}" role="radiogroup" aria-label="${esc(label)}">${options
-      .map(([v, text]) => `<button type="button" role="radio" aria-checked="${v === value}" class="seg-btn" data-act="${name}" data-v="${v}">${
+      .map(([v, text]) => `<button type="button" role="radio" aria-checked="${v === value}" class="seg-btn" data-act="${name}" data-v="${v}" ${attrs}>${
         md && v === value ? icon("check", "ico--sm") : ""}<span>${text}</span></button>`)
       .join("")}</div>`;
   }
@@ -1229,7 +1229,7 @@
   };
 
   // ---- flow 5: live logging (flows/05-live-workout-logging.md, WL-01 … WL-05)
-  // Each set row is prefilled: today's set just logged, else last time's same set, else the target reps (WL-03).
+  // Each set row is prefilled: today's set just logged, else last time's same set, else the target reps (WL-02).
   function logItem(clientId, exId, targetSets = null, targetReps = null) {
     const prev = prevFor(clientId, exId);
     const n = targetSets || (prev ? prev.sets.length : 1);
@@ -1253,7 +1253,7 @@
       name = w.name;
       items = w.items.map(([e, sets]) => logItem(x.client, e, sets.length));
     }
-    state.log = { id, source, name, items, i: 0, sel: null, internalNote: "", saveTpl: false, tplName: "", tplErr: false, changed: false, confirmEmpty: false,
+    state.log = { id, source, name, items, internalNote: "", saveTpl: false, tplName: "", tplErr: false, changed: false, confirmEmpty: false,
       startedAt: Date.now(), endedAt: null };
     return state.log;
   }
@@ -1265,15 +1265,7 @@
   }
   const workoutTimer = (L) => `<p class="nav-timer" role="timer" aria-label="${t("l.elapsed")}">${icon("clock", "ico--sm")}<span class="t-num" data-elapsed>${elapsedText(Date.now() - L.startedAt)}</span></p>`;
   const workoutMinutes = (L) => Math.max(1, Math.round(((L.endedAt || Date.now()) - L.startedAt) / 60000));
-  const activeRow = (it, L) => (L.sel != null ? L.sel : it.rows.findIndex((r) => !r.done));
   const doneCount = (it) => it.rows.filter((r) => r.done).length;
-  function nextPending(L) {
-    for (let i = 0; i < L.items.length; i++) {
-      const j = L.items[i].rows.findIndex((r) => !r.done);
-      if (j >= 0) return { i, set: j + 1 };
-    }
-    return null;
-  }
   function prevLine(prev) {
     if (!prev) return t("l.noPrevShort");
     const w = prev.sets.map((x) => x[0]);
@@ -1282,7 +1274,7 @@
       : prev.sets.map((x) => `${kg(x[0])} × ${x[1]}`).join(", ");
     return t("l.prevLine", { sets });
   }
-  // Later sets that the trainer hasn't touched follow the set just logged or changed (WL-03).
+  // Later sets that the trainer hasn't touched follow the set just logged or changed (WL-02).
   function carry(it, i, keys = ["w", "r"]) {
     for (let j = i + 1; j < it.rows.length; j++) {
       const r = it.rows[j];
@@ -1294,17 +1286,21 @@
   // Custom exercises are trainer content, stored exactly as typed (PRODUCT.md §38, F040).
   function createCustomExercise(name) {
     const id = `cx-${Date.now()}`;
-    state.customEx[id] = { custom: true, name, step: 2.5 };
+    state.customEx[id] = { custom: true, name };
     state.log.newEx = null;
     addExercise(id);
     toast(t("l.exCreated"));
   }
+  // A new exercise joins the end of the list; focus and scroll move to it (WL-04).
   function addExercise(exId) {
     const L = state.log;
     L.items.push(logItem(findSession(L.id).client, exId));
-    Object.assign(L, { changed: true, i: L.items.length - 1, sel: null });
+    L.changed = true;
     state.stack.pop();
-    go("l-log", { id: L.id });
+    render({ nav: true });
+    const head = root.querySelector(`[data-ex-head="${L.items.length - 1}"]`);
+    head?.focus({ preventScroll: true });
+    head?.scrollIntoView({ block: "start" });
   }
   const chev = () => (state.platform === "ios" ? icon("chevR", "row-chev") : "");
 
@@ -1340,99 +1336,70 @@
     },
   };
 
+  // WL-02 is the logger: one scrolling list, every exercise in order with its sets underneath (owner round 3;
+  // the separate WL-03 exercise screen and its stepper dock are folded in). Inputs and ticks stay ≥ 44 pt/dp.
+  const LOG_FIELDS = [["w", "l.weightKg", "decimal", "kg"], ["r", "l.reps", "numeric", ""]];
+  const inputValue = (k, v) => (k === "w" ? num(v) : String(v));
+  const prevSet = (p) => `${num(p[0])} × ${p[1]}`;
+  function setRow(it, i, j, prev) {
+    const r = it.rows[j];
+    const p = prev?.sets[j];
+    const fields = LOG_FIELDS.map(([k, label, mode, unit], f) => {
+      const id = `set-${i}-${j}-${k}`;
+      return `${f ? `<span class="set-x" aria-hidden="true">×</span>` : ""}<span class="set-field">
+          <label class="sr-only" for="${id}">${t("l.setField", { n: j + 1, field: t(label) })}</label>
+          <input class="set-input t-num" id="${id}" type="text" inputmode="${mode}" autocomplete="off" value="${inputValue(k, r[k])}" data-set-input data-ex="${i}" data-v="${j}" data-k="${k}">
+          ${unit ? `<span class="set-unit" aria-hidden="true">${unit}</span>` : ""}</span>`;
+    }).join("");
+    return `<li class="set-row${r.done ? " is-done" : ""}">
+        <span class="set-no t-num">${j + 1}</span>
+        <span class="set-fields">${fields}${r.extra && !r.done ? `<button type="button" class="btn btn--icon btn--ghost set-remove" data-act="log-remove-set" data-ex="${i}" data-v="${j}" aria-label="${t("l.removeSet", { n: j + 1 })}">${icon("x", "ico--sm")}</button>` : ""}</span>
+        ${p ? `<span class="set-prev t-num">${t("l.prevSet", { value: prevSet(p) })}</span>` : ""}
+        <button type="button" class="set-check" data-act="log-check" data-ex="${i}" data-v="${j}" aria-pressed="${r.done}" aria-label="${t(r.done ? "l.undoSet" : "l.setDone", { n: j + 1 })}">${icon("check")}</button>
+      </li>`;
+  }
+  function exerciseCard(it, i, client) {
+    const prev = prevFor(client, it.ex);
+    const d = doneCount(it);
+    const all = d > 0 && d === it.rows.length;
+    const prevHead = prev
+      ? t("l.prevHead", { date: dayMonth(at(prev.date, "12:00")) }) + (prev.trainer !== state.me ? ` · ${TRAINERS[prev.trainer].name}` : "")
+      : t("l.noPrev");
+    return `<li class="log-card" data-ex-card="${i}">
+        <div class="log-card-head">
+          <span class="ex-no t-num" aria-hidden="true">${i + 1}</span>
+          <h2 class="log-ex" id="ex-h-${i}" tabindex="-1" data-ex-head="${i}">${exName(it.ex)}</h2>
+          <span class="ex-count t-num${all ? " is-done" : ""}">${all ? icon("check", "ico--sm") : ""}${d}/${it.rows.length}</span>
+        </div>
+        <p class="t-footnote muted log-card-sub">${it.target ? `${t("l.target", { sets: it.target[0], reps: it.target[1] })} · ` : ""}${prevHead}</p>
+        <ol class="set-list" aria-labelledby="ex-h-${i}">${it.rows.map((r, j) => setRow(it, i, j, prev)).join("")}</ol>
+        <div class="log-card-foot">
+          <button type="button" class="btn btn--text btn--add-set" data-act="log-add-set" data-ex="${i}" aria-label="${t("l.addSetTo", { ex: exName(it.ex) })}">${icon("plus", "ico--sm")}${t("l.addSetShort")}</button>
+          ${d ? `<div class="log-diff"><span class="t-footnote muted" id="diff-h-${i}">${t("l.difficulty")}</span>
+            ${seg("log-diff", [["easy", t("l.easy")], ["normal", t("l.normal")], ["hard", t("l.hard")]], it.diff, { label: t("l.difficulty"), small: true, attrs: `data-ex="${i}"` })}</div>` : ""}
+        </div>
+      </li>`;
+  }
+
   SCREENS["l-overview"] = {
     shell: "app",
     modal: true,
-    dock: true,
     render() {
       const L = state.log;
       const x = findSession(L.id);
       const c = CLIENTS[x.client];
-      const np = nextPending(L);
       return {
         nav: { title: `${esc(c.first)} · ${L.name ? esc(L.name) : t("s.workout")}`, large: false, close: true, closeLabel: t("common.close"),
           text: [{ act: "log-finish", label: t("l.finish") }], timer: workoutTimer(L) },
         body: `
           <div class="log-top"><span class="t-footnote muted">${L.items.length ? t("l.exCount", { n: L.items.length }) : ""}</span><span class="sync">${icon("cloud", "ico--sm")}${t("l.savedLocal")}</span></div>
-          ${L.items.length ? `<ol class="list ex-list">${L.items.map((it, i) => {
-              const d = doneCount(it);
-              const all = d > 0 && d === it.rows.length;
-              return `<li><button type="button" class="row" data-act="log-open" data-v="${i}">
-                  <span class="ex-no t-num" aria-hidden="true">${i + 1}</span>
-                  <span class="row-main"><span class="row-title">${exName(it.ex)}</span><span class="row-sub t-num">${prevLine(prevFor(x.client, it.ex))}</span></span>
-                  <span class="ex-count t-num${all ? " is-done" : ""}">${all ? icon("check", "ico--sm") : ""}${d}/${it.rows.length}</span>
-                </button></li>`;
-            }).join("")}</ol>`
+          ${L.items.length ? `<ol class="log-list">${L.items.map((it, i) => exerciseCard(it, i, x.client)).join("")}</ol>`
             : `<div class="empty empty--tight">${icon("dumbbell", "ico--xl")}<h2 class="t-headline">${t("l.noExercises")}</h2><p class="t-subhead">${t("l.noExercisesHint", { name: esc(c.first) })}</p></div>`}
-          <button type="button" class="btn btn--tonal btn--block" data-act="log-add">${icon("plus", "ico--sm")}${t("l.addExercise")}</button>
+          <button type="button" class="btn btn--tonal btn--block btn--add-ex" data-act="log-add">${icon("plus", "ico--sm")}${t("l.addExercise")}</button>
         `,
-        dock: np
-          ? `<button type="button" class="btn btn--primary btn--xl btn--block" data-act="log-open" data-v="${np.i}">${t("l.continue", { ex: exName(L.items[np.i].ex), n: np.set })}${icon("chevR", "ico--sm")}</button>`
-          : L.items.length ? `<button type="button" class="btn btn--primary btn--xl btn--block" data-act="log-finish">${icon("check", "ico--sm")}${t("l.finishTitle")}</button>` : "",
       };
     },
   };
-
-  SCREENS["l-log"] = {
-    shell: "app",
-    modal: true,
-    dock: true,
-    render() {
-      const L = state.log;
-      const x = findSession(L.id);
-      const it = L.items[L.i];
-      const prev = prevFor(x.client, it.ex);
-      const a = activeRow(it, L);
-      const row = a >= 0 ? it.rows[a] : null;
-      const last = L.i === L.items.length - 1;
-      const prevHead = prev
-        ? t("l.prevHead", { date: dayMonth(at(prev.date, "12:00")) }) + (prev.trainer !== state.me ? ` · ${TRAINERS[prev.trainer].name}` : "")
-        : t("l.noPrev");
-      return {
-        nav: { title: t("l.position", { i: L.i + 1, n: L.items.length }), large: false, back: t("l.overview"), timer: workoutTimer(L) },
-        body: `
-          <h2 class="t-title1 log-ex" tabindex="-1">${exName(it.ex)}</h2>
-          <p class="t-subhead muted">${it.target ? `${t("l.target", { sets: it.target[0], reps: it.target[1] })} · ` : ""}${prevHead}</p>
-          <table class="sets">
-            <caption class="sr-only">${exName(it.ex)}</caption>
-            <thead><tr><th scope="col">${t("l.setCol")}</th><th scope="col">${t("l.previous")}</th><th scope="col">${t("l.today")}</th><th scope="col"><span class="sr-only">${t("l.doneCol")}</span></th></tr></thead>
-            <tbody>${it.rows.map((r, i) => {
-              const p = prev?.sets[i];
-              return `<tr class="${i === a ? "is-current" : ""}${r.done ? " is-done" : ""}">
-                  <th scope="row">${i + 1}</th>
-                  <td class="prev t-num">${p ? `${kg(p[0])} × ${p[1]}` : "–"}</td>
-                  <td class="now t-num"><button type="button" class="set-cell" data-act="log-sel" data-v="${i}" aria-label="${t("l.editSet", { n: i + 1 })}: ${kg(r.w)} × ${r.r}">${kg(r.w)} × ${r.r}</button></td>
-                  <td class="tick"><button type="button" class="set-check" data-act="log-check" data-v="${i}" aria-pressed="${r.done}" aria-label="${t(r.done ? "l.undoSet" : "l.setDone", { n: i + 1 })}">${icon("check")}</button></td>
-                </tr>`;
-            }).join("")}</tbody>
-          </table>
-          <button type="button" class="btn btn--text btn--add-set" data-act="log-add-set">${icon("plus", "ico--sm")}${t("l.addSet")}</button>
-          ${doneCount(it) ? `<h3 class="t-caption section-label">${t("l.difficulty")}</h3>
-            ${seg("log-diff", [["easy", t("l.easy")], ["normal", t("l.normal")], ["hard", t("l.hard")]], it.diff, { label: t("l.difficulty") })}` : ""}
-        `,
-        dock: `
-          ${row ? `<div class="steppers">${stepper("w", t("l.weightKg"), num(row.w), row.w)}${stepper("r", t("l.reps"), String(row.r), row.r)}</div>` : ""}
-          <div class="dock-row">
-            <button type="button" class="btn btn--icon btn--tonal btn--xl" data-act="log-ex" data-v="-1" ${L.i === 0 ? "disabled" : ""} aria-label="${t("l.prevExercise")}">${icon("chevL")}</button>
-            ${row
-              ? `<button type="button" class="btn btn--primary btn--xl btn--grow" data-act="log-save">${icon("check", "ico--sm")}${t(row.done ? "l.updateSet" : "l.setDone", { n: a + 1 })}</button>
-                 <button type="button" class="btn btn--icon btn--tonal btn--xl" data-act="log-ex" data-v="1" aria-label="${last ? t("l.toOverview") : t("l.nextExercise")}">${icon("chevR")}</button>`
-              : `<button type="button" class="btn btn--primary btn--xl btn--grow" data-act="log-ex" data-v="1">${last ? t("l.toOverview") : t("l.next", { ex: exName(L.items[L.i + 1].ex) })}${icon("chevR", "ico--sm")}</button>`}
-          </div>`,
-      };
-    },
-  };
-  // The number is editable too, for big jumps (WL-03: tapping the number opens the keyboard).
-  function stepper(key, label, value, raw) {
-    return `<div class="stepper" role="group" aria-labelledby="st-${key}">
-        <span class="stepper-label" id="st-${key}">${label}</span>
-        <div class="stepper-row">
-          <button type="button" class="btn btn--icon btn--tonal btn--xl" data-act="log-step" data-k="${key}" data-v="-1" aria-label="${t("l.less", { what: label.toLowerCase() })}" ${raw <= 0 ? "disabled" : ""}>${icon("minus")}</button>
-          <input class="stepper-value t-num" id="step-${key}" type="text" inputmode="${key === "w" ? "decimal" : "numeric"}" value="${value}" aria-labelledby="st-${key}" autocomplete="off">
-          <button type="button" class="btn btn--icon btn--tonal btn--xl" data-act="log-step" data-k="${key}" data-v="1" aria-label="${t("l.more", { what: label.toLowerCase() })}">${icon("plus")}</button>
-        </div>
-      </div>`;
-  }
 
   SCREENS["l-add"] = {
     shell: "app",
@@ -2069,7 +2036,6 @@
       html = `${protobar(kind)}<div class="stage stage--app"><div class="device"><div class="app${def.modal ? " app--modal" : ""}">
           ${navbar(out.nav)}
           <main class="scroll" data-scroll><div class="content">${out.body}</div></main>
-          ${out.dock ? `<div class="dock">${out.dock}</div>` : ""}
           ${def.tab ? tabbar(def.tab) : ""}
           ${out.fab ? `<button type="button" class="fab" data-act="${out.fab.act}" aria-label="${out.fab.label}">${icon(out.fab.icon)}</button>` : ""}
           ${sheetHtml("app")}
@@ -2325,7 +2291,6 @@
       }
       go("l-overview", { id });
     },
-    "log-open": (el) => { const L = state.log; L.i = Number(el.dataset.v); L.sel = null; go("l-log", { id: L.id }); },
     "log-add": () => go("l-add", { id: state.log.id }),
     "log-add-ex": (el) => addExercise(el.dataset.v),
     "log-new-ex": () => {
@@ -2339,57 +2304,32 @@
       root.querySelector("#new-ex-name")?.focus();
     },
     "log-new-ex-cancel": () => { state.log.newEx = null; render(); root.querySelector("[data-act='log-new-ex-start']")?.focus(); },
-    "log-sel": (el) => { const L = state.log; const i = Number(el.dataset.v); L.sel = L.sel === i ? null : i; render(); },
+    // One tap on a row's tick logs the values in its fields; tapping again reopens the set.
     "log-check": (el) => {
-      const L = state.log;
-      const it = L.items[L.i];
+      const it = state.log.items[Number(el.dataset.ex)];
       const i = Number(el.dataset.v);
       const r = it.rows[i];
       r.done = !r.done;
       if (r.done) carry(it, i);
-      L.sel = null;
       render();
+      root.querySelector(`[data-act="log-check"][data-ex="${el.dataset.ex}"][data-v="${i}"]`)?.focus({ preventScroll: true });
     },
-    "log-save": () => {
-      const L = state.log;
-      const it = L.items[L.i];
-      const a = activeRow(it, L);
-      if (a < 0) return;
-      if (!it.rows[a].done) { it.rows[a].done = true; carry(it, a); }
-      L.sel = null;
-      render();
-    },
-    "log-step": (el) => {
-      const L = state.log;
-      const it = L.items[L.i];
-      const a = activeRow(it, L);
-      if (a < 0) return;
-      const r = it.rows[a];
-      const dir = Number(el.dataset.v);
-      if (el.dataset.k === "w") {
-        r.w = Math.max(0, Math.round((r.w + dir * exDef(it.ex).step) * 100) / 100);
-        carry(it, a, ["w"]);
-      } else r.r = Math.max(0, r.r + dir);
-      r.touched = true;
-      render();
-    },
-    "log-add-set": () => {
-      const L = state.log;
-      const it = L.items[L.i];
+    // + Set under an exercise adds a row prefilled from its last set; an unlogged extra set can be removed again.
+    "log-add-set": (el) => {
+      const it = state.log.items[Number(el.dataset.ex)];
       const last = it.rows[it.rows.length - 1] || { w: 0, r: 10 };
-      it.rows.push({ w: last.w, r: last.r, done: false, touched: false });
-      Object.assign(L, { changed: true, sel: null });
+      it.rows.push({ w: last.w, r: last.r, done: false, touched: false, extra: true });
+      state.log.changed = true;
       render();
     },
-    "log-diff": (el) => { state.log.items[state.log.i].diff = el.dataset.v; render(); },
-    "log-ex": (el) => {
-      const L = state.log;
-      const dir = Number(el.dataset.v);
-      L.sel = null;
-      if (dir > 0 && L.i === L.items.length - 1) return back();
-      L.i = Math.min(L.items.length - 1, Math.max(0, L.i + dir));
-      render({ nav: true });
+    "log-remove-set": (el) => {
+      const it = state.log.items[Number(el.dataset.ex)];
+      const i = Number(el.dataset.v);
+      if (it.rows[i]?.extra && !it.rows[i].done) it.rows.splice(i, 1);
+      render();
+      root.querySelector(`[data-act="log-add-set"][data-ex="${el.dataset.ex}"]`)?.focus({ preventScroll: true });
     },
+    "log-diff": (el) => { state.log.items[Number(el.dataset.ex)].diff = el.dataset.v; render(); },
     "log-finish": () => { Object.assign(state.log, { confirmEmpty: false, endedAt: Date.now() }); go("l-finish", { id: state.log.id }); },
     "log-save-tpl": (el) => {
       const L = state.log;
@@ -2570,6 +2510,16 @@
     else if (from === "web-session") { selectWebClient(id); state.web.panelMode = "create"; render(); }
     else { state.web.panelMode = null; render(); }
   }
+  function setFromInput(input) {
+    const it = state.log.items[Number(input.dataset.ex)];
+    const r = it?.rows[Number(input.dataset.v)];
+    const n = Number(input.value.trim().replace(",", "."));
+    if (!r || input.value.trim() === "" || !Number.isFinite(n) || n < 0) return null;
+    const k = input.dataset.k;
+    r[k] = k === "w" ? Math.round(n * 100) / 100 : Math.round(n);
+    r.touched = true;
+    return it;
+  }
   function captureFinish() {
     const L = state.log;
     const v = (id) => root.querySelector("#" + id)?.value;
@@ -2603,6 +2553,7 @@
   });
   root.addEventListener("input", (e) => {
     if (e.target.id === "client-search" || e.target.id === "ex-search") filterList(e.target);
+    if (e.target.matches("[data-set-input]") && state.log) setFromInput(e.target);
     if (e.target.id === "tpl-name" && state.log) state.log.tplName = e.target.value;
     if (e.target.id === "internal-note" && state.log) state.log.internalNote = e.target.value;
     if (e.target.id === "client-note" && state.completedWorkouts[current().id]) state.completedWorkouts[current().id].clientNote = e.target.value;
@@ -2619,18 +2570,19 @@
     }
     if ((id === "occ-date" || id === "occ-repeat") && state.newOcc) { captureOcc(); render(); }
     if (id === "cn-loc" && state.cn) state.cn.loc = e.target.value;
-    if ((id === "step-w" || id === "step-r") && state.log) {
-      const L = state.log;
-      const it = L.items[L.i];
-      const a = activeRow(it, L);
-      const n = Number(e.target.value.replace(",", "."));
-      if (a >= 0 && Number.isFinite(n) && n >= 0) {
-        const k = id === "step-w" ? "w" : "r";
-        it.rows[a][k] = k === "r" ? Math.round(n) : Math.round(n * 100) / 100;
-        it.rows[a].touched = true;
-        if (k === "w") carry(it, a, ["w"]);
-      }
-      render();
+    // Editing a set value in its row: later untouched sets follow, patched in place so focus and taps are kept.
+    if (e.target.matches("[data-set-input]") && state.log) {
+      const it = setFromInput(e.target);
+      if (!it) return;
+      const i = Number(e.target.dataset.v);
+      const k = e.target.dataset.k;
+      e.target.value = inputValue(k, it.rows[i][k]);
+      carry(it, i, [k]);
+      it.rows.forEach((r, j) => {
+        if (j <= i) return;
+        const later = root.querySelector(`#set-${e.target.dataset.ex}-${j}-${k}`);
+        if (later && later !== document.activeElement) later.value = inputValue(k, r[k]);
+      });
     }
   });
   root.addEventListener("submit", (e) => {
