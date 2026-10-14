@@ -551,8 +551,8 @@ All screens with an ID. **Critical-flow** screens are wireframed in `flows/`. Th
 | PS-06 | Sessie annuleren | Cancel session | Web, iOS, Android | F026, F049 | M4/M8 |
 | PS-07 | Dubbele boeking | Double booking | Web, iOS, Android | F020, F023 | M4/M8 |
 | WL-01 | Training starten | Start workout | iOS, Android, Web | F042, F041 | M7/M8 |
-| WL-02 | Trainingsoverzicht | Workout overview | iOS, Android, Web | F043 | M7/M8 |
-| WL-03 | Oefening loggen | Log exercise | iOS, Android | F043, F044 | M8 |
+| WL-02 | Training loggen | Log workout | iOS, Android, Web | F043, F044 | M7/M8 |
+| WL-03 | Oefening loggen (merged into WL-02, 14 October 2026) | Log exercise (merged into WL-02) | iOS, Android | F043, F044 | M8 |
 | WL-04 | Oefening toevoegen | Add exercise | iOS, Android, Web | F039, F040 | M7/M8 |
 | WL-05 | Training afronden | Finish workout | iOS, Android, Web | F045, F047, F048, F025 | M7/M8 |
 | WL-06 | Training bijhouden (web) | Log workout (web) | Web | F043, F044 | M7 |

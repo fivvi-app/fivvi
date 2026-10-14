@@ -3,6 +3,8 @@
 **Session → start workout (empty, repeat previous, or template) → log sets → finish with an internal note → optionally save as template and share a recap**
 
 > **Updated 23 September 2026 (prototype feedback, `ROADMAP` v1.11).** A workout never needs a prior plan. WL-01 puts *Lege training* first and adds *Vorige training herhalen* (F051, moved from Release 1.1). Sets are prefilled and logged with one tap on their check. WL-05 can save the workout as a template. A workout can also start from a client profile without a planned session.
+>
+> **Updated 14 October 2026 (owner, `ROADMAP` v1.14).** WL-02 is now the logger: one scrolling list with every exercise and its sets, editable in the row. WL-03 is merged into it; the per-exercise screen and its stepper dock are gone. Every exercise has a type that decides its set fields (`§38`); WL-04 asks for it.
 
 | | |
 |---|---|
@@ -16,14 +18,14 @@
 
 | ID | Feature | Where in this flow |
 |---|---|---|
-| F043 | Live Workout Logging | WL-02, WL-03, WL-06, WL-07 |
-| F044 | Previous Workout Display | *Vorige training* column on WL-03 / WL-06 |
+| F043 | Live Workout Logging | WL-02 (WL-03 merged into it), WL-06, WL-07 |
+| F044 | Previous Workout Display | *vorige* line under each set on WL-02; *Vorige* column on WL-06 |
 | F045 | Workout History | The result; *Alles bekijken* on TD-02; shared recap in the client profile |
 | F042 | Client Workouts | The assigned workout on WL-01 |
 | F041 | Workout Templates | *Schema kiezen* on WL-01; *Opslaan als schema* on WL-05 |
 | F051 | Repeat Previous Workout | *Vorige training herhalen* on WL-01 |
 | F006 / F020 | Client Profile / Private Sessions | *Nu training starten* on TM-03 creates a private session that starts now |
-| F039 / F040 | Exercise Library / Custom Exercises | WL-04 |
+| F039 / F040 | Exercise Library / Custom Exercises | WL-04, including the exercise type |
 | F047 / F048 | Session Notes / Note Visibility | WL-05 internal note; WL-08 separate client message and explicit share |
 | F049 | Localized Transactional Emails | EM-12 shared workout email |
 | F025 | Attendance | Set to *Aanwezig* on finishing ⚑ [Q34](../open-questions.md#q34) |
@@ -37,21 +39,19 @@ flowchart TD
   hasw -- "ja" --> wl02
   hasw -- "nee" --> wl01["WL-01 Training starten<br/>Lege training · Vorige herhalen · Schema"]
   wl01 -- "Lege training" --> wl04
-  wl01 -- "Vorige herhalen / Schema" --> wl02["WL-02 Overzicht"]
-  wl02 -- "tik oefening" --> wl03["WL-03 Oefening loggen"]
-  wl02 -- "+ Oefening" --> wl04["WL-04 Oefening toevoegen"]
-  wl04 -- "uit bibliotheek / nieuw" --> wl03
-  wl03 --> prev{"Vorige training<br/>van deze oefening?"}
-  prev -- "ja" --> showprev["Vorige waarden +<br/>voorinvullen"]
+  wl01 -- "Vorige herhalen / Schema" --> wl02["WL-02 Training loggen<br/>één lijst: oefeningen met hun sets"]
+  wl02 -- "+ Oefening toevoegen" --> wl04["WL-04 Oefening toevoegen<br/>bibliotheek of nieuw, met soort"]
+  wl04 -- "onderaan de lijst" --> wl02
+  wl02 --> prev{"Vorige training<br/>van deze oefening?"}
+  prev -- "ja" --> showprev["'vorige …' per set +<br/>voorinvullen"]
   prev -- "nee" --> showtarget["'Nog geen eerdere training'<br/>+ doel uit schema"]
-  showprev --> log["Set klaar ✓<br/>(lokaal opgeslagen, direct)"]
+  showprev --> log["✓ in de rij<br/>(lokaal opgeslagen, direct)"]
   showtarget --> log
   log --> sync{"Verbinding?"}
   sync -- "ja" --> synced["✓ Opgeslagen"]
   sync -- "nee" --> queued["Wacht op verbinding (n)<br/>WL-07"] -. "later" .-> synced
   log -- "volgende set" --> log
-  log -- "laatste set" --> diff["Hoe zwaar was het?<br/>Makkelijk · Normaal · Zwaar"]
-  diff -- "Volgende oefening" --> wl03
+  log -- "eerste set gelogd" --> diff["Hoe zwaar was het?<br/>Makkelijk · Normaal · Zwaar"]
   wl02 -- "Afronden" --> wl05["WL-05 Training afronden<br/>interne notitie · opslaan als schema · aanwezig"]
   wl05 --> hist["Geschiedenis (F045)<br/>'Vorige keer' voor de volgende sessie"]
   wl05 --> wl08["WL-08 Delen?<br/>bericht voor klant · voorbeeld"]
@@ -106,122 +106,83 @@ flowchart TD
 | Search | Zoek schema… | Search templates… |
 | From profile | Nu training starten · Sessie aangemaakt voor nu, {time} | Start workout now · Session created for now, {time} |
 
-### WL-02 · Trainingsoverzicht / Workout overview
+### WL-02 · Training loggen / Log workout
 
-**Features:** F043
+**Features:** F043, F044 · The core screen, built for **one hand, big targets, a glance between sets** (`ROADMAP M8`). One scrolling list: every exercise in order, its sets underneath (owner, 14 October 2026).
 
 ```text
 ┌────────────────────────────────────────┐
 │ Sluiten   Anna · Upper A    Afronden   │
 │             ◷ 12:05                    │
-│ ✓ Opgeslagen                           │
+│ 3 oefeningen               ✓ Opgeslagen│
 ├────────────────────────────────────────┤
-│ 1  Bankdrukken                 3/3  ✓  │
-│    vorige: 60 kg × 8, 8, 7             │
-│────────────────────────────────────────│
-│ 2  Cable row                   1/3  ›  │
-│    vorige: 45 kg × 10, 10, 9           │
-│────────────────────────────────────────│
-│ 3  Schouderdrukken             0/3  ›  │
-│    nog geen eerdere training           │
-│────────────────────────────────────────│
-│ 4  Lat pulldown                0/3  ›  │
-│────────────────────────────────────────│
-│ 5  Face pull                   0/3  ›  │
-│────────────────────────────────────────│
+│ (1) Bankdrukken                   1/3  │
+│     Doel: 3 × 8 · Vorige: 15 sep       │
+│  1  [ 62,5 ] kg × [ 8 ]           (✓)  │
+│     vorige 60 × 8                      │
+│  2  [ 62,5 ] kg × [ 8 ]           ( )  │
+│     vorige 60 × 8                      │
+│  3  [ 62,5 ] kg × [ 8 ]           ( )  │
+│     vorige 60 × 7                      │
+│  + Set   Makkelijk [Normaal] Zwaar     │
+├────────────────────────────────────────┤
+│ (2) Plank                         0/3  │
+│  1  [ 0 ] : [ 45 ]                ( )  │
+│     vorige 0:45                        │
+│  …                                     │
+├────────────────────────────────────────┤
+│ (3) Roeien                        0/1  │
+│  1  [ 500 ] m [ 1 ] : [ 45 ]      ( )  │
+│     vorige 500 m · 1:45                │
+│  + Set                                 │
+├────────────────────────────────────────┤
 │ [ + Oefening toevoegen ]               │
-│                                        │
-│ ▌ Doorgaan: Cable row, set 2         › │
 └────────────────────────────────────────┘
 ```
 
 - A **full-screen modal** with its own exit: *Sluiten* (keep going later) or *Afronden* (WL-05).
-- The header shows the **elapsed workout time** under the title, here and on WL-03. It runs from the moment the workout starts (`§41`).
+- The header shows the **elapsed workout time** under the title. It runs from the moment the workout starts (`§41`).
 - Exercise names show in the **UI language** when the library has both (F039: *Bankdrukken* / *Bench press*). Custom exercises show as entered (F040).
-- The bottom bar *Doorgaan* jumps to the next set to log. With every set done it becomes *Training afronden*.
+- **Each exercise** shows its number, name, progress (*1/3*), the target and the date of the previous workout. Its sets follow underneath.
+- **Each set row** has the set number, the previous value (F044, small and muted, e.g. *vorige 60 × 8*), editable fields for today and a tick. Fields follow the exercise type (`§38`):
+
+  | Type | Fields | Previous / summary |
+  |---|---|---|
+  | Gewicht × herhalingen / Weight × reps | kg (`inputmode="decimal"`) × reps (`numeric`) | *60 × 8* / *60 kg × 8* |
+  | Alleen herhalingen / Reps only | reps (`numeric`) | *12 herh.* / *12 reps* |
+  | Tijd / Time | minutes : seconds (both `numeric`), stored in seconds | *0:45*; repeats group as *0:45 × 3* |
+  | Afstand + tijd / Distance + time | metres (`decimal`) and minutes : seconds | *500 m · 1:45* |
+
+- **Prefill**, per row: the same values as the set just logged today; otherwise the previous workout's same set; otherwise the template target. Every row shows its prefilled value, so the trainer sees the whole plan. Most sets are **one tap** on the tick (≥ 48 pt/dp). Tapping a ticked set reopens it.
+- **Editing in the row**: tap a field; the numeric keypad opens. A changed value carries over to later sets the trainer hasn't changed or logged. Inputs are at least 44 pt/dp, with generous spacing between rows for one-handed use.
+- **+ Set** under each exercise adds a row prefilled from its last set. An unlogged extra set can be removed with its ×.
+- **Difficulty** (`§41`: *Makkelijk / Normaal / Zwaar*) is asked **once per exercise**, compact under its sets, after the first logged set ⚑ [Q30](../open-questions.md#q30). It's pre-selected *Normaal*, so it costs no tap unless it differs.
+- Each set is saved **locally first**, then synced (WL-07).
+- **+ Oefening toevoegen** ends the list (WL-04). A new exercise joins the end; focus moves to it.
+- **No fixed dock**: nothing covers the rows, also in short landscape. iOS uses inset grouped sections; Android uses cards.
 - **Empty state** (Lege training): *Nog geen oefeningen. Voeg de eerste oefening toe. Wat {client} eerder deed, staat bovenaan.* with *Oefening toevoegen*.
-- Reordering exercises is a Release 1.1 item. Exercises run in template order, but the trainer can open any of them.
+- Reordering exercises is a Release 1.1 item. The screen **stays awake** while the logger is open.
 
 | Element | NL | EN |
 |---|---|---|
 | Bar | Sluiten · Afronden | Close · Finish |
 | Timer (accessible name) | {m:ss} (Trainingstijd) | {m:ss} (Workout time) |
 | Progress | {done}/{total} | {done}/{total} |
-| Previous line | vorige: {weight} × {reps}, … | last: {weight} × {reps}, … |
-| No previous | nog geen eerdere training | no previous workout |
-| Add | + Oefening toevoegen | + Add exercise |
-| Continue | Doorgaan: {exercise}, set {n} | Continue: {exercise}, set {n} |
-
-### WL-03 · Oefening loggen / Log exercise
-
-**Features:** F043, F044 · The core screen. Built for **one hand, big targets, a glance between sets** (`ROADMAP M8`).
-
-```text
-┌────────────────────────────────────────┐
-│ ‹ Overzicht      2 van 5      ✓ Opgesl.│
-├────────────────────────────────────────┤
-│ CABLE ROW                              │
-│ Doel: 3 × 10                           │
-│ Vorige training · di 15 sep            │
-├────────────────────────────────────────┤
-│ SET   VORIGE         VANDAAG           │
-│ 1     45 kg × 10     47,5 kg × 10  (✓) │
-│ 2     45 kg × 10   ▶ 47,5 kg × 10  ( ) │
-│ 3     45 kg × 9      47,5 kg × 10  ( ) │
-│ [ + Set toevoegen ]                    │
-├────────────────────────────────────────┤
-│ Gewicht (kg)                           │
-│ [  −  ]         47,5         [  +  ]   │
-│ Herhalingen                            │
-│ [  −  ]          10          [  +  ]   │
-│                                        │
-│ [          Set 2 klaar   ✓           ] │
-└────────────────────────────────────────┘
-
-After the last set:
-├────────────────────────────────────────┤
-│ Hoe zwaar was het?                     │
-│ [ Makkelijk ] [● Normaal ] [ Zwaar ]   │
-│ + Notitie bij deze oefening            │
-│                                        │
-│ [   Volgende: Schouderdrukken   ›    ] │
-└────────────────────────────────────────┘
-```
-
-**Behaviour**
-
-- **Previous and today side by side** (`§41`): the *Vorige* column is the client's **last logged performance of this exercise in this workspace**, set by set, with its date. If it was logged by another trainer, their name is added (*di 15 sep · Mike*) ⚑ [Q35](../open-questions.md#q35).
-- **The active set (▶)** is pre-filled, in this order:
-  1. the same values as the set just logged today;
-  2. otherwise the previous workout's same set;
-  3. otherwise the template target reps, with weight empty.
-
-  **Every row shows its prefilled value**, so the trainer sees the whole plan for the exercise. Most sets are one tap: the row's check (48 pt/dp) or *Set klaar* for the active set. Changing the weight on set 1 carries over to later sets the trainer hasn't changed. Tapping a checked row's check opens it again.
-- **Steppers**: weight ± 2,5 kg ⚑ [Q33](../open-questions.md#q33), reps ± 1. Long-press repeats. Tapping the number opens the decimal keyboard, for big jumps and for exercises without history (weight starts at 0).
-- **Set klaar** saves the set **locally first**, then syncs (WL-07). The button is at the bottom (thumb zone), full width, at least 56 pt/dp tall, with a haptic tick.
-- **Editing a logged set**: tap its row; the steppers load its values and the button becomes *Set 1 bijwerken*. Delete via swipe (iOS) or long-press menu (Android).
-- **Difficulty** (`§41`: *Makkelijk / Normaal / Zwaar*) is asked **once per exercise**, shown after the first logged set ⚑ [Q30](../open-questions.md#q30). It's pre-selected *Normaal*, so it costs no tap unless it differs.
-- **Extra sets** beyond the template: *+ Set*. Their *Vorige* cell shows `–` when last time had fewer sets.
-- **Bodyweight / time / distance** exercises: open question ⚑ [Q31](../open-questions.md#q31). Proposal: weight may be empty (shown as *lichaamsgewicht*); time/distance need a data-model change ([QE10](../open-questions.md#qe10)).
-- The screen **stays awake** while the logger is open.
-
-| Element | NL | EN |
-|---|---|---|
-| Position | {n} van {total} | {n} of {total} |
-| Target | Doel: {sets} × {reps} | Target: {sets} × {reps} |
+| Target | Doel: {sets} × {reps · m:ss · metres} | Target: {sets} × {reps · m:ss · metres} |
 | Previous header (`§41`) | Vorige training · {date} · {trainer} | Previous · {date} · {trainer} |
 | No previous | Nog geen eerdere training | No previous workout |
-| Columns (`§41`) | Set · Vorige · Vandaag | Set · Previous · Today |
-| Set value | 47,5 kg × 10 | 47.5 kg × 10 |
-| Bodyweight | lichaamsgewicht × {reps} | bodyweight × {reps} |
-| Labels | Gewicht (kg) · Herhalingen | Weight (kg) · Reps |
-| Add set | + Set | + Set |
-| Done / update | Set {n} klaar · Set {n} bijwerken | Set {n} done · Update set {n} |
+| Previous per set | vorige {value} | last {value} |
+| Field labels (screen readers) | Set {n}, Gewicht (kg) · Herhalingen · Minuten · Seconden · Afstand (m) | Set {n}, Weight (kg) · Reps · Minutes · Seconds · Distance (m) |
+| Tick | Set {n} klaar · Set {n} weer openzetten | Set {n} done · Reopen set {n} |
+| Add set | + Set (Set toevoegen aan {exercise}) | + Set (Add a set to {exercise}) |
+| Remove extra set | Set {n} verwijderen | Remove set {n} |
 | Difficulty (`§41`) | Hoe zwaar was het? · Makkelijk · Normaal · Zwaar | How hard was it? · Easy · Normal · Hard |
-| Exercise note | + Notitie bij deze oefening | + Note for this exercise |
-| Next | Volgende: {exercise} · Terug naar overzicht | Next: {exercise} · Back to overview |
-| Delete set | Set verwijderen | Delete set |
+| Add exercise | + Oefening toevoegen | + Add exercise |
 | Sanity check | Klopt {value} kg? Dat is veel meer dan vorige keer ({prev} kg). [ Ja ] [ Aanpassen ] | Is {value} kg right? That's a lot more than last time ({prev} kg). [ Yes ] [ Edit ] |
+
+### WL-03 · Oefening loggen / Log exercise (merged into WL-02)
+
+Merged into WL-02 on 14 October 2026 (owner). The ID stays because other documents refer to it. Its behaviour now lives in the WL-02 list: previous values per set, prefill, one-tap ticks, extra sets and difficulty. The separate screen, its position header (*2 van 5*), the steppers and the bottom dock are gone.
 
 ### WL-04 · Oefening toevoegen / Add exercise
 
@@ -247,10 +208,11 @@ After the last set:
 
 - Search matches **Dutch and English names and aliases**, whatever the UI language, so a trainer can type "bench" in a Dutch UI. The name is shown in the UI language; *ook:* shows the matching alias.
 - Empty field: **the client's recent exercises first** (*Recent bij {client}*, with last time's values), then the library. An exercise already in the workout is shown but disabled.
-- **+ Nieuwe oefening** is always the first row, so a trainer-specific exercise can be created without searching first. It opens a name field, prefilled with what was typed.
-- The custom-exercise button also appears below the results as soon as something is typed. The new exercise gets one set row; its weight starts empty.
+- **+ Nieuwe oefening** is always the first row, so a trainer-specific exercise can be created without searching first. It opens a name field, prefilled with what was typed, and the **exercise type**: *Gewicht × herhalingen* (default), *Alleen herhalingen*, *Tijd* or *Afstand + tijd* (`§38`).
+- The custom-exercise button also appears below the results as soon as something is typed. It opens the same form with the search text as the name. The new exercise joins the end of WL-02 with one set row.
+- Library and own exercises that aren't weight × reps show their type in the row (e.g. *Plank · Tijd*). Library examples: *Plank* is time, *Opdrukken / Push-up* and *Pull-up* are reps only, *Roeien / Rowing* is distance + time, the rest weight × reps.
 - Created custom exercises are listed under *Jouw oefeningen*, between *Recent bij {client}* and the library.
-- **Custom exercise**: just a name, stored exactly as typed (F040, no translation). Equipment and muscles are optional and can be filled in later on the web.
+- **Custom exercise**: a name, stored exactly as typed (F040, no translation), and a type. Equipment and muscles are optional and can be filled in later on the web.
 
 | Element | NL | EN |
 |---|---|---|
@@ -259,6 +221,7 @@ After the last set:
 | Alias | ook: {alias} | also: {alias} |
 | Recent | Recent bij {client} | Recent for {client} |
 | New (first row) | + Nieuwe oefening · Naam van de oefening · Toevoegen | + New exercise · Exercise name · Add |
+| Type | Soort oefening · Gewicht × herhalingen · Alleen herhalingen · Tijd · Afstand + tijd | Exercise type · Weight × reps · Reps only · Time · Distance + time |
 | New (from search) | + Nieuwe oefening "{query}" aanmaken | + Create new exercise "{query}" |
 | Own exercises | Jouw oefeningen | Your exercises |
 | Created | Oefening aangemaakt. Je vindt hem voortaan onder Jouw oefeningen. | Exercise created. You'll find it under Your exercises from now on. |
@@ -294,6 +257,7 @@ After the last set:
 - The **internal session note** (F047) is free text, stored as typed (`§35–36`). It is *Alleen voor trainers* (`§37`, F048): authorized workspace staff can read it; the client cannot. A separate message for the client is composed in WL-08. The distinction is explicit, without a visibility toggle that could accidentally expose the internal note.
 - The results show exercises done, sets and a **Duur** tile: the elapsed time from start to *Afronden*, recorded with the workout (`§41`).
 - **Attendance** is set to *Aanwezig* when a workout is finished ⚑ [Q34](../open-questions.md#q34).
+- The set breakdown, the shared email (EM-12) and the client profile format sets per exercise type: *60 kg × 8 · 60 kg × 8*, *Plank 0:45 × 3*, *Roeien 500 m · 1:45*, *12 herh.*
 - Exercises with no sets are listed as *Niet gedaan*. They're kept in the planned workout, but no empty set logs are created.
 - Finishing with **zero sets** asks: *Je hebt nog niets bijgehouden. Toch afronden?* Confirming closes the workout without history or a share step.
 - **Opslaan als schema** (F041) is offered when the workout didn't come from a template unchanged (empty, repeated, or exercises/sets added). It saves the logged exercises, set count and reps as a template, adds it to *Schema's van {client}*, and names the workout after it. The name defaults to the template's name or *{client} · {date}*.
@@ -391,19 +355,20 @@ After the last set:
 
 | Case | Expected behaviour | Screen |
 |---|---|---|
-| **No previous workout for this exercise** | *Nog geen eerdere training*; prefill from the template target | WL-03 |
-| **Previous had fewer or more sets** | Missing cells show `–`; extra previous sets are listed so nothing is hidden | WL-03 |
-| **Two sessions with the client on the same day** | *Vorige* = the latest logged before **this** session's start, never the workout in progress | WL-03 |
-| **Previous by another trainer** | Shown with the trainer's name (same workspace only) | WL-03 |
-| **Client also trains in another workspace** | Never used as *Vorige* (separate client profiles, tenant isolation) | WL-03 |
-| **Decimal comma** | NL shows and accepts `62,5`; `62.5` is also accepted on keyboards that only offer a dot. Stored as a number | WL-03, WL-06 |
-| **Typo like 625 instead of 62,5** | A soft sanity check when the value is > 2× the previous value (or > 300 kg) | WL-03 |
+| **No previous workout for this exercise** | *Nog geen eerdere training*; prefill from the template target | WL-02 |
+| **Previous had fewer or more sets** | Missing cells show `–`; extra previous sets are listed so nothing is hidden | WL-02 |
+| **Two sessions with the client on the same day** | *Vorige* = the latest logged before **this** session's start, never the workout in progress | WL-02 |
+| **Previous by another trainer** | Shown with the trainer's name (same workspace only) | WL-02 |
+| **Client also trains in another workspace** | Never used as *Vorige* (separate client profiles, tenant isolation) | WL-02 |
+| **Decimal comma** | NL shows and accepts `62,5` (also for distance); `62.5` is also accepted on keyboards that only offer a dot. Stored as a number | WL-02, WL-06 |
+| **Typo like 625 instead of 62,5** | A soft sanity check when the value is > 2× the previous value (or > 300 kg) | WL-02 |
 | **Weak gym Wi-Fi / offline** | Logging continues; indicator `○ n`; syncs automatically on reconnect | WL-07 |
-| **App killed or phone locked mid-workout** | Everything logged is already stored locally; reopening resumes on WL-02 at *Doorgaan* | WL-02 |
+| **App killed or phone locked mid-workout** | Everything logged is already stored locally; reopening resumes on WL-02 with the logged sets ticked | WL-02 |
 | **Logger closed without finishing** | Sets stay saved; TD-02 shows *Doorgaan met training*; *Mijn dag* on web flags it as unfinished | TD-02 |
-| **Logging late at night / DST night** | The workout belongs to the session's date in the workspace timezone; the *Vorige* date uses that date | WL-03 |
+| **Logging late at night / DST night** | The workout belongs to the session's date in the workspace timezone; the *Vorige* date uses that date | WL-02 |
 | **Same session logged on phone and web** | Sync distinct sets; surface a same-set conflict without silently discarding either edit, pending QE14 | WL-07 |
-| **Exercise renamed later** | History follows the exercise ID, so *Vorige* still works | WL-03 |
+| **Seconds above 59** | `0:75` is stored as 75 seconds and shown as `1:15` | WL-02 |
+| **Exercise renamed later** | History follows the exercise ID, so *Vorige* still works | WL-02 |
 | **Session cancelled while logging** | Logging continues (the session happened after all?); on finishing: *Deze sessie is geannuleerd. Toch opslaan en de sessie herstellen?* | WL-05 |
 
 ## Platform notes: iOS HIG vs Material 3
@@ -413,16 +378,17 @@ After the last set:
 | Container | `fullScreenCover` from TD-02; *Sluiten* leading, *Afronden* trailing | Full-screen destination with `TopAppBar`; system back = *Sluiten* (auto-saved, no confirmation) |
 | Keep awake | `UIApplication.shared.isIdleTimerDisabled = true` while open | `Modifier.keepScreenOn()` / `FLAG_KEEP_SCREEN_ON` while open |
 | Numeric input | `.keyboardType(.decimalPad)` shows the locale's separator (`,` for nl) | `KeyboardType.Decimal`; some keyboards show only `.`, so accept both |
-| Steppers | Custom large buttons (not the small `Stepper`); ≥ 56 pt | `FilledTonalIconButton`s ≥ 56 dp; long-press repeat |
+| Set fields | Inline text fields in the row, ≥ 44 pt; `.decimalPad` for kg and metres, `.numberPad` for reps, minutes and seconds | Inline `OutlinedTextField`s, ≥ 48 dp; `KeyboardType.Decimal` / `KeyboardType.Number` |
 | Set done feedback | `sensoryFeedback(.success)` haptic | `HapticFeedbackConstants.CONFIRM` |
 | Delete set | Swipe to delete on the row | Long-press → menu *Set verwijderen* (M3 has no standard swipe-to-delete in lists) |
-| Difficulty | Three large buttons (a segmented `Picker` is too small for sweaty hands) | `SingleChoiceSegmentedButtonRow` at 56 dp height |
+| Difficulty | Compact segmented control under the exercise's sets, ≥ 44 pt | `SingleChoiceSegmentedButtonRow` under the sets, ≥ 48 dp |
+| Exercise grouping | Inset grouped section per exercise | Card per exercise |
 | Local queue | SwiftData | Room |
 | Background sync | Sync on foreground and when connectivity returns (`NWPathMonitor`); `BGTaskScheduler` best effort | `WorkManager` with a network constraint |
 | Dynamic Type / font scale | Numbers use tabular figures; at AX sizes the *Vorige* and *Vandaag* columns stack vertically | Same at font scale ≥ 150 % |
-| Screen readers | Each set row reads "Set 2, vorige 45 kilo maal 10, vandaag 47,5 kilo maal 10, klaar" | Same via merged semantics for TalkBack |
-| Web (WL-06) | Keyboard-first; no stepper buttons needed | — |
+| Screen readers | The exercise name labels its set list; fields read "Set 2, Gewicht (kg)", then "vorige 45 × 10" and the tick "Set 2 klaar" | Same via semantics for TalkBack |
+| Web (WL-06) | Keyboard-first; the same fields per exercise type | — |
 
 ## Open questions
 
-[Q30](../open-questions.md#q30) difficulty per exercise or per set · [Q31](../open-questions.md#q31) exercises that aren't weight × reps · [Q32](../open-questions.md#q32) when and where trainers log · [Q33](../open-questions.md#q33) weight steps · [Q34](../open-questions.md#q34) attendance on finish · [Q35](../open-questions.md#q35) previous values from other trainers · [QE04](../open-questions.md#qe04) client-visible notes · [QE10](../open-questions.md#qe10) data model · [QE14](../open-questions.md#qe14) concurrent logging
+[Q30](../open-questions.md#q30) difficulty per exercise or per set · [Q31](../open-questions.md#q31) exercises that aren't weight × reps (answered: exercise types) · [Q32](../open-questions.md#q32) when and where trainers log · [Q33](../open-questions.md#q33) weight steps · [Q34](../open-questions.md#q34) attendance on finish · [Q35](../open-questions.md#q35) previous values from other trainers · [QE04](../open-questions.md#qe04) client-visible notes · [QE10](../open-questions.md#qe10) data model · [QE14](../open-questions.md#qe14) concurrent logging

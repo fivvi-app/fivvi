@@ -250,7 +250,7 @@ Strength & Conditioning
 
 That remains exactly as entered.
 
-Later we can support optional bilingual content fields if customers require it.
+Group classes may also carry an optional English name and description, typed by the owner (§18). Visitors and staff see the version in their language. If the English version is empty, they see the Dutch one. This is still not automatic translation (§53).
 
 ---
 
@@ -729,8 +729,8 @@ Private self-booking is not required initially.
 Definition:
 
 ```text
-Name
-Description
+Name (Dutch, optional English)
+Description (Dutch, optional English)
 Trainer
 Location
 Capacity
@@ -752,6 +752,8 @@ Sarah
 Capacity:
 8
 ```
+
+The owner types the name and description in Dutch and, optionally, in English. Each viewer sees their language, else the Dutch text (§3).
 
 ---
 
@@ -1169,6 +1171,13 @@ For MVP:
 - Dutch name where available
 - English name
 - trainer-created custom exercises
+- an exercise type that decides what a set records:
+  - weight × reps (kg and reps; the default);
+  - reps only (bodyweight);
+  - time (seconds, shown as m:ss);
+  - distance + time (metres and m:ss).
+
+Every exercise has a type, library and custom alike. Creating a custom exercise asks for its type.
 
 Custom exercise content does not require translation.
 
@@ -1212,10 +1221,12 @@ An assigned workout opens directly. A workout can also start from the client pro
 
 During the workout:
 
-- an overview lists all exercises with progress; any exercise can be opened;
+- the logger is one scrolling list: every exercise in order, with its sets and progress underneath;
 - exercises can be added at any time, from the library (Dutch and English search, the client's recent exercises first) or as a new custom exercise;
-- each set is prefilled (today's previous set, else last time's same set, else the target reps) and logged with one tap;
-- extra sets can be added;
+- each set shows its previous value and fields for today, set by the exercise type (§38);
+- each set is prefilled (today's previous set, else last time's same set, else the target) and logged with one tap;
+- the trainer can edit a set's values directly in its row;
+- each exercise can get extra sets, prefilled from its last set; an unlogged extra set can be removed;
 - difficulty is asked once per exercise and defaults to Normal;
 - the logger shows the elapsed workout time.
 

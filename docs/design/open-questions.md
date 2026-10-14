@@ -98,6 +98,7 @@ Is workout difficulty rated per set, per exercise, or per workout? **Proposal:**
 
 ### Q31
 Which exercise measures beyond weight × reps are needed now, such as bodyweight, duration or distance? **Proposal:** bodyweight can omit weight; duration/distance need an explicit data-model decision (WL-03, QE10).
+**Answer (owner, 14 October 2026):** every exercise has a type: weight × reps, reps only, time (m:ss) or distance + time (`PRODUCT.md §38`). The data model stays with QE10 (WL-02, WL-04).
 
 ### Q32
 Do trainers log between sets, after the session, or both? What can they operate with one hand? **Proposal:** between-set logging on phone and later editing on web (WL-02/03/06).

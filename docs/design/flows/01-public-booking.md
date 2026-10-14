@@ -107,9 +107,9 @@ flowchart TD
 ```
 
 - Grouped by day, in the workspace timezone. Shows the next **14 days** ⚑ [Q07](../open-questions.md#q07); *Meer dagen tonen* loads 14 more.
-- **Date strip (added 23 September 2026 after prototype feedback):** above the list, a horizontally scrolling strip of the next **21 days** (weekday, date, month on the first chip and on the 1st). Each day shows one dot per class (at most three), today included, as in the app Agenda; today's chip reads *Vandaag* instead of the weekday. Days without bookable items are dimmed but tappable. Tapping a day shows only that day, with *Volgende: {day}* to jump to the next day that has something. On first open the strip selects today, or the first day with something to book. The prototype uses this pattern; validate with P-K whether clients prefer the strip or the long list.
+- **Date strip (added 23 September 2026 after prototype feedback):** above the list, a horizontally scrolling strip of the next **21 days** (weekday, date, month on the first chip and on the 1st). Each day shows one dot per class that can still be booked, so not full and not cancelled (at most three), today included: three classes of which two are full show one dot (owner, 14 October 2026). Today's chip reads *Vandaag* instead of the weekday. Days without bookable items, including days where every class is full or cancelled, show no dots and are dimmed but tappable, so clients can see the full classes. Tapping a day shows only that day, with *Volgende: {day}* to jump to the next day that has something. On first open the strip selects today, or the first day with something to book. The prototype uses this pattern; validate with P-K whether clients prefer the strip or the long list.
 - The segmented filter appears only for the *All bookings* scope, and only for types that have upcoming items. For the *class* scope the title becomes the class name ("Strength") and the filter is hidden.
-- A class card shows the class description as one truncated line, as entered (PB-02). A group class without a trainer shows *Trainer volgt nog*, also on PB-02 and the confirmation; Open Gym has no trainer line.
+- A class card shows the class name and description in the visitor's language, the description as one truncated line (PB-02). A card has no type chip: the *Groepslessen* / *Open Gym* tab already says what the list shows. The booking summary on PB-02, the check-email page, the confirmation and the manage page keep the chip. A group class without a trainer shows *Trainer volgt nog*, also on PB-02 and the confirmation; Open Gym has no trainer line.
 - The location line appears only when the workspace has more than one location.
 - **Availability** counts confirmed bookings **and** active holds against capacity (F028). When every remaining spot is held but not confirmed, the card says *Alle plekken zijn gereserveerd* instead of *Vol*, because a spot may free up within 15 minutes.
 - Classes that have started are hidden. Cancelled occurrences are shown as *Gaat niet door* for the rest of that day, so a client who saw the poster isn't confused, and they can't be tapped.
@@ -167,7 +167,7 @@ flowchart TD
 └────────────────────────────────────────┘
 ```
 
-- The description is **user content** from the class template and is shown as entered, in whatever language the owner typed it (`§3`).
+- The name and description are **user content** from the class template. The owner types them in Dutch and, optionally, English (`§18`). Visitors see their language; if the English version is empty, they see the Dutch one, marked as Dutch for screen readers. Nothing is translated automatically (`§3`).
 - The primary button is sticky at the bottom (safe-area aware).
 - Open Gym uses the same screen with the title *Open Gym*, no trainer line ⚑ [Q14](../open-questions.md#q14) and the button *Boek Open Gym*.
 

@@ -130,11 +130,13 @@ flowchart TD
 
 - **Monday first**, 24 h. The visible hours fit the week's content (default 06:00–22:00 at compact density, 48 px per hour with a 15-minute grid, so a working day fits a laptop screen) and open scrolled to 07:00 or *now*. A red now-line runs across the grid; today's column is tinted.
 - **Click an empty moment** (day or week view) to open *+ Nieuw* at that time, snapped to 15 minutes; in the day view the lane's trainer is pre-filled.
-- **Event block** content by type:
-  - **Private**: client name, trainer, `P`.
-  - **Group**: class name, trainer, `booked/capacity`.
-  - **Open Gym**: *Open Gym*, `booked/capacity`, *vol* when full.
-- **Colour** by session type (default) or by trainer ⚑ [Q22](../open-questions.md#q22). Type is also always in the text; colour is never the only signal.
+- **Event block** content by type. Blocks are cramped, so each shows only the type emoji, then the content: *👤 Mark*, *👥 Strength*, *🏋️ Open Gym 1/2* (owner, 14 October 2026). No type label is painted, so there's no truncated *Priv…*.
+  - **Private**: 👤, client name, trainer.
+  - **Group**: 👥, class name in the viewer's language (flows/01 PB-02), trainer, `booked/capacity`.
+  - **Open Gym**: 🏋️, *Open Gym*, `booked/capacity`, *vol* when full.
+- **Legend** above the grid is the key: colour, emoji and label for each type (*👤 Privé · 👥 Groepsles · 🏋️ Open Gym*).
+- **Accessible name**: the emoji is hidden from screen readers; each block's name starts with the type, so it reads *Privé · Mark*.
+- **Colour** by session type (default) or by trainer ⚑ [Q22](../open-questions.md#q22). Colour is never the only signal: the emoji marks the type in the block and the legend names it.
 - **Substituted**: `⇄` + the substitute's name; the tooltip and quick view say *Mike (vervangt Sarah)*.
 - **Cancelled**: hatched + struck through. *Geannuleerde tonen* in the Type filter is on by default.
 - **Overlaps** in one day column sit side by side, up to 3; then *+2 meer*.
@@ -154,7 +156,8 @@ flowchart TD
 | Cancelled | Geannuleerd | Cancelled |
 | More | +{n} meer | +{n} more |
 | DST autumn / spring | Wintertijd: de klok gaat 1 uur terug · Zomertijd: de klok gaat 1 uur vooruit | Clocks go back 1 hour · Clocks go forward 1 hour |
-| Legend | gepland · geannuleerd · suggestie · privésessie · vervanger · actie nodig | scheduled · cancelled · suggestion · private session · substitute · action needed |
+| Legend | 👤 Privé · 👥 Groepsles · 🏋️ Open Gym · gepland · geannuleerd · suggestie · vervanger · actie nodig | 👤 Private · 👥 Group class · 🏋️ Open Gym · scheduled · cancelled · suggestion · substitute · action needed |
+| Block (accessible name) | {type} · {client or class} | {type} · {client or class} |
 
 ### WC-03 · Agenda: dag per trainer / Calendar: day by trainer
 
