@@ -1688,9 +1688,13 @@
     return [...state.sessions.filter((s) => s.ws === state.web.ws), ...state.classes.filter((c) => c.ws === state.web.ws)]
       .filter((x) => x.date === date && (!f || x.trainer === f || x.origTrainer === f)).sort((a, z) => startOf(a) - startOf(z));
   }
-  // The type marker in the block already says Privé, so a private block names only the client.
+  // Calendar blocks are cramped: only the type emoji is painted, then the content ("👤 Mark"). The legend is the key;
+  // the type stays in the accessible name ("Privé · Mark"), so screen readers still hear it (owner round 3).
+  const TYPE_KEYS = { private: "type.private", group: "type.group", openGym: "type.openGym" };
   function eventLabel(x) {
-    return x.kind === "private" ? esc(CLIENTS[x.client].first) : esc(x.title);
+    const key = TYPE_KEYS[x.kind];
+    const name = x.kind === "private" ? esc(CLIENTS[x.client].first) : esc(x.title);
+    return `<span class="ev-ico" aria-hidden="true">${t(key + "Icon")}</span><span class="sr-only">${t(key)} · </span>${name}`;
   }
   function eventCls(x) {
     const k = x.kind === "private" ? "private" : x.kind === "openGym" ? "open-gym" : "group";
@@ -1729,7 +1733,7 @@
       x.kind === "private" ? "" : `<span class="t-num">${bookedCount(x)}/${x.cap}</span>`,
     ].filter(Boolean).join(" · ");
     return `<button type="button" class="${eventCls(x)}${mins <= 45 ? " ev--short" : ""}" style="top:${top}px;height:${(mins / 60) * HOUR_PX - 2}px;left:calc(${pos.col} * 100% / ${pos.n} + 2px);width:calc(100% / ${pos.n} - 4px)" data-act="w-open" data-id="${x.id}">
-        <span class="ev-head">${typeChip(x.kind, "chip--ev")}<span class="ev-time t-num">${time(startOf(x))}</span></span><span class="ev-title">${eventLabel(x)}</span>${meta ? `<span class="ev-meta">${meta}</span>` : ""}
+        <span class="ev-title">${eventLabel(x)}</span><span class="ev-time t-num">${time(startOf(x))}</span>${meta ? `<span class="ev-meta">${meta}</span>` : ""}
       </button>`;
   }
   function timeAxis(date) {

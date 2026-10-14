@@ -1018,6 +1018,36 @@ async function assertAllMarkers(page, scope, lang, where) {
   }
 }
 
+// Owner calendar blocks are cramped (owner round 3): only the type emoji is painted, followed by the content;
+// the legend is the key, and the type stays in each block's accessible name ("Privé · Mark").
+const EV_KIND = { 'ev--private': 'private', 'ev--group': 'group', 'ev--open-gym': 'open-gym' };
+async function assertBlockMarkers(page, lang, where) {
+  const blocks = page.locator('.cal .ev');
+  assert.ok(await blocks.count() > 0, `${where}: has blocks`);
+  for (const block of await blocks.all()) {
+    const classes = await block.getAttribute('class');
+    const type = EV_KIND[Object.keys(EV_KIND).find((k) => classes.split(/\s+/).includes(k))];
+    const label = LABELS[lang][type];
+    assert.equal(await block.locator('.chip-label, .chip--private, .chip--group, .chip--open-gym').count(), 0, `${where}: no type chip or label text in a block`);
+    const ico = block.locator('.ev-title > .ev-ico:first-child');
+    assert.equal(await ico.textContent(), TYPE_EMOJI[type], `${where}: ${type} emoji leads the content`);
+    assert.equal(await ico.getAttribute('aria-hidden'), 'true', `${where}: emoji is decorative`);
+    const painted = await block.evaluate((el) => {
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      let node, text = '';
+      while ((node = walker.nextNode())) {
+        if (node.parentElement.closest('.sr-only, [aria-hidden="true"]')) continue;
+        text += node.textContent + ' ';
+      }
+      return text;
+    });
+    if (type !== 'open-gym') assert.ok(!painted.includes(label), `${where}: type label "${label}" is not painted in the block`);
+    const snapshot = await block.ariaSnapshot();
+    assert.ok(snapshot.includes(`${label} · `), `${where}: accessible name keeps the type, got ${snapshot}`);
+    assert.ok(!snapshot.includes(TYPE_EMOJI[type]), `${where}: the emoji is not read out`);
+  }
+}
+
 test('F1: session types show emoji and label together on app, booking, owner calendar and add menus', async () => {
   for (const lang of ['nl', 'en']) {
     const { page, errors } = await pageFor(null);
@@ -1048,11 +1078,11 @@ test('F1: session types show emoji and label together on app, booking, owner cal
     await page.locator('[data-act="home"]').click();
     await startFlow(page, '3');
     await assertAllMarkers(page, '.legend', lang, 'calendar legend');
-    await assertAllMarkers(page, '.cal', lang, 'calendar day blocks');
+    await assertBlockMarkers(page, lang, 'calendar day blocks');
     assert.equal(await page.locator('.cal-lane-head .chip--open-gym').count(), 1, 'day view: the Open Gym lane header uses the marker');
     await assertAllMarkers(page, '.cal-lane-head', lang, 'calendar day lane headers');
     await page.locator('[data-act="w-view"][data-v="week"]').click();
-    await assertAllMarkers(page, '.cal', lang, 'calendar week blocks');
+    await assertBlockMarkers(page, lang, 'calendar week blocks');
     await page.locator('[data-act="w-new"]').click();
     await assertAllMarkers(page, '.panel', lang, 'owner + Nieuw');
     assert.deepEqual(errors, []);
@@ -1060,33 +1090,34 @@ test('F1: session types show emoji and label together on app, booking, owner cal
   }
 });
 
-test('F1: calendar blocks keep the emoji visible when the type label truncates, in day and week view on a phone', async () => {
-  const { page, errors } = await pageFor(3);
-  for (const view of ['day', 'week']) {
-    await page.locator(`[data-act="w-view"][data-v="${view}"]`).click();
-    const blocks = page.locator('.cal .ev');
-    let truncated = 0;
-    for (const block of await blocks.all()) {
-      const m = await block.evaluate((el) => {
-        el.scrollIntoView({ block: 'center', inline: 'center' });
-        const ico = el.querySelector('.chip-ico'), label = el.querySelector('.chip-label');
-        const b = el.getBoundingClientRect(), r = ico.getBoundingClientRect();
-        const x = (r.left + r.right) / 2, y = (r.top + r.bottom) / 2;
-        const hit = document.elementFromPoint(x, y);
-        return {
-          inside: r.width > 0 && r.left >= b.left && r.right <= b.right && r.top >= b.top && r.bottom <= b.bottom,
-          hit: !!hit && ico.contains(hit),
-          truncated: label.scrollWidth > label.clientWidth + 1,
-          short: el.classList.contains('ev--short'),
-        };
-      });
-      assert.ok(m.inside && m.hit, `${view}: emoji marker stays painted inside its block`);
-      if (m.truncated) truncated++;
+test('F1: calendar blocks show the type emoji before the content, never a truncated type label, in day and week view on a phone', async () => {
+  for (const lang of ['nl', 'en']) {
+    const { page, errors } = await pageFor(3);
+    await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).first().click();
+    for (const view of ['day', 'week']) {
+      await page.locator(`[data-act="w-view"][data-v="${view}"]`).click();
+      await assertBlockMarkers(page, lang, `phone ${view}`);
+      for (const block of await page.locator('.cal .ev').all()) {
+        const m = await block.evaluate((el) => {
+          el.scrollIntoView({ block: 'center', inline: 'center' });
+          const ico = el.querySelector('.ev-ico');
+          const b = el.getBoundingClientRect(), r = ico.getBoundingClientRect();
+          const x = (r.left + r.right) / 2, y = (r.top + r.bottom) / 2;
+          const hit = document.elementFromPoint(x, y);
+          return {
+            inside: r.width > 0 && r.left >= b.left && r.right <= b.right && r.top >= b.top && r.bottom <= b.bottom,
+            hit: !!hit && ico.contains(hit),
+          };
+        });
+        assert.ok(m.inside && m.hit, `${lang}/${view}: emoji stays painted inside its block`);
+      }
     }
-    if (view === 'week') assert.ok(truncated > 0, 'a narrow phone week view truncates some type labels');
+    await page.locator('[data-act="w-view"][data-v="day"]').click();
+    const mark = page.locator('.cal .ev[data-id="p-priya"]');
+    assert.ok((await mark.ariaSnapshot()).includes(`${LABELS[lang].private} · Priya`), `${lang}: screen readers hear the type, then the client`);
+    assert.deepEqual(errors, []);
+    await page.close();
   }
-  assert.deepEqual(errors, []);
-  await page.close();
 });
 
 test('F2: app + menu rows share one structure, and a touch hover never greys the Client row', async () => {

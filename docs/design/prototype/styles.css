@@ -624,13 +624,12 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 .ev.needs-trainer { outline: 2px dashed var(--color-status-warning-fg); outline-offset: -2px; }
 .ev.is-selected { box-shadow: 0 0 0 2px var(--color-border-focus); }
 .ev-time { font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); flex: none; }
-.ev-head { display: flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; }
-/* In narrow or short blocks the label truncates first; the emoji keeps its room. */
-.chip--ev { flex: 0 1 auto; min-width: calc(1.2em + 10px); overflow: hidden; padding: 0 4px; font-size: 11px; line-height: 14px; }
-.chip--ev .chip-label { overflow: hidden; text-overflow: ellipsis; }
+/* Blocks paint only the type emoji before the content; the legend explains colour + emoji + label (owner round 3).
+   The emoji comes first in the title, so in narrow blocks the name truncates, never the emoji. */
+.ev-ico { margin-right: 3px; font-size: 11px; font-weight: var(--font-weight-regular); }
 .chip--lane { flex: 0 1 auto; min-width: calc(1.2em + 10px); overflow: hidden; }
 .chip--lane .chip-label { overflow: hidden; text-overflow: ellipsis; }
-.ev-title { font-weight: var(--font-weight-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-title { flex: none; font-weight: var(--font-weight-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ev-meta { color: var(--color-text-secondary); display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 
 .panel { position: absolute; top: 0; right: 0; bottom: 0; width: min(440px, 100%); z-index: 21; background: var(--color-bg-raised); box-shadow: -20px 0 40px -20px rgb(0 0 0 / 0.3); display: flex; flex-direction: column; animation: slide var(--motion-duration-medium) var(--motion-easing-standard); }
