@@ -1159,3 +1159,31 @@ test('F3: booking date strip shows one dot per class on every day, today include
     await page.close();
   }
 });
+
+test('F4: a class without a trainer says the trainer is to be confirmed on list, form and confirmation', async () => {
+  for (const [lang, tbc] of [['nl', 'Trainer volgt nog'], ['en', 'Trainer to be confirmed']]) {
+    const { page, errors } = await pageFor(1);
+    await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
+    await page.locator('.day-chip[data-v="2026-09-24"]').click();
+    const card = (id) => page.locator(`[data-act="b-pick"][data-id="${id}"] .class-meta`);
+    assert.ok((await card('o-boot24').innerText()).includes(tbc));
+    assert.ok((await card('o-str24').innerText()).includes('Sarah'));
+    assert.ok(!(await card('o-str24').innerText()).includes(tbc));
+    await page.locator('[data-act="b-pick"][data-id="o-boot24"]').click();
+    assert.ok((await page.locator('.booking-facts').innerText()).includes(tbc), 'form summary');
+    await page.locator('#b-name').fill('Demo Guest');
+    await page.locator('#b-email').fill('demo@example.com');
+    await page.locator('[data-form="booking"] button[type="submit"]').click();
+    await page.locator('[data-act="b-open-mail"]').click();
+    await page.locator('[data-act="b-mail-link"]').click();
+    await page.locator('[data-act="b-confirm"]').click();
+    assert.ok((await page.locator('.booking-facts').innerText()).includes(tbc), 'confirmation summary');
+    await page.locator('[data-act="b-no-account"]').click();
+    await page.locator('[data-act="b-restart"]').click();
+    await page.locator('[data-act="b-mode"][data-v="openGym"]').click();
+    await page.locator('.day-chip[data-v="2026-09-25"]').click();
+    assert.equal(await card('o-og25').count(), 0, 'Open Gym keeps no trainer line');
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});

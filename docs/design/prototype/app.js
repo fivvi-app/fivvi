@@ -527,7 +527,8 @@
         <div class="booking-heading">${typeChip(occ.kind)}<p class="summary-title">${esc(occ.title)}</p></div>
         <p class="booking-time t-num">${range(occ)}</p>
         <p class="summary-line">${icon("calendar", "ico--sm")}<span>${ucfirst(dayLong(d))}</span></p>
-        <div class="booking-facts">${occ.trainer ? fact("user", t("o.trainer"), TRAINERS[occ.trainer].name) : ""}${fact("pin", t("s.location"), locName(occ.loc))}</div>
+        <div class="booking-facts">${occ.trainer ? fact("user", t("o.trainer"), TRAINERS[occ.trainer].name)
+          : occ.kind === "group" ? `<div class="fact-row">${icon("user", "ico--sm")}<span>${t("b.trainerTbc")}</span></div>` : ""}${fact("pin", t("s.location"), locName(occ.loc))}</div>
       </div>`;
   }
 
@@ -572,7 +573,8 @@
                   <span class="class-time"><span class="t-num">${time(startOf(occ))}</span><span class="class-end">${time(endOf(occ))}</span></span>
                   <span class="class-body">
                     <span class="class-head">${typeChip(occ.kind)}<span class="class-title">${esc(occ.title)}</span></span>
-                    ${occ.trainer ? `<span class="class-meta">${icon("user", "ico--sm")}<span class="sr-only">${t("o.trainer")}: </span>${TRAINERS[occ.trainer].name}</span>` : ""}
+                    ${occ.trainer ? `<span class="class-meta">${icon("user", "ico--sm")}<span class="sr-only">${t("o.trainer")}: </span>${TRAINERS[occ.trainer].name}</span>`
+                      : occ.kind === "group" ? `<span class="class-meta">${icon("user", "ico--sm")}${t("b.trainerTbc")}</span>` : ""}
                     ${status}
                   </span>
                   ${full || cancelled ? "" : icon("chevR", "class-chev")}
