@@ -319,38 +319,53 @@
   const exDef = (id) => EXERCISES[id] || state.customEx[id];
   const exName = (id) => { const e = exDef(id); return e.custom ? esc(e.name) : e[activeLang()] || e.nl; };
   const kg = (w) => `${num(w)} kg`;
-  // Exercise types decide the set fields and how a set reads (PRODUCT.md §38, §41; owner round 3).
-  // fields: [input key, label key, inputmode, unit, separator before]; tm/ts are the m:ss parts of `s` seconds.
-  const EX_TYPES = {
-    weight: { keys: ["w", "r"], fields: [["w", "l.weightKg", "decimal", "kg", ""], ["r", "l.reps", "numeric", "", "×"]] },
-    reps: { keys: ["r"], fields: [["r", "l.reps", "numeric", "l.repsUnit", ""]] },
-    time: { keys: ["s"], fields: [["tm", "l.minutes", "numeric", "", ""], ["ts", "l.seconds", "numeric", "", ":"]] },
-    distance: { keys: ["d", "s"], fields: [["d", "l.distanceM", "decimal", "m", ""], ["tm", "l.minutes", "numeric", "", ""], ["ts", "l.seconds", "numeric", "", ":"]] },
-  };
-  const DEFAULT_SET = { weight: [0, 10], reps: [10], time: [30], distance: [500, 0] };
-  const MODEL_KEY = { w: "w", r: "r", d: "d", tm: "s", ts: "s" };
-  const exType = (id) => exDef(id).type || "weight";
-  const toRow = (type, set) => Object.fromEntries(EX_TYPES[type].keys.map((k, i) => [k, set[i]]));
-  const toSet = (type, row) => EX_TYPES[type].keys.map((k) => row[k]);
   const clock = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
-  function setText(type, set, compact = false) {
-    if (type === "weight") return compact ? `${num(set[0])} × ${set[1]}` : `${kg(set[0])} × ${set[1]}`;
-    if (type === "reps") return t("l.repsN", { n: set[0] });
-    if (type === "time") return clock(set[0]);
-    return `${num(set[0])} m · ${clock(set[1])}`;
-  }
-  // Weight sets read one by one ("60 kg × 8 · 60 kg × 8"); other types group repeats ("0:45 × 3").
-  function setsText(type, sets) {
-    if (type === "weight") return sets.map((x) => setText(type, x)).join(" · ");
+  // Non-weight sets group repeats ("0:45 × 3", "10 herh. × 2, 8 herh.").
+  function groupedSets(sets) {
     const groups = [];
-    sets.map((x) => setText(type, x)).forEach((text) => {
+    sets.map((x) => this.text(x)).forEach((text) => {
       const last = groups[groups.length - 1];
       if (last && last[0] === text) last[1]++;
       else groups.push([text, 1]);
     });
     return groups.map(([text, n]) => (n > 1 ? `${text} × ${n}` : text)).join(", ");
   }
-  const targetText = (type, v) => (type === "time" ? clock(v) : type === "distance" ? `${num(v)} m` : String(v));
+  // Exercise types decide the set fields and how a set reads (PRODUCT.md §38, §41; owner round 3). One entry per type:
+  // keys: the set's values in order; target: which of them a template's target sets; fields: [input key, label key,
+  // inputmode, unit, separator before], with tm/ts the m:ss parts of `s` seconds; text: one set (compact under a row);
+  // list: the sets in a summary, email or profile; prev: last time's sets on one line; goal: a target value.
+  const EX_TYPES = {
+    weight: {
+      keys: ["w", "r"], target: 1, fields: [["w", "l.weightKg", "decimal", "kg", ""], ["r", "l.reps", "numeric", "", "×"]],
+      text: (set, compact = false) => `${compact ? num(set[0]) : kg(set[0])} × ${set[1]}`,
+      // Weight sets read one by one ("60 kg × 8 · 60 kg × 8"); last time folds a constant weight ("60 kg × 8, 8, 7").
+      list(sets) { return sets.map((x) => this.text(x)).join(" · "); },
+      prev(sets) {
+        return sets.every((x) => x[0] === sets[0][0])
+          ? `${kg(sets[0][0])} × ${sets.map((x) => x[1]).join(", ")}`
+          : sets.map((x) => this.text(x)).join(", ");
+      },
+      goal: String,
+    },
+    reps: {
+      keys: ["r"], target: 0, fields: [["r", "l.reps", "numeric", "l.repsUnit", ""]],
+      text: (set) => t("l.repsN", { n: set[0] }), list: groupedSets, prev: groupedSets, goal: String,
+    },
+    time: {
+      keys: ["s"], target: 0, fields: [["tm", "l.minutes", "numeric", "", ""], ["ts", "l.seconds", "numeric", "", ":"]],
+      text: (set) => clock(set[0]), list: groupedSets, prev: groupedSets, goal: clock,
+    },
+    distance: {
+      keys: ["d", "s"], target: 0, fields: [["d", "l.distanceM", "decimal", "m", ""], ["tm", "l.minutes", "numeric", "", ""], ["ts", "l.seconds", "numeric", "", ":"]],
+      text: (set) => `${num(set[0])} m · ${clock(set[1])}`, list: groupedSets, prev: groupedSets, goal: (v) => `${num(v)} m`,
+    },
+  };
+  const DEFAULT_SET = { weight: [0, 10], reps: [10], time: [30], distance: [500, 0] };
+  const MODEL_KEY = { w: "w", r: "r", d: "d", tm: "s", ts: "s" };
+  const exType = (id) => exDef(id).type || "weight";
+  const toRow = (type, set) => Object.fromEntries(EX_TYPES[type].keys.map((k, i) => [k, set[i]]));
+  const toSet = (type, row) => EX_TYPES[type].keys.map((k) => row[k]);
+  const setsText = (type, sets) => EX_TYPES[type].list(sets);
   // A class's name or description in the viewer's language, else the owner's Dutch text, marked as Dutch (owner round 3).
   function classText(occ, field) {
     const v = state.classTpl[occ.tpl]?.[field] || {};
@@ -1274,7 +1289,7 @@
     const prev = prevFor(clientId, exId);
     const n = targetSets || (prev ? prev.sets.length : 1);
     const base = DEFAULT_SET[type].slice();
-    if (target != null) base[type === "weight" ? 1 : 0] = target;
+    if (target != null) base[EX_TYPES[type].target] = target;
     const rows = Array.from({ length: n }, (_, i) => {
       const p = prev ? prev.sets[Math.min(i, prev.sets.length - 1)] : null;
       return { ...toRow(type, p || base), done: false, touched: false };
@@ -1308,15 +1323,7 @@
   const workoutTimer = (L) => `<p class="nav-timer" role="timer" aria-label="${t("l.elapsed")}">${icon("clock", "ico--sm")}<span class="t-num" data-elapsed>${elapsedText(Date.now() - L.startedAt)}</span></p>`;
   const workoutMinutes = (L) => Math.max(1, Math.round(((L.endedAt || Date.now()) - L.startedAt) / 60000));
   const doneCount = (it) => it.rows.filter((r) => r.done).length;
-  function prevLine(prev, type) {
-    if (!prev) return t("l.noPrevShort");
-    if (type !== "weight") return t("l.prevLine", { sets: setsText(type, prev.sets) });
-    const w = prev.sets.map((x) => x[0]);
-    const sets = w.every((v) => v === w[0])
-      ? `${kg(w[0])} × ${prev.sets.map((x) => x[1]).join(", ")}`
-      : prev.sets.map((x) => `${kg(x[0])} × ${x[1]}`).join(", ");
-    return t("l.prevLine", { sets });
-  }
+  const prevLine = (prev, type) => (prev ? t("l.prevLine", { sets: EX_TYPES[type].prev(prev.sets) }) : t("l.noPrevShort"));
   // Later sets that the trainer hasn't touched follow the set just logged or changed (WL-02).
   function carry(it, i, keys = EX_TYPES[exType(it.ex)].keys) {
     for (let j = i + 1; j < it.rows.length; j++) {
@@ -1409,7 +1416,7 @@
     return `<li class="set-row${r.done ? " is-done" : ""}">
         <span class="set-no t-num">${j + 1}</span>
         <span class="set-fields">${fields}${r.extra && !r.done ? `<button type="button" class="btn btn--icon btn--ghost set-remove" data-act="log-remove-set" data-ex="${i}" data-v="${j}" aria-label="${t("l.removeSet", { ex, n: j + 1 })}">${icon("x", "ico--sm")}</button>` : ""}</span>
-        ${p ? `<span class="set-prev t-num">${t("l.prevSet", { value: setText(type, p, true) })}</span>` : ""}
+        ${p ? `<span class="set-prev t-num">${t("l.prevSet", { value: EX_TYPES[type].text(p, true) })}</span>` : ""}
         <button type="button" class="set-check" data-act="log-check" data-ex="${i}" data-v="${j}" aria-pressed="${r.done}" aria-label="${t(r.done ? "l.undoSet" : "l.setDone", { ex, n: j + 1 })}">${icon("check")}</button>
         ${Object.keys(r.bad || {}).map((k) => setError(`set-${i}-${j}-${k}`, r.bad[k].err)).join("")}
       </li>`;
@@ -1427,7 +1434,7 @@
           <h2 class="log-ex" id="ex-h-${i}" tabindex="-1" data-ex-head="${i}">${exName(it.ex)}</h2>
           <span class="ex-count t-num${all ? " is-done" : ""}">${all ? icon("check", "ico--sm") : ""}${d}/${it.rows.length}</span>
         </div>
-        <p class="t-footnote muted log-card-sub">${it.target ? `${t("l.target", { sets: it.target[0], reps: targetText(exType(it.ex), it.target[1]) })} · ` : ""}${prevHead}</p>
+        <p class="t-footnote muted log-card-sub">${it.target ? `${t("l.target", { sets: it.target[0], reps: EX_TYPES[exType(it.ex)].goal(it.target[1]) })} · ` : ""}${prevHead}</p>
         <ol class="set-list" aria-labelledby="ex-h-${i}">${it.rows.map((r, j) => setRow(it, i, j, prev)).join("")}</ol>
         <div class="log-card-foot">
           <button type="button" class="btn btn--text btn--add-set" data-act="log-add-set" data-ex="${i}" aria-label="${t("l.addSetTo", { ex: exName(it.ex) })}">${icon("plus", "ico--sm")}${t("l.addSetShort")}</button>
@@ -2446,7 +2453,7 @@
       if (L.saveTpl) {
         const tid = `tpl-${Date.now()}`;
         name = L.tplName.trim();
-        state.templates[tid] = { name, items: items.map((it) => [it.ex, it.sets.length, it.sets[0][exType(it.ex) === "weight" ? 1 : 0]]) };
+        state.templates[tid] = { name, items: items.map((it) => [it.ex, it.sets.length, it.sets[0][EX_TYPES[exType(it.ex)].target]]) };
         (state.assigned[x.client] ||= []).unshift(tid);
       }
       const minutes = workoutMinutes(L);
