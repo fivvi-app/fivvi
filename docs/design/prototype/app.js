@@ -1258,6 +1258,14 @@
   }
   const recordItems = (L) => L.items.filter((it) => doneCount(it))
     .map((it) => ({ ex: it.ex, sets: it.rows.filter((r) => r.done).map((r) => [r.w, r.r]), diff: it.diff }));
+  // Custom exercises are trainer content, stored exactly as typed (PRODUCT.md §38, F040).
+  function createCustomExercise(name) {
+    const id = `cx-${Date.now()}`;
+    state.customEx[id] = { custom: true, name, step: 2.5 };
+    state.log.newEx = null;
+    addExercise(id);
+    toast(t("l.exCreated"));
+  }
   function addExercise(exId) {
     const L = state.log;
     L.items.push(logItem(findSession(L.id).client, exId));
@@ -1402,7 +1410,9 @@
       const c = CLIENTS[x.client];
       const inLog = new Set(L.items.map((it) => it.ex));
       const recent = [...new Set((state.history[x.client] || []).flatMap((w) => w.items.map(([e]) => e)))].filter(exDef);
-      const rest = [...Object.keys(state.customEx), ...Object.keys(EXERCISES)].filter((e) => !recent.includes(e));
+      const mine = Object.keys(state.customEx).filter((e) => !recent.includes(e));
+      const rest = Object.keys(EXERCISES).filter((e) => !recent.includes(e));
+      const nx = L.newEx || {};
       const row = (e) => {
         const d = exDef(e);
         const other = d.custom ? "" : activeLang() === "nl" ? d.en : d.nl;
@@ -1418,7 +1428,16 @@
         nav: { title: t("l.addExercise"), large: false, cancel: true },
         body: `
           <div class="search">${icon("search", "ico--sm")}<input id="ex-search" type="search" placeholder="${t("l.searchEx")}" aria-label="${t("l.searchEx")}" autocomplete="off"></div>
+          ${nx.open ? `<form class="form new-ex-form" data-form="new-exercise" novalidate>
+              ${field("new-ex-name", t("l.newExName"), `<input id="new-ex-name" class="input" name="name" type="text" autocomplete="off" value="${esc(nx.name || "")}" ${nx.err ? `aria-invalid="true" aria-describedby="new-ex-name-err"` : ""}>`, nx.err && t("l.newExNameErr"))}
+              <p class="t-footnote muted">${t("l.newExHint")}</p>
+              <div class="row-actions"><button type="submit" class="btn btn--primary">${icon("plus", "ico--sm")}${t("l.newExAdd")}</button><button type="button" class="btn btn--text" data-act="log-new-ex-cancel">${t("common.cancel")}</button></div>
+            </form>`
+            : `<ul class="list"><li><button type="button" class="row row--add" data-act="log-new-ex-start">
+              <span class="avatar avatar--add" aria-hidden="true">${icon("plus", "ico--sm")}</span>
+              <span class="row-main"><span class="row-title">${t("l.newExRow")}</span><span class="row-sub">${t("l.newExRowHint")}</span></span>${chev()}</button></li></ul>`}
           ${recent.length ? `<section data-filter-group><h2 class="t-caption section-label">${t("l.recentFor", { name: esc(c.first) })}</h2><ul class="list">${recent.map(row).join("")}</ul></section>` : ""}
+          ${mine.length ? `<section data-filter-group><h2 class="t-caption section-label">${t("l.yourExercises")}</h2><ul class="list">${mine.map(row).join("")}</ul></section>` : ""}
           <section data-filter-group><h2 class="t-caption section-label">${t("l.library")}</h2><ul class="list">${rest.map(row).join("")}</ul></section>
           <p class="t-subhead muted" data-no-results hidden>${t("l.noExFound")}</p>
           <button type="button" class="btn btn--tonal btn--block" data-act="log-new-ex" data-new-ex hidden></button>
@@ -2257,12 +2276,15 @@
     "log-add-ex": (el) => addExercise(el.dataset.v),
     "log-new-ex": () => {
       const q = root.querySelector("#ex-search")?.value.trim();
-      if (!q) return;
-      const id = `cx-${Date.now()}`;
-      state.customEx[id] = { custom: true, name: q, step: 2.5 };
-      addExercise(id);
-      toast(t("l.exCreated"));
+      if (q) createCustomExercise(q);
     },
+    // A trainer-specific exercise can be created without searching first (phone-test finding 10).
+    "log-new-ex-start": () => {
+      state.log.newEx = { open: true, name: root.querySelector("#ex-search")?.value.trim() || "", err: false };
+      render();
+      root.querySelector("#new-ex-name")?.focus();
+    },
+    "log-new-ex-cancel": () => { state.log.newEx = null; render(); },
     "log-sel": (el) => { const L = state.log; const i = Number(el.dataset.v); L.sel = L.sel === i ? null : i; render(); },
     "log-check": (el) => {
       const L = state.log;
@@ -2577,6 +2599,17 @@
       occ.attendees.push({ id: b.attId, name: b.name, lang: state.lang === "en" ? "en" : "nl", guest: true, status: "pending" });
       b.holdAt = Date.now();
       go("b-check");
+    }
+    if (form === "new-exercise") {
+      const name = e.target.elements.namedItem("name").value.trim();
+      if (!name) {
+        state.log.newEx = { open: true, name: "", err: true };
+        render();
+        root.querySelector("#new-ex-name")?.focus();
+        return;
+      }
+      createCustomExercise(name);
+      return;
     }
     if (form === "change-email") {
       const b = state.booking;

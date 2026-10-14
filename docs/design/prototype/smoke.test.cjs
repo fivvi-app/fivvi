@@ -1376,3 +1376,37 @@ test('F9: the logger header shows a running workout timer and the finish screen 
     }
   }
 });
+
+test('F10: Add exercise offers New exercise without searching; created exercises appear under Your exercises', async () => {
+  for (const [lang, labels] of [['nl', ['Nieuwe oefening', 'Jouw oefeningen']], ['en', ['New exercise', 'Your exercises']]]) {
+    for (const platform of ['ios', 'android']) {
+      const { page, errors } = await pageFor(null);
+      await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).click();
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      await startFlow(page, '5free');
+      await page.locator('[data-act="log-begin"][data-v="empty"]').click();
+      assert.equal(await page.locator('#ex-search').inputValue(), '');
+      const start = page.locator('[data-act="log-new-ex-start"]');
+      assert.ok(await start.isVisible(), `${lang}/${platform}: visible before any search`);
+      assert.ok((await start.innerText()).includes(labels[0]));
+      const top = await page.locator('.content').evaluate((el) => {
+        const row = el.querySelector('[data-act="log-new-ex-start"]').getBoundingClientRect().top;
+        return [...el.querySelectorAll('li[data-name]')].every((li) => li.getBoundingClientRect().top > row);
+      });
+      assert.ok(top, 'the New exercise row sits above the library');
+      await start.click();
+      await page.locator('[data-form="new-exercise"] button[type="submit"]').click();
+      assert.equal(await page.locator('#new-ex-name').getAttribute('aria-invalid'), 'true', 'a name is required');
+      await page.locator('#new-ex-name').fill('Sled push');
+      await page.locator('[data-form="new-exercise"] button[type="submit"]').click();
+      assert.equal((await page.locator('.log-ex').innerText()).trim(), 'Sled push');
+      await page.locator('[data-act="back"]').click();
+      await page.locator('[data-act="log-add"]').click();
+      const mine = page.locator('[data-filter-group]', { has: page.locator('h2', { hasText: labels[1] }) });
+      assert.ok((await mine.innerText()).includes('Sled push'), 'custom exercise listed under Your exercises');
+      assert.equal(await page.locator('[data-act="log-new-ex-start"]').count(), 1, 'still offered after creating one');
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  }
+});
