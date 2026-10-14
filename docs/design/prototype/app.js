@@ -561,8 +561,8 @@
       const kind = b.mode === "group" ? "group" : "openGym";
       const items = state.classes.filter((c) => c.ws === "jg" && c.kind === kind && c.date >= TODAY).sort((a, z) => startOf(a) - startOf(z));
       const days = Array.from({ length: STRIP_DAYS }, (_, i) => addDays(TODAY, i));
-      // Cancelled classes stay listed but are not bookable: they neither light a day nor add a dot.
-      const bookable = (iso) => items.filter((x) => x.date === iso && x.status !== "cancelled");
+      // Full and cancelled classes stay listed but are not bookable: they neither light a day nor add a dot (owner round 3).
+      const bookable = (iso) => items.filter((x) => x.date === iso && x.status !== "cancelled" && spotsLeft(x) > 0);
       const has = (iso) => bookable(iso).length > 0;
       const day = b.day && days.includes(b.day) ? b.day : days.find(has) || TODAY;
       const list = items.filter((i) => i.date === day);
@@ -575,7 +575,7 @@
           <div class="day-strip" role="group" aria-label="${t("b.pickDay")}">${days.map((iso, i) => {
             const d = at(iso, "12:00");
             const showMonth = i === 0 || iso.endsWith("-01");
-            // One dot per class that day (max 3), today included, as in the app Agenda; today is named instead (finding 3).
+            // One dot per class that can still be booked (max 3), today included; today is also named (finding 3, owner round 3).
             const n = bookable(iso).length;
             const count = t(b.mode === "group" ? "b.classCount" : "b.gymCount", { n });
             return `<button type="button" class="day-chip${has(iso) ? "" : " is-empty"}${iso === TODAY ? " is-today" : ""}" data-act="b-day" data-v="${iso}" aria-pressed="${iso === day}" aria-label="${iso === TODAY ? `${t("b.today")}, ` : ""}${ucfirst(dayLong(d))}: ${count}">
@@ -594,7 +594,7 @@
               return `<li><button type="button" class="class-card" data-act="b-pick" data-id="${occ.id}" ${full || cancelled ? "disabled" : ""}>
                   <span class="class-time"><span class="t-num">${time(startOf(occ))}</span><span class="class-end">${duration(occ)}</span></span>
                   <span class="class-body">
-                    <span class="class-head">${typeChip(occ.kind)}<span class="class-title">${esc(occ.title)}</span></span>
+                    <span class="class-head"><span class="class-title">${esc(occ.title)}</span></span>
                     ${CLASS_DESCRIPTIONS[occ.title] ? `<span class="class-desc" lang="nl">${esc(CLASS_DESCRIPTIONS[occ.title])}</span>` : ""}
                     ${occ.trainer ? `<span class="class-meta">${icon("user", "ico--sm")}<span class="sr-only">${t("o.trainer")}: </span>${TRAINERS[occ.trainer].name}</span>`
                       : occ.kind === "group" ? `<span class="class-meta">${icon("user", "ico--sm")}${t("b.trainerTbc")}</span>` : ""}

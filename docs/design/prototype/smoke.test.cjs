@@ -1064,7 +1064,10 @@ test('F1: session types show emoji and label together on app, booking, owner cal
       await page.locator('[data-act="home"]').click();
     }
     await startFlow(page, '1');
-    await assertAllMarkers(page, '.class-list', lang, 'booking list');
+    // The Groepslessen / Open Gym tab already says what the list shows (owner round 3): no chip on list cards.
+    assert.ok(await page.locator('.class-list .class-card').count() > 0);
+    assert.equal(await page.locator('.class-list .chip--private, .class-list .chip--group, .class-list .chip--open-gym, .class-list .chip-ico').count(), 0,
+      'booking list cards carry no type chip');
     await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
     await assertAllMarkers(page, '.pub', lang, 'booking form');
     await page.locator('#b-name').fill('Demo Guest');
@@ -1168,26 +1171,60 @@ test('F2: app + menu rows share one structure, and a touch hover never greys the
   await context.close();
 });
 
-test('F3: booking date strip shows one dot per class on every day, today included, like the app Agenda', async () => {
-  for (const lang of ['nl', 'en']) {
+// Owner round 3: dots count the classes that day that can still be booked (not full, not cancelled), at most 3.
+test('F3: booking date strip shows one dot per bookable class on every day, today included', async () => {
+  for (const [lang, today, wed] of [['nl', /vandaag.*2 lessen met plek/i, /: 1 les met plek$/], ['en', /today.*2 classes with spots left/i, /: 1 class with spots left$/]]) {
     const { page, errors } = await pageFor(1);
     await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
     const dots = (iso) => page.locator(`.day-chip[data-v="${iso}"] .day-dots i`).count();
-    assert.equal(await dots('2026-09-23'), 2, 'Wed 23: Bootcamp and Kettlebell');
-    assert.equal(await dots('2026-09-24'), 2, 'Thu 24: Bootcamp and Strength');
+    assert.equal(await dots('2026-09-23'), 1, 'Wed 23: Bootcamp is full (12/12), so only Kettlebell adds a dot');
+    assert.match(await page.locator('.day-chip[data-v="2026-09-23"]').getAttribute('aria-label'), wed);
+    assert.equal(await dots('2026-09-24'), 2, 'Thu 24: Bootcamp and Strength both have spots');
     assert.equal(await dots('2026-09-22'), 2, 'today keeps its dots');
-    const today = page.locator('.day-chip[data-v="2026-09-22"]');
-    assert.equal((await today.locator('.dc-wd').innerText()).trim(), lang === 'nl' ? 'Vandaag' : 'Today', 'today is named, not dot-less');
-    assert.match(await today.getAttribute('aria-label'), lang === 'nl' ? /vandaag.*2 lessen/i : /today.*2 classes/i);
+    const chip = page.locator('.day-chip[data-v="2026-09-22"]');
+    assert.equal((await chip.locator('.dc-wd').innerText()).trim(), lang === 'nl' ? 'Vandaag' : 'Today', 'today is named, not dot-less');
+    assert.match(await chip.getAttribute('aria-label'), today);
     for (const mode of ['group', 'openGym']) {
       await page.locator(`[data-act="b-mode"][data-v="${mode}"]`).click();
       for (let i = 0; i < 7; i++) {
         const iso = `2026-09-${22 + i}`;
         const n = await dots(iso);
         await page.locator(`.day-chip[data-v="${iso}"]`).click();
-        assert.equal(n, Math.min(3, await page.locator('.class-list > li').count()), `${mode} ${iso}: one dot per class`);
+        assert.equal(n, Math.min(3, await page.locator('.class-list [data-act="b-pick"]:not([disabled])').count()), `${mode} ${iso}: one dot per bookable class`);
       }
     }
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
+test('F3: a day whose classes are all full shows no dots and is dimmed, but still opens to show them as full', async () => {
+  for (const [lang, full, none] of [['nl', 'Vol', /: 0 Open Gym-momenten met plek$/], ['en', 'Full', /: 0 Open Gym slots with spots left$/]]) {
+    const { page, errors } = await pageFor(1);
+    await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
+    await page.locator('[data-act="b-mode"][data-v="openGym"]').click();
+    const fri = page.locator('.day-chip[data-v="2026-09-25"]');
+    assert.equal(await fri.locator('.day-dots i').count(), 1, 'Fri 25: one Open Gym spot left');
+    await fri.click();
+    await page.locator('[data-act="b-pick"][data-id="o-og25"]').click();
+    await page.locator('#b-name').fill('Demo Guest');
+    await page.locator('#b-email').fill('demo@example.com');
+    await page.locator('[data-form="booking"] button[type="submit"]').click();
+    await page.locator('[data-act="b-open-mail"]').click();
+    await page.locator('[data-act="b-mail-link"]').click();
+    await page.locator('[data-act="b-confirm"]').click();
+    await page.locator('[data-act="b-no-account"]').click();
+    await page.locator('[data-act="b-restart"]').click();
+    const chip = page.locator('.day-chip[data-v="2026-09-25"]');
+    assert.equal(await chip.locator('.day-dots i').count(), 0, `${lang}: no dots when every class that day is full`);
+    assert.match(await chip.getAttribute('class'), /\bis-empty\b/, `${lang}: dimmed like an empty day`);
+    assert.match(await chip.getAttribute('aria-label'), none);
+    assert.ok(await chip.isEnabled(), 'still tappable');
+    await chip.click();
+    assert.equal(await chip.getAttribute('aria-pressed'), 'true');
+    const card = page.locator('[data-act="b-pick"][data-id="o-og25"]');
+    assert.ok(await card.isDisabled(), 'the full class is listed but cannot be booked');
+    assert.ok((await card.innerText()).includes(full));
     assert.deepEqual(errors, []);
     await page.close();
   }
@@ -1540,7 +1577,7 @@ test('F7, F10: closing the change-email and new-exercise forms returns focus to 
 });
 
 test('F3: a day whose classes the owner all cancelled is dimmed and shows no dots', async () => {
-  for (const [lang, none] of [['nl', /: 0 lessen$/], ['en', /: 0 classes$/]]) {
+  for (const [lang, none] of [['nl', /: 0 lessen met plek$/], ['en', /: 0 classes with spots left$/]]) {
     const { page, errors } = await pageFor(3, { width: 1280, height: 800 });
     await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).first().click();
     for (let i = 0; i < 2; i++) await page.locator('[data-act="w-step"][data-v="1"]').click();
