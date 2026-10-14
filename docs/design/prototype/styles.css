@@ -188,6 +188,9 @@ button.row:active { background: var(--color-bg-subtle); }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field-label { font-size: var(--typography-subhead-font-size); font-weight: var(--font-weight-semibold); }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+/* Optional English class name and description (owner round 3): one quiet group under the Dutch fields. */
+.field-group { display: flex; flex-direction: column; gap: var(--space-3); margin: 0; padding: var(--space-3); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); }
+.field-group > legend { padding: 0 var(--space-1); }
 .input, .field input, .search input {
   width: 100%; min-width: 0; min-height: var(--size-touch-min); padding: var(--space-3);
   font-size: var(--input-font-size, 17px); /* never below 16px on touch: stops iOS Safari from zooming on focus */

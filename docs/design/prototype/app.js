@@ -75,14 +75,35 @@
   const LAST_NOTE = {
     mark: { date: "2026-09-15", text: "Laatste set bankdrukken was zwaar.\nVolgende keer zelfde gewicht houden." },
   };
-  // Class template descriptions (PRODUCT.md §18): owner-written, shown exactly as entered in every UI language,
-  // never translated (§3; flows/01 PB-02). Synthetic Dutch text.
-  const CLASS_DESCRIPTIONS = {
-    Bootcamp: "Buiten als het kan: kracht en conditie in korte circuits. Alles is te schalen, dus voor elk niveau.",
-    Strength: "Kracht in een kleine groep: squat, deadlift en drukken, met aandacht voor techniek. Voor alle niveaus.",
-    Kettlebell: "Swings, cleans en presses met de kettlebell. Eerst rustig de techniek, daarna voeren we het tempo op.",
-    Mobility: "Rustige les voor soepele heupen, schouders en rug. Fijn na een dag achter je bureau.",
-    "Core & Mobility": "Een sterke romp en soepele heupen in 45 minuten. Zonder zware gewichten.",
+  // Class templates (PRODUCT.md §3, §18): the owner types the name and description in Dutch and, optionally, English.
+  // Viewers see their language, else the Dutch text; nothing is translated automatically. Kettlebell has no English
+  // version, to show the fallback. Synthetic text, keyed by the template id that occurrences carry as `tpl`.
+  const CLASS_SEED = {
+    Bootcamp: {
+      name: { nl: "Bootcamp", en: "Bootcamp" },
+      desc: { nl: "Buiten als het kan: kracht en conditie in korte circuits. Alles is te schalen, dus voor elk niveau.",
+        en: "Outdoors when we can: strength and conditioning in short circuits. Everything scales, so every level is welcome." },
+    },
+    Strength: {
+      name: { nl: "Strength", en: "Strength" },
+      desc: { nl: "Kracht in een kleine groep: squat, deadlift en drukken, met aandacht voor techniek. Voor alle niveaus.",
+        en: "Strength in a small group: squats, deadlifts and presses, with attention to technique. For all levels." },
+    },
+    Kettlebell: {
+      name: { nl: "Kettlebell" },
+      desc: { nl: "Swings, cleans en presses met de kettlebell. Eerst rustig de techniek, daarna voeren we het tempo op." },
+    },
+    Mobility: {
+      name: { nl: "Mobiliteit", en: "Mobility" },
+      desc: { nl: "Rustige les voor soepele heupen, schouders en rug. Fijn na een dag achter je bureau.",
+        en: "A calm class for supple hips, shoulders and back. Just right after a day at your desk." },
+    },
+    "Core & Mobility": {
+      name: { nl: "Core & mobiliteit", en: "Core & Mobility" },
+      desc: { nl: "Een sterke romp en soepele heupen in 45 minuten. Zonder zware gewichten.",
+        en: "A strong core and supple hips in 45 minutes. No heavy weights." },
+    },
+    "Open Gym": { name: { nl: "Open Gym", en: "Open Gym" } },
   };
   // Exercise library (PRODUCT.md §38): Dutch and English names, extra search aliases, weight step in kg.
   const EXERCISES = {
@@ -133,8 +154,8 @@
   function fresh() {
     const priv = (id, client, trainer, ws, loc, date, start, end, extra = {}) =>
       ({ id, kind: "private", client, trainer, ws, loc, date, start, end, status: "booked", workout: "", ...extra });
-    const cls = (id, kind, title, ws, date, start, end, cap, trainer, booked, extra = {}) => ({
-      id, kind, title, ws, loc: WS[ws].loc, date, start, end, cap, trainer, origTrainer: null, status: "scheduled",
+    const cls = (id, kind, tpl, ws, date, start, end, cap, trainer, booked, extra = {}) => ({
+      id, kind, tpl, ws, loc: WS[ws].loc, date, start, end, cap, trainer, origTrainer: null, status: "scheduled",
       attendees: Array.from({ length: booked }, (_, i) => PEOPLE[(id.length * 3 + i) % PEOPLE.length]).map((p, i) =>
         ({ id: `${id}-a${i}`, name: p[0], lang: p[1], guest: p[2], status: "booked" })),
       ...extra,
@@ -172,6 +193,7 @@
       ],
       agenda: { date: TODAY, view: "week" },
       templates: JSON.parse(JSON.stringify(TEMPLATE_SEED)),
+      classTpl: JSON.parse(JSON.stringify(CLASS_SEED)),
       assigned: JSON.parse(JSON.stringify(ASSIGNED_SEED)),
       history: JSON.parse(JSON.stringify(HISTORY_SEED)),
       customEx: {},
@@ -206,7 +228,7 @@
       const monday = addDays(mondayOf(TODAY), w * 7);
       WEEKLY.forEach(([wd, kind, title, ws, start, end, cap, trainer]) => {
         const date = addDays(monday, wd);
-        if (date < TODAY || s.classes.some((c) => c.ws === ws && c.title === title && c.date === date)) return;
+        if (date < TODAY || s.classes.some((c) => c.ws === ws && c.tpl === title && c.date === date)) return;
         const booked = Math.max(0, Math.min(cap - 1, cap - 2 - w * 2 - (title.length % 3)));
         s.classes.push(cls(`g-${ws}-${title.replace(/\W+/g, "")}-${date}`, kind, title, ws, date, start, end, cap, trainer, booked));
       });
@@ -290,6 +312,15 @@
   const exDef = (id) => EXERCISES[id] || state.customEx[id];
   const exName = (id) => { const e = exDef(id); return e.custom ? esc(e.name) : e[activeLang()] || e.nl; };
   const kg = (w) => `${num(w)} kg`;
+  // A class's name or description in the viewer's language, else the owner's Dutch text, marked as Dutch (owner round 3).
+  function classText(occ, field) {
+    const v = state.classTpl[occ.tpl]?.[field] || {};
+    const lang = [activeLang(), "nl", "en"].find((l) => v[l]);
+    if (!lang) return "";
+    return lang === activeLang() ? esc(v[lang]) : `<span lang="${lang}">${esc(v[lang])}</span>`;
+  }
+  const className = (occ) => classText(occ, "name");
+  const classDesc = (occ) => classText(occ, "desc");
   const fold = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const initials = (name) => name.split(/\s+/).filter(Boolean).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
@@ -541,14 +572,14 @@
   }
   function classSummary(occ, { description = false } = {}) {
     const d = startOf(occ);
-    const desc = description && CLASS_DESCRIPTIONS[occ.title];
+    const desc = description && classDesc(occ);
     return `<div class="summary">
-        <div class="booking-heading">${typeChip(occ.kind)}<p class="summary-title">${esc(occ.title)}</p></div>
+        <div class="booking-heading">${typeChip(occ.kind)}<p class="summary-title">${className(occ)}</p></div>
         <p class="booking-time t-num">${range(occ)}</p>
         <p class="summary-line">${icon("calendar", "ico--sm")}<span>${ucfirst(dayLong(d))}</span></p>
         <div class="booking-facts">${occ.trainer ? fact("user", t("o.trainer"), TRAINERS[occ.trainer].name)
           : occ.kind === "group" ? `<div class="fact-row">${icon("user", "ico--sm")}<span>${t("b.trainerTbc")}</span></div>` : ""}${fact("pin", t("s.location"), locName(occ.loc))}</div>
-        ${desc ? `<p class="summary-desc" lang="nl">${esc(desc)}</p>` : ""}
+        ${desc ? `<p class="summary-desc">${desc}</p>` : ""}
       </div>`;
   }
 
@@ -594,8 +625,8 @@
               return `<li><button type="button" class="class-card" data-act="b-pick" data-id="${occ.id}" ${full || cancelled ? "disabled" : ""}>
                   <span class="class-time"><span class="t-num">${time(startOf(occ))}</span><span class="class-end">${duration(occ)}</span></span>
                   <span class="class-body">
-                    <span class="class-head"><span class="class-title">${esc(occ.title)}</span></span>
-                    ${CLASS_DESCRIPTIONS[occ.title] ? `<span class="class-desc" lang="nl">${esc(CLASS_DESCRIPTIONS[occ.title])}</span>` : ""}
+                    <span class="class-head"><span class="class-title">${className(occ)}</span></span>
+                    ${classDesc(occ) ? `<span class="class-desc">${classDesc(occ)}</span>` : ""}
                     ${occ.trainer ? `<span class="class-meta">${icon("user", "ico--sm")}<span class="sr-only">${t("o.trainer")}: </span>${TRAINERS[occ.trainer].name}</span>`
                       : occ.kind === "group" ? `<span class="class-meta">${icon("user", "ico--sm")}${t("b.trainerTbc")}</span>` : ""}
                     ${status}
@@ -679,11 +710,11 @@
       return `<div class="mail">
           <header class="mail-bar"><button type="button" class="btn btn--text" data-act="back">${icon("chevL", "ico--sm")}${t("mail.inbox")}</button></header>
           <main class="mail-main">
-            <h1 class="mail-subject" tabindex="-1">${t("mail.subject", { class: esc(occ.title) })}</h1>
+            <h1 class="mail-subject" tabindex="-1">${t("mail.subject", { class: className(occ) })}</h1>
             <div class="mail-from"><span class="pub-mark pub-mark--sm" aria-hidden="true">JG</span><div><p class="t-label">${t("mail.from", { ws: "John's Gym" })}</p><p class="t-footnote muted">${t("mail.to", { email: esc(b.email) })} · ${time(new Date(NOW.getTime() + 60000))}</p></div></div>
             <div class="mail-body">
               <p>${t("mail.hi", { name: esc(b.name.split(" ")[0]) })}</p>
-              <p>${t("mail.body", { class: `<strong>${esc(occ.title)}</strong>`, when })}</p>
+              <p>${t("mail.body", { class: `<strong>${className(occ)}</strong>`, when })}</p>
               <button type="button" class="btn btn--primary btn--lg" data-act="b-mail-link">${t("mail.button")}</button>
               <p class="t-footnote muted">${t("mail.valid")}</p>
             </div>
@@ -756,7 +787,7 @@
           ${cancelled ? `<button type="button" class="btn btn--primary btn--block btn--lg" data-act="b-restart">${t("b.otherTimes")}</button>`
             : started ? `<p class="t-subhead muted">${t("b.tooLate")}</p>`
             : b.manageConfirm ? `<div class="confirm-inline" role="group" aria-labelledby="cancel-q">
-                <p class="t-subhead" id="cancel-q" data-cancel-confirm>${t("b.cancelConfirm", { class: esc(occ.title), when })}</p>
+                <p class="t-subhead" id="cancel-q" data-cancel-confirm>${t("b.cancelConfirm", { class: className(occ), when })}</p>
                 <div class="row-actions"><button type="button" class="btn btn--danger" data-act="b-manage-cancel-yes">${t("b.cancelDo")}</button><button type="button" class="btn btn--tonal" data-act="b-manage-keep">${t("common.back")}</button></div>
               </div>`
             : `<button type="button" class="btn btn--tonal btn--block btn--danger-text" data-act="b-manage-cancel">${t("b.cancelBooking")}</button>
@@ -828,7 +859,7 @@
     const cls = state.classes.filter((c) => c.date === TODAY && (c.trainer === me || c.origTrainer === me));
     return [...privs, ...cls].sort((a, z) => startOf(a) - startOf(z));
   }
-  const itemTitle = (x) => (x.kind === "private" ? esc(CLIENTS[x.client].name) : esc(x.title));
+  const itemTitle = (x) => (x.kind === "private" ? esc(CLIENTS[x.client].name) : className(x));
   function itemMeta(x) {
     const ws = esc(WS[x.ws].name);
     const loc = locName(x.loc);
@@ -1608,7 +1639,7 @@
     shell: "app",
     render() {
       const occ = findClass(current().id);
-      return { nav: { title: esc(occ.title), large: true, back: t("today.title") }, body: occManager(occ, false) };
+      return { nav: { title: className(occ), large: true, back: t("today.title") }, body: occManager(occ, false) };
     },
   };
 
@@ -1617,7 +1648,7 @@
     const sh = state.sheet;
     if (sh.kind === "new") return newMenu();
     const occ = findClass(sh.occ);
-    const when = `${esc(occ.title)} · ${ucfirst(dayLong(startOf(occ)))} · ${time(startOf(occ))}`;
+    const when = `${className(occ)} · ${ucfirst(dayLong(startOf(occ)))} · ${time(startOf(occ))}`;
     const scopeOpts = [["this", t("o.scopeThis")], ["following", t("o.scopeFollowing")]];
     if (sh.kind === "sub") {
       const candidates = GYM_TRAINERS.filter((id) => id !== occ.trainer);
@@ -1693,7 +1724,7 @@
   const TYPE_KEYS = { private: "type.private", group: "type.group", openGym: "type.openGym" };
   function eventLabel(x) {
     const key = TYPE_KEYS[x.kind];
-    const name = x.kind === "private" ? esc(CLIENTS[x.client].first) : esc(x.title);
+    const name = x.kind === "private" ? esc(CLIENTS[x.client].first) : className(x);
     return `<span class="ev-ico" aria-hidden="true">${t(key + "Icon")}</span><span class="sr-only">${t(key)} · </span>${name}`;
   }
   function eventCls(x) {
@@ -1807,7 +1838,7 @@
   }
   // Group class and Open Gym: web panel and app modal share this form. A weekly series repeats on the same weekday (PRODUCT.md §20).
   function newOccModel(kind, ws) {
-    return { kind, ws, title: "", date: shellOf(current().s) === "web" ? state.web.date : TODAY, start: kind === "group" ? "18:00" : "12:00",
+    return { kind, ws, title: "", titleEn: "", desc: "", descEn: "", date: shellOf(current().s) === "web" ? state.web.date : TODAY, start: kind === "group" ? "18:00" : "12:00",
       end: kind === "group" ? "19:00" : "13:00", cap: kind === "group" ? 8 : 2, trainer: kind === "group" && WS[ws].kind !== "gym" ? state.me : "",
       loc: WS[ws].loc || (WS_LOCS[ws] || [])[0], repeat: "none", errors: {} };
   }
@@ -1818,7 +1849,14 @@
     const trainers = gym ? GYM_TRAINERS : [state.me];
     return `<form data-form="new-occurrence" novalidate class="form">
         ${manageWorkspaces().length > 1 && shellOf(current().s) === "app" ? `<p class="t-footnote muted">${esc(WS[m.ws].name)}</p>` : ""}
-        ${group ? field("occ-title", t("w.className"), `<input id="occ-title" class="input" value="${esc(m.title)}" required>`, m.errors.title ? t("w.classNameRequired") : "") : ""}
+        ${group ? `${field("occ-title", t("w.className"), `<input id="occ-title" class="input" value="${esc(m.title)}" required>`, m.errors.title ? t("w.classNameRequired") : "")}
+          ${field("occ-desc", t("w.classDesc"), `<textarea id="occ-desc" class="input" rows="2">${esc(m.desc)}</textarea>`)}
+          <fieldset class="field-group">
+            <legend class="field-label">${t("w.englishVersion")}</legend>
+            <p class="t-footnote muted" data-en-hint>${t("w.englishHint")}</p>
+            ${field("occ-title-en", t("w.classNameEn"), `<input id="occ-title-en" class="input" lang="en" value="${esc(m.titleEn)}">`)}
+            ${field("occ-desc-en", t("w.classDescEn"), `<textarea id="occ-desc-en" class="input" lang="en" rows="2">${esc(m.descEn)}</textarea>`)}
+          </fieldset>` : ""}
         <div class="field-row">
           ${field("occ-date", t("p.date"), `<input id="occ-date" class="input" type="date" value="${m.date}" required>`)}
           ${field("occ-start", t("w.start"), `<input id="occ-start" class="input" type="time" value="${m.start}" required>`)}
@@ -1842,6 +1880,9 @@
     const m = state.newOcc;
     const v = (id) => root.querySelector("#" + id)?.value;
     if (v("occ-title") != null) m.title = v("occ-title").trim();
+    if (v("occ-title-en") != null) m.titleEn = v("occ-title-en").trim();
+    if (v("occ-desc") != null) m.desc = v("occ-desc").trim();
+    if (v("occ-desc-en") != null) m.descEn = v("occ-desc-en").trim();
     ["date", "start", "end", "loc", "repeat"].forEach((k) => { if (v("occ-" + k) != null) m[k] = v("occ-" + k); });
     if (v("occ-cap") != null) m.cap = Number(v("occ-cap"));
     if (v("occ-trainer") != null) m.trainer = v("occ-trainer") || null;
@@ -1888,7 +1929,7 @@
     }
     return `<div class="panel-scrim" data-act="w-close"></div>
       <aside class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-h">
-        <header class="panel-head"><h2 class="t-title2" id="panel-h" tabindex="-1">${w.panelMode === "pick" ? t("w.new") : w.panelMode === "create" ? t("p.newTitle") : w.panelMode === "create-client" ? t("c.new") : w.panelMode === "create-group" ? t("w.newClass") : w.panelMode === "create-openGym" ? t("w.newGym") : x.kind === "private" ? esc(CLIENTS[x.client].name) : esc(x.title)}</h2>
+        <header class="panel-head"><h2 class="t-title2" id="panel-h" tabindex="-1">${w.panelMode === "pick" ? t("w.new") : w.panelMode === "create" ? t("p.newTitle") : w.panelMode === "create-client" ? t("c.new") : w.panelMode === "create-group" ? t("w.newClass") : w.panelMode === "create-openGym" ? t("w.newGym") : x.kind === "private" ? esc(CLIENTS[x.client].name) : className(x)}</h2>
           <button type="button" class="btn btn--icon btn--ghost" data-act="w-close" aria-label="${t("common.close")}">${icon("x")}</button></header>
         <div class="panel-body">${body}</div>
       </aside>`;
@@ -2420,7 +2461,7 @@
       const sh = state.sheet;
       const occ = findClass(sh.occ);
       const targets = sh.scope === "following"
-        ? state.classes.filter((c) => c.title === occ.title && c.ws === occ.ws && c.start === occ.start && c.date >= occ.date)
+        ? state.classes.filter((c) => c.tpl === occ.tpl && c.ws === occ.ws && c.start === occ.start && c.date >= occ.date)
         : [occ];
       targets.forEach((c) => { if (!c.origTrainer && c.trainer) c.origTrainer = c.trainer; c.trainer = sh.pick; if (c.origTrainer === c.trainer) c.origTrainer = null; });
       const name = TRAINERS[sh.pick].name;
@@ -2432,7 +2473,7 @@
       const sh = state.sheet;
       const occ = findClass(sh.occ);
       const targets = sh.scope === "following"
-        ? state.classes.filter((c) => c.title === occ.title && c.ws === occ.ws && c.start === occ.start && c.date >= occ.date)
+        ? state.classes.filter((c) => c.tpl === occ.tpl && c.ws === occ.ws && c.start === occ.start && c.date >= occ.date)
         : [occ];
       targets.forEach((c) => { c.status = "cancelled"; });
       state.sheet = null;
@@ -2685,8 +2726,15 @@
       m.errors = { title: m.kind === "group" && !m.title, end: !m.date || !m.start || !m.end || m.end <= m.start, cap: !Number.isInteger(m.cap) || m.cap < 1 || m.cap > 99 };
       if (Object.values(m.errors).some(Boolean)) { render(); return; }
       const base = `o-new-${Date.now()}`;
+      // The class template keeps the owner's Dutch text and the optional English version, exactly as typed.
+      let tpl = "Open Gym";
+      if (m.kind === "group") {
+        tpl = `ct-${base}`;
+        const both = (nl, en) => Object.fromEntries(Object.entries({ nl, en }).filter(([, text]) => text));
+        state.classTpl[tpl] = { name: both(m.title, m.titleEn), desc: both(m.desc, m.descEn) };
+      }
       const dates = m.repeat === "weekly" ? Array.from({ length: 8 }, (_, i) => addDays(m.date, i * 7)) : [m.date];
-      dates.forEach((date, i) => state.classes.push({ id: i ? `${base}-${i}` : base, kind: m.kind, title: m.kind === "openGym" ? "Open Gym" : m.title,
+      dates.forEach((date, i) => state.classes.push({ id: i ? `${base}-${i}` : base, kind: m.kind, tpl,
         ws: m.ws, loc: WS[m.ws].loc || m.loc, date, start: m.start, end: m.end,
         cap: m.cap, trainer: m.kind === "group" ? m.trainer || null : null, origTrainer: null, status: "scheduled", attendees: [] }));
       const createdKind = m.kind;

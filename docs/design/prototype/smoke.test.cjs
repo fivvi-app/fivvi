@@ -1292,13 +1292,18 @@ test('F5: list rows show start time and localized duration; details keep the ful
   }
 });
 
-test('F6: class descriptions are shown as entered: one truncated line on the list, in full on the booking form', async () => {
-  const strength = 'Kracht in een kleine groep: squat, deadlift en drukken, met aandacht voor techniek. Voor alle niveaus.';
+test('F6: class descriptions are shown as the owner typed them: one truncated line on the list, in full on the booking form', async () => {
+  // Owner round 3: the owner may type an English version; nothing is translated automatically.
+  const descriptions = {
+    nl: 'Kracht in een kleine groep: squat, deadlift en drukken, met aandacht voor techniek. Voor alle niveaus.',
+    en: 'Strength in a small group: squats, deadlifts and presses, with attention to technique. For all levels.',
+  };
   for (const lang of ['nl', 'en']) {
+    const strength = descriptions[lang];
     const { page, errors } = await pageFor(1);
     await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
     const desc = page.locator('[data-act="b-pick"][data-id="o-str22"] .class-desc');
-    assert.equal(await desc.textContent(), strength, `${lang}: user content is never translated`);
+    assert.equal(await desc.textContent(), strength, `${lang}: the owner's own text for this language`);
     const line = await desc.evaluate((el) => ({
       lines: Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)),
       truncated: el.scrollWidth > el.clientWidth + 1,
@@ -1595,6 +1600,116 @@ test('F3: a day whose classes the owner all cancelled is dimmed and shows no dot
     assert.match(await thu.getAttribute('aria-label'), none);
     const wed = page.locator('.day-chip[data-v="2026-09-23"]');
     assert.doesNotMatch(await wed.getAttribute('class'), /\bis-empty\b/, 'other days stay bookable');
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
+// ---------------------------------------------------------------- owner round 3 (14 October 2026)
+
+const MOBILITY = { nl: 'Mobiliteit', en: 'Mobility' };
+const CORE = { nl: 'Core & mobiliteit', en: 'Core & Mobility' };
+const KETTLEBELL_NL = 'Swings, cleans en presses met de kettlebell. Eerst rustig de techniek, daarna voeren we het tempo op.';
+
+test('R3: class names and descriptions follow the viewer language; a class without English falls back to Dutch', async () => {
+  for (const lang of ['nl', 'en']) {
+    const { page, errors } = await pageFor(1);
+    await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
+    const card = (id) => page.locator(`[data-act="b-pick"][data-id="${id}"]`);
+    assert.equal(await card('o-mob22').locator('.class-title').innerText(), MOBILITY[lang], `${lang}: list name`);
+    await page.locator('.day-chip[data-v="2026-09-23"]').click();
+    assert.equal(await card('o-kb23').locator('.class-title').innerText(), 'Kettlebell');
+    assert.equal(await card('o-kb23').locator('.class-desc').textContent(), KETTLEBELL_NL, `${lang}: no English, so the Dutch description`);
+    assert.equal(await card('o-kb23').locator('.class-desc [lang="nl"]').count(), lang === 'en' ? 1 : 0, 'only the Dutch fallback in EN is marked as Dutch');
+    await card('o-kb23').click();
+    assert.equal(await page.locator('.summary-title').innerText(), 'Kettlebell');
+    assert.equal(await page.locator('.summary-desc').innerText(), KETTLEBELL_NL, `${lang}: form falls back to Dutch`);
+    await page.locator('[data-act="back"]').first().click();
+    await page.locator('.day-chip[data-v="2026-09-22"]').click();
+    await card('o-mob22').click();
+    assert.equal(await page.locator('.summary-title').innerText(), MOBILITY[lang], `${lang}: form name`);
+    const other = lang === 'nl' ? 'en' : 'nl';
+    await page.locator(`.pub-lang [data-act="set-lang"][data-v="${other}"]`).click();
+    assert.equal(await page.locator('.summary-title').innerText(), MOBILITY[other], 'the toggle switches the name live');
+    await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
+    await page.locator('#b-name').fill('Demo Guest');
+    await page.locator('#b-email').fill('demo@example.com');
+    await page.locator('[data-form="booking"] button[type="submit"]').click();
+    await page.locator('[data-act="b-open-mail"]').click();
+    assert.ok((await page.locator('.mail-subject').innerText()).includes(MOBILITY[lang]), `${lang}: verification email`);
+    await page.locator('[data-act="b-mail-link"]').click();
+    assert.equal(await page.locator('.summary-title').innerText(), MOBILITY[lang], `${lang}: check step`);
+    await page.locator('[data-act="b-confirm"]').click();
+    assert.equal(await page.locator('.summary-title').innerText(), MOBILITY[lang], `${lang}: confirmation`);
+    await page.locator('[data-act="b-manage"]').click();
+    assert.equal(await page.locator('.summary-title').innerText(), MOBILITY[lang], `${lang}: manage`);
+    await page.locator('[data-act="home"]').click();
+    for (const platform of ['ios', 'android']) {
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      await startFlow(page, '2');
+      assert.equal(await page.locator('.agenda-list [data-id="o-core22"] .row-title').innerText(), CORE[lang], `${lang}/${platform}: Today`);
+      await page.locator('[data-act="tab"][data-v="calendar"]').click();
+      assert.equal(await page.locator('.content .list [data-id="o-core22"] .row-title').innerText(), CORE[lang], `${lang}/${platform}: Agenda`);
+      await page.locator('.content .list [data-id="o-core22"]').click();
+      assert.ok((await page.locator('.nav').innerText()).includes(CORE[lang]), `${lang}/${platform}: class detail and attendance`);
+      await page.locator('[data-act="home"]').click();
+    }
+    await startFlow(page, '3');
+    assert.ok((await page.locator('.cal .ev[data-id="o-mob22"] .ev-title').innerText()).includes(MOBILITY[lang]), `${lang}: owner calendar block`);
+    await page.locator('.cal .ev[data-id="o-mob22"]').click();
+    assert.equal((await page.locator('#panel-h').innerText()).trim(), MOBILITY[lang], `${lang}: owner panel`);
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
+test('R3: the owner adds an optional English name and description when creating a group class, on web and in the app', async () => {
+  for (const lang of ['nl', 'en']) {
+    const { page, errors } = await pageFor(3, { width: 1280, height: 800 });
+    await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).first().click();
+    await page.locator('[data-act="w-new"]').click();
+    await page.locator('[data-act="w-pick"][data-v="group"]').click();
+    assert.ok(await page.locator('[data-en-hint]').isVisible(), `${lang}: a short hint says English is optional`);
+    await page.locator('#occ-title').fill('Buikspieren');
+    await page.locator('#occ-desc').fill('Korte les voor een sterke buik.');
+    await page.locator('#occ-title-en').fill('Abs');
+    await page.locator('#occ-desc-en').fill('A short class for strong abs.');
+    await page.locator('#occ-start').fill('13:00');
+    await page.locator('#occ-end').fill('14:00');
+    await page.locator('[data-form="new-occurrence"] button[type="submit"]').click();
+    assert.equal((await page.locator('#panel-h').innerText()).trim(), lang === 'nl' ? 'Buikspieren' : 'Abs');
+    const other = lang === 'nl' ? 'en' : 'nl';
+    await page.locator(`[data-act="set-lang"][data-v="${other}"]`).first().click();
+    assert.equal((await page.locator('#panel-h').innerText()).trim(), other === 'nl' ? 'Buikspieren' : 'Abs', 'the toggle switches the name live');
+    await page.locator('[data-act="home"]').click();
+    await startFlow(page, '1');
+    await page.locator('.pub-lang [data-act="set-lang"][data-v="en"]').click();
+    const card = page.locator('.class-card', { has: page.locator('.class-title', { hasText: 'Abs' }) });
+    assert.equal(await card.locator('.class-desc').textContent(), 'A short class for strong abs.', 'visitors see the English version');
+    await page.locator('.pub-lang [data-act="set-lang"][data-v="nl"]').click();
+    assert.equal(await page.locator('.class-card', { has: page.locator('.class-title', { hasText: 'Buikspieren' }) }).locator('.class-desc').textContent(),
+      'Korte les voor een sterke buik.');
+    await page.locator('[data-act="home"]').click();
+    await page.locator('[data-act="set-me"][data-v="john"]').click();
+    for (const platform of ['ios', 'android']) {
+      await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).first().click();
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      await startFlow(page, '7');
+      await page.locator('[data-act="app-new"][data-v="group"]').click();
+      assert.ok(await page.locator('[data-en-hint]').isVisible(), `${lang}/${platform}: hint in the app form`);
+      await page.locator('#occ-title').fill('Rekken');
+      await page.locator('#occ-title-en').fill('Stretching');
+      await page.locator('[data-form="new-occurrence"] button[type="submit"]').click();
+      assert.ok((await page.locator('.nav').innerText()).includes(lang === 'nl' ? 'Rekken' : 'Stretching'), `${lang}/${platform}: created class name`);
+      await page.locator('[data-act="home"]').click();
+      await startFlow(page, '7');
+      await page.locator('[data-act="app-new"][data-v="group"]').click();
+      await page.locator('#occ-title').fill('Zonder Engels');
+      await page.locator('[data-form="new-occurrence"] button[type="submit"]').click();
+      await page.locator('[data-act="set-lang"][data-v="en"]').first().click();
+      assert.ok((await page.locator('.nav').innerText()).includes('Zonder Engels'), `${platform}: no English name falls back to Dutch`);
+      await page.locator('[data-act="home"]').click();
+    }
     assert.deepEqual(errors, []);
     await page.close();
   }
