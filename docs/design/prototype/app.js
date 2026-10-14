@@ -552,9 +552,12 @@
           <div class="day-strip" role="group" aria-label="${t("b.pickDay")}">${days.map((iso, i) => {
             const d = at(iso, "12:00");
             const showMonth = i === 0 || iso.endsWith("-01");
-            return `<button type="button" class="day-chip${has(iso) ? "" : " is-empty"}" data-act="b-day" data-v="${iso}" aria-pressed="${iso === day}" aria-label="${ucfirst(dayLong(d))}">
-                <span class="dc-wd">${fmt(d, { weekday: "short" })}</span><span class="dc-num t-num">${Number(iso.slice(8))}</span>
-                <span class="dc-m">${iso === TODAY ? t("b.today").toLocaleLowerCase(locale()) : showMonth ? fmt(d, { month: "short" }) : has(iso) ? "•" : ""}</span></button>`;
+            // One dot per class that day (max 3), today included, as in the app Agenda; today is named instead (finding 3).
+            const n = items.filter((x) => x.date === iso && x.status !== "cancelled").length;
+            const count = t(b.mode === "group" ? "b.classCount" : "b.gymCount", { n });
+            return `<button type="button" class="day-chip${has(iso) ? "" : " is-empty"}${iso === TODAY ? " is-today" : ""}" data-act="b-day" data-v="${iso}" aria-pressed="${iso === day}" aria-label="${iso === TODAY ? `${t("b.today")}, ` : ""}${ucfirst(dayLong(d))}: ${count}">
+                <span class="dc-wd">${iso === TODAY ? t("b.today") : fmt(d, { weekday: "short" })}</span><span class="dc-num t-num">${Number(iso.slice(8))}</span>
+                <span class="dc-m">${showMonth ? fmt(d, { month: "short" }) : ""}</span><span class="day-dots" aria-hidden="true">${"<i></i>".repeat(Math.min(3, n))}</span></button>`;
           }).join("")}</div>
           <section class="day-group">
             <h2 class="t-caption section-label">${dayLabel(day)}</h2>

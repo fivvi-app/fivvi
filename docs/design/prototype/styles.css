@@ -766,6 +766,10 @@ input.stepper-value:focus-visible { outline-offset: -2px; }
 .dc-wd { font-size: var(--typography-caption-font-size); font-weight: var(--font-weight-semibold); text-transform: capitalize; }
 .dc-num { font-size: 20px; line-height: 24px; font-weight: var(--font-weight-bold); }
 .dc-m { font-size: 11px; line-height: 12px; min-height: 12px; }
+/* One dot per class, today included; today is named in the weekday slot (phone-test finding 3). */
+.day-chip { min-width: 56px; width: auto; padding: 4px 4px 6px; }
+.day-chip .day-dots { min-height: 4px; margin-top: 2px; }
+.day-chip[aria-pressed="true"] .day-dots i { background: currentColor; }
 .btn--next-day { align-self: flex-start; margin: var(--space-2) 0 0 calc(-1 * var(--space-3)); }
 
 /* Calm hierarchy: size and spacing lead; only headings/results use semibold. */

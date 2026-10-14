@@ -1134,3 +1134,28 @@ test('F2: app + menu rows share one structure, and a touch hover never greys the
   assert.deepEqual(errors, []);
   await context.close();
 });
+
+test('F3: booking date strip shows one dot per class on every day, today included, like the app Agenda', async () => {
+  for (const lang of ['nl', 'en']) {
+    const { page, errors } = await pageFor(1);
+    await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
+    const dots = (iso) => page.locator(`.day-chip[data-v="${iso}"] .day-dots i`).count();
+    assert.equal(await dots('2026-09-23'), 2, 'Wed 23: Bootcamp and Kettlebell');
+    assert.equal(await dots('2026-09-24'), 2, 'Thu 24: Bootcamp and Strength');
+    assert.equal(await dots('2026-09-22'), 2, 'today keeps its dots');
+    const today = page.locator('.day-chip[data-v="2026-09-22"]');
+    assert.equal((await today.locator('.dc-wd').innerText()).trim(), lang === 'nl' ? 'Vandaag' : 'Today', 'today is named, not dot-less');
+    assert.match(await today.getAttribute('aria-label'), lang === 'nl' ? /vandaag.*2 lessen/i : /today.*2 classes/i);
+    for (const mode of ['group', 'openGym']) {
+      await page.locator(`[data-act="b-mode"][data-v="${mode}"]`).click();
+      for (let i = 0; i < 7; i++) {
+        const iso = `2026-09-${22 + i}`;
+        const n = await dots(iso);
+        await page.locator(`.day-chip[data-v="${iso}"]`).click();
+        assert.equal(n, Math.min(3, await page.locator('.class-list > li').count()), `${mode} ${iso}: one dot per class`);
+      }
+    }
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
