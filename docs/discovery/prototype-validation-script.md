@@ -186,7 +186,7 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
   - [ ] Finds **+ Set** under the exercise if an extra set is needed.
   - [ ] Understands the fields of a non-weight exercise type (reps only, time or distance + time), if one is shown.
   - [ ] Can do it one-handed; the tap targets are big enough.
-  - [ ] Finds the difficulty options (Makkelijk / Normaal / Zwaar).
+  - [ ] Finds *Hoe ging het?* under the exercise (Makkelijk / Normaal / Zwaar).
   - [ ] Time per set: ____ s (it should fit between sets).
 
 **Task 5.2** Voeg voor jezelf en de andere trainers een interne notitie toe: **"Volgende keer zelfde gewicht."** Rond de training af.\

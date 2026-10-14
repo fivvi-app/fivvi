@@ -1197,7 +1197,7 @@ Cable Row
 3 × 10
 ```
 
-A logged workout can be saved as a new template when the trainer finishes it. This turns a workout built on the fly into one that can be reused.
+A logged workout can be saved as a new template when the trainer finishes it. This turns a workout built on the fly into one that can be reused. When a workout from a template was changed, finishing offers to save it as a new template; the original template stays as it was.
 
 ---
 
@@ -1226,8 +1226,8 @@ During the workout:
 - each set shows its previous value and fields for today, set by the exercise type (§38);
 - each set is prefilled (today's previous set, else last time's same set, else the target) and logged with one tap;
 - the trainer can edit a set's values directly in its row;
-- each exercise can get extra sets, prefilled from its last set; an unlogged extra set can be removed;
-- difficulty is asked once per exercise and defaults to Normal;
+- each exercise can get extra sets, prefilled from its last set; any unlogged set can be removed, also one from a template, and so can a whole exercise (after a confirmation when it has logged sets);
+- difficulty is asked once per exercise, under each exercise ("how was it?"), and defaults to Normal;
 - the logger shows the elapsed workout time.
 
 The finished workout records its duration.

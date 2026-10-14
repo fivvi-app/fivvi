@@ -4,7 +4,7 @@
 
 > **Updated 23 September 2026 (prototype feedback, `ROADMAP` v1.11).** A workout never needs a prior plan. WL-01 puts *Lege training* first and adds *Vorige training herhalen* (F051, moved from Release 1.1). Sets are prefilled and logged with one tap on their check. WL-05 can save the workout as a template. A workout can also start from a client profile without a planned session.
 >
-> **Updated 14 October 2026 (owner, `ROADMAP` v1.14).** WL-02 is now the logger: one scrolling list with every exercise and its sets, editable in the row. WL-03 is merged into it; the per-exercise screen and its stepper dock are gone. Every exercise has a type that decides its set fields (`§38`); WL-04 asks for it.
+> **Updated 14 October 2026 (owner, `ROADMAP` v1.14).** WL-02 is now the logger: one scrolling list with every exercise and its sets, editable in the row. WL-03 is merged into it; the per-exercise screen and its stepper dock are gone. Every exercise has a type that decides its set fields (`§38`); WL-04 asks for it. Later that day the owner added: any unlogged set and any exercise can be removed, also from a template (a changed template is offered as a new one on WL-05), and every exercise asks *Hoe ging het?*.
 
 | | |
 |---|---|
@@ -51,7 +51,7 @@ flowchart TD
   sync -- "ja" --> synced["✓ Opgeslagen"]
   sync -- "nee" --> queued["Wacht op verbinding (n)<br/>WL-07"] -. "later" .-> synced
   log -- "volgende set" --> log
-  log -- "eerste set gelogd" --> diff["Hoe zwaar was het?<br/>Makkelijk · Normaal · Zwaar"]
+  wl02 -- "per oefening" --> diff["Hoe ging het?<br/>😌 Makkelijk · 🙂 Normaal · 🥵 Zwaar"]
   wl02 -- "Afronden" --> wl05["WL-05 Training afronden<br/>interne notitie · opslaan als schema · aanwezig"]
   wl05 --> hist["Geschiedenis (F045)<br/>'Vorige keer' voor de volgende sessie"]
   wl05 --> wl08["WL-08 Delen?<br/>bericht voor klant · voorbeeld"]
@@ -155,8 +155,9 @@ flowchart TD
 
 - **Prefill**, per row: the same values as the set just logged today; otherwise the previous workout's same set; otherwise the template target. Every row shows its prefilled value, so the trainer sees the whole plan. Most sets are **one tap** on the tick (≥ 48 pt/dp). Tapping a ticked set reopens it.
 - **Editing in the row**: tap a field; the numeric keypad opens. A changed value carries over to later sets the trainer hasn't changed or logged. Inputs are at least 44 pt/dp, with generous spacing between rows for one-handed use.
-- **+ Set** under each exercise adds a row prefilled from its last set. An unlogged extra set can be removed with its ×.
-- **Difficulty** (`§41`: *Makkelijk / Normaal / Zwaar*) is asked **once per exercise**, compact under its sets, after the first logged set ⚑ [Q30](../open-questions.md#q30). It's pre-selected *Normaal*, so it costs no tap unless it differs.
+- **+ Set** under each exercise adds a row prefilled from its last set.
+- **Removing**: every unlogged set has an × on its second line, also a set from a template; a logged set is reopened (tick again) before it can be removed. The last set of an exercise has no ×: the trainer removes the exercise instead. Each exercise has a remove button in its header; with logged sets it asks first (*{exercise} heeft {n} gelogde sets. Toch verwijderen?* · *Verwijderen* · *Terug*, focus on *Terug*). Removing sets or exercises from a template workout marks it as changed (WL-05).
+- **Difficulty** (`§41`: *Makkelijk / Normaal / Zwaar*) is asked **once per exercise**, under its sets on every card: *Hoe ging het?* with 😌 / 🙂 / 🥵 above each word (the emoji are decorative; the word is the answer) ⚑ [Q30](../open-questions.md#q30). It's pre-selected *Normaal*, so it costs no tap unless it differs. Answers are at least 44 pt/dp.
 - Each set is saved **locally first**, then synced (WL-07).
 - **+ Oefening toevoegen** ends the list (WL-04). A new exercise joins the end; focus moves to it.
 - **No fixed dock**: nothing covers the rows, also in short landscape. iOS uses inset grouped sections; Android uses cards.
@@ -175,9 +176,10 @@ flowchart TD
 | Field labels (screen readers) | {exercise}, set {n}, gewicht (kg) · herhalingen · minuten · seconden · afstand (m) | {exercise}, set {n}, weight (kg) · reps · minutes · seconds · distance (m) |
 | Tick | {exercise}, set {n} klaar · {exercise}, set {n} weer openzetten | {exercise}, set {n} done · Reopen {exercise}, set {n} |
 | Add set | + Set (Set toevoegen aan {exercise}) | + Set (Add a set to {exercise}) |
-| Remove extra set | {exercise}, set {n} verwijderen | Remove {exercise}, set {n} |
+| Remove set | {exercise}, set {n} verwijderen | Remove {exercise}, set {n} |
+| Remove exercise | {exercise} verwijderen · {exercise} heeft {n} gelogde set(s). Toch verwijderen? · Verwijderen · Terug | Remove {exercise} · {exercise} has {n} logged set(s). Remove it anyway? · Remove · Back |
 | Invalid value | Vul een getal in · Vul een heel getal in | Enter a number · Enter a whole number |
-| Difficulty (`§41`) | Hoe zwaar was het? · Makkelijk · Normaal · Zwaar | How hard was it? · Easy · Normal · Hard |
+| Difficulty (`§41`) | Hoe ging het? · 😌 Makkelijk · 🙂 Normaal · 🥵 Zwaar | How was it? · 😌 Easy · 🙂 Normal · 🥵 Hard |
 | Add exercise | + Oefening toevoegen | + Add exercise |
 | Sanity check | Klopt {value} kg? Dat is veel meer dan vorige keer ({prev} kg). [ Ja ] [ Aanpassen ] | Is {value} kg right? That's a lot more than last time ({prev} kg). [ Yes ] [ Edit ] |
 
@@ -261,7 +263,8 @@ Merged into WL-02 on 14 October 2026 (owner). The ID stays because other documen
 - The set breakdown, the shared email (EM-12) and the client profile format sets per exercise type: *60 kg × 8 · 60 kg × 8*, *Plank 0:45 × 3*, *Roeien 500 m · 1:45*, *12 herh.*
 - Exercises with no sets are listed as *Niet gedaan*. They're kept in the planned workout, but no empty set logs are created.
 - Finishing with **zero sets** asks: *Je hebt nog niets bijgehouden. Toch afronden?* Confirming closes the workout without history or a share step.
-- **Opslaan als schema** (F041) is offered when the workout didn't come from a template unchanged (empty, repeated, or exercises/sets added). It saves the logged exercises, set count and reps as a template, adds it to *Schema's van {client}*, and names the workout after it. The name defaults to the template's name or *{client} · {date}*.
+- **Opslaan als schema** (F041) is offered when the workout didn't come from a template unchanged (empty, repeated, or exercises/sets added or removed). It saves the logged exercises, set count and reps as a template, adds it to *Schema's van {client}*, and names the workout after it. The name defaults to *{client} · {date}*, or the workout's name.
+- **A changed template** is never overwritten. The screen says *Je hebt {template} aangepast.* and offers **Opslaan als nieuw schema** with *{template} blijft zoals het was.*; the name defaults to *{template} (aangepast)*.
 - After finishing, the workout becomes history (F045) and is next session's *Vorige training*. Saving alone does not share it. WL-08 can be opened now or later from the finished session.
 
 | Element | NL | EN |
@@ -274,6 +277,7 @@ Merged into WL-02 on 14 October 2026 (owner). The ID stays because other documen
 | Attendance | Aanwezigheid: Aanwezig · Wijzigen | Attendance: Attended · Change |
 | Zero sets | Je hebt nog niets bijgehouden. Toch afronden? [ Afronden ] [ Terug ] | You haven't logged anything yet. Finish anyway? [ Finish ] [ Back ] |
 | Save as template | Opslaan als schema · Dan kun je deze training later opnieuw kiezen, ook bij {client}. · Naam van het schema | Save as template · Then you can choose this workout again later, also for {client}. · Template name |
+| Changed template | Je hebt {template} aangepast. · Opslaan als nieuw schema · {template} blijft zoals het was. · {template} (aangepast) | You changed {template}. · Save as a new template · {template} stays as it was. · {template} (edited) |
 | Saved with template | Training opgeslagen. Schema {name} staat klaar. | Workout saved. Template {name} is ready. |
 | Done | Training opgeslagen. | Workout saved. |
 
@@ -328,7 +332,7 @@ Merged into WL-02 on 14 October 2026 (owner). The ID stays because other documen
 │ + Oefening toevoegen         │ 3     45 kg × 9       [       ]      [    ]                       │
 │                              │ + Set                                                             │
 │                              │                                                                   │
-│                              │ Hoe zwaar was het?   ○ Makkelijk  ● Normaal  ○ Zwaar              │
+│                              │ Hoe ging het?        ○ Makkelijk  ● Normaal  ○ Zwaar              │
 │                              │ Notitie bij deze oefening  [                                    ]  │
 └──────────────────────────────┴───────────────────────────────────────────────────────────────────┘
 ```
@@ -381,8 +385,8 @@ Merged into WL-02 on 14 October 2026 (owner). The ID stays because other documen
 | Numeric input | `.keyboardType(.decimalPad)` shows the locale's separator (`,` for nl) | `KeyboardType.Decimal`; some keyboards show only `.`, so accept both |
 | Set fields | Inline text fields in the row, ≥ 44 pt; `.decimalPad` for kg and metres, `.numberPad` for reps, minutes and seconds | Inline `OutlinedTextField`s, ≥ 48 dp; `KeyboardType.Decimal` / `KeyboardType.Number` |
 | Set done feedback | `sensoryFeedback(.success)` haptic | `HapticFeedbackConstants.CONFIRM` |
-| Remove set | Only an unlogged extra set can be removed, with its × in the row (`§41`) | Same: the × on an unlogged extra set |
-| Difficulty | Compact segmented control under the exercise's sets, ≥ 44 pt | `SingleChoiceSegmentedButtonRow` under the sets, ≥ 48 dp |
+| Remove set / exercise | × on every unlogged set and a remove button per exercise (`§41`); swipe-to-delete may be added natively | Same buttons; long-press menu may be added natively |
+| Difficulty | Segmented control *Hoe ging het?* under every exercise, emoji above each word, ≥ 44 pt | `SingleChoiceSegmentedButtonRow` under every exercise, emoji above each word, ≥ 48 dp |
 | Exercise grouping | Inset grouped section per exercise | Card per exercise |
 | Local queue | SwiftData | Room |
 | Background sync | Sync on foreground and when connectivity returns (`NWPathMonitor`); `BGTaskScheduler` best effort | `WorkManager` with a network constraint |
