@@ -176,7 +176,7 @@
       history: JSON.parse(JSON.stringify(HISTORY_SEED)),
       customEx: {},
       booking: { mode: "group", occ: null, name: "", email: "", errors: {}, holdAt: null, attId: null, confirmCancel: false,
-        changing: false, changeErr: false, emailChanged: null },
+        changing: false, changeErr: false, emailChanged: null, manageConfirm: false },
       np: null,
       mv: null,
       log: null,
@@ -715,6 +715,7 @@
           <h1 class="pub-title" tabindex="-1">${t("b.confirmedTitle")}</h1>
           <p class="lede">${t("b.confirmedMail")}</p>
           ${classSummary(occ)}
+          ${manageEntry()}
           <section class="account-offer" aria-labelledby="acc-h">
             <h2 class="t-headline" id="acc-h">${t("b.accountQ")}</h2>
             <p class="t-subhead muted">${t("b.accountWhy")}</p>
@@ -723,7 +724,42 @@
               <button type="button" class="btn btn--tonal btn--block" data-act="b-no-account">${t("b.noAccount")}</button>
             </div>
           </section>
-          <p class="t-footnote muted">${t("b.cancelHint")}</p>
+        </main>`;
+    },
+  };
+
+  // In reality the guest reaches /manage/{token} from the confirmation email (flows/01 CW-03).
+  const manageEntry = () => `<div class="manage-entry">
+      <button type="button" class="btn btn--tonal btn--block" data-act="b-manage">${icon("calendar", "ico--sm")}${t("b.manage")}${icon("chevR", "ico--sm")}</button>
+      <p class="t-footnote muted">${t("b.manageVia")}</p>
+    </div>`;
+
+  // CW-03 for a guest: the booking, cancel with a confirm step, no "modify" (flows/01; ⚑ Q09 cancel until the start).
+  SCREENS["b-manage"] = {
+    shell: "public",
+    render() {
+      const b = state.booking;
+      const occ = findClass(b.occ);
+      const att = occ.attendees.find((a) => a.id === b.attId);
+      const cancelled = !att || att.status === "cancelledByClient";
+      const started = startOf(occ) <= NOW;
+      const when = `${dayLong(startOf(occ))} ${t("b.at")} ${time(startOf(occ))}`;
+      return `${publicHeader()}
+        <main class="pub-main">
+          <h1 class="pub-title" tabindex="-1">${t("b.manageTitle")}</h1>
+          ${classSummary(occ)}
+          <p class="booking-status${cancelled ? " is-cancelled" : ""}" role="status" data-booking-status>${cancelled
+            ? `${icon("ban", "ico--sm")}<span>${t("b.cancelledTitle")}</span>`
+            : `${icon("check", "ico--sm")}<span>${t("att.booked")}</span>`}</p>
+          ${cancelled ? `<button type="button" class="btn btn--primary btn--block btn--lg" data-act="b-restart">${t("b.otherTimes")}</button>`
+            : started ? `<p class="t-subhead muted">${t("b.tooLate")}</p>`
+            : b.manageConfirm ? `<div class="confirm-inline" role="group" aria-labelledby="cancel-q">
+                <p class="t-subhead" id="cancel-q" data-cancel-confirm>${t("b.cancelConfirm", { class: esc(occ.title), when })}</p>
+                <div class="row-actions"><button type="button" class="btn btn--danger" data-act="b-manage-cancel-yes">${t("b.cancelDo")}</button><button type="button" class="btn btn--tonal" data-act="b-manage-keep">${t("common.back")}</button></div>
+              </div>`
+            : `<button type="button" class="btn btn--tonal btn--block btn--danger-text" data-act="b-manage-cancel">${t("b.cancelBooking")}</button>
+              <p class="t-footnote muted">${t("b.cancelUntil")}</p>`}
+          ${cancelled ? "" : `<p class="t-footnote muted" data-change-hint>${t("b.changeHint")}</p>`}
         </main>`;
     },
   };
@@ -736,7 +772,7 @@
         <main class="pub-main">
           <h1 class="pub-title" tabindex="-1">${t("b.doneTitle")}</h1>
           ${classSummary(occ)}
-          <p class="t-footnote muted">${t("b.cancelHint")}</p>
+          ${manageEntry()}
           <button type="button" class="btn btn--tonal btn--block" data-act="b-restart">${t("b.backToClasses")}</button>
         </main>`;
     },
@@ -2080,6 +2116,18 @@
     "b-no-account": () => reset([{ s: "hub" }, { s: "b-list" }, { s: "b-done" }]),
     "b-restart": () => { const mode = state.booking.mode; state.booking = { ...fresh().booking, mode, name: state.booking.name, email: state.booking.email }; reset([{ s: "hub" }, { s: "b-list" }]); },
     "b-retry": () => { state.booking.errors = {}; reset([{ s: "hub" }, { s: "b-list" }, { s: "b-form" }]); },
+    "b-manage": () => { state.booking.manageConfirm = false; go("b-manage"); },
+    "b-manage-cancel": () => { state.booking.manageConfirm = true; render(); root.querySelector("[data-act='b-manage-cancel-yes']")?.focus(); },
+    "b-manage-keep": () => { state.booking.manageConfirm = false; render(); },
+    "b-manage-cancel-yes": () => {
+      const b = state.booking;
+      const occ = findClass(b.occ);
+      const att = occ.attendees.find((a) => a.id === b.attId);
+      if (att && startOf(occ) > NOW) att.status = "cancelledByClient";
+      b.manageConfirm = false;
+      render();
+      root.querySelector("[data-booking-status]")?.focus?.();
+    },
     "b-cancel-ask": () => { state.booking.confirmCancel = true; render(); },
     "b-cancel-no": () => { state.booking.confirmCancel = false; render(); },
     "b-cancel-yes": () => {

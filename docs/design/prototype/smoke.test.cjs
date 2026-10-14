@@ -1300,3 +1300,47 @@ test('F7: changing the email on the check-email page moves the same hold and inv
     await page.close();
   }
 });
+
+test('F8: a guest manages a booking from the confirmation and cancelling frees the spot everywhere', async () => {
+  for (const [lang, labels] of [
+    ['nl', { manage: 'Beheer je boeking', cancel: 'Boeking annuleren', done: 'Je boeking is geannuleerd.', other: 'Andere momenten bekijken' }],
+    ['en', { manage: 'Manage booking', cancel: 'Cancel booking', done: 'Your booking has been cancelled.', other: 'See other times' }],
+  ]) {
+    const { page, errors } = await pageFor(1);
+    await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
+    assert.match(await spotsText(page, 'o-str22'), /^3 /);
+    await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
+    await page.locator('#b-name').fill('Demo Guest');
+    await page.locator('#b-email').fill('demo@example.com');
+    await page.locator('[data-form="booking"] button[type="submit"]').click();
+    await page.locator('[data-act="b-open-mail"]').click();
+    await page.locator('[data-act="b-mail-link"]').click();
+    await page.locator('[data-act="b-confirm"]').click();
+    const manage = page.locator('[data-act="b-manage"]');
+    assert.equal((await manage.innerText()).trim(), labels.manage, 'a clear entry replaces the passive sentence');
+    await manage.click();
+    assert.ok((await page.locator('.summary').innerText()).includes('Strength'));
+    assert.ok(await page.locator('[data-change-hint]').isVisible(), 'one line explains how to change the time');
+    assert.equal(await page.locator('.pub-main button', { hasText: lang === 'nl' ? /wijzig/i : /modify|change/i }).count(), 0, 'no modify action');
+    await page.locator('[data-act="b-manage-cancel"]').click();
+    assert.equal((await page.locator('[data-act="b-manage-cancel"]').count()), 0, 'confirm step replaces the button');
+    assert.ok((await page.locator('[data-cancel-confirm]').innerText()).includes('Strength'));
+    await page.locator('[data-act="b-manage-keep"]').click();
+    assert.ok(await page.locator('[data-act="b-manage-cancel"]').isVisible(), 'backing out keeps the booking');
+    await page.locator('[data-act="b-manage-cancel"]').click();
+    await page.locator('[data-act="b-manage-cancel-yes"]').click();
+    assert.ok((await page.locator('[data-booking-status]').innerText()).includes(labels.done));
+    assert.equal(await page.locator('[data-act="b-manage-cancel"]').count(), 0);
+    await page.locator('[data-act="b-restart"]', { hasText: labels.other }).click();
+    assert.match(await spotsText(page, 'o-str22'), /^3 /, 'the spot is free again');
+    await page.locator('[data-act="home"]').click();
+    await page.locator('[data-act="set-me"][data-v="sarah"]').click();
+    await startFlow(page, '2');
+    assert.equal(await page.locator('[data-id="o-str22"] .capacity-mini').innerText(), '7/10', 'app capacity is back');
+    await page.locator('[data-act="home"]').click();
+    await startFlow(page, '6');
+    assert.ok((await page.locator('.panel-body').innerText()).includes(lang === 'nl' ? '7 van 10 geboekt' : '7 of 10 booked'), 'owner panel capacity is back');
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
