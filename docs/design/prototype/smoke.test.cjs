@@ -1049,6 +1049,8 @@ test('F1: session types show emoji and label together on app, booking, owner cal
     await startFlow(page, '3');
     await assertAllMarkers(page, '.legend', lang, 'calendar legend');
     await assertAllMarkers(page, '.cal', lang, 'calendar day blocks');
+    assert.equal(await page.locator('.cal-lane-head .chip--open-gym').count(), 1, 'day view: the Open Gym lane header uses the marker');
+    await assertAllMarkers(page, '.cal-lane-head', lang, 'calendar day lane headers');
     await page.locator('[data-act="w-view"][data-v="week"]').click();
     await assertAllMarkers(page, '.cal', lang, 'calendar week blocks');
     await page.locator('[data-act="w-new"]').click();
@@ -1329,7 +1331,7 @@ test('F8: a guest manages a booking from the confirmation and cancelling frees t
     assert.ok(await page.locator('[data-act="b-manage-cancel"]').isVisible(), 'backing out keeps the booking');
     await page.locator('[data-act="b-manage-cancel"]').click();
     await page.locator('[data-act="b-manage-cancel-yes"]').click();
-    assert.ok((await page.locator('[data-booking-status]').innerText()).includes(labels.done));
+    await page.waitForFunction((done) => document.querySelector('[data-booking-status]')?.innerText.includes(done), labels.done);
     assert.equal(await page.locator('[data-act="b-manage-cancel"]').count(), 0);
     await page.locator('[data-act="b-restart"]', { hasText: labels.other }).click();
     assert.match(await spotsText(page, 'o-str22'), /^3 /, 'the spot is free again');
@@ -1408,5 +1410,124 @@ test('F10: Add exercise offers New exercise without searching; created exercises
       assert.deepEqual(errors, []);
       await page.close();
     }
+  }
+});
+
+// ---------------------------------------------------------------- self-review findings on the phone-test fixes
+
+const focusedAct = (page) => page.evaluate(() => document.activeElement?.dataset.act || document.activeElement?.tagName);
+
+async function holdSpot(page, email) {
+  await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
+  await page.locator('#b-name').fill('Demo Guest');
+  await page.locator('#b-email').fill(email);
+  await page.locator('[data-form="booking"] button[type="submit"]').click();
+}
+
+test('F7: a new hold after expiry starts without the earlier email change or an open change form', async () => {
+  for (const [lang, changed] of [['nl', /nieuwe link gestuurd/], ['en', /sent a new link/]]) {
+    const { page, errors } = await pageFor(1);
+    await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
+    await holdSpot(page, 'first.guest@example.com');
+    await page.locator('[data-act="b-wrong-email"]').click();
+    await page.locator('#b-new-email').fill('second.guest@example.com');
+    await page.locator('[data-form="change-email"] button[type="submit"]').click();
+    assert.match(await page.locator('[data-email-changed]').innerText(), changed);
+    await page.locator('[data-act="b-wrong-email"]').click();
+    assert.ok(await page.locator('#b-new-email').isVisible(), 'change form open when the hold expires');
+    await page.locator('[data-act="b-expire"]').click();
+    await page.locator('[data-act="b-retry"]').click();
+    await page.locator('#b-email').fill('third.guest@example.com');
+    await page.locator('[data-form="booking"] button[type="submit"]').click();
+    assert.ok((await page.locator('.pub-main .lede').innerText()).includes('third.guest@example.com'), 'a fresh check page');
+    assert.equal(await page.locator('[data-email-changed]').count(), 0, `${lang}: no notice from the earlier hold`);
+    assert.doesNotMatch(await page.locator('.pub-main').innerText(), changed);
+    assert.equal(await page.locator('#b-new-email').count(), 0, `${lang}: the change form starts closed`);
+    assert.ok(await page.locator('[data-act="b-wrong-email"]').isVisible());
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
+test('F8: cancel confirm starts on Back; focus returns after backing out and the cancelled status is announced', async () => {
+  for (const [lang, labels] of [
+    ['nl', { back: 'Terug', title: 'Je boeking', done: 'Je boeking is geannuleerd.' }],
+    ['en', { back: 'Back', title: 'Your booking', done: 'Your booking has been cancelled.' }],
+  ]) {
+    const { page, errors } = await pageFor(1);
+    await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
+    await holdSpot(page, 'demo@example.com');
+    await page.locator('[data-act="b-open-mail"]').click();
+    await page.locator('[data-act="b-mail-link"]').click();
+    await page.locator('[data-act="b-confirm"]').click();
+    await page.locator('[data-act="b-manage"]').click();
+
+    await page.locator('[data-act="b-manage-cancel"]').click();
+    assert.equal(await focusedAct(page), 'b-manage-keep', `${lang}: the safe option takes initial focus`);
+    assert.equal(await page.evaluate(() => document.activeElement.textContent.trim()), labels.back);
+    await page.locator('[data-act="b-manage-keep"]').click();
+    assert.equal(await focusedAct(page), 'b-manage-cancel', `${lang}: backing out returns focus to Cancel booking`);
+
+    await page.locator('[data-act="b-manage-cancel"]').click();
+    await page.evaluate(() => {
+      window.statusFills = [];
+      new MutationObserver((records) => records.forEach((r) => {
+        if (r.target.matches?.('[data-booking-status]') && r.addedNodes.length) window.statusFills.push(r.target.textContent);
+      })).observe(document.getElementById('app'), { childList: true, subtree: true });
+    });
+    await page.locator('[data-act="b-manage-cancel-yes"]').click();
+    const focused = await page.evaluate(() => ({ tag: document.activeElement.tagName, text: document.activeElement.textContent.trim() }));
+    assert.deepEqual(focused, { tag: 'H1', text: labels.title }, `${lang}: focus lands on the page heading, not <body>`);
+    await page.waitForFunction((done) => window.statusFills.some((text) => text.includes(done)), labels.done);
+    assert.equal(await page.locator('[data-booking-status][role="status"]').count(), 1, 'the live region changed after it was mounted');
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
+test('F7, F10: closing the change-email and new-exercise forms returns focus to the button that opened them', async () => {
+  for (const lang of ['nl', 'en']) {
+    const { page, errors } = await pageFor(1);
+    await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
+    await holdSpot(page, 'demo@example.com');
+    await page.locator('[data-act="b-wrong-email"]').click();
+    await page.locator('[data-act="b-change-cancel"]').click();
+    assert.equal(await focusedAct(page), 'b-wrong-email', `${lang}: change-email cancel`);
+    await page.locator('[data-act="home"]').click();
+    for (const platform of ['ios', 'android']) {
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      await startFlow(page, '5free');
+      await page.locator('[data-act="log-begin"][data-v="empty"]').click();
+      await page.locator('[data-act="log-new-ex-start"]').click();
+      await page.locator('[data-act="log-new-ex-cancel"]').click();
+      assert.equal(await focusedAct(page), 'log-new-ex-start', `${lang}/${platform}: new-exercise cancel`);
+      await page.locator('[data-act="home"]').click();
+    }
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
+test('F3: a day whose classes the owner all cancelled is dimmed and shows no dots', async () => {
+  for (const [lang, none] of [['nl', /: 0 lessen$/], ['en', /: 0 classes$/]]) {
+    const { page, errors } = await pageFor(3, { width: 1280, height: 800 });
+    await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).first().click();
+    for (let i = 0; i < 2; i++) await page.locator('[data-act="w-step"][data-v="1"]').click();
+    for (const id of ['o-boot24', 'o-str24']) {
+      await page.locator(`[data-act="w-open"][data-id="${id}"]`).click();
+      await page.locator('[data-act="open-cancel"]').click();
+      await page.locator('[data-act="cancel-confirm"]').click();
+      await page.locator('[data-act="w-close"]').last().click();
+    }
+    await page.locator('[data-act="home"]').click();
+    await startFlow(page, '1');
+    const thu = page.locator('.day-chip[data-v="2026-09-24"]');
+    assert.equal(await thu.locator('.day-dots i').count(), 0, `${lang}: no dots when every class that day is cancelled`);
+    assert.match(await thu.getAttribute('class'), /\bis-empty\b/, `${lang}: nothing bookable, so the chip is dimmed`);
+    assert.match(await thu.getAttribute('aria-label'), none);
+    const wed = page.locator('.day-chip[data-v="2026-09-23"]');
+    assert.doesNotMatch(await wed.getAttribute('class'), /\bis-empty\b/, 'other days stay bookable');
+    assert.deepEqual(errors, []);
+    await page.close();
   }
 });

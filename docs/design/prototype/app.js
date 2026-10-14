@@ -561,7 +561,9 @@
       const kind = b.mode === "group" ? "group" : "openGym";
       const items = state.classes.filter((c) => c.ws === "jg" && c.kind === kind && c.date >= TODAY).sort((a, z) => startOf(a) - startOf(z));
       const days = Array.from({ length: STRIP_DAYS }, (_, i) => addDays(TODAY, i));
-      const has = (iso) => items.some((i) => i.date === iso);
+      // Cancelled classes stay listed but are not bookable: they neither light a day nor add a dot.
+      const bookable = (iso) => items.filter((x) => x.date === iso && x.status !== "cancelled");
+      const has = (iso) => bookable(iso).length > 0;
       const day = b.day && days.includes(b.day) ? b.day : days.find(has) || TODAY;
       const list = items.filter((i) => i.date === day);
       const next = days.find((iso) => iso > day && has(iso));
@@ -574,7 +576,7 @@
             const d = at(iso, "12:00");
             const showMonth = i === 0 || iso.endsWith("-01");
             // One dot per class that day (max 3), today included, as in the app Agenda; today is named instead (finding 3).
-            const n = items.filter((x) => x.date === iso && x.status !== "cancelled").length;
+            const n = bookable(iso).length;
             const count = t(b.mode === "group" ? "b.classCount" : "b.gymCount", { n });
             return `<button type="button" class="day-chip${has(iso) ? "" : " is-empty"}${iso === TODAY ? " is-today" : ""}" data-act="b-day" data-v="${iso}" aria-pressed="${iso === day}" aria-label="${iso === TODAY ? `${t("b.today")}, ` : ""}${ucfirst(dayLong(d))}: ${count}">
                 <span class="dc-wd">${iso === TODAY ? t("b.today") : fmt(d, { weekday: "short" })}</span><span class="dc-num t-num">${Number(iso.slice(8))}</span>
@@ -1749,7 +1751,7 @@
     return `<div class="cal-scroll" data-scroll>
         <div class="cal" style="${calStyle(lanes.length)}">
           <div class="cal-corner"></div>
-          ${lanes.map((l) => `<div class="cal-lane-head">${l === "og" || l === "none" ? "" : `<span class="avatar avatar--sm" aria-hidden="true">${initials(TRAINERS[l].name)}</span>`}<span>${laneName(l)}</span></div>`).join("")}
+          ${lanes.map((l) => `<div class="cal-lane-head">${l === "og" ? typeChip("openGym", "chip--lane") : `${l === "none" ? "" : `<span class="avatar avatar--sm" aria-hidden="true">${initials(TRAINERS[l].name)}</span>`}<span>${laneName(l)}</span>`}</div>`).join("")}
           ${timeAxis(date)}
           ${lanes.map((l) => {
             const mine = items.filter((x) => laneOf(x) === l);
@@ -2131,7 +2133,7 @@
     "b-resend": () => toast(t("b.resent")),
     // E-mailadres wijzigen moves the same hold: same spot, same countdown (flows/01 edge cases, PB-04).
     "b-wrong-email": () => { Object.assign(state.booking, { changing: true, changeErr: false }); render(); root.querySelector("#b-new-email")?.focus(); },
-    "b-change-cancel": () => { Object.assign(state.booking, { changing: false, changeErr: false }); render(); },
+    "b-change-cancel": () => { Object.assign(state.booking, { changing: false, changeErr: false }); render(); root.querySelector("[data-act='b-wrong-email']")?.focus(); },
     "b-expire": () => expireHold(),
     "b-open-mail": () => go("b-mail"),
     "b-mail-link": () => go("b-confirm"),
@@ -2149,8 +2151,9 @@
     "b-restart": () => { const mode = state.booking.mode; state.booking = { ...fresh().booking, mode, name: state.booking.name, email: state.booking.email }; reset([{ s: "hub" }, { s: "b-list" }]); },
     "b-retry": () => { state.booking.errors = {}; reset([{ s: "hub" }, { s: "b-list" }, { s: "b-form" }]); },
     "b-manage": () => { state.booking.manageConfirm = false; go("b-manage"); },
-    "b-manage-cancel": () => { state.booking.manageConfirm = true; render(); root.querySelector("[data-act='b-manage-cancel-yes']")?.focus(); },
-    "b-manage-keep": () => { state.booking.manageConfirm = false; render(); },
+    // The confirm step opens on the safe choice; backing out returns to the button that opened it.
+    "b-manage-cancel": () => { state.booking.manageConfirm = true; render(); root.querySelector("[data-act='b-manage-keep']")?.focus(); },
+    "b-manage-keep": () => { state.booking.manageConfirm = false; render(); root.querySelector("[data-act='b-manage-cancel']")?.focus(); },
     "b-manage-cancel-yes": () => {
       const b = state.booking;
       const occ = findClass(b.occ);
@@ -2158,7 +2161,13 @@
       if (att && startOf(occ) > NOW) att.status = "cancelledByClient";
       b.manageConfirm = false;
       render();
-      root.querySelector("[data-booking-status]")?.focus?.();
+      // A live region rebuilt with its text already in it is often not announced: mount it empty,
+      // move focus to the page heading, then fill the status so screen readers hear the change.
+      const status = root.querySelector("[data-booking-status]");
+      const html = status.innerHTML;
+      status.innerHTML = "";
+      root.querySelector("h1[tabindex]")?.focus();
+      setTimeout(() => { status.innerHTML = html; }, 100);
     },
     "b-cancel-ask": () => { state.booking.confirmCancel = true; render(); },
     "b-cancel-no": () => { state.booking.confirmCancel = false; render(); },
@@ -2284,7 +2293,7 @@
       render();
       root.querySelector("#new-ex-name")?.focus();
     },
-    "log-new-ex-cancel": () => { state.log.newEx = null; render(); },
+    "log-new-ex-cancel": () => { state.log.newEx = null; render(); root.querySelector("[data-act='log-new-ex-start']")?.focus(); },
     "log-sel": (el) => { const L = state.log; const i = Number(el.dataset.v); L.sel = L.sel === i ? null : i; render(); },
     "log-check": (el) => {
       const L = state.log;
@@ -2598,6 +2607,7 @@
       b.attId = `hold-${Date.now()}`;
       occ.attendees.push({ id: b.attId, name: b.name, lang: state.lang === "en" ? "en" : "nl", guest: true, status: "pending" });
       b.holdAt = Date.now();
+      Object.assign(b, { changing: false, changeErr: false, emailChanged: null });
       go("b-check");
     }
     if (form === "new-exercise") {

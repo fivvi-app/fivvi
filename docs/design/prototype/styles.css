@@ -628,6 +628,8 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 /* In narrow or short blocks the label truncates first; the emoji keeps its room. */
 .chip--ev { flex: 0 1 auto; min-width: calc(1.2em + 10px); overflow: hidden; padding: 0 4px; font-size: 11px; line-height: 14px; }
 .chip--ev .chip-label { overflow: hidden; text-overflow: ellipsis; }
+.chip--lane { flex: 0 1 auto; min-width: calc(1.2em + 10px); overflow: hidden; }
+.chip--lane .chip-label { overflow: hidden; text-overflow: ellipsis; }
 .ev-title { font-weight: var(--font-weight-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ev-meta { color: var(--color-text-secondary); display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 
