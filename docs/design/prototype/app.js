@@ -422,10 +422,12 @@
         </button>`)
       .join("")}</div>`;
   }
-  const typeChip = (kind) => {
+  // Session-type marker: a decorative emoji always beside the visible label, never colour or emoji alone.
+  // The label stays the accessible name (phone-test finding 1, 14 October 2026).
+  const typeChip = (kind, extra = "") => {
     const map = { private: ["private", "type.private"], group: ["group", "type.group"], openGym: ["open-gym", "type.openGym"] };
     const [cls, key] = map[kind];
-    return `<span class="chip chip--${cls}">${t(key)}</span>`;
+    return `<span class="chip chip--${cls}${extra ? " " + extra : ""}"><span class="chip-ico" aria-hidden="true">${t(key + "Icon")}</span><span class="chip-label">${t(key)}</span></span>`;
   };
   const disclosure = (label, body, cls = "") => `<details class="disclosure ${cls}"><summary>${label}${icon("chevR", "ico--sm")}</summary><div class="disclosure-body">${body}</div></details>`;
   const decoration = (key) => `<span class="warm-accent" aria-hidden="true">${t("decoration." + key)}</span>`;
@@ -562,7 +564,7 @@
               return `<li><button type="button" class="class-card" data-act="b-pick" data-id="${occ.id}" ${full || cancelled ? "disabled" : ""}>
                   <span class="class-time"><span class="t-num">${time(startOf(occ))}</span><span class="class-end">${time(endOf(occ))}</span></span>
                   <span class="class-body">
-                    <span class="class-title">${esc(occ.title)}</span>
+                    <span class="class-head">${typeChip(occ.kind)}<span class="class-title">${esc(occ.title)}</span></span>
                     ${occ.trainer ? `<span class="class-meta">${icon("user", "ico--sm")}<span class="sr-only">${t("o.trainer")}: </span>${TRAINERS[occ.trainer].name}</span>` : ""}
                     ${status}
                   </span>
@@ -1580,8 +1582,9 @@
     return [...state.sessions.filter((s) => s.ws === state.web.ws), ...state.classes.filter((c) => c.ws === state.web.ws)]
       .filter((x) => x.date === date && (!f || x.trainer === f || x.origTrainer === f)).sort((a, z) => startOf(a) - startOf(z));
   }
+  // The type marker in the block already says Privé, so a private block names only the client.
   function eventLabel(x) {
-    return x.kind === "private" ? t("w.privateWith", { name: esc(CLIENTS[x.client].first) }) : esc(x.title);
+    return x.kind === "private" ? esc(CLIENTS[x.client].first) : esc(x.title);
   }
   function eventCls(x) {
     const k = x.kind === "private" ? "private" : x.kind === "openGym" ? "open-gym" : "group";
@@ -1620,7 +1623,7 @@
       x.kind === "private" ? "" : `<span class="t-num">${bookedCount(x)}/${x.cap}</span>`,
     ].filter(Boolean).join(" · ");
     return `<button type="button" class="${eventCls(x)}${mins <= 45 ? " ev--short" : ""}" style="top:${top}px;height:${(mins / 60) * HOUR_PX - 2}px;left:calc(${pos.col} * 100% / ${pos.n} + 2px);width:calc(100% / ${pos.n} - 4px)" data-act="w-open" data-id="${x.id}">
-        <span class="ev-time t-num">${time(startOf(x))}</span><span class="ev-title">${eventLabel(x)}</span>${meta ? `<span class="ev-meta">${meta}</span>` : ""}
+        <span class="ev-head">${typeChip(x.kind, "chip--ev")}<span class="ev-time t-num">${time(startOf(x))}</span></span><span class="ev-title">${eventLabel(x)}</span>${meta ? `<span class="ev-meta">${meta}</span>` : ""}
       </button>`;
   }
   function timeAxis(date) {

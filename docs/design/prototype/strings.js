@@ -97,6 +97,9 @@ window.PROTO_STRINGS = {
     "type.private": "Privé",
     "type.group": "Groepsles",
     "type.openGym": "Open Gym",
+    "type.privateIcon": "👤",
+    "type.groupIcon": "👥",
+    "type.openGymIcon": "🏋️",
 
     "att.booked": "Geboekt",
     "att.attended": "Aanwezig",
@@ -356,7 +359,6 @@ window.PROTO_STRINGS = {
     "w.onlyWs": "Alleen sessies van {ws}. Eigen klanten van trainers zie je hier niet.",
     "w.empty": "Geen sessies",
     "w.client": "Klant",
-    "w.privateWith": "Privé · {name}",
 
     "proto.me": "Ik ben",
     "proto.meSarah": "Sarah · trainer",
@@ -561,6 +563,9 @@ window.PROTO_STRINGS = {
     "type.private": "Private",
     "type.group": "Group class",
     "type.openGym": "Open Gym",
+    "type.privateIcon": "👤",
+    "type.groupIcon": "👥",
+    "type.openGymIcon": "🏋️",
 
     "att.booked": "Booked",
     "att.attended": "Attended",
@@ -820,7 +825,6 @@ window.PROTO_STRINGS = {
     "w.onlyWs": "Only {ws} sessions. Trainers' own clients don't show here.",
     "w.empty": "No sessions",
     "w.client": "Client",
-    "w.privateWith": "Private · {name}",
 
     "proto.me": "I am",
     "proto.meSarah": "Sarah · trainer",

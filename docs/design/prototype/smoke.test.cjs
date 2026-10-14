@@ -22,13 +22,20 @@ async function pageFor(flow, viewport = { width: 390, height: 844 }) {
 }
 after(async () => { await browser?.close(); });
 
+// Session-type markers pair a decorative emoji with the visible localized label (phone-test finding 1):
+// colour alone fails colour-blind users, and the emoji is never shown without its label.
+const TYPE_EMOJI = { private: '👤', group: '👥', 'open-gym': '🏋️' };
 async function assertPaintedSessionType(page, selector, label) {
   const chip = page.locator(selector).first();
   await chip.scrollIntoViewIfNeeded();
-  assert.equal(await chip.innerText(), label);
+  assert.equal(await chip.locator('.chip-label').innerText(), label);
+  const classes = await chip.getAttribute('class');
+  const kind = Object.keys(TYPE_EMOJI).find((k) => classes.includes(`chip--${k}`));
+  assert.equal(await chip.locator('.chip-ico').innerText(), TYPE_EMOJI[kind], `${selector}: emoji marker beside the label`);
+  assert.equal(await chip.locator('.chip-ico').getAttribute('aria-hidden'), 'true', 'emoji is decorative');
   assert.ok(await chip.isVisible());
-  assert.equal(await viewportWords(page, chip), label.split(/\s+/).length,
-    `${selector}: painted localized label "${label}"`);
+  assert.equal(await viewportWords(page, chip, { markers: true }), label.split(/\s+/).length + 1,
+    `${selector}: painted localized label "${label}" with its emoji`);
 }
 
 test('painted session identity assertions reject sr-only chips', async () => {
@@ -41,7 +48,7 @@ test('painted session identity assertions reject sr-only chips', async () => {
     }
   ` });
   const selector = '.next .chip--private';
-  assert.equal(await page.locator(selector).innerText(), 'Privé');
+  assert.equal(await page.locator(`${selector} .chip-label`).innerText(), 'Privé');
   assert.ok(await page.locator(selector).isVisible(), 'locator visibility alone misses clipped text');
   await assert.rejects(() => assertPaintedSessionType(page, selector, 'Privé'), /painted localized label/);
   assert.deepEqual(errors, []);
@@ -60,7 +67,7 @@ test('painted session identity assertions reject transparent chips', async () =>
     ]) {
       await assertPaintedSessionType(page, selector, label);
       const style = await page.addStyleTag({ content: css });
-      assert.equal(await page.locator(selector).innerText(), label);
+      assert.equal(await page.locator(`${selector} .chip-label`).innerText(), label);
       assert.ok(await page.locator(selector).isVisible(), 'locator visibility alone misses transparent text');
       await assert.rejects(() => assertPaintedSessionType(page, selector, label), /painted localized label/);
       await style.evaluate((element) => element.remove());
@@ -77,13 +84,13 @@ test('session identity is visible localized text on Today, agenda, detail, add m
     await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).first().click();
     for (const platform of ['ios', 'android']) {
       await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
-      assert.equal(await page.locator('.next .chip--private').innerText(), labels[0]);
+      assert.equal(await page.locator('.next .chip--private .chip-label').innerText(), labels[0]);
       await assertPaintedSessionType(page, '.next .chip--private', labels[0]);
-      assert.equal(await page.locator('.agenda-list .chip--group').first().innerText(), labels[1]);
+      assert.equal(await page.locator('.agenda-list .chip--group .chip-label').first().innerText(), labels[1]);
       assert.ok(await page.locator('.agenda-list .chip--group').first().isVisible());
       await assertPaintedSessionType(page, '.agenda-list .chip--group', labels[1]);
       await page.locator('.next [data-act="open-session"]').click();
-      assert.equal(await page.locator('.detail-focus .chip--private').innerText(), labels[0]);
+      assert.equal(await page.locator('.detail-focus .chip--private .chip-label').innerText(), labels[0]);
       await assertPaintedSessionType(page, '.detail-focus .chip--private', labels[0]);
       await page.locator('[data-act="back"]').first().click();
       await page.locator('[data-act="tab"][data-v="calendar"]').click();
@@ -92,20 +99,20 @@ test('session identity is visible localized text on Today, agenda, detail, add m
       await assertPaintedSessionType(page, '.chip--group', labels[1]);
       await page.locator('[data-act="tab"][data-v="today"]').click();
       await page.locator('[data-act="app-new-menu"]').click();
-      assert.equal(await page.locator('.create-tile .chip--private').innerText(), labels[0]);
+      assert.equal(await page.locator('.create-tile .chip--private .chip-label').innerText(), labels[0]);
       await assertPaintedSessionType(page, '.create-tile .chip--private', labels[0]);
       await page.locator('.sheet [data-act="sheet-close"]').click();
     }
     await page.locator('[data-act="home"]').click();
     await startFlow(page, '1');
     await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
-    assert.equal(await page.locator('.booking-heading .chip--group').innerText(), labels[1]);
+    assert.equal(await page.locator('.booking-heading .chip--group .chip-label').innerText(), labels[1]);
     await assertPaintedSessionType(page, '.booking-heading .chip--group', labels[1]);
     await page.locator('[data-act="back"]').first().click();
     await page.locator('[data-act="b-mode"][data-v="openGym"]').click();
     await page.locator('.day-chip[data-v="2026-09-25"]').click();
     await page.locator('[data-act="b-pick"][data-id="o-og25"]').click();
-    assert.equal(await page.locator('.booking-heading .chip--open-gym').innerText(), labels[2]);
+    assert.equal(await page.locator('.booking-heading .chip--open-gym .chip-label').innerText(), labels[2]);
     await assertPaintedSessionType(page, '.booking-heading .chip--open-gym', labels[2]);
     assert.deepEqual(errors, []);
     await page.close();
@@ -114,11 +121,14 @@ test('session identity is visible localized text on Today, agenda, detail, add m
 
 // Count words actually painted in the viewport, excluding transparent/clipped/offscreen text,
 // closed disclosures and text covered by nav, sheets or the prototype toolbar.
-async function viewportWords(page, selector) {
-  return (typeof selector === 'string' ? page.locator(selector) : selector).evaluate((root) => {
+// Session-type emoji (.chip-ico) are aria-hidden pictographs beside their label, not words, so text
+// budgets skip them; painted-marker checks count them with { markers: true }.
+async function viewportWords(page, selector, { markers = false } = {}) {
+  return (typeof selector === 'string' ? page.locator(selector) : selector).evaluate((root, markers) => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let node, count = 0;
     while ((node = walker.nextNode())) {
+      if (!markers && node.parentElement.closest('.chip-ico')) continue;
       let element = node.parentElement;
       while (element && Number(getComputedStyle(element).opacity) !== 0) element = element.parentElement;
       if (element) continue;
@@ -137,7 +147,7 @@ async function viewportWords(page, selector) {
       }
     }
     return count;
-  });
+  }, markers);
 }
 
 test('Today prioritises next client and action with at least 25% fewer viewport words', async () => {
@@ -459,7 +469,7 @@ test('selected language, appearance, calendar view and active Agenda labels use 
   assert.deepEqual(nonMedium, [], 'ordinary selected controls render at weight 500');
 });
 
-test('warm emoji accents are sparse, decorative and never identify session types', async () => {
+test('warm emoji accents are sparse and decorative; session-type emoji always sit beside their label', async () => {
   for (const lang of ['nl', 'en']) {
     const { page } = await pageFor(2);
     await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).first().click();
@@ -470,6 +480,14 @@ test('warm emoji accents are sparse, decorative and never identify session types
       assert.deepEqual(await accents.allTextContents(), ['👋', '💪']);
       for (const accent of await accents.all()) assert.equal(await accent.getAttribute('aria-hidden'), 'true');
       assert.equal(await page.locator('.chip .warm-accent, .session-row .warm-accent').count(), 0);
+      // Superseded rule (phone-test finding 1): emoji now help identify session types, but never alone.
+      const markers = page.locator('.app .chip-ico');
+      assert.ok(await markers.count() >= 2);
+      for (const marker of await markers.all()) {
+        assert.equal(await marker.getAttribute('aria-hidden'), 'true');
+        assert.ok((await marker.locator('xpath=following-sibling::*[@class="chip-label"]').textContent()).trim().length > 1,
+          'a session-type emoji is never shown without its text label');
+      }
       const action = page.locator('.next [data-act="start-log"]');
       assert.ok(!(await action.ariaSnapshot()).includes('💪'), 'decoration is absent from the accessible action name');
     }
@@ -575,7 +593,7 @@ test('app and web add menus use visual action tiles without repeating workspace 
   await page.locator('[data-act="set-me"][data-v="john"]').click();
   await startFlow(page, '7');
   assert.equal(await page.locator('.sheet .create-grid .icon-badge').count(), 1, 'only the non-session client action uses an icon badge');
-  assert.deepEqual(await page.locator('.sheet .create-grid .chip').allTextContents(), ['Privé', 'Groepsles', 'Open Gym']);
+  assert.deepEqual(await page.locator('.sheet .create-grid .chip .chip-label').allTextContents(), ['Privé', 'Groepsles', 'Open Gym']);
   assert.ok(await viewportWords(page, '.sheet') <= 25);
   assert.ok((await page.locator('.sheet').innerText()).includes("John's Gym"));
   await page.locator('[data-act="sheet-close"]').first().click();
@@ -583,7 +601,7 @@ test('app and web add menus use visual action tiles without repeating workspace 
   await startFlow(page, '3');
   await page.locator('[data-act="w-new"]').click();
   assert.equal(await page.locator('.panel .create-grid .icon-badge').count(), 1);
-  assert.deepEqual(await page.locator('.panel .create-grid .chip').allTextContents(), ['Privé', 'Groepsles', 'Open Gym']);
+  assert.deepEqual(await page.locator('.panel .create-grid .chip .chip-label').allTextContents(), ['Privé', 'Groepsles', 'Open Gym']);
   await page.locator('[data-act="w-pick"][data-v="private"]').click();
   assert.ok(await page.locator('#web-client').isVisible());
   assert.deepEqual(errors, []);
@@ -977,4 +995,94 @@ test('all surfaces fit narrow, short, landscape and desktop screens; forms and l
     assert.deepEqual(errors, []);
     await page.close();
   }
+});
+
+// ---------------------------------------------------------------- owner phone-test findings (14 October 2026)
+
+const LABELS = { nl: { private: 'Privé', group: 'Groepsles', 'open-gym': 'Open Gym' }, en: { private: 'Private', group: 'Group class', 'open-gym': 'Open Gym' } };
+
+// Every chip on the page has a painted emoji + label pair whose accessible text is the label alone.
+async function assertAllMarkers(page, scope, lang, where) {
+  const chips = page.locator(`${scope} .chip--private, ${scope} .chip--group, ${scope} .chip--open-gym`);
+  const n = await chips.count();
+  assert.ok(n > 0, `${where}: has session-type markers`);
+  for (const chip of await chips.all()) {
+    const classes = await chip.getAttribute('class');
+    const type = Object.keys(TYPE_EMOJI).find((k) => classes.includes(`chip--${k}`));
+    assert.equal(await chip.locator('.chip-ico').textContent(), TYPE_EMOJI[type], `${where}: ${type} emoji`);
+    assert.equal(await chip.locator('.chip-ico').getAttribute('aria-hidden'), 'true', `${where}: emoji is decorative`);
+    assert.equal((await chip.locator('.chip-label').textContent()).trim(), LABELS[lang][type], `${where}: ${type} label`);
+    const name = await chip.evaluate((el) => [...el.childNodes].filter((c) => c.nodeType === 1 && c.getAttribute('aria-hidden') !== 'true')
+      .map((c) => c.textContent).join('').trim());
+    assert.equal(name, LABELS[lang][type], `${where}: accessible text is the label, not the emoji`);
+  }
+}
+
+test('F1: session types show emoji and label together on app, booking, owner calendar and add menus', async () => {
+  for (const lang of ['nl', 'en']) {
+    const { page, errors } = await pageFor(null);
+    await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).click();
+    await page.locator('[data-act="set-me"][data-v="john"]').click();
+    for (const platform of ['ios', 'android']) {
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      await startFlow(page, '2');
+      await assertAllMarkers(page, '.app', lang, `${platform} Today`);
+      await page.locator('[data-act="tab"][data-v="calendar"]').click();
+      await assertAllMarkers(page, '.app', lang, `${platform} Agenda`);
+      await page.locator('[data-act="app-new-menu"]').first().click();
+      await assertAllMarkers(page, '.sheet', lang, `${platform} + menu`);
+      await page.locator('[data-act="home"]').click();
+    }
+    await startFlow(page, '1');
+    await assertAllMarkers(page, '.class-list', lang, 'booking list');
+    await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
+    await assertAllMarkers(page, '.pub', lang, 'booking form');
+    await page.locator('#b-name').fill('Demo Guest');
+    await page.locator('#b-email').fill('demo@example.com');
+    await page.locator('[data-form="booking"] button[type="submit"]').click();
+    await page.locator('[data-act="b-open-mail"]').click();
+    await page.locator('[data-act="b-mail-link"]').click();
+    await assertAllMarkers(page, '.pub', lang, 'booking confirm');
+    await page.locator('[data-act="b-confirm"]').click();
+    await assertAllMarkers(page, '.pub', lang, 'booking confirmed');
+    await page.locator('[data-act="home"]').click();
+    await startFlow(page, '3');
+    await assertAllMarkers(page, '.legend', lang, 'calendar legend');
+    await assertAllMarkers(page, '.cal', lang, 'calendar day blocks');
+    await page.locator('[data-act="w-view"][data-v="week"]').click();
+    await assertAllMarkers(page, '.cal', lang, 'calendar week blocks');
+    await page.locator('[data-act="w-new"]').click();
+    await assertAllMarkers(page, '.panel', lang, 'owner + Nieuw');
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
+test('F1: calendar blocks keep the emoji visible when the type label truncates, in day and week view on a phone', async () => {
+  const { page, errors } = await pageFor(3);
+  for (const view of ['day', 'week']) {
+    await page.locator(`[data-act="w-view"][data-v="${view}"]`).click();
+    const blocks = page.locator('.cal .ev');
+    let truncated = 0;
+    for (const block of await blocks.all()) {
+      const m = await block.evaluate((el) => {
+        el.scrollIntoView({ block: 'center', inline: 'center' });
+        const ico = el.querySelector('.chip-ico'), label = el.querySelector('.chip-label');
+        const b = el.getBoundingClientRect(), r = ico.getBoundingClientRect();
+        const x = (r.left + r.right) / 2, y = (r.top + r.bottom) / 2;
+        const hit = document.elementFromPoint(x, y);
+        return {
+          inside: r.width > 0 && r.left >= b.left && r.right <= b.right && r.top >= b.top && r.bottom <= b.bottom,
+          hit: !!hit && ico.contains(hit),
+          truncated: label.scrollWidth > label.clientWidth + 1,
+          short: el.classList.contains('ev--short'),
+        };
+      });
+      assert.ok(m.inside && m.hit, `${view}: emoji marker stays painted inside its block`);
+      if (m.truncated) truncated++;
+    }
+    if (view === 'week') assert.ok(truncated > 0, 'a narrow phone week view truncates some type labels');
+  }
+  assert.deepEqual(errors, []);
+  await page.close();
 });

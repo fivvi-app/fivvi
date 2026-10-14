@@ -97,6 +97,9 @@ h1, h2, h3 { text-wrap: balance; }
   white-space: nowrap;
 }
 .chip .ico { width: 14px; height: 14px; }
+/* Session-type marker: decorative emoji + visible label, identical everywhere (phone-test finding 1). */
+.chip-ico { flex: none; font-size: 0.95em; line-height: 1; }
+.chip-label { min-width: 0; }
 .chip--private { background: var(--color-session-private-bg); color: var(--color-session-private-fg); }
 .chip--group { background: var(--color-session-group-bg); color: var(--color-session-group-fg); }
 .chip--open-gym { background: var(--color-session-open-gym-bg); color: var(--color-session-open-gym-fg); }
@@ -313,6 +316,7 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 .class-meta { color: var(--color-text-secondary); font-size: var(--typography-subhead-font-size); }
 .class-meta { display: flex; gap: 4px; align-items: center; }
 .booking-heading { display: flex; align-items: center; gap: 12px; }
+.class-head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
 .booking-time { font-size: 32px; line-height: 38px; font-weight: var(--font-weight-semibold); letter-spacing: -0.03em; }
 .booking-facts { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .class-chev { color: var(--color-text-tertiary); }
@@ -581,7 +585,11 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 .ev.is-cancelled { opacity: 0.55; text-decoration: line-through; }
 .ev.needs-trainer { outline: 2px dashed var(--color-status-warning-fg); outline-offset: -2px; }
 .ev.is-selected { box-shadow: 0 0 0 2px var(--color-border-focus); }
-.ev-time { font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); }
+.ev-time { font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); flex: none; }
+.ev-head { display: flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; }
+/* In narrow or short blocks the label truncates first; the emoji keeps its room. */
+.chip--ev { flex: 0 1 auto; min-width: calc(1.2em + 10px); overflow: hidden; padding: 0 4px; font-size: 11px; line-height: 14px; }
+.chip--ev .chip-label { overflow: hidden; text-overflow: ellipsis; }
 .ev-title { font-weight: var(--font-weight-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ev-meta { color: var(--color-text-secondary); display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 
