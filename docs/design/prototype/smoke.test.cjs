@@ -1757,13 +1757,13 @@ test('R3: the logger is one scrolling list with previous values, editable sets, 
       assert.equal(await page.locator('[data-ex-card="0"] .set-row').count(), 4);
       assert.equal(await page.locator(setInput(0, 3, 'w')).inputValue(), '60');
       assert.equal(await page.locator(setInput(0, 3, 'r')).inputValue(), '10', 'prefilled from the last set');
-      assert.equal(await page.locator('[data-act="log-remove-set"]').count(), 1, 'only the unlogged extra set can be removed');
+      assert.equal(await page.locator('[data-ex-card="0"] [data-act="log-remove-set"]').count(), 3, 'every unlogged set can be removed; the logged one is unticked first');
       await page.locator('[data-act="log-remove-set"][data-ex="0"][data-v="3"]').click();
       assert.equal(await page.locator('[data-ex-card="0"] .set-row').count(), 3);
-      // Difficulty once per exercise, compact, under its sets; + Oefening toevoegen ends the list.
-      const diff = page.locator('[data-ex-card="0"] [data-act="log-diff"][aria-checked="true"]');
+      // Difficulty once per exercise, under its sets, on every card; + Oefening toevoegen ends the list.
+      const diff = page.locator('[data-ex-card="0"] [data-act="log-diff"][aria-checked="true"] .diff-label');
       assert.equal((await diff.innerText()).trim(), lang === 'nl' ? 'Normaal' : 'Normal');
-      assert.equal(await page.locator('[data-ex-card="1"] [data-act="log-diff"]').count(), 0, 'asked after the first logged set');
+      assert.equal(await page.locator('[data-ex-card="1"] [data-act="log-diff"]').count(), 3, 'asked under every exercise');
       assert.ok(await page.evaluate(() => {
         const add = document.querySelector('[data-act="log-add"]');
         return [...document.querySelectorAll('[data-ex-card]')].every((card) => card.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING);
@@ -1771,6 +1771,87 @@ test('R3: the logger is one scrolling list with previous values, editable sets, 
       await page.locator('.nav [data-act="log-finish"]').click();
       await page.locator('.workout-breakdown summary').click();
       assert.ok((await page.locator('.workout-breakdown').innerText()).includes(lang === 'nl' ? '60 kg × 10' : '60 kg × 10'), 'the edited value is logged');
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  }
+});
+
+test('R4: any unlogged set and any exercise can be removed, also from a template; a changed template is offered as a new one', async () => {
+  const copy = {
+    nl: { suffix: ' (aangepast)', ask: 'Je hebt Upper A aangepast', keep: 'Upper A blijft zoals het was', confirm: 'Verwijderen', count: (n) => `${n} oefeningen` },
+    en: { suffix: ' (edited)', ask: 'You changed Upper A', keep: 'Upper A stays as it was', confirm: 'Remove', count: (n) => `${n} exercises` },
+  };
+  for (const lang of ['nl', 'en']) {
+    for (const platform of ['ios', 'android']) {
+      const c = copy[lang];
+      const { page, errors } = await pageFor(null);
+      await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).click();
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      await startFlow(page, '5');
+      // Template sets are removable while unlogged; a logged set is unticked first.
+      assert.equal(await page.locator('[data-ex-card="0"] [data-act="log-remove-set"]').count(), 3, `${lang}/${platform}: every unlogged template set has a remove button`);
+      await page.locator(tick(0, 0)).click();
+      assert.equal(await page.locator('[data-act="log-remove-set"][data-ex="0"][data-v="0"]').count(), 0, 'a logged set is unticked before it can be removed');
+      await page.locator('[data-act="log-remove-set"][data-ex="0"][data-v="2"]').click();
+      assert.equal(await page.locator('[data-ex-card="0"] .set-row').count(), 2, 'a template set is removed');
+      assert.equal(await page.evaluate(() => document.activeElement?.dataset.act), 'log-add-set', 'focus stays in the exercise');
+      // A whole exercise can go: straight away when nothing is logged, after a confirm when it has logged sets.
+      const removeEx = (i) => page.locator(`[data-act="log-remove-ex"][data-ex="${i}"]`);
+      assert.equal(await page.locator('[data-act="log-remove-ex"]').count(), 3, 'every exercise card can be removed');
+      await removeEx(2).click();
+      assert.equal(await page.locator('.log-ex').count(), 2, 'an exercise without logged sets goes at once');
+      await removeEx(0).click();
+      assert.equal(await page.locator('.log-ex').count(), 2, 'an exercise with logged sets asks first');
+      const confirm = page.locator('[data-ex-card="0"] [data-act="log-remove-ex-yes"]');
+      assert.equal((await confirm.innerText()).trim(), c.confirm);
+      await confirm.click();
+      assert.equal(await page.locator('.log-ex').count(), 1);
+      await page.locator(tick(0, 0)).click();
+      // Finishing a changed template workout asks to save it as a new template; the original stays.
+      await page.locator('.nav [data-act="log-finish"]').click();
+      const body = await content(page);
+      assert.ok(body.includes(c.ask), `${lang}/${platform}: the finish screen says the template changed`);
+      assert.ok(body.includes(c.keep), 'and that the original stays');
+      await page.locator('[data-act="log-save-tpl"]').check();
+      assert.equal(await page.locator('#tpl-name').inputValue(), `Upper A${c.suffix}`, 'a new name is proposed');
+      await page.locator('[data-act="log-done"]').click();
+      await page.locator('[data-act="home"]').click();
+      await startFlow(page, '5free');
+      const rows = await page.locator('[data-act="log-begin"][data-v="template"]').evaluateAll((els) => els.map((el) => el.innerText.replace(/\s+/g, ' ').trim()));
+      assert.ok(rows.some((r) => r.startsWith('Upper A ') && r.includes(c.count(3))), `the original Upper A keeps 3 exercises: ${rows}`);
+      assert.ok(rows.some((r) => r.startsWith(`Upper A${c.suffix}`) && r.includes(lang === 'nl' ? '1 oefening' : '1 exercise')), `the new template has 1 exercise: ${rows}`);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  }
+});
+
+test('R4: every exercise card asks how it went, with an emoji next to each answer', async () => {
+  const answers = { nl: ['Makkelijk', 'Normaal', 'Zwaar'], en: ['Easy', 'Normal', 'Hard'] };
+  for (const lang of ['nl', 'en']) {
+    for (const platform of ['ios', 'android']) {
+      const { page, errors } = await pageFor(null);
+      await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).click();
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      await startFlow(page, '5');
+      const cards = await page.locator('[data-ex-card]').count();
+      assert.equal(await page.locator('[data-ex-card] .log-diff').count(), cards, `${lang}/${platform}: asked under every exercise, before any set is logged`);
+      const group = page.locator('[data-ex-card="1"] .log-diff [role="radiogroup"]');
+      assert.equal(await group.getAttribute('aria-label'), lang === 'nl' ? 'Hoe ging het?' : 'How was it?');
+      assert.ok(await page.locator('[data-ex-card="1"] .log-diff').evaluate((el) => el.getBoundingClientRect().height > 0 && getComputedStyle(el).visibility === 'visible'));
+      const options = page.locator('[data-ex-card="1"] [data-act="log-diff"]');
+      assert.deepEqual((await options.evaluateAll((els) => els.map((el) => el.querySelector('.diff-label').textContent.trim()))), answers[lang]);
+      assert.deepEqual(await options.evaluateAll((els) => els.map((el) => el.querySelector('.diff-emoji')?.getAttribute('aria-hidden'))), ['true', 'true', 'true'], 'emoji are decorative');
+      assert.deepEqual(await options.evaluateAll((els) => els.map((el) => /\p{Extended_Pictographic}/u.test(el.querySelector('.diff-emoji').textContent))), [true, true, true]);
+      for (const box of await options.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height))) assert.ok(box >= 44, `answer target ${box}px`);
+      assert.equal((await page.locator('[data-ex-card="1"] [data-act="log-diff"][aria-checked="true"] .diff-label').innerText()).trim(), answers[lang][1], 'defaults to Normal');
+      await page.locator(tick(1, 0)).click();
+      await page.locator('[data-ex-card="1"] [data-act="log-diff"][data-v="hard"]').click();
+      assert.equal(await page.locator('[data-ex-card="1"] [data-act="log-diff"][data-v="hard"]').getAttribute('aria-checked'), 'true');
+      await page.locator('.nav [data-act="log-finish"]').click();
+      await page.locator('.workout-breakdown summary').click();
+      assert.ok((await page.locator('.workout-breakdown').innerText()).includes(answers[lang][2]), 'the answer shows in the summary');
       assert.deepEqual(errors, []);
       await page.close();
     }

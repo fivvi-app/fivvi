@@ -454,6 +454,7 @@
     cloud: "M17.5 19H7a5 5 0 11.9-9.9A6 6 0 0119 10.5a4.5 4.5 0 01-1.5 8.5zM9 14l2 2 4-4",
     home: "M3 11l9-8 9 8M5 9.5V21h14V9.5",
     repeat: "M17 2l4 4-4 4M3 11V9a3 3 0 013-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 01-3 3H3",
+    trash: "M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6",
   };
   const icon = (name, cls = "") =>
     `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${ICONS[name]}"/></svg>`;
@@ -1413,10 +1414,12 @@
           <input class="set-input t-num" id="${id}" type="text" inputmode="${mode}" autocomplete="off" value="${inputValue(k, r)}" data-set-input data-ex="${i}" data-v="${j}" data-k="${k}"${err}>
           ${unit ? `<span class="set-unit" aria-hidden="true">${unit.startsWith("l.") ? t(unit) : unit}</span>` : ""}</span>`;
     }).join("");
+    const remove = !r.done && it.rows.length > 1
+      ? `<button type="button" class="btn btn--icon btn--ghost set-remove" data-act="log-remove-set" data-ex="${i}" data-v="${j}" aria-label="${t("l.removeSet", { ex, n: j + 1 })}">${icon("x", "ico--sm")}</button>` : "";
     return `<li class="set-row${r.done ? " is-done" : ""}">
         <span class="set-no t-num">${j + 1}</span>
-        <span class="set-fields">${fields}${r.extra && !r.done ? `<button type="button" class="btn btn--icon btn--ghost set-remove" data-act="log-remove-set" data-ex="${i}" data-v="${j}" aria-label="${t("l.removeSet", { ex, n: j + 1 })}">${icon("x", "ico--sm")}</button>` : ""}</span>
-        ${p ? `<span class="set-prev t-num">${t("l.prevSet", { value: EX_TYPES[type].text(p, true) })}</span>` : ""}
+        <span class="set-fields">${fields}</span>
+        ${p || remove ? `<span class="set-sub">${p ? `<span class="set-prev t-num">${t("l.prevSet", { value: EX_TYPES[type].text(p, true) })}</span>` : "<span></span>"}${remove}</span>` : ""}
         <button type="button" class="set-check" data-act="log-check" data-ex="${i}" data-v="${j}" aria-pressed="${r.done}" aria-label="${t(r.done ? "l.undoSet" : "l.setDone", { ex, n: j + 1 })}">${icon("check")}</button>
         ${Object.keys(r.bad || {}).map((k) => setError(`set-${i}-${j}-${k}`, r.bad[k].err)).join("")}
       </li>`;
@@ -1433,13 +1436,17 @@
           <span class="ex-no t-num" aria-hidden="true">${i + 1}</span>
           <h2 class="log-ex" id="ex-h-${i}" tabindex="-1" data-ex-head="${i}">${exName(it.ex)}</h2>
           <span class="ex-count t-num${all ? " is-done" : ""}">${all ? icon("check", "ico--sm") : ""}${d}/${it.rows.length}</span>
+          <button type="button" class="btn btn--icon btn--ghost ex-remove" data-act="log-remove-ex" data-ex="${i}" aria-label="${t("l.removeEx", { ex: exName(it.ex) })}">${icon("trash", "ico--sm")}</button>
         </div>
+        ${it.confirmRemove ? `<div class="confirm-inline" role="group" aria-labelledby="ex-rm-${i}"><p class="t-subhead" id="ex-rm-${i}">${t("l.removeExAsk", { ex: exName(it.ex), n: d })}</p>
+          <div class="row-actions"><button type="button" class="btn btn--tonal btn--danger-text" data-act="log-remove-ex-yes" data-ex="${i}">${t("l.removeExYes")}</button>
+          <button type="button" class="btn btn--tonal" data-act="log-remove-ex-no" data-ex="${i}">${t("common.back")}</button></div></div>` : ""}
         <p class="t-footnote muted log-card-sub">${it.target ? `${t("l.target", { sets: it.target[0], reps: EX_TYPES[exType(it.ex)].goal(it.target[1]) })} · ` : ""}${prevHead}</p>
         <ol class="set-list" aria-labelledby="ex-h-${i}">${it.rows.map((r, j) => setRow(it, i, j, prev)).join("")}</ol>
         <div class="log-card-foot">
           <button type="button" class="btn btn--text btn--add-set" data-act="log-add-set" data-ex="${i}" aria-label="${t("l.addSetTo", { ex: exName(it.ex) })}">${icon("plus", "ico--sm")}${t("l.addSetShort")}</button>
-          ${d ? `<div class="log-diff"><span class="t-footnote muted" id="diff-h-${i}">${t("l.difficulty")}</span>
-            ${seg("log-diff", [["easy", t("l.easy")], ["normal", t("l.normal")], ["hard", t("l.hard")]], it.diff, { label: t("l.difficulty"), small: true, attrs: `data-ex="${i}"` })}</div>` : ""}
+          <div class="log-diff"><span class="t-subhead log-diff-q" id="diff-h-${i}">${t("l.difficulty")}</span>
+            ${seg("log-diff", ["easy", "normal", "hard"].map((v) => [v, `<span class="diff-emoji" aria-hidden="true">${t(`l.${v}Icon`)}</span><span class="diff-label">${t(`l.${v}`)}</span>`]), it.diff, { label: t("l.difficulty"), attrs: `data-ex="${i}"` })}</div>
         </div>
       </li>`;
   }
@@ -1524,6 +1531,7 @@
       const skipped = L.items.filter((it) => !doneCount(it));
       const sets = items.reduce((n, it) => n + it.sets.length, 0);
       const offerTpl = items.length && (L.source !== "template" || L.changed);
+      const tplChanged = L.source === "template" && L.changed;
       return {
         nav: { title: t("l.finishTitle"), large: false, back: t("common.back") },
         body: `
@@ -1540,7 +1548,8 @@
             <textarea id="internal-note" class="input" rows="3" placeholder="${t("l.internalNotePh")}">${esc(L.internalNote)}</textarea>
             <p class="t-footnote muted privacy">${icon("lock", "ico--sm")}<span>${t("l.internalHintShort")}</span></p>
           </div>
-          ${offerTpl ? `<label class="switch-row"><span class="row-main"><span class="row-title">${t("l.saveTpl")}</span><span class="row-sub">${t("l.saveTplHint", { name: esc(c.first) })}</span></span>
+          ${offerTpl ? `${tplChanged ? `<p class="t-subhead tpl-changed">${t("l.tplChanged", { name: esc(L.name) })}</p>` : ""}
+            <label class="switch-row"><span class="row-main"><span class="row-title">${t(tplChanged ? "l.saveTplNew" : "l.saveTpl")}</span><span class="row-sub">${tplChanged ? t("l.tplKeeps", { name: esc(L.name) }) : t("l.saveTplHint", { name: esc(c.first) })}</span></span>
               <input type="checkbox" class="switch" data-act="log-save-tpl" ${L.saveTpl ? "checked" : ""}></label>
             ${L.saveTpl ? field("tpl-name", t("l.tplName"), `<input id="tpl-name" class="input" type="text" value="${esc(L.tplName)}">`, L.tplErr ? t("l.tplNameErr") : "") : ""}` : ""}
           <p class="t-footnote muted">${icon("check", "ico--sm")} ${t("l.attendanceSet")}</p>
@@ -2414,9 +2423,37 @@
     "log-remove-set": (el) => {
       const it = state.log.items[Number(el.dataset.ex)];
       const i = Number(el.dataset.v);
-      if (it.rows[i]?.extra && !it.rows[i].done) it.rows.splice(i, 1);
+      if (it.rows.length > 1 && it.rows[i] && !it.rows[i].done) {
+        it.rows.splice(i, 1);
+        state.log.changed = true;
+      }
       render();
       root.querySelector(`[data-act="log-add-set"][data-ex="${el.dataset.ex}"]`)?.focus({ preventScroll: true });
+    },
+    // A whole exercise can be removed, also one from a template; with logged sets it asks first (WL-02).
+    "log-remove-ex": (el) => {
+      const i = Number(el.dataset.ex);
+      const it = state.log.items[i];
+      if (doneCount(it)) {
+        it.confirmRemove = true;
+        render();
+        return root.querySelector(`[data-act="log-remove-ex-no"][data-ex="${i}"]`)?.focus();
+      }
+      A["log-remove-ex-yes"](el);
+    },
+    "log-remove-ex-yes": (el) => {
+      const i = Number(el.dataset.ex);
+      state.log.items.splice(i, 1);
+      state.log.changed = true;
+      render();
+      const next = root.querySelector(`[data-ex-head="${Math.min(i, state.log.items.length - 1)}"]`) || root.querySelector('[data-act="log-add"]');
+      next?.focus();
+    },
+    "log-remove-ex-no": (el) => {
+      const i = Number(el.dataset.ex);
+      state.log.items[i].confirmRemove = false;
+      render();
+      root.querySelector(`[data-act="log-remove-ex"][data-ex="${i}"]`)?.focus();
     },
     "log-diff": (el) => {
       state.log.items[Number(el.dataset.ex)].diff = el.dataset.v;
@@ -2431,7 +2468,8 @@
       L.tplErr = false;
       if (L.saveTpl && !L.tplName) {
         const x = findSession(L.id);
-        L.tplName = L.name || `${CLIENTS[x.client].first} · ${dayMonth(startOf(x))}`;
+        L.tplName = L.source === "template" && L.changed ? t("l.tplCopyName", { name: L.name })
+          : L.name || `${CLIENTS[x.client].first} · ${dayMonth(startOf(x))}`;
       }
       render();
     },

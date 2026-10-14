@@ -532,13 +532,23 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 .set-field .set-input { flex: 0 1 auto; min-width: 44px; }
 .set-input:focus-visible { outline-offset: 0; }
 .set-unit, .set-x { color: var(--color-text-secondary); font-size: var(--typography-subhead-font-size); }
-.set-prev { grid-area: prev; font-size: var(--typography-footnote-font-size); line-height: var(--typography-footnote-line-height); color: var(--color-text-secondary); }
+.set-prev { font-size: var(--typography-footnote-font-size); line-height: var(--typography-footnote-line-height); color: var(--color-text-secondary); }
+.set-sub { grid-area: prev; display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 20px; }
 .set-row .set-check { grid-area: tick; justify-self: end; }
 .set-row .set-err { grid-column: 2; margin: 2px 0 0; }
 .set-row.is-done .set-input { background: var(--color-bg-subtle); border-color: transparent; }
-.set-remove { flex: none; width: 44px; height: 44px; color: var(--color-text-secondary); }
+/* 44px target on the second line without making the row taller; it sits under the inputs, not the tick. */
+.set-remove { flex: none; width: 44px; height: 44px; margin-block: -12px; color: var(--color-text-secondary); }
 .log-card-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); padding-top: var(--space-1); border-top: 1px solid var(--color-border-default); }
-.log-diff { display: flex; align-items: center; gap: var(--space-2); }
+.log-diff { flex: 1 1 100%; display: flex; flex-direction: column; align-items: stretch; gap: var(--space-1); padding-bottom: var(--space-1); }
+.log-diff-q { color: var(--color-text-primary); font-weight: var(--font-weight-medium); }
+.log-diff .seg { width: 100%; }
+.log-diff .seg-btn { min-height: 52px; min-width: 0; flex: 1; padding: 4px 6px; }
+.log-diff .seg-btn > span { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.diff-emoji { font-size: 20px; line-height: 1; }
+.diff-label { overflow-wrap: anywhere; }
+.ex-remove { flex: none; width: 44px; height: 44px; margin-right: calc(-1 * var(--space-2)); color: var(--color-text-secondary); }
+.tpl-changed { margin: var(--space-3) 0 calc(-1 * var(--space-1)); }
 .btn--add-ex { margin-top: var(--space-4); }
 
 /* sheets */
