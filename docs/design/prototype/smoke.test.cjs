@@ -976,10 +976,12 @@ test('all surfaces fit narrow, short, landscape and desktop screens; forms and l
               el.scrollIntoView({ block: 'center' });
               const b = el.getBoundingClientRect();
               const hit = document.elementFromPoint((b.left + b.right) / 2, (b.top + b.bottom) / 2);
-              return { w: b.width, h: b.height, bottom: b.bottom, right: b.right, hit: !!hit && el.contains(hit) };
+              return { w: b.width, h: b.height, bottom: b.bottom, right: b.right, hit: !!hit && el.contains(hit), tick: el.matches('[data-act="log-check"]') };
             });
-            assert.ok(box.w >= 44 && box.h >= 44 && box.bottom <= viewport.height && box.right <= viewport.width && box.hit,
-              `${platform} ${viewport.width}×${viewport.height}: logger inputs and ticks stay large and reachable`);
+            // Ticks are 48 pt/dp (flows/05); inputs at least the 44 pt/dp touch minimum.
+            const min = box.tick ? 48 : 44;
+            assert.ok(box.w >= min && box.h >= min && box.bottom <= viewport.height && box.right <= viewport.width && box.hit,
+              `${platform} ${viewport.width}×${viewport.height}: logger ${box.tick ? 'ticks' : 'inputs'} stay at least ${min} px and reachable`);
           }
           await page.locator(tick(0, 0)).click();
           assert.equal(await page.locator(tick(0, 0)).getAttribute('aria-pressed'), 'true');
