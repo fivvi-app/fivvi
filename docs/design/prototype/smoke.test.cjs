@@ -1243,3 +1243,60 @@ test('F6: class descriptions are shown as entered: one truncated line on the lis
     await page.close();
   }
 });
+
+const T0 = new Date('2026-09-22T08:40:00+02:00').getTime();
+async function clockedPage(flow, at = T0) {
+  browser ||= await chromium.launch(process.env.CHROME_BIN
+    ? { executablePath: process.env.CHROME_BIN, headless: true } : { channel: 'chrome', headless: true });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.clock.setFixedTime(at);
+  await page.goto(url + (flow ? `#flow${flow}` : ''));
+  return { page, errors };
+}
+const spotsText = (page, id) => page.locator(`[data-act="b-pick"][data-id="${id}"] .spots`).innerText();
+
+test('F7: changing the email on the check-email page moves the same hold and invalidates the earlier link', async () => {
+  for (const [lang, left] of [['nl', 'nog 12:00'], ['en', '12:00 left']]) {
+    const { page, errors } = await clockedPage(1);
+    await page.locator(`.pub-lang [data-act="set-lang"][data-v="${lang}"]`).click();
+    assert.match(await spotsText(page, 'o-str22'), /^3 /);
+    await page.locator('[data-act="b-pick"][data-id="o-str22"]').click();
+    await page.locator('#b-name').fill('Demo Guest');
+    await page.locator('#b-email').fill('first.guest@example.com');
+    await page.locator('[data-form="booking"] button[type="submit"]').click();
+    await page.clock.setFixedTime(T0 + 3 * 60000);
+    await page.waitForFunction((text) => document.querySelector('[data-countdown]').textContent === text, left);
+
+    // Real actions sit together; demo-only shortcuts are grouped apart, never interleaved.
+    const groups = await page.evaluate(() => ['b-resend', 'b-wrong-email', 'b-open-mail', 'b-expire']
+      .map((act) => document.querySelector(`[data-act="${act}"]`).closest('.hold-actions, .demo-group')?.classList[0]));
+    assert.deepEqual(groups, ['hold-actions', 'hold-actions', 'demo-group', 'demo-group']);
+
+    await page.locator('[data-act="b-wrong-email"]').click();
+    assert.ok(await page.locator('[data-countdown]').isVisible(), 'stays on the same page with the same hold');
+    await page.locator('#b-new-email').fill('not-an-email@');
+    await page.locator('[data-form="change-email"] button[type="submit"]').click();
+    assert.equal(await page.locator('#b-new-email').getAttribute('aria-invalid'), 'true', 'validated like the booking form');
+    await page.locator('#b-new-email').fill('second.guest@example.com');
+    await page.locator('[data-form="change-email"] button[type="submit"]').click();
+    assert.equal(await page.locator('[data-countdown]').textContent(), left, 'same countdown, not reset');
+    const notice = await page.locator('[data-email-changed]').innerText();
+    assert.ok(notice.includes('second.guest@example.com'));
+    assert.match(notice, lang === 'nl' ? /eerdere link werkt niet meer/ : /earlier link no longer works/);
+    assert.ok((await page.locator('.pub-main .lede').innerText()).includes('second.guest@example.com'));
+
+    await page.locator('[data-act="b-open-mail"]').click();
+    const mail = await page.locator('.mail').innerText();
+    assert.ok(mail.includes('second.guest@example.com'), 'inbox shows the mail for the new address');
+    assert.ok(!mail.includes('first.guest@example.com'), 'the earlier mail and its link are gone');
+    await page.locator('[data-act="b-mail-link"]').click();
+    await page.locator('[data-act="b-confirm"]').click();
+    await page.locator('[data-act="b-no-account"]').click();
+    await page.locator('[data-act="b-restart"]').click();
+    assert.match(await spotsText(page, 'o-str22'), /^2 /, 'one booking, no second hold');
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});

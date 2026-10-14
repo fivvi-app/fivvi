@@ -85,6 +85,12 @@ h1, h2, h3 { text-wrap: balance; }
 }
 .stack { display: flex; flex-direction: column; gap: var(--space-2); align-items: stretch; }
 .stack > .btn--text, .stack > .btn--demo:not([data-primary]) { align-self: center; }
+/* Real hold actions sit together; demo-only shortcuts are grouped apart (finding 7). */
+.hold-actions { width: 100%; }
+.change-email { width: 100%; text-align: left; padding: var(--space-4); border-radius: var(--radius-lg); background: var(--color-bg-surface); border: 1px solid var(--color-border-default); }
+.demo-group { width: 100%; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border: 1px dashed var(--color-border-control); border-radius: var(--radius-lg); }
+.demo-group-label { color: var(--color-text-secondary); text-align: left; }
+.pub-main--center .notice { width: 100%; text-align: left; }
 .row-actions, .action-row { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .action-row { margin-top: var(--space-4); }
 .action-row .btn { flex: 1 1 auto; }

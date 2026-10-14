@@ -10,6 +10,7 @@
   const TODAY = "2026-09-22"; // a Tuesday
   const NOW = at(TODAY, "08:40");
   const HOLD_MS = 15 * 60 * 1000;
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
   // Amsterdam is on CEST (+02:00) for every demo date (DST ends 25 October 2026).
   function at(date, hhmm) {
@@ -174,7 +175,8 @@
       assigned: JSON.parse(JSON.stringify(ASSIGNED_SEED)),
       history: JSON.parse(JSON.stringify(HISTORY_SEED)),
       customEx: {},
-      booking: { mode: "group", occ: null, name: "", email: "", errors: {}, holdAt: null, attId: null, confirmCancel: false },
+      booking: { mode: "group", occ: null, name: "", email: "", errors: {}, holdAt: null, attId: null, confirmCancel: false,
+        changing: false, changeErr: false, emailChanged: null },
       np: null,
       mv: null,
       log: null,
@@ -642,10 +644,19 @@
             <p class="t-footnote muted">${t("b.holdHint")}</p>
           </div>
           <p class="t-footnote muted">${t("b.spam")}</p>
-          <div class="stack">
-            ${demoBtn("b-open-mail", t("b.openMail"), `data-primary`)}
+          ${b.emailChanged ? `<p class="notice" role="status" data-email-changed>${icon("mail", "ico--sm")}<span>${t("b.emailChanged", { email: `<strong class="nowrap-ok">${esc(b.emailChanged)}</strong>` })}</span></p>` : ""}
+          <div class="hold-actions stack">
             <button type="button" class="btn btn--text" data-act="b-resend">${t("b.resend")}</button>
-            <button type="button" class="btn btn--text" data-act="b-wrong-email">${t("b.wrongEmail")}</button>
+            ${b.changing ? `<form class="form change-email" data-form="change-email" novalidate>
+                ${field("b-new-email", t("b.newEmail"), `<input id="b-new-email" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="${t("b.emailPh")}" ${b.changeErr ? `aria-invalid="true" aria-describedby="b-new-email-err"` : ""}>`, b.changeErr && t("b.emailErr"))}
+                <p class="t-footnote muted">${t("b.sameHold")}</p>
+                <div class="row-actions"><button type="submit" class="btn btn--primary">${t("b.sendNewLink")}</button><button type="button" class="btn btn--text" data-act="b-change-cancel">${t("common.cancel")}</button></div>
+              </form>`
+              : `<button type="button" class="btn btn--text" data-act="b-wrong-email">${t("b.wrongEmail")}</button>`}
+          </div>
+          <div class="demo-group" role="group" aria-labelledby="demo-h">
+            <p class="t-caption demo-group-label" id="demo-h">${t("b.demoGroup")}</p>
+            ${demoBtn("b-open-mail", t("b.openMail"), `data-primary`)}
             ${demoBtn("b-expire", t("b.expireDemo"))}
           </div>
         </main>`;
@@ -667,7 +678,7 @@
           <header class="mail-bar"><button type="button" class="btn btn--text" data-act="back">${icon("chevL", "ico--sm")}${t("mail.inbox")}</button></header>
           <main class="mail-main">
             <h1 class="mail-subject" tabindex="-1">${t("mail.subject", { class: esc(occ.title) })}</h1>
-            <div class="mail-from"><span class="pub-mark pub-mark--sm" aria-hidden="true">JG</span><div><p class="t-label">${t("mail.from", { ws: "John's Gym" })}</p><p class="t-footnote muted">${time(new Date(NOW.getTime() + 60000))}</p></div></div>
+            <div class="mail-from"><span class="pub-mark pub-mark--sm" aria-hidden="true">JG</span><div><p class="t-label">${t("mail.from", { ws: "John's Gym" })}</p><p class="t-footnote muted">${t("mail.to", { email: esc(b.email) })} · ${time(new Date(NOW.getTime() + 60000))}</p></div></div>
             <div class="mail-body">
               <p>${t("mail.hi", { name: esc(b.name.split(" ")[0]) })}</p>
               <p>${t("mail.body", { class: `<strong>${esc(occ.title)}</strong>`, when })}</p>
@@ -2050,7 +2061,9 @@
       go("b-form");
     },
     "b-resend": () => toast(t("b.resent")),
-    "b-wrong-email": () => { releaseHold(); state.stack = state.stack.filter((f) => f.s !== "b-check"); render({ nav: true }); },
+    // E-mailadres wijzigen moves the same hold: same spot, same countdown (flows/01 edge cases, PB-04).
+    "b-wrong-email": () => { Object.assign(state.booking, { changing: true, changeErr: false }); render(); root.querySelector("#b-new-email")?.focus(); },
+    "b-change-cancel": () => { Object.assign(state.booking, { changing: false, changeErr: false }); render(); },
     "b-expire": () => expireHold(),
     "b-open-mail": () => go("b-mail"),
     "b-mail-link": () => go("b-confirm"),
@@ -2489,7 +2502,7 @@
       const b = state.booking;
       b.name = e.target.elements.namedItem("name").value.trim();
       b.email = e.target.elements.namedItem("email").value.trim();
-      b.errors = { name: !b.name, email: !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(b.email) };
+      b.errors = { name: !b.name, email: !EMAIL_RE.test(b.email) };
       if (b.errors.name || b.errors.email) {
         render();
         root.querySelector(b.errors.name ? "#b-name" : "#b-email")?.focus();
@@ -2502,6 +2515,21 @@
       occ.attendees.push({ id: b.attId, name: b.name, lang: state.lang === "en" ? "en" : "nl", guest: true, status: "pending" });
       b.holdAt = Date.now();
       go("b-check");
+    }
+    if (form === "change-email") {
+      const b = state.booking;
+      const email = e.target.elements.namedItem("email").value.trim();
+      if (!EMAIL_RE.test(email)) {
+        b.changeErr = true;
+        render();
+        const input = root.querySelector("#b-new-email");
+        if (input) { input.value = email; input.focus(); }
+        return;
+      }
+      // The earlier link stops working: the simulated inbox only holds the mail for the new address.
+      Object.assign(b, { email, changing: false, changeErr: false, emailChanged: email });
+      render();
+      return;
     }
     if (form === "new-session" || form === "move") {
       captureForm();
