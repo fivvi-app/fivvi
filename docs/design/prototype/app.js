@@ -105,30 +105,36 @@
     },
     "Open Gym": { name: { nl: "Open Gym", en: "Open Gym" } },
   };
-  // Exercise library (PRODUCT.md §38): Dutch and English names, extra search aliases, weight step in kg.
+  // Exercise library (PRODUCT.md §38): Dutch and English names, extra search aliases, and a type that decides the set
+  // fields (owner round 3): weight × reps (default), reps only, time (seconds, shown as m:ss) or distance + time.
   const EXERCISES = {
-    bench: { nl: "Bankdrukken", en: "Bench press", step: 2.5 },
-    incline: { nl: "Schuine bankdrukken met dumbbells", en: "Incline dumbbell press", step: 2 },
-    row: { nl: "Kabelroeien", en: "Seated cable row", step: 2.5 },
-    ohp: { nl: "Schouderdrukken met dumbbells", en: "Dumbbell shoulder press", step: 2 },
-    lat: { nl: "Lat pulldown", en: "Lat pulldown", step: 2.5 },
-    squat: { nl: "Squat", en: "Back squat", step: 2.5, aliases: ["kniebuiging"] },
-    goblet: { nl: "Goblet squat", en: "Goblet squat", step: 2 },
-    rdl: { nl: "Roemeense deadlift", en: "Romanian deadlift", step: 2.5, aliases: ["RDL"] },
-    legpress: { nl: "Beenpers", en: "Leg press", step: 5 },
-    lunge: { nl: "Lunges met dumbbells", en: "Dumbbell lunges", step: 2 },
-    kbswing: { nl: "Kettlebell swing", en: "Kettlebell swing", step: 4 },
-    facepull: { nl: "Face pull", en: "Face pull", step: 2.5 },
+    bench: { nl: "Bankdrukken", en: "Bench press" },
+    incline: { nl: "Schuine bankdrukken met dumbbells", en: "Incline dumbbell press" },
+    row: { nl: "Kabelroeien", en: "Seated cable row" },
+    ohp: { nl: "Schouderdrukken met dumbbells", en: "Dumbbell shoulder press" },
+    lat: { nl: "Lat pulldown", en: "Lat pulldown" },
+    squat: { nl: "Squat", en: "Back squat", aliases: ["kniebuiging"] },
+    goblet: { nl: "Goblet squat", en: "Goblet squat" },
+    rdl: { nl: "Roemeense deadlift", en: "Romanian deadlift", aliases: ["RDL"] },
+    legpress: { nl: "Beenpers", en: "Leg press" },
+    lunge: { nl: "Lunges met dumbbells", en: "Dumbbell lunges" },
+    kbswing: { nl: "Kettlebell swing", en: "Kettlebell swing" },
+    facepull: { nl: "Face pull", en: "Face pull" },
+    pushup: { nl: "Opdrukken", en: "Push-up", type: "reps", aliases: ["push-up", "pushup"] },
+    pullup: { nl: "Pull-up", en: "Pull-up", type: "reps", aliases: ["optrekken", "chin-up"] },
+    plank: { nl: "Plank", en: "Plank", type: "time" },
+    rowerg: { nl: "Roeien", en: "Rowing", type: "distance", aliases: ["roeimachine", "rowing machine", "ergometer"] },
   };
-  // Workout templates (PRODUCT.md §39): [exercise, target sets, target reps].
+  // Workout templates (PRODUCT.md §39): [exercise, target sets, target per set: reps, or seconds for time, metres for distance].
   const TEMPLATE_SEED = {
     "upper-a": { name: "Upper A", items: [["bench", 3, 8], ["row", 3, 10], ["ohp", 3, 10]] },
     "lower-a": { name: "Lower A", items: [["squat", 3, 6], ["rdl", 3, 8], ["legpress", 3, 10]] },
-    "full-body": { name: "Full body", items: [["goblet", 3, 10], ["row", 3, 10], ["lunge", 3, 10], ["kbswing", 3, 15]] },
+    "full-body": { name: "Full body", items: [["goblet", 3, 10], ["row", 3, 10], ["lunge", 3, 10], ["kbswing", 3, 15], ["plank", 3, 45]] },
   };
   // Templates used with a client before, most recent first (F042).
   const ASSIGNED_SEED = { mark: ["upper-a", "lower-a"], anna: ["lower-a", "upper-a"], koen: ["full-body"] };
   // Logged workouts per client, newest first (PRODUCT.md §42). `name: null` = logged without a template.
+  // A set is an array per exercise type: weight [kg, reps] · reps [reps] · time [seconds] · distance [metres, seconds].
   const HISTORY_SEED = {
     mark: [
       { date: "2026-09-18", trainer: "sarah", name: "Lower A", items: [["squat", [[80, 6], [80, 6], [80, 5]]], ["rdl", [[70, 8], [70, 8], [70, 8]]], ["legpress", [[140, 10], [140, 10], [140, 9]]]] },
@@ -138,7 +144,7 @@
       { date: "2026-09-15", trainer: "sarah", name: "Lower A", items: [["squat", [[40, 6], [40, 6], [40, 6]]], ["rdl", [[35, 8], [35, 8], [35, 8]]], ["legpress", [[80, 10], [80, 10], [80, 10]]]] },
     ],
     koen: [
-      { date: "2026-09-17", trainer: "sarah", name: null, items: [["goblet", [[20, 12], [20, 12], [24, 10]]], ["lat", [[40, 12], [40, 12], [45, 10]]], ["kbswing", [[16, 15], [16, 15], [16, 15]]]] },
+      { date: "2026-09-17", trainer: "sarah", name: null, items: [["goblet", [[20, 12], [20, 12], [24, 10]]], ["lat", [[40, 12], [40, 12], [45, 10]]], ["kbswing", [[16, 15], [16, 15], [16, 15]]], ["plank", [[45], [45], [40]]], ["rowerg", [[500, 105]]]] },
     ],
     priya: [
       { date: "2026-09-19", trainer: "john", name: null, items: [["squat", [[50, 8], [50, 8], [55, 6]]], ["bench", [[35, 10], [35, 10], [35, 8]]]] },
@@ -312,6 +318,38 @@
   const exDef = (id) => EXERCISES[id] || state.customEx[id];
   const exName = (id) => { const e = exDef(id); return e.custom ? esc(e.name) : e[activeLang()] || e.nl; };
   const kg = (w) => `${num(w)} kg`;
+  // Exercise types decide the set fields and how a set reads (PRODUCT.md §38, §41; owner round 3).
+  // fields: [input key, label key, inputmode, unit, separator before]; tm/ts are the m:ss parts of `s` seconds.
+  const EX_TYPES = {
+    weight: { keys: ["w", "r"], fields: [["w", "l.weightKg", "decimal", "kg", ""], ["r", "l.reps", "numeric", "", "×"]] },
+    reps: { keys: ["r"], fields: [["r", "l.reps", "numeric", "l.repsUnit", ""]] },
+    time: { keys: ["s"], fields: [["tm", "l.minutes", "numeric", "", ""], ["ts", "l.seconds", "numeric", "", ":"]] },
+    distance: { keys: ["d", "s"], fields: [["d", "l.distanceM", "decimal", "m", ""], ["tm", "l.minutes", "numeric", "", ""], ["ts", "l.seconds", "numeric", "", ":"]] },
+  };
+  const DEFAULT_SET = { weight: [0, 10], reps: [10], time: [30], distance: [500, 0] };
+  const MODEL_KEY = { w: "w", r: "r", d: "d", tm: "s", ts: "s" };
+  const exType = (id) => exDef(id).type || "weight";
+  const toRow = (type, set) => Object.fromEntries(EX_TYPES[type].keys.map((k, i) => [k, set[i]]));
+  const toSet = (type, row) => EX_TYPES[type].keys.map((k) => row[k]);
+  const clock = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+  function setText(type, set, compact = false) {
+    if (type === "weight") return compact ? `${num(set[0])} × ${set[1]}` : `${kg(set[0])} × ${set[1]}`;
+    if (type === "reps") return t("l.repsN", { n: set[0] });
+    if (type === "time") return clock(set[0]);
+    return `${num(set[0])} m · ${clock(set[1])}`;
+  }
+  // Weight sets read one by one ("60 kg × 8 · 60 kg × 8"); other types group repeats ("0:45 × 3").
+  function setsText(type, sets) {
+    if (type === "weight") return sets.map((x) => setText(type, x)).join(" · ");
+    const groups = [];
+    sets.map((x) => setText(type, x)).forEach((text) => {
+      const last = groups[groups.length - 1];
+      if (last && last[0] === text) last[1]++;
+      else groups.push([text, 1]);
+    });
+    return groups.map(([text, n]) => (n > 1 ? `${text} × ${n}` : text)).join(", ");
+  }
+  const targetText = (type, v) => (type === "time" ? clock(v) : type === "distance" ? `${num(v)} m` : String(v));
   // A class's name or description in the viewer's language, else the owner's Dutch text, marked as Dutch (owner round 3).
   function classText(occ, field) {
     const v = state.classTpl[occ.tpl]?.[field] || {};
@@ -1230,14 +1268,17 @@
 
   // ---- flow 5: live logging (flows/05-live-workout-logging.md, WL-01 … WL-05)
   // Each set row is prefilled: today's set just logged, else last time's same set, else the target reps (WL-02).
-  function logItem(clientId, exId, targetSets = null, targetReps = null) {
+  function logItem(clientId, exId, targetSets = null, target = null) {
+    const type = exType(exId);
     const prev = prevFor(clientId, exId);
     const n = targetSets || (prev ? prev.sets.length : 1);
+    const base = DEFAULT_SET[type].slice();
+    if (target != null) base[type === "weight" ? 1 : 0] = target;
     const rows = Array.from({ length: n }, (_, i) => {
       const p = prev ? prev.sets[Math.min(i, prev.sets.length - 1)] : null;
-      return { w: p ? p[0] : 0, r: p ? p[1] : targetReps || 10, done: false, touched: false };
+      return { ...toRow(type, p || base), done: false, touched: false };
     });
-    return { ex: exId, target: targetSets ? [targetSets, targetReps] : null, rows, diff: "normal" };
+    return { ex: exId, target: targetSets && target != null ? [targetSets, target] : null, rows, diff: "normal" };
   }
   // source: "template" (a schema), "repeat" (the client's previous workout) or "empty" (on the fly).
   function startLog(id, source, tplId) {
@@ -1247,7 +1288,7 @@
     if (source === "template") {
       const tpl = state.templates[tplId];
       name = tpl.name;
-      items = tpl.items.map(([e, sets, reps]) => logItem(x.client, e, sets, reps));
+      items = tpl.items.map(([e, sets, target]) => logItem(x.client, e, sets, target));
     } else if (source === "repeat") {
       const w = state.history[x.client][0];
       name = w.name;
@@ -1266,8 +1307,9 @@
   const workoutTimer = (L) => `<p class="nav-timer" role="timer" aria-label="${t("l.elapsed")}">${icon("clock", "ico--sm")}<span class="t-num" data-elapsed>${elapsedText(Date.now() - L.startedAt)}</span></p>`;
   const workoutMinutes = (L) => Math.max(1, Math.round(((L.endedAt || Date.now()) - L.startedAt) / 60000));
   const doneCount = (it) => it.rows.filter((r) => r.done).length;
-  function prevLine(prev) {
+  function prevLine(prev, type) {
     if (!prev) return t("l.noPrevShort");
+    if (type !== "weight") return t("l.prevLine", { sets: setsText(type, prev.sets) });
     const w = prev.sets.map((x) => x[0]);
     const sets = w.every((v) => v === w[0])
       ? `${kg(w[0])} × ${prev.sets.map((x) => x[1]).join(", ")}`
@@ -1275,18 +1317,18 @@
     return t("l.prevLine", { sets });
   }
   // Later sets that the trainer hasn't touched follow the set just logged or changed (WL-02).
-  function carry(it, i, keys = ["w", "r"]) {
+  function carry(it, i, keys = EX_TYPES[exType(it.ex)].keys) {
     for (let j = i + 1; j < it.rows.length; j++) {
       const r = it.rows[j];
       if (!r.done && !r.touched) keys.forEach((k) => { r[k] = it.rows[i][k]; });
     }
   }
   const recordItems = (L) => L.items.filter((it) => doneCount(it))
-    .map((it) => ({ ex: it.ex, sets: it.rows.filter((r) => r.done).map((r) => [r.w, r.r]), diff: it.diff }));
+    .map((it) => ({ ex: it.ex, sets: it.rows.filter((r) => r.done).map((r) => toSet(exType(it.ex), r)), diff: it.diff }));
   // Custom exercises are trainer content, stored exactly as typed (PRODUCT.md §38, F040).
-  function createCustomExercise(name) {
+  function createCustomExercise(name, type = "weight") {
     const id = `cx-${Date.now()}`;
-    state.customEx[id] = { custom: true, name };
+    state.customEx[id] = { custom: true, name, type };
     state.log.newEx = null;
     addExercise(id);
     toast(t("l.exCreated"));
@@ -1300,7 +1342,9 @@
     render({ nav: true });
     const head = root.querySelector(`[data-ex-head="${L.items.length - 1}"]`);
     head?.focus({ preventScroll: true });
-    head?.scrollIntoView({ block: "start" });
+    // Scroll only the logger list, so the app bar with the timer stays in place.
+    const list = root.querySelector("main[data-scroll]");
+    if (head && list) list.scrollTop += head.getBoundingClientRect().top - list.getBoundingClientRect().top - 8;
   }
   const chev = () => (state.platform === "ios" ? icon("chevR", "row-chev") : "");
 
@@ -1338,23 +1382,27 @@
 
   // WL-02 is the logger: one scrolling list, every exercise in order with its sets underneath (owner round 3;
   // the separate WL-03 exercise screen and its stepper dock are folded in). Inputs and ticks stay ≥ 44 pt/dp.
-  const LOG_FIELDS = [["w", "l.weightKg", "decimal", "kg"], ["r", "l.reps", "numeric", ""]];
-  const inputValue = (k, v) => (k === "w" ? num(v) : String(v));
-  const prevSet = (p) => `${num(p[0])} × ${p[1]}`;
+  function inputValue(k, row) {
+    if (k === "w" || k === "d") return num(row[k]);
+    if (k === "tm") return String(Math.floor(row.s / 60));
+    if (k === "ts") return String(row.s % 60).padStart(2, "0");
+    return String(row[k]);
+  }
   function setRow(it, i, j, prev) {
     const r = it.rows[j];
+    const type = exType(it.ex);
     const p = prev?.sets[j];
-    const fields = LOG_FIELDS.map(([k, label, mode, unit], f) => {
+    const fields = EX_TYPES[type].fields.map(([k, label, mode, unit, sep]) => {
       const id = `set-${i}-${j}-${k}`;
-      return `${f ? `<span class="set-x" aria-hidden="true">×</span>` : ""}<span class="set-field">
+      return `${sep ? `<span class="set-x" aria-hidden="true">${sep}</span>` : ""}<span class="set-field">
           <label class="sr-only" for="${id}">${t("l.setField", { n: j + 1, field: t(label) })}</label>
-          <input class="set-input t-num" id="${id}" type="text" inputmode="${mode}" autocomplete="off" value="${inputValue(k, r[k])}" data-set-input data-ex="${i}" data-v="${j}" data-k="${k}">
-          ${unit ? `<span class="set-unit" aria-hidden="true">${unit}</span>` : ""}</span>`;
+          <input class="set-input t-num" id="${id}" type="text" inputmode="${mode}" autocomplete="off" value="${inputValue(k, r)}" data-set-input data-ex="${i}" data-v="${j}" data-k="${k}">
+          ${unit ? `<span class="set-unit" aria-hidden="true">${unit.startsWith("l.") ? t(unit) : unit}</span>` : ""}</span>`;
     }).join("");
     return `<li class="set-row${r.done ? " is-done" : ""}">
         <span class="set-no t-num">${j + 1}</span>
         <span class="set-fields">${fields}${r.extra && !r.done ? `<button type="button" class="btn btn--icon btn--ghost set-remove" data-act="log-remove-set" data-ex="${i}" data-v="${j}" aria-label="${t("l.removeSet", { n: j + 1 })}">${icon("x", "ico--sm")}</button>` : ""}</span>
-        ${p ? `<span class="set-prev t-num">${t("l.prevSet", { value: prevSet(p) })}</span>` : ""}
+        ${p ? `<span class="set-prev t-num">${t("l.prevSet", { value: setText(type, p, true) })}</span>` : ""}
         <button type="button" class="set-check" data-act="log-check" data-ex="${i}" data-v="${j}" aria-pressed="${r.done}" aria-label="${t(r.done ? "l.undoSet" : "l.setDone", { n: j + 1 })}">${icon("check")}</button>
       </li>`;
   }
@@ -1371,7 +1419,7 @@
           <h2 class="log-ex" id="ex-h-${i}" tabindex="-1" data-ex-head="${i}">${exName(it.ex)}</h2>
           <span class="ex-count t-num${all ? " is-done" : ""}">${all ? icon("check", "ico--sm") : ""}${d}/${it.rows.length}</span>
         </div>
-        <p class="t-footnote muted log-card-sub">${it.target ? `${t("l.target", { sets: it.target[0], reps: it.target[1] })} · ` : ""}${prevHead}</p>
+        <p class="t-footnote muted log-card-sub">${it.target ? `${t("l.target", { sets: it.target[0], reps: targetText(exType(it.ex), it.target[1]) })} · ` : ""}${prevHead}</p>
         <ol class="set-list" aria-labelledby="ex-h-${i}">${it.rows.map((r, j) => setRow(it, i, j, prev)).join("")}</ol>
         <div class="log-card-foot">
           <button type="button" class="btn btn--text btn--add-set" data-act="log-add-set" data-ex="${i}" aria-label="${t("l.addSetTo", { ex: exName(it.ex) })}">${icon("plus", "ico--sm")}${t("l.addSetShort")}</button>
@@ -1418,8 +1466,10 @@
         const other = d.custom ? "" : activeLang() === "nl" ? d.en : d.nl;
         const keys = fold([d.nl, d.en, d.name, ...(d.aliases || [])].filter(Boolean).join(" "));
         const prev = prevFor(x.client, e);
+        const type = exType(e);
         const sub = [other && other !== exName(e) ? t("l.alias", { name: esc(other) }) : "", d.custom ? t("l.customEx") : "",
-          inLog.has(e) ? t("l.inWorkout") : prev ? prevLine(prev) : ""].filter(Boolean).join(" · ");
+          type === "weight" ? "" : t("ex.type." + type),
+          inLog.has(e) ? t("l.inWorkout") : prev ? prevLine(prev, type) : ""].filter(Boolean).join(" · ");
         return `<li data-name="${esc(keys)}"><button type="button" class="row" data-act="log-add-ex" data-v="${e}" ${inLog.has(e) ? "disabled" : ""}>
             <span class="row-main"><span class="row-title">${exName(e)}</span>${sub ? `<span class="row-sub">${sub}</span>` : ""}</span>
             ${icon(inLog.has(e) ? "check" : "plus", "row-chev")}</button></li>`;
@@ -1430,6 +1480,8 @@
           <div class="search">${icon("search", "ico--sm")}<input id="ex-search" type="search" placeholder="${t("l.searchEx")}" aria-label="${t("l.searchEx")}" autocomplete="off"></div>
           ${nx.open ? `<form class="form new-ex-form" data-form="new-exercise" novalidate>
               ${field("new-ex-name", t("l.newExName"), `<input id="new-ex-name" class="input" name="name" type="text" autocomplete="off" value="${esc(nx.name || "")}" ${nx.err ? `aria-invalid="true" aria-describedby="new-ex-name-err"` : ""}>`, nx.err && t("l.newExNameErr"))}
+              <div class="field"><span class="field-label" id="new-ex-type-h">${t("l.exType")}</span>
+                ${choiceList("log-new-ex-type", Object.keys(EX_TYPES).map((k) => [k, t("ex.type." + k)]), nx.type || "weight", { name: t("l.exType") })}</div>
               <p class="t-footnote muted">${t("l.newExHint")}</p>
               <div class="row-actions"><button type="submit" class="btn btn--primary">${icon("plus", "ico--sm")}${t("l.newExAdd")}</button><button type="button" class="btn btn--text" data-act="log-new-ex-cancel">${t("common.cancel")}</button></div>
             </form>`
@@ -1488,7 +1540,7 @@
   function workoutRows(items) {
     return `<ul class="list">${items.map((it) => `<li class="row row--static"><span class="row-main">
       <span class="row-title">${exName(it.ex)}</span>
-      <span class="row-sub t-num">${it.sets.map((x) => `${kg(x[0])} × ${x[1]}`).join(" · ")}</span>
+      <span class="row-sub t-num">${setsText(exType(it.ex), it.sets)}</span>
     </span>${it.diff && it.diff !== "normal" ? `<span class="chip chip--${it.diff === "hard" ? "warning" : "neutral"}">${t("l." + it.diff)}</span>` : ""}</li>`).join("")}</ul>`;
   }
   function sharedWorkoutBody(record) {
@@ -2293,13 +2345,24 @@
     },
     "log-add": () => go("l-add", { id: state.log.id }),
     "log-add-ex": (el) => addExercise(el.dataset.v),
+    // Creating an exercise always asks for its type; the search text becomes the name (owner round 3).
     "log-new-ex": () => {
       const q = root.querySelector("#ex-search")?.value.trim();
-      if (q) createCustomExercise(q);
+      if (!q) return;
+      state.log.newEx = { open: true, name: q, err: false, type: "weight" };
+      render();
+      root.querySelector("#new-ex-name")?.focus();
+    },
+    "log-new-ex-type": (el) => {
+      const nx = state.log.newEx;
+      nx.name = root.querySelector("#new-ex-name")?.value ?? nx.name;
+      nx.type = el.dataset.v;
+      render();
+      root.querySelector(`[data-act="log-new-ex-type"][data-v="${nx.type}"]`)?.focus();
     },
     // A trainer-specific exercise can be created without searching first (phone-test finding 10).
     "log-new-ex-start": () => {
-      state.log.newEx = { open: true, name: root.querySelector("#ex-search")?.value.trim() || "", err: false };
+      state.log.newEx = { open: true, name: root.querySelector("#ex-search")?.value.trim() || "", err: false, type: "weight" };
       render();
       root.querySelector("#new-ex-name")?.focus();
     },
@@ -2317,8 +2380,9 @@
     // + Set under an exercise adds a row prefilled from its last set; an unlogged extra set can be removed again.
     "log-add-set": (el) => {
       const it = state.log.items[Number(el.dataset.ex)];
-      const last = it.rows[it.rows.length - 1] || { w: 0, r: 10 };
-      it.rows.push({ w: last.w, r: last.r, done: false, touched: false, extra: true });
+      const type = exType(it.ex);
+      const last = it.rows[it.rows.length - 1];
+      it.rows.push({ ...toRow(type, last ? toSet(type, last) : DEFAULT_SET[type]), done: false, touched: false, extra: true });
       state.log.changed = true;
       render();
     },
@@ -2360,7 +2424,7 @@
       if (L.saveTpl) {
         const tid = `tpl-${Date.now()}`;
         name = L.tplName.trim();
-        state.templates[tid] = { name, items: items.map((it) => [it.ex, it.sets.length, it.sets[0][1]]) };
+        state.templates[tid] = { name, items: items.map((it) => [it.ex, it.sets.length, it.sets[0][exType(it.ex) === "weight" ? 1 : 0]]) };
         (state.assigned[x.client] ||= []).unshift(tid);
       }
       const minutes = workoutMinutes(L);
@@ -2510,13 +2574,23 @@
     else if (from === "web-session") { selectWebClient(id); state.web.panelMode = "create"; render(); }
     else { state.web.panelMode = null; render(); }
   }
+  const parseNum = (value) => (value.trim() === "" ? NaN : Number(value.trim().replace(",", ".")));
   function setFromInput(input) {
     const it = state.log.items[Number(input.dataset.ex)];
     const r = it?.rows[Number(input.dataset.v)];
-    const n = Number(input.value.trim().replace(",", "."));
-    if (!r || input.value.trim() === "" || !Number.isFinite(n) || n < 0) return null;
     const k = input.dataset.k;
-    r[k] = k === "w" ? Math.round(n * 100) / 100 : Math.round(n);
+    if (!r) return null;
+    if (k === "tm" || k === "ts") {
+      // Time is typed as minutes and seconds and stored in seconds; 75 seconds reads as 1:15.
+      const row = input.closest(".set-row");
+      const m = parseNum(row.querySelector('[data-k="tm"]').value || "0"), sec = parseNum(row.querySelector('[data-k="ts"]').value || "0");
+      if (![m, sec].every((n) => Number.isFinite(n) && n >= 0)) return null;
+      r.s = Math.round(m) * 60 + Math.round(sec);
+    } else {
+      const n = parseNum(input.value);
+      if (!Number.isFinite(n) || n < 0) return null;
+      r[k] = k === "w" || k === "d" ? Math.round(n * 100) / 100 : Math.round(n);
+    }
     r.touched = true;
     return it;
   }
@@ -2575,13 +2649,15 @@
       const it = setFromInput(e.target);
       if (!it) return;
       const i = Number(e.target.dataset.v);
-      const k = e.target.dataset.k;
-      e.target.value = inputValue(k, it.rows[i][k]);
-      carry(it, i, [k]);
+      const key = MODEL_KEY[e.target.dataset.k];
+      carry(it, i, [key]);
+      const inputs = Object.keys(MODEL_KEY).filter((k) => MODEL_KEY[k] === key);
       it.rows.forEach((r, j) => {
-        if (j <= i) return;
-        const later = root.querySelector(`#set-${e.target.dataset.ex}-${j}-${k}`);
-        if (later && later !== document.activeElement) later.value = inputValue(k, r[k]);
+        if (j < i) return;
+        inputs.forEach((k) => {
+          const node = root.querySelector(`#set-${e.target.dataset.ex}-${j}-${k}`);
+          if (node && (node === e.target || node !== document.activeElement)) node.value = inputValue(k, r);
+        });
       });
     }
   });
@@ -2609,13 +2685,14 @@
     }
     if (form === "new-exercise") {
       const name = e.target.elements.namedItem("name").value.trim();
+      const type = state.log.newEx?.type || "weight";
       if (!name) {
-        state.log.newEx = { open: true, name: "", err: true };
+        state.log.newEx = { open: true, name: "", err: true, type };
         render();
         root.querySelector("#new-ex-name")?.focus();
         return;
       }
-      createCustomExercise(name);
+      createCustomExercise(name, type);
       return;
     }
     if (form === "change-email") {

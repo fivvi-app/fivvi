@@ -748,6 +748,8 @@ test('workout without a template: add library and custom exercises, one-tap sets
   await page.locator('[data-act="log-add"]').click();
   await page.locator('#ex-search').fill('Sled push');
   await page.locator('[data-act="log-new-ex"]').click();
+  assert.equal(await page.locator('#new-ex-name').inputValue(), 'Sled push', 'the search text becomes the name; the type is asked next');
+  await page.locator('[data-form="new-exercise"] button[type="submit"]').click();
   assert.ok((await page.locator('.log-ex').nth(1).textContent()).includes('Sled push'));
   await page.locator(tick(1, 0)).click();
   assert.equal(await page.locator('.log-ex').count(), 2);
@@ -768,10 +770,11 @@ test('workout without a template: add library and custom exercises, one-tap sets
 test('repeat previous workout prefills last time\'s values', async () => {
   const { page, errors } = await pageFor(5);
   await page.locator('[data-act="log-begin"][data-v="repeat"]').click();
-  assert.equal(await page.locator('.log-ex').count(), 3);
+  assert.equal(await page.locator('.log-ex').count(), 5, 'goblet squat, lat pulldown, kettlebell swing, plank and rowing');
   assert.equal(await page.locator(setInput(0, 0, 'w')).inputValue(), '20');
   assert.equal(await page.locator(setInput(0, 0, 'r')).inputValue(), '12');
   assert.equal(await page.locator(setInput(0, 2, 'w')).inputValue(), '24', 'each set follows last time\'s same set');
+  for (const sub of await page.locator('.log-card-sub').allInnerTexts()) assert.ok(!sub.includes('×'), `a repeated workout has no target line: ${sub}`);
   assert.deepEqual(errors, []);
   await page.close();
 });
@@ -1762,6 +1765,95 @@ test('R3: the logger is one scrolling list with previous values, editable sets, 
       await page.locator('.nav [data-act="log-finish"]').click();
       await page.locator('.workout-breakdown summary').click();
       assert.ok((await page.locator('.workout-breakdown').innerText()).includes(lang === 'nl' ? '60 kg × 10' : '60 kg × 10'), 'the edited value is logged');
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  }
+});
+
+const TYPE_LABELS = {
+  nl: ['Gewicht × herhalingen', 'Alleen herhalingen', 'Tijd', 'Afstand + tijd'],
+  en: ['Weight × reps', 'Reps only', 'Time', 'Distance + time'],
+};
+const inputKeys = (page, ex) => page.locator(`[data-ex-card="${ex}"] .set-row`).first().locator('[data-set-input]')
+  .evaluateAll((els) => els.map((el) => `${el.dataset.k}:${el.inputMode}`));
+
+test('R3: exercise types decide the set fields and how sets read in the logger, summary and shared email', async () => {
+  for (const [lang, reps, prevPlank, prevRow] of [['nl', '10 herh.', 'vorige 0:45', 'vorige 500 m · 1:45'], ['en', '10 reps', 'last 0:45', 'last 500 m · 1:45']]) {
+    for (const platform of ['ios', 'android']) {
+      const { page, errors } = await pageFor(null);
+      await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).click();
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      await startFlow(page, '5free');
+      await page.locator('[data-act="log-begin"][data-v="repeat"]').click();
+      assert.deepEqual(await inputKeys(page, 0), ['w:decimal', 'r:numeric'], 'weight × reps');
+      assert.deepEqual(await inputKeys(page, 3), ['tm:numeric', 'ts:numeric'], 'plank: time as m:ss');
+      assert.deepEqual(await inputKeys(page, 4), ['d:decimal', 'tm:numeric', 'ts:numeric'], 'rowing: metres + m:ss');
+      // Repeat previous prefills each type from last time and shows the previous value in its format.
+      assert.equal(await page.locator(setInput(3, 0, 'tm')).inputValue(), '0');
+      assert.equal(await page.locator(setInput(3, 0, 'ts')).inputValue(), '45');
+      assert.equal(await page.locator(setInput(3, 2, 'ts')).inputValue(), '40');
+      assert.equal((await page.locator('[data-ex-card="3"] .set-prev').first().innerText()).trim(), prevPlank);
+      assert.equal(await page.locator(setInput(4, 0, 'd')).inputValue(), '500');
+      assert.equal(await page.locator(setInput(4, 0, 'tm')).inputValue(), '1');
+      assert.equal(await page.locator(setInput(4, 0, 'ts')).inputValue(), '45');
+      assert.equal((await page.locator('[data-ex-card="4"] .set-prev').first().innerText()).trim(), prevRow);
+      await fillSet(page, 3, 0, 'ts', '50');
+      for (let i = 0; i < 3; i++) await page.locator(tick(3, i)).click();
+      await page.locator(tick(4, 0)).click();
+      // Reps only: bodyweight exercises have one numeric field.
+      await page.locator('[data-act="log-add"]').click();
+      await page.locator('[data-act="log-add-ex"][data-v="pushup"]').click();
+      assert.deepEqual(await inputKeys(page, 5), ['r:numeric'], 'push-up: reps only');
+      await page.locator(tick(5, 0)).click();
+      await page.locator('.nav [data-act="log-finish"]').click();
+      await page.locator('.workout-breakdown summary').click();
+      const summary = await page.locator('.workout-breakdown').innerText();
+      assert.ok(summary.includes('0:50 × 3'), `${lang}/${platform}: time sets read as m:ss, got ${summary}`);
+      assert.ok(summary.includes('500 m · 1:45'), 'distance + time');
+      assert.ok(summary.includes(reps), 'reps only');
+      await page.locator('[data-act="log-done"]').click();
+      await page.locator('[data-act="share-review"]').click();
+      await page.locator('[data-act="share-confirm"]').click();
+      await page.locator('[data-act="view-email"]').click();
+      const email = await page.locator('.pub').innerText();
+      assert.ok(email.includes('Plank') && email.includes('0:50 × 3'), 'shared email: time');
+      assert.ok(email.includes('Roeien') && email.includes('500 m · 1:45'), 'shared email in Koen\'s language: distance + time');
+      assert.ok(email.includes('10 herh.'), 'shared email: reps only, in Dutch');
+      await page.locator('[data-act="view-profile"]').click();
+      assert.ok((await page.locator('.pub').innerText()).includes('500 m · 1:45'), 'client profile');
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  }
+});
+
+test('R3: creating a custom exercise asks for its type, Weight × reps by default', async () => {
+  for (const lang of ['nl', 'en']) {
+    for (const platform of ['ios', 'android']) {
+      const { page, errors } = await pageFor(null);
+      await page.locator(`[data-act="set-lang"][data-v="${lang}"]`).click();
+      await page.locator(`[data-act="set-platform"][data-v="${platform}"]`).click();
+      await startFlow(page, '5free');
+      await page.locator('[data-act="log-begin"][data-v="empty"]').click();
+      await page.locator('[data-act="log-new-ex-start"]').click();
+      const types = page.locator('[data-act="log-new-ex-type"]');
+      assert.deepEqual((await types.allInnerTexts()).map((x) => x.trim()), TYPE_LABELS[lang], `${lang}/${platform}: four exercise types`);
+      assert.equal(await page.locator('[data-act="log-new-ex-type"][aria-checked="true"]').getAttribute('data-v'), 'weight', 'Weight × reps by default');
+      await page.locator('#new-ex-name').fill('Wall sit');
+      await page.locator('[data-act="log-new-ex-type"][data-v="time"]').click();
+      assert.equal(await page.locator('#new-ex-name').inputValue(), 'Wall sit', 'picking a type keeps the typed name');
+      await page.locator('[data-form="new-exercise"] button[type="submit"]').click();
+      assert.equal((await page.locator('.log-ex').last().innerText()).trim(), 'Wall sit');
+      assert.deepEqual(await inputKeys(page, 0), ['tm:numeric', 'ts:numeric'], 'a time exercise gets m:ss fields');
+      await page.locator('[data-act="log-add"]').click();
+      assert.ok((await page.locator('[data-filter-group]', { has: page.locator('[data-v^="cx-"]') }).innerText()).includes(TYPE_LABELS[lang][2]),
+        'Your exercises shows the type of a non-weight exercise');
+      await page.locator('#ex-search').fill('Sled push');
+      await page.locator('[data-act="log-new-ex"]').click();
+      assert.equal(await page.locator('[data-act="log-new-ex-type"][aria-checked="true"]').getAttribute('data-v'), 'weight');
+      await page.locator('[data-form="new-exercise"] button[type="submit"]').click();
+      assert.deepEqual(await inputKeys(page, 1), ['w:decimal', 'r:numeric'], 'the default type logs weight × reps');
       assert.deepEqual(errors, []);
       await page.close();
     }

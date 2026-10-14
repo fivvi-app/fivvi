@@ -528,7 +528,8 @@ textarea.input { resize: vertical; line-height: var(--typography-body-line-heigh
 .set-fields { grid-area: fields; display: flex; align-items: center; gap: 6px; min-width: 0; }
 .set-field { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
 .set-input { width: 76px; min-width: 52px; min-height: 48px; padding: 0 6px; text-align: center; font-size: 20px; line-height: 24px; font-weight: var(--font-weight-semibold); color: var(--color-text-primary); background: var(--color-bg-canvas); border: var(--border-width-control) solid var(--color-border-control); border-radius: var(--radius-sm); }
-.set-input[data-k="r"] { width: 60px; }
+.set-input[data-k="r"], .set-input[data-k="tm"], .set-input[data-k="ts"] { width: 60px; }
+.set-field .set-input { flex: 0 1 auto; min-width: 44px; }
 .set-input:focus-visible { outline-offset: 0; }
 .set-unit, .set-x { color: var(--color-text-secondary); font-size: var(--typography-subhead-font-size); }
 .set-prev { grid-area: prev; font-size: var(--typography-footnote-font-size); line-height: var(--typography-footnote-line-height); color: var(--color-text-secondary); }
