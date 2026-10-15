@@ -1,6 +1,10 @@
-/** Catalog locales. `nl-NL` is the source language and the final fallback (ADR-008). */
+/** Catalog locales (ADR-008). */
 export const locales = ['nl-NL', 'en'] as const;
 export type Locale = (typeof locales)[number];
+/**
+ * The source language: catalogs and native default resources are authored in it. It is not
+ * the fallback for unsupported languages; the interface language falls back to `en` (ADR-017).
+ */
 export const defaultLocale: Locale = 'nl-NL';
 
 /**

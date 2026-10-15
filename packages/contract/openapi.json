@@ -73,7 +73,7 @@
           "nl-NL",
           "en"
         ],
-        "description": "Catalog locale from packages/i18n. Dutch (nl-NL) is the default."
+        "description": "Catalog locale from packages/i18n: Dutch (nl-NL) or English (en)."
       },
       "ValidationError": {
         "type": "object",
@@ -154,14 +154,14 @@
           "hello"
         ],
         "summary": "Greeting for the walking skeleton",
-        "description": "Without `locale`, the locale follows the Accept-Language header and falls back to nl-NL.",
+        "description": "Without `locale`, the locale is the first supported language in the Accept-Language header, otherwise en.",
         "parameters": [
           {
             "schema": {
               "$ref": "#/components/schemas/Locale"
             },
             "required": false,
-            "description": "Catalog locale from packages/i18n. Dutch (nl-NL) is the default.",
+            "description": "Catalog locale from packages/i18n: Dutch (nl-NL) or English (en).",
             "name": "locale",
             "in": "query"
           }

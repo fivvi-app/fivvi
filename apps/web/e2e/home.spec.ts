@@ -49,3 +49,37 @@ test.describe('E007 hello page', () => {
     await expect(page.getByLabel(copy.hello.firstNameLabel)).toHaveValue('Sam');
   });
 });
+
+// ADR-017. Runs in both locale projects; each test sets its own browser language.
+test.describe('E008 AC3 home page language', () => {
+  test.describe('on a German-only browser', () => {
+    test.use({ locale: 'de-DE' });
+
+    test('shows the page in English', async ({ page }) => {
+      await page.goto('/');
+
+      await expect(page.locator('html')).toHaveAttribute('lang', formattingLocales.en);
+      await expect(
+        page.getByRole('heading', { level: 1, name: messages.en.hello.title }),
+      ).toBeVisible();
+    });
+  });
+
+  test.describe('on an English browser', () => {
+    test.use({ locale: formattingLocales.en });
+
+    test('shows the page in Dutch when the user chose Dutch', async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      await context.addCookies([{ name: localeCookie, value: 'nl-NL', url: baseURL }]);
+      await page.goto('/');
+
+      await expect(page.locator('html')).toHaveAttribute('lang', formattingLocales['nl-NL']);
+      await expect(
+        page.getByRole('heading', { level: 1, name: messages['nl-NL'].hello.title }),
+      ).toBeVisible();
+    });
+  });
+});
