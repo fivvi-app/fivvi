@@ -4,7 +4,7 @@ import { locales, serverOnlyNamespaces } from '../config.ts';
 import { type Analysis, analyze } from './analyze.ts';
 import { androidValuesDir, renderStringsXml } from './android.ts';
 import { type CatalogSet, readCatalogSet } from './catalog.ts';
-import { renderXcstrings } from './xcstrings.ts';
+import { infoPlistKeys, renderInfoPlistXcstrings, renderXcstrings } from './xcstrings.ts';
 
 /** Committed output, relative to the package root. E008 wires these into the apps. */
 export const generatedDir = 'generated';
@@ -27,9 +27,19 @@ export function isNativeKey(key: string): boolean {
 export function renderNativeCatalogs(fullAnalysis: Analysis): Map<string, string> {
   const problems = [...fullAnalysis.parity, ...fullAnalysis.icu];
   if (problems.length > 0) throw new CatalogError(problems);
+  const missing = Object.values(infoPlistKeys).filter((key) => !fullAnalysis.keys.includes(key));
+  if (missing.length > 0) {
+    throw new CatalogError(
+      missing.map(
+        (key) =>
+          `"${key}" is missing: it is the native app name (iOS CFBundleDisplayName, Android app label)`,
+      ),
+    );
+  }
   const analysis = { ...fullAnalysis, keys: fullAnalysis.keys.filter(isNativeKey) };
   const files = new Map<string, string>();
   files.set(`${generatedDir}/ios/Localizable.xcstrings`, renderXcstrings(analysis));
+  files.set(`${generatedDir}/ios/InfoPlist.xcstrings`, renderInfoPlistXcstrings(analysis));
   for (const locale of locales) {
     files.set(
       `${generatedDir}/android/${androidValuesDir[locale]}/strings.xml`,

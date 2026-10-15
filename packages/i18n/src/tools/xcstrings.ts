@@ -15,8 +15,24 @@ export const appleLanguage: Record<Locale, string> = { 'nl-NL': 'nl', en: 'en' }
  *   through `String(format:)`.
  */
 export function renderXcstrings(analysis: Analysis): string {
+  return renderCatalog(analysis, new Map(analysis.keys.map((key) => [key, key])));
+}
+
+/** Info.plist keys localized by `InfoPlist.xcstrings`, and the catalog key each comes from. */
+export const infoPlistKeys = { CFBundleDisplayName: 'app.name' } as const;
+
+/**
+ * Renders the iOS `InfoPlist.xcstrings`: the localized Info.plist values, so the name under
+ * the app icon comes from the catalog in nl and en.
+ */
+export function renderInfoPlistXcstrings(analysis: Analysis): string {
+  return renderCatalog(analysis, new Map(Object.entries(infoPlistKeys)));
+}
+
+/** A String Catalog with one entry per `[entry name, catalog key]`. */
+function renderCatalog(analysis: Analysis, entries: Map<string, string>): string {
   const strings: Record<string, unknown> = {};
-  for (const key of analysis.keys) {
+  for (const [name, key] of entries) {
     const localizations: Record<string, unknown> = {};
     for (const locale of locales) {
       const message = analysis.compiled[locale].get(key);
@@ -24,7 +40,7 @@ export function renderXcstrings(analysis: Analysis): string {
       localizations[appleLanguage[locale]] = localization(message);
     }
     const comment = analysis.comments.get(key);
-    strings[key] = {
+    strings[name] = {
       ...(comment ? { comment } : {}),
       extractionState: 'manual',
       localizations,

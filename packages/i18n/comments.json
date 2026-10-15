@@ -1,5 +1,8 @@
 {
   "app.title": "Browser tab title (HTML <title>) of web pages that don't set their own. The product name, the same in both languages.",
+  "app.name": "Name of the native app under its home-screen icon (iOS CFBundleDisplayName, Android app label). The product name, the same in both languages.",
+  "common.loading": "Accessibility label of the progress indicator while a screen loads (read by VoiceOver and TalkBack).",
+  "common.retry": "Button under an error message that tries the failed action again.",
   "hello.description": "Line under the title of the hello page, above the first-name field.",
   "hello.firstNameLabel": "Label of the first-name field on the hello page.",
   "hello.continue": "Submit button of the first-name form on the hello page. Shows hello.formGreeting with the name entered.",
@@ -7,6 +10,7 @@
   "hello.greeting": "Greeting above the home screen. {name} is the user's first name.",
   "hello.sessionsToday": "Number of sessions the trainer has today, 1 or more. For 0, use hello.noSessionsToday.",
   "hello.nextSession": "{date} is a weekday and date without year, e.g. 'dinsdag 22 september'. {time} is a 24-hour time, e.g. '18:00'. Both are formatted in code in the workspace time zone.",
+  "hello.error": "Shown on the native hello screen when the greeting can't be loaded (no connection, or an unknown greeting). Above the common.retry button.",
   "email.layout.footer": "Last line of every email, below the content.",
   "email.hello.subject": "Subject of the test email that checks email delivery (E006). Only sent by the team, never to clients.",
   "email.hello.preview": "Preview text that inbox lists show next to the subject.",
