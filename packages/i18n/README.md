@@ -52,7 +52,7 @@ The `en` catalog formats as **`en-GB`** (`formattingLocales`), so English gets d
 
 ## Locales
 
-Two languages, two orders ([ADR-017](../../docs/decisions/ADR-017-language-policy.md)). Web and the API resolve with these functions, and so do the callers of `sendEmail` in `packages/email`; the native apps mirror them with tests named after the same cases. No platform lets its resource fallback decide the language: that would give Dutch, the source language.
+Two languages, two orders ([ADR-017](../../docs/decisions/ADR-017-language-policy.md)). Web and the API resolve with these functions, and callers of `sendEmail` in `packages/email` must resolve its `locale` with `resolveCommunicationLanguage()`; the native apps mirror them with tests named after the same cases. No platform lets its resource fallback decide the language: that would give Dutch, the source language.
 
 - **Interface language** (`resolveInterfaceLanguage()`): what a screen shows and the `locale` it sends to the API. Explicit choice (the language switch, or the OS per-app language) → stored preference → a booking link's fixed language → the first supported device/browser language, in the user's order → `en`. An empty or entirely unsupported list gives `en`. `[fr-FR, nl-BE]` gives `nl-NL`; `[de-DE, en-GB, nl-NL]` gives `en`.
 - **Communication language** (`resolveCommunicationLanguage()`): the language of an email or other message. The recipient's stored preference → the workspace's default communication language. The workspace default never decides the interface language.
