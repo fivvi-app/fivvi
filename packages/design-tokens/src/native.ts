@@ -1,5 +1,12 @@
 import type { ResolvedToken } from './build.ts';
-import { type Mode, TokenSourceError } from './source.ts';
+import {
+  type Mode,
+  type Platform,
+  platformNotes,
+  type TokenSource,
+  TokenSourceError,
+  tokenPaths,
+} from './source.ts';
 
 /** The Swift package (`swift/`, hand-written `Package.swift`) and its generated sources. */
 const swiftDir = 'swift/Sources/TrainerHubDesignTokens/Generated';
@@ -9,11 +16,13 @@ const kotlinDir = 'kotlin/generated/nl/trainerhub/designtokens';
 export const swiftOutputs = {
   tokens: `${swiftDir}/Tokens.swift`,
   colors: `${swiftDir}/Colors.swift`,
+  typography: `${swiftDir}/Typography.swift`,
 } as const;
 
 export const kotlinOutputs = {
   colors: `${kotlinDir}/Colors.kt`,
   colorSchemes: `${kotlinDir}/ColorSchemes.kt`,
+  typography: `${kotlinDir}/Typography.kt`,
 } as const;
 
 /**
@@ -95,9 +104,72 @@ function rgb(token: ResolvedToken): string {
   return hex.toUpperCase();
 }
 
+/** SwiftUI's `Font.TextStyle` cases and Compose Material 3's `Typography` roles. */
+const textStyles: Record<Platform, readonly string[]> = {
+  ios: [
+    'largeTitle',
+    'title',
+    'title2',
+    'title3',
+    'headline',
+    'subheadline',
+    'body',
+    'callout',
+    'footnote',
+    'caption',
+    'caption2',
+  ],
+  android: ['display', 'headline', 'title', 'body', 'label'].flatMap((role) =>
+    ['Large', 'Medium', 'Small'].map((size) => `${role}${size}`),
+  ),
+};
+
+/** A type style as platform text styles; the note says what to add (weight, figures). */
+export interface NativeTextStyle {
+  path: string;
+  style: Record<Platform, string>;
+  note: Record<Platform, string>;
+}
+
+/**
+ * The platform text style of every type style (`typography.*`), from its mapping note. Native
+ * apps use the platform styles so Dynamic Type and font scaling apply; they never set a size.
+ */
+export function nativeTextStyles(source: TokenSource): NativeTextStyle[] {
+  const problems: string[] = [];
+  const notes = {
+    ios: platformNotes(source.light, 'ios'),
+    android: platformNotes(source.light, 'android'),
+  };
+  const styles = tokenPaths(source.light)
+    .filter((tokenPath) => /^typography\.[\w-]+$/.test(tokenPath))
+    .map((tokenPath) => {
+      const entry = (platform: Platform) => {
+        const note = notes[platform].get(tokenPath) ?? '';
+        const style = note.match(/^[a-z]\w*/i)?.[0] ?? '';
+        if (!textStyles[platform].includes(style)) {
+          problems.push(
+            `${tokenPath} needs a ${platform} text style (${textStyles[platform].join(', ')}) as its mapping note, not "${note}"`,
+          );
+        }
+        return { style, note };
+      };
+      const ios = entry('ios');
+      const android = entry('android');
+      return {
+        path: tokenPath,
+        style: { ios: ios.style, android: android.style },
+        note: { ios: ios.note, android: android.note },
+      };
+    });
+  if (problems.length > 0) throw new TokenSourceError(problems);
+  return styles;
+}
+
 export interface NativeInput {
   /** The semantic colours (no palette), in source order, per mode. */
   colours: Record<Mode, ResolvedToken[]>;
+  textStyles: NativeTextStyle[];
 }
 
 function renderSwiftTokens(): string {
@@ -228,6 +300,46 @@ ${roles('DarkTokenColors').join('\n')}
 `;
 }
 
+/** The type style's token, and the mapping note when it says more than the style. */
+const styleDoc = (tokenPath: string, style: string, note: string) =>
+  note === style ? `\`${tokenPath}\`` : `\`${tokenPath}\`: ${note.replaceAll('*/', '* /')}`;
+
+function renderSwiftTypography({ textStyles }: NativeInput): string {
+  const members = textStyles.map(
+    ({ path, style, note }) =>
+      `        /// ${styleDoc(path, style.ios, note.ios)}\n        public static let ${nativeName(path)}: Font.TextStyle = .${style.ios}`,
+  );
+  return `${header(swiftOutputs.typography)}
+import SwiftUI
+
+public extension Tokens {
+    /// The type styles as text styles, so Dynamic Type applies: \`.font(.system(Tokens.TextStyle.body))\`.
+    /// Add what the note says (weight, monospaced digits); never set a font size.
+    enum TextStyle {
+${members.join('\n')}
+    }
+}
+`;
+}
+
+function renderKotlinTypography({ textStyles }: NativeInput): string {
+  const members = textStyles.map(
+    ({ path, style, note }) =>
+      `/** ${styleDoc(path, style.android, note.android)} */\nval Typography.${nativeName(path)}: TextStyle\n    get() = ${style.android}`,
+  );
+  return `${header(kotlinOutputs.typography)}
+package nl.trainerhub.designtokens
+
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
+
+// The type styles as Material 3 roles, so font scaling applies: MaterialTheme.typography.body.
+// Add what the note says (weight, tabular figures); never set a font size.
+
+${members.join('\n\n')}
+`;
+}
+
 /** Every native output, keyed by path relative to the package root. */
 export function renderNativeOutputs(input: NativeInput): [string, string][] {
   return [
@@ -235,5 +347,7 @@ export function renderNativeOutputs(input: NativeInput): [string, string][] {
     [swiftOutputs.colors, renderSwiftColors(input)],
     [kotlinOutputs.colors, renderKotlinColors(input)],
     [kotlinOutputs.colorSchemes, renderKotlinColorSchemes(input)],
+    [swiftOutputs.typography, renderSwiftTypography(input)],
+    [kotlinOutputs.typography, renderKotlinTypography(input)],
   ];
 }
