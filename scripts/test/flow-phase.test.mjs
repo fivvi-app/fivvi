@@ -155,6 +155,14 @@ describe('flow phase of a needs-info question', () => {
     );
   });
 
+  it('lets merged work be cleaned up', () => {
+    const merged = branch(pr({ state: 'MERGED' }));
+    assert.equal(
+      decide(issue({ labels: ['needs-info'], answered: false, branches: [merged] })).phase,
+      'merged',
+    );
+  });
+
   it('no longer holds a closed issue', () => {
     assert.equal(decide(issue({ state: 'CLOSED', labels: ['needs-info'] })).phase, 'done');
   });

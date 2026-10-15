@@ -7,7 +7,7 @@
 #                               head, refusal: null|{sha, reasons}}}]}
 # risk is "low", "high" or null (unknown) for an open PR (scripts/risk.sh). refusal is the last refusal of the merge
 # gate recorded on the PR (scripts/pr.sh refusal); it holds only for the head commit it names. answered is true when
-# the newest comment is not a triage note, i.e. someone replied to the needs-info question.
+# there is a comment and the newest is not a triage note, i.e. someone replied to the needs-info question.
 # Output: {phase, next, hint}
 
 def has($l): (.labels | index($l)) != null;
@@ -72,8 +72,9 @@ def ticket_phase($n):
 . as $f
 | $f.number as $n
 | ([$f.branches[] | code_phase + {name, pr}] | sort_by(.rank)) as $code
-# A needs-info question holds the issue, whatever its code, blockers or other labels say.
-| (if ($f | open) and ($f | has("needs-info")) then
+# A needs-info question holds the issue, whatever its code, blockers or other labels say; merged work still gets
+# cleaned up.
+| (if ($f | open) and ($f | has("needs-info")) and ($code[0].phase != "merged") then
      if $f.answered then {phase: "answered", next: "The question on the issue was answered. Run the triage skill on it again with the answer."}
      else {phase: "waiting", next: "Waiting for the owner to answer the question on the issue (needs-info). Report and stop."} end
    elif ($f.branches | length) > 0
