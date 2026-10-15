@@ -18,7 +18,7 @@ export function Hello({ firstName }: { firstName: string }) {
     <main className="flex min-h-dvh items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="font-display">
             <h1>{t('title')}</h1>
           </CardTitle>
           <CardDescription>{t('description')}</CardDescription>

@@ -214,7 +214,16 @@
   },
   "density": {
     "$type": "typography",
-    "$description": "Compact density for Trainer Web on a desktop pointer: it replaces the default (touch) type scale there so a calendar day or week fits on a laptop screen. Native apps keep their platform text styles; public booking keeps the touch scale. Colours and contrast pairs are unchanged.",
+    "$description": "The two web densities, set per page with a data-density attribute on a layout (packages/ui). Compact, for Trainer Web on a desktop pointer, replaces the default type scale so a calendar day or week fits on a laptop screen; its controls are size.control.compact. Touch, for public and client pages, keeps the default scale with a 16px body; its controls are size.control.touch. Native apps keep their platform text styles. Colours and contrast pairs are unchanged.",
+    "touch": {
+      "body": {
+        "$value": {
+          "fontSize": "16px",
+          "lineHeight": "24px"
+        },
+        "$description": "Body text on touch pages: the 16px web input minimum, so text and form values share one size."
+      }
+    },
     "compact": {
       "title-1": {
         "$value": {
