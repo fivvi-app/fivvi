@@ -10,8 +10,13 @@ import { withoutToken, withValue } from './tokens.ts';
 const packageRoot = path.resolve(import.meta.dirname, '..');
 // Scratch copies stay inside the package (ignored with node_modules), not in the system temp directory.
 const scratchDir = path.join(packageRoot, 'node_modules/.cache/design-tokens-test');
+// Each test runs the token CLI as child processes (up to three), and starting Node takes
+// seconds on a busy CI runner, more than Vitest's 5 s default allows.
+const SPAWN_TEST_TIMEOUT_MS = 30_000;
 
-describe('E007 design tokens check (what `pnpm check` runs)', () => {
+describe('E007 design tokens check (what `pnpm check` runs)', {
+  timeout: SPAWN_TEST_TIMEOUT_MS,
+}, () => {
   let root: string;
 
   beforeEach(async () => {

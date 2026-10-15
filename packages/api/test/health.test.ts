@@ -6,6 +6,7 @@ import {
   createApp,
   HEALTH_CHECK_TIMEOUT_MS,
   HealthResponseSchema,
+  NO_DEPENDENCIES,
 } from '../src/index.ts';
 
 // Strict copy: the response may not carry fields the contract doesn't declare.
@@ -15,7 +16,7 @@ const StrictHealthResponse = z.strictObject({
 });
 
 function withDatabase(pingDatabase: ApiDependencies['pingDatabase']): ApiDependencies {
-  return { pingDatabase };
+  return { ...NO_DEPENDENCIES, pingDatabase };
 }
 
 describe('E003 GET /v1/health', () => {

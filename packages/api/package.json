@@ -15,6 +15,7 @@
   "dependencies": {
     "@hono/zod-openapi": "catalog:",
     "@trainer-hub/i18n": "workspace:*",
+    "@trainer-hub/observability": "workspace:*",
     "hono": "catalog:",
     "zod": "catalog:"
   },

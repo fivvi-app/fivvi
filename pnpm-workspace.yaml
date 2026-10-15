@@ -17,6 +17,8 @@ catalog:
   '@hono/zod-openapi': ^1.6.3
   # Exact: CI caches the browsers per Playwright version.
   '@playwright/test': 1.63.0
+  # Error reporting (E009). Only packages/observability may import @sentry/* (biome.json).
+  '@sentry/core': ^11.7.0
   '@tailwindcss/node': ^4.3.3
   '@tailwindcss/postcss': ^4.3.3
   '@types/node': ^26.6.2

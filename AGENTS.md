@@ -8,10 +8,10 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 |---|---|
 | `apps/web`, `apps/cron` | Next.js web app (mounts the API under `/api`); daily cron job |
 | `packages/api`, `packages/contract` | API routes (zod-openapi); committed `openapi.json` + generated TS/Swift/Kotlin clients |
-| `packages/database`, `packages/i18n`, `packages/email`, `packages/testing` | Schema and migrations; the only source of user-facing strings; email; test helpers |
+| `packages/database`, `packages/i18n`, `packages/email`, `packages/observability`, `packages/testing` | Schema and migrations; the only source of user-facing strings; email; error reporting (the only code that imports Sentry); test helpers |
 | `packages/domain`, `apps/ios`, `apps/android` | Planned: business rules (M2), native apps (E008) |
 | `docs/product/` | `PRODUCT.md` (requirements), `ROADMAP.md` (milestones, decisions), `FEATURES.md` (registry and status) |
-| `docs/engineering/` | `WORKFLOW.md` (flow, Definition of Done), `TESTING.md`, `ENVIRONMENTS.md` |
+| `docs/engineering/` | `WORKFLOW.md` (flow, Definition of Done), `TESTING.md`, `ENVIRONMENTS.md`, `OBSERVABILITY.md` |
 | `GLOSSARY.md`, `docs/decisions/` | Domain language; ADRs |
 | `CODING_STANDARDS.md`, `.github/instructions/` | How code is written and reviewed; rules per area |
 | `.agents/skills/` | `work` (the router) plus [Matt Pocock's skills](https://github.com/mattpocock/skills), pinned in `.agents/skills.yaml` |
