@@ -69,6 +69,9 @@ export default defineRailway((ctx) => {
       BREVO_API_KEY: preserve(),
       EMAIL_FROM_ADDRESS: preserve(),
       EMAIL_FROM_NAME: 'Trainer Hub',
+      // Product events (E009, packages/observability): the PostHog EU project key, set in the
+      // dashboard for production only. Empty (development, previews) sends nothing.
+      POSTHOG_KEY: preserve(),
       // Error reporting (E009, packages/observability): the DSN of the Sentry `web` project,
       // set in the dashboard. Empty turns reporting off.
       SENTRY_DSN: preserve(),
