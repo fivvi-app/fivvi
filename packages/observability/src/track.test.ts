@@ -98,8 +98,10 @@ describe('E009 product events', () => {
 });
 
 describe('E009 product events: rejected events', () => {
-  // Each call is a compile-time error (the @ts-expect-error fails typecheck when it isn't) and
-  // is rejected at runtime. Outside production, `track()` throws, so a test sees it at once.
+  // Every case is rejected at runtime: outside production, `track()` throws, so a test sees it
+  // at once. The first three are also compile-time errors (the @ts-expect-error fails typecheck
+  // when they aren't); a UUID property and `distinctId` are strings, so free text in them is
+  // only caught at runtime.
   type Track = ProductEvents<CatalogEvent<typeof CATALOG>>['track'];
   const invalid: Record<string, (track: Track) => void> = {
     'an unknown event': (track) =>
