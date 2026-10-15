@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed |
+| **Status** | Accepted (2026-10-15) |
 | **Date** | 2026-10-15 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | PRODUCT.md §3, §32; ROADMAP.md M2, M6; ADR-008 (supersedes its locale-resolution rule only), ADR-009; E008, F007–F010 |
