@@ -596,7 +596,7 @@ Especially useful for independent trainers.
 
 ## Trainer Web
 
-Primary administrative interface:
+Primary administrative interface. The daily operational screens (Today, personal calendar, sessions, attendance, workout logging, notes) also work in a phone browser, with touch-sized targets, and the trainer web can be added to the phone's home screen. Until the native trainer apps arrive, this is how trainers work from a phone. The workout logger keeps sets that weren't sent yet on the device and sends them when the connection returns.
 
 - dashboard
 - calendar
@@ -620,7 +620,7 @@ English
 
 ## Trainer Mobile
 
-iOS + Android.
+iOS + Android. Delivered after the pilot goes live on the web (`ROADMAP.md §3.1`); the apps then join the pilot.
 
 Primary daily operational interface:
 
