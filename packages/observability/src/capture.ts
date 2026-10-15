@@ -4,6 +4,8 @@ import type { ErrorTransport } from './transport.ts';
 export interface CaptureTransport extends ErrorTransport {
   /** Events that would have been sent, oldest first, exactly as they would leave the process. */
   readonly events: Event[];
+  /** The type of every envelope item that would have been sent (`event`, `session`, …), in order. */
+  readonly itemTypes: string[];
 }
 
 /**
@@ -12,11 +14,14 @@ export interface CaptureTransport extends ErrorTransport {
  */
 export function createCaptureTransport(): CaptureTransport {
   const events: Event[] = [];
+  const itemTypes: string[] = [];
   return {
     events,
+    itemTypes,
     send: ({ body }) => {
       const [, items] = parseEnvelope(body);
       for (const [header, payload] of items) {
+        itemTypes.push(header.type);
         if (header.type === 'event') events.push(payload as Event);
       }
       return Promise.resolve({ statusCode: 200 });

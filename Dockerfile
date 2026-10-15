@@ -1,4 +1,5 @@
 # syntax=docker/dockerfile:1
+# check=skip=SecretsUsedInArgOrEnv
 
 # One image for every Railway service (docs/engineering/ENVIRONMENTS.md, ADR-011):
 #   web       node web/apps/web/server.js                      (default command)
@@ -22,6 +23,15 @@ COPY . .
 # copies the client assets into it.
 FROM base AS web
 RUN pnpm install --frozen-lockfile
+# Build-time variables from Railway (ENVIRONMENTS.md §7, OBSERVABILITY.md §1): the browser's
+# error reporting settings are inlined into the bundle, and the token uploads the source maps
+# to Sentry before the build deletes them. Empty locally and in CI. The token only exists in
+# this stage: the runtime image copies the build output, never this stage's environment
+# (hence the SecretsUsedInArgOrEnv skip at the top; Railway passes variables as build args).
+ARG NEXT_PUBLIC_SENTRY_DSN \
+    RAILWAY_ENVIRONMENT_NAME \
+    RAILWAY_GIT_COMMIT_SHA \
+    SENTRY_AUTH_TOKEN
 RUN pnpm --filter @trainer-hub/web build
 
 # Production dependencies of the release step and the cron job, in the monorepo layout, so

@@ -72,6 +72,10 @@ export default defineRailway((ctx) => {
       // Error reporting (E009, packages/observability): the DSN of the Sentry `web` project,
       // set in the dashboard. Empty turns reporting off.
       SENTRY_DSN: preserve(),
+      // The same DSN for the browser, inlined at build time. Empty turns browser reporting off.
+      NEXT_PUBLIC_SENTRY_DSN: preserve(),
+      // Build only: uploads the source maps to Sentry. Sealed in production; empty skips it.
+      SENTRY_AUTH_TOKEN: preserve(),
     },
   });
 

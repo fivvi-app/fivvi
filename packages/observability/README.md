@@ -1,6 +1,6 @@
 # @trainer-hub/observability
 
-Error reporting to Sentry (EU region) for server runtimes: the API and the cron job (E009, ADR-013). The only code in the repo that imports `@sentry/*`; a Biome rule in the root `biome.json` enforces that. What is captured and the scrubbing rules: [docs/engineering/OBSERVABILITY.md](../../docs/engineering/OBSERVABILITY.md).
+Error reporting to Sentry (EU region) for the API, the cron job and the web app's server and browser, plus the web build's source map upload (E009, ADR-013). The only code in the repo that imports `@sentry/*`; a Biome rule in the root `biome.json` enforces that. What is captured and the scrubbing rules: [docs/engineering/OBSERVABILITY.md](../../docs/engineering/OBSERVABILITY.md).
 
 ```ts
 import { createErrorReporter } from '@trainer-hub/observability';
@@ -13,10 +13,27 @@ await errorReporter.flush(); // before a short-lived process exits
 
 Without `SENTRY_DSN`, the reporter does nothing and makes no network call.
 
+The web app (`apps/web`) wires in the rest:
+
+```ts
+// instrumentation.ts: errors while rendering a page
+export const onRequestError = createRequestErrorHandler(createErrorReporter());
+
+// instrumentation-client.ts: uncaught browser errors; values inlined at build time
+initBrowserErrorReporting({ env: { NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN, … } });
+
+// scripts/publish-source-maps.ts, after `next build`: upload (with SENTRY_AUTH_TOKEN), then delete
+await publishSourceMaps({ buildDir: '.next' });
+```
+
 | Path | What |
 |---|---|
 | `src/config.ts` | Reads the DSN, environment (`production`, `preview`, `development`) and release |
 | `src/reporter.ts` | `createErrorReporter()`: its own Sentry client, errors only |
-| `src/scrub.ts` | The scrubber: an allowlist applied in `beforeSend` and `beforeBreadcrumb` |
+| `src/client-options.ts` | The options every Sentry client shares (tags, scrubber, no SDK data collection) |
+| `src/request-error.ts` | `createRequestErrorHandler()`: Next.js's `onRequestError` for the web server |
+| `src/browser.ts` | `initBrowserErrorReporting()` (export `./browser`): the browser client, errors only |
+| `src/source-maps.ts` | `publishSourceMaps()` (export `./source-maps`): uploads the web app's source maps with `sentry-cli`, then deletes them |
+| `src/scrub.ts` | The scrubber: an allowlist applied in `beforeSend` and `beforeBreadcrumb`; `NO_DATA_COLLECTION` for the SDK |
 | `src/transport.ts` | Posts envelopes to Sentry with `fetch` |
 | `src/capture.ts` | Capture transport for tests: keeps the events that would be sent |
