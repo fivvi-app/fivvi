@@ -38,6 +38,8 @@ catalog:
   next-intl: ^4.14.6
   openapi-fetch: ^0.17.0
   pg: ^8.23.0
+  # Cookieless web page views (E009). Only packages/observability may import posthog-js (biome.json).
+  posthog-js: ^1.438.10
   # Radix primitives for the shadcn/ui components in packages/ui (style radix-nova).
   radix-ui: ^1.8.1
   # Exact: the Railway IaC SDK is in beta and may break in minor releases (.railway/).
@@ -64,11 +66,13 @@ catalog:
 #   patch-package, but ship no patches, so there is nothing to apply.
 # - @sentry/cli (packages/observability) only downloads its binary when the platform
 #   package (@sentry/cli-<platform>, an optional dependency) is missing; pnpm installs it.
+# - core-js (via posthog-js, packages/observability) only prints a funding message.
 allowBuilds:
   '@bundled-es-modules/glob': false
   '@parcel/watcher': false
   '@sentry/cli': false
   '@swc/core': false
+  core-js: false
   esbuild: false
   style-dictionary: false
 

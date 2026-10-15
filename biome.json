@@ -55,6 +55,10 @@
               {
                 "group": ["@sentry/**"],
                 "message": "Report errors through @trainer-hub/observability, which scrubs personal data (E009)."
+              },
+              {
+                "group": ["posthog-js", "posthog-js/**"],
+                "message": "Capture page views through @trainer-hub/observability/page-views, which is cookieless and sends the path only (E009)."
               }
             ]
           }

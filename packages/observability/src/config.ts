@@ -55,3 +55,18 @@ function toReportingEnvironment(railwayEnvironment: string | undefined): Reporti
   // Every other Railway environment is a PR environment (`pr-<number>`).
   return 'preview';
 }
+
+export interface PageViewsConfig {
+  /** The PostHog project key. Without one, page views are off and nothing is loaded or sent. */
+  key?: string;
+}
+
+/**
+ * The browser's page view settings: `NEXT_PUBLIC_POSTHOG_KEY`, set for production only
+ * (ENVIRONMENTS.md §7). The web server reads it at request time and hands it to the browser
+ * (`apps/web/app/layout.tsx`), so pass `process.env` itself: Next.js would inline a literal
+ * `process.env.NEXT_PUBLIC_POSTHOG_KEY` at build time.
+ */
+export function readPageViewsConfig(env: EnvironmentVariables): PageViewsConfig {
+  return { key: env.NEXT_PUBLIC_POSTHOG_KEY?.trim() || undefined };
+}

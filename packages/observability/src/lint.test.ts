@@ -21,6 +21,11 @@ const IMPORTS = [
   "import * as Sentry from '@sentry/node';",
   "import { ServerRuntimeClient } from '@sentry/core/server';",
 ];
+// posthog-js, by its package root and by the subpath packages/observability uses.
+const POSTHOG_IMPORTS = [
+  "import posthog from 'posthog-js';",
+  "import { PostHog } from 'posthog-js/dist/module.slim.no-external';",
+];
 
 type Diagnostic = { category: string; location: { path: string } };
 let dir: string;
@@ -49,6 +54,10 @@ beforeAll(async () => {
       path.join(dir, fixture),
       `${IMPORTS.join('\n')}\n\nexport const report = [Sentry, ServerRuntimeClient];\n`,
     );
+    await writeFile(
+      path.join(dir, fixture.replace('/report.', '/page-views.')),
+      `${POSTHOG_IMPORTS.join('\n')}\n\nexport const pageViews = [posthog, PostHog];\n`,
+    );
   }
   const output = await promisify(execFile)(
     process.execPath,
@@ -64,10 +73,7 @@ afterAll(async () => {
 
 describe('E009 Sentry SDK boundary', () => {
   it('fails lint when an app or another package imports the Sentry SDK directly', () => {
-    const flagged = diagnostics
-      .filter((d) => d.category === 'lint/style/noRestrictedImports')
-      .map((d) => d.location.path)
-      .sort();
+    const flagged = flaggedFiles().filter((file) => file.includes('/report.'));
 
     // Each fixture imports a package root and a subpath: both are flagged.
     expect(flagged).toEqual([
@@ -80,3 +86,23 @@ describe('E009 Sentry SDK boundary', () => {
     ]);
   });
 });
+
+describe('E009 PostHog browser SDK boundary', () => {
+  it('fails lint when an app or another package imports posthog-js directly', () => {
+    expect(flaggedFiles().filter((file) => file.includes('/page-views.'))).toEqual([
+      'apps/cron/src/page-views.ts',
+      'apps/cron/src/page-views.ts',
+      'apps/web/app/page-views.tsx',
+      'apps/web/app/page-views.tsx',
+      'packages/api/src/page-views.ts',
+      'packages/api/src/page-views.ts',
+    ]);
+  });
+});
+
+function flaggedFiles(): string[] {
+  return diagnostics
+    .filter((d) => d.category === 'lint/style/noRestrictedImports')
+    .map((d) => d.location.path)
+    .sort();
+}
