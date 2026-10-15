@@ -2,17 +2,26 @@ import {
   createStackParser,
   createTransport,
   linkedErrorsIntegration,
+  type RequestEventData,
   Scope,
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import { nodeStackLineParser, ServerRuntimeClient } from '@sentry/core/server';
 import { type EnvironmentVariables, readErrorReportingConfig } from './config.ts';
-import { scrubBreadcrumb, scrubEvent } from './scrub.ts';
+import { NO_DATA_COLLECTION, scrubBreadcrumb, scrubEvent } from './scrub.ts';
 import { createFetchTransport, type ErrorTransport } from './transport.ts';
+
+/** A request as a framework describes it, e.g. Next.js in `onRequestError`. */
+export interface RequestDetails {
+  method: string;
+  /** The URL or the path; the query string is never sent. */
+  url: string;
+  headers?: Readonly<Record<string, string | string[] | undefined>>;
+}
 
 export interface ErrorContext {
   /** The incoming request. Only its method, URL path and allowlisted headers are sent. */
-  request?: Request;
+  request?: Request | RequestDetails;
   /** The route template, e.g. `/v1/clients/:clientId`; never the real path. */
   route?: string;
 }
@@ -57,7 +66,7 @@ export function createErrorReporter(options: ErrorReporterOptions = {}): ErrorRe
     release: config.release,
     platform: 'node',
     runtime: { name: 'node', version: process.version },
-    sendDefaultPii: false,
+    dataCollection: NO_DATA_COLLECTION,
     sendClientReports: false,
     integrations: [linkedErrorsIntegration()],
     stackParser: createStackParser(nodeStackLineParser()),
@@ -82,11 +91,19 @@ export function createErrorReporter(options: ErrorReporterOptions = {}): ErrorRe
         eventScope.setTransactionName(request ? `${request.method} ${route}` : route);
       }
       if (request) {
-        const requestData = winterCGRequestToRequestData(request);
+        const requestData = toRequestData(request);
         eventScope.addEventProcessor((event) => ({ ...event, request: requestData }));
       }
       eventScope.captureException(error);
     },
     flush: async () => client.flush(FLUSH_TIMEOUT_MS),
   };
+}
+
+function toRequestData(request: Request | RequestDetails): RequestEventData {
+  if (request instanceof Request) return winterCGRequestToRequestData(request);
+  const headers = Object.entries(request.headers ?? {}).flatMap(([name, value]) =>
+    value === undefined ? [] : [[name, Array.isArray(value) ? value.join(', ') : value] as const],
+  );
+  return { method: request.method, url: request.url, headers: Object.fromEntries(headers) };
 }

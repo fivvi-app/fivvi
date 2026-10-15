@@ -1,5 +1,6 @@
 import type {
   Breadcrumb,
+  DataCollection,
   Event,
   Exception,
   Mechanism,
@@ -13,6 +14,24 @@ import type {
  * breadcrumb in `beforeSend` and `beforeBreadcrumb`, before anything leaves the process.
  * Whatever isn't listed here is dropped, so a new SDK field never leaks by default.
  */
+
+/**
+ * The SDK's own data collection, all off: no user info (so Sentry never infers the IP address),
+ * cookies, headers, bodies, query strings or local variables. Sentry v11's replacement for
+ * `sendDefaultPii: false`, whose defaults collect everything. The scrubber is the second line.
+ */
+export const NO_DATA_COLLECTION: DataCollection = {
+  userInfo: false,
+  cookies: false,
+  httpHeaders: false,
+  httpBodies: [],
+  urlQueryParams: false,
+  graphQL: { document: false, variables: false },
+  genAI: { inputs: false, outputs: false },
+  databaseQueryData: false,
+  queues: false,
+  stackFrameVariables: false,
+};
 
 /** Request headers worth keeping for debugging. Never cookies, auth or forwarding (IP) headers. */
 const REQUEST_HEADERS = new Set(['accept', 'accept-language', 'content-length', 'content-type']);

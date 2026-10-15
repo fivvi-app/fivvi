@@ -18,6 +18,9 @@ catalog:
   # Exact: CI caches the browsers per Playwright version.
   '@playwright/test': 1.63.0
   # Error reporting (E009). Only packages/observability may import @sentry/* (biome.json).
+  '@sentry/browser': ^11.7.0
+  # Uploads the web app's source maps at build time (packages/observability, E009).
+  '@sentry/cli': ^3.8.0
   '@sentry/core': ^11.7.0
   '@tailwindcss/node': ^4.3.3
   '@tailwindcss/postcss': ^4.3.3
@@ -59,9 +62,13 @@ catalog:
 #   extractor, which we don't use.
 # - style-dictionary and @bundled-es-modules/glob (packages/design-tokens) run
 #   patch-package, but ship no patches, so there is nothing to apply.
+# - @sentry/cli (packages/observability) only downloads its binary when the platform
+#   package (@sentry/cli-<platform>, an optional dependency) is missing; pnpm installs it.
 allowBuilds:
   '@bundled-es-modules/glob': false
   '@parcel/watcher': false
+  '@sentry/cli': false
   '@swc/core': false
   esbuild: false
   style-dictionary: false
+
