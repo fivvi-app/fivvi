@@ -107,7 +107,9 @@ flowchart TD
 ```
 
 - Grouped by day, in the workspace timezone. Shows the next **14 days** ⚑ [Q07](../open-questions.md#q07); *Meer dagen tonen* loads 14 more.
+- **Date strip (added 23 September 2026 after prototype feedback):** above the list, a horizontally scrolling strip of the next **21 days** (weekday, date, month on the first chip and on the 1st). Each day shows one dot per class that can still be booked, so not full and not cancelled (at most three), today included: three classes of which two are full show one dot (owner, 14 October 2026). Today's chip reads *Vandaag* instead of the weekday. Days without bookable items, including days where every class is full or cancelled, show no dots and are dimmed but tappable, so clients can see the full classes. Tapping a day shows only that day, with *Volgende: {day}* to jump to the next day that has something. On first open the strip selects today, or the first day with something to book. The prototype uses this pattern; validate with P-K whether clients prefer the strip or the long list.
 - The segmented filter appears only for the *All bookings* scope, and only for types that have upcoming items. For the *class* scope the title becomes the class name ("Strength") and the filter is hidden.
+- A class card shows the class name and description in the visitor's language, the description as one truncated line (PB-02). A card has no type chip: the *Groepslessen* / *Open Gym* tab already says what the list shows. The booking summary on PB-02, the check-email page, the confirmation and the manage page keep the chip. A group class without a trainer shows *Trainer volgt nog*, also on PB-02 and the confirmation; Open Gym has no trainer line.
 - The location line appears only when the workspace has more than one location.
 - **Availability** counts confirmed bookings **and** active holds against capacity (F028). When every remaining spot is held but not confirmed, the card says *Alle plekken zijn gereserveerd* instead of *Vol*, because a spot may free up within 15 minutes.
 - Classes that have started are hidden. Cancelled occurrences are shown as *Gaat niet door* for the rest of that day, so a client who saw the poster isn't confused, and they can't be tapped.
@@ -118,7 +120,8 @@ flowchart TD
 | Page title (all / classes / Open Gym) | Boek een les · Groepslessen · Open Gym | Book a class · Group classes · Open Gym |
 | Filter | Alles · Groepslessen · Open Gym | All · Group classes · Open Gym |
 | Day header | Vandaag · dinsdag 22 september / Morgen · … / woensdag 23 september | Today · Tuesday 22 September / Tomorrow · … |
-| Trainer line | Trainer: Sarah | Trainer: Sarah |
+| Date strip | Kies een dag · Vandaag · Op deze dag is er niets te boeken. · Volgende: {day} | Choose a day · Today · Nothing to book on this day. · Next: {day} |
+| Trainer line | Trainer: Sarah · Trainer volgt nog | Trainer: Sarah · Trainer to be confirmed |
 | Availability | `{n, plural, one {Nog 1 plek} other {# plekken beschikbaar}}` | `{n, plural, one {1 spot left} other {# spots available}}` |
 | Full | Vol | Full |
 | All held | Alle plekken zijn gereserveerd | All spots are reserved |
@@ -164,7 +167,7 @@ flowchart TD
 └────────────────────────────────────────┘
 ```
 
-- The description is **user content** from the class template and is shown as entered, in whatever language the owner typed it (`§3`).
+- The name and description are **user content** from the class template. The owner types them in Dutch and, optionally, English (`§18`). Visitors see their language; if the English version is empty, they see the Dutch one, marked as Dutch for screen readers. Nothing is translated automatically (`§3`).
 - The primary button is sticky at the bottom (safe-area aware).
 - Open Gym uses the same screen with the title *Open Gym*, no trainer line ⚑ [Q14](../open-questions.md#q14) and the button *Boek Open Gym*.
 
@@ -278,7 +281,7 @@ A signed-in client has already verified their email, so tapping *Boeken* confirm
 │ Geen e-mail gekregen?                  │
 │ Kijk ook in je spam of ongewenste mail.│
 │ [ Opnieuw sturen ]                     │
-│ [ E-mailadres wijzigen ]               │
+│ [ Ander e-mailadres gebruiken ]        │
 │                                        │
 └────────────────────────────────────────┘
 ```
@@ -288,7 +291,9 @@ A signed-in client has already verified their email, so tapping *Boeken* confirm
 - The countdown uses server time. It updates every minute and is announced to screen readers only at 5 and 1 minutes left.
 - Hold end = **the earlier of** *now + 15 min* and *class start* ⚑ [Q10](../open-questions.md#q10).
 - *Opnieuw sturen* has a 60-second cooldown and sends the **same** hold's link with a fresh code. It doesn't extend the hold.
-- *E-mailadres wijzigen* goes back to PB-03 with the fields filled in. Submitting moves the existing hold to the new address (no second spot).
+- *Ander e-mailadres gebruiken* opens an inline form on PB-04. It keeps the same hold, spot and countdown; there is no second spot.
+- Submitting a valid address sends a new link to it. The earlier link stops working, and PB-04 says so.
+- In the prototype, demo-only controls (open the email, let the hold expire) sit in their own *Alleen in de demo* group, apart from the real actions.
 
 | Element | NL | EN |
 |---|---|---|
@@ -300,7 +305,9 @@ A signed-in client has already verified their email, so tapping *Boeken* confirm
 | Too many code attempts | Te veel pogingen. Gebruik de knop in de e-mail. | Too many attempts. Use the button in the email. |
 | No email | Geen e-mail gekregen? Kijk ook in je spam of ongewenste mail. | Didn't get the email? Check your spam or junk folder too. |
 | Resend / cooldown / sent | Opnieuw sturen · Opnieuw sturen over {s} s · Verstuurd | Send again · Send again in {s}s · Sent |
-| Change email | E-mailadres wijzigen | Change email address |
+| Change email | Ander e-mailadres gebruiken | Use a different email |
+| Change form | Nieuw e-mailadres · Je plek blijft vastgehouden, de tijd loopt gewoon door. · Stuur nieuwe link | New email address · Your spot stays held; the timer keeps running. · Send new link |
+| Email changed | We hebben een nieuwe link gestuurd naar {email}. De eerdere link werkt niet meer. | We sent a new link to {email}. The earlier link no longer works. |
 | Expired while waiting | Je plek is niet meer vastgehouden. [ Opnieuw proberen ] | Your spot is no longer on hold. [ Try again ] |
 
 ### EM-01 · E-mail: Bevestig je boeking / Confirm your booking
@@ -390,6 +397,10 @@ A signed-in client has already verified their email, so tapping *Boeken* confirm
 │ [ Zet in je agenda ]                   │
 │ Je krijgt ook een bevestiging per      │
 │ e-mail.                                │
+│                                        │
+│ [ Beheer je boeking                › ] │
+│ Deze link staat ook in je              │
+│ bevestigingsmail.                      │
 │────────────────────────────────────────│
 │ Wil je een account aanmaken?           │
 │ Dan zie je al je boekingen op één plek │
@@ -404,13 +415,15 @@ A signed-in client has already verified their email, so tapping *Boeken* confirm
 - The headline, question and button texts are taken literally from `§26`.
 - The account prompt doesn't show if the client already has an account (they only see *Naar mijn boekingen*).
 - *Zet in je agenda* downloads a single-event `.ics` ⚑ [Q15](../open-questions.md#q15).
-- *Doorgaan zonder account* collapses the prompt into: *Klaar. Je kunt je boeking beheren via de link in de bevestigingsmail.* + *Nog een les boeken*.
+- *Beheer je boeking* opens CW-03 for this booking. It replaces the earlier passive sentence about cancelling via the email. In production the same link is in the confirmation email (`/manage/{token}`).
+- *Doorgaan zonder account* collapses the prompt into: *Klaar. Je kunt je boeking beheren via de link in de bevestigingsmail.* + *Beheer je boeking* + *Nog een les boeken*.
 
 | Element | NL | EN |
 |---|---|---|
 | Headline | Je boeking is bevestigd. | Your booking is confirmed. |
 | Add to calendar | Zet in je agenda | Add to calendar |
 | Email note | Je krijgt ook een bevestiging per e-mail. | We've also sent you a confirmation email. |
+| Manage | Beheer je boeking · Deze link staat ook in je bevestigingsmail. | Manage booking · This link is also in your confirmation email. |
 | Account question | Wil je een account aanmaken? | Would you like to create an account? |
 | Account benefit | Dan zie je al je boekingen op één plek en boek je de volgende keer met één tik. | You'll see all your bookings in one place and book with one tap next time. |
 | Buttons | Account aanmaken · Doorgaan zonder account | Create account · Continue without account |
@@ -535,8 +548,8 @@ CW-03 Boeking                             CW-04 Profiel
 │ [ Zet in je agenda ]                   ││ Taal                                   │
 │                                        ││ ● Nederlands   ○ English               │
 │ [    Boeking annuleren               ] ││                                        │
-│                                        ││ [ Opslaan ]                            │
-│                                        ││────────────────────────────────────────│
+│ Ander moment nodig? Annuleer deze      ││ [ Opslaan ]                            │
+│ boeking en boek daarna een nieuwe.     ││────────────────────────────────────────│
 │                                        ││ Uitloggen                              │
 │                                        ││ Account verwijderen                    │
 └────────────────────────────────────────┘└────────────────────────────────────────┘
@@ -544,7 +557,9 @@ CW-03 Boeking                             CW-04 Profiel
 
 - **CW-01** reuses the PB-04 pattern: *Check je e-mail* + code field. It never reveals whether an email has an account (*Als dit e-mailadres bij ons bekend is, krijg je een e-mail.*).
 - **CW-02** *Eerder* lists past bookings with their final status (*Aanwezig*, *Niet verschenen*, *Geannuleerd*).
-- **CW-03** for a guest without an account is the same screen reached via `/manage/{token}`, with *Account aanmaken* at the bottom instead of the back link.
+- **CW-03** for a guest without an account is the same screen reached via `/manage/{token}`, with *Account aanmaken* at the bottom instead of the back link. PB-06 links to it with *Beheer je boeking*.
+- The prototype's guest manage screen leaves out *Account aanmaken*, because the confirmation (PB-06) already offers it.
+- There is no modify action. One line under the actions explains how to change the time: cancel and book again.
 - **Cancel** asks for confirmation. After cancelling, EM-03 goes to the client and EM-07 to the trainer, and the spot is freed. In MVP a client can cancel until the class starts ⚑ [Q09](../open-questions.md#q09).
 - **Change email** sends a code to the new address; the change only happens after verification.
 - **Account verwijderen** asks for confirmation and explains what happens to past bookings (retention policy from the M0 legal task).
@@ -561,6 +576,7 @@ CW-03 Boeking                             CW-04 Profiel
 | Cancel confirm | Weet je zeker dat je Strength op dinsdag 22 september om 18:00 wilt annuleren? Je plek gaat naar iemand anders. [ Annuleren ] [ Terug ] | Are you sure you want to cancel Strength on Tuesday 22 September at 18:00? Your spot will go to someone else. [ Cancel booking ] [ Back ] |
 | Cancelled | Je boeking is geannuleerd. | Your booking has been cancelled. |
 | Too late | Deze les is al begonnen. Annuleren kan niet meer. | This class has already started. It can't be cancelled any more. |
+| Change hint | Ander moment nodig? Annuleer deze boeking en boek daarna een nieuwe. | Need a different time? Cancel this booking, then book a new one. |
 | Profile | Profiel · Naam · E-mailadres · Wijzigen · Taal · Opslaan · Uitloggen · Account verwijderen | Profile · Name · Email · Change · Language · Save · Sign out · Delete account |
 
 ## Edge cases
@@ -574,7 +590,7 @@ CW-03 Boeking                             CW-04 Profiel
 | **Link opened on another device or browser** | Confirmation works anywhere. The original PB-04 moves on through polling | PB-04, PB-05 |
 | **Email link pre-clicked by a scanner** | GET shows PB-05 only; nothing is confirmed without the button | PB-05 |
 | **Email never arrives** | Resend (cooldown 60 s), spam hint, change address. Support runbook "client didn't get the email" (`ROADMAP M9`) | PB-04 |
-| **Typo in email** | Typo hint on PB-03; *E-mailadres wijzigen* on PB-04 moves the same hold | PB-03, PB-04 |
+| **Typo in email** | Typo hint on PB-03. On PB-04, *Ander e-mailadres gebruiken* keeps the same hold and countdown, sends a new link and invalidates the earlier one | PB-03, PB-04 |
 | **Wrong code** | Error text; after 5 wrong attempts the code is locked and only the link works | PB-04 |
 | **Double booking with the same email** | Refused; the confirmation is re-sent | PB-03 |
 | **Hold spam** (R5) | Turnstile + rate limit + a cap on active holds per email | PB-03 |

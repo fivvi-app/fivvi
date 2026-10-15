@@ -1,0 +1,380 @@
+{
+  "$description": "Trainer Hub design tokens: DRAFT (M0). Style Dictionary v4, DTCG format ($value/$type). E007 (M1) moves this to packages/design-tokens and builds CSS, Swift and Kotlin from it. Rationale and platform mapping: docs/design/visual-direction.md. Dark-mode values live in $extensions[\"app.trainerhub.mode\"].dark; E007 splits them into a dark theme source.",
+  "color": {
+    "base": {
+      "$type": "color",
+      "white": { "$value": "#FFFFFF" },
+      "neutral": {
+        "$description": "Neutral foundation with restrained pastel session chips and a muted violet primary-action accent.",
+        "25": { "$value": "#F6F6F7" },
+        "50": { "$value": "#EEEEF0" },
+        "100": { "$value": "#DFDFE2" },
+        "200": { "$value": "#C8C8CD" },
+        "300": { "$value": "#B1B1B8" },
+        "400": { "$value": "#85858C" },
+        "500": { "$value": "#66666D" },
+        "600": { "$value": "#4D4D54" },
+        "700": { "$value": "#3B3B42" },
+        "800": { "$value": "#303037" },
+        "850": { "$value": "#28282F" },
+        "900": { "$value": "#202026" },
+        "950": { "$value": "#16161B" }
+      },
+      "petrol": {
+        "$description": "Legacy exploration palette, retained as primitives only; not used for brand surfaces or actions.",
+        "50": { "$value": "#E6F4F1" },
+        "100": { "$value": "#C4E6DF" },
+        "200": { "$value": "#94D2C6" },
+        "300": { "$value": "#5DB8A8" },
+        "400": { "$value": "#2E9C8B" },
+        "500": { "$value": "#13806F" },
+        "600": { "$value": "#0C6A5C" },
+        "700": { "$value": "#0A554A" },
+        "800": { "$value": "#0A433B" },
+        "900": { "$value": "#09332E" }
+      },
+      "blue": {
+        "50": { "$value": "#EAF0FD" },
+        "100": { "$value": "#D2DFFB" },
+        "300": { "$value": "#8EADF3" },
+        "500": { "$value": "#2F62D8" },
+        "700": { "$value": "#1D4196" },
+        "900": { "$value": "#142B5E" }
+      },
+      "violet": {
+        "50": { "$value": "#F1ECFC" },
+        "100": { "$value": "#E0D6F8" },
+        "300": { "$value": "#B7A2EE" },
+        "500": { "$value": "#6D4BD1" },
+        "700": { "$value": "#4C2FA3" },
+        "900": { "$value": "#2E1C66" }
+      },
+      "amber": {
+        "50": { "$value": "#FDF4E3" },
+        "100": { "$value": "#FAE3B8" },
+        "300": { "$value": "#F0B54A" },
+        "500": { "$value": "#C98106" },
+        "700": { "$value": "#7C4F05" },
+        "900": { "$value": "#4A2F03" }
+      },
+      "green": {
+        "50": { "$value": "#E8F5EC" },
+        "100": { "$value": "#C9E8D2" },
+        "300": { "$value": "#7CC794" },
+        "500": { "$value": "#2A9150" },
+        "700": { "$value": "#1C6437" },
+        "900": { "$value": "#123F23" }
+      },
+      "red": {
+        "50": { "$value": "#FDECEA" },
+        "100": { "$value": "#F9D2CD" },
+        "300": { "$value": "#F09A8E" },
+        "500": { "$value": "#D63A2A" },
+        "700": { "$value": "#A3261A" },
+        "900": { "$value": "#5E150E" }
+      }
+    },
+    "bg": {
+      "$type": "color",
+      "canvas": {
+        "$value": "{color.base.neutral.25}",
+        "$description": "App/page background. iOS: systemGroupedBackground role. M3: surface.",
+        "$extensions": { "app.trainerhub.mode": { "dark": "#242428" } }
+      },
+      "surface": {
+        "$value": "{color.base.white}",
+        "$description": "Cards, list rows, inputs. iOS: secondarySystemGroupedBackground. M3: surfaceContainerLowest.",
+        "$extensions": { "app.trainerhub.mode": { "dark": "#2D2D32" } }
+      },
+      "raised": {
+        "$value": "{color.base.white}",
+        "$description": "Sheets, dialogs, menus. iOS: sheet material. M3: surfaceContainerHigh.",
+        "$extensions": { "app.trainerhub.mode": { "dark": "#34343A" } }
+      },
+      "subtle": {
+        "$value": "{color.base.neutral.50}",
+        "$description": "Quiet fills: segmented tracks, table stripes, read-only fields. M3: surfaceContainer.",
+        "$extensions": { "app.trainerhub.mode": { "dark": "#3A3A41" } }
+      },
+      "inverse": {
+        "$value": "{color.base.neutral.900}",
+        "$description": "Toasts/snackbars.",
+        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.100}" } }
+      }
+    },
+    "text": {
+      "$type": "color",
+      "primary": {
+        "$value": "{color.base.neutral.900}",
+        "$extensions": { "app.trainerhub.mode": { "dark": "#E8E8ED" } }
+      },
+      "secondary": {
+        "$value": "{color.base.neutral.600}",
+        "$description": "Meta lines (workspace, location). Must still pass 4.5:1 on canvas and surface.",
+        "$extensions": { "app.trainerhub.mode": { "dark": "#C5C5CB" } }
+      },
+      "tertiary": {
+        "$value": "{color.base.neutral.500}",
+        "$description": "Placeholders and hints. Still AA (4.5:1) on surface: placeholders are real text.",
+        "$extensions": { "app.trainerhub.mode": { "dark": "#B0B0B8" } }
+      },
+      "inverse": {
+        "$value": "{color.base.neutral.25}",
+        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.900}" } }
+      },
+      "link": {
+        "$value": "{color.base.neutral.800}",
+        "$extensions": { "app.trainerhub.mode": { "dark": "#ECECF0" } }
+      }
+    },
+    "border": {
+      "$type": "color",
+      "default": {
+        "$value": "{color.base.neutral.100}",
+        "$description": "Decorative separators only (hairlines between rows). Not used for control boundaries.",
+        "$extensions": { "app.trainerhub.mode": { "dark": "#484850" } }
+      },
+      "control": {
+        "$value": "{color.base.neutral.400}",
+        "$description": "Input and control outlines: 3:1 non-text contrast (WCAG 1.4.11).",
+        "$extensions": { "app.trainerhub.mode": { "dark": "#A6A6AF" } }
+      },
+      "focus": {
+        "$value": "{color.base.neutral.600}",
+        "$description": "Focus ring, 2px + 2px offset on web. Native uses the platform focus system.",
+        "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.200}" } }
+      }
+    },
+    "action": {
+      "$type": "color",
+      "primary": {
+        "bg": {
+          "$value": "#595299",
+          "$description": "Filled buttons. iOS: app tint/accentColor. M3: primary.",
+          "$extensions": { "app.trainerhub.mode": { "dark": "#C1BBEB" } }
+        },
+        "bg-pressed": {
+          "$value": "#49427F",
+          "$extensions": { "app.trainerhub.mode": { "dark": "#D2CDF2" } }
+        },
+        "fg": {
+          "$value": "{color.base.white}",
+          "$description": "M3: onPrimary.",
+          "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.950}" } }
+        }
+      },
+      "tonal": {
+        "bg": {
+          "$value": "{color.base.neutral.50}",
+          "$description": "Secondary/tonal buttons, selected chips, selected tab indicator. M3: secondaryContainer.",
+          "$extensions": { "app.trainerhub.mode": { "dark": "{color.bg.subtle}" } }
+        },
+        "fg": {
+          "$value": "{color.base.neutral.900}",
+          "$description": "M3: onSecondaryContainer.",
+          "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.200}" } }
+        }
+      },
+      "danger": {
+        "bg": {
+          "$value": "{color.base.red.700}",
+          "$description": "Destructive confirm (cancel class). iOS: role .destructive. M3: error.",
+          "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.red.300}" } }
+        },
+        "fg": {
+          "$value": "{color.base.white}",
+          "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.950}" } }
+        }
+      }
+    },
+    "status": {
+      "$type": "color",
+      "success": {
+        "fg": { "$value": "{color.base.green.700}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.green.100}" } } },
+        "bg": { "$value": "{color.base.green.50}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.green.900}" } } }
+      },
+      "warning": {
+        "fg": { "$value": "{color.base.amber.700}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.amber.100}" } } },
+        "bg": { "$value": "{color.base.amber.50}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.amber.900}" } } }
+      },
+      "danger": {
+        "fg": { "$value": "{color.base.red.700}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.red.100}" } } },
+        "bg": { "$value": "{color.base.red.50}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.red.900}" } } }
+      },
+      "neutral": {
+        "fg": { "$value": "{color.base.neutral.700}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.200}" } } },
+        "bg": { "$value": "{color.base.neutral.50}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.neutral.800}" } } }
+      }
+    },
+    "session": {
+      "$type": "color",
+      "$description": "Session type identity (PRODUCT.md §16). Always paired with a text label; colour is never the only signal.",
+      "private": {
+        "solid": { "$value": "{color.base.blue.500}", "$description": "Calendar bar/dot. 3:1 against surface.", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.blue.300}" } } },
+        "fg": { "$value": "{color.base.blue.700}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.blue.100}" } } },
+        "bg": { "$value": "{color.base.blue.50}", "$extensions": { "app.trainerhub.mode": { "dark": "#263147" } } }
+      },
+      "group": {
+        "solid": { "$value": "{color.base.violet.500}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.violet.300}" } } },
+        "fg": { "$value": "{color.base.violet.700}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.violet.100}" } } },
+        "bg": { "$value": "{color.base.violet.50}", "$extensions": { "app.trainerhub.mode": { "dark": "#372D49" } } }
+      },
+      "open-gym": {
+        "solid": { "$value": "{color.base.amber.500}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.amber.300}" } } },
+        "fg": { "$value": "{color.base.amber.700}", "$extensions": { "app.trainerhub.mode": { "dark": "{color.base.amber.100}" } } },
+        "bg": { "$value": "{color.base.amber.50}", "$extensions": { "app.trainerhub.mode": { "dark": "#403526" } } }
+      }
+    }
+  },
+  "font": {
+    "family": {
+      "$type": "fontFamily",
+      "text": {
+        "$value": ["-apple-system", "BlinkMacSystemFont", "Roboto", "Segoe UI", "system-ui", "sans-serif"],
+        "$description": "All UI text. Native apps use the platform system font (SF Pro on iOS, Roboto on Android) so Dynamic Type and font scaling work for free. No web font for body text: keeps the public booking page inside its LCP budget.",
+        "$extensions": { "app.trainerhub.platform": { "ios": "system (SF Pro)", "android": "system (Roboto)" } }
+      },
+      "display": {
+        "$value": ["Bricolage Grotesque", "-apple-system", "BlinkMacSystemFont", "Roboto", "system-ui", "sans-serif"],
+        "$description": "Brand voice, used sparingly: public booking page headings and the workspace name. Never for body text or form labels. Native apps keep the system font (see visual-direction.md §3).",
+        "$extensions": { "app.trainerhub.platform": { "ios": "system (SF Pro Display)", "android": "system (Roboto)" } }
+      }
+    },
+    "weight": {
+      "$type": "fontWeight",
+      "regular": { "$value": 400 },
+      "medium": { "$value": 500 },
+      "semibold": { "$value": 600 },
+      "bold": { "$value": 700 }
+    }
+  },
+  "typography": {
+    "$type": "typography",
+    "$description": "Sizes are the default (100%) size in px on web, pt on iOS, sp on Android. Native apps must use the mapped platform text style so user font scaling applies; the size here is the reference, not a hard-coded value.",
+    "display": {
+      "$value": { "fontFamily": "{font.family.display}", "fontSize": "34px", "lineHeight": "40px", "fontWeight": "{font.weight.semibold}", "letterSpacing": "-0.01em" },
+      "$extensions": { "app.trainerhub.platform": { "ios": "largeTitle", "android": "headlineLarge" } }
+    },
+    "title-1": {
+      "$value": { "fontFamily": "{font.family.text}", "fontSize": "28px", "lineHeight": "34px", "fontWeight": "{font.weight.semibold}", "letterSpacing": "-0.005em" },
+      "$extensions": { "app.trainerhub.platform": { "ios": "title", "android": "headlineMedium" } }
+    },
+    "title-2": {
+      "$value": { "fontFamily": "{font.family.text}", "fontSize": "22px", "lineHeight": "28px", "fontWeight": "{font.weight.semibold}", "letterSpacing": "0" },
+      "$extensions": { "app.trainerhub.platform": { "ios": "title2", "android": "titleLarge" } }
+    },
+    "headline": {
+      "$value": { "fontFamily": "{font.family.text}", "fontSize": "17px", "lineHeight": "22px", "fontWeight": "{font.weight.medium}", "letterSpacing": "0" },
+      "$extensions": { "app.trainerhub.platform": { "ios": "headline", "android": "titleMedium" } }
+    },
+    "body": {
+      "$value": { "fontFamily": "{font.family.text}", "fontSize": "17px", "lineHeight": "24px", "fontWeight": "{font.weight.regular}", "letterSpacing": "0" },
+      "$description": "Web inputs never go below 16px (prevents iOS Safari zoom on focus).",
+      "$extensions": { "app.trainerhub.platform": { "ios": "body", "android": "bodyLarge" } }
+    },
+    "subhead": {
+      "$value": { "fontFamily": "{font.family.text}", "fontSize": "15px", "lineHeight": "20px", "fontWeight": "{font.weight.regular}", "letterSpacing": "0" },
+      "$extensions": { "app.trainerhub.platform": { "ios": "subheadline", "android": "bodyMedium" } }
+    },
+    "label": {
+      "$value": { "fontFamily": "{font.family.text}", "fontSize": "15px", "lineHeight": "20px", "fontWeight": "{font.weight.medium}", "letterSpacing": "0.01em" },
+      "$description": "Buttons, chips, tab labels.",
+      "$extensions": { "app.trainerhub.platform": { "ios": "subheadline.weight(.semibold)", "android": "labelLarge" } }
+    },
+    "footnote": {
+      "$value": { "fontFamily": "{font.family.text}", "fontSize": "13px", "lineHeight": "18px", "fontWeight": "{font.weight.regular}", "letterSpacing": "0" },
+      "$extensions": { "app.trainerhub.platform": { "ios": "footnote", "android": "bodySmall" } }
+    },
+    "caption": {
+      "$value": { "fontFamily": "{font.family.text}", "fontSize": "12px", "lineHeight": "16px", "fontWeight": "{font.weight.semibold}", "letterSpacing": "0.04em" },
+      "$description": "Uppercase section labels (e.g. VANDAAG). Minimum size for any text.",
+      "$extensions": { "app.trainerhub.platform": { "ios": "caption", "android": "labelMedium" } }
+    },
+    "numeric-xl": {
+      "$value": { "fontFamily": "{font.family.text}", "fontSize": "40px", "lineHeight": "44px", "fontWeight": "{font.weight.semibold}", "letterSpacing": "-0.01em" },
+      "$description": "Weight/reps in the live logger, read at arm's length between sets. Tabular figures.",
+      "$extensions": { "app.trainerhub.platform": { "ios": "system(size: 40, weight: .semibold).monospacedDigit(), relativeTo: .largeTitle", "android": "displaySmall + tnum" } }
+    }
+  },
+  "space": {
+    "$type": "dimension",
+    "$description": "4-based scale. Matches the M3 4dp grid and the iOS 8pt rhythm.",
+    "0": { "$value": "0px" },
+    "0-5": { "$value": "2px" },
+    "1": { "$value": "4px" },
+    "2": { "$value": "8px" },
+    "3": { "$value": "12px" },
+    "4": { "$value": "16px" },
+    "5": { "$value": "20px" },
+    "6": { "$value": "24px" },
+    "8": { "$value": "32px" },
+    "10": { "$value": "40px" },
+    "12": { "$value": "48px" },
+    "16": { "$value": "64px" },
+    "gutter": { "$value": "{space.4}", "$description": "Screen side margin on phones (iOS layout margin, M3 compact margin)." },
+    "gutter-wide": { "$value": "{space.6}", "$description": "Side margin at ≥ 600px (M3 medium window class)." }
+  },
+  "radius": {
+    "$type": "dimension",
+    "$description": "Mirrors the M3 shape scale. iOS applies the same values with .continuous corners.",
+    "none": { "$value": "0px" },
+    "xs": { "$value": "4px", "$extensions": { "app.trainerhub.platform": { "android": "shapes.extraSmall" } } },
+    "sm": { "$value": "8px", "$description": "Chips, small tags, inputs.", "$extensions": { "app.trainerhub.platform": { "android": "shapes.small" } } },
+    "md": { "$value": "12px", "$description": "Cards, list groups (iOS inset grouped list ~10–12).", "$extensions": { "app.trainerhub.platform": { "android": "shapes.medium" } } },
+    "lg": { "$value": "16px", "$description": "Prominent cards (next-up session), large buttons in the logger.", "$extensions": { "app.trainerhub.platform": { "android": "shapes.large" } } },
+    "xl": { "$value": "28px", "$description": "Bottom sheets and dialogs (top corners).", "$extensions": { "app.trainerhub.platform": { "android": "shapes.extraLarge" } } },
+    "full": { "$value": "9999px", "$description": "Pills: M3 buttons, status chips, avatars." }
+  },
+  "size": {
+    "$type": "dimension",
+    "touch-min": { "$value": "48px", "$description": "Minimum hit target. Satisfies M3 (48dp) and iOS HIG (44pt)." },
+    "touch-large": { "$value": "64px", "$description": "Logger steppers and 'save set': one hand, sweaty thumbs, glanced at between sets." },
+    "icon": { "$value": "24px" },
+    "icon-sm": { "$value": "20px" },
+    "content-max": { "$value": "640px", "$description": "Max width of public booking content on large screens." },
+    "control": {
+      "$description": "Visible control height (buttons, inputs, list rows). The hit target never drops below touch-min on touch, or 24px (WCAG 2.2 target size) with a mouse.",
+      "touch": { "$value": "48px", "$description": "Android and touch web default." },
+      "ios": { "$value": "44px", "$description": "iOS HIG minimum; buttons and rows in the iOS app." },
+      "compact": { "$value": "36px", "$description": "Trainer Web with a mouse or trackpad." },
+      "compact-sm": { "$value": "32px", "$description": "Toolbars and segmented controls in Trainer Web." }
+    }
+  },
+  "density": {
+    "$type": "typography",
+    "$description": "Compact density for Trainer Web on a desktop pointer: it replaces the default (touch) type scale there so a calendar day or week fits on a laptop screen. Native apps keep their platform text styles; public booking keeps the touch scale. Colours and contrast pairs are unchanged.",
+    "compact": {
+      "title-1": { "$value": { "fontSize": "22px", "lineHeight": "28px" } },
+      "title-2": { "$value": { "fontSize": "18px", "lineHeight": "24px" } },
+      "headline": { "$value": { "fontSize": "15px", "lineHeight": "20px" } },
+      "body": { "$value": { "fontSize": "14px", "lineHeight": "20px" } },
+      "subhead": { "$value": { "fontSize": "13px", "lineHeight": "18px" } },
+      "label": { "$value": { "fontSize": "13px", "lineHeight": "18px" } },
+      "footnote": { "$value": { "fontSize": "12px", "lineHeight": "16px" } },
+      "caption": { "$value": { "fontSize": "11px", "lineHeight": "14px" } }
+    },
+    "android": {
+      "$description": "Material 3 roles: bodyLarge 16/24, bodyMedium and labelLarge 14/20.",
+      "body": { "$value": { "fontSize": "16px", "lineHeight": "24px" } },
+      "subhead": { "$value": { "fontSize": "14px", "lineHeight": "20px" } },
+      "label": { "$value": { "fontSize": "14px", "lineHeight": "20px" } }
+    }
+  },
+  "border-width": {
+    "$type": "dimension",
+    "hairline": { "$value": "1px", "$description": "iOS: 1 / displayScale (true hairline). Android: 1dp." },
+    "control": { "$value": "1px" },
+    "focus": { "$value": "2px" }
+  },
+  "motion": {
+    "duration": {
+      "$type": "duration",
+      "short": { "$value": "150ms", "$description": "State changes (chip select, set saved tick)." },
+      "medium": { "$value": "250ms", "$description": "Sheets and screen transitions on web. Native uses platform transitions." }
+    },
+    "easing": {
+      "$type": "cubicBezier",
+      "standard": { "$value": [0.2, 0, 0, 1], "$description": "M3 standard easing. iOS uses the default spring." }
+    }
+  }
+}
