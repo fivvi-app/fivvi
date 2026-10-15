@@ -80,11 +80,23 @@ describe('iOS toolchain (_ios.sh)', () => {
   it('fails loudly when DEVELOPER_DIR is set but not a usable Xcode, instead of using another Xcode', () => {
     const result = spawnSync(
       'bash',
-      ['-c', `source "${SCRIPTS}/_lib.sh"; source "${SCRIPTS}/_ios.sh"; use_xcode; echo "status=$? dir=$DEVELOPER_DIR"`],
-      { encoding: 'utf8', env: { ...process.env, DEVELOPER_DIR: '/nonexistent/Xcode_0.0.app/Contents/Developer' } },
+      [
+        '-c',
+        `source "${SCRIPTS}/_lib.sh"; source "${SCRIPTS}/_ios.sh"; use_xcode; echo "status=$? dir=$DEVELOPER_DIR"`,
+      ],
+      {
+        encoding: 'utf8',
+        env: { ...process.env, DEVELOPER_DIR: '/nonexistent/Xcode_0.0.app/Contents/Developer' },
+      },
     );
-    assert.match(result.stdout, /status=1 dir=\/nonexistent\/Xcode_0\.0\.app\/Contents\/Developer$/m);
-    assert.match(result.stderr, /DEVELOPER_DIR=\/nonexistent\/Xcode_0\.0\.app\/Contents\/Developer is not a usable Xcode/);
+    assert.match(
+      result.stdout,
+      /status=1 dir=\/nonexistent\/Xcode_0\.0\.app\/Contents\/Developer$/m,
+    );
+    assert.match(
+      result.stderr,
+      /DEVELOPER_DIR=\/nonexistent\/Xcode_0\.0\.app\/Contents\/Developer is not a usable Xcode/,
+    );
   });
 });
 

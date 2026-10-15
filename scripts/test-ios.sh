@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The iOS app's checks, the same steps as the `iOS` CI job (E008). `pnpm test:ios` runs this.
 #
-#   test-ios.sh   SwiftLint and its literal-text fixture, the Release configuration, then the unit and UI tests in nl
+#   test-ios.sh   SwiftLint and its literal-text fixture, the Debug and Release configurations, then the unit and UI tests in nl
 #                 and en on the newest iPhone simulator (IOS_SIMULATOR="iPhone 17" picks one by name)
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"

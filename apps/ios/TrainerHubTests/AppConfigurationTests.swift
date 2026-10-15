@@ -38,9 +38,17 @@ final class AppConfigurationTests: XCTestCase {
         XCTAssertEqual(url, URL(string: "https://preview.example.com/api"))
     }
 
-    /// Hosts App Transport Security's local-networking exception covers: unqualified names, `.local` and IP addresses.
+    /// A host on this Mac or the LAN: an unqualified name (`localhost`), a `.local` name, or a loopback, private or
+    /// link-local IP address. A public host must use HTTPS.
     private func isLocal(_ host: String) -> Bool {
-        !host.contains(".") || host.hasSuffix(".local") || host.allSatisfy { $0.isNumber || $0 == "." || $0 == ":" }
+        if !host.contains(".") && !host.contains(":") || host.hasSuffix(".local") { return true }
+        if host == "::1" || host.lowercased().hasPrefix("fe80:") || host.lowercased().hasPrefix("fd") { return true }
+        let octets = host.split(separator: ".").compactMap { Int($0) }
+        guard octets.count == 4 else { return false }
+        switch (octets[0], octets[1]) {
+        case (10, _), (127, _), (192, 168), (169, 254), (172, 16...31): return true
+        default: return false
+        }
     }
 
     private func emptyDefaults() throws -> UserDefaults {
