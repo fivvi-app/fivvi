@@ -1,6 +1,24 @@
 {
   "sourceLanguage" : "nl",
   "strings" : {
+    "app.name" : {
+      "comment" : "Name of the native app under its home-screen icon (iOS CFBundleDisplayName, Android app label). The product name, the same in both languages.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer Hub"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer Hub"
+          }
+        }
+      }
+    },
     "app.title" : {
       "comment" : "Browser tab title (HTML <title>) of web pages that don't set their own. The product name, the same in both languages.",
       "extractionState" : "manual",
@@ -15,6 +33,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trainer Hub"
+          }
+        }
+      }
+    },
+    "common.loading" : {
+      "comment" : "Accessibility label of the progress indicator while a screen loads (read by VoiceOver and TalkBack).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laden…"
+          }
+        }
+      }
+    },
+    "common.retry" : {
+      "comment" : "Button under an error message that tries the failed action again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw proberen"
           }
         }
       }
@@ -51,6 +105,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vul je voornaam in, dan begroeten we je."
+          }
+        }
+      }
+    },
+    "hello.error" : {
+      "comment" : "Shown on the native hello screen when the greeting can't be loaded (no connection, or an unknown greeting). Above the common.retry button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We couldn't load the greeting. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We konden de begroeting niet laden. Probeer het opnieuw."
           }
         }
       }
