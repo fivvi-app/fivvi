@@ -11,7 +11,7 @@ The one source of Trainer Hub's colours, type, spacing, radii and motion (ADR-01
 | `tokens/contrast-pairs.json` | Foreground/background pairs that must meet WCAG AA in light and dark |
 | `generated/web/tokens.css` | A CSS variable per token (`--th-color-bg-canvas`): light on `:root`, dark under `prefers-color-scheme: dark`. **Generated, never edit** |
 | `generated/web/shadcn.css` | shadcn/ui's theme variables (`--background`, `--primary`, `--radius`, …) plus `--session-*` and `--status-*`, each pointing at a token variable. **Generated, never edit** |
-| `generated/web/theme.css` | Tailwind v4 `@theme inline` that turns those into utilities (`bg-primary`, `text-session-private-fg`, `rounded-lg`). **Generated, never edit** |
+| `generated/web/theme.css` | Tailwind v4 `@theme inline` that turns those into utilities (`bg-primary`, `text-session-private-fg`, `rounded-lg`, `font-display`). **Generated, never edit** |
 | `swift/` | The SwiftPM package `TrainerHubDesignTokens` for iOS. `Package.swift` is hand-written; `Sources/TrainerHubDesignTokens/Generated/` is **generated, never edit** |
 | `kotlin/generated/` | Kotlin sources for Compose, package `nl.trainerhub.designtokens`. **Generated, never edit** |
 | `src/` | The build, the checks and the CLI (Node only). `src/native.ts` renders the Swift and Kotlin |
@@ -20,16 +20,11 @@ The files are DTCG JSON (`$value`, `$type`, `$description`); a reference is `{co
 
 ## Using the tokens on the web
 
-Import the three files after Tailwind, and use only shadcn's theme classes and our extras, never the `--th-*` variables or the palette:
+Apps don't import these files themselves: they import the kit's stylesheet, `@trainer-hub/ui/globals.css`, which loads Tailwind, the three token files and the kit's base styles in the right order ([`packages/ui/README.md`](../ui/README.md)). App code uses only shadcn's theme classes and our extras, never the `--th-*` variables or the palette.
 
-```css
-@import 'tailwindcss';
-@import '@trainer-hub/design-tokens/tokens.css';
-@import '@trainer-hub/design-tokens/shadcn.css';
-@import '@trainer-hub/design-tokens/theme.css';
-```
+The page follows the system light or dark setting; nothing switches it by hand. shadcn's theme variables map to the semantic tokens as listed in `shadcnColours` in [`src/build.ts`](src/build.ts) (for example `--primary` is `color.action.primary.bg`, `--input` is `color.border.control`). `--radius` is `radius.md`, and Tailwind derives `rounded-sm` to `rounded-xl` from it as in shadcn. `font-sans` is `font.family.text` (the system font) and `font-display` is `font.family.display` (Bricolage Grotesque, then the system font).
 
-The page follows the system light or dark setting; nothing switches it by hand. shadcn's theme variables map to the semantic tokens as listed in `shadcnColours` in [`src/build.ts`](src/build.ts) (for example `--primary` is `color.action.primary.bg`, `--input` is `color.border.control`). `--radius` is `radius.md`, and Tailwind derives `rounded-sm` to `rounded-xl` from it as in shadcn.
+The two web densities take their body size from `density.compact.body` and `density.touch.body`, and their control size from `size.control.compact` and `size.control.touch`; the kit applies them per layout ([densities](../ui/README.md#densities)).
 
 ## Using the tokens on iOS and Android
 

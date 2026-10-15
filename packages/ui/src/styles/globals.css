@@ -13,6 +13,30 @@
 /* The app's own files are found automatically; the kit's components live outside the app. */
 @source "../components";
 
+/*
+ * Densities (AC6): a layout sets `data-density="compact"` (Trainer Web on a desktop pointer) or
+ * `data-density="touch"` (public and client pages). The density sets the body text size inside it
+ * and the minimum size of the kit's controls, from the tokens; the nearest layout's density wins.
+ */
+@layer base {
+  [data-density="compact"] {
+    --density-control-size: var(--th-size-control-compact);
+    font-size: var(--th-density-compact-body-font-size);
+    line-height: var(--th-density-compact-body-line-height);
+  }
+  [data-density="touch"] {
+    --density-control-size: var(--th-size-control-touch);
+    font-size: var(--th-density-touch-body-font-size);
+    line-height: var(--th-density-touch-body-line-height);
+  }
+  [data-density] :is([data-slot="button"], [data-slot="input"]) {
+    min-height: var(--density-control-size);
+  }
+  [data-density] [data-slot="button"][data-size^="icon"] {
+    min-width: var(--density-control-size);
+  }
+}
+
 /* shadcn/ui's base styles (registry style radix-nova). */
 @layer base {
   * {

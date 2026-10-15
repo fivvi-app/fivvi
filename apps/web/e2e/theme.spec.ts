@@ -108,6 +108,51 @@ async function openHelloPage(page: Page, colorScheme: ColorScheme): Promise<void
   await page.goto('/');
 }
 
+/** A mode-independent token (`size.control.compact`) as written in tokens.css (`36px`). */
+function tokenValue(token: string): string {
+  const declaration = new RegExp(`--th-${token.replaceAll('.', '-')}:\\s*([^;]+);`);
+  const value = lightCss.match(declaration)?.[1];
+  if (!value) throw new Error(`No value for ${token} in tokens.css`);
+  return value.trim();
+}
+
+/** A font stack token (`font.family.display`) as the browser computes it. */
+async function tokenFontStack(page: Page, token: string): Promise<string> {
+  return await page.evaluate((stack) => {
+    const probe = document.createElement('span');
+    probe.style.fontFamily = stack;
+    document.body.append(probe);
+    const computed = getComputedStyle(probe).fontFamily;
+    probe.remove();
+    return computed;
+  }, tokenValue(token));
+}
+
+/** The families in a computed font-family, without quotes. */
+const families = (fontFamily: string) =>
+  fontFamily.split(',').map((family) => family.trim().replaceAll(/["']/g, ''));
+
+type Density = 'compact' | 'touch';
+
+/** Per density: its body type and control height tokens, and the values AC6 asks of them. */
+const densities: Record<
+  Density,
+  { body: string; control: string; bodyPx: number; controlPx: { min: number; max: number } }
+> = {
+  compact: {
+    body: 'density.compact.body',
+    control: 'size.control.compact',
+    bodyPx: 14,
+    controlPx: { min: 36, max: 36 },
+  },
+  touch: {
+    body: 'density.touch.body',
+    control: 'size.control.touch',
+    bodyPx: 16,
+    controlPx: { min: 44, max: Number.POSITIVE_INFINITY },
+  },
+};
+
 test.describe('E007 web theme', () => {
   test('AC5: hello page uses token colours and passes axe in light and dark', async ({
     page,
@@ -151,5 +196,99 @@ test.describe('E007 web theme', () => {
         await expectVisibleFocusIndicator(page, control, `${name} in ${scheme} mode`);
       }
     }
+  });
+
+  test('AC6: compact and touch densities set body size and control height from tokens', async ({
+    page,
+    messages: copy,
+  }) => {
+    const controls: [string, Locator][] = [
+      ['Input', page.getByLabel(copy.hello.firstNameLabel)],
+      ['Button', page.getByRole('button', { name: copy.hello.continue })],
+    ];
+    // The root layout opts every page into touch density. Trainer Web layouts (M2) opt into
+    // compact on a nested element; here the hello page's <main> stands in for one.
+    const layouts: [Density, Locator][] = [
+      ['touch', page.locator('body')],
+      ['compact', page.locator('main')],
+    ];
+
+    await openHelloPage(page, 'light');
+    await expect(page.locator('body')).toHaveAttribute('data-density', 'touch');
+    for (const [density, layout] of layouts) {
+      const { body, control, bodyPx, controlPx } = densities[density];
+      await layout.evaluate(
+        (element, value) => element.setAttribute('data-density', value),
+        density,
+      );
+
+      const bodySize = tokenValue(`${body}.font-size`);
+      expect(bodySize, `${body} is the AC6 body size`).toBe(`${bodyPx}px`);
+      await expect(layout, `${density} body size`).toHaveCSS('font-size', bodySize);
+      await expect(layout, `${density} body line height`).toHaveCSS(
+        'line-height',
+        tokenValue(`${body}.line-height`),
+      );
+
+      const controlHeight = Number.parseFloat(tokenValue(control));
+      expect(controlHeight, `${control} meets AC6`).toBeGreaterThanOrEqual(controlPx.min);
+      expect(controlHeight, `${control} meets AC6`).toBeLessThanOrEqual(controlPx.max);
+      for (const [name, element] of controls) {
+        // Retried: the Button transitions to its new size.
+        await expect(element, `${name} height in ${density} density`).toHaveCSS(
+          'height',
+          `${controlHeight}px`,
+        );
+      }
+    }
+  });
+
+  test('AC9: display heading uses the self-hosted font; no request leaves the origin for fonts', async ({
+    page,
+    messages: copy,
+  }) => {
+    const fontRequests: string[] = [];
+    page.on('request', (request) => {
+      if (['font', 'stylesheet'].includes(request.resourceType())) fontRequests.push(request.url());
+    });
+
+    await openHelloPage(page, 'light');
+    const heading = page.getByRole('heading', { level: 1, name: copy.hello.title });
+    /** Families of the page's @font-face rules that have loaded, without quotes. */
+    const loadedFaces = async () =>
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+        return [...document.fonts]
+          .filter((font) => font.status === 'loaded')
+          .map((font) => font.family.replaceAll(/["']/g, ''));
+      });
+
+    // The display stack: the self-hosted face first, ending in the system font.
+    const display = await tokenFontStack(page, 'font.family.display');
+    await expect(heading, 'the heading has the display style').toHaveCSS('font-family', display);
+    const [face = ''] = families(display);
+    expect(face, 'the display face').toBe('Bricolage Grotesque');
+    await expect.poll(loadedFaces, { message: 'the display face is loaded' }).toContain(face);
+
+    // Body text: the token's system stack, none of it a web font.
+    const body = page.locator('body');
+    await expect(body).toHaveCSS('font-family', await tokenFontStack(page, 'font.family.text'));
+    const loaded = await loadedFaces();
+    expect(
+      families(await body.evaluate((node) => getComputedStyle(node).fontFamily)).filter((family) =>
+        loaded.includes(family),
+      ),
+      'web fonts in the body text',
+    ).toEqual([]);
+
+    const origin = new URL(page.url()).origin;
+    expect(
+      fontRequests.filter((url) => new URL(url).pathname.endsWith('.woff2')),
+      'the display face is served by the app',
+    ).not.toEqual([]);
+    expect(
+      fontRequests.filter((url) => new URL(url).origin !== origin),
+      'font and stylesheet requests to another origin',
+    ).toEqual([]);
   });
 });

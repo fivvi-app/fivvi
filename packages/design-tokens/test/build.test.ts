@@ -152,6 +152,13 @@ describe('E007 design tokens build', () => {
     expect(css).toMatch(/\.font-sans \{\s*font-family: var\(--th-font-family-text\);/);
   });
 
+  it('AC9: the Tailwind theme sets font-display to the display token, body text to the text token', async () => {
+    const tailwind = await compile(`${output(webOutputs.theme)}\n@tailwind utilities;`);
+    const css = tailwind.build(['font-display', 'font-sans']);
+    expect(css).toMatch(/\.font-display \{\s*font-family: var\(--th-font-family-display\);/);
+    expect(css).toMatch(/\.font-sans \{\s*font-family: var\(--th-font-family-text\);/);
+  });
+
   it('AC1: generates spacing and radius constants for Swift and Kotlin, and Material 3 shapes', () => {
     const swift = output(swiftOutputs.layout);
     const swiftValues = (group: string) =>
