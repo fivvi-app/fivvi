@@ -61,7 +61,8 @@ setup_sdk() {
       || { missing "the emulator '$AVD_NAME' (avdmanager create avd)"; return 1; }
     avd_exists || { missing "the emulator '$AVD_NAME': created, but the emulator can't find it in $ANDROID_AVD_HOME (emulator -list-avds: $(avd_list))"; return 1; }
   fi
-  echo "✓ Android SDK, emulator '$AVD_NAME' ($image)"
+  configure_avd || { missing "the emulator '$AVD_NAME': no config.ini in $ANDROID_AVD_HOME/$AVD_NAME.avd"; return 1; }
+  echo "✓ Android SDK, emulator '$AVD_NAME' ($image; $AVD_SETTINGS)"
   [ -n "$had_home" ] || echo "  Add to your shell profile: export ANDROID_HOME=\"$home\""
 }
 

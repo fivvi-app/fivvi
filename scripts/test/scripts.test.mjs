@@ -122,7 +122,8 @@ describe('android.sh setup', () => {
     const log = join(base, 'sdkmanager.log');
     const avdmanager = `dir="\${ANDROID_AVD_HOME:-$HOME/.android/avd}"
 while [ $# -gt 0 ]; do [ "$1" = --name ] && name="$2"; shift; done
-mkdir -p "$dir/$name.avd" && touch "$dir/$name.ini"`;
+mkdir -p "$dir/$name.avd" && touch "$dir/$name.ini"
+printf "%s\\n" "disk.dataPartition.path=<temp>" "disk.dataPartition.size=6G" "hw.cpu.ncore=4" >"$dir/$name.avd/config.ini"`;
     const sdkmanager = `echo "$*" >>"${log}"
 for arg; do case "$arg" in --sdk_root=*) root="\${arg#--sdk_root=}" ;; esac; done
 case " $* " in *" cmdline-tools;latest "*)
@@ -160,7 +161,8 @@ exit 0`
     const setup = () =>
       spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], { encoding: 'utf8', env });
     const installed = () => readFileSync(log, 'utf8');
-    return { env, setup, installed };
+    const config = join(home, '.android/avd/trainer-hub.avd/config.ini');
+    return { env, setup, installed, config };
   };
 
   it('creates an AVD that the emulator finds in later steps, also with XDG_CONFIG_HOME set', () => {
@@ -184,6 +186,33 @@ exit 0`
 
     assert.equal(result.status, 1);
     assert.match(result.stdout, /created, but the emulator can't find it/);
+  });
+
+  // GitHub's runners have about 6 GB free and 2 cores; the default AVD wants a 6 GB data partition (7.4 GB free) and 4.
+  it('sizes the AVD for CI runners: a 3G data partition and 2 cores, keeping its other settings', () => {
+    const { setup, config } = fakeSdk();
+
+    assert.equal(setup().status, 0);
+
+    assert.deepEqual(readFileSync(config, 'utf8').split('\n').filter(Boolean).sort(), [
+      'disk.dataPartition.path=<temp>',
+      'disk.dataPartition.size=3G',
+      'hw.cpu.ncore=2',
+    ]);
+  });
+
+  it('resizes an AVD created before, on every setup', () => {
+    const { setup, config } = fakeSdk();
+    assert.equal(setup().status, 0);
+    writeFileSync(config, 'disk.dataPartition.size=10G\nhw.cpu.ncore = 4\nhw.ramSize=2G\n');
+
+    assert.equal(setup().status, 0);
+
+    assert.deepEqual(readFileSync(config, 'utf8').split('\n').filter(Boolean).sort(), [
+      'disk.dataPartition.size=3G',
+      'hw.cpu.ncore=2',
+      'hw.ramSize=2G',
+    ]);
   });
 
   it('installs cmdline-tools only when the SDK has none', () => {

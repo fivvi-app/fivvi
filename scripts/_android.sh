@@ -9,6 +9,9 @@ SDK_PACKAGES="platform-tools platforms;android-37.0 build-tools;37.0.0 emulator"
 # set the device language.
 AVD_NAME="trainer-hub"
 AVD_API=35
+# Sized for GitHub's runners (2 cores, about 6 GB free disk): the device's defaults want 4 cores and a data partition
+# that doesn't fit. 3G holds the app, the test APKs and Maestro's driver.
+AVD_SETTINGS="disk.dataPartition.size=3G hw.cpu.ncore=2"
 MAESTRO_VERSION="2.11.0"
 MAESTRO_HOME="$HOME/.maestro"
 
@@ -74,6 +77,18 @@ avd_exists() { emulator -list-avds 2>/dev/null | grep -qx "$AVD_NAME"; }
 
 # What the emulator itself says, for the error when it can't find the AVD.
 avd_list() { emulator -list-avds 2>&1 | tail -5 | tr '\n' ' '; }
+
+# Sets AVD_SETTINGS in the AVD's config.ini, replacing any earlier value (`key=value` or `key = value`).
+configure_avd() {
+  local config="$ANDROID_AVD_HOME/$AVD_NAME.avd/config.ini" setting key
+  [ -f "$config" ] || return 1
+  for setting in $AVD_SETTINGS; do
+    key="${setting%%=*}"
+    awk -v key="$key" '{ k = $0; sub(/[ \t]*=.*/, "", k) } k != key' "$config" >"$config.partial"
+    echo "$setting" >>"$config.partial"
+    mv "$config.partial" "$config"
+  done
+}
 
 device_ready() { [ "$(adb get-state 2>/dev/null)" = device ]; }
 
