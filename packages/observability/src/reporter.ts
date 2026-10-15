@@ -23,6 +23,8 @@ export interface ErrorContext {
   request?: Request | RequestDetails;
   /** The route template, e.g. `/v1/clients/:clientId`; never the real path. */
   route?: string;
+  /** Defaults to `error`. A `warning` is for something that went wrong without failing the request. */
+  level?: 'error' | 'warning';
 }
 
 export interface ErrorReporter {
@@ -65,6 +67,7 @@ export function createErrorReporter(options: ErrorReporterOptions = {}): ErrorRe
     enabled: true,
     captureError: (error, context = {}) => {
       const eventScope = scope.clone();
+      if (context.level) eventScope.setLevel(context.level);
       const { request, route } = context;
       if (route) {
         eventScope.setTag('route', route);

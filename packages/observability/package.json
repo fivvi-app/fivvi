@@ -24,6 +24,8 @@
   },
   "dependencies": {
     "@sentry/browser": "catalog:",
-    "@sentry/core": "catalog:"
+    "@sentry/core": "catalog:",
+    "posthog-node": "catalog:",
+    "zod": "catalog:"
   }
 }
