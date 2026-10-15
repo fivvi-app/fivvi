@@ -286,7 +286,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
     /ui           Web component kit
   ```
 - CI on every PR: lint, typecheck, tests, build, **i18n key parity**, **ICU syntax**, **no hard-coded strings** (web lint; SwiftLint/ktlint custom rules for native), and an **OpenAPI drift check** (the committed spec must match the code; generated clients must be up to date).
-- **CI minutes on the free plan:** Linux jobs (web, API, Android) run on every PR. iOS builds run only when `apps/ios` or the contract changes, and agents also build locally with Xcode. macOS minutes count 10× against the free quota (§12).
+- **CI minutes on the free plan:** Linux jobs (web, API, Android) run on every PR. iOS builds run only when `apps/ios`, its generated inputs (contract, iOS catalogs) or the job itself change (`WORKFLOW.md §7`), and agents also build locally with Xcode. macOS minutes count 10× against the free quota (§12).
 - Environments (ADR-011): `local` (Docker Postgres), `preview` (a Railway PR environment per PR with its own migrated and seeded Postgres, removed on merge/close), `production` (Railway, EU West Amsterdam). A separate `staging` is only added if it's needed. The M1 spike checks the ADR-011 conditions (per-PR databases, backup/restore, cron, cost).
 - Native shells: an iOS app and an Android app that call a generated API client and show a translated screen, running on a simulator/emulator and on a real device.
 

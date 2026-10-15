@@ -82,8 +82,9 @@ jobs:
             echo "$1=$run" >>"$GITHUB_OUTPUT"
           }
 
-          # iOS: the app, its generated inputs (Swift client, iOS string catalogs) and the script the job runs.
-          decide ios apps/ios '^(apps/ios|packages/contract|packages/i18n/generated/ios)/|^scripts/(test-ios|_ios)\.sh$'
+          # iOS: the app, its generated inputs (Swift client, iOS string catalogs), and the job itself (this
+          # workflow and the scripts it runs), so a change that would break the job runs it.
+          decide ios apps/ios '^(apps/ios|packages/contract|packages/i18n/generated/ios)/|^scripts/(test-ios|_ios|_lib)\.sh$|^\.github/workflows/ci\.yml$'
           decide android apps/android '^(apps/android|packages/contract)/'
 
   checks:

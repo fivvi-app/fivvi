@@ -11,14 +11,22 @@ final class AppConfigurationTests: XCTestCase {
         XCTAssertEqual(displayName, TestCatalog(TestCatalog.configuredLocale)["app.name"])
     }
 
-    func test_E008_debugUsesTheLocalDevServerOverPlainHTTP() throws {
+    /// The committed default is the local dev server (scripts/test-ios.sh checks Config/Debug.xcconfig); a developer's
+    /// Config/Local.xcconfig may point it at a preview or a Mac on the LAN, so this asserts what holds for all of them.
+    func test_E008_debugAllowsPlainHTTPToLocalHostsOnly() throws {
+        let info = Bundle.main.object(forInfoDictionaryKey: AppConfiguration.apiBaseURLKey)
+        let configured = try XCTUnwrap(info as? String)
         let url = AppConfiguration.apiBaseURL(info: Bundle.main.infoDictionary, defaults: try emptyDefaults())
 
-        XCTAssertEqual(url.scheme, "http")
-        XCTAssertEqual(url.host(), "localhost")
+        XCTAssertEqual(url, URL(string: configured), "the base URL comes from the build configuration")
         XCTAssertEqual(url.path(), "/api")
-        let transportSecurity = Bundle.main.infoDictionary?["NSAppTransportSecurity"] as? [String: Any]
-        XCTAssertEqual(transportSecurity?["NSAllowsLocalNetworking"] as? Bool, true)
+        let transportSecurity = try XCTUnwrap(Bundle.main.infoDictionary?["NSAppTransportSecurity"] as? [String: Any])
+        XCTAssertEqual(transportSecurity as NSDictionary, ["NSAllowsLocalNetworking": true], "local networking only")
+        if url.scheme == "http" {
+            XCTAssertTrue(isLocal(try XCTUnwrap(url.host())), "plain HTTP only to a local host, not \(url)")
+        } else {
+            XCTAssertEqual(url.scheme, "https")
+        }
     }
 
     func test_E008_debugBaseURLCanBeOverriddenAtLaunch() throws {
@@ -28,6 +36,11 @@ final class AppConfigurationTests: XCTestCase {
         let url = AppConfiguration.apiBaseURL(info: Bundle.main.infoDictionary, defaults: defaults)
 
         XCTAssertEqual(url, URL(string: "https://preview.example.com/api"))
+    }
+
+    /// Hosts App Transport Security's local-networking exception covers: unqualified names, `.local` and IP addresses.
+    private func isLocal(_ host: String) -> Bool {
+        !host.contains(".") || host.hasSuffix(".local") || host.allSatisfy { $0.isNumber || $0 == "." || $0 == ":" }
     }
 
     private func emptyDefaults() throws -> UserDefaults {

@@ -44,11 +44,12 @@ install_node() {
 
 # The iOS app (apps/ios): Xcode with an iPhone simulator, and the pinned SwiftLint (scripts/_ios.sh).
 install_ios_tools() {
+  local preset="${DEVELOPER_DIR:-}"
   if ! use_xcode; then
     warn "Xcode not found — install it from the App Store, then run: sudo xcode-select -s /Applications/Xcode.app"
     return 1
   fi
-  [ -z "${DEVELOPER_DIR:-}" ] \
+  [ -n "$preset" ] || [ -z "${DEVELOPER_DIR:-}" ] \
     || echo "ℹ️  xcode-select points at the Command Line Tools; the iOS scripts use $DEVELOPER_DIR. To make it the default: sudo xcode-select -s /Applications/Xcode.app"
   xcodebuild -checkFirstLaunchStatus || warn "Xcode isn't set up yet — run: sudo xcodebuild -runFirstLaunch"
   [ -n "$(ios_simulator)" ] || warn "no iPhone simulator — install the iOS platform: xcodebuild -downloadPlatform iOS"

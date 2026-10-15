@@ -28,6 +28,15 @@ lint_fixture() {
   return 1
 }
 
+# Debug's committed default is the local dev server (a developer's Config/Local.xcconfig may override it; CI has none).
+debug_configuration() {
+  local url
+  url="$(sed -nE 's/^TRAINER_HUB_API_BASE_URL = //p' Config/Debug.xcconfig)"
+  # shellcheck disable=SC2016 # the xcconfig's literal `$()`, which keeps `//` from starting a comment
+  [ "$url" = 'http:/$()/localhost:3000/api' ] \
+    || { echo "Config/Debug.xcconfig: base URL is not the local dev server: $url"; return 1; }
+}
+
 # Release talks HTTPS to the production API only: no App Transport Security exception in its Info.plist.
 release_configuration() {
   local settings url plist
@@ -45,7 +54,8 @@ echo "▶ SwiftLint"
 "$SWIFTLINT" lint --strict --quiet
 echo "▶ SwiftLint rejects literal text (lint/fixtures)"
 lint_fixture
-echo "▶ Release configuration"
+echo "▶ Debug and Release configurations"
+debug_configuration
 release_configuration
 
 udid="$(ios_simulator)"

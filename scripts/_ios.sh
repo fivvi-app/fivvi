@@ -9,12 +9,20 @@ SWIFTLINT_VERSION=0.65.1
 SWIFTLINT_SHA256=c1e429b0599cf1b516f369a2d9ec04eaf0e436f3c12b637df8851fa52ff694d0
 SWIFTLINT="$IOS_DIR/.build/swiftlint-$SWIFTLINT_VERSION/swiftlint"
 
-# xcode-select may point at the Command Line Tools, which have no simulator; use /Applications/Xcode.app for this process then.
+xcode_ok() { xcrun simctl help >/dev/null 2>&1 && xcodebuild -version >/dev/null 2>&1; }
+
+# A DEVELOPER_DIR that is set (CI pins an Xcode with it) must work: never swap in another Xcode. Otherwise xcode-select
+# may point at the Command Line Tools, which have no simulator; use /Applications/Xcode.app for this process then.
 use_xcode() {
-  xcrun simctl help >/dev/null 2>&1 && xcodebuild -version >/dev/null 2>&1 && return
+  if [ -n "${DEVELOPER_DIR:-}" ]; then
+    xcode_ok && return
+    echo "DEVELOPER_DIR=$DEVELOPER_DIR is not a usable Xcode (xcodebuild and simctl)" >&2
+    return 1
+  fi
+  xcode_ok && return
   [ -d /Applications/Xcode.app ] || return 1
   export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-  xcrun simctl help >/dev/null 2>&1 && xcodebuild -version >/dev/null 2>&1
+  xcode_ok
 }
 
 install_swiftlint() {
