@@ -140,7 +140,7 @@ The reviewer checks this table against the code.
 |---|---|
 | **Locally, before opening a PR** | Everything for the areas you touched. Agents paste the commands and results in the PR description. Mobile changes: build and run the unit tests and the affected Maestro flows on both platforms locally |
 | **Every PR (Linux, required)** | `Checks (Linux)`: static checks, domain unit, API integration, isolation suite, email, web component. `E2E (Linux)`: Playwright (NL + EN). `Android`: unit + Compose tests (E008) |
-| **PR touching `apps/ios` or the contract (macOS, required when triggered)** | iOS build, XCTest, XCUITest. Path-filtered to save macOS minutes (ROADMAP §12) |
+| **PR touching `apps/ios`, the contract or the iOS catalogs (macOS, required when triggered)** | `iOS`: SwiftLint, simulator build, XCTest and XCUITest in nl and en (`pnpm test:ios`). Path-filtered to save macOS minutes (ROADMAP §12) |
 | **PR touching mobile apps, contract or strings** | Maestro flows on the platforms affected. If CI minutes run short, Maestro runs locally and nightly instead; the PR description must say it ran |
 | **Before a TestFlight / Play internal build** | Full suite on both platforms, both locales |
 
@@ -157,6 +157,7 @@ Run from the repo root. Turbo runs the task in every package that has it; add `-
 | `pnpm test:integration` | Every integration suite (`*.integration.test.ts`) against real Postgres | `pnpm db:up`, and `TEST_DATABASE_URL` set to it (below) |
 | `pnpm test:e2e` | Builds `apps/web`, starts it on port 3100 (`E2E_PORT`) and runs every Playwright spec in **nl-NL and en** with axe | Chromium, once: `pnpm --filter @trainer-hub/web exec playwright install chromium --only-shell` |
 | `pnpm lint`, `pnpm typecheck`, `pnpm check`, `pnpm format:check` | Static checks (§2) | Nothing |
+| `pnpm test:ios` | What the `iOS` CI job runs (`scripts/test-ios.sh`): SwiftLint and its literal-text fixture, the Release configuration, then a simulator build without signing and the XCTest and XCUITest suites in **nl and en** on the newest iPhone simulator (`IOS_SIMULATOR="iPhone 17"` picks one) | Xcode with an iOS simulator and the pinned SwiftLint: `scripts/bootstrap.sh --mobile` |
 
 ```bash
 pnpm db:up
@@ -172,20 +173,20 @@ Inside a package, `pnpm exec vitest` watches unit tests, `pnpm exec vitest --con
 
 ### 7.2 Native tests (E008)
 
-The native apps don't exist yet, so these suites can't run. E008 creates them and must add:
+The iOS suites exist ([`apps/ios/README.md`](../../apps/ios/README.md#tests)); the Android and Maestro suites come with the Android app (#56).
 
-| Suite | Location | E008 adds |
+| Suite | Location | What it is |
 |---|---|---|
-| **iOS unit** (XCTest) | `apps/ios/TrainerHubTests/` | A unit test target in the Xcode project and a shared scheme with a **test plan** that runs every test twice: once with `-AppleLanguages (nl)` / `-AppleLocale nl_NL`, once with `(en)` / `en_GB`, time zone `Europe/Amsterdam` |
-| **iOS UI** (XCUITest) | `apps/ios/TrainerHubUITests/` | A UI test target in the same scheme and test plan. Find elements by `accessibilityIdentifier`, never by visible text |
+| **iOS unit** (XCTest) | `apps/ios/TrainerHubTests/` | The unit test target in the Xcode project. The shared scheme's **test plan** (`apps/ios/TrainerHub.xctestplan`) runs every test twice: once in `nl` / region `NL`, once in `en` / `GB`, time zone `Europe/Amsterdam`. View models run against a stub of the generated client's `APIProtocol` |
+| **iOS UI** (XCUITest) | `apps/ios/TrainerHubUITests/` | The UI test target in the same scheme and test plan. Find elements by `accessibilityIdentifier`, never by visible text. The app runs against a stub HTTP server in the test runner, so tests assert the requested `locale` too |
 | **Android unit** (JUnit) | `apps/android/app/src/test/` | JUnit dependencies in the app module; run with `./gradlew testDebugUnitTest`. Locale-dependent tests run for `nl-NL` and `en` (parameterised) |
 | **Android UI** (Compose UI tests) | `apps/android/app/src/androidTest/` | `androidx.compose.ui:ui-test-junit4` and the `testInstrumentationRunner`; run with `./gradlew connectedDebugAndroidTest` on an emulator. Find nodes by `testTag`, never by visible text |
 | **Mobile e2e** (Maestro) | `e2e/maestro/` at the repo root, one flow per feature (`<feature>.yaml`) plus a shared `config.yaml` | The **same flow file** runs on both apps: the apps use the same `accessibilityIdentifier` / `testTag` for the same element, and one bundle/application id per platform goes in the flow's `env`. Each flow runs once per locale, by setting the device or simulator language before launch |
 
 Also for E008:
 
-- **Scripts** so every suite starts the same way: `pnpm test:ios`, `pnpm test:android` and `pnpm test:maestro`, each wrapping the native command above. Add them to §7.1.
-- **CI:** replace the `iOS` and `Android` placeholder jobs (keep the job names) with build + unit + UI tests; run Maestro on the platforms a PR touches, or nightly when CI minutes run short (§7).
+- **Scripts** so every suite starts the same way: `pnpm test:ios` (§7.1), `pnpm test:android` and `pnpm test:maestro` (#56), each wrapping the native command above.
+- **CI:** the `iOS` job runs `pnpm test:ios`'s script. The Android app (#56) replaces the `Android` placeholder job (keep the job name) with build + unit + UI tests; Maestro runs on the platforms a PR touches, or nightly when CI minutes run short (§7).
 - **Selectors:** assert on visible text only where the text is the point, and read the expected copy from the generated catalogs, like the web does (§5.4).
 
 ## 8. Flaky tests

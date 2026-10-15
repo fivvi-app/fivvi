@@ -70,7 +70,7 @@ The `no-hard-coded-jsx-text` Biome plugin (registered in `apps/web/biome.json`) 
 
 - **iOS:** add `generated/ios/Localizable.xcstrings` and `generated/ios/InfoPlist.xcstrings` to the app target by reference, with `nl` as the development region. Keys are marked `extractionState: manual`, so Xcode keeps them. The display name under the app icon comes from `app.name` through `InfoPlist.xcstrings`; the generator fails when `app.name` is missing.
 - **Android:** add `packages/i18n/generated/android` as a resource directory (`sourceSets.main.res.srcDirs`). The app label is `@string/app_name`.
-- Both still need their own no-hard-coded-strings rules (SwiftLint / ktlint, ADR-008).
+- No hard-coded strings: on iOS, SwiftLint's `no_literal_text` rule rejects a string literal in `Text`, `Button`, `Label` and similar views ([`apps/ios/README.md`](../../apps/ios/README.md#no-hard-coded-text)); Android's ktlint check comes with the Android app (ADR-008).
 - Both pick the interface language themselves, from the OS per-app language and the raw preferred-language list, as `resolveInterfaceLanguage()` does (see [Locales](#locales)). The bundle's resolved language can't be the input: it falls back to the Dutch source resources.
 
 ## Checks

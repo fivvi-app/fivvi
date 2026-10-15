@@ -82,7 +82,8 @@ jobs:
             echo "$1=$run" >>"$GITHUB_OUTPUT"
           }
 
-          decide ios apps/ios '^(apps/ios|packages/contract)/'
+          # iOS: the app, its generated inputs (Swift client, iOS string catalogs) and the script the job runs.
+          decide ios apps/ios '^(apps/ios|packages/contract|packages/i18n/generated/ios)/|^scripts/(test-ios|_ios)\.sh$'
           decide android apps/android '^(apps/android|packages/contract)/'
 
   checks:
@@ -243,15 +244,38 @@ jobs:
     needs: changes
     if: needs.changes.outputs.ios == 'true'
     # macOS minutes count 10x against the free quota (ROADMAP §12), so this job
-    # only starts when apps/ios or the contract changed. E008 pins the image and
-    # Xcode version.
-    runs-on: macos-latest
+    # only starts when the app or its generated inputs changed. The image and
+    # Xcode are pinned, so a runner update doesn't change the toolchain.
+    runs-on: macos-26
     timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
-      - name: Placeholder until E008
-        run: |
-          echo '::error::apps/ios exists, but this job is still the E002 placeholder. Replace it with the iOS build and tests (E008).'
-          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The Swift packages pinned in the project's Package.resolved.
+      - name: Cache Swift packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apps/ios/.build/SourcePackages
+          key: ios-spm-${{ runner.os }}-${{ hashFiles('apps/ios/TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+
+      # The same steps as `pnpm test:ios`: SwiftLint and its literal-text fixture, the Release
+      # configuration, a simulator build without signing, then the unit and UI tests in nl and en.
+      - name: SwiftLint, build and tests (nl and en)
+        run: scripts/test-ios.sh
+
+      # Only on failure: artifact storage counts against the free quota.
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-test-results
+          path: apps/ios/.build/TestResults.xcresult
+          retention-days: 7
+          if-no-files-found: ignore
 
   android:
     name: Android

@@ -1,0 +1,6 @@
+// Release: the production API over HTTPS. Info.plist has no App Transport Security exception.
+// The production host isn't recorded in the repo yet (a Railway domain until launch, docs/engineering/ENVIRONMENTS.md):
+// the owner replaces the reserved `.invalid` placeholder before the first Release build (E017).
+// `//` starts a comment in an xcconfig, hence `$()`.
+INFOPLIST_FILE = Config/Info.plist
+TRAINER_HUB_API_BASE_URL = https:/$()/production.trainerhub.invalid/api

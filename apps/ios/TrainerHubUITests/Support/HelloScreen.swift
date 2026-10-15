@@ -1,0 +1,41 @@
+import XCTest
+
+/// The hello screen in a launched app. Elements are found by accessibility identifier, never by visible text; the
+/// Android app uses the same values as test tags (Maestro, #34).
+@MainActor
+struct HelloScreen {
+    let app: XCUIApplication
+
+    var greeting: XCUIElement { app.staticTexts["hello.greeting"] }
+    var loading: XCUIElement { app.activityIndicators["hello.loading"] }
+    var error: XCUIElement { app.staticTexts["hello.error"] }
+    var retry: XCUIElement { app.buttons["hello.retry"] }
+
+    /// Launches the app against `server`.
+    /// - Parameters:
+    ///   - deviceLanguages: the device's preferred languages; the test-plan configuration's language when nil.
+    ///   - perAppLanguage: the per-app language from iOS Settings, which UI tests can't set there.
+    ///   - textSize: a `UIContentSizeCategory` raw value, e.g. `UICTContentSizeCategoryAccessibilityXXXL`.
+    static func launch(
+        against server: StubServer,
+        deviceLanguages: [String]? = nil,
+        perAppLanguage: String? = nil,
+        textSize: String? = nil
+    ) -> HelloScreen {
+        let app = XCUIApplication()
+        let languages = deviceLanguages ?? [Locale.preferredLanguages.first ?? "en"]
+        app.launchArguments = [
+            "-AppleLanguages", "(" + languages.map { "\"\($0)\"" }.joined(separator: ", ") + ")",
+            "-TrainerHubAPIBaseURL", server.baseURL.absoluteString
+        ]
+        if let perAppLanguage {
+            app.launchArguments += ["-UITestPerAppLanguage", perAppLanguage]
+        }
+        if let textSize {
+            app.launchArguments += ["-UIPreferredContentSizeCategoryName", textSize]
+        }
+        app.launchEnvironment["TZ"] = "Europe/Amsterdam"
+        app.launch()
+        return HelloScreen(app: app)
+    }
+}

@@ -1,0 +1,56 @@
+{
+  "configurations" : [
+    {
+      "id" : "0E008A11-0000-4000-8000-00000000004E",
+      "name" : "nl",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "TZ",
+            "value" : "Europe\/Amsterdam"
+          }
+        ],
+        "language" : "nl",
+        "region" : "NL"
+      }
+    },
+    {
+      "id" : "0E008A11-0000-4000-8000-000000000045",
+      "name" : "en",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "TZ",
+            "value" : "Europe\/Amsterdam"
+          }
+        ],
+        "language" : "en",
+        "region" : "GB"
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:TrainerHub.xcodeproj",
+      "identifier" : "E00800000000000000000050",
+      "name" : "TrainerHub"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:TrainerHub.xcodeproj",
+        "identifier" : "E00800000000000000000051",
+        "name" : "TrainerHubTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:TrainerHub.xcodeproj",
+        "identifier" : "E00800000000000000000052",
+        "name" : "TrainerHubUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

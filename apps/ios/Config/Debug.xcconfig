@@ -1,0 +1,7 @@
+// Debug: the local dev server (`pnpm dev`, port 3000), which the iOS simulator reaches as localhost. Plain HTTP is
+// allowed only in this configuration (Info-Debug.plist). `//` starts a comment in an xcconfig, hence `$()`.
+INFOPLIST_FILE = Config/Info-Debug.plist
+TRAINER_HUB_API_BASE_URL = http:/$()/localhost:3000/api
+
+// For a preview environment or a phone on your LAN, set TRAINER_HUB_API_BASE_URL in Config/Local.xcconfig (git-ignored).
+#include? "Local.xcconfig"
