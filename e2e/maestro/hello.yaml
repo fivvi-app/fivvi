@@ -1,0 +1,17 @@
+# E008 hello screen (spec #34), against the local stack. Elements are found by id: the Android testTag and the iOS
+# accessibilityIdentifier, the same on both apps (hello.greeting, hello.loading, hello.error, hello.retry).
+# Env, set by scripts/maestro.sh:
+#   APP_ID       nl.trainerhub.app (Android application id, iOS bundle id)
+#   HELLO_TITLE  hello.title from packages/i18n in the device language
+appId: ${APP_ID}
+name: "AC1/AC2: greeting from the database"
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: hello\.greeting
+    timeout: 20000
+- assertVisible:
+    id: hello\.greeting
+    text: ${HELLO_TITLE}

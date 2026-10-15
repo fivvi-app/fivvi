@@ -139,7 +139,7 @@ The reviewer checks this table against the code.
 | When | What runs |
 |---|---|
 | **Locally, before opening a PR** | Everything for the areas you touched. Agents paste the commands and results in the PR description. Mobile changes: build and run the unit tests and the affected Maestro flows on both platforms locally |
-| **Every PR (Linux, required)** | `Checks (Linux)`: static checks, domain unit, API integration, isolation suite, email, web component. `E2E (Linux)`: Playwright (NL + EN). `Android`: unit + Compose tests (E008) |
+| **Every PR (Linux, required)** | `Checks (Linux)`: static checks, domain unit, API integration, isolation suite, email, web component. `E2E (Linux)`: Playwright (NL + EN). `Android`: unit + Compose tests + Maestro (E008) |
 | **PR touching `apps/ios` or the contract (macOS, required when triggered)** | iOS build, XCTest, XCUITest. Path-filtered to save macOS minutes (ROADMAP §12) |
 | **PR touching mobile apps, contract or strings** | Maestro flows on the platforms affected. If CI minutes run short, Maestro runs locally and nightly instead; the PR description must say it ran |
 | **Before a TestFlight / Play internal build** | Full suite on both platforms, both locales |
@@ -156,6 +156,8 @@ Run from the repo root. Turbo runs the task in every package that has it; add `-
 | `pnpm test` | Every unit suite (`*.test.ts(x)`) | Nothing |
 | `pnpm test:integration` | Every integration suite (`*.integration.test.ts`) against real Postgres | `pnpm db:up`, and `TEST_DATABASE_URL` set to it (below) |
 | `pnpm test:e2e` | Builds `apps/web`, starts it on port 3100 (`E2E_PORT`) and runs every Playwright spec in **nl-NL and en** with axe | Chromium, once: `pnpm --filter @trainer-hub/web exec playwright install chromium --only-shell` |
+| `pnpm test:android` | `scripts/android.sh test`: ktlint and the literal-text rule, build, Android unit tests (nl-NL and en), Compose UI tests on an emulator (booted when none is connected). What CI's `Android` job runs | `scripts/bootstrap.sh --mobile` once |
+| `pnpm test:maestro` | `scripts/maestro.sh android`: Postgres (migrated, seeded) and the web server on `E2E_PORT`, the debug app on the emulator, every flow in `e2e/maestro/` with the emulator in **nl-NL and en** | Docker, `scripts/bootstrap.sh --mobile` once |
 | `pnpm lint`, `pnpm typecheck`, `pnpm check`, `pnpm format:check` | Static checks (§2) | Nothing |
 
 ```bash
@@ -172,7 +174,7 @@ Inside a package, `pnpm exec vitest` watches unit tests, `pnpm exec vitest --con
 
 ### 7.2 Native tests (E008)
 
-The native apps don't exist yet, so these suites can't run. E008 creates them and must add:
+E008 creates the native apps and adds (Android: done, see [`apps/android/README.md`](../../apps/android/README.md)):
 
 | Suite | Location | E008 adds |
 |---|---|---|

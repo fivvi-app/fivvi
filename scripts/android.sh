@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# The Android app's toolchain and tests (E008). CI runs the same commands (.github/workflows/ci.yml, job Android).
+#
+#   android.sh setup      install or check the JDK, the Android SDK, the emulator and its image, and Maestro
+#                         (scripts/bootstrap.sh --mobile runs this)
+#   android.sh test       ktlint and the literal-text check, build, unit tests (nl-NL and en), and the Compose UI tests
+#                         on an emulator, booted for the run when none is connected (pnpm test:android)
+#   android.sh emulator   boot the emulator headless and leave it running, so test and maestro.sh reuse it
+set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/_android.sh"
+
+usage() { usage_of "$0"; }
+
+MISSING=""
+missing() { echo "⚠️  $*"; MISSING="$MISSING
+  - $*"; }
+
+setup_java() {
+  if java_ok || use_brew_java; then return; fi
+  if command -v brew >/dev/null && brew install openjdk@21 && use_brew_java; then return; fi
+  missing "Java 17+ — install it: brew install openjdk@21 (macOS) or a JDK 21 package (Linux)"
+  return 1
+}
+
+# sdkmanager: from the SDK itself, else Homebrew's command-line tools (which install the SDK's own copy).
+find_sdkmanager() {
+  local home="$1" brew_tools
+  if [ -x "$home/cmdline-tools/latest/bin/sdkmanager" ]; then echo "$home/cmdline-tools/latest/bin/sdkmanager"; return; fi
+  if command -v brew >/dev/null; then
+    brew list --cask android-commandlinetools >/dev/null 2>&1 || brew install --cask android-commandlinetools >&2 || return 1
+    brew_tools="$(brew --prefix)/share/android-commandlinetools/cmdline-tools/latest/bin/sdkmanager"
+    [ -x "$brew_tools" ] && { echo "$brew_tools"; return; }
+  fi
+  return 1
+}
+
+setup_sdk() {
+  local home sdkmanager image
+  home="$(android_home)"
+  sdkmanager="$(find_sdkmanager "$home")" || {
+    missing "the Android SDK command-line tools — install them: brew install --cask android-commandlinetools (macOS), or Android Studio"
+    return 1
+  }
+  image="$(system_image)"
+  mkdir -p "$home"
+  echo "Android SDK in $home"
+  yes | "$sdkmanager" --sdk_root="$home" --licenses >/dev/null 2>&1 || true
+  # shellcheck disable=SC2086 # SDK_PACKAGES is a space-separated list of package ids without spaces
+  "$sdkmanager" --sdk_root="$home" "cmdline-tools;latest" $SDK_PACKAGES "$image" >/dev/null || {
+    missing "Android SDK packages: cmdline-tools;latest $SDK_PACKAGES $image"
+    return 1
+  }
+  if ! "$home/emulator/emulator" -list-avds 2>/dev/null | grep -qx "$AVD_NAME"; then
+    echo no | ANDROID_HOME="$home" "$home/cmdline-tools/latest/bin/avdmanager" create avd \
+      --name "$AVD_NAME" --package "$image" --device pixel_7 >/dev/null \
+      || { missing "the emulator '$AVD_NAME' (avdmanager create avd)"; return 1; }
+  fi
+  echo "✓ Android SDK, emulator '$AVD_NAME' ($image)"
+  [ -n "${ANDROID_HOME:-}" ] || echo "  Add to your shell profile: export ANDROID_HOME=\"$home\""
+}
+
+install_maestro() {
+  local zip="$MAESTRO_HOME/maestro-$MAESTRO_VERSION.zip" unpacked="$MAESTRO_HOME/unpacked"
+  mkdir -p "$MAESTRO_HOME"
+  curl -fsSL -o "$zip" "https://github.com/mobile-dev-inc/maestro/releases/download/cli-$MAESTRO_VERSION/maestro.zip" || return 1
+  rm -rf "${MAESTRO_HOME:?}/bin" "${MAESTRO_HOME:?}/lib" "$unpacked"
+  unzip -q "$zip" -d "$unpacked" || return 1
+  cp -R "$unpacked/maestro/." "$MAESTRO_HOME/"
+  rm -rf "$unpacked" "$zip"
+}
+
+setup_maestro() {
+  if [ "$("$MAESTRO_HOME/bin/maestro" --version 2>/dev/null | tail -1)" != "$MAESTRO_VERSION" ]; then
+    install_maestro || { missing "Maestro $MAESTRO_VERSION — see https://docs.maestro.dev"; return 1; }
+  fi
+  echo "✓ Maestro $MAESTRO_VERSION in $MAESTRO_HOME/bin"
+}
+
+cmd_setup() {
+  [ $# -eq 0 ] || usage
+  if setup_java; then
+    echo "✓ Java: $(java -version 2>&1 | head -1)"
+    java_trust_keychain
+    setup_sdk || true
+  fi
+  setup_maestro || true
+  if [ -n "$MISSING" ]; then
+    echo "Android toolchain incomplete; missing:$MISSING"
+    return 1
+  fi
+}
+
+cmd_test() {
+  [ $# -eq 0 ] || usage
+  android_env
+  gradle ktlintCheck :lint-rules:test assembleDebug testDebugUnitTest
+  trap stop_emulator EXIT
+  start_emulator
+  gradle connectedDebugAndroidTest
+}
+
+cmd_emulator() {
+  [ $# -eq 0 ] || usage
+  android_env
+  start_emulator
+  echo "✓ $(adb devices | sed -n 2p)"
+}
+
+case "${1:-}" in
+  setup) shift; cmd_setup "$@" ;;
+  test) shift; cmd_test "$@" ;;
+  emulator) shift; cmd_emulator "$@" ;;
+  *) usage ;;
+esac

@@ -83,7 +83,7 @@ jobs:
           }
 
           decide ios apps/ios '^(apps/ios|packages/contract)/'
-          decide android apps/android '^(apps/android|packages/contract)/'
+          decide android apps/android '^(apps/android|packages/contract|packages/i18n/generated/android|e2e/maestro)/|^scripts/(_?android|maestro)\.sh$'
 
   checks:
     name: Checks (Linux)
@@ -257,10 +257,74 @@ jobs:
     name: Android
     needs: changes
     if: needs.changes.outputs.android == 'true'
+    # The same commands as locally (TESTING.md §7.2): pnpm test:android (ktlint and the literal-text check, build, unit
+    # tests, Compose UI tests on an emulator), then pnpm test:maestro (Postgres, migrate, seed, the web server, and the
+    # Maestro flows in nl-NL and en). The emulator needs KVM.
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
-      - name: Placeholder until E008
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Caches Gradle's dependencies and wrapper; main's cache is readable by every PR.
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      - name: Enable KVM
         run: |
-          echo '::error::apps/android exists, but this job is still the E002 placeholder. Replace it with the Android build and tests (E008).'
-          exit 1
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Reuses the web build from the latest "Checks (Linux)" cache when nothing changed. Restore only.
+      - name: Restore turbo cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .turbo/cache
+            apps/web/.next/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
+      - name: Android SDK packages, emulator and Maestro
+        run: scripts/android.sh setup
+
+      # Booted once; test:android and test:maestro reuse it.
+      - name: Boot the emulator
+        run: scripts/android.sh emulator
+
+      - name: ktlint, build, unit tests and Compose UI tests
+        run: pnpm test:android
+
+      - name: Maestro hello flow (nl-NL and en)
+        run: pnpm test:maestro
+
+      # Only on failure: artifact storage counts against the free quota.
+      - name: Upload Android reports
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-reports
+          path: |
+            apps/android/app/build/reports/
+            apps/android/app/build/outputs/androidTest-results/
+            apps/android/build/emulator.log
+            e2e/maestro/build/
+          retention-days: 7
+          if-no-files-found: ignore
