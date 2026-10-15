@@ -18,9 +18,33 @@ dependencies {
 
 val ktlintSources = listOf("app/src/**/*.kt", "lint/src/**/*.kt", "**/*.kts", "!**/build/**")
 
+// AC8 (spec #34): the same ktlint, rules and wiring as ktlintCheck must fail on the literal-text fixture, naming its
+// file and every line, and accept the resource-text fixture. Runs before ktlintCheck, so the lint step proves its rule.
+val ktlintFixtures = tasks.register<JavaExec>("ktlintFixtures") {
+    group = "verification"
+    description = "Checks that ktlint rejects the hard-coded text in lint/fixtures."
+    classpath = ktlint
+    mainClass = "com.pinterest.ktlint.Main"
+    val report = layout.buildDirectory.file("ktlint/fixtures.txt").get().asFile
+    args = listOf("--relative", "--reporter=plain,output=${report.path}", "lint/fixtures/*.kt")
+    isIgnoreExitValue = true
+    inputs.dir("lint/fixtures")
+    outputs.file(report)
+    val result = executionResult
+    doLast {
+        val reported = report.readLines().filter { it.endsWith("(trainer-hub:no-literal-text)") }
+        val expected = listOf("11:10", "12:17", "14:14", "16:10").map { "lint/fixtures/LiteralText.kt:$it:" }
+        check(result.get().exitValue != 0) { "ktlint passed lint/fixtures/LiteralText.kt" }
+        check(reported.map { it.substringBefore(" ") } == expected) {
+            "ktlint should report hard-coded text at $expected, reported:\n${reported.joinToString("\n")}"
+        }
+    }
+}
+
 tasks.register<JavaExec>("ktlintCheck") {
     group = "verification"
     description = "Checks Kotlin style and hard-coded text with ktlint."
+    dependsOn(ktlintFixtures)
     classpath = ktlint
     mainClass = "com.pinterest.ktlint.Main"
     args = listOf("--relative") + ktlintSources

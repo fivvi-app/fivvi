@@ -20,6 +20,7 @@ import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.unit.dp
 import nl.trainerhub.app.AppLanguage
 import nl.trainerhub.app.R
+import nl.trainerhub.app.appLanguageParameters
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -98,6 +99,6 @@ class HelloScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private v
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
-        fun languages() = AppLanguage.entries.map { arrayOf<Any>(it.tag, it) }
+        fun languages() = appLanguageParameters()
     }
 }

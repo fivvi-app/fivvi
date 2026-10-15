@@ -14,6 +14,7 @@ import kotlinx.coroutines.CompletableDeferred
 import nl.trainerhub.app.AppLanguage
 import nl.trainerhub.app.AppRule
 import nl.trainerhub.app.R
+import nl.trainerhub.app.appLanguageParameters
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -77,6 +78,6 @@ class HelloScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
-        fun languages() = AppLanguage.entries.map { arrayOf<Any>(it.tag, it) }
+        fun languages() = appLanguageParameters()
     }
 }

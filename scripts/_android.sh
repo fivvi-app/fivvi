@@ -3,7 +3,6 @@
 # Android helpers for android.sh and maestro.sh (E008). Source _lib.sh first. Bash 3.2 compatible.
 
 ANDROID_DIR="$ROOT/apps/android"
-APP_ID="nl.trainerhub.app"
 # Keep in step with compileSdk and buildToolsVersion in apps/android/app/build.gradle.kts.
 SDK_PACKAGES="platform-tools platforms;android-37.0 build-tools;37.0.0 emulator"
 # The emulator for the Compose UI tests and Maestro. Google APIs images allow `adb root`, which maestro.sh needs to

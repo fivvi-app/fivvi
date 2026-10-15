@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.setMain
 import nl.trainerhub.api.models.HelloResponse
 import nl.trainerhub.app.AppLanguage
 import nl.trainerhub.app.R
+import nl.trainerhub.app.appLanguageParameters
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -90,6 +91,6 @@ class HelloViewModelTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
-        fun languages() = AppLanguage.entries.map { arrayOf<Any>(it.tag, it) }
+        fun languages() = appLanguageParameters()
     }
 }

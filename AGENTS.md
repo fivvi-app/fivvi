@@ -9,19 +9,20 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 | `apps/web`, `apps/cron` | Next.js web app (mounts the API under `/api`); daily cron job |
 | `packages/api`, `packages/contract` | API routes (zod-openapi); committed `openapi.json` + generated TS/Swift/Kotlin clients |
 | `packages/database`, `packages/i18n`, `packages/email`, `packages/observability`, `packages/testing` | Schema and migrations; the only source of user-facing strings; email; error reporting (the only code that imports Sentry); test helpers |
-| `packages/domain`, `apps/ios`, `apps/android` | Planned: business rules (M2), native apps (E008) |
+| `apps/android` | Native Android app (Kotlin + Compose, E008); see its `README.md` |
+| `packages/domain`, `apps/ios` | Planned: business rules (M2), iOS app (E008) |
 | `docs/product/` | `PRODUCT.md` (requirements), `ROADMAP.md` (milestones, decisions), `FEATURES.md` (registry and status) |
 | `docs/engineering/` | `WORKFLOW.md` (flow, Definition of Done), `TESTING.md`, `ENVIRONMENTS.md`, `OBSERVABILITY.md` |
 | `GLOSSARY.md`, `docs/decisions/` | Domain language; ADRs |
 | `CODING_STANDARDS.md`, `.github/instructions/` | How code is written and reviewed; rules per area |
 | `.agents/skills/` | `work` (the router) plus [Matt Pocock's skills](https://github.com/mattpocock/skills), pinned in `.agents/skills.yaml` |
-| `scripts/` | `bootstrap.sh`, `flow.sh`, `issue.sh`, `wt.sh`, `pr.sh`, `risk.sh`, `check.sh`, `skills.sh`, `github-settings.sh` |
+| `scripts/` | `bootstrap.sh`, `flow.sh`, `issue.sh`, `wt.sh`, `pr.sh`, `risk.sh`, `check.sh`, `skills.sh`, `github-settings.sh`, `android.sh`, `maestro.sh` |
 | `.worktrees/<branch>/` | Git worktrees: all work happens here |
 
 ## Rules
 
 - **Deterministic first.** If a step can be a script, make it a script and call it; don't do it by hand or by prompt.
-- If a prerequisite is missing, run `scripts/bootstrap.sh` (`--api` adds Java and Swift, needed only to change the API).
+- If a prerequisite is missing, run `scripts/bootstrap.sh` (`--api` adds Java and Swift, needed only to change the API; `--mobile` the native app toolchains).
 - **Always work in a worktree** (`scripts/flow.sh start <n>` or `scripts/wt.sh add <branch>`). Never edit or commit in the main checkout; an edit guard (`.claude/settings.json`) blocks edits on `main` and of generated files and vendored skills. Never get around it with shell commands.
 - Run `scripts/check.sh` before you call work done; `pr.sh create` runs it before every push.
 - **No hard-coded user-facing strings** on any platform. The only source is `packages/i18n/{nl-NL,en}.json`; native catalogs are generated. NL and EN in parity, with the terms of `GLOSSARY.md` worded as in `packages/i18n/GLOSSARY.md`.

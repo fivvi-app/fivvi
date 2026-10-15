@@ -71,7 +71,7 @@ cmd_android() {
   for locale in $LOCALES; do
     echo "Maestro on Android in $locale"
     set_device_locale "$locale"
-    maestro test "$ROOT/e2e/maestro" --env "APP_ID=$APP_ID" --env "HELLO_TITLE=$(catalog "$locale" hello.title)" \
+    maestro test "$ROOT/e2e/maestro" --env "HELLO_TITLE=$(catalog "$locale" hello.title)" \
       --format junit --output "$REPORTS/android-$locale.xml" --test-output-dir "$REPORTS/android-$locale" \
       || failed="$failed $locale"
   done
