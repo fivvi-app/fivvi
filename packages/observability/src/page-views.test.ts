@@ -75,8 +75,6 @@ describe('E009 page view scrubber', () => {
         $device_type: 'Desktop',
         $raw_user_agent: 'Mozilla/5.0 (Macintosh) Chrome/140.0',
         $timezone: 'Europe/Amsterdam',
-        $browser_language: 'nl-NL',
-        $browser_language_prefix: 'nl',
       },
     });
     for (const value of PERSONAL) expect(JSON.stringify(scrubbed)).not.toContain(value);

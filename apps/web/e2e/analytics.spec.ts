@@ -1,11 +1,12 @@
 import { gunzipSync } from 'node:zlib';
 import type { Page, Request } from '@playwright/test';
+import { POSTHOG_EU_HOST } from '@trainer-hub/observability/page-views';
 import { expect, test } from './fixtures';
 import { analyticsServer, TEST_POSTHOG_KEY } from './servers';
 
 // E009 (spec #32): cookieless page views. The PostHog EU host is intercepted, so nothing
 // reaches the real network; every other external request is aborted and reported.
-const POSTHOG_HOST = 'https://eu.i.posthog.com';
+
 /** A string in posthog-js itself, so a test can tell whether the SDK was loaded. */
 const POSTHOG_JS = '[PostHog.js]';
 // Synthetic personal data only (AGENTS.md, D8), in the query string and the fragment.
@@ -112,18 +113,18 @@ async function interceptTraffic(page: Page) {
   page.on('request', (request) => {
     const url = new URL(request.url());
     if (request.resourceType() === 'script' && !isExternal(url)) traffic.scripts.push(url.href);
-    if (url.origin === POSTHOG_HOST) {
+    if (url.origin === POSTHOG_EU_HOST) {
       traffic.posthogPaths.push(url.pathname);
       traffic.events.push(...sentEvents(request));
     } else if (isExternal(url)) {
       traffic.external.push(url.href);
     }
   });
-  await page.route(`${POSTHOG_HOST}/**`, (route) =>
+  await page.route(`${POSTHOG_EU_HOST}/**`, (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: '{"status":1}' }),
   );
   await page.route(
-    (url) => isExternal(url) && url.origin !== POSTHOG_HOST,
+    (url) => isExternal(url) && url.origin !== POSTHOG_EU_HOST,
     (route) => route.abort(),
   );
   return traffic;

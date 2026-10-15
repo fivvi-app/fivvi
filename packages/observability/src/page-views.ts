@@ -71,9 +71,6 @@ const PROPERTIES = new Set([
   '$device_type',
   '$raw_user_agent',
   '$timezone',
-  // The browser language: Dutch or English visitors.
-  '$browser_language',
-  '$browser_language_prefix',
 ]);
 
 let started: Promise<PostHog> | undefined;
