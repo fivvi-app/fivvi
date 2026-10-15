@@ -11,11 +11,20 @@ struct Catalog: Sendable {
 
     init(locale: Components.Schemas.Locale, bundle: Bundle = .main) {
         self.locale = locale
-        let language = locale == .nlNL ? "nl" : "en"
-        guard let path = bundle.path(forResource: language, ofType: "lproj"), let table = Bundle(path: path) else {
-            preconditionFailure("The app bundle has no \(language).lproj")
+        guard let path = bundle.path(forResource: locale.lprojName, ofType: "lproj"),
+              let table = Bundle(path: path)
+        else {
+            preconditionFailure("The app bundle has no \(locale.lprojName).lproj")
         }
         self.table = table
+    }
+
+    /// The locale to format dates, times and numbers with: `en` formats as en-GB (packages/i18n/README.md).
+    var formattingLocale: Locale {
+        switch locale {
+        case .nlNL: Locale(identifier: "nl_NL")
+        case .en: Locale(identifier: "en_GB")
+        }
     }
 
     /// The text for an i18n key, or nil when the catalog doesn't have it.
@@ -35,8 +44,18 @@ struct Catalog: Sendable {
 }
 
 /// The i18n keys the app uses directly (packages/i18n/{nl-NL,en}.json).
-enum StringKey: String, CaseIterable {
+enum StringKey: String {
     case commonLoading = "common.loading"
     case commonRetry = "common.retry"
     case helloError = "hello.error"
+}
+
+extension Components.Schemas.Locale {
+    /// The catalog's localization folder for this locale: `nl.lproj` or `en.lproj`.
+    var lprojName: String {
+        switch self {
+        case .nlNL: "nl"
+        case .en: "en"
+        }
+    }
 }

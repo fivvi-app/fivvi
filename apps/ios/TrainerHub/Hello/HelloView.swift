@@ -13,7 +13,7 @@ struct HelloView: View {
                     .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
         }
-        .environment(\.locale, Locale(identifier: model.catalog.locale.rawValue))
+        .environment(\.locale, model.catalog.formattingLocale)
         .task { await model.load() }
     }
 

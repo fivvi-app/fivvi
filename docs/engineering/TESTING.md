@@ -140,7 +140,7 @@ The reviewer checks this table against the code.
 |---|---|
 | **Locally, before opening a PR** | Everything for the areas you touched. Agents paste the commands and results in the PR description. Mobile changes: build and run the unit tests and the affected Maestro flows on both platforms locally |
 | **Every PR (Linux, required)** | `Checks (Linux)`: static checks, domain unit, API integration, isolation suite, email, web component. `E2E (Linux)`: Playwright (NL + EN). `Android`: unit + Compose tests (E008) |
-| **PR touching `apps/ios`, the contract or the iOS catalogs (macOS, required when triggered)** | `iOS`: SwiftLint, simulator build, XCTest and XCUITest in nl and en (`pnpm test:ios`). Path-filtered to save macOS minutes (ROADMAP §12) |
+| **PR touching `apps/ios`, the contract or the iOS catalogs (macOS, required when triggered)** | `iOS`: `pnpm test:ios` (§7.1). Path-filtered to save macOS minutes (ROADMAP §12) |
 | **PR touching mobile apps, contract or strings** | Maestro flows on the platforms affected. If CI minutes run short, Maestro runs locally and nightly instead; the PR description must say it ran |
 | **Before a TestFlight / Play internal build** | Full suite on both platforms, both locales |
 
@@ -157,7 +157,7 @@ Run from the repo root. Turbo runs the task in every package that has it; add `-
 | `pnpm test:integration` | Every integration suite (`*.integration.test.ts`) against real Postgres | `pnpm db:up`, and `TEST_DATABASE_URL` set to it (below) |
 | `pnpm test:e2e` | Builds `apps/web`, starts it on port 3100 (`E2E_PORT`) and runs every Playwright spec in **nl-NL and en** with axe | Chromium, once: `pnpm --filter @trainer-hub/web exec playwright install chromium --only-shell` |
 | `pnpm lint`, `pnpm typecheck`, `pnpm check`, `pnpm format:check` | Static checks (§2) | Nothing |
-| `pnpm test:ios` | What the `iOS` CI job runs (`scripts/test-ios.sh`): SwiftLint and its literal-text fixture, the Release configuration, then a simulator build without signing and the XCTest and XCUITest suites in **nl and en** on the newest iPhone simulator (`IOS_SIMULATOR="iPhone 17"` picks one) | Xcode with an iOS simulator and the pinned SwiftLint: `scripts/bootstrap.sh --mobile` |
+| `pnpm test:ios` | What the `iOS` CI job runs: SwiftLint, then the iOS unit and UI tests in **nl and en** on a simulator ([`apps/ios/README.md`](../../apps/ios/README.md#tests)) | `scripts/bootstrap.sh --mobile` |
 
 ```bash
 pnpm db:up

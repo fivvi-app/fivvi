@@ -8,6 +8,10 @@
           {
             "key" : "TZ",
             "value" : "Europe\/Amsterdam"
+          },
+          {
+            "key" : "TRAINER_HUB_TEST_LANGUAGE",
+            "value" : "nl"
           }
         ],
         "language" : "nl",
@@ -22,6 +26,10 @@
           {
             "key" : "TZ",
             "value" : "Europe\/Amsterdam"
+          },
+          {
+            "key" : "TRAINER_HUB_TEST_LANGUAGE",
+            "value" : "en"
           }
         ],
         "language" : "en",

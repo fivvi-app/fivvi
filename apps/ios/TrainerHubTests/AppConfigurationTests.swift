@@ -6,10 +6,9 @@ import XCTest
 /// The build configuration the tests run in (Debug) and what the app reads from it.
 final class AppConfigurationTests: XCTestCase {
     func test_E008_AC8_displayNameComesFromTheCatalog() {
-        let language: Components.Schemas.Locale = Bundle.main.preferredLocalizations.first == "nl" ? .nlNL : .en
         let displayName = Bundle.main.localizedInfoDictionary?["CFBundleDisplayName"] as? String
 
-        XCTAssertEqual(displayName, TestCatalog(language)["app.name"])
+        XCTAssertEqual(displayName, TestCatalog(TestCatalog.configuredLocale)["app.name"])
     }
 
     func test_E008_debugUsesTheLocalDevServerOverPlainHTTP() throws {
@@ -19,7 +18,7 @@ final class AppConfigurationTests: XCTestCase {
         XCTAssertEqual(url.host(), "localhost")
         XCTAssertEqual(url.path(), "/api")
         let transportSecurity = Bundle.main.infoDictionary?["NSAppTransportSecurity"] as? [String: Any]
-        XCTAssertEqual(transportSecurity?["NSAllowsArbitraryLoads"] as? Bool, true)
+        XCTAssertEqual(transportSecurity?["NSAllowsLocalNetworking"] as? Bool, true)
     }
 
     func test_E008_debugBaseURLCanBeOverriddenAtLaunch() throws {

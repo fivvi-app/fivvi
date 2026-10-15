@@ -14,9 +14,7 @@ final class HelloViewModelTests: XCTestCase {
     }
 
     func test_E008_AC1_loadsGreetingInAppLanguage() async {
-        let dutch = Locale.preferredLanguages.first?.hasPrefix("nl") == true
-        let configured: Components.Schemas.Locale = dutch ? .nlNL : .en
-        XCTAssertEqual(language, configured, "the test plan's language reaches the app")
+        XCTAssertEqual(language, TestCatalog.configuredLocale, "the test plan's language reaches the app")
         let api = StubAPI(.greeting(key: "hello.title"))
         let model = model(api)
         XCTAssertEqual(model.state, .loading)

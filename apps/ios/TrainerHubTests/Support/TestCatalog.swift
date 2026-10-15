@@ -1,6 +1,8 @@
 import Foundation
 import TrainerHubAPI
 
+@testable import TrainerHub
+
 /// Expected copy, read from packages/i18n/generated/ios/Localizable.xcstrings compiled into this test bundle, so
 /// tests never hard-code Dutch or English text.
 struct TestCatalog {
@@ -8,11 +10,22 @@ struct TestCatalog {
 
     init(_ locale: Components.Schemas.Locale) {
         let tests = Bundle(for: BundleToken.self)
-        let language = locale == .nlNL ? "nl" : "en"
-        guard let path = tests.path(forResource: language, ofType: "lproj"), let bundle = Bundle(path: path) else {
-            fatalError("No \(language).lproj in the test bundle")
+        guard let path = tests.path(forResource: locale.lprojName, ofType: "lproj"),
+              let bundle = Bundle(path: path)
+        else {
+            fatalError("No \(locale.lprojName).lproj in the test bundle")
         }
         self.bundle = bundle
+    }
+
+    /// The language of the test-plan configuration this test runs in, as TrainerHub.xctestplan names it. Tests compare
+    /// with it, so a configuration whose language doesn't reach the app fails instead of silently testing the other one.
+    static var configuredLocale: Components.Schemas.Locale {
+        switch ProcessInfo.processInfo.environment["TRAINER_HUB_TEST_LANGUAGE"] {
+        case "nl": .nlNL
+        case "en": .en
+        default: fatalError("Run the tests through TrainerHub.xctestplan, which sets TRAINER_HUB_TEST_LANGUAGE")
+        }
     }
 
     subscript(key: String) -> String {

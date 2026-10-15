@@ -262,8 +262,7 @@ jobs:
           path: apps/ios/.build/SourcePackages
           key: ios-spm-${{ runner.os }}-${{ hashFiles('apps/ios/TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
 
-      # The same steps as `pnpm test:ios`: SwiftLint and its literal-text fixture, the Release
-      # configuration, a simulator build without signing, then the unit and UI tests in nl and en.
+      # The same steps as `pnpm test:ios` (apps/ios/README.md#tests).
       - name: SwiftLint, build and tests (nl and en)
         run: scripts/test-ios.sh
 

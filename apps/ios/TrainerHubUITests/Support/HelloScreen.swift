@@ -14,7 +14,8 @@ struct HelloScreen {
     /// Launches the app against `server`.
     /// - Parameters:
     ///   - deviceLanguages: the device's preferred languages; the test-plan configuration's language when nil.
-    ///   - perAppLanguage: the per-app language from iOS Settings, which UI tests can't set there.
+    ///   - perAppLanguage: the per-app language from iOS Settings, which UI tests can't set there, so the Debug app
+    ///     takes it as a launch argument (`LanguageSources.uiTestPerAppLanguageKey` in the app).
     ///   - textSize: a `UIContentSizeCategory` raw value, e.g. `UICTContentSizeCategoryAccessibilityXXXL`.
     static func launch(
         against server: StubServer,
@@ -23,7 +24,7 @@ struct HelloScreen {
         textSize: String? = nil
     ) -> HelloScreen {
         let app = XCUIApplication()
-        let languages = deviceLanguages ?? [Locale.preferredLanguages.first ?? "en"]
+        let languages = deviceLanguages ?? [TestCatalog.configuredLanguage]
         app.launchArguments = [
             "-AppleLanguages", "(" + languages.map { "\"\($0)\"" }.joined(separator: ", ") + ")",
             "-TrainerHubAPIBaseURL", server.baseURL.absoluteString

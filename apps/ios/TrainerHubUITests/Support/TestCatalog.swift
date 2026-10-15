@@ -17,10 +17,17 @@ struct TestCatalog {
         apiLocale = language == "nl" ? "nl-NL" : "en"
     }
 
-    /// The catalog of the test-plan configuration this test runs in (nl or en).
-    static var configured: TestCatalog {
-        TestCatalog(Locale.preferredLanguages.first?.hasPrefix("nl") == true ? "nl" : "en")
+    /// The language of the test-plan configuration this test runs in ("nl" or "en"), as TrainerHub.xctestplan names
+    /// it. The app is launched in it, so a configuration can't silently test the other language.
+    static var configuredLanguage: String {
+        guard let language = ProcessInfo.processInfo.environment["TRAINER_HUB_TEST_LANGUAGE"] else {
+            fatalError("Run the tests through TrainerHub.xctestplan, which sets TRAINER_HUB_TEST_LANGUAGE")
+        }
+        return language
     }
+
+    /// The catalog of the test-plan configuration this test runs in.
+    static var configured: TestCatalog { TestCatalog(configuredLanguage) }
 
     subscript(key: String) -> String {
         let text = bundle.localizedString(forKey: key, value: nil, table: nil)

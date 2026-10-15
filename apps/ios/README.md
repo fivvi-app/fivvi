@@ -44,14 +44,14 @@ The app picks its interface language itself, by ADR-017's rule, and uses it for 
 2. The first supported language in the device's preferred list (`Locale.preferredLanguages`): any `nl-*` is `nl-NL`, any `en-*` is `en`.
 3. English.
 
-`Catalog` reads that language's `nl.lproj` or `en.lproj` directly. iOS's own choice (`Bundle.preferredLocalizations`) can't decide it: the source language is Dutch, so a German-only phone would get Dutch. Format dates and numbers with the interface language's locale; `en` formats as `en-GB` (`packages/i18n/README.md`).
+`Catalog` reads that language's `nl.lproj` or `en.lproj` directly. iOS's own choice (`Bundle.preferredLocalizations`) can't decide it: the source language is Dutch, so a German-only phone would get Dutch. Format dates and numbers with `Catalog.formattingLocale`, which the hello screen puts in SwiftUI's environment: `en` formats as `en-GB` (`packages/i18n/README.md`).
 
 ## Configuration
 
 | | Debug | Release |
 |---|---|---|
 | API base URL (`TRAINER_HUB_API_BASE_URL`) | `http://localhost:3000/api`, the local dev server as the simulator sees it | The production API over HTTPS, set in `Config/Release.xcconfig` |
-| Plain HTTP | Allowed (`Config/Info-Debug.plist`) | Not allowed: `Config/Info.plist` has no App Transport Security exception; `pnpm test:ios` checks this |
+| Plain HTTP | Allowed to local hosts only: App Transport Security's local-networking exception (`Config/Info-Debug.plist`) | Not allowed: `Config/Info.plist` has no App Transport Security exception; `pnpm test:ios` checks this |
 
 To run a Debug build against a preview environment or the dev server on your Mac from a phone on the LAN, create `Config/Local.xcconfig` (git-ignored) with e.g. `TRAINER_HUB_API_BASE_URL = https:/$()/<preview-domain>/api` (`//` starts a comment in an xcconfig, hence `$()`). Debug builds also accept `-TrainerHubAPIBaseURL <url>` as a launch argument; the UI tests use it.
 
@@ -68,7 +68,7 @@ To run a Debug build against a preview environment or the dev server on your Mac
 
 - **Unit tests** (`TrainerHubTests/`): the view model against `StubAPI`, a stub of `APIProtocol` that records the requested locale; the language rule with the same cases as `packages/i18n/src/locale.test.ts`; the configuration.
 - **UI tests** (`TrainerHubUITests/`): the app against `StubServer`, an HTTP server in the test runner, so a test controls the answer (greeting, error, or holding it to keep the spinner on screen) and asserts the requested `locale`. `HelloScreen.launch` sets the device languages (`-AppleLanguages`), the per-app language (a Debug-only launch argument, because UI tests can't change iOS Settings) and the text size.
-- Expected copy is read from the generated catalog compiled into the test bundle (`TestCatalog`), never hard-coded.
+- Expected copy is read from the generated catalog compiled into the test bundle (`TestCatalog`), never hard-coded. Each test-plan configuration also sets `TRAINER_HUB_TEST_LANGUAGE`; tests take the expected language from it, so a configuration whose language doesn't reach the app fails instead of testing the other language twice.
 - Accessibility: `test_E008_AC7_largestTextSizeWraps` runs Xcode's accessibility audit (clipped text, Dynamic Type, hit regions) at the largest text size.
 
 Name tests after the spec's acceptance criteria: `test_E008_AC4_retryLoadsGreeting` (`TESTING.md §5.1`).
