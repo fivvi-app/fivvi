@@ -95,6 +95,8 @@
   --th-typography-numeric-xl-line-height: 44px;
   --th-typography-numeric-xl-font-weight: 600;
   --th-typography-numeric-xl-letter-spacing: -0.01em;
+  --th-density-touch-body-font-size: 16px;
+  --th-density-touch-body-line-height: 24px;
   --th-density-compact-title-1-font-size: 22px;
   --th-density-compact-title-1-line-height: 28px;
   --th-density-compact-title-2-font-size: 18px;
