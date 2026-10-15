@@ -1,0 +1,7 @@
+/*
+ * Drops Tailwind's default colour palette (red-500, white, black, …), so the only colours are the
+ * design tokens. Import it after "tailwindcss" and before the token theme.
+ */
+@theme {
+  --color-*: initial;
+}
