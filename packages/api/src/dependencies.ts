@@ -1,4 +1,9 @@
-import { createErrorReporter, type ErrorReporter } from '@trainer-hub/observability';
+import {
+  createErrorReporter,
+  createProductEvents,
+  type ErrorReporter,
+  type ProductEvents,
+} from '@trainer-hub/observability';
 
 /** What the API needs from the outside world. apps/web wires the real ones; tests pass fakes. */
 export interface ApiDependencies {
@@ -6,14 +11,18 @@ export interface ApiDependencies {
   pingDatabase(): Promise<void>;
   /** Reports unhandled route errors to Sentry (E009). Off without a DSN. */
   errorReporter: ErrorReporter;
+  /** Sends product events to PostHog EU (E009); flushed after every request. Off without a key. */
+  productEvents: ProductEvents;
 }
 
 /**
  * For code that only needs the routes, not a running API: the OpenAPI document and tests of
  * routes without dependencies. The health check reports the database as unavailable, and
- * errors are not reported.
+ * errors and product events are not sent.
  */
+const errorReporter = createErrorReporter({ env: {} });
 export const NO_DEPENDENCIES: ApiDependencies = {
   pingDatabase: () => Promise.reject(new Error('No database configured.')),
-  errorReporter: createErrorReporter({ env: {} }),
+  errorReporter,
+  productEvents: createProductEvents({ env: {}, errorReporter }),
 };

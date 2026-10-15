@@ -37,3 +37,20 @@ await publishSourceMaps({ buildDir: '.next' });
 | `src/scrub.ts` | The scrubber: an allowlist applied in `beforeSend` and `beforeBreadcrumb`; `NO_DATA_COLLECTION` for the SDK |
 | `src/transport.ts` | Posts envelopes to Sentry with `fetch` |
 | `src/capture.ts` | Capture transport for tests: keeps the events that would be sent |
+| `src/catalog.ts` | The product event catalog: the only events `track()` accepts |
+| `src/event-schema.ts` | `property` and `defineCatalog()`: UUIDs, enums, booleans, numbers and ISO dates only |
+| `src/product-events.ts` | `createProductEvents()`: `track()` and `flush()` to PostHog EU |
+| `src/product-event-capture.ts` | Capture transport for tests: keeps the product events PostHog would receive |
+
+Product events go to PostHog EU from server code, only from the catalog ([OBSERVABILITY.md §4](../../docs/engineering/OBSERVABILITY.md#4-product-events)). The only code in the repo that imports `posthog-node`.
+
+```ts
+import { createProductEvents } from '@trainer-hub/observability';
+
+const productEvents = createProductEvents({ errorReporter }); // POSTHOG_KEY, RAILWAY_ENVIRONMENT_NAME
+
+productEvents.track({ event: 'booking_confirmed', distinctId: userId, properties: { booking_id } });
+await productEvents.flush(); // once per request; the API does this for every route
+```
+
+Without `POSTHOG_KEY`, events are still checked but nothing is sent.
