@@ -144,18 +144,24 @@ describe('E007 raw-colour guard (what `pnpm check` runs)', {
     );
     await write(
       'packages/ui/src/styles/extra.css',
-      ['.badge {', '  border-color: rgb(12 34 56);', '}', ''].join('\n'),
+      [
+        '.badge {',
+        '  border-color: rgb(12 34 56);',
+        '  background: hsl(210 40% 50%);',
+        '  color: oklch(0.7 0.1 250);',
+        '}',
+        '',
+      ].join('\n'),
     );
 
     const { code, output } = await runCheck(root);
 
     expect(code).toBe(1);
-    expect(output).toContain('apps/web/app/page.tsx:2');
-    expect(output).toContain('#1a2b3c');
-    expect(output).toContain('apps/web/app/page.tsx:3');
-    expect(output).toContain('bg-[#fff]');
-    expect(output).toContain('packages/ui/src/styles/extra.css:2');
-    expect(output).toContain('rgb(');
+    expect(output).toContain('apps/web/app/page.tsx:2:26 #1a2b3c');
+    expect(output).toContain('apps/web/app/page.tsx:3:21 bg-[#fff]');
+    expect(output).toContain('packages/ui/src/styles/extra.css:2:17 rgb(12 34 56)');
+    expect(output).toContain('packages/ui/src/styles/extra.css:3:15 hsl(210 40% 50%)');
+    expect(output).toContain('packages/ui/src/styles/extra.css:4:10 oklch(0.7 0.1 250)');
   });
 
   it('passes on the current apps/web and packages/ui sources', async () => {
