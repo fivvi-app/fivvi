@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
     '@trainer-hub/database',
     '@trainer-hub/i18n',
     '@trainer-hub/observability',
+    '@trainer-hub/ui',
   ],
 };
 

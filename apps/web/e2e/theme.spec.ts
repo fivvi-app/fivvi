@@ -1,0 +1,155 @@
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import type { Locator, Page } from '@playwright/test';
+import { expect, expectNoAxeViolations, test } from './fixtures';
+
+type ColorScheme = 'light' | 'dark';
+const colorSchemes: ColorScheme[] = ['light', 'dark'];
+
+// The expected colours come from the generated token CSS, light on `:root` and dark in the
+// `prefers-color-scheme: dark` block, so the test follows a token change without edits.
+const tokensCss = readFileSync(
+  createRequire(import.meta.url).resolve('@trainer-hub/design-tokens/tokens.css'),
+  'utf8',
+);
+const [lightCss = '', darkCss = ''] = tokensCss.split('@media (prefers-color-scheme: dark)');
+
+/** A semantic colour token (`bg.canvas`) as the browser computes it (`rgb(246, 246, 247)`). */
+function tokenColour(token: string, scheme: ColorScheme): string {
+  const declaration = new RegExp(`--th-color-${token.replaceAll('.', '-')}:\\s*#([0-9a-f]{6});`);
+  const hex =
+    (scheme === 'dark' && darkCss.match(declaration)?.[1]) || lightCss.match(declaration)?.[1];
+  if (!hex) throw new Error(`No ${scheme} value for color.${token} in tokens.css`);
+  const [r, g, b] = [0, 2, 4].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/** WCAG relative luminance of an sRGB colour with 0–255 channels. */
+function luminance(r: number, g: number, b: number): number {
+  const [lr, lg, lb] = [r, g, b].map((channel) => {
+    const c = channel / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  }) as [number, number, number];
+  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+}
+
+/** The RGBA bytes of a PNG screenshot, decoded by the browser. */
+async function pixels(page: Page, png: Buffer): Promise<{ width: number; data: number[] }> {
+  return await page.evaluate(
+    async (src) => {
+      const image = new Image();
+      image.src = src;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('No 2D canvas context');
+      context.drawImage(image, 0, 0);
+      return {
+        width: image.width,
+        data: Array.from(context.getImageData(0, 0, image.width, image.height).data),
+      };
+    },
+    `data:image/png;base64,${png.toString('base64')}`,
+  );
+}
+
+/**
+ * Asserts a visible focus indicator the way WCAG 2.4.13 measures one: the pixels that change
+ * when the control gets keyboard focus change by at least 3:1 contrast, over an area at least
+ * as large as a 2 CSS px thick perimeter of the control.
+ */
+async function expectVisibleFocusIndicator(page: Page, control: Locator, state: string) {
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  const box = await control.boundingBox();
+  if (!box) throw new Error(`${state}: the control is not visible`);
+  const margin = 8;
+  const clip = {
+    x: box.x - margin,
+    y: box.y - margin,
+    width: box.width + 2 * margin,
+    height: box.height + 2 * margin,
+  };
+  const shot = async () =>
+    await pixels(page, await page.screenshot({ clip, animations: 'disabled', caret: 'hide' }));
+
+  const unfocused = await shot();
+  for (let presses = 0; presses < 20; presses++) {
+    if (await control.evaluate((element) => element === document.activeElement)) break;
+    await page.keyboard.press('Tab');
+  }
+  await expect(control, `${state}: reachable with Tab`).toBeFocused();
+  const focused = await shot();
+
+  let changed = 0;
+  for (let i = 0; i < unfocused.data.length; i += 4) {
+    const [before, after] = [unfocused, focused].map(({ data }) =>
+      luminance(data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0),
+    ) as [number, number];
+    const ratio = (Math.max(before, after) + 0.05) / (Math.min(before, after) + 0.05);
+    if (ratio >= 3) changed++;
+  }
+  const radius = Math.min(
+    Number.parseFloat(
+      await control.evaluate((element) => getComputedStyle(element).borderTopLeftRadius),
+    ),
+    Math.min(box.width, box.height) / 2,
+  );
+  const perimeter = 2 * (box.width + box.height) - (8 - 2 * Math.PI) * radius;
+  const scale = unfocused.width / clip.width;
+  expect(changed, `${state}: pixels changed by at least 3:1 on focus`).toBeGreaterThanOrEqual(
+    2 * perimeter * scale * scale,
+  );
+}
+
+async function openHelloPage(page: Page, colorScheme: ColorScheme): Promise<void> {
+  await page.emulateMedia({ colorScheme });
+  await page.goto('/');
+}
+
+test.describe('E007 web theme', () => {
+  test('AC5: hello page uses token colours and passes axe in light and dark', async ({
+    page,
+    messages: copy,
+  }) => {
+    const heading = page.getByRole('heading', { level: 1, name: copy.hello.title });
+    const button = page.getByRole('button', { name: copy.hello.continue });
+    const input = page.getByLabel(copy.hello.firstNameLabel);
+    const colours: [Locator, string, string][] = [
+      [page.locator('body'), 'background-color', 'bg.canvas'],
+      [page.locator('body'), 'color', 'text.primary'],
+      [page.locator('[data-slot="card"]'), 'background-color', 'bg.surface'],
+      [heading, 'color', 'text.primary'],
+      [page.getByText(copy.hello.description), 'color', 'text.secondary'],
+      [input, 'border-top-color', 'border.control'],
+      [button, 'background-color', 'action.primary.bg'],
+      [button, 'color', 'action.primary.fg'],
+    ];
+
+    for (const scheme of colorSchemes) {
+      await openHelloPage(page, scheme);
+      for (const [element, property, token] of colours) {
+        await expect(element, `${property} in ${scheme} mode`).toHaveCSS(
+          property,
+          tokenColour(token, scheme),
+        );
+      }
+      await expectNoAxeViolations(page, `the hello page in ${scheme} mode`);
+    }
+  });
+
+  test('AC7: focus indicator is visible on Button and Input', async ({ page, messages: copy }) => {
+    const controls: [string, Locator][] = [
+      ['Input', page.getByLabel(copy.hello.firstNameLabel)],
+      ['Button', page.getByRole('button', { name: copy.hello.continue })],
+    ];
+
+    for (const scheme of colorSchemes) {
+      await openHelloPage(page, scheme);
+      for (const [name, control] of controls) {
+        await expectVisibleFocusIndicator(page, control, `${name} in ${scheme} mode`);
+      }
+    }
+  });
+});

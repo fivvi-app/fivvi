@@ -35,6 +35,21 @@ test.describe('E010 home page', () => {
   });
 });
 
+test.describe('E007 hello page', () => {
+  test('greets the first name entered in the form', async ({ page, messages: copy }) => {
+    await page.goto('/');
+    await expect(page.getByRole('status')).toHaveCount(0);
+
+    await page.getByLabel(copy.hello.firstNameLabel).fill('  Sam  ');
+    await page.getByRole('button', { name: copy.hello.continue }).click();
+
+    await expect(page.getByRole('status')).toHaveText(
+      copy.hello.formGreeting.replace('{name}', 'Sam'),
+    );
+    await expect(page.getByLabel(copy.hello.firstNameLabel)).toHaveValue('Sam');
+  });
+});
+
 // ADR-017. Runs in both locale projects; each test sets its own browser language.
 test.describe('E008 AC3 home page language', () => {
   test.describe('on a German-only browser', () => {

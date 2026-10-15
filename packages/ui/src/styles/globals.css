@@ -1,0 +1,35 @@
+/*
+ * The kit's stylesheet: Tailwind, the design tokens as shadcn/ui's theme, and the kit's components.
+ * Apps import only this file (`@trainer-hub/ui/globals.css`). See README.md.
+ */
+@import "tailwindcss";
+
+/* Only token colours: drops Tailwind's default palette before the token theme adds ours. */
+@import "./palette-reset.css";
+@import "@trainer-hub/design-tokens/tokens.css";
+@import "@trainer-hub/design-tokens/shadcn.css";
+@import "@trainer-hub/design-tokens/theme.css";
+
+/* The app's own files are found automatically; the kit's components live outside the app. */
+@source "../components";
+
+/* shadcn/ui's base styles (registry style radix-nova). */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/*
+ * Focus indicator: a solid ring in the focus colour with an offset, on everything focusable (AC7,
+ * WCAG 2.4.7). The upstream components draw `ring-ring/50`, which is only about 2.4:1 against the
+ * light canvas. This rule sits outside Tailwind's cascade layers, so it wins over their
+ * `outline-none` while the components stay unchanged.
+ */
+:focus-visible {
+  outline: var(--th-border-width-focus) solid var(--ring);
+  outline-offset: 2px;
+}

@@ -4,6 +4,10 @@
   },
   "hello": {
     "title": "Welkom bij Trainer Hub",
+    "description": "Vul je voornaam in, dan begroeten we je.",
+    "firstNameLabel": "Voornaam",
+    "continue": "Doorgaan",
+    "formGreeting": "Hoi {name}, fijn dat je er bent.",
     "greeting": "Hoi {name},",
     "sessionsToday": "{count, plural, one {Je hebt vandaag # sessie.} other {Je hebt vandaag # sessies.}}",
     "noSessionsToday": "Je hebt vandaag geen sessies.",

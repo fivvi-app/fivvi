@@ -19,6 +19,78 @@
         }
       }
     },
+    "hello.continue" : {
+      "comment" : "Submit button of the first-name form on the hello page. Shows hello.formGreeting with the name entered.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doorgaan"
+          }
+        }
+      }
+    },
+    "hello.description" : {
+      "comment" : "Line under the title of the hello page, above the first-name field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your first name and we'll greet you."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul je voornaam in, dan begroeten we je."
+          }
+        }
+      }
+    },
+    "hello.firstNameLabel" : {
+      "comment" : "Label of the first-name field on the hello page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First name"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voornaam"
+          }
+        }
+      }
+    },
+    "hello.formGreeting" : {
+      "comment" : "Shown on the hello page after the first-name form is sent. {name} is the first name entered.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi %1$@, nice to have you here."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoi %1$@, fijn dat je er bent."
+          }
+        }
+      }
+    },
     "hello.greeting" : {
       "comment" : "Greeting above the home screen. {name} is the user's first name.",
       "extractionState" : "manual",
