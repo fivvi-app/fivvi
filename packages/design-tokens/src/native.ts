@@ -17,13 +17,18 @@ export const swiftOutputs = {
   tokens: `${swiftDir}/Tokens.swift`,
   colors: `${swiftDir}/Colors.swift`,
   typography: `${swiftDir}/Typography.swift`,
+  layout: `${swiftDir}/Layout.swift`,
 } as const;
 
 export const kotlinOutputs = {
   colors: `${kotlinDir}/Colors.kt`,
   colorSchemes: `${kotlinDir}/ColorSchemes.kt`,
   typography: `${kotlinDir}/Typography.kt`,
+  layout: `${kotlinDir}/Layout.kt`,
 } as const;
+
+/** Compose Material 3's `Shapes` roles; each takes the radius token whose android note names it. */
+const materialShapes = ['extraSmall', 'small', 'medium', 'large', 'extraLarge'] as const;
 
 /**
  * Compose Material 3 colour roles and the semantic token each one takes, in light and dark.
@@ -166,10 +171,61 @@ export function nativeTextStyles(source: TokenSource): NativeTextStyle[] {
   return styles;
 }
 
+/** A spacing or radius token in points (iOS) and dp (Android). */
+export interface NativeDimension {
+  token: ResolvedToken;
+  value: number;
+}
+
+function dimensions(tokens: ResolvedToken[], group: string): NativeDimension[] {
+  return tokens
+    .filter((token) => token.path.startsWith(`${group}.`))
+    .map((token) => {
+      const px = token.value.match(/^(\d+(?:\.\d+)?)px$/)?.[1];
+      if (px === undefined) throw new TokenSourceError([`${token.path} is not a px dimension`]);
+      return { token, value: Number(px) };
+    });
+}
+
+/** The Material 3 shape roles, each with the radius token its android note names (`shapes.small`). */
+function shapes(source: TokenSource): Map<string, string> {
+  const byRole = new Map<string, string>();
+  for (const [tokenPath, note] of platformNotes(source.light, 'android')) {
+    const role = note.match(/^shapes\.(\w+)$/)?.[1];
+    if (tokenPath.startsWith('radius.') && role) byRole.set(role, tokenPath);
+  }
+  const missing = materialShapes.filter((role) => !byRole.has(role));
+  if (missing.length > 0) {
+    throw new TokenSourceError(
+      missing.map((role) => `No radius token has the android note "shapes.${role}"`),
+    );
+  }
+  return new Map(materialShapes.map((role) => [role, byRole.get(role) ?? '']));
+}
+
 export interface NativeInput {
   /** The semantic colours (no palette), in source order, per mode. */
   colours: Record<Mode, ResolvedToken[]>;
   textStyles: NativeTextStyle[];
+  spacing: NativeDimension[];
+  radius: NativeDimension[];
+  /** Material 3 shape role → radius token. */
+  shapes: Map<string, string>;
+}
+
+/** What the native outputs need from the source and its resolved light tokens. */
+export function nativeInput(
+  source: TokenSource,
+  colours: Record<Mode, ResolvedToken[]>,
+  light: ResolvedToken[],
+): NativeInput {
+  return {
+    colours,
+    textStyles: nativeTextStyles(source),
+    spacing: dimensions(light, 'space'),
+    radius: dimensions(light, 'radius'),
+    shapes: shapes(source),
+  };
 }
 
 function renderSwiftTokens(): string {
@@ -340,6 +396,64 @@ ${members.join('\n\n')}
 `;
 }
 
+function renderSwiftLayout({ spacing, radius }: NativeInput): string {
+  const members = (values: NativeDimension[]) =>
+    values
+      .map(
+        ({ token, value }) =>
+          `${docComment(token, '        ')}        public static let ${nativeName(token.path)}: CGFloat = ${value}`,
+      )
+      .join('\n');
+  return `${header(swiftOutputs.layout)}
+import CoreGraphics
+
+public extension Tokens {
+    /// Spacing in points: the 4-based scale and the screen margins.
+    enum Spacing {
+${members(spacing)}
+    }
+
+    /// Corner radii in points. Apply them with \`.continuous\` corners.
+    enum Radius {
+${members(radius)}
+    }
+}
+`;
+}
+
+function renderKotlinLayout({ spacing, radius, shapes }: NativeInput): string {
+  const members = (values: NativeDimension[]) =>
+    values
+      .map(
+        ({ token, value }) =>
+          `${kdoc(token, '    ')}    val ${nativeName(token.path)}: Dp = ${value}.dp`,
+      )
+      .join('\n');
+  return `${header(kotlinOutputs.layout)}
+package nl.trainerhub.designtokens
+
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Shapes
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
+/** Spacing in dp: the 4-based scale and the screen margins. */
+object Spacing {
+${members(spacing)}
+}
+
+/** Corner radii in dp. */
+object Radius {
+${members(radius)}
+}
+
+/** Material 3 shapes from the radius tokens. */
+val TokenShapes: Shapes = Shapes(
+${[...shapes].map(([role, token]) => `    ${role} = RoundedCornerShape(Radius.${nativeName(token)}),`).join('\n')}
+)
+`;
+}
+
 /** Every native output, keyed by path relative to the package root. */
 export function renderNativeOutputs(input: NativeInput): [string, string][] {
   return [
@@ -349,5 +463,7 @@ export function renderNativeOutputs(input: NativeInput): [string, string][] {
     [kotlinOutputs.colorSchemes, renderKotlinColorSchemes(input)],
     [swiftOutputs.typography, renderSwiftTypography(input)],
     [kotlinOutputs.typography, renderKotlinTypography(input)],
+    [swiftOutputs.layout, renderSwiftLayout(input)],
+    [kotlinOutputs.layout, renderKotlinLayout(input)],
   ];
 }

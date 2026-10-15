@@ -15,7 +15,7 @@ import {
   TokenSourceError,
 } from '../src/source.ts';
 import { customProperties, resolveVar } from './css.ts';
-import { kotlinColours, nativeName, swiftColours } from './native.ts';
+import { kotlinArguments, kotlinColours, nativeName, swiftColours } from './native.ts';
 import { withoutToken } from './tokens.ts';
 
 const packageRoot = path.resolve(import.meta.dirname, '..');
@@ -150,6 +150,53 @@ describe('E007 design tokens build', () => {
     expect(css).toMatch(/\.text-status-danger-fg \{\s*color: var\(--status-danger-fg\);/);
     expect(css).toMatch(/\.rounded-lg \{\s*border-radius: var\(--radius\);/);
     expect(css).toMatch(/\.font-sans \{\s*font-family: var\(--th-font-family-text\);/);
+  });
+
+  it('generates spacing and radius constants for Swift and Kotlin, and Material 3 shapes', () => {
+    const swift = output(swiftOutputs.layout);
+    const swiftValues = (group: string) =>
+      new Map(
+        [
+          ...(
+            swift.match(new RegExp(`enum ${group} \\{([\\s\\S]*?)\\n    \\}`))?.[1] ?? ''
+          ).matchAll(/public static let (\w+): CGFloat = (\d+)/g),
+        ].map(([, name, value]) => [name, Number(value)]),
+      );
+    const kotlin = output(kotlinOutputs.layout);
+    const kotlinValues = (group: string) =>
+      new Map(
+        [
+          ...(
+            kotlin.match(new RegExp(`object ${group} \\{([\\s\\S]*?)\\n\\}`))?.[1] ?? ''
+          ).matchAll(/val (\w+): Dp = (\d+)\.dp/g),
+        ].map(([, name, value]) => [name, Number(value)]),
+      );
+
+    // M0 draft values: the 4-based spacing scale and the M3 shape scale.
+    const spacing = { space0: 0, space0_5: 2, space4: 16, space16: 64, gutter: 16, gutterWide: 24 };
+    const radius = { none: 0, xs: 4, sm: 8, md: 12, lg: 16, xl: 28, full: 9999 };
+    for (const [values, group, expected] of [
+      [swiftValues, 'Spacing', spacing],
+      [kotlinValues, 'Spacing', spacing],
+      [swiftValues, 'Radius', radius],
+      [kotlinValues, 'Radius', radius],
+    ] as const) {
+      const actual = values(group);
+      expect(actual.size, group).toBe(group === 'Spacing' ? 14 : 7);
+      for (const [name, value] of Object.entries(expected)) {
+        expect(actual.get(name), `${group}.${name}`).toBe(value);
+      }
+    }
+
+    expect(kotlinArguments(kotlin, 'TokenShapes')).toEqual(
+      new Map([
+        ['extraSmall', 'RoundedCornerShape(Radius.xs)'],
+        ['small', 'RoundedCornerShape(Radius.sm)'],
+        ['medium', 'RoundedCornerShape(Radius.md)'],
+        ['large', 'RoundedCornerShape(Radius.lg)'],
+        ['extraLarge', 'RoundedCornerShape(Radius.xl)'],
+      ]),
+    );
   });
 
   it('AC1: refuses a semantic colour without a dark value', async () => {

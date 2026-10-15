@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import StyleDictionary from 'style-dictionary';
 import type { DesignTokens } from 'style-dictionary/types';
-import { nativeTextStyles, renderNativeOutputs } from './native.ts';
+import { nativeInput, renderNativeOutputs } from './native.ts';
 import {
   isPalette,
   type Mode,
@@ -200,10 +200,9 @@ export async function renderOutputs(source: TokenSource): Promise<Map<string, st
     [webOutputs.tokens, renderTokensCss(source, resolved)],
     [webOutputs.shadcn, renderShadcnCss(source, cssVar)],
     [webOutputs.theme, renderTailwindTheme(source, cssVar)],
-    ...renderNativeOutputs({
-      colours: { light: semantic('light'), dark: semantic('dark') },
-      textStyles: nativeTextStyles(source),
-    }),
+    ...renderNativeOutputs(
+      nativeInput(source, { light: semantic('light'), dark: semantic('dark') }, resolved.light),
+    ),
   ]);
 }
 
