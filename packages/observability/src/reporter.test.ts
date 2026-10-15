@@ -61,6 +61,26 @@ describe('E009 error reporter', () => {
     }
   });
 
+  it('AC4: sends no IP address and no default PII from the request', async () => {
+    const transport = createCaptureTransport();
+    const reporter = createErrorReporter({ env: ENV, transport });
+    const request = new Request('https://app.example.com/api/v1/hello', {
+      headers: {
+        'X-Forwarded-For': '203.0.113.7',
+        'X-Real-IP': '203.0.113.7',
+        'User-Agent': 'Mozilla/5.0 (test)',
+      },
+    });
+
+    reporter.captureError(new Error('Boom'), { request, route: '/v1/hello' });
+    await reporter.flush();
+
+    const [event] = transport.events;
+    expect(event?.user).toBeUndefined();
+    expect(event?.request).toEqual({ method: 'GET', url: 'https://app.example.com/api/v1/hello' });
+    expect(JSON.stringify(event)).not.toMatch(/203\.0\.113\.7|ip_address|\{\{auto\}\}|Mozilla/);
+  });
+
   it('reports the cause of an error too', async () => {
     const transport = createCaptureTransport();
     const reporter = createErrorReporter({ env: ENV, transport });

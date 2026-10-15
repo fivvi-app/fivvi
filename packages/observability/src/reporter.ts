@@ -6,7 +6,7 @@ import {
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import { nodeStackLineParser, ServerRuntimeClient } from '@sentry/core/server';
-import { type Environment, readErrorReportingConfig } from './config.ts';
+import { type EnvironmentVariables, readErrorReportingConfig } from './config.ts';
 import { scrubBreadcrumb, scrubEvent } from './scrub.ts';
 import { createFetchTransport, type ErrorTransport } from './transport.ts';
 
@@ -28,13 +28,13 @@ export interface ErrorReporter {
 
 export interface ErrorReporterOptions {
   /** Defaults to `process.env` (`SENTRY_DSN`, `RAILWAY_*`). */
-  env?: Environment;
+  env?: EnvironmentVariables;
   /** Tests pass `createCaptureTransport()`; production posts to Sentry. */
   transport?: ErrorTransport;
 }
 
 /** How long `flush()` waits by default, so a slow Sentry never holds up an exit for long. */
-export const DEFAULT_FLUSH_TIMEOUT_MS = 2_000;
+const DEFAULT_FLUSH_TIMEOUT_MS = 2_000;
 
 const DISABLED: ErrorReporter = {
   enabled: false,

@@ -17,7 +17,7 @@ Every event carries:
 
 - `environment`: `production`, `preview` (PR environments) or `development` (Railway's `development` environment, and local), from `RAILWAY_ENVIRONMENT_NAME`;
 - `release`: the commit SHA of the deploy, from `RAILWAY_GIT_COMMIT_SHA`;
-- for API errors, the route template (`transaction` `POST /v1/clients/:clientId`, tag `route`), never the real path.
+- for API errors, the route template as served under `/api` (`transaction` `POST /api/v1/clients/:clientId`, tag `route`), never the real path.
 
 How it is set up:
 
@@ -43,7 +43,7 @@ The scrubber (`scrubEvent`, `scrubBreadcrumb`) is a pure allowlist: whatever isn
 
 UUIDs, route templates, HTTP methods and status codes stay, so an error can still be traced to a record and a route.
 
-**The scrubber can't recognise a name or note text inside an error message.** That is why the message is the one free text we keep, and why our errors never contain names, email addresses or note text: put IDs in messages, never user content (`CODING_STANDARDS.md`, "Notes and health data"). `EmailSendError` in `packages/email` is an example.
+**The scrubber can't recognise a name or note text inside an error message.** That is why the message is the one free text we keep, and why our errors never contain names, email addresses or note text: put IDs in messages, never user content ([ADR-013](../decisions/ADR-013-observability.md): no personal data or note content in events, error messages or breadcrumbs). `EmailSendError` in `packages/email` is an example.
 
 ## 3. Testing
 

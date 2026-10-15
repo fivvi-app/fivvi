@@ -32,7 +32,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /[^\s@/?#&=:;,<>()"'[\]]+(?:@|%40)[^\s@/?#&=:;,<>()"'[\]]+\.[a-z]{2,}/gi;
 
 /** Replaces every email address in `text`; the rest of the message stays readable. */
-export function maskEmails(text: string): string {
+function maskEmails(text: string): string {
   return text.replace(EMAIL, '[email]');
 }
 
@@ -52,9 +52,9 @@ export function scrubEvent<T extends Event>(event: T): T {
     transaction: event.transaction,
     fingerprint: event.fingerprint,
     debug_meta: event.debug_meta,
-    // The error's own message stays (emails masked): our errors never contain names or note
-    // text (CODING_STANDARDS.md), and without it an error can't be debugged.
-    message: event.message === undefined ? undefined : maskEmails(event.message),
+    // The error's own message stays (emails masked): our errors never contain personal data
+    // or note content (ADR-013), and without it an error can't be debugged.
+    message: maybeMask(event.message),
     logentry: event.logentry && { message: maybeMask(event.logentry.message) },
     exception: event.exception && {
       values: event.exception.values?.map(scrubException),

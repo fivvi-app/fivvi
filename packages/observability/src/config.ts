@@ -1,5 +1,8 @@
-/** Environment variables, e.g. `process.env`. */
-export type Environment = Readonly<Record<string, string | undefined>>;
+/**
+ * Environment variables, e.g. `process.env`. Not `NodeJS.ProcessEnv`, which Next.js extends
+ * with a required `NODE_ENV`.
+ */
+export type EnvironmentVariables = Readonly<Record<string, string | undefined>>;
 
 /** Sentry's `environment` tag. Previews report separately, so their noise never mixes with production. */
 export type ReportingEnvironment = 'production' | 'preview' | 'development';
@@ -17,7 +20,9 @@ export interface ErrorReportingConfig {
  * `RAILWAY_ENVIRONMENT_NAME` and `RAILWAY_GIT_COMMIT_SHA`; locally, in tests and in CI there
  * is no `SENTRY_DSN`, so reporting stays off.
  */
-export function readErrorReportingConfig(env: Environment = process.env): ErrorReportingConfig {
+export function readErrorReportingConfig(
+  env: EnvironmentVariables = process.env,
+): ErrorReportingConfig {
   const dsn = env.SENTRY_DSN?.trim() || undefined;
   const release = env.RAILWAY_GIT_COMMIT_SHA?.trim() || undefined;
   return {

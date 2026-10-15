@@ -4,7 +4,6 @@ import type { ErrorTransport } from './transport.ts';
 export interface CaptureTransport extends ErrorTransport {
   /** Events that would have been sent, oldest first, exactly as they would leave the process. */
   readonly events: Event[];
-  clear(): void;
 }
 
 /**
@@ -16,9 +15,6 @@ export function createCaptureTransport(): CaptureTransport {
   return {
     name: 'capture',
     events,
-    clear: () => {
-      events.length = 0;
-    },
     send: ({ body }) => {
       const [, items] = parseEnvelope(body);
       for (const [header, payload] of items) {
