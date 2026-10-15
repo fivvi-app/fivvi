@@ -8,7 +8,8 @@ The web component kit (ADR-015, E007): [shadcn/ui](https://ui.shadcn.com/) compo
 | `src/components/` | Components from the shadcn CLI: `Button` (variants `default` = primary, `secondary`, `ghost`, `destructive`, plus upstream's `outline` and `link`), `Input`, `Label`, `Card`. **Upstream code, never edit** |
 | `src/styles/globals.css` | The stylesheet apps import: Tailwind, the token theme, the kit's sources, shadcn's base styles and the focus indicator |
 | `src/styles/palette-reset.css` | Drops Tailwind's default colour palette, so the only colours are the tokens |
-| `test/` | Unit tests of the stylesheet |
+| `lint/` | The raw-colour guard, run by `pnpm check` |
+| `test/` | Unit tests of the stylesheet and the guard |
 
 ## Using the kit in an app
 
@@ -48,6 +49,25 @@ The components themselves are unchanged. The kit differs from a fresh `shadcn in
 | No `tw-animate-css` or `shadcn/tailwind.css` | None of the current components animate or use shadcn's custom variants. Add them with the first component that does |
 | No `src/lib/utils.ts` | The `radix-nova` components import `cn` from the `cn` package directly |
 
+## Raw-colour guard
+
+`pnpm check` (this package's `check` task, `node lint/cli.ts`) fails when web source holds a raw colour, and names the file, line and column. It scans `apps/web` and `packages/ui` and rejects:
+
+- hex colours (`#fff`, `#ffffff80`), and `rgb()`, `rgba()`, `hsl()`, `hsla()`, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()` and `color(<colour space> …)`;
+- arbitrary Tailwind colour values: a literal, a named colour or a `color-mix()` in brackets (`bg-[#fff]`, `text-[rgb(0_0_0)]`, `border-[red]`, `hover:bg-[color-mix(…)]`).
+
+Use the theme classes or variables instead (`bg-primary`, `var(--primary)`). An arbitrary value that only references a variable (`bg-(--primary)`) is not a raw colour. Comments are ignored, so `#123` as an issue reference is fine.
+
+It leaves alone, on purpose:
+
+| What | Why |
+|---|---|
+| `src/components/` | Vendored shadcn components, never edited. Upstream's secondary `Button` uses `hover:bg-[color-mix(…)]`. The directory is where `components.json`'s `ui` alias resolves; a test keeps the two in step |
+| Tests (`*.test.*`, `*.spec.*`, and a package's top-level `test/` and `e2e/`) | They assert on colours, such as a token's computed `rgb()`, rather than paint with them |
+| `node_modules/`, hidden directories (`.next/`), and a package's top-level build output (`dist/`, `out/`, …) | Not source |
+
+The generated token files live in `packages/design-tokens`, outside the guard's scope. `turbo.json` adds `apps/web` to the task's inputs, so turbo re-runs the guard when web files change.
+
 ## Checks
 
-`pnpm --filter @trainer-hub/ui typecheck`, `lint` and `test`; `scripts/check.sh` and CI run them through turbo. The rendered result is tested in `apps/web/e2e/theme.spec.ts`: token colours and axe in light and dark (AC5), and the focus indicator on `Button` and `Input` (AC7).
+`pnpm --filter @trainer-hub/ui typecheck`, `lint`, `test` and `check` (the raw-colour guard); `scripts/check.sh` and CI run them through turbo. The rendered result is tested in `apps/web/e2e/theme.spec.ts`: token colours and axe in light and dark (AC5), and the focus indicator on `Button` and `Input` (AC7).
