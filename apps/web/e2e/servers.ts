@@ -9,5 +9,12 @@ export const appServer = { port, baseURL: `http://localhost:${port}` };
 /** A synthetic PostHog project key: the page view tests (E009) never reach PostHog. */
 export const TEST_POSTHOG_KEY = 'phc_e2e_synthetic_project_key';
 
-/** The same build with a PostHog key, so it sends page views (E009 AC6). */
-export const analyticsServer = { port: port + 1, baseURL: `http://localhost:${port + 1}` };
+/**
+ * The same build with a PostHog key, so it sends page views (E009 AC6). 1000 up, outside the
+ * range of every worktree's own E2E_PORT (scripts/_lib.sh), so it never reuses another's server.
+ */
+const analyticsPort = port + 1000;
+export const analyticsServer = {
+  port: analyticsPort,
+  baseURL: `http://localhost:${analyticsPort}`,
+};

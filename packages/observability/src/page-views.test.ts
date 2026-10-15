@@ -1,6 +1,6 @@
 import type { CaptureResult } from 'posthog-js/dist/module.slim.no-external';
 import { describe, expect, it } from 'vitest';
-import { scrubPageView } from './page-views.ts';
+import { POSTHOG_EU_HOST, scrubPageView } from './page-views.ts';
 
 // Synthetic personal data only (AGENTS.md, D8).
 const KEY = 'phc_example_project_key';
@@ -27,7 +27,9 @@ function pageView(properties: CaptureResult['properties'] = {}): CaptureResult {
       $host: 'app.example.com',
       $pathname: '/clients/3f2e1d0c-9b8a-4765-8432-10fedcba9876',
       $browser: 'Chrome',
+      $browser_version: 140,
       $os: 'Mac OS X',
+      $os_version: '15.0',
       $device_type: 'Desktop',
       $raw_user_agent: 'Mozilla/5.0 (Macintosh) Chrome/140.0',
       $timezone: 'Europe/Amsterdam',
@@ -51,6 +53,10 @@ function pageView(properties: CaptureResult['properties'] = {}): CaptureResult {
 }
 
 describe('E009 page view scrubber', () => {
+  it('AC6: sends to the PostHog EU host', () => {
+    expect(POSTHOG_EU_HOST).toBe('https://eu.i.posthog.com');
+  });
+
   it('AC6: sends the path only: no query string, fragment, title, referrer or person data', () => {
     const scrubbed = scrubPageView(pageView());
 
@@ -71,7 +77,9 @@ describe('E009 page view scrubber', () => {
         $host: 'app.example.com',
         $pathname: '/clients/3f2e1d0c-9b8a-4765-8432-10fedcba9876',
         $browser: 'Chrome',
+        $browser_version: 140,
         $os: 'Mac OS X',
+        $os_version: '15.0',
         $device_type: 'Desktop',
         $raw_user_agent: 'Mozilla/5.0 (Macintosh) Chrome/140.0',
         $timezone: 'Europe/Amsterdam',
