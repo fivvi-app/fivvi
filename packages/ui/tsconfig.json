@@ -8,6 +8,6 @@
       "@trainer-hub/ui/*": ["./src/*"]
     }
   },
-  "include": ["src", "test", "*.ts"],
+  "include": ["src", "lint", "test", "*.ts"],
   "exclude": ["node_modules"]
 }

@@ -10,6 +10,7 @@
   "scripts": {
     "lint": "biome check --formatter-enabled=false --error-on-warnings .",
     "typecheck": "tsc --noEmit",
+    "check": "node lint/cli.ts",
     "test": "vitest run",
     "format:check": "biome format ."
   },

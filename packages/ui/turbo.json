@@ -1,0 +1,17 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "check": {
+      // The raw-colour guard (lint/) scans apps/web too, so a change there must re-run it.
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README.md",
+        "!test/**",
+        "$TURBO_ROOT$/apps/web/**",
+        "!$TURBO_ROOT$/apps/web/node_modules/**"
+      ],
+      "outputs": []
+    }
+  }
+}
