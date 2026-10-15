@@ -23,7 +23,7 @@ export interface ErrorReportingConfig {
 export function readErrorReportingConfig(
   env: EnvironmentVariables = process.env,
 ): ErrorReportingConfig {
-  return withDsn(env.SENTRY_DSN, env);
+  return configWithDsn(env.SENTRY_DSN, env);
 }
 
 /**
@@ -31,10 +31,14 @@ export function readErrorReportingConfig(
  * Next.js inlines into the browser bundle at build time (`apps/web/instrumentation-client.ts`).
  */
 export function readBrowserErrorReportingConfig(env: EnvironmentVariables): ErrorReportingConfig {
-  return withDsn(env.NEXT_PUBLIC_SENTRY_DSN, env);
+  return configWithDsn(env.NEXT_PUBLIC_SENTRY_DSN, env);
 }
 
-function withDsn(dsnVariable: string | undefined, env: EnvironmentVariables): ErrorReportingConfig {
+/** The whole config: the given DSN variable, plus the environment and release from Railway. */
+function configWithDsn(
+  dsnVariable: string | undefined,
+  env: EnvironmentVariables,
+): ErrorReportingConfig {
   const dsn = dsnVariable?.trim() || undefined;
   const release = env.RAILWAY_GIT_COMMIT_SHA?.trim() || undefined;
   return {

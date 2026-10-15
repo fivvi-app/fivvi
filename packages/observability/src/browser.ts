@@ -7,10 +7,9 @@ import {
   httpContextIntegration,
   linkedErrorsIntegration,
 } from '@sentry/browser';
-import { createTransport } from '@sentry/core';
+import { DISABLED_REPORTER, FLUSH_TIMEOUT_MS, sharedClientOptions } from './client-options.ts';
 import { type EnvironmentVariables, readBrowserErrorReportingConfig } from './config.ts';
 import type { ErrorReporter } from './reporter.ts';
-import { NO_DATA_COLLECTION, scrubBreadcrumb, scrubEvent } from './scrub.ts';
 import { createFetchTransport, type ErrorTransport } from './transport.ts';
 
 export interface BrowserErrorReportingOptions {
@@ -23,15 +22,6 @@ export interface BrowserErrorReportingOptions {
   transport?: ErrorTransport;
 }
 
-/** How long `flush()` waits, at most. */
-const FLUSH_TIMEOUT_MS = 2_000;
-
-const DISABLED: ErrorReporter = {
-  enabled: false,
-  captureError: () => {},
-  flush: () => Promise.resolve(true),
-};
-
 /**
  * Error reporting in the browser: uncaught errors and unhandled promise rejections, plus
  * whatever `captureError` gets (for example from an error boundary). Call it once, before the
@@ -40,14 +30,10 @@ const DISABLED: ErrorReporter = {
  */
 export function initBrowserErrorReporting(options: BrowserErrorReportingOptions): ErrorReporter {
   const config = readBrowserErrorReportingConfig(options.env);
-  if (!config.dsn) return DISABLED;
+  if (!config.dsn) return DISABLED_REPORTER;
   const transport = options.transport ?? createFetchTransport();
   const client = new BrowserClient({
-    dsn: config.dsn,
-    environment: config.environment,
-    release: config.release,
-    dataCollection: NO_DATA_COLLECTION,
-    sendClientReports: false,
+    ...sharedClientOptions({ ...config, dsn: config.dsn }, transport),
     integrations: [
       globalHandlersIntegration(),
       linkedErrorsIntegration(),
@@ -56,12 +42,6 @@ export function initBrowserErrorReporting(options: BrowserErrorReportingOptions)
       httpContextIntegration(),
     ],
     stackParser: defaultStackParser,
-    transport: (transportOptions) =>
-      createTransport(transportOptions, ({ body }) =>
-        transport.send({ url: transportOptions.url, body }),
-      ),
-    beforeSend: (event) => scrubEvent(event),
-    beforeBreadcrumb: (breadcrumb) => scrubBreadcrumb(breadcrumb),
   });
   // The global handlers report through the current client, so this one becomes it.
   const scope = getCurrentScope();

@@ -30,6 +30,7 @@ await publishSourceMaps({ buildDir: '.next' });
 |---|---|
 | `src/config.ts` | Reads the DSN, environment (`production`, `preview`, `development`) and release |
 | `src/reporter.ts` | `createErrorReporter()`: its own Sentry client, errors only |
+| `src/client-options.ts` | The options every Sentry client shares (tags, scrubber, no SDK data collection) |
 | `src/request-error.ts` | `createRequestErrorHandler()`: Next.js's `onRequestError` for the web server |
 | `src/browser.ts` | `initBrowserErrorReporting()` (export `./browser`): the browser client, errors only |
 | `src/source-maps.ts` | `publishSourceMaps()` (export `./source-maps`): uploads the web app's source maps with `sentry-cli`, then deletes them |

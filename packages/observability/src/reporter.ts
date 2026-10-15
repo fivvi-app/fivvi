@@ -1,14 +1,13 @@
 import {
   createStackParser,
-  createTransport,
   linkedErrorsIntegration,
   type RequestEventData,
   Scope,
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import { nodeStackLineParser, ServerRuntimeClient } from '@sentry/core/server';
+import { DISABLED_REPORTER, FLUSH_TIMEOUT_MS, sharedClientOptions } from './client-options.ts';
 import { type EnvironmentVariables, readErrorReportingConfig } from './config.ts';
-import { NO_DATA_COLLECTION, scrubBreadcrumb, scrubEvent } from './scrub.ts';
 import { createFetchTransport, type ErrorTransport } from './transport.ts';
 
 /** A request as a framework describes it, e.g. Next.js in `onRequestError`. */
@@ -42,15 +41,6 @@ export interface ErrorReporterOptions {
   transport?: ErrorTransport;
 }
 
-/** How long `flush()` waits, so a slow Sentry never holds up an exit for long. */
-const FLUSH_TIMEOUT_MS = 2_000;
-
-const DISABLED: ErrorReporter = {
-  enabled: false,
-  captureError: () => {},
-  flush: () => Promise.resolve(true),
-};
-
 /**
  * Error reporting for a server runtime (the API inside Next.js, the cron job). Its own Sentry
  * client, not the global one: no auto-instrumentation, no tracing, no session replay and no
@@ -58,24 +48,14 @@ const DISABLED: ErrorReporter = {
  */
 export function createErrorReporter(options: ErrorReporterOptions = {}): ErrorReporter {
   const config = readErrorReportingConfig(options.env);
-  if (!config.dsn) return DISABLED;
+  if (!config.dsn) return DISABLED_REPORTER;
   const transport = options.transport ?? createFetchTransport();
   const client = new ServerRuntimeClient({
-    dsn: config.dsn,
-    environment: config.environment,
-    release: config.release,
+    ...sharedClientOptions({ ...config, dsn: config.dsn }, transport),
     platform: 'node',
     runtime: { name: 'node', version: process.version },
-    dataCollection: NO_DATA_COLLECTION,
-    sendClientReports: false,
     integrations: [linkedErrorsIntegration()],
     stackParser: createStackParser(nodeStackLineParser()),
-    transport: (transportOptions) =>
-      createTransport(transportOptions, ({ body }) =>
-        transport.send({ url: transportOptions.url, body }),
-      ),
-    beforeSend: (event) => scrubEvent(event),
-    beforeBreadcrumb: (breadcrumb) => scrubBreadcrumb(breadcrumb),
   });
   const scope = new Scope();
   scope.setClient(client);
