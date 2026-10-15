@@ -22,8 +22,8 @@ export interface ErrorReporter {
   readonly enabled: boolean;
   /** Reports an unhandled error. Never throws. */
   captureError(error: unknown, context?: ErrorContext): void;
-  /** Waits until every captured error is sent, at most `timeoutMs`. False on timeout. */
-  flush(timeoutMs?: number): Promise<boolean>;
+  /** Waits until every captured error is sent, at most 2 s. False on timeout. */
+  flush(): Promise<boolean>;
 }
 
 export interface ErrorReporterOptions {
@@ -33,8 +33,8 @@ export interface ErrorReporterOptions {
   transport?: ErrorTransport;
 }
 
-/** How long `flush()` waits by default, so a slow Sentry never holds up an exit for long. */
-const DEFAULT_FLUSH_TIMEOUT_MS = 2_000;
+/** How long `flush()` waits, so a slow Sentry never holds up an exit for long. */
+const FLUSH_TIMEOUT_MS = 2_000;
 
 const DISABLED: ErrorReporter = {
   enabled: false,
@@ -87,6 +87,6 @@ export function createErrorReporter(options: ErrorReporterOptions = {}): ErrorRe
       }
       eventScope.captureException(error);
     },
-    flush: async (timeoutMs = DEFAULT_FLUSH_TIMEOUT_MS) => client.flush(timeoutMs),
+    flush: async () => client.flush(FLUSH_TIMEOUT_MS),
   };
 }

@@ -17,6 +17,10 @@ const FIXTURES = [
   'packages/api/src/report.ts',
   'packages/observability/src/report.ts',
 ];
+const IMPORTS = [
+  "import * as Sentry from '@sentry/node';",
+  "import { ServerRuntimeClient } from '@sentry/core/server';",
+];
 
 type Diagnostic = { category: string; location: { path: string } };
 let dir: string;
@@ -43,7 +47,7 @@ beforeAll(async () => {
     await mkdir(path.dirname(path.join(dir, fixture)), { recursive: true });
     await writeFile(
       path.join(dir, fixture),
-      "import * as Sentry from '@sentry/node';\n\nexport const report = Sentry.captureException;\n",
+      `${IMPORTS.join('\n')}\n\nexport const report = [Sentry, ServerRuntimeClient];\n`,
     );
   }
   const output = await promisify(execFile)(
@@ -65,9 +69,13 @@ describe('E009 Sentry SDK boundary', () => {
       .map((d) => d.location.path)
       .sort();
 
+    // Each fixture imports a package root and a subpath: both are flagged.
     expect(flagged).toEqual([
       'apps/cron/src/report.ts',
+      'apps/cron/src/report.ts',
       'apps/web/app/report.tsx',
+      'apps/web/app/report.tsx',
+      'packages/api/src/report.ts',
       'packages/api/src/report.ts',
     ]);
   });

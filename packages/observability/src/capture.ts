@@ -13,7 +13,6 @@ export interface CaptureTransport extends ErrorTransport {
 export function createCaptureTransport(): CaptureTransport {
   const events: Event[] = [];
   return {
-    name: 'capture',
     events,
     send: ({ body }) => {
       const [, items] = parseEnvelope(body);

@@ -53,7 +53,7 @@
           "options": {
             "patterns": [
               {
-                "group": ["@sentry/*"],
+                "group": ["@sentry/**"],
                 "message": "Report errors through @trainer-hub/observability, which scrubs personal data (E009)."
               }
             ]

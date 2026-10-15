@@ -13,14 +13,12 @@ export interface EnvelopeResponse {
 
 /** Hands an envelope to Sentry. The real one posts it; tests use `createCaptureTransport()`. */
 export interface ErrorTransport {
-  readonly name: string;
   send(request: EnvelopeRequest): Promise<EnvelopeResponse>;
 }
 
 /** Posts envelopes with `fetch`. Only used when a DSN is configured. */
 export function createFetchTransport(): ErrorTransport {
   return {
-    name: 'fetch',
     send: async ({ url, body }) => {
       // A copy, typed as backed by an ArrayBuffer, which the DOM's `BodyInit` requires.
       const payload = typeof body === 'string' ? body : new Uint8Array(body);
