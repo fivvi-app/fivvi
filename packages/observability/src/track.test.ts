@@ -129,11 +129,17 @@ describe('E009 product events: rejected events', () => {
           channel: NOTE,
         },
       }),
+    'free text in a UUID property': (track) =>
+      track({
+        event: 'booking_confirmed',
+        distinctId: USER_ID,
+        properties: { ...PROPERTIES, booking_id: NOTE },
+      }),
     'an email address as distinct ID': (track) =>
       track({
         event: 'booking_confirmed',
         distinctId: EMAIL,
-        properties: { ...PROPERTIES, booking_id: EMAIL },
+        properties: PROPERTIES,
       }),
   };
 
@@ -174,6 +180,10 @@ describe('E009 product events: rejected events', () => {
         'Product event "booking_confirmed" rejected: properties.client_name (unrecognized_key)',
       ],
       ['warning', 'Product event "booking_confirmed" rejected: properties.channel (invalid_value)'],
+      [
+        'warning',
+        'Product event "booking_confirmed" rejected: properties.booking_id (invalid_format)',
+      ],
       ['warning', 'Product event "booking_confirmed" rejected: distinctId (invalid_format)'],
       ['warning', 'Product event "?" rejected: event (invalid_type)'],
     ]);
