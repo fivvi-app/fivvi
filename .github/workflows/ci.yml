@@ -288,6 +288,12 @@ jobs:
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+          sudo udevadm settle
+          ls -l /dev/kvm
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo '::error::/dev/kvm is not usable by the runner user'
+            exit 1
+          fi
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -305,19 +311,24 @@ jobs:
       - name: Android SDK packages, emulator and Maestro
         run: scripts/android.sh setup
 
-      # Booted once; test:android and test:maestro reuse it.
+      # Booted once; test:android and test:maestro reuse it. The script gives up after EMULATOR_BOOT_TIMEOUT (300 s)
+      # and prints the emulator log; the step timeout is a backstop.
       - name: Boot the emulator
+        timeout-minutes: 10
         run: scripts/android.sh emulator
 
       - name: ktlint, build, unit tests and Compose UI tests
+        timeout-minutes: 20
         run: pnpm test:android
 
       - name: Maestro hello flow (nl-NL and en)
+        timeout-minutes: 15
         run: pnpm test:maestro
 
-      # Only on failure: artifact storage counts against the free quota.
+      # Always, also after a cancel or timeout: without the emulator log a hung boot can't be diagnosed. Kept 7 days,
+      # as artifact storage counts against the free quota.
       - name: Upload Android reports
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: android-reports

@@ -62,7 +62,8 @@ cmd_android() {
   trap cleanup EXIT
   start_stack
   start_emulator
-  adb root >/dev/null && adb wait-for-device
+  adb root >/dev/null
+  wait_for_boot
   DEVICE_LOCALE="$(adb shell getprop persist.sys.locale | tr -d '\r')"
   [ -n "$DEVICE_LOCALE" ] || DEVICE_LOCALE="$(adb shell getprop ro.product.locale | tr -d '\r')"
   gradle installDebug "-Ptrainerhub.apiBaseUrl=http://10.0.2.2:$PORT/api/"

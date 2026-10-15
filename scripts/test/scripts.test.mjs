@@ -98,6 +98,12 @@ describe('usage', () => {
   });
 });
 
+const script = (path, body) => {
+  mkdirSync(join(path, '..'), { recursive: true });
+  writeFileSync(path, `#!/usr/bin/env bash\n${body}\n`);
+  chmodSync(path, 0o755);
+};
+
 // A fake Android SDK in its own folder per test. Its tools find AVDs the way the real ones do: avdmanager
 // (cmdline-tools) in ANDROID_AVD_HOME or ~/.android/avd, the emulator in ANDROID_AVD_HOME or, when XDG_CONFIG_HOME is
 // set (GitHub's Ubuntu runners), under that. sdkmanager logs its arguments and installs cmdline-tools when asked; without
@@ -107,12 +113,6 @@ describe('android.sh setup', () => {
   after(() => {
     for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
   });
-
-  const script = (path, body) => {
-    mkdirSync(join(path, '..'), { recursive: true });
-    writeFileSync(path, `#!/usr/bin/env bash\n${body}\n`);
-    chmodSync(path, 0o755);
-  };
 
   const fakeSdk = ({ cmdlineTools = true, emulatorFindsAvds = true } = {}) => {
     const base = realpathSync(mkdtempSync(join(tmpdir(), 'android-setup-')));
@@ -195,6 +195,105 @@ exit 0`
     const result = absent.setup();
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(absent.installed(), /cmdline-tools;latest/);
+  });
+});
+
+// The boot wait against a fake emulator and adb. FAKE_EMULATOR picks what the emulator does: `exit` (fails at once, as
+// without KVM), `hang` (runs but never boots) or `boot`. It records its pid, so a test can check it was stopped.
+describe('android.sh emulator', () => {
+  const dirs = [];
+  const alive = (pid) => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  after(() => {
+    for (const dir of dirs) {
+      const pidFile = join(dir, 'state/pid');
+      if (existsSync(pidFile)) {
+        const pid = Number(readFileSync(pidFile, 'utf8'));
+        if (alive(pid)) process.kill(pid);
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  const boot = (mode, extraEnv = {}) => {
+    const base = realpathSync(mkdtempSync(join(tmpdir(), 'android-emulator-')));
+    dirs.push(base);
+    const state = join(base, 'state');
+    const sdk = join(base, 'sdk');
+    mkdirSync(state);
+    mkdirSync(join(base, 'jdk'));
+    script(join(base, 'bin/java'), 'echo "openjdk version \\"21\\"" >&2');
+    script(
+      join(sdk, 'platform-tools/adb'),
+      `case "$1 $2 $3" in
+  "get-state "*) [ -e "${state}/booted" ] && echo device || exit 1 ;;
+  "shell getprop sys.boot_completed") [ -e "${state}/booted" ] && echo 1 || exit 1 ;;
+  "devices "*) printf 'List of devices attached\\nemulator-5554\\tdevice\\n' ;;
+esac
+exit 0`,
+    );
+    script(
+      join(sdk, 'emulator/emulator'),
+      `case "$1" in
+  -list-avds) echo trainer-hub ;;
+  -accel-check) echo 'accel: KVM (fake) is installed and usable' ;;
+  *) echo $$ >"${state}/pid"
+     case "$FAKE_EMULATOR" in
+       exit) echo 'FATAL | x86_64 emulation currently requires hardware acceleration!'; exit 1 ;;
+       hang) echo 'INFO | booting (fake)'; exec sleep 60 ;;
+       boot) echo 'INFO | booted (fake)'; touch "${state}/booted"; exec sleep 60 ;;
+     esac ;;
+esac`,
+    );
+    const env = {
+      PATH: `${join(base, 'bin')}:${process.env.PATH}`,
+      HOME: join(base, 'home'),
+      ANDROID_HOME: sdk,
+      JAVA_HOME: join(base, 'jdk'),
+      EMULATOR_LOG: join(base, 'emulator.log'),
+      FAKE_EMULATOR: mode,
+      ...extraEnv,
+    };
+    const started = Date.now();
+    const result = spawnSync(join(SCRIPTS, 'android.sh'), ['emulator'], { encoding: 'utf8', env });
+    const pid = existsSync(join(state, 'pid'))
+      ? Number(readFileSync(join(state, 'pid'), 'utf8'))
+      : 0;
+    return { ...result, seconds: (Date.now() - started) / 1000, pid };
+  };
+
+  it('fails at once with the emulator log and the acceleration check when the emulator exits', () => {
+    const result = boot('exit');
+
+    assert.equal(result.status, 1);
+    assert.ok(result.seconds < 10, `took ${result.seconds}s`);
+    assert.match(result.stderr, /the emulator exited while booting/);
+    assert.match(result.stderr, /x86_64 emulation currently requires hardware acceleration/);
+    assert.match(result.stderr, /KVM \(fake\) is installed and usable/);
+  });
+
+  it('gives up after EMULATOR_BOOT_TIMEOUT, shows the log and stops the emulator', () => {
+    const result = boot('hang', { EMULATOR_BOOT_TIMEOUT: '4' });
+
+    assert.equal(result.status, 1);
+    assert.ok(result.seconds < 15, `took ${result.seconds}s`);
+    assert.match(result.stderr, /the emulator didn't boot in 4s/);
+    assert.match(result.stderr, /booting \(fake\)/);
+    assert.ok(result.pid > 0 && !alive(result.pid), 'the emulator was stopped');
+  });
+
+  it('waits for the boot and leaves the emulator running', () => {
+    const result = boot('boot');
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /emulator-5554\tdevice/);
+    assert.ok(alive(result.pid), 'the emulator keeps running for the next steps');
   });
 });
 

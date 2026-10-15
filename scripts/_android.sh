@@ -77,24 +77,46 @@ avd_list() { emulator -list-avds 2>&1 | tail -5 | tr '\n' ' '; }
 
 device_ready() { [ "$(adb get-state 2>/dev/null)" = device ]; }
 
+# Seconds to wait for the emulator to boot (a cold boot on CI's KVM runners takes 1–3 minutes).
+EMULATOR_BOOT_TIMEOUT="${EMULATOR_BOOT_TIMEOUT:-300}"
+EMULATOR_LOG="${EMULATOR_LOG:-$ANDROID_DIR/build/emulator.log}"
+EMULATOR_PID=""
+
+# Fails with what the emulator said, and stops it if this script started it.
+emulator_failed() {
+  {
+    echo "error: $1. Last lines of $EMULATOR_LOG:"
+    tail -n 40 "$EMULATOR_LOG" 2>/dev/null || true
+    echo "emulator -accel-check: $(emulator -accel-check 2>&1 | tr '\n' ' ')"
+  } >&2
+  [ -z "$EMULATOR_PID" ] || kill "$EMULATOR_PID" 2>/dev/null || true
+  exit 1
+}
+
+# Polls instead of `adb wait-for-device`, which waits forever when the emulator never comes up.
 wait_for_boot() {
   local waited=0
-  adb wait-for-device
   until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; do
-    [ "$waited" -lt 600 ] || die "the emulator didn't finish booting in 10 minutes"
+    if [ -n "$EMULATOR_PID" ] && ! kill -0 "$EMULATOR_PID" 2>/dev/null; then
+      emulator_failed "the emulator exited while booting"
+    fi
+    [ "$waited" -lt "$EMULATOR_BOOT_TIMEOUT" ] || emulator_failed "the emulator didn't boot in ${EMULATOR_BOOT_TIMEOUT}s"
     sleep 2; waited=$((waited + 2))
   done
 }
 
 # Boots the AVD headless unless a device is already connected. Sets EMULATOR_STARTED so the caller can stop it.
+# The flags are those of ReactiveCircus/android-emulator-runner on the same runners, plus `-accel on`: without
+# hardware acceleration (KVM, or Hypervisor.Framework on macOS) the emulator fails at once instead of crawling.
 EMULATOR_STARTED=false
 start_emulator() {
   if device_ready; then return; fi
   avd_exists || die "no emulator '$AVD_NAME' in $ANDROID_AVD_HOME (emulator -list-avds: $(avd_list)) — run scripts/bootstrap.sh --mobile"
-  mkdir -p "$ANDROID_DIR/build"
-  echo "Starting emulator $AVD_NAME (log: apps/android/build/emulator.log)"
-  emulator -avd "$AVD_NAME" -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect \
-    -camera-back none -camera-front none >"$ANDROID_DIR/build/emulator.log" 2>&1 &
+  mkdir -p "$(dirname "$EMULATOR_LOG")"
+  echo "Starting emulator $AVD_NAME (log: $EMULATOR_LOG, boot timeout ${EMULATOR_BOOT_TIMEOUT}s)"
+  emulator -avd "$AVD_NAME" -no-window -no-audio -no-boot-anim -no-snapshot -no-metrics -accel on \
+    -gpu swiftshader_indirect -camera-back none -camera-front none >"$EMULATOR_LOG" 2>&1 &
+  EMULATOR_PID=$!
   EMULATOR_STARTED=true
   wait_for_boot
   # Animations make UI tests slow and flaky.

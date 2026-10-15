@@ -11,6 +11,8 @@ pnpm test:maestro               # the local stack + e2e/maestro flows on the emu
 scripts/android.sh emulator     # boot the emulator and leave it running for repeated runs
 ```
 
+The scripts give the emulator `EMULATOR_BOOT_TIMEOUT` seconds to boot (default 300). If it exits or doesn't boot in time, they fail with the end of `build/emulator.log` and the emulator's acceleration check.
+
 To try the app against your local web server (`pnpm dev`, port 3000), run `./gradlew installDebug` from this folder with the emulator running. Commands are in `TESTING.md §7.1`.
 
 ## Layout
