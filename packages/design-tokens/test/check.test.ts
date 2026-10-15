@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { webOutputs } from '../src/build.ts';
+import { kotlinOutputs, swiftOutputs, webOutputs } from '../src/build.ts';
 import { sourceFiles, type TokenTree } from '../src/source.ts';
 import { withoutToken, withValue } from './tokens.ts';
 
@@ -17,7 +17,7 @@ describe('E007 design tokens check (what `pnpm check` runs)', () => {
   beforeEach(async () => {
     await mkdir(scratchDir, { recursive: true });
     root = await mkdtemp(path.join(scratchDir, 'check-'));
-    for (const dir of ['tokens', 'generated']) {
+    for (const dir of ['tokens', 'generated', 'swift', 'kotlin']) {
       await cp(path.join(packageRoot, dir), path.join(root, dir), { recursive: true });
     }
   });
@@ -58,8 +58,10 @@ describe('E007 design tokens check (what `pnpm check` runs)', () => {
     );
 
     const stale = await run('check');
-    expect(stale.output).toContain('✗ design-tokens generated: 2 problem(s)');
+    expect(stale.output).toContain('✗ design-tokens generated: 4 problem(s)');
     expect(stale.output).toContain(`${webOutputs.tokens} is out of date`);
+    expect(stale.output).toContain(`${swiftOutputs.colors} is out of date`);
+    expect(stale.output).toContain(`${kotlinOutputs.colors} is out of date`);
     expect(stale.output).toContain('Run `pnpm --filter @trainer-hub/design-tokens generate`');
     expect(stale.output).not.toContain(`${webOutputs.shadcn} is out of date`);
     expect(stale.code).toBe(1);
@@ -75,11 +77,16 @@ describe('E007 design tokens check (what `pnpm check` runs)', () => {
     await writeFile(theme, (await readFile(theme, 'utf8')).replace('--radius)', '--radius) '));
     await rm(path.join(root, webOutputs.shadcn));
     await writeFile(path.join(root, 'generated/web/old.css'), '');
+    await rm(path.join(root, swiftOutputs.colors));
+    const kotlinStray = `${path.dirname(kotlinOutputs.colors)}/Old.kt`;
+    await writeFile(path.join(root, kotlinStray), '');
 
     const { code, output } = await run('check', 'generated');
     expect(output).toContain(`${webOutputs.theme} is out of date`);
     expect(output).toContain(`${webOutputs.shadcn} is missing`);
     expect(output).toContain('generated/web/old.css is not produced by the build; delete it');
+    expect(output).toContain(`${swiftOutputs.colors} is missing`);
+    expect(output).toContain(`${kotlinStray} is not produced by the build; delete it`);
     expect(code).toBe(1);
   });
 

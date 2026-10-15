@@ -1,7 +1,13 @@
 import path from 'node:path';
 import { compile } from 'tailwindcss';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { renderOutputs, shadcnColours, webOutputs } from '../src/build.ts';
+import {
+  kotlinOutputs,
+  renderOutputs,
+  shadcnColours,
+  swiftOutputs,
+  webOutputs,
+} from '../src/build.ts';
 import {
   readTokenSource,
   semanticColours,
@@ -9,13 +15,14 @@ import {
   TokenSourceError,
 } from '../src/source.ts';
 import { customProperties, resolveVar } from './css.ts';
+import { kotlinColours, nativeName, swiftColours } from './native.ts';
 import { withoutToken } from './tokens.ts';
 
 const packageRoot = path.resolve(import.meta.dirname, '..');
 const hex = /^#[0-9a-f]{6}$/i;
 const cssName = (tokenPath: string) => `--th-${tokenPath.replaceAll('.', '-')}`;
 
-describe('E007 design tokens build (web)', () => {
+describe('E007 design tokens build', () => {
   let source: TokenSource;
   let outputs: Map<string, string>;
   const output = (file: string) => outputs.get(file) ?? '';
@@ -25,8 +32,35 @@ describe('E007 design tokens build (web)', () => {
     outputs = await renderOutputs(source);
   });
 
-  it('AC1: generates CSS, Tailwind theme and shadcn variables', () => {
-    expect([...outputs.keys()].sort()).toEqual(Object.values(webOutputs).sort());
+  it('AC1: generates CSS, Tailwind theme, Swift and Kotlin with light and dark for every semantic colour', () => {
+    expect([...outputs.keys()].sort()).toEqual(
+      [
+        ...Object.values(webOutputs),
+        ...Object.values(swiftOutputs),
+        ...Object.values(kotlinOutputs),
+      ].sort(),
+    );
+
+    const swift = swiftColours(output(swiftOutputs.colors));
+    const kotlin = kotlinColours(output(kotlinOutputs.colors));
+    const { light, dark } = customProperties(output(webOutputs.tokens));
+    const colours = semanticColours(source);
+    expect(swift.size).toBe(colours.length);
+    expect(kotlin.light.size).toBe(colours.length);
+    expect(kotlin.dark.size).toBe(colours.length);
+    for (const colour of colours) {
+      const name = nativeName(colour);
+      const expected = {
+        light: light.get(cssName(colour))?.toUpperCase(),
+        dark: dark.get(cssName(colour))?.toUpperCase(),
+      };
+      expect(swift.get(name), `Swift ${colour}`).toEqual(expected);
+      expect(kotlin.light.get(name), `Kotlin ${colour} light`).toBe(expected.light);
+      expect(kotlin.dark.get(name), `Kotlin ${colour} dark`).toBe(expected.dark);
+    }
+    // M0 draft values, resolved through the palette in each mode.
+    expect(swift.get('actionPrimaryBgPressed')).toEqual({ light: '#49427F', dark: '#D2CDF2' });
+    expect(kotlin.dark.get('bgCanvas')).toBe('#242428');
   });
 
   it('AC1: CSS variables have a light and a dark value for every semantic colour', () => {

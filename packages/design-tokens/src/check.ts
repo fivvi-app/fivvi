@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { generatedDir, renderOutputs } from './build.ts';
+import { nativeDirs } from './native.ts';
 import { contrastResults, describeFailure } from './contrast.ts';
 import { readTokenSource, type TokenSource, TokenSourceError } from './source.ts';
 
@@ -14,7 +15,10 @@ export interface CheckResult {
   summary: string;
 }
 
-/** Files under `generated/` that differ from what the build would write, are missing, or shouldn't exist. */
+/** Directories whose every file the build writes: the web outputs and the native sources. */
+const ownedDirs = [generatedDir, ...nativeDirs];
+
+/** Generated files that differ from what the build would write, are missing, or shouldn't exist. */
 export async function staleOutputs(root: string, expected: Map<string, string>): Promise<string[]> {
   const stale: string[] = [];
   for (const [file, content] of expected) {
@@ -22,11 +26,12 @@ export async function staleOutputs(root: string, expected: Map<string, string>):
     if (actual === undefined) stale.push(`${file} is missing`);
     else if (actual !== content) stale.push(`${file} is out of date`);
   }
-  const existing = await readdir(path.join(root, generatedDir), {
-    recursive: true,
-    withFileTypes: true,
-  }).catch(() => []);
-  for (const entry of existing) {
+  const existing = await Promise.all(
+    ownedDirs.map((dir) =>
+      readdir(path.join(root, dir), { recursive: true, withFileTypes: true }).catch(() => []),
+    ),
+  );
+  for (const entry of existing.flat()) {
     if (!entry.isFile()) continue;
     const file = path
       .relative(root, path.join(entry.parentPath, entry.name))
@@ -51,7 +56,8 @@ async function attempt<T>(step: () => Promise<T>): Promise<Outcome<T>> {
 
 /**
  * The guardrails of ADR-015, run by `pnpm check` (turbo):
- * - `generated`: the build regenerates every output in memory; each committed file must match.
+ * - `generated`: the build regenerates every output (web, Swift, Kotlin) in memory; each committed
+ *   file must match.
  * - `contrast`: every declared pair meets its WCAG minimum in light and dark mode.
  */
 export async function runChecks(
