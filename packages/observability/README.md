@@ -1,6 +1,6 @@
 # @trainer-hub/observability
 
-Error reporting to Sentry (EU region) for the API, the cron job and the web app's server and browser, plus the web build's source map upload, and cookieless page views to PostHog EU (E009, ADR-013). The only code in the repo that imports `@sentry/*` or `posthog-js`; a Biome rule in the root `biome.json` enforces that. What is captured and the scrubbing rules: [docs/engineering/OBSERVABILITY.md](../../docs/engineering/OBSERVABILITY.md).
+Error reporting to Sentry (EU region) for the API, the cron job and the web app's server and browser, plus the web build's source map upload; server product events and cookieless web page views to PostHog EU (E009, ADR-013). The only code in the repo that imports `@sentry/*`, `posthog-node` or `posthog-js`; a Biome rule in the root `biome.json` enforces that. What is captured and the scrubbing rules: [docs/engineering/OBSERVABILITY.md](../../docs/engineering/OBSERVABILITY.md).
 
 ```ts
 import { createErrorReporter } from '@trainer-hub/observability';
@@ -37,8 +37,25 @@ if (key) void capturePageView(key); // loads posthog-js on the first call
 | `src/client-options.ts` | The options every Sentry client shares (tags, scrubber, no SDK data collection) |
 | `src/request-error.ts` | `createRequestErrorHandler()`: Next.js's `onRequestError` for the web server |
 | `src/browser.ts` | `initBrowserErrorReporting()` (export `./browser`): the browser client, errors only |
-| `src/page-views.ts` | `capturePageView()` and `readPageViewsConfig()` (export `./page-views`): cookieless PostHog page views with the path only; `scrubPageView()`, its `before_send` allowlist |
+| `src/page-views.ts` | `capturePageView()` and `readPageViewsConfig()` (export `./page-views`): cookieless PostHog page views with the path only ([OBSERVABILITY.md §5](../../docs/engineering/OBSERVABILITY.md#5-page-views)); `scrubPageView()`, its `before_send` allowlist |
 | `src/source-maps.ts` | `publishSourceMaps()` (export `./source-maps`): uploads the web app's source maps with `sentry-cli`, then deletes them |
 | `src/scrub.ts` | The scrubber: an allowlist applied in `beforeSend` and `beforeBreadcrumb`; `NO_DATA_COLLECTION` for the SDK |
 | `src/transport.ts` | Posts envelopes to Sentry with `fetch` |
 | `src/capture.ts` | Capture transport for tests: keeps the events that would be sent |
+| `src/catalog.ts` | The product event catalog: the only events `track()` accepts |
+| `src/event-schema.ts` | `property` and `defineCatalog()`: UUIDs, enums, booleans, numbers and ISO dates only |
+| `src/product-events.ts` | `createProductEvents()`: `track()` and `flush()` to PostHog EU |
+| `src/product-event-capture.ts` | Capture transport for tests: keeps the product events PostHog would receive |
+
+Product events go to PostHog EU from server code, only from the catalog ([OBSERVABILITY.md §4](../../docs/engineering/OBSERVABILITY.md#4-product-events)).
+
+```ts
+import { createProductEvents } from '@trainer-hub/observability';
+
+const productEvents = createProductEvents({ errorReporter }); // POSTHOG_KEY, RAILWAY_ENVIRONMENT_NAME
+
+productEvents.track({ event: 'booking_confirmed', distinctId: userId, properties: { booking_id } });
+await productEvents.flush(); // once per request; the API does this for every route
+```
+
+Without `POSTHOG_KEY`, events are still checked but nothing is sent.

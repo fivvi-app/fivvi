@@ -18,6 +18,11 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
       return undefined;
     },
   });
+  // After the response is ready, so a route's product events leave before the request ends.
+  app.use(async (_c, next) => {
+    await next();
+    await dependencies.productEvents.flush();
+  });
   app.onError((error, c) => {
     if (error instanceof HTTPException) return error.getResponse();
     // The same generic 500 as Hono's default: no stack trace, no internal message.

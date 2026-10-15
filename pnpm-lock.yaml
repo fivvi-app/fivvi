@@ -236,6 +236,9 @@ catalogs:
     posthog-js:
       specifier: ^1.438.10
       version: 1.438.10
+    posthog-node:
+      specifier: ^5.56.1
+      version: 5.56.1
     radix-ui:
       specifier: ^1.8.1
       version: 1.8.1
@@ -586,6 +589,12 @@ importers:
       posthog-js:
         specifier: 'catalog:'
         version: 1.438.10(@types/react@19.3.0)(react@19.3.0)
+      posthog-node:
+        specifier: 'catalog:'
+        version: 5.56.1
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.5
     devDependencies:
       '@biomejs/biome':
         specifier: 'catalog:'
@@ -1809,6 +1818,9 @@ packages:
 
   '@posthog/browser-common@0.9.5':
     resolution: {integrity: sha512-oXnBgZvM8UQ84IcBLfGP0WSGd9rA0PCGR37H8Pw0NszJRwxwbJnFXIUih0pvI/ze2eGmzkIEC9i3SwC+bMAgjQ==}
+
+  '@posthog/core@1.59.0':
+    resolution: {integrity: sha512-KRq26v5fXYnwV5wqTAXzPyQLCrBzzhK78QRl7UyEaPFZ4RPmVo1pBObRDbK350ah+8hTfQPanu5mM8c4CaSn5g==}
 
   '@posthog/core@1.59.1':
     resolution: {integrity: sha512-P39YgzQVDh6oz6wAzQXEnoHgTYpM7gifonmVKq1scAJco79h31XmmNVurRq9tTmmyIrr1uX8FHT0riCsyfV9AQ==}
@@ -4300,6 +4312,18 @@ packages:
       react:
         optional: true
 
+  posthog-node@5.56.1:
+    resolution: {integrity: sha512-TlEeE5OHNbsIje/htLwvmxN45/X0FcMSsln15cHdQqybUGj9Ebd0yyziWec0Fi5YQwMHYCfJPcNdgol/s1lIFA==}
+    engines: {node: ^20.20.0 || >=22.22.0}
+    peerDependencies:
+      '@opentelemetry/api': ^1.2.0
+      rxjs: ^7.0.0
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+      rxjs:
+        optional: true
+
   preact@10.29.8:
     resolution: {integrity: sha512-ej2aVZ+vZ8WO7tvlQWRM9N63A0KzF9q4mWJfDUHgYaIofWY9hu74QdnQrjoPMmZi2/nZ5gN0bJCQF49xQqx09Q==}
     peerDependencies:
@@ -5739,6 +5763,10 @@ snapshots:
   '@posthog/browser-common@0.9.5':
     dependencies:
       '@posthog/core': 1.59.1
+      '@posthog/types': 1.416.0
+
+  '@posthog/core@1.59.0':
+    dependencies:
       '@posthog/types': 1.416.0
 
   '@posthog/core@1.59.1':
@@ -8058,6 +8086,10 @@ snapshots:
       react: 19.3.0
     transitivePeerDependencies:
       - preact-render-to-string
+
+  posthog-node@5.56.1:
+    dependencies:
+      '@posthog/core': 1.59.0
 
   preact@10.29.8: {}
 

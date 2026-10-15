@@ -26,6 +26,8 @@
   "dependencies": {
     "@sentry/browser": "catalog:",
     "@sentry/core": "catalog:",
-    "posthog-js": "catalog:"
+    "posthog-js": "catalog:",
+    "posthog-node": "catalog:",
+    "zod": "catalog:"
   }
 }

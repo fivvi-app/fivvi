@@ -4,7 +4,9 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { Locale } from '../config.ts';
 import { analyze } from './analyze.ts';
+import { androidName, catalogFile, flattenCatalog, readCatalogSet } from './catalog.ts';
 import { runChecks } from './checks.ts';
 import { writeNativeCatalogs } from './generate.ts';
 import { catalogSet } from './testing.ts';
@@ -92,7 +94,10 @@ describe('E005 i18n checks', () => {
 
     beforeEach(async () => {
       root = await mkdtemp(path.join(tmpdir(), 'i18n-check-'));
-      const set = catalogSet({ 'hello.title': 'Welkom' }, { 'hello.title': 'Welcome' });
+      const set = catalogSet(
+        { 'app.name': 'Trainer Hub', 'hello.title': 'Welkom' },
+        { 'app.name': 'Trainer Hub', 'hello.title': 'Welcome' },
+      );
       await writeFile(path.join(root, 'nl-NL.json'), JSON.stringify(set.messages['nl-NL']));
       await writeFile(path.join(root, 'en.json'), JSON.stringify(set.messages.en));
       await writeNativeCatalogs(root);
@@ -101,6 +106,9 @@ describe('E005 i18n checks', () => {
     afterEach(async () => {
       await rm(root, { recursive: true, force: true });
     });
+
+    const writeEn = (messages: unknown) =>
+      writeFile(path.join(root, 'en.json'), JSON.stringify(messages));
 
     it('passes right after generating', async () => {
       const results = await runChecks(root);
@@ -112,12 +120,41 @@ describe('E005 i18n checks', () => {
     });
 
     it('fails when the JSON changed but the native catalogs were not regenerated', async () => {
-      await writeFile(path.join(root, 'en.json'), JSON.stringify({ hello: { title: 'Hello' } }));
+      await writeEn({ app: { name: 'Trainer Hub' }, hello: { title: 'Hello' } });
       const [generated] = await runChecks(root, ['generated']);
       expect(generated?.problems).toEqual([
         'generated/ios/Localizable.xcstrings is out of date',
         'generated/android/values-en/strings.xml is out of date',
         'Run `pnpm --filter @trainer-hub/i18n generate` and commit the result.',
+      ]);
+    });
+
+    it('E008 AC8: fails when app.name changed but InfoPlist.xcstrings was not regenerated', async () => {
+      await writeEn({ app: { name: 'Trainer Hub app' }, hello: { title: 'Welcome' } });
+      const [generated] = await runChecks(root, ['generated']);
+      expect(generated?.problems).toEqual([
+        'generated/ios/Localizable.xcstrings is out of date',
+        'generated/ios/InfoPlist.xcstrings is out of date',
+        'generated/android/values-en/strings.xml is out of date',
+        'Run `pnpm --filter @trainer-hub/i18n generate` and commit the result.',
+      ]);
+    });
+
+    it('E008 AC8: fails when InfoPlist.xcstrings is missing', async () => {
+      await rm(path.join(root, 'generated/ios/InfoPlist.xcstrings'));
+      const [generated] = await runChecks(root, ['generated']);
+      expect(generated?.problems).toContain('generated/ios/InfoPlist.xcstrings is missing');
+    });
+
+    it('E008 AC8: names app.name when it is missing from both locales', async () => {
+      await writeFile(
+        path.join(root, 'nl-NL.json'),
+        JSON.stringify({ hello: { title: 'Welkom' } }),
+      );
+      await writeEn({ hello: { title: 'Welcome' } });
+      const [generated] = await runChecks(root, ['generated']);
+      expect(generated?.problems).toEqual([
+        '"app.name" is missing: it is the native app name (iOS CFBundleDisplayName, Android app label)',
       ]);
     });
 
@@ -188,5 +225,36 @@ describe('E005 i18n checks', () => {
       expect(output).toContain('invalid ICU syntax');
       expect(code).toBe(1);
     });
+  });
+});
+
+describe('E008 hello-screen strings in the committed native catalogs', () => {
+  const keys = ['hello.error', 'common.retry', 'common.loading', 'app.name'];
+  const read = (file: string) => readFile(path.join(packageRoot, file), 'utf8');
+  const source = async (locale: Locale, key: string) => {
+    const set = await readCatalogSet(packageRoot);
+    return flattenCatalog(set.messages[locale], catalogFile(locale)).entries.get(key);
+  };
+
+  it.each(keys)('AC4/AC5/AC8: %s is in Localizable.xcstrings in nl and en', async (key) => {
+    const { localizations } = JSON.parse(await read('generated/ios/Localizable.xcstrings')).strings[
+      key
+    ];
+    expect(localizations.nl.stringUnit.value).toBe(await source('nl-NL', key));
+    expect(localizations.en.stringUnit.value).toBe(await source('en', key));
+  });
+
+  it.each(keys)('AC4/AC5/AC8: %s is in both Android strings.xml files', async (key) => {
+    for (const dir of ['values', 'values-en']) {
+      const file = `generated/android/${dir}/strings.xml`;
+      expect(await read(file), file).toContain(`<string name="${androidName(key)}">`);
+    }
+  });
+
+  it('AC8: InfoPlist.xcstrings gives CFBundleDisplayName the app.name of each language', async () => {
+    const { localizations } = JSON.parse(await read('generated/ios/InfoPlist.xcstrings')).strings
+      .CFBundleDisplayName;
+    expect(localizations.nl.stringUnit.value).toBe(await source('nl-NL', 'app.name'));
+    expect(localizations.en.stringUnit.value).toBe(await source('en', 'app.name'));
   });
 });

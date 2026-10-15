@@ -20,14 +20,13 @@ const FIXTURES = [
 const IMPORTS = [
   "import * as Sentry from '@sentry/node';",
   "import { ServerRuntimeClient } from '@sentry/core/server';",
-];
-// posthog-js, by its package root and by the subpath packages/observability uses.
-const POSTHOG_IMPORTS = [
+  "import { PostHog } from 'posthog-node';",
+  // posthog-js, by its package root and by the subpath packages/observability uses.
   "import posthog from 'posthog-js';",
-  "import { PostHog } from 'posthog-js/dist/module.slim.no-external';",
+  "import { PostHog as PostHogBrowser } from 'posthog-js/dist/module.slim.no-external';",
 ];
 
-type Diagnostic = { category: string; location: { path: string } };
+type Diagnostic = { category: string; location: { path: string; start: { line: number } } };
 let dir: string;
 let diagnostics: Diagnostic[];
 
@@ -52,11 +51,7 @@ beforeAll(async () => {
     await mkdir(path.dirname(path.join(dir, fixture)), { recursive: true });
     await writeFile(
       path.join(dir, fixture),
-      `${IMPORTS.join('\n')}\n\nexport const report = [Sentry, ServerRuntimeClient];\n`,
-    );
-    await writeFile(
-      path.join(dir, fixture.replace('/report.', '/page-views.')),
-      `${POSTHOG_IMPORTS.join('\n')}\n\nexport const pageViews = [posthog, PostHog];\n`,
+      `${IMPORTS.join('\n')}\n\nexport const report = [Sentry, ServerRuntimeClient, PostHog, posthog, PostHogBrowser];\n`,
     );
   }
   const output = await promisify(execFile)(
@@ -71,38 +66,19 @@ afterAll(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
-describe('E009 Sentry SDK boundary', () => {
-  it('fails lint when an app or another package imports the Sentry SDK directly', () => {
-    const flagged = flaggedFiles().filter((file) => file.includes('/report.'));
+describe('E009 SDK boundary', () => {
+  it('fails lint when an app or another package imports the Sentry or a PostHog SDK directly', () => {
+    const flagged = diagnostics
+      .filter((d) => d.category === 'lint/style/noRestrictedImports')
+      .map((d) => `${d.location.path}:${d.location.start.line}`)
+      .sort();
 
-    // Each fixture imports a package root and a subpath: both are flagged.
-    expect(flagged).toEqual([
-      'apps/cron/src/report.ts',
-      'apps/cron/src/report.ts',
-      'apps/web/app/report.tsx',
-      'apps/web/app/report.tsx',
-      'packages/api/src/report.ts',
-      'packages/api/src/report.ts',
-    ]);
+    // Each fixture imports a Sentry package root (line 1) and subpath (2), posthog-node (3), and
+    // a posthog-js package root (4) and subpath (5): each is flagged, only outside this package.
+    expect(flagged).toEqual(
+      ['apps/cron/src/report.ts', 'apps/web/app/report.tsx', 'packages/api/src/report.ts'].flatMap(
+        (file) => [1, 2, 3, 4, 5].map((line) => `${file}:${line}`),
+      ),
+    );
   });
 });
-
-describe('E009 PostHog browser SDK boundary', () => {
-  it('fails lint when an app or another package imports posthog-js directly', () => {
-    expect(flaggedFiles().filter((file) => file.includes('/page-views.'))).toEqual([
-      'apps/cron/src/page-views.ts',
-      'apps/cron/src/page-views.ts',
-      'apps/web/app/page-views.tsx',
-      'apps/web/app/page-views.tsx',
-      'packages/api/src/page-views.ts',
-      'packages/api/src/page-views.ts',
-    ]);
-  });
-});
-
-function flaggedFiles(): string[] {
-  return diagnostics
-    .filter((d) => d.category === 'lint/style/noRestrictedImports')
-    .map((d) => d.location.path)
-    .sort();
-}

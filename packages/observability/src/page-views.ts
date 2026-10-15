@@ -3,11 +3,9 @@ import type {
   PostHog,
   PostHogConfig,
 } from 'posthog-js/dist/module.slim.no-external';
+import { POSTHOG_EU_HOST } from './config.ts';
 
-export { type PageViewsConfig, readPageViewsConfig } from './config.ts';
-
-/** PostHog EU Cloud (Frankfurt). Hard-coded, so page views can never go to another region. */
-export const POSTHOG_EU_HOST = 'https://eu.i.posthog.com';
+export { type PageViewsConfig, POSTHOG_EU_HOST, readPageViewsConfig } from './config.ts';
 
 /**
  * posthog-js without its extensions (autocapture, heatmaps, session recording, surveys, …),

@@ -4,6 +4,12 @@
  */
 export type EnvironmentVariables = Readonly<Record<string, string | undefined>>;
 
+/**
+ * PostHog EU Cloud (Frankfurt), the region in the sub-processor list. Hard-coded for product
+ * events and page views alike, so neither can ever go to another region.
+ */
+export const POSTHOG_EU_HOST = 'https://eu.i.posthog.com';
+
 /** Sentry's `environment` tag. Previews report separately, so their noise never mixes with production. */
 export type ReportingEnvironment = 'production' | 'preview' | 'development';
 

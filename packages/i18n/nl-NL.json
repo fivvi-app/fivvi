@@ -1,6 +1,11 @@
 {
   "app": {
-    "title": "Trainer Hub"
+    "title": "Trainer Hub",
+    "name": "Trainer Hub"
+  },
+  "common": {
+    "loading": "Laden…",
+    "retry": "Opnieuw proberen"
   },
   "hello": {
     "title": "Welkom bij Trainer Hub",
@@ -11,7 +16,8 @@
     "greeting": "Hoi {name},",
     "sessionsToday": "{count, plural, one {Je hebt vandaag # sessie.} other {Je hebt vandaag # sessies.}}",
     "noSessionsToday": "Je hebt vandaag geen sessies.",
-    "nextSession": "Je volgende sessie is op {date} om {time}."
+    "nextSession": "Je volgende sessie is op {date} om {time}.",
+    "error": "We konden de begroeting niet laden. Probeer het opnieuw."
   },
   "notFound": {
     "title": "Pagina niet gevonden",

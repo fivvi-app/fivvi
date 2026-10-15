@@ -40,6 +40,8 @@ catalog:
   pg: ^8.23.0
   # Cookieless web page views (E009). Only packages/observability may import posthog-js (biome.json).
   posthog-js: ^1.438.10
+  # Product events (E009). Only packages/observability may import posthog-node (biome.json).
+  posthog-node: ^5.56.1
   # Radix primitives for the shadcn/ui components in packages/ui (style radix-nova).
   radix-ui: ^1.8.1
   # Exact: the Railway IaC SDK is in beta and may break in minor releases (.railway/).

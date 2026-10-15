@@ -8,7 +8,7 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 |---|---|
 | `apps/web`, `apps/cron` | Next.js web app (mounts the API under `/api`); daily cron job |
 | `packages/api`, `packages/contract` | API routes (zod-openapi); committed `openapi.json` + generated TS/Swift/Kotlin clients |
-| `packages/database`, `packages/i18n`, `packages/email`, `packages/observability`, `packages/testing` | Schema and migrations; the only source of user-facing strings; email; error reporting and page views (the only code that imports Sentry or `posthog-js`); test helpers |
+| `packages/database`, `packages/i18n`, `packages/email`, `packages/observability`, `packages/testing` | Schema and migrations; the only source of user-facing strings; email; error reporting, product events and page views (the only code that imports Sentry, `posthog-node` or `posthog-js`); test helpers |
 | `packages/domain`, `apps/ios`, `apps/android` | Planned: business rules (M2), native apps (E008) |
 | `docs/product/` | `PRODUCT.md` (requirements), `ROADMAP.md` (milestones, decisions), `FEATURES.md` (registry and status) |
 | `docs/engineering/` | `WORKFLOW.md` (flow, Definition of Done), `TESTING.md`, `ENVIRONMENTS.md`, `OBSERVABILITY.md` |

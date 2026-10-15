@@ -52,7 +52,10 @@ export async function runChecks(
           }
         } catch (error) {
           if (!(error instanceof CatalogError)) throw error;
-          problems = ['cannot generate native catalogs until the parity and icu checks pass'];
+          problems =
+            analysis.parity.length + analysis.icu.length > 0
+              ? ['cannot generate native catalogs until the parity and icu checks pass']
+              : error.problems;
         }
         results.push({ name, problems, summary: 'native catalogs are up to date' });
         break;
