@@ -119,7 +119,7 @@ describe('E007 design tokens platform mapping', () => {
     expect(light.get('outline')).toBe(`LightTokenColors.${nativeName('color.border.control')}`);
   });
 
-  it('Material 3 content roles sit on their container as a declared contrast pair', () => {
+  it('AC4: Material 3 content roles sit on their container as a declared contrast pair', () => {
     const light = kotlinArguments(output(kotlinOutputs.colorSchemes), 'LightColorScheme');
     const tokenOf = new Map(
       source.pairs.flatMap((pair) => [pair.fg, pair.bg]).map((token) => [nativeName(token), token]),

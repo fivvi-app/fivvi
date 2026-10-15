@@ -1,4 +1,8 @@
-/** Swift and Kotlin identifier of a token: its path without the group, in lower camel case. */
+/**
+ * Swift and Kotlin identifier of a colour or type style: its path without the group, in lower
+ * camel case (`color.action.primary.bg-pressed` → `actionPrimaryBgPressed`). Spacing and radius
+ * names, which can start with a digit, are asserted as literals instead.
+ */
 export function nativeName(tokenPath: string): string {
   const [, ...rest] = tokenPath.split('.');
   const words = rest.join('-').split('-');

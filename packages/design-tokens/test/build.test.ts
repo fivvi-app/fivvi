@@ -152,7 +152,7 @@ describe('E007 design tokens build', () => {
     expect(css).toMatch(/\.font-sans \{\s*font-family: var\(--th-font-family-text\);/);
   });
 
-  it('generates spacing and radius constants for Swift and Kotlin, and Material 3 shapes', () => {
+  it('AC1: generates spacing and radius constants for Swift and Kotlin, and Material 3 shapes', () => {
     const swift = output(swiftOutputs.layout);
     const swiftValues = (group: string) =>
       new Map(
