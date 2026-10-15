@@ -186,6 +186,7 @@ ${declarations(
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --font-sans: var(${cssVar('font.family.text')});
+  --font-display: var(${cssVar('font.family.display')});
 }
 `;
 }
