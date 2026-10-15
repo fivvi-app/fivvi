@@ -13,6 +13,51 @@ export const swiftOutputs = {
 
 export const kotlinOutputs = {
   colors: `${kotlinDir}/Colors.kt`,
+  colorSchemes: `${kotlinDir}/ColorSchemes.kt`,
+} as const;
+
+/**
+ * Compose Material 3 colour roles and the semantic token each one takes, in light and dark.
+ * Where a token's description names its M3 role, that is the mapping. There is one accent, so
+ * the secondary and tertiary roles are neutral, and every content role (`onX`) sits on its role
+ * as a declared contrast pair. `scrim` keeps Material's black (used with alpha) in both modes.
+ */
+export const materialColours = {
+  primary: 'color.action.primary.bg',
+  onPrimary: 'color.action.primary.fg',
+  primaryContainer: 'color.action.tonal.bg',
+  onPrimaryContainer: 'color.action.tonal.fg',
+  inversePrimary: 'color.text.inverse',
+  secondary: 'color.text.secondary',
+  onSecondary: 'color.bg.surface',
+  secondaryContainer: 'color.action.tonal.bg',
+  onSecondaryContainer: 'color.action.tonal.fg',
+  tertiary: 'color.text.secondary',
+  onTertiary: 'color.bg.surface',
+  tertiaryContainer: 'color.status.neutral.bg',
+  onTertiaryContainer: 'color.status.neutral.fg',
+  background: 'color.bg.canvas',
+  onBackground: 'color.text.primary',
+  surface: 'color.bg.canvas',
+  onSurface: 'color.text.primary',
+  surfaceVariant: 'color.bg.subtle',
+  onSurfaceVariant: 'color.text.secondary',
+  surfaceTint: 'color.bg.canvas',
+  inverseSurface: 'color.bg.inverse',
+  inverseOnSurface: 'color.text.inverse',
+  error: 'color.action.danger.bg',
+  onError: 'color.action.danger.fg',
+  errorContainer: 'color.status.danger.bg',
+  onErrorContainer: 'color.status.danger.fg',
+  outline: 'color.border.control',
+  outlineVariant: 'color.border.default',
+  surfaceBright: 'color.bg.raised',
+  surfaceContainer: 'color.bg.subtle',
+  surfaceContainerHigh: 'color.bg.raised',
+  surfaceContainerHighest: 'color.bg.subtle',
+  surfaceContainerLow: 'color.bg.surface',
+  surfaceContainerLowest: 'color.bg.surface',
+  surfaceDim: 'color.bg.canvas',
 } as const;
 
 /** Directories the native build owns; the stale check reports any other file in them. */
@@ -157,11 +202,38 @@ ${values('dark').join('\n')}
 `;
 }
 
+function renderKotlinColorSchemes({ colours }: NativeInput): string {
+  const known = new Set(colours.light.map((token) => token.path));
+  const roles = (tokenColors: string) =>
+    Object.entries(materialColours).map(([role, token]) => {
+      if (!known.has(token)) throw new TokenSourceError([`${token} is not a semantic colour`]);
+      return `    ${role} = ${tokenColors}.${nativeName(token)},`;
+    });
+  return `${header(kotlinOutputs.colorSchemes)}
+package nl.trainerhub.designtokens
+
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+
+/** Material 3 colours in light mode, mapped from the semantic tokens. \`scrim\` keeps Material's default. */
+val LightColorScheme: ColorScheme = lightColorScheme(
+${roles('LightTokenColors').join('\n')}
+)
+
+/** Material 3 colours in dark mode, mapped from the semantic tokens. \`scrim\` keeps Material's default. */
+val DarkColorScheme: ColorScheme = darkColorScheme(
+${roles('DarkTokenColors').join('\n')}
+)
+`;
+}
+
 /** Every native output, keyed by path relative to the package root. */
 export function renderNativeOutputs(input: NativeInput): [string, string][] {
   return [
     [swiftOutputs.tokens, renderSwiftTokens()],
     [swiftOutputs.colors, renderSwiftColors(input)],
     [kotlinOutputs.colors, renderKotlinColors(input)],
+    [kotlinOutputs.colorSchemes, renderKotlinColorSchemes(input)],
   ];
 }

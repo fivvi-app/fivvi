@@ -21,7 +21,7 @@ export const webOutputs = {
   theme: 'generated/web/theme.css',
 } as const;
 
-export { kotlinOutputs, swiftOutputs } from './native.ts';
+export { kotlinOutputs, materialColours, swiftOutputs } from './native.ts';
 
 export const generatedDir = 'generated';
 
