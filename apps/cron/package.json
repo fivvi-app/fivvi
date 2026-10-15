@@ -12,7 +12,8 @@
     "format:check": "biome format ."
   },
   "dependencies": {
-    "@trainer-hub/database": "workspace:*"
+    "@trainer-hub/database": "workspace:*",
+    "@trainer-hub/observability": "workspace:*"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

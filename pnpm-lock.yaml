@@ -179,6 +179,9 @@ catalogs:
     '@playwright/test':
       specifier: 1.63.0
       version: 1.63.0
+    '@sentry/core':
+      specifier: ^11.7.0
+      version: 11.7.0
     '@types/node':
       specifier: ^26.6.2
       version: 26.6.2
@@ -271,6 +274,9 @@ importers:
       '@trainer-hub/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@trainer-hub/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
     devDependencies:
       '@biomejs/biome':
         specifier: 'catalog:'
@@ -299,6 +305,9 @@ importers:
       '@trainer-hub/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@trainer-hub/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       next:
         specifier: 'catalog:'
         version: 16.3.6(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.63.0)(@types/node@26.6.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -348,6 +357,9 @@ importers:
       '@trainer-hub/i18n':
         specifier: workspace:*
         version: link:../i18n
+      '@trainer-hub/observability':
+        specifier: workspace:*
+        version: link:../observability
       hono:
         specifier: 'catalog:'
         version: 4.13.10
@@ -517,6 +529,28 @@ importers:
       '@formatjs/icu-messageformat-parser':
         specifier: 'catalog:'
         version: 3.5.20
+      '@trainer-hub/testing':
+        specifier: workspace:*
+        version: link:../testing
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.2
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.1(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2))
+
+  packages/observability:
+    dependencies:
+      '@sentry/core':
+        specifier: 'catalog:'
+        version: 11.7.0
+    devDependencies:
+      '@biomejs/biome':
+        specifier: 'catalog:'
+        version: 2.5.14
       '@trainer-hub/testing':
         specifier: workspace:*
         version: link:../testing
@@ -1784,6 +1818,14 @@ packages:
 
   '@selderee/plugin-htmlparser2@0.11.0':
     resolution: {integrity: sha512-P33hHGdldxGabLFjPPpaTxVolMrzrcegejx+0GxjrIb9Zv48D8yAIA/QTDR2dFl7Uz7urX8aX6+5bCZslr+gWQ==}
+
+  '@sentry/conventions@0.27.0':
+    resolution: {integrity: sha512-Mrqd/o7n/z7qWSYfQQA7x4fFTA0IqOG6JNsbBpnC97khPwZk7n6DPtOO7YgaYplSl8R8QLRbBz9Xv2lVhToSAg==}
+    engines: {node: '>=14'}
+
+  '@sentry/core@11.7.0':
+    resolution: {integrity: sha512-jhnI/RHpZoe32ouzbdcR2K42bzVuSfCl8SlOe0VcDxrU/KtNi99hFzjrRBDnft9ozpa4I7xjoN+s+8xihVKtww==}
+    engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
   '@socket.io/component-emitter@3.1.2':
     resolution: {integrity: sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==}
@@ -4562,6 +4604,12 @@ snapshots:
     dependencies:
       domhandler: 5.0.3
       selderee: 0.11.0
+
+  '@sentry/conventions@0.27.0': {}
+
+  '@sentry/core@11.7.0':
+    dependencies:
+      '@sentry/conventions': 0.27.0
 
   '@socket.io/component-emitter@3.1.2': {}
 

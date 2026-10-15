@@ -13,7 +13,12 @@ const nextConfig: NextConfig = {
   // Trace files from the monorepo root, so workspace packages end up in the standalone output.
   outputFileTracingRoot: fileURLToPath(new URL('../..', import.meta.url)),
   // Workspace packages ship TypeScript source.
-  transpilePackages: ['@trainer-hub/api', '@trainer-hub/database', '@trainer-hub/i18n'],
+  transpilePackages: [
+    '@trainer-hub/api',
+    '@trainer-hub/database',
+    '@trainer-hub/i18n',
+    '@trainer-hub/observability',
+  ],
 };
 
 export default withNextIntl(nextConfig);

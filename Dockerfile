@@ -38,6 +38,7 @@ WORKDIR /app
 COPY --from=web /repo/apps/web/.next/standalone ./web/
 COPY --from=ops /repo/node_modules ./ops/node_modules/
 COPY --from=ops /repo/packages/database ./ops/packages/database/
+COPY --from=ops /repo/packages/observability ./ops/packages/observability/
 COPY --from=ops /repo/apps/cron ./ops/apps/cron/
 USER node
 EXPOSE 3000
