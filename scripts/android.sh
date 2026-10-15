@@ -36,28 +36,33 @@ find_sdkmanager() {
 }
 
 setup_sdk() {
-  local home sdkmanager image
+  local home sdkmanager image tools="" had_home="${ANDROID_HOME:-}"
   home="$(android_home)"
   sdkmanager="$(find_sdkmanager "$home")" || {
     missing "the Android SDK command-line tools — install them: brew install --cask android-commandlinetools (macOS), or Android Studio"
     return 1
   }
+  # Reinstalling over an existing cmdline-tools;latest only adds a latest-2 copy next to it.
+  [ -x "$home/cmdline-tools/latest/bin/avdmanager" ] || tools="cmdline-tools;latest"
   image="$(system_image)"
-  mkdir -p "$home"
-  echo "Android SDK in $home"
+  ANDROID_AVD_HOME="$(android_avd_home)"
+  export ANDROID_HOME="$home" ANDROID_AVD_HOME PATH="$home/emulator:$PATH"
+  mkdir -p "$home" "$ANDROID_AVD_HOME"
+  echo "Android SDK in $home, emulators in $ANDROID_AVD_HOME"
   yes | "$sdkmanager" --sdk_root="$home" --licenses >/dev/null 2>&1 || true
-  # shellcheck disable=SC2086 # SDK_PACKAGES is a space-separated list of package ids without spaces
-  "$sdkmanager" --sdk_root="$home" "cmdline-tools;latest" $SDK_PACKAGES "$image" >/dev/null || {
-    missing "Android SDK packages: cmdline-tools;latest $SDK_PACKAGES $image"
+  # shellcheck disable=SC2086 # tools and SDK_PACKAGES are space-separated package ids without spaces
+  "$sdkmanager" --sdk_root="$home" $tools $SDK_PACKAGES "$image" >/dev/null || {
+    missing "Android SDK packages: $tools $SDK_PACKAGES $image"
     return 1
   }
-  if ! "$home/emulator/emulator" -list-avds 2>/dev/null | grep -qx "$AVD_NAME"; then
-    echo no | ANDROID_HOME="$home" "$home/cmdline-tools/latest/bin/avdmanager" create avd \
+  if ! avd_exists; then
+    echo no | "$home/cmdline-tools/latest/bin/avdmanager" create avd \
       --name "$AVD_NAME" --package "$image" --device pixel_7 >/dev/null \
       || { missing "the emulator '$AVD_NAME' (avdmanager create avd)"; return 1; }
+    avd_exists || { missing "the emulator '$AVD_NAME': created, but the emulator can't find it in $ANDROID_AVD_HOME (emulator -list-avds: $(avd_list))"; return 1; }
   fi
   echo "✓ Android SDK, emulator '$AVD_NAME' ($image)"
-  [ -n "${ANDROID_HOME:-}" ] || echo "  Add to your shell profile: export ANDROID_HOME=\"$home\""
+  [ -n "$had_home" ] || echo "  Add to your shell profile: export ANDROID_HOME=\"$home\""
 }
 
 install_maestro() {

@@ -97,6 +97,75 @@ describe('usage', () => {
   });
 });
 
+// A fake Android SDK whose tools find AVDs the way the real ones do: avdmanager (cmdline-tools) in ANDROID_AVD_HOME or
+// ~/.android/avd, the emulator in ANDROID_AVD_HOME or, when XDG_CONFIG_HOME is set (GitHub's Ubuntu runners), under it.
+describe('android.sh setup', () => {
+  let base;
+  let env;
+
+  const script = (path, body) => {
+    mkdirSync(join(path, '..'), { recursive: true });
+    writeFileSync(path, `#!/usr/bin/env bash\n${body}\n`);
+    chmodSync(path, 0o755);
+  };
+
+  before(() => {
+    base = realpathSync(mkdtempSync(join(tmpdir(), 'android-setup-')));
+    const home = join(base, 'home');
+    const sdk = join(base, 'sdk');
+    mkdirSync(join(sdk, 'platform-tools'), { recursive: true });
+    mkdirSync(join(base, 'jdk'));
+    script(join(sdk, 'cmdline-tools/latest/bin/sdkmanager'), 'exit 0');
+    script(
+      join(sdk, 'cmdline-tools/latest/bin/avdmanager'),
+      `dir="\${ANDROID_AVD_HOME:-$HOME/.android/avd}"
+while [ $# -gt 0 ]; do [ "$1" = --name ] && name="$2"; shift; done
+mkdir -p "$dir/$name.avd" && touch "$dir/$name.ini"`,
+    );
+    script(
+      join(sdk, 'emulator/emulator'),
+      `dir="\${ANDROID_AVD_HOME:-\${XDG_CONFIG_HOME:+$XDG_CONFIG_HOME/.android/avd}}"
+[ "$1" = -list-avds ] && for f in "\${dir:-$HOME/.android/avd}"/*.ini; do [ -e "$f" ] && basename "$f" .ini; done
+exit 0`,
+    );
+    script(join(base, 'bin/java'), 'echo "openjdk version \\"21\\"" >&2');
+    script(join(home, '.maestro/bin/maestro'), 'echo 2.11.0');
+    env = {
+      PATH: `${join(base, 'bin')}:${process.env.PATH}`,
+      HOME: home,
+      XDG_CONFIG_HOME: join(home, '.config'),
+      ANDROID_HOME: sdk,
+      JAVA_HOME: join(base, 'jdk'),
+    };
+  });
+
+  after(() => rmSync(base, { recursive: true, force: true }));
+
+  it('creates an AVD that the emulator finds in later steps, also with XDG_CONFIG_HOME set', () => {
+    const setup = spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], { encoding: 'utf8', env });
+    assert.equal(setup.status, 0, setup.stdout + setup.stderr);
+
+    const found = spawnSync(
+      'bash',
+      [
+        '-c',
+        `source "${SCRIPTS}/_lib.sh"; source "${SCRIPTS}/_android.sh"; android_env; avd_exists`,
+      ],
+      { encoding: 'utf8', env },
+    );
+    assert.equal(found.status, 0, found.stdout + found.stderr);
+  });
+
+  it('fails when the emulator still cannot find the AVD it created', () => {
+    script(join(env.ANDROID_HOME, 'emulator/emulator'), 'exit 0');
+
+    const setup = spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], { encoding: 'utf8', env });
+
+    assert.equal(setup.status, 1);
+    assert.match(setup.stdout, /created, but the emulator can't find it/);
+  });
+});
+
 describe('commit-msg hook', () => {
   const hook = join(SCRIPTS, '../.githooks/commit-msg');
   const run = (message) => {

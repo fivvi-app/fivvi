@@ -20,6 +20,10 @@ android_home() {
   fi
 }
 
+# avdmanager keeps AVDs in ~/.android/avd, but the emulator looks under XDG_CONFIG_HOME when that is set, as on GitHub's
+# Ubuntu runners. Both get this location.
+android_avd_home() { echo "${ANDROID_AVD_HOME:-$HOME/.android/avd}"; }
+
 system_image() {
   local abi=x86_64
   case "$(uname -m)" in arm64|aarch64) abi=arm64-v8a ;; esac
@@ -33,7 +37,7 @@ java_trust_keychain() {
   local dir="$HOME/.config/trainer-hub" store cacerts certs f
   store="$dir/java-cacerts"
   if [ ! -s "$store" ] || [ /Library/Keychains/System.keychain -nt "$store" ]; then
-    cacerts="$(find -L "$JAVA_HOME" -path '*/lib/security/cacerts' | head -1)"
+    cacerts="$(find -L "$JAVA_HOME" -path '*/lib/security/cacerts' 2>/dev/null | head -1 || true)"
     [ -n "$cacerts" ] || return 0
     certs="$dir/keychain-certs"
     rm -rf "$certs" && mkdir -p "$certs"
@@ -59,11 +63,17 @@ android_env() {
   java_trust_keychain
   ANDROID_HOME="$(android_home)"
   [ -d "$ANDROID_HOME/platform-tools" ] || die "no Android SDK in $ANDROID_HOME — run scripts/bootstrap.sh --mobile"
-  export ANDROID_HOME
+  ANDROID_AVD_HOME="$(android_avd_home)"
+  export ANDROID_HOME ANDROID_AVD_HOME
   export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$ANDROID_HOME/cmdline-tools/latest/bin:$MAESTRO_HOME/bin:$PATH"
 }
 
 gradle() { (cd "$ANDROID_DIR" && ./gradlew --console=plain "$@"); }
+
+avd_exists() { emulator -list-avds 2>/dev/null | grep -qx "$AVD_NAME"; }
+
+# What the emulator itself says, for the error when it can't find the AVD.
+avd_list() { emulator -list-avds 2>&1 | tail -5 | tr '\n' ' '; }
 
 device_ready() { [ "$(adb get-state 2>/dev/null)" = device ]; }
 
@@ -80,7 +90,7 @@ wait_for_boot() {
 EMULATOR_STARTED=false
 start_emulator() {
   if device_ready; then return; fi
-  emulator -list-avds 2>/dev/null | grep -qx "$AVD_NAME" || die "no emulator '$AVD_NAME' — run scripts/bootstrap.sh --mobile"
+  avd_exists || die "no emulator '$AVD_NAME' in $ANDROID_AVD_HOME (emulator -list-avds: $(avd_list)) — run scripts/bootstrap.sh --mobile"
   mkdir -p "$ANDROID_DIR/build"
   echo "Starting emulator $AVD_NAME (log: apps/android/build/emulator.log)"
   emulator -avd "$AVD_NAME" -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect \
