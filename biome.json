@@ -14,7 +14,8 @@
       "!**/next-env.d.ts",
       "!**/migrations",
       "!packages/contract/openapi.json",
-      "!packages/contract/src/generated"
+      "!packages/contract/src/generated",
+      "!packages/design-tokens/generated"
     ]
   },
   "formatter": {

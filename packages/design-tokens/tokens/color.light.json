@@ -1,0 +1,171 @@
+{
+  "$description": "Semantic colours (tier 2), light mode. The default values; color.dark.json overrides every one of them for dark mode.",
+  "color": {
+    "bg": {
+      "$type": "color",
+      "canvas": {
+        "$value": "{color.base.neutral.25}",
+        "$description": "App/page background. iOS: systemGroupedBackground role. M3: surface."
+      },
+      "surface": {
+        "$value": "{color.base.white}",
+        "$description": "Cards, list rows, inputs. iOS: secondarySystemGroupedBackground. M3: surfaceContainerLowest."
+      },
+      "raised": {
+        "$value": "{color.base.white}",
+        "$description": "Sheets, dialogs, menus. iOS: sheet material. M3: surfaceContainerHigh."
+      },
+      "subtle": {
+        "$value": "{color.base.neutral.50}",
+        "$description": "Quiet fills: segmented tracks, table stripes, read-only fields. M3: surfaceContainer."
+      },
+      "inverse": {
+        "$value": "{color.base.neutral.900}",
+        "$description": "Toasts/snackbars."
+      }
+    },
+    "text": {
+      "$type": "color",
+      "primary": {
+        "$value": "{color.base.neutral.900}"
+      },
+      "secondary": {
+        "$value": "{color.base.neutral.600}",
+        "$description": "Meta lines (workspace, location). Must still pass 4.5:1 on canvas and surface."
+      },
+      "tertiary": {
+        "$value": "{color.base.neutral.500}",
+        "$description": "Placeholders and hints. Still AA (4.5:1) on surface: placeholders are real text."
+      },
+      "inverse": {
+        "$value": "{color.base.neutral.25}"
+      },
+      "link": {
+        "$value": "{color.base.neutral.800}"
+      }
+    },
+    "border": {
+      "$type": "color",
+      "default": {
+        "$value": "{color.base.neutral.100}",
+        "$description": "Decorative separators only (hairlines between rows). Not used for control boundaries."
+      },
+      "control": {
+        "$value": "{color.base.neutral.400}",
+        "$description": "Input and control outlines: 3:1 non-text contrast (WCAG 1.4.11)."
+      },
+      "focus": {
+        "$value": "{color.base.neutral.600}",
+        "$description": "Focus ring, 2px + 2px offset on web. Native uses the platform focus system."
+      }
+    },
+    "action": {
+      "$type": "color",
+      "primary": {
+        "bg": {
+          "$value": "#595299",
+          "$description": "Filled buttons. iOS: app tint/accentColor. M3: primary."
+        },
+        "bg-pressed": {
+          "$value": "#49427F"
+        },
+        "fg": {
+          "$value": "{color.base.white}",
+          "$description": "M3: onPrimary."
+        }
+      },
+      "tonal": {
+        "bg": {
+          "$value": "{color.base.neutral.50}",
+          "$description": "Secondary/tonal buttons, selected chips, selected tab indicator. M3: secondaryContainer."
+        },
+        "fg": {
+          "$value": "{color.base.neutral.900}",
+          "$description": "M3: onSecondaryContainer."
+        }
+      },
+      "danger": {
+        "bg": {
+          "$value": "{color.base.red.700}",
+          "$description": "Destructive confirm (cancel class). iOS: role .destructive. M3: error."
+        },
+        "fg": {
+          "$value": "{color.base.white}"
+        }
+      }
+    },
+    "status": {
+      "$type": "color",
+      "success": {
+        "fg": {
+          "$value": "{color.base.green.700}"
+        },
+        "bg": {
+          "$value": "{color.base.green.50}"
+        }
+      },
+      "warning": {
+        "fg": {
+          "$value": "{color.base.amber.700}"
+        },
+        "bg": {
+          "$value": "{color.base.amber.50}"
+        }
+      },
+      "danger": {
+        "fg": {
+          "$value": "{color.base.red.700}"
+        },
+        "bg": {
+          "$value": "{color.base.red.50}"
+        }
+      },
+      "neutral": {
+        "fg": {
+          "$value": "{color.base.neutral.700}"
+        },
+        "bg": {
+          "$value": "{color.base.neutral.50}"
+        }
+      }
+    },
+    "session": {
+      "$type": "color",
+      "$description": "Session type identity (PRODUCT.md §16). Always paired with a text label; colour is never the only signal.",
+      "private": {
+        "solid": {
+          "$value": "{color.base.blue.500}",
+          "$description": "Calendar bar/dot. 3:1 against surface."
+        },
+        "fg": {
+          "$value": "{color.base.blue.700}"
+        },
+        "bg": {
+          "$value": "{color.base.blue.50}"
+        }
+      },
+      "group": {
+        "solid": {
+          "$value": "{color.base.violet.500}"
+        },
+        "fg": {
+          "$value": "{color.base.violet.700}"
+        },
+        "bg": {
+          "$value": "{color.base.violet.50}"
+        }
+      },
+      "open-gym": {
+        "solid": {
+          "$value": "{color.base.amber.500}"
+        },
+        "fg": {
+          "$value": "{color.base.amber.700}"
+        },
+        "bg": {
+          "$value": "{color.base.amber.50}"
+        }
+      }
+    }
+  }
+}

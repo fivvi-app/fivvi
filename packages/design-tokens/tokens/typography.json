@@ -1,0 +1,290 @@
+{
+  "$description": "Font families, weights and the type scale. Native apps map each style to a platform text style ($extensions app.trainerhub.platform); the sizes are the web reference, not fixed native sizes.",
+  "font": {
+    "family": {
+      "$type": "fontFamily",
+      "text": {
+        "$value": [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Roboto",
+          "Segoe UI",
+          "system-ui",
+          "sans-serif"
+        ],
+        "$description": "All UI text. Native apps use the platform system font (SF Pro on iOS, Roboto on Android) so Dynamic Type and font scaling work for free. No web font for body text: keeps the public booking page inside its LCP budget.",
+        "$extensions": {
+          "app.trainerhub.platform": {
+            "ios": "system (SF Pro)",
+            "android": "system (Roboto)"
+          }
+        }
+      },
+      "display": {
+        "$value": [
+          "Bricolage Grotesque",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Roboto",
+          "system-ui",
+          "sans-serif"
+        ],
+        "$description": "Brand voice, used sparingly: public booking page headings and the workspace name. Never for body text or form labels. Native apps keep the system font (see visual-direction.md §3).",
+        "$extensions": {
+          "app.trainerhub.platform": {
+            "ios": "system (SF Pro Display)",
+            "android": "system (Roboto)"
+          }
+        }
+      }
+    },
+    "weight": {
+      "$type": "fontWeight",
+      "regular": {
+        "$value": 400
+      },
+      "medium": {
+        "$value": 500
+      },
+      "semibold": {
+        "$value": 600
+      },
+      "bold": {
+        "$value": 700
+      }
+    }
+  },
+  "typography": {
+    "$type": "typography",
+    "$description": "Sizes are the default (100%) size in px on web, pt on iOS, sp on Android. Native apps must use the mapped platform text style so user font scaling applies; the size here is the reference, not a hard-coded value.",
+    "display": {
+      "$value": {
+        "fontFamily": "{font.family.display}",
+        "fontSize": "34px",
+        "lineHeight": "40px",
+        "fontWeight": "{font.weight.semibold}",
+        "letterSpacing": "-0.01em"
+      },
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "ios": "largeTitle",
+          "android": "headlineLarge"
+        }
+      }
+    },
+    "title-1": {
+      "$value": {
+        "fontFamily": "{font.family.text}",
+        "fontSize": "28px",
+        "lineHeight": "34px",
+        "fontWeight": "{font.weight.semibold}",
+        "letterSpacing": "-0.005em"
+      },
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "ios": "title",
+          "android": "headlineMedium"
+        }
+      }
+    },
+    "title-2": {
+      "$value": {
+        "fontFamily": "{font.family.text}",
+        "fontSize": "22px",
+        "lineHeight": "28px",
+        "fontWeight": "{font.weight.semibold}",
+        "letterSpacing": "0"
+      },
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "ios": "title2",
+          "android": "titleLarge"
+        }
+      }
+    },
+    "headline": {
+      "$value": {
+        "fontFamily": "{font.family.text}",
+        "fontSize": "17px",
+        "lineHeight": "22px",
+        "fontWeight": "{font.weight.medium}",
+        "letterSpacing": "0"
+      },
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "ios": "headline",
+          "android": "titleMedium"
+        }
+      }
+    },
+    "body": {
+      "$value": {
+        "fontFamily": "{font.family.text}",
+        "fontSize": "17px",
+        "lineHeight": "24px",
+        "fontWeight": "{font.weight.regular}",
+        "letterSpacing": "0"
+      },
+      "$description": "Web inputs never go below 16px (prevents iOS Safari zoom on focus).",
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "ios": "body",
+          "android": "bodyLarge"
+        }
+      }
+    },
+    "subhead": {
+      "$value": {
+        "fontFamily": "{font.family.text}",
+        "fontSize": "15px",
+        "lineHeight": "20px",
+        "fontWeight": "{font.weight.regular}",
+        "letterSpacing": "0"
+      },
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "ios": "subheadline",
+          "android": "bodyMedium"
+        }
+      }
+    },
+    "label": {
+      "$value": {
+        "fontFamily": "{font.family.text}",
+        "fontSize": "15px",
+        "lineHeight": "20px",
+        "fontWeight": "{font.weight.medium}",
+        "letterSpacing": "0.01em"
+      },
+      "$description": "Buttons, chips, tab labels.",
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "ios": "subheadline.weight(.semibold)",
+          "android": "labelLarge"
+        }
+      }
+    },
+    "footnote": {
+      "$value": {
+        "fontFamily": "{font.family.text}",
+        "fontSize": "13px",
+        "lineHeight": "18px",
+        "fontWeight": "{font.weight.regular}",
+        "letterSpacing": "0"
+      },
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "ios": "footnote",
+          "android": "bodySmall"
+        }
+      }
+    },
+    "caption": {
+      "$value": {
+        "fontFamily": "{font.family.text}",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontWeight": "{font.weight.semibold}",
+        "letterSpacing": "0.04em"
+      },
+      "$description": "Uppercase section labels (e.g. VANDAAG). Minimum size for any text.",
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "ios": "caption",
+          "android": "labelMedium"
+        }
+      }
+    },
+    "numeric-xl": {
+      "$value": {
+        "fontFamily": "{font.family.text}",
+        "fontSize": "40px",
+        "lineHeight": "44px",
+        "fontWeight": "{font.weight.semibold}",
+        "letterSpacing": "-0.01em"
+      },
+      "$description": "Weight/reps in the live logger, read at arm's length between sets. Tabular figures.",
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "ios": "system(size: 40, weight: .semibold).monospacedDigit(), relativeTo: .largeTitle",
+          "android": "displaySmall + tnum"
+        }
+      }
+    }
+  },
+  "density": {
+    "$type": "typography",
+    "$description": "Compact density for Trainer Web on a desktop pointer: it replaces the default (touch) type scale there so a calendar day or week fits on a laptop screen. Native apps keep their platform text styles; public booking keeps the touch scale. Colours and contrast pairs are unchanged.",
+    "compact": {
+      "title-1": {
+        "$value": {
+          "fontSize": "22px",
+          "lineHeight": "28px"
+        }
+      },
+      "title-2": {
+        "$value": {
+          "fontSize": "18px",
+          "lineHeight": "24px"
+        }
+      },
+      "headline": {
+        "$value": {
+          "fontSize": "15px",
+          "lineHeight": "20px"
+        }
+      },
+      "body": {
+        "$value": {
+          "fontSize": "14px",
+          "lineHeight": "20px"
+        }
+      },
+      "subhead": {
+        "$value": {
+          "fontSize": "13px",
+          "lineHeight": "18px"
+        }
+      },
+      "label": {
+        "$value": {
+          "fontSize": "13px",
+          "lineHeight": "18px"
+        }
+      },
+      "footnote": {
+        "$value": {
+          "fontSize": "12px",
+          "lineHeight": "16px"
+        }
+      },
+      "caption": {
+        "$value": {
+          "fontSize": "11px",
+          "lineHeight": "14px"
+        }
+      }
+    },
+    "android": {
+      "$description": "Material 3 roles: bodyLarge 16/24, bodyMedium and labelLarge 14/20.",
+      "body": {
+        "$value": {
+          "fontSize": "16px",
+          "lineHeight": "24px"
+        }
+      },
+      "subhead": {
+        "$value": {
+          "fontSize": "14px",
+          "lineHeight": "20px"
+        }
+      },
+      "label": {
+        "$value": {
+          "fontSize": "14px",
+          "lineHeight": "20px"
+        }
+      }
+    }
+  }
+}
