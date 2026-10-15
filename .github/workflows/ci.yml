@@ -267,6 +267,14 @@ jobs:
         with:
           persist-credentials: false
 
+      # The emulator creates a 6 GB data partition on its first boot and needs 7.4 GB free for it; Gradle, Postgres
+      # and the web build need more. These preinstalled toolchains aren't used by this job.
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
+
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0

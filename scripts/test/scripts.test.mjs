@@ -188,28 +188,32 @@ exit 0`
     assert.match(result.stdout, /created, but the emulator can't find it/);
   });
 
-  // GitHub's runners have about 6 GB free and 2 cores; the default AVD wants a 6 GB data partition (7.4 GB free) and 4.
-  it('sizes the AVD for CI runners: a 3G data partition and 2 cores, keeping its other settings', () => {
+  // GitHub's runners have 2 cores; the device profile asks for 4. The data partition stays as the emulator wants it:
+  // it creates 6 GB on the first boot whatever config.ini or -partition-size say (CI frees disk space for it).
+  it('gives the AVD 2 cores, keeping its other settings', () => {
     const { setup, config } = fakeSdk();
 
     assert.equal(setup().status, 0);
 
     assert.deepEqual(readFileSync(config, 'utf8').split('\n').filter(Boolean).sort(), [
       'disk.dataPartition.path=<temp>',
-      'disk.dataPartition.size=3G',
+      'disk.dataPartition.size=6G',
       'hw.cpu.ncore=2',
     ]);
   });
 
-  it('resizes an AVD created before, on every setup', () => {
+  it('sets the cores of an AVD created before, on every setup', () => {
     const { setup, config } = fakeSdk();
     assert.equal(setup().status, 0);
-    writeFileSync(config, 'disk.dataPartition.size=10G\nhw.cpu.ncore = 4\nhw.ramSize=2G\n');
+    writeFileSync(
+      config,
+      'disk.dataPartition.size = 6442450944\nhw.cpu.ncore = 4\nhw.ramSize=2G\n',
+    );
 
     assert.equal(setup().status, 0);
 
     assert.deepEqual(readFileSync(config, 'utf8').split('\n').filter(Boolean).sort(), [
-      'disk.dataPartition.size=3G',
+      'disk.dataPartition.size = 6442450944',
       'hw.cpu.ncore=2',
       'hw.ramSize=2G',
     ]);
@@ -305,6 +309,7 @@ esac`,
     assert.match(result.stderr, /the emulator exited while booting/);
     assert.match(result.stderr, /x86_64 emulation currently requires hardware acceleration/);
     assert.match(result.stderr, /KVM \(fake\) is installed and usable/);
+    assert.match(result.stderr, /Free space for the emulator \(.*\.android\/avd\):\n.*Filesystem/);
   });
 
   it('gives up after EMULATOR_BOOT_TIMEOUT, shows the log and stops the emulator', () => {

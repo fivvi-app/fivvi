@@ -9,9 +9,10 @@ SDK_PACKAGES="platform-tools platforms;android-37.0 build-tools;37.0.0 emulator"
 # set the device language.
 AVD_NAME="trainer-hub"
 AVD_API=35
-# Sized for GitHub's runners (2 cores, about 6 GB free disk): the device's defaults want 4 cores and a data partition
-# that doesn't fit. 3G holds the app, the test APKs and Maestro's driver.
-AVD_SETTINGS="disk.dataPartition.size=3G hw.cpu.ncore=2"
+# GitHub's runners have 2 cores; the device profile asks for 4. The data partition can't be made smaller: on the first
+# boot the emulator creates 6 GB whatever config.ini or -partition-size say, and needs 7.4 GB free for it (CI frees
+# disk space before setup).
+AVD_SETTINGS="hw.cpu.ncore=2"
 MAESTRO_VERSION="2.11.0"
 MAESTRO_HOME="$HOME/.maestro"
 
@@ -99,11 +100,15 @@ EMULATOR_PID=""
 
 # Fails; for an emulator this script started, with what it said, and stops it.
 emulator_failed() {
+  local dir="$ANDROID_AVD_HOME"
   [ -n "$EMULATOR_PID" ] || die "$1"
+  while [ ! -d "$dir" ]; do dir="$(dirname "$dir")"; done
   {
     echo "error: $1. Last lines of $EMULATOR_LOG:"
     tail -n 40 "$EMULATOR_LOG" 2>/dev/null || true
     echo "emulator -accel-check: $(emulator -accel-check 2>&1 | tr '\n' ' ')"
+    echo "Free space for the emulator ($ANDROID_AVD_HOME):"
+    df -h "$dir" || true
   } >&2
   kill "$EMULATOR_PID" 2>/dev/null || true
   wait "$EMULATOR_PID" 2>/dev/null || true
