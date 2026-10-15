@@ -289,7 +289,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           sudo udevadm settle
-          ls -l /dev/kvm
+          ls -l /dev/kvm || true
           if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
             echo '::error::/dev/kvm is not usable by the runner user'
             exit 1
@@ -311,10 +311,12 @@ jobs:
       - name: Android SDK packages, emulator and Maestro
         run: scripts/android.sh setup
 
-      # Booted once; test:android and test:maestro reuse it. The script gives up after EMULATOR_BOOT_TIMEOUT (300 s)
-      # and prints the emulator log; the step timeout is a backstop.
+      # Booted once; test:android and test:maestro reuse it. The script gives up after EMULATOR_BOOT_TIMEOUT (a cold
+      # boot can take minutes) and prints the emulator log; the step timeout is a backstop.
       - name: Boot the emulator
         timeout-minutes: 10
+        env:
+          EMULATOR_BOOT_TIMEOUT: '480'
         run: scripts/android.sh emulator
 
       - name: ktlint, build, unit tests and Compose UI tests

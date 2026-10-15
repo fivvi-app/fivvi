@@ -198,8 +198,9 @@ exit 0`
   });
 });
 
-// The boot wait against a fake emulator and adb. FAKE_EMULATOR picks what the emulator does: `exit` (fails at once, as
-// without KVM), `hang` (runs but never boots) or `boot`. It records its pid, so a test can check it was stopped.
+// The boot wait against a fake emulator, adb and sleep (no real waiting: sleep returns at once and logs each call).
+// FAKE_EMULATOR picks what the emulator does: `exit` (fails at once, as without KVM), `hang` (runs but never boots) or
+// `boot`. It records its pid, so a test can check it was stopped.
 describe('android.sh emulator', () => {
   const dirs = [];
   const alive = (pid) => {
@@ -229,6 +230,7 @@ describe('android.sh emulator', () => {
     mkdirSync(state);
     mkdirSync(join(base, 'jdk'));
     script(join(base, 'bin/java'), 'echo "openjdk version \\"21\\"" >&2');
+    script(join(base, 'bin/sleep'), `echo "$*" >>"${join(state, 'sleeps')}"`);
     script(
       join(sdk, 'platform-tools/adb'),
       `case "$1 $2 $3" in
@@ -246,8 +248,8 @@ exit 0`,
   *) echo $$ >"${state}/pid"
      case "$FAKE_EMULATOR" in
        exit) echo 'FATAL | x86_64 emulation currently requires hardware acceleration!'; exit 1 ;;
-       hang) echo 'INFO | booting (fake)'; exec sleep 60 ;;
-       boot) echo 'INFO | booted (fake)'; touch "${state}/booted"; exec sleep 60 ;;
+       hang) echo 'INFO | booting (fake)'; exec /bin/sleep 60 ;;
+       boot) echo 'INFO | booted (fake)'; touch "${state}/booted"; exec /bin/sleep 60 ;;
      esac ;;
 esac`,
     );
@@ -260,19 +262,17 @@ esac`,
       FAKE_EMULATOR: mode,
       ...extraEnv,
     };
-    const started = Date.now();
     const result = spawnSync(join(SCRIPTS, 'android.sh'), ['emulator'], { encoding: 'utf8', env });
-    const pid = existsSync(join(state, 'pid'))
-      ? Number(readFileSync(join(state, 'pid'), 'utf8'))
-      : 0;
-    return { ...result, seconds: (Date.now() - started) / 1000, pid };
+    const read = (file) =>
+      existsSync(join(state, file)) ? readFileSync(join(state, file), 'utf8') : '';
+    const sleeps = read('sleeps').split('\n').filter(Boolean);
+    return { ...result, pid: Number(read('pid')), sleeps };
   };
 
   it('fails at once with the emulator log and the acceleration check when the emulator exits', () => {
     const result = boot('exit');
 
     assert.equal(result.status, 1);
-    assert.ok(result.seconds < 10, `took ${result.seconds}s`);
     assert.match(result.stderr, /the emulator exited while booting/);
     assert.match(result.stderr, /x86_64 emulation currently requires hardware acceleration/);
     assert.match(result.stderr, /KVM \(fake\) is installed and usable/);
@@ -282,7 +282,7 @@ esac`,
     const result = boot('hang', { EMULATOR_BOOT_TIMEOUT: '4' });
 
     assert.equal(result.status, 1);
-    assert.ok(result.seconds < 15, `took ${result.seconds}s`);
+    assert.deepEqual(result.sleeps, ['2', '2'], 'polls every 2 s until 4 s have passed');
     assert.match(result.stderr, /the emulator didn't boot in 4s/);
     assert.match(result.stderr, /booting \(fake\)/);
     assert.ok(result.pid > 0 && !alive(result.pid), 'the emulator was stopped');

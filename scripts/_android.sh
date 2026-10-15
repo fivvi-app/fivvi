@@ -82,14 +82,16 @@ EMULATOR_BOOT_TIMEOUT="${EMULATOR_BOOT_TIMEOUT:-300}"
 EMULATOR_LOG="${EMULATOR_LOG:-$ANDROID_DIR/build/emulator.log}"
 EMULATOR_PID=""
 
-# Fails with what the emulator said, and stops it if this script started it.
+# Fails; for an emulator this script started, with what it said, and stops it.
 emulator_failed() {
+  [ -n "$EMULATOR_PID" ] || die "$1"
   {
     echo "error: $1. Last lines of $EMULATOR_LOG:"
     tail -n 40 "$EMULATOR_LOG" 2>/dev/null || true
     echo "emulator -accel-check: $(emulator -accel-check 2>&1 | tr '\n' ' ')"
   } >&2
-  [ -z "$EMULATOR_PID" ] || kill "$EMULATOR_PID" 2>/dev/null || true
+  kill "$EMULATOR_PID" 2>/dev/null || true
+  wait "$EMULATOR_PID" 2>/dev/null || true
   exit 1
 }
 
@@ -119,7 +121,8 @@ start_emulator() {
   EMULATOR_PID=$!
   EMULATOR_STARTED=true
   wait_for_boot
-  # Animations make UI tests slow and flaky.
+  # Unlock the screen (menu key), as android-emulator-runner does; animations make UI tests slow and flaky.
+  adb shell input keyevent 82
   for setting in window_animation_scale transition_animation_scale animator_duration_scale; do
     adb shell settings put global "$setting" 0
   done
