@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./browser": "./src/browser.ts",
+    "./source-maps": "./src/source-maps.ts"
   },
   "scripts": {
     "lint": "biome check --formatter-enabled=false --error-on-warnings .",
@@ -14,12 +16,14 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@sentry/cli": "catalog:",
     "@trainer-hub/testing": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
   "dependencies": {
+    "@sentry/browser": "catalog:",
     "@sentry/core": "catalog:",
     "posthog-node": "catalog:",
     "zod": "catalog:"

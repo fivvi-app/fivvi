@@ -7,6 +7,16 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  // Source maps and debug IDs for Sentry. scripts/publish-source-maps.ts uploads the maps and
+  // deletes them from the build output, so they are never served (E009).
+  productionBrowserSourceMaps: true,
+  turbopack: { debugIds: true },
+  // The browser's error reporting reads these at build time (instrumentation-client.ts), next
+  // to NEXT_PUBLIC_SENTRY_DSN. Railway passes them to the Docker build (Dockerfile).
+  env: {
+    RAILWAY_ENVIRONMENT_NAME: process.env.RAILWAY_ENVIRONMENT_NAME ?? '',
+    RAILWAY_GIT_COMMIT_SHA: process.env.RAILWAY_GIT_COMMIT_SHA ?? '',
+  },
   typedRoutes: true,
   // A self-contained Node server in .next/standalone for the Docker image (E003, ADR-011).
   output: 'standalone',

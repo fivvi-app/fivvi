@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build && node scripts/copy-static.ts",
+    "build": "next build && node scripts/publish-source-maps.ts && node scripts/copy-static.ts",
     "start": "node .next/standalone/apps/web/server.js",
     "lint": "biome check --formatter-enabled=false --error-on-warnings .",
     "typecheck": "next typegen && tsc --noEmit",

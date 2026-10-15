@@ -5,6 +5,12 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build", "typecheck"],
+      "env": [
+        "NEXT_PUBLIC_SENTRY_DSN",
+        "RAILWAY_ENVIRONMENT_NAME",
+        "RAILWAY_GIT_COMMIT_SHA",
+        "SENTRY_AUTH_TOKEN"
+      ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "typecheck": {

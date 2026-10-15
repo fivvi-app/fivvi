@@ -1,8 +1,9 @@
 import http from 'node:http';
 import https from 'node:https';
 import { describe, expect, it, vi } from 'vitest';
+import { initBrowserErrorReporting } from './browser.ts';
 import { createCaptureTransport } from './capture.ts';
-import { readErrorReportingConfig } from './config.ts';
+import { readBrowserErrorReportingConfig, readErrorReportingConfig } from './config.ts';
 import { createErrorReporter } from './reporter.ts';
 
 const DSN = 'https://public@o0.ingest.de.sentry.io/1';
@@ -28,6 +29,36 @@ describe('E009 error reporting config', () => {
     expect(request).not.toHaveBeenCalled();
     expect(secureRequest).not.toHaveBeenCalled();
     expect(readErrorReportingConfig({})).toEqual({ dsn: undefined, environment: 'development' });
+  });
+
+  it('AC5: without NEXT_PUBLIC_SENTRY_DSN the browser installs nothing and sends nothing', async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    vi.stubGlobal('fetch', fetch);
+    const transport = createCaptureTransport();
+    const browser = globalThis as { onerror?: unknown; onunhandledrejection?: unknown };
+
+    // The server's DSN is not the browser's: only NEXT_PUBLIC_SENTRY_DSN turns the browser on.
+    for (const env of [{}, { NEXT_PUBLIC_SENTRY_DSN: ' ', SENTRY_DSN: DSN }]) {
+      const reporter = initBrowserErrorReporting({ env, transport });
+      expect(() => reporter.captureError(new Error('Boom'))).not.toThrow();
+      expect(reporter.enabled).toBe(false);
+      expect(await reporter.flush()).toBe(true);
+    }
+
+    expect(browser.onerror).toBeUndefined();
+    expect(browser.onunhandledrejection).toBeUndefined();
+    expect(transport.itemTypes).toEqual([]);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('reads the browser DSN, environment and release as inlined at build time', () => {
+    expect(
+      readBrowserErrorReportingConfig({
+        NEXT_PUBLIC_SENTRY_DSN: ` ${DSN} `,
+        RAILWAY_ENVIRONMENT_NAME: 'pr-44',
+        RAILWAY_GIT_COMMIT_SHA: SHA,
+      }),
+    ).toEqual({ dsn: DSN, environment: 'preview', release: SHA });
   });
 
   it('reads the DSN and tags the release with the commit SHA from Railway', () => {
