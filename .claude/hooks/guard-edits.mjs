@@ -8,12 +8,16 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 const PROTECTED_BRANCHES = new Set(['main']);
 
 const CONTRACT = 'pnpm generate:contract';
+const TOKENS = 'pnpm --filter @trainer-hub/design-tokens generate';
 export const GENERATED_PATHS = [
   ['packages/contract/openapi.json', CONTRACT],
   ['packages/contract/src/generated/', CONTRACT],
   ['packages/contract/swift/Sources/TrainerHubAPI/Generated/', CONTRACT],
   ['packages/contract/kotlin/generated/', CONTRACT],
   ['packages/i18n/generated/', 'pnpm --filter @trainer-hub/i18n generate'],
+  ['packages/design-tokens/generated/', TOKENS],
+  ['packages/design-tokens/swift/Sources/TrainerHubDesignTokens/Generated/', TOKENS],
+  ['packages/design-tokens/kotlin/generated/', TOKENS],
   ['packages/database/migrations/meta/', 'pnpm db:generate --name <what>'],
 ];
 

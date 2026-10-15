@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import StyleDictionary from 'style-dictionary';
 import type { DesignTokens } from 'style-dictionary/types';
+import { nativeInput, renderNativeOutputs } from './native.ts';
 import {
   isPalette,
   type Mode,
@@ -19,6 +20,8 @@ export const webOutputs = {
   shadcn: 'generated/web/shadcn.css',
   theme: 'generated/web/theme.css',
 } as const;
+
+export { kotlinOutputs, swiftOutputs } from './native.ts';
 
 export const generatedDir = 'generated';
 
@@ -60,6 +63,7 @@ export interface ResolvedToken {
   /** CSS custom property, e.g. `--th-color-bg-canvas`. */
   name: string;
   value: string;
+  description?: string;
 }
 
 const header = (file: string) =>
@@ -87,7 +91,12 @@ async function resolveMode(source: TokenSource, mode: Mode): Promise<ResolvedTok
         `${token.path.join('.')} has no CSS value: ${JSON.stringify(value)}`,
       ]);
     }
-    return { path: token.path.join('.'), name: `--${token.name}`, value: String(value) };
+    return {
+      path: token.path.join('.'),
+      name: `--${token.name}`,
+      value: String(value),
+      ...(token.$description ? { description: token.$description } : {}),
+    };
   });
 }
 
@@ -185,10 +194,15 @@ ${declarations(
 export async function renderOutputs(source: TokenSource): Promise<Map<string, string>> {
   const resolved = await resolveTokens(source);
   const cssVar = variableNames(resolved.light);
+  const colours = new Set(semanticColours(source));
+  const semantic = (mode: Mode) => resolved[mode].filter((token) => colours.has(token.path));
   return new Map([
     [webOutputs.tokens, renderTokensCss(source, resolved)],
     [webOutputs.shadcn, renderShadcnCss(source, cssVar)],
     [webOutputs.theme, renderTailwindTheme(source, cssVar)],
+    ...renderNativeOutputs(
+      nativeInput(source, { light: semantic('light'), dark: semantic('dark') }, resolved.light),
+    ),
   ]);
 }
 

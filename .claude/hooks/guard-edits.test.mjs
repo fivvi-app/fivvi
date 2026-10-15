@@ -81,6 +81,22 @@ describe('agent edit guard', () => {
     );
     assert.match(reason, /is generated/);
     assert.match(reason, /pnpm --filter @trainer-hub\/i18n generate/);
+
+    for (const file of [
+      'packages/design-tokens/generated/web/tokens.css',
+      'packages/design-tokens/swift/Sources/TrainerHubDesignTokens/Generated/Colors.swift',
+      'packages/design-tokens/kotlin/generated/nl/trainerhub/designtokens/Colors.kt',
+    ]) {
+      assert.match(
+        evaluate(claudeEdit(join(worktree, file)), gitDir) ?? '',
+        /pnpm --filter @trainer-hub\/design-tokens generate/,
+        file,
+      );
+    }
+    assert.equal(
+      evaluate(claudeEdit(join(worktree, 'packages/design-tokens/swift/Package.swift')), gitDir),
+      null,
+    );
   });
 
   it('blocks hand-edits of vendored skills, also through the .claude/skills symlink', () => {

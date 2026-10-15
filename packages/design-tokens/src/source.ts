@@ -57,6 +57,25 @@ export function tokenPaths(tree: TokenTree, prefix: string[] = []): string[] {
   });
 }
 
+export type Platform = 'ios' | 'android';
+
+/** The `$extensions` key for platform mapping notes, e.g. the native text style of a type style. */
+const platformExtension = 'app.trainerhub.platform';
+
+/** The platform note of every token in `tree` that has one, by token path. */
+export function platformNotes(tree: TokenTree, platform: Platform): Map<string, string> {
+  const notes = new Map<string, string>();
+  for (const tokenPath of tokenPaths(tree)) {
+    let node: unknown = tree;
+    for (const key of tokenPath.split('.')) node = isObject(node) ? node[key] : undefined;
+    const extensions = isObject(node) ? node.$extensions : undefined;
+    const mapping = isObject(extensions) ? extensions[platformExtension] : undefined;
+    const note = isObject(mapping) ? mapping[platform] : undefined;
+    if (typeof note === 'string') notes.set(tokenPath, note);
+  }
+  return notes;
+}
+
 /** Whether a token belongs to the base palette, which apps never use directly. */
 export const isPalette = (tokenPath: string) => tokenPath.startsWith('color.base.');
 
