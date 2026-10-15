@@ -34,7 +34,7 @@ export function Hello({ firstName }: { firstName: string }) {
             <Input id="first-name" name="name" autoComplete="given-name" defaultValue={firstName} />
           </CardContent>
           <CardFooter>
-            <Button type="submit">{t('greet')}</Button>
+            <Button type="submit">{t('continue')}</Button>
           </CardFooter>
         </form>
       </Card>

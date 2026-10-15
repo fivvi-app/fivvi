@@ -3,13 +3,13 @@
 <resources>
     <!-- Browser tab title (HTML <title>) of web pages that don't set their own. The product name, the same in both languages. -->
     <string name="app_title">Trainer Hub</string>
+    <!-- Submit button of the first-name form on the hello page. Shows hello.greeting with the name entered. -->
+    <string name="hello_continue">Doorgaan</string>
     <!-- Line under the title of the hello page, above the first-name field. -->
     <string name="hello_description">Vul je voornaam in, dan begroeten we je.</string>
     <!-- Label of the first-name field on the hello page. -->
     <string name="hello_first_name_label">Voornaam</string>
-    <!-- Button on the hello page that shows hello.greeting with the first name entered. -->
-    <string name="hello_greet">Begroet me</string>
-    <!-- Greeting above the home screen. {name} is the user's first name. -->
+    <!-- Greeting on the hello page after the first-name form is sent. {name} is the user's first name. -->
     <string name="hello_greeting">Hoi %1$s,</string>
     <!-- {date} is a weekday and date without year, e.g. 'dinsdag 22 september'. {time} is a 24-hour time, e.g. '18:00'. Both are formatted in code in the workspace time zone. -->
     <string name="hello_next_session">Je volgende sessie is op %1$s om %2$s.</string>

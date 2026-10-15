@@ -31,7 +31,7 @@ From the repo root:
 pnpm dlx shadcn@latest add <component> -c packages/ui
 ```
 
-Commit the new file in `src/components/` as the CLI wrote it. The CLI adds the component's npm dependencies to `package.json`; move each version into the pnpm catalog (`pnpm-workspace.yaml`) and reference it as `catalog:`. If the component uses a colour outside the theme (`text-white`, `bg-black/50`), it renders without that colour here: add a divergence below rather than bringing the palette back.
+Commit the new file in `src/components/` as the CLI wrote it. `pnpm dlx shadcn@latest add <component> -c packages/ui --dry-run` reports `identical` while a file is unchanged. The CLI adds the component's npm dependencies to `package.json`; move each version into the pnpm catalog (`pnpm-workspace.yaml`) and reference it as `catalog:`. If the component uses a colour outside the theme (`text-white`, `bg-black/50`), it renders without that colour here: add a divergence below rather than bringing the palette back.
 
 `src/components/` is excluded from Biome (`biome.json`), so its upstream formatting and imports stay as shadcn ships them, and `shadcn add --diff` shows only real upstream changes. TypeScript still checks it under the strict settings of `tsconfig.base.json`.
 
@@ -44,7 +44,7 @@ The components themselves are unchanged. The kit differs from a fresh `shadcn in
 | The theme variables come from `@trainer-hub/design-tokens` (`tokens.css`, `shadcn.css`, `theme.css`) instead of the `:root` and `.dark` blocks `init` writes | The tokens are the one source of colour for web, iOS and Android (ADR-015) |
 | No `@custom-variant dark (&:is(.dark *))` | The app follows the system setting (`prefers-color-scheme`), as the token CSS does; there is no manual toggle |
 | Tailwind's default palette is removed (`palette-reset.css`) | Only token colours exist, so every colour follows light and dark mode and the contrast checks of the token package |
-| A `:focus-visible` outline in the focus colour (`--ring`, 2px, 2px offset) outside Tailwind's cascade layers | Upstream's `ring-ring/50` is about 2.4:1 against the light canvas, below the 3:1 a focus indicator needs (WCAG 2.4.7, 1.4.11). Being unlayered, the rule wins over the components' `outline-none` without editing them, and every future component gets it too |
+| A `:focus-visible` outline in the focus colour (`--ring`), `border.width.focus` wide (2px) with a 2px offset, outside Tailwind's cascade layers | Upstream's `ring-ring/50` is about 2.4:1 against the light canvas, below the 3:1 a focus indicator needs (WCAG 2.4.7, 1.4.11). Being unlayered, the rule wins over the components' `outline-none` without editing them, and every future component gets it too. shadcn has no theme variable for the width, so this one rule reads the token variable `--th-border-width-focus`; app code still never uses `--th-*` |
 | No `tw-animate-css` or `shadcn/tailwind.css` | None of the current components animate or use shadcn's custom variants. Add them with the first component that does |
 | No `src/lib/utils.ts` | The `radix-nova` components import `cn` from the `cn` package directly |
 

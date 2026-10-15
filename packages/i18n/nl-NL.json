@@ -6,7 +6,7 @@
     "title": "Welkom bij Trainer Hub",
     "description": "Vul je voornaam in, dan begroeten we je.",
     "firstNameLabel": "Voornaam",
-    "greet": "Begroet me",
+    "continue": "Doorgaan",
     "greeting": "Hoi {name},",
     "sessionsToday": "{count, plural, one {Je hebt vandaag # sessie.} other {Je hebt vandaag # sessies.}}",
     "noSessionsToday": "Je hebt vandaag geen sessies.",

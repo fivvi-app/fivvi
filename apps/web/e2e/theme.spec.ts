@@ -114,7 +114,7 @@ test.describe('E007 web theme', () => {
     messages: copy,
   }) => {
     const heading = page.getByRole('heading', { level: 1, name: copy.hello.title });
-    const button = page.getByRole('button', { name: copy.hello.greet });
+    const button = page.getByRole('button', { name: copy.hello.continue });
     const input = page.getByLabel(copy.hello.firstNameLabel);
     const colours: [Locator, string, string][] = [
       [page.locator('body'), 'background-color', 'bg.canvas'],
@@ -142,7 +142,7 @@ test.describe('E007 web theme', () => {
   test('AC7: focus indicator is visible on Button and Input', async ({ page, messages: copy }) => {
     const controls: [string, Locator][] = [
       ['Input', page.getByLabel(copy.hello.firstNameLabel)],
-      ['Button', page.getByRole('button', { name: copy.hello.greet })],
+      ['Button', page.getByRole('button', { name: copy.hello.continue })],
     ];
 
     for (const scheme of colorSchemes) {

@@ -21,20 +21,6 @@ describe.each(locales)('E005 web pages in %s', (locale) => {
     );
   });
 
-  it('labels the hello form with translated copy', () => {
-    const { description, firstNameLabel, greet } = messages[locale].hello;
-    const html = render(locale, <Hello firstName="" />);
-    expect(html).toContain(`>${escapeHtml(description)}</div>`);
-    expect(html).toMatch(new RegExp(`<label[^>]*for="first-name"[^>]*>${firstNameLabel}</label>`));
-    expect(html).toMatch(new RegExp(`<button[^>]*type="submit"[^>]*>${greet}</button>`));
-    expect(html).not.toContain('role="status"');
-  });
-
-  it('greets the first name sent by the hello form', () => {
-    const greeting = messages[locale].hello.greeting.replace('{name}', 'Sam');
-    expect(render(locale, <Hello firstName="Sam" />)).toContain(`<p role="status">${greeting}</p>`);
-  });
-
   it('renders the translated not-found page', () => {
     const { title, body } = messages[locale].notFound;
     expect(render(locale, <NotFound />)).toBe(
@@ -42,6 +28,33 @@ describe.each(locales)('E005 web pages in %s', (locale) => {
     );
   });
 });
+
+describe.each(locales)('E007 hello page in %s', (locale) => {
+  it('labels the first-name form with catalog copy', () => {
+    const { description, firstNameLabel, continue: submit } = messages[locale].hello;
+    const html = render(locale, <Hello firstName="" />);
+    expect(html).toContain(`>${escapeHtml(description)}</div>`);
+    expect(html).toMatch(
+      new RegExp(`<label[^>]*for="first-name"[^>]*>${htmlPattern(firstNameLabel)}</label>`),
+    );
+    expect(html).toMatch(
+      new RegExp(`<button[^>]*type="submit"[^>]*>${htmlPattern(submit)}</button>`),
+    );
+    expect(html).not.toContain('role="status"');
+  });
+
+  it('greets the first name sent by the form', () => {
+    const greeting = messages[locale].hello.greeting.replace('{name}', 'Sam');
+    expect(render(locale, <Hello firstName="Sam" />)).toContain(
+      `<p role="status">${escapeHtml(greeting)}</p>`,
+    );
+  });
+});
+
+/** A regular expression source that matches the text as React renders it in HTML. */
+function htmlPattern(text: string): string {
+  return escapeHtml(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 function escapeHtml(text: string): string {
   return text.replaceAll('&', '&amp;').replaceAll("'", '&#x27;');
