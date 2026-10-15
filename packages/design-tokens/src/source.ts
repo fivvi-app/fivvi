@@ -57,51 +57,28 @@ export function tokenPaths(tree: TokenTree, prefix: string[] = []): string[] {
   });
 }
 
+/** Whether a token belongs to the base palette, which apps never use directly. */
+export const isPalette = (tokenPath: string) => tokenPath.startsWith('color.base.');
+
 /** Paths of the semantic colours (`color.*` outside the base palette): what apps may use. */
 export function semanticColours(source: TokenSource): string[] {
   return tokenPaths(source.light).filter(
-    (tokenPath) => tokenPath.startsWith('color.') && !tokenPath.startsWith('color.base.'),
+    (tokenPath) => tokenPath.startsWith('color.') && !isPalette(tokenPath),
   );
 }
 
-/** A copy of `tree` without the token at `tokenPath`. */
-export function withoutToken(tree: TokenTree, tokenPath: string): TokenTree {
-  const copy = structuredClone(tree);
-  const segments = tokenPath.split('.');
-  const leaf = segments.pop() ?? '';
-  let node: unknown = copy;
-  for (const segment of segments) node = isObject(node) ? node[segment] : undefined;
-  if (isObject(node)) delete node[leaf];
-  return copy;
-}
+/** A token file without its root-level `$` keys (the file's `$description`). */
+const withoutFileMeta = (file: TokenTree): TokenTree =>
+  Object.fromEntries(Object.entries(file).filter(([key]) => !key.startsWith('$')));
 
-/** A copy of `tree` with the `$value` of the token at `tokenPath` replaced. */
-export function withValue(tree: TokenTree, tokenPath: string, value: unknown): TokenTree {
-  const copy = structuredClone(tree);
-  let node: unknown = copy;
-  for (const segment of tokenPath.split('.')) node = isObject(node) ? node[segment] : undefined;
-  if (!isToken(node)) throw new Error(`No token at ${tokenPath}`);
-  node.$value = value;
-  return copy;
-}
-
-/**
- * Deep-merges token trees. With `override`, later tokens replace earlier ones (dark over light);
- * without it a token defined twice is a source error. Root-level `$` keys (file descriptions) are dropped.
- */
-export function mergeTrees(
-  trees: TokenTree[],
-  override = false,
-  problems: string[] = [],
-): TokenTree {
+/** Deep-merges token files into one tree; a token defined in two files is a problem. */
+function combineFiles(files: TokenTree[]): { tree: TokenTree; problems: string[] } {
+  const problems: string[] = [];
   const merge = (target: TokenTree, from: TokenTree, at: string[]) => {
     for (const [key, child] of Object.entries(from)) {
-      if (at.length === 0 && key.startsWith('$')) continue;
       const existing = target[key];
       if (isObject(existing) && isObject(child) && !isToken(existing) && !isToken(child)) {
         merge(existing, child, [...at, key]);
-      } else if (isToken(existing) && isToken(child) && override) {
-        target[key] = { ...existing, ...child };
       } else if (existing !== undefined && !key.startsWith('$')) {
         problems.push(`${[...at, key].join('.')} is defined in more than one token file`);
       } else {
@@ -109,14 +86,26 @@ export function mergeTrees(
       }
     }
   };
-  const result: TokenTree = {};
-  for (const tree of trees) merge(result, tree, []);
+  const tree: TokenTree = {};
+  for (const file of files) merge(tree, withoutFileMeta(file), []);
+  return { tree, problems };
+}
+
+/** A copy of `base` where every token in `overrides` replaces the fields it sets. */
+function overlay(base: TokenTree, overrides: TokenTree): TokenTree {
+  const result = structuredClone(base);
+  for (const [key, child] of Object.entries(overrides)) {
+    const existing = result[key];
+    if (isToken(existing) && isToken(child)) result[key] = { ...existing, ...child };
+    else if (isObject(existing) && isObject(child)) result[key] = overlay(existing, child);
+    else result[key] = structuredClone(child);
+  }
   return result;
 }
 
 /** The full token tree for a mode: dark is light with the dark semantic colours on top. */
 export function treeFor(source: TokenSource, mode: Mode): TokenTree {
-  return mode === 'light' ? source.light : mergeTrees([source.light, source.dark], true);
+  return mode === 'light' ? source.light : overlay(source.light, source.dark);
 }
 
 /** Problems that make the source unusable: missing or unknown dark values, bad contrast pairs. */
@@ -155,20 +144,18 @@ async function readJson(root: string, file: string): Promise<TokenTree> {
 }
 
 export async function readTokenSource(root: string): Promise<TokenSource> {
-  const problems: string[] = [];
-  const light = mergeTrees(
+  const { tree: light, problems } = combineFiles(
     await Promise.all(
       [sourceFiles.palette, sourceFiles.light, ...sourceFiles.shared].map((file) =>
         readJson(root, file),
       ),
     ),
-    false,
-    problems,
   );
-  const dark = mergeTrees([await readJson(root, sourceFiles.dark)]);
+  const dark = withoutFileMeta(await readJson(root, sourceFiles.dark));
   const { pairs } = await readJson(root, sourceFiles.contrastPairs);
-  if (!Array.isArray(pairs))
+  if (!Array.isArray(pairs)) {
     problems.push(`${sourceFiles.contrastPairs} must have a "pairs" array`);
+  }
   if (problems.length > 0) throw new TokenSourceError(problems);
   return { light, dark, pairs: pairs as ContrastPair[] };
 }

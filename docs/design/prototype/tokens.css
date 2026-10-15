@@ -1,4 +1,4 @@
-/* GENERATED from docs/design/tokens.draft.json by gen-tokens.mjs. Do not edit by hand. */
+/* Frozen copy of the M0 draft tokens for this prototype. Not regenerated; the maintained tokens live in packages/design-tokens. */
 :root {
   color-scheme: light;
   --color-bg-canvas: #F6F6F7;

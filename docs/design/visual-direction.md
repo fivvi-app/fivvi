@@ -1,6 +1,6 @@
 # Trainer Hub visual direction (M0 draft)
 
-**Status:** draft for pilot validation, refined 13 October 2026 after owner feedback. This is the visual direction for the [critical flows](README.md), not a final component library. The token values now live in [`packages/design-tokens`](../../packages/design-tokens/README.md), the single source of truth for colours, type, spacing and contrast pairs (E007, ADR-015). This document explains the reasoning; when a value here and the package disagree, the package wins.
+**Status:** draft for pilot validation, refined 13 October 2026 after owner feedback. This is the visual direction for the [critical flows](README.md), not a final component library. The source of truth for colours, type, spacing and contrast pairs is [`packages/design-tokens`](../../packages/design-tokens/README.md) (E007, ADR-015). This document records the reasoning, with the M0 draft values it was written for; it isn't updated when a token changes.
 
 ## Character and hierarchy
 
@@ -23,7 +23,7 @@ The web prototype uses restrained branded headings. Forms, calendars, and mobile
 | Destructive action | `#A3261A` / white | `#F09A8E` / `#16161B` | Cancel class confirmation |
 | Private / group / Open Gym | Soft blue / lavender / amber chips | Subdued blue / lavender / amber chips | Visible localized text; calendar edges; neutral card fills |
 
-The token checker measures the foreground/background pairs used in the prototype in both appearances. All **29 pairs pass**: ordinary text and labels meet at least **4.5:1**; control outlines, focus rings, and calendar bars meet at least **3:1**. It includes primary and secondary text on the Material next-session tonal surface. The tightest checked text pair is light placeholder text on a surface at **5.70:1**. The tightest checked non-text pair is the light Open Gym calendar bar on a surface at **3.17:1**. Decorative hairlines are not used to identify controls. The pairs are declared in [`tokens/contrast-pairs.json`](../../packages/design-tokens/tokens/contrast-pairs.json), and `pnpm check` fails when one drops below its minimum. These are token-pair checks, not a claim that every possible rendered combination has been audited. The thresholds come from [WCAG 2.2 text contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum) and [non-text contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast).
+The M0 contrast check measured the foreground/background pairs used in the prototype in both appearances. All **29 pairs passed**: ordinary text and labels meet at least **4.5:1**; control outlines, focus rings, and calendar bars meet at least **3:1**. It includes primary and secondary text on the Material next-session tonal surface. The tightest checked text pair is light placeholder text on a surface at **5.70:1**. The tightest checked non-text pair is the light Open Gym calendar bar on a surface at **3.17:1**. Decorative hairlines are not used to identify controls. The pairs now live in the token package, whose `pnpm check` fails when one drops below its minimum. These are token-pair checks, not a claim that every possible rendered combination has been audited. The thresholds come from [WCAG 2.2 text contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum) and [non-text contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast).
 
 ## Typography
 
@@ -65,8 +65,6 @@ Colours and contrast pairs don't change with density. E007 maps compact density 
 
 ## Tokens
 
-The M0 draft tokens moved to [`packages/design-tokens`](../../packages/design-tokens/README.md) in M1 (E007): Style Dictionary v4 in DTCG format, a base palette, semantic colour roles, and separate light and dark theme sources. The package generates the web CSS variables, the Tailwind theme and shadcn's theme variables, and checks that the committed outputs are fresh and that every contrast pair passes in light and dark. Its README explains how to change a token or add a contrast pair. Swift and Kotlin outputs follow. Native mappings feed SwiftUI semantic styles and Compose `MaterialTheme(colorScheme, typography, shapes)`; they don't replace native controls.
-
-The prototype keeps its own frozen copy of the M0 values in [`prototype/tokens.css`](prototype/tokens.css); it isn't regenerated.
+The M0 draft tokens moved to [`packages/design-tokens`](../../packages/design-tokens/README.md) in M1 (E007). Its README explains what it generates, its checks, and how to change a token or add a contrast pair. Native mappings feed SwiftUI semantic styles and Compose `MaterialTheme(colorScheme, typography, shapes)`; they don't replace native controls. The prototype keeps a frozen copy of the M0 values in [`prototype/tokens.css`](prototype/tokens.css).
 
 Pilot feedback may change palette, type, or spacing; such changes are made in the package. Record findings through [`docs/discovery/prototype-validation-script.md`](../discovery/prototype-validation-script.md).

@@ -4,7 +4,8 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { webOutputs } from '../src/build.ts';
-import { sourceFiles, type TokenTree, withoutToken, withValue } from '../src/source.ts';
+import { sourceFiles, type TokenTree } from '../src/source.ts';
+import { withoutToken, withValue } from './tokens.ts';
 
 const packageRoot = path.resolve(import.meta.dirname, '..');
 // Scratch copies stay inside the package (ignored with node_modules), not in the system temp directory.

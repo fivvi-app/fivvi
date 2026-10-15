@@ -7,9 +7,9 @@ import {
   semanticColours,
   type TokenSource,
   TokenSourceError,
-  withoutToken,
 } from '../src/source.ts';
 import { customProperties, resolveVar } from './css.ts';
+import { withoutToken } from './tokens.ts';
 
 const packageRoot = path.resolve(import.meta.dirname, '..');
 const hex = /^#[0-9a-f]{6}$/i;

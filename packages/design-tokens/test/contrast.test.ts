@@ -2,7 +2,8 @@ import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { runChecks } from '../src/check.ts';
 import { contrastRatio, contrastResults } from '../src/contrast.ts';
-import { readTokenSource, type TokenSource, withValue } from '../src/source.ts';
+import { readTokenSource, type TokenSource } from '../src/source.ts';
+import { withValue } from './tokens.ts';
 
 const packageRoot = path.resolve(import.meta.dirname, '..');
 
@@ -20,7 +21,7 @@ describe('E007 design tokens contrast check', () => {
   });
 
   it('AC3: all declared pairs pass in light and dark', async () => {
-    // The 29 pairs checked in the M0 draft (docs/design/prototype/gen-tokens.mjs --check).
+    // The 29 pairs checked for the M0 draft.
     expect(source.pairs.length).toBeGreaterThanOrEqual(29);
     const results = await contrastResults(source);
     expect(results).toHaveLength(source.pairs.length * 2);
