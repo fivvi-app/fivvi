@@ -29,7 +29,7 @@ import kotlinx.serialization.Serializable
 
 
 /**
- * Catalog locale from packages/i18n. Dutch (nl-NL) is the default.
+ * Catalog locale from packages/i18n: Dutch (nl-NL) or English (en).
  *
  * Values: NL_NL,EN
  */

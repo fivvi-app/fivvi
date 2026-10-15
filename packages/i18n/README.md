@@ -4,11 +4,11 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 
 | File | What |
 |---|---|
-| `nl-NL.json`, `en.json` | The catalogs. Dutch is the source language and the final fallback |
+| `nl-NL.json`, `en.json` | The catalogs. Dutch is the source language (`defaultLocale`); it is not the fallback for unsupported languages |
 | `comments.json` | Optional translator context per key (`"hello.greeting": "…"`), passed on to both native catalogs |
 | `generated/ios/Localizable.xcstrings` | iOS String Catalog. **Generated, never edit** |
 | `generated/android/values*/strings.xml` | Android resources (`values/` = nl-NL, `values-en/` = en). **Generated, never edit** |
-| `src/index.ts` | Runtime exports: `locales`, `defaultLocale`, `messages`, `MessageKey`, `formattingLocales`, `dateTimeFormats`, `resolveLocale` |
+| `src/index.ts` | Runtime exports: `locales`, `defaultLocale`, `messages`, `MessageKey`, `formattingLocales`, `dateTimeFormats`, `resolveInterfaceLanguage`, `resolveCommunicationLanguage` |
 | `src/tools/` | Checks and exporters (Node only) |
 | `lint/no-hard-coded-jsx-text.grit` | Biome plugin that fails on literal text in JSX |
 
@@ -52,11 +52,16 @@ The `en` catalog formats as **`en-GB`** (`formattingLocales`), so English gets d
 
 ## Locales
 
-`resolveLocale()` implements the order used on every platform: explicit user choice → stored preference → workspace default → device/browser → `nl-NL`. Any `nl-*` tag matches `nl-NL`, any `en-*` tag matches `en`.
+Two languages, two orders ([ADR-017](../../docs/decisions/ADR-017-language-policy.md)). Web and the API resolve with these functions, and so do the callers of `sendEmail` in `packages/email`; the native apps mirror them with tests named after the same cases. No platform lets its resource fallback decide the language: that would give Dutch, the source language.
+
+- **Interface language** (`resolveInterfaceLanguage()`): what a screen shows and the `locale` it sends to the API. Explicit choice (the language switch, or the OS per-app language) → stored preference → a booking link's fixed language → the first supported device/browser language, in the user's order → `en`. An empty or entirely unsupported list gives `en`. `[fr-FR, nl-BE]` gives `nl-NL`; `[de-DE, en-GB, nl-NL]` gives `en`.
+- **Communication language** (`resolveCommunicationLanguage()`): the language of an email or other message. The recipient's stored preference → the workspace's default communication language. The workspace default never decides the interface language.
+
+Any `nl-*` tag matches `nl-NL`, any `en-*` tag matches `en`, and unsupported values are skipped. Stored preferences arrive with F010 (M2) and booking-link languages with M6; until then callers pass what they have.
 
 ## Web
 
-`apps/web` uses next-intl without locale routing. `apps/web/i18n/request.ts` resolves the locale from the `NEXT_LOCALE` cookie, then `Accept-Language`, and runs next-intl on the formatting locale (`nl-NL` or `en-GB`, also used for `<html lang>`). Keys are typed: `useTranslations('hello')('title')` compiles, a missing key doesn't.
+`apps/web` uses next-intl without locale routing. `apps/web/i18n/request.ts` resolves the interface language from the `NEXT_LOCALE` cookie, then `Accept-Language`, then `en`, and runs next-intl on the formatting locale (`nl-NL` or `en-GB`, also used for `<html lang>`). Keys are typed: `useTranslations('hello')('title')` compiles, a missing key doesn't.
 
 The `no-hard-coded-jsx-text` Biome plugin (registered in `apps/web/biome.json`) fails on literal text in JSX children, string and template literals rendered as children, and literals in `alt`, `title`, `placeholder`, `label` and user-facing `aria-*` attributes. It doesn't see strings outside JSX (e.g. `metadata`, custom component props or values passed through variables); review those by hand.
 
@@ -65,6 +70,7 @@ The `no-hard-coded-jsx-text` Biome plugin (registered in `apps/web/biome.json`) 
 - **iOS:** add `generated/ios/Localizable.xcstrings` to the app target by reference, with `nl` as the development region. Keys are marked `extractionState: manual`, so Xcode keeps them.
 - **Android:** add `packages/i18n/generated/android` as a resource directory (`sourceSets.main.res.srcDirs`).
 - Both still need their own no-hard-coded-strings rules (SwiftLint / ktlint, ADR-008).
+- Both pick the interface language themselves, from the OS per-app language and the raw preferred-language list, as `resolveInterfaceLanguage()` does (see [Locales](#locales)). The bundle's resolved language can't be the input: it falls back to the Dutch source resources.
 
 ## Checks
 

@@ -123,7 +123,7 @@ public struct Client: APIProtocol {
     }
     /// Greeting for the walking skeleton
     ///
-    /// Without `locale`, the locale follows the Accept-Language header and falls back to nl-NL.
+    /// Without `locale`, the locale is the first supported language in the Accept-Language header, otherwise en.
     ///
     /// - Remark: HTTP `GET /v1/hello`.
     /// - Remark: Generated from `#/paths//v1/hello/get(getHello)`.

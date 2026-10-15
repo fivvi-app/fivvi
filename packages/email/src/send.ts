@@ -14,7 +14,10 @@ export interface SendEmailOptions<Props> {
   template: EmailTemplate<Props>;
   props: Props;
   to: EmailAddress;
-  /** The recipient's locale, resolved with `resolveLocale` from `@trainer-hub/i18n`. */
+  /**
+   * The recipient's communication language, resolved with `resolveCommunicationLanguage`
+   * from `@trainer-hub/i18n` (ADR-017).
+   */
   locale: Locale;
   /** The workspace or user time zone. Default: Europe/Amsterdam. */
   timeZone?: string;

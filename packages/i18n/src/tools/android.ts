@@ -4,8 +4,9 @@ import { androidName, catalogFile } from './catalog.ts';
 import { argIndex, type CompiledMessage, hasArgs, type Part, type PluralCategory } from './icu.ts';
 
 /**
- * Resource folder per locale. The source language goes in the default `values/`, so it
- * is also the fallback for languages we don't have (ADR-008: … → nl-NL).
+ * Resource folder per locale. The source language goes in the default `values/`. Android
+ * would also show it for languages we don't have, so the app picks the language itself and
+ * never relies on this resource fallback (ADR-017).
  */
 export const androidValuesDir: Record<Locale, string> = { 'nl-NL': 'values', en: 'values-en' };
 

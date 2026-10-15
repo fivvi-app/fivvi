@@ -1,4 +1,7 @@
-import { defaultLocale, type Locale, locales } from './config.ts';
+import { type Locale, locales } from './config.ts';
+
+/** The interface language when nothing supported is chosen, stored or requested (ADR-017). */
+const interfaceFallback: Locale = 'en';
 
 export function isLocale(value: unknown): value is Locale {
   return typeof value === 'string' && (locales as readonly string[]).includes(value);
@@ -31,31 +34,50 @@ export function parseAcceptLanguage(header: string | null | undefined): string[]
     .map(({ tag }) => tag);
 }
 
-export interface LocaleSources {
+/** What is known about the person in front of the screen, for their interface language. */
+export interface InterfaceLanguageSources {
   /** A choice made in this request or session, e.g. the language switch. */
   explicit?: string | null;
   /** The user's stored preference (`preferredLocale`). */
   stored?: string | null;
-  /** The workspace's default communication language. */
-  workspaceDefault?: string | null;
+  /** A booking link's fixed language, on public booking pages only. */
+  bookingLink?: string | null;
   /** Device or browser languages, most preferred first. */
   requested?: readonly string[];
 }
 
 /**
- * Locale resolution used on every platform (ADR-008, ROADMAP.md M2): explicit user
- * choice → stored preference → workspace default → device/browser → nl-NL.
+ * The language a screen shows and the `locale` it sends to the API (ADR-017): explicit
+ * choice → stored preference → a booking link's fixed language → the first supported
+ * device/browser language → `en`. Unsupported values are skipped. The workspace's default
+ * communication language never decides it.
  */
-export function resolveLocale(sources: LocaleSources): Locale {
+export function resolveInterfaceLanguage(sources: InterfaceLanguageSources): Locale {
   const candidates = [
     sources.explicit,
     sources.stored,
-    sources.workspaceDefault,
+    sources.bookingLink,
     ...(sources.requested ?? []),
   ];
   for (const candidate of candidates) {
     const locale = matchLocale(candidate);
     if (locale) return locale;
   }
-  return defaultLocale;
+  return interfaceFallback;
+}
+
+/** What is known about the recipient of an email or other message. */
+export interface CommunicationLanguageSources {
+  /** The recipient's stored preference, including a language a guest chose while booking. */
+  recipientPreference?: string | null;
+  /** The workspace's default communication language. Every workspace has one. */
+  workspaceDefault: Locale;
+}
+
+/**
+ * The language of an email or other message to a recipient (ADR-017): their stored
+ * preference → the workspace's default communication language.
+ */
+export function resolveCommunicationLanguage(sources: CommunicationLanguageSources): Locale {
+  return matchLocale(sources.recipientPreference) ?? sources.workspaceDefault;
 }
