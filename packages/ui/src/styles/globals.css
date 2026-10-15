@@ -15,19 +15,26 @@
 
 /*
  * Densities (AC6): a layout sets `data-density="compact"` (Trainer Web on a desktop pointer) or
- * `data-density="touch"` (public and client pages). The density sets the body text size inside it
- * and the minimum size of the kit's controls, from the tokens; the nearest layout's density wins.
+ * `data-density="touch"` (public and client pages). The density sets the body text size inside it,
+ * both inherited and shadcn's body size `text-sm`, and the minimum size of the kit's controls, from
+ * the tokens; the nearest layout's density wins.
  */
 @layer base {
   [data-density="compact"] {
+    --density-body-size: var(--th-density-compact-body-font-size);
+    --density-body-line-height: var(--th-density-compact-body-line-height);
     --density-control-size: var(--th-size-control-compact);
-    font-size: var(--th-density-compact-body-font-size);
-    line-height: var(--th-density-compact-body-line-height);
   }
   [data-density="touch"] {
+    --density-body-size: var(--th-density-touch-body-font-size);
+    --density-body-line-height: var(--th-density-touch-body-line-height);
     --density-control-size: var(--th-size-control-touch);
-    font-size: var(--th-density-touch-body-font-size);
-    line-height: var(--th-density-touch-body-line-height);
+  }
+  [data-density] {
+    --text-sm: var(--density-body-size);
+    --text-sm--line-height: var(--density-body-line-height);
+    font-size: var(--density-body-size);
+    line-height: var(--density-body-line-height);
   }
   [data-density] :is([data-slot="button"], [data-slot="input"]) {
     min-height: var(--density-control-size);

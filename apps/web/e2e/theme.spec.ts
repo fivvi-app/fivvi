@@ -14,11 +14,17 @@ const tokensCss = readFileSync(
 );
 const [lightCss = '', darkCss = ''] = tokensCss.split('@media (prefers-color-scheme: dark)');
 
+/** The value tokens.css declares for a token (`color.bg.canvas`) in one of its blocks. */
+function declaredValue(css: string, token: string): string | undefined {
+  return css.match(new RegExp(`--th-${token.replaceAll('.', '-')}:\\s*([^;]+);`))?.[1]?.trim();
+}
+
 /** A semantic colour token (`bg.canvas`) as the browser computes it (`rgb(246, 246, 247)`). */
 function tokenColour(token: string, scheme: ColorScheme): string {
-  const declaration = new RegExp(`--th-color-${token.replaceAll('.', '-')}:\\s*#([0-9a-f]{6});`);
-  const hex =
-    (scheme === 'dark' && darkCss.match(declaration)?.[1]) || lightCss.match(declaration)?.[1];
+  const value =
+    (scheme === 'dark' && declaredValue(darkCss, `color.${token}`)) ||
+    declaredValue(lightCss, `color.${token}`);
+  const hex = value?.match(/^#([0-9a-f]{6})$/)?.[1];
   if (!hex) throw new Error(`No ${scheme} value for color.${token} in tokens.css`);
   const [r, g, b] = [0, 2, 4].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
   return `rgb(${r}, ${g}, ${b})`;
@@ -110,10 +116,9 @@ async function openHelloPage(page: Page, colorScheme: ColorScheme): Promise<void
 
 /** A mode-independent token (`size.control.compact`) as written in tokens.css (`36px`). */
 function tokenValue(token: string): string {
-  const declaration = new RegExp(`--th-${token.replaceAll('.', '-')}:\\s*([^;]+);`);
-  const value = lightCss.match(declaration)?.[1];
+  const value = declaredValue(lightCss, token);
   if (!value) throw new Error(`No value for ${token} in tokens.css`);
-  return value.trim();
+  return value;
 }
 
 /** A font stack token (`font.family.display`) as the browser computes it. */
@@ -206,6 +211,8 @@ test.describe('E007 web theme', () => {
       ['Input', page.getByLabel(copy.hello.firstNameLabel)],
       ['Button', page.getByRole('button', { name: copy.hello.continue })],
     ];
+    // Body text inside a Card, which sets its own (shadcn) body size.
+    const bodyText = page.getByRole('status');
     // The root layout opts every page into touch density. Trainer Web layouts (M2) opt into
     // compact on a nested element; here the hello page's <main> stands in for one.
     const layouts: [Density, Locator][] = [
@@ -213,7 +220,7 @@ test.describe('E007 web theme', () => {
       ['compact', page.locator('main')],
     ];
 
-    await openHelloPage(page, 'light');
+    await page.goto('/?name=Sam');
     await expect(page.locator('body')).toHaveAttribute('data-density', 'touch');
     for (const [density, layout] of layouts) {
       const { body, control, bodyPx, controlPx } = densities[density];
@@ -224,11 +231,17 @@ test.describe('E007 web theme', () => {
 
       const bodySize = tokenValue(`${body}.font-size`);
       expect(bodySize, `${body} is the AC6 body size`).toBe(`${bodyPx}px`);
-      await expect(layout, `${density} body size`).toHaveCSS('font-size', bodySize);
-      await expect(layout, `${density} body line height`).toHaveCSS(
-        'line-height',
-        tokenValue(`${body}.line-height`),
-      );
+      const bodyLineHeight = tokenValue(`${body}.line-height`);
+      for (const [name, element] of [
+        ['layout', layout],
+        ['body text', bodyText],
+      ] as const) {
+        await expect(element, `${density} ${name} size`).toHaveCSS('font-size', bodySize);
+        await expect(element, `${density} ${name} line height`).toHaveCSS(
+          'line-height',
+          bodyLineHeight,
+        );
+      }
 
       const controlHeight = Number.parseFloat(tokenValue(control));
       expect(controlHeight, `${control} meets AC6`).toBeGreaterThanOrEqual(controlPx.min);

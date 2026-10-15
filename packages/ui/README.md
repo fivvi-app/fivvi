@@ -36,7 +36,7 @@ A page picks its density with a `data-density` attribute on a layout element, no
 <div data-density="compact">{children}</div>
 ```
 
-`apps/web`'s root layout puts `touch` on `<body>`, so every page is touch unless a layout nested inside it, such as Trainer Web's, sets `compact`; the nearest layout wins. The density sets the font size and line height that body text inherits (text with its own size class, such as upstream's `text-sm` in `Card`, keeps it) and the minimum height of the kit's controls; icon-only buttons get the same minimum width. It is a minimum, so a control can still be made larger with a class. The values come from the token CSS variables, so a token change applies without editing the kit. A new control that should follow the density gets its `data-slot` added to the density rule in `globals.css`.
+`apps/web`'s root layout puts `touch` on `<body>`, so every page is touch unless a layout nested inside it, such as Trainer Web's, sets `compact`; the nearest layout wins. The density sets the body text size and line height: the size text inherits, and `text-sm`, the body size shadcn's components use (`Card`, `Button`, `Label`). Other size classes keep their size. It also sets the minimum height of the kit's controls; icon-only buttons get the same minimum width. It is a minimum, so a control can still be made larger with a class. The values come from the token CSS variables, so a token change applies without editing the kit. A new control that should follow the density gets its `data-slot` added to the density rule in `globals.css`.
 
 ## Display font
 
@@ -67,7 +67,7 @@ The components themselves are unchanged. The kit differs from a fresh `shadcn in
 | Tailwind's default palette is removed (`palette-reset.css`) | Only token colours exist, so every colour follows light and dark mode and the contrast checks of the token package |
 | A `:focus-visible` outline in the focus colour (`--ring`), `border.width.focus` wide (2px) with a 2px offset, outside Tailwind's cascade layers | Upstream's `ring-ring/50` is about 2.4:1 against the light canvas, below the 3:1 a focus indicator needs (WCAG 2.4.7, 1.4.11). Being unlayered, the rule wins over the components' `outline-none` without editing them, and every future component gets it too. shadcn has no theme variable for the width, so the rule reads the token variable `--th-border-width-focus`, as the density rules read theirs; app code still never uses `--th-*` |
 | No `tw-animate-css` or `shadcn/tailwind.css` | None of the current components animate or use shadcn's custom variants. Add them with the first component that does |
-| Density rules for `[data-density]` (`compact`, `touch`) in Tailwind's `base` layer | shadcn has one size scale; the densities set body text and a minimum control size per layout from the tokens, without editing the components ([densities](#densities)) |
+| Density rules for `[data-density]` (`compact`, `touch`) in Tailwind's `base` layer, which also set `--text-sm` inside the layout | shadcn has one size scale; the densities set body text and a minimum control size per layout from the tokens, without editing the components ([densities](#densities)) |
 | No `src/lib/utils.ts` | The `radix-nova` components import `cn` from the `cn` package directly |
 
 ## Checks
