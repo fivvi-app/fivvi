@@ -6,7 +6,7 @@
 | **Date** | 22 September 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
 | **Builders** | AI coding agents: GitHub Copilot (VS Code + CLI), Claude Code and Codex, working in parallel worktrees |
-| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7; GitHub Copilot added as a builder in v1.8; Matt Pocock's skills and GitHub issue specs in v1.9; E006 owner to-dos placed at M2, G2 and G4 in v1.10; prototype feedback on workouts, clients and app creation applied in v1.11; agents merge low-risk PRs in v1.12 (ADR-016, proposed); workout duration added to §41 and packages confirmed outside the MVP in v1.13; bilingual class name and description, exercise types and a one-list logger in v1.14 |
+| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7; GitHub Copilot added as a builder in v1.8; Matt Pocock's skills and GitHub issue specs in v1.9; E006 owner to-dos placed at M2, G2 and G4 in v1.10; prototype feedback on workouts, clients and app creation applied in v1.11; agents merge low-risk PRs in v1.12 (ADR-016, proposed); workout duration added to §41 and packages confirmed outside the MVP in v1.13; bilingual class name and description, exercise types and a one-list logger in v1.14; web-first pilot, native trainer apps after go-live in v1.15 |
 | **Requirements source** | [`PRODUCT.md`](PRODUCT.md) (what we build and why) |
 | **Feature registry** | [`FEATURES.md`](FEATURES.md) (status of every feature) |
 | **Engineering workflow** | [`../engineering/WORKFLOW.md`](../engineering/WORKFLOW.md) (branches, worktrees, reviews, cleanup, Definition of Done) |
@@ -53,7 +53,7 @@
 | **H3: Open it** | Self-serve SaaS for independent trainers, freelancers and multi-location gyms | 2.0 – 2.3 | After the pilot says "would not go back" |
 | **H4+: Scale it** | Smart scheduling, analytics, payments, integrations, enterprise | 3.0 – 7.0 | Themes only; scoped when their gate opens |
 
-**MVP at a glance:** 50 user-facing features (F001–F050) plus 18 engineering enablers (E001–E018), delivered in **10 milestones**, followed by a **6-week real-world pilot**. Everything runs on **free tiers** until real clients are on the platform (§12).
+**MVP at a glance:** 50 user-facing features (F001–F050) plus 18 engineering enablers (E001–E018), delivered in **10 milestones**, followed by a **6-week real-world pilot**. The pilot starts on the **web** (laptop and phone browser); the native trainer apps (M8) follow after go-live. Everything runs on **free tiers** until real clients are on the platform (§12).
 
 ---
 
@@ -88,14 +88,13 @@ flowchart LR
   M4 --> M5[M5 Public<br/>booking]
   M5 --> M6[M6 Open Gym<br/>& sharing]
   M4 --> M7[M7 Training<br/>& notes]
-  M4 --> M8i[M8 iOS<br/>trainer app]
-  M4 --> M8a[M8 Android<br/>trainer app]
-  M7 --> M8i
-  M7 --> M8a
   M6 --> M9[M9 Hardening<br/>& launch readiness]
-  M8i --> M9
-  M8a --> M9
-  M9 --> M10[M10 Pilot]
+  M7 --> M9
+  M9 --> M10[M10 Pilot<br/>on web]
+  M9 --> M8i[M8 iOS<br/>trainer app]
+  M9 --> M8a[M8 Android<br/>trainer app]
+  M8i -.-> M10
+  M8a -.-> M10
 
   G1{{G1 Architecture<br/>sign-off}}:::gate
   G2{{G2 Owner alpha}}:::gate
@@ -111,15 +110,15 @@ flowchart LR
   classDef gate fill:#fff4d6,stroke:#b7791f,color:#000;
 ```
 
-After M4 the plan runs as **three parallel tracks**, each in its own worktrees:
+**Web-first pilot (v1.15).** Clients only ever need the web (public booking, client web). Trainers do their admin on a laptop and use the trainer web on their phone's browser, added to the home screen. So the pilot goes live on the web after M9 (Gate G4), and the native trainer apps (M8) are built after that and join the pilot when ready. M1 still builds the native shells, so the contract and string catalogs are proven on every platform early.
 
 | Track | Milestones | Typical agent split |
 |---|---|---|
-| **Backend + web** | M5 → M6, and M7 | One agent on booking/Open Gym, one on training/notes |
-| **iOS** | M8 (iOS) | One agent: Swift + SwiftUI |
-| **Android** | M8 (Android) | One agent: Kotlin + Jetpack Compose |
+| **Backend + web** | M5 → M6, and M7 (after M4) | One agent on booking/Open Gym, one on training/notes |
+| **iOS** | M8 (iOS), after G4 | One agent: Swift + SwiftUI |
+| **Android** | M8 (Android), after G4 | One agent: Kotlin + Jetpack Compose |
 
-The native tracks start as soon as the M4 API contract is stable (Today, calendar, sessions, attendance). They add workout logging and notes screens once the M7 contract lands.
+The native tracks build on the contracts frozen at the end of M4 (Today, calendar, sessions, attendance) and M7 (logging, notes).
 
 ### 3.2 Milestones summary
 
@@ -135,9 +134,9 @@ Size is relative complexity (S / M / L / XL), not a duration.
 | **M5** | Public booking | A client scans a link, books a class with name + email, verifies, gets a localized confirmation | F027–F033, F049, F050, E013 | L |
 | **M6** | Open Gym & sharing | Owner publishes Open Gym; clients book it; booking links and QR posters are printable | F034–F038 | M |
 | **M7** | Training & notes | Trainer logs live sets with or without a template, repeats the previous workout, keeps notes | F039–F048, F051 | L |
-| **M8** | Native trainer apps (iOS + Android) | A trainer's day runs from the phone: Today, calendar, clients, logging, notes, attendance, and **+** by role | Mobile surfaces of F006, F013, F020–F022, F025, F034, F043–F048, F051; E017 | XL (×2 platforms) |
+| **M8** | Native trainer apps (iOS + Android), after G4 | A trainer's day runs from the phone: Today, calendar, clients, logging, notes, attendance, and **+** by role. The apps join the running pilot | Mobile surfaces of F006, F013, F020–F022, F025, F034, F043–F048, F051; E017 | XL (×2 platforms) |
 | **M9** | Hardening & launch readiness | Security, privacy, accessibility, NL/EN QA, import tooling, backups, runbooks are all done | E014–E016 | M |
-| **M10** | Pilot | The pilot gym runs on the platform for 6 weeks; evidence collected; Release 1.1 defined | — | 6 weeks |
+| **M10** | Pilot | The pilot gym runs on the web platform for 6 weeks, joined by the native apps when M8 is done; evidence collected; Release 1.1 defined | — | 6 weeks |
 
 ### 3.3 Release roadmap
 
@@ -315,7 +314,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
   - [ ] Set the values (ENVIRONMENTS.md §7): `development` gets the `trainer-hub-dev` key; `production` gets a **new, separate** Brevo key (e.g. `trainer-hub-prod`); `EMAIL_FROM_ADDRESS` = the verified sender in both.
 
 **Exit criteria**
-- Owner signs in on web, iOS and Android, creates "John's Gym", sees the UI in Dutch by default, switches to English, and the choice persists across devices.
+- Owner signs in on web (laptop and phone browser), creates "John's Gym", sees the UI in Dutch by default, switches to English, and the choice persists across devices. Sign-in in the native apps arrives with M8 (v1.15).
 - Automated tests prove workspace A cannot read or write workspace B's data through any API route.
 
 ---
@@ -351,7 +350,8 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - Substitution changes the occurrence's trainer only; bookings stay untouched (§19).
 - Cancelling a session or class notifies participants in *their* language.
 - Attendance statuses: Booked / Attended / Cancelled / No-show (§43).
-- **Freeze the mobile-facing API** (Today, calendars, sessions, attendance) at the end of M4. That unblocks the iOS and Android tracks.
+- **Trainer web works on a phone too.** Today, the personal calendar, the session screen and attendance work in a phone browser with touch-sized targets, and the trainer web can be added to the home screen (web app manifest). Until the native apps arrive (M8, after G4), this is how trainers use the platform on their phone.
+- **Freeze the mobile-facing API** (Today, calendars, sessions, attendance) at the end of M4. The native apps build on it in M8.
 
 **Pilot touchpoint (Gate G2: owner alpha):** The owner enters the real weekly timetable on web and runs it **in parallel** with Excel. First real feedback loop.
 
@@ -421,10 +421,12 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - **Logging never requires a template** (§41): start empty, repeat the previous workout (F051) or pick a template; add library or custom exercises mid-session; prefilled sets are logged with one tap; a finished workout can be saved as a template (F041). A workout can start from a client profile without a planned session (it creates a private session that starts now).
 - **Design the logging API for offline from day one:** client-generated IDs (UUIDv7), idempotent writes and a batch sync endpoint. The native apps queue writes locally (SwiftData / Room). Full offline resilience is scoped for 1.1, but it must not need a rewrite.
 - Notes are free-form, stored as entered, **trainer-only by default**, with an optional client-visible flag (§35–37). Access to notes is permission-checked and audit-logged.
+- **The web logger works on a phone** between sets: one hand, big targets. It keeps sets that weren't sent yet on the device and sends them through the batch sync endpoint when the connection returns, so weak gym Wi-Fi never loses a set.
 
 **Exit criteria**
 - A trainer completes a real private session on web: assigns a template, logs sets against previous values, adds a session note and a trainer-only client note.
 - A trainer completes a session without a template: adds exercises during the session, then saves it as a template; the next session can repeat it.
+- The same session works in a phone browser, including a moment without connection: no set is lost.
 - The logging API contract is frozen for the native tracks.
 
 ---
@@ -433,7 +435,9 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 **Goal:** A trainer's day runs from the phone, on either platform.
 
-**Scope:** Native screens for Today, personal calendar, clients (list, profile, quick add), session screen, workout logger, notes, attendance, the **+** menu by role (private session, client; owner/admin also group class with weekly repeat and Open Gym; §15), and the NL/EN switch (§85 I), built **in parallel**: one iOS track and one Android track. E017 App distribution.
+**Scope:** Native sign-in (6-digit code) and screens for Today, personal calendar, clients (list, profile, quick add), session screen, workout logger, notes, attendance, the **+** menu by role (private session, client; owner/admin also group class with weekly repeat and Open Gym; §15), and the NL/EN switch (§85 I), built **in parallel**: one iOS track and one Android track. E017 App distribution.
+
+**When:** after Gate G4 (v1.15). The pilot runs on the web first; the apps join it through TestFlight and Play internal testing when they pass this milestone. The trainer web keeps working alongside them.
 
 **Key notes**
 - Both apps consume the **generated API clients** and **generated string catalogs**. No hand-written API models and no hand-written strings.
@@ -446,6 +450,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 **Exit criteria**
 - A trainer runs a full day on the phone (check Today, take attendance, log 3 sessions, add notes) in NL and in EN, **on iOS and on Android**.
 - Maestro smoke flows pass on both platforms.
+- The native items of the M9 launch checklist pass (secure token storage, Dynamic Type / font scaling, VoiceOver / TalkBack, contrast, native bilingual QA) before the apps reach pilot users.
 
 ---
 
@@ -455,7 +460,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 **Scope:** E014 Privacy tooling (export, deletion, retention), E015 Data import tooling, E016 Backups, restore drill and runbooks, plus the checklist below.
 
-**Launch checklist**
+**Launch checklist** (for the web pilot; its native-app items are checked in M8, before the apps join the pilot)
 - [ ] Local security review + owner sign-off: authn/authz on every route, tenant isolation suite green, rate limits, security headers, secrets rotation, dependency audit, native secure storage for tokens (Keychain / EncryptedSharedPreferences or DataStore).
 - [ ] Privacy: data export and deletion work per client and per workspace (§79); retention jobs run; processor agreement signed.
 - [ ] **Full bilingual QA pass:** review every string locally against the glossary and tone guide, on web, iOS, Android and email. Dates/times checked (`22 september 2026`, 24h, Europe/Amsterdam). The pilot owner flags anything that reads oddly.
@@ -476,7 +481,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 ## 6. Parallel tracks and dependencies
 
 - **Hard sequence:** M1 → M2 → M3 → M4. Everything depends on the foundation, identity/tenancy, and the scheduling engine.
-- **After M4, three tracks run in parallel:** backend/web (M5 → M6 and M7), iOS (M8), Android (M8). Each agent works in its own worktree and branch.
+- **After M4, the backend/web track runs** M5 → M6 and M7 in parallel. **After G4, the native tracks run:** iOS (M8) and Android (M8). Each agent works in its own worktree and branch.
 - **Contract freezes are the sync points:** the mobile-facing contract freezes at the end of M4 (scheduling) and at the end of M7 (logging/notes). Any later contract change comes as a versioned, additive change with regenerated clients, never a silent break.
 - **The real bottleneck is review and integration, not typing.** To keep it moving:
   - Keep PRs small (one feature or sub-feature each).
@@ -490,20 +495,21 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 | Week | Activity |
 |---|---|
-| **0: Setup** | Import data (clients, timetable, future sessions); 1:1 onboarding with the owner; short onboarding per trainer (Dutch quick guide); install the apps via TestFlight / Play internal testing; create classes and Open Gym; print QR posters |
+| **0: Setup** | Import data (clients, timetable, future sessions); 1:1 onboarding with the owner; short onboarding per trainer (Dutch quick guide); add the trainer web to each trainer's phone home screen; create classes and Open Gym; print QR posters |
 | **1: Soft launch** | Booking page shared with a subset of clients; the owner keeps Excel as a safety net |
 | **2–3: Switch-over** | All scheduling and booking move to the platform; Excel retired for scheduling; workouts logged in-app |
 | **4–6: Observe** | Weekly 30-min check-in with the owner; trainers asked every two weeks; workaround log maintained |
 | **End of 6** | **Pilot review (Gate G5):** metrics vs. baseline and targets; ranked findings; Release 1.1 scope defined from evidence |
+| **When M8 is done** | Trainers install the native apps via TestFlight / Play internal testing; the web keeps working, so nobody has to switch on a given day |
 
 **What we observe (§85 J 74–76):**
 - Where people still use Excel, a separate calendar or notes, and why.
 - Workarounds (things people do *around* the product).
 - Support requests and developer interventions (goal: zero for normal use).
 - Funnel drop-offs in public booking.
-- iOS vs Android issue split.
+- Laptop vs phone-browser issue split; iOS vs Android once the native apps join.
 
-**Feedback channels:** in-app "feedback" link (NL/EN) on web and both apps, the weekly check-in, and the workaround log in `docs/pilot/`.
+**Feedback channels:** in-app "feedback" link (NL/EN) on web (and in both apps once they join), the weekly check-in, and the workaround log in `docs/pilot/`.
 
 ---
 
@@ -675,8 +681,8 @@ flowchart TB
 | Uptime | UptimeRobot / Better Stack free | Check interval | — |
 | Bot protection | Cloudflare Turnstile | Free | — |
 | Source + CI | GitHub private repo + Actions free minutes | **macOS minutes count 10×** | Path-filtered iOS CI + local Xcode builds; if still short → make the repo public (unlimited free minutes) or pay for minutes |
-| iOS distribution | Existing Apple Developer Program company membership (owner-reported); verify access in E017 | Membership and team access must be active for TestFlight | **M8 (pilot):** use the existing company membership; renew if required |
-| Android distribution | Debug builds / APK to own devices; Play Console account unconfirmed | — | **M8 (pilot):** confirm access or enroll if needed |
+| iOS distribution | Existing Apple Developer Program company membership (owner-reported); verify access in E017 | Membership and team access must be active for TestFlight | **M8 (after G4):** use the existing company membership; renew if required |
+| Android distribution | Debug builds / APK to own devices; Play Console account unconfirmed | — | **M8 (after G4):** confirm access or enroll if needed |
 | Push notifications (1.2) | APNs + FCM | Free | — |
 
 **Expected new spend until pilot go-live:** a domain (~€10–15/year), plus Google Play Console enrollment at M8 only if the owner's account does not already exist. The Apple company membership and Railway Hobby plan are already paid by the owner; Apple renewal or additional membership cost depends on the account check in E017. **From G4:** Railway Pro, $20/month.
@@ -698,10 +704,11 @@ flowchart TB
 | R9 | **Native doubles the UI work; iOS and Android drift apart** | H | M | Generated API clients, strings and tokens; parity checklist; shared Maestro flows; parallel tracks | M8, 1.2 |
 | R10 | **LLM Dutch reads unnatural or inconsistent** and hurts trust | M | M | Glossary + tone guide; local copy review before pushing string changes; the pilot owner flags oddities; fix quickly | All |
 | R11 | **Health data in notes (GDPR special category)** | M | H | Trainer-only default; access audit log; DPIA assessment; EU residency; processor agreement | M0, M7, M9 |
-| R12 | **Weak gym connectivity** breaks live logging | M | M | Offline-tolerant logging API + local queue from M7; full offline in 1.1 | M7, M8 |
+| R12 | **Weak gym connectivity** breaks live logging | M | M | Offline-tolerant logging API; the web logger keeps unsent sets on the device (M7), the native apps queue locally (M8); full offline in 1.1 | M7, M8 |
 | R13 | **Pilot data import is messier than expected** | H | M | M0: the gym owner describes the Excel structure (no files); go-live data entered by hand or imported from a template the gym owner fills in; import dry-runs in M9 | M0, M9 |
 | R14 | **A free-tier limit bites at the worst moment** (email cap blocks magic links; DB cold starts slow booking; CI minutes run out) | M | H | Know the limits (§12); usage alerts; upgrade path ready before G4 | M1, M9, M10 |
 | R15 | **No over-the-air updates for native apps**, so pilot fixes are slower | M | M | Keep business rules server-side; TestFlight/internal builds are fast to ship; feature flags from the API for risky features | M8, M10 |
+| R16 | **A phone browser feels less like an app** than the native apps, so trainers keep their old notes or Excel during the pilot | M | M | Phone-friendly trainer web with touch targets and a home-screen icon (M4, M7); watch the workaround log in weeks 1–3; the native apps follow after G4 | M4, M7, M10 |
 
 *L = likelihood, I = impact (L/M/H).*
 
@@ -719,6 +726,7 @@ flowchart TB
 | 4 | Hosting and budget | **Free tiers until real clients**; upgrades at G4 (§12) |
 | 5 | Dutch copy review | **Local review** with a glossary and tone guide; an LLM may assist locally, without a GitHub review job |
 | 6 | Owner alpha on web at M4 | **Yes:** the owner runs the real timetable in parallel with Excel from Gate G2 |
+| 8 | Pilot order | **Web-first:** the pilot goes live on the web at G4; the native trainer apps (M8) follow and join the pilot (v1.15) |
 | 7 | Repository visibility | **Private**, with path-filtered iOS CI and local Xcode builds to stay within free CI minutes |
 
 ### Decided iteratively (at their entry gate, from evidence)
@@ -761,3 +769,4 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-10-13 | 1.12 | Owner decided the **software factory** (#28, ADR-016 proposed): agents take approved work to `main` and stop only for the owner. A script decides risk from the changed paths (`scripts/high-risk-paths.txt`: auth, tenant data, health notes, legal, billing, product and decision docs, the factory's own guardrails, dependencies and infrastructure) and the `owner-merge` label (`scripts/risk.sh`). Agents merge low-risk PRs with `scripts/pr.sh merge`, only when every check passed on the head commit, both local reviewers were clean on it (`pr.sh reviewed`), the preview smoke check is recorded for the head commit, the branch is up to date and no thread is open; high-risk PRs go to the owner. The owner moved to GitHub Pro, so a versioned ruleset on `main` now enforces the five CI jobs, a PR and an up-to-date branch, and blocks force-pushes and deletion; squash merge only (`scripts/github-settings.sh`). Specs need the owner's `spec-approved` label before tickets are cut; a material change removes it. The `work` skill gets a "run the factory" route. New G2 exit criterion: the owner approves production releases once real names are in production. Measure T12 of the processor agreement now says the owner approves every merge of a high-risk change (owner-approved wording). Updated `AGENTS.md`, `WORKFLOW.md`, `docs/agents/`, `docs/legal/verwerkersovereenkomst.md`. |
 | 2026-10-14 | 1.13 | **Prototype phone test (owner):** §41 now shows the elapsed workout time in the logger, and a finished workout records its duration. The owner kept packages and remaining sessions out of the MVP (`PRODUCT.md §53`; Release 4, `§66`). No milestone or release order changes. |
 | 2026-10-14 | 1.14 | **Prototype feedback (owner):** a group class may carry an optional English name and description, typed by the owner (§3, §18). Viewers see their language, else the Dutch text; there is still no automatic translation (§53). Every exercise gets a type that decides what a set records: weight × reps, reps only, time or distance + time (§38). The logger becomes one scrolling list with editable set values and extra sets per exercise (§41). Any unlogged set and any exercise can be removed, also from a template; a changed template workout is offered as a new template and the original stays (§39, §41). Every exercise asks "how was it?" (§41). No milestone or release order changes. |
+| 2026-10-15 | 1.15 | **Web-first pilot (owner).** Clients only ever need the web, and the pilot trainer does most of his admin on a laptop (his phone is Android), so the pilot goes live on the web at Gate G4 and the native trainer apps (M8) move after it. They join the running pilot through TestFlight and Play internal testing; ADR-003 (native apps) is unchanged. The trainer web gets phone-friendly daily screens and a home-screen icon in M4, and a phone-friendly logger that keeps unsent sets on the device in M7 (`PRODUCT.md`, Trainer Web). M1 still builds the native shells. The M9 launch checklist's native items move to the M8 exit criteria. New decision 8 and risk R16; R12 and the pilot plan updated. |
