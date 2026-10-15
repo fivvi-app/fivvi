@@ -25,7 +25,7 @@ export function Hello({ firstName }: { firstName: string }) {
         </CardHeader>
         {firstName ? (
           <CardContent>
-            <p role="status">{t('greeting', { name: firstName })}</p>
+            <p role="status">{t('formGreeting', { name: firstName })}</p>
           </CardContent>
         ) : null}
         <form className="grid gap-(--card-spacing)">

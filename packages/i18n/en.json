@@ -7,6 +7,7 @@
     "description": "Enter your first name and we'll greet you.",
     "firstNameLabel": "First name",
     "continue": "Continue",
+    "formGreeting": "Hi {name}, nice to have you here.",
     "greeting": "Hi {name},",
     "sessionsToday": "{count, plural, one {You have # session today.} other {You have # sessions today.}}",
     "noSessionsToday": "You have no sessions today.",

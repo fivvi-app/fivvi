@@ -34,3 +34,18 @@ test.describe('E010 home page', () => {
     // The page in the other language is checked by the automatic axe fixture.
   });
 });
+
+test.describe('E007 hello page', () => {
+  test('greets the first name entered in the form', async ({ page, messages: copy }) => {
+    await page.goto('/');
+    await expect(page.getByRole('status')).toHaveCount(0);
+
+    await page.getByLabel(copy.hello.firstNameLabel).fill('  Sam  ');
+    await page.getByRole('button', { name: copy.hello.continue }).click();
+
+    await expect(page.getByRole('status')).toHaveText(
+      copy.hello.formGreeting.replace('{name}', 'Sam'),
+    );
+    await expect(page.getByLabel(copy.hello.firstNameLabel)).toHaveValue('Sam');
+  });
+});

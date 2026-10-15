@@ -44,7 +44,7 @@ describe.each(locales)('E007 hello page in %s', (locale) => {
   });
 
   it('greets the first name sent by the form', () => {
-    const greeting = messages[locale].hello.greeting.replace('{name}', 'Sam');
+    const greeting = messages[locale].hello.formGreeting.replace('{name}', 'Sam');
     expect(render(locale, <Hello firstName="Sam" />)).toContain(
       `<p role="status">${escapeHtml(greeting)}</p>`,
     );

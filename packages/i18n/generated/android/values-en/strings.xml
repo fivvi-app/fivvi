@@ -5,6 +5,7 @@
     <string name="hello_continue">Continue</string>
     <string name="hello_description">Enter your first name and we\'ll greet you.</string>
     <string name="hello_first_name_label">First name</string>
+    <string name="hello_form_greeting">Hi %1$s, nice to have you here.</string>
     <string name="hello_greeting">Hi %1$s,</string>
     <string name="hello_next_session">Your next session is on %1$s at %2$s.</string>
     <string name="hello_no_sessions_today">You have no sessions today.</string>
