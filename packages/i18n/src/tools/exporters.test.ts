@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { Locale } from '../config.ts';
 import { analyze } from './analyze.ts';
 import { renderStringsXml } from './android.ts';
-import { renderNativeCatalogs } from './generate.ts';
+import { CatalogError, renderNativeCatalogs } from './generate.ts';
 import { catalogSet } from './testing.ts';
-import { renderXcstrings } from './xcstrings.ts';
+import { renderInfoPlistXcstrings, renderXcstrings } from './xcstrings.ts';
 
 type FlatMessages = Record<string, string>;
 
@@ -286,22 +286,90 @@ describe('E005 iOS String Catalog exporter', () => {
   });
 });
 
+describe('E008 iOS InfoPlist String Catalog exporter', () => {
+  const nl = { 'app.name': 'Sportapp', 'hello.title': 'Welkom' };
+  const en = { 'app.name': 'Sports app', 'hello.title': 'Welcome' };
+
+  function infoPlist(comments = {}): XcCatalog {
+    return JSON.parse(renderInfoPlistXcstrings(analysisOf(nl, en, comments)));
+  }
+
+  it('AC8: writes CFBundleDisplayName from app.name in nl and en, and nothing else', () => {
+    const catalog = infoPlist();
+    expect(catalog.sourceLanguage).toBe('nl');
+    expect(catalog.version).toBe('1.0');
+    expect(catalog.strings).toEqual({
+      CFBundleDisplayName: {
+        extractionState: 'manual',
+        localizations: {
+          en: { stringUnit: { state: 'translated', value: 'Sports app' } },
+          nl: { stringUnit: { state: 'translated', value: 'Sportapp' } },
+        },
+      },
+    });
+  });
+
+  it("uses Xcode's JSON layout", () => {
+    const text = renderInfoPlistXcstrings(analysisOf(nl, en));
+    expect(text).toMatch(/^\{\n {2}"sourceLanguage" : "nl",\n {2}"strings" : \{\n/);
+    expect(text.endsWith('\n  "version" : "1.0"\n}\n')).toBe(true);
+  });
+
+  it("passes app.name's translator comment on", () => {
+    const catalog = infoPlist({ 'app.name': 'Name under the app icon' });
+    expect(catalog.strings.CFBundleDisplayName?.comment).toBe('Name under the app icon');
+  });
+
+  it('is written as generated/ios/InfoPlist.xcstrings next to the other native catalogs', () => {
+    const files = renderNativeCatalogs(analysisOf(nl, en));
+    expect([...files.keys()]).toEqual([
+      'generated/ios/Localizable.xcstrings',
+      'generated/ios/InfoPlist.xcstrings',
+      'generated/android/values/strings.xml',
+      'generated/android/values-en/strings.xml',
+    ]);
+    expect(files.get('generated/ios/InfoPlist.xcstrings')).toBe(
+      renderInfoPlistXcstrings(analysisOf(nl, en)),
+    );
+  });
+
+  it('refuses to render the native catalogs without app.name', () => {
+    expect(() =>
+      renderNativeCatalogs(analysisOf({ 'hello.title': 'Welkom' }, { 'hello.title': 'Welcome' })),
+    ).toThrow(
+      new CatalogError([
+        '"app.name" is missing: it is the native app name (iOS CFBundleDisplayName, Android app label)',
+      ]),
+    );
+  });
+});
+
 describe('E006 server-only namespaces', () => {
-  const nl = { 'hello.title': 'Welkom', 'email.hello.subject': 'Testbericht' };
-  const en = { 'hello.title': 'Welcome', 'email.hello.subject': 'Test message' };
+  const nl = {
+    'app.name': 'Trainer Hub',
+    'hello.title': 'Welkom',
+    'email.hello.subject': 'Testbericht',
+  };
+  const en = {
+    'app.name': 'Trainer Hub',
+    'hello.title': 'Welcome',
+    'email.hello.subject': 'Test message',
+  };
 
   it('leaves email keys out of the iOS and Android catalogs', () => {
     const files = renderNativeCatalogs(analysisOf(nl, en));
-    expect(files.size).toBe(3);
+    expect(files.size).toBe(4);
     for (const [file, content] of files) {
-      expect(content, file).toContain('Wel');
+      if (!file.endsWith('InfoPlist.xcstrings')) expect(content, file).toContain('Wel');
       expect(content, file).not.toContain('Test');
       expect(content, file).not.toContain('email');
     }
   });
 
   it('still checks email keys for parity', () => {
-    const analysis = analyze(catalogSet(nl, { 'hello.title': 'Welcome' }));
+    const analysis = analyze(
+      catalogSet(nl, { 'app.name': 'Trainer Hub', 'hello.title': 'Welcome' }),
+    );
     expect(analysis.parity).toEqual([
       '"email.hello.subject" is in nl-NL.json but missing from en.json',
     ]);

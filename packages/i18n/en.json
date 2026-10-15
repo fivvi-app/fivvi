@@ -1,6 +1,11 @@
 {
   "app": {
-    "title": "Trainer Hub"
+    "title": "Trainer Hub",
+    "name": "Trainer Hub"
+  },
+  "common": {
+    "loading": "Loading…",
+    "retry": "Try again"
   },
   "hello": {
     "title": "Welcome to Trainer Hub",
@@ -11,7 +16,8 @@
     "greeting": "Hi {name},",
     "sessionsToday": "{count, plural, one {You have # session today.} other {You have # sessions today.}}",
     "noSessionsToday": "You have no sessions today.",
-    "nextSession": "Your next session is on {date} at {time}."
+    "nextSession": "Your next session is on {date} at {time}.",
+    "error": "We couldn't load the greeting. Try again."
   },
   "notFound": {
     "title": "Page not found",

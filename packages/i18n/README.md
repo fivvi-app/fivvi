@@ -7,6 +7,7 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 | `nl-NL.json`, `en.json` | The catalogs. Dutch is the source language (`defaultLocale`); it is not the fallback for unsupported languages |
 | `comments.json` | Optional translator context per key (`"hello.greeting": "…"`), passed on to both native catalogs |
 | `generated/ios/Localizable.xcstrings` | iOS String Catalog. **Generated, never edit** |
+| `generated/ios/InfoPlist.xcstrings` | iOS Info.plist strings: `CFBundleDisplayName` from `app.name`, in nl and en. **Generated, never edit** |
 | `generated/android/values*/strings.xml` | Android resources (`values/` = nl-NL, `values-en/` = en). **Generated, never edit** |
 | `src/index.ts` | Runtime exports: `locales`, `defaultLocale`, `messages`, `MessageKey`, `formattingLocales`, `dateTimeFormats`, `resolveInterfaceLanguage`, `resolveCommunicationLanguage` |
 | `src/tools/` | Checks and exporters (Node only) |
@@ -67,8 +68,8 @@ The `no-hard-coded-jsx-text` Biome plugin (registered in `apps/web/biome.json`) 
 
 ## Native apps (E008)
 
-- **iOS:** add `generated/ios/Localizable.xcstrings` to the app target by reference, with `nl` as the development region. Keys are marked `extractionState: manual`, so Xcode keeps them.
-- **Android:** add `packages/i18n/generated/android` as a resource directory (`sourceSets.main.res.srcDirs`).
+- **iOS:** add `generated/ios/Localizable.xcstrings` and `generated/ios/InfoPlist.xcstrings` to the app target by reference, with `nl` as the development region. Keys are marked `extractionState: manual`, so Xcode keeps them. The display name under the app icon comes from `app.name` through `InfoPlist.xcstrings`; the generator fails when `app.name` is missing.
+- **Android:** add `packages/i18n/generated/android` as a resource directory (`sourceSets.main.res.srcDirs`). The app label is `@string/app_name`.
 - Both still need their own no-hard-coded-strings rules (SwiftLint / ktlint, ADR-008).
 - Both pick the interface language themselves, from the OS per-app language and the raw preferred-language list, as `resolveInterfaceLanguage()` does (see [Locales](#locales)). The bundle's resolved language can't be the input: it falls back to the Dutch source resources.
 
