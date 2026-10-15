@@ -33,6 +33,9 @@ catalog:
   react: ^19.3.0
   react-dom: ^19.3.0
   react-email: ^6.11.0
+  # Major 4, as decided in spec #33 (E007).
+  style-dictionary: ^4.4.0
+  tailwindcss: ^4.3.3
   tsx: ^4.23.15
   turbo: ^2.11.2
   typescript: ~7.0.2
@@ -45,7 +48,11 @@ catalog:
 #   installs the platform binary anyway.
 # - @parcel/watcher and @swc/core belong to next-intl's optional message
 #   extractor, which we don't use.
+# - style-dictionary and @bundled-es-modules/glob (packages/design-tokens) run
+#   patch-package, but ship no patches, so there is nothing to apply.
 allowBuilds:
+  '@bundled-es-modules/glob': false
   '@parcel/watcher': false
   '@swc/core': false
   esbuild: false
+  style-dictionary: false

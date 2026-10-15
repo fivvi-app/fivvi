@@ -1,0 +1,128 @@
+import path from 'node:path';
+import { compile } from 'tailwindcss';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { renderOutputs, shadcnColours, webOutputs } from '../src/build.ts';
+import {
+  readTokenSource,
+  semanticColours,
+  type TokenSource,
+  TokenSourceError,
+  withoutToken,
+} from '../src/source.ts';
+import { customProperties, resolveVar } from './css.ts';
+
+const packageRoot = path.resolve(import.meta.dirname, '..');
+const hex = /^#[0-9a-f]{6}$/i;
+const cssName = (tokenPath: string) => `--th-${tokenPath.replaceAll('.', '-')}`;
+
+describe('E007 design tokens build (web)', () => {
+  let source: TokenSource;
+  let outputs: Map<string, string>;
+  const output = (file: string) => outputs.get(file) ?? '';
+
+  beforeAll(async () => {
+    source = await readTokenSource(packageRoot);
+    outputs = await renderOutputs(source);
+  });
+
+  it('AC1: generates CSS, Tailwind theme and shadcn variables', () => {
+    expect([...outputs.keys()].sort()).toEqual(Object.values(webOutputs).sort());
+  });
+
+  it('AC1: CSS variables have a light and a dark value for every semantic colour', () => {
+    const colours = semanticColours(source);
+    for (const group of ['bg', 'text', 'border', 'action', 'status', 'session']) {
+      expect(colours.some((colour) => colour.startsWith(`color.${group}.`))).toBe(true);
+    }
+
+    const { light, dark } = customProperties(output(webOutputs.tokens));
+    for (const colour of colours) {
+      expect(light.get(cssName(colour)), `${colour} light`).toMatch(hex);
+      expect(dark.get(cssName(colour)), `${colour} dark`).toMatch(hex);
+    }
+    // M0 draft values, resolved through the palette in each mode.
+    expect(light.get('--th-color-bg-canvas')?.toUpperCase()).toBe('#F6F6F7');
+    expect(dark.get('--th-color-bg-canvas')?.toUpperCase()).toBe('#242428');
+    expect(dark.get('--th-color-action-tonal-bg')?.toUpperCase()).toBe('#3A3A41');
+  });
+
+  it('AC1: dark values follow the system setting, and apps never see the base palette', () => {
+    const css = output(webOutputs.tokens);
+    expect(css).toContain('@media (prefers-color-scheme: dark)');
+    expect(css).not.toContain('--th-color-base-');
+    expect(customProperties(css).light.get('--th-space-4')).toBe('16px');
+  });
+
+  it("AC1: shadcn's standard theme variables come from the semantic tokens in light and dark", () => {
+    const properties = customProperties(output(webOutputs.tokens), output(webOutputs.shadcn));
+    const standard = [
+      'background',
+      'foreground',
+      'card',
+      'popover',
+      'primary',
+      'secondary',
+      'muted',
+      'accent',
+      'destructive',
+      'border',
+      'input',
+      'ring',
+    ];
+    for (const name of standard) expect(Object.keys(shadcnColours)).toContain(name);
+
+    for (const [name, token] of Object.entries(shadcnColours)) {
+      for (const mode of ['light', 'dark'] as const) {
+        const tokenValue = resolveVar(cssName(token), properties[mode]);
+        expect(tokenValue, `${token} ${mode}`).toMatch(hex);
+        expect(resolveVar(`--${name}`, properties[mode]), `--${name} ${mode}`).toBe(tokenValue);
+      }
+    }
+    expect(resolveVar('--primary', properties.dark)?.toUpperCase()).toBe('#C1BBEB');
+    expect(resolveVar('--radius', properties.light)).toBe('12px');
+  });
+
+  it('AC1: session and status colours are extra theme variables in light and dark', () => {
+    const properties = customProperties(output(webOutputs.tokens), output(webOutputs.shadcn));
+    const extras = semanticColours(source).filter((p) => /^color\.(session|status)\./.test(p));
+    expect(extras).toContain('color.status.warning.fg');
+    for (const token of extras) {
+      const name = `--${token.replace(/^color\./, '').replaceAll('.', '-')}`;
+      for (const mode of ['light', 'dark'] as const) {
+        expect(resolveVar(name, properties[mode]), `${name} ${mode}`).toBe(
+          resolveVar(cssName(token), properties[mode]),
+        );
+      }
+    }
+  });
+
+  it('AC1: the Tailwind v4 theme turns the theme variables into utilities', async () => {
+    const tailwind = await compile(`${output(webOutputs.theme)}\n@tailwind utilities;`);
+    const css = tailwind.build([
+      'bg-background',
+      'text-primary-foreground',
+      'border-input',
+      'bg-session-open-gym-bg',
+      'text-status-danger-fg',
+      'rounded-lg',
+      'font-sans',
+    ]);
+    expect(css).toMatch(/\.bg-background \{\s*background-color: var\(--background\);/);
+    expect(css).toMatch(/\.text-primary-foreground \{\s*color: var\(--primary-foreground\);/);
+    expect(css).toMatch(/\.border-input \{\s*border-color: var\(--input\);/);
+    expect(css).toMatch(
+      /\.bg-session-open-gym-bg \{\s*background-color: var\(--session-open-gym-bg\);/,
+    );
+    expect(css).toMatch(/\.text-status-danger-fg \{\s*color: var\(--status-danger-fg\);/);
+    expect(css).toMatch(/\.rounded-lg \{\s*border-radius: var\(--radius\);/);
+    expect(css).toMatch(/\.font-sans \{\s*font-family: var\(--th-font-family-text\);/);
+  });
+
+  it('AC1: refuses a semantic colour without a dark value', async () => {
+    const broken = { ...source, dark: withoutToken(source.dark, 'color.text.link') };
+    await expect(renderOutputs(broken)).rejects.toThrow(TokenSourceError);
+    await expect(renderOutputs(broken)).rejects.toThrow(
+      'color.text.link has no dark value in tokens/color.dark.json',
+    );
+  });
+});

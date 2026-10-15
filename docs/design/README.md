@@ -25,7 +25,7 @@ Low-fidelity UX for the MVP (roadmap task **M0 / §4.2**). Everything here is wr
 | [flows/06-class-occurrence.md](flows/06-class-occurrence.md) | Manage a class occurrence: substitution, cancellation, attendance |
 | [open-questions.md](open-questions.md) | Questions to validate with the pilot owner, plus spec gaps for the product owner |
 
-The [clickable prototype](prototype/README.md) implements the six flows for M0 validation, plus flow 7 (adding clients, classes and Open Gym from the app, roadmap v1.11). The [visual direction](visual-direction.md) and [draft tokens](tokens.draft.json) are inputs to E007 in M1.
+The [clickable prototype](prototype/README.md) implements the six flows for M0 validation, plus flow 7 (adding clients, classes and Open Gym from the app, roadmap v1.11). The [visual direction](visual-direction.md) explains the look; the token values live in [`packages/design-tokens`](../../packages/design-tokens/README.md) (E007).
 
 ## How to read the flow documents
 

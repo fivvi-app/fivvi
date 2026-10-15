@@ -1,0 +1,23 @@
+{
+  "$description": "Durations and easing for web transitions. Native apps use platform transitions.",
+  "motion": {
+    "duration": {
+      "$type": "duration",
+      "short": {
+        "$value": "150ms",
+        "$description": "State changes (chip select, set saved tick)."
+      },
+      "medium": {
+        "$value": "250ms",
+        "$description": "Sheets and screen transitions on web. Native uses platform transitions."
+      }
+    },
+    "easing": {
+      "$type": "cubicBezier",
+      "standard": {
+        "$value": [0.2, 0, 0, 1],
+        "$description": "M3 standard easing. iOS uses the default spring."
+      }
+    }
+  }
+}

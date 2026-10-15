@@ -1,0 +1,159 @@
+{
+  "$description": "Spacing, radii, sizes and border widths.",
+  "space": {
+    "$type": "dimension",
+    "$description": "4-based scale. Matches the M3 4dp grid and the iOS 8pt rhythm.",
+    "0": {
+      "$value": "0px"
+    },
+    "0-5": {
+      "$value": "2px"
+    },
+    "1": {
+      "$value": "4px"
+    },
+    "2": {
+      "$value": "8px"
+    },
+    "3": {
+      "$value": "12px"
+    },
+    "4": {
+      "$value": "16px"
+    },
+    "5": {
+      "$value": "20px"
+    },
+    "6": {
+      "$value": "24px"
+    },
+    "8": {
+      "$value": "32px"
+    },
+    "10": {
+      "$value": "40px"
+    },
+    "12": {
+      "$value": "48px"
+    },
+    "16": {
+      "$value": "64px"
+    },
+    "gutter": {
+      "$value": "{space.4}",
+      "$description": "Screen side margin on phones (iOS layout margin, M3 compact margin)."
+    },
+    "gutter-wide": {
+      "$value": "{space.6}",
+      "$description": "Side margin at ≥ 600px (M3 medium window class)."
+    }
+  },
+  "radius": {
+    "$type": "dimension",
+    "$description": "Mirrors the M3 shape scale. iOS applies the same values with .continuous corners.",
+    "none": {
+      "$value": "0px"
+    },
+    "xs": {
+      "$value": "4px",
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "android": "shapes.extraSmall"
+        }
+      }
+    },
+    "sm": {
+      "$value": "8px",
+      "$description": "Chips, small tags, inputs.",
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "android": "shapes.small"
+        }
+      }
+    },
+    "md": {
+      "$value": "12px",
+      "$description": "Cards, list groups (iOS inset grouped list ~10–12).",
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "android": "shapes.medium"
+        }
+      }
+    },
+    "lg": {
+      "$value": "16px",
+      "$description": "Prominent cards (next-up session), large buttons in the logger.",
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "android": "shapes.large"
+        }
+      }
+    },
+    "xl": {
+      "$value": "28px",
+      "$description": "Bottom sheets and dialogs (top corners).",
+      "$extensions": {
+        "app.trainerhub.platform": {
+          "android": "shapes.extraLarge"
+        }
+      }
+    },
+    "full": {
+      "$value": "9999px",
+      "$description": "Pills: M3 buttons, status chips, avatars."
+    }
+  },
+  "size": {
+    "$type": "dimension",
+    "touch-min": {
+      "$value": "48px",
+      "$description": "Minimum hit target. Satisfies M3 (48dp) and iOS HIG (44pt)."
+    },
+    "touch-large": {
+      "$value": "64px",
+      "$description": "Logger steppers and 'save set': one hand, sweaty thumbs, glanced at between sets."
+    },
+    "icon": {
+      "$value": "24px"
+    },
+    "icon-sm": {
+      "$value": "20px"
+    },
+    "content-max": {
+      "$value": "640px",
+      "$description": "Max width of public booking content on large screens."
+    },
+    "control": {
+      "$description": "Visible control height (buttons, inputs, list rows). The hit target never drops below touch-min on touch, or 24px (WCAG 2.2 target size) with a mouse.",
+      "touch": {
+        "$value": "48px",
+        "$description": "Android and touch web default."
+      },
+      "ios": {
+        "$value": "44px",
+        "$description": "iOS HIG minimum; buttons and rows in the iOS app."
+      },
+      "compact": {
+        "$value": "36px",
+        "$description": "Trainer Web with a mouse or trackpad."
+      },
+      "compact-sm": {
+        "$value": "32px",
+        "$description": "Toolbars and segmented controls in Trainer Web."
+      }
+    }
+  },
+  "border-width": {
+    "$type": "dimension",
+    "hairline": {
+      "$value": "1px",
+      "$description": "iOS: 1 / displayScale (true hairline). Android: 1dp."
+    },
+    "control": {
+      "$value": "1px"
+    },
+    "focus": {
+      "$value": "2px"
+    }
+  }
+}

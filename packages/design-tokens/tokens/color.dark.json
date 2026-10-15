@@ -1,0 +1,154 @@
+{
+  "$description": "Semantic colours, dark mode. Overrides color.light.json: every semantic colour needs a dark value here, and nothing else may be in this file.",
+  "color": {
+    "bg": {
+      "$type": "color",
+      "canvas": {
+        "$value": "#242428"
+      },
+      "surface": {
+        "$value": "#2D2D32"
+      },
+      "raised": {
+        "$value": "#34343A"
+      },
+      "subtle": {
+        "$value": "#3A3A41"
+      },
+      "inverse": {
+        "$value": "{color.base.neutral.100}"
+      }
+    },
+    "text": {
+      "$type": "color",
+      "primary": {
+        "$value": "#E8E8ED"
+      },
+      "secondary": {
+        "$value": "#C5C5CB"
+      },
+      "tertiary": {
+        "$value": "#B0B0B8"
+      },
+      "inverse": {
+        "$value": "{color.base.neutral.900}"
+      },
+      "link": {
+        "$value": "#ECECF0"
+      }
+    },
+    "border": {
+      "$type": "color",
+      "default": {
+        "$value": "#484850"
+      },
+      "control": {
+        "$value": "#A6A6AF"
+      },
+      "focus": {
+        "$value": "{color.base.neutral.200}"
+      }
+    },
+    "action": {
+      "$type": "color",
+      "primary": {
+        "bg": {
+          "$value": "#C1BBEB"
+        },
+        "bg-pressed": {
+          "$value": "#D2CDF2"
+        },
+        "fg": {
+          "$value": "{color.base.neutral.950}"
+        }
+      },
+      "tonal": {
+        "bg": {
+          "$value": "{color.bg.subtle}"
+        },
+        "fg": {
+          "$value": "{color.base.neutral.200}"
+        }
+      },
+      "danger": {
+        "bg": {
+          "$value": "{color.base.red.300}"
+        },
+        "fg": {
+          "$value": "{color.base.neutral.950}"
+        }
+      }
+    },
+    "status": {
+      "$type": "color",
+      "success": {
+        "fg": {
+          "$value": "{color.base.green.100}"
+        },
+        "bg": {
+          "$value": "{color.base.green.900}"
+        }
+      },
+      "warning": {
+        "fg": {
+          "$value": "{color.base.amber.100}"
+        },
+        "bg": {
+          "$value": "{color.base.amber.900}"
+        }
+      },
+      "danger": {
+        "fg": {
+          "$value": "{color.base.red.100}"
+        },
+        "bg": {
+          "$value": "{color.base.red.900}"
+        }
+      },
+      "neutral": {
+        "fg": {
+          "$value": "{color.base.neutral.200}"
+        },
+        "bg": {
+          "$value": "{color.base.neutral.800}"
+        }
+      }
+    },
+    "session": {
+      "$type": "color",
+      "private": {
+        "solid": {
+          "$value": "{color.base.blue.300}"
+        },
+        "fg": {
+          "$value": "{color.base.blue.100}"
+        },
+        "bg": {
+          "$value": "#263147"
+        }
+      },
+      "group": {
+        "solid": {
+          "$value": "{color.base.violet.300}"
+        },
+        "fg": {
+          "$value": "{color.base.violet.100}"
+        },
+        "bg": {
+          "$value": "#372D49"
+        }
+      },
+      "open-gym": {
+        "solid": {
+          "$value": "{color.base.amber.300}"
+        },
+        "fg": {
+          "$value": "{color.base.amber.100}"
+        },
+        "bg": {
+          "$value": "#403526"
+        }
+      }
+    }
+  }
+}

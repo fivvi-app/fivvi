@@ -1,0 +1,186 @@
+{
+  "$description": "Base palette (tier 1). Only semantic tokens may reference it; apps never use it directly.",
+  "color": {
+    "base": {
+      "$type": "color",
+      "white": {
+        "$value": "#FFFFFF"
+      },
+      "neutral": {
+        "$description": "Neutral foundation with restrained pastel session chips and a muted violet primary-action accent.",
+        "25": {
+          "$value": "#F6F6F7"
+        },
+        "50": {
+          "$value": "#EEEEF0"
+        },
+        "100": {
+          "$value": "#DFDFE2"
+        },
+        "200": {
+          "$value": "#C8C8CD"
+        },
+        "300": {
+          "$value": "#B1B1B8"
+        },
+        "400": {
+          "$value": "#85858C"
+        },
+        "500": {
+          "$value": "#66666D"
+        },
+        "600": {
+          "$value": "#4D4D54"
+        },
+        "700": {
+          "$value": "#3B3B42"
+        },
+        "800": {
+          "$value": "#303037"
+        },
+        "850": {
+          "$value": "#28282F"
+        },
+        "900": {
+          "$value": "#202026"
+        },
+        "950": {
+          "$value": "#16161B"
+        }
+      },
+      "petrol": {
+        "$description": "Legacy exploration palette, retained as primitives only; not used for brand surfaces or actions.",
+        "50": {
+          "$value": "#E6F4F1"
+        },
+        "100": {
+          "$value": "#C4E6DF"
+        },
+        "200": {
+          "$value": "#94D2C6"
+        },
+        "300": {
+          "$value": "#5DB8A8"
+        },
+        "400": {
+          "$value": "#2E9C8B"
+        },
+        "500": {
+          "$value": "#13806F"
+        },
+        "600": {
+          "$value": "#0C6A5C"
+        },
+        "700": {
+          "$value": "#0A554A"
+        },
+        "800": {
+          "$value": "#0A433B"
+        },
+        "900": {
+          "$value": "#09332E"
+        }
+      },
+      "blue": {
+        "50": {
+          "$value": "#EAF0FD"
+        },
+        "100": {
+          "$value": "#D2DFFB"
+        },
+        "300": {
+          "$value": "#8EADF3"
+        },
+        "500": {
+          "$value": "#2F62D8"
+        },
+        "700": {
+          "$value": "#1D4196"
+        },
+        "900": {
+          "$value": "#142B5E"
+        }
+      },
+      "violet": {
+        "50": {
+          "$value": "#F1ECFC"
+        },
+        "100": {
+          "$value": "#E0D6F8"
+        },
+        "300": {
+          "$value": "#B7A2EE"
+        },
+        "500": {
+          "$value": "#6D4BD1"
+        },
+        "700": {
+          "$value": "#4C2FA3"
+        },
+        "900": {
+          "$value": "#2E1C66"
+        }
+      },
+      "amber": {
+        "50": {
+          "$value": "#FDF4E3"
+        },
+        "100": {
+          "$value": "#FAE3B8"
+        },
+        "300": {
+          "$value": "#F0B54A"
+        },
+        "500": {
+          "$value": "#C98106"
+        },
+        "700": {
+          "$value": "#7C4F05"
+        },
+        "900": {
+          "$value": "#4A2F03"
+        }
+      },
+      "green": {
+        "50": {
+          "$value": "#E8F5EC"
+        },
+        "100": {
+          "$value": "#C9E8D2"
+        },
+        "300": {
+          "$value": "#7CC794"
+        },
+        "500": {
+          "$value": "#2A9150"
+        },
+        "700": {
+          "$value": "#1C6437"
+        },
+        "900": {
+          "$value": "#123F23"
+        }
+      },
+      "red": {
+        "50": {
+          "$value": "#FDECEA"
+        },
+        "100": {
+          "$value": "#F9D2CD"
+        },
+        "300": {
+          "$value": "#F09A8E"
+        },
+        "500": {
+          "$value": "#D63A2A"
+        },
+        "700": {
+          "$value": "#A3261A"
+        },
+        "900": {
+          "$value": "#5E150E"
+        }
+      }
+    }
+  }
+}

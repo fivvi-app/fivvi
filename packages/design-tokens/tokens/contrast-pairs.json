@@ -1,0 +1,179 @@
+{
+  "$description": "Foreground/background pairs that must meet WCAG 2.2 AA contrast in light and dark mode: kind \"text\" needs 4.5:1 (1.4.3), kind \"non-text\" needs 3:1 (1.4.11 and 2.4.13). `pnpm check` fails when a pair falls below its minimum.",
+  "pairs": [
+    {
+      "fg": "color.text.primary",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Body text on page"
+    },
+    {
+      "fg": "color.text.primary",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Body text on card"
+    },
+    {
+      "fg": "color.text.secondary",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Meta text on page"
+    },
+    {
+      "fg": "color.text.secondary",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Meta text on card"
+    },
+    {
+      "fg": "color.text.secondary",
+      "bg": "color.bg.subtle",
+      "kind": "text",
+      "use": "Meta text on subtle fill"
+    },
+    {
+      "fg": "color.text.tertiary",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Placeholder in input"
+    },
+    {
+      "fg": "color.text.link",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Link / text button"
+    },
+    {
+      "fg": "color.text.inverse",
+      "bg": "color.bg.inverse",
+      "kind": "text",
+      "use": "Toast text"
+    },
+    {
+      "fg": "color.action.primary.fg",
+      "bg": "color.action.primary.bg",
+      "kind": "text",
+      "use": "Primary button label"
+    },
+    {
+      "fg": "color.action.primary.bg",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Primary button edge vs page (1.4.11)"
+    },
+    {
+      "fg": "color.action.tonal.fg",
+      "bg": "color.action.tonal.bg",
+      "kind": "text",
+      "use": "Tonal button / selected chip"
+    },
+    {
+      "fg": "color.text.primary",
+      "bg": "color.action.tonal.bg",
+      "kind": "text",
+      "use": "Material next-session title"
+    },
+    {
+      "fg": "color.text.secondary",
+      "bg": "color.action.tonal.bg",
+      "kind": "text",
+      "use": "Material next-session location"
+    },
+    {
+      "fg": "color.action.danger.fg",
+      "bg": "color.action.danger.bg",
+      "kind": "text",
+      "use": "Destructive button label"
+    },
+    {
+      "fg": "color.border.control",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Input outline (1.4.11)"
+    },
+    {
+      "fg": "color.border.control",
+      "bg": "color.bg.raised",
+      "kind": "non-text",
+      "use": "Input outline in a sheet"
+    },
+    {
+      "fg": "color.text.secondary",
+      "bg": "color.bg.raised",
+      "kind": "text",
+      "use": "Meta text in a sheet"
+    },
+    {
+      "fg": "color.border.focus",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Focus ring (2.4.13)"
+    },
+    {
+      "fg": "color.status.success.fg",
+      "bg": "color.status.success.bg",
+      "kind": "text",
+      "use": "Aanwezig chip"
+    },
+    {
+      "fg": "color.status.warning.fg",
+      "bg": "color.status.warning.bg",
+      "kind": "text",
+      "use": "Warning chip"
+    },
+    {
+      "fg": "color.status.danger.fg",
+      "bg": "color.status.danger.bg",
+      "kind": "text",
+      "use": "Niet verschenen / error chip"
+    },
+    {
+      "fg": "color.status.danger.fg",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Field error message"
+    },
+    {
+      "fg": "color.status.neutral.fg",
+      "bg": "color.status.neutral.bg",
+      "kind": "text",
+      "use": "Geboekt chip"
+    },
+    {
+      "fg": "color.session.private.fg",
+      "bg": "color.session.private.bg",
+      "kind": "text",
+      "use": "Privé label"
+    },
+    {
+      "fg": "color.session.group.fg",
+      "bg": "color.session.group.bg",
+      "kind": "text",
+      "use": "Groepsles label"
+    },
+    {
+      "fg": "color.session.open-gym.fg",
+      "bg": "color.session.open-gym.bg",
+      "kind": "text",
+      "use": "Open Gym label"
+    },
+    {
+      "fg": "color.session.private.solid",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Privé bar in calendar"
+    },
+    {
+      "fg": "color.session.group.solid",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Groepsles bar in calendar"
+    },
+    {
+      "fg": "color.session.open-gym.solid",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Open Gym bar in calendar"
+    }
+  ]
+}
