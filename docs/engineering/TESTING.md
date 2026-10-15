@@ -199,5 +199,5 @@ Also for E008:
 1. Read the spec issue and your ticket. The spec's **Test plan** (§6) says which tests prove each AC; update it in the spec if the plan has to change.
 2. Build with `/tdd`: write the failing test for the next vertical slice, make it pass, refactor (red-green-refactor). Bugs go through `/diagnosing-bugs`, which starts from a failing regression test.
 3. Run `scripts/check.sh` (every suite, with a per-worktree `E2E_PORT`); `scripts/pr.sh create` runs it again before it pushes.
-4. **Review locally before pushing** (two `reviewer` subagents): do the tests actually assert the acceptance criteria, cover the roles and both locales, and would they fail if the feature broke? No agent review runs in GitHub. A test that can't fail is worse than no test.
+4. **Review locally before pushing** (`/code-review`, standards and spec axes): do the tests actually assert the acceptance criteria, cover the roles and both locales, and would they fail if the feature broke? No agent review runs in GitHub. A test that can't fail is worse than no test.
 5. Never mark a feature `IMPLEMENTED` in `FEATURES.md` while its Test plan has gaps.
