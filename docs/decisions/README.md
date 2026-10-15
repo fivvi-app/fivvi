@@ -24,6 +24,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [014](ADR-014-testing.md) | Testing: Vitest, Playwright, XCTest, JUnit/Compose, Maestro | Accepted |
 | [015](ADR-015-ui-foundation.md) | UI foundation: shared design tokens, native UI per platform | Accepted |
 | [016](ADR-016-agent-merges.md) | Agents merge low-risk PRs: scripted risk, a merge gate and a ruleset on `main` | Proposed |
+| [017](ADR-017-language-policy.md) | Language policy: interface language falls back to English; the workspace default only sets the communication language | Proposed (replaces ADR-008's locale-resolution rule) |
 
 ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. ADR-011 was re-evaluated during the write-up and accepted in its new form (Railway) the same day. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
 
