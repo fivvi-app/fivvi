@@ -26,6 +26,8 @@
 | F024 | Trainer Substitution | *Je valt in* / *Overgenomen door* labels |
 | F026 | Cancellations | Cancelled items on TD-01 |
 | F010 | Locale Preference | All copy; *Profiel → Taal* |
+| F006 | Client Profile | TM-02 *Klanten* tab, TM-03 profile, quick add in TD-05 |
+| F021 / F022 / F034 | Group Class Templates / Recurring Classes / Open Gym Slots | TD-05 *Nieuw*: owner/admin create a class (optionally weekly) or Open Gym |
 
 ## Flow diagram
 
@@ -101,7 +103,7 @@ flowchart TD
 - **Substitution** (F024): *Je valt in voor Mike* when I'm the substitute. When someone takes over *my* class, the item stays for today, dimmed, with *Overgenomen door Mike*, so I'm not surprised it's gone.
 - **Cancelled** items stay visible and struck through, with the label *Geannuleerd*.
 - **Overlapping sessions** are simply listed in order. Cross-workspace conflict warnings are Release 2.2 (`ROADMAP §9`), so there's no warning here.
-- **+** creates a private session (flow 04, PS-04).
+- **+** opens *Nieuw* (TD-05): what the user's role may create.
 - **Morgen** preview: one line with tomorrow's count and first start time; tapping it opens *Agenda* on tomorrow.
 
 **Owner / Admin variant** ⚑ [Q01](../open-questions.md#q01): under the date there's a segmented control, *Mijn dag | John's Gym*. *John's Gym* shows the workspace's whole day (like WC-01), read-only except for attendance. Trainers without an Owner/Admin role never see the control.
@@ -261,15 +263,67 @@ flowchart TD
 - A week strip (Monday first) with dots for busy days, and the selected day's list underneath. It's the same row component as TD-01, so every item opens TD-02 or TD-03.
 - Swipe the strip for the previous/next week. *Vandaag* jumps back.
 - **DST weeks** show a one-line note under the strip, e.g. *zo 25 okt: wintertijd, de klok gaat 1 uur terug*.
-- A full month/grid view isn't in MVP; the workspace grid calendar is on web (flow 03).
+- **Week | Maand** (updated 23 September 2026 after prototype feedback): besides the week strip, a **month grid** (Monday first, days outside the month dimmed) with up to three dots per day, so a trainer can look weeks ahead. Tapping a day shows its list below the grid. The time-grid calendar of the whole workspace stays on web (flow 03).
 
 | Element | NL | EN |
 |---|---|---|
 | Week label | week {n} · {start}–{end} | week {n} · {start}–{end} |
 | Today button | Vandaag | Today |
+| View | Week · Maand | Week · Month |
+| Month navigation | Vorige maand · Volgende maand | Previous month · Next month |
 | DST (autumn) | zo 25 okt: wintertijd, de klok gaat 1 uur terug | Sun 25 Oct: clocks go back 1 hour |
 | DST (spring) | zo 28 mrt: zomertijd, de klok gaat 1 uur vooruit | Sun 28 Mar: clocks go forward 1 hour |
 | Empty day | Geen sessies op deze dag. | No sessions on this day. |
+
+### TD-05 · Nieuw (+) / New
+
+**Features:** F020, F006, F021, F022, F034 · Added 23 September 2026 after prototype feedback (`ROADMAP` v1.11). A bottom sheet from **+** on *Vandaag*, *Agenda* and *Klanten* (on *Klanten*, **+** goes straight to *Nieuwe klant*).
+
+```text
+┌────────────────────────────────────────┐
+│ Annuleren          Nieuw               │
+├────────────────────────────────────────┤
+│ (👤) Privésessie                     › │
+│      Een sessie met één klant.         │
+│ (👥) Groepsles                       › │
+│      Bij John's Gym                    │
+│ (🚪) Open Gym                        › │
+│      Bij John's Gym                    │
+│ (+)  Klant                           › │
+│      Een naam is genoeg. Het           │
+│      e-mailadres kan later.            │
+└────────────────────────────────────────┘
+```
+
+- **The role decides the items** (information architecture §3.1). Every trainer sees *Privésessie* (own sessions, flow 04) and *Klant*. *Groepsles* and *Open Gym* appear only for workspaces where the user is Owner or Admin. If the user is only a trainer somewhere, a footnote says who schedules there: *Groepslessen en Open Gym van John's Gym en Fit Studio plant de eigenaar of een beheerder.*
+- **Groepsles (app)**: name, date, start, end, capacity, trainer (the workspace's trainers, or *Trainer nodig*), location (fixed for a gym; a choice for an independent workspace) and *Herhalen*: *Niet herhalen* or *Elke week op {weekday}*. A weekly class creates the series on the same weekday (F022, ADR-012). Editing a series, class templates and descriptions stay on web.
+- **Open Gym (app)**: date, start, end, capacity; the location is the workspace's own. It's published on save, like WC-07.
+- **Klant**: the PS-02 new-client form (flow 04). With more than one workspace, the client's workspace is chosen first; the default is the one the user owns ⚑ [Q03](../open-questions.md#q03).
+- After saving, the new item opens (TD-03 for a class or Open Gym, TM-03 for a client) with a confirmation.
+
+| Element | NL | EN |
+|---|---|---|
+| Title | Nieuw | New |
+| Items | Privésessie · Groepsles · Open Gym · Klant | Private session · Group class · Open Gym · Client |
+| Where | Bij {workspace} | At {workspace} |
+| Trainer-only footnote | Groepslessen en Open Gym van {workspaces} plant de eigenaar of een beheerder. | The owner or an admin schedules group classes and Open Gym at {workspaces}. |
+| Repeat (glossary) | Herhalen · Niet herhalen · Elke week op {weekday} | Repeat · Don't repeat · Every week on {weekday} |
+| Series note | We zetten de komende {n} weken in de agenda. | We'll add the next {n} weeks to the calendar. |
+| Created | Groepsles toegevoegd · {n} groepslessen toegevoegd · Open Gym gepubliceerd · {name} toegevoegd | Group class added · {n} group classes added · Open Gym published · {name} added |
+
+### TM-02 / TM-03 · Klanten / Clients and Klantprofiel / Client profile
+
+**Features:** F006, F045, F046
+
+- **TM-02** lists the clients the user can see, **grouped per workspace** (the same person at two workspaces is two profiles, `§10–11`). Each row shows the email (or *geen e-mailadres*) and the last session date. Search matches name and email and ignores accents and case.
+- **TM-03** shows workspace, email, language for emails, default training location and trainer-only client notes, then the workout history (name or *Training zonder schema*, date, exercise count, trainer).
+- Two actions: **Nu training starten** creates a private session that starts now and opens WL-01 (flow 05). **Sessie plannen** opens PS-04 with the client filled in.
+
+| Element | NL | EN |
+|---|---|---|
+| Row meta | {email} / geen e-mailadres · laatste sessie {date} / nog geen sessies | {email} / no email · last session {date} / no sessions yet |
+| Actions | Nu training starten · Sessie plannen | Start workout now · Plan session |
+| History | Trainingen · Nog geen trainingen bijgehouden. | Workouts · No workouts logged yet. |
 
 ## Edge cases
 
@@ -294,7 +348,7 @@ flowchart TD
 |---|---|---|
 | Structure | `TabView` with 4 tabs; `NavigationStack` per tab | `NavigationBar` with 4 destinations; one `NavHost` per destination with saved state |
 | Title | Large title *Vandaag* that collapses on scroll; date as a subtitle line | `MediumTopAppBar` with title + date; collapses on scroll |
-| Create (+) | `+` toolbar button, top right | `+` action in the top bar on *Vandaag*; a FAB on *Agenda* (M3 guidance: one FAB for the screen's primary action) |
+| Create (+) | `+` toolbar button, top right; opens TD-05 as a sheet | `+` FAB on *Vandaag*, *Agenda* and *Klanten* (M3 guidance: one FAB for the screen's primary action); opens TD-05 as a bottom sheet |
 | List | `List` with inset-grouped style; the *Straks* card as the first section | `LazyColumn` with an `ElevatedCard` for *Straks* and `ListItem` rows |
 | Row actions | Leading swipe on a past private session: *Aanwezig*; trailing: *Niet verschenen*; long press → context menu | No swipe actions; the inline buttons and a `⋮` overflow on the row |
 | Attendance control | Two buttons (not a small segmented control): large targets, text labels | `SingleChoiceSegmentedButtonRow` (M3 segmented button) |

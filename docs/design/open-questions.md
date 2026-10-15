@@ -46,7 +46,7 @@ If verification arrives after the hold expires but capacity remains, may the cli
 Is a six-digit code beside the email link useful for clients who read mail on another device? **Proposal:** both in the same email; code entry on PB-04 (ADR-007).
 
 ### Q14
-How much location detail does a class or Open Gym listing need, and must an Open Gym slot name a trainer? **Proposal:** show the venue/address in details; no trainer line for Open Gym unless assigned (PB-02, WC-03).
+How much location detail does a class or Open Gym listing need, and must an Open Gym slot name a trainer? **Proposal:** show the venue/address in details; no trainer line for Open Gym unless assigned (PB-02, WC-03). **Owner (14 October 2026):** show a short class description, one line on the list and in full on PB-02. The address is still open.
 
 ### Q15
 Do clients use an add-to-calendar action from a booking confirmation? **Proposal:** one-event calendar download (PB-06).
@@ -98,12 +98,14 @@ Is workout difficulty rated per set, per exercise, or per workout? **Proposal:**
 
 ### Q31
 Which exercise measures beyond weight × reps are needed now, such as bodyweight, duration or distance? **Proposal:** bodyweight can omit weight; duration/distance need an explicit data-model decision (WL-03, QE10).
+**Answer (owner, 14 October 2026):** every exercise has a type: weight × reps, reps only, time (m:ss) or distance + time (`PRODUCT.md §38`). The data model stays with QE10 (WL-02, WL-04).
 
 ### Q32
 Do trainers log between sets, after the session, or both? What can they operate with one hand? **Proposal:** between-set logging on phone and later editing on web (WL-02/03/06).
 
 ### Q33
 Which weight increments match the pilot's equipment and should quick controls follow those increments? **Proposal:** large step buttons plus direct number entry (WL-03).
+**Answer (owner, 14 October 2026):** no step buttons. Values are typed directly in each set row on WL-02 with the numeric keypad. Each row is prefilled and logged with one tap (`PRODUCT.md §41`).
 
 ### Q34
 Should finishing a workout mark private-session attendance automatically? **Proposal:** mark attended, with a visible confirmation or correction path (WL-05).
@@ -144,7 +146,7 @@ Decide whether private-session creation email (EM-11) belongs in F049/F020 and w
 **Resolved by the owner-approved glossary v0.2:** English uses en-GB formatting, day-month dates and 24-hour time. The catalog remains `en`. Keep this entry as the record for older flow references; no further pilot decision is needed.
 
 ### QE04
-Resolve where a client can read a *Zichtbaar voor klant* note in MVP. A visibility flag with no client view cannot fulfil the intent of F048. Also decide whether trainer-created private sessions appear in client web (CW-02/03, WL-05).
+**Resolved by owner, 22 September 2026.** A trainer saves an internal note separately from an optional client message. After explicit review and share, the client sees the workout recap and client message in *Mijn trainingen* in the signed-in profile and receives the same in a localized email. The internal note is excluded. A private session does not become a client booking in CW-02/03 solely because its workout was shared.
 
 ### QE05
 Decide whether a signed-in client sees bookings across all workspaces sharing the verified email, with per-workspace authorization on each booking (CW-02).
@@ -166,3 +168,9 @@ Decide whether substitution and class cancellation are necessary on the M8 train
 
 ### QE14
 Define concurrent edits to the same workout or set before implementing the proposed offline queue and web/phone sync. “Last edit wins” could discard work; server conflict handling and recovery must be designed and tested (WL-07).
+
+### QE15
+Starting a workout from a client profile creates a private session that starts now (flow 05, WL-01). Confirm the default duration (proposal: 60 min), that it counts in *Mijn dag* and reports like a planned session, and whether a trainer in someone else's workspace may do this (same rule as creating their own private sessions, Q27).
+
+### QE16
+The trainer apps can now create group classes (one-off or weekly) and Open Gym for owners/admins (flow 02, TD-05). Confirm the weekly series horizon (prototype: 8 weeks; ADR-012 proposes a rolling 12-week window) and that editing or ending a series stays web-only in MVP.

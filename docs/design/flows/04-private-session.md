@@ -163,7 +163,7 @@ flowchart TD
 │ [                                                      ] │
 │ Taal voor e-mails                                        │
 │ ● Nederlands   ○ English                                 │
-│ Vaste locatie (optioneel)                                │
+│ Standaard trainingslocatie (optioneel)                                │
 │ [ Kies een locatie                                   ▾ ] │
 │                                   [ Klant toevoegen ]    │
 └──────────────────────────────────────────────────────────┘
@@ -180,7 +180,7 @@ flowchart TD
 | Search placeholder | Zoek op naam of e-mail | Search by name or email |
 | Result meta | laatste sessie {date} · nog geen sessies · geen e-mailadres | last session {date} · no sessions yet · no email |
 | New | + Nieuwe klant "{query}" | + New client "{query}" |
-| New client labels | Naam · E-mailadres (optioneel) · Taal voor e-mails · Vaste locatie (optioneel) | Name · Email (optional) · Language for emails · Default location (optional) |
+| New client labels | Naam · E-mailadres (optioneel) · Taal voor e-mails · Standaard trainingslocatie (optioneel) | Name · Email (optional) · Language for emails · Default location (optional) |
 | Add | Klant toevoegen | Add client |
 | Duplicate | Er is al een klant met dit e-mailadres: {name}. [ Die gebruiken ] | There's already a client with this email: {name}. [ Use them ] |
 | No results | Geen klanten gevonden. | No clients found. |

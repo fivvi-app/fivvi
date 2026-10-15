@@ -12,7 +12,7 @@ The single source of truth for feature status. Update it **in the same PR** as t
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 50 (F001–F050) + 18 engineering enablers (E001–E018) | 0 |
+| MVP | 51 (F001–F051) + 18 engineering enablers (E001–E018) | 0 |
 
 ---
 
@@ -27,7 +27,7 @@ The single source of truth for feature status. Update it **in the same PR** as t
 | F003 | Workspace Membership | PLANNED | Must | M2 | F002 | ⬜ | ⬜ | §6 |
 | F004 | Roles | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9, §50 |
 | F005 | Trainer Profile | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9 |
-| F006 | Client Profile | PLANNED | Must | M2 | F002 | ⬜ | ⬜ | §10, §34 |
+| F006 | Client Profile | PLANNED | Must | M2 (+M8 mobile) | F002 | ⬜ | ⬜ | §10, §34 (quick add, name only) |
 | F007 | Localization Infrastructure | PLANNED | Must | M1–M2 | E005 | ⬜ | ⬜ | §3, §73 |
 | F008 | Dutch UI | PLANNED | Must | continuous | F007 | ⬜ | — | §2.2 |
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |
@@ -57,8 +57,8 @@ The single source of truth for feature status. Update it **in the same PR** as t
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | F020 | Private Sessions | PLANNED | Must | M4 (+M8 mobile) | F005, F006, F015 | ⬜ | ⬜ | §17 |
-| F021 | Group Class Templates | PLANNED | Must | M4 | F005, F015 | ⬜ | ⬜ | §18, §19 |
-| F022 | Recurring Classes | PLANNED | Must | M4 | F021, E012 | ⬜ | ⬜ | §20 |
+| F021 | Group Class Templates | PLANNED | Must | M4 (+M8 mobile: create a class) | F005, F015 | ⬜ | ⬜ | §15, §18, §19 |
+| F022 | Recurring Classes | PLANNED | Must | M4 (+M8 mobile: weekly repeat) | F021, E012 | ⬜ | ⬜ | §15, §20 |
 | F023 | Trainer Assignment | PLANNED | Must | M4 | F020, F021 | ⬜ | ⬜ | §17, §19 |
 | F024 | Trainer Substitution | PLANNED | Must | M4 | F022, F023 | ⬜ | ⬜ | §19 |
 | F025 | Attendance | PLANNED | Must | M4 (+M8 mobile) | F020, F022 | ⬜ | ⬜ | §43 |
@@ -80,7 +80,7 @@ The single source of truth for feature status. Update it **in the same PR** as t
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F034 | Open Gym Slots | PLANNED | Must | M6 | F015, F020 | ⬜ | ⬜ | §2.7, §28 |
+| F034 | Open Gym Slots | PLANNED | Must | M6 (+M8 mobile) | F015, F020 | ⬜ | ⬜ | §2.7, §15, §28 |
 | F035 | Open Gym Public Booking | PLANNED | Must | M6 | F034, F027–F031 | ⬜ | ⬜ | §30 |
 | F036 | Open Gym Suggestions | PLANNED | **Should** | M6 | F034, F013 | ⬜ | ⬜ | §29 |
 
@@ -97,25 +97,26 @@ The single source of truth for feature status. Update it **in the same PR** as t
 |---|---|---|---|---|---|---|---|---|
 | F039 | Exercise Library | PLANNED | Must | M7 | F007 | ⬜ | ⬜ | §38 |
 | F040 | Custom Exercises | PLANNED | Must | M7 | F039 | ⬜ | ⬜ | §38 |
-| F041 | Workout Templates | PLANNED | Must | M7 | F039 | ⬜ | ⬜ | §39 |
+| F041 | Workout Templates | PLANNED | Must | M7 | F039 | ⬜ | ⬜ | §39 (save a logged workout as template) |
 | F042 | Client Workouts | PLANNED | Must | M7 | F041, F006 | ⬜ | ⬜ | §40 |
-| F043 | Live Workout Logging | PLANNED | Must | M7 (+M8 mobile) | F042, F020 | ⬜ | ⬜ | §41 |
+| F043 | Live Workout Logging | PLANNED | Must | M7 (+M8 mobile) | F039, F020 | ⬜ | ⬜ | §41 (with or without a template) |
 | F044 | Previous Workout Display | PLANNED | Must | M7 (+M8 mobile) | F043 | ⬜ | ⬜ | §41 |
-| F045 | Workout History | PLANNED | Must | M7 (+M8 mobile) | F043 | ⬜ | ⬜ | §42 |
+| F045 | Workout History | PLANNED | Must | M7 (+M8 mobile) | F043 | ⬜ | ⬜ | §42, §37 (shared recap) |
+| F051 | Repeat Previous Workout | PLANNED | Must | M7 (+M8 mobile) | F043, F045 | ⬜ | ⬜ | §41 (moved from §54) |
 
 ### Notes
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | F046 | Client Notes | PLANNED | Must | M7 (+M8 mobile) | F006 | ⬜ | ⬜ | §35 |
-| F047 | Session Notes | PLANNED | Must | M7 (+M8 mobile) | F020 | ⬜ | ⬜ | §36 |
-| F048 | Note Visibility | PLANNED | Must | M7 (+M8 mobile) | F046, F047 | ⬜ | ⬜ | §37, §79 |
+| F047 | Session Notes | PLANNED | Must | M7 (+M8 mobile) | F020 | ⬜ | ⬜ | §36–37 (internal note) |
+| F048 | Note Visibility | PLANNED | Must | M7 (+M8 mobile) | F046, F047 | ⬜ | ⬜ | §37, §79 (explicit client share) |
 
 ### Notifications
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F049 | Localized Transactional Emails | PLANNED | Must | M1 (infra) → M5 | E006, F007 | ⬜ | ⬜ | §51, §74 |
+| F049 | Localized Transactional Emails | PLANNED | Must | M1 (infra) → M5 | E006, F007 | ⬜ | ⬜ | §51, §74 (EM-12 in M7) |
 | F050 | Trainer Booking Notifications | PLANNED | Must | M5 | F049, F031 | ⬜ | ⬜ | §51 |
 
 ---
@@ -132,7 +133,7 @@ These are not user-facing, so they don't need NL/EN columns. They still go throu
 | E004 | Database, ORM & migrations | IMPLEMENTED | M1 | `packages/database`: Drizzle ORM (`node-postgres`), versioned SQL migrations (`db:generate` / `db:migrate`, schema drift check), idempotent seed, typed client from `DATABASE_URL` (sessions in UTC); Postgres 18 in `compose.yaml` (same major as Railway); `system_greetings` table for the M1 hello slice; conventions in the package README; `test:integration` turbo task (migrate → seed → read on real Postgres). RLS comes with E011 (ADR-005, ADR-006) |
 | E005 | i18n package, native export & guardrails | IMPLEMENTED | M1 | `packages/i18n`: nl-NL + en ICU catalogs with typed keys, exporters → `.xcstrings` / `strings.xml` + plurals (committed in `generated/`), `pnpm check` (key + placeholder parity, ICU subset, generated files up to date), next-intl in `apps/web` (nl-NL default, en formatted as en-GB), Biome no-hard-coded-JSX-text plugin, `GLOSSARY.md` (ADR-008). Native no-literal-string rules (SwiftLint/ktlint) and wiring the generated catalogs into the apps come with E008 |
 | E006 | Email infrastructure | IMPLEMENTED | M1 | `packages/email`: React Email templates localized from `packages/i18n` (`email.*` keys, skipped by the native exporters), `sendEmail` with a Brevo transport (transactional API, idempotency key), inline retry with backoff (ADR-010) and an in-memory capture transport for tests; sender from config; `pnpm email:preview` and `pnpm email:send-test`; Brevo free tier, DPA, EU storage, tracking and log retention checked (`docs/legal/sub-processors.md §4`). G1 delivery check: NL + EN test emails in the Gmail inbox, not spam (2026-10-03). Open: second mailbox check; domain + SPF/DKIM/DMARC before M5; ask Brevo support to disable transactional tracking before G2 (ADR-009) |
-| E007 | Design tokens & UI foundation | PLANNED | M1 | Style Dictionary → CSS / Swift / Kotlin; web kit (Tailwind + shadcn/ui) (ADR-015) |
+| E007 | Design tokens & UI foundation | PLANNED | M1 | M0 draft in `docs/design/tokens.draft.json` and `visual-direction.md`; M1 adopts it with Style Dictionary → CSS / Swift / Kotlin and web kit (Tailwind + shadcn/ui) (ADR-015) |
 | E008 | Native app shells | PLANNED | M1 | iOS (Swift + SwiftUI) and Android (Kotlin + Compose) with generated API client + strings wired (ADR-003) |
 | E009 | Observability | PLANNED | M1 | Sentry and PostHog accounts created; verify EU regions and privacy settings, integrate web/iOS/Android/API, create uptime checks and PostHog cookieless events (ADR-013) |
 | E010 | Test infrastructure | IMPLEMENTED | M1 | `packages/testing`: shared Vitest presets (`unitConfig` / `integrationConfig`, `*.integration.test.ts`, `TZ=UTC`, no retries), database isolation (template database migrated once per run → clone per test file → `withRollback` per test; commit-needing tests get their own database), clock and Europe/Amsterdam DST helpers. CI runs `test:integration` against a Postgres 18 service in `Checks (Linux)`, and Playwright in a new `E2E (Linux)` job: every spec in nl-NL and en with automatic axe (WCAG 2.2 AA) checks, Chromium cached. Commands in `TESTING.md §7.1`. XCTest/XCUITest, JUnit + Compose UI tests and Maestro are specified for E008 in `TESTING.md §7.2` (ADR-014) |
@@ -153,7 +154,7 @@ These get `F0xx` IDs when they move to `PLANNED`. Full context is in [`ROADMAP.m
 
 | Release | Candidate items |
 |---|---|
-| 1.1 | Waitlists · cancellation cutoff · recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · previous-session duplication · warm-up sets · supersets · workout reordering · pinned notes · note search · offline resilience · bulk attendance · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *Universal Links / App Links (suggested)* |
+| 1.1 | Waitlists · cancellation cutoff · recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · warm-up sets · supersets · workout reordering · pinned notes · note search · offline resilience · bulk attendance · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *Universal Links / App Links (suggested)* |
 | 1.2 | Native client iOS/Android apps · push (APNs + FCM) · email → app deep links |
 | 1.3 | AI note capture (NL/EN, speech + text, trainer confirms) |
 | 1.4 | AI pre-session client briefing |

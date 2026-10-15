@@ -250,7 +250,7 @@ Strength & Conditioning
 
 That remains exactly as entered.
 
-Later we can support optional bilingual content fields if customers require it.
+Group classes may also carry an optional English name and description, typed by the owner (§18). Visitors and staff see the version in their language. If the English version is empty, they see the Dutch one. This is still not automatic translation (§53).
 
 ---
 
@@ -632,6 +632,15 @@ Primary daily operational interface:
 - notes
 - attendance
 
+A **+** action creates what the user's role allows, without switching to web:
+
+- private session (every trainer, for their own sessions)
+- client (name only; email and language can follow)
+- group class, one-off or repeating every week (owner/admin only)
+- Open Gym (owner/admin only)
+
+Class templates, series edits, trainers, booking links and settings stay on Trainer Web.
+
 Available in Dutch and English.
 
 ---
@@ -720,8 +729,8 @@ Private self-booking is not required initially.
 Definition:
 
 ```text
-Name
-Description
+Name (Dutch, optional English)
+Description (Dutch, optional English)
 Trainer
 Location
 Capacity
@@ -743,6 +752,8 @@ Sarah
 Capacity:
 8
 ```
+
+The owner types the name and description in Dutch and, optionally, in English. Each viewer sees their language, else the Dutch text (§3).
 
 ---
 
@@ -1065,6 +1076,8 @@ QR should lead to responsive bilingual pages.
 
 # 34. Client profile
 
+A client can be added wherever a client is chosen (new session, the client list, the app's **+**). Only a name is required; email, language for emails and default training location are optional. A matching email in the same workspace offers the existing client instead of a duplicate.
+
 Contains:
 
 ```text
@@ -1134,6 +1147,8 @@ Default:
 Trainer-only
 ```
 
+After a workout, the trainer can save an internal session note and separately write an optional message for the client. The internal note remains visible only to authorized workspace staff. Finishing the workout does not share either the workout or the note automatically. The trainer can review and explicitly share the workout recap and client message immediately or later. Shared workouts appear in the signed-in client's profile and are also sent by email. The internal note is never included in that recap, email, or client profile. Trainer-written messages are displayed exactly as entered, without translation.
+
 ---
 
 # 38. Exercise library
@@ -1156,6 +1171,13 @@ For MVP:
 - Dutch name where available
 - English name
 - trainer-created custom exercises
+- an exercise type that decides what a set records:
+  - weight × reps (kg and reps; the default);
+  - reps only (bodyweight);
+  - time (seconds, shown as m:ss);
+  - distance + time (metres and m:ss).
+
+Every exercise has a type, library and custom alike. Creating a custom exercise asks for its type.
 
 Custom exercise content does not require translation.
 
@@ -1175,6 +1197,8 @@ Cable Row
 3 × 10
 ```
 
+A logged workout can be saved as a new template when the trainer finishes it. This turns a workout built on the fly into one that can be reused. When a workout from a template was changed, finishing offers to save it as a new template; the original template stays as it was.
+
 ---
 
 # 40. Client workouts
@@ -1186,6 +1210,27 @@ Group programming can come later.
 ---
 
 # 41. Live workout logging
+
+A trainer can start a workout in three ways:
+
+- **empty**: no template, exercises are added during the session (on the fly);
+- **repeat the previous workout**: the client's last logged workout, prefilled with its values;
+- **from a template**: an assigned or any workspace template.
+
+An assigned workout opens directly. A workout can also start from the client profile without a planned session; this creates a private session that starts now.
+
+During the workout:
+
+- the logger is one scrolling list: every exercise in order, with its sets and progress underneath;
+- exercises can be added at any time, from the library (Dutch and English search, the client's recent exercises first) or as a new custom exercise;
+- each set shows its previous value and fields for today, set by the exercise type (§38);
+- each set is prefilled (today's previous set, else last time's same set, else the target) and logged with one tap;
+- the trainer can edit a set's values directly in its row;
+- each exercise can get extra sets, prefilled from its last set; any unlogged set can be removed, also one from a template, and so can a whole exercise (after a confirmation when it has logged sets);
+- difficulty is asked once per exercise, under each exercise ("how was it?"), and defaults to Normal;
+- the logger shows the elapsed workout time.
+
+The finished workout records its duration.
 
 Example:
 
@@ -1379,6 +1424,7 @@ MVP client emails:
 - cancellation
 - schedule change
 - class cancellation
+- trainer-shared workout recap and optional client message
 
 Trainer emails:
 
@@ -1459,7 +1505,9 @@ versions.
 - custom exercises
 - workout templates
 - client workouts
-- live logging
+- live logging, with or without a template
+- repeat previous workout
+- save a logged workout as a template
 - previous performance
 - history
 
@@ -1520,7 +1568,6 @@ Based on actual usage:
 - holidays
 - blocked time
 - workout duplication
-- previous-session duplication
 - warm-up sets
 - supersets
 - workout reordering
@@ -1528,6 +1575,8 @@ Based on actual usage:
 - note search
 - offline resilience
 - bulk attendance
+
+Previous-session duplication moved to the MVP (§41) on 23 September 2026, after prototype feedback.
 
 All additions must work in Dutch and English.
 
