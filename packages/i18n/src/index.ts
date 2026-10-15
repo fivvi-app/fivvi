@@ -13,11 +13,13 @@ export {
   locales,
 } from './config.ts';
 export {
+  type CommunicationLanguageSources,
+  type InterfaceLanguageSources,
   isLocale,
-  type LocaleSources,
   matchLocale,
   parseAcceptLanguage,
-  resolveLocale,
+  resolveCommunicationLanguage,
+  resolveInterfaceLanguage,
 } from './locale.ts';
 
 /** Message tree of the source catalog. `en.json` must have the same shape. */

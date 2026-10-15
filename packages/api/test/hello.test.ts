@@ -13,13 +13,13 @@ const StrictHelloResponse = z.strictObject(HelloResponseSchema.shape);
 const StrictValidationError = z.strictObject(ValidationErrorSchema.shape);
 
 describe('E018 GET /v1/hello', () => {
-  it('returns the greeting key in Dutch by default', async () => {
+  it('E008 AC3: returns the greeting key in English without a locale or Accept-Language', async () => {
     const res = await createApp().request('/v1/hello');
 
     expect(res.status).toBe(200);
     expect(StrictHelloResponse.parse(await res.json())).toEqual({
       greetingKey: HELLO_GREETING_KEY,
-      locale: 'nl-NL',
+      locale: 'en',
     });
   });
 
@@ -36,8 +36,11 @@ describe('E018 GET /v1/hello', () => {
   it.each([
     ['en-US,en;q=0.9', 'en'],
     ['nl-BE', 'nl-NL'],
-    ['de-DE', 'nl-NL'],
-  ])('negotiates Accept-Language %s to %s', async (acceptLanguage, locale) => {
+    ['fr-FR,nl-BE;q=0.9', 'nl-NL'],
+    ['de-DE,en-GB;q=0.9,nl-NL;q=0.8', 'en'],
+    ['de-DE', 'en'],
+    ['de-DE,fr-FR;q=0.9', 'en'],
+  ])('E008 AC3: negotiates Accept-Language %s to %s', async (acceptLanguage, locale) => {
     const res = await createApp().request('/v1/hello', {
       headers: { 'Accept-Language': acceptLanguage },
     });
@@ -49,13 +52,20 @@ describe('E018 GET /v1/hello', () => {
     });
   });
 
-  it('prefers the locale query parameter over Accept-Language', async () => {
-    const res = await createApp().request('/v1/hello?locale=nl-NL', {
-      headers: { 'Accept-Language': 'en' },
-    });
+  it.each([
+    ['nl-NL', 'en'],
+    ['nl-NL', 'de-DE'],
+    ['en', 'nl-NL'],
+  ] as const)(
+    'E008 AC3: prefers the locale query %s over Accept-Language %s',
+    async (locale, acceptLanguage) => {
+      const res = await createApp().request(`/v1/hello?locale=${locale}`, {
+        headers: { 'Accept-Language': acceptLanguage },
+      });
 
-    expect(StrictHelloResponse.parse(await res.json())).toMatchObject({ locale: 'nl-NL' });
-  });
+      expect(StrictHelloResponse.parse(await res.json())).toMatchObject({ locale });
+    },
+  );
 
   it('rejects an unsupported locale with a validation error', async () => {
     const res = await createApp().request('/v1/hello?locale=de-DE');

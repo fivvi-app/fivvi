@@ -367,7 +367,7 @@ flowchart TB
 
 Every email exists in `nl-NL` and `en` with one template structure (`§51, §74`). Booking emails carry the workspace name, the date/time in the workspace timezone, and a link to manage the booking. The workout recap email (EM-12) carries the workout date and a link to the authenticated client workout view.
 
-**Recipient language:** stored user preference → language chosen at booking (guests) → workspace default → `nl-NL`. For trainer invitations it's the language picked for the invitee → workspace default (`§49`).
+**Recipient language** (communication language, [ADR-017](../decisions/ADR-017-language-policy.md)): stored user preference → language chosen at booking (guests) → workspace default. For trainer invitations it's the language picked for the invitee → workspace default (`§49`).
 
 | ID | NL subject (proposed) | EN subject (proposed) | To | Trigger | Features |
 |---|---|---|---|---|---|
