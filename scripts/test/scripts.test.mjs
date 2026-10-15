@@ -6,6 +6,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   realpathSync,
   rmSync,
   writeFileSync,
@@ -97,11 +98,15 @@ describe('usage', () => {
   });
 });
 
-// A fake Android SDK whose tools find AVDs the way the real ones do: avdmanager (cmdline-tools) in ANDROID_AVD_HOME or
-// ~/.android/avd, the emulator in ANDROID_AVD_HOME or, when XDG_CONFIG_HOME is set (GitHub's Ubuntu runners), under it.
+// A fake Android SDK in its own folder per test. Its tools find AVDs the way the real ones do: avdmanager
+// (cmdline-tools) in ANDROID_AVD_HOME or ~/.android/avd, the emulator in ANDROID_AVD_HOME or, when XDG_CONFIG_HOME is
+// set (GitHub's Ubuntu runners), under that. sdkmanager logs its arguments and installs cmdline-tools when asked; without
+// them in the SDK, setup takes sdkmanager from (fake) Homebrew.
 describe('android.sh setup', () => {
-  let base;
-  let env;
+  const dirs = [];
+  after(() => {
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+  });
 
   const script = (path, body) => {
     mkdirSync(join(path, '..'), { recursive: true });
@@ -109,41 +114,59 @@ describe('android.sh setup', () => {
     chmodSync(path, 0o755);
   };
 
-  before(() => {
-    base = realpathSync(mkdtempSync(join(tmpdir(), 'android-setup-')));
+  const fakeSdk = ({ cmdlineTools = true, emulatorFindsAvds = true } = {}) => {
+    const base = realpathSync(mkdtempSync(join(tmpdir(), 'android-setup-')));
+    dirs.push(base);
     const home = join(base, 'home');
     const sdk = join(base, 'sdk');
+    const log = join(base, 'sdkmanager.log');
+    const avdmanager = `dir="\${ANDROID_AVD_HOME:-$HOME/.android/avd}"
+while [ $# -gt 0 ]; do [ "$1" = --name ] && name="$2"; shift; done
+mkdir -p "$dir/$name.avd" && touch "$dir/$name.ini"`;
+    const sdkmanager = `echo "$*" >>"${log}"
+for arg; do case "$arg" in --sdk_root=*) root="\${arg#--sdk_root=}" ;; esac; done
+case " $* " in *" cmdline-tools;latest "*)
+  mkdir -p "$root/cmdline-tools/latest/bin" && printf '%s\\n' '#!/usr/bin/env bash' '${avdmanager.replaceAll("'", "'\\''")}' >"$root/cmdline-tools/latest/bin/avdmanager"
+  chmod +x "$root/cmdline-tools/latest/bin/avdmanager" ;;
+esac`;
     mkdirSync(join(sdk, 'platform-tools'), { recursive: true });
     mkdirSync(join(base, 'jdk'));
-    script(join(sdk, 'cmdline-tools/latest/bin/sdkmanager'), 'exit 0');
+    if (cmdlineTools) {
+      script(join(sdk, 'cmdline-tools/latest/bin/sdkmanager'), sdkmanager);
+      script(join(sdk, 'cmdline-tools/latest/bin/avdmanager'), avdmanager);
+    }
     script(
-      join(sdk, 'cmdline-tools/latest/bin/avdmanager'),
-      `dir="\${ANDROID_AVD_HOME:-$HOME/.android/avd}"
-while [ $# -gt 0 ]; do [ "$1" = --name ] && name="$2"; shift; done
-mkdir -p "$dir/$name.avd" && touch "$dir/$name.ini"`,
+      join(base, 'brew/share/android-commandlinetools/cmdline-tools/latest/bin/sdkmanager'),
+      sdkmanager,
     );
+    script(join(base, 'bin/brew'), `[ "$1" = --prefix ] && echo "${join(base, 'brew')}"; exit 0`);
     script(
       join(sdk, 'emulator/emulator'),
-      `dir="\${ANDROID_AVD_HOME:-\${XDG_CONFIG_HOME:+$XDG_CONFIG_HOME/.android/avd}}"
+      emulatorFindsAvds
+        ? `dir="\${ANDROID_AVD_HOME:-\${XDG_CONFIG_HOME:+$XDG_CONFIG_HOME/.android/avd}}"
 [ "$1" = -list-avds ] && for f in "\${dir:-$HOME/.android/avd}"/*.ini; do [ -e "$f" ] && basename "$f" .ini; done
-exit 0`,
+exit 0`
+        : 'exit 0',
     );
     script(join(base, 'bin/java'), 'echo "openjdk version \\"21\\"" >&2');
     script(join(home, '.maestro/bin/maestro'), 'echo 2.11.0');
-    env = {
+    const env = {
       PATH: `${join(base, 'bin')}:${process.env.PATH}`,
       HOME: home,
       XDG_CONFIG_HOME: join(home, '.config'),
       ANDROID_HOME: sdk,
       JAVA_HOME: join(base, 'jdk'),
     };
-  });
-
-  after(() => rmSync(base, { recursive: true, force: true }));
+    const setup = () =>
+      spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], { encoding: 'utf8', env });
+    const installed = () => readFileSync(log, 'utf8');
+    return { env, setup, installed };
+  };
 
   it('creates an AVD that the emulator finds in later steps, also with XDG_CONFIG_HOME set', () => {
-    const setup = spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], { encoding: 'utf8', env });
-    assert.equal(setup.status, 0, setup.stdout + setup.stderr);
+    const { env, setup } = fakeSdk();
+    const result = setup();
+    assert.equal(result.status, 0, result.stdout + result.stderr);
 
     const found = spawnSync(
       'bash',
@@ -157,12 +180,21 @@ exit 0`,
   });
 
   it('fails when the emulator still cannot find the AVD it created', () => {
-    script(join(env.ANDROID_HOME, 'emulator/emulator'), 'exit 0');
+    const result = fakeSdk({ emulatorFindsAvds: false }).setup();
 
-    const setup = spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], { encoding: 'utf8', env });
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /created, but the emulator can't find it/);
+  });
 
-    assert.equal(setup.status, 1);
-    assert.match(setup.stdout, /created, but the emulator can't find it/);
+  it('installs cmdline-tools only when the SDK has none', () => {
+    const present = fakeSdk();
+    assert.equal(present.setup().status, 0);
+    assert.doesNotMatch(present.installed(), /cmdline-tools;latest/);
+
+    const absent = fakeSdk({ cmdlineTools: false });
+    const result = absent.setup();
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(absent.installed(), /cmdline-tools;latest/);
   });
 });
 
