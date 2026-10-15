@@ -1,6 +1,10 @@
 import type { CaptureResult } from 'posthog-js/dist/module.slim.no-external';
-import { describe, expect, it } from 'vitest';
-import { POSTHOG_EU_HOST, scrubPageView } from './page-views.ts';
+import { describe, expect, it, vi } from 'vitest';
+import { capturePageView, scrubPageView } from './page-views.ts';
+
+// The PostHog SDK is the boundary: record how capturePageView() starts it, send nothing.
+const sdk = vi.hoisted(() => ({ init: vi.fn(), capture: vi.fn() }));
+vi.mock('posthog-js/dist/module.slim.no-external', () => ({ posthog: sdk }));
 
 // Synthetic personal data only (AGENTS.md, D8).
 const KEY = 'phc_example_project_key';
@@ -52,11 +56,31 @@ function pageView(properties: CaptureResult['properties'] = {}): CaptureResult {
   };
 }
 
-describe('E009 page view scrubber', () => {
-  it('AC6: sends to the PostHog EU host', () => {
-    expect(POSTHOG_EU_HOST).toBe('https://eu.i.posthog.com');
-  });
+describe('E009 page view capture', () => {
+  it('AC6: starts posthog-js once, cookieless, for the EU host, with autocapture, recording and surveys off', async () => {
+    await capturePageView(KEY);
+    await capturePageView(KEY);
 
+    expect(sdk.init).toHaveBeenCalledOnce();
+    expect(sdk.init).toHaveBeenCalledWith(
+      KEY,
+      expect.objectContaining({
+        api_host: 'https://eu.i.posthog.com',
+        cookieless_mode: 'always',
+        persistence: 'memory',
+        disable_persistence: true,
+        capture_pageview: false,
+        autocapture: false,
+        disable_session_recording: true,
+        disable_surveys: true,
+        before_send: scrubPageView,
+      }),
+    );
+    expect(sdk.capture.mock.calls).toEqual([['$pageview'], ['$pageview']]);
+  });
+});
+
+describe('E009 page view scrubber', () => {
   it('AC6: sends the path only: no query string, fragment, title, referrer or person data', () => {
     const scrubbed = scrubPageView(pageView());
 
