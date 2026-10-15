@@ -69,6 +69,9 @@ export default defineRailway((ctx) => {
       BREVO_API_KEY: preserve(),
       EMAIL_FROM_ADDRESS: preserve(),
       EMAIL_FROM_NAME: 'Trainer Hub',
+      // Error reporting (E009, packages/observability): the DSN of the Sentry `web` project,
+      // set in the dashboard. Empty turns reporting off.
+      SENTRY_DSN: preserve(),
     },
   });
 
@@ -76,7 +79,12 @@ export default defineRailway((ctx) => {
     source,
     build: {
       ...dockerfile,
-      watchPatterns: ['/apps/cron/**', '/packages/database/**', ...ROOT_WATCH_PATTERNS],
+      watchPatterns: [
+        '/apps/cron/**',
+        '/packages/database/**',
+        '/packages/observability/**',
+        ...ROOT_WATCH_PATTERNS,
+      ],
     },
     regions: { [REGION]: 1 },
     start: CRON,
@@ -85,7 +93,11 @@ export default defineRailway((ctx) => {
       cronSchedule: '0 3 * * *',
       restartPolicyType: 'NEVER',
     },
-    env: { DATABASE_URL: db.env.DATABASE_URL },
+    env: {
+      DATABASE_URL: db.env.DATABASE_URL,
+      // The DSN of the Sentry `cron` project (E009), set in the dashboard. Empty turns it off.
+      SENTRY_DSN: preserve(),
+    },
   });
 
   return project('trainer-hub', { resources: [db, web, cron] });

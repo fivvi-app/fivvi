@@ -17,6 +17,7 @@
     "@trainer-hub/api": "workspace:*",
     "@trainer-hub/database": "workspace:*",
     "@trainer-hub/i18n": "workspace:*",
+    "@trainer-hub/observability": "workspace:*",
     "next": "catalog:",
     "next-intl": "catalog:",
     "react": "catalog:",

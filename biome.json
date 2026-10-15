@@ -48,10 +48,27 @@
       },
       "style": {
         "noNonNullAssertion": "error",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["@sentry/*"],
+                "message": "Report errors through @trainer-hub/observability, which scrubs personal data (E009)."
+              }
+            ]
+          }
+        },
         "useImportType": "error"
       }
     }
   },
+  "overrides": [
+    {
+      "includes": ["packages/observability/**"],
+      "linter": { "rules": { "style": { "noRestrictedImports": "off" } } }
+    }
+  ],
   "assist": {
     "enabled": true,
     "actions": {
