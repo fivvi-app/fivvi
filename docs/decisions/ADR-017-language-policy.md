@@ -5,7 +5,7 @@
 | **Status** | Proposed |
 | **Date** | 2026-10-15 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
-| **Related** | PRODUCT.md §3; ROADMAP.md M2; ADR-008 (supersedes its locale-resolution rule only), ADR-009; E008, F007–F010 |
+| **Related** | PRODUCT.md §3, §32; ROADMAP.md M2, M6; ADR-008 (supersedes its locale-resolution rule only), ADR-009; E008, F007–F010 |
 
 ## Context
 
@@ -26,10 +26,11 @@ Trainer Hub resolves two separate languages. Both use only `nl-NL` and `en`.
 
 1. **Explicit choice:** the language switch on web, or the OS per-app language on iOS and Android.
 2. **Stored personal preference:** the signed-in user's `preferredLocale` (F010, M2).
-3. **Device or browser languages**, in the user's order of preference. Skip unsupported languages. Match by language subtag: any `nl-*` is `nl-NL` and any `en-*` is `en`. `[fr-FR, nl-BE]` gives Dutch; `[de-DE, en-GB, nl-NL]` gives English.
-4. **English**, when nothing above matches, including an empty list.
+3. **A booking link's fixed language**, on public booking pages only, when the link sets one (`PRODUCT.md §32`), e.g. an English-only class.
+4. **Device or browser languages**, in the user's order of preference. Skip unsupported languages. Match by language subtag: any `nl-*` is `nl-NL` and any `en-*` is `en`. `[fr-FR, nl-BE]` gives Dutch; `[de-DE, en-GB, nl-NL]` gives English.
+5. **English**, when nothing above matches, including an empty list.
 
-The workspace's default communication language never decides the interface language.
+The workspace's default communication language never decides the interface language. A booking link no longer offers "use the workspace default"; it detects the visitor's language or sets a fixed one, and the visitor can always switch.
 
 **Communication language** (emails and other messages to a recipient), first match wins:
 
@@ -47,12 +48,13 @@ Rules that follow:
 - **Positive:** a person always sees their own language when we have it, wherever they open Trainer Hub. People we don't support get English, which most of them can read.
 - **Positive:** the workspace setting means one thing: the language of messages to someone whose preference we don't know.
 - **Positive:** web, iOS and Android follow one rule with the same test cases, so parity can be tested.
-- **Negative:** a Dutch gym's guest with a German-only browser sees the booking page in English, not Dutch. We accept this: the visible switch (`PRODUCT.md §3`) is one tap away.
+- **Negative:** a Dutch gym's guest with a German-only browser sees the booking page in English, not Dutch, unless the link fixes Dutch. We accept this: the visible switch (`PRODUCT.md §3`) is one tap away.
 - **Negative:** the native apps can't use the OS's resolved bundle language as their input. They must read the raw preferred-language list and apply the rule themselves.
 - **Follow-ups:**
   - E008's first ticket migrates `resolveLocale` in `packages/i18n`, its web callers and `packages/i18n/README.md` test-first, with web e2e regression tests.
   - E008's native tickets apply the interface rule on iOS and Android.
   - F010 (M2) adds the stored preference and the in-app switch to this order.
+  - The booking-link language setting (M6) offers *detect* and *fixed*, not *workspace default*.
   - Emails pick the communication language once recipients have a stored preference (M2, M5).
 
 ## Alternatives considered
@@ -60,7 +62,7 @@ Rules that follow:
 | Option | Why not |
 |---|---|
 | Keep ADR-008's single order with the `nl-NL` fallback | Gives Dutch to the people least likely to read it, and lets the workspace default override the reader's own language |
-| Workspace default as the interface fallback, instead of English | Ties a person's screen to a business setting meant for communication; a German-speaking guest at a Dutch gym still gets Dutch |
+| Workspace default as the interface fallback, instead of English, or as a booking-link language option | Ties a person's screen to a business setting meant for communication; a German-speaking guest at a Dutch gym still gets Dutch |
 | Use the native platform's resolved resource language | The source catalogs are Dutch, so unsupported devices would fall back to Dutch, and iOS and Android would differ from web |
 | An in-app language picker in the E008 shells | Belongs to F010 with stored preferences and onboarding; the shells have no sign-in |
 

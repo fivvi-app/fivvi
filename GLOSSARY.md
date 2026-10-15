@@ -61,7 +61,7 @@ An email from an owner asking someone to join the workspace as a trainer or admi
 A login: optional for a client, required for a team member.
 
 **Interface language**:
-The language a person sees on screen: Dutch or English. It follows the person (their choice, their preference or their device), never the workspace.
+The language a person sees on screen: Dutch or English. It follows the person (their choice, their preference or their device), or a booking link's fixed language; never the workspace's default communication language.
 _Avoid_: locale (outside code), app language
 
 **Communication language**:

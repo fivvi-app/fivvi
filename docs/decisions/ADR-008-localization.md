@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted (2026-09-22); the locale-resolution rule is superseded by [ADR-017](ADR-017-language-policy.md) |
+| **Status** | Accepted (2026-09-22); [ADR-017](ADR-017-language-policy.md) (proposed) replaces the locale-resolution rule |
 | **Date** | 2026-09-22 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | PRODUCT.md §2.2, §3, §73, §74; ROADMAP.md §2 (principle 1), M1, M2, §10, §13 (R10); ADR-003, ADR-009; E005, F007–F010 |
