@@ -4,6 +4,9 @@
   },
   "hello": {
     "title": "Welcome to Trainer Hub",
+    "description": "Enter your first name and we'll greet you.",
+    "firstNameLabel": "First name",
+    "greet": "Greet me",
     "greeting": "Hi {name},",
     "sessionsToday": "{count, plural, one {You have # session today.} other {You have # sessions today.}}",
     "noSessionsToday": "You have no sessions today.",

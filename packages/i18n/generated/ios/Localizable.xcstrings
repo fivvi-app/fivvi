@@ -19,6 +19,60 @@
         }
       }
     },
+    "hello.description" : {
+      "comment" : "Line under the title of the hello page, above the first-name field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your first name and we'll greet you."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul je voornaam in, dan begroeten we je."
+          }
+        }
+      }
+    },
+    "hello.firstNameLabel" : {
+      "comment" : "Label of the first-name field on the hello page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First name"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voornaam"
+          }
+        }
+      }
+    },
+    "hello.greet" : {
+      "comment" : "Button on the hello page that shows hello.greeting with the first name entered.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Greet me"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Begroet me"
+          }
+        }
+      }
+    },
     "hello.greeting" : {
       "comment" : "Greeting above the home screen. {name} is the user's first name.",
       "extractionState" : "manual",

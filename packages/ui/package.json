@@ -5,7 +5,6 @@
   "type": "module",
   "exports": {
     "./globals.css": "./src/styles/globals.css",
-    "./postcss.config": "./postcss.config.mjs",
     "./components/*": "./src/components/*.tsx"
   },
   "scripts": {
@@ -25,7 +24,6 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@tailwindcss/node": "catalog:",
-    "@tailwindcss/postcss": "catalog:",
     "@trainer-hub/testing": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",

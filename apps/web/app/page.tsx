@@ -1,10 +1,6 @@
-import { useTranslations } from 'next-intl';
+import { Hello } from './hello';
 
-export default function HomePage() {
-  const t = useTranslations('hello');
-  return (
-    <main>
-      <h1>{t('title')}</h1>
-    </main>
-  );
+export default async function HomePage({ searchParams }: PageProps<'/'>) {
+  const { name } = await searchParams;
+  return <Hello firstName={typeof name === 'string' ? name.trim() : ''} />;
 }
