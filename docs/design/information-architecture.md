@@ -328,7 +328,7 @@ The full flow with every unhappy path is in [flows/01-public-booking.md](flows/0
 ### 6.3 Language behaviour
 
 - The header always shows **`NL | EN`** (`§15`). Switching keeps the current step and whatever the visitor has typed.
-- Initial language (`§32`): the link's setting wins, being either *workspace default* or *detect browser language*. Detection falls back to Dutch. `?lang=nl|en` on any URL overrides both.
+- Initial language (`§32`, ADR-017): the link either *detects the browser language* or sets a *fixed language*. Detection takes the first supported browser language and falls back to English. `?lang=nl|en` on any URL and the visitor's own switch override both.
 - The language in use when the visitor submits PB-03 is **stored on the hold**. It drives the confirmation email, the confirmation page, all later emails and the client dashboard (`§3 "Client language"`).
 
 ---
@@ -401,7 +401,7 @@ Every email exists in `nl-NL` and `en` with one template structure (`§51, §74`
 | Trainer apps | *Profiel → Taal* | Saved on the user; overrides the OS language in-app |
 | Emails | n/a | Recipient language, see §8 |
 
-Resolution order everywhere (`ROADMAP M2`): **explicit choice → stored preference → workspace default → device/browser → nl-NL**.
+Resolution order everywhere ([ADR-017](../decisions/ADR-017-language-policy.md)): the **interface language** is **explicit choice → stored preference → a booking link's fixed language → device/browser → English**; the **communication language** of emails is **recipient's preference → workspace default**.
 
 ### 9.2 Timezones
 
