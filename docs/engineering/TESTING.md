@@ -140,7 +140,7 @@ The reviewer checks this table against the code.
 |---|---|
 | **Locally, before opening a PR** | Everything for the areas you touched. Agents paste the commands and results in the PR description. Mobile changes: build and run the unit tests and the affected Maestro flows on both platforms locally |
 | **Every PR (Linux, required)** | `Checks (Linux)`: static checks, domain unit, API integration, isolation suite, email, web component. `E2E (Linux)`: Playwright (NL + EN). `Android`: unit + Compose tests (E008) |
-| **PR touching `apps/ios`, the contract or the iOS catalogs (macOS, required when triggered)** | `iOS`: `pnpm test:ios` (§7.1). Path-filtered to save macOS minutes (ROADMAP §12) |
+| **PR touching the iOS app or its inputs (macOS, required when triggered)** | `iOS`: `pnpm test:ios` (§7.1). Path-filtered to save macOS minutes (ROADMAP §12); the paths are in `WORKFLOW.md §7` |
 | **PR touching mobile apps, contract or strings** | Maestro flows on the platforms affected. If CI minutes run short, Maestro runs locally and nightly instead; the PR description must say it ran |
 | **Before a TestFlight / Play internal build** | Full suite on both platforms, both locales |
 

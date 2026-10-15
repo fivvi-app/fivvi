@@ -51,7 +51,7 @@ final class StubServer: Sendable {
     /// The `locale` query parameter of every `GET /api/v1/hello` so far.
     var requestedLocales: [String?] { responder.requestedLocales }
 
-    /// Answers from now on, and answers the requests on hold.
+    /// Answers from now on, and answers the requests on hold (unless the new answer is `.hold` too).
     func answer(with answer: Answer) {
         responder.answer(with: answer)
     }
@@ -71,8 +71,9 @@ private final class Responder: @unchecked Sendable {
     var requestedLocales: [String?] { lock.withLock { helloLocales } }
 
     func answer(with answer: StubServer.Answer) {
-        let waiting = lock.withLock {
+        let waiting: [(connection: NWConnection, locale: String?)] = lock.withLock {
             currentAnswer = answer
+            if case .hold = answer { return [] }
             defer { held = [] }
             return held
         }
