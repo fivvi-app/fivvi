@@ -1,8 +1,8 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { generatedDir, renderOutputs } from './build.ts';
-import { nativeDirs } from './native.ts';
 import { contrastResults, describeFailure } from './contrast.ts';
+import { nativeDirs } from './native.ts';
 import { readTokenSource, type TokenSource, TokenSourceError } from './source.ts';
 
 export const checkNames = ['generated', 'contrast'] as const;
