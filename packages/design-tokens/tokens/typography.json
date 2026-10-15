@@ -206,7 +206,7 @@
       "$description": "Weight/reps in the live logger, read at arm's length between sets. Tabular figures.",
       "$extensions": {
         "app.trainerhub.platform": {
-          "ios": "system(size: 40, weight: .semibold).monospacedDigit(), relativeTo: .largeTitle",
+          "ios": "largeTitle, semibold, monospaced digits",
           "android": "displaySmall + tnum"
         }
       }

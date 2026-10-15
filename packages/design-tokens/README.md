@@ -1,6 +1,6 @@
 # @trainer-hub/design-tokens
 
-The one source of Trainer Hub's colours, type, spacing, radii and motion (ADR-015). [Style Dictionary](https://styledictionary.com/) v4 builds the web outputs from it; the Swift and Kotlin outputs follow with issue #38. The rationale behind the values is in [`docs/design/visual-direction.md`](../../docs/design/visual-direction.md).
+The one source of Trainer Hub's colours, type, spacing, radii and motion (ADR-015). [Style Dictionary](https://styledictionary.com/) v4 resolves it, and one build generates the web, iOS (Swift) and Android (Kotlin) outputs. The rationale behind the values is in [`docs/design/visual-direction.md`](../../docs/design/visual-direction.md).
 
 | File | What |
 |---|---|
@@ -12,7 +12,9 @@ The one source of Trainer Hub's colours, type, spacing, radii and motion (ADR-01
 | `generated/web/tokens.css` | A CSS variable per token (`--th-color-bg-canvas`): light on `:root`, dark under `prefers-color-scheme: dark`. **Generated, never edit** |
 | `generated/web/shadcn.css` | shadcn/ui's theme variables (`--background`, `--primary`, `--radius`, …) plus `--session-*` and `--status-*`, each pointing at a token variable. **Generated, never edit** |
 | `generated/web/theme.css` | Tailwind v4 `@theme inline` that turns those into utilities (`bg-primary`, `text-session-private-fg`, `rounded-lg`). **Generated, never edit** |
-| `src/` | The build, the checks and the CLI (Node only) |
+| `swift/` | The SwiftPM package `TrainerHubDesignTokens` for iOS. `Package.swift` is hand-written; `Sources/TrainerHubDesignTokens/Generated/` is **generated, never edit** |
+| `kotlin/generated/` | Kotlin sources for Compose, package `nl.trainerhub.designtokens`. **Generated, never edit** |
+| `src/` | The build, the checks and the CLI (Node only). `src/native.ts` renders the Swift and Kotlin |
 
 The files are DTCG JSON (`$value`, `$type`, `$description`); a reference is `{color.base.neutral.900}`. Dark values are resolved in dark mode, so a dark value may reference another semantic colour (`{color.bg.subtle}`) and gets its dark value.
 
@@ -29,13 +31,36 @@ Import the three files after Tailwind, and use only shadcn's theme classes and o
 
 The page follows the system light or dark setting; nothing switches it by hand. shadcn's theme variables map to the semantic tokens as listed in `shadcnColours` in [`src/build.ts`](src/build.ts) (for example `--primary` is `color.action.primary.bg`, `--input` is `color.border.control`). `--radius` is `radius.md`, and Tailwind derives `rounded-sm` to `rounded-xl` from it as in shadcn.
 
+## Using the tokens on iOS and Android
+
+The native outputs ship like `packages/contract`'s clients: committed sources that E008 adds to the apps, a local Swift package for iOS and a source directory compiled in a Gradle module for Android. They hold the semantic colours, spacing, radii and type styles; never the base palette. Native typography is the platform's: each type style in `tokens/typography.json` has a mapping note (`$extensions` `app.trainerhub.platform`) that names an iOS text style and a Material 3 role. The generated code maps to those styles and has no font sizes, so Dynamic Type and font scaling apply. A note may add a weight or figures after the style (`subheadline.weight(.semibold)`, `displaySmall + tnum`), never a size.
+
+**iOS** (`swift/`, iOS 15 or macOS 12 and up):
+
+| Generated | What |
+|---|---|
+| `Tokens.Colors` | Every semantic colour as a SwiftUI `Color` that follows the system appearance (light and dark): `Tokens.Colors.bgCanvas`, `Tokens.Colors.actionPrimaryBg` |
+| `Tokens.Spacing`, `Tokens.Radius` | Points as `CGFloat`: `Tokens.Spacing.space4`, `Tokens.Spacing.gutter`, `Tokens.Radius.md` (use `.continuous` corners) |
+| `Tokens.TextStyle` | The `Font.TextStyle` of each type style: `.font(.system(Tokens.TextStyle.body))` |
+
+**Android** (`kotlin/generated/`, Compose Material 3 1.2 or later):
+
+| Generated | What |
+|---|---|
+| `LightColorScheme`, `DarkColorScheme` | Material 3 `ColorScheme`s: `MaterialTheme(colorScheme = if (isSystemInDarkTheme()) DarkColorScheme else LightColorScheme)` |
+| `LightTokenColors`, `DarkTokenColors` | Every semantic colour (`TokenColors`), for what Material doesn't cover: sessions and status |
+| `Spacing`, `Radius`, `TokenShapes` | `Dp` values (`Spacing.space4`, `Radius.md`) and Material 3 `Shapes` from the radius tokens whose android note names a shape (`shapes.small`) |
+| `Typography.body`, `Typography.label`, … | Each type style as its Material 3 role: `MaterialTheme.typography.body` is `bodyLarge` |
+
+Names are the token path without its group, in camel case (`color.action.primary.bg-pressed` is `actionPrimaryBgPressed`, `space.0-5` is `space0_5`). The Material 3 roles map to tokens as listed in `materialColours` in [`src/native.ts`](src/native.ts): the roles the token descriptions name, a neutral secondary and tertiary (there is one accent), and `surfaceTint` on the canvas so elevation adds no tint. Every content role (`onPrimary`, `onSurface`, …) sits on its role as a declared contrast pair. `scrim` keeps Material's black.
+
 ## Changing a token
 
 1. Change the value in `tokens/`. A semantic colour has its light value in `color.light.json` and its dark value in `color.dark.json`; change both when both should change. A new semantic colour needs both too, or the build refuses it.
-2. `pnpm --filter @trainer-hub/design-tokens generate` and commit the regenerated `generated/` files.
+2. `pnpm --filter @trainer-hub/design-tokens generate` and commit the regenerated files under `generated/`, `swift/Sources/` and `kotlin/generated/`.
 3. `pnpm check` must pass: it fails when a generated file is stale or when a contrast pair drops below its minimum.
 
-A new colour under `color.session.*` or `color.status.*` automatically becomes a `--session-*` or `--status-*` variable and a Tailwind colour. Any other new colour for the web needs a mapping in `src/build.ts`.
+A new colour under `color.session.*` or `color.status.*` automatically becomes a `--session-*` or `--status-*` variable and a Tailwind colour. Any other new colour for the web needs a mapping in `src/build.ts`. Every semantic colour becomes a Swift and Kotlin colour automatically; one that a Material 3 role should take needs a mapping in `src/native.ts`.
 
 ## Adding a contrast pair
 
@@ -51,7 +76,7 @@ Add an entry to `tokens/contrast-pairs.json` for every new foreground/background
 
 `pnpm check` (turbo, so CI too) runs `node src/cli.ts check`:
 
-- **generated**: builds every output in memory and compares it with the committed file. It names each stale, missing or stray file under `generated/`.
+- **generated**: builds every output (web, Swift, Kotlin) in memory and compares it with the committed file. It names each stale, missing or stray file under `generated/`, `swift/Sources/TrainerHubDesignTokens/Generated/` and `kotlin/generated/`.
 - **contrast**: computes the WCAG contrast of every pair in both modes and names each failing pair with its mode and ratio, rounded down.
 
-Run one with `node src/cli.ts check generated` or `check contrast`. The tests are in `test/`: `build.test.ts`, `check.test.ts` and `contrast.test.ts`.
+Run one with `node src/cli.ts check generated` or `check contrast`. The tests are in `test/`: `build.test.ts`, `check.test.ts`, `contrast.test.ts` and `platforms.test.ts` (the Material 3 roles, adaptive iOS colours and no fixed native font sizes). They read the generated Swift and Kotlin as text; E008's app builds compile them.

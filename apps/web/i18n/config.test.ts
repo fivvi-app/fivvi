@@ -9,11 +9,13 @@ describe('E005 web request locale', () => {
     expect(requestLocale('nl-NL', 'en-US,en;q=0.9')).toBe('nl-NL');
   });
 
-  it('falls back to the browser languages, then to nl-NL', () => {
+  it('falls back to the first supported browser language, then to English (E008 AC3)', () => {
     expect(requestLocale(undefined, 'de-DE,de;q=0.9,en;q=0.8')).toBe('en');
+    expect(requestLocale(undefined, 'fr-FR,nl-BE;q=0.9')).toBe('nl-NL');
     expect(requestLocale('fr', 'nl-BE')).toBe('nl-NL');
-    expect(requestLocale(undefined, 'de-DE')).toBe('nl-NL');
-    expect(requestLocale(undefined, null)).toBe('nl-NL');
+    expect(requestLocale(undefined, 'de-DE')).toBe('en');
+    expect(requestLocale('fr', 'de-DE')).toBe('en');
+    expect(requestLocale(undefined, null)).toBe('en');
   });
 
   it('runs next-intl on the formatting locale', () => {

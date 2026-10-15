@@ -168,11 +168,15 @@ Localization is part of the foundation, not a later feature.
 
 ## Default behaviour
 
-New users in the Netherlands:
+The interface language follows the person (ADR-017):
 
 ```text
-Default language → Dutch
+Dutch device or browser → Dutch
+English device or browser → English
+Neither (or no language set) → English
 ```
+
+Dutch users get Dutch. Dutch stays the source language of every text.
 
 The user can switch at any time:
 
@@ -193,8 +197,8 @@ preferredLocale: "nl-NL" | "en"
 
 For guests without accounts:
 
-- detect browser/device locale
-- default to Dutch for Dutch users
+- detect browser/device locale: the first supported language in the browser's or device's order
+- fall back to English when neither Dutch nor English is requested
 - always provide visible language switching
 
 ---
@@ -1051,9 +1055,10 @@ Language behaviour:
 
 A booking link can:
 
-- use workspace default language
-- detect browser locale
-- allow manual switching
+- detect the visitor's browser language (the default)
+- set a fixed page language, Dutch or English, e.g. for an English-only class
+
+Every booking page allows manual switching, and the visitor's own choice wins over the link's language (ADR-017).
 
 ---
 

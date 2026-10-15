@@ -176,7 +176,7 @@ public enum Operations {
     }
     /// Greeting for the walking skeleton
     ///
-    /// Without `locale`, the locale follows the Accept-Language header and falls back to nl-NL.
+    /// Without `locale`, the locale is the first supported language in the Accept-Language header, otherwise en.
     ///
     /// - Remark: HTTP `GET /v1/hello`.
     /// - Remark: Generated from `#/paths//v1/hello/get(getHello)`.
@@ -185,14 +185,14 @@ public enum Operations {
         public struct Input: Sendable, Hashable {
             /// - Remark: Generated from `#/paths/v1/hello/GET/query`.
             public struct Query: Sendable, Hashable {
-                /// Catalog locale from packages/i18n. Dutch (nl-NL) is the default.
+                /// Catalog locale from packages/i18n: Dutch (nl-NL) or English (en).
                 ///
                 /// - Remark: Generated from `#/paths/v1/hello/GET/query/locale`.
                 public var locale: Components.Schemas.Locale?
                 /// Creates a new `Query`.
                 ///
                 /// - Parameters:
-                ///   - locale: Catalog locale from packages/i18n. Dutch (nl-NL) is the default.
+                ///   - locale: Catalog locale from packages/i18n: Dutch (nl-NL) or English (en).
                 public init(locale: Components.Schemas.Locale? = nil) {
                     self.locale = locale
                 }

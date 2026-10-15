@@ -112,7 +112,7 @@ extension Components {
                 case locale
             }
         }
-        /// Catalog locale from packages/i18n. Dutch (nl-NL) is the default.
+        /// Catalog locale from packages/i18n: Dutch (nl-NL) or English (en).
         ///
         /// - Remark: Generated from `#/components/schemas/Locale`.
         @frozen public enum Locale: String, Codable, Hashable, Sendable, CaseIterable {

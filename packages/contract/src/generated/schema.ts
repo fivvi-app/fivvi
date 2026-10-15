@@ -33,7 +33,7 @@ export interface paths {
         };
         /**
          * Greeting for the walking skeleton
-         * @description Without `locale`, the locale follows the Accept-Language header and falls back to nl-NL.
+         * @description Without `locale`, the locale is the first supported language in the Accept-Language header, otherwise en.
          */
         get: operations["getHello"];
         put?: never;
@@ -69,7 +69,7 @@ export interface components {
             locale: components["schemas"]["Locale"];
         };
         /**
-         * @description Catalog locale from packages/i18n. Dutch (nl-NL) is the default.
+         * @description Catalog locale from packages/i18n: Dutch (nl-NL) or English (en).
          * @enum {string}
          */
         Locale: "nl-NL" | "en";
@@ -125,7 +125,7 @@ export interface operations {
     getHello: {
         parameters: {
             query?: {
-                /** @description Catalog locale from packages/i18n. Dutch (nl-NL) is the default. */
+                /** @description Catalog locale from packages/i18n: Dutch (nl-NL) or English (en). */
                 locale?: components["schemas"]["Locale"];
             };
             header?: never;

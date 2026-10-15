@@ -15,7 +15,7 @@ await sendEmail({
   template: helloEmail,
   props: { firstName: 'Anna', sentAt },
   to: { email: 'anna@example.com', name: 'Anna' },
-  locale: 'nl-NL', // resolveLocale() from @trainer-hub/i18n
+  locale: 'nl-NL', // resolveCommunicationLanguage() from @trainer-hub/i18n
   timeZone: 'Europe/Amsterdam', // the workspace time zone
 });
 ```

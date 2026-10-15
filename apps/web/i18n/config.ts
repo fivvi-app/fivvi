@@ -5,21 +5,26 @@ import {
   type Locale,
   messages,
   parseAcceptLanguage,
-  resolveLocale,
+  resolveInterfaceLanguage,
 } from '@trainer-hub/i18n';
 
 /** Cookie holding an explicit language choice. The language switch arrives with F010. */
 export const localeCookie = 'NEXT_LOCALE';
 
 /**
- * The request's catalog locale. The URL carries no locale (no i18n routing). The stored
- * preference and workspace default join the order once users and workspaces exist (M2).
+ * The request's interface language (ADR-017): the cookie, then the first supported browser
+ * language, then English. The URL carries no locale (no i18n routing). The stored preference
+ * joins the order with signed-in users (F010, M2), a booking link's fixed language with
+ * public booking pages (M6).
  */
 export function requestLocale(
   cookie: string | undefined,
   acceptLanguage: string | null | undefined,
 ): Locale {
-  return resolveLocale({ explicit: cookie, requested: parseAcceptLanguage(acceptLanguage) });
+  return resolveInterfaceLanguage({
+    explicit: cookie,
+    requested: parseAcceptLanguage(acceptLanguage),
+  });
 }
 
 /**
