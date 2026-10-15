@@ -5,7 +5,7 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 | Label in mattpocock/skills | Label in our tracker | Meaning                                  |
 | -------------------------- | -------------------- | ---------------------------------------- |
 | `needs-triage`             | `needs-triage`       | Owner needs to evaluate this issue       |
-| `needs-info`               | `needs-info`         | Waiting on reporter for more information |
+| `needs-info`               | `needs-info`         | Waiting on the owner's answer to the triage notes in the comments; holds the issue (`flow.sh`: `waiting`, then `answered`) |
 | `ready-for-agent`          | `ready-for-agent`    | Fully specified, ready for an AFK agent  |
 | `ready-for-human`          | `ready-for-human`    | Requires the owner or another human      |
 | `wontfix`                  | `wontfix`            | Will not be actioned                     |

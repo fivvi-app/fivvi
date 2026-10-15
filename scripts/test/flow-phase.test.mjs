@@ -131,6 +131,43 @@ describe('flow phase of a ticket', () => {
   });
 });
 
+describe('flow phase of a needs-info question', () => {
+  it('waits for the owner until the newest comment is not our triage note', () => {
+    const waiting = decide(issue({ labels: ['needs-info'], answered: false }));
+    assert.equal(waiting.phase, 'waiting');
+    assert.match(waiting.next, /owner/);
+    const answered = decide(issue({ labels: ['needs-info'], answered: true }));
+    assert.equal(answered.phase, 'answered');
+    assert.match(answered.next, /triage/);
+  });
+
+  it('holds the issue whatever its code, blockers or other labels say', () => {
+    const held = issue({
+      labels: ['ready-for-agent', 'needs-info'],
+      answered: false,
+      blockers: [{ number: 55, title: 'schema' }],
+      branches: [branch(pr({ risk: 'low' }))],
+    });
+    assert.equal(decide(held).phase, 'waiting');
+    assert.equal(
+      decide(issue({ labels: ['spec', 'needs-info'], answered: true })).phase,
+      'answered',
+    );
+  });
+
+  it('lets merged work be cleaned up', () => {
+    const merged = branch(pr({ state: 'MERGED' }));
+    assert.equal(
+      decide(issue({ labels: ['needs-info'], answered: false, branches: [merged] })).phase,
+      'merged',
+    );
+  });
+
+  it('no longer holds a closed issue', () => {
+    assert.equal(decide(issue({ state: 'CLOSED', labels: ['needs-info'] })).phase, 'done');
+  });
+});
+
 describe('flow phase from the code', () => {
   const phaseOf = (prFacts, overrides) =>
     decide(issue({ branches: [branch(prFacts, overrides)] })).phase;

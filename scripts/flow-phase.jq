@@ -1,12 +1,13 @@
 # The phase of an issue and the next step, decided from the facts flow.sh collects. Pure: no I/O.
-# Input: {number, title, state, labels, assignees, me, has_criteria, described,
+# Input: {number, title, state, labels, assignees, me, has_criteria, described, answered,
 #         parent: null|{number, title, state, labels, open, total}, blockers: [{number, title}],
 #         children: [{number, title, state, labels, assignees, blocked}],
 #         branches: [{name, local, worktree, dirty,
 #                     pr: null|{number, state, draft, review, failing, threads, age_days, risk, risk_reasons,
 #                               head, refusal: null|{sha, reasons}}}]}
 # risk is "low", "high" or null (unknown) for an open PR (scripts/risk.sh). refusal is the last refusal of the merge
-# gate recorded on the PR (scripts/pr.sh refusal); it holds only for the head commit it names.
+# gate recorded on the PR (scripts/pr.sh refusal); it holds only for the head commit it names. answered is true when
+# there is a comment and the newest is not a triage note, i.e. someone replied to the needs-info question.
 # Output: {phase, next, hint}
 
 def has($l): (.labels | index($l)) != null;
@@ -35,9 +36,9 @@ def owner_review:
 # Input: {phase, pr} of the least advanced branch.
 def code_next($n):
   {
-    "in-progress": "Build it in its worktree (implementer), self-review (two reviewers), then scripts/pr.sh create from the worktree.",
-    "draft-pr": "Finish checks and self-review (scripts/pr.sh reviewed), then scripts/pr.sh ready from the worktree.",
-    "changes-requested": "Fix what is open: scripts/pr.sh status and scripts/pr.sh threads in the worktree, fix with an implementer, push with scripts/pr.sh create, reply with scripts/pr.sh reply.",
+    "in-progress": "Build it in its worktree with the implement skill (docs/agents/build.md), then scripts/pr.sh create from the worktree.",
+    "draft-pr": "Finish checks and code-review (scripts/pr.sh reviewed), then scripts/pr.sh ready from the worktree.",
+    "changes-requested": "Fix what is open: scripts/pr.sh status and scripts/pr.sh threads in the worktree, fix with the implement skill, push with scripts/pr.sh create, reply with scripts/pr.sh reply.",
     "ready-to-merge": "Low-risk: scripts/pr.sh merge in the worktree. It merges only when the whole merge gate holds; otherwise the PR stays for the owner. Then scripts/flow.sh finish \($n).",
     "merge-refused": "The merge gate refused it on \(.pr.head[:7]): \(.pr.refusal.reasons). The owner decides, or fix it and push (scripts/pr.sh create), which makes the refusal stale. Report and stop; never retry the merge on this commit.",
     "in-review": "\(.pr | owner_review) and merges it. Nothing to do.",
@@ -63,15 +64,20 @@ def ticket_phase($n):
     {phase: "needs-approval", next: "Its spec #\(.parent.number) waits for the owner to approve it (the spec-approved label). Report and stop."}
   elif has("ready-for-agent") and .has_criteria then {phase: "ready", next: "scripts/flow.sh start \($n)"}
   elif has("ready-for-agent") then
-    {phase: "needs-refinement", next: "Labelled ready-for-agent but it has no ## Acceptance criteria. Add them with the user: scripts/issue.sh update \($n) --body-file -."}
+    {phase: "needs-refinement", next: "Labelled ready-for-agent but it has no ## Acceptance criteria. Triage it again to add them: scripts/issue.sh update \($n) --body-file -."}
   else
-    {phase: "needs-refinement", next: "Make it self-contained with ## Acceptance criteria (grilling with the user), scripts/issue.sh update \($n) --body-file -, then scripts/issue.sh label \($n) --add ready-for-agent (or ready-for-human)."}
+    {phase: "needs-refinement", next: "Triage it: agent-ready gets an agent brief with ## Acceptance criteria (scripts/issue.sh update \($n) --body-file -) and ready-for-agent; questions for the owner get needs-info and a triage comment; work only the owner can do gets ready-for-human."}
   end;
 
 . as $f
 | $f.number as $n
 | ([$f.branches[] | code_phase + {name, pr}] | sort_by(.rank)) as $code
-| (if ($f.branches | length) > 0
+# A needs-info question holds the issue, whatever its code, blockers or other labels say; merged work still gets
+# cleaned up.
+| (if ($f | open) and ($f | has("needs-info")) and ($code[0].phase != "merged") then
+     if $f.answered then {phase: "answered", next: "The question on the issue was answered. Run the triage skill on it again with the answer."}
+     else {phase: "waiting", next: "Waiting for the owner to answer the question on the issue (needs-info). Report and stop."} end
+   elif ($f.branches | length) > 0
       and (($f | open) or any($f.branches[]; .local or .worktree != null) or any($f.branches[]; .pr.state == "OPEN"))
    then {phase: $code[0].phase, next: ($code[0] | code_next($n))}
    elif ($f | open | not) then {phase: "done", next: "Nothing to do."}
@@ -92,7 +98,7 @@ def ticket_phase($n):
      else
        ($f | ready_children) as $ready
        | {phase: "building",
-          next: "\([$f.children[] | select(open)] | length) of \($f.children | length) tickets open. Ready now: \(if ($ready | length) == 0 then "none" else [$ready[] | "#\(.)"] | join(" ") end). Build each with scripts/flow.sh start <n>, at most three at a time; refine tickets without ready-for-agent first."}
+          next: "\([$f.children[] | select(open)] | length) of \($f.children | length) tickets open. Ready now: \(if ($ready | length) == 0 then "none" else [$ready[] | "#\(.)"] | join(" ") end). Build each with scripts/flow.sh start <n>, at most three at a time; triage tickets without ready-for-agent first."}
      end
    elif ($f.assignees | length) > 0 and ($f.assignees | index($f.me) | not) then
      {phase: "taken", next: "Assigned to \($f.assignees | join(", ")). Leave it unless the user says otherwise."}

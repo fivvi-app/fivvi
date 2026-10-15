@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 1.14 |
+| **Version** | 1.16 |
 | **Date** | 22 September 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
 | **Builders** | AI coding agents: GitHub Copilot (VS Code + CLI), Claude Code and Codex, working in parallel worktrees |
@@ -770,3 +770,4 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-10-14 | 1.13 | **Prototype phone test (owner):** §41 now shows the elapsed workout time in the logger, and a finished workout records its duration. The owner kept packages and remaining sessions out of the MVP (`PRODUCT.md §53`; Release 4, `§66`). No milestone or release order changes. |
 | 2026-10-14 | 1.14 | **Prototype feedback (owner):** a group class may carry an optional English name and description, typed by the owner (§3, §18). Viewers see their language, else the Dutch text; there is still no automatic translation (§53). Every exercise gets a type that decides what a set records: weight × reps, reps only, time or distance + time (§38). The logger becomes one scrolling list with editable set values and extra sets per exercise (§41). Any unlogged set and any exercise can be removed, also from a template; a changed template workout is offered as a new template and the original stays (§39, §41). Every exercise asks "how was it?" (§41). No milestone or release order changes. |
 | 2026-10-15 | 1.15 | **Web-first pilot (owner).** Clients only ever need the web, and the pilot trainer does most of his admin on a laptop (his phone is Android), so the pilot goes live on the web at Gate G4 and the native trainer apps (M8) move after it. They join the running pilot through TestFlight and Play internal testing; ADR-003 (native apps) is unchanged. The trainer web gets phone-friendly daily screens and a home-screen icon in M4, and a phone-friendly logger that keeps unsent sets on the device in M7 (`PRODUCT.md`, Trainer Web). M1 still builds the native shells. The M9 launch checklist's native items move to the M8 exit criteria. New decision 8 and risk R16; R12 and the pilot plan updated. |
+| 2026-10-15 | 1.16 | **Matt Pocock's skills are the delivery flow**, as in mijn-hcs. Our own `implementer` and `reviewer` agents and the `work` skill's Refine step did what `implement`, `code-review` and `triage` already do, so they are gone: a fresh subagent runs `implement` (`tdd`, then `code-review`), refinement is `triage`, and the repo's rules for them live in `docs/agents/build.md` and `issue-tracker.md`. A `needs-info` question now holds its issue in `flow.sh` (`waiting`, then `answered`) until a reply follows the triage notes. The merge gate is unchanged. |

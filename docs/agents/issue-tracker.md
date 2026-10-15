@@ -59,6 +59,15 @@ A spec issue is the requirement of record for one feature (`F0xx`) or enabler (`
 
 Create a GitHub issue with `scripts/issue.sh create`, following the rules above.
 
+## When triage applies an outcome
+
+Every comment `triage` posts starts with its AI disclaimer; `scripts/flow.sh` relies on it to see that a question was answered.
+
+- `ready-for-agent`: write the agent brief into the body with `scripts/issue.sh update <n> --body-file -`, keeping the original intent, with an `## Acceptance criteria` checklist. Not as a comment: the body is what was agreed and what `flow.sh` reads. An agent-ready ticket is self-contained: the behaviour from the user's view and no open product questions (check `docs/product/PRODUCT.md` and `GLOSSARY.md`, otherwise ask).
+- `needs-info`: the triage notes go in a comment (`scripts/issue.sh comment`). When the owner isn't in the conversation (the factory), post them without waiting for direction or grilling. The owner answers on the issue; an answer given in the conversation goes on the issue too, as a comment without the disclaimer, so the issue holds it. Ask plain questions the owner can answer without writing a spec: yes/no or pick one, each with a concrete example to confirm or correct. `scripts/flow.sh status` reports `waiting` until a comment without the disclaimer follows the notes, then `answered`: triage it again and remove `needs-info`.
+- `ready-for-human`: one comment saying what the owner must do (accounts, legal, decisions, store submissions).
+- `wontfix`: `scripts/issue.sh close <n> --not-planned --comment "..."`.
+
 ## When a skill says "fetch the relevant ticket"
 
 `scripts/issue.sh show <n>`.
