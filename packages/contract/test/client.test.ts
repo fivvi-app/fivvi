@@ -1,10 +1,23 @@
-import { createApiHandler, HELLO_GREETING_KEY } from '@trainer-hub/api';
-import { describe, expect, it } from 'vitest';
+import {
+  type ApiDependencies,
+  createApiHandler,
+  INTERNAL_SERVER_ERROR,
+  NO_DEPENDENCIES,
+} from '@trainer-hub/api';
+import { describe, expect, it, vi } from 'vitest';
 import { createApiClient } from '../src/index.ts';
 
-// The generated TypeScript client talks to the real API handler, in-process (no network).
-function client() {
-  const handle = createApiHandler();
+const HELLO_GREETING_KEY = 'hello.title';
+
+// The generated TypeScript client talks to the real API handler, in-process (no network),
+// with a fake greeting reader instead of Postgres.
+function client(
+  findSystemGreeting: ApiDependencies['findSystemGreeting'] = async (slug) => ({
+    slug,
+    i18nKey: HELLO_GREETING_KEY,
+  }),
+) {
+  const handle = createApiHandler({ ...NO_DEPENDENCIES, findSystemGreeting });
   return createApiClient({
     baseUrl: 'http://localhost/api',
     fetch: async (request) => await handle(request),
@@ -34,5 +47,17 @@ describe('E018 TypeScript client', () => {
       code: 'validation_failed',
       issues: [{ path: 'locale', code: 'invalid_value' }],
     });
+  });
+
+  it('returns the documented server error when the greeting is missing', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { data, error, response } = await client(async () => undefined).GET('/v1/hello', {
+      params: { query: { locale: 'en' } },
+    });
+
+    expect(response.status).toBe(500);
+    expect(data).toBeUndefined();
+    expect(error).toBe(INTERNAL_SERVER_ERROR);
   });
 });

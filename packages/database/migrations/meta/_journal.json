@@ -15,6 +15,13 @@
       "when": 1790710180383,
       "tag": "0001_system_greeting_hello",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792174638998,
+      "tag": "0002_system_greeting_hello_title",
+      "breakpoints": true
     }
   ]
 }

@@ -25,3 +25,14 @@ export function toValidationError(error: z.ZodError): ValidationError {
     })),
   };
 }
+
+/** The body of every unhandled error's 500: no stack trace, no internal message (E009). */
+export const INTERNAL_SERVER_ERROR = 'Internal Server Error';
+
+/** The `500` a route documents when it can fail on the server side; `createApp`'s error handler sends it. */
+export const internalServerErrorResponse = {
+  description: 'Unexpected server error, reported to error tracking. Contains no error details.',
+  content: {
+    'text/plain': { schema: z.string().openapi({ example: INTERNAL_SERVER_ERROR }) },
+  },
+};
