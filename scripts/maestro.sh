@@ -4,9 +4,13 @@
 #   maestro.sh android   start Postgres (migrated and seeded) and the web server on E2E_PORT, install the debug app on
 #                        the emulator (booted for the run when none is connected), then run every flow with the
 #                        emulator's language set to nl-NL and to en (pnpm test:maestro; CI job Android)
+#   maestro.sh ios       the same on the newest iPhone simulator (IOS_SIMULATOR="iPhone 17" picks one by name): builds
+#                        the Debug app for it against the web server, then runs every flow with the simulator's language
+#                        set to nl-NL and to en (local only, to save macOS CI minutes)
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/_android.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/_ios.sh"
 
 usage() { usage_of "$0"; }
 
@@ -79,7 +83,69 @@ cmd_android() {
   [ -z "$failed" ] || die "Maestro failed in:$failed (reports: e2e/maestro/build)"
 }
 
+# The simulator's own language list and region, set like Settings does; they apply after a restart.
+SIMULATOR=""
+SIMULATOR_SETTINGS=""
+set_simulator_locale() {
+  local language="$1" region
+  case "$1" in nl-NL) region=nl_NL ;; *) region=en_GB ;; esac
+  xcrun simctl spawn "$SIMULATOR" defaults write -g AppleLanguages -array "$language"
+  xcrun simctl spawn "$SIMULATOR" defaults write -g AppleLocale -string "$region"
+  restart_simulator
+}
+
+restart_simulator() {
+  xcrun simctl shutdown "$SIMULATOR" >/dev/null 2>&1 || true
+  xcrun simctl boot "$SIMULATOR"
+  xcrun simctl bootstatus "$SIMULATOR" >/dev/null
+}
+
+cleanup_ios() {
+  [ -z "$SERVER_PID" ] || kill "$SERVER_PID" 2>/dev/null || true
+  [ -n "$SIMULATOR_SETTINGS" ] && [ -f "$SIMULATOR_SETTINGS" ] || return 0
+  xcrun simctl spawn "$SIMULATOR" defaults import -g "$SIMULATOR_SETTINGS" || true
+  rm -f "$SIMULATOR_SETTINGS"
+  restart_simulator || true
+}
+
+cmd_ios() {
+  [ $# -eq 0 ] || usage
+  use_xcode || die "Xcode not found — run scripts/bootstrap.sh --mobile"
+  java_ok || use_brew_java || die "Java 17+ not found (Maestro needs it) — run scripts/bootstrap.sh --mobile"
+  [ -x "$MAESTRO_HOME/bin/maestro" ] || die "Maestro not found — run scripts/bootstrap.sh --mobile"
+  export PATH="$MAESTRO_HOME/bin:$PATH"
+  cd "$ROOT"
+  SIMULATOR="$(ios_simulator)"
+  [ -n "$SIMULATOR" ] || die "no iPhone simulator${IOS_SIMULATOR:+ named $IOS_SIMULATOR} — run scripts/bootstrap.sh --mobile"
+  trap cleanup_ios EXIT
+  start_stack
+  xcrun simctl boot "$SIMULATOR" 2>/dev/null || true
+  xcrun simctl bootstatus "$SIMULATOR" >/dev/null
+  mkdir -p "$REPORTS"
+  SIMULATOR_SETTINGS="$REPORTS/simulator-global-defaults.plist"
+  xcrun simctl spawn "$SIMULATOR" defaults export -g "$SIMULATOR_SETTINGS"
+
+  # The Debug app with the API on this run's port; the simulator reaches the Mac as localhost.
+  echo "Building the iOS app for simulator $SIMULATOR"
+  (cd "$IOS_DIR" && xcodebuild build -project TrainerHub.xcodeproj -scheme TrainerHub -configuration Debug \
+    -destination "id=$SIMULATOR" -clonedSourcePackagesDirPath .build/SourcePackages \
+    -derivedDataPath .build/MaestroDerivedData -quiet CODE_SIGNING_ALLOWED=NO \
+    "TRAINER_HUB_API_BASE_URL=http://localhost:$PORT/api")
+  xcrun simctl install "$SIMULATOR" "$IOS_DIR/.build/MaestroDerivedData/Build/Products/Debug-iphonesimulator/TrainerHub.app"
+
+  local locale failed=""
+  for locale in $LOCALES; do
+    echo "Maestro on iOS in $locale"
+    set_simulator_locale "$locale"
+    maestro --device "$SIMULATOR" test "$ROOT/e2e/maestro" --env "HELLO_TITLE=$(catalog "$locale" hello.title)" \
+      --format junit --output "$REPORTS/ios-$locale.xml" --test-output-dir "$REPORTS/ios-$locale" \
+      || failed="$failed $locale"
+  done
+  [ -z "$failed" ] || die "Maestro failed on iOS in:$failed (reports: e2e/maestro/build)"
+}
+
 case "${1:-}" in
   android) shift; cmd_android "$@" ;;
+  ios) shift; cmd_ios "$@" ;;
   *) usage ;;
 esac

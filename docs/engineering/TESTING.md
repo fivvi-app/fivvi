@@ -139,7 +139,8 @@ The reviewer checks this table against the code.
 | When | What runs |
 |---|---|
 | **Locally, before opening a PR** | Everything for the areas you touched. Agents paste the commands and results in the PR description. Mobile changes: build and run the unit tests and the affected Maestro flows on both platforms locally |
-| **Every PR (Linux, required)** | `Checks (Linux)`: static checks, domain unit, API integration, isolation suite, email, web component. `E2E (Linux)`: Playwright (NL + EN). `Android`: unit + Compose tests + Maestro (E008) |
+| **Every PR (Linux, required)** | `Checks (Linux)`: static checks, domain unit, API integration, isolation suite, email, web component. `E2E (Linux)`: Playwright (NL + EN) |
+| **PR touching the Android app or its inputs (Linux, required when triggered)** | `Android`: `pnpm test:android`, then `pnpm test:maestro` (§7.1). Path-filtered; the paths are in `WORKFLOW.md §7` |
 | **PR touching the iOS app or its inputs (macOS, required when triggered)** | `iOS`: `pnpm test:ios` (§7.1). Path-filtered to save macOS minutes (ROADMAP §12); the paths are in `WORKFLOW.md §7` |
 | **PR touching mobile apps, contract or strings** | Maestro flows on the platforms affected. If CI minutes run short, Maestro runs locally and nightly instead; the PR description must say it ran |
 | **Before a TestFlight / Play internal build** | Full suite on both platforms, both locales |
@@ -157,7 +158,7 @@ Run from the repo root. Turbo runs the task in every package that has it; add `-
 | `pnpm test:integration` | Every integration suite (`*.integration.test.ts`) against real Postgres | `pnpm db:up`, and `TEST_DATABASE_URL` set to it (below) |
 | `pnpm test:e2e` | Builds `apps/web`, starts it on port 3100 (`E2E_PORT`), and a second time with a synthetic PostHog key on `E2E_PORT + 1000` for the page view tests, and runs every Playwright spec in **nl-NL and en** with axe | Chromium, once: `pnpm --filter @trainer-hub/web exec playwright install chromium --only-shell` |
 | `pnpm test:android` | `scripts/android.sh test`: ktlint and the literal-text rule, build, Android unit tests (nl-NL and en), Compose UI tests on an emulator (booted when none is connected). What CI's `Android` job runs | `scripts/bootstrap.sh --mobile` once |
-| `pnpm test:maestro` | `scripts/maestro.sh android`: Postgres (migrated, seeded) and the web server on `E2E_PORT`, the debug app on the emulator, every flow in `e2e/maestro/` with the emulator in **nl-NL and en** | Docker, `scripts/bootstrap.sh --mobile` once |
+| `pnpm test:maestro` | `scripts/maestro.sh android`: Postgres (migrated, seeded) and the web server on `E2E_PORT`, the debug app on the emulator, every flow in `e2e/maestro/` with the emulator in **nl-NL and en**. `scripts/maestro.sh ios` runs the same flows on the iPhone simulator (local only) | Docker, `scripts/bootstrap.sh --mobile` once |
 | `pnpm lint`, `pnpm typecheck`, `pnpm check`, `pnpm format:check` | Static checks (§2) | Nothing |
 | `pnpm test:ios` | What the `iOS` CI job runs: SwiftLint, then the iOS unit and UI tests in **nl and en** on a simulator ([`apps/ios/README.md`](../../apps/ios/README.md#tests)) | `scripts/bootstrap.sh --mobile` |
 
@@ -188,7 +189,7 @@ The iOS suites ([`apps/ios/README.md`](../../apps/ios/README.md#tests)) and the 
 Also for E008:
 
 - **Scripts** so every suite starts the same way: `pnpm test:ios`, `pnpm test:android` and `pnpm test:maestro` (§7.1), each wrapping the native commands above.
-- **CI:** the `iOS` job runs `pnpm test:ios`'s script; the `Android` job runs `pnpm test:android`, then `pnpm test:maestro`. Maestro runs in CI on Android only, to save macOS minutes; on iOS it runs locally (§7).
+- **CI:** the `iOS` job runs `pnpm test:ios`'s script; the `Android` job runs `pnpm test:android`, then `pnpm test:maestro`. Maestro runs in CI on Android only, to save macOS minutes; on iOS it runs locally with `scripts/maestro.sh ios` (§7).
 - **Selectors:** assert on visible text only where the text is the point, and read the expected copy from the generated catalogs, like the web does (§5.4).
 
 ## 8. Flaky tests
