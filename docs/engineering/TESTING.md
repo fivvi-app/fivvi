@@ -194,7 +194,8 @@ Also for E008:
 - **Scripts** so every suite starts the same way, each wrapping the native commands above (listed in §7.1):
   - iOS: `pnpm test:ios`. A worktree tests on its own simulator, `Trainer Hub <worktree folder>`: a copy of the newest iPhone, created on first use and deleted by `scripts/flow.sh finish`. The main checkout and CI use the newest iPhone; `IOS_SIMULATOR="iPhone 17"` picks one by name. When the run ends (passed, failed or Ctrl-C) it shuts down the simulator it booted; one that was already booted stays booted. `KEEP_DEVICE=1` leaves it running, for fast repeated runs.
   - Android: `pnpm test:android`. When the run ends (passed, failed or Ctrl-C) it kills the emulator it started, never one that was already running, and stops this checkout's Gradle daemons. `KEEP_DEVICE=1` leaves both running, for fast repeated runs.
-  - Maestro: `pnpm test:maestro`, and `scripts/maestro.sh ios`. They use and clean up the emulator or simulator like `pnpm test:android` and `pnpm test:ios`, `KEEP_DEVICE=1` included.
+  - Maestro: `pnpm test:maestro`. It uses and cleans up the emulator and the Gradle daemons like `pnpm test:android`, `KEEP_DEVICE=1` included.
+  - Maestro on iOS: `scripts/maestro.sh ios`. It uses and cleans up the simulator like `pnpm test:ios`, `KEEP_DEVICE=1` included.
 - **CI** (the jobs are in `WORKFLOW.md §7`):
   - iOS: the `iOS` job runs `pnpm test:ios`'s script.
   - Android: the `Android` job runs `pnpm test:android`, then `pnpm test:maestro`.

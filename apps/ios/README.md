@@ -64,7 +64,7 @@ To run a Debug build against a preview environment or the dev server on your Mac
 1. SwiftLint with `--strict` on the app and its tests.
 2. SwiftLint on `lint/fixtures/LiteralText.swift`, which must fail on exactly the lines marked `// expect: no_literal_text`.
 3. The configurations: Debug's committed base URL is the local dev server (`http://localhost:3000/api`); Release has an `https://…/api` base URL and no App Transport Security exception.
-4. A simulator build without signing, then the test plan: unit and UI tests, each in `nl` and `en`, on the newest iPhone simulator (`IOS_SIMULATOR="iPhone 17"` picks one by name). Results go to `.build/TestResults.xcresult`.
+4. A simulator build without signing, then the test plan: unit and UI tests, each in `nl` and `en`, on the newest iPhone simulator, or in a worktree on the worktree's own copy of it (`IOS_SIMULATOR="iPhone 17"` picks one by name; cleanup and `KEEP_DEVICE=1` in `TESTING.md §7.2`). Results go to `.build/TestResults.xcresult`.
 
 - **Unit tests** (`TrainerHubTests/`): the view model against `StubAPI`, a stub of `APIProtocol` that records the requested locale; the language rule with the same cases as `packages/i18n/src/locale.test.ts`; the configuration.
 - **UI tests** (`TrainerHubUITests/`): the app against `StubServer`, an HTTP server in the test runner, so a test controls the answer (greeting, error, or holding it to keep the spinner on screen) and asserts the requested `locale`. `HelloScreen.launch` sets the device languages (`-AppleLanguages`), the per-app language (a Debug-only launch argument, because UI tests can't change iOS Settings) and the text size.

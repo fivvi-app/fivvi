@@ -2,7 +2,8 @@
 # The iOS app's checks, the same steps as the `iOS` CI job (E008). `pnpm test:ios` runs this.
 #
 #   test-ios.sh   SwiftLint and its literal-text fixture, the Debug and Release configurations, then the unit and UI tests in nl
-#                 and en on the newest iPhone simulator (IOS_SIMULATOR="iPhone 17" picks one by name)
+#                 and en on the newest iPhone simulator, in a worktree its own copy (IOS_SIMULATOR="iPhone 17" picks one
+#                 by name); shuts down the simulator it booted when it ends, unless KEEP_DEVICE=1
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
