@@ -241,7 +241,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 - [x] Accounts: Railway Hobby (already paid; EU West Amsterdam, ADR-011) and Brevo (owner account created).
 - [x] Sentry account created by the owner on a personal account. Confirm that the Trainer Hub organization uses the EU data region and complete the DPA and privacy configuration in E009 before sending data.
 - [x] PostHog account created by the owner on a personal account. Confirm EU Cloud and configure cookieless, allowlisted events and privacy settings in E009 before sending data.
-- [ ] Create the free-tier uptime-monitor account and configure checks in E009.
+- [x] Create the free-tier uptime-monitor account and configure checks in E009.
 - [x] Apple Developer Program: the owner reports an existing company membership. Verify active membership, team access and distribution setup in E017 at M8.
 - [ ] Google Play Console: the owner believes an account exists; confirm enrollment and access before E017 distribution work at M8.
 

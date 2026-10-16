@@ -1,5 +1,8 @@
+import { execFile } from 'node:child_process';
 import http from 'node:http';
 import https from 'node:https';
+import path from 'node:path';
+import { promisify } from 'node:util';
 import { describe, expect, it, vi } from 'vitest';
 import { initBrowserErrorReporting } from './browser.ts';
 import { createCaptureTransport } from './capture.ts';
@@ -7,11 +10,14 @@ import {
   readBrowserErrorReportingConfig,
   readErrorReportingConfig,
   readPageViewsConfig,
+  readProductEventsConfig,
 } from './config.ts';
 import { createErrorReporter } from './reporter.ts';
 
 const DSN = 'https://public@o0.ingest.de.sentry.io/1';
 const SHA = '0123456789abcdef0123456789abcdef01234567';
+// A synthetic host: whatever POSTHOG_HOST says is used, not a built-in address.
+const HOST = 'https://posthog.example.test';
 
 describe('E009 error reporting config', () => {
   it('AC5: no DSN or key means disabled and no network', async () => {
@@ -88,17 +94,90 @@ describe('E009 error reporting config', () => {
   });
 });
 
-describe('E009 page views config', () => {
-  it('AC5: no key means page views are off', () => {
-    // The server's product events key is not the browser's: only NEXT_PUBLIC_POSTHOG_KEY counts.
-    for (const env of [{}, { NEXT_PUBLIC_POSTHOG_KEY: '  ' }, { POSTHOG_KEY: 'phc_server' }]) {
-      expect(readPageViewsConfig(env)).toEqual({ key: undefined });
-    }
-  });
+describe('E009 PostHog config', () => {
+  const readers = [
+    ['page views', 'NEXT_PUBLIC_POSTHOG_KEY', 'POSTHOG_KEY', readPageViewsConfig],
+    ['product events', 'POSTHOG_KEY', 'NEXT_PUBLIC_POSTHOG_KEY', readProductEventsConfig],
+  ] as const;
 
-  it('reads the PostHog project key', () => {
-    expect(readPageViewsConfig({ NEXT_PUBLIC_POSTHOG_KEY: ' phc_example ' })).toEqual({
-      key: 'phc_example',
+  it.each(readers)(
+    'AC5: no key means %s are off, without a configuration error',
+    (_, keyName, otherKeyName, read) => {
+      // The server's product events key is not the browser's page views key, and the other way round.
+      for (const env of [
+        {},
+        { [keyName]: '  ' },
+        { [otherKeyName]: 'phc_other', POSTHOG_HOST: HOST },
+        { POSTHOG_HOST: HOST },
+        { POSTHOG_HOST: 'http://posthog.example.test' },
+      ]) {
+        expect(read(env)).toStrictEqual({});
+      }
+    },
+  );
+
+  it.each(readers)(
+    'reads the %s key and the host from POSTHOG_HOST',
+    (_, keyName, _otherKeyName, read) => {
+      expect(read({ [keyName]: ' phc_example ', POSTHOG_HOST: ` ${HOST} ` })).toStrictEqual({
+        key: 'phc_example',
+        host: HOST,
+      });
+      // A trailing slash is dropped, so the SDKs build their endpoints on the host itself.
+      expect(read({ [keyName]: 'phc_example', POSTHOG_HOST: `${HOST}/` }).host).toBe(HOST);
+    },
+  );
+
+  it.each(readers)(
+    'a %s key without POSTHOG_HOST is a configuration error',
+    (what, keyName, _otherKeyName, read) => {
+      for (const host of [undefined, '', '  ']) {
+        expect(read({ [keyName]: 'phc_example', POSTHOG_HOST: host })).toStrictEqual({
+          error: `${keyName} is set, but POSTHOG_HOST is not: ${what} are off. Set POSTHOG_HOST to the PostHog host (ENVIRONMENTS.md §7).`,
+        });
+      }
+    },
+  );
+
+  it.each(readers)(
+    'a POSTHOG_HOST that is not an https:// URL is a %s configuration error',
+    (what, keyName, _otherKeyName, read) => {
+      for (const host of [
+        'http://eu.posthog.example.test',
+        'eu.posthog.example.test',
+        'ftp://posthog.example.test',
+        'not a url',
+      ]) {
+        expect(read({ [keyName]: 'phc_example', POSTHOG_HOST: host })).toStrictEqual({
+          error: `POSTHOG_HOST is not an https:// URL: ${what} are off. Set POSTHOG_HOST to the PostHog host (ENVIRONMENTS.md §7).`,
+        });
+      }
+    },
+  );
+
+  it('no PostHog host is hard-coded in packages/observability or apps/web', async () => {
+    const repoRoot = path.resolve(import.meta.dirname, '../../..');
+    const { stdout } = await promisify(execFile)(
+      'git',
+      [
+        'grep',
+        // New files too, before they are committed.
+        '--untracked',
+        '-n',
+        '-i',
+        '-I',
+        '-E',
+        String.raw`posthog\.com`,
+        '--',
+        'packages/observability',
+        'apps/web',
+      ],
+      { cwd: repoRoot },
+    ).catch((error: { code?: number; stdout: string }) => {
+      // git grep exits with 1 when nothing matches.
+      if (error.code === 1) return { stdout: '' };
+      throw error;
     });
+    expect(stdout).toBe('');
   });
 });

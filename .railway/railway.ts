@@ -82,6 +82,10 @@ export default defineRailway((ctx) => {
       // Cookieless page views (E009, packages/observability): the PostHog EU project key, set in
       // the dashboard for production only. Read at runtime; empty sends nothing.
       NEXT_PUBLIC_POSTHOG_KEY: preserve(),
+      // Where product events and page views go (E009): PostHog EU Cloud in production, set in
+      // the dashboard. Read at runtime. Empty where the keys are; a key without it turns
+      // analytics off with a configuration error.
+      POSTHOG_HOST: preserve(),
     },
   });
 
