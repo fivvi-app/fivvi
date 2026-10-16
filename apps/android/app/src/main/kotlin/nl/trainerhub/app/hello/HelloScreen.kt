@@ -20,8 +20,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import nl.trainerhub.app.R
+import nl.trainerhub.designtokens.Spacing
+import nl.trainerhub.designtokens.body
+import nl.trainerhub.designtokens.title1
 
 /** Test tags, shared with the iOS accessibility identifiers and e2e/maestro/hello.yaml. */
 object HelloTags {
@@ -39,8 +41,8 @@ fun HelloScreen(state: HelloState, onRetry: () -> Unit, modifier: Modifier = Mod
             .fillMaxSize()
             .safeDrawingPadding()
             .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+            .padding(Spacing.space6),
+        verticalArrangement = Arrangement.spacedBy(Spacing.space4, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         when (state) {
@@ -52,7 +54,7 @@ fun HelloScreen(state: HelloState, onRetry: () -> Unit, modifier: Modifier = Mod
             is HelloState.Loaded -> Text(
                 text = stringResource(state.greeting),
                 modifier = Modifier.testTag(HelloTags.GREETING).semantics { heading() },
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.title1,
                 textAlign = TextAlign.Center,
             )
 
@@ -60,7 +62,7 @@ fun HelloScreen(state: HelloState, onRetry: () -> Unit, modifier: Modifier = Mod
                 Text(
                     text = stringResource(R.string.hello_error),
                     modifier = Modifier.testTag(HelloTags.ERROR),
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.body,
                     textAlign = TextAlign.Center,
                 )
                 Button(onClick = onRetry, modifier = Modifier.testTag(HelloTags.RETRY)) {

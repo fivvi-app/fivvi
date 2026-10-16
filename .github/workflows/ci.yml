@@ -82,11 +82,11 @@ jobs:
             echo "$1=$run" >>"$GITHUB_OUTPUT"
           }
 
-          # Each native job: the app, its generated inputs (client, string catalogs, iOS design tokens), and the job itself (this
-          # workflow and the scripts it runs), so a change that would break the job runs it. Android also runs the
-          # Maestro flows in e2e/maestro.
+          # Each native job: the app, its generated inputs (client, string catalogs, design tokens), and the job
+          # itself (this workflow and the scripts it runs), so a change that would break the job runs it. Android also
+          # runs the Maestro flows in e2e/maestro.
           decide ios apps/ios '^(apps/ios|packages/contract|packages/i18n/generated/ios|packages/design-tokens/TrainerHubDesignTokens)/|^scripts/(test-ios|_ios|_lib)\.sh$|^\.github/workflows/ci\.yml$'
-          decide android apps/android '^(apps/android|packages/contract|packages/i18n/generated/android|e2e/maestro)/|^scripts/(android|_android|maestro|_lib)\.sh$|^\.github/workflows/ci\.yml$'
+          decide android apps/android '^(apps/android|packages/contract|packages/i18n/generated/android|packages/design-tokens/kotlin|e2e/maestro)/|^scripts/(android|_android|maestro|_lib)\.sh$|^\.github/workflows/ci\.yml$'
 
   checks:
     name: Checks (Linux)

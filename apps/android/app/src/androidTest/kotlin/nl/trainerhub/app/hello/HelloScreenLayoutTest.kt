@@ -2,7 +2,6 @@ package nl.trainerhub.app.hello
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.DeviceConfigurationOverride
@@ -21,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import nl.trainerhub.app.AppLanguage
 import nl.trainerhub.app.R
 import nl.trainerhub.app.appLanguageParameters
+import nl.trainerhub.app.theme.TrainerHubTheme
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -39,7 +39,7 @@ class HelloScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private v
             DeviceConfigurationOverride.FontScale(2f) then
                 DeviceConfigurationOverride.Locales(LocaleList(language.tag)),
         ) {
-            MaterialTheme {
+            TrainerHubTheme {
                 Box(Modifier.width(320.dp)) { HelloScreen(state, onRetry = {}) }
             }
         }
