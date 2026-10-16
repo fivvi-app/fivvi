@@ -47,6 +47,8 @@
         ".claude/**",
         "scripts/**",
         ".githooks/**",
+        "Dockerfile",
+        "apps/web/package.json",
         ".github/rulesets/**",
         ".github/repo-settings.json",
         ".github/workflows/ci.yml",
