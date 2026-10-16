@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # The iOS app's checks, the same steps as the `iOS` CI job (E008). `pnpm test:ios` runs this.
 #
-#   test-ios.sh   SwiftLint and its literal-text fixture, the Debug and Release configurations, then the unit and UI tests in nl
-#                 and en on the newest iPhone simulator (IOS_SIMULATOR="iPhone 17" picks one by name)
+#   test-ios.sh   SwiftLint and its fixtures (literal text, colours), the Debug and Release configurations, then the
+#                 unit and UI tests in nl and en on the newest iPhone simulator (IOS_SIMULATOR="iPhone 17" picks one by name)
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
@@ -13,17 +13,18 @@ use_xcode || die "Xcode not found — run scripts/bootstrap.sh --mobile"
 install_swiftlint || die "could not install SwiftLint — run scripts/bootstrap.sh --mobile"
 cd "$IOS_DIR"
 
-# Every line of the fixture marked `expect: no_literal_text` must fail SwiftLint, naming the file and line; no other line may.
+# Every line of a fixture marked `// expect: <rule>` must fail SwiftLint with that rule, naming the file and line; no
+# other line may fail with it.
 lint_fixture() {
-  local fixture=lint/fixtures/LiteralText.swift out expected actual
+  local fixture=$1 rule=$2 out expected actual
   if out="$("$SWIFTLINT" lint --strict --quiet "$fixture" 2>&1)"; then
-    echo "SwiftLint passed $fixture, which has literal text"
+    echo "SwiftLint passed $fixture, which breaks $rule"
     return 1
   fi
-  expected="$(grep -n '// expect: no_literal_text$' "$fixture" | cut -d: -f1)"
-  actual="$(grep '(no_literal_text)' <<<"$out" | grep -oE 'LiteralText\.swift:[0-9]+' | cut -d: -f2 | sort -nu)"
+  expected="$(grep -n "// expect: $rule\$" "$fixture" | cut -d: -f1)"
+  actual="$(grep "($rule)" <<<"$out" | grep -oE "$(basename "$fixture"):[0-9]+" | cut -d: -f2 | sort -nu)"
   [ "$expected" = "$actual" ] && return
-  echo "expected no_literal_text on lines $(echo "$expected" | xargs), got $(echo "$actual" | xargs):"
+  echo "$fixture: expected $rule on lines $(echo "$expected" | xargs), got $(echo "$actual" | xargs):"
   echo "$out"
   return 1
 }
@@ -52,8 +53,9 @@ release_configuration() {
 
 echo "▶ SwiftLint"
 "$SWIFTLINT" lint --strict --quiet
-echo "▶ SwiftLint rejects literal text (lint/fixtures)"
-lint_fixture
+echo "▶ SwiftLint rejects literal text and colours (lint/fixtures)"
+lint_fixture lint/fixtures/LiteralText.swift no_literal_text
+lint_fixture lint/fixtures/ColourLiteral.swift no_colour_literal
 echo "▶ Debug and Release configurations"
 debug_configuration
 release_configuration

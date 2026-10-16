@@ -25,3 +25,20 @@ custom_rules:
       - doccomment
       - doccomment.field
     severity: error
+  # No hard-coded colours (ADR-015, #57): app code takes every colour from the design tokens (`Tokens.Colors`), which
+  # follow light and dark mode. Rejects colour initialisers, colour literals, system colours (`Color.red`, `UIColor
+  # .systemBackground`) and their shorthand in colour modifiers (`.foregroundStyle(.blue)`). `Color.clear` is allowed.
+  # Tests may resolve token colours, so they're excluded. Fixture: lint/fixtures/ColourLiteral.swift.
+  no_colour_literal:
+    name: No colour literal
+    message: Colours come from the design tokens (Tokens.Colors in TrainerHubDesignTokens), not a literal or system colour
+    excluded: '/TrainerHub(UI)?Tests/'
+    regex: '#colorLiteral\s*\(|\b(Color|UIColor|CGColor)\s*(\.\s*init\s*)?\(|\b(Color|UIColor)\s*\.\s*(?!clear\b)[a-z]\w*|\.(foregroundStyle|foregroundColor|background|backgroundStyle|tint|accentColor|fill|stroke|strokeBorder|border|listRowBackground|toolbarBackground|containerBackground)\s*\(\s*\.(black|blue|brown|cyan|gray|green|indigo|mint|orange|pink|purple|red|teal|white|yellow|primary|secondary|tertiary|quaternary|accentColor)\b|\bcolor:\s*\.(black|blue|brown|cyan|gray|green|indigo|mint|orange|pink|purple|red|teal|white|yellow|primary|secondary|tertiary|quaternary|accentColor)\b'
+    excluded_match_kinds:
+      - comment
+      - comment.mark
+      - comment.url
+      - doccomment
+      - doccomment.field
+      - string
+    severity: error
