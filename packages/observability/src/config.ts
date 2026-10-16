@@ -62,8 +62,14 @@ function toReportingEnvironment(railwayEnvironment: string | undefined): Reporti
  * nothing is sent, and there is no built-in host to fall back on.
  */
 export type PostHogConfig =
-  | { key: string; host: string; error?: undefined }
+  | (PostHogTarget & { error?: undefined })
   | { key?: undefined; host?: undefined; error?: string };
+
+/** Where analytics goes: the PostHog project key and the host from `POSTHOG_HOST`. */
+export interface PostHogTarget {
+  key: string;
+  host: string;
+}
 
 /** Page views' settings (ENVIRONMENTS.md §7). */
 export type PageViewsConfig = PostHogConfig;

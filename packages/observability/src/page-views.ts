@@ -3,8 +3,9 @@ import type {
   PostHog,
   PostHogConfig,
 } from 'posthog-js/dist/module.slim.no-external';
+import type { PostHogTarget } from './config.ts';
 
-export { type PageViewsConfig, readPageViewsConfig } from './config.ts';
+export { type PageViewsConfig, type PostHogTarget, readPageViewsConfig } from './config.ts';
 
 /**
  * posthog-js without its extensions (autocapture, heatmaps, session recording, surveys, …),
@@ -71,19 +72,13 @@ const PROPERTIES = new Set([
 
 let started: Promise<PostHog> | undefined;
 
-/** Where page views go: the project key and `POSTHOG_HOST`, as `readPageViewsConfig()` read them. */
-export interface PageViewsTarget {
-  key: string;
-  host: string;
-}
-
 /**
  * Sends one `$pageview` for the page the browser shows, with its path only. Call it once per
  * page: on load and after every client-side navigation. Loads posthog-js on the first call, so
  * a page that never calls it never loads the SDK. Never throws or rejects: analytics must
  * never break a page, and an ad blocker may block the SDK or PostHog.
  */
-export async function capturePageView(target: PageViewsTarget): Promise<void> {
+export async function capturePageView(target: PostHogTarget): Promise<void> {
   try {
     started ??= startPostHog(target);
     (await started).capture('$pageview');
@@ -92,7 +87,7 @@ export async function capturePageView(target: PageViewsTarget): Promise<void> {
   }
 }
 
-async function startPostHog({ key, host }: PageViewsTarget): Promise<PostHog> {
+async function startPostHog({ key, host }: PostHogTarget): Promise<PostHog> {
   const { posthog } = await import('posthog-js/dist/module.slim.no-external');
   posthog.init(key, { ...OPTIONS, api_host: host });
   return posthog;

@@ -37,7 +37,7 @@ export function register() { checkPageViewsConfig(errorReporter); }
 | Path | What |
 |---|---|
 | `src/config.ts` | Reads the DSN, environment (`production`, `preview`, `development`) and release; the PostHog keys and `POSTHOG_HOST` |
-| `src/posthog-config.ts` | `checkPageViewsConfig()` and `PostHogConfigError`: a PostHog key without a valid `POSTHOG_HOST`, logged and reported to Sentry |
+| `src/posthog-config-errors.ts` | `checkPageViewsConfig()` and `PostHogConfigError`: a PostHog key without a valid `POSTHOG_HOST`, logged and reported to Sentry |
 | `src/reporter.ts` | `createErrorReporter()`: its own Sentry client, errors only |
 | `src/client-options.ts` | The options every Sentry client shares (tags, scrubber, no SDK data collection) |
 | `src/request-error.ts` | `createRequestErrorHandler()`: Next.js's `onRequestError` for the web server |

@@ -4,11 +4,12 @@ import { z } from 'zod';
 import { PRODUCT_EVENT_CATALOG } from './catalog.ts';
 import {
   type EnvironmentVariables,
+  type PostHogTarget,
   readErrorReportingConfig,
   readProductEventsConfig,
 } from './config.ts';
 import type { CatalogEvent, EventCatalog } from './event-schema.ts';
-import { reportPostHogConfigError } from './posthog-config.ts';
+import { reportPostHogConfigError } from './posthog-config-errors.ts';
 import type { ErrorReporter } from './reporter.ts';
 
 /** How long `flush()` waits, so a slow PostHog holds up a response for at most this long. */
@@ -112,7 +113,7 @@ export function createTracker<Catalog extends EventCatalog>(
 }
 
 function createClient(
-  { key, host }: { key: string; host: string },
+  { key, host }: PostHogTarget,
   transport: ProductEventTransport | undefined,
 ): PostHog {
   return new PostHog(key, {

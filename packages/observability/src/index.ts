@@ -1,6 +1,6 @@
 export { type CaptureTransport, createCaptureTransport } from './capture.ts';
 export type { EnvironmentVariables } from './config.ts';
-export { checkPageViewsConfig, PostHogConfigError } from './posthog-config.ts';
+export { checkPageViewsConfig, PostHogConfigError } from './posthog-config-errors.ts';
 export {
   createProductEventCaptureTransport,
   type ProductEventCaptureTransport,
