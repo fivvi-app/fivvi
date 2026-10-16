@@ -1,6 +1,8 @@
 # Observability
 
-What Trainer Hub reports about itself, and what it never sends ([ADR-013](../decisions/ADR-013-observability.md), spec [#32](https://github.com/thekeyvan/trainer-hub/issues/32)). Errors go to **Sentry (EU region)**, product events and page views to **PostHog (EU Cloud)**. This document covers error reporting for the API, the cron job and the web app (server and browser), server product events (§4) and the web app's page views (§5); the native apps are added by the later E009 tickets.
+What Trainer Hub reports about itself, and what it never sends ([ADR-013](../decisions/ADR-013-observability.md), spec [#32](https://github.com/thekeyvan/trainer-hub/issues/32)). Errors go to **Sentry (EU region)**, product events and page views to **PostHog (EU Cloud)**. This document covers error reporting for the API, the cron job and the web app (server and browser), server product events (§4) and the web app's page views (§5). Per native app:
+
+- Android: crash reporting, §1 "Android".
 
 ## 1. Error reporting
 
@@ -12,6 +14,7 @@ What Trainer Hub reports about itself, and what it never sends ([ADR-013](../dec
 | Web server (`apps/web/instrumentation.ts`) | Every error thrown while rendering a page: server components, server actions, and route handlers outside the API (Next.js's `onRequestError`). The visitor gets the error page | `web` |
 | Web browser (`apps/web/instrumentation-client.ts`) | Every uncaught error and unhandled promise rejection in the browser, including a component that throws while rendering. A future error boundary (`error.tsx`) that catches an error itself reports it with `captureError` | `web` |
 | Cron (`apps/cron`) | A failed run. The error is sent and flushed (at most 2 s) before the process exits with code 1 | `cron` |
+| Android (`apps/android`) | Every crash (uncaught exception) and ANR (app not responding), and errors the app catches and reports with `Observability.captureError()`; sessions for the crash-free rate. Details in "Android" below | `android` |
 
 Not captured: health check failures (they answer `503` and log to the console), validation errors (`400`), `notFound()` and redirects, and other expected responses.
 
@@ -41,6 +44,20 @@ Production stack traces from the web app map to the original TypeScript, and nob
 
 Without `SENTRY_AUTH_TOKEN` (local, CI, previews without a token), nothing is uploaded and nothing talks to the network; the maps are still deleted. A failed upload warns in the build log but doesn't fail the build: a Sentry outage must not block a deploy, at the cost of unmapped stack traces for that release.
 
+### Android
+
+The app reports to the Sentry project `android` with the Sentry Android SDK (`io.sentry:sentry-android-core`).
+
+- **One module.** `nl.trainerhub.app.observability` (`apps/android/app/src/main/kotlin/nl/trainerhub/app/observability/`) owns every Sentry call: `Observability.start()`, called by `TrainerHubApplication`, and `Observability.captureError()`. ktlint's `trainer-hub:no-sentry-outside-observability` rule fails on an `io.sentry` import or call anywhere else, as Biome does for TypeScript.
+- **The SDK library only.** No Sentry Gradle plugin (it uploads mappings and calls Sentry during the build), no session replay or NDK module, and no product analytics SDK: product events from the app are captured by the API (§4). `checkNoAnalyticsSdk` (`apps/android/app/build.gradle.kts`) fails every build whose release would ship PostHog, Firebase Analytics, Amplitude, Mixpanel or Segment, or Sentry's replay or NDK module.
+- **Off without a DSN.** The DSN comes from the build configuration ([ENVIRONMENTS.md §7](ENVIRONMENTS.md#7-variables)): `trainerhub.sentryDsn` for debug builds, empty unless a developer sets it for a test, and `trainerhub.releaseSentryDsn` for release builds. Without one, `Observability.start()` doesn't start the SDK, and the manifest removes the SDK's own start-up providers (`SentryInitProvider`, `SentryPerformanceProvider`) and turns its auto-init off, so no Sentry code runs and nothing is sent.
+- **Environment and release** from the build: `environment` is `development` for debug builds and `production` for release builds (there are no preview builds of the app); `release` is `nl.trainerhub.app@<versionName>+<versionCode>`, Sentry's convention for Android, e.g. `nl.trainerhub.app@0.1.0+1`.
+- **Errors and crash-free sessions.** Session tracking is on: a session starts when the app comes to the foreground after more than 30 s in the background, and Sentry reports the crash-free rate per release. Tracing, profiling, session replay, screenshots, the view hierarchy and client reports are off. ANR detection stays on.
+- **No data collection by the SDK.** As on the server, every `dataCollection` option is off (no user info, so no IP address, and no cookies, headers, bodies, query strings, file paths or database queries); `sendDefaultPii` is deprecated in SDK 8 and off.
+- **Scrubbed in the app.** `beforeSend` and `beforeBreadcrumb` apply the §2 rules (`Scrubber.kt`). A crash is scrubbed before the SDK stores it on the device; it is sent at once, or at the next start if the app dies first. Where Android differs from §2: no tag is kept (the app has no route tags); the workspace UUID sits in the user's `data` as `organization_id`, the Java SDK's place for extra user fields; the `device` context loses its `name`, which a person may have set to their own; the format parameters of a message and `server_name` are dropped.
+- **The installation ID.** The SDK creates a random UUID per installation, stored in the app's files. It is the session's distinct ID and, while nobody is signed in (the app has no sign-in yet), the event's `user.id`; Sentry counts crash-free users with it. It identifies an installation, not a person, and isn't linked to any of our records.
+- **Stack traces.** Release builds aren't minified yet, so stack traces are readable. When distribution (E017) turns on R8, it uploads the mapping files; native (NDK) crashes aren't captured.
+
 ## 2. Scrubbing rules
 
 The scrubber (`scrubEvent`, `scrubBreadcrumb`) is a pure allowlist: whatever isn't listed as kept is dropped, so a new SDK field never leaks by default.
@@ -56,6 +73,8 @@ The scrubber (`scrubEvent`, `scrubBreadcrumb`) is a pure allowlist: whatever isn
 | `extra`, `modules`, `threads` | Nothing | All |
 | Breadcrumbs | Type, category, level, timestamp; `data.method`, `data.status_code`, `data.url` (without query string) | The message (a log line that may hold any text) and all other data |
 
+The Android app applies the same rules in Kotlin, with the differences listed in §1 "Android".
+
 UUIDs, route templates, HTTP methods and status codes stay, so an error can still be traced to a record and a route.
 
 **The scrubber can't recognise a name or note text inside an error message.** That is why the message is the one free text we keep, and why our errors never contain names, email addresses or note text: put IDs in messages, never user content ([ADR-013](../decisions/ADR-013-observability.md): no personal data or note content in events, error messages or breadcrumbs). `EmailSendError` in `packages/email` is an example.
@@ -67,6 +86,7 @@ UUIDs, route templates, HTTP methods and status codes stay, so an error can stil
 - The cron job runs as its own process against a fake Sentry endpoint on `127.0.0.1` (`apps/cron/test/fake-sentry.ts`), which proves the event arrives before the process exits.
 - Web: `packages/observability/src/web.test.ts` feeds a server component error through `createRequestErrorHandler()`, and simulates the browser calling `window.onerror` and `window.onunhandledrejection` after `initBrowserErrorReporting()`. `source-maps.test.ts` runs `publishSourceMaps()` on a fake build output with a fake `sentry-cli`. The e2e tests (`apps/web/e2e/error-reporting.spec.ts`) check that every map a bundle points at answers `404`, and that the browser makes no request outside the app's origin.
 - Not automated: a real event with a source-mapped stack. After the owner setup (#47), throw a synthetic error on a preview or in production and check the stack in Sentry.
+- Android: `ObservabilityTest` (`apps/android/app/src/test`, nl-NL and en) starts reporting with the app's own configuration on the plain JVM SDK, with `CaptureTransport` instead of the network, and checks what would be sent: synthetic personal data in the user, request, message, stack frame, contexts, extras, tags and breadcrumbs is gone, UUIDs stay, events carry `environment` and `release`, session tracking is on; without a DSN the SDK never starts. `ObservabilityAppTest` (`app/src/androidTest`, on the emulator) checks that the debug app has no Sentry SDK running and none of its providers. `NoSentryOutsideObservabilityRuleTest` and `ktlintFixtures` prove the lint rule on `lint/fixtures`. Not automated: a real crash reaching Sentry. After the owner setup (#47), install a debug build with `./gradlew installDebug -Ptrainerhub.sentryDsn=<the android DSN>`, open the app, crash it with `adb shell am crash nl.trainerhub.app`, reopen it, and check the event and the session in the `android` project.
 - Test data is synthetic: fake names and `@example.com` addresses.
 
 ## 4. Product events

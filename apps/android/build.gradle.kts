@@ -6,8 +6,9 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
 }
 
-// ktlint with the Trainer Hub rules from lint/ (no hard-coded text in Compose). Runs on our own sources only:
-// the generated API client is excluded, and the fixtures in lint/fixtures fail on purpose.
+// ktlint with the Trainer Hub rules from lint/ (no hard-coded text or colours in Compose, Sentry only in
+// observability/). Runs on our own sources only: the generated API client is excluded, and the fixtures in
+// lint/fixtures fail on purpose.
 val ktlint by configurations.creating
 
 dependencies {
@@ -19,12 +20,12 @@ dependencies {
 
 val ktlintSources = listOf("app/src/**/*.kt", "lint/src/**/*.kt", "**/*.kts", "!**/build/**")
 
-// AC8 and AC6 (spec #34): the same ktlint, rules and wiring as ktlintCheck must fail on the hard-coded text and colour
-// fixtures, naming the file and every line, and accept the resource-text and token-colour fixtures. Runs before
-// ktlintCheck, so the lint step proves its rules.
+// AC8 and AC6 (spec #34), E009: the same ktlint, rules and wiring as ktlintCheck must fail on the hard-coded text and
+// colour fixtures and on Sentry outside the observability module, naming the file and every line, and accept the other
+// fixtures. Runs before ktlintCheck, so the lint step proves its rules.
 val ktlintFixtures = tasks.register<JavaExec>("ktlintFixtures") {
     group = "verification"
-    description = "Checks that ktlint rejects the hard-coded text and colours in lint/fixtures."
+    description = "Checks that ktlint rejects the hard-coded text, colours and Sentry calls in lint/fixtures."
     classpath = ktlint
     mainClass = "com.pinterest.ktlint.Main"
     val report = layout.buildDirectory.file("ktlint/fixtures.txt").get().asFile
@@ -38,6 +39,7 @@ val ktlintFixtures = tasks.register<JavaExec>("ktlintFixtures") {
             "no-literal-text" to listOf("11:10", "12:17", "14:14", "16:10").map { "LiteralText.kt:$it" },
             "no-colour-literal" to (17..28).zip(listOf(25, 25, 25, 25, 25, 25, 17, 18, 25, 33, 33, 33))
                 .map { (line, column) -> "ColourLiteral.kt:$line:$column" },
+            "no-sentry-outside-observability" to listOf("5:8", "10:5").map { "SentryOutsideObservability.kt:$it" },
         )
         check(result.get().exitValue != 0) { "ktlint passed lint/fixtures" }
         val lines = report.readLines()

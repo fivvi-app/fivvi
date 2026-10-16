@@ -8,6 +8,7 @@ class TrainerHubRuleSetProvider : RuleSetProviderV3(RuleSetId(RULE_SET_ID)) {
     override fun getRuleProviders(): Set<RuleProvider> = setOf(
         RuleProvider { NoLiteralTextRule() },
         RuleProvider { NoColourLiteralRule() },
+        RuleProvider { NoSentryOutsideObservabilityRule() },
     )
 
     companion object {

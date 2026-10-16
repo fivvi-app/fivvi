@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import nl.trainerhub.api.apis.HelloApi
 import nl.trainerhub.api.infrastructure.ApiClient
+import nl.trainerhub.app.observability.Observability
 
 /** What the screens depend on. Instrumented tests replace it before an activity starts. */
 interface AppDependencies {
@@ -23,6 +24,7 @@ class TrainerHubApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        Observability.start(this)
         dependencies = DefaultAppDependencies(this)
     }
 }
