@@ -2,7 +2,7 @@
 # accessibilityIdentifier, the same on both apps (hello.greeting, hello.loading, hello.error, hello.retry).
 # HELLO_TITLE, set by scripts/maestro.sh: hello.title from packages/i18n in the device language.
 appId: ${APP_ID}
-name: "AC1/AC2: greeting from the database"
+name: AC1_AC2 greeting from the database
 env:
   # The Android application id and the iOS bundle id.
   APP_ID: nl.trainerhub.app

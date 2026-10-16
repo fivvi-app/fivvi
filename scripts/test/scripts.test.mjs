@@ -6,6 +6,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -328,6 +329,24 @@ esac`,
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(result.stdout, /emulator-5554\tdevice/);
     assert.ok(alive(result.pid), 'the emulator keeps running for the next steps');
+  });
+});
+
+// Maestro names each flow's report folder after the flow (its `name`, else the file name), and CI uploads those
+// folders: actions/upload-artifact rejects paths with " : < > | * ? \ or line breaks. Maestro turns / into _.
+describe('Maestro flows', () => {
+  const flows = join(SCRIPTS, '../e2e/maestro');
+
+  it('have names that upload-artifact accepts as paths', () => {
+    const files = readdirSync(flows).filter(
+      (file) => /\.ya?ml$/.test(file) && file !== 'config.yaml',
+    );
+    assert.ok(files.length > 0, 'no flows found');
+    for (const file of files) {
+      const header = readFileSync(join(flows, file), 'utf8').split(/^---$/m)[0];
+      const name = header.match(/^name:\s*["']?(.*?)["']?\s*$/m)?.[1] ?? file;
+      assert.doesNotMatch(name, /["':<>|*?\\\r\n]/, `${file}: flow name "${name}"`);
+    }
   });
 });
 
