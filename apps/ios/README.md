@@ -63,7 +63,7 @@ The app picks its interface language itself, by ADR-017's rule, and uses it for 
 |---|---|---|
 | API base URL (`TRAINER_HUB_API_BASE_URL`) | `http://localhost:3000/api`, the local dev server as the simulator sees it | The production API over HTTPS, set in `Config/Release.xcconfig` |
 | Plain HTTP | Allowed to local hosts only: App Transport Security's local-networking exception (`Config/Info-Debug.plist`) | Not allowed: `Config/Info.plist` has no App Transport Security exception; `pnpm test:ios` checks this |
-| Sentry DSN (`TRAINER_HUB_SENTRY_DSN`) | Empty: no crash reporting; `pnpm test:ios` checks this | The Sentry `ios` project's DSN, set by the owner (empty until #47) |
+| Sentry DSN (`TRAINER_HUB_SENTRY_DSN`) | Empty: no crash reporting; `pnpm test:ios` checks this | The Sentry `ios` project's DSN (EU region, `<org>.ingest.de.sentry.io`); `pnpm test:ios` checks this |
 | Sentry environment (`TRAINER_HUB_SENTRY_ENVIRONMENT`) | `development` | `production` |
 
 To run a Debug build against a preview environment or the dev server on your Mac from a phone on the LAN, create `Config/Local.xcconfig` (git-ignored) with e.g. `TRAINER_HUB_API_BASE_URL = https:/$()/<preview-domain>/api` (`//` starts a comment in an xcconfig, hence `$()`). Debug builds also accept `-TrainerHubAPIBaseURL <url>` as a launch argument; the UI tests use it.
@@ -76,7 +76,7 @@ To run a Debug build against a preview environment or the dev server on your Mac
 
 1. SwiftLint with `--strict` on the app and its tests.
 2. SwiftLint on each fixture in `lint/fixtures/`, which must fail on exactly the lines marked `// expect: <rule>`: `LiteralText.swift` (`no_literal_text`), `ColourLiteral.swift` (`no_colour_literal`) and `DirectSentry.swift` (`no_direct_sentry`).
-3. The configurations: Debug's committed base URL is the local dev server (`http://localhost:3000/api`) and its Sentry DSN is empty; Release has an `https://…/api` base URL, no App Transport Security exception and Sentry environment `production`.
+3. The configurations: Debug's committed base URL is the local dev server (`http://localhost:3000/api`) and its Sentry DSN is empty; Release has an `https://…/api` base URL, no App Transport Security exception, a Sentry DSN in the EU region (`<org>.ingest.de.sentry.io`) and Sentry environment `production`.
 4. The Swift packages in `Package.resolved` are all on the allowlist: no analytics SDK.
 5. A simulator build without signing, then the test plan: unit and UI tests, each in `nl` and `en`, on the newest iPhone simulator, or in a worktree on the worktree's own copy of it (`IOS_SIMULATOR="iPhone 17"` picks one by name; cleanup and `KEEP_DEVICE=1` in `TESTING.md §7.2`). Results go to `.build/TestResults.xcresult`.
 

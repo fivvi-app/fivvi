@@ -14,6 +14,10 @@ Where Trainer Hub runs, how a change gets there, and how to undo it (E003, [ADR-
 - **PR environments** are created when a PR opens and deleted when it is merged or closed. Railway copies them from the **base environment**. Bot PR environments and focused PR environments are off.
 - **`development` is the base environment, so production values never reach a preview.** Without a base environment, Railway copies PR environments from `production`, including every secret (Brevo, Sentry, …). Previews run code nobody has merged yet, so they only ever get the test values in `development`. It also deploys `main` with demo data, as a shared place to try things. Its `web` sleeps when idle, so it costs little.
 - No `staging` environment (`ROADMAP.md` M1). Add one only when a real need appears.
+- **Production address:** `https://web-production-d3fe2.up.railway.app`, the Railway domain of `web`. A bought domain replaces it before M5 (`ROADMAP.md`).
+- **Uptime monitors** (UptimeRobot, free plan, set up by the owner in #47): every 5 minutes, with an email alert to the owner, on the production address:
+  - `GET /api/v1/health`, which expects `200` (it answers `503` when Postgres is unreachable);
+  - `/`, the web app.
 
 ## 2. Services
 
@@ -140,8 +144,8 @@ Rules for the secrets that later enablers add (for example `BREVO_API_KEY` in E0
 
 The native apps aren't on Railway: their variables are build settings, per platform:
 
-- **Android:** Gradle properties in `apps/android/gradle.properties`, or `-P` on the Gradle command line. `trainerhub.sentryDsn` (debug builds): empty; set it only to test reporting by hand. `trainerhub.releaseSentryDsn` (release builds): the DSN of the Sentry `android` project (EU region), set by the owner (#47) before the first release (E017). What they do: [OBSERVABILITY.md](OBSERVABILITY.md) §1 "Android".
-- **iOS:** build settings in `apps/ios/Config/*.xcconfig`. `TRAINER_HUB_SENTRY_DSN`: empty in `Debug.xcconfig`, always, so local builds, tests and CI send nothing (`pnpm test:ios` checks it); set it only in the git-ignored `Config/Local.xcconfig` to test reporting by hand. In `Release.xcconfig` it is the DSN of the Sentry `ios` project (EU region), committed by the owner (#47) before the first release (E017): a DSN only sends events and ships inside the app. `TRAINER_HUB_SENTRY_ENVIRONMENT`: `development` (Debug), `production` (Release). What they do: [OBSERVABILITY.md](OBSERVABILITY.md) §1 "iOS".
+- **Android:** Gradle properties in `apps/android/gradle.properties`, or `-P` on the Gradle command line. `trainerhub.sentryDsn` (debug builds): empty; set it only to test reporting by hand. `trainerhub.releaseSentryDsn` (release builds): the DSN of the Sentry `android` project (EU region), set in `gradle.properties` (#85); `checkReleaseSentryDsn`, run by `pnpm test:android` and before every release build, fails unless its host is `<org>.ingest.de.sentry.io`. What they do: [OBSERVABILITY.md](OBSERVABILITY.md) §1 "Android".
+- **iOS:** build settings in `apps/ios/Config/*.xcconfig`. `TRAINER_HUB_SENTRY_DSN`: empty in `Debug.xcconfig`, always, so local builds, tests and CI send nothing (`pnpm test:ios` checks it); set it only in the git-ignored `Config/Local.xcconfig` to test reporting by hand. In `Release.xcconfig` it is the DSN of the Sentry `ios` project (EU region), committed (#85): a DSN only sends events and ships inside the app; `pnpm test:ios` fails unless its host is `<org>.ingest.de.sentry.io`. `TRAINER_HUB_SENTRY_ENVIRONMENT`: `development` (Debug), `production` (Release). What they do: [OBSERVABILITY.md](OBSERVABILITY.md) §1 "iOS".
 
 ## 8. Backups
 

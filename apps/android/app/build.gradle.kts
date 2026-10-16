@@ -74,6 +74,20 @@ val checkReleaseApiBaseUrl = tasks.register("checkReleaseApiBaseUrl") {
 }
 tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(checkReleaseApiBaseUrl) }
 
+// E009 (#85): release builds report to the Sentry project `android` in the EU region, so the DSN's host must be
+// `<org>.ingest.de.sentry.io`. Runs before every release build and in `pnpm test:android`.
+val checkReleaseSentryDsn = tasks.register("checkReleaseSentryDsn") {
+    description = "Fails unless trainerhub.releaseSentryDsn is an EU-region Sentry DSN."
+    val dsn = releaseSentryDsn
+    doLast {
+        check(Regex("""https://[^@/]+@[a-z0-9]+\.ingest\.de\.sentry\.io/[0-9]+""").matches(dsn)) {
+            "Set trainerhub.releaseSentryDsn (apps/android/gradle.properties) to the DSN of the Sentry project " +
+                "`android`, https://<key>@<org>.ingest.de.sentry.io/<project> (EU region): '$dsn'"
+        }
+    }
+}
+tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(checkReleaseSentryDsn) }
+
 // E009 (spec #32): no product analytics SDK in the app, product events are captured server-side; of Sentry only the SDK
 // library, without session replay or the NDK. Checks every library the release build ships, before every build.
 val forbiddenLibraries = listOf(
