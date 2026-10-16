@@ -42,7 +42,7 @@ Tickets that aren't agent-ready and bugs go through `triage`; bugs also through 
 - Every branch has its own worktree in `.worktrees/` (git-ignored); `scripts/wt.sh add` creates it, installs dependencies and `packages/database/.env`. `scripts/check.sh` gives each worktree its own `E2E_PORT` (3200–3899), because Playwright reuses a server already running on its port. The page view tests use a second server on `E2E_PORT + 1000`, outside that range.
 - If an agent tool already isolates its session in a worktree of its own (for example a Copilot or Claude Code background session), work there instead of creating a second one, with a branch named as in §2 (`git branch -m <name>`).
 - The spec's **Test plan** is written before implementing (`TESTING.md §6`).
-- The PR of a spec's first ticket sets its `FEATURES.md` status to `IN PROGRESS`, the last one to `IMPLEMENTED` (`flow.sh` prints the hint). The feature's ID links the spec issue.
+- A ticket PR changes only its feature's `FEATURES.md` Status: the spec's first ticket sets `IN PROGRESS`, the PR that completes the spec `IMPLEMENTED` with the final one-line summary, and the others leave the file alone (`flow.sh` prints the hint). Progress lives in the spec's tickets, not in the row. The feature's ID links the spec issue.
 - An API change regenerates `packages/contract` (OpenAPI + TS/Swift/Kotlin clients) in the same PR. A string change edits only `packages/i18n/*.json` and regenerates the native catalogs in the same PR.
 - Every PR that touches a Railway watch pattern gets a preview (its own migrated and seeded Postgres); `pr.sh smoke` checks it and records the result in the PR description. Merging to `main` deploys production ([`ENVIRONMENTS.md`](ENVIRONMENTS.md)).
 - Merge strategy: **squash merge** into `main`, the only method the repo allows, after the required CI checks (§7) pass. Who merges depends on the PR's risk (§4).
@@ -73,7 +73,7 @@ Also make sure that:
 - [ ] Dev servers, watchers, simulators/emulators and Docker containers started for this change are stopped.
 - [ ] Temporary files, scratch scripts and debug output are deleted (never committed).
 - [ ] Scratch Railway services or environments created for the change are deleted ([`ENVIRONMENTS.md`](ENVIRONMENTS.md)); the PR environment is deleted automatically on merge.
-- [ ] When the last ticket of a spec is merged: `FEATURES.md` shows `IMPLEMENTED` and the spec issue is closed (`flow.sh status <spec>` says `complete`, then `done`).
+- [ ] When the last ticket of a spec is merged: `FEATURES.md` shows `IMPLEMENTED` with the final one-line summary, and the spec issue is closed (`flow.sh status <spec>` says `complete`, then `done`).
 
 ## 6. Definition of Done
 
@@ -112,4 +112,4 @@ CI is GitHub Actions ([`.github/workflows/ci.yml`](../../.github/workflows/ci.ym
 
 **Adding a check:** a new deterministic check (i18n parity, ICU syntax, OpenAPI drift, generated files up to date, …) is a `check` script in the package that owns it. `turbo run check` in `Checks (Linux)` picks it up, so the workflow file doesn't change. Keep `Checks (Linux)` under ~10 minutes (`TESTING.md §7`).
 
-**Native jobs:** a PR that touches neither app nor its generated inputs skips them, and a skipped job counts as passed. Both run the same commands as locally (`pnpm test:ios`; `pnpm test:android` and `pnpm test:maestro`), so a green job means the same as a green local run.
+**Native jobs:** a PR that touches neither app nor its generated inputs skips them, and a skipped job counts as passed. Each runs the same `pnpm test:*` scripts as locally (table above), so a green job means the same as a green local run.
