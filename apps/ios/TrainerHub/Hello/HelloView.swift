@@ -1,7 +1,8 @@
 import SwiftUI
+import TrainerHubDesignTokens
 
 /// The hello screen: a spinner while loading, the greeting as the heading, or an error with "Try again".
-/// Platform default colours and Dynamic Type text styles; the token theme comes with #57.
+/// Colours and text styles come from the design tokens: adaptive colours for light and dark mode, Dynamic Type styles.
 struct HelloView: View {
     let model: HelloViewModel
 
@@ -9,10 +10,12 @@ struct HelloView: View {
         GeometryReader { proxy in
             ScrollView {
                 content
-                    .padding()
+                    .padding(Tokens.Spacing.gutter)
                     .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
         }
+        .foregroundStyle(Tokens.Colors.textPrimary)
+        .background(Tokens.Colors.bgCanvas)
         .environment(\.locale, model.catalog.formattingLocale)
         .task { await model.load() }
     }
@@ -21,19 +24,20 @@ struct HelloView: View {
         switch model.state {
         case .loading:
             ProgressView()
+                .tint(Tokens.Colors.textSecondary)
                 .accessibilityLabel(model.catalog[.commonLoading])
                 .accessibilityIdentifier("hello.loading")
         case let .loaded(greeting):
             Text(greeting)
-                .font(.largeTitle.bold())
+                .font(.system(Tokens.TextStyle.display, weight: .semibold))
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("hello.greeting")
         case .failed:
-            VStack(spacing: 24) {
+            VStack(spacing: Tokens.Spacing.space6) {
                 Text(model.catalog[.helloError])
-                    .font(.body)
+                    .font(.system(Tokens.TextStyle.body))
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("hello.error")
@@ -43,9 +47,8 @@ struct HelloView: View {
                     Text(model.catalog[.commonRetry])
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
-                        .frame(minWidth: 44, minHeight: 44)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.primaryAction)
                 .accessibilityIdentifier("hello.retry")
             }
         }

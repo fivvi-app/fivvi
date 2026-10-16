@@ -12,7 +12,7 @@ The one source of Trainer Hub's colours, type, spacing, radii and motion (ADR-01
 | `generated/web/tokens.css` | A CSS variable per token (`--th-color-bg-canvas`): light on `:root`, dark under `prefers-color-scheme: dark`. **Generated, never edit** |
 | `generated/web/shadcn.css` | shadcn/ui's theme variables (`--background`, `--primary`, `--radius`, …) plus `--session-*` and `--status-*`, each pointing at a token variable. **Generated, never edit** |
 | `generated/web/theme.css` | Tailwind v4 `@theme inline` that turns those into utilities (`bg-primary`, `text-session-private-fg`, `rounded-lg`, `font-display`). **Generated, never edit** |
-| `swift/` | The SwiftPM package `TrainerHubDesignTokens` for iOS. `Package.swift` is hand-written; `Sources/TrainerHubDesignTokens/Generated/` is **generated, never edit** |
+| `TrainerHubDesignTokens/` | The SwiftPM package `TrainerHubDesignTokens` for iOS. `Package.swift` is hand-written; `Sources/TrainerHubDesignTokens/Generated/` is **generated, never edit**. The directory is named after the package because Xcode takes a local package's identity from its directory name: a second `swift/` beside `packages/contract/swift` would clash in the app |
 | `kotlin/generated/` | Kotlin sources for Compose, package `nl.trainerhub.designtokens`. **Generated, never edit** |
 | `src/` | The build, the checks and the CLI (Node only). `src/native.ts` renders the Swift and Kotlin |
 
@@ -30,7 +30,7 @@ The two web densities take their body size from `density.compact.body` and `dens
 
 The native outputs ship like `packages/contract`'s clients: committed sources that E008 adds to the apps, a local Swift package for iOS and a source directory compiled in a Gradle module for Android. They hold the semantic colours, spacing, radii and type styles; never the base palette. Native typography is the platform's: each type style in `tokens/typography.json` has a mapping note (`$extensions` `app.trainerhub.platform`) that names an iOS text style and a Material 3 role. The generated code maps to those styles and has no font sizes, so Dynamic Type and font scaling apply. A note may add a weight or figures after the style (`subheadline.weight(.semibold)`, `displaySmall + tnum`), never a size.
 
-**iOS** (`swift/`, iOS 15 or macOS 12 and up):
+**iOS** (`TrainerHubDesignTokens/`, iOS 15 or macOS 12 and up; the app links it as a local package, [`apps/ios`](../../apps/ios/README.md#theme)):
 
 | Generated | What |
 |---|---|
@@ -52,7 +52,7 @@ Names are the token path without its group, in camel case (`color.action.primary
 ## Changing a token
 
 1. Change the value in `tokens/`. A semantic colour has its light value in `color.light.json` and its dark value in `color.dark.json`; change both when both should change. A new semantic colour needs both too, or the build refuses it.
-2. `pnpm --filter @trainer-hub/design-tokens generate` and commit the regenerated files under `generated/`, `swift/Sources/` and `kotlin/generated/`.
+2. `pnpm --filter @trainer-hub/design-tokens generate` and commit the regenerated files under `generated/`, `TrainerHubDesignTokens/Sources/` and `kotlin/generated/`.
 3. `pnpm check` must pass: it fails when a generated file is stale or when a contrast pair drops below its minimum.
 
 A new colour under `color.session.*` or `color.status.*` automatically becomes a `--session-*` or `--status-*` variable and a Tailwind colour. Any other new colour for the web needs a mapping in `src/build.ts`. Every semantic colour becomes a Swift and Kotlin colour automatically; one that a Material 3 role should take needs a mapping in `src/native.ts`.
@@ -71,7 +71,7 @@ Add an entry to `tokens/contrast-pairs.json` for every new foreground/background
 
 `pnpm check` (turbo, so CI too) runs `node src/cli.ts check`:
 
-- **generated**: builds every output (web, Swift, Kotlin) in memory and compares it with the committed file. It names each stale, missing or stray file under `generated/`, `swift/Sources/TrainerHubDesignTokens/Generated/` and `kotlin/generated/`.
+- **generated**: builds every output (web, Swift, Kotlin) in memory and compares it with the committed file. It names each stale, missing or stray file under `generated/`, `TrainerHubDesignTokens/Sources/TrainerHubDesignTokens/Generated/` and `kotlin/generated/`.
 - **contrast**: computes the WCAG contrast of every pair in both modes and names each failing pair with its mode and ratio, rounded down.
 
 Run one with `node src/cli.ts check generated` or `check contrast`. The tests are in `test/`: `build.test.ts`, `check.test.ts`, `contrast.test.ts` and `platforms.test.ts` (the Material 3 roles, adaptive iOS colours and no fixed native font sizes). They read the generated Swift and Kotlin as text; E008's app builds compile them.

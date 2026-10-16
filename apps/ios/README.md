@@ -14,15 +14,15 @@ pnpm test:ios                   # what the iOS CI job runs
 | Path | What |
 |---|---|
 | `TrainerHub.xcodeproj` | Xcode project with folder-synchronized groups: a file added to one of the folders below is in its target, no project generator. Shared scheme `TrainerHub` |
-| `TrainerHub/` | The app target. `App/` (entry point, configuration), `Hello/` (the screen and its view model), `Language/` (interface language), `Strings/` (catalog lookup) |
+| `TrainerHub/` | The app target. `App/` (entry point, configuration), `Hello/` (the screen and its view model), `Language/` (interface language), `Strings/` (catalog lookup), `Theme/` (styles built from the design tokens) |
 | `TrainerHubTests/` | Unit tests (XCTest), hosted in the app |
 | `TrainerHubUITests/` | UI tests (XCUITest) |
 | `TrainerHub.xctestplan` | Runs every test twice: `nl` (region NL) and `en` (region GB), time zone Europe/Amsterdam (`TESTING.md §7.2`) |
 | `Config/` | Per-configuration settings: `Debug.xcconfig` / `Release.xcconfig` and their Info.plist files |
-| `lint/fixtures/` | Files that must fail SwiftLint (not in any target) |
+| `lint/fixtures/` | Files that must fail SwiftLint, one per custom rule (not in any target) |
 | `.build/` | Build output, resolved packages and SwiftLint (git-ignored) |
 
-**Dependencies** (Swift packages, pinned in `TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`): the generated API client `TrainerHubAPI` from [`packages/contract/swift`](../../packages/contract/README.md) as a local package, and Apple's `swift-openapi-runtime` and `swift-openapi-urlsession` for its URLSession transport. Never hand-write API calls: change the contract and regenerate.
+**Dependencies** (Swift packages, pinned in `TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`): two local packages, the generated API client `TrainerHubAPI` from [`packages/contract/swift`](../../packages/contract/README.md) and the design tokens `TrainerHubDesignTokens` from [`packages/design-tokens/TrainerHubDesignTokens`](../../packages/design-tokens/README.md#using-the-tokens-on-ios-and-android), and Apple's `swift-openapi-runtime` and `swift-openapi-urlsession` for its URLSession transport. Never hand-write API calls: change the contract and regenerate.
 
 **Strings:** `Localizable.xcstrings` and `InfoPlist.xcstrings` are referenced in place from [`packages/i18n/generated/ios`](../../packages/i18n/README.md#native-apps-e008), never copied or edited. The development region is `nl`; the localizations are `nl` and `en`. The display name under the icon, `CFBundleDisplayName`, comes from `app.name` through `InfoPlist.xcstrings`. String extraction is off (`SWIFT_EMIT_LOC_STRINGS = NO`), so Xcode never writes to the generated catalogs.
 
@@ -33,8 +33,19 @@ pnpm test:ios                   # what the iOS CI job runs
 - A view model (`@Observable`, `@MainActor`) with a few states (`loading`, `loaded(greeting:)`, `failed`). It depends on the generated client's `APIProtocol`, which is the test seam: tests pass a stub, the app passes `Client` with `URLSessionTransport`. No hand-written wrapper.
 - The view switches on the state and reads every text from `Catalog`, by `StringKey` or by a key the API sent. A key that isn't in the catalog is a failure, never a raw key on screen.
 - Text uses Dynamic Type styles and wraps (`fixedSize(horizontal: false, vertical: true)` inside a `ScrollView`); buttons keep a 44 pt touch target; the screen's title has the header trait.
-- Platform default colours until the token theme (#57).
+- Colours, text styles and spacing come from the design tokens ([Theme](#theme)).
 - Accessibility identifiers name the elements for tests, with the same values as the Android test tags so one Maestro flow drives both apps: `hello.greeting`, `hello.loading`, `hello.error`, `hello.retry`.
+
+## Theme
+
+The app follows the E007 design tokens (ADR-015) in light and dark mode, from the generated `TrainerHubDesignTokens` package, used in place:
+
+- **Colours:** `Tokens.Colors` only, each an adaptive SwiftUI `Color` that follows the system appearance. A screen sits on `bgCanvas` with `textPrimary` text; the app's tint is `actionPrimaryBg`. A token colour pair a screen uses (text on a fill) is a contrast pair in `packages/design-tokens/tokens/contrast-pairs.json`.
+- **Type:** the system font in the token's Dynamic Type style, `.font(.system(Tokens.TextStyle.body))`, with the style's weight from `packages/design-tokens/tokens/typography.json` (`display` and `label` are semibold); never a size.
+- **Spacing and corners:** `Tokens.Spacing` and `Tokens.Radius`, with continuous corners.
+- **Controls** stay native SwiftUI. `Theme/PrimaryActionStyle.swift` (`.buttonStyle(.primaryAction)`) is the filled primary action in `actionPrimaryBg` / `actionPrimaryBgPressed` with an `actionPrimaryFg` label.
+
+The app follows the system's light or dark mode: nothing fixes its appearance (`UIUserInterfaceStyle` is unset, which `LaunchAppearanceTests` checks). `test_E008_AC6_usesTokenColoursInLightAndDark` launches the app in light and then dark mode and compares the screen's pixels (canvas, text, the retry button's fill and label) with the token colours resolved for that mode. It sets the mode with a Debug-only launch argument (`-UITestAppearance dark`, `Theme/LaunchAppearance.swift`) rather than `XCUIDevice.appearance`, which doesn't switch every simulator: an iOS 26.5 simulator stays light.
 
 ## Language
 
@@ -62,12 +73,12 @@ To run a Debug build against a preview environment or the dev server on your Mac
 `pnpm test:ios` (`scripts/test-ios.sh`) runs, in order, exactly what the `iOS` CI job runs:
 
 1. SwiftLint with `--strict` on the app and its tests.
-2. SwiftLint on `lint/fixtures/LiteralText.swift`, which must fail on exactly the lines marked `// expect: no_literal_text`.
+2. SwiftLint on each fixture in `lint/fixtures/`, which must fail on exactly the lines marked `// expect: <rule>`: `LiteralText.swift` (`no_literal_text`) and `ColourLiteral.swift` (`no_colour_literal`).
 3. The configurations: Debug's committed base URL is the local dev server (`http://localhost:3000/api`); Release has an `https://…/api` base URL and no App Transport Security exception.
 4. A simulator build without signing, then the test plan: unit and UI tests, each in `nl` and `en`, on the newest iPhone simulator, or in a worktree on the worktree's own copy of it (`IOS_SIMULATOR="iPhone 17"` picks one by name; cleanup and `KEEP_DEVICE=1` in `TESTING.md §7.2`). Results go to `.build/TestResults.xcresult`.
 
 - **Unit tests** (`TrainerHubTests/`): the view model against `StubAPI`, a stub of `APIProtocol` that records the requested locale; the language rule with the same cases as `packages/i18n/src/locale.test.ts`; the configuration.
-- **UI tests** (`TrainerHubUITests/`): the app against `StubServer`, an HTTP server in the test runner, so a test controls the answer (greeting, error, or holding it to keep the spinner on screen) and asserts the requested `locale`. `HelloScreen.launch` sets the device languages (`-AppleLanguages`), the per-app language (a Debug-only launch argument, because UI tests can't change iOS Settings) and the text size.
+- **UI tests** (`TrainerHubUITests/`): the app against `StubServer`, an HTTP server in the test runner, so a test controls the answer (greeting, error, or holding it to keep the spinner on screen) and asserts the requested `locale`. `HelloScreen.launch` sets the device languages (`-AppleLanguages`), the per-app language (a Debug-only launch argument, because UI tests can't change iOS Settings), the text size and light or dark mode (a Debug-only launch argument). `ScreenColours` reads a screenshot's pixels in sRGB, for the theme test.
 - Expected copy is read from the generated catalog compiled into the test bundle (`TestCatalog`), never hard-coded. Each test-plan configuration also sets `TRAINER_HUB_TEST_LANGUAGE`; tests take the expected language from it, so a configuration whose language doesn't reach the app fails instead of testing the other language twice.
 - Accessibility: `test_E008_AC7_largestTextSizeWraps` runs Xcode's accessibility audit (clipped text, Dynamic Type, hit regions) at the largest text size.
 
@@ -76,5 +87,9 @@ Name tests after the spec's acceptance criteria: `test_E008_AC4_retryLoadsGreeti
 ## No hard-coded text
 
 Every user-facing string comes from `packages/i18n` (`AGENTS.md`). SwiftLint's custom rule `no_literal_text` (`.swiftlint.yml`) fails on a string literal in `Text`, `Button`, `Label`, `Toggle`, `TextField`, `SecureField` or `Link`, and in `.navigationTitle` or an accessibility label, hint or value, and names the file and line. Pass a `String` from `Catalog` instead. The rule can't see literals passed through variables or other initialisers; review those by hand.
+
+## No hard-coded colours
+
+Every colour comes from the design tokens. SwiftLint's custom rule `no_colour_literal` (`.swiftlint.yml`) fails on a colour initialiser (`Color(red:green:blue:)`, `Color("Asset")`, `UIColor(…)`), a `#colorLiteral`, a system colour or style (`Color.red`, `UIColor.systemBackground`, `.background`) or its shorthand as an argument, value or result (`.foregroundStyle(.secondary)`, `.tint(.blue)`, `colors: [.red]`, `on ? .red : …`, `return .red`), and names the file and line. `Color.clear`, `.tint` and materials are allowed. Tests are excluded, because they resolve token colours to check the screen. Like `no_literal_text`, it can't see colours passed through variables; review those by hand.
 
 SwiftLint is pinned by version and SHA-256 in `scripts/_ios.sh` and downloaded to `.build/` on first use.

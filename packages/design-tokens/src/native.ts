@@ -8,8 +8,14 @@ import {
   tokenPaths,
 } from './source.ts';
 
-/** The Swift package (`swift/`, hand-written `Package.swift`) and its generated sources. */
-const swiftDir = 'swift/Sources/TrainerHubDesignTokens/Generated';
+/**
+ * The Swift package, hand-written `Package.swift`. Its directory is named after the package: Xcode
+ * takes a local package's identity from its directory, which must differ from the API client's
+ * (`packages/contract/swift`) for the iOS app to link both.
+ */
+export const swiftPackageDir = 'TrainerHubDesignTokens';
+/** The Swift package's generated sources. */
+const swiftDir = `${swiftPackageDir}/Sources/${swiftPackageDir}/Generated`;
 /** Kotlin sources for E008's Gradle module, package `nl.trainerhub.designtokens`. */
 const kotlinDir = 'kotlin/generated/nl/trainerhub/designtokens';
 
