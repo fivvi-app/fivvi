@@ -141,6 +141,7 @@ Rules for the secrets that later enablers add (for example `BREVO_API_KEY` in E0
 The native apps aren't on Railway: their variables are build settings, per platform:
 
 - **Android:** Gradle properties in `apps/android/gradle.properties`, or `-P` on the Gradle command line. `trainerhub.sentryDsn` (debug builds): empty; set it only to test reporting by hand. `trainerhub.releaseSentryDsn` (release builds): the DSN of the Sentry `android` project (EU region), set by the owner (#47) before the first release (E017). What they do: [OBSERVABILITY.md](OBSERVABILITY.md) §1 "Android".
+- **iOS:** build settings in `apps/ios/Config/*.xcconfig`. `TRAINER_HUB_SENTRY_DSN`: empty in `Debug.xcconfig`, always, so local builds, tests and CI send nothing (`pnpm test:ios` checks it); set it only in the git-ignored `Config/Local.xcconfig` to test reporting by hand. In `Release.xcconfig` it is the DSN of the Sentry `ios` project (EU region), committed by the owner (#47) before the first release (E017): a DSN only sends events and ships inside the app. `TRAINER_HUB_SENTRY_ENVIRONMENT`: `development` (Debug), `production` (Release). What they do: [OBSERVABILITY.md](OBSERVABILITY.md) §1 "iOS".
 
 ## 8. Backups
 

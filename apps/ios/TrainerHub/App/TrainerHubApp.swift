@@ -8,6 +8,7 @@ struct TrainerHubApp: App {
     @State private var hello: HelloViewModel
 
     init() {
+        ErrorReporting.start()
         let client = Client(serverURL: AppConfiguration.apiBaseURL(), transport: URLSessionTransport())
         let catalog = Catalog(locale: InterfaceLanguage.resolve(.forLaunch()))
         _hello = State(initialValue: HelloViewModel(api: client, catalog: catalog))

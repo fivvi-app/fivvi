@@ -3,6 +3,7 @@
 What Trainer Hub reports about itself, and what it never sends ([ADR-013](../decisions/ADR-013-observability.md), spec [#32](https://github.com/thekeyvan/trainer-hub/issues/32)). Errors go to **Sentry (EU region)**, product events and page views to **PostHog (EU Cloud)**. This document covers error reporting for the API, the cron job and the web app (server and browser), server product events (§4) and the web app's page views (§5). Per native app:
 
 - Android: crash reporting, §1 "Android".
+- iOS: crash reporting, §1 "iOS".
 
 ## 1. Error reporting
 
@@ -15,6 +16,7 @@ What Trainer Hub reports about itself, and what it never sends ([ADR-013](../dec
 | Web browser (`apps/web/instrumentation-client.ts`) | Every uncaught error and unhandled promise rejection in the browser, including a component that throws while rendering. A future error boundary (`error.tsx`) that catches an error itself reports it with `captureError` | `web` |
 | Cron (`apps/cron`) | A failed run. The error is sent and flushed (at most 2 s) before the process exits with code 1 | `cron` |
 | Android (`apps/android`) | Every crash (uncaught exception) and ANR (app not responding), and errors the app catches and reports with `Observability.captureError()`; sessions for the crash-free rate. Details in "Android" below | `android` |
+| iOS (`apps/ios`) | Every crash, app hang and watchdog termination, and errors the app reports with `ErrorReporting.capture(_:)`; sessions for the crash-free rate. Details in "iOS" below | `ios` |
 
 Not captured: health check failures (they answer `503` and log to the console), validation errors (`400`), `notFound()` and redirects, and other expected responses.
 
@@ -58,6 +60,19 @@ The app reports to the Sentry project `android` with the Sentry Android SDK (`io
 - **The installation ID.** The SDK creates a random UUID per installation, stored in the app's files. It is the session's distinct ID and, while nobody is signed in (the app has no sign-in yet), the event's `user.id`; Sentry counts crash-free users with it. It identifies an installation, not a person, and isn't linked to any of our records.
 - **Stack traces.** Release builds aren't minified yet, so stack traces are readable. When distribution (E017) turns on R8, it uploads the mapping files; native (NDK) crashes aren't captured.
 
+### iOS
+
+The app reports to the Sentry project `ios` with `sentry-cocoa` (Swift Package Manager): crashes (signals, Mach exceptions, uncaught Objective-C and C++ exceptions), app hangs and watchdog terminations (the system ending the app, e.g. for memory), with the stack traces of every thread, and errors the app reports itself with `ErrorReporting.capture(_:)` (an error it handled but that shouldn't happen; none yet). A crash is written to disk when it happens and sent the next time the app starts. Every app start begins a session, which ends as crashed or healthy: that gives the crash-free session rate.
+
+- **One module.** `apps/ios/TrainerHub/Observability/` is the only code that talks to `sentry-cocoa`: `ErrorReporting.start()` at launch, `ErrorReporting.capture(_:)`, and the scrubber. SwiftLint's `no_direct_sentry` rule (`apps/ios/.swiftlint.yml`, fixture `lint/fixtures/DirectSentry.swift`) fails anywhere else that imports Sentry or calls `SentrySDK`, as Biome does for TypeScript.
+- **No analytics SDK.** Product events from the app are captured by the API (§4). `pnpm test:ios` fails on any Swift package in `Package.resolved` that isn't on its allowlist (`swift_packages` in `scripts/test-ios.sh`).
+- **From the build configuration.** `TRAINER_HUB_SENTRY_DSN` and `TRAINER_HUB_SENTRY_ENVIRONMENT` in `apps/ios/Config/*.xcconfig`, read from Info.plist ([ENVIRONMENTS.md §7](ENVIRONMENTS.md#7-variables)). Release reports as `production` and Debug as `development`. `release` is `nl.trainerhub.app@<version>+<build>` (`MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`), Sentry's format for app releases. Until distribution (E017) raises the build number for every upload, all builds report the same release, so the release doesn't yet tell builds apart the way the server's commit SHA does.
+- **Off without a DSN.** Debug's committed DSN is empty, so local builds, the unit and UI tests and CI start no SDK and make no network call; `pnpm test:ios` fails if it isn't empty. A developer can set one in the git-ignored `Config/Local.xcconfig` for the manual check in §3; while it is set, every Debug run of the app reports, tests included.
+- **Errors and release health only.** Tracing, profiling, session replay, screenshots, view hierarchies, Sentry logs, client reports and captured HTTP failures are off (API errors are reported by the server). `sendDefaultPii` is off, so the SDK adds no IP address and asks Sentry not to infer one (`infer_ip: never`).
+- **Scrubbed in the app.** `beforeSend` and `beforeBreadcrumb` run `Scrubber` (`Observability/Scrubber.swift`), the rules of §2 in Swift. Three differences for a phone: an event keeps its threads (a crash's stack trace is in them), with frame variables dropped; `server_name` is dropped, because on a phone it would be the device name; and an exception's `mechanism` loses its description as well as its `data`, because for an `NSError` both hold its whole `userInfo`. A reported error keeps its description as the exception value, with only email addresses masked: `NSDebugDescriptionErrorKey`, or for a Swift error the whole printed error (`String(describing:)`), associated values included. So an error, its cases and their associated values carry IDs only, never names, email addresses or note content (§2). Breadcrumbs are scrubbed when they are recorded, so a crash report stored on the device never holds an unscrubbed one. The event is edited in place, because it carries state the SDK still needs (e.g. whether it is a crash); `test_E009_AC8_scrubberDecidesEveryField` lists what happens to every field of the SDK's event types and fails when a new `sentry-cocoa` version adds one, so a new field never leaves the app unreviewed.
+- **Pseudonymous IDs.** Without a signed-in user, Sentry gives an event the install's random ID (a UUID it generates on first launch and that is gone when the app is deleted) as `user.id`, and sends it with each session to count crash-free users. The `app` context carries a hash of device and app (`device_app_hash`). Neither is linked to a person in Sentry. Once the app has sign-in (F001), it sets the internal user UUID and workspace UUID as the user, as the server does.
+- **Defence in depth (owner setup, #47).** The Sentry `ios` project also has the server-side data scrubber and "Prevent storing of IP addresses" switched on. dSYMs for symbolicated stack traces are uploaded as part of distribution (E017).
+
 ## 2. Scrubbing rules
 
 The scrubber (`scrubEvent`, `scrubBreadcrumb`) is a pure allowlist: whatever isn't listed as kept is dropped, so a new SDK field never leaks by default.
@@ -74,6 +89,7 @@ The scrubber (`scrubEvent`, `scrubBreadcrumb`) is a pure allowlist: whatever isn
 | Breadcrumbs | Type, category, level, timestamp; `data.method`, `data.status_code`, `data.url` (without query string) | The message (a log line that may hold any text) and all other data |
 
 The Android app applies the same rules in Kotlin, with the differences listed in §1 "Android".
+The iOS app applies the same rules in Swift, with the differences listed in §1 "iOS".
 
 UUIDs, route templates, HTTP methods and status codes stay, so an error can still be traced to a record and a route.
 
@@ -87,6 +103,13 @@ UUIDs, route templates, HTTP methods and status codes stay, so an error can stil
 - Web: `packages/observability/src/web.test.ts` feeds a server component error through `createRequestErrorHandler()`, and simulates the browser calling `window.onerror` and `window.onunhandledrejection` after `initBrowserErrorReporting()`. `source-maps.test.ts` runs `publishSourceMaps()` on a fake build output with a fake `sentry-cli`. The e2e tests (`apps/web/e2e/error-reporting.spec.ts`) check that every map a bundle points at answers `404`, and that the browser makes no request outside the app's origin.
 - Not automated: a real event with a source-mapped stack. After the owner setup (#47), throw a synthetic error on a preview or in production and check the stack in Sentry.
 - Android: `ObservabilityTest` (`apps/android/app/src/test`, nl-NL and en) starts reporting with the app's own configuration on the plain JVM SDK, with `CaptureTransport` instead of the network, and checks what would be sent: synthetic personal data in the user, request, message, stack frame, contexts, extras, tags and breadcrumbs is gone, UUIDs stay, events carry `environment` and `release`, session tracking is on; without a DSN the SDK never starts. `ObservabilityAppTest` (`app/src/androidTest`, on the emulator) checks that the debug app has no Sentry SDK running and none of its providers. `NoSentryOutsideObservabilityRuleTest` and `ktlintFixtures` prove the lint rule on `lint/fixtures`. Not automated: a real crash reaching Sentry. After the owner setup (#47), install a debug build with `./gradlew installDebug -Ptrainerhub.sentryDsn=<the android DSN>`, open the app, crash it with `adb shell am crash nl.trainerhub.app`, reopen it, and check the event and the session in the `android` project.
+- iOS: `ObservabilityTests` and `ObservabilityFieldTests` (`apps/ios/TrainerHubTests`, nl and en). `ObservabilityTests` feeds an event with synthetic personal data (a client name, an email address, note text in the test-plan language, an IP address, a token, a cookie and UUIDs; the name, email address, IP address and UUIDs are the same as in the Android test) through `beforeSend` and checks the serialized event, which is what would leave the app: no personal data, the UUIDs, route, status code and stack traces kept. It reports an `NSError` with personal data in its `userInfo` through `ErrorReporting.capture(_:)` and the real SDK, recording what `beforeSend` returns instead of sending it. It checks that breadcrumbs keep only the HTTP method, status code and URL path; that without a DSN the SDK doesn't start; and that the options carry the environment, release and session tracking, with everything listed in §1 "iOS" off. `ObservabilityFieldTests` checks that the scrubber keeps or clears every field of the SDK types it edits in place. Not automated: a real crash reaching Sentry. After the owner setup (#47), with synthetic data only:
+
+  1. Put the `ios` project's DSN in `apps/ios/Config/Local.xcconfig`: `TRAINER_HUB_SENTRY_DSN = https:/$()/<key>@<org>.ingest.de.sentry.io/<project>`.
+  2. Build and install a Debug build on a simulator, then start it without Xcode's debugger (which catches crashes before Sentry does): `xcrun simctl launch <udid> nl.trainerhub.app` prints the process ID.
+  3. Crash it: `kill -SEGV <pid>`. Start it again with `xcrun simctl launch`; it sends the crash.
+  4. In Sentry: the crash is in the `ios` project with environment `development` and release `nl.trainerhub.app@<version>+<build>`, its user is only an ID, there is no IP address, and Release Health shows a crashed session.
+  5. Remove the DSN from `Local.xcconfig`. Record the result in the PR.
 - Test data is synthetic: fake names and `@example.com` addresses.
 
 ## 4. Product events
