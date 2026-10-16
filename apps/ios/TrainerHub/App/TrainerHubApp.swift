@@ -17,6 +17,7 @@ struct TrainerHubApp: App {
         WindowGroup {
             HelloView(model: hello)
                 .tint(Tokens.Colors.actionPrimaryBg)
+                .preferredColorScheme(LaunchAppearance.colorScheme())
         }
     }
 }

@@ -94,37 +94,35 @@ final class HelloUITests: XCTestCase {
         XCTAssertFalse(screen.loading.exists)
     }
 
-    /// The colours on screen are the design tokens' (TrainerHubDesignTokens), resolved for the system appearance.
+    /// The colours on screen are the design tokens' (TrainerHubDesignTokens), resolved for light and dark mode. The
+    /// app is launched in each mode (`HelloScreen.launch(appearance:)`): `XCUIDevice.appearance` doesn't switch every
+    /// simulator (iOS 26.5 stays light), and the unit tests check the app follows the system otherwise.
     func test_E008_AC6_usesTokenColoursInLightAndDark() throws {
-        let original = XCUIDevice.shared.appearance
-        addTeardownBlock { @MainActor in XCUIDevice.shared.appearance = original }
-
-        for (appearance, style) in [(XCUIDevice.Appearance.light, UIUserInterfaceStyle.light), (.dark, .dark)] {
-            XCUIDevice.shared.appearance = appearance
-            let mode = "\(style == .dark ? "dark" : "light") mode"
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            let mode = style == .dark ? "dark" : "light"
             let canvas = RGB(Tokens.Colors.bgCanvas, in: style)
             let text = RGB(Tokens.Colors.textPrimary, in: style)
             let server = try StubServer(.status(503))
 
-            let screen = HelloScreen.launch(against: server)
+            let screen = HelloScreen.launch(against: server, appearance: mode)
 
             XCTAssertTrue(screen.error.waitForExistence(timeout: timeout), mode)
+            var colours = try ScreenColours(screen.app)
             let window = screen.app.windows.firstMatch.frame
             // Above and below the centred content.
-            let blank = [0.2, 0.85].map { CGPoint(x: window.midX, y: window.height * $0) }
-            var colours = try settledColours(of: screen.app, at: blank[0], is: canvas)
-            for point in blank {
-                assertColour(colours.colour(at: point), is: canvas, "canvas at \(point) in \(mode)")
+            for share in [0.2, 0.85] {
+                let point = CGPoint(x: window.midX, y: window.height * share)
+                assertColour(colours.colour(at: point), is: canvas, "canvas at \(point) in \(mode) mode")
             }
-            assertColour(colours.foreground(in: screen.error.frame, on: canvas), is: text, "error text in \(mode)")
+            assertColour(colours.foreground(in: screen.error.frame, on: canvas), is: text, "error text in \(mode) mode")
             let retry = screen.retry.frame
             // Inside the button's padding, left of its label.
             let fill = colours.colour(at: CGPoint(x: retry.minX + retry.height / 4, y: retry.midY))
-            assertColour(fill, is: RGB(Tokens.Colors.actionPrimaryBg, in: style), "retry fill in \(mode)")
+            assertColour(fill, is: RGB(Tokens.Colors.actionPrimaryBg, in: style), "retry fill in \(mode) mode")
             let label = retry.insetBy(dx: retry.height / 2, dy: retry.height / 4)
             assertColour(
                 colours.foreground(in: label, on: fill), is: RGB(Tokens.Colors.actionPrimaryFg, in: style),
-                "retry label in \(mode)"
+                "retry label in \(mode) mode"
             )
 
             server.answer(with: .greeting(key: "hello.title"))
@@ -132,7 +130,9 @@ final class HelloUITests: XCTestCase {
 
             XCTAssertTrue(screen.greeting.waitForExistence(timeout: timeout), mode)
             colours = try ScreenColours(screen.app)
-            assertColour(colours.foreground(in: screen.greeting.frame, on: canvas), is: text, "greeting in \(mode)")
+            assertColour(
+                colours.foreground(in: screen.greeting.frame, on: canvas), is: text, "greeting in \(mode) mode"
+            )
             screen.app.terminate()
         }
     }
@@ -172,22 +172,6 @@ final class HelloUITests: XCTestCase {
         let screen = HelloScreen.launch(against: server)
 
         XCTAssertEqual(screen.app.label, TestCatalog.configured["app.name"])
-    }
-
-    /// The screen's colours once the point shows `expected`, or after the timeout. The simulator switches its
-    /// appearance asynchronously, so an app launched right after the switch may still draw the previous one.
-    private func settledColours(of app: XCUIApplication, at point: CGPoint, is expected: RGB) throws -> ScreenColours {
-        let tolerance = colourTolerance
-        let settled = XCTNSPredicateExpectation(
-            predicate: NSPredicate { _, _ in
-                MainActor.assumeIsolated {
-                    (try? ScreenColours(app)).map { $0.colour(at: point).distance(to: expected) <= tolerance } ?? false
-                }
-            },
-            object: nil
-        )
-        _ = XCTWaiter.wait(for: [settled], timeout: timeout)
-        return try ScreenColours(app)
     }
 
     /// The colour on screen is `expected`, give or take `colourTolerance`.
