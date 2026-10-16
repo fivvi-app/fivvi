@@ -3,7 +3,7 @@
 INFOPLIST_FILE = Config/Info-Debug.plist
 TRAINER_HUB_API_BASE_URL = http:/$()/localhost:3000/api
 
-// Error reporting (E009, docs/engineering/OBSERVABILITY.md §6.1): off without a DSN, so Debug builds, tests and CI
+// Error reporting (E009, docs/engineering/OBSERVABILITY.md §1 "iOS"): off without a DSN, so Debug builds, tests and CI
 // send nothing. For the manual ingestion check, set TRAINER_HUB_SENTRY_DSN in Config/Local.xcconfig.
 TRAINER_HUB_SENTRY_DSN =
 TRAINER_HUB_SENTRY_ENVIRONMENT = development

@@ -7,6 +7,11 @@ plugins {
 val debugApiBaseUrl = providers.gradleProperty("trainerhub.apiBaseUrl").get()
 val releaseApiBaseUrl = providers.gradleProperty("trainerhub.releaseApiBaseUrl").getOrElse("")
 
+// Sentry DSN per build type (E009, OBSERVABILITY.md §1 "Android"), from gradle.properties or -P. Empty means no crash
+// reporting: the SDK isn't even started.
+val debugSentryDsn = providers.gradleProperty("trainerhub.sentryDsn").getOrElse("")
+val releaseSentryDsn = providers.gradleProperty("trainerhub.releaseSentryDsn").getOrElse("")
+
 android {
     namespace = "nl.trainerhub.app"
     compileSdk = 37
@@ -24,9 +29,13 @@ android {
     buildTypes {
         debug {
             buildConfigField("String", "API_BASE_URL", "\"$debugApiBaseUrl\"")
+            buildConfigField("String", "SENTRY_DSN", "\"$debugSentryDsn\"")
+            buildConfigField("String", "SENTRY_ENVIRONMENT", "\"development\"")
         }
         release {
             buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
+            buildConfigField("String", "SENTRY_DSN", "\"$releaseSentryDsn\"")
+            buildConfigField("String", "SENTRY_ENVIRONMENT", "\"production\"")
         }
     }
 
@@ -65,6 +74,41 @@ val checkReleaseApiBaseUrl = tasks.register("checkReleaseApiBaseUrl") {
 }
 tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(checkReleaseApiBaseUrl) }
 
+// E009 (spec #32): no product analytics SDK in the app, product events are captured server-side; of Sentry only the SDK
+// library, without session replay or the NDK. Checks every library the release build ships, before every build.
+val forbiddenLibraries = listOf(
+    "com.posthog:",
+    "com.google.firebase:firebase-analytics",
+    "com.amplitude:",
+    "com.mixpanel.android:",
+    "com.segment.analytics.",
+    "io.sentry:sentry-android-replay",
+    "io.sentry:sentry-android-ndk",
+)
+val checkNoAnalyticsSdk = tasks.register("checkNoAnalyticsSdk") {
+    description = "Fails when the release build ships an analytics SDK or Sentry's replay or NDK module."
+    val shipped = configurations.named("releaseRuntimeClasspath")
+        .flatMap { it.incoming.resolutionResult.rootComponent }
+        .map { root ->
+            val seen = mutableSetOf<ResolvedComponentResult>()
+            val queue = ArrayDeque(listOf(root))
+            while (queue.isNotEmpty()) {
+                val component = queue.removeFirst()
+                if (seen.add(component)) {
+                    queue += component.dependencies.filterIsInstance<ResolvedDependencyResult>().map { it.selected }
+                }
+            }
+            seen.mapNotNull { (it.id as? ModuleComponentIdentifier)?.let { id -> "${id.group}:${id.module}" } }
+        }
+    val forbidden = forbiddenLibraries
+    inputs.property("shipped", shipped)
+    doLast {
+        val found = shipped.get().filter { library -> forbidden.any { library.startsWith(it) } }
+        check(found.isEmpty()) { "The app must not ship these libraries (OBSERVABILITY.md §1 \"Android\"): $found" }
+    }
+}
+tasks.matching { it.name == "preBuild" }.configureEach { dependsOn(checkNoAnalyticsSdk) }
+
 dependencies {
     implementation(project(":api"))
     implementation(project(":design-tokens"))
@@ -74,6 +118,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.sentry.android.core)
     debugImplementation(libs.compose.ui.test.manifest)
 
     testImplementation(libs.junit)

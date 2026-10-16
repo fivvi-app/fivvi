@@ -8,8 +8,8 @@
 #                                           approve, high-risk PRs, PRs the merge gate refused, unanswered questions
 #   flow.sh start <n> [--type <t>] [--force]  claim a ready ticket and create its <type>/<n>-<slug> worktree and notes;
 #                                           refuses when 3 tickets are already in progress (--force to override)
-#   flow.sh finish <n>                      after its PR is merged: remove worktree and branches, close the issue,
-#                                           report what the spec needs next
+#   flow.sh finish <n>                      after its PR is merged: remove worktree, branches and the worktree's iOS
+#                                           simulator, close the issue, report what the spec needs next
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 

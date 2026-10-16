@@ -4,8 +4,8 @@ import XCTest
 
 @testable import TrainerHub
 
-/// Synthetic personal data for the E009 tests (AGENTS.md, D8): the same values as the Android test (#49) and
-/// packages/observability/src/scrub.test.ts.
+/// Synthetic personal data for the E009 tests (AGENTS.md, D8). The client name, email address, IP address and UUIDs
+/// are the same as in the Android `ObservabilityTest`.
 enum Synthetic {
     static let clientName = "Femke de Vries"
     static let email = "femke@example.com"

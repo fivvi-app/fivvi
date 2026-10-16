@@ -4,7 +4,7 @@ import XCTest
 @testable import TrainerHub
 
 /// E009 AC8: what the app would send to Sentry. The tests feed synthetic personal data (`Synthetic`) through the
-/// scrubber and check the serialized event, which is what leaves the process (docs/engineering/OBSERVABILITY.md §6.1).
+/// scrubber and check the serialized event, which is what leaves the process (docs/engineering/OBSERVABILITY.md §1 "iOS").
 final class ObservabilityTests: XCTestCase {
     func test_E009_AC8_beforeSendScrubsPersonalData() throws {
         let sent = try XCTUnwrap(ErrorReporting.beforeSend(Synthetic.event())).serialize()

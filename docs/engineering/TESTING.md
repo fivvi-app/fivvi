@@ -157,7 +157,7 @@ Run from the repo root. Turbo runs the task in every package that has it; add `-
 | `pnpm test` | Every unit suite (`*.test.ts(x)`) | Nothing |
 | `pnpm test:integration` | Every integration suite (`*.integration.test.ts`) against real Postgres | `pnpm db:up`, and `TEST_DATABASE_URL` set to it (below) |
 | `pnpm test:e2e` | Builds `apps/web`, starts it on port 3100 (`E2E_PORT`), and a second time with a synthetic PostHog key on `E2E_PORT + 1000` for the page view tests, and runs every Playwright spec in **nl-NL and en** with axe | Chromium, once: `pnpm --filter @trainer-hub/web exec playwright install chromium --only-shell` |
-| `pnpm test:android` | `scripts/android.sh test`: ktlint with the literal-text and colour rules, build, Android unit tests (nl-NL and en), Compose UI tests on an emulator (booted when none is connected). What CI's `Android` job runs | `scripts/bootstrap.sh --mobile` once |
+| `pnpm test:android` | `scripts/android.sh test`: ktlint with the literal-text, colour and Sentry rules, build, Android unit tests (nl-NL and en), Compose UI tests on an emulator (booted when none is connected). What CI's `Android` job runs | `scripts/bootstrap.sh --mobile` once |
 | `pnpm test:maestro` | `scripts/maestro.sh android`: Postgres (migrated, seeded) and the web server on `E2E_PORT`, the debug app on the emulator, every flow in `e2e/maestro/` with the emulator in **nl-NL and en**. `scripts/maestro.sh ios` runs the same flows on the iPhone simulator (local only) | Docker, `scripts/bootstrap.sh --mobile` once |
 | `pnpm lint`, `pnpm typecheck`, `pnpm check`, `pnpm format:check` | Static checks (§2) | Nothing |
 | `pnpm test:ios` | What the `iOS` CI job runs: SwiftLint, then the iOS unit and UI tests in **nl and en** on a simulator ([`apps/ios/README.md`](../../apps/ios/README.md#tests)) | `scripts/bootstrap.sh --mobile` |
@@ -192,9 +192,10 @@ How to run them, per app:
 Also for E008:
 
 - **Scripts** so every suite starts the same way, each wrapping the native commands above (listed in §7.1):
-  - iOS: `pnpm test:ios`.
-  - Android: `pnpm test:android`.
-  - Maestro: `pnpm test:maestro`.
+  - iOS: `pnpm test:ios`. A worktree tests on its own simulator, `Trainer Hub <worktree folder>`: a copy of the newest iPhone, created on first use and deleted by `scripts/flow.sh finish`. The main checkout and CI use the newest iPhone; `IOS_SIMULATOR="iPhone 17"` picks one by name. When the run ends (passed, failed or Ctrl-C) it shuts down the simulator it booted; one that was already booted stays booted. `KEEP_DEVICE=1` leaves it running, for fast repeated runs.
+  - Android: `pnpm test:android`. When the run ends (passed, failed or Ctrl-C) it kills the emulator it started, never one that was already running, and stops this checkout's Gradle daemons. `KEEP_DEVICE=1` leaves both running, for fast repeated runs.
+  - Maestro: `pnpm test:maestro`. It uses and cleans up the emulator and the Gradle daemons like `pnpm test:android`, `KEEP_DEVICE=1` included.
+  - Maestro on iOS: `scripts/maestro.sh ios`. It uses and cleans up the simulator like `pnpm test:ios`, `KEEP_DEVICE=1` included.
 - **CI** (the jobs are in `WORKFLOW.md §7`):
   - iOS: the `iOS` job runs `pnpm test:ios`'s script.
   - Android: the `Android` job runs `pnpm test:android`, then `pnpm test:maestro`.

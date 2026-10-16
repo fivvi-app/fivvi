@@ -43,7 +43,7 @@ custom_rules:
       - doccomment.field
       - string
     severity: error
-  # Only the Observability module talks to Sentry (E009, OBSERVABILITY.md §6.1), like Biome's noRestrictedImports for
+  # Only the Observability module talks to Sentry (E009, OBSERVABILITY.md §1 "iOS"), like Biome's noRestrictedImports for
   # @sentry/* in TypeScript: it starts the SDK and owns the scrubber. Its tests build Sentry events.
   # Fixture: lint/fixtures/DirectSentry.swift.
   no_direct_sentry:

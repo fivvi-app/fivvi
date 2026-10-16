@@ -3,7 +3,7 @@ import Sentry
 
 /// The scrubber (ADR-013, docs/engineering/OBSERVABILITY.md §2), the same allowlist as `scrubEvent` and
 /// `scrubBreadcrumb` in packages/observability/src/scrub.ts, applied to every event and breadcrumb in `beforeSend` and
-/// `beforeBreadcrumb` before anything leaves the app. Three native differences (§6.1): threads stay, because a crash's
+/// `beforeBreadcrumb` before anything leaves the app. Three native differences (OBSERVABILITY.md §1 "iOS"): threads stay, because a crash's
 /// stack trace is in its threads; `server_name` goes, because on a phone it would be the device name; and a
 /// mechanism's description goes, because for an NSError it holds the whole `userInfo`.
 ///

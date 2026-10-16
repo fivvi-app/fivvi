@@ -3,7 +3,8 @@
 #
 #   test-ios.sh   SwiftLint and its fixtures (literal text, colours, direct Sentry calls), the Debug and Release
 #                 configurations, the Swift package allowlist, then the unit and UI tests in nl and en on the newest
-#                 iPhone simulator (IOS_SIMULATOR="iPhone 17" picks one by name)
+#                 iPhone simulator, in a worktree its own copy (IOS_SIMULATOR="iPhone 17" picks one by name); shuts
+#                 down the simulator it booted when it ends, unless KEEP_DEVICE=1
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
@@ -60,7 +61,7 @@ release_configuration() {
 }
 
 # Every remote Swift package the app resolves is on this list. The app has no analytics SDK (PostHog or other): product
-# events are captured server-side (E009, OBSERVABILITY.md §6). Adding a package means adding it here, in review.
+# events are captured server-side (E009, OBSERVABILITY.md §1 "iOS"). Adding a package means adding it here, in review.
 swift_packages() {
   local allowed resolved unexpected
   allowed='sentry-cocoa swift-collections swift-http-types swift-openapi-runtime swift-openapi-urlsession'
@@ -84,6 +85,8 @@ swift_packages
 
 udid="$(ios_simulator)"
 [ -n "$udid" ] || die "no iPhone simulator${IOS_SIMULATOR:+ named $IOS_SIMULATOR} — run scripts/bootstrap.sh --mobile"
+on_exit 'stop_simulator || true'
+boot_simulator "$udid"
 echo "▶ Build without signing, unit and UI tests in nl and en (simulator $udid)"
 rm -rf .build/TestResults.xcresult
 xcodebuild test -project TrainerHub.xcodeproj -scheme TrainerHub -testPlan TrainerHub -destination "id=$udid" \

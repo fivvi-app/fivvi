@@ -3,10 +3,10 @@ import XCTest
 
 @testable import TrainerHub
 
-/// E009 AC8: the scrubber edits the SDK's event in place (OBSERVABILITY.md §6.1), so it must decide about every field.
+/// E009 AC8: the scrubber edits the SDK's event in place (OBSERVABILITY.md §1 "iOS"), so it must decide about every field.
 final class ObservabilityFieldTests: XCTestCase {
     /// The scrubber edits the SDK's event in place, so it must decide about every field: a field that a new
-    /// sentry-cocoa version adds fails this test until Scrubber.swift keeps or clears it (OBSERVABILITY.md §6.1).
+    /// sentry-cocoa version adds fails this test until Scrubber.swift keeps or clears it (OBSERVABILITY.md §1 "iOS").
     func test_E009_AC8_scrubberDecidesEveryField() {
         let decisions: [FieldDecision] = [
             FieldDecision(

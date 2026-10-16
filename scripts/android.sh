@@ -3,9 +3,13 @@
 #
 #   android.sh setup      install or check the JDK, the Android SDK, the emulator and its image, and Maestro
 #                         (scripts/bootstrap.sh --mobile runs this)
-#   android.sh test       ktlint with the literal-text and colour checks, build, unit tests (nl-NL and en), and the
-#                         Compose UI tests on an emulator, booted for the run when none is connected (pnpm test:android)
+#   android.sh test       ktlint with the literal-text, colour and Sentry checks, build, unit tests (nl-NL and en),
+#                         and the Compose UI tests on an emulator, booted for the run when none is connected
+#                         (pnpm test:android)
 #   android.sh emulator   boot the emulator headless and leave it running, so test and maestro.sh reuse it
+#
+# When test ends, also on failure or Ctrl-C, it kills the emulator it booted and stops its Gradle daemons; KEEP_DEVICE=1
+# leaves them running for the next run.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/_android.sh"
@@ -100,8 +104,8 @@ cmd_setup() {
 cmd_test() {
   [ $# -eq 0 ] || usage
   android_env
+  on_exit stop_android
   gradle ktlintCheck :lint-rules:test assembleDebug testDebugUnitTest
-  trap stop_emulator EXIT
   start_emulator
   gradle connectedDebugAndroidTest
 }

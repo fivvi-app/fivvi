@@ -1,7 +1,7 @@
 import Foundation
 import Sentry
 
-/// Error reporting to Sentry (E009, ADR-013, docs/engineering/OBSERVABILITY.md §6.1). The only code in the app that
+/// Error reporting to Sentry (E009, ADR-013, docs/engineering/OBSERVABILITY.md §1 "iOS"). The only code in the app that
 /// talks to sentry-cocoa: SwiftLint's `no_direct_sentry` rule fails anywhere else.
 enum ErrorReporting {
     /// Info.plist key of the Sentry DSN (`TRAINER_HUB_SENTRY_DSN` in Config/*.xcconfig). Empty turns reporting off.
