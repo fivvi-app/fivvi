@@ -1,6 +1,6 @@
 # Observability
 
-What Trainer Hub reports about itself, and what it never sends ([ADR-013](../decisions/ADR-013-observability.md), spec [#32](https://github.com/thekeyvan/trainer-hub/issues/32)). Errors go to **Sentry (EU region)**, product events and page views to **PostHog (EU Cloud)**. This document covers error reporting for the API, the cron job and the web app (server and browser), server product events (§4) and the web app's page views (§5); the native apps are added by the later E009 tickets.
+What Trainer Hub reports about itself, and what it never sends ([ADR-013](../decisions/ADR-013-observability.md), spec [#32](https://github.com/thekeyvan/trainer-hub/issues/32)). Errors go to **Sentry (EU region)**, product events and page views to **PostHog (EU Cloud)**. This document covers error reporting for the API, the cron job and the web app (server and browser), server product events (§4), the web app's page views (§5) and error reporting in the native apps (§6).
 
 ## 1. Error reporting
 
@@ -12,6 +12,7 @@ What Trainer Hub reports about itself, and what it never sends ([ADR-013](../dec
 | Web server (`apps/web/instrumentation.ts`) | Every error thrown while rendering a page: server components, server actions, and route handlers outside the API (Next.js's `onRequestError`). The visitor gets the error page | `web` |
 | Web browser (`apps/web/instrumentation-client.ts`) | Every uncaught error and unhandled promise rejection in the browser, including a component that throws while rendering. A future error boundary (`error.tsx`) that catches an error itself reports it with `captureError` | `web` |
 | Cron (`apps/cron`) | A failed run. The error is sent and flushed (at most 2 s) before the process exits with code 1 | `cron` |
+| iOS app (`apps/ios`) | Crashes, app hangs and watchdog terminations, with sessions for the crash-free rate (§6.1) | `ios` |
 
 Not captured: health check failures (they answer `503` and log to the console), validation errors (`400`), `notFound()` and redirects, and other expected responses.
 
@@ -135,3 +136,31 @@ The web app sends a page view to **PostHog EU** (`https://eu.i.posthog.com`, Fra
 - `packages/observability/src/page-views.test.ts` feeds a page view with synthetic personal data in the URL, title, referrer and person properties through `scrubPageView()`, and checks that only the path and the allowlisted properties remain and that every other event is dropped. With the SDK mocked, it checks that `capturePageView()` starts `posthog-js` once, cookieless, for the EU host, with autocapture, session recording and surveys off and `scrubPageView()` as `before_send`. `config.test.ts` checks that page views are off without `NEXT_PUBLIC_POSTHOG_KEY`.
 - `apps/web/e2e/analytics.spec.ts` runs in nl-NL and en against the production build, on a second server on `E2E_PORT + 1000` with a synthetic key (`apps/web/e2e/servers.ts`). It intercepts the PostHog host with `page.route` and aborts every other external request, so nothing reaches the real network. It loads a page with personal data in the query string and fragment, fills in and submits the form, and checks that exactly one `$pageview` per page load reaches PostHog with the path only and nothing else; that no other request goes to PostHog or anywhere outside the app; and that no cookie or storage entry is written, apart from the start-up check above. The test browser poses as a visitor's, because `posthog-js` drops events from automated browsers. Without a key, it checks that no loaded script contains `posthog-js` and that no request leaves the app.
 - Not automated: a page view arriving in PostHog. After the owner setup (#47), open a production page and check the event in PostHog's activity view.
+
+## 6. Native apps
+
+The native apps report to Sentry with its native SDKs, configured per build, under the same rules as the TypeScript code: off without a DSN, no data collection by the SDK, and the scrubbing rules of §2 applied in the app before anything is sent. Unlike the server runtimes, they also send sessions, for the crash-free session rate the pilot is measured on (`ROADMAP.md §8`). The apps have no analytics SDK (PostHog or other): their product events are captured on the server when the API handles the action (§4).
+
+### 6.1 iOS
+
+**What is captured** (Sentry project `ios`): crashes (signals, Mach exceptions, uncaught Objective-C and C++ exceptions), app hangs and watchdog terminations (the system ending the app, e.g. for memory), with the stack traces of every thread. A crash is written to disk when it happens and sent the next time the app starts. Every app start begins a session, which ends as crashed or healthy: that gives the crash-free session rate.
+
+How it is set up:
+
+- **One module.** `apps/ios/TrainerHub/Observability/` is the only code that talks to `sentry-cocoa` (Swift Package Manager): `ErrorReporting.start()` at launch, and the scrubber. SwiftLint's `no_direct_sentry` rule (`apps/ios/.swiftlint.yml`, fixture `lint/fixtures/DirectSentry.swift`) fails anywhere else that imports Sentry or calls `SentrySDK`, like the Biome rule for TypeScript (§1).
+- **From the build configuration.** `TRAINER_HUB_SENTRY_DSN` and `TRAINER_HUB_SENTRY_ENVIRONMENT` in `apps/ios/Config/*.xcconfig`, read from Info.plist ([ENVIRONMENTS.md §7](ENVIRONMENTS.md#7-variables)). Release reports as `production` and Debug as `development`. `release` is `nl.trainerhub.app@<version>+<build>` (`MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`), Sentry's format for app releases.
+- **Off without a DSN.** Debug's committed DSN is empty, so local builds, the unit and UI tests and CI start no SDK and make no network call; `pnpm test:ios` fails if it isn't empty. A developer can set one in the git-ignored `Config/Local.xcconfig` for the manual check below; while it is set, every Debug run of the app reports, tests included.
+- **Errors and release health only.** Tracing, profiling, session replay, screenshots, view hierarchies, Sentry logs, client reports and captured HTTP failures are off (API errors are reported by the server, §1). `sendDefaultPii` is off, so the SDK adds no IP address and asks Sentry not to infer one (`infer_ip: never`).
+- **Scrubbed in the app.** `beforeSend` and `beforeBreadcrumb` run `Scrubber` (`Observability/Scrubber.swift`), the rules of §2 in Swift. Two differences for a phone: an event keeps its threads (a crash's stack trace is in them), with frame variables dropped; and `server_name` is dropped, because on a phone it would be the device name. Breadcrumbs are scrubbed when they are recorded, so a crash report stored on the device never holds an unscrubbed one.
+- **Pseudonymous IDs.** Without a signed-in user, Sentry gives an event the install's random ID (a UUID it generates on first launch and that is gone when the app is deleted) as `user.id`, and sends it with each session to count crash-free users. The `app` context carries a hash of device and app (`device_app_hash`). Neither is linked to a person in Sentry. Once the app has sign-in (F001), it sets the internal user UUID and workspace UUID as the user, as the server does.
+- **Defence in depth (owner setup, #47).** The Sentry `ios` project also has the server-side data scrubber and "Prevent storing of IP addresses" switched on. dSYMs for symbolicated stack traces are uploaded as part of distribution (E017).
+
+**Testing.** `apps/ios/TrainerHubTests/ObservabilityTests.swift` runs in nl and en. It feeds an event with synthetic personal data (the same as the Android tests and `scrub.test.ts`: a client name, an email address, note text in the test-plan language, an IP address, a token, a cookie and UUIDs) through `beforeSend` and checks the serialized event, which is what would leave the app: no personal data, the UUIDs, route, status code and stack traces kept. It checks that breadcrumbs keep only the HTTP method, status code and URL path; that without a DSN the SDK doesn't start; and that the options carry the environment, release and session tracking, with everything listed above off.
+
+**Not automated: real ingestion.** After the owner setup (#47), with synthetic data only:
+
+1. Put the `ios` project's DSN in `apps/ios/Config/Local.xcconfig`: `TRAINER_HUB_SENTRY_DSN = https:/$()/<key>@<org>.ingest.de.sentry.io/<project>`.
+2. Build and install a Debug build on a simulator, then start it without Xcode's debugger (which catches crashes before Sentry does): `xcrun simctl launch <udid> nl.trainerhub.app` prints the process ID.
+3. Crash it: `kill -SEGV <pid>`. Start it again with `xcrun simctl launch`; it sends the crash.
+4. In Sentry: the crash is in the `ios` project with environment `development` and release `nl.trainerhub.app@<version>+<build>`, its user is only an ID, there is no IP address, and Release Health shows a crashed session.
+5. Remove the DSN from `Local.xcconfig`. Record the result in the PR.

@@ -14,7 +14,7 @@ pnpm test:ios                   # what the iOS CI job runs
 | Path | What |
 |---|---|
 | `TrainerHub.xcodeproj` | Xcode project with folder-synchronized groups: a file added to one of the folders below is in its target, no project generator. Shared scheme `TrainerHub` |
-| `TrainerHub/` | The app target. `App/` (entry point, configuration), `Hello/` (the screen and its view model), `Language/` (interface language), `Strings/` (catalog lookup), `Theme/` (styles built from the design tokens) |
+| `TrainerHub/` | The app target. `App/` (entry point, configuration), `Hello/` (the screen and its view model), `Language/` (interface language), `Observability/` (crash and error reporting), `Strings/` (catalog lookup), `Theme/` (styles built from the design tokens) |
 | `TrainerHubTests/` | Unit tests (XCTest), hosted in the app |
 | `TrainerHubUITests/` | UI tests (XCUITest) |
 | `TrainerHub.xctestplan` | Runs every test twice: `nl` (region NL) and `en` (region GB), time zone Europe/Amsterdam (`TESTING.md §7.2`) |
@@ -22,7 +22,7 @@ pnpm test:ios                   # what the iOS CI job runs
 | `lint/fixtures/` | Files that must fail SwiftLint, one per custom rule (not in any target) |
 | `.build/` | Build output, resolved packages and SwiftLint (git-ignored) |
 
-**Dependencies** (Swift packages, pinned in `TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`): two local packages, the generated API client `TrainerHubAPI` from [`packages/contract/swift`](../../packages/contract/README.md) and the design tokens `TrainerHubDesignTokens` from [`packages/design-tokens/TrainerHubDesignTokens`](../../packages/design-tokens/README.md#using-the-tokens-on-ios-and-android), and Apple's `swift-openapi-runtime` and `swift-openapi-urlsession` for its URLSession transport. Never hand-write API calls: change the contract and regenerate.
+**Dependencies** (Swift packages, pinned in `TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`): two local packages, the generated API client `TrainerHubAPI` from [`packages/contract/swift`](../../packages/contract/README.md) and the design tokens `TrainerHubDesignTokens` from [`packages/design-tokens/TrainerHubDesignTokens`](../../packages/design-tokens/README.md#using-the-tokens-on-ios-and-android), and Apple's `swift-openapi-runtime` and `swift-openapi-urlsession` for its URLSession transport, plus `sentry-cocoa` for crash reporting ([Crash reporting](#crash-reporting)). Never hand-write API calls: change the contract and regenerate. `pnpm test:ios` fails on a remote package that isn't on its allowlist (`swift_packages` in `scripts/test-ios.sh`): the app has no analytics SDK.
 
 **Strings:** `Localizable.xcstrings` and `InfoPlist.xcstrings` are referenced in place from [`packages/i18n/generated/ios`](../../packages/i18n/README.md#native-apps-e008), never copied or edited. The development region is `nl`; the localizations are `nl` and `en`. The display name under the icon, `CFBundleDisplayName`, comes from `app.name` through `InfoPlist.xcstrings`. String extraction is off (`SWIFT_EMIT_LOC_STRINGS = NO`), so Xcode never writes to the generated catalogs.
 
@@ -63,6 +63,8 @@ The app picks its interface language itself, by ADR-017's rule, and uses it for 
 |---|---|---|
 | API base URL (`TRAINER_HUB_API_BASE_URL`) | `http://localhost:3000/api`, the local dev server as the simulator sees it | The production API over HTTPS, set in `Config/Release.xcconfig` |
 | Plain HTTP | Allowed to local hosts only: App Transport Security's local-networking exception (`Config/Info-Debug.plist`) | Not allowed: `Config/Info.plist` has no App Transport Security exception; `pnpm test:ios` checks this |
+| Sentry DSN (`TRAINER_HUB_SENTRY_DSN`) | Empty: no crash reporting; `pnpm test:ios` checks this | The Sentry `ios` project's DSN, set by the owner (empty until #47) |
+| Sentry environment (`TRAINER_HUB_SENTRY_ENVIRONMENT`) | `development` | `production` |
 
 To run a Debug build against a preview environment or the dev server on your Mac from a phone on the LAN, create `Config/Local.xcconfig` (git-ignored) with e.g. `TRAINER_HUB_API_BASE_URL = https:/$()/<preview-domain>/api` (`//` starts a comment in an xcconfig, hence `$()`). Debug builds also accept `-TrainerHubAPIBaseURL <url>` as a launch argument; the UI tests use it.
 
@@ -73,11 +75,12 @@ To run a Debug build against a preview environment or the dev server on your Mac
 `pnpm test:ios` (`scripts/test-ios.sh`) runs, in order, exactly what the `iOS` CI job runs:
 
 1. SwiftLint with `--strict` on the app and its tests.
-2. SwiftLint on each fixture in `lint/fixtures/`, which must fail on exactly the lines marked `// expect: <rule>`: `LiteralText.swift` (`no_literal_text`) and `ColourLiteral.swift` (`no_colour_literal`).
-3. The configurations: Debug's committed base URL is the local dev server (`http://localhost:3000/api`); Release has an `https://…/api` base URL and no App Transport Security exception.
-4. A simulator build without signing, then the test plan: unit and UI tests, each in `nl` and `en`, on the newest iPhone simulator (`IOS_SIMULATOR="iPhone 17"` picks one by name). Results go to `.build/TestResults.xcresult`.
+2. SwiftLint on each fixture in `lint/fixtures/`, which must fail on exactly the lines marked `// expect: <rule>`: `LiteralText.swift` (`no_literal_text`), `ColourLiteral.swift` (`no_colour_literal`) and `DirectSentry.swift` (`no_direct_sentry`).
+3. The configurations: Debug's committed base URL is the local dev server (`http://localhost:3000/api`) and its Sentry DSN is empty; Release has an `https://…/api` base URL, no App Transport Security exception and Sentry environment `production`.
+4. The Swift packages in `Package.resolved` are all on the allowlist: no analytics SDK.
+5. A simulator build without signing, then the test plan: unit and UI tests, each in `nl` and `en`, on the newest iPhone simulator (`IOS_SIMULATOR="iPhone 17"` picks one by name). Results go to `.build/TestResults.xcresult`.
 
-- **Unit tests** (`TrainerHubTests/`): the view model against `StubAPI`, a stub of `APIProtocol` that records the requested locale; the language rule with the same cases as `packages/i18n/src/locale.test.ts`; the configuration.
+- **Unit tests** (`TrainerHubTests/`): the view model against `StubAPI`, a stub of `APIProtocol` that records the requested locale; the language rule with the same cases as `packages/i18n/src/locale.test.ts`; the configuration; the crash reporting scrubber and options (`ObservabilityTests`).
 - **UI tests** (`TrainerHubUITests/`): the app against `StubServer`, an HTTP server in the test runner, so a test controls the answer (greeting, error, or holding it to keep the spinner on screen) and asserts the requested `locale`. `HelloScreen.launch` sets the device languages (`-AppleLanguages`), the per-app language (a Debug-only launch argument, because UI tests can't change iOS Settings), the text size and light or dark mode (a Debug-only launch argument). `ScreenColours` reads a screenshot's pixels in sRGB, for the theme test.
 - Expected copy is read from the generated catalog compiled into the test bundle (`TestCatalog`), never hard-coded. Each test-plan configuration also sets `TRAINER_HUB_TEST_LANGUAGE`; tests take the expected language from it, so a configuration whose language doesn't reach the app fails instead of testing the other language twice.
 - Accessibility: `test_E008_AC7_largestTextSizeWraps` runs Xcode's accessibility audit (clipped text, Dynamic Type, hit regions) at the largest text size.
@@ -91,5 +94,9 @@ Every user-facing string comes from `packages/i18n` (`AGENTS.md`). SwiftLint's c
 ## No hard-coded colours
 
 Every colour comes from the design tokens. SwiftLint's custom rule `no_colour_literal` (`.swiftlint.yml`) fails on a colour initialiser (`Color(red:green:blue:)`, `Color("Asset")`, `UIColor(…)`), a `#colorLiteral`, a system colour or style (`Color.red`, `UIColor.systemBackground`, `.background`) or its shorthand as an argument, value or result (`.foregroundStyle(.secondary)`, `.tint(.blue)`, `colors: [.red]`, `on ? .red : …`, `return .red`), and names the file and line. `Color.clear`, `.tint` and materials are allowed. Tests are excluded, because they resolve token colours to check the screen. Like `no_literal_text`, it can't see colours passed through variables; review those by hand.
+
+## Crash reporting
+
+Crashes, app hangs and watchdog terminations go to the Sentry `ios` project with sessions for the crash-free rate (E009, [OBSERVABILITY.md §6.1](../../docs/engineering/OBSERVABILITY.md#61-ios)). `Observability/` is the only code that talks to `sentry-cocoa`: `ErrorReporting.start()` at launch reads the DSN and environment from the build configuration and does nothing without a DSN, and `Scrubber` applies the scrubbing rules in `beforeSend` and `beforeBreadcrumb`. SwiftLint's custom rule `no_direct_sentry` fails on `import Sentry` or `SentrySDK` anywhere else, apart from the tests of that module. Report through the module; never add an analytics SDK.
 
 SwiftLint is pinned by version and SHA-256 in `scripts/_ios.sh` and downloaded to `.build/` on first use.

@@ -16,6 +16,7 @@
 		E00800000000000000000076 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
 		E00800000000000000000077 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
 		E00800000000000000000079 /* TrainerHubDesignTokens in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A9 /* TrainerHubDesignTokens */; };
+		E00900000000000000000070 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E009000000000000000000A0 /* Sentry */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +76,7 @@
 				E00800000000000000000071 /* TrainerHubDesignTokens in Frameworks */,
 				E00800000000000000000072 /* OpenAPIRuntime in Frameworks */,
 				E00800000000000000000073 /* OpenAPIURLSession in Frameworks */,
+				E00900000000000000000070 /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -164,6 +166,7 @@
 				E008000000000000000000A1 /* TrainerHubDesignTokens */,
 				E008000000000000000000A2 /* OpenAPIRuntime */,
 				E008000000000000000000A3 /* OpenAPIURLSession */,
+				E009000000000000000000A0 /* Sentry */,
 			);
 			productName = TrainerHub;
 			productReference = E00800000000000000000046 /* TrainerHub.app */;
@@ -252,6 +255,7 @@
 				E00800000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/TrainerHubDesignTokens" */,
 				E00800000000000000000092 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */,
 				E00800000000000000000093 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */,
+				E00900000000000000000090 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E00800000000000000000023 /* Products */;
@@ -538,6 +542,14 @@
 				minimumVersion = 1.3.1;
 			};
 		};
+		E00900000000000000000090 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.30.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -565,6 +577,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E00800000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/TrainerHubDesignTokens" */;
 			productName = TrainerHubDesignTokens;
+		};
+		E009000000000000000000A0 /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E00900000000000000000090 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

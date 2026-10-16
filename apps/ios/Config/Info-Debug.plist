@@ -4,6 +4,10 @@
 <dict>
 	<key>TrainerHubAPIBaseURL</key>
 	<string>$(TRAINER_HUB_API_BASE_URL)</string>
+	<key>TrainerHubSentryDSN</key>
+	<string>$(TRAINER_HUB_SENTRY_DSN)</string>
+	<key>TrainerHubSentryEnvironment</key>
+	<string>$(TRAINER_HUB_SENTRY_ENVIRONMENT)</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

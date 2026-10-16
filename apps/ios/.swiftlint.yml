@@ -43,3 +43,19 @@ custom_rules:
       - doccomment.field
       - string
     severity: error
+  # Only the Observability module talks to Sentry (E009, OBSERVABILITY.md §6.1), like Biome's noRestrictedImports for
+  # @sentry/* in TypeScript: it starts the SDK and owns the scrubber. Its tests build Sentry events.
+  # Fixture: lint/fixtures/DirectSentry.swift.
+  no_direct_sentry:
+    name: No direct Sentry
+    message: Only TrainerHub/Observability/ talks to Sentry (sentry-cocoa); report through ErrorReporting
+    excluded: '/TrainerHub/Observability/|/TrainerHubTests/(Support/)?Observability\w*\.swift$'
+    regex: '\bimport\s+(@\w+\s+)*((struct|class|enum|protocol|typealias|func|let|var)\s+)?Sentry\w*\b|\bSentrySDK\b'
+    excluded_match_kinds:
+      - comment
+      - comment.mark
+      - comment.url
+      - doccomment
+      - doccomment.field
+      - string
+    severity: error
