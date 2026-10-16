@@ -5,9 +5,11 @@
 #                                installs dependencies and creates packages/database/.env
 #   wt.sh rm   <branch>          remove the branch's worktree (the branch is kept)
 #   wt.sh list                   list worktrees
-#   wt.sh done <branch> [--check]  after its PR is merged: remove worktree and branches, update main
+#   wt.sh done <branch> [--check]  after its PR is merged: remove worktree, branches and the worktree's iOS simulator,
+#                                update main
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/_ios.sh"
 
 usage() { usage_of "$0"; }
 
@@ -70,7 +72,10 @@ cmd_done() {
     || die "${wt#"$MAIN_ROOT"/} has uncommitted changes"
   [ -z "$check" ] || return 0
 
-  [ -z "$wt" ] || [ "$wt" = "$MAIN_ROOT" ] || git -C "$MAIN_ROOT" worktree remove "$wt"
+  if [ -n "$wt" ] && [ "$wt" != "$MAIN_ROOT" ]; then
+    git -C "$MAIN_ROOT" worktree remove "$wt"
+    delete_worktree_simulator "$wt"
+  fi
   default="$(default_branch)"
   git -C "$MAIN_ROOT" fetch --prune --quiet
   [ "$(git -C "$MAIN_ROOT" branch --show-current)" != "$branch" ] || git -C "$MAIN_ROOT" switch --quiet "$default"

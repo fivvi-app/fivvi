@@ -72,7 +72,20 @@ android_env() {
   export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$ANDROID_HOME/cmdline-tools/latest/bin:$MAESTRO_HOME/bin:$PATH"
 }
 
-gradle() { (cd "$ANDROID_DIR" && ./gradlew --console=plain "$@"); }
+# This checkout's Gradle daemons have a registry of their own, so stop_gradle stops only them: never another worktree's
+# build, or the daemons of the developer's IDE.
+GRADLE_DAEMONS="$ANDROID_DIR/.gradle/daemons"
+GRADLE_STARTED=false
+gradle() {
+  GRADLE_STARTED=true
+  (cd "$ANDROID_DIR" && ./gradlew --console=plain "-Dorg.gradle.daemon.registry.base=$GRADLE_DAEMONS" "$@")
+}
+
+# Stops the Gradle daemons of this checkout after a run that used them, unless KEEP_DEVICE=1.
+stop_gradle() {
+  [ "$GRADLE_STARTED" = true ] && [ "${KEEP_DEVICE:-}" != 1 ] || return 0
+  gradle --stop >/dev/null 2>&1 || true
+}
 
 avd_exists() { emulator -list-avds 2>/dev/null | grep -qx "$AVD_NAME"; }
 
@@ -148,6 +161,13 @@ start_emulator() {
   done
 }
 
+# Kills the emulator this run started, unless KEEP_DEVICE=1.
 stop_emulator() {
-  if [ "$EMULATOR_STARTED" = true ]; then adb emu kill >/dev/null 2>&1 || true; fi
+  if [ "$EMULATOR_STARTED" = true ] && [ "${KEEP_DEVICE:-}" != 1 ]; then adb emu kill >/dev/null 2>&1 || true; fi
+}
+
+# What a test run started: the emulator and the Gradle daemons.
+stop_android() {
+  stop_emulator
+  stop_gradle
 }
