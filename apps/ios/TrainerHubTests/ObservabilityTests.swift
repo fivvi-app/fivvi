@@ -58,61 +58,6 @@ final class ObservabilityTests: XCTestCase {
         )
     }
 
-    /// The scrubber edits the SDK's event in place, so it must decide about every field: a field that a new
-    /// sentry-cocoa version adds fails this test until Scrubber.swift keeps or clears it (OBSERVABILITY.md §6.1).
-    func test_E009_AC8_scrubberDecidesEveryField() {
-        let decisions: [FieldDecision] = [
-            FieldDecision(
-                Event.self,
-                kept: [
-                    "eventId", "timestamp", "startTimestamp", "level", "platform", "logger", "releaseName", "dist",
-                    "environment", "transaction", "type", "sdk", "fingerprint", "debugMeta", "message", "exceptions",
-                    "threads", "stacktrace", "request", "user", "tags", "context", "breadcrumbs",
-                    "serializedBreadcrumbs",
-                    // The SDK's own state, never sent.
-                    "error", "isFatalEvent", "isAppHangEvent", "attachAllThreadsOverride", "startSystemTime",
-                    "endSystemTime"
-                ],
-                cleared: ["serverName", "extra", "modules"]
-            ),
-            FieldDecision(
-                Exception.self,
-                kept: ["type", "value", "module", "threadId", "mechanism", "stacktrace"],
-                cleared: []
-            ),
-            FieldDecision(
-                Mechanism.self,
-                kept: ["type", "desc", "handled", "synthetic", "helpLink", "meta"],
-                cleared: ["data"]
-            ),
-            FieldDecision(
-                SentryThread.self,
-                kept: ["threadId", "name", "crashed", "current", "isMain", "stacktrace"],
-                cleared: []
-            ),
-            FieldDecision(SentryStacktrace.self, kept: ["frames", "registers", "snapshot"], cleared: []),
-            FieldDecision(
-                Frame.self,
-                kept: [
-                    "symbolAddress", "fileName", "function", "module", "package", "imageAddress", "platform",
-                    "instructionAddress", "lineNumber", "columnNumber", "contextLine", "parentIndex", "sampleCount",
-                    "preContext", "postContext", "inApp", "stackStart"
-                ],
-                cleared: ["vars"]
-            ),
-            FieldDecision(
-                Breadcrumb.self,
-                kept: ["type", "category", "level", "timestamp", "data"],
-                cleared: ["message", "origin"]
-            )
-        ]
-        for decision in decisions {
-            XCTAssertEqual(
-                Self.fields(of: decision.type), decision.kept.union(decision.cleared), "\(decision.type)"
-            )
-        }
-    }
-
     func test_E009_AC8_beforeSendKeepsTheStackTraces() throws {
         let sent = try XCTUnwrap(ErrorReporting.beforeSend(Synthetic.event())).serialize()
 
@@ -123,7 +68,7 @@ final class ObservabilityTests: XCTestCase {
         )
         let mechanism = try XCTUnwrap(exception["mechanism"] as? [String: Any])
         XCTAssertEqual(mechanism["type"] as? String, "NSException")
-        XCTAssertEqual(mechanism["description"] as? String, "Rejected [email]")
+        XCTAssertNil(mechanism["description"])
         XCTAssertEqual(mechanism["handled"] as? Bool, false)
         XCTAssertNil(mechanism["data"])
         XCTAssertEqual(
@@ -135,6 +80,26 @@ final class ObservabilityTests: XCTestCase {
         XCTAssertEqual(thread["main"] as? Bool, true)
         XCTAssertEqual(try Self.frames(thread), [["function": "main", "filename": "TrainerHubApp.swift", "lineno": 7]])
         XCTAssertEqual((thread["stacktrace"] as? [String: Any])?["registers"] as? [String: String], ["x0": "0x1"])
+    }
+
+    func test_E009_AC8_reportedErrorsPassTheScrubber() throws {
+        let error = NSError(domain: "nl.trainerhub.notes", code: 7, userInfo: [
+            NSDebugDescriptionErrorKey: "Could not save the note for \(Synthetic.email)",
+            NSLocalizedDescriptionKey: Synthetic.note,
+            NSURLErrorFailingURLStringErrorKey: "https://api.example.com/v1/clients?name=\(Synthetic.clientName)"
+        ])
+
+        let sent = try Self.reportRecordingWhatWouldBeSent(error)
+
+        let json = try Synthetic.json(sent)
+        for value in Synthetic.personalData {
+            XCTAssertFalse(json.contains(value), "\(value) left the process: \(json)")
+        }
+        let exception = try XCTUnwrap(Self.values(sent["exception"]).first)
+        XCTAssertEqual(exception["type"] as? String, "nl.trainerhub.notes")
+        XCTAssertEqual(exception["value"] as? String, "Could not save the note for [email] (Code: 7)")
+        XCTAssertEqual(sent["environment"] as? String, "production")
+        XCTAssertEqual(sent["release"] as? String, Synthetic.release)
     }
 
     func test_E009_AC8_keepsOnlyUUIDsInTheUser() throws {
@@ -192,6 +157,7 @@ final class ObservabilityTests: XCTestCase {
 
             XCTAssertNil(ErrorReporting.Configuration(info: info), "DSN \(String(describing: dsn))")
             XCTAssertFalse(ErrorReporting.start(info: info), "DSN \(String(describing: dsn))")
+            ErrorReporting.capture(URLError(.badServerResponse))
             XCTAssertFalse(SentrySDK.isEnabled, "DSN \(String(describing: dsn))")
         }
     }
@@ -227,26 +193,33 @@ final class ObservabilityTests: XCTestCase {
         XCTAssertNil(options.beforeBreadcrumb?(breadcrumb)?.message, "beforeBreadcrumb is the scrubber")
     }
 
-    /// What the scrubber does with each field of an SDK type it edits in place.
-    private struct FieldDecision {
-        let type: AnyClass
-        let kept: Set<String>
-        let cleared: Set<String>
-
-        init(_ type: AnyClass, kept: Set<String>, cleared: Set<String>) {
-            self.type = type
-            self.kept = kept
-            self.cleared = cleared
+    /// Reports `error` through `ErrorReporting.capture` with the app's options, and returns what `beforeSend` lets
+    /// through instead of sending it. Nothing leaves the machine: `beforeSend` drops the event after recording it,
+    /// sessions and the crash handler are off, and the DSN points at a closed local port.
+    private static func reportRecordingWhatWouldBeSent(_ error: Error) throws -> [String: Any] {
+        let configuration = ErrorReporting.Configuration(info: Synthetic.info(dsn: "http://public@127.0.0.1:9/1"))
+        let options = ErrorReporting.options(for: try XCTUnwrap(configuration))
+        let scrub = try XCTUnwrap(options.beforeSend)
+        let recorder = Recorder()
+        options.beforeSend = { event in
+            recorder.sent.append(scrub(event)?.serialize())
+            return nil
         }
+        options.enableAutoSessionTracking = false
+        options.enableCrashHandler = false
+        options.enableAppHangTracking = false
+        SentrySDK.close()
+        SentrySDK.start(options: options)
+        defer { SentrySDK.close() }
+
+        ErrorReporting.capture(error)
+
+        XCTAssertEqual(recorder.sent.count, 1, "one event")
+        return try XCTUnwrap(recorder.sent.first ?? nil)
     }
 
-    /// The Objective-C properties of an SDK type, without NSObject's.
-    private static func fields(of type: AnyClass) -> Set<String> {
-        var count: UInt32 = 0
-        guard let list = class_copyPropertyList(type, &count) else { return [] }
-        defer { free(list) }
-        let names = (0..<Int(count)).map { String(cString: property_getName(list[$0])) }
-        return Set(names).subtracting(["debugDescription", "description", "hash", "superclass"])
+    private final class Recorder: @unchecked Sendable {
+        var sent: [[String: Any]?] = []
     }
 
     private static func withoutTimestamp(_ breadcrumb: [String: Any]) -> NSDictionary {

@@ -41,6 +41,14 @@ enum ErrorReporting {
         return true
     }
 
+    /// Reports an error the app handled but that shouldn't happen; does nothing while reporting is off. Like every
+    /// event it passes the scrubber, which keeps the error's description with email addresses masked: put IDs in
+    /// errors, never names or note content (ADR-013).
+    static func capture(_ error: Error) {
+        guard SentrySDK.isEnabled else { return }
+        SentrySDK.capture(error: error)
+    }
+
     /// Crashes, errors and release health (crash-free sessions) only: no tracing, profiling, session replay,
     /// screenshots, logs or captured HTTP failures, and every event and breadcrumb passes the scrubber.
     static func options(for configuration: Configuration) -> Options {

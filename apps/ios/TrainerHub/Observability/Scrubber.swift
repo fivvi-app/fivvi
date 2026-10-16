@@ -89,9 +89,10 @@ enum Scrubber {
     private static func scrub(_ exception: Exception) {
         exception.value = exception.value.map(maskEmails)
         if let mechanism = exception.mechanism {
-            // `data` may carry SDK-specific details; the rest says how the error was caught.
+            // `data` and `desc` hold free text from the SDK (for an NSError its whole `userInfo`, query strings
+            // included); the rest says how the error was caught.
             mechanism.data = nil
-            mechanism.desc = mechanism.desc.map(maskEmails)
+            mechanism.desc = nil
         }
         if let stacktrace = exception.stacktrace {
             scrub(stacktrace)

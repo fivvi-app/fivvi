@@ -31,7 +31,7 @@ enum Synthetic {
     static var personalData: [String] {
         [
             clientName, "Femke", "Vries", email, "femke", note, String(note.prefix(4)), ipAddress, token,
-            "synthetic-token", cookie, "synthetic-cookie", "Amsterdam"
+            "synthetic-token", cookie, "synthetic-cookie", "Zwolle"
         ]
     }
 
@@ -148,7 +148,7 @@ enum Synthetic {
         user.name = clientName
         user.ipAddress = ipAddress
         user.geo = Geo()
-        user.geo?.city = "Amsterdam"
+        user.geo?.city = "Zwolle"
         user.data = ["organization_id": workspaceID, "client_name": clientName]
         return user
     }
