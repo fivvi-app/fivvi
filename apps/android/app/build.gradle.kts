@@ -67,6 +67,7 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(checkR
 
 dependencies {
     implementation(project(":api"))
+    implementation(project(":design-tokens"))
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.material3)
     implementation(libs.compose.ui)

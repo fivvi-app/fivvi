@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.serialization) apply false
@@ -18,11 +19,12 @@ dependencies {
 
 val ktlintSources = listOf("app/src/**/*.kt", "lint/src/**/*.kt", "**/*.kts", "!**/build/**")
 
-// AC8 (spec #34): the same ktlint, rules and wiring as ktlintCheck must fail on the literal-text fixture, naming its
-// file and every line, and accept the resource-text fixture. Runs before ktlintCheck, so the lint step proves its rule.
+// AC8 and AC6 (spec #34): the same ktlint, rules and wiring as ktlintCheck must fail on the hard-coded text and colour
+// fixtures, naming the file and every line, and accept the resource-text and token-colour fixtures. Runs before
+// ktlintCheck, so the lint step proves its rules.
 val ktlintFixtures = tasks.register<JavaExec>("ktlintFixtures") {
     group = "verification"
-    description = "Checks that ktlint rejects the hard-coded text in lint/fixtures."
+    description = "Checks that ktlint rejects the hard-coded text and colours in lint/fixtures."
     classpath = ktlint
     mainClass = "com.pinterest.ktlint.Main"
     val report = layout.buildDirectory.file("ktlint/fixtures.txt").get().asFile
@@ -32,11 +34,19 @@ val ktlintFixtures = tasks.register<JavaExec>("ktlintFixtures") {
     outputs.file(report)
     val result = executionResult
     doLast {
-        val reported = report.readLines().filter { it.endsWith("(trainer-hub:no-literal-text)") }
-        val expected = listOf("11:10", "12:17", "14:14", "16:10").map { "lint/fixtures/LiteralText.kt:$it:" }
-        check(result.get().exitValue != 0) { "ktlint passed lint/fixtures/LiteralText.kt" }
-        check(reported.map { it.substringBefore(" ") } == expected) {
-            "ktlint should report hard-coded text at $expected, reported:\n${reported.joinToString("\n")}"
+        val expected = mapOf(
+            "no-literal-text" to listOf("11:10", "12:17", "14:14", "16:10").map { "LiteralText.kt:$it" },
+            "no-colour-literal" to (17..28).zip(listOf(25, 25, 25, 25, 25, 25, 17, 18, 25, 33, 33, 33))
+                .map { (line, column) -> "ColourLiteral.kt:$line:$column" },
+        )
+        check(result.get().exitValue != 0) { "ktlint passed lint/fixtures" }
+        val lines = report.readLines()
+        expected.forEach { (rule, places) ->
+            val reported = lines.filter { it.endsWith("(trainer-hub:$rule)") }
+            val wanted = places.map { "lint/fixtures/$it:" }
+            check(reported.map { it.substringBefore(" ") } == wanted) {
+                "ktlint should report $rule at $wanted, reported:\n${reported.joinToString("\n")}"
+            }
         }
     }
 }

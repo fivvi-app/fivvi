@@ -19,9 +19,10 @@ To try the app against your local web server (`pnpm dev`, port 3000), run `./gra
 
 | Path | What |
 |---|---|
-| `app/` | The app. `hello/` holds the screen: `HelloViewModel` (states `Loading`, `Loaded`, `Failed`) and `HelloScreen` |
+| `app/` | The app. `hello/` holds the screen: `HelloViewModel` (states `Loading`, `Loaded`, `Failed`) and `HelloScreen`; `theme/` holds `TrainerHubTheme` |
 | `api/` | Compiles the generated Kotlin client in `packages/contract/kotlin/generated` in place (Retrofit, OkHttp, kotlinx.serialization). Never edit it here |
-| `lint/` | ktlint rules (`trainer-hub:no-literal-text`) and `fixtures/` that prove them |
+| `design-tokens/` | Compiles the generated Kotlin design tokens in `packages/design-tokens/kotlin/generated` in place (package `nl.trainerhub.designtokens`). Never edit them here |
+| `lint/` | ktlint rules (`trainer-hub:no-literal-text`, `trainer-hub:no-colour-literal`) and `fixtures/` that prove them |
 | `gradle/libs.versions.toml` | Every dependency version |
 
 ## Rules
@@ -31,7 +32,7 @@ To try the app against your local web server (`pnpm dev`, port 3000), run `./gra
 - **API** through the generated `nl.trainerhub.api` client only. The view model depends on the generated `HelloApi` interface, which tests replace with `FakeHelloApi` (`app/src/testShared`).
 - **Base URL** per build type, from `gradle.properties`: debug `trainerhub.apiBaseUrl` (the local server as `10.0.2.2` from the emulator; override with `-Ptrainerhub.apiBaseUrl=https://<preview>/api/`), release `trainerhub.releaseApiBaseUrl` (HTTPS only, or the release build fails). Plain HTTP is allowed only in debug (`src/debug`, network security config).
 - **Test tags** are shared with the iOS accessibility identifiers and the Maestro flows: `hello.greeting`, `hello.loading`, `hello.error`, `hello.retry` (`HelloTags`). The app exposes them as resource ids, so Maestro finds them.
-- **Theme:** Material 3 defaults, light and dark, until the token theme (#58).
+- **Theme** (ADR-015): wrap screens in `TrainerHubTheme`. It takes the generated `LightColorScheme` or `DarkColorScheme` as the system's mode is, and `TokenShapes`; text keeps Material 3's type scale in Roboto, so use `MaterialTheme.typography` with the token names (`title1`, `body`), never a font size. No dynamic colour (Material You). Colours come from `MaterialTheme.colorScheme`; for what Material doesn't cover (sessions, status), from `LightTokenColors` or `DarkTokenColors` for the same mode. No screen needs those yet: the first one adds them to `TrainerHubTheme`, so screens don't each pick the mode. Spacing comes from `Spacing`. `ktlintCheck` fails on a hard-coded colour (`Color(…)`, `Color.Red`, `colorResource`, Material's own or dynamic colour schemes) and names the file and line.
 
 ## Behind a company proxy
 

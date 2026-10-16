@@ -103,16 +103,16 @@ describe('iOS toolchain (_ios.sh)', () => {
 });
 
 describe('CI path filters (ci.yml)', () => {
-  // The `decide ios` filter of the "Detect changes" job, as the ERE that grep -E runs.
-  const iosFilter = () => {
+  // A `decide <output>` filter of the "Detect changes" job, as the ERE that grep -E runs.
+  const pathFilter = (output) => {
     const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
-    const filter = ci.match(/^ +decide ios apps\/ios '([^']+)'$/m)?.[1];
-    assert.ok(filter, 'ci.yml has no `decide ios` filter');
+    const filter = ci.match(new RegExp(`^ +decide ${output} apps/${output} '([^']+)'$`, 'm'))?.[1];
+    assert.ok(filter, `ci.yml has no \`decide ${output}\` filter`);
     return new RegExp(filter);
   };
 
   it('E008 AC9: the iOS job runs for the app and its generated inputs, including the Swift design tokens', () => {
-    const ios = iosFilter();
+    const ios = pathFilter('ios');
     for (const path of [
       'apps/ios/TrainerHub/Hello/HelloView.swift',
       'packages/contract/swift/Sources/TrainerHubAPI/Generated/Client.swift',
@@ -131,6 +131,29 @@ describe('CI path filters (ci.yml)', () => {
       'packages/i18n/generated/android/values/strings.xml',
     ]) {
       assert.doesNotMatch(path, ios, path);
+    }
+  });
+
+  it('E008 AC9: the Android job runs for the app and its generated inputs, including the Kotlin design tokens', () => {
+    const android = pathFilter('android');
+    for (const path of [
+      'apps/android/app/src/main/kotlin/nl/trainerhub/app/MainActivity.kt',
+      'packages/contract/kotlin/generated/nl/trainerhub/api/apis/HelloApi.kt',
+      'packages/i18n/generated/android/values/strings.xml',
+      'packages/design-tokens/kotlin/generated/nl/trainerhub/designtokens/Colors.kt',
+      'e2e/maestro/hello.yaml',
+      'scripts/android.sh',
+      '.github/workflows/ci.yml',
+    ]) {
+      assert.match(path, android, path);
+    }
+    for (const path of [
+      'docs/product/FEATURES.md',
+      'packages/design-tokens/generated/web/tokens.css',
+      'packages/design-tokens/TrainerHubDesignTokens/Sources/TrainerHubDesignTokens/Generated/Colors.swift',
+      'packages/i18n/generated/ios/Localizable.xcstrings',
+    ]) {
+      assert.doesNotMatch(path, android, path);
     }
   });
 });

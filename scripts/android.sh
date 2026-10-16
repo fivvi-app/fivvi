@@ -3,8 +3,8 @@
 #
 #   android.sh setup      install or check the JDK, the Android SDK, the emulator and its image, and Maestro
 #                         (scripts/bootstrap.sh --mobile runs this)
-#   android.sh test       ktlint and the literal-text check, build, unit tests (nl-NL and en), and the Compose UI tests
-#                         on an emulator, booted for the run when none is connected (pnpm test:android)
+#   android.sh test       ktlint with the literal-text and colour checks, build, unit tests (nl-NL and en), and the
+#                         Compose UI tests on an emulator, booted for the run when none is connected (pnpm test:android)
 #   android.sh emulator   boot the emulator headless and leave it running, so test and maestro.sh reuse it
 #
 # When test ends, also on failure or Ctrl-C, it kills the emulator it booted and stops its Gradle daemons; KEEP_DEVICE=1
