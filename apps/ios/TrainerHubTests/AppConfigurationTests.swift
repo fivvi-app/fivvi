@@ -72,10 +72,4 @@ final class AppConfigurationTests: XCTestCase {
         default: return false
         }
     }
-
-    private func emptyDefaults() throws -> UserDefaults {
-        let suite = "nl.trainerhub.app.tests.\(UUID().uuidString)"
-        addTeardownBlock { UserDefaults().removePersistentDomain(forName: suite) }
-        return try XCTUnwrap(UserDefaults(suiteName: suite))
-    }
 }

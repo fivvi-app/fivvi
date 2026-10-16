@@ -56,6 +56,12 @@
       "use": "Primary button label"
     },
     {
+      "fg": "color.action.primary.fg",
+      "bg": "color.action.primary.bg-pressed",
+      "kind": "text",
+      "use": "Primary button label while pressed (iOS)"
+    },
+    {
       "fg": "color.action.primary.bg",
       "bg": "color.bg.canvas",
       "kind": "non-text",

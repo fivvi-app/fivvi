@@ -1,6 +1,7 @@
 import OpenAPIURLSession
 import SwiftUI
 import TrainerHubAPI
+import TrainerHubDesignTokens
 
 @main
 struct TrainerHubApp: App {
@@ -15,6 +16,8 @@ struct TrainerHubApp: App {
     var body: some Scene {
         WindowGroup {
             HelloView(model: hello)
+                .tint(Tokens.Colors.actionPrimaryBg)
+                .preferredColorScheme(LaunchAppearance.colorScheme())
         }
     }
 }

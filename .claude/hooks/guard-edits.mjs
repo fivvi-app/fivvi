@@ -16,7 +16,10 @@ export const GENERATED_PATHS = [
   ['packages/contract/kotlin/generated/', CONTRACT],
   ['packages/i18n/generated/', 'pnpm --filter @trainer-hub/i18n generate'],
   ['packages/design-tokens/generated/', TOKENS],
-  ['packages/design-tokens/swift/Sources/TrainerHubDesignTokens/Generated/', TOKENS],
+  [
+    'packages/design-tokens/TrainerHubDesignTokens/Sources/TrainerHubDesignTokens/Generated/',
+    TOKENS,
+  ],
   ['packages/design-tokens/kotlin/generated/', TOKENS],
   ['packages/database/migrations/meta/', 'pnpm db:generate --name <what>'],
 ];

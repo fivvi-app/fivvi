@@ -68,7 +68,7 @@ describe('flow phase of a ticket', () => {
     assert.deepEqual(decide(issue()), {
       phase: 'ready',
       next: 'scripts/flow.sh start 57',
-      hint: '',
+      hint: "Ticket of #50: leave FEATURES.md unchanged. If this PR completes the spec instead, in FEATURES.md, set its row's Status to IMPLEMENTED (NL/EN ✅) and write its final one-line summary in this PR. Change nothing else in the row. Progress lives in the spec's tickets.",
     });
   });
 
@@ -121,13 +121,30 @@ describe('flow phase of a ticket', () => {
     assert.match(decide(first).hint, /IN PROGRESS/);
     const last = issue({ parent: { ...issue().parent, open: 1, total: 3 } });
     assert.match(decide(last).hint, /IMPLEMENTED/);
-    assert.equal(decide(issue()).hint, '');
     assert.equal(decide(issue({ parent: null })).hint, '');
   });
 
   it('hints IMPLEMENTED for the only ticket of a spec', () => {
     const only = issue({ parent: { ...issue().parent, open: 1, total: 1 } });
     assert.match(decide(only).hint, /IMPLEMENTED/);
+  });
+
+  it('lets only the PR that completes the spec touch the FEATURES.md summary', () => {
+    const first = decide(issue({ parent: { ...issue().parent, open: 3, total: 3 } })).hint;
+    assert.match(first, /change only its row's Status, to IN PROGRESS/);
+    assert.match(first, /If this PR completes the spec instead, .*IMPLEMENTED/);
+    assert.match(first, /Progress lives in the spec's tickets/);
+    assert.doesNotMatch(first, /notes|Open:|Next:/i);
+    const middle = decide(issue()).hint;
+    assert.match(
+      middle,
+      /leave FEATURES\.md unchanged\. If this PR completes the spec instead, .*IMPLEMENTED/,
+    );
+    assert.match(middle, /Progress lives in the spec's tickets/);
+    assert.doesNotMatch(middle, /notes|Open:|Next:/i);
+    const last = decide(issue({ parent: { ...issue().parent, open: 1, total: 3 } })).hint;
+    assert.match(last, /set its row's Status to IMPLEMENTED .* final one-line summary/);
+    assert.doesNotMatch(last, /notes|Open:|Next:/i);
   });
 });
 
@@ -309,7 +326,7 @@ describe('flow phase of a spec', () => {
     const labels = ['spec', 'spec-approved', 'ready-for-agent'];
     const own = spec({ labels, has_criteria: true });
     assert.equal(decide(own).phase, 'ready');
-    assert.match(decide(own).hint, /its own ticket: .*IMPLEMENTED/);
+    assert.match(decide(own).hint, /its own ticket: .*IMPLEMENTED .* final one-line summary/);
     assert.equal(decide(spec({ labels })).phase, 'needs-refinement');
     assert.equal(decide({ ...own, branches: [branch(null)] }).phase, 'in-progress');
   });

@@ -17,11 +17,14 @@ struct HelloScreen {
     ///   - perAppLanguage: the per-app language from iOS Settings, which UI tests can't set there, so the Debug app
     ///     takes it as a launch argument (`LanguageSources.uiTestPerAppLanguageKey` in the app).
     ///   - textSize: a `UIContentSizeCategory` raw value, e.g. `UICTContentSizeCategoryAccessibilityXXXL`.
+    ///   - appearance: "light" or "dark", which the Debug app takes as a launch argument
+    ///     (`LaunchAppearance.uiTestAppearanceKey` in the app); the simulator's own appearance when nil.
     static func launch(
         against server: StubServer,
         deviceLanguages: [String]? = nil,
         perAppLanguage: String? = nil,
-        textSize: String? = nil
+        textSize: String? = nil,
+        appearance: String? = nil
     ) -> HelloScreen {
         let app = XCUIApplication()
         let languages = deviceLanguages ?? [TestCatalog.configuredLanguage]
@@ -34,6 +37,9 @@ struct HelloScreen {
         }
         if let textSize {
             app.launchArguments += ["-UIPreferredContentSizeCategoryName", textSize]
+        }
+        if let appearance {
+            app.launchArguments += ["-UITestAppearance", appearance]
         }
         app.launchEnvironment["TZ"] = "Europe/Amsterdam"
         app.launch()
