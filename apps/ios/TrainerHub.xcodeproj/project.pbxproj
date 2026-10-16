@@ -8,12 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		E00800000000000000000070 /* TrainerHubAPI in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A0 /* TrainerHubAPI */; };
+		E00800000000000000000071 /* TrainerHubDesignTokens in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A1 /* TrainerHubDesignTokens */; };
 		E00800000000000000000072 /* OpenAPIRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A2 /* OpenAPIRuntime */; };
 		E00800000000000000000073 /* OpenAPIURLSession in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A3 /* OpenAPIURLSession */; };
 		E00800000000000000000074 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
 		E00800000000000000000075 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000041 /* InfoPlist.xcstrings */; };
 		E00800000000000000000076 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
 		E00800000000000000000077 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
+		E00800000000000000000079 /* TrainerHubDesignTokens in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A9 /* TrainerHubDesignTokens */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +72,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E00800000000000000000070 /* TrainerHubAPI in Frameworks */,
+				E00800000000000000000071 /* TrainerHubDesignTokens in Frameworks */,
 				E00800000000000000000072 /* OpenAPIRuntime in Frameworks */,
 				E00800000000000000000073 /* OpenAPIURLSession in Frameworks */,
 			);
@@ -86,6 +89,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E00800000000000000000079 /* TrainerHubDesignTokens in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -157,6 +161,7 @@
 			name = TrainerHub;
 			packageProductDependencies = (
 				E008000000000000000000A0 /* TrainerHubAPI */,
+				E008000000000000000000A1 /* TrainerHubDesignTokens */,
 				E008000000000000000000A2 /* OpenAPIRuntime */,
 				E008000000000000000000A3 /* OpenAPIURLSession */,
 			);
@@ -202,6 +207,9 @@
 				E00800000000000000000032 /* TrainerHubUITests */,
 			);
 			name = TrainerHubUITests;
+			packageProductDependencies = (
+				E008000000000000000000A9 /* TrainerHubDesignTokens */,
+			);
 			productName = TrainerHubUITests;
 			productReference = E00800000000000000000048 /* TrainerHubUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -241,6 +249,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				E00800000000000000000090 /* XCLocalSwiftPackageReference "../../packages/contract/swift" */,
+				E00800000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/TrainerHubDesignTokens" */,
 				E00800000000000000000092 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */,
 				E00800000000000000000093 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */,
 			);
@@ -506,6 +515,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../packages/contract/swift;
 		};
+		E00800000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/TrainerHubDesignTokens" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../packages/design-tokens/TrainerHubDesignTokens;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -533,6 +546,11 @@
 			package = E00800000000000000000090 /* XCLocalSwiftPackageReference "../../packages/contract/swift" */;
 			productName = TrainerHubAPI;
 		};
+		E008000000000000000000A1 /* TrainerHubDesignTokens */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E00800000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/TrainerHubDesignTokens" */;
+			productName = TrainerHubDesignTokens;
+		};
 		E008000000000000000000A2 /* OpenAPIRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E00800000000000000000092 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */;
@@ -542,6 +560,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E00800000000000000000093 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */;
 			productName = OpenAPIURLSession;
+		};
+		E008000000000000000000A9 /* TrainerHubDesignTokens */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E00800000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/TrainerHubDesignTokens" */;
+			productName = TrainerHubDesignTokens;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
