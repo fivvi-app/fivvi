@@ -25,14 +25,19 @@ initBrowserErrorReporting({ env: { NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBL
 // scripts/publish-source-maps.ts, after `next build`: upload (with SENTRY_AUTH_TOKEN), then delete
 await publishSourceMaps({ buildDir: '.next' });
 
-// app/layout.tsx reads NEXT_PUBLIC_POSTHOG_KEY at request time; app/page-views.tsx, per path:
-const { key } = readPageViewsConfig(process.env);
-if (key) void capturePageView(key); // loads posthog-js on the first call
+// app/layout.tsx reads NEXT_PUBLIC_POSTHOG_KEY and POSTHOG_HOST at request time;
+// app/page-views.tsx, per path:
+const { key, host } = readPageViewsConfig(process.env);
+if (key) void capturePageView({ key, host }); // loads posthog-js on the first call
+
+// instrumentation.ts, at server start: reports a key without a valid POSTHOG_HOST, once
+export function register() { checkPageViewsConfig(errorReporter); }
 ```
 
 | Path | What |
 |---|---|
-| `src/config.ts` | Reads the DSN, environment (`production`, `preview`, `development`) and release |
+| `src/config.ts` | Reads the DSN, environment (`production`, `preview`, `development`) and release; the PostHog keys and `POSTHOG_HOST` |
+| `src/posthog-config.ts` | `checkPageViewsConfig()` and `PostHogConfigError`: a PostHog key without a valid `POSTHOG_HOST`, logged and reported to Sentry |
 | `src/reporter.ts` | `createErrorReporter()`: its own Sentry client, errors only |
 | `src/client-options.ts` | The options every Sentry client shares (tags, scrubber, no SDK data collection) |
 | `src/request-error.ts` | `createRequestErrorHandler()`: Next.js's `onRequestError` for the web server |
@@ -44,18 +49,18 @@ if (key) void capturePageView(key); // loads posthog-js on the first call
 | `src/capture.ts` | Capture transport for tests: keeps the events that would be sent |
 | `src/catalog.ts` | The product event catalog: the only events `track()` accepts |
 | `src/event-schema.ts` | `property` and `defineCatalog()`: UUIDs, enums, booleans, numbers and ISO dates only |
-| `src/product-events.ts` | `createProductEvents()`: `track()` and `flush()` to PostHog EU |
+| `src/product-events.ts` | `createProductEvents()`: `track()` and `flush()` to PostHog, at `POSTHOG_HOST` |
 | `src/product-event-capture.ts` | Capture transport for tests: keeps the product events PostHog would receive |
 
-Product events go to PostHog EU from server code, only from the catalog ([OBSERVABILITY.md §4](../../docs/engineering/OBSERVABILITY.md#4-product-events)).
+Product events go to PostHog (`POSTHOG_HOST`) from server code, only from the catalog ([OBSERVABILITY.md §4](../../docs/engineering/OBSERVABILITY.md#4-product-events)).
 
 ```ts
 import { createProductEvents } from '@trainer-hub/observability';
 
-const productEvents = createProductEvents({ errorReporter }); // POSTHOG_KEY, RAILWAY_ENVIRONMENT_NAME
+const productEvents = createProductEvents({ errorReporter }); // POSTHOG_KEY, POSTHOG_HOST, RAILWAY_ENVIRONMENT_NAME
 
 productEvents.track({ event: 'booking_confirmed', distinctId: userId, properties: { booking_id } });
 await productEvents.flush(); // once per request; the API does this for every route
 ```
 
-Without `POSTHOG_KEY`, events are still checked but nothing is sent.
+Without `POSTHOG_KEY`, events are still checked but nothing is sent. A key without a valid `POSTHOG_HOST` (an `https://` URL) is a configuration error: it is logged and reported to Sentry, and nothing is sent.

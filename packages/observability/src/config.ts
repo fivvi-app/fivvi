@@ -4,12 +4,6 @@
  */
 export type EnvironmentVariables = Readonly<Record<string, string | undefined>>;
 
-/**
- * PostHog EU Cloud (Frankfurt), the region in the sub-processor list. Hard-coded for product
- * events and page views alike, so neither can ever go to another region.
- */
-export const POSTHOG_EU_HOST = 'https://eu.i.posthog.com';
-
 /** Sentry's `environment` tag. Previews report separately, so their noise never mixes with production. */
 export type ReportingEnvironment = 'production' | 'preview' | 'development';
 
@@ -62,17 +56,49 @@ function toReportingEnvironment(railwayEnvironment: string | undefined): Reporti
   return 'preview';
 }
 
-export interface PageViewsConfig {
-  /** The PostHog project key. Without one, page views are off and nothing is loaded or sent. */
-  key?: string;
-}
+/**
+ * Where PostHog analytics goes: on with a project key and a host, off otherwise. Off with an
+ * `error` when the key is set but `POSTHOG_HOST` is missing or not an `https://` URL: then
+ * nothing is sent, and there is no built-in host to fall back on.
+ */
+export type PostHogConfig =
+  | { key: string; host: string; error?: undefined }
+  | { key?: undefined; host?: undefined; error?: string };
+
+/** Page views' settings (ENVIRONMENTS.md §7). */
+export type PageViewsConfig = PostHogConfig;
 
 /**
- * The browser's page view settings: `NEXT_PUBLIC_POSTHOG_KEY`, set for production only
- * (ENVIRONMENTS.md §7). The web server reads it at request time and hands it to the browser
- * (`apps/web/app/layout.tsx`), so pass `process.env` itself: Next.js would inline a literal
- * `process.env.NEXT_PUBLIC_POSTHOG_KEY` at build time.
+ * The browser's page view settings: `NEXT_PUBLIC_POSTHOG_KEY`, set for production only, and
+ * `POSTHOG_HOST` (ENVIRONMENTS.md §7). The web server reads them at request time and hands them
+ * to the browser (`apps/web/app/layout.tsx`), so pass `process.env` itself: Next.js would inline
+ * a literal `process.env.NEXT_PUBLIC_POSTHOG_KEY` at build time.
  */
 export function readPageViewsConfig(env: EnvironmentVariables): PageViewsConfig {
-  return { key: env.NEXT_PUBLIC_POSTHOG_KEY?.trim() || undefined };
+  return readPostHogConfig(env, 'NEXT_PUBLIC_POSTHOG_KEY', 'page views');
+}
+
+/** Server product events' settings: `POSTHOG_KEY`, set for production only, and `POSTHOG_HOST`. */
+export function readProductEventsConfig(env: EnvironmentVariables): PostHogConfig {
+  return readPostHogConfig(env, 'POSTHOG_KEY', 'product events');
+}
+
+function readPostHogConfig(
+  env: EnvironmentVariables,
+  keyVariable: 'POSTHOG_KEY' | 'NEXT_PUBLIC_POSTHOG_KEY',
+  what: string,
+): PostHogConfig {
+  const key = env[keyVariable]?.trim();
+  if (!key) return {};
+  const host = env.POSTHOG_HOST?.trim();
+  const fix = 'Set POSTHOG_HOST to the PostHog host (ENVIRONMENTS.md §7).';
+  if (!host)
+    return { error: `${keyVariable} is set, but POSTHOG_HOST is not: ${what} are off. ${fix}` };
+  if (!isHttpsUrl(host))
+    return { error: `POSTHOG_HOST is not an https:// URL: ${what} are off. ${fix}` };
+  return { key, host: host.replace(/\/+$/, '') };
+}
+
+function isHttpsUrl(value: string): boolean {
+  return URL.canParse(value) && new URL(value).protocol === 'https:';
 }

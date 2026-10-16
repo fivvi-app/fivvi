@@ -2,8 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { PostHog } from 'posthog-node';
 import { z } from 'zod';
 import { PRODUCT_EVENT_CATALOG } from './catalog.ts';
-import { type EnvironmentVariables, POSTHOG_EU_HOST, readErrorReportingConfig } from './config.ts';
+import {
+  type EnvironmentVariables,
+  readErrorReportingConfig,
+  readProductEventsConfig,
+} from './config.ts';
 import type { CatalogEvent, EventCatalog } from './event-schema.ts';
+import { reportPostHogConfigError } from './posthog-config.ts';
 import type { ErrorReporter } from './reporter.ts';
 
 /** How long `flush()` waits, so a slow PostHog holds up a response for at most this long. */
@@ -26,7 +31,10 @@ export interface ProductEventTransport {
 export type ProductEvent = CatalogEvent<typeof PRODUCT_EVENT_CATALOG>;
 
 export interface ProductEvents<Event = ProductEvent> {
-  /** False without `POSTHOG_KEY`: then events are still checked, but nothing is sent. */
+  /**
+   * False without `POSTHOG_KEY`, or without a valid `POSTHOG_HOST`: then events are still
+   * checked, but nothing is sent.
+   */
   readonly enabled: boolean;
   /**
    * Sends a catalog event. An event that doesn't match the catalog is rejected: outside
@@ -41,7 +49,7 @@ export interface ProductEvents<Event = ProductEvent> {
 export interface ProductEventsOptions {
   /** Where a rejected event is reported in production. */
   errorReporter: ErrorReporter;
-  /** Defaults to `process.env` (`POSTHOG_KEY`, `RAILWAY_ENVIRONMENT_NAME`). */
+  /** Defaults to `process.env` (`POSTHOG_KEY`, `POSTHOG_HOST`, `RAILWAY_ENVIRONMENT_NAME`). */
   env?: EnvironmentVariables;
   /** Tests pass `createProductEventCaptureTransport()`; production posts with `fetch`. */
   transport?: ProductEventTransport;
@@ -52,7 +60,10 @@ export class ProductEventError extends Error {
   override name = 'ProductEventError';
 }
 
-/** Product events to PostHog EU from server code (E009, OBSERVABILITY.md §4). */
+/**
+ * Product events to PostHog from server code (E009, OBSERVABILITY.md §4). A key without a valid
+ * `POSTHOG_HOST` is reported as a configuration error, here, once; then nothing is sent.
+ */
 export function createProductEvents(options: ProductEventsOptions): ProductEvents {
   return createTracker(PRODUCT_EVENT_CATALOG, options);
 }
@@ -69,11 +80,12 @@ export function createTracker<Catalog extends EventCatalog>(
 ): ProductEvents<CatalogEvent<Catalog>> {
   const env = options.env ?? process.env;
   const production = readErrorReportingConfig(env).environment === 'production';
-  const key = env.POSTHOG_KEY?.trim() || undefined;
+  const config = readProductEventsConfig(env);
+  if (config.error) reportPostHogConfigError(config.error, options.errorReporter);
   const schemas = new Map(
     Object.entries(catalog).map(([event, properties]) => [event, z.strictObject(properties)]),
   );
-  const client = key && createClient(key, options.transport);
+  const client = config.key && createClient(config, options.transport);
 
   return {
     enabled: Boolean(client),
@@ -99,9 +111,12 @@ export function createTracker<Catalog extends EventCatalog>(
   };
 }
 
-function createClient(key: string, transport: ProductEventTransport | undefined): PostHog {
+function createClient(
+  { key, host }: { key: string; host: string },
+  transport: ProductEventTransport | undefined,
+): PostHog {
   return new PostHog(key, {
-    host: POSTHOG_EU_HOST,
+    host,
     // Send each event straight away; `flush()` then waits for what is still on its way.
     flushAt: 1,
     flushInterval: 0,

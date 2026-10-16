@@ -8,6 +8,8 @@ vi.mock('posthog-js/dist/module.slim.no-external', () => ({ posthog: sdk }));
 
 // Synthetic personal data only (AGENTS.md, D8).
 const KEY = 'phc_example_project_key';
+// A synthetic host: page views go wherever POSTHOG_HOST says, never to a built-in address.
+const HOST = 'https://posthog.example.test';
 const URL_WITH_PERSONAL_DATA =
   'https://app.example.com/clients/3f2e1d0c-9b8a-4765-8432-10fedcba9876?name=Anna&email=anna.devries%40example.com#notes';
 const PERSONAL = ['Anna', 'devries', 'notes', 'mail.example.com', 'utm', 'Ledenlijst'];
@@ -57,15 +59,15 @@ function pageView(properties: CaptureResult['properties'] = {}): CaptureResult {
 }
 
 describe('E009 page view capture', () => {
-  it('AC6: starts posthog-js once, cookieless, for the EU host, with autocapture, recording and surveys off', async () => {
-    await capturePageView(KEY);
-    await capturePageView(KEY);
+  it('AC6: starts posthog-js once, cookieless, for the POSTHOG_HOST, with autocapture, recording and surveys off', async () => {
+    await capturePageView({ key: KEY, host: HOST });
+    await capturePageView({ key: KEY, host: HOST });
 
     expect(sdk.init).toHaveBeenCalledOnce();
     expect(sdk.init).toHaveBeenCalledWith(
       KEY,
       expect.objectContaining({
-        api_host: 'https://eu.i.posthog.com',
+        api_host: HOST,
         cookieless_mode: 'always',
         persistence: 'memory',
         disable_persistence: true,

@@ -42,8 +42,10 @@ const CLIENT_NAME = 'Anna de Vries';
 const EMAIL = 'anna.devries@example.com';
 const NOTE = 'Knee injury, avoid deep squats';
 
+// A synthetic host: product events go wherever POSTHOG_HOST says, never to a built-in address.
+const HOST = 'https://posthog.example.test';
 const PRODUCTION = { RAILWAY_ENVIRONMENT_NAME: 'production' };
-const WITH_KEY = { ...PRODUCTION, POSTHOG_KEY: 'phc_test' };
+const WITH_KEY = { ...PRODUCTION, POSTHOG_KEY: 'phc_test', POSTHOG_HOST: HOST };
 const WITH_DSN = { ...PRODUCTION, SENTRY_DSN: 'https://public@o0.ingest.de.sentry.io/1' };
 
 /** What posthog-node adds to every event about itself. Nothing about the user. */
@@ -73,7 +75,7 @@ afterEach(() => {
 });
 
 describe('E009 product events', () => {
-  it('AC7: sends a catalog event with exactly its properties to PostHog EU', async () => {
+  it('AC7: sends a catalog event with exactly its properties to the POSTHOG_HOST', async () => {
     const { transport, productEvents } = setup();
 
     productEvents.track({
@@ -84,7 +86,7 @@ describe('E009 product events', () => {
     await productEvents.flush();
 
     expect(productEvents.enabled).toBe(true);
-    expect(transport.urls).toEqual(['https://eu.i.posthog.com/batch/']);
+    expect(transport.urls).toEqual([`${HOST}/batch/`]);
     expect(transport.events).toEqual([
       {
         event: 'booking_confirmed',
@@ -147,7 +149,7 @@ describe('E009 product events: rejected events', () => {
 
   it.each(Object.entries(invalid))('AC7: rejects %s outside production', async (_, send) => {
     for (const env of [
-      { POSTHOG_KEY: 'phc_test' },
+      { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: HOST },
       { ...WITH_KEY, RAILWAY_ENVIRONMENT_NAME: 'pr-46' },
     ]) {
       const { transport, sentry, errorReporter, productEvents } = setup(env);
@@ -214,8 +216,14 @@ describe('E009 product events: delivery', () => {
     vi.stubGlobal('fetch', fetch);
     const request = vi.spyOn(http, 'request');
     const secureRequest = vi.spyOn(https, 'request');
+    const log = vi.spyOn(console, 'error');
 
-    for (const env of [PRODUCTION, { ...PRODUCTION, POSTHOG_KEY: '  ' }]) {
+    // A host alone is no reason to send anything, nor a configuration error.
+    for (const env of [
+      PRODUCTION,
+      { ...PRODUCTION, POSTHOG_KEY: '  ' },
+      { ...PRODUCTION, POSTHOG_HOST: HOST },
+    ]) {
       const productEvents = createTracker(CATALOG, {
         env,
         errorReporter: createErrorReporter({ env: {} }),
@@ -227,6 +235,56 @@ describe('E009 product events: delivery', () => {
       });
       await productEvents.flush();
       expect(productEvents.enabled).toBe(false);
+    }
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(request).not.toHaveBeenCalled();
+    expect(secureRequest).not.toHaveBeenCalled();
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it('a key without POSTHOG_HOST, or a non-https host, is off and reported as a configuration error', async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    vi.stubGlobal('fetch', fetch);
+    const request = vi.spyOn(http, 'request');
+    const secureRequest = vi.spyOn(https, 'request');
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const missing =
+      'POSTHOG_KEY is set, but POSTHOG_HOST is not: product events are off. Set POSTHOG_HOST to the PostHog host (ENVIRONMENTS.md §7).';
+    const notHttps =
+      'POSTHOG_HOST is not an https:// URL: product events are off. Set POSTHOG_HOST to the PostHog host (ENVIRONMENTS.md §7).';
+
+    for (const [env, message] of [
+      [{ ...WITH_KEY, POSTHOG_HOST: undefined }, missing],
+      [{ ...WITH_KEY, POSTHOG_HOST: 'http://posthog.example.test' }, notHttps],
+      [{ ...WITH_KEY, RAILWAY_ENVIRONMENT_NAME: 'pr-81', POSTHOG_HOST: ' ' }, missing],
+    ] as const) {
+      const sent = createProductEventCaptureTransport();
+      const sentry = createCaptureTransport();
+      const errorReporter = createErrorReporter({ env: WITH_DSN, transport: sentry });
+      log.mockClear();
+
+      const productEvents = createTracker(CATALOG, { env, transport: sent, errorReporter });
+      expect(() =>
+        productEvents.track({
+          event: 'booking_confirmed',
+          distinctId: USER_ID,
+          properties: PROPERTIES,
+        }),
+      ).not.toThrow();
+      await productEvents.flush();
+      await errorReporter.flush();
+
+      expect(productEvents.enabled).toBe(false);
+      expect(sent.events).toEqual([]);
+      expect(log.mock.calls).toEqual([[message]]);
+      expect(
+        sentry.events.map((event) => [
+          event.level,
+          event.exception?.values?.[0]?.type,
+          event.exception?.values?.[0]?.value,
+        ]),
+      ).toEqual([['error', 'PostHogConfigError', message]]);
     }
 
     expect(fetch).not.toHaveBeenCalled();

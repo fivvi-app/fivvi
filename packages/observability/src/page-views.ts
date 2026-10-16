@@ -3,9 +3,8 @@ import type {
   PostHog,
   PostHogConfig,
 } from 'posthog-js/dist/module.slim.no-external';
-import { POSTHOG_EU_HOST } from './config.ts';
 
-export { type PageViewsConfig, POSTHOG_EU_HOST, readPageViewsConfig } from './config.ts';
+export { type PageViewsConfig, readPageViewsConfig } from './config.ts';
 
 /**
  * posthog-js without its extensions (autocapture, heatmaps, session recording, surveys, …),
@@ -13,7 +12,6 @@ export { type PageViewsConfig, POSTHOG_EU_HOST, readPageViewsConfig } from './co
  * off as well, so nothing depends on SDK defaults (OBSERVABILITY.md §5).
  */
 const OPTIONS: Partial<PostHogConfig> = {
-  api_host: POSTHOG_EU_HOST,
   // No cookies, localStorage or sessionStorage: PostHog counts visitors with a daily hash.
   cookieless_mode: 'always',
   persistence: 'memory',
@@ -73,24 +71,30 @@ const PROPERTIES = new Set([
 
 let started: Promise<PostHog> | undefined;
 
+/** Where page views go: the project key and `POSTHOG_HOST`, as `readPageViewsConfig()` read them. */
+export interface PageViewsTarget {
+  key: string;
+  host: string;
+}
+
 /**
  * Sends one `$pageview` for the page the browser shows, with its path only. Call it once per
  * page: on load and after every client-side navigation. Loads posthog-js on the first call, so
  * a page that never calls it never loads the SDK. Never throws or rejects: analytics must
  * never break a page, and an ad blocker may block the SDK or PostHog.
  */
-export async function capturePageView(key: string): Promise<void> {
+export async function capturePageView(target: PageViewsTarget): Promise<void> {
   try {
-    started ??= startPostHog(key);
+    started ??= startPostHog(target);
     (await started).capture('$pageview');
   } catch {
     // Nothing to report: a missing page view is not an error.
   }
 }
 
-async function startPostHog(key: string): Promise<PostHog> {
+async function startPostHog({ key, host }: PageViewsTarget): Promise<PostHog> {
   const { posthog } = await import('posthog-js/dist/module.slim.no-external');
-  posthog.init(key, OPTIONS);
+  posthog.init(key, { ...OPTIONS, api_host: host });
   return posthog;
 }
 

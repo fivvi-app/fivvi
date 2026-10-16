@@ -10,7 +10,7 @@ const errorReporter = createErrorReporter();
 const handler = createApiHandler({
   pingDatabase: () => pingDatabase(database()),
   errorReporter,
-  // Sends product events to PostHog EU when POSTHOG_KEY is set (E009).
+  // Sends product events to PostHog, at POSTHOG_HOST, when POSTHOG_KEY is set (E009).
   productEvents: createProductEvents({ errorReporter }),
 });
 
