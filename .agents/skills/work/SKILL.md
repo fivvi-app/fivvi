@@ -67,7 +67,7 @@ New work. Keep these steps in this conversation; don't delegate or compact betwe
 
 Per ticket; run independent tickets in parallel, at most three at a time (`flow.sh start` enforces it).
 
-1. `scripts/flow.sh start <n>` claims it and creates its worktree and notes; it prints the worktree, notes path, `E2E_PORT` and a `Hint` (e.g. the `FEATURES.md` status this PR must set).
+1. `scripts/flow.sh start <n>` claims it and creates its worktree and notes; it prints the worktree, notes path, `E2E_PORT` and a `Hint` (what this PR changes in `FEATURES.md`, if anything).
 2. A fresh subagent runs `.agents/skills/implement/SKILL.md` on the ticket, following `docs/agents/build.md`, with the issue number, worktree, notes path and hint. `implement` builds test-first with `tdd` and reviews its work with `code-review` (standards and spec axes); it reports whether that review is **clean** on its last commit. On `blocked`, stop this ticket and ask the user; when only the owner can answer and they aren't here (**Factory**), `triage` it to `needs-info`.
 3. **Ship**.
 

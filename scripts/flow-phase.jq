@@ -51,12 +51,14 @@ def ready_children:
   [.children[] | select(open and has("ready-for-agent") and (has("spec") | not)
     and (.assignees | length == 0) and (.blocked | not)) | .number];
 
+# A ticket PR changes only its FEATURES.md row's Status; only the spec's last one rewrites the summary.
 def features_hint:
-  if has("spec") and (.children | length) == 0 then "This spec is its own ticket: set its FEATURES.md status to IMPLEMENTED (NL/EN ✅) in this PR."
+  def implemented: "in FEATURES.md, set its row's Status to IMPLEMENTED (NL/EN ✅) and write its final one-line summary in this PR. Change nothing else in the row.";
+  if has("spec") and (.children | length) == 0 then "This spec is its own ticket: \(implemented)"
   elif .parent == null or has("spec") then ""
-  elif .parent.open == 1 and open then "Last open ticket of #\(.parent.number): set its FEATURES.md status to IMPLEMENTED (NL/EN ✅) in this PR."
-  elif .parent.open == .parent.total then "First ticket of #\(.parent.number): set its FEATURES.md status to IN PROGRESS in this PR."
-  else ""
+  elif .parent.open == 1 and open then "Last open ticket of #\(.parent.number): \(implemented)"
+  elif .parent.open == .parent.total then "First ticket of #\(.parent.number): in FEATURES.md, change only its row's Status, to IN PROGRESS, in this PR; progress lives in the spec's tickets."
+  else "Ticket of #\(.parent.number): leave FEATURES.md unchanged; progress lives in the spec's tickets."
   end;
 
 def ticket_phase($n):

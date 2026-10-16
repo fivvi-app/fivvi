@@ -176,7 +176,10 @@ Inside a package, `pnpm exec vitest` watches unit tests, `pnpm exec vitest --con
 
 ### 7.2 Native tests (E008)
 
-The iOS suites ([`apps/ios/README.md`](../../apps/ios/README.md#tests)) and the Android and Maestro suites ([`apps/android/README.md`](../../apps/android/README.md)) exist:
+How to run them, per app:
+
+- iOS: [`apps/ios/README.md`](../../apps/ios/README.md#tests).
+- Android and Maestro: [`apps/android/README.md`](../../apps/android/README.md).
 
 | Suite | Location | What it is |
 |---|---|---|
@@ -188,8 +191,14 @@ The iOS suites ([`apps/ios/README.md`](../../apps/ios/README.md#tests)) and the 
 
 Also for E008:
 
-- **Scripts** so every suite starts the same way: `pnpm test:ios`, `pnpm test:android` and `pnpm test:maestro` (§7.1), each wrapping the native commands above.
-- **CI:** the `iOS` job runs `pnpm test:ios`'s script; the `Android` job runs `pnpm test:android`, then `pnpm test:maestro`. Maestro runs in CI on Android only, to save macOS minutes; on iOS it runs locally with `scripts/maestro.sh ios` (§7).
+- **Scripts** so every suite starts the same way, each wrapping the native commands above (listed in §7.1):
+  - iOS: `pnpm test:ios`.
+  - Android: `pnpm test:android`.
+  - Maestro: `pnpm test:maestro`.
+- **CI** (the jobs are in `WORKFLOW.md §7`):
+  - iOS: the `iOS` job runs `pnpm test:ios`'s script.
+  - Android: the `Android` job runs `pnpm test:android`, then `pnpm test:maestro`.
+  - Maestro: runs in CI on Android only, to save macOS minutes; on iOS it runs locally with `scripts/maestro.sh ios`.
 - **Selectors:** assert on visible text only where the text is the point, and read the expected copy from the generated catalogs, like the web does (§5.4).
 
 ## 8. Flaky tests

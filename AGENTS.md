@@ -6,12 +6,20 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 
 | Path | What |
 |---|---|
-| `apps/web`, `apps/cron` | Next.js web app (mounts the API under `/api`); daily cron job |
-| `packages/api`, `packages/contract` | API routes (zod-openapi); committed `openapi.json` + generated TS/Swift/Kotlin clients |
-| `packages/database`, `packages/i18n`, `packages/email`, `packages/observability`, `packages/testing` | Schema and migrations; the only source of user-facing strings; email; error reporting, product events and page views (the only code that imports Sentry, `posthog-node` or `posthog-js`); test helpers |
+| `apps/web` | Next.js web app (mounts the API under `/api`) |
+| `apps/cron` | Daily cron job |
 | `apps/ios` | Native iOS app (Swift, SwiftUI), `pnpm test:ios` |
 | `apps/android` | Native Android app (Kotlin, Jetpack Compose), `pnpm test:android`; see its `README.md` |
+| `packages/api` | API routes (zod-openapi) |
+| `packages/contract` | The API contract: committed `openapi.json` + generated TS/Swift/Kotlin clients |
+| `packages/database` | Schema and migrations |
+| `packages/design-tokens` | Design tokens: the one source of colours, type, spacing, radii and motion, generated for web, Swift and Kotlin |
 | `packages/domain` | Planned: business rules (M2) |
+| `packages/email` | Email templates and sending |
+| `packages/i18n` | The only source of user-facing strings |
+| `packages/observability` | Error reporting, product events and page views (the only code that imports Sentry, `posthog-node` or `posthog-js`) |
+| `packages/testing` | Test helpers |
+| `packages/ui` | Web component kit (shadcn/ui), themed by the design tokens |
 | `docs/product/` | `PRODUCT.md` (requirements), `ROADMAP.md` (milestones, decisions), `FEATURES.md` (registry and status) |
 | `docs/engineering/` | `WORKFLOW.md` (flow, Definition of Done), `TESTING.md`, `ENVIRONMENTS.md`, `OBSERVABILITY.md` |
 | `GLOSSARY.md`, `docs/decisions/` | Domain language; ADRs |
