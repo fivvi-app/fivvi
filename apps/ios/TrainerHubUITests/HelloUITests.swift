@@ -55,8 +55,7 @@ final class HelloUITests: XCTestCase {
         XCTAssertTrue(screen.error.waitForExistence(timeout: timeout))
         XCTAssertEqual(screen.error.label, catalog["hello.error"])
         XCTAssertEqual(screen.retry.label, catalog["common.retry"])
-        XCTAssertGreaterThanOrEqual(screen.retry.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(screen.retry.frame.height, 44)
+        try assertTouchTarget(screen.retry, on: screen)
         XCTAssertFalse(screen.greeting.exists)
 
         server.answer(with: .greeting(key: "hello.title"))
@@ -156,8 +155,7 @@ final class HelloUITests: XCTestCase {
 
         XCTAssertTrue(screen.error.waitForExistence(timeout: timeout))
         try assertReadable(screen, [screen.error, screen.retry])
-        XCTAssertGreaterThanOrEqual(screen.retry.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(screen.retry.frame.height, 44)
+        try assertTouchTarget(screen.retry, on: screen)
 
         server.answer(with: .greeting(key: "hello.title"))
         screen.retry.tap()
@@ -178,6 +176,17 @@ final class HelloUITests: XCTestCase {
     private func assertColour(_ actual: RGB, is expected: RGB, _ message: String) {
         XCTAssertLessThanOrEqual(
             actual.distance(to: expected), colourTolerance, "\(message): \(actual), expected \(expected)"
+        )
+    }
+
+    /// `element` is at least the minimum touch target, compared in the screen's device pixels (`TouchTarget`).
+    private func assertTouchTarget(_ element: XCUIElement, on screen: HelloScreen) throws {
+        let size = element.frame.size
+        let scale = try screen.app.screenshotBitmap().scale
+        XCTAssertTrue(
+            TouchTarget.isMet(by: size, scale: scale),
+            "\(element.identifier) is \(size.width) × \(size.height) pt at \(scale)x, "
+                + "below the \(TouchTarget.minimum) pt touch target"
         )
     }
 
