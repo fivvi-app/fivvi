@@ -102,17 +102,27 @@ describe('iOS toolchain (_ios.sh)', () => {
   });
 });
 
-describe('CI path filters (ci.yml)', () => {
-  // A `decide <output>` filter of the "Detect changes" job, as the ERE that grep -E runs.
-  const pathFilter = (output) => {
-    const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
-    const filter = ci.match(new RegExp(`^ +decide ${output} apps/${output} '([^']+)'$`, 'm'))?.[1];
-    assert.ok(filter, `ci.yml has no \`decide ${output}\` filter`);
-    return new RegExp(filter);
+describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
+  // The native jobs scripts/native-jobs.sh runs for the changed paths on stdin, as {ios, android}.
+  const nativeJobs = (paths, args = []) => {
+    const result = spawnSync(join(SCRIPTS, 'native-jobs.sh'), args, {
+      input: paths.join('\n'),
+      encoding: 'utf8',
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return {
+      ...Object.fromEntries(
+        result.stdout
+          .trim()
+          .split('\n')
+          .map((line) => line.split('=')),
+      ),
+      log: result.stderr,
+    };
   };
+  const runs = (job, path) => nativeJobs([path])[job] === 'true';
 
   it('E008 AC9: the iOS job runs for the app and its generated inputs, including the Swift design tokens', () => {
-    const ios = pathFilter('ios');
     for (const path of [
       'apps/ios/TrainerHub/Hello/HelloView.swift',
       'packages/contract/swift/Sources/TrainerHubAPI/Generated/Client.swift',
@@ -120,9 +130,9 @@ describe('CI path filters (ci.yml)', () => {
       'packages/design-tokens/TrainerHubDesignTokens/Package.swift',
       'packages/design-tokens/TrainerHubDesignTokens/Sources/TrainerHubDesignTokens/Generated/Colors.swift',
       'scripts/test-ios.sh',
-      '.github/workflows/ci.yml',
+      'scripts/_ios.sh',
     ]) {
-      assert.match(path, ios, path);
+      assert.ok(runs('ios', path), path);
     }
     for (const path of [
       'docs/product/FEATURES.md',
@@ -130,12 +140,11 @@ describe('CI path filters (ci.yml)', () => {
       'packages/design-tokens/kotlin/generated/nl/trainerhub/designtokens/Colors.kt',
       'packages/i18n/generated/android/values/strings.xml',
     ]) {
-      assert.doesNotMatch(path, ios, path);
+      assert.ok(!runs('ios', path), path);
     }
   });
 
   it('E008 AC9: the Android job runs for the app and its generated inputs, including the Kotlin design tokens', () => {
-    const android = pathFilter('android');
     for (const path of [
       'apps/android/app/src/main/kotlin/nl/trainerhub/app/MainActivity.kt',
       'packages/contract/kotlin/generated/nl/trainerhub/api/apis/HelloApi.kt',
@@ -143,9 +152,10 @@ describe('CI path filters (ci.yml)', () => {
       'packages/design-tokens/kotlin/generated/nl/trainerhub/designtokens/Colors.kt',
       'e2e/maestro/hello.yaml',
       'scripts/android.sh',
-      '.github/workflows/ci.yml',
+      'scripts/_android.sh',
+      'scripts/maestro.sh',
     ]) {
-      assert.match(path, android, path);
+      assert.ok(runs('android', path), path);
     }
     for (const path of [
       'docs/product/FEATURES.md',
@@ -153,8 +163,54 @@ describe('CI path filters (ci.yml)', () => {
       'packages/design-tokens/TrainerHubDesignTokens/Sources/TrainerHubDesignTokens/Generated/Colors.swift',
       'packages/i18n/generated/ios/Localizable.xcstrings',
     ]) {
-      assert.doesNotMatch(path, android, path);
+      assert.ok(!runs('android', path), path);
     }
+  });
+
+  it('#91: shared files (ci.yml, _lib.sh, this list) run neither native job on their own', () => {
+    const jobs = nativeJobs([
+      '.github/workflows/ci.yml',
+      'scripts/_lib.sh',
+      'scripts/native-jobs.sh',
+    ]);
+    assert.equal(jobs.ios, 'false');
+    assert.equal(jobs.android, 'false');
+  });
+
+  it('#91: a push to main runs neither native job; the PR ran them on the same up-to-date commit', () => {
+    const jobs = nativeJobs(
+      ['apps/ios/TrainerHub/App.swift', 'apps/android/app/build.gradle.kts'],
+      ['--event', 'push'],
+    );
+    assert.equal(jobs.ios, 'false');
+    assert.equal(jobs.android, 'false');
+    assert.match(jobs.log, /push to main/);
+  });
+
+  it('#91: workflow_dispatch and the run-native label run both native jobs, whatever changed', () => {
+    for (const args of [
+      ['--event', 'workflow_dispatch'],
+      ['--event', 'pull_request', '--run-native'],
+    ]) {
+      const jobs = nativeJobs(['docs/product/FEATURES.md'], args);
+      assert.equal(jobs.ios, 'true', args.join(' '));
+      assert.equal(jobs.android, 'true', args.join(' '));
+    }
+    const pr = nativeJobs(['docs/product/FEATURES.md'], ['--event', 'pull_request']);
+    assert.equal(pr.ios, 'false');
+    assert.equal(pr.android, 'false');
+  });
+
+  it('#91: the Detect changes job takes its outputs from scripts/native-jobs.sh, and the job names stay', () => {
+    const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
+    assert.match(ci, /scripts\/native-jobs\.sh .*>>"\$GITHUB_OUTPUT"/);
+    assert.match(ci, /contains\(github\.event\.pull_request\.labels\.\*\.name, 'run-native'\)/);
+    assert.match(ci, /^ {2}workflow_dispatch:/m);
+    assert.doesNotMatch(ci, /^ +decide /m);
+    assert.deepEqual(
+      [...ci.matchAll(/^ {4}name: (.+)$/gm)].map((match) => match[1]),
+      ['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android'],
+    );
   });
 });
 

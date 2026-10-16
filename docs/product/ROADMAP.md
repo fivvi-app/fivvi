@@ -681,7 +681,7 @@ flowchart TB
 | Product analytics | PostHog account created; confirm EU Cloud and configure cookieless mode in E009 | Event quota | Quota hit → paid |
 | Uptime | UptimeRobot / Better Stack free | Check interval | — |
 | Bot protection | Cloudflare Turnstile | Free | — |
-| Source + CI | GitHub private repo + Actions free minutes | **macOS minutes count 10×** | Path-filtered iOS CI + local Xcode builds; if still short → make the repo public (unlimited free minutes) or pay for minutes |
+| Source + CI | GitHub public repo since 2026-10-16 (owner decision), so Actions minutes are free, macOS included | **macOS minutes count 10×** | Path-filtered iOS CI + local Xcode builds; if still short → make the repo public (unlimited free minutes) or pay for minutes |
 | iOS distribution | Existing Apple Developer Program company membership (owner-reported); verify access in E017 | Membership and team access must be active for TestFlight | **M8 (after G4):** use the existing company membership; renew if required |
 | Android distribution | Debug builds / APK to own devices; Play Console account unconfirmed | — | **M8 (after G4):** confirm access or enroll if needed |
 | Push notifications (1.2) | APNs + FCM | Free | — |

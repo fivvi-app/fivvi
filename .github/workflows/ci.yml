@@ -1,4 +1,4 @@
-# CI for every pull request and every push to main (E002, E010).
+# CI for every pull request and every push to main (E002, E010), and on demand (workflow_dispatch).
 #
 # The job names ("Detect changes", "Checks (Linux)", "E2E (Linux)", "iOS",
 # "Android") are the intended required checks; see docs/engineering/WORKFLOW.md §7. Renaming a job
@@ -13,6 +13,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 # A new push to a PR cancels the run for the previous push. Runs on main are
 # never cancelled, so every merged commit keeps its own result.
@@ -48,6 +49,7 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
+          RUN_NATIVE: ${{ contains(github.event.pull_request.labels.*.name, 'run-native') }}
         run: |
           set -euo pipefail
 
@@ -68,25 +70,11 @@ jobs:
             changed="$(git ls-files)"
           fi
 
-          # decide <output> <project dir> <path regex>
-          decide() {
-            local run=false
-            if ! grep -qE "$3" <<<"$changed"; then
-              echo "$1: no relevant changes, skipping."
-            elif [[ ! -d "$2" ]]; then
-              echo "$1: $2 does not exist yet (E008), skipping."
-            else
-              run=true
-              echo "$1: relevant changes, running."
-            fi
-            echo "$1=$run" >>"$GITHUB_OUTPUT"
-          }
-
-          # Each native job: the app, its generated inputs (client, string catalogs, design tokens), and the job
-          # itself (this workflow and the scripts it runs), so a change that would break the job runs it. Android also
-          # runs the Maestro flows in e2e/maestro.
-          decide ios apps/ios '^(apps/ios|packages/contract|packages/i18n/generated/ios|packages/design-tokens/TrainerHubDesignTokens)/|^scripts/(test-ios|_ios|_lib)\.sh$|^\.github/workflows/ci\.yml$'
-          decide android apps/android '^(apps/android|packages/contract|packages/i18n/generated/android|packages/design-tokens/kotlin|e2e/maestro)/|^scripts/(android|_android|maestro|_lib)\.sh$|^\.github/workflows/ci\.yml$'
+          # Which native jobs run (scripts/native-jobs.sh): those whose paths changed. Pushes to main skip them;
+          # workflow_dispatch and the PR's run-native label (read on its pushes) force them.
+          args=(--event "$EVENT")
+          if [[ "$RUN_NATIVE" == 'true' ]]; then args+=(--run-native); fi
+          scripts/native-jobs.sh "${args[@]}" <<<"$changed" >>"$GITHUB_OUTPUT"
 
   checks:
     name: Checks (Linux)
@@ -246,8 +234,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.ios == 'true'
     # macOS minutes count 10x against the free quota (ROADMAP §12), so this job
-    # only starts when the app or its generated inputs changed. The image and
-    # Xcode are pinned, so a runner update doesn't change the toolchain.
+    # only starts when the app, its generated inputs or its own scripts changed in
+    # a PR, or on demand (scripts/native-jobs.sh). The image and Xcode are pinned,
+    # so a runner update doesn't change the toolchain.
     runs-on: macos-26
     timeout-minutes: 30
     env:
