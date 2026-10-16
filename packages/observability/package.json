@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./browser": "./src/browser.ts",
+    "./page-views": "./src/page-views.ts",
     "./source-maps": "./src/source-maps.ts"
   },
   "scripts": {
@@ -25,6 +26,7 @@
   "dependencies": {
     "@sentry/browser": "catalog:",
     "@sentry/core": "catalog:",
+    "posthog-js": "catalog:",
     "posthog-node": "catalog:",
     "zod": "catalog:"
   }

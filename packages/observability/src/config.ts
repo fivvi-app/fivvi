@@ -4,6 +4,12 @@
  */
 export type EnvironmentVariables = Readonly<Record<string, string | undefined>>;
 
+/**
+ * PostHog EU Cloud (Frankfurt), the region in the sub-processor list. Hard-coded for product
+ * events and page views alike, so neither can ever go to another region.
+ */
+export const POSTHOG_EU_HOST = 'https://eu.i.posthog.com';
+
 /** Sentry's `environment` tag. Previews report separately, so their noise never mixes with production. */
 export type ReportingEnvironment = 'production' | 'preview' | 'development';
 
@@ -54,4 +60,19 @@ function toReportingEnvironment(railwayEnvironment: string | undefined): Reporti
   if (!railwayEnvironment || railwayEnvironment === 'development') return 'development';
   // Every other Railway environment is a PR environment (`pr-<number>`).
   return 'preview';
+}
+
+export interface PageViewsConfig {
+  /** The PostHog project key. Without one, page views are off and nothing is loaded or sent. */
+  key?: string;
+}
+
+/**
+ * The browser's page view settings: `NEXT_PUBLIC_POSTHOG_KEY`, set for production only
+ * (ENVIRONMENTS.md §7). The web server reads it at request time and hands it to the browser
+ * (`apps/web/app/layout.tsx`), so pass `process.env` itself: Next.js would inline a literal
+ * `process.env.NEXT_PUBLIC_POSTHOG_KEY` at build time.
+ */
+export function readPageViewsConfig(env: EnvironmentVariables): PageViewsConfig {
+  return { key: env.NEXT_PUBLIC_POSTHOG_KEY?.trim() || undefined };
 }
