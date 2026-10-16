@@ -4,7 +4,7 @@ import TrainerHubDesignTokens
 /// The screen's one primary action: a filled pill in the design tokens' primary colours, the `label` text style and
 /// at least a 44 pt touch target (HIG). At accessibility text sizes the label wraps onto more lines, so the pill
 /// becomes a rounded rectangle that keeps every line inside the fill.
-struct PrimaryButtonStyle: ButtonStyle {
+struct PrimaryActionStyle: ButtonStyle {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     func makeBody(configuration: Configuration) -> some View {
@@ -25,7 +25,7 @@ struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
-extension ButtonStyle where Self == PrimaryButtonStyle {
+extension ButtonStyle where Self == PrimaryActionStyle {
     /// The screen's one primary action, in the design tokens' colours.
-    static var primary: PrimaryButtonStyle { PrimaryButtonStyle() }
+    static var primaryAction: PrimaryActionStyle { PrimaryActionStyle() }
 }

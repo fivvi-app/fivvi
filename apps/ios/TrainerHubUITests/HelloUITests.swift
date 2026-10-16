@@ -176,13 +176,17 @@ final class HelloUITests: XCTestCase {
     /// The screen's colours once the point shows `expected`, or after the timeout. The simulator switches its
     /// appearance asynchronously, so an app launched right after the switch may still draw the previous one.
     private func settledColours(of app: XCUIApplication, at point: CGPoint, is expected: RGB) throws -> ScreenColours {
-        let deadline = Date.now.addingTimeInterval(timeout)
-        var colours = try ScreenColours(app)
-        while colours.colour(at: point).distance(to: expected) > colourTolerance, Date.now < deadline {
-            Thread.sleep(forTimeInterval: 0.25)
-            colours = try ScreenColours(app)
-        }
-        return colours
+        let tolerance = colourTolerance
+        let settled = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in
+                MainActor.assumeIsolated {
+                    (try? ScreenColours(app)).map { $0.colour(at: point).distance(to: expected) <= tolerance } ?? false
+                }
+            },
+            object: nil
+        )
+        _ = XCTWaiter.wait(for: [settled], timeout: timeout)
+        return try ScreenColours(app)
     }
 
     /// The colour on screen is `expected`, give or take `colourTolerance`.

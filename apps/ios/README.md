@@ -43,7 +43,7 @@ The app follows the E007 design tokens (ADR-015) in light and dark mode, from th
 - **Colours:** `Tokens.Colors` only, each an adaptive SwiftUI `Color` that follows the system appearance. A screen sits on `bgCanvas` with `textPrimary` text; the app's tint is `actionPrimaryBg`. A token colour pair a screen uses (text on a fill) is a contrast pair in `packages/design-tokens/tokens/contrast-pairs.json`.
 - **Type:** the system font in the token's Dynamic Type style, `.font(.system(Tokens.TextStyle.body))`, plus the weight its mapping note names (`display` and `label` are semibold); never a size.
 - **Spacing and corners:** `Tokens.Spacing` and `Tokens.Radius`, with continuous corners.
-- **Controls** stay native SwiftUI. `Theme/PrimaryButtonStyle.swift` (`.buttonStyle(.primary)`) is the filled primary action in `actionPrimaryBg` / `actionPrimaryBgPressed` with an `actionPrimaryFg` label.
+- **Controls** stay native SwiftUI. `Theme/PrimaryActionStyle.swift` (`.buttonStyle(.primaryAction)`) is the filled primary action in `actionPrimaryBg` / `actionPrimaryBgPressed` with an `actionPrimaryFg` label.
 
 `test_E008_AC6_usesTokenColoursInLightAndDark` switches the simulator to light and then dark mode and compares the screen's pixels (canvas, text, the retry button's fill and label) with the token colours resolved for that mode.
 
@@ -90,6 +90,6 @@ Every user-facing string comes from `packages/i18n` (`AGENTS.md`). SwiftLint's c
 
 ## No hard-coded colours
 
-Every colour comes from the design tokens. SwiftLint's custom rule `no_colour_literal` (`.swiftlint.yml`) fails on a colour initialiser (`Color(red:green:blue:)`, `Color("Asset")`, `UIColor(…)`), a `#colorLiteral`, a system colour (`Color.red`, `UIColor.systemBackground`) or its shorthand in a colour modifier (`.foregroundStyle(.secondary)`, `.tint(.blue)`), and names the file and line. `Color.clear` is allowed. Tests are excluded, because they resolve token colours to check the screen. Like `no_literal_text`, it can't see colours passed through variables; review those by hand.
+Every colour comes from the design tokens. SwiftLint's custom rule `no_colour_literal` (`.swiftlint.yml`) fails on a colour initialiser (`Color(red:green:blue:)`, `Color("Asset")`, `UIColor(…)`), a `#colorLiteral`, a system colour (`Color.red`, `UIColor.systemBackground`) or its shorthand as an argument or value (`.foregroundStyle(.secondary)`, `.tint(.blue)`, `colors: [.red]`), and names the file and line. `Color.clear` is allowed. Tests are excluded, because they resolve token colours to check the screen. Like `no_literal_text`, it can't see colours passed through variables; review those by hand.
 
 SwiftLint is pinned by version and SHA-256 in `scripts/_ios.sh` and downloaded to `.build/` on first use.

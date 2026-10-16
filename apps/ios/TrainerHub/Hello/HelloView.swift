@@ -48,7 +48,7 @@ struct HelloView: View {
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .buttonStyle(.primary)
+                .buttonStyle(.primaryAction)
                 .accessibilityIdentifier("hello.retry")
             }
         }

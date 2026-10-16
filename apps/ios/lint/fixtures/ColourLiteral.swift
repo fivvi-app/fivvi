@@ -25,6 +25,13 @@ struct ColourLiteral: View {
             Rectangle().fill(#colorLiteral(red: 1, green: 0, blue: 0, alpha: 1)) // expect: no_colour_literal
             Rectangle().fill(Color(UIColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1))) // expect: no_colour_literal
             Rectangle().fill(Color(uiColor: UIColor.systemBackground)) // expect: no_colour_literal
+            Text(title).overlay(.red) // expect: no_colour_literal
+            Text(title).foregroundStyle(Gradient(colors: [.red])) // expect: no_colour_literal
+            Text(title).colorMultiply(.red.opacity(0.5)) // expect: no_colour_literal
+            Text(title).listRowSeparatorTint(.gray) // expect: no_colour_literal
+            Text(title).foregroundStyle(.separator) // expect: no_colour_literal
+            Text(title).foregroundStyle(.quinary) // expect: no_colour_literal
+            let accent: Color = .purple // expect: no_colour_literal
 
             Text(title).foregroundStyle(Tokens.Colors.textPrimary)
             Text(title).background(Tokens.Colors.bgCanvas)
@@ -32,6 +39,8 @@ struct ColourLiteral: View {
             Rectangle().fill(.tint)
             Rectangle().fill(Color.clear)
             Text(title).background(.ultraThinMaterial)
+            Button(title) {}.buttonStyle(.primaryAction)
+            Text(title).font(.title).padding(.horizontal).frame(maxWidth: .infinity)
             // Text(title).foregroundStyle(Color.red) in a comment is fine
         }
     }
