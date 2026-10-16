@@ -1,6 +1,7 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { kotlinOutputs, renderOutputs, swiftOutputs } from '../src/build.ts';
+import { kotlinOutputs, renderOutputs, swiftOutputs, swiftPackageDir } from '../src/build.ts';
 import {
   readTokenSource,
   semanticColours,
@@ -207,5 +208,18 @@ describe('E007 design tokens platform mapping', () => {
       }),
     );
     expect(notes).not.toMatch(/size|\d+\s*(pt|sp|dp|px)\b/i);
+  });
+
+  it('E008 #57: the Swift package has its own Xcode package identity, apart from the API client', () => {
+    // Xcode names a local package by its directory, so the tokens and packages/contract/swift
+    // can't both be called `swift`: the app could link only one of them.
+    const manifest = readFileSync(path.join(packageRoot, swiftPackageDir, 'Package.swift'), 'utf8');
+    expect(manifest).toMatch(new RegExp(`name: "${swiftPackageDir}"`));
+    expect(swiftPackageDir.toLowerCase()).not.toBe('swift');
+    for (const file of Object.values(swiftOutputs)) {
+      expect(file.startsWith(`${swiftPackageDir}/Sources/${swiftPackageDir}/Generated/`)).toBe(
+        true,
+      );
+    }
   });
 });

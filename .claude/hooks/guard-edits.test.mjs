@@ -84,7 +84,7 @@ describe('agent edit guard', () => {
 
     for (const file of [
       'packages/design-tokens/generated/web/tokens.css',
-      'packages/design-tokens/swift/Sources/TrainerHubDesignTokens/Generated/Colors.swift',
+      'packages/design-tokens/TrainerHubDesignTokens/Sources/TrainerHubDesignTokens/Generated/Colors.swift',
       'packages/design-tokens/kotlin/generated/nl/trainerhub/designtokens/Colors.kt',
     ]) {
       assert.match(
@@ -94,7 +94,10 @@ describe('agent edit guard', () => {
       );
     }
     assert.equal(
-      evaluate(claudeEdit(join(worktree, 'packages/design-tokens/swift/Package.swift')), gitDir),
+      evaluate(
+        claudeEdit(join(worktree, 'packages/design-tokens/TrainerHubDesignTokens/Package.swift')),
+        gitDir,
+      ),
       null,
     );
   });
