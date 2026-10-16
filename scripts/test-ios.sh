@@ -60,6 +60,8 @@ release_configuration
 
 udid="$(ios_simulator)"
 [ -n "$udid" ] || die "no iPhone simulator${IOS_SIMULATOR:+ named $IOS_SIMULATOR} — run scripts/bootstrap.sh --mobile"
+on_exit 'stop_simulator || true'
+boot_simulator "$udid"
 echo "▶ Build without signing, unit and UI tests in nl and en (simulator $udid)"
 rm -rf .build/TestResults.xcresult
 xcodebuild test -project TrainerHub.xcodeproj -scheme TrainerHub -testPlan TrainerHub -destination "id=$udid" \

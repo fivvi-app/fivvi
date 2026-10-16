@@ -4,9 +4,13 @@
 #   maestro.sh android   start Postgres (migrated and seeded) and the web server on E2E_PORT, install the debug app on
 #                        the emulator (booted for the run when none is connected), then run every flow with the
 #                        emulator's language set to nl-NL and to en (pnpm test:maestro; CI job Android)
-#   maestro.sh ios       the same on the newest iPhone simulator (IOS_SIMULATOR="iPhone 17" picks one by name): builds
-#                        the Debug app for it against the web server, then runs every flow with the simulator's language
-#                        set to nl-NL and to en (local only, to save macOS CI minutes)
+#   maestro.sh ios       the same on the worktree's own simulator, or the newest iPhone in the main checkout
+#                        (IOS_SIMULATOR="iPhone 17" picks one by name): builds the Debug app for it against the web
+#                        server, then runs every flow with the simulator's language set to nl-NL and to en (local only,
+#                        to save macOS CI minutes)
+#
+# When it ends, also on failure or Ctrl-C, it stops the emulator or simulator it booted and its Gradle daemons;
+# KEEP_DEVICE=1 leaves them running for the next run.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/_android.sh"
@@ -51,10 +55,18 @@ set_device_locale() {
   wait_for_boot
 }
 
+# After a failed run of the flows in locale $1: Ctrl-C stops the whole run (Maestro, a JVM, exits 130 on it, so bash
+# doesn't see the signal itself); any other failure goes on to the next locale.
+stopped_or_failed() {
+  local status=$?
+  [ "$status" -ne 130 ] || exit 130
+  failed="$failed $1"
+}
+
 cleanup() {
   [ -z "$SERVER_PID" ] || kill "$SERVER_PID" 2>/dev/null || true
   if [ -n "$DEVICE_LOCALE" ] && [ "$EMULATOR_STARTED" = false ]; then set_device_locale "$DEVICE_LOCALE" || true; fi
-  stop_emulator
+  stop_android
 }
 
 cmd_android() {
@@ -62,7 +74,7 @@ cmd_android() {
   android_env
   command -v maestro >/dev/null || die "Maestro not found — run scripts/bootstrap.sh --mobile"
   cd "$ROOT"
-  trap cleanup EXIT
+  on_exit cleanup
   start_stack
   start_emulator
   adb root >/dev/null
@@ -77,7 +89,7 @@ cmd_android() {
     set_device_locale "$locale"
     maestro test "$ROOT/e2e/maestro" --env "HELLO_TITLE=$(catalog "$locale" hello.title)" \
       --format junit --output "$REPORTS/android-$locale.xml" --test-output-dir "$REPORTS/android-$locale" \
-      || failed="$failed $locale"
+      || stopped_or_failed "$locale"
   done
   [ -z "$failed" ] || die "Maestro failed in:$failed (reports: e2e/maestro/build)"
 }
@@ -100,10 +112,14 @@ restart_simulator() {
 
 cleanup_ios() {
   [ -z "$SERVER_PID" ] || kill "$SERVER_PID" 2>/dev/null || true
-  [ -n "$SIMULATOR_SETTINGS" ] && [ -f "$SIMULATOR_SETTINGS" ] || return 0
-  xcrun simctl spawn "$SIMULATOR" defaults import -g "$SIMULATOR_SETTINGS" || true
-  rm -f "$SIMULATOR_SETTINGS"
-  restart_simulator || true
+  if [ -n "$SIMULATOR_SETTINGS" ] && [ -f "$SIMULATOR_SETTINGS" ]; then
+    xcrun simctl spawn "$SIMULATOR" defaults import -g "$SIMULATOR_SETTINGS" || true
+    rm -f "$SIMULATOR_SETTINGS"
+    # The restored settings apply after a restart, or on the next boot of a simulator that stop_simulator shuts down.
+    stop_simulator || restart_simulator || true
+  else
+    stop_simulator || true
+  fi
 }
 
 cmd_ios() {
@@ -117,9 +133,9 @@ cmd_ios() {
   cd "$ROOT"
   SIMULATOR="$(ios_simulator)"
   [ -n "$SIMULATOR" ] || die "no iPhone simulator${IOS_SIMULATOR:+ named $IOS_SIMULATOR} — run scripts/bootstrap.sh --mobile"
-  trap cleanup_ios EXIT
+  on_exit cleanup_ios
   start_stack
-  xcrun simctl bootstatus "$SIMULATOR" -b >/dev/null
+  boot_simulator "$SIMULATOR"
   mkdir -p "$REPORTS"
   SIMULATOR_SETTINGS="$REPORTS/simulator-global-defaults.plist"
   xcrun simctl spawn "$SIMULATOR" defaults export -g "$SIMULATOR_SETTINGS"
@@ -138,7 +154,7 @@ cmd_ios() {
     set_simulator_locale "$locale"
     maestro --device "$SIMULATOR" test "$ROOT/e2e/maestro" --env "HELLO_TITLE=$(catalog "$locale" hello.title)" \
       --format junit --output "$REPORTS/ios-$locale.xml" --test-output-dir "$REPORTS/ios-$locale" \
-      || failed="$failed $locale"
+      || stopped_or_failed "$locale"
   done
   [ -z "$failed" ] || die "Maestro failed on iOS in:$failed (reports: e2e/maestro/build)"
 }

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import {
   chmodSync,
   cpSync,
@@ -356,6 +356,387 @@ esac`,
   });
 });
 
+// A fake `xcrun simctl` that keeps each simulator as a JSON file in <state>/devices and logs its arguments.
+const fakeSimctl = (state) => `[ "$1" = simctl ] || exit 1
+shift
+echo "$*" >>"${state}/xcrun.log"
+devices="${state}/devices"
+set_state() { jq --arg s "$2" '.state = $s' "$devices/$1" >"$devices/$1.partial" && mv "$devices/$1.partial" "$devices/$1"; }
+case "$1" in
+  list) cat "$devices"/* 2>/dev/null | jq -s 'reduce .[] as $d ({}; .[$d.runtime] += [$d | del(.runtime)]) | {devices: .}' ;;
+  create) udid="SIM-$RANDOM$RANDOM"
+    jq -n --arg u "$udid" --arg n "$2" --arg t "$3" --arg r "$4" \\
+      '{udid: $u, name: $n, deviceTypeIdentifier: $t, runtime: $r, state: "Shutdown"}' >"$devices/$udid"
+    echo "$udid" ;;
+  bootstatus) set_state "$2" Booted ;;
+  shutdown) set_state "$2" Shutdown ;;
+  delete) rm "$devices/$2" ;;
+  spawn) case "$*" in *"defaults export"*) touch "\${@: -1}" ;; esac ;;
+esac
+exit 0`;
+
+const iPhone = (udid, model, runtime, state = 'Shutdown') => ({
+  udid,
+  name: model,
+  state,
+  deviceTypeIdentifier: `com.apple.CoreSimulator.SimDeviceType.${model.replaceAll(' ', '-')}`,
+  runtime: `com.apple.CoreSimulator.SimRuntime.iOS-${runtime}`,
+});
+
+// The native test commands in a copy of the repo with fake toolchains: simctl above, an emulator that records its pid,
+// and an xcodebuild, gradlew, adb and Maestro that log their arguments. FAKE_RESULT makes each command's last step
+// pass, fail or hang (until a Ctrl-C to the whole process group, as in a terminal), so a test can check what the
+// command leaves running.
+describe('E008 #71 native test commands clean up after themselves', () => {
+  const dirs = [];
+  const pids = [];
+  const running = (pid) => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  after(() => {
+    for (const pid of pids) if (running(pid)) process.kill(pid);
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+  });
+
+  const checkout = ({ simulatorBooted = false, emulatorRunning = false } = {}) => {
+    const base = realpathSync(mkdtempSync(join(tmpdir(), 'native-')));
+    dirs.push(base);
+    const repo = join(base, 'repo');
+    const state = join(base, 'state');
+    const bin = join(base, 'bin');
+    const sdk = join(base, 'sdk');
+    const home = join(base, 'home');
+    const outcome = `case "$FAKE_RESULT" in
+  fail) exit 1 ;;
+  hang) exec perl -e 'open my $f, ">", shift; close $f; sleep 30' "${state}/running" ;;
+esac`;
+    mkdirSync(join(state, 'devices'), { recursive: true });
+    for (const device of [
+      iPhone('IPHONE-17', 'iPhone 17', '26-5'),
+      iPhone('IPHONE-18', 'iPhone 18 Pro', '27-0', simulatorBooted ? 'Booted' : 'Shutdown'),
+    ]) {
+      writeFileSync(join(state, 'devices', device.udid), JSON.stringify(device));
+    }
+    if (emulatorRunning) writeFileSync(join(state, 'booted'), '');
+
+    execFileSync('git', ['init', '--quiet', '--initial-branch=main', repo]);
+    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+    for (const path of [
+      'apps/ios/lint',
+      'apps/ios/Config',
+      'packages/i18n/nl-NL.json',
+      'packages/i18n/en.json',
+    ]) {
+      cpSync(join(SCRIPTS, '..', path), join(repo, path), { recursive: true });
+    }
+    // The web server maestro.sh starts: it runs until it's stopped.
+    mkdirSync(join(repo, 'apps/web/.next/standalone/apps/web'), { recursive: true });
+    writeFileSync(
+      join(repo, 'apps/web/.next/standalone/apps/web/server.js'),
+      'setInterval(() => {}, 1000);\n',
+    );
+    mkdirSync(join(repo, 'packages/database'));
+    writeFileSync(join(repo, 'packages/database/.env'), '');
+    const swiftlint = readFileSync(join(SCRIPTS, '_ios.sh'), 'utf8').match(
+      /^SWIFTLINT_VERSION=(\S+)/m,
+    )[1];
+    // SwiftLint flags exactly the fixture lines marked `// expect: <rule>`, as the real rules must.
+    script(
+      join(repo, `apps/ios/.build/swiftlint-${swiftlint}/swiftlint`),
+      `for arg; do case "$arg" in *.swift)
+  grep -n '// expect: [a-z_]*$' "$arg" | while IFS=: read -r line text; do echo "$arg:$line:1: error: (\${text##*expect: })"; done
+  exit 2 ;; esac; done`,
+    );
+    script(
+      join(repo, 'apps/android/gradlew'),
+      `echo "$*" >>"${state}/gradle.log"
+case "$*" in *connectedDebugAndroidTest*) ${outcome} ;; esac`,
+    );
+    execFileSync('git', ['-C', repo, 'add', '.']);
+    execFileSync('git', [
+      '-C',
+      repo,
+      '-c',
+      'user.name=Test',
+      '-c',
+      'user.email=test@example.com',
+      'commit',
+      '--quiet',
+      '-m',
+      'chore: init',
+    ]);
+
+    script(join(bin, 'xcrun'), fakeSimctl(state));
+    // Like the real one, `xcodebuild test` boots its destination simulator when it isn't booted.
+    script(
+      join(bin, 'xcodebuild'),
+      `echo "$*" >>"${state}/xcodebuild.log"
+case "$*" in
+  *-showBuildSettings*) printf '    TRAINER_HUB_API_BASE_URL = https://example.test/api\\n    INFOPLIST_FILE = Info.plist\\n' ;;
+  test\\ *) for arg; do case "$arg" in id=*) xcrun simctl bootstatus "\${arg#id=}" -b ;; esac; done
+    ${outcome} ;;
+esac
+exit 0`,
+    );
+    script(join(bin, 'plutil'), 'exit 1');
+    script(join(bin, 'java'), 'echo "openjdk version \\"21\\"" >&2');
+    for (const tool of ['sleep', 'docker', 'pnpm', 'curl']) script(join(bin, tool), 'exit 0');
+    script(
+      join(home, '.maestro/bin/maestro'),
+      `echo "$*" >>"${state}/maestro.log"
+case " $* " in *" test "*) ${outcome} ;; esac`,
+    );
+    script(
+      join(sdk, 'platform-tools/adb'),
+      `echo "$*" >>"${state}/adb.log"
+case "$*" in
+  get-state) [ -e "${state}/booted" ] && echo device || exit 1 ;;
+  "shell getprop sys.boot_completed") [ -e "${state}/booted" ] && echo 1 || exit 1 ;;
+  "shell getprop persist.sys.locale") echo en-US ;;
+  "emu kill") kill "$(cat "${state}/pid")"; rm -f "${state}/booted" ;;
+esac
+exit 0`,
+    );
+    script(
+      join(sdk, 'emulator/emulator'),
+      `case "$1" in
+  -list-avds) echo trainer-hub ;;
+  -accel-check) ;;
+  *) echo $$ >"${state}/pid"; touch "${state}/booted"; exec /bin/sleep 60 ;;
+esac`,
+    );
+    mkdirSync(join(base, 'jdk'));
+
+    const run = (command, args, extraEnv = {}, { cwd = repo, interrupt = false } = {}) =>
+      new Promise((resolve) => {
+        const child = spawn(join(cwd, command), args, {
+          cwd,
+          detached: true,
+          env: {
+            PATH: `${bin}:${process.env.PATH}`,
+            HOME: home,
+            ANDROID_HOME: sdk,
+            JAVA_HOME: join(base, 'jdk'),
+            EMULATOR_LOG: join(base, 'emulator.log'),
+            E2E_PORT: '3999',
+            ...extraEnv,
+          },
+        });
+        let output = '';
+        child.stdout.on('data', (data) => {
+          output += data;
+        });
+        child.stderr.on('data', (data) => {
+          output += data;
+        });
+        const ctrlC = setInterval(() => {
+          if (interrupt && existsSync(join(state, 'running'))) {
+            clearInterval(ctrlC);
+            process.kill(-child.pid, 'SIGINT');
+          }
+        }, 50);
+        child.on('close', (status) => {
+          clearInterval(ctrlC);
+          rmSync(join(state, 'running'), { force: true });
+          if (existsSync(join(state, 'pid'))) pids.push(Number(readFileSync(join(state, 'pid'))));
+          resolve({ status, output });
+        });
+      });
+    const log = (name) =>
+      existsSync(join(state, `${name}.log`))
+        ? readFileSync(join(state, `${name}.log`), 'utf8')
+            .split('\n')
+            .filter(Boolean)
+        : [];
+    const simulators = () =>
+      readdirSync(join(state, 'devices')).map((udid) =>
+        JSON.parse(readFileSync(join(state, 'devices', udid), 'utf8')),
+      );
+    const simulator = (udid) => simulators().find((device) => device.udid === udid);
+    const emulator = () => ({
+      booted: existsSync(join(state, 'booted')),
+      pid: existsSync(join(state, 'pid')) ? Number(readFileSync(join(state, 'pid'))) : 0,
+    });
+    const worktree = (branch) => {
+      const path = join(repo, '.worktrees', branch.replace('/', '-'));
+      execFileSync('git', ['-C', repo, 'worktree', 'add', '--quiet', '-b', branch, path]);
+      return path;
+    };
+    return { repo, run, log, simulators, simulator, emulator, worktree };
+  };
+
+  const endings = [
+    ['passes', 'pass', 0],
+    ['fails', 'fail', 1],
+    ['is interrupted (Ctrl-C)', 'hang', 130],
+  ];
+  const testedOn = (xcodebuildOrMaestro) =>
+    xcodebuildOrMaestro
+      .find((line) => / test /.test(` ${line} `))
+      ?.match(/(?:id=|--device )(\S+)/)?.[1];
+
+  for (const [name, command, args, testLog] of [
+    ['pnpm test:ios', 'scripts/test-ios.sh', [], 'xcodebuild'],
+    ['maestro.sh ios', 'scripts/maestro.sh', ['ios'], 'maestro'],
+  ]) {
+    for (const [ending, result, status] of endings) {
+      it(`AC1: ${name} shuts down the simulator it booted when it ${ending}`, async () => {
+        const fake = checkout();
+
+        const run = await fake.run(
+          command,
+          args,
+          { FAKE_RESULT: result },
+          {
+            interrupt: result === 'hang',
+          },
+        );
+
+        assert.equal(run.status, status, run.output);
+        assert.equal(
+          testedOn(fake.log(testLog)),
+          'IPHONE-18',
+          'the main checkout uses the newest iPhone',
+        );
+        assert.equal(fake.simulator('IPHONE-18').state, 'Shutdown');
+      });
+    }
+
+    it(`AC1: ${name} leaves a simulator that was already booted running`, async () => {
+      const fake = checkout({ simulatorBooted: true });
+
+      const run = await fake.run(command, args);
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(fake.simulator('IPHONE-18').state, 'Booted');
+    });
+  }
+
+  it('AC4: KEEP_DEVICE=1 leaves the simulator pnpm test:ios booted running', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/test-ios.sh', [], { KEEP_DEVICE: '1' });
+
+    assert.equal(run.status, 0, run.output);
+    assert.equal(fake.simulator('IPHONE-18').state, 'Booted');
+  });
+
+  it('AC3: pnpm test:ios runs a worktree on its own simulator, named after it and created on first use', async () => {
+    const fake = checkout();
+    const worktree = fake.worktree('feature/9-own-simulator');
+    const own = () =>
+      fake.simulators().filter((device) => device.name === 'Trainer Hub feature-9-own-simulator');
+
+    const first = await fake.run('scripts/test-ios.sh', [], {}, { cwd: worktree });
+    const second = await fake.run('scripts/test-ios.sh', [], {}, { cwd: worktree });
+
+    assert.equal(first.status, 0, first.output);
+    assert.equal(second.status, 0, second.output);
+    assert.equal(own().length, 1, 'created once, then reused');
+    const [simulator] = own();
+    assert.deepEqual(
+      [simulator.deviceTypeIdentifier, simulator.runtime],
+      [fake.simulator('IPHONE-18').deviceTypeIdentifier, fake.simulator('IPHONE-18').runtime],
+      'a copy of the newest iPhone',
+    );
+    const destinations = fake.log('xcodebuild').filter((line) => line.startsWith('test '));
+    assert.deepEqual(
+      destinations.map((line) => testedOn([line])),
+      [simulator.udid, simulator.udid],
+    );
+    assert.equal(simulator.state, 'Shutdown');
+    assert.ok(
+      fake.log('xcrun').every((line) => !line.includes('IPHONE-18')),
+      'the shared simulator is never touched',
+    );
+  });
+
+  it('AC3: IOS_SIMULATOR overrides the worktree simulator', async () => {
+    const fake = checkout();
+    const worktree = fake.worktree('feature/9-own-simulator');
+
+    const run = await fake.run(
+      'scripts/test-ios.sh',
+      [],
+      { IOS_SIMULATOR: 'iPhone 17' },
+      { cwd: worktree },
+    );
+
+    assert.equal(run.status, 0, run.output);
+    assert.equal(testedOn(fake.log('xcodebuild')), 'IPHONE-17');
+    assert.equal(fake.simulators().length, 2, 'no simulator created');
+    assert.equal(fake.simulator('IPHONE-17').state, 'Shutdown');
+  });
+
+  const gradleDaemonsStopped = (fake) => {
+    const calls = fake.log('gradle');
+    const registry = calls[0]?.match(/-Dorg\.gradle\.daemon\.registry\.base=(\S+)/)?.[1] ?? '';
+    assert.ok(
+      registry.startsWith(`${fake.repo}/`),
+      `the daemons have a registry of their own, in this checkout: ${calls[0]}`,
+    );
+    assert.ok(
+      calls.every((call) => call.includes(`-Dorg.gradle.daemon.registry.base=${registry} `)),
+      calls.join('\n'),
+    );
+    assert.match(calls.at(-1), /(^| )--stop( |$)/, 'the daemons are stopped last');
+  };
+
+  for (const [name, command, args] of [
+    ['pnpm test:android', 'scripts/android.sh', ['test']],
+    ['pnpm test:maestro', 'scripts/maestro.sh', ['android']],
+  ]) {
+    for (const [ending, result, status] of endings) {
+      it(`AC2: ${name} kills the emulator it started and stops its Gradle daemons when it ${ending}`, async () => {
+        const fake = checkout();
+
+        const run = await fake.run(
+          command,
+          args,
+          { FAKE_RESULT: result },
+          {
+            interrupt: result === 'hang',
+          },
+        );
+
+        assert.equal(run.status, status, run.output);
+        const { pid, booted } = fake.emulator();
+        assert.ok(pid > 0, 'the emulator was started');
+        assert.ok(fake.log('adb').includes('emu kill'));
+        assert.ok(!booted && !running(pid), 'the emulator is gone');
+        gradleDaemonsStopped(fake);
+      });
+    }
+
+    it(`AC2: ${name} leaves an emulator that was already running, and still stops its Gradle daemons`, async () => {
+      const fake = checkout({ emulatorRunning: true });
+
+      const run = await fake.run(command, args);
+
+      assert.equal(run.status, 0, run.output);
+      assert.ok(!fake.log('adb').includes('emu kill'));
+      assert.ok(fake.emulator().booted);
+      gradleDaemonsStopped(fake);
+    });
+  }
+
+  it('AC4: KEEP_DEVICE=1 leaves the emulator and the Gradle daemons pnpm test:android started running', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/android.sh', ['test'], { KEEP_DEVICE: '1' });
+
+    assert.equal(run.status, 0, run.output);
+    assert.ok(!fake.log('adb').includes('emu kill'));
+    assert.ok(running(fake.emulator().pid));
+    assert.ok(fake.log('gradle').every((call) => !/(^| )--stop( |$)/.test(call)));
+  });
+});
+
 // Maestro names each flow's report folder after the flow (its `name`, else the file name), and CI uploads those
 // folders: actions/upload-artifact rejects paths with " : < > | * ? \ or line breaks. Maestro turns / into _.
 describe('Maestro flows', () => {
@@ -427,6 +808,18 @@ describe('wt.sh done', () => {
     repo = join(base, 'repo');
     bin = join(base, 'bin');
     mkdirSync(bin);
+    // The worktree's own simulator (pnpm test:ios), booted, next to the shared one.
+    mkdirSync(join(base, 'state/devices'), { recursive: true });
+    for (const device of [
+      iPhone('OWN', 'Trainer Hub feature-57-hold', '27-0', 'Booted'),
+      iPhone('SHARED', 'iPhone 18 Pro', '27-0', 'Booted'),
+    ]) {
+      writeFileSync(join(base, 'state/devices', device.udid), JSON.stringify(device));
+    }
+    writeFileSync(join(bin, 'xcrun'), `#!/usr/bin/env bash\n${fakeSimctl(join(base, 'state'))}\n`);
+    writeFileSync(join(bin, 'xcodebuild'), '#!/usr/bin/env bash\nexit 0\n');
+    chmodSync(join(bin, 'xcrun'), 0o755);
+    chmodSync(join(bin, 'xcodebuild'), 0o755);
     execFileSync('git', ['init', '--quiet', '--bare', '--initial-branch=main', origin]);
     execFileSync('git', ['init', '--quiet', '--initial-branch=main', repo]);
     cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
@@ -487,15 +880,19 @@ describe('wt.sh done', () => {
     git(worktree, 'reset', '--quiet', '--hard', prHead);
   });
 
-  it('removes the worktree and both branches once merged', () => {
+  it('removes the worktree, both branches and the worktree simulator once merged (E008 #71 AC3)', () => {
+    const simulators = () => readdirSync(join(base, 'state/devices')).sort();
     fakeGh('MERGED', git(repo, 'rev-parse', 'feature/57-hold'));
     assert.equal(done('--check').status, 0);
     assert.ok(existsSync(join(repo, '.worktrees/feature-57-hold')), '--check changes nothing');
+    assert.deepEqual(simulators(), ['OWN', 'SHARED'], '--check changes nothing');
 
     const result = done();
     assert.equal(result.status, 0, result.stderr);
     assert.ok(!existsSync(join(repo, '.worktrees/feature-57-hold')));
     assert.equal(git(repo, 'branch', '--list', 'feature/57-hold'), '');
     assert.equal(git(repo, 'ls-remote', '--heads', 'origin', 'feature/57-hold'), '');
+    assert.deepEqual(simulators(), ['SHARED']);
+    assert.match(result.stdout, /deleted simulator 'Trainer Hub feature-57-hold'/);
   });
 });
