@@ -1,0 +1,10 @@
+# ktlint (apps/android/build.gradle.kts: ktlintCheck)
+root = true
+
+[*.{kt,kts}]
+ktlint_code_style = android_studio
+max_line_length = 120
+# Composables are PascalCase; native test names follow TESTING.md §5.1 (E008_AC2_…).
+ktlint_function_naming_ignore_when_annotated_with = Composable, Test
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
