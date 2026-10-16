@@ -33,6 +33,23 @@ usage_of() {
 
 need_cmd() { command -v "$1" >/dev/null || die "$1 not found — run scripts/bootstrap.sh"; }
 
+# Runs the command $1 once when the script ends: when it passes or fails, and on Ctrl-C (INT) or kill (TERM). A signal
+# that arrives while the script is already exiting, or a second Ctrl-C, doesn't cut it short.
+ON_EXIT=""
+on_exit() {
+  ON_EXIT="$1"
+  trap run_on_exit EXIT
+  trap 'run_on_exit; exit 130' INT
+  trap 'run_on_exit; exit 143' TERM
+}
+
+run_on_exit() {
+  local command="$ON_EXIT"
+  ON_EXIT=""
+  trap '' INT TERM
+  eval "$command"
+}
+
 default_branch() {
   local ref
   ref="$(git -C "$MAIN_ROOT" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)" || ref="origin/main"

@@ -2,7 +2,9 @@
 # The iOS app's checks, the same steps as the `iOS` CI job (E008). `pnpm test:ios` runs this.
 #
 #   test-ios.sh   SwiftLint and its fixtures (literal text, colours), the Debug and Release configurations, then the
-#                 unit and UI tests in nl and en on the newest iPhone simulator (IOS_SIMULATOR="iPhone 17" picks one by name)
+#                 unit and UI tests in nl and en on the newest iPhone simulator, in a worktree its own copy
+#                 (IOS_SIMULATOR="iPhone 17" picks one by name); shuts down the simulator it booted when it ends,
+#                 unless KEEP_DEVICE=1
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
@@ -62,6 +64,8 @@ release_configuration
 
 udid="$(ios_simulator)"
 [ -n "$udid" ] || die "no iPhone simulator${IOS_SIMULATOR:+ named $IOS_SIMULATOR} — run scripts/bootstrap.sh --mobile"
+on_exit 'stop_simulator || true'
+boot_simulator "$udid"
 echo "▶ Build without signing, unit and UI tests in nl and en (simulator $udid)"
 rm -rf .build/TestResults.xcresult
 xcodebuild test -project TrainerHub.xcodeproj -scheme TrainerHub -testPlan TrainerHub -destination "id=$udid" \

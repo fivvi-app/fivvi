@@ -42,12 +42,67 @@ install_swiftlint() {
   unzip -q -o "$zip" swiftlint -d "$dir" && rm -f "$zip"
 }
 
-# UDID of the first iPhone simulator on the newest iOS runtime, or of the one named $IOS_SIMULATOR. Empty if none.
-ios_simulator() {
-  xcrun simctl list devices available --json | jq -r --arg name "${IOS_SIMULATOR:-}" '
-    [.devices | to_entries[] | select(.key | test("SimRuntime\\.iOS-"))
-      | (.key | capture("iOS-(?<v>[0-9-]+)$").v | split("-") | map(tonumber)) as $version
+# `<udid> <device type> <runtime>` of the first iPhone simulator on the newest iOS runtime, or of the newest one named $1.
+# Empty if none.
+iphone_simulator() {
+  xcrun simctl list devices available --json | jq -r --arg name "$1" '
+    [.devices | to_entries[] | select(.key | test("SimRuntime\\.iOS-")) | .key as $runtime
+      | ($runtime | capture("iOS-(?<v>[0-9-]+)$").v | split("-") | map(tonumber)) as $version
       | .value[] | select(if $name == "" then .name | startswith("iPhone") else .name == $name end)
-      | {version: $version, udid}]
-    | (map(.version) | max) as $newest | map(select(.version == $newest)) | first | .udid // empty'
+      | {version: $version, udid, type: .deviceTypeIdentifier, runtime: $runtime}]
+    | (map(.version) | max) as $newest | map(select(.version == $newest)) | first // empty
+    | "\(.udid) \(.type) \(.runtime)"'
+}
+
+# The simulator of the worktree in $1 (default: this checkout), so parallel worktrees never install over each other's
+# runs. Empty for the main checkout, which (like CI) uses the newest iPhone. scripts/wt.sh done deletes it.
+worktree_simulator_name() {
+  local dir="${1:-$ROOT}"
+  [ "$dir" = "$MAIN_ROOT" ] || echo "Trainer Hub $(basename "$dir")"
+}
+
+# UDID of the simulator to test on: the one named $IOS_SIMULATOR; else this worktree's own, created as a copy of the
+# newest iPhone when missing; else (the main checkout) the newest iPhone. Empty if none.
+ios_simulator() {
+  local own="" udid type runtime
+  [ -n "${IOS_SIMULATOR:-}" ] || own="$(worktree_simulator_name)"
+  if [ -n "$own" ] && [ -z "$(iphone_simulator "$own")" ]; then
+    read -r udid type runtime <<<"$(iphone_simulator "")"
+    [ -n "$udid" ] || return 0
+    echo "Creating simulator '$own' ($type, $runtime)" >&2
+    xcrun simctl create "$own" "$type" "$runtime" >/dev/null
+  fi
+  read -r udid _ <<<"$(iphone_simulator "${IOS_SIMULATOR:-$own}")"
+  echo "$udid"
+}
+
+# The simulator this run booted, which stop_simulator shuts down; empty when it was already booted.
+BOOTED_SIMULATOR=""
+
+simulator_booted() {
+  xcrun simctl list devices --json \
+    | jq -e --arg udid "$1" '[.devices[][] | select(.udid == $udid and .state == "Booted")] | length > 0' >/dev/null
+}
+
+# Boots simulator $1 unless it's already booted, and waits until it has.
+boot_simulator() {
+  simulator_booted "$1" || BOOTED_SIMULATOR="$1"
+  xcrun simctl bootstatus "$1" -b >/dev/null
+}
+
+# Shuts down the simulator this run booted, unless KEEP_DEVICE=1. Fails when the simulator stays running.
+stop_simulator() {
+  [ -n "$BOOTED_SIMULATOR" ] && [ "${KEEP_DEVICE:-}" != 1 ] || return 1
+  xcrun simctl shutdown "$BOOTED_SIMULATOR" >/dev/null 2>&1 || true
+}
+
+# Deletes the simulator of the worktree in $1; nothing on a machine without Xcode.
+delete_worktree_simulator() {
+  local name udid
+  name="$(worktree_simulator_name "$1")"
+  [ -n "$name" ] && use_xcode 2>/dev/null || return 0
+  for udid in $(xcrun simctl list devices --json | jq -r --arg name "$name" '.devices[][] | select(.name == $name) | .udid'); do
+    xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true
+    if xcrun simctl delete "$udid"; then echo "🗑  deleted simulator '$name'"; fi
+  done
 }
