@@ -44,6 +44,8 @@ Production stack traces from the web app map to the original TypeScript, and nob
 2. `apps/web/scripts/publish-source-maps.ts` (`publishSourceMaps()`) then uploads the maps in `.next/static` and `.next/server` to the Sentry project `web` with `sentry-cli`, tagged with the release. It needs `SENTRY_AUTH_TOKEN`, an organisation auth token (it carries the organisation and the EU region), which only exists during the Docker build.
 3. It then deletes every `*.map` from `.next`, including the standalone server, before the client assets are copied into it. `/_next/static/**/*.map` answers `404`; the bundles keep their `sourceMappingURL` comment, which points at nothing.
 
+`sentry-cli` verifies Sentry's certificate with OpenSSL and the system CA store, which the slim Node image lacks, so the Docker build stages install `ca-certificates` (#87). The runtime image doesn't: nothing there shells out, and Node's TLS (the server's Sentry and PostHog clients) uses its bundled CA store.
+
 Without `SENTRY_AUTH_TOKEN` (local, CI, previews without a token), nothing is uploaded and nothing talks to the network; the maps are still deleted. A failed upload warns in the build log but doesn't fail the build: a Sentry outage must not block a deploy, at the cost of unmapped stack traces for that release.
 
 ### Android

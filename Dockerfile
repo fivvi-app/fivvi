@@ -14,6 +14,11 @@ FROM ${NODE_IMAGE} AS base
 ENV CI=1 \
     NEXT_TELEMETRY_DISABLED=1 \
     TURBO_TELEMETRY_DISABLED=1
+# The slim image has no CA certificates; the web build's sentry-cli (OpenSSL) needs them to
+# upload the source maps (OBSERVABILITY.md, source maps). Before COPY, so the layer stays cached.
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 # Node 25+ ships without Corepack. Keep in sync with "packageManager" in package.json.
 RUN npm install --global pnpm@12.5.1 && npm cache clean --force
 WORKDIR /repo
