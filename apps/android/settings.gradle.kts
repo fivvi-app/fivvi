@@ -18,6 +18,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "trainer-hub"
 
-// The app; the generated API client (packages/contract/kotlin); the ktlint rules with their fixtures (lint/).
-include(":app", ":api", ":lint-rules")
+// The app; the generated API client (packages/contract/kotlin); the generated design tokens
+// (packages/design-tokens/kotlin); the ktlint rules with their fixtures (lint/).
+include(":app", ":api", ":design-tokens", ":lint-rules")
 project(":lint-rules").projectDir = file("lint")
