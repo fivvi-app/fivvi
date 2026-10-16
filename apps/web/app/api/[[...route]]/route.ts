@@ -1,5 +1,5 @@
 import { createApiHandler } from '@trainer-hub/api';
-import { pingDatabase } from '@trainer-hub/database';
+import { findSystemGreeting, pingDatabase } from '@trainer-hub/database';
 import { createErrorReporter, createProductEvents } from '@trainer-hub/observability';
 import { database } from '../../../server/database';
 
@@ -9,6 +9,7 @@ import { database } from '../../../server/database';
 const errorReporter = createErrorReporter();
 const handler = createApiHandler({
   pingDatabase: () => pingDatabase(database()),
+  findSystemGreeting: (slug) => findSystemGreeting(database(), slug),
   errorReporter,
   // Sends product events to PostHog, at POSTHOG_HOST, when POSTHOG_KEY is set (E009).
   productEvents: createProductEvents({ errorReporter }),

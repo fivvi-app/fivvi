@@ -176,7 +176,7 @@ public enum Operations {
     }
     /// Greeting for the walking skeleton
     ///
-    /// Without `locale`, the locale is the first supported language in the Accept-Language header, otherwise en.
+    /// The `hello` greeting from the database. Without `locale`, the locale is the first supported language in the Accept-Language header, otherwise en.
     ///
     /// - Remark: HTTP `GET /v1/hello`.
     /// - Remark: Generated from `#/paths//v1/hello/get(getHello)`.
@@ -326,6 +326,57 @@ public enum Operations {
                     }
                 }
             }
+            public struct InternalServerError: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/hello/GET/responses/500/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/hello/GET/responses/500/content/text\/plain`.
+                    case plainText(OpenAPIRuntime.HTTPBody)
+                    /// The associated value of the enum case if `self` is `.plainText`.
+                    ///
+                    /// - Throws: An error if `self` is not `.plainText`.
+                    /// - SeeAlso: `.plainText`.
+                    public var plainText: OpenAPIRuntime.HTTPBody {
+                        get throws {
+                            switch self {
+                            case let .plainText(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetHello.Output.InternalServerError.Body
+                /// Creates a new `InternalServerError`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetHello.Output.InternalServerError.Body) {
+                    self.body = body
+                }
+            }
+            /// Unexpected server error, reported to error tracking. Contains no error details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/hello/get(getHello)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Operations.GetHello.Output.InternalServerError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Operations.GetHello.Output.InternalServerError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
             /// Undocumented response.
             ///
             /// A response with a code that is not documented in the OpenAPI document.
@@ -333,11 +384,14 @@ public enum Operations {
         }
         @frozen public enum AcceptableContentType: AcceptableProtocol {
             case json
+            case plainText
             case other(Swift.String)
             public init?(rawValue: Swift.String) {
                 switch rawValue.lowercased() {
                 case "application/json":
                     self = .json
+                case "text/plain":
+                    self = .plainText
                 default:
                     self = .other(rawValue)
                 }
@@ -348,11 +402,14 @@ public enum Operations {
                     return string
                 case .json:
                     return "application/json"
+                case .plainText:
+                    return "text/plain"
                 }
             }
             public static var allCases: [Self] {
                 [
-                    .json
+                    .json,
+                    .plainText
                 ]
             }
         }

@@ -123,7 +123,7 @@ public struct Client: APIProtocol {
     }
     /// Greeting for the walking skeleton
     ///
-    /// Without `locale`, the locale is the first supported language in the Accept-Language header, otherwise en.
+    /// The `hello` greeting from the database. Without `locale`, the locale is the first supported language in the Accept-Language header, otherwise en.
     ///
     /// - Remark: HTTP `GET /v1/hello`.
     /// - Remark: Generated from `#/paths//v1/hello/get(getHello)`.
@@ -200,6 +200,28 @@ public struct Client: APIProtocol {
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
                     return .badRequest(.init(body: body))
+                case 500:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.GetHello.Output.InternalServerError.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "text/plain"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "text/plain":
+                        body = try converter.getResponseBodyAsBinary(
+                            OpenAPIRuntime.HTTPBody.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .plainText(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .internalServerError(.init(body: body))
                 default:
                     return .undocumented(
                         statusCode: response.status.code,
