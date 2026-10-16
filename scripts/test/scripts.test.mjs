@@ -558,7 +558,7 @@ case "$*" in *connectedDebugAndroidTest*) ${outcome} ;; esac`,
       join(bin, 'xcodebuild'),
       `echo "$*" >>"${state}/xcodebuild.log"
 case "$*" in
-  *-showBuildSettings*) printf '    TRAINER_HUB_API_BASE_URL = https://example.test/api\\n    INFOPLIST_FILE = Info.plist\\n    TRAINER_HUB_SENTRY_ENVIRONMENT = production\\n' ;;
+  *-showBuildSettings*) printf '    TRAINER_HUB_API_BASE_URL = https://example.test/api\\n    INFOPLIST_FILE = Info.plist\\n    TRAINER_HUB_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    TRAINER_HUB_SENTRY_ENVIRONMENT = production\\n' ;;
   test\\ *) for arg; do case "$arg" in id=*) xcrun simctl bootstatus "\${arg#id=}" -b ;; esac; done
     ${outcome} ;;
 esac
