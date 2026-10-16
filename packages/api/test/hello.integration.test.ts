@@ -73,6 +73,18 @@ describe('E008 GET /v1/hello reads the greeting from system_greetings (#93)', ()
     });
   });
 
+  it('rejects an unsupported locale with a validation error', async () => {
+    await withRollback(client.db, async (tx) => {
+      const res = await appReading(tx).request('/v1/hello?locale=de-DE');
+
+      expect(res.status).toBe(400);
+      expect(await res.json()).toEqual({
+        code: 'validation_failed',
+        issues: [{ path: 'locale', code: 'invalid_value' }],
+      });
+    });
+  });
+
   it('a missing hello row gives the documented 500 and is reported, never a key', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     const transport = createCaptureTransport();

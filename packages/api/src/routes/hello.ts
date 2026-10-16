@@ -31,8 +31,8 @@ const helloRoute = createRoute({
   tags: ['hello'],
   summary: 'Greeting for the walking skeleton',
   description:
-    'The `hello` greeting from the database. Without `locale`, the locale is the first supported language in ' +
-    'the Accept-Language header, otherwise en.',
+    'The `hello` greeting from the database. Without `locale`, the locale is the first ' +
+    'supported language in the Accept-Language header, otherwise en.',
   request: {
     query: z.object({ locale: LocaleSchema.optional() }),
   },

@@ -14,7 +14,8 @@ import {
 const StrictHelloResponse = z.strictObject(HelloResponseSchema.shape);
 const StrictValidationError = z.strictObject(ValidationErrorSchema.shape);
 
-// A fake greeting reader: these tests run without a database. hello.integration.test.ts reads Postgres.
+// A fake greeting reader: these tests run without a database.
+// hello.integration.test.ts reads Postgres.
 const HELLO_GREETING_KEY = 'hello.title';
 
 function withGreeting(
