@@ -51,7 +51,7 @@ def ready_children:
   [.children[] | select(open and has("ready-for-agent") and (has("spec") | not)
     and (.assignees | length == 0) and (.blocked | not)) | .number];
 
-# A ticket PR changes only its FEATURES.md row's Status; only the spec's last one rewrites the summary.
+# A ticket PR changes only its FEATURES.md row's Status; only the PR that completes the spec rewrites the summary.
 def features_hint:
   def implemented: "in FEATURES.md, set its row's Status to IMPLEMENTED (NL/EN ✅) and write its final one-line summary in this PR. Change nothing else in the row.";
   # Tickets run in parallel, so the PR that completes the spec may not have started as its last open ticket.

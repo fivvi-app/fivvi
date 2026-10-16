@@ -129,7 +129,7 @@ describe('flow phase of a ticket', () => {
     assert.match(decide(only).hint, /IMPLEMENTED/);
   });
 
-  it('lets only the last ticket of a spec touch the FEATURES.md summary', () => {
+  it('lets only the PR that completes the spec touch the FEATURES.md summary', () => {
     const first = decide(issue({ parent: { ...issue().parent, open: 3, total: 3 } })).hint;
     assert.match(first, /change only its row's Status, to IN PROGRESS/);
     assert.match(first, /If this PR completes the spec instead, .*IMPLEMENTED/);

@@ -18,7 +18,7 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 | `packages/domain` | Planned: business rules (M2) |
 | `packages/email` | Email templates and sending |
 | `packages/i18n` | The only source of user-facing strings |
-| `packages/observability` | Error reporting, product events and page views (the only code that imports Sentry, `posthog-node` or `posthog-js`) |
+| `packages/observability` | Error reporting, product events and page views (the only TypeScript code that imports Sentry, `posthog-node` or `posthog-js`) |
 | `packages/testing` | Test helpers |
 | `packages/ui` | Web component kit (shadcn/ui), themed by the design tokens |
 | `docs/product/` | `PRODUCT.md` (requirements), `ROADMAP.md` (milestones, decisions), `FEATURES.md` (registry and status) |
