@@ -7,6 +7,7 @@ import {
   mkdirSync,
   mkdtempSync,
   realpathSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -97,6 +98,39 @@ describe('iOS toolchain (_ios.sh)', () => {
       result.stderr,
       /DEVELOPER_DIR=\/nonexistent\/Xcode_0\.0\.app\/Contents\/Developer is not a usable Xcode/,
     );
+  });
+});
+
+describe('CI path filters (ci.yml)', () => {
+  // The `decide ios` filter of the "Detect changes" job, as the ERE that grep -E runs.
+  const iosFilter = () => {
+    const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
+    const filter = ci.match(/^ +decide ios apps\/ios '([^']+)'$/m)?.[1];
+    assert.ok(filter, 'ci.yml has no `decide ios` filter');
+    return new RegExp(filter);
+  };
+
+  it('E008 AC9: the iOS job runs for the app and its generated inputs, including the Swift design tokens', () => {
+    const ios = iosFilter();
+    for (const path of [
+      'apps/ios/TrainerHub/Hello/HelloView.swift',
+      'packages/contract/swift/Sources/TrainerHubAPI/Generated/Client.swift',
+      'packages/i18n/generated/ios/Localizable.xcstrings',
+      'packages/design-tokens/TrainerHubDesignTokens/Package.swift',
+      'packages/design-tokens/TrainerHubDesignTokens/Sources/TrainerHubDesignTokens/Generated/Colors.swift',
+      'scripts/test-ios.sh',
+      '.github/workflows/ci.yml',
+    ]) {
+      assert.match(path, ios, path);
+    }
+    for (const path of [
+      'docs/product/FEATURES.md',
+      'packages/design-tokens/generated/web/tokens.css',
+      'packages/design-tokens/kotlin/generated/nl/trainerhub/designtokens/Colors.kt',
+      'packages/i18n/generated/android/values/strings.xml',
+    ]) {
+      assert.doesNotMatch(path, ios, path);
+    }
   });
 });
 
