@@ -182,7 +182,7 @@ final class HelloUITests: XCTestCase {
     /// `element` is at least the minimum touch target, compared in the screen's device pixels (`TouchTarget`).
     private func assertTouchTarget(_ element: XCUIElement, on screen: HelloScreen) throws {
         let size = element.frame.size
-        let scale = try screen.displayScale()
+        let scale = try screen.app.screenshotBitmap().scale
         XCTAssertTrue(
             TouchTarget.isMet(by: size, scale: scale),
             "\(element.identifier) is \(size.width) × \(size.height) pt at \(scale)x, "

@@ -31,6 +31,14 @@ struct RGB: Equatable, CustomStringConvertible {
     var description: String { String(format: "#%02X%02X%02X", red, green, blue) }
 }
 
+extension XCUIApplication {
+    /// A screenshot of the app and its device pixels per point: the bitmap's width over the window's in points.
+    @MainActor func screenshotBitmap() throws -> (image: CGImage, scale: CGFloat) {
+        let image = try XCTUnwrap(screenshot().image.cgImage, "the screenshot has no bitmap")
+        return (image, CGFloat(image.width) / windows.firstMatch.frame.width)
+    }
+}
+
 /// The pixels of a screenshot of the app, converted to sRGB, addressed in the points of element frames.
 struct ScreenColours {
     private let pixels: [UInt8]
@@ -39,11 +47,11 @@ struct ScreenColours {
     private let scale: CGFloat
 
     @MainActor init(_ app: XCUIApplication) throws {
-        let image = try XCTUnwrap(app.screenshot().image.cgImage, "the screenshot has no bitmap")
-        let window = app.windows.firstMatch.frame
+        let screenshot = try app.screenshotBitmap()
+        let image = screenshot.image
+        scale = screenshot.scale
         width = image.width
         height = image.height
-        scale = CGFloat(image.width) / window.width
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
         let space = try XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB))
         let drawn: Bool = pixels.withUnsafeMutableBytes { buffer in
