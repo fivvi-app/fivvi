@@ -27,14 +27,14 @@ custom_rules:
     severity: error
   # No hard-coded colours (ADR-015, #57): app code takes every colour from the design tokens (`Tokens.Colors`), which
   # follow light and dark mode. Rejects colour initialisers, colour literals, system colours (`Color.red`, `UIColor
-  # .systemBackground`) and their shorthand as an argument or value (`.foregroundStyle(.blue)`, `colors: [.red]`).
-  # `Color.clear` is allowed.
+  # .systemBackground`, `.background`) and their shorthand as an argument, value or result (`.foregroundStyle(.blue)`,
+  # `colors: [.red]`, `on ? .red : …`, `return .red`). `Color.clear`, `.tint` and materials are allowed.
   # Tests may resolve token colours, so they're excluded. Fixture: lint/fixtures/ColourLiteral.swift.
   no_colour_literal:
     name: No colour literal
     message: Colours come from the design tokens (Tokens.Colors in TrainerHubDesignTokens), not a literal or system colour
     excluded: '/TrainerHub(UI)?Tests/'
-    regex: '#colorLiteral\s*\(|\b(Color|UIColor|CGColor)\s*(\.\s*init\s*)?\(|\b(Color|UIColor)\s*\.\s*(?!clear\b)[a-z]\w*|[(\[,:=]\s*\.(black|blue|brown|cyan|gray|green|indigo|mint|orange|pink|purple|red|teal|white|yellow|primary|secondary|tertiary|quaternary|quinary|separator|accentColor)\b'
+    regex: '#colorLiteral\s*\(|\b(Color|UIColor|CGColor)\s*(\.\s*init\s*)?\(|\.init\s*\(\s*(red|hue|white|uiColor|cgColor|\.sRGB|\.sRGBLinear|\.displayP3)\b|\b(Color|UIColor)\s*\.\s*(?!clear\b)[a-z]\w*|([(\[,:?{]|(?<![=!<>])=|\breturn)\s*\.(black|blue|brown|cyan|gray|green|indigo|mint|orange|pink|purple|red|teal|white|yellow|primary|secondary|tertiary|quaternary|quinary|separator|background|foreground|selection|accentColor)\b'
     excluded_match_kinds:
       - comment
       - comment.mark

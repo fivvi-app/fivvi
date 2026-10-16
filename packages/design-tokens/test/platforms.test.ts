@@ -211,15 +211,19 @@ describe('E007 design tokens platform mapping', () => {
   });
 
   it('E008 #57: the Swift package has its own Xcode package identity, apart from the API client', () => {
-    // Xcode names a local package by its directory, so the tokens and packages/contract/swift
-    // can't both be called `swift`: the app could link only one of them.
+    // Xcode names a local package by its directory name, case-insensitively: two local packages
+    // whose directories share a name (the tokens and the API client were both `swift`) can't both link.
     const manifest = readFileSync(path.join(packageRoot, swiftPackageDir, 'Package.swift'), 'utf8');
     expect(manifest).toMatch(new RegExp(`name: "${swiftPackageDir}"`));
-    expect(swiftPackageDir.toLowerCase()).not.toBe('swift');
-    for (const file of Object.values(swiftOutputs)) {
-      expect(file.startsWith(`${swiftPackageDir}/Sources/${swiftPackageDir}/Generated/`)).toBe(
-        true,
-      );
-    }
+    const project = readFileSync(
+      path.join(packageRoot, '../../apps/ios/TrainerHub.xcodeproj/project.pbxproj'),
+      'utf8',
+    );
+    const localPackages = [...project.matchAll(/relativePath = "?([^";]+)"?;/g)].map(([, dir]) =>
+      path.basename(dir ?? '').toLowerCase(),
+    );
+    expect(localPackages).toContain(swiftPackageDir.toLowerCase());
+    expect(localPackages).toContain('swift');
+    expect(new Set(localPackages).size).toBe(localPackages.length);
   });
 });

@@ -7,6 +7,15 @@ import UIKit
 
 struct ColourLiteral: View {
     let title: String
+    let phase: ScenePhase
+
+    var danger: Color { .init(red: 1, green: 0, blue: 0) } // expect: no_colour_literal
+    var warning: Color { title.isEmpty ? .orange : .clear } // expect: no_colour_literal
+    var isInBackground: Bool { phase == .background }
+
+    func accent() -> Color {
+        return .red // expect: no_colour_literal
+    }
 
     var body: some View {
         VStack {
@@ -32,6 +41,10 @@ struct ColourLiteral: View {
             Text(title).foregroundStyle(.separator) // expect: no_colour_literal
             Text(title).foregroundStyle(.quinary) // expect: no_colour_literal
             let accent: Color = .purple // expect: no_colour_literal
+            Text(title).foregroundStyle(title.isEmpty ? .red : Tokens.Colors.textPrimary) // expect: no_colour_literal
+            Text(title).background(.background) // expect: no_colour_literal
+            Text(title).foregroundStyle(.foreground) // expect: no_colour_literal
+            Rectangle().fill(.selection) // expect: no_colour_literal
 
             Text(title).foregroundStyle(Tokens.Colors.textPrimary)
             Text(title).background(Tokens.Colors.bgCanvas)

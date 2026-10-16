@@ -118,7 +118,8 @@ final class HelloUITests: XCTestCase {
             }
             assertColour(colours.foreground(in: screen.error.frame, on: canvas), is: text, "error text in \(mode)")
             let retry = screen.retry.frame
-            let fill = colours.colour(at: CGPoint(x: retry.minX + 6, y: retry.midY))
+            // Inside the button's padding, left of its label.
+            let fill = colours.colour(at: CGPoint(x: retry.minX + retry.height / 4, y: retry.midY))
             assertColour(fill, is: RGB(Tokens.Colors.actionPrimaryBg, in: style), "retry fill in \(mode)")
             let label = retry.insetBy(dx: retry.height / 2, dy: retry.height / 4)
             assertColour(
