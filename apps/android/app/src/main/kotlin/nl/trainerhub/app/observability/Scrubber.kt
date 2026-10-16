@@ -20,7 +20,7 @@ import io.sentry.protocol.User
 private val REQUEST_HEADERS = setOf("accept", "accept-language", "content-length", "content-type")
 
 /** Contexts the SDK fills with facts about the app and the device, never about people. */
-private val CONTEXTS = setOf("app", "culture", "device", "os", "runtime", "trace")
+private val CONTEXTS = setOf("app", "cloud_resource", "culture", "device", "os", "runtime", "trace")
 
 /** Breadcrumb data of HTTP requests; the URL loses its query string. */
 private val BREADCRUMB_DATA = setOf("method", "status_code", "url")
@@ -101,7 +101,7 @@ private fun scrubMechanism(mechanism: Mechanism) = Mechanism().apply {
     isExceptionGroup = mechanism.isExceptionGroup
 }
 
-/** Local variables (`vars`) may hold anything the code was working on; so may a held lock's description. */
+/** Local variables (`vars`) may hold anything the code was working on; so may the description of a held lock. */
 private fun scrubFrame(frame: SentryStackFrame) = SentryStackFrame().apply {
     filename = frame.filename
     function = frame.function
@@ -119,6 +119,8 @@ private fun scrubFrame(frame: SentryStackFrame) = SentryStackFrame().apply {
     imageAddr = frame.imageAddr
     symbolAddr = frame.symbolAddr
     instructionAddr = frame.instructionAddr
+    addrMode = frame.addrMode
+    framesOmitted = frame.framesOmitted
     rawFunction = frame.rawFunction
     symbol = frame.symbol
 }

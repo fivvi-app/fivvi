@@ -106,6 +106,11 @@ class ObservabilityTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         Sentry.setExtra("note", note)
         Sentry.addBreadcrumb(Breadcrumb("Saving note for $CLIENT_NAME: $note").apply { category = "console" })
         Sentry.addBreadcrumb(httpBreadcrumb())
+        // beforeBreadcrumb scrubs a breadcrumb before the scope keeps it (and, on a phone, stores it for later events).
+        val kept = mutableListOf<Breadcrumb>()
+        Sentry.configureScope { scope -> kept += scope.breadcrumbs }
+        assertEquals(listOf(null, null), kept.map { it.message })
+        assertNull(kept.last().data["reason"])
 
         Sentry.captureEvent(eventWithPersonalData())
 
@@ -191,8 +196,16 @@ class ObservabilityTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         val event = sent().events.single()
         assertEquals("production", event.environment)
         assertEquals("nl.trainerhub.app@1.2.3+45", event.release)
+        // On a phone the SDK starts and ends sessions with the app's lifecycle; here by hand, to see what is sent.
+        assertTrue(checkNotNull(options).isEnableAutoSessionTracking)
+        Sentry.startSession()
+        Sentry.endSession()
+        val session = sent().sessions.last()
+        assertTrue(
+            session,
+            session.contains(""""attrs":{"release":"nl.trainerhub.app@1.2.3+45","environment":"production"}"""),
+        )
         val options = checkNotNull(options)
-        assertTrue(options.isEnableAutoSessionTracking)
         // The SDK itself collects nothing about the user or requests; the scrubber is the second line.
         val collection = options.dataCollectionResolver
         assertFalse(collection.isUserInfo)

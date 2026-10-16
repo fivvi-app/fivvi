@@ -28,6 +28,12 @@ class CaptureTransport(private val options: SentryOptions) : ITransport {
             .filter { it.header.type == SentryItemType.Event }
             .mapNotNull { it.getEvent(options.serializer) }
 
+    /** Every session update, as the JSON Sentry would receive. */
+    val sessions: List<String>
+        get() = envelopes.flatMap { it.items }
+            .filter { it.header.type == SentryItemType.Session }
+            .map { it.data.toString(Charsets.UTF_8) }
+
     override fun send(envelope: SentryEnvelope, hint: Hint) {
         envelopes += envelope
     }

@@ -140,7 +140,7 @@ Rules for the secrets that later enablers add (for example `BREVO_API_KEY` in E0
 
 The native apps aren't on Railway: their variables are build settings, per platform:
 
-- **Android:** Gradle properties in `apps/android/gradle.properties`, or `-P` on the Gradle command line. `trainerhub.sentryDsn` (debug builds): empty, so a developer's build reports nothing; set it only to test reporting by hand. `trainerhub.releaseSentryDsn` (release builds): the DSN of the Sentry `android` project (EU region), set by the owner (#47) before the first release (E017); empty turns reporting off. Debug builds report as `development`, release builds as `production` ([OBSERVABILITY.md](OBSERVABILITY.md) §1 "Android").
+- **Android:** Gradle properties in `apps/android/gradle.properties`, or `-P` on the Gradle command line. `trainerhub.sentryDsn` (debug builds): empty; set it only to test reporting by hand. `trainerhub.releaseSentryDsn` (release builds): the DSN of the Sentry `android` project (EU region), set by the owner (#47) before the first release (E017). What they do: [OBSERVABILITY.md](OBSERVABILITY.md) §1 "Android".
 
 ## 8. Backups
 
