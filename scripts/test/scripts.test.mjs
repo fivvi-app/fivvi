@@ -13,7 +13,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 const SCRIPTS = join(import.meta.dirname, '..');
@@ -99,6 +99,63 @@ describe('iOS toolchain (_ios.sh)', () => {
       result.stderr,
       /DEVELOPER_DIR=\/nonexistent\/Xcode_0\.0\.app\/Contents\/Developer is not a usable Xcode/,
     );
+  });
+});
+
+describe('CI path filters (ci.yml)', () => {
+  // The `decide ios` filter of the "Detect changes" job, as the ERE that grep -E runs.
+  const iosFilter = () => {
+    const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
+    const filter = ci.match(/^ +decide ios apps\/ios '([^']+)'$/m)?.[1];
+    assert.ok(filter, 'ci.yml has no `decide ios` filter');
+    return new RegExp(filter);
+  };
+
+  it('E008 AC9: the iOS job runs for the app and its generated inputs, including the Swift design tokens', () => {
+    const ios = iosFilter();
+    for (const path of [
+      'apps/ios/TrainerHub/Hello/HelloView.swift',
+      'packages/contract/swift/Sources/TrainerHubAPI/Generated/Client.swift',
+      'packages/i18n/generated/ios/Localizable.xcstrings',
+      'packages/design-tokens/TrainerHubDesignTokens/Package.swift',
+      'packages/design-tokens/TrainerHubDesignTokens/Sources/TrainerHubDesignTokens/Generated/Colors.swift',
+      'scripts/test-ios.sh',
+      '.github/workflows/ci.yml',
+    ]) {
+      assert.match(path, ios, path);
+    }
+    for (const path of [
+      'docs/product/FEATURES.md',
+      'packages/design-tokens/generated/web/tokens.css',
+      'packages/design-tokens/kotlin/generated/nl/trainerhub/designtokens/Colors.kt',
+      'packages/i18n/generated/android/values/strings.xml',
+    ]) {
+      assert.doesNotMatch(path, ios, path);
+    }
+  });
+});
+
+describe('iOS local Swift packages (apps/ios)', () => {
+  it('E008 #57: every local package the Xcode project links has its own package identity', () => {
+    // Xcode names a local package by its directory name, case-insensitively: two local packages whose
+    // directories share a name (the design tokens and the API client were both `swift`) can't both link.
+    const root = join(SCRIPTS, '..');
+    const ios = join(root, 'apps/ios');
+    const project = readFileSync(join(ios, 'TrainerHub.xcodeproj/project.pbxproj'), 'utf8');
+    const packages = [
+      ...project.matchAll(/isa = XCLocalSwiftPackageReference;\s*relativePath = "?([^";]+)"?;/g),
+    ].map(([, dir]) => join(ios, dir));
+    for (const dir of [
+      'packages/contract/swift',
+      'packages/design-tokens/TrainerHubDesignTokens',
+    ]) {
+      assert.ok(packages.includes(join(root, dir)), `the app links ${dir}`);
+    }
+    for (const dir of packages) {
+      assert.ok(existsSync(join(dir, 'Package.swift')), `${dir} has a Package.swift`);
+    }
+    const identities = packages.map((dir) => basename(dir).toLowerCase());
+    assert.deepEqual([...new Set(identities)], identities, `package identities: ${identities}`);
   });
 });
 
