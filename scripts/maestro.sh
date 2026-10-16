@@ -10,7 +10,6 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/_android.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/_ios.sh"
 
 usage() { usage_of "$0"; }
 
@@ -96,8 +95,7 @@ set_simulator_locale() {
 
 restart_simulator() {
   xcrun simctl shutdown "$SIMULATOR" >/dev/null 2>&1 || true
-  xcrun simctl boot "$SIMULATOR"
-  xcrun simctl bootstatus "$SIMULATOR" >/dev/null
+  xcrun simctl bootstatus "$SIMULATOR" -b >/dev/null
 }
 
 cleanup_ios() {
@@ -110,6 +108,8 @@ cleanup_ios() {
 
 cmd_ios() {
   [ $# -eq 0 ] || usage
+  # Only here, so the Android job (maestro.sh android) doesn't depend on the iOS helpers.
+  source "$ROOT/scripts/_ios.sh"
   use_xcode || die "Xcode not found — run scripts/bootstrap.sh --mobile"
   java_ok || use_brew_java || die "Java 17+ not found (Maestro needs it) — run scripts/bootstrap.sh --mobile"
   [ -x "$MAESTRO_HOME/bin/maestro" ] || die "Maestro not found — run scripts/bootstrap.sh --mobile"
@@ -119,8 +119,7 @@ cmd_ios() {
   [ -n "$SIMULATOR" ] || die "no iPhone simulator${IOS_SIMULATOR:+ named $IOS_SIMULATOR} — run scripts/bootstrap.sh --mobile"
   trap cleanup_ios EXIT
   start_stack
-  xcrun simctl boot "$SIMULATOR" 2>/dev/null || true
-  xcrun simctl bootstatus "$SIMULATOR" >/dev/null
+  xcrun simctl bootstatus "$SIMULATOR" -b >/dev/null
   mkdir -p "$REPORTS"
   SIMULATOR_SETTINGS="$REPORTS/simulator-global-defaults.plist"
   xcrun simctl spawn "$SIMULATOR" defaults export -g "$SIMULATOR_SETTINGS"
