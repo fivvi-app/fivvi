@@ -6,7 +6,7 @@ The native Android app (E008, ADR-003): Kotlin, Jetpack Compose and Material 3, 
 
 ```bash
 scripts/bootstrap.sh --mobile   # once: JDK, Android SDK, the `trainer-hub` emulator, Maestro
-pnpm test:android               # what CI runs: ktlint, build, unit tests, Compose UI tests on the emulator
+pnpm test:android               # what CI runs: ktlint, the release Sentry DSN, build, unit tests, Compose UI tests
 pnpm test:maestro               # the local stack + e2e/maestro flows on the emulator, in nl-NL and en
 scripts/android.sh emulator     # boot the emulator and leave it running for repeated runs
 ```
@@ -33,7 +33,7 @@ To try the app against your local web server (`pnpm dev`, port 3000), run `./gra
 - **Base URL** per build type, from `gradle.properties`: debug `trainerhub.apiBaseUrl` (the local server as `10.0.2.2` from the emulator; override with `-Ptrainerhub.apiBaseUrl=https://<preview>/api/`), release `trainerhub.releaseApiBaseUrl` (HTTPS only, or the release build fails). Plain HTTP is allowed only in debug (`src/debug`, network security config).
 - **Test tags** are shared with the iOS accessibility identifiers and the Maestro flows: `hello.greeting`, `hello.loading`, `hello.error`, `hello.retry` (`HelloTags`). The app exposes them as resource ids, so Maestro finds them.
 - **Theme** (ADR-015): wrap screens in `TrainerHubTheme`. It takes the generated `LightColorScheme` or `DarkColorScheme` as the system's mode is, and `TokenShapes`; text keeps Material 3's type scale in Roboto, so use `MaterialTheme.typography` with the token names (`title1`, `body`), never a font size. No dynamic colour (Material You). Colours come from `MaterialTheme.colorScheme`; for what Material doesn't cover (sessions, status), from `LightTokenColors` or `DarkTokenColors` for the same mode. No screen needs those yet: the first one adds them to `TrainerHubTheme`, so screens don't each pick the mode. Spacing comes from `Spacing`. `ktlintCheck` fails on a hard-coded colour (`Color(…)`, `Color.Red`, `colorResource`, Material's own or dynamic colour schemes) and names the file and line.
-- **Crash reporting** (E009): only `observability/` calls the Sentry SDK (`Observability`); `ktlintCheck` fails on Sentry anywhere else. It is off without a DSN, and debug builds have none unless you pass `-Ptrainerhub.sentryDsn=…`. No analytics SDK in the app: `checkNoAnalyticsSdk` fails the build. Details in [`OBSERVABILITY.md`](../../docs/engineering/OBSERVABILITY.md) §1 "Android".
+- **Crash reporting** (E009): only `observability/` calls the Sentry SDK (`Observability`); `ktlintCheck` fails on Sentry anywhere else. It is off without a DSN, and debug builds have none unless you pass `-Ptrainerhub.sentryDsn=…`. Release builds carry the `android` project's DSN (`trainerhub.releaseSentryDsn`); `checkReleaseSentryDsn` fails `pnpm test:android` and every release build unless its host is in the EU region (`<org>.ingest.de.sentry.io`). No analytics SDK in the app: `checkNoAnalyticsSdk` fails the build. Details in [`OBSERVABILITY.md`](../../docs/engineering/OBSERVABILITY.md) §1 "Android".
 
 ## Behind a company proxy
 
