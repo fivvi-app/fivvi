@@ -1,0 +1,27 @@
+# SwiftLint for the iOS app (E008). scripts/test-ios.sh (`pnpm test:ios`, CI) runs it with --strict.
+included:
+  - TrainerHub
+  - TrainerHubTests
+  - TrainerHubUITests
+excluded:
+  - .build
+  - lint
+
+line_length:
+  warning: 120
+  ignores_comments: true
+
+custom_rules:
+  # No hard-coded user-facing text (AGENTS.md, ADR-008): it comes from packages/i18n through the generated catalog.
+  # Fixture: lint/fixtures/LiteralText.swift.
+  no_literal_text:
+    name: No literal text
+    message: User-facing text comes from the string catalog (packages/i18n), not a string literal
+    regex: '\b(Text|Button|Label|Toggle|TextField|SecureField|Link)\s*\(\s*(verbatim:\s*)?"|\.(navigationTitle|accessibilityLabel|accessibilityHint|accessibilityValue)\s*\(\s*"'
+    excluded_match_kinds:
+      - comment
+      - comment.mark
+      - comment.url
+      - doccomment
+      - doccomment.field
+    severity: error
