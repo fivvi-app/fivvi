@@ -1,0 +1,6 @@
+# Build output, resolved packages and the pinned SwiftLint (scripts/test-ios.sh)
+.build/
+# Per-developer overrides: API base URL for a preview or a phone on the LAN (Config/Debug.xcconfig)
+Config/Local.xcconfig
+# Xcode per-user state
+xcuserdata/

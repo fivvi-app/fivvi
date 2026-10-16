@@ -21,6 +21,7 @@
     "test": "turbo run test",
     "test:integration": "turbo run test:integration",
     "test:e2e": "turbo run test:e2e",
+    "test:ios": "scripts/test-ios.sh",
     "test:android": "scripts/android.sh test",
     "test:maestro": "scripts/maestro.sh android",
     "format:check": "turbo run format:check",

@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 # Install or check everything this repo's scripts and checks need, then install the workspace. Safe to re-run.
 #
-#   bootstrap.sh         everything for day-to-day work
-#   bootstrap.sh --api   also Java 17+ and the Swift toolchain, needed to change the API (pnpm generate:contract)
-#   bootstrap.sh --mobile  also the native app toolchains: the JDK, the Android SDK and emulator, and Maestro (E008)
+#   bootstrap.sh            everything for day-to-day work
+#   bootstrap.sh --api      also Java 17+ and the Swift toolchain, needed to change the API (pnpm generate:contract)
+#   bootstrap.sh --mobile   also the native app toolchains: Xcode, an iPhone simulator and SwiftLint (pnpm test:ios),
+#                           and the JDK, the Android SDK and emulator, and Maestro (pnpm test:android, pnpm test:maestro)
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
+source "$ROOT/scripts/_ios.sh"
+
+case "${1:-}" in
+  --api | --mobile | "") ;;
+  *) usage_of "$0" ;;
+esac
 
 WARN=0
 warn() { echo "⚠️  $*"; WARN=1; }
@@ -36,6 +43,24 @@ install_node() {
     || npm install --global --ignore-scripts "$(node -p "require('$ROOT/package.json').packageManager")" || return 1
 }
 
+# The iOS app (apps/ios): Xcode with an iPhone simulator, and the pinned SwiftLint (scripts/_ios.sh).
+install_ios_tools() {
+  local preset="${DEVELOPER_DIR:-}"
+  if [ -n "$preset" ] && ! use_xcode; then
+    warn "DEVELOPER_DIR=$preset is not a usable Xcode — unset it or point it at an installed Xcode"
+    return 1
+  fi
+  if ! use_xcode; then
+    warn "Xcode not found — install it from the App Store, then run: sudo xcode-select -s /Applications/Xcode.app"
+    return 1
+  fi
+  [ -z "$preset" ] && [ -n "${DEVELOPER_DIR:-}" ] \
+    && echo "ℹ️  xcode-select points at the Command Line Tools; the iOS scripts use $DEVELOPER_DIR. To make it the default: sudo xcode-select -s /Applications/Xcode.app"
+  xcodebuild -checkFirstLaunchStatus || warn "Xcode isn't set up yet — run: sudo xcodebuild -runFirstLaunch"
+  [ -n "$(ios_simulator)" ] || warn "no iPhone simulator — install the iOS platform: xcodebuild -downloadPlatform iOS"
+  install_swiftlint || warn "could not install SwiftLint $SWIFTLINT_VERSION (scripts/_ios.sh)"
+}
+
 need jq jq || true
 need shellcheck shellcheck || true
 need gh gh || true
@@ -46,6 +71,7 @@ if [ "${1:-}" = --api ]; then
   install_java
 fi
 if [ "${1:-}" = --mobile ]; then
+  install_ios_tools || true
   "$ROOT/scripts/android.sh" setup || warn "the Android toolchain is incomplete (see above)"
 fi
 

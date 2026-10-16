@@ -8,9 +8,10 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 |---|---|
 | `apps/web`, `apps/cron` | Next.js web app (mounts the API under `/api`); daily cron job |
 | `packages/api`, `packages/contract` | API routes (zod-openapi); committed `openapi.json` + generated TS/Swift/Kotlin clients |
-| `packages/database`, `packages/i18n`, `packages/email`, `packages/observability`, `packages/testing` | Schema and migrations; the only source of user-facing strings; email; error reporting (the only code that imports Sentry); test helpers |
-| `apps/android` | Native Android app (Kotlin + Compose, E008); see its `README.md` |
-| `packages/domain`, `apps/ios` | Planned: business rules (M2), iOS app (E008) |
+| `packages/database`, `packages/i18n`, `packages/email`, `packages/observability`, `packages/testing` | Schema and migrations; the only source of user-facing strings; email; error reporting, product events and page views (the only code that imports Sentry, `posthog-node` or `posthog-js`); test helpers |
+| `apps/ios` | Native iOS app (Swift, SwiftUI), `pnpm test:ios` |
+| `apps/android` | Native Android app (Kotlin, Jetpack Compose), `pnpm test:android`; see its `README.md` |
+| `packages/domain` | Planned: business rules (M2) |
 | `docs/product/` | `PRODUCT.md` (requirements), `ROADMAP.md` (milestones, decisions), `FEATURES.md` (registry and status) |
 | `docs/engineering/` | `WORKFLOW.md` (flow, Definition of Done), `TESTING.md`, `ENVIRONMENTS.md`, `OBSERVABILITY.md` |
 | `GLOSSARY.md`, `docs/decisions/` | Domain language; ADRs |
