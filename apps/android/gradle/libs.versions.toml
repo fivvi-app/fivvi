@@ -13,6 +13,7 @@ androidx-test-runner = "1.7.0"
 androidx-test-ext-junit = "1.3.0"
 ktlint = "1.8.0"
 slf4j = "2.0.17"
+sentry = "8.61.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
@@ -38,6 +39,8 @@ ktlint-cli-ruleset-core = { module = "com.pinterest.ktlint:ktlint-cli-ruleset-co
 ktlint-rule-engine = { module = "com.pinterest.ktlint:ktlint-rule-engine", version.ref = "ktlint" }
 ktlint-rule-engine-core = { module = "com.pinterest.ktlint:ktlint-rule-engine-core", version.ref = "ktlint" }
 slf4j-nop = { module = "org.slf4j:slf4j-nop", version.ref = "slf4j" }
+# The SDK library only: no Gradle plugin (it uploads mappings and phones home), no replay or NDK modules (E009).
+sentry-android-core = { module = "io.sentry:sentry-android-core", version.ref = "sentry" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

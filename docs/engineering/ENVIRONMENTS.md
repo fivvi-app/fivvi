@@ -138,6 +138,10 @@ Rules for the secrets that later enablers add (for example `BREVO_API_KEY` in E0
 - The **owner** sets the values in the dashboard or with `railway variable set`. Agents never handle secret values or read `.env*` files.
 - `production` gets the real value. `development` gets a test key, a sandbox account or an empty value that turns the feature off. **Never copy a production value into `development`:** every preview inherits it. The one exception is the Sentry DSN (`SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`): a DSN can only send events, and previews must report to the same Sentry projects under their own environment (spec #32).
 
+The native apps aren't on Railway: their variables are build settings, per platform:
+
+- **Android:** Gradle properties in `apps/android/gradle.properties`, or `-P` on the Gradle command line. `trainerhub.sentryDsn` (debug builds): empty; set it only to test reporting by hand. `trainerhub.releaseSentryDsn` (release builds): the DSN of the Sentry `android` project (EU region), set by the owner (#47) before the first release (E017). What they do: [OBSERVABILITY.md](OBSERVABILITY.md) §1 "Android".
+
 ## 8. Backups
 
 Measured in the M1 spike (ADR-011, "M1 spike results"):
