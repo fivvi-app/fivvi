@@ -49,7 +49,9 @@
         ".githooks/**",
         ".github/rulesets/**",
         ".github/repo-settings.json",
-        ".github/workflows/ci.yml"
+        ".github/workflows/ci.yml",
+        "apps/ios/**/project.pbxproj",
+        "packages/*/*/Package.swift"
       ]
     },
     "//#check:root": {

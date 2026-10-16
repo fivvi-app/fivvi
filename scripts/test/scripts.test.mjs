@@ -12,7 +12,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 const SCRIPTS = join(import.meta.dirname, '..');
@@ -131,6 +131,30 @@ describe('CI path filters (ci.yml)', () => {
     ]) {
       assert.doesNotMatch(path, ios, path);
     }
+  });
+});
+
+describe('iOS local Swift packages (apps/ios)', () => {
+  it('E008 #57: every local package the Xcode project links has its own package identity', () => {
+    // Xcode names a local package by its directory name, case-insensitively: two local packages whose
+    // directories share a name (the design tokens and the API client were both `swift`) can't both link.
+    const root = join(SCRIPTS, '..');
+    const ios = join(root, 'apps/ios');
+    const project = readFileSync(join(ios, 'TrainerHub.xcodeproj/project.pbxproj'), 'utf8');
+    const packages = [
+      ...project.matchAll(/isa = XCLocalSwiftPackageReference;\s*relativePath = "?([^";]+)"?;/g),
+    ].map(([, dir]) => join(ios, dir));
+    for (const dir of [
+      'packages/contract/swift',
+      'packages/design-tokens/TrainerHubDesignTokens',
+    ]) {
+      assert.ok(packages.includes(join(root, dir)), `the app links ${dir}`);
+    }
+    for (const dir of packages) {
+      assert.ok(existsSync(join(dir, 'Package.swift')), `${dir} has a Package.swift`);
+    }
+    const identities = packages.map((dir) => basename(dir).toLowerCase());
+    assert.deepEqual([...new Set(identities)], identities, `package identities: ${identities}`);
   });
 });
 
