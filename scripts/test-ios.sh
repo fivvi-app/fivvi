@@ -2,9 +2,10 @@
 # The iOS app's checks, the same steps as the `iOS` CI job (E008). `pnpm test:ios` runs this.
 #
 #   test-ios.sh   SwiftLint and its fixtures (literal text, colours, direct Sentry calls), the Debug and Release
-#                 configurations, the Swift package allowlist, then the unit and UI tests in nl and en on the newest
-#                 iPhone simulator, in a worktree its own copy (IOS_SIMULATOR="iPhone 17" picks one by name); shuts
-#                 down the simulator it booted when it ends, unless KEEP_DEVICE=1
+#                 configurations (Release's Sentry DSN in the EU region), the Swift package allowlist, then the unit
+#                 and UI tests in nl and en on the newest iPhone simulator, in a worktree its own copy
+#                 (IOS_SIMULATOR="iPhone 17" picks one by name); shuts down the simulator it booted when it ends,
+#                 unless KEEP_DEVICE=1
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
@@ -45,13 +46,17 @@ debug_configuration() {
     || { echo "Config/Debug.xcconfig: TRAINER_HUB_SENTRY_DSN must stay empty; set it in Local.xcconfig"; return 1; }
 }
 
-# Release talks HTTPS to the production API only: no App Transport Security exception in its Info.plist.
+# Release talks HTTPS to the production API only: no App Transport Security exception in its Info.plist. It reports to
+# the Sentry `ios` project in the EU region: its DSN's host is `<org>.ingest.de.sentry.io`.
 release_configuration() {
-  local settings url plist
+  local settings url dsn plist
   settings="$(xcodebuild -project TrainerHub.xcodeproj -target TrainerHub -configuration Release -showBuildSettings)"
   url="$(sed -nE 's/^ *TRAINER_HUB_API_BASE_URL = //p' <<<"$settings")"
+  dsn="$(sed -nE 's/^ *TRAINER_HUB_SENTRY_DSN = //p' <<<"$settings")"
   plist="$(sed -nE 's/^ *INFOPLIST_FILE = //p' <<<"$settings")"
   [[ "$url" == https://?*/api ]] || { echo "Release API base URL is not https://<host>/api: $url"; return 1; }
+  [[ "$dsn" =~ ^https://[^@/]+@[a-z0-9]+\.ingest\.de\.sentry\.io/[0-9]+$ ]] \
+    || { echo "Release Sentry DSN is not https://<key>@<org>.ingest.de.sentry.io/<project> (EU region): $dsn"; return 1; }
   grep -qE '^ *TRAINER_HUB_SENTRY_ENVIRONMENT = production$' <<<"$settings" \
     || { echo "Release does not report to Sentry as environment production"; return 1; }
   if plutil -extract NSAppTransportSecurity raw -o - "$plist" >/dev/null 2>&1; then
