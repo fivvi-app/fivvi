@@ -134,7 +134,7 @@ describe('CI path filters (ci.yml)', () => {
     }
   });
 
-  it('E008 #58: the Android job runs for the app and its generated inputs, including the Kotlin design tokens', () => {
+  it('E008 AC9: the Android job runs for the app and its generated inputs, including the Kotlin design tokens', () => {
     const android = pathFilter('android');
     for (const path of [
       'apps/android/app/src/main/kotlin/nl/trainerhub/app/MainActivity.kt',
