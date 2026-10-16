@@ -3,7 +3,11 @@ import https from 'node:https';
 import { describe, expect, it, vi } from 'vitest';
 import { initBrowserErrorReporting } from './browser.ts';
 import { createCaptureTransport } from './capture.ts';
-import { readBrowserErrorReportingConfig, readErrorReportingConfig } from './config.ts';
+import {
+  readBrowserErrorReportingConfig,
+  readErrorReportingConfig,
+  readPageViewsConfig,
+} from './config.ts';
 import { createErrorReporter } from './reporter.ts';
 
 const DSN = 'https://public@o0.ingest.de.sentry.io/1';
@@ -81,5 +85,20 @@ describe('E009 error reporting config', () => {
     expect(
       readErrorReportingConfig({ SENTRY_DSN: DSN, RAILWAY_ENVIRONMENT_NAME: railway }).environment,
     ).toBe(environment);
+  });
+});
+
+describe('E009 page views config', () => {
+  it('AC5: no key means page views are off', () => {
+    // The server's product events key is not the browser's: only NEXT_PUBLIC_POSTHOG_KEY counts.
+    for (const env of [{}, { NEXT_PUBLIC_POSTHOG_KEY: '  ' }, { POSTHOG_KEY: 'phc_server' }]) {
+      expect(readPageViewsConfig(env)).toEqual({ key: undefined });
+    }
+  });
+
+  it('reads the PostHog project key', () => {
+    expect(readPageViewsConfig({ NEXT_PUBLIC_POSTHOG_KEY: ' phc_example ' })).toEqual({
+      key: 'phc_example',
+    });
   });
 });

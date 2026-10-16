@@ -39,7 +39,7 @@ We follow [Matt Pocock's skills](https://github.com/mattpocock/skills). The owne
 
 Tickets that aren't agent-ready and bugs go through `triage`; bugs also through `diagnosing-bugs` (failing test first). `implement-spec` (one integration branch for a whole spec) stays available when the owner asks for it.
 
-- Every branch has its own worktree in `.worktrees/` (git-ignored); `scripts/wt.sh add` creates it, installs dependencies and `packages/database/.env`. `scripts/check.sh` gives each worktree its own `E2E_PORT`, because Playwright reuses a server already running on its port.
+- Every branch has its own worktree in `.worktrees/` (git-ignored); `scripts/wt.sh add` creates it, installs dependencies and `packages/database/.env`. `scripts/check.sh` gives each worktree its own `E2E_PORT` (3200–3899), because Playwright reuses a server already running on its port. The page view tests use a second server on `E2E_PORT + 1000`, outside that range.
 - If an agent tool already isolates its session in a worktree of its own (for example a Copilot or Claude Code background session), work there instead of creating a second one, with a branch named as in §2 (`git branch -m <name>`).
 - The spec's **Test plan** is written before implementing (`TESTING.md §6`).
 - The PR of a spec's first ticket sets its `FEATURES.md` status to `IN PROGRESS`, the last one to `IMPLEMENTED` (`flow.sh` prints the hint). The feature's ID links the spec issue.

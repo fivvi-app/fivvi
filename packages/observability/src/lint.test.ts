@@ -21,9 +21,12 @@ const IMPORTS = [
   "import * as Sentry from '@sentry/node';",
   "import { ServerRuntimeClient } from '@sentry/core/server';",
   "import { PostHog } from 'posthog-node';",
+  // posthog-js, by its package root and by the subpath packages/observability uses.
+  "import posthog from 'posthog-js';",
+  "import { PostHog as PostHogBrowser } from 'posthog-js/dist/module.slim.no-external';",
 ];
 
-type Diagnostic = { category: string; location: { path: string } };
+type Diagnostic = { category: string; location: { path: string; start: { line: number } } };
 let dir: string;
 let diagnostics: Diagnostic[];
 
@@ -48,7 +51,7 @@ beforeAll(async () => {
     await mkdir(path.dirname(path.join(dir, fixture)), { recursive: true });
     await writeFile(
       path.join(dir, fixture),
-      `${IMPORTS.join('\n')}\n\nexport const report = [Sentry, ServerRuntimeClient, PostHog];\n`,
+      `${IMPORTS.join('\n')}\n\nexport const report = [Sentry, ServerRuntimeClient, PostHog, posthog, PostHogBrowser];\n`,
     );
   }
   const output = await promisify(execFile)(
@@ -64,16 +67,17 @@ afterAll(async () => {
 });
 
 describe('E009 SDK boundary', () => {
-  it('fails lint when an app or another package imports the Sentry or PostHog SDK directly', () => {
+  it('fails lint when an app or another package imports the Sentry or a PostHog SDK directly', () => {
     const flagged = diagnostics
       .filter((d) => d.category === 'lint/style/noRestrictedImports')
-      .map((d) => d.location.path)
+      .map((d) => `${d.location.path}:${d.location.start.line}`)
       .sort();
 
-    // Each fixture imports a Sentry package root, a Sentry subpath and PostHog: all flagged.
+    // Each fixture imports a Sentry package root (line 1) and subpath (2), posthog-node (3), and
+    // a posthog-js package root (4) and subpath (5): each is flagged, only outside this package.
     expect(flagged).toEqual(
       ['apps/cron/src/report.ts', 'apps/web/app/report.tsx', 'packages/api/src/report.ts'].flatMap(
-        (file) => [file, file, file],
+        (file) => [1, 2, 3, 4, 5].map((line) => `${file}:${line}`),
       ),
     );
   });

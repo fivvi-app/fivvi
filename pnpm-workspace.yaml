@@ -38,6 +38,8 @@ catalog:
   next-intl: ^4.14.6
   openapi-fetch: ^0.17.0
   pg: ^8.23.0
+  # Cookieless web page views (E009). Only packages/observability may import posthog-js (biome.json).
+  posthog-js: ^1.438.10
   # Product events (E009). Only packages/observability may import posthog-node (biome.json).
   posthog-node: ^5.56.1
   # Radix primitives for the shadcn/ui components in packages/ui (style radix-nova).
@@ -66,11 +68,13 @@ catalog:
 #   patch-package, but ship no patches, so there is nothing to apply.
 # - @sentry/cli (packages/observability) only downloads its binary when the platform
 #   package (@sentry/cli-<platform>, an optional dependency) is missing; pnpm installs it.
+# - core-js (via posthog-js, packages/observability) only prints a funding message.
 allowBuilds:
   '@bundled-es-modules/glob': false
   '@parcel/watcher': false
   '@sentry/cli': false
   '@swc/core': false
+  core-js: false
   esbuild: false
   style-dictionary: false
 

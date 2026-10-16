@@ -59,6 +59,10 @@
               {
                 "group": ["posthog-node", "posthog-node/**"],
                 "message": "Send product events with track() from @trainer-hub/observability, which only accepts catalog events (E009)."
+              },
+              {
+                "group": ["posthog-js", "posthog-js/**"],
+                "message": "Capture page views through @trainer-hub/observability/page-views, which is cookieless and sends the path only (E009)."
               }
             ]
           }

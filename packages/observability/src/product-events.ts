@@ -2,12 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { PostHog } from 'posthog-node';
 import { z } from 'zod';
 import { PRODUCT_EVENT_CATALOG } from './catalog.ts';
-import { type EnvironmentVariables, readErrorReportingConfig } from './config.ts';
+import { type EnvironmentVariables, POSTHOG_EU_HOST, readErrorReportingConfig } from './config.ts';
 import type { CatalogEvent, EventCatalog } from './event-schema.ts';
 import type { ErrorReporter } from './reporter.ts';
-
-/** PostHog's EU Cloud (Frankfurt), the region in the sub-processor list. */
-export const POSTHOG_EU_HOST = 'https://eu.i.posthog.com';
 
 /** How long `flush()` waits, so a slow PostHog holds up a response for at most this long. */
 const FLUSH_TIMEOUT_MS = 1_000;

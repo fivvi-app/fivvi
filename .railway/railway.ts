@@ -79,6 +79,9 @@ export default defineRailway((ctx) => {
       NEXT_PUBLIC_SENTRY_DSN: preserve(),
       // Build only: uploads the source maps to Sentry. Sealed in production; empty skips it.
       SENTRY_AUTH_TOKEN: preserve(),
+      // Cookieless page views (E009, packages/observability): the PostHog EU project key, set in
+      // the dashboard for production only. Read at runtime; empty sends nothing.
+      NEXT_PUBLIC_POSTHOG_KEY: preserve(),
     },
   });
 

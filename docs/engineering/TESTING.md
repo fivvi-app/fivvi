@@ -114,7 +114,7 @@ These are the bugs that hurt most (`ROADMAP.md §13`: R2, R3, R4). They get dedi
   - `zonedTime('2026-03-31T18:00')` turns Europe/Amsterdam wall-clock time into an instant, and `wallTime(instant)` goes back. A time in the skipped or repeated DST hour throws unless the test passes `disambiguation` (`earlier`, `later`, `compatible`), so no test picks one by accident;
   - `dstTransitions(2026)` gives the §4.3 fixtures from the time zone database: the instant, local date, offsets and the skipped/repeated hour of the March and October changes.
 - **Locale-independent selectors:** e2e and UI tests find elements by role + accessible name from the catalog, or by test ID / accessibility identifier, so **the same test runs in both locales**. Assert on visible text only where the text is the point, and read it from `packages/i18n`, never hard-code Dutch or English in a test.
-- **Mock only at boundaries:** email provider (a capture transport that records to, locale, subject and links), Cloudflare Turnstile (official test keys), Sentry/PostHog (disabled without a DSN or key; to check what would be sent, use the capture transport of `packages/observability`), the clock. Don't mock the database, the domain package or our own API.
+- **Mock only at boundaries:** email provider (a capture transport that records to, locale, subject and links), Cloudflare Turnstile (official test keys), Sentry/PostHog (disabled without a DSN or key; to check what would be sent, use the capture transport of `packages/observability`, or for page views `scrubPageView()` and an e2e test that intercepts the PostHog host, [OBSERVABILITY.md](OBSERVABILITY.md) §5.2), the clock. Don't mock the database, the domain package or our own API.
 - **No network** in unit and integration tests. E2E hits only our own local stack.
 
 ### 5.5 Coverage
@@ -155,7 +155,7 @@ Run from the repo root. Turbo runs the task in every package that has it; add `-
 | `scripts/check.sh` | Everything below plus repo hygiene (shellcheck, vendored skills, commit messages, doc links); `--fast` skips integration and e2e. The contract check runs only when the branch touches `packages/api` or `packages/contract`; CI runs it whenever turbo has no cached result for its inputs. The pre-PR gate | `scripts/bootstrap.sh` once; `--api` for API changes (Java, Swift) |
 | `pnpm test` | Every unit suite (`*.test.ts(x)`) | Nothing |
 | `pnpm test:integration` | Every integration suite (`*.integration.test.ts`) against real Postgres | `pnpm db:up`, and `TEST_DATABASE_URL` set to it (below) |
-| `pnpm test:e2e` | Builds `apps/web`, starts it on port 3100 (`E2E_PORT`) and runs every Playwright spec in **nl-NL and en** with axe | Chromium, once: `pnpm --filter @trainer-hub/web exec playwright install chromium --only-shell` |
+| `pnpm test:e2e` | Builds `apps/web`, starts it on port 3100 (`E2E_PORT`), and a second time with a synthetic PostHog key on `E2E_PORT + 1000` for the page view tests, and runs every Playwright spec in **nl-NL and en** with axe | Chromium, once: `pnpm --filter @trainer-hub/web exec playwright install chromium --only-shell` |
 | `pnpm lint`, `pnpm typecheck`, `pnpm check`, `pnpm format:check` | Static checks (§2) | Nothing |
 
 ```bash
