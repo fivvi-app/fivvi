@@ -11,6 +11,12 @@ struct HelloScreen {
     var error: XCUIElement { app.staticTexts["hello.error"] }
     var retry: XCUIElement { app.buttons["hello.retry"] }
 
+    /// Device pixels per point: a screenshot's width in pixels over the window's in points.
+    func displayScale() throws -> CGFloat {
+        let image = try XCTUnwrap(app.screenshot().image.cgImage, "the screenshot has no bitmap")
+        return CGFloat(image.width) / app.windows.firstMatch.frame.width
+    }
+
     /// Launches the app against `server`.
     /// - Parameters:
     ///   - deviceLanguages: the device's preferred languages; the test-plan configuration's language when nil.
