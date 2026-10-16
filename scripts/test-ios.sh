@@ -38,8 +38,9 @@ debug_configuration() {
   # shellcheck disable=SC2016 # the xcconfig's literal `$()`, which keeps `//` from starting a comment
   [ "$url" = 'http:/$()/localhost:3000/api' ] \
     || { echo "Config/Debug.xcconfig: base URL is not the local dev server: $url"; return 1; }
-  dsn="$(sed -nE 's/^TRAINER_HUB_SENTRY_DSN =//p' Config/Debug.xcconfig)"
-  [ -z "${dsn// /}" ] \
+  # Every setting of the DSN, also indented or conditional (`TRAINER_HUB_SENTRY_DSN[sdk=…] = …`), must be empty.
+  dsn="$(sed -nE 's/^[[:space:]]*TRAINER_HUB_SENTRY_DSN[^=]*=[[:space:]]*//p' Config/Debug.xcconfig | tr -d '[:space:]')"
+  [ -z "$dsn" ] \
     || { echo "Config/Debug.xcconfig: TRAINER_HUB_SENTRY_DSN must stay empty; set it in Local.xcconfig"; return 1; }
 }
 
@@ -61,10 +62,11 @@ release_configuration() {
 # Every remote Swift package the app resolves is on this list. The app has no analytics SDK (PostHog or other): product
 # events are captured server-side (E009, OBSERVABILITY.md §6). Adding a package means adding it here, in review.
 swift_packages() {
-  local allowed unexpected
+  local allowed resolved unexpected
   allowed='sentry-cocoa swift-collections swift-http-types swift-openapi-runtime swift-openapi-urlsession'
-  unexpected="$(jq -r '.pins[].identity' TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved \
-    | grep -vxF -f <(tr ' ' '\n' <<<"$allowed") || true)"
+  resolved="$(jq -er '.pins[].identity' TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved)" \
+    || { echo "could not read the Swift packages from Package.resolved"; return 1; }
+  unexpected="$(grep -vxF -f <(tr ' ' '\n' <<<"$allowed") <<<"$resolved" || true)"
   [ -z "$unexpected" ] || { echo "Swift packages not on the allowlist in scripts/test-ios.sh: $unexpected"; return 1; }
 }
 

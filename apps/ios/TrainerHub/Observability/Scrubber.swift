@@ -3,8 +3,13 @@ import Sentry
 
 /// The scrubber (ADR-013, docs/engineering/OBSERVABILITY.md §2), the same allowlist as `scrubEvent` and
 /// `scrubBreadcrumb` in packages/observability/src/scrub.ts, applied to every event and breadcrumb in `beforeSend` and
-/// `beforeBreadcrumb` before anything leaves the app. Every field of sentry-cocoa's `Event` that isn't kept here is
-/// cleared. The one native difference: threads stay, because a crash's stack trace is in its threads.
+/// `beforeBreadcrumb` before anything leaves the app. Two native differences (§6.1): threads stay, because a crash's
+/// stack trace is in its threads, and `server_name` goes, because on a phone it would be the device name.
+///
+/// Request, user and message are rebuilt from the kept fields. The event, its exceptions, threads and breadcrumbs are
+/// edited in place, because they carry state the SDK still needs (e.g. whether the event is a crash): every other
+/// field is either kept or cleared here. `test_E009_AC8_scrubberDecidesEveryField` lists those decisions and fails
+/// when a new sentry-cocoa version adds a field, so a new field never leaves the app unreviewed.
 enum Scrubber {
     /// Request headers worth keeping for debugging. Never cookies, auth or forwarding (IP) headers.
     private static let requestHeaders: Set = ["accept", "accept-language", "content-length", "content-type"]
@@ -16,6 +21,10 @@ enum Scrubber {
     private static let breadcrumbData: Set = ["method", "status_code", "url"]
     /// The user context keeps the internal user UUID and this, the workspace UUID.
     private static let workspaceKey = "organization_id"
+    /// Breadcrumb fields other than `data`; the message and origin go.
+    private static let breadcrumbFields: Set = ["type", "category", "level", "timestamp"]
+    /// The private field in which a watchdog-termination event carries the previous run's breadcrumbs, serialized.
+    private static let storedBreadcrumbsKey = "serializedBreadcrumbs"
     /// An email address, also URL-encoded (`%40`) in a path; scrub.ts's pattern.
     private static let email = #"[^\s@/?#&=:;,<>()"'\[\]]+(?:@|%40)[^\s@/?#&=:;,<>()"'\[\]]+\.[a-z]{2,}"#
 
@@ -36,7 +45,11 @@ enum Scrubber {
         event.tags = event.tags?.filter { tags.contains($0.key) }
         event.context = event.context.map(scrubContexts)
         event.breadcrumbs = event.breadcrumbs?.map(scrub)
-        // A phone's server name would be its device name, which often holds the owner's name.
+        // Stored after `beforeBreadcrumb`, so already scrubbed; scrubbed again in case a breadcrumb got there another way.
+        if event.responds(to: NSSelectorFromString(storedBreadcrumbsKey)),
+           let stored = event.value(forKey: storedBreadcrumbsKey) as? [[String: Any]] {
+            event.setValue(stored.map(scrubStored), forKey: storedBreadcrumbsKey)
+        }
         event.serverName = nil
         event.extra = nil
         event.modules = nil
@@ -48,13 +61,29 @@ enum Scrubber {
     static func scrub(_ breadcrumb: Breadcrumb) -> Breadcrumb {
         breadcrumb.message = nil
         breadcrumb.origin = nil
-        for key in breadcrumb.data.map({ Array($0.keys) }) ?? [] where !breadcrumbData.contains(key) {
-            breadcrumb.setData(value: nil, key: key)
-        }
-        if let url = breadcrumb.data?["url"] as? String {
-            breadcrumb.setData(value: scrubURL(url), key: "url")
+        let kept = scrubBreadcrumbData(breadcrumb.data ?? [:])
+        for key in breadcrumb.data?.keys.map(\.self) ?? [] {
+            breadcrumb.setData(value: kept[key], key: key)
         }
         return breadcrumb
+    }
+
+    /// A breadcrumb as the SDK stores it on disk, with the same rules.
+    private static func scrubStored(_ breadcrumb: [String: Any]) -> [String: Any] {
+        var kept = breadcrumb.filter { breadcrumbFields.contains($0.key) }
+        let data = scrubBreadcrumbData(breadcrumb["data"] as? [String: Any] ?? [:])
+        if !data.isEmpty {
+            kept["data"] = data
+        }
+        return kept
+    }
+
+    private static func scrubBreadcrumbData(_ data: [String: Any]) -> [String: Any] {
+        var kept = data.filter { breadcrumbData.contains($0.key) }
+        if let url = kept["url"] as? String {
+            kept["url"] = scrubURL(url)
+        }
+        return kept
     }
 
     private static func scrub(_ exception: Exception) {

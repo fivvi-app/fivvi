@@ -79,6 +79,14 @@ enum Synthetic {
             "request_body": note, "recipient": clientName
         ])
         event.breadcrumbs = [console, http]
+        // A watchdog-termination event carries the previous run's breadcrumbs as stored on disk, in a private field.
+        event.setValue(
+            [[
+                "category": "console", "level": "info", "message": note,
+                "data": ["client": clientName, "status_code": 500]
+            ]],
+            forKey: "serializedBreadcrumbs"
+        )
         return event
     }
 
