@@ -345,7 +345,7 @@ describe('Maestro flows', () => {
     for (const file of files) {
       const header = readFileSync(join(flows, file), 'utf8').split(/^---$/m)[0];
       const name = header.match(/^name:\s*["']?(.*?)["']?\s*$/m)?.[1] ?? file;
-      assert.doesNotMatch(name, /["':<>|*?\\\r\n]/, `${file}: flow name "${name}"`);
+      assert.doesNotMatch(name, /[":<>|*?\\\r\n]/, `${file}: flow name "${name}"`);
     }
   });
 });
