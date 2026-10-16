@@ -3,9 +3,9 @@ import type {
   PostHog,
   PostHogConfig,
 } from 'posthog-js/dist/module.slim.no-external';
-import { POSTHOG_EU_HOST } from './config.ts';
+import type { PostHogTarget } from './config.ts';
 
-export { type PageViewsConfig, POSTHOG_EU_HOST, readPageViewsConfig } from './config.ts';
+export { type PageViewsConfig, type PostHogTarget, readPageViewsConfig } from './config.ts';
 
 /**
  * posthog-js without its extensions (autocapture, heatmaps, session recording, surveys, …),
@@ -13,7 +13,6 @@ export { type PageViewsConfig, POSTHOG_EU_HOST, readPageViewsConfig } from './co
  * off as well, so nothing depends on SDK defaults (OBSERVABILITY.md §5).
  */
 const OPTIONS: Partial<PostHogConfig> = {
-  api_host: POSTHOG_EU_HOST,
   // No cookies, localStorage or sessionStorage: PostHog counts visitors with a daily hash.
   cookieless_mode: 'always',
   persistence: 'memory',
@@ -79,18 +78,18 @@ let started: Promise<PostHog> | undefined;
  * a page that never calls it never loads the SDK. Never throws or rejects: analytics must
  * never break a page, and an ad blocker may block the SDK or PostHog.
  */
-export async function capturePageView(key: string): Promise<void> {
+export async function capturePageView(target: PostHogTarget): Promise<void> {
   try {
-    started ??= startPostHog(key);
+    started ??= startPostHog(target);
     (await started).capture('$pageview');
   } catch {
     // Nothing to report: a missing page view is not an error.
   }
 }
 
-async function startPostHog(key: string): Promise<PostHog> {
+async function startPostHog({ key, host }: PostHogTarget): Promise<PostHog> {
   const { posthog } = await import('posthog-js/dist/module.slim.no-external');
-  posthog.init(key, OPTIONS);
+  posthog.init(key, { ...OPTIONS, api_host: host });
   return posthog;
 }
 

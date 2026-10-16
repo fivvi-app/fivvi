@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import { defaultTimeZone, formattingLocales, locales } from '@trainer-hub/i18n';
 import type { E2EOptions } from './e2e/fixtures';
-import { analyticsServer, appServer, TEST_POSTHOG_KEY } from './e2e/servers';
+import { analyticsServer, appServer, TEST_POSTHOG_HOST, TEST_POSTHOG_KEY } from './e2e/servers';
 
 // Web e2e tests (TESTING.md §2). Every spec runs once per catalog locale: one project
 // per locale, with the browser language set to it. `pnpm test:e2e` from the repo root
@@ -31,10 +31,14 @@ export default defineConfig<E2EOptions>({
     },
   })),
   // The standalone server, as in production (Dockerfile), not `next start`. A second one runs
-  // the same build with a PostHog key, which it reads at runtime, for the page view tests (E009).
+  // the same build with a PostHog key and host, which it reads at runtime, for the page view
+  // tests (E009).
   webServer: [
     standaloneServer(appServer),
-    standaloneServer(analyticsServer, { NEXT_PUBLIC_POSTHOG_KEY: TEST_POSTHOG_KEY }),
+    standaloneServer(analyticsServer, {
+      NEXT_PUBLIC_POSTHOG_KEY: TEST_POSTHOG_KEY,
+      POSTHOG_HOST: TEST_POSTHOG_HOST,
+    }),
   ],
 });
 

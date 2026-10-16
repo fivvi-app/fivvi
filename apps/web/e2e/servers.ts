@@ -10,7 +10,13 @@ export const appServer = { port, baseURL: `http://localhost:${port}` };
 export const TEST_POSTHOG_KEY = 'phc_e2e_synthetic_project_key';
 
 /**
- * The same build with a PostHog key, so it sends page views (E009 AC6). 1000 up, outside the
+ * A synthetic PostHog host (`.test` never resolves), which the page view tests intercept: page
+ * views go to whatever POSTHOG_HOST says, never to a built-in address.
+ */
+export const TEST_POSTHOG_HOST = 'https://posthog.e2e.test';
+
+/**
+ * The same build with a PostHog key and host, so it sends page views (E009 AC6). 1000 up, outside the
  * range of every worktree's own E2E_PORT (scripts/_lib.sh), so it never reuses another's server.
  */
 const analyticsPort = port + 1000;

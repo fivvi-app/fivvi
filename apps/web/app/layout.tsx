@@ -16,14 +16,15 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
   // Read at request time (this layout is dynamic: the locale comes from the request), so the
-  // same build sends page views only where NEXT_PUBLIC_POSTHOG_KEY is set: production.
+  // same build sends page views only where NEXT_PUBLIC_POSTHOG_KEY is set (production), to the
+  // host in POSTHOG_HOST. A wrong host turns them off; instrumentation.ts reports it.
   const pageViews = readPageViewsConfig(process.env);
   return (
     <html lang={locale}>
       {/* Touch density for public and client pages; Trainer Web layouts opt into compact. */}
       <body data-density="touch">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
-        {pageViews.key ? <PageViews projectKey={pageViews.key} /> : null}
+        {pageViews.key ? <PageViews projectKey={pageViews.key} host={pageViews.host} /> : null}
       </body>
     </html>
   );
