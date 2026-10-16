@@ -54,11 +54,13 @@ def ready_children:
 # A ticket PR changes only its FEATURES.md row's Status; only the spec's last one rewrites the summary.
 def features_hint:
   def implemented: "in FEATURES.md, set its row's Status to IMPLEMENTED (NL/EN ✅) and write its final one-line summary in this PR. Change nothing else in the row.";
+  # Tickets run in parallel, so the PR that completes the spec may not have started as its last open ticket.
+  def unless_last: "If this PR completes the spec instead, \(implemented) Progress lives in the spec's tickets.";
   if has("spec") and (.children | length) == 0 then "This spec is its own ticket: \(implemented)"
   elif .parent == null or has("spec") then ""
   elif .parent.open == 1 and open then "Last open ticket of #\(.parent.number): \(implemented)"
-  elif .parent.open == .parent.total then "First ticket of #\(.parent.number): in FEATURES.md, change only its row's Status, to IN PROGRESS, in this PR; progress lives in the spec's tickets."
-  else "Ticket of #\(.parent.number): leave FEATURES.md unchanged; progress lives in the spec's tickets."
+  elif .parent.open == .parent.total then "First ticket of #\(.parent.number): in FEATURES.md, change only its row's Status, to IN PROGRESS, in this PR. \(unless_last)"
+  else "Ticket of #\(.parent.number): leave FEATURES.md unchanged. \(unless_last)"
   end;
 
 def ticket_phase($n):
