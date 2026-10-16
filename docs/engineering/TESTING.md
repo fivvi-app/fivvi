@@ -160,7 +160,7 @@ Run from the repo root. Turbo runs the task in every package that has it; add `-
 | `pnpm test:android` | `scripts/android.sh test`: ktlint with the literal-text, colour and Sentry rules, build, Android unit tests (nl-NL and en), Compose UI tests on an emulator (booted when none is connected). What CI's `Android` job runs | `scripts/bootstrap.sh --mobile` once |
 | `pnpm test:maestro` | `scripts/maestro.sh android`: Postgres (migrated, seeded) and the web server on `E2E_PORT`, the debug app on the emulator, every flow in `e2e/maestro/` with the emulator in **nl-NL and en**. `scripts/maestro.sh ios` runs the same flows on the iPhone simulator (local only) | Docker, `scripts/bootstrap.sh --mobile` once |
 | `pnpm lint`, `pnpm typecheck`, `pnpm check`, `pnpm format:check` | Static checks (§2) | Nothing |
-| `pnpm test:ios` | What the `iOS` CI job runs: SwiftLint, then the iOS unit and UI tests in **nl and en** on a simulator ([`apps/ios/README.md`](../../apps/ios/README.md#tests)) | `scripts/bootstrap.sh --mobile` |
+| `pnpm test:ios` | What the `iOS` CI job runs: SwiftLint with the literal-text, colour and Sentry rules, the build configurations (Debug sends nothing to Sentry), the Swift package allowlist (no analytics SDK), then the iOS unit and UI tests in **nl and en** on a simulator ([`apps/ios/README.md`](../../apps/ios/README.md#tests)) | `scripts/bootstrap.sh --mobile` |
 
 ```bash
 pnpm db:up
