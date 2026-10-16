@@ -6,6 +6,8 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
+  readFileSync,
   realpathSync,
   readFileSync,
   rmSync,
@@ -160,11 +162,272 @@ describe('iOS local Swift packages (apps/ios)', () => {
 
 describe('usage', () => {
   it('prints the commands of every script, never its code', () => {
-    for (const script of ['flow', 'issue', 'wt', 'pr', 'skills', 'risk', 'github-settings']) {
+    for (const script of [
+      'flow',
+      'issue',
+      'wt',
+      'pr',
+      'skills',
+      'risk',
+      'github-settings',
+      'android',
+      'maestro',
+    ]) {
       const result = spawnSync(join(SCRIPTS, `${script}.sh`), [], { encoding: 'utf8' });
       assert.equal(result.status, 1, script);
       assert.match(result.stderr, new RegExp(`${script}\\.sh [\\w<]`), script);
       assert.doesNotMatch(result.stderr, /set -euo|source /, script);
+    }
+  });
+});
+
+const script = (path, body) => {
+  mkdirSync(join(path, '..'), { recursive: true });
+  writeFileSync(path, `#!/usr/bin/env bash\n${body}\n`);
+  chmodSync(path, 0o755);
+};
+
+// A fake Android SDK in its own folder per test. Its tools find AVDs the way the real ones do: avdmanager
+// (cmdline-tools) in ANDROID_AVD_HOME or ~/.android/avd, the emulator in ANDROID_AVD_HOME or, when XDG_CONFIG_HOME is
+// set (GitHub's Ubuntu runners), under that. sdkmanager logs its arguments and installs cmdline-tools when asked; without
+// them in the SDK, setup takes sdkmanager from (fake) Homebrew.
+describe('android.sh setup', () => {
+  const dirs = [];
+  after(() => {
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+  });
+
+  const fakeSdk = ({ cmdlineTools = true, emulatorFindsAvds = true } = {}) => {
+    const base = realpathSync(mkdtempSync(join(tmpdir(), 'android-setup-')));
+    dirs.push(base);
+    const home = join(base, 'home');
+    const sdk = join(base, 'sdk');
+    const log = join(base, 'sdkmanager.log');
+    const avdmanager = `dir="\${ANDROID_AVD_HOME:-$HOME/.android/avd}"
+while [ $# -gt 0 ]; do [ "$1" = --name ] && name="$2"; shift; done
+mkdir -p "$dir/$name.avd" && touch "$dir/$name.ini"
+printf "%s\\n" "disk.dataPartition.path=<temp>" "disk.dataPartition.size=6G" "hw.cpu.ncore=4" >"$dir/$name.avd/config.ini"`;
+    const sdkmanager = `echo "$*" >>"${log}"
+for arg; do case "$arg" in --sdk_root=*) root="\${arg#--sdk_root=}" ;; esac; done
+case " $* " in *" cmdline-tools;latest "*)
+  mkdir -p "$root/cmdline-tools/latest/bin" && printf '%s\\n' '#!/usr/bin/env bash' '${avdmanager.replaceAll("'", "'\\''")}' >"$root/cmdline-tools/latest/bin/avdmanager"
+  chmod +x "$root/cmdline-tools/latest/bin/avdmanager" ;;
+esac`;
+    mkdirSync(join(sdk, 'platform-tools'), { recursive: true });
+    mkdirSync(join(base, 'jdk'));
+    if (cmdlineTools) {
+      script(join(sdk, 'cmdline-tools/latest/bin/sdkmanager'), sdkmanager);
+      script(join(sdk, 'cmdline-tools/latest/bin/avdmanager'), avdmanager);
+    }
+    script(
+      join(base, 'brew/share/android-commandlinetools/cmdline-tools/latest/bin/sdkmanager'),
+      sdkmanager,
+    );
+    script(join(base, 'bin/brew'), `[ "$1" = --prefix ] && echo "${join(base, 'brew')}"; exit 0`);
+    script(
+      join(sdk, 'emulator/emulator'),
+      emulatorFindsAvds
+        ? `dir="\${ANDROID_AVD_HOME:-\${XDG_CONFIG_HOME:+$XDG_CONFIG_HOME/.android/avd}}"
+[ "$1" = -list-avds ] && for f in "\${dir:-$HOME/.android/avd}"/*.ini; do [ -e "$f" ] && basename "$f" .ini; done
+exit 0`
+        : 'exit 0',
+    );
+    script(join(base, 'bin/java'), 'echo "openjdk version \\"21\\"" >&2');
+    script(join(home, '.maestro/bin/maestro'), 'echo 2.11.0');
+    const env = {
+      PATH: `${join(base, 'bin')}:${process.env.PATH}`,
+      HOME: home,
+      XDG_CONFIG_HOME: join(home, '.config'),
+      ANDROID_HOME: sdk,
+      JAVA_HOME: join(base, 'jdk'),
+    };
+    const setup = () =>
+      spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], { encoding: 'utf8', env });
+    const installed = () => readFileSync(log, 'utf8');
+    const config = join(home, '.android/avd/trainer-hub.avd/config.ini');
+    return { env, setup, installed, config };
+  };
+
+  it('creates an AVD that the emulator finds in later steps, also with XDG_CONFIG_HOME set', () => {
+    const { env, setup } = fakeSdk();
+    const result = setup();
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+
+    const found = spawnSync(
+      'bash',
+      [
+        '-c',
+        `source "${SCRIPTS}/_lib.sh"; source "${SCRIPTS}/_android.sh"; android_env; avd_exists`,
+      ],
+      { encoding: 'utf8', env },
+    );
+    assert.equal(found.status, 0, found.stdout + found.stderr);
+  });
+
+  it('fails when the emulator still cannot find the AVD it created', () => {
+    const result = fakeSdk({ emulatorFindsAvds: false }).setup();
+
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /created, but the emulator can't find it/);
+  });
+
+  // GitHub's runners have 2 cores; the device profile asks for 4. The data partition stays as the emulator wants it:
+  // it creates 6 GB on the first boot whatever config.ini or -partition-size say (CI frees disk space for it).
+  it('gives the AVD 2 cores, keeping its other settings', () => {
+    const { setup, config } = fakeSdk();
+
+    assert.equal(setup().status, 0);
+
+    assert.deepEqual(readFileSync(config, 'utf8').split('\n').filter(Boolean).sort(), [
+      'disk.dataPartition.path=<temp>',
+      'disk.dataPartition.size=6G',
+      'hw.cpu.ncore=2',
+    ]);
+  });
+
+  it('sets the cores of an AVD created before, on every setup', () => {
+    const { setup, config } = fakeSdk();
+    assert.equal(setup().status, 0);
+    writeFileSync(
+      config,
+      'disk.dataPartition.size = 6442450944\nhw.cpu.ncore = 4\nhw.ramSize=2G\n',
+    );
+
+    assert.equal(setup().status, 0);
+
+    assert.deepEqual(readFileSync(config, 'utf8').split('\n').filter(Boolean).sort(), [
+      'disk.dataPartition.size = 6442450944',
+      'hw.cpu.ncore=2',
+      'hw.ramSize=2G',
+    ]);
+  });
+
+  it('installs cmdline-tools only when the SDK has none', () => {
+    const present = fakeSdk();
+    assert.equal(present.setup().status, 0);
+    assert.doesNotMatch(present.installed(), /cmdline-tools;latest/);
+
+    const absent = fakeSdk({ cmdlineTools: false });
+    const result = absent.setup();
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(absent.installed(), /cmdline-tools;latest/);
+  });
+});
+
+// The boot wait against a fake emulator, adb and sleep (no real waiting: sleep returns at once and logs each call).
+// FAKE_EMULATOR picks what the emulator does: `exit` (fails at once, as without KVM), `hang` (runs but never boots) or
+// `boot`. It records its pid, so a test can check it was stopped.
+describe('android.sh emulator', () => {
+  const dirs = [];
+  const alive = (pid) => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  after(() => {
+    for (const dir of dirs) {
+      const pidFile = join(dir, 'state/pid');
+      if (existsSync(pidFile)) {
+        const pid = Number(readFileSync(pidFile, 'utf8'));
+        if (alive(pid)) process.kill(pid);
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  const boot = (mode, extraEnv = {}) => {
+    const base = realpathSync(mkdtempSync(join(tmpdir(), 'android-emulator-')));
+    dirs.push(base);
+    const state = join(base, 'state');
+    const sdk = join(base, 'sdk');
+    mkdirSync(state);
+    mkdirSync(join(base, 'jdk'));
+    script(join(base, 'bin/java'), 'echo "openjdk version \\"21\\"" >&2');
+    script(join(base, 'bin/sleep'), `echo "$*" >>"${join(state, 'sleeps')}"`);
+    script(
+      join(sdk, 'platform-tools/adb'),
+      `case "$1 $2 $3" in
+  "get-state "*) [ -e "${state}/booted" ] && echo device || exit 1 ;;
+  "shell getprop sys.boot_completed") [ -e "${state}/booted" ] && echo 1 || exit 1 ;;
+  "devices "*) printf 'List of devices attached\\nemulator-5554\\tdevice\\n' ;;
+esac
+exit 0`,
+    );
+    script(
+      join(sdk, 'emulator/emulator'),
+      `case "$1" in
+  -list-avds) echo trainer-hub ;;
+  -accel-check) echo 'accel: KVM (fake) is installed and usable' ;;
+  *) echo $$ >"${state}/pid"
+     case "$FAKE_EMULATOR" in
+       exit) echo 'FATAL | x86_64 emulation currently requires hardware acceleration!'; exit 1 ;;
+       hang) echo 'INFO | booting (fake)'; exec /bin/sleep 60 ;;
+       boot) echo 'INFO | booted (fake)'; touch "${state}/booted"; exec /bin/sleep 60 ;;
+     esac ;;
+esac`,
+    );
+    const env = {
+      PATH: `${join(base, 'bin')}:${process.env.PATH}`,
+      HOME: join(base, 'home'),
+      ANDROID_HOME: sdk,
+      JAVA_HOME: join(base, 'jdk'),
+      EMULATOR_LOG: join(base, 'emulator.log'),
+      FAKE_EMULATOR: mode,
+      ...extraEnv,
+    };
+    const result = spawnSync(join(SCRIPTS, 'android.sh'), ['emulator'], { encoding: 'utf8', env });
+    const read = (file) =>
+      existsSync(join(state, file)) ? readFileSync(join(state, file), 'utf8') : '';
+    const sleeps = read('sleeps').split('\n').filter(Boolean);
+    return { ...result, pid: Number(read('pid')), sleeps };
+  };
+
+  it('fails at once with the emulator log and the acceleration check when the emulator exits', () => {
+    const result = boot('exit');
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /the emulator exited while booting/);
+    assert.match(result.stderr, /x86_64 emulation currently requires hardware acceleration/);
+    assert.match(result.stderr, /KVM \(fake\) is installed and usable/);
+    assert.match(result.stderr, /Free space for the emulator \(.*\.android\/avd\):\n.*Filesystem/);
+  });
+
+  it('gives up after EMULATOR_BOOT_TIMEOUT, shows the log and stops the emulator', () => {
+    const result = boot('hang', { EMULATOR_BOOT_TIMEOUT: '4' });
+
+    assert.equal(result.status, 1);
+    assert.deepEqual(result.sleeps, ['2', '2'], 'polls every 2 s until 4 s have passed');
+    assert.match(result.stderr, /the emulator didn't boot in 4s/);
+    assert.match(result.stderr, /booting \(fake\)/);
+    assert.ok(result.pid > 0 && !alive(result.pid), 'the emulator was stopped');
+  });
+
+  it('waits for the boot and leaves the emulator running', () => {
+    const result = boot('boot');
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /emulator-5554\tdevice/);
+    assert.ok(alive(result.pid), 'the emulator keeps running for the next steps');
+  });
+});
+
+// Maestro names each flow's report folder after the flow (its `name`, else the file name), and CI uploads those
+// folders: actions/upload-artifact rejects paths with " : < > | * ? \ or line breaks. Maestro turns / into _.
+describe('Maestro flows', () => {
+  const flows = join(SCRIPTS, '../e2e/maestro');
+
+  it('have names that upload-artifact accepts as paths', () => {
+    const files = readdirSync(flows).filter(
+      (file) => /\.ya?ml$/.test(file) && file !== 'config.yaml',
+    );
+    assert.ok(files.length > 0, 'no flows found');
+    for (const file of files) {
+      const header = readFileSync(join(flows, file), 'utf8').split(/^---$/m)[0];
+      const name = header.match(/^name:\s*["']?(.*?)["']?\s*$/m)?.[1] ?? file;
+      assert.doesNotMatch(name, /[":<>|*?\\\r\n]/, `${file}: flow name "${name}"`);
     }
   });
 });

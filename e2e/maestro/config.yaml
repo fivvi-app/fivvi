@@ -1,0 +1,4 @@
+# Maestro workspace (TESTING.md §7.2): one flow per feature, the same YAML on iOS and Android. scripts/maestro.sh runs
+# every flow here once per catalog locale, after setting the device language.
+flows:
+  - "*"

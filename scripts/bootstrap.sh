@@ -3,7 +3,8 @@
 #
 #   bootstrap.sh            everything for day-to-day work
 #   bootstrap.sh --api      also Java 17+ and the Swift toolchain, needed to change the API (pnpm generate:contract)
-#   bootstrap.sh --mobile   also the native app toolchains: Xcode, an iPhone simulator and SwiftLint (pnpm test:ios)
+#   bootstrap.sh --mobile   also the native app toolchains: Xcode, an iPhone simulator and SwiftLint (pnpm test:ios),
+#                           and the JDK, the Android SDK and emulator, and Maestro (pnpm test:android, pnpm test:maestro)
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
@@ -69,8 +70,10 @@ if [ "${1:-}" = --api ]; then
   xcode-select -p >/dev/null 2>&1 || warn "Swift toolchain not found — run: xcode-select --install"
   install_java
 fi
-# The Android toolchain (JDK, Android SDK and emulator, Maestro) comes with the Android app (#56).
-[ "${1:-}" != --mobile ] || install_ios_tools || true
+if [ "${1:-}" = --mobile ]; then
+  install_ios_tools || true
+  "$ROOT/scripts/android.sh" setup || warn "the Android toolchain is incomplete (see above)"
+fi
 
 git -C "$MAIN_ROOT" config core.hooksPath .githooks
 mkdir -p "$WORKTREES_DIR" "$NOTES_DIR"

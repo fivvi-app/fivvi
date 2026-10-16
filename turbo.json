@@ -50,6 +50,8 @@
         ".github/rulesets/**",
         ".github/repo-settings.json",
         ".github/workflows/ci.yml",
+        "e2e/maestro/*.yaml",
+        "e2e/maestro/*.yml",
         "apps/ios/**/project.pbxproj",
         "packages/*/*/Package.swift"
       ]
