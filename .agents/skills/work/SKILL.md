@@ -13,7 +13,8 @@ You route; Matt Pocock's vendored skills do the work. Run every script, skill an
 - **GitHub holds what was agreed:** specs, tickets, blocking edges, labels, assignees and PRs. Comment on an issue only when the owner must answer or act. Never post progress, logs or check results there.
 - **Working memory is the ticket's notes file** (`flow.sh start` and `status` print its path): decisions, check results, what's left. Update it at every phase change so a fresh session can continue from `flow.sh status`, the notes, git and the PR. Keep no other plan or state files.
 - **Run a vendored skill by reading `.agents/skills/<name>/SKILL.md` and following it.** Most are user-invoked only, so you can't load them as tools. Their tracker and docs steps resolve through `docs/agents/`.
-- **Keep this conversation lean.** Each ticket is built by a fresh subagent; keep only issue numbers, phases and short reports here.
+- **Keep this conversation lean.** Each ticket is built by a fresh `builder` subagent and reviewed by a fresh `reviewer`; keep only issue numbers, phases and short reports here.
+- **This conversation runs on the high tier** (Opus in Claude Code and Copilot, Sol in Codex): shaping (grill, to-spec, to-tickets, triage) happens here, in the main conversation. You start the work on its tier as a subagent: `builder` (mid) builds and fixes, `reviewer` (high) does every code review, `mechanic` (small) does the mechanical work (**Subagents**, `docs/agents/build.md`). If this conversation runs on another tier, say so once and carry on; never run a review or a build here in its place.
 - **The owner approves specs and merges high-risk PRs** (`docs/decisions/ADR-016-agent-merges.md`). Merge a low-risk PR only with `scripts/pr.sh merge`; it decides, not you. Never approve a PR, merge in any other way, or enable auto-merge. Agent review stays local (`docs/engineering/WORKFLOW.md §4`).
 - Keep going while the next phase doesn't need the owner. Stop and report when it waits on a human: a spec approval, a product decision, a high-risk PR or a PR the merge gate refused.
 
@@ -42,7 +43,7 @@ You route; Matt Pocock's vendored skills do the work. Run every script, skill an
 | `needs-refinement`, `answered` | `.agents/skills/triage/SKILL.md` on it, one at a time with the user. |
 | `waiting` | Report and stop: the owner answers the `needs-info` question on the issue. |
 | `ready`, `in-progress` | **Build** (for `in-progress`, resume from the notes file and the worktree's commits) |
-| `draft-pr` | **Ship** from step 2 |
+| `draft-pr` | **Ship** from step 2; if the notes file has no `clean on <head sha>`, run **Build** step 3 first |
 | `changes-requested` | **Review loop** |
 | `ready-to-merge` | **Ship** from step 6 |
 | `merge-refused` | Report and stop: `pr.sh merge` refused this commit, so the owner decides. Never run `pr.sh merge` on it again; only a fix pushed with `pr.sh create` (a new commit) makes it `ready-to-merge` again. |
@@ -68,24 +69,25 @@ New work. Keep these steps in this conversation; don't delegate or compact betwe
 Per ticket; run independent tickets in parallel, at most three at a time (`flow.sh start` enforces it).
 
 1. `scripts/flow.sh start <n>` claims it and creates its worktree and notes; it prints the worktree, notes path, `E2E_PORT` and a `Hint` (what this PR changes in `FEATURES.md`, if anything).
-2. A fresh subagent runs `.agents/skills/implement/SKILL.md` on the ticket, following `docs/agents/build.md`, with the issue number, worktree, notes path and hint. `implement` builds test-first with `tdd` and reviews its work with `code-review` (standards and spec axes); it reports whether that review is **clean** on its last commit. On `blocked`, stop this ticket and ask the user; when only the owner can answer and they aren't here (**Factory**), `triage` it to `needs-info`.
-3. **Ship**.
+2. A fresh `builder` subagent runs `.agents/skills/implement/SKILL.md` on the ticket, following `docs/agents/build.md`, with the issue number, worktree, notes path and hint. It builds test-first with `tdd` and commits; it does **not** review its own work. On `blocked`, stop this ticket and ask the user; when only the owner can answer and they aren't here (**Factory**), `triage` it to `needs-info`.
+3. **Review**: a fresh `reviewer` subagent runs `.agents/skills/code-review/SKILL.md` (standards and spec axes) on the head commit, following `docs/agents/build.md`, with the issue number, worktree and notes path. It reports its findings and the verdict `clean on <sha>` or `not clean on <sha>`. For must-fix and should-fix findings, start a fresh `builder` with the findings in its brief (**Build** step 2), then a `reviewer` on the new head commit. At most two fix rounds; the review after the second is review-only: fix nothing, list what's left in the notes file. Note each round in the notes file. Only a `reviewer` verdict can make a review clean.
+4. **Ship**.
 
 ## Ship
 
 Run `pr.sh` inside the worktree: `cd <worktree> && scripts/pr.sh …`.
 
 1. `pr.sh create --body-file -` with a body shaped by `.agents/skills/pr/SKILL.md`. It runs `scripts/check.sh`, pushes, opens a draft titled after the issue and adds `Closes #<n>`.
-2. If the subagent reported `code-review` clean on the pushed commit: `pr.sh reviewed` records it for the head commit. Otherwise skip it; the PR will stay for the owner.
-3. `pr.sh wait`: exit 0, CI passed; 1, a check failed: fix it with a fresh subagent running `implement` (**Build** step 2), which reviews again, and push with `pr.sh create` (back to step 2); 2, still running after 20 minutes: report and stop.
+2. If a `reviewer` reported `clean on <sha>` for the pushed head commit: `pr.sh reviewed` records it for the head commit. Otherwise skip it; the PR will stay for the owner.
+3. `pr.sh wait`: exit 0, CI passed; 1, a check failed: a `mechanic` digs the failing log out and reports the failing step and first error, a fresh `builder` fixes it (**Build** step 2), a `reviewer` reviews the new head commit (**Build** step 3), and push with `pr.sh create` (back to step 2); 2, still running after 20 minutes: report and stop.
 4. `pr.sh smoke` checks the Railway preview and records the result for the head commit.
 5. `pr.sh ready`, note the PR in the notes file.
-6. `scripts/flow.sh status <n>`. On `ready-to-merge`, run `pr.sh merge`: it checks the merge gate and squash-merges only when every condition holds. When it merged, run `scripts/flow.sh finish <n>` from the main checkout and continue with what it reports. When it refuses, it records the refusal and its reasons on the PR for the head commit: report it to the owner and stop, and never retry the merge. The PR stays for the owner (`merge-refused`, under "Waiting on the owner" in `flow.sh next`) until the owner decides or a fix is pushed. Same when the phase is `in-review`. If the only failure is that the branch is behind `main` (nothing is recorded then), merge `origin/main` in the worktree, run `scripts/check.sh`, run `code-review` on the new commit as in `docs/agents/build.md` and continue from step 1 instead.
+6. `scripts/flow.sh status <n>`. On `ready-to-merge`, run `pr.sh merge`: it checks the merge gate and squash-merges only when every condition holds. When it merged, run `scripts/flow.sh finish <n>` from the main checkout and continue with what it reports. When it refuses, it records the refusal and its reasons on the PR for the head commit: report it to the owner and stop, and never retry the merge. The PR stays for the owner (`merge-refused`, under "Waiting on the owner" in `flow.sh next`) until the owner decides or a fix is pushed. Same when the phase is `in-review`. If the only failure is that the branch is behind `main` (nothing is recorded then), a `mechanic` merges `origin/main` in the worktree (a plain union of both sides; anything else goes to a `builder`) and runs `scripts/check.sh`, a `reviewer` reviews the new commit (**Build** step 3), and continue from step 1 instead.
 
 ## Review loop
 
 1. `pr.sh status` and `pr.sh threads` in the worktree.
-2. A fresh subagent runs `implement` on the failing checks and threads (**Build** step 2), with the thread ids and text in its brief; it reviews the new commit with `code-review`.
+2. A fresh `builder` runs `implement` on the failing checks and threads (**Build** step 2), with the thread ids and text in its brief; a `reviewer` then reviews the new commit (**Build** step 3).
 3. Push with `pr.sh create`, then reply to each thread: `pr.sh reply <thread> --body "<what changed>" --resolve` when fixed; without `--resolve` when you disagree, so the owner decides.
 4. The push made the review and smoke records stale: continue with **Ship** from step 2.
 5. Update the notes file, report.
@@ -104,11 +106,26 @@ A PR that `pr.sh merge` refused is reported to the owner, not retried: never mer
 
 ## Subagents
 
-A ticket's subagent starts fresh, with none of this conversation. Brief it with pointers, not pasted content: run `.agents/skills/implement/SKILL.md` following `docs/agents/build.md`, the issue number, worktree, notes path and hint, and for a fix the failing checks or threads. Expect the short report `build.md` asks for. Use the tool's general-purpose subagent (Copilot, Claude Code, Codex). Without subagent support, do the same steps inline, one ticket per conversation.
+Three agents, defined once in `.agents/agents/` and pinned to a model tier in every tool (`docs/agents/build.md`, **Tiers**). Start each by name, never as the tool's general-purpose subagent, which would run on this conversation's model.
+
+| Agent | Tier | Start it for |
+|---|---|---|
+| `builder` | mid | **Build** step 2: a ticket, a fix round after a review, failing checks, PR threads |
+| `reviewer` | high | **Build** step 3: both `code-review` axes on the head commit, review-only rounds, merge-commit reviews. The only source of `clean on <sha>` |
+| `mechanic` | small | CI-log digging, simple conflicts (unions), status and doc edits the brief spells out, waiting on `pr.sh wait` |
+
+A subagent starts fresh, with none of this conversation. Brief it with pointers, not pasted content: the issue number, worktree, notes path and hint, and for a fix the findings, failing checks or threads. The agent files say what to read. Expect the short report `build.md` asks for.
+
+- **Claude Code**: the Agent tool with `subagent_type` `builder`, `reviewer` or `mechanic` (`.claude/agents/`, `model: sonnet|opus|haiku`).
+- **Copilot**: the custom agent of that name (`.github/agents/<name>.agent.md`; its `model` field lists the Copilot names). In the CLI, run it as a subagent by name; in VS Code, as a subagent of the main conversation.
+- **Codex**: `spawn_agent` with `agent_type` `reviewer` or `mechanic` and `fork_turns: "none"`; the role pins the model, so don't pass `model`. A native role can't change the sandbox and can't commit in a worktree, so start the `builder` (and a `mechanic` that has to commit) with `scripts/codex-agent.sh mid|small <worktree> <prompt-file>`, which grants that worktree's git dir; the prompt file starts with "Read and follow `.agents/agents/builder.md`" (the wrapper has no role) and continues with the brief, and the final message is the report. The same wrapper starts any tier when the roles aren't loaded (the repo isn't trusted in `~/.codex/config.toml`). Details in `docs/agents/codex-model-tiers.md`.
+- **No subagent support**: do the same steps inline, one ticket per conversation. A review in the conversation that built is not a `reviewer` verdict: run it in a fresh conversation on the high tier, or skip `pr.sh reviewed` so the PR stays for the owner.
+
+Never hand-edit `.claude/agents/`, `.github/agents/` or `.codex/agents/`: change `.agents/agents/` and run `scripts/agents.sh sync` (`scripts/check.sh` fails when they differ).
 
 ## Context hygiene
 
-- One ticket per subagent; `code-review` runs its two axes in subagents of their own.
+- One ticket per subagent; the `reviewer` runs the two `code-review` axes in subagents of their own, which inherit its tier.
 - After **Shape**, or when this conversation gets long, start a new one: `scripts/flow.sh status` and GitHub rebuild the picture.
 - Share research through the notes file, not through this conversation. `flow.sh finish` deletes it.
 

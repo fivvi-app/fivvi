@@ -120,6 +120,26 @@ describe('agent edit guard', () => {
     );
   });
 
+  it('blocks hand-edits of the generated agent definitions and allows their source', () => {
+    for (const file of [
+      '.claude/agents/builder.md',
+      '.github/agents/builder.agent.md',
+      '.codex/agents/builder.toml',
+    ]) {
+      const reason = evaluate(claudeEdit(join(worktree, file)), gitDir) ?? '';
+      assert.match(reason, /is generated/, file);
+      assert.match(reason, /scripts\/agents\.sh sync/, file);
+    }
+    for (const file of [
+      '.agents/agents/builder.md',
+      '.agents/agents/tiers.json',
+      '.codex/config.toml',
+      '.github/instructions/docs.instructions.md',
+    ]) {
+      assert.equal(evaluate(claudeEdit(join(worktree, file)), gitDir), null, file);
+    }
+  });
+
   it('ignores files outside the repository', () => {
     assert.equal(evaluate(claudeEdit(join(base, 'elsewhere.txt')), gitDir), null);
   });
