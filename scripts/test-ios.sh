@@ -98,7 +98,8 @@ catalog_sync() {
   cp "${catalogs[@]}" "$before/"
   xcodebuild -exportLocalizations -project TrainerHub.xcodeproj -scheme TrainerHub \
     -localizationPath .build/Localizations -exportLanguage nl -exportLanguage en \
-    -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData -quiet
+    -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData -quiet \
+    || { echo "xcodebuild -exportLocalizations failed"; rc=1; }
   for catalog in "${catalogs[@]}"; do
     saved="$before/$(basename "$catalog")"
     cmp -s "$saved" "$catalog" && continue

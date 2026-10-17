@@ -555,22 +555,29 @@ case "$*" in *connectedDebugAndroidTest*) ${outcome} ;; esac`,
 
     script(join(bin, 'xcrun'), fakeSimctl(state));
     // Like the real one, `xcodebuild test` boots its destination simulator when it isn't booted. FAKE_CATALOG_SYNC=add:
-    // `-exportLocalizations` adds an entry to InfoPlist.xcstrings and drops its final newline, as Xcode's sync does.
+    // `-exportLocalizations` adds an entry to InfoPlist.xcstrings and drops its final newline, as Xcode's sync does;
+    // FAKE_EXPORT=fail: it then fails.
     script(
       join(bin, 'xcodebuild'),
       `echo "$*" >>"${state}/xcodebuild.log"
 case "$*" in
   -exportLocalizations*) [ "$FAKE_CATALOG_SYNC" != add ] || {
       catalog="${repo}/packages/i18n/generated/ios/InfoPlist.xcstrings"
-      printf '%s' "$(sed 's/"strings" : {/"strings" : { "CFBundleName" : {},/' "$catalog")" >"$catalog"; } ;;
+      printf '%s' "$(sed 's/"strings" : {/"strings" : { "CFBundleName" : {},/' "$catalog")" >"$catalog"; }
+    [ "$FAKE_EXPORT" != fail ] || exit 70 ;;
   *-showBuildSettings*) printf '    TRAINER_HUB_API_BASE_URL = https://example.test/api\\n    INFOPLIST_FILE = Info.plist\\n    TRAINER_HUB_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    TRAINER_HUB_SENTRY_ENVIRONMENT = production\\n' ;;
   test\\ *) for arg; do case "$arg" in id=*) xcrun simctl bootstatus "\${arg#id=}" -b ;; esac; done
     ${outcome} ;;
 esac
 exit 0`,
     );
-    // The committed Info.plists are in plutil's (Xcode's) form; no ATS exception for Release.
-    script(join(bin, 'plutil'), `[ "$1" = -convert ] && cat "\${@: -1}"`);
+    // The committed Info.plists are in plutil's (Xcode's) form, unless FAKE_PLIST_FORM=other; no ATS exception for
+    // Release.
+    script(
+      join(bin, 'plutil'),
+      `[ "$1" = -convert ] || exit 1
+if [ "$FAKE_PLIST_FORM" = other ]; then sed 1d "\${@: -1}"; else cat "\${@: -1}"; fi`,
+    );
     script(join(bin, 'java'), 'echo "openjdk version \\"21\\"" >&2');
     for (const tool of ['sleep', 'docker', 'pnpm']) script(join(bin, tool), 'exit 0');
     // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_HELLO=fail: GET /api/v1/hello fails.
@@ -765,6 +772,31 @@ esac`,
     assert.match(run.output, /CFBundleName/);
     assert.equal(readFileSync(catalog, 'utf8'), committed);
     assert.ok(!fake.log('xcodebuild').some((line) => line.startsWith('test ')), 'no tests run');
+  });
+
+  it("#95: pnpm test:ios fails when a Config Info.plist is not in Xcode's form", async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/test-ios.sh', [], { FAKE_PLIST_FORM: 'other' });
+
+    assert.equal(run.status, 1, run.output);
+    assert.match(run.output, /Config\/Info-Debug\.plist is not in Xcode's form/);
+    assert.match(run.output, /Config\/Info\.plist is not in Xcode's form/);
+    assert.ok(!fake.log('xcodebuild').some((line) => line.startsWith('test ')), 'no tests run');
+  });
+
+  it("#95: pnpm test:ios restores the catalogs when Xcode's sync changes them and then fails", async () => {
+    const fake = checkout();
+    const catalog = join(fake.repo, 'packages/i18n/generated/ios/InfoPlist.xcstrings');
+    const committed = readFileSync(catalog, 'utf8');
+
+    const run = await fake.run('scripts/test-ios.sh', [], {
+      FAKE_CATALOG_SYNC: 'add',
+      FAKE_EXPORT: 'fail',
+    });
+
+    assert.equal(run.status, 1, run.output);
+    assert.equal(readFileSync(catalog, 'utf8'), committed);
   });
 
   it('#95: pnpm test:ios lets Xcode sync the catalogs before the tests and passes when nothing changes', async () => {
@@ -964,12 +996,23 @@ describe('E008 #95 ios-device.sh runs the Debug app on a real iPhone', () => {
     for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
   });
 
-  const device = (udid, name, { reality = 'physical', type = 'iPhone', paired = true } = {}) => ({
-    identifier: `CORE-${udid}`,
-    deviceProperties: { name },
-    hardwareProperties: { udid, reality, deviceType: type, platform: 'iOS' },
-    connectionProperties: { pairingState: paired ? 'paired' : 'unpaired' },
-  });
+  // devicectl's layout; `legacy` is the one an older Xcode writes, whose fields newer ones deprecate.
+  const device = (
+    udid,
+    name,
+    { reality = 'physical', type = 'iPhone', paired = true, legacy = false } = {},
+  ) => {
+    const hardware = { udid, reality, deviceType: type, platform: 'iOS' };
+    const connection = { pairingState: paired ? 'paired' : 'unpaired' };
+    return legacy
+      ? {
+          identifier: `CORE-${udid}`,
+          deviceProperties: { name },
+          hardwareProperties: hardware,
+          connectionProperties: connection,
+        }
+      : { identifier: `CORE-${udid}`, properties: { hardware, connection, state: { name } } };
+  };
   const phone = device('PHONE-1', 'Test iPhone');
   const others = [
     device('SIM-1', 'iPhone 18 Pro', { reality: 'simulated' }),
@@ -1095,7 +1138,8 @@ sed -nE "s#.*<key>$2</key><string>([^<]*)</string>.*#\\1#p" "\${@: -1}"`,
     assert.match(run.output, /http:\/\/mac\.local:3000\/api/);
   });
 
-  it('AC1: never writes a tracked file, nor Local.xcconfig', () => {
+  // What Xcode itself may write on a build (the catalog sync) is pnpm test:ios's catalog_sync check.
+  it("AC1: the script's own steps write no tracked file and leave Local.xcconfig alone", () => {
     const fake = checkout();
 
     const run = fake.run(['nl']);
@@ -1133,6 +1177,18 @@ sed -nE "s#.*<key>$2</key><string>([^<]*)</string>.*#\\1#p" "\${@: -1}"`,
     assert.equal(picked.status, 0, picked.output);
     assert.equal(fake.builds().length, 1, 'only the picked run builds');
     assert.match(fake.builds()[0], / -destination id=PHONE-2 /);
+  });
+
+  it("AC1: finds the iPhone in an older Xcode's devicectl layout too", () => {
+    const fake = checkout({
+      devices: [device('PHONE-3', 'Old iPhone', { legacy: true }), ...others],
+    });
+
+    const run = fake.run();
+
+    assert.equal(run.status, 0, run.output);
+    assert.match(fake.builds()[0], / -destination id=PHONE-3 /);
+    assert.match(run.output, /Old iPhone/);
   });
 
   it('AC1: fails when IOS_DEVICE is not a paired iPhone', () => {

@@ -25,12 +25,14 @@ local_setting() {
     | sed -E 's#[[:space:]]*//.*$##; s#[[:space:]]+$##' | tail -n 1
 }
 
-# `<udid> <name>` of every iPhone paired with this Mac, one per line.
+# `<udid> <name>` of every iPhone paired with this Mac, one per line. Reads devicectl's `properties`, or on an older Xcode
+# the fields it replaced (`hardwareProperties`, `connectionProperties`, `deviceProperties`).
 paired_iphones() {
   xcrun devicectl list devices --quiet --json-output - | jq -r '.result.devices[]
-    | select(.hardwareProperties.reality == "physical" and .hardwareProperties.deviceType == "iPhone"
-      and .connectionProperties.pairingState == "paired")
-    | "\(.hardwareProperties.udid) \(.deviceProperties.name)"'
+    | (.properties.hardware // .hardwareProperties) as $hardware
+    | select($hardware.reality == "physical" and $hardware.deviceType == "iPhone"
+      and (.properties.connection // .connectionProperties).pairingState == "paired")
+    | "\($hardware.udid) \(.properties.state.name // .deviceProperties.name)"'
 }
 
 # `xcrun devicectl device …`, quiet unless it fails. A locked iPhone gets its own message.
