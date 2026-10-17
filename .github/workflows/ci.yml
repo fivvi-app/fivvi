@@ -254,8 +254,9 @@ jobs:
     # Only starts when the app, its generated inputs or its own scripts changed (in a PR or a push to main), or on
     # demand (scripts/native-jobs.sh), to keep PR feedback fast. The image and Xcode are pinned, so a runner update doesn't
     # change the toolchain. One job, not a matrix per locale: the check keeps its name, and nl and en share one build
-    # without an artifact upload and download. nl and en run one after the other on one simulator (scripts/test-ios.sh):
-    # two simulators on the 3-core runner were slower (cold run: 743 s in parallel).
+    # without an artifact upload and download. nl and en run in one test-without-building run on one simulator (scripts/test-ios.sh),
+    # so the simulator is prepared and the app installed once: two simulators on the 3-core runner were slower (cold
+    # run: 743 s in parallel).
     runs-on: macos-26
     timeout-minutes: 30
     permissions:

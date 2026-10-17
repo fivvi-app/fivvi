@@ -3,7 +3,7 @@ import UIKit
 import XCTest
 
 /// The hello screen against a stub API. The test plan runs the text-dependent tests in nl and en, the others in nl
-/// only (`TestPlanSkips`, TrainerHub.xctestplan): the AC3 language tests, AC6 and AC7's largest text size.
+/// only (`TestPlanSkips`, TrainerHub.xctestplan); apps/ios/README.md lists which and why.
 @MainActor
 final class HelloUITests: XCTestCase {
     private let timeout: TimeInterval = 10

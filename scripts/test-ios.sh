@@ -96,24 +96,37 @@ plan_skips() {
 # `Class/test_name` of every test of the UI test target.
 ui_tests() {
   find TrainerHubUITests -name '*.swift' -exec awk '
-    /^[[:space:]]*(final[[:space:]]+)?class[[:space:]]+[A-Za-z0-9_]+/ {
+    FNR == 1 { class = "" }
+    /^[[:space:]]*((private|fileprivate|internal|public|open|final)[[:space:]]+)*class[[:space:]]+[A-Za-z0-9_]+/ \
+      && !/class[[:space:]]+(func|var|let)[[:space:]]/ {
       name = $0; sub(/^.*class[[:space:]]+/, "", name); sub(/[^A-Za-z0-9_].*$/, "", name); class = name }
     /^[[:space:]]*func[[:space:]]+test[A-Za-z0-9_]*\(/ {
       name = $0; sub(/^.*func[[:space:]]+/, "", name); sub(/\(.*$/, "", name); print class "/" name }' {} + | sort -u
 }
 
-# The text-dependent UI tests run in every configuration (nl and en); the others the test plan skips in some of them.
-# A UI test the plan skips in every configuration would run nowhere, and a name that is no UI test (renamed, deleted)
-# is a skip that does nothing.
+# The text-dependent UI tests run in every configuration (nl and en); the others the test plan skips in some of them
+# (apps/ios/README.md, "Which tests run in which locale"). A UI test the plan skips in every configuration would run
+# nowhere, and a name that is no UI test (renamed, deleted) is a skip that does nothing. Only HelloUITests acts on the
+# list. The plan's own `skippedTests` and `selectedTests`, which Xcode writes when a test is unticked, apply to every
+# configuration, so they are refused: a test would run in no configuration without this check seeing it.
 test_plan_coverage() {
-  local tests skips configs rc=0 test skip
+  local tests skips configs rc=0 test skip filtered
+  filtered="$(jq -r '.testTargets[] | .target.name as $target | ["skippedTests", "selectedTests"][] as $key
+    | select((.[$key] // []) | length > 0) | "\($target) \($key)"' TrainerHub.xctestplan)"
+  while read -r skip; do
+    [ -n "$skip" ] || continue
+    echo "TrainerHub.xctestplan: ${skip% *} has ${skip#* }, which applies to every configuration; skip tests per configuration in TRAINER_HUB_SKIP_TESTS"
+    rc=1
+  done <<<"$filtered"
   tests="$(ui_tests)"
   skips="$(plan_skips)"
   configs="$(jq '.configurations | length' TrainerHub.xctestplan)"
   [ -n "$tests" ] || { echo "found no UI tests in TrainerHubUITests"; return 1; }
   while read -r skip; do
     [ -n "$skip" ] || continue
-    grep -qxF "$skip" <<<"$tests" || { echo "TrainerHub.xctestplan skips $skip, which is not a UI test"; rc=1; }
+    grep -qxF "$skip" <<<"$tests" || { echo "TrainerHub.xctestplan skips $skip, which is not a UI test"; rc=1; continue; }
+    [[ "$skip" == HelloUITests/* ]] \
+      || { echo "TrainerHub.xctestplan skips $skip, but only HelloUITests acts on TRAINER_HUB_SKIP_TESTS"; rc=1; }
   done <<<"$(cut -d' ' -f2 <<<"$skips" | sort -u)"
   for test in $tests; do
     [ "$(grep -cE " $test\$" <<<"$skips")" -lt "$configs" ] \

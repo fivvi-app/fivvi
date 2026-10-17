@@ -1447,6 +1447,71 @@ esac`,
       assert.deepEqual(commands(fake), []);
     });
 
+    for (const key of ['skippedTests', 'selectedTests']) {
+      it(`D: fails when a test target of the plan has ${key}, which Xcode writes and which applies to every configuration`, async () => {
+        const fake = checkout();
+        const plan = JSON.parse(readFileSync(planPath(fake), 'utf8'));
+        plan.testTargets[1][key] = ['HelloUITests/test_E008_AC8_displayNameComesFromTheCatalog'];
+        writeFileSync(planPath(fake), JSON.stringify(plan));
+
+        const run = await fake.run('scripts/test-ios.sh');
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, new RegExp(`${key}.*TRAINER_HUB_SKIP_TESTS`));
+        assert.deepEqual(commands(fake), []);
+      });
+    }
+
+    it('D: fails when the skip list names a test of a class other than HelloUITests, which would not skip it', async () => {
+      const fake = checkout();
+      editPlan(fake, ({ en }) => {
+        skipList(en).value += ',TouchTargetTests/test_E008_AC4_44PointsMeetsTheTarget';
+      });
+
+      const run = await fake.run('scripts/test-ios.sh');
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(
+        run.output,
+        /TouchTargetTests\/test_E008_AC4_44PointsMeetsTheTarget.*only HelloUITests/,
+      );
+      assert.deepEqual(commands(fake), []);
+    });
+
+    it('D: finds the tests of a private final class and of a second class in the same target', async () => {
+      const fake = checkout();
+      const extra = join(fake.repo, 'apps/ios/TrainerHubUITests/ExtraTests.swift');
+      writeFileSync(
+        extra,
+        'private final class Helper {\n    class func test_notATest() {}\n}\nprivate final class ExtraTests: XCTestCase {\n    func test_E002_extra() {}\n}\n',
+      );
+      editPlan(fake, ({ en }) => {
+        skipList(en).value += ',ExtraTests/test_E002_extra';
+      });
+
+      const run = await fake.run('scripts/test-ios.sh');
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /ExtraTests\/test_E002_extra.*only HelloUITests/);
+      assert.doesNotMatch(run.output, /not a UI test/);
+    });
+
+    it('D: a class does not leak into the next file: a test outside any class is not a UI test', async () => {
+      const fake = checkout();
+      writeFileSync(
+        join(fake.repo, 'apps/ios/TrainerHubUITests/Support/Free.swift'),
+        'func test_E002_free() {}\n',
+      );
+      editPlan(fake, ({ en }) => {
+        skipList(en).value += ',HelloUITests/test_E002_free';
+      });
+
+      const run = await fake.run('scripts/test-ios.sh');
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /HelloUITests\/test_E002_free, which is not a UI test/);
+    });
+
     it('A: reports the slowest tests of each locale from the one result bundle', async () => {
       const fake = checkout();
       const result = join(fake.repo, '..', 'results.json');
