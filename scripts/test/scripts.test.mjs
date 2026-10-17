@@ -556,7 +556,7 @@ case "$*" in *connectedDebugAndroidTest*) ${outcome} ;; esac`,
     script(join(bin, 'xcrun'), fakeSimctl(state));
     // Like the real one, `xcodebuild test` boots its destination simulator when it isn't booted. FAKE_CATALOG_SYNC=add:
     // `-exportLocalizations` adds an entry to InfoPlist.xcstrings and drops its final newline, as Xcode's sync does;
-    // FAKE_EXPORT=fail: it then fails.
+    // FAKE_EXPORT=fail: it then fails; FAKE_EXPORT=hang: it then runs until interrupted.
     script(
       join(bin, 'xcodebuild'),
       `echo "$*" >>"${state}/xcodebuild.log"
@@ -564,6 +564,7 @@ case "$*" in
   -exportLocalizations*) [ "$FAKE_CATALOG_SYNC" != add ] || {
       catalog="${repo}/packages/i18n/generated/ios/InfoPlist.xcstrings"
       printf '%s' "$(sed 's/"strings" : {/"strings" : { "CFBundleName" : {},/' "$catalog")" >"$catalog"; }
+    [ "$FAKE_EXPORT" != hang ] || exec perl -e 'open my $f, ">", shift; close $f; sleep 30' "${state}/running"
     [ "$FAKE_EXPORT" != fail ] || exit 70 ;;
   *-showBuildSettings*) printf '    TRAINER_HUB_API_BASE_URL = https://example.test/api\\n    INFOPLIST_FILE = Info.plist\\n    TRAINER_HUB_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    TRAINER_HUB_SENTRY_ENVIRONMENT = production\\n' ;;
   test\\ *) for arg; do case "$arg" in id=*) xcrun simctl bootstatus "\${arg#id=}" -b ;; esac; done
@@ -796,6 +797,22 @@ esac`,
     });
 
     assert.equal(run.status, 1, run.output);
+    assert.equal(readFileSync(catalog, 'utf8'), committed);
+  });
+
+  it("#95: pnpm test:ios restores the catalogs when it is interrupted (Ctrl-C) during Xcode's sync", async () => {
+    const fake = checkout();
+    const catalog = join(fake.repo, 'packages/i18n/generated/ios/InfoPlist.xcstrings');
+    const committed = readFileSync(catalog, 'utf8');
+
+    const run = await fake.run(
+      'scripts/test-ios.sh',
+      [],
+      { FAKE_CATALOG_SYNC: 'add', FAKE_EXPORT: 'hang' },
+      { interrupt: true },
+    );
+
+    assert.equal(run.status, 130, run.output);
     assert.equal(readFileSync(catalog, 'utf8'), committed);
   });
 
@@ -1062,7 +1079,8 @@ describe('E008 #95 ios-device.sh runs the Debug app on a real iPhone', () => {
       join(bin, 'xcrun'),
       `echo "$*" >>"${state}/xcrun.log"
 case "$1 $2" in
-  "devicectl list") cat "${state}/devices.json" ;;
+  "devicectl list") [ "$FAKE_LIST" != fail ] || { echo "ERROR: CoreDevice service unavailable" >&2; exit 1; }
+    cat "${state}/devices.json" ;;
   "devicectl device") case "$3" in install) ${locked('install')} ;; process) ${locked('launch')} ;; esac ;;
 esac
 exit 0`,
@@ -1210,6 +1228,17 @@ sed -nE "s#.*<key>$2</key><string>([^<]*)</string>.*#\\1#p" "\${@: -1}"`,
     assert.match(run.output, /no paired iPhone/);
     assert.match(run.output, /cable/);
     assert.match(run.output, /Developer Mode/);
+    assert.deepEqual(fake.builds(), []);
+  });
+
+  it('says so when devicectl itself fails to list the devices, and builds nothing', () => {
+    const fake = checkout();
+
+    const run = fake.run([], { FAKE_LIST: 'fail' });
+
+    assert.equal(run.status, 1);
+    assert.match(run.output, /CoreDevice service unavailable/);
+    assert.match(run.output, /devicectl list devices failed/);
     assert.deepEqual(fake.builds(), []);
   });
 

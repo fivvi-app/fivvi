@@ -2,7 +2,7 @@
   "sourceLanguage" : "nl",
   "strings" : {
     "app.name" : {
-      "comment" : "Name of the native app under its home-screen icon (iOS CFBundleDisplayName, Android app label). The product name, the same in both languages.",
+      "comment" : "Name of the native app under its home-screen icon (iOS CFBundleDisplayName and CFBundleName, Android app label). The product name, the same in both languages.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

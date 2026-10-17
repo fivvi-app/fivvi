@@ -90,24 +90,36 @@ plists_in_xcode_form() {
 
 # Xcode's string catalog sync, which every Xcode build and -exportLocalizations run, adds the strings a catalog lacks
 # (Info.plist keys such as CFBundleName) and rewrites it. The generated catalogs must already have them, or a build
-# changes tracked files (#95). A catalog the sync changed is restored.
-catalog_sync() {
-  local catalogs=("$ROOT"/packages/i18n/generated/ios/*.xcstrings) before=.build/catalogs-before catalog saved rc=0
-  rm -rf "$before"
-  mkdir -p "$before"
-  cp "${catalogs[@]}" "$before/"
-  xcodebuild -exportLocalizations -project TrainerHub.xcodeproj -scheme TrainerHub \
-    -localizationPath .build/Localizations -exportLanguage nl -exportLanguage en \
-    -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData -quiet \
-    || { echo "xcodebuild -exportLocalizations failed"; rc=1; }
-  for catalog in "${catalogs[@]}"; do
-    saved="$before/$(basename "$catalog")"
+# changes tracked files (#95). A catalog the sync changed is restored, also when the run is interrupted.
+CATALOGS=("$ROOT"/packages/i18n/generated/ios/*.xcstrings)
+CATALOGS_BEFORE=.build/catalogs-before
+
+# Puts the catalogs back as they were and shows what the sync changed; fails if it changed any.
+restore_catalogs() {
+  local catalog saved rc=0
+  for catalog in "${CATALOGS[@]}"; do
+    saved="$CATALOGS_BEFORE/$(basename "$catalog")"
     cmp -s "$saved" "$catalog" && continue
     echo "Xcode's catalog sync changes ${catalog#"$ROOT"/}: generate what it adds (packages/i18n/src/tools/xcstrings.ts)"
     diff -u "$saved" "$catalog" || true
     cp "$saved" "$catalog"
     rc=1
   done
+  return "$rc"
+}
+
+catalog_sync() {
+  local rc=0
+  rm -rf "$CATALOGS_BEFORE"
+  mkdir -p "$CATALOGS_BEFORE"
+  cp "${CATALOGS[@]}" "$CATALOGS_BEFORE/"
+  on_exit 'restore_catalogs || true'
+  xcodebuild -exportLocalizations -project TrainerHub.xcodeproj -scheme TrainerHub \
+    -localizationPath .build/Localizations -exportLanguage nl -exportLanguage en \
+    -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData -quiet \
+    || { echo "xcodebuild -exportLocalizations failed"; rc=1; }
+  ON_EXIT=""
+  restore_catalogs || rc=1
   return "$rc"
 }
 

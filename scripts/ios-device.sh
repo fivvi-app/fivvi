@@ -28,11 +28,13 @@ local_setting() {
 # `<udid> <name>` of every iPhone paired with this Mac, one per line. Reads devicectl's `properties`, or on an older Xcode
 # the fields it replaced (`hardwareProperties`, `connectionProperties`, `deviceProperties`).
 paired_iphones() {
-  xcrun devicectl list devices --quiet --json-output - | jq -r '.result.devices[]
+  local listing
+  listing="$(xcrun devicectl list devices --quiet --json-output -)" || return 1
+  jq -r '.result.devices[]
     | (.properties.hardware // .hardwareProperties) as $hardware
     | select($hardware.reality == "physical" and $hardware.deviceType == "iPhone"
       and (.properties.connection // .connectionProperties).pairingState == "paired")
-    | "\($hardware.udid) \(.properties.state.name // .deviceProperties.name)"'
+    | "\($hardware.udid) \(.properties.state.name // .deviceProperties.name)"' <<<"$listing"
 }
 
 # `xcrun devicectl device …`, quiet unless it fails. A locked iPhone gets its own message.
@@ -54,7 +56,7 @@ fi
 need_cmd jq
 use_xcode || die "Xcode not found — run scripts/bootstrap.sh --mobile"
 
-phones="$(paired_iphones)"
+phones="$(paired_iphones)" || die "devicectl list devices failed: is Xcode's CoreDevice service running?"
 [ -n "$phones" ] || die "no paired iPhone: connect it with a cable, unlock it, tap Trust, and turn on Developer Mode (Settings › Privacy & Security)"
 if [ -n "${IOS_DEVICE:-}" ]; then
   phone="$(awk -v udid="$IOS_DEVICE" '$1 == udid' <<<"$phones")"
