@@ -92,7 +92,7 @@ These are the bugs that hurt most (`ROADMAP.md §13`: R2, R3, R4). They get dedi
 
 ### 5.3 Database
 
-- Local: Postgres in Docker (`pnpm db:up`, same major version as production). CI: a `postgres:18-alpine` service container in `Checks (Linux)`. Never run tests against the Railway production or preview databases: the helpers refuse any server that isn't on `localhost`.
+- Local: Postgres in Docker (`pnpm db:up`, same major version as production). CI: a `postgres:18-alpine` service container in `Checks (Linux)` and in `E2E (Linux)`, where the e2e servers create their own databases. Never run tests against the Railway production or preview databases: the helpers refuse any server that isn't on `localhost`.
 - Tests never share data. `@trainer-hub/testing/database` isolates them at three levels:
 
 | Level | How | Helper |
