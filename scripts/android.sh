@@ -6,7 +6,12 @@
 #   android.sh test       ktlint with the literal-text, colour and Sentry checks, the release Sentry DSN (EU region),
 #                         build, unit tests (nl-NL and en), and the Compose UI tests on an emulator, booted for the run
 #                         when none is connected (pnpm test:android)
-#   android.sh emulator   boot the emulator headless and leave it running, so test and maestro.sh reuse it
+#   android.sh emulator   boot the emulator headless and leave it running, so test and maestro.sh reuse it. With
+#                         AVD_SNAPSHOT=1 (CI) it boots from a saved snapshot, or cold when there is none or it
+#                         doesn't load, and then saves one
+#   android.sh stop       stop the emulator and wait for it to exit (CI, before it saves the AVD cache), within
+#                         EMULATOR_STOP_TIMEOUT seconds (30)
+#   android.sh avd-key    the cache key suffix for CI's cached AVD: system image, emulator and AVD settings
 #
 # When test ends, also on failure or Ctrl-C, it kills the emulator it booted and stops its Gradle daemons; KEEP_DEVICE=1
 # leaves them running for the next run.
@@ -117,9 +122,22 @@ cmd_emulator() {
   echo "✓ $(adb devices | sed -n 2p)"
 }
 
+cmd_stop() {
+  [ $# -eq 0 ] || usage
+  android_env
+  stop_emulator_and_wait
+}
+
+cmd_avd_key() {
+  [ $# -eq 0 ] || usage
+  avd_key || die "the system image or the emulator isn't installed in $(android_home); run android.sh setup"
+}
+
 case "${1:-}" in
+  avd-key) shift; cmd_avd_key "$@" ;;
   setup) shift; cmd_setup "$@" ;;
   test) shift; cmd_test "$@" ;;
   emulator) shift; cmd_emulator "$@" ;;
+  stop) shift; cmd_stop "$@" ;;
   *) usage ;;
 esac

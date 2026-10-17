@@ -76,7 +76,8 @@ ios_simulator() {
   echo "$udid"
 }
 
-# The simulator this run booted, which stop_simulator shuts down; empty when it was already booted.
+# The simulators this run booted (space-separated UDIDs), which stop_simulator shuts down; empty when they were already
+# booted.
 BOOTED_SIMULATOR=""
 
 simulator_booted() {
@@ -86,14 +87,92 @@ simulator_booted() {
 
 # Boots simulator $1 unless it's already booted, and waits until it has.
 boot_simulator() {
-  simulator_booted "$1" || BOOTED_SIMULATOR="$1"
+  simulator_booted "$1" || BOOTED_SIMULATOR="$BOOTED_SIMULATOR $1"
   xcrun simctl bootstatus "$1" -b >/dev/null
 }
 
-# Shuts down the simulator this run booted, unless KEEP_DEVICE=1. Fails when the simulator stays running.
+# Starts booting simulator $1 in the background, so the boot overlaps a build; await_boots waits for every one started.
+BOOT_JOBS=""
+start_boot() {
+  simulator_booted "$1" || BOOTED_SIMULATOR="$BOOTED_SIMULATOR $1"
+  xcrun simctl bootstatus "$1" -b >/dev/null &
+  BOOT_JOBS="$BOOT_JOBS $!"
+}
+
+await_boots() {
+  local pid jobs="$BOOT_JOBS"
+  BOOT_JOBS=""
+  for pid in $jobs; do wait "$pid" || return 1; done
+}
+
+# Shuts down the simulators this run booted, unless KEEP_DEVICE=1. Fails when they stay running.
 stop_simulator() {
+  local udid pid
   [ -n "$BOOTED_SIMULATOR" ] && [ "${KEEP_DEVICE:-}" != 1 ] || return 1
-  xcrun simctl shutdown "$BOOTED_SIMULATOR" >/dev/null 2>&1 || true
+  for pid in $BOOT_JOBS; do kill "$pid" 2>/dev/null || true; done
+  for udid in $BOOTED_SIMULATOR; do xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true; done
+}
+
+# A second simulator, the same model as the one tests run on by default, for the parallel run of both locales
+# (delete_extra_simulator deletes it). Sets EXTRA_SIMULATOR to its UDID, so call it without a command substitution.
+EXTRA_SIMULATOR=""
+create_extra_simulator() {
+  local type runtime
+  read -r _ type runtime <<<"$(iphone_simulator "${IOS_SIMULATOR:-}")"
+  [ -n "$type" ] || return 1
+  EXTRA_SIMULATOR="$(xcrun simctl create "Trainer Hub parallel $$" "$type" "$runtime")"
+}
+
+delete_extra_simulator() {
+  [ -n "$EXTRA_SIMULATOR" ] || return 0
+  xcrun simctl shutdown "$EXTRA_SIMULATOR" >/dev/null 2>&1 || true
+  xcrun simctl delete "$EXTRA_SIMULATOR" >/dev/null 2>&1 || true
+  EXTRA_SIMULATOR=""
+}
+
+# Steps with their durations: `step <name>` ends the one running and starts the next; report_steps prints the table
+# (and adds it to the job summary on CI).
+STEP_NAMES=()
+STEP_SECONDS=()
+STEP_CURRENT=""
+STEP_STARTED=0
+
+end_step() {
+  [ -n "$STEP_CURRENT" ] || return 0
+  STEP_NAMES+=("$STEP_CURRENT")
+  STEP_SECONDS+=("$((SECONDS - STEP_STARTED))")
+  STEP_CURRENT=""
+}
+
+step() {
+  end_step
+  STEP_CURRENT="$1"
+  STEP_STARTED=$SECONDS
+  echo "▶ $1"
+}
+
+report_steps() {
+  local i total=0 rows=""
+  end_step
+  [ "${#STEP_NAMES[@]}" -gt 0 ] || return 0
+  echo
+  echo "Step durations:"
+  for i in "${!STEP_NAMES[@]}"; do
+    printf '  %5s s  %s\n' "${STEP_SECONDS[$i]}" "${STEP_NAMES[$i]}"
+    rows="$rows| ${STEP_NAMES[$i]} | ${STEP_SECONDS[$i]} s |"$'\n'
+    total=$((total + STEP_SECONDS[i]))
+  done
+  printf '  %5s s  Total\n' "$total"
+  summary "### iOS steps" "" "| Step | Duration |" "|---|--:|" "${rows%$'\n'}" "| **Total** | **$total s** |" ""
+}
+
+# The slowest tests of the result bundle $1 as table rows (`| test | seconds |`), at most $2. Nothing when the bundle
+# can't be read: a report never fails the run.
+slowest_tests() {
+  xcrun xcresulttool get test-results tests --path "$1" 2>/dev/null | jq -r --argjson n "$2" '
+    [.. | objects | select(.nodeType? == "Test Case" and .durationInSeconds != null)]
+    | sort_by(-.durationInSeconds) | .[:$n][]
+    | "| \(.nodeIdentifier) | \(.durationInSeconds * 10 | round / 10) |"' 2>/dev/null || true
 }
 
 # Deletes the simulator of the worktree in $1; nothing on a machine without Xcode.

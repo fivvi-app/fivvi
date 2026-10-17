@@ -1,4 +1,4 @@
-# CI for every pull request and every push to main (E002, E010).
+# CI for every pull request and every push to main (E002, E010), and on demand (workflow_dispatch).
 #
 # The job names ("Detect changes", "Checks (Linux)", "E2E (Linux)", "iOS",
 # "Android") are the intended required checks; see docs/engineering/WORKFLOW.md §7. Renaming a job
@@ -13,6 +13,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 # A new push to a PR cancels the run for the previous push. Runs on main are
 # never cancelled, so every merged commit keeps its own result.
@@ -48,6 +49,7 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
+          RUN_NATIVE: ${{ contains(github.event.pull_request.labels.*.name, 'run-native') }}
         run: |
           set -euo pipefail
 
@@ -68,25 +70,12 @@ jobs:
             changed="$(git ls-files)"
           fi
 
-          # decide <output> <project dir> <path regex>
-          decide() {
-            local run=false
-            if ! grep -qE "$3" <<<"$changed"; then
-              echo "$1: no relevant changes, skipping."
-            elif [[ ! -d "$2" ]]; then
-              echo "$1: $2 does not exist yet (E008), skipping."
-            else
-              run=true
-              echo "$1: relevant changes, running."
-            fi
-            echo "$1=$run" >>"$GITHUB_OUTPUT"
-          }
-
-          # Each native job: the app, its generated inputs (client, string catalogs, design tokens), and the job
-          # itself (this workflow and the scripts it runs), so a change that would break the job runs it. Android also
-          # runs the Maestro flows in e2e/maestro.
-          decide ios apps/ios '^(apps/ios|packages/contract|packages/i18n/generated/ios|packages/design-tokens/TrainerHubDesignTokens)/|^scripts/(test-ios|_ios|_lib)\.sh$|^\.github/workflows/ci\.yml$'
-          decide android apps/android '^(apps/android|packages/contract|packages/i18n/generated/android|packages/design-tokens/kotlin|e2e/maestro)/|^scripts/(android|_android|maestro|_lib)\.sh$|^\.github/workflows/ci\.yml$'
+          # Which native jobs run (scripts/native-jobs.sh): those whose paths changed, on a push to main too, so main
+          # writes the caches every PR reads. workflow_dispatch and the PR's run-native label (read on its pushes)
+          # force them.
+          args=(--event "$EVENT")
+          if [[ "$RUN_NATIVE" == 'true' ]]; then args+=(--run-native); fi
+          scripts/native-jobs.sh "${args[@]}" <<<"$changed" >>"$GITHUB_OUTPUT"
 
   checks:
     name: Checks (Linux)
@@ -262,11 +251,16 @@ jobs:
     name: iOS
     needs: changes
     if: needs.changes.outputs.ios == 'true'
-    # macOS minutes count 10x against the free quota (ROADMAP §12), so this job
-    # only starts when the app or its generated inputs changed. The image and
-    # Xcode are pinned, so a runner update doesn't change the toolchain.
+    # Only starts when the app, its generated inputs or its own scripts changed (in a PR or a push to main), or on
+    # demand (scripts/native-jobs.sh), to keep PR feedback fast. The image and Xcode are pinned, so a runner update doesn't
+    # change the toolchain. One job, not a matrix per locale: the check keeps its name, and nl and en share one build
+    # without an artifact upload and download. nl and en run one after the other on one simulator (scripts/test-ios.sh):
+    # two simulators on the 3-core runner were slower (cold run: 743 s in parallel).
     runs-on: macos-26
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read # scripts/step-timings.sh reads this run's step durations
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
@@ -274,14 +268,27 @@ jobs:
         with:
           persist-credentials: false
 
-      # The Swift packages pinned in the project's Package.resolved.
-      - name: Cache Swift packages
+      - id: xcode
+        name: Xcode version
+        run: echo "version=$(xcodebuild -version | tr -s ' \n' '--' | sed 's/-$//')" >> "$GITHUB_OUTPUT"
+
+      # DerivedData, with the compiled Swift packages (sentry-cocoa takes minutes to build), and the packages
+      # themselves. Keyed by Package.resolved, the Xcode version and the runner OS; a stale cache (the restore key)
+      # only costs build time and never changes a result. A PR can read its own caches and main's; main's are
+      # written by the pushes that change native paths, so a PR's first run is warm once main has run it.
+      - name: Cache the iOS build
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: apps/ios/.build/SourcePackages
-          key: ios-spm-${{ runner.os }}-${{ hashFiles('apps/ios/TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          path: |
+            apps/ios/.build/DerivedData
+            apps/ios/.build/SourcePackages
+            !apps/ios/.build/DerivedData/Logs
+          key: ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-
 
-      # The same steps as `pnpm test:ios` (apps/ios/README.md#tests).
+      # The same steps as `pnpm test:ios` (apps/ios/README.md#tests): SwiftLint, one build-for-testing, then the nl and
+      # en tests without building again. Prints the build timing summary and the slowest tests.
       - name: SwiftLint, build and tests (nl and en)
         run: scripts/test-ios.sh
 
@@ -291,9 +298,18 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ios-test-results
-          path: apps/ios/.build/TestResults.xcresult
+          path: |
+            apps/ios/.build/TestResults-*.xcresult
+            apps/ios/.build/build-for-testing.log
           retention-days: 7
           if-no-files-found: ignore
+
+      - name: Step durations
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/step-timings.sh
 
   android:
     name: Android
@@ -304,6 +320,9 @@ jobs:
     # Maestro flows in nl-NL and en). The emulator needs KVM.
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read # scripts/step-timings.sh reads this run's step durations
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -361,11 +380,29 @@ jobs:
       - name: Android SDK packages, emulator and Maestro
         run: scripts/android.sh setup
 
-      # Booted once; test:android and test:maestro reuse it. The script gives up after EMULATOR_BOOT_TIMEOUT (a cold
-      # boot can take minutes) and prints the emulator log; the step timeout is a backstop.
+      - id: avd
+        name: Emulator cache key
+        run: echo "key=$(scripts/android.sh avd-key)" >> "$GITHUB_OUTPUT"
+
+      # The AVD with the snapshot of its booted state. Keyed by the system image, the emulator and the AVD settings
+      # (a snapshot only loads on the same ones). Saved when the job passes on a miss, after the emulator has stopped.
+      # A missing or broken snapshot is not an error: the boot below falls back to a cold boot. Bump v1 to drop every
+      # cached AVD, and do it when a snapshot that no longer loads was replaced by a cold boot: the cache action never
+      # overwrites an existing key, so the replacement isn't saved and every run would fall back to a cold boot. The
+      # caches of a PR are its own and main's (written by pushes to main that change native paths).
+      - name: Cache the emulator
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.android/avd
+          key: avd-v1-${{ runner.os }}-${{ steps.avd.outputs.key }}
+
+      # Booted once; test:android and test:maestro reuse it. From the snapshot when it is cached, else cold: then the
+      # script saves one. It gives up after EMULATOR_BOOT_TIMEOUT (a cold boot can take minutes) and prints the
+      # emulator log; the step timeout is a backstop.
       - name: Boot the emulator
         timeout-minutes: 10
         env:
+          AVD_SNAPSHOT: '1'
           EMULATOR_BOOT_TIMEOUT: '480'
         run: scripts/android.sh emulator
 
@@ -377,6 +414,12 @@ jobs:
         timeout-minutes: 15
         run: pnpm test:maestro
 
+      # The cache of the emulator is saved after this step: the emulator must not be running, or it would be copied in
+      # mid-write.
+      - name: Stop the emulator
+        if: always()
+        run: scripts/android.sh stop
+
       # Always, also after a cancel or timeout: without the emulator log a hung boot can't be diagnosed. Kept 7 days,
       # as artifact storage counts against the free quota.
       - name: Upload Android reports
@@ -387,7 +430,14 @@ jobs:
           path: |
             apps/android/app/build/reports/
             apps/android/app/build/outputs/androidTest-results/
-            apps/android/build/emulator.log
+            apps/android/build/emulator.log*
             e2e/maestro/build/
           retention-days: 7
           if-no-files-found: ignore
+
+      - name: Step durations
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/step-timings.sh
