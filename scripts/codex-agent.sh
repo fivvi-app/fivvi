@@ -6,8 +6,9 @@
 # .codex/config.toml. See docs/agents/codex-model-tiers.md.
 #
 # The high tier reviews and runs read-only. The mid and small tiers run in `workspace-write` and, in a linked worktree,
-# may also write that worktree's git dir and the branch storage in the shared git dir (objects, refs/heads and its
-# reflogs), so that they can commit; never hooks, config or the rest of .git. Never `danger-full-access`.
+# may also write that worktree's git dir, the objects and the ref and reflog of the worktree's own branch, so that they
+# can commit; never hooks, config, other branches or the rest of .git, and commondir, gitdir, config.worktree,
+# objects/info and .githooks stay read-only. Never `danger-full-access`.
 #
 #   codex-agent.sh <high|mid|small> <dir> <prompt-file|->
 #
@@ -33,13 +34,26 @@ EFFORT="$(jq -r --arg t "$TIER" '.[$t].codex.effort // empty' "$TIERS")"
 quote() { jq -Rn --arg v "$1" '$v'; }
 
 # A linked worktree keeps its index and HEAD in a git dir of its own, but its objects and branches in the shared one.
-git_write_roots() {
-  local git_dir common path
+# Grant what a commit needs: the worktree's git dir, the objects and the ref and reflog of the worktree's own branch (not
+# main or another ticket's branch). Then take back what could repoint git or run code when the orchestrator later runs
+# git outside the sandbox: commondir (a repointed one would load another config, with fsmonitor or hooksPath), gitdir,
+# config.worktree, objects/info (alternates) and the worktree's .githooks (core.hooksPath=.githooks is relative to it).
+git_roots() {
+  local git_dir common branch path
   git_dir="$(git -C "$DIR" rev-parse --absolute-git-dir)"
   common="$(git -C "$DIR" rev-parse --path-format=absolute --git-common-dir)"
   [ "$git_dir" != "$common" ] || return 0
-  for path in "$git_dir" "$common/objects" "$common/refs/heads" "$common/logs/refs/heads"; do
+  branch="$(git -C "$DIR" symbolic-ref --quiet --short HEAD || true)"
+  local -a writable=("$git_dir" "$common/objects")
+  if [ -n "$branch" ]; then
+    writable+=("$common/refs/heads/$branch" "$common/refs/heads/$branch.lock" "$common/logs/refs/heads/$branch")
+  fi
+  for path in "${writable[@]}"; do
     printf '%s="write", ' "$(quote "$path")"
+  done
+  for path in "$git_dir/commondir" "$git_dir/gitdir" "$git_dir/config.worktree" "$common/objects/info" \
+    "$(git -C "$DIR" rev-parse --show-toplevel)/.githooks"; do
+    printf '%s="read", ' "$(quote "$path")"
   done
 }
 
@@ -47,7 +61,7 @@ ARGS=(exec -m "$MODEL" -c "model_reasoning_effort=\"$EFFORT\"" -C "$DIR")
 if [ "$TIER" = high ]; then
   ARGS+=(-s read-only)
 else
-  ROOTS="$(git_write_roots)"
+  ROOTS="$(git_roots)"
   if [ -n "$ROOTS" ]; then
     ARGS+=(-c 'default_permissions="agent"' -c "permissions.agent={extends=\":workspace\", filesystem={${ROOTS%, }}}")
   else

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The agent definitions of all three tools come from one place. .agents/agents/<name>.md holds each agent's description,
 # tier and instructions; .agents/agents/tiers.json holds the model of each tier per tool (Claude Code, Copilot, Codex).
-# The definitions the tools read are generated from them: .claude/agents/<name>.md (model: sonnet|opus|haiku),
+# The definitions the tools read are generated from them: .claude/agents/<name>.md (model: an alias, or a full model id),
 # .github/agents/<name>.agent.md (Copilot's model names) and .codex/agents/<name>.toml (model and reasoning effort).
 # Never edit the generated files: change .agents/agents and run sync. check also fails when a definition has no tier or
 # the model of a tool is missing, so the three tools can't drift apart.

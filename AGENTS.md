@@ -67,13 +67,7 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 
 ### Model tiers
 
-Work is routed to a model tier, in every tool (`docs/agents/build.md`):
-
-| Tier | Claude Code | Copilot | Codex | Work |
-|---|---|---|---|---|
-| High | Opus | Opus | Sol | Shaping (grill, to-spec, to-tickets, triage) in the main conversation, which should run on this tier; **all code reviews** (`reviewer`) |
-| Mid | Sonnet | Sonnet | Terra | Development: `implement` with `tdd`, and fix rounds after a review (`builder`) |
-| Small | Haiku | Haiku | Luna | Mechanical work: CI-log digging, simple conflict unions, status and doc edits, waiting on checks (`mechanic`) |
+Work is routed to a model tier in every tool: the high tier shapes (the main conversation) and does **every code review** (`reviewer`), the mid tier builds and fixes (`builder`), the small tier does mechanical work (`mechanic`). The models of each tier and tool are in the table in `docs/agents/build.md`, **Tiers**.
 
 The `work` skill starts the `builder`, then the `reviewer` on the head commit, then a `builder` for the findings (at most two fix rounds, then a review-only round). Change a model in `.agents/agents/tiers.json`, never in a generated file, and run `scripts/agents.sh sync`; Codex also needs the repo trusted in `~/.codex/config.toml` (`docs/agents/codex-model-tiers.md`).
 

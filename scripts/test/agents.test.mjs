@@ -32,7 +32,7 @@ const EXPECTED = {
     codex: ['gpt-6.1-sol', 'high'],
   },
   mechanic: {
-    claude: 'haiku',
+    claude: 'claude-haiku-5-5',
     copilot: "['claude-haiku-5.5', 'Claude Haiku 5.5 (copilot)']",
     codex: ['gpt-6-luna', 'low'],
   },
@@ -344,22 +344,26 @@ describe('codex-agent.sh', () => {
     }
   });
 
-  it("gives a committing tier in a worktree only that worktree's git dir and the branch storage", () => {
+  const profileOf = (tier, dir = worktree) => {
+    const list = args(run(tier, dir).calls);
+    return { list, profile: list.find((arg) => arg.startsWith('permissions.agent=')) };
+  };
+
+  it('gives a committing tier in a worktree its git dir, its own branch and the objects', () => {
     const gitDir = join(repo, '.git/worktrees/feature-1-x');
     for (const tier of ['mid', 'small']) {
-      const result = run(tier, worktree);
-      const list = args(result.calls);
+      const { list, profile } = profileOf(tier);
       assert.ok(!list.includes('-s'), `${tier} sets a sandbox mode next to the profile`);
       assert.ok(!list.includes('danger-full-access'), tier);
       assert.ok(!list.includes('--dangerously-bypass-approvals-and-sandbox'), tier);
       assert.ok(list.includes('default_permissions="agent"'), tier);
-      const profile = list.find((arg) => arg.startsWith('permissions.agent='));
       assert.ok(profile?.includes('extends=":workspace"'), tier);
       for (const path of [
         gitDir,
         join(repo, '.git/objects'),
-        join(repo, '.git/refs/heads'),
-        join(repo, '.git/logs/refs/heads'),
+        join(repo, '.git/refs/heads/feature/1-x'),
+        join(repo, '.git/refs/heads/feature/1-x.lock'),
+        join(repo, '.git/logs/refs/heads/feature/1-x'),
       ]) {
         assert.ok(profile.includes(`"${path}"="write"`), `${tier}: ${path}`);
       }
@@ -367,6 +371,37 @@ describe('codex-agent.sh', () => {
       assert.ok(!profile.includes(`"${join(repo, '.git/hooks')}`), tier);
       assert.ok(!profile.includes(`"${join(repo, '.git/config')}`), tier);
     }
+  });
+
+  it('never makes the other branches, such as main, writable', () => {
+    const { profile } = profileOf('mid');
+    for (const path of ['refs/heads', 'refs/heads/main', 'refs/heads/feature', 'logs/refs/heads']) {
+      assert.ok(!profile.includes(`"${join(repo, '.git', path)}"=`), path);
+    }
+  });
+
+  it('keeps what could repoint git or run code read-only: commondir, gitdir, config.worktree, alternates, hooks', () => {
+    const gitDir = join(repo, '.git/worktrees/feature-1-x');
+    for (const tier of ['mid', 'small']) {
+      const { profile } = profileOf(tier);
+      for (const path of [
+        join(gitDir, 'commondir'),
+        join(gitDir, 'gitdir'),
+        join(gitDir, 'config.worktree'),
+        join(repo, '.git/objects/info'),
+        join(worktree, '.githooks'),
+      ]) {
+        assert.ok(profile.includes(`"${path}"="read"`), `${tier}: ${path}`);
+      }
+    }
+  });
+
+  it('adds no ref roots on a detached HEAD', () => {
+    const detached = join(repo, '.worktrees/detached');
+    git(repo, 'worktree', 'add', '--quiet', '--detach', detached);
+    const { profile } = profileOf('mid', detached);
+    assert.ok(!profile.includes('refs/heads'));
+    assert.ok(profile.includes(`"${join(repo, '.git/worktrees/detached')}"="write"`));
   });
 
   it('uses the plain workspace sandbox outside a linked worktree', () => {

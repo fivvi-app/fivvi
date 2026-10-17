@@ -14,4 +14,4 @@ Typical tasks:
 - Make a status or doc edit the brief spells out (`FEATURES.md` status, the notes file).
 - Wait on `scripts/pr.sh wait` and report its exit code and output.
 
-Work only in the worktree the brief names. Never push, create or update PRs, or write to GitHub issues. Run `scripts/check.sh --fast` before you commit anything. Report in at most 8 lines.
+Work only in the worktree the brief names. Never push, create or update PRs, or write to GitHub issues. Run `scripts/check.sh` before you commit anything, as every other agent does. Report in at most 8 lines.
