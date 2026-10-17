@@ -622,19 +622,29 @@ exit 0`,
     );
     script(join(bin, 'plutil'), 'exit 1');
     script(join(bin, 'java'), 'echo "openjdk version \\"21\\"" >&2');
-    for (const tool of ['sleep', 'docker', 'pnpm', 'curl']) script(join(bin, tool), 'exit 0');
+    for (const tool of ['sleep', 'docker', 'pnpm']) script(join(bin, tool), 'exit 0');
+    // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_HELLO=fail: GET /api/v1/hello fails.
+    script(
+      join(bin, 'curl'),
+      `echo "curl $*" >>"${state}/calls.log"
+case "$*" in *"/api/v1/hello"*) [ "$FAKE_HELLO" != fail ] || exit 22 ;; esac
+exit 0`,
+    );
     script(
       join(home, '.maestro/bin/maestro'),
       `echo "$*" >>"${state}/maestro.log"
+echo "maestro $*" >>"${state}/calls.log"
 case " $* " in *" test "*) ${outcome} ;; esac`,
     );
     script(
       join(sdk, 'platform-tools/adb'),
       `echo "$*" >>"${state}/adb.log"
+echo "adb $*" >>"${state}/calls.log"
 case "$*" in
   get-state) [ -e "${state}/booted" ] && echo device || exit 1 ;;
   "shell getprop sys.boot_completed") [ -e "${state}/booted" ] && echo 1 || exit 1 ;;
   "shell getprop persist.sys.locale") echo en-US ;;
+  "shell settings get global hide_error_dialogs") echo null ;;
   "emu kill") kill "$(cat "${state}/pid")"; rm -f "${state}/booted" ;;
 esac
 exit 0`,
@@ -872,6 +882,99 @@ esac`,
     assert.ok(running(fake.emulator().pid));
     assert.ok(fake.log('gradle').every((call) => !/(^| )--stop( |$)/.test(call)));
   });
+
+  // #89: the first locale's flow didn't see the greeting within its 20 s. The app's first screen calls
+  // GET /api/v1/hello?locale=<its language>, and the flow started while Android was still busy after the framework
+  // restart that sets the device language (System UI stopped responding and its dialog covered the app).
+  const isFlow = (call) => / test /.test(` ${call} `) && call.startsWith('maestro ');
+  const hello = (locale) => `http://127.0.0.1:3999/api/v1/hello?locale=${locale}`;
+
+  for (const [name, args] of [
+    ['maestro.sh android', ['android']],
+    ['maestro.sh ios', ['ios']],
+  ]) {
+    it(`#89: ${name} warms up GET /api/v1/hello in nl-NL and en before the first flow`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args);
+
+      assert.equal(run.status, 0, run.output);
+      const calls = fake.log('calls');
+      const firstFlow = calls.findIndex(isFlow);
+      const health = calls.findIndex((call) => call.includes('/api/v1/health'));
+      assert.ok(firstFlow > 0, calls.join('\n'));
+      for (const locale of ['nl-NL', 'en']) {
+        const warmUp = calls.findIndex(
+          (call) => call.startsWith('curl ') && call.includes(` ${hello(locale)}`),
+        );
+        assert.ok(
+          health < warmUp && warmUp < firstFlow,
+          `GET ${hello(locale)} after the health check, before the first flow:\n${calls.join('\n')}`,
+        );
+      }
+    });
+
+    it(`#89: ${name} runs no flow when GET /api/v1/hello fails`, async () => {
+      const fake = checkout({ emulatorRunning: true, simulatorBooted: true });
+
+      const run = await fake.run('scripts/maestro.sh', args, { FAKE_HELLO: 'fail' });
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /\/api\/v1\/hello\?locale=nl-NL/);
+      assert.ok(!fake.log('calls').some(isFlow), fake.log('calls').join('\n'));
+    });
+  }
+
+  it('#89: maestro.sh android waits for Android to deliver its broadcasts after each language change, before the flow', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/maestro.sh', ['android']);
+
+    assert.equal(run.status, 0, run.output);
+    const steps = fake
+      .log('calls')
+      .map((call) => {
+        if (isFlow(call)) return `flow ${call.match(/android-(\S+)\.xml/)[1]}`;
+        if (/setprop persist\.sys\.locale \S+;/.test(call))
+          return `language ${call.match(/persist\.sys\.locale ([^;]+);/)[1]}`;
+        if (call === 'adb shell am wait-for-broadcast-idle') return 'settled';
+        return '';
+      })
+      .filter(Boolean);
+    assert.deepEqual(steps, [
+      'language nl-NL',
+      'settled',
+      'flow nl-NL',
+      'language en',
+      'settled',
+      'flow en',
+    ]);
+  });
+
+  it("#89: maestro.sh android hides Android's error dialogs for the flows, then restores the setting", async () => {
+    const fake = checkout({ emulatorRunning: true });
+
+    const run = await fake.run('scripts/maestro.sh', ['android']);
+
+    assert.equal(run.status, 0, run.output);
+    const calls = fake.log('calls');
+    const hidden = calls.indexOf('adb shell settings put global hide_error_dialogs 1');
+    const restored = calls.lastIndexOf('adb shell settings delete global hide_error_dialogs');
+    const firstLanguage = calls.findIndex((call) =>
+      call.includes('setprop persist.sys.locale nl-NL;'),
+    );
+    const ownLanguage = calls.findIndex((call) =>
+      call.includes('setprop persist.sys.locale en-US;'),
+    );
+    assert.ok(
+      hidden >= 0 && hidden < firstLanguage,
+      `hidden before the first flow and its framework restart:\n${calls.join('\n')}`,
+    );
+    assert.ok(
+      ownLanguage > calls.findLastIndex(isFlow) && restored > ownLanguage,
+      `the setting the device had (none) is back, after its language's framework restart:\n${calls.join('\n')}`,
+    );
+  });
 });
 
 // Maestro names each flow's report folder after the flow (its `name`, else the file name), and CI uploads those
@@ -889,6 +992,22 @@ describe('Maestro flows', () => {
       const name = header.match(/^name:\s*["']?(.*?)["']?\s*$/m)?.[1] ?? file;
       assert.doesNotMatch(name, /[":<>|*?\\\r\n]/, `${file}: flow name "${name}"`);
     }
+  });
+
+  // #89: the flake is fixed in maestro.sh, not by waiting longer or asserting less: the hello flow still fails when the
+  // greeting doesn't appear within 20 s, and then checks its text.
+  it('#89: hello waits at most 20 s for the greeting and requires it', () => {
+    const steps = readFileSync(join(flows, 'hello.yaml'), 'utf8').split(/^---$/m)[1];
+    assert.doesNotMatch(steps, /optional:\s*true/);
+    const wait = steps.match(
+      /- extendedWaitUntil:\n\s+visible:\n\s+id: hello\\\.greeting\n\s+timeout: (\d+)\n/,
+    );
+    assert.ok(wait, steps);
+    assert.ok(Number(wait[1]) <= 20000, `timeout ${wait[1]} ms`);
+    assert.match(
+      steps.slice(wait.index),
+      /- assertVisible:\n\s+id: hello\\\.greeting\n\s+text: \$\{HELLO_TITLE\}\n/,
+    );
   });
 });
 

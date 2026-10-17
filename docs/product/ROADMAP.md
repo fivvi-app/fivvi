@@ -291,7 +291,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - Native shells: an iOS app and an Android app that call a generated API client and show a translated screen, running on a simulator/emulator and on a real device.
 
 **Exit criteria (Gate G1: architecture sign-off)**
-- A translated "hello" screen on web, iOS and Android reads from the DB through the generated API client.
+- A translated "hello" screen on web, iOS and Android reads from the DB through the generated API client. ✅ iOS and Android on the owner's phones against production, NL and EN (2026-10-17, #59); web, NL and EN (#94).
 - A localized test email is delivered and lands in the inbox, not spam. ✅ Gmail, NL and EN (2026-10-03, E006); other mailbox providers in M5.
 - A PR opens a preview deploy; merging to `main` deploys production (not yet public).
 - Adding a string to only one locale fails CI, and so does changing an API route without regenerating the contract.

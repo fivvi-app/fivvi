@@ -154,7 +154,7 @@
           "hello"
         ],
         "summary": "Greeting for the walking skeleton",
-        "description": "Without `locale`, the locale is the first supported language in the Accept-Language header, otherwise en.",
+        "description": "The `hello` greeting from the database. Without `locale`, the locale is the first supported language in the Accept-Language header, otherwise en.",
         "parameters": [
           {
             "schema": {
@@ -183,6 +183,17 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
                 }
               }
             }

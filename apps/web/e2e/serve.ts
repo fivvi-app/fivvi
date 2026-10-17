@@ -1,0 +1,33 @@
+import { spawn } from 'node:child_process';
+import { createDatabase } from '@trainer-hub/database';
+import { runMigrations } from '@trainer-hub/database/migrate';
+import { databaseUrl, identifier, onServer } from '@trainer-hub/testing/database/server';
+
+// Playwright's web server command (playwright.config.ts): the standalone server, as in production
+// (Dockerfile), on a database of its own. Each run starts from an empty database with every
+// migration applied, so the hello row is the migrated one (#94). The database is on the local test
+// server (TEST_DATABASE_URL, else DATABASE_URL; localhost only) and stays until the next run.
+
+const name = process.env.E2E_DATABASE;
+if (!name) throw new Error('Set E2E_DATABASE to the name of the e2e database.');
+
+await onServer(
+  `DROP DATABASE IF EXISTS ${identifier(name)} WITH (FORCE)`,
+  `CREATE DATABASE ${identifier(name)}`,
+);
+const url = databaseUrl(name);
+const client = createDatabase({ url, maxConnections: 1 });
+try {
+  await runMigrations(client.db);
+} finally {
+  await client.close();
+}
+
+const server = spawn(process.execPath, ['.next/standalone/apps/web/server.js'], {
+  stdio: 'inherit',
+  env: { ...process.env, DATABASE_URL: url },
+});
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => server.kill(signal));
+}
+server.on('exit', (code) => process.exit(code ?? 1));

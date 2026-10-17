@@ -15,10 +15,11 @@ interface HelloApi {
     /**
      * GET v1/hello
      * Greeting for the walking skeleton
-     * Without &#x60;locale&#x60;, the locale is the first supported language in the Accept-Language header, otherwise en.
+     * The &#x60;hello&#x60; greeting from the database. Without &#x60;locale&#x60;, the locale is the first supported language in the Accept-Language header, otherwise en.
      * Responses:
      *  - 200: The greeting key and the locale to render it in.
      *  - 400: Invalid query parameters.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
      *
      * @param locale Catalog locale from packages/i18n: Dutch (nl-NL) or English (en). (optional)
      * @return [HelloResponse]

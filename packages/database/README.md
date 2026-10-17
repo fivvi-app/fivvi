@@ -6,7 +6,7 @@ PostgreSQL schema, versioned SQL migrations, seed data and the typed database cl
 import { createDatabaseFromEnv, findSystemGreeting } from '@trainer-hub/database';
 
 const { db, close } = createDatabaseFromEnv(); // reads DATABASE_URL; one per process
-const greeting = await findSystemGreeting(db, 'hello'); // { slug: 'hello', i18nKey: 'system.hello' }
+const greeting = await findSystemGreeting(db, 'hello'); // { slug: 'hello', i18nKey: 'hello.title' }
 ```
 
 Entry points: `@trainer-hub/database` (client, schema, queries, `pingDatabase`, `HELLO_GREETING`), `@trainer-hub/database/migrate` (`runMigrations`), `@trainer-hub/database/seed` (`seed`). Server-side only.
@@ -69,7 +69,7 @@ Rules:
 - **Executors:** queries, repositories and the seed take a `DatabaseExecutor` (the database or a transaction on it), never a pool of their own, so they run inside a request's transaction (RLS context, E011) and inside `withRollback` in tests.
 - **Tenancy:** every business table has a non-null `organization_id` (`PRODUCT.md §77`, ADR-006). Business data is read and written only through repository functions that take a tenant context; route handlers don't query business tables. A non-business table (system data such as `system_greetings`) must be added to `NON_BUSINESS_TABLES` in the integration test, with the reason in the PR.
 - **Row-Level Security** is added in **E011** (M2): RLS enabled on every business table, per-request transaction-local `set_config`, an app role without `BYPASSRLS`, and a separate privileged role for migrations. Until then there are no business tables.
-- **Copy stays out of the database.** Rows store i18n keys (`system.hello`), and clients translate them from `packages/i18n`. User-entered content is stored as typed.
+- **Copy stays out of the database.** Rows store i18n keys (`hello.title`), and clients translate them from `packages/i18n`. User-entered content is stored as typed.
 - **Seed data** is demo data for local development, previews and tests, never production. It is idempotent and never contains real personal data (`@example.com`, obviously fake names). Data every environment needs is a data migration (see [Environments](#environments)).
 
 The integration test enforces the id, timestamp and `organization_id` conventions on every table.

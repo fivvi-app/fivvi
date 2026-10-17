@@ -2,7 +2,7 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { type ApiDependencies, NO_DEPENDENCIES } from './dependencies.ts';
-import { toValidationError } from './errors.ts';
+import { INTERNAL_SERVER_ERROR, toValidationError } from './errors.ts';
 import { registerHealth } from './routes/health.ts';
 import { registerHello } from './routes/hello.ts';
 
@@ -28,10 +28,10 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
     // The same generic 500 as Hono's default: no stack trace, no internal message.
     console.error('Unhandled API error:', error);
     dependencies.errorReporter.captureError(error, { request: c.req.raw, route: c.req.routePath });
-    return c.text('Internal Server Error', 500);
+    return c.text(INTERNAL_SERVER_ERROR, 500);
   });
   registerHealth(app, dependencies);
-  registerHello(app);
+  registerHello(app, dependencies);
   return app;
 }
 

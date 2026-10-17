@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
 import { defaultTimeZone, formattingLocales, locales } from '@trainer-hub/i18n';
 import type { E2EOptions } from './e2e/fixtures';
@@ -8,6 +9,12 @@ import { analyticsServer, appServer, TEST_POSTHOG_HOST, TEST_POSTHOG_KEY } from 
 // builds the app first (turbo); this config only starts the production server.
 
 const ci = Boolean(process.env.CI);
+
+// Local convenience: the servers' databases go on the Postgres in packages/database/.env
+// (`pnpm db:up`), unless TEST_DATABASE_URL says otherwise. CI sets TEST_DATABASE_URL.
+if (existsSync('../../packages/database/.env')) {
+  process.loadEnvFile('../../packages/database/.env');
+}
 
 export default defineConfig<E2EOptions>({
   testDir: './e2e',
@@ -30,9 +37,9 @@ export default defineConfig<E2EOptions>({
       locale: formattingLocales[locale],
     },
   })),
-  // The standalone server, as in production (Dockerfile), not `next start`. A second one runs
-  // the same build with a PostHog key and host, which it reads at runtime, for the page view
-  // tests (E009).
+  // The standalone server, as in production (Dockerfile), not `next start`, each on its own
+  // migrated database (e2e/serve.ts). A second one runs the same build with a PostHog key and
+  // host, which it reads at runtime, for the page view tests (E009).
   webServer: [
     standaloneServer(appServer),
     standaloneServer(analyticsServer, {
@@ -43,12 +50,12 @@ export default defineConfig<E2EOptions>({
 });
 
 function standaloneServer(
-  { port, baseURL }: { port: number; baseURL: string },
+  { port, baseURL, database }: { port: number; baseURL: string; database: string },
   env: Record<string, string> = {},
 ) {
   return {
-    command: 'node .next/standalone/apps/web/server.js',
-    env: { ...env, PORT: String(port), HOSTNAME: 'localhost' },
+    command: 'node e2e/serve.ts',
+    env: { ...env, E2E_DATABASE: database, PORT: String(port), HOSTNAME: 'localhost' },
     url: baseURL,
     reuseExistingServer: !ci,
     timeout: 60_000,

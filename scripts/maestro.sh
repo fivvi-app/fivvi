@@ -3,14 +3,17 @@
 #
 #   maestro.sh android   start Postgres (migrated and seeded) and the web server on E2E_PORT, install the debug app on
 #                        the emulator (booted for the run when none is connected), then run every flow with the
-#                        emulator's language set to nl-NL and to en (pnpm test:maestro; CI job Android)
+#                        emulator's language set to nl-NL and to en, each once Android has settled after the change
+#                        (pnpm test:maestro; CI job Android)
 #   maestro.sh ios       the same on the worktree's own simulator, or the newest iPhone in the main checkout
 #                        (IOS_SIMULATOR="iPhone 17" picks one by name): builds the Debug app for it against the web
 #                        server, then runs every flow with the simulator's language set to nl-NL and to en (local only,
 #                        to save macOS CI minutes)
 #
+# Before the first flow, the web server has answered GET /api/v1/hello, the app's first request, in both locales.
 # When it ends, also on failure or Ctrl-C, it stops the emulator or simulator it booted and its Gradle daemons;
-# KEEP_DEVICE=1 leaves them running for the next run.
+# KEEP_DEVICE=1 leaves them running for the next run. On an emulator it didn't boot, it restores the language and the
+# error dialog setting.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/_android.sh"
@@ -47,12 +50,44 @@ start_stack() {
     [ "$waited" -lt 60 ] || die "the web server didn't start on port $PORT (log: e2e/maestro/build/web.log)"
     sleep 1; waited=$((waited + 1))
   done
+  warm_up_hello
+}
+
+# The app's first screen asks GET /api/v1/hello?locale=<its language>. Ask it once per locale before the first flow,
+# so no flow waits on the server's first request, and stop here, not 20 s into a flow, when it doesn't answer (#89).
+warm_up_hello() {
+  local locale url
+  for locale in $LOCALES; do
+    url="http://127.0.0.1:$PORT/api/v1/hello?locale=$locale"
+    curl -fsS --max-time 60 "$url" >/dev/null 2>&1 \
+      || die "GET $url failed (log: e2e/maestro/build/web.log)"
+  done
 }
 
 # Root on the Google APIs emulator image, so the device language can be changed without a reboot: a framework restart.
 set_device_locale() {
   adb shell "setprop persist.sys.locale $1; setprop sys.boot_completed 0; setprop ctl.restart zygote"
   wait_for_boot
+}
+
+# After a framework restart Android delivers BOOT_COMPLETED to every app again, which takes a minute or more on CI's 2
+# cores. A flow that started during it once found System UI not responding, its dialog over the app (#89).
+settle_device() { adb shell am wait-for-broadcast-idle >/dev/null; }
+
+# A System UI that stops responding while Android settles would still show its dialog over the app; with error dialogs
+# hidden, Android restarts System UI instead. Applies at once. ERROR_DIALOGS keeps the device's own value (null: unset).
+ERROR_DIALOGS=""
+hide_error_dialogs() {
+  ERROR_DIALOGS="$(adb shell settings get global hide_error_dialogs | tr -d '\r')"
+  adb shell settings put global hide_error_dialogs 1
+}
+
+restore_error_dialogs() {
+  case "$ERROR_DIALOGS" in
+    "") ;;
+    null) adb shell settings delete global hide_error_dialogs >/dev/null ;;
+    *) adb shell settings put global hide_error_dialogs "$ERROR_DIALOGS" ;;
+  esac
 }
 
 # After a failed run of the flows in locale $1: Ctrl-C stops the whole run (Maestro, a JVM, exits 130 on it, so bash
@@ -65,7 +100,11 @@ stopped_or_failed() {
 
 cleanup() {
   [ -z "$SERVER_PID" ] || kill "$SERVER_PID" 2>/dev/null || true
-  if [ -n "$DEVICE_LOCALE" ] && [ "$EMULATOR_STARTED" = false ]; then set_device_locale "$DEVICE_LOCALE" || true; fi
+  if [ "$EMULATOR_STARTED" = false ]; then
+    # In this order: Android writes settings to disk a moment later, and the framework restart would lose the write.
+    [ -z "$DEVICE_LOCALE" ] || set_device_locale "$DEVICE_LOCALE" || true
+    restore_error_dialogs || true
+  fi
   stop_android
 }
 
@@ -81,12 +120,14 @@ cmd_android() {
   wait_for_boot
   DEVICE_LOCALE="$(adb shell getprop persist.sys.locale | tr -d '\r')"
   [ -n "$DEVICE_LOCALE" ] || DEVICE_LOCALE="$(adb shell getprop ro.product.locale | tr -d '\r')"
+  hide_error_dialogs
   gradle installDebug "-Ptrainerhub.apiBaseUrl=http://10.0.2.2:$PORT/api/"
 
   local locale failed=""
   for locale in $LOCALES; do
     echo "Maestro on Android in $locale"
     set_device_locale "$locale"
+    settle_device
     maestro test "$ROOT/e2e/maestro" --env "HELLO_TITLE=$(catalog "$locale" hello.title)" \
       --format junit --output "$REPORTS/android-$locale.xml" --test-output-dir "$REPORTS/android-$locale" \
       || stopped_or_failed "$locale"

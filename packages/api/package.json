@@ -10,10 +10,12 @@
     "lint": "biome check --formatter-enabled=false --error-on-warnings .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "format:check": "biome format ."
   },
   "dependencies": {
     "@hono/zod-openapi": "catalog:",
+    "@trainer-hub/database": "workspace:*",
     "@trainer-hub/i18n": "workspace:*",
     "@trainer-hub/observability": "workspace:*",
     "hono": "catalog:",

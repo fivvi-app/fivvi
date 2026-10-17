@@ -166,6 +166,23 @@ jobs:
     name: E2E (Linux)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # The e2e servers each create and migrate their own database on it (apps/web/e2e/serve.ts).
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: trainer_hub
+          POSTGRES_PASSWORD: trainer_hub
+          POSTGRES_DB: trainer_hub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U trainer_hub -d trainer_hub"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      TEST_DATABASE_URL: postgres://trainer_hub:trainer_hub@localhost:5432/trainer_hub
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

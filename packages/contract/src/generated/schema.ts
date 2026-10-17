@@ -33,7 +33,7 @@ export interface paths {
         };
         /**
          * Greeting for the walking skeleton
-         * @description Without `locale`, the locale is the first supported language in the Accept-Language header, otherwise en.
+         * @description The `hello` greeting from the database. Without `locale`, the locale is the first supported language in the Accept-Language header, otherwise en.
          */
         get: operations["getHello"];
         put?: never;
@@ -150,6 +150,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
                 };
             };
         };

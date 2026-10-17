@@ -326,6 +326,9 @@ importers:
       '@trainer-hub/api':
         specifier: workspace:*
         version: link:../../packages/api
+      '@trainer-hub/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
       '@trainer-hub/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -390,6 +393,9 @@ importers:
       '@hono/zod-openapi':
         specifier: 'catalog:'
         version: 1.6.3(hono@4.13.10)(zod@4.6.5)
+      '@trainer-hub/database':
+        specifier: workspace:*
+        version: link:../database
       '@trainer-hub/i18n':
         specifier: workspace:*
         version: link:../i18n

@@ -188,7 +188,7 @@ describe('E004 database', () => {
     it('stores the migrated greeting as an i18n key, not as copy', async () => {
       await withRollback(db, async (tx) => {
         const [row] = await tx.select().from(systemGreetings);
-        expect(row?.i18nKey).toBe('system.hello');
+        expect(row?.i18nKey).toBe('hello.title');
       });
     });
 
