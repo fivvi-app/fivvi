@@ -1413,7 +1413,9 @@ esac`,
     assert.match(run.output, /CFBundleName/);
     assert.equal(readFileSync(catalog, 'utf8'), committed);
     assert.ok(
-      !fake.log('xcodebuild').some((line) => /^(build-for-testing|test-without-building) /.test(line)),
+      !fake
+        .log('xcodebuild')
+        .some((line) => /^(build-for-testing|test-without-building) /.test(line)),
       'nothing built or tested',
     );
   });
@@ -1427,7 +1429,9 @@ esac`,
     assert.match(run.output, /Config\/Info-Debug\.plist is not in Xcode's form/);
     assert.match(run.output, /Config\/Info\.plist is not in Xcode's form/);
     assert.ok(
-      !fake.log('xcodebuild').some((line) => /^(build-for-testing|test-without-building) /.test(line)),
+      !fake
+        .log('xcodebuild')
+        .some((line) => /^(build-for-testing|test-without-building) /.test(line)),
       'nothing built or tested',
     );
   });
