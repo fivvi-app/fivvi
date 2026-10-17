@@ -6,10 +6,10 @@
 #                 allowlist, that Xcode's string catalog sync leaves the generated catalogs unchanged, then one
 #                 build-for-testing and the unit and UI tests in nl and en without building again, on the newest iPhone
 #                 simulator, in a worktree its own copy (IOS_SIMULATOR="iPhone 17" picks one by name). The locales run
-#                 one after the other, or at the same time on two simulators on CI (CI is set) or with IOS_PARALLEL=1
-#                 (IOS_PARALLEL=0 turns it off). Prints the durations of its steps, the build timing summary and the
-#                 slowest tests (also in the job summary on CI). Shuts down the simulators it booted when it ends,
-#                 unless KEEP_DEVICE=1
+#                 one after the other on one simulator, also on CI (two simulators were slower on CI's 3-core runner);
+#                 IOS_PARALLEL=1 runs them at the same time on two. Prints the durations of its steps, the build timing
+#                 summary and the slowest tests (also in the job summary on CI). Shuts down the simulators it booted when
+#                 it ends, unless KEEP_DEVICE=1
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
@@ -208,7 +208,7 @@ udid="$(ios_simulator)"
 # on_exit holds one command: catalog_sync's restore ran and cleared it above, so this doesn't replace a live one.
 on_exit 'ios_cleanup'
 parallel=false
-[ "${IOS_PARALLEL:-${CI:+1}}" != 1 ] || parallel=true
+[ "${IOS_PARALLEL:-0}" != 1 ] || parallel=true
 if $parallel; then create_extra_simulator || die "could not create a second simulator"; fi
 extra="$EXTRA_SIMULATOR"
 

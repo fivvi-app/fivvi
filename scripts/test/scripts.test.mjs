@@ -1322,37 +1322,37 @@ esac`,
       assert.deepEqual(configs(fake), ['nl', 'en']);
     });
 
+    it('IOS_PARALLEL=1 tests nl and en at the same time on two simulators, and deletes the second', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', [], { IOS_PARALLEL: '1' });
+
+      assert.equal(run.status, 0, run.output);
+      const tests = fake
+        .log('xcodebuild')
+        .filter((line) => line.startsWith('test-without-building '));
+      assert.deepEqual(configs(fake).sort(), ['en', 'nl']);
+      assert.ok(tests.some((line) => testedOn([line]) === 'IPHONE-18'));
+      assert.notEqual(testedOn([tests[0]]), testedOn([tests[1]]), 'one simulator each');
+      assert.equal(fake.simulators().length, 2, 'the second simulator is deleted');
+      assert.equal(fake.simulator('IPHONE-18').state, 'Shutdown');
+      assert.match(run.output, /::group::Tests in nl/);
+    });
+
     for (const [name, env] of [
-      ['IOS_PARALLEL=1', { IOS_PARALLEL: '1' }],
       ['CI', { CI: 'true' }],
+      ['IOS_PARALLEL=0 on CI', { CI: 'true', IOS_PARALLEL: '0' }],
     ]) {
-      it(`${name}: tests nl and en at the same time on two simulators, and deletes the second`, async () => {
+      it(`${name}: tests nl and en in turn on one simulator`, async () => {
         const fake = checkout();
 
         const run = await fake.run('scripts/test-ios.sh', [], env);
 
         assert.equal(run.status, 0, run.output);
-        const tests = fake
-          .log('xcodebuild')
-          .filter((line) => line.startsWith('test-without-building '));
-        assert.deepEqual(configs(fake).sort(), ['en', 'nl']);
-        assert.ok(tests.some((line) => testedOn([line]) === 'IPHONE-18'));
-        assert.notEqual(testedOn([tests[0]]), testedOn([tests[1]]), 'one simulator each');
-        assert.equal(fake.simulators().length, 2, 'the second simulator is deleted');
-        assert.equal(fake.simulator('IPHONE-18').state, 'Shutdown');
-        assert.match(run.output, /::group::Tests in nl/);
+        assert.equal(fake.simulators().length, 2);
+        assert.deepEqual(configs(fake), ['nl', 'en']);
       });
     }
-
-    it('IOS_PARALLEL=0 keeps CI on one simulator', async () => {
-      const fake = checkout();
-
-      const run = await fake.run('scripts/test-ios.sh', [], { CI: 'true', IOS_PARALLEL: '0' });
-
-      assert.equal(run.status, 0, run.output);
-      assert.equal(fake.simulators().length, 2);
-      assert.deepEqual(configs(fake), ['nl', 'en']);
-    });
 
     it('fails when one locale fails in parallel, with both outputs shown', async () => {
       const fake = checkout();
