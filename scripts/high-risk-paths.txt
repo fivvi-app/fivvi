@@ -18,6 +18,7 @@ guardrails            /CLAUDE.md
 guardrails            /CODING_STANDARDS.md
 guardrails            /.agents
 guardrails            /.claude
+guardrails            /.codex
 guardrails            /.github
 guardrails            /.githooks
 guardrails            /scripts

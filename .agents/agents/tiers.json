@@ -1,0 +1,17 @@
+{
+  "high": {
+    "claude": "opus",
+    "copilot": ["claude-opus-5.5", "Claude Opus 5.5 (copilot)"],
+    "codex": { "model": "gpt-6.1-sol", "effort": "high" }
+  },
+  "mid": {
+    "claude": "sonnet",
+    "copilot": ["claude-sonnet-5.5", "Claude Sonnet 5.5 (copilot)"],
+    "codex": { "model": "gpt-5.6-terra", "effort": "medium" }
+  },
+  "small": {
+    "claude": "claude-haiku-5-5",
+    "copilot": ["claude-haiku-5.5", "Claude Haiku 5.5 (copilot)"],
+    "codex": { "model": "gpt-6-luna", "effort": "low" }
+  }
+}

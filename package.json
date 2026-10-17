@@ -29,7 +29,7 @@
     "generate:contract": "pnpm --filter @trainer-hub/contract generate",
     "format:check:root": "biome format ./*.json .claude scripts/test",
     "lint:root": "biome lint .claude scripts/test && shellcheck -x scripts/*.sh .githooks/*",
-    "check:root": "scripts/skills.sh check",
+    "check:root": "scripts/skills.sh check && scripts/agents.sh check",
     "test:root": "node --test '.claude/hooks/*.test.mjs' 'scripts/test/*.test.mjs'",
     "format": "biome format --write .",
     "fix": "biome check --write .",

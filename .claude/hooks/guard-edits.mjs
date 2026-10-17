@@ -9,7 +9,11 @@ const PROTECTED_BRANCHES = new Set(['main']);
 
 const CONTRACT = 'pnpm generate:contract';
 const TOKENS = 'pnpm --filter @trainer-hub/design-tokens generate';
+const AGENT_DEFINITIONS = 'scripts/agents.sh sync';
 export const GENERATED_PATHS = [
+  ['.claude/agents/', AGENT_DEFINITIONS],
+  ['.github/agents/', AGENT_DEFINITIONS],
+  ['.codex/agents/', AGENT_DEFINITIONS],
   ['packages/contract/openapi.json', CONTRACT],
   ['packages/contract/src/generated/', CONTRACT],
   ['packages/contract/swift/Sources/TrainerHubAPI/Generated/', CONTRACT],
