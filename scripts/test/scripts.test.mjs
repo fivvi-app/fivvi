@@ -351,7 +351,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     );
   });
 
-  it('runs the iOS tests through scripts/test-ios.sh and uploads the results of both locales on failure', () => {
+  it('runs the iOS tests through scripts/test-ios.sh and uploads the result bundles on failure', () => {
     assert.match(ios, /run: scripts\/test-ios\.sh/);
     assert.match(ios, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/TestResults-\*\.xcresult/);
   });
@@ -896,7 +896,11 @@ describe('E002 #91 android.sh avd-key', () => {
 });
 
 // A fake `xcrun simctl` that keeps each simulator as a JSON file in <state>/devices and logs its arguments.
-const fakeSimctl = (state) => `[ "$1" = simctl ] || exit 1
+const fakeSimctl = (
+  state,
+) => `# xcresulttool prints the canned test results FAKE_XCRESULT names (nothing without it).
+if [ "$1" = xcresulttool ]; then [ -z "$FAKE_XCRESULT" ] || cat "$FAKE_XCRESULT"; exit 0; fi
+[ "$1" = simctl ] || exit 1
 shift
 echo "$*" >>"${state}/xcrun.log"
 devices="${state}/devices"
@@ -968,6 +972,8 @@ esac`;
     for (const path of [
       'apps/ios/lint',
       'apps/ios/Config',
+      'apps/ios/TrainerHub.xctestplan',
+      'apps/ios/TrainerHubUITests',
       'apps/ios/TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
       'packages/i18n/nl-NL.json',
       'packages/i18n/en.json',
@@ -1200,25 +1206,21 @@ esac`,
       fake
         .log('xcodebuild')
         .filter((line) => line.startsWith('test-without-building '))
-        .map((line) => line.match(/-only-test-configuration (\S+)/)?.[1]);
+        .map((line) => line.match(/-only-test-configuration (\S+)/)?.[1] ?? 'all');
     const commands = (fake) =>
       fake
         .log('xcodebuild')
         .map((line) => line.split(' ')[0])
         .filter((command) => !command.startsWith('-'));
 
-    it('runs build-for-testing once, then nl and en one after the other on one simulator', async () => {
+    it('runs build-for-testing once, then one test-without-building for nl and en on one simulator', async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/test-ios.sh');
 
       assert.equal(run.status, 0, run.output);
-      assert.deepEqual(commands(fake), [
-        'build-for-testing',
-        'test-without-building',
-        'test-without-building',
-      ]);
-      assert.deepEqual(configs(fake), ['nl', 'en']);
+      assert.deepEqual(commands(fake), ['build-for-testing', 'test-without-building']);
+      assert.deepEqual(configs(fake), ['all'], 'both configurations of the test plan in one run');
       const [build] = fake
         .log('xcodebuild')
         .filter((line) => line.startsWith('build-for-testing '));
@@ -1228,7 +1230,7 @@ esac`,
       assert.match(run.output, /Build Timing Summary/);
     });
 
-    it('keeps a result bundle per locale and prints the steps with their durations', async () => {
+    it('keeps one result bundle with both locales and prints the steps with their durations', async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/test-ios.sh');
@@ -1237,10 +1239,7 @@ esac`,
         .log('xcodebuild')
         .filter((line) => line.startsWith('test-without-building '))
         .map((line) => line.match(/-resultBundlePath (\S+)/)?.[1]);
-      assert.deepEqual(bundles, [
-        '.build/TestResults-nl.xcresult',
-        '.build/TestResults-en.xcresult',
-      ]);
+      assert.deepEqual(bundles, ['.build/TestResults-nl-en.xcresult']);
       assert.match(run.output, /Step durations:\n( +\d+ s {2}.+\n)+ +\d+ s {2}Total/);
       assert.match(run.output, /\d+ s {2}Build for testing/);
       assert.match(run.output, /\d+ s {2}Unit and UI tests in nl and en/);
@@ -1287,7 +1286,7 @@ esac`,
       const tests = fake
         .log('xcodebuild')
         .filter((line) => line.startsWith('test-without-building '));
-      assert.equal(tests.length, 2);
+      assert.equal(tests.length, 1);
       for (const line of tests) {
         assert.match(
           line,
@@ -1313,13 +1312,13 @@ esac`,
       });
     }
 
-    it('runs the second locale when the first fails, and fails', async () => {
+    it('fails when the tests fail, after the one run of both locales', async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/test-ios.sh', [], { FAKE_RESULT: 'fail' });
 
       assert.equal(run.status, 1, run.output);
-      assert.deepEqual(configs(fake), ['nl', 'en']);
+      assert.deepEqual(configs(fake), ['all']);
     });
 
     it('IOS_PARALLEL=1 tests nl and en at the same time on two simulators, and deletes the second', async () => {
@@ -1332,6 +1331,10 @@ esac`,
         .log('xcodebuild')
         .filter((line) => line.startsWith('test-without-building '));
       assert.deepEqual(configs(fake).sort(), ['en', 'nl']);
+      assert.deepEqual(tests.map((line) => line.match(/-resultBundlePath (\S+)/)?.[1]).sort(), [
+        '.build/TestResults-en.xcresult',
+        '.build/TestResults-nl.xcresult',
+      ]);
       assert.ok(tests.some((line) => testedOn([line]) === 'IPHONE-18'));
       assert.notEqual(testedOn([tests[0]]), testedOn([tests[1]]), 'one simulator each');
       assert.equal(fake.simulators().length, 2, 'the second simulator is deleted');
@@ -1343,14 +1346,14 @@ esac`,
       ['CI', { CI: 'true' }],
       ['IOS_PARALLEL=0 on CI', { CI: 'true', IOS_PARALLEL: '0' }],
     ]) {
-      it(`${name}: tests nl and en in turn on one simulator`, async () => {
+      it(`${name}: tests nl and en in one run on one simulator`, async () => {
         const fake = checkout();
 
         const run = await fake.run('scripts/test-ios.sh', [], env);
 
         assert.equal(run.status, 0, run.output);
         assert.equal(fake.simulators().length, 2);
-        assert.deepEqual(configs(fake), ['nl', 'en']);
+        assert.deepEqual(configs(fake), ['all']);
       });
     }
 
@@ -1365,6 +1368,233 @@ esac`,
       assert.equal(run.status, 1, run.output);
       assert.equal(configs(fake).length, 2);
       assert.equal(fake.simulators().length, 2, 'the second simulator is deleted');
+    });
+  });
+
+  describe('E002 #105 faster iOS tests without losing coverage', () => {
+    const commands = (fake) =>
+      fake
+        .log('xcodebuild')
+        .map((line) => line.split(' ')[0])
+        .filter((command) => /^(build-for-testing|test-without-building)$/.test(command));
+    const planPath = (fake) => join(fake.repo, 'apps/ios/TrainerHub.xctestplan');
+    const skipList = (config) =>
+      config.options.environmentVariableEntries.find(
+        (entry) => entry.key === 'TRAINER_HUB_SKIP_TESTS',
+      );
+    // Rewrites the test plan in the fake checkout: `edit` gets the plan's configurations by name.
+    const editPlan = (fake, edit) => {
+      const plan = JSON.parse(readFileSync(planPath(fake), 'utf8'));
+      edit(Object.fromEntries(plan.configurations.map((config) => [config.name, config])));
+      writeFileSync(planPath(fake), JSON.stringify(plan));
+    };
+
+    it('C: the configuration check makes one -showBuildSettings call, into the cached Swift packages', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh');
+
+      assert.equal(run.status, 0, run.output);
+      const calls = fake.log('xcodebuild').filter((line) => line.includes('-showBuildSettings'));
+      assert.equal(calls.length, 1);
+      assert.match(calls[0], /-clonedSourcePackagesDirPath \.build\/SourcePackages/);
+    });
+
+    it('D: nl runs every UI test and en skips only the locale-independent ones', () => {
+      const plan = JSON.parse(
+        readFileSync(join(SCRIPTS, '../apps/ios/TrainerHub.xctestplan'), 'utf8'),
+      );
+      const [nl, en] = ['nl', 'en'].map((name) => plan.configurations.find((c) => c.name === name));
+
+      assert.equal(skipList(nl), undefined);
+      assert.deepEqual(skipList(en).value.split(',').sort(), [
+        'HelloUITests/test_E008_AC3_firstSupportedDeviceLanguageWins',
+        'HelloUITests/test_E008_AC3_perAppLanguageOverridesTheDevice',
+        'HelloUITests/test_E008_AC3_unsupportedDeviceLanguageShowsEnglish',
+        'HelloUITests/test_E008_AC6_usesTokenColoursInLightAndDark',
+        'HelloUITests/test_E008_AC7_largestTextSizeWraps',
+      ]);
+    });
+
+    it('D: fails before building when a UI test is skipped in every configuration', async () => {
+      const fake = checkout();
+      editPlan(fake, ({ nl }) => {
+        nl.options.environmentVariableEntries.push({
+          key: 'TRAINER_HUB_SKIP_TESTS',
+          value: 'HelloUITests/test_E008_AC6_usesTokenColoursInLightAndDark',
+        });
+      });
+
+      const run = await fake.run('scripts/test-ios.sh');
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /HelloUITests\/test_E008_AC6_usesTokenColoursInLightAndDark/);
+      assert.match(run.output, /runs in no configuration/);
+      assert.deepEqual(commands(fake), []);
+    });
+
+    it('D: fails when a configuration skips a test that no UI test class has', async () => {
+      const fake = checkout();
+      editPlan(fake, ({ en }) => {
+        skipList(en).value += ',HelloUITests/test_E008_AC9_renamedAway';
+      });
+
+      const run = await fake.run('scripts/test-ios.sh');
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /HelloUITests\/test_E008_AC9_renamedAway/);
+      assert.match(run.output, /is not a UI test/);
+      assert.deepEqual(commands(fake), []);
+    });
+
+    for (const key of ['skippedTests', 'selectedTests']) {
+      it(`D: fails when a test target of the plan has ${key}, which Xcode writes and which applies to every configuration`, async () => {
+        const fake = checkout();
+        const plan = JSON.parse(readFileSync(planPath(fake), 'utf8'));
+        plan.testTargets[1][key] = ['HelloUITests/test_E008_AC8_displayNameComesFromTheCatalog'];
+        writeFileSync(planPath(fake), JSON.stringify(plan));
+
+        const run = await fake.run('scripts/test-ios.sh');
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, new RegExp(`${key}.*TRAINER_HUB_SKIP_TESTS`));
+        assert.deepEqual(commands(fake), []);
+      });
+    }
+
+    it('D: fails when the skip list names a test of a class other than HelloUITests, which would not skip it', async () => {
+      const fake = checkout();
+      editPlan(fake, ({ en }) => {
+        skipList(en).value += ',TouchTargetTests/test_E008_AC4_44PointsMeetsTheTarget';
+      });
+
+      const run = await fake.run('scripts/test-ios.sh');
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(
+        run.output,
+        /TouchTargetTests\/test_E008_AC4_44PointsMeetsTheTarget.*only HelloUITests/,
+      );
+      assert.deepEqual(commands(fake), []);
+    });
+
+    it('D: finds the tests of a private final class and of a second class in the same target', async () => {
+      const fake = checkout();
+      const extra = join(fake.repo, 'apps/ios/TrainerHubUITests/ExtraTests.swift');
+      writeFileSync(
+        extra,
+        'private final class Helper {\n    class func test_notATest() {}\n}\nprivate final class ExtraTests: XCTestCase {\n    func test_E002_extra() {}\n}\n',
+      );
+      editPlan(fake, ({ en }) => {
+        skipList(en).value += ',ExtraTests/test_E002_extra';
+      });
+
+      const run = await fake.run('scripts/test-ios.sh');
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /ExtraTests\/test_E002_extra.*only HelloUITests/);
+      assert.doesNotMatch(run.output, /not a UI test/);
+    });
+
+    it('D: a class does not leak into the next file: a test outside any class is not a UI test, whatever order the files are read in', async () => {
+      const fake = checkout();
+      const dir = join(fake.repo, 'apps/ios/TrainerHubUITests');
+      rmSync(dir, { recursive: true });
+      mkdirSync(dir);
+      // Each file has a free function, then the class: whichever file is read second would give its free function the
+      // first file's class without the per-file reset.
+      for (const name of ['freeA', 'freeB']) {
+        writeFileSync(
+          join(dir, `${name}.swift`),
+          `func test_${name}() {}\nfinal class HelloUITests: XCTestCase {}\n`,
+        );
+      }
+      editPlan(fake, ({ nl, en }) => {
+        nl.options.environmentVariableEntries = nl.options.environmentVariableEntries.filter(
+          (entry) => entry.key !== 'TRAINER_HUB_SKIP_TESTS',
+        );
+        skipList(en).value = 'HelloUITests/test_freeA,HelloUITests/test_freeB';
+      });
+
+      const run = await fake.run('scripts/test-ios.sh');
+
+      assert.equal(run.status, 1, run.output);
+      for (const name of ['freeA', 'freeB'])
+        assert.match(run.output, new RegExp(`HelloUITests/test_${name}, which is not a UI test`));
+    });
+
+    it('A: reports the slowest tests of each locale from the one result bundle', async () => {
+      const fake = checkout();
+      const result = join(fake.repo, '..', 'results.json');
+      const test = (name, nl, en) => ({
+        nodeType: 'Test Case',
+        nodeIdentifier: name,
+        durationInSeconds: (nl + en) / 2,
+        children: [
+          { nodeType: 'Test Plan Configuration', name: 'en', durationInSeconds: en },
+          { nodeType: 'Test Plan Configuration', name: 'nl', durationInSeconds: nl },
+        ],
+      });
+      writeFileSync(
+        result,
+        JSON.stringify({
+          testNodes: [
+            test('HelloUITests/test_slowInNl()', 30, 2),
+            test('HelloUITests/test_slowInEn()', 3, 20),
+          ],
+        }),
+      );
+      const summary = join(fake.repo, '..', 'summary.md');
+
+      const run = await fake.run('scripts/test-ios.sh', [], {
+        FAKE_XCRESULT: result,
+        GITHUB_STEP_SUMMARY: summary,
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /Slowest tests in nl \(seconds\):\n +HelloUITests\/test_slowInNl\(\) 30\n +HelloUITests\/test_slowInEn\(\) 3\n/,
+      );
+      assert.match(
+        run.output,
+        /Slowest tests in en \(seconds\):\n +HelloUITests\/test_slowInEn\(\) 20\n +HelloUITests\/test_slowInNl\(\) 2\n/,
+      );
+      const written = readFileSync(summary, 'utf8');
+      assert.match(written, /### Slowest iOS tests in nl/);
+      assert.match(written, /### Slowest iOS tests in en/);
+    });
+
+    it('A: a bundle of one locale (IOS_PARALLEL=1) is reported for that locale', async () => {
+      const fake = checkout();
+      const result = join(fake.repo, '..', 'results.json');
+      writeFileSync(
+        result,
+        JSON.stringify({
+          testNodes: [
+            {
+              nodeType: 'Test Case',
+              nodeIdentifier: 'HelloUITests/test_one()',
+              durationInSeconds: 7,
+            },
+          ],
+        }),
+      );
+
+      const run = await fake.run('scripts/test-ios.sh', [], {
+        IOS_PARALLEL: '1',
+        FAKE_XCRESULT: result,
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /Slowest tests in nl \(seconds\):\n +HelloUITests\/test_one\(\) 7\n/,
+      );
+      assert.match(
+        run.output,
+        /Slowest tests in en \(seconds\):\n +HelloUITests\/test_one\(\) 7\n/,
+      );
     });
   });
 
@@ -1391,8 +1621,8 @@ esac`,
       .filter((line) => line.startsWith('test-without-building '));
     assert.deepEqual(
       destinations.map((line) => testedOn([line])),
-      Array(4).fill(simulator.udid),
-      'nl and en, on each of the two runs',
+      Array(2).fill(simulator.udid),
+      'nl and en in one run, on each of the two runs',
     );
     assert.equal(simulator.state, 'Shutdown');
     assert.ok(
