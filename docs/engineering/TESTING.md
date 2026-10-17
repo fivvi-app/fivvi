@@ -161,7 +161,7 @@ Run from the repo root. Turbo runs the task in every package that has it; add `-
 | `pnpm test:maestro` | `scripts/maestro.sh android`: Postgres (migrated, seeded) and the web server on `E2E_PORT`, warmed up with `GET /api/v1/hello` in both locales, the debug app on the emulator, every flow in `e2e/maestro/` with the emulator in **nl-NL and en**, each once Android has settled after the language change | Docker, `scripts/bootstrap.sh --mobile` once |
 | `scripts/maestro.sh ios` | The same flows on the iPhone simulator (local only), after the same warm-up | Docker, `scripts/bootstrap.sh --mobile` once |
 | `pnpm lint`, `pnpm typecheck`, `pnpm check`, `pnpm format:check` | Static checks (§2) | Nothing |
-| `pnpm test:ios` | What the `iOS` CI job runs: SwiftLint with the literal-text, colour and Sentry rules, the build configurations (Debug sends nothing to Sentry; Release's DSN is in the EU region), the Swift package allowlist (no analytics SDK), then the iOS unit and UI tests in **nl and en** on a simulator ([`apps/ios/README.md`](../../apps/ios/README.md#tests)) | `scripts/bootstrap.sh --mobile` |
+| `pnpm test:ios` | What the `iOS` CI job runs: SwiftLint with the literal-text, colour and Sentry rules, the build configurations (Debug sends nothing to Sentry; Release's DSN is in the EU region; Info.plists in Xcode's form), the Swift package allowlist (no analytics SDK), that Xcode's string catalog sync leaves the generated catalogs unchanged, then the iOS unit and UI tests in **nl and en** on a simulator ([`apps/ios/README.md`](../../apps/ios/README.md#tests)) | `scripts/bootstrap.sh --mobile` |
 
 ```bash
 pnpm db:up
@@ -197,6 +197,7 @@ Also for E008:
   - Android: `pnpm test:android`. When the run ends (passed, failed or Ctrl-C) it kills the emulator it started, never one that was already running, and stops this checkout's Gradle daemons. `KEEP_DEVICE=1` leaves both running, for fast repeated runs.
   - Maestro: `pnpm test:maestro`. It uses and cleans up the emulator and the Gradle daemons like `pnpm test:android`, `KEEP_DEVICE=1` included.
   - Maestro on iOS: `scripts/maestro.sh ios`. It uses and cleans up the simulator like `pnpm test:ios`, `KEEP_DEVICE=1` included.
+  - A real iPhone, by hand: `scripts/ios-device.sh [nl|en]` builds, installs and launches the Debug app, signed through the git-ignored `Config/Local.xcconfig` ([`apps/ios/README.md`](../../apps/ios/README.md#a-real-iphone)).
 - **CI** (the jobs are in `WORKFLOW.md §7`):
   - iOS: the `iOS` job runs `pnpm test:ios`'s script.
   - Android: the `Android` job runs `pnpm test:android`, then `pnpm test:maestro`.
