@@ -1496,20 +1496,31 @@ esac`,
       assert.doesNotMatch(run.output, /not a UI test/);
     });
 
-    it('D: a class does not leak into the next file: a test outside any class is not a UI test', async () => {
+    it('D: a class does not leak into the next file: a test outside any class is not a UI test, whatever order the files are read in', async () => {
       const fake = checkout();
-      writeFileSync(
-        join(fake.repo, 'apps/ios/TrainerHubUITests/Support/Free.swift'),
-        'func test_E002_free() {}\n',
-      );
-      editPlan(fake, ({ en }) => {
-        skipList(en).value += ',HelloUITests/test_E002_free';
+      const dir = join(fake.repo, 'apps/ios/TrainerHubUITests');
+      rmSync(dir, { recursive: true });
+      mkdirSync(dir);
+      // Each file has a free function, then the class: whichever file is read second would give its free function the
+      // first file's class without the per-file reset.
+      for (const name of ['freeA', 'freeB']) {
+        writeFileSync(
+          join(dir, `${name}.swift`),
+          `func test_${name}() {}\nfinal class HelloUITests: XCTestCase {}\n`,
+        );
+      }
+      editPlan(fake, ({ nl, en }) => {
+        nl.options.environmentVariableEntries = nl.options.environmentVariableEntries.filter(
+          (entry) => entry.key !== 'TRAINER_HUB_SKIP_TESTS',
+        );
+        skipList(en).value = 'HelloUITests/test_freeA,HelloUITests/test_freeB';
       });
 
       const run = await fake.run('scripts/test-ios.sh');
 
       assert.equal(run.status, 1, run.output);
-      assert.match(run.output, /HelloUITests\/test_E002_free, which is not a UI test/);
+      for (const name of ['freeA', 'freeB'])
+        assert.match(run.output, new RegExp(`HelloUITests/test_${name}, which is not a UI test`));
     });
 
     it('A: reports the slowest tests of each locale from the one result bundle', async () => {
