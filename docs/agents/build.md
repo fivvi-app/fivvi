@@ -28,7 +28,7 @@ A new commit makes an earlier verdict stale: any fix, CI repair or merge of `ori
 - **Stay in the worktree**: `cd <worktree> && …` in every command; change files only there.
 - **Tests**: `tdd`, one vertical slice at a time, covering the ticket's acceptance criteria and the spec's Test plan rows for them ([TESTING.md](../engineering/TESTING.md)). A fix for a finding or thread that changes behaviour starts with a failing test. Never delete, skip or weaken a test.
 - **Hint**: apply it. It says what this PR does to `FEATURES.md`: the spec's first ticket changes only its row's Status to `IN PROGRESS`, the PR that completes the spec sets `IMPLEMENTED` and writes the final one-line summary, any other ticket leaves the file alone. Never add progress ("Open:", "Next:") to the row; it lives in the spec's tickets.
-- **Checks**: `scripts/check.sh` passes in the worktree, the same checks `pr.sh create` runs before it pushes.
+- **Checks**: `scripts/check.sh` passes in the worktree, the same full checks `pr.sh create` runs before a PR's first push; on a follow-up push it runs `--fast` (modes: [WORKFLOW.md §3](../engineering/WORKFLOW.md)).
 - **Commits**: Conventional Commits with the feature ID as scope, `feat(F031): hold a spot during verification`. Commit everything before you report: the reviewer reviews `origin/main...HEAD` as committed.
 - **No final review**: don't call `code-review`; the `reviewer` does (see Review).
 - **Never** push, create or update PRs, or write to GitHub issues. Never guess a product rule; test data is synthetic. Stop with `blocked` when the ticket is ambiguous, needs a product decision, or a check fails for reasons outside the ticket.
