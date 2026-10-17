@@ -67,6 +67,13 @@ describe('risk of a pull request', () => {
       '.claude/settings.json',
       '.github/workflows/ci.yml',
       '.githooks/commit-msg',
+      '.codex/config.toml',
+      '.codex/agents/builder.toml',
+      '.agents/agents/builder.md',
+      '.claude/agents/builder.md',
+      '.github/agents/builder.agent.md',
+      'scripts/agents.sh',
+      'scripts/codex-agent.sh',
       'scripts/high-risk-paths.txt',
     ],
     dependencies: [

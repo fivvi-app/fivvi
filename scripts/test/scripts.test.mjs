@@ -423,6 +423,8 @@ describe('usage', () => {
       'wt',
       'pr',
       'skills',
+      'agents',
+      'codex-agent',
       'risk',
       'github-settings',
       'android',

@@ -51,6 +51,9 @@
     "//#test:root": {
       "inputs": [
         ".claude/**",
+        ".agents/agents/**",
+        ".github/agents/**",
+        ".codex/**",
         "scripts/**",
         ".githooks/**",
         "Dockerfile",
@@ -65,7 +68,15 @@
       ]
     },
     "//#check:root": {
-      "inputs": [".agents/**", "scripts/skills.sh", "scripts/_lib.sh"]
+      "inputs": [
+        ".agents/**",
+        ".claude/agents/**",
+        ".github/agents/**",
+        ".codex/**",
+        "scripts/skills.sh",
+        "scripts/agents.sh",
+        "scripts/_lib.sh"
+      ]
     },
     "dev": {
       "cache": false,

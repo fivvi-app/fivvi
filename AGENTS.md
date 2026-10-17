@@ -26,7 +26,8 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 | `GLOSSARY.md`, `docs/decisions/` | Domain language; ADRs |
 | `CODING_STANDARDS.md`, `.github/instructions/` | How code is written and reviewed; rules per area |
 | `.agents/skills/` | `work` (the router) plus [Matt Pocock's skills](https://github.com/mattpocock/skills), pinned in `.agents/skills.yaml` |
-| `scripts/` | `bootstrap.sh`, `flow.sh`, `issue.sh`, `wt.sh`, `pr.sh`, `risk.sh`, `check.sh`, `skills.sh`, `github-settings.sh`, `test-ios.sh`, `ios-device.sh`, `android.sh`, `maestro.sh` |
+| `.agents/agents/`, `.codex/` | The `builder`, `reviewer` and `mechanic` agents and the model of each tier per tool (`tiers.json`); `scripts/agents.sh` generates `.claude/agents/`, `.github/agents/` and `.codex/agents/` from them. Codex project config |
+| `scripts/` | `bootstrap.sh`, `flow.sh`, `issue.sh`, `wt.sh`, `pr.sh`, `risk.sh`, `check.sh`, `skills.sh`, `agents.sh`, `codex-agent.sh`, `github-settings.sh`, `test-ios.sh`, `ios-device.sh`, `android.sh`, `maestro.sh` |
 | `.worktrees/<branch>/` | Git worktrees: all work happens here |
 
 ## Rules
@@ -52,21 +53,27 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 - Never push to `main` or force-push shared branches. Every change goes through a PR. A ruleset on `main` enforces the PR, the CI checks and an up-to-date branch (`WORKFLOW.md §7`).
 - AI may: commit and push its own branch, open a PR, push fixes for review comments, and merge a **low-risk** PR with `scripts/pr.sh merge` ([ADR-016](docs/decisions/ADR-016-agent-merges.md)). AI may not: approve a PR, merge a high-risk PR, merge in any other way, or enable auto-merge.
 - Risk is decided by `scripts/risk.sh`, never by judgment: a PR is high-risk when it touches a path in `scripts/high-risk-paths.txt` (auth, tenant data, health notes, legal, billing, product and decision docs, these guardrails, dependencies and infrastructure) or its issue or spec has the `owner-merge` label. The owner merges high-risk PRs.
-- `pr.sh merge` merges only when the whole merge gate holds: low-risk, every check passed on the head commit, both `code-review` axes clean on it, the preview smoke-checked, up to date with `main`, no open threads, ready for review. When it refuses, it records the refusal on the PR for the head commit and the PR stays for the owner; never work around it or retry it on that commit.
+- `pr.sh merge` merges only when the whole merge gate holds: low-risk, every check passed on the head commit, the `reviewer` (both `code-review` axes) clean on it, the preview smoke-checked, up to date with `main`, no open threads, ready for review. When it refuses, it records the refusal on the PR for the head commit and the PR stays for the owner; never work around it or retry it on that commit.
 - Open or update PRs only with `scripts/pr.sh create` (draft, runs `scripts/check.sh`, pushes, adds `Closes #<issue>`). Record a clean self-review with `scripts/pr.sh reviewed` and the Railway preview with `scripts/pr.sh smoke`, both for the head commit; publish with `scripts/pr.sh ready`.
 - Branch: `<type>/<issue>-<slug>` (type `feature`, `fix`, `chore` or `docs`), or `<type>/<slug>` without an issue. Commits: Conventional Commits with the feature ID as scope, `feat(F031): hold a spot` (a commit hook checks it). PR title: the issue title, `[F031] …`. One ticket per PR; squash merge.
 - After the merge: `scripts/flow.sh finish <n>` from the main checkout.
-- Agent review stays local: Matt's `code-review` (standards and spec axes) before the PR, and again after every push. No Copilot, Claude or Codex reviewers or review jobs in GitHub.
+- Agent review stays local: the high-tier `reviewer` subagent runs Matt's `code-review` (standards and spec axes) before the PR, and again after every push. The builder never reviews its own work, and only the `reviewer` can call a review clean. No Copilot, Claude or Codex reviewers or review jobs in GitHub.
 
 ## Agent skills
 
 **For any delivery request (an idea, an issue, a bug, a PR, "what's next"), follow `.agents/skills/work/SKILL.md`.** It routes each step to the vendored skill or script that does it, so the user only has to talk. Its first command is always `scripts/flow.sh status <n>` for an issue, or `scripts/flow.sh next`; act on the `Phase` and `Next` it prints, never on memory.
 
-`work` is ours. The other skills are vendored: never edit them; change their behaviour in `docs/agents/`. Update them with `scripts/skills.sh update`. Copilot and Codex read `.agents/skills/`; Claude Code reads it through the `.claude/skills` symlink.
+`work` is ours. The other skills are vendored: never edit them; change their behaviour in `docs/agents/`. Update them with `scripts/skills.sh update`. Copilot and Codex read `.agents/skills/`; Claude Code reads it through the `.claude/skills` symlink. The agent definitions are generated per tool: `.claude/agents/` (Claude Code), `.github/agents/` (Copilot), `.codex/agents/` (Codex).
+
+### Model tiers
+
+Work is routed to a model tier in every tool: the high tier shapes (the main conversation) and does **every code review** (`reviewer`), the mid tier builds and fixes (`builder`), the small tier does mechanical work (`mechanic`). The models of each tier and tool are in the table in `docs/agents/build.md`, **Tiers**.
+
+The `work` skill starts the `builder`, then the `reviewer` on the head commit, then a `builder` for the findings (at most two fix rounds, then a review-only round). Change a model in `.agents/agents/tiers.json`, never in a generated file, and run `scripts/agents.sh sync`; Codex also needs the repo trusted in `~/.codex/config.toml` (`docs/agents/codex-model-tiers.md`).
 
 ### Building
 
-How `implement`, `tdd` and `code-review` run here. See `docs/agents/build.md`.
+How a ticket is built (`implement`, `tdd`) and reviewed (`code-review`) here. See `docs/agents/build.md`.
 
 ### Issue tracker
 

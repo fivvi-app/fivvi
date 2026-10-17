@@ -110,6 +110,7 @@ api_prerequisites() {
 check "shell syntax" syntax
 check "shellcheck" shellcheck_all
 check "vendored skills" "$ROOT/scripts/skills.sh" check
+check "agent definitions" "$ROOT/scripts/agents.sh" check
 check "commit messages" commit_messages
 check "doc links" doc_links
 if [ ! -d node_modules ]; then
