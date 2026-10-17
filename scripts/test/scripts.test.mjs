@@ -167,7 +167,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     }
   });
 
-  it('#91: shared files (ci.yml, _lib.sh, this list) run neither native job on their own', () => {
+  it('E002 #91: shared files (ci.yml, _lib.sh, this list) run neither native job on their own', () => {
     const jobs = nativeJobs([
       '.github/workflows/ci.yml',
       'scripts/_lib.sh',
@@ -177,7 +177,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     assert.equal(jobs.android, 'false');
   });
 
-  it('#91: a push to main runs neither native job; the PR ran them on the same up-to-date commit', () => {
+  it('E002 #91: a push to main runs neither native job; the PR ran them on the same up-to-date commit', () => {
     const jobs = nativeJobs(
       ['apps/ios/TrainerHub/App.swift', 'apps/android/app/build.gradle.kts'],
       ['--event', 'push'],
@@ -187,7 +187,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     assert.match(jobs.log, /push to main/);
   });
 
-  it('#91: workflow_dispatch and the run-native label run both native jobs, whatever changed', () => {
+  it('E002 #91: workflow_dispatch and the run-native label run both native jobs, whatever changed', () => {
     for (const args of [
       ['--event', 'workflow_dispatch'],
       ['--event', 'pull_request', '--run-native'],
@@ -201,16 +201,165 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     assert.equal(pr.android, 'false');
   });
 
-  it('#91: the Detect changes job takes its outputs from scripts/native-jobs.sh, and the job names stay', () => {
-    const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
-    assert.match(ci, /scripts\/native-jobs\.sh .*>>"\$GITHUB_OUTPUT"/);
-    assert.match(ci, /contains\(github\.event\.pull_request\.labels\.\*\.name, 'run-native'\)/);
-    assert.match(ci, /^ {2}workflow_dispatch:/m);
-    assert.doesNotMatch(ci, /^ +decide /m);
+  const ci = () => readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
+
+  it('E002 #91: the job names stay, and ci.yml has no path list of its own', () => {
+    assert.match(ci(), /^ {2}workflow_dispatch:/m);
+    assert.doesNotMatch(ci(), /^ +decide /m);
     assert.deepEqual(
-      [...ci.matchAll(/^ {4}name: (.+)$/gm)].map((match) => match[1]),
+      [...ci().matchAll(/^ {4}name: (.+)$/gm)].map((match) => match[1]),
       ['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android'],
     );
+  });
+
+  // Runs the `Filter paths` step of the Detect changes job as it is in ci.yml, in a repo whose last commit changed
+  // `changed`, with the event and label the workflow would pass; returns what it writes to $GITHUB_OUTPUT.
+  const detectChanges = ({ event, label = false, changed = ['docs/product/FEATURES.md'] }) => {
+    const lines = ci().split('\n');
+    const start = lines.findIndex((line) => line.includes('name: Filter paths'));
+    const run = lines.findIndex((line, i) => i > start && /^ +run: \|$/.test(line));
+    const body = [];
+    for (const line of lines.slice(run + 1)) {
+      if (line.trim() !== '' && !line.startsWith(' '.repeat(10))) break;
+      body.push(line.slice(10));
+    }
+    const env = (name) => ci().match(new RegExp(`^ +${name}: (.+)$`, 'm'))[1];
+    assert.equal(env('EVENT'), '${{ github.event_name }}');
+    assert.equal(
+      env('RUN_NATIVE'),
+      "${{ contains(github.event.pull_request.labels.*.name, 'run-native') }}",
+    );
+
+    const repo = realpathSync(mkdtempSync(join(tmpdir(), 'detect-')));
+    try {
+      const git = (...args) =>
+        execFileSync(
+          'git',
+          ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
+          { encoding: 'utf8' },
+        );
+      git('init', '--quiet', '--initial-branch=main');
+      cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+      for (const dir of ['apps/ios', 'apps/android'])
+        mkdirSync(join(repo, dir), { recursive: true });
+      writeFileSync(join(repo, 'apps/ios/.keep'), '');
+      writeFileSync(join(repo, 'apps/android/.keep'), '');
+      git('add', '.');
+      git('commit', '--quiet', '-m', 'chore: base');
+      for (const path of changed) {
+        mkdirSync(join(repo, path, '..'), { recursive: true });
+        writeFileSync(join(repo, path), 'changed\n');
+      }
+      git('add', '.');
+      git('commit', '--quiet', '-m', 'chore: change');
+      const output = join(repo, '..', `${basename(repo)}.out`);
+      writeFileSync(output, '');
+      const result = spawnSync('bash', ['-c', body.join('\n')], {
+        cwd: repo,
+        encoding: 'utf8',
+        env: {
+          PATH: process.env.PATH,
+          HOME: repo,
+          EVENT: event,
+          BEFORE: '',
+          RUN_NATIVE: String(label),
+          GITHUB_OUTPUT: output,
+        },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      const outputs = Object.fromEntries(
+        readFileSync(output, 'utf8')
+          .trim()
+          .split('\n')
+          .map((line) => line.split('=')),
+      );
+      rmSync(output);
+      return outputs;
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  };
+
+  it('E002 #91: ci.yml passes the event and the run-native label to scripts/native-jobs.sh', () => {
+    assert.deepEqual(detectChanges({ event: 'pull_request' }), { ios: 'false', android: 'false' });
+    assert.deepEqual(detectChanges({ event: 'pull_request', label: true }), {
+      ios: 'true',
+      android: 'true',
+    });
+    assert.deepEqual(detectChanges({ event: 'workflow_dispatch' }), {
+      ios: 'true',
+      android: 'true',
+    });
+    assert.deepEqual(
+      detectChanges({ event: 'push', changed: ['apps/ios/App.swift', 'apps/android/App.kt'] }),
+      { ios: 'false', android: 'false' },
+    );
+    assert.deepEqual(detectChanges({ event: 'pull_request', changed: ['apps/ios/App.swift'] }), {
+      ios: 'true',
+      android: 'false',
+    });
+    assert.deepEqual(
+      detectChanges({ event: 'pull_request', changed: ['.github/workflows/ci.yml'] }),
+      {
+        ios: 'false',
+        android: 'false',
+      },
+    );
+  });
+});
+
+describe('E002 #91 the native jobs in ci.yml', () => {
+  const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
+  const ios = ci.slice(ci.indexOf('\n  ios:\n'), ci.indexOf('\n  android:\n'));
+  const android = ci.slice(ci.indexOf('\n  android:\n'));
+
+  it('caches the iOS DerivedData and Swift packages by Package.resolved, Xcode version and runner OS', () => {
+    assert.match(ios, /apps\/ios\/\.build\/DerivedData/);
+    assert.match(ios, /apps\/ios\/\.build\/SourcePackages/);
+    const key = ios.match(/^ +key: (ios-build-.+)$/m)?.[1] ?? '';
+    assert.match(key, /runner\.os/);
+    assert.match(key, /steps\.xcode\.outputs\.version/);
+    assert.match(key, /hashFiles\('apps\/ios\/.*Package\.resolved'\)/);
+    assert.match(
+      ios,
+      /restore-keys: \|\n +ios-build-\$\{\{ runner\.os \}\}-\$\{\{ steps\.xcode\.outputs\.version \}\}-\n/,
+    );
+  });
+
+  it('runs the iOS tests through scripts/test-ios.sh and uploads the results of both locales on failure', () => {
+    assert.match(ios, /run: scripts\/test-ios\.sh/);
+    assert.match(ios, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/TestResults-\*\.xcresult/);
+  });
+
+  it('caches the AVD with its snapshot, boots with snapshots on and stops the emulator before the cache is saved', () => {
+    assert.match(android, /android\.sh avd-key/);
+    assert.match(
+      android,
+      /path: ~\/\.android\/avd\n +key: avd-v1-\$\{\{ runner\.os \}\}-\$\{\{ steps\.avd\.outputs\.key \}\}/,
+    );
+    const boot = android.slice(android.indexOf('name: Boot the emulator'));
+    assert.match(boot.slice(0, boot.indexOf('- name:', 10)), /AVD_SNAPSHOT: '1'/);
+    const order = [
+      'name: Cache the emulator',
+      'name: Boot the emulator',
+      'name: Stop the emulator',
+    ].map((name) => android.indexOf(name));
+    assert.deepEqual(
+      order,
+      [...order].sort((a, b) => a - b),
+    );
+    assert.ok(order.every((index) => index > 0));
+    assert.match(android, /name: Stop the emulator\n +if: always\(\)/);
+  });
+
+  it('prints the step durations of both native jobs in the job summary', () => {
+    for (const section of [ios, android]) {
+      assert.match(section, /actions: read/);
+      assert.match(
+        section,
+        /if: always\(\)\n +continue-on-error: true\n +env:\n +GH_TOKEN: \$\{\{ github\.token \}\}\n +run: scripts\/step-timings\.sh/,
+      );
+    }
   });
 });
 
@@ -416,7 +565,7 @@ describe('android.sh emulator', () => {
     }
   });
 
-  const boot = (mode, extraEnv = {}) => {
+  const boot = (mode, extraEnv = {}, { snapshot = false } = {}) => {
     const base = realpathSync(mkdtempSync(join(tmpdir(), 'android-emulator-')));
     dirs.push(base);
     const state = join(base, 'state');
@@ -425,9 +574,16 @@ describe('android.sh emulator', () => {
     mkdirSync(join(base, 'jdk'));
     script(join(base, 'bin/java'), 'echo "openjdk version \\"21\\"" >&2');
     script(join(base, 'bin/sleep'), `echo "$*" >>"${join(state, 'sleeps')}"`);
+    const snapshots = join(base, 'home/.android/avd/trainer-hub.avd/snapshots/default_boot');
+    if (snapshot) {
+      mkdirSync(snapshots, { recursive: true });
+      writeFileSync(join(snapshots, 'snapshot.pb'), '');
+    }
     script(
       join(sdk, 'platform-tools/adb'),
-      `case "$1 $2 $3" in
+      `echo "$*" >>"${join(state, 'adb.log')}"
+case "$1 $2 $3" in
+  "emu avd snapshot") mkdir -p "${snapshots}" && touch "${snapshots}/snapshot.pb" ;;
   "get-state "*) [ -e "${state}/booted" ] && echo device || exit 1 ;;
   "shell getprop sys.boot_completed") [ -e "${state}/booted" ] && echo 1 || exit 1 ;;
   "devices "*) printf 'List of devices attached\\nemulator-5554\\tdevice\\n' ;;
@@ -440,7 +596,11 @@ exit 0`,
   -list-avds) echo trainer-hub ;;
   -accel-check) echo 'accel: KVM (fake) is installed and usable' ;;
   *) echo $$ >"${state}/pid"
-     case "$FAKE_EMULATOR" in
+     echo "$*" >>"${state}/emulator.log"
+     mode="$FAKE_EMULATOR"
+     # FAKE_SNAPSHOT: what the emulator does when it is asked to load a snapshot.
+     case " $* " in *" -snapshot "*) [ -z "$FAKE_SNAPSHOT" ] || mode="$FAKE_SNAPSHOT" ;; esac
+     case "$mode" in
        exit) echo 'FATAL | x86_64 emulation currently requires hardware acceleration!'; exit 1 ;;
        hang) echo 'INFO | booting (fake)'; exec /bin/sleep 60 ;;
        boot) echo 'INFO | booted (fake)'; touch "${state}/booted"; exec /bin/sleep 60 ;;
@@ -460,7 +620,16 @@ esac`,
     const read = (file) =>
       existsSync(join(state, file)) ? readFileSync(join(state, file), 'utf8') : '';
     const sleeps = read('sleeps').split('\n').filter(Boolean);
-    return { ...result, pid: Number(read('pid')), sleeps };
+    const launches = read('emulator.log').split('\n').filter(Boolean);
+    const adb = read('adb.log').split('\n').filter(Boolean);
+    return {
+      ...result,
+      pid: Number(read('pid')),
+      sleeps,
+      launches,
+      adb,
+      snapshotSaved: existsSync(join(snapshots, 'snapshot.pb')),
+    };
   };
 
   it('fails at once with the emulator log and the acceleration check when the emulator exits', () => {
@@ -489,6 +658,137 @@ esac`,
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(result.stdout, /emulator-5554\tdevice/);
     assert.ok(alive(result.pid), 'the emulator keeps running for the next steps');
+  });
+
+  describe('E002 #91 snapshot boot (AVD_SNAPSHOT=1, set by CI)', () => {
+    const withSnapshots = { AVD_SNAPSHOT: '1' };
+
+    it('boots cold without snapshots by default, as it does locally, and saves nothing', () => {
+      const result = boot('boot', {}, { snapshot: true });
+
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.equal(result.launches.length, 1);
+      assert.match(result.launches[0], /(^| )-no-snapshot( |$)/);
+      assert.doesNotMatch(result.launches[0], /-snapshot default_boot/);
+      assert.deepEqual(
+        result.adb.filter((call) => call.startsWith('emu')),
+        [],
+      );
+    });
+
+    it('boots from the cached snapshot and saves nothing', () => {
+      const result = boot('boot', withSnapshots, { snapshot: true });
+
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.equal(result.launches.length, 1);
+      assert.match(
+        result.launches[0],
+        /^-avd trainer-hub -snapshot default_boot -no-snapshot-save /,
+      );
+      assert.match(result.stdout, /Emulator booted from its snapshot in \d+s/);
+      assert.deepEqual(
+        result.adb.filter((call) => call.startsWith('emu')),
+        [],
+      );
+    });
+
+    it('boots cold without a snapshot, then saves one for the cache', () => {
+      const result = boot('boot', withSnapshots);
+
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.equal(result.launches.length, 1);
+      assert.match(result.launches[0], /^-avd trainer-hub -no-snapshot-load -no-snapshot-save /);
+      assert.match(result.stdout, /Emulator booted cold in \d+s/);
+      assert.ok(result.adb.includes('emu avd snapshot save default_boot'), result.adb.join('\n'));
+      assert.ok(result.snapshotSaved);
+    });
+
+    for (const [name, snapshotBehaviour, extraEnv] of [
+      ['crashes the emulator', 'exit', {}],
+      ['does not boot in SNAPSHOT_BOOT_TIMEOUT', 'hang', { SNAPSHOT_BOOT_TIMEOUT: '4' }],
+    ]) {
+      it(`falls back to a cold boot and replaces the snapshot when it ${name}`, () => {
+        const result = boot(
+          'boot',
+          { ...withSnapshots, FAKE_SNAPSHOT: snapshotBehaviour, ...extraEnv },
+          { snapshot: true },
+        );
+
+        assert.equal(result.status, 0, result.stdout + result.stderr);
+        assert.equal(result.launches.length, 2, result.launches.join('\n'));
+        assert.match(result.launches[0], /-snapshot default_boot/);
+        assert.match(result.launches[1], /-no-snapshot-load/);
+        assert.match(result.stdout, /::warning::The emulator snapshot didn't load/);
+        assert.match(result.stdout, /Emulator booted cold in \d+s/);
+        assert.ok(result.adb.includes('emu avd snapshot save default_boot'));
+      });
+    }
+
+    it('still fails with the emulator log when the cold boot fails too', () => {
+      const result = boot('exit', withSnapshots, { snapshot: true });
+
+      assert.equal(result.status, 1);
+      assert.equal(result.launches.length, 2);
+      assert.match(result.stderr, /the emulator exited while booting/);
+    });
+  });
+});
+
+// The cache key of CI's cached AVD (E002 #91): it changes with whatever makes a snapshot stop loading.
+describe('E002 #91 android.sh avd-key', () => {
+  const dirs = [];
+  after(() => {
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+  });
+
+  const key = ({ emulator = '35.4.9', image = '14', missing = false } = {}) => {
+    const base = realpathSync(mkdtempSync(join(tmpdir(), 'android-key-')));
+    dirs.push(base);
+    const sdk = join(base, 'sdk');
+    mkdirSync(join(sdk, 'platform-tools'), { recursive: true });
+    mkdirSync(join(base, 'jdk'));
+    script(join(base, 'bin/java'), 'echo "openjdk version \\"21\\"" >&2');
+    if (!missing) {
+      mkdirSync(join(sdk, 'emulator'));
+      writeFileSync(join(sdk, 'emulator/source.properties'), `Pkg.Revision=${emulator}\n`);
+      for (const abi of ['x86_64', 'arm64-v8a']) {
+        const dir = join(sdk, 'system-images/android-35/google_apis', abi);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(join(dir, 'source.properties'), `Pkg.Revision=${image}\n`);
+      }
+    }
+    return spawnSync(join(SCRIPTS, 'android.sh'), ['avd-key'], {
+      encoding: 'utf8',
+      env: {
+        PATH: `${join(base, 'bin')}:${process.env.PATH}`,
+        HOME: join(base, 'home'),
+        ANDROID_HOME: sdk,
+        JAVA_HOME: join(base, 'jdk'),
+      },
+    });
+  };
+
+  it('names the system image, its revision, the emulator revision and the settings', () => {
+    const result = key();
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(
+      result.stdout.trim(),
+      /^system-images-android-35-google_apis-(x86_64|arm64-v8a)-r14-emulator35\.4\.9-\d+$/,
+    );
+  });
+
+  it('changes with the emulator and with the system image', () => {
+    const keys = [key(), key({ emulator: '36.1.2' }), key({ image: '15' })].map((r) => r.stdout);
+
+    assert.equal(new Set(keys).size, 3, keys.join(''));
+  });
+
+  it('fails when the emulator or the system image is not installed', () => {
+    const result = key({ missing: true });
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /isn't installed/);
   });
 });
 
@@ -609,14 +909,16 @@ case "$*" in *connectedDebugAndroidTest*) ${outcome} ;; esac`,
     ]);
 
     script(join(bin, 'xcrun'), fakeSimctl(state));
-    // Like the real one, `xcodebuild test` boots its destination simulator when it isn't booted.
+    // build-for-testing leaves the .xctestrun file that test-without-building runs; FAKE_BUILD=fail makes it fail.
     script(
       join(bin, 'xcodebuild'),
       `echo "$*" >>"${state}/xcodebuild.log"
 case "$*" in
   *-showBuildSettings*) printf '    TRAINER_HUB_API_BASE_URL = https://example.test/api\\n    INFOPLIST_FILE = Info.plist\\n    TRAINER_HUB_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    TRAINER_HUB_SENTRY_ENVIRONMENT = production\\n' ;;
-  test\\ *) for arg; do case "$arg" in id=*) xcrun simctl bootstatus "\${arg#id=}" -b ;; esac; done
-    ${outcome} ;;
+  build-for-testing\\ *) [ "$FAKE_BUILD" != fail ] || { echo 'error: build failed (fake)'; exit 1; }
+    mkdir -p .build/DerivedData/Build/Products && touch .build/DerivedData/Build/Products/TrainerHub.xctestrun
+    printf 'Build Timing Summary\\n\\nSwiftCompile (1 task) | 1.000 seconds\\n\\n** TEST BUILD SUCCEEDED **\\n' ;;
+  test-without-building\\ *) ${outcome} ;;
 esac
 exit 0`,
     );
@@ -724,7 +1026,7 @@ esac`,
   ];
   const testedOn = (xcodebuildOrMaestro) =>
     xcodebuildOrMaestro
-      .find((line) => / test /.test(` ${line} `))
+      .find((line) => / test(-without-building)? /.test(` ${line} `))
       ?.match(/(?:id=|--device )(\S+)/)?.[1];
 
   for (const [name, command, args, testLog] of [
@@ -773,6 +1075,140 @@ esac`,
     assert.equal(fake.simulator('IPHONE-18').state, 'Booted');
   });
 
+  describe('E002 #91 pnpm test:ios builds once and tests nl and en without building', () => {
+    const configs = (fake) =>
+      fake
+        .log('xcodebuild')
+        .filter((line) => line.startsWith('test-without-building '))
+        .map((line) => line.match(/-only-test-configuration (\S+)/)?.[1]);
+    const commands = (fake) =>
+      fake
+        .log('xcodebuild')
+        .map((line) => line.split(' ')[0])
+        .filter((command) => !command.startsWith('-'));
+
+    it('runs build-for-testing once, then nl and en one after the other on one simulator', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh');
+
+      assert.equal(run.status, 0, run.output);
+      assert.deepEqual(commands(fake), [
+        'build-for-testing',
+        'test-without-building',
+        'test-without-building',
+      ]);
+      assert.deepEqual(configs(fake), ['nl', 'en']);
+      const [build] = fake
+        .log('xcodebuild')
+        .filter((line) => line.startsWith('build-for-testing '));
+      assert.match(build, /-showBuildTimingSummary/);
+      assert.match(build, /-derivedDataPath \.build\/DerivedData/);
+      assert.equal(fake.simulators().length, 2, 'no second simulator');
+      assert.match(run.output, /Build Timing Summary/);
+    });
+
+    it('keeps a result bundle per locale and prints the steps with their durations', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh');
+
+      const bundles = fake
+        .log('xcodebuild')
+        .filter((line) => line.startsWith('test-without-building '))
+        .map((line) => line.match(/-resultBundlePath (\S+)/)?.[1]);
+      assert.deepEqual(bundles, [
+        '.build/TestResults-nl.xcresult',
+        '.build/TestResults-en.xcresult',
+      ]);
+      assert.match(run.output, /Step durations:\n( +\d+ s {2}.+\n)+ +\d+ s {2}Total/);
+      assert.match(run.output, /\d+ s {2}Build for testing/);
+      assert.match(run.output, /\d+ s {2}Unit and UI tests in nl and en/);
+    });
+
+    it('writes the step durations and the build timing to the job summary on GitHub Actions', async () => {
+      const fake = checkout();
+      const summary = join(fake.repo, '..', 'summary.md');
+
+      const run = await fake.run('scripts/test-ios.sh', [], { GITHUB_STEP_SUMMARY: summary });
+
+      assert.equal(run.status, 0, run.output);
+      const written = readFileSync(summary, 'utf8');
+      assert.match(written, /### iOS build timing/);
+      assert.match(written, /SwiftCompile \(1 task\)/);
+      assert.match(
+        written,
+        /### iOS steps\n\n\| Step \| Duration \|\n\|---\|--:\|\n\| SwiftLint \| \d+ s \|/,
+      );
+      assert.match(written, /\| \*\*Total\*\* \| \*\*\d+ s\*\* \|/);
+    });
+
+    it('does not test when the build fails, and still shuts the simulator down', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', [], { FAKE_BUILD: 'fail' });
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /error: build failed \(fake\)/);
+      assert.deepEqual(configs(fake), []);
+      assert.equal(fake.simulator('IPHONE-18').state, 'Shutdown');
+    });
+
+    it('runs the second locale when the first fails, and fails', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', [], { FAKE_RESULT: 'fail' });
+
+      assert.equal(run.status, 1, run.output);
+      assert.deepEqual(configs(fake), ['nl', 'en']);
+    });
+
+    for (const [name, env] of [
+      ['IOS_PARALLEL=1', { IOS_PARALLEL: '1' }],
+      ['CI', { CI: 'true' }],
+    ]) {
+      it(`${name}: tests nl and en at the same time on two simulators, and deletes the second`, async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/test-ios.sh', [], env);
+
+        assert.equal(run.status, 0, run.output);
+        const tests = fake
+          .log('xcodebuild')
+          .filter((line) => line.startsWith('test-without-building '));
+        assert.deepEqual(configs(fake).sort(), ['en', 'nl']);
+        assert.ok(tests.some((line) => testedOn([line]) === 'IPHONE-18'));
+        assert.notEqual(testedOn([tests[0]]), testedOn([tests[1]]), 'one simulator each');
+        assert.equal(fake.simulators().length, 2, 'the second simulator is deleted');
+        assert.equal(fake.simulator('IPHONE-18').state, 'Shutdown');
+        assert.match(run.output, /::group::Tests in nl/);
+      });
+    }
+
+    it('IOS_PARALLEL=0 keeps CI on one simulator', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', [], { CI: 'true', IOS_PARALLEL: '0' });
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(fake.simulators().length, 2);
+      assert.deepEqual(configs(fake), ['nl', 'en']);
+    });
+
+    it('fails when one locale fails in parallel, with both outputs shown', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', [], {
+        IOS_PARALLEL: '1',
+        FAKE_RESULT: 'fail',
+      });
+
+      assert.equal(run.status, 1, run.output);
+      assert.equal(configs(fake).length, 2);
+      assert.equal(fake.simulators().length, 2, 'the second simulator is deleted');
+    });
+  });
+
   it('AC3: pnpm test:ios runs a worktree on its own simulator, named after it and created on first use', async () => {
     const fake = checkout();
     const worktree = fake.worktree('feature/9-own-simulator');
@@ -791,10 +1227,13 @@ esac`,
       [fake.simulator('IPHONE-18').deviceTypeIdentifier, fake.simulator('IPHONE-18').runtime],
       'a copy of the newest iPhone',
     );
-    const destinations = fake.log('xcodebuild').filter((line) => line.startsWith('test '));
+    const destinations = fake
+      .log('xcodebuild')
+      .filter((line) => line.startsWith('test-without-building '));
     assert.deepEqual(
       destinations.map((line) => testedOn([line])),
-      [simulator.udid, simulator.udid],
+      Array(4).fill(simulator.udid),
+      'nl and en, on each of the two runs',
     );
     assert.equal(simulator.state, 'Shutdown');
     assert.ok(

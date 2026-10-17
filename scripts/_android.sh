@@ -111,6 +111,29 @@ EMULATOR_BOOT_TIMEOUT="${EMULATOR_BOOT_TIMEOUT:-300}"
 EMULATOR_LOG="${EMULATOR_LOG:-$ANDROID_DIR/build/emulator.log}"
 EMULATOR_PID=""
 
+# Snapshot boot (AVD_SNAPSHOT=1, set by CI; E002 #91). The first boot of an AVD is cold and saves a snapshot of the
+# booted device; CI caches the AVD with it, keyed by `android.sh avd-key`, so later runs load it in seconds. A snapshot
+# that is missing, doesn't load in SNAPSHOT_BOOT_TIMEOUT or crashes the emulator is deleted and the emulator boots cold.
+# Locally it stays off: every boot is cold and nothing is saved.
+AVD_SNAPSHOT="${AVD_SNAPSHOT:-0}"
+SNAPSHOT_NAME="default_boot"
+SNAPSHOT_BOOT_TIMEOUT="${SNAPSHOT_BOOT_TIMEOUT:-90}"
+
+avd_snapshot_dir() { echo "$ANDROID_AVD_HOME/$AVD_NAME.avd/snapshots/$SNAPSHOT_NAME"; }
+snapshot_exists() { [ -f "$(avd_snapshot_dir)/snapshot.pb" ]; }
+
+# What decides whether a cached AVD's snapshot loads: the system image and the emulator (their revisions), and the AVD
+# and emulator settings. Prints the CI cache key suffix.
+avd_key() {
+  local home image emulator_rev image_rev
+  home="$(android_home)"
+  image="$(system_image)"
+  emulator_rev="$(sed -n 's/^Pkg.Revision=//p' "$home/emulator/source.properties" 2>/dev/null | head -1)"
+  image_rev="$(sed -n 's/^Pkg.Revision=//p' "$home/system-images/$(tr ';' '/' <<<"$image" | sed 's#^system-images/##')/source.properties" 2>/dev/null | head -1)"
+  [ -n "$emulator_rev" ] && [ -n "$image_rev" ] || return 1
+  echo "$(tr ';' '-' <<<"$image")-r$image_rev-emulator$emulator_rev-$(echo "$AVD_SETTINGS ${EMULATOR_FLAGS[*]}" | cksum | cut -d' ' -f1)"
+}
+
 # Fails; for an emulator this script started, with what it said, and stops it.
 emulator_failed() {
   local dir="$ANDROID_AVD_HOME"
@@ -123,42 +146,89 @@ emulator_failed() {
     echo "Free space for the emulator ($ANDROID_AVD_HOME):"
     df -h "$dir" || true
   } >&2
-  kill "$EMULATOR_PID" 2>/dev/null || true
-  wait "$EMULATOR_PID" 2>/dev/null || true
+  kill_emulator
   exit 1
 }
 
-# Polls instead of `adb wait-for-device`, which waits forever when the emulator never comes up.
-wait_for_boot() {
-  local waited=0
+kill_emulator() {
+  [ -z "$EMULATOR_PID" ] || kill "$EMULATOR_PID" 2>/dev/null || true
+  [ -z "$EMULATOR_PID" ] || wait "$EMULATOR_PID" 2>/dev/null || true
+  EMULATOR_PID=""
+}
+
+# Polls instead of `adb wait-for-device`, which waits forever when the emulator never comes up. Returns 1, with the
+# reason in BOOT_ERROR, when the emulator exits or doesn't boot in $1 seconds.
+BOOT_ERROR=""
+await_boot() {
+  local timeout=$1 waited=0
   until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; do
     if [ -n "$EMULATOR_PID" ] && ! kill -0 "$EMULATOR_PID" 2>/dev/null; then
-      emulator_failed "the emulator exited while booting"
+      BOOT_ERROR="the emulator exited while booting"
+      return 1
     fi
-    [ "$waited" -lt "$EMULATOR_BOOT_TIMEOUT" ] || emulator_failed "the emulator didn't boot in ${EMULATOR_BOOT_TIMEOUT}s"
+    if [ "$waited" -ge "$timeout" ]; then
+      BOOT_ERROR="the emulator didn't boot in ${timeout}s"
+      return 1
+    fi
     sleep 2; waited=$((waited + 2))
   done
 }
+
+# The same wait for the whole EMULATOR_BOOT_TIMEOUT; fails the script, with the emulator log, when it doesn't boot.
+wait_for_boot() { await_boot "$EMULATOR_BOOT_TIMEOUT" || emulator_failed "$BOOT_ERROR"; }
 
 # Boots the AVD headless unless a device is already connected. Sets EMULATOR_STARTED so the caller can stop it.
 # The flags are those of ReactiveCircus/android-emulator-runner on the same runners, plus `-accel on`: without
 # hardware acceleration (KVM, or Hypervisor.Framework on macOS) the emulator fails at once instead of crawling.
 EMULATOR_STARTED=false
+EMULATOR_FLAGS=(-no-window -no-audio -no-boot-anim -no-metrics -accel on -gpu swiftshader_indirect -camera-back none -camera-front none)
+
+launch_emulator() {
+  emulator -avd "$AVD_NAME" "$@" "${EMULATOR_FLAGS[@]}" >"$EMULATOR_LOG" 2>&1 &
+  EMULATOR_PID=$!
+  EMULATOR_STARTED=true
+}
+
+# Tries the cached snapshot; true when the emulator booted from it. Otherwise it is stopped and the snapshot deleted.
+boot_from_snapshot() {
+  snapshot_exists || return 1
+  echo "Starting emulator $AVD_NAME from its snapshot (log: $EMULATOR_LOG, timeout ${SNAPSHOT_BOOT_TIMEOUT}s)"
+  launch_emulator -snapshot "$SNAPSHOT_NAME" -no-snapshot-save
+  await_boot "$SNAPSHOT_BOOT_TIMEOUT" && return 0
+  echo "::warning::The emulator snapshot didn't load ($BOOT_ERROR); deleting it and booting cold"
+  kill_emulator
+  mv "$EMULATOR_LOG" "$EMULATOR_LOG.snapshot" 2>/dev/null || true
+  rm -rf "$(avd_snapshot_dir)"
+  return 1
+}
+
 start_emulator() {
   if device_ready; then return; fi
   avd_exists || die "no emulator '$AVD_NAME' in $ANDROID_AVD_HOME (emulator -list-avds: $(avd_list)) — run scripts/bootstrap.sh --mobile"
   mkdir -p "$(dirname "$EMULATOR_LOG")"
-  echo "Starting emulator $AVD_NAME (log: $EMULATOR_LOG, boot timeout ${EMULATOR_BOOT_TIMEOUT}s)"
-  emulator -avd "$AVD_NAME" -no-window -no-audio -no-boot-anim -no-snapshot -no-metrics -accel on \
-    -gpu swiftshader_indirect -camera-back none -camera-front none >"$EMULATOR_LOG" 2>&1 &
-  EMULATOR_PID=$!
-  EMULATOR_STARTED=true
-  wait_for_boot
+  local started=$SECONDS how="from its snapshot"
+  if [ "$AVD_SNAPSHOT" = 1 ] && boot_from_snapshot; then
+    :
+  else
+    how="cold"
+    echo "Starting emulator $AVD_NAME (log: $EMULATOR_LOG, boot timeout ${EMULATOR_BOOT_TIMEOUT}s)"
+    if [ "$AVD_SNAPSHOT" = 1 ]; then launch_emulator -no-snapshot-load -no-snapshot-save; else launch_emulator -no-snapshot; fi
+    wait_for_boot
+  fi
+  local booted=$((SECONDS - started))
   # Unlock the screen (menu key), as android-emulator-runner does; animations make UI tests slow and flaky.
   adb shell input keyevent 82
   for setting in window_animation_scale transition_animation_scale animator_duration_scale; do
     adb shell settings put global "$setting" 0
   done
+  echo "✓ Emulator booted $how in ${booted}s"
+  summary "Emulator booted **$how** in **${booted}s**"
+  # A cold boot with snapshots on saves the clean state for the next run (cached by CI); never fatal.
+  if [ "$AVD_SNAPSHOT" = 1 ] && [ "$how" = cold ] && ! snapshot_exists; then
+    adb emu avd snapshot save "$SNAPSHOT_NAME" >/dev/null 2>&1 && snapshot_exists \
+      && echo "✓ Saved the emulator snapshot '$SNAPSHOT_NAME'" \
+      || echo "::warning::Could not save the emulator snapshot; the next run boots cold"
+  fi
 }
 
 # Kills the emulator this run started, unless KEEP_DEVICE=1.

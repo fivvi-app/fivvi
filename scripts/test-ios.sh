@@ -2,9 +2,12 @@
 # The iOS app's checks, the same steps as the `iOS` CI job (E008). `pnpm test:ios` runs this.
 #
 #   test-ios.sh   SwiftLint and its fixtures (literal text, colours, direct Sentry calls), the Debug and Release
-#                 configurations (Release's Sentry DSN in the EU region), the Swift package allowlist, then the unit
-#                 and UI tests in nl and en on the newest iPhone simulator, in a worktree its own copy
-#                 (IOS_SIMULATOR="iPhone 17" picks one by name); shuts down the simulator it booted when it ends,
+#                 configurations (Release's Sentry DSN in the EU region), the Swift package allowlist, then one
+#                 build-for-testing and the unit and UI tests in nl and en without building again, on the newest iPhone
+#                 simulator, in a worktree its own copy (IOS_SIMULATOR="iPhone 17" picks one by name). The locales run
+#                 one after the other, or at the same time on two simulators on CI (CI is set) or with IOS_PARALLEL=1
+#                 (IOS_PARALLEL=0 turns it off). Prints the durations of its steps, the build timing summary and the
+#                 slowest tests (also in the job summary on CI). Shuts down the simulators it booted when it ends,
 #                 unless KEEP_DEVICE=1
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
@@ -76,25 +79,106 @@ swift_packages() {
   [ -z "$unexpected" ] || { echo "Swift packages not on the allowlist in scripts/test-ios.sh: $unexpected"; return 1; }
 }
 
-echo "▶ SwiftLint"
+step "SwiftLint"
 "$SWIFTLINT" lint --strict --quiet
-echo "▶ SwiftLint rejects literal text, colours and direct Sentry calls (lint/fixtures)"
+step "SwiftLint rejects literal text, colours and direct Sentry calls (lint/fixtures)"
 lint_fixture lint/fixtures/LiteralText.swift no_literal_text
 lint_fixture lint/fixtures/ColourLiteral.swift no_colour_literal
 lint_fixture lint/fixtures/DirectSentry.swift no_direct_sentry
-echo "▶ Debug and Release configurations"
+step "Debug and Release configurations"
 debug_configuration
 release_configuration
-echo "▶ Swift packages (no analytics SDK)"
+step "Swift packages (no analytics SDK)"
 swift_packages
+
+LOCALES="nl en"
+BUILD_ARGS=(-project TrainerHub.xcodeproj -scheme TrainerHub -testPlan TrainerHub
+  -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData)
+
+# Builds the app and its tests once, for the simulator $1; the build log goes to .build/build-for-testing.log and its
+# timing summary to the output and the job summary.
+build_for_testing() {
+  local log=.build/build-for-testing.log timing
+  if ! xcodebuild build-for-testing "${BUILD_ARGS[@]}" -destination "id=$1" -showBuildTimingSummary CODE_SIGNING_ALLOWED=NO >"$log" 2>&1; then
+    tail -n 300 "$log"
+    return 1
+  fi
+  timing="$(sed -n '/^Build Timing Summary/,$p' "$log" | head -n 40)"
+  [ -z "$timing" ] || { echo "$timing"; summary "### iOS build timing" "" '```' "$timing" '```' ""; }
+}
+
+# Runs one locale's configuration of the test plan on simulator $2 without building, into its own result bundle.
+test_locale() {
+  local xctestrun
+  xctestrun="$(find .build/DerivedData/Build/Products -maxdepth 1 -name '*.xctestrun' | head -n 1)"
+  [ -n "$xctestrun" ] || { echo "no .xctestrun in .build/DerivedData/Build/Products"; return 1; }
+  xcodebuild test-without-building -xctestrun "$xctestrun" -destination "id=$2" -only-test-configuration "$1" \
+    -resultBundlePath ".build/TestResults-$1.xcresult" -quiet
+}
+
+# Runs nl on simulator $1 and en on simulator $2 at the same time, each with its output in a log, shown when it ends.
+test_locales_in_parallel() {
+  local status=0 nl_pid en_pid locale
+  test_locale nl "$1" >.build/test-nl.log 2>&1 &
+  nl_pid=$!
+  test_locale en "$2" >.build/test-en.log 2>&1 &
+  en_pid=$!
+  wait "$nl_pid" || status=1
+  wait "$en_pid" || status=1
+  for locale in $LOCALES; do
+    echo "::group::Tests in $locale"
+    cat ".build/test-$locale.log"
+    echo "::endgroup::"
+  done
+  return $status
+}
+
+test_locales_in_turn() {
+  local status=0 locale
+  for locale in $LOCALES; do
+    test_locale "$locale" "$1" || status=1
+  done
+  return $status
+}
+
+# What the report needs to know when the run ends: the simulators to shut down and delete.
+ios_cleanup() {
+  report_steps || true
+  stop_simulator || true
+  delete_extra_simulator
+}
 
 udid="$(ios_simulator)"
 [ -n "$udid" ] || die "no iPhone simulator${IOS_SIMULATOR:+ named $IOS_SIMULATOR} — run scripts/bootstrap.sh --mobile"
-on_exit 'stop_simulator || true'
-boot_simulator "$udid"
-echo "▶ Build without signing, unit and UI tests in nl and en (simulator $udid)"
-rm -rf .build/TestResults.xcresult
-xcodebuild test -project TrainerHub.xcodeproj -scheme TrainerHub -testPlan TrainerHub -destination "id=$udid" \
-  -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData \
-  -resultBundlePath .build/TestResults.xcresult -quiet CODE_SIGNING_ALLOWED=NO
+on_exit 'ios_cleanup'
+parallel=false
+[ "${IOS_PARALLEL:-${CI:+1}}" != 1 ] || parallel=true
+if $parallel; then create_extra_simulator || die "could not create a second simulator"; fi
+extra="$EXTRA_SIMULATOR"
+
+# The simulators boot while the app builds.
+mkdir -p .build
+rm -rf .build/TestResults*.xcresult
+start_boot "$udid"
+[ -z "$extra" ] || start_boot "$extra"
+step "Build for testing (simulator $udid)"
+build_for_testing "$udid"
+await_boots || die "a simulator did not boot"
+tests=0
+if $parallel; then
+  step "Unit and UI tests in nl and en at the same time (simulators $udid and $extra)"
+  test_locales_in_parallel "$udid" "$extra" || tests=1
+else
+  step "Unit and UI tests in nl and en (simulator $udid)"
+  test_locales_in_turn "$udid" || tests=1
+fi
+for locale in $LOCALES; do
+  rows="$(slowest_tests ".build/TestResults-$locale.xcresult" 10)"
+  [ -z "$rows" ] || {
+    echo "Slowest tests in $locale (seconds):"
+    echo "$rows" | sed 's/^| /  /; s/ | / /; s/ |$//'
+    summary "### Slowest iOS tests in $locale" "" "| Test | Seconds |" "|---|--:|" "$rows" ""
+  }
+done
+[ "$tests" = 0 ] || exit 1
 echo "✓ iOS"

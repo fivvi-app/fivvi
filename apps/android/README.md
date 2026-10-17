@@ -11,7 +11,7 @@ pnpm test:maestro               # the local stack + e2e/maestro flows on the emu
 scripts/android.sh emulator     # boot the emulator and leave it running for repeated runs
 ```
 
-The scripts give the emulator `EMULATOR_BOOT_TIMEOUT` seconds to boot (default 300). If it exits or doesn't boot in time, they fail with the end of `build/emulator.log` and the emulator's acceleration check.
+The scripts give the emulator `EMULATOR_BOOT_TIMEOUT` seconds to boot (default 300). If it exits or doesn't boot in time, they fail with the end of `build/emulator.log` and the emulator's acceleration check. Every boot is cold on your machine. On CI (`AVD_SNAPSHOT=1`) the first cold boot saves a snapshot of the booted emulator, the AVD with it is cached, and later runs load the snapshot in seconds; a snapshot that doesn't load within `SNAPSHOT_BOOT_TIMEOUT` seconds (default 90) is deleted and the emulator boots cold. `scripts/android.sh avd-key` prints what the cache is keyed by.
 
 To try the app against your local web server (`pnpm dev`, port 3000), run `./gradlew installDebug` from this folder with the emulator running. Commands are in `TESTING.md §7.1`.
 

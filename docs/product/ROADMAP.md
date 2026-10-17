@@ -236,8 +236,8 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 
 - [x] **Working name:** Trainer Hub.
 - [ ] **Domain:** decide and buy one before M5 (see §12), because email deliverability and deep links need it.
-- [x] GitHub repository is private.
-- [ ] Ruleset on `main` (GitHub Pro): apply `.github/rulesets/main.json`, the squash-only merge settings and the `spec-approved` and `owner-merge` labels with `scripts/github-settings.sh apply` (ADR-016). Then the orchestrator lists the open specs without `spec-approved` for the owner to approve.
+- [x] GitHub repository is public since 2026-10-16 (owner decision, §14 #7): Actions minutes are free, macOS included.
+- [ ] Ruleset on `main` (GitHub Pro): apply `.github/rulesets/main.json`, the squash-only merge settings and the `spec-approved`, `owner-merge` and `run-native` labels with `scripts/github-settings.sh apply` (ADR-016). Then the orchestrator lists the open specs without `spec-approved` for the owner to approve.
 - [x] Accounts: Railway Hobby (already paid; EU West Amsterdam, ADR-011) and Brevo (owner account created).
 - [x] Sentry account created by the owner on a personal account. Confirm that the Trainer Hub organization uses the EU data region and complete the DPA and privacy configuration in E009 before sending data.
 - [x] PostHog account created by the owner on a personal account. Confirm EU Cloud and configure cookieless, allowlisted events and privacy settings in E009 before sending data.
@@ -286,7 +286,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
     /ui           Web component kit
   ```
 - CI on every PR: lint, typecheck, tests, build, **i18n key parity**, **ICU syntax**, **no hard-coded strings** (web lint; SwiftLint/ktlint custom rules for native), and an **OpenAPI drift check** (the committed spec must match the code; generated clients must be up to date).
-- **CI minutes on the free plan:** Linux jobs (web, API, Android) run on every PR. iOS builds run only when `apps/ios`, its generated inputs (contract, iOS catalogs) or the job itself change (`WORKFLOW.md §7`), and agents also build locally with Xcode. macOS minutes count 10× against the free quota (§12).
+- **CI speed:** the repo is public, so Actions minutes are free, macOS included (§12). The web jobs run on every PR; the iOS and Android jobs run only when their app, generated inputs or scripts change, or on demand, never on a push to `main` (`WORKFLOW.md §7`). Agents also build locally with Xcode.
 - Environments (ADR-011): `local` (Docker Postgres), `preview` (a Railway PR environment per PR with its own migrated and seeded Postgres, removed on merge/close), `production` (Railway, EU West Amsterdam). A separate `staging` is only added if it's needed. The M1 spike checks the ADR-011 conditions (per-PR databases, backup/restore, cron, cost).
 - Native shells: an iOS app and an Android app that call a generated API client and show a translated screen, running on a simulator/emulator and on a real device.
 
@@ -681,7 +681,7 @@ flowchart TB
 | Product analytics | PostHog account created; confirm EU Cloud and configure cookieless mode in E009 | Event quota | Quota hit → paid |
 | Uptime | UptimeRobot / Better Stack free | Check interval | — |
 | Bot protection | Cloudflare Turnstile | Free | — |
-| Source + CI | GitHub public repo since 2026-10-16 (owner decision), so Actions minutes are free, macOS included | **macOS minutes count 10×** | Path-filtered iOS CI + local Xcode builds; if still short → make the repo public (unlimited free minutes) or pay for minutes |
+| Source + CI | GitHub public repo since 2026-10-16 (owner decision): standard runners, macOS included, are free | A run's wall time, not minutes: the native jobs are the slow ones | Path-filtered native CI, build caches and parallel locale runs (`WORKFLOW.md §7`); local Xcode builds |
 | iOS distribution | Existing Apple Developer Program company membership (owner-reported); verify access in E017 | Membership and team access must be active for TestFlight | **M8 (after G4):** use the existing company membership; renew if required |
 | Android distribution | Debug builds / APK to own devices; Play Console account unconfirmed | — | **M8 (after G4):** confirm access or enroll if needed |
 | Push notifications (1.2) | APNs + FCM | Free | — |
@@ -728,7 +728,7 @@ flowchart TB
 | 5 | Dutch copy review | **Local review** with a glossary and tone guide; an LLM may assist locally, without a GitHub review job |
 | 6 | Owner alpha on web at M4 | **Yes:** the owner runs the real timetable in parallel with Excel from Gate G2 |
 | 8 | Pilot order | **Web-first:** the pilot goes live on the web at G4; the native trainer apps (M8) follow and join the pilot (v1.15) |
-| 7 | Repository visibility | **Private**, with path-filtered iOS CI and local Xcode builds to stay within free CI minutes |
+| 7 | Repository visibility | **Public** since 2026-10-16 (was private): free Actions minutes, macOS included. The native CI jobs stay path-filtered to keep PR feedback fast (`WORKFLOW.md §7`) |
 
 ### Decided iteratively (at their entry gate, from evidence)
 

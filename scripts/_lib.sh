@@ -50,6 +50,12 @@ run_on_exit() {
   eval "$command"
 }
 
+# Appends the lines in $@ to the job summary on GitHub Actions; does nothing elsewhere.
+summary() {
+  [ -z "${GITHUB_STEP_SUMMARY:-}" ] || printf '%s\n' "$@" >>"$GITHUB_STEP_SUMMARY"
+  return 0
+}
+
 default_branch() {
   local ref
   ref="$(git -C "$MAIN_ROOT" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)" || ref="origin/main"
