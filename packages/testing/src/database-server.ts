@@ -1,7 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 
-// Internal helpers shared by `database.ts` (test files) and `database-setup.ts` (global setup).
+// Helpers shared by `database.ts` (test files), `database-setup.ts` (global setup) and the web
+// e2e server (apps/web/e2e/serve.ts), which creates its own database on the test server.
 
 declare module 'vitest' {
   export interface ProvidedContext {

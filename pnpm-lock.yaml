@@ -326,6 +326,9 @@ importers:
       '@trainer-hub/api':
         specifier: workspace:*
         version: link:../../packages/api
+      '@trainer-hub/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
       '@trainer-hub/database':
         specifier: workspace:*
         version: link:../../packages/database

@@ -1,4 +1,4 @@
-import { formattingLocales, messages } from '@trainer-hub/i18n';
+import { formattingLocales, type Messages, messages } from '@trainer-hub/i18n';
 import { localeCookie } from '../i18n/config';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 
@@ -83,3 +83,34 @@ test.describe('E008 AC3 home page language', () => {
     });
   });
 });
+
+// #94: the server component reads the greeting through the generated client from the API, which
+// reads it from the e2e server's own migrated database (e2e/serve.ts).
+test.describe('E018 hello greeting from the database', () => {
+  test('shows the greeting key that GET /api/v1/hello returns, in the browser language', async ({
+    page,
+    request,
+    appLocale,
+    messages: copy,
+  }) => {
+    const res = await request.get(`/api/v1/hello?locale=${appLocale}`);
+    expect(res.status()).toBe(200);
+    const { greetingKey } = (await res.json()) as { greetingKey: string };
+
+    await page.goto('/');
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: catalogText(copy, greetingKey) }),
+    ).toBeVisible();
+    await expect(page.getByText(copy.hello.error)).toHaveCount(0);
+  });
+});
+
+/** The catalog message at a dotted key, e.g. `hello.title`. */
+function catalogText(copy: Messages, key: string): string {
+  const text = key
+    .split('.')
+    .reduce<unknown>((node, segment) => (node as Record<string, unknown>)?.[segment], copy);
+  if (typeof text !== 'string') throw new Error(`${key} is not a message in the catalog.`);
+  return text;
+}

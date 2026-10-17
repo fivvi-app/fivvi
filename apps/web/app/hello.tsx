@@ -10,17 +10,27 @@ import {
 import { Input } from '@trainer-hub/ui/components/input';
 import { Label } from '@trainer-hub/ui/components/label';
 import { useTranslations } from 'next-intl';
+import type { Greeting } from '../server/greeting';
 
-/** The hello page. The form sends the first name back as `?name=`; an empty name greets nobody. */
-export function Hello({ firstName }: { firstName: string }) {
+/**
+ * The hello page. The heading is the greeting the API sent, as a catalog key, or the error when
+ * it couldn't be loaded. The form sends the first name back as `?name=`, which loads the
+ * greeting again; an empty name greets nobody.
+ */
+export function Hello({ greeting, firstName }: { greeting: Greeting; firstName: string }) {
   const t = useTranslations('hello');
+  const catalog = useTranslations();
   return (
     <main className="flex min-h-dvh items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="font-display">
-            <h1>{t('title')}</h1>
-          </CardTitle>
+          {greeting.status === 'loaded' ? (
+            <CardTitle className="font-display">
+              <h1>{catalog(greeting.key)}</h1>
+            </CardTitle>
+          ) : (
+            <p role="alert">{t('error')}</p>
+          )}
           <CardDescription>{t('description')}</CardDescription>
         </CardHeader>
         {firstName ? (
