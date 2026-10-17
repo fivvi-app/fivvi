@@ -70,8 +70,9 @@ jobs:
             changed="$(git ls-files)"
           fi
 
-          # Which native jobs run (scripts/native-jobs.sh): those whose paths changed. Pushes to main skip them;
-          # workflow_dispatch and the PR's run-native label (read on its pushes) force them.
+          # Which native jobs run (scripts/native-jobs.sh): those whose paths changed, on a push to main too, so main
+          # writes the caches every PR reads. workflow_dispatch and the PR's run-native label (read on its pushes)
+          # force them.
           args=(--event "$EVENT")
           if [[ "$RUN_NATIVE" == 'true' ]]; then args+=(--run-native); fi
           scripts/native-jobs.sh "${args[@]}" <<<"$changed" >>"$GITHUB_OUTPUT"
@@ -250,8 +251,8 @@ jobs:
     name: iOS
     needs: changes
     if: needs.changes.outputs.ios == 'true'
-    # Only starts when the app, its generated inputs or its own scripts changed in a PR, or on demand
-    # (scripts/native-jobs.sh), to keep PR feedback fast. The image and Xcode are pinned, so a runner update doesn't
+    # Only starts when the app, its generated inputs or its own scripts changed (in a PR or a push to main), or on
+    # demand (scripts/native-jobs.sh), to keep PR feedback fast. The image and Xcode are pinned, so a runner update doesn't
     # change the toolchain. One job, not a matrix per locale: the check keeps its name, and nl and en share one build
     # without an artifact upload and download (scripts/test-ios.sh runs them at the same time on two simulators on CI).
     runs-on: macos-26
@@ -272,8 +273,8 @@ jobs:
 
       # DerivedData, with the compiled Swift packages (sentry-cocoa takes minutes to build), and the packages
       # themselves. Keyed by Package.resolved, the Xcode version and the runner OS; a stale cache (the restore key)
-      # only costs build time and never changes a result. A PR can read its own caches and main's, which native jobs no
-      # longer fill (they skip pushes to main), so a PR's first run is cold and its later pushes warm.
+      # only costs build time and never changes a result. A PR can read its own caches and main's; main's are
+      # written by the pushes that change native paths, so a PR's first run is warm once main has run it.
       - name: Cache the iOS build
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -385,8 +386,9 @@ jobs:
       # The AVD with the snapshot of its booted state. Keyed by the system image, the emulator and the AVD settings
       # (a snapshot only loads on the same ones). Saved when the job passes on a miss, after the emulator has stopped.
       # A missing or broken snapshot is not an error: the boot below falls back to a cold boot. Bump v1 to drop every
-      # cached AVD. The caches of a PR are its own and main's (native jobs don't run on main), so a PR's first run
-      # boots cold.
+      # cached AVD, and do it when a snapshot that no longer loads was replaced by a cold boot: the cache action never
+      # overwrites an existing key, so the replacement isn't saved and every run would fall back to a cold boot. The
+      # caches of a PR are its own and main's (written by pushes to main that change native paths).
       - name: Cache the emulator
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -415,9 +417,7 @@ jobs:
       # mid-write.
       - name: Stop the emulator
         if: always()
-        run: |
-          adb emu kill || true
-          sleep 5
+        run: scripts/android.sh stop
 
       # Always, also after a cancel or timeout: without the emulator log a hung boot can't be diagnosed. Kept 7 days,
       # as artifact storage counts against the free quota.

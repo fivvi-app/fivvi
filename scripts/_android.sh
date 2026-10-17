@@ -110,6 +110,9 @@ device_ready() { [ "$(adb get-state 2>/dev/null)" = device ]; }
 EMULATOR_BOOT_TIMEOUT="${EMULATOR_BOOT_TIMEOUT:-300}"
 EMULATOR_LOG="${EMULATOR_LOG:-$ANDROID_DIR/build/emulator.log}"
 EMULATOR_PID=""
+# The pid of the emulator `android.sh emulator` started, for `android.sh stop` to wait on from another process.
+EMULATOR_PID_FILE="${EMULATOR_PID_FILE:-$EMULATOR_LOG.pid}"
+EMULATOR_STOP_TIMEOUT="${EMULATOR_STOP_TIMEOUT:-30}"
 
 # Snapshot boot (AVD_SNAPSHOT=1, set by CI; E002 #91). The first boot of an AVD is cold and saves a snapshot of the
 # booted device; CI caches the AVD with it, keyed by `android.sh avd-key`, so later runs load it in seconds. A snapshot
@@ -186,6 +189,7 @@ EMULATOR_FLAGS=(-no-window -no-audio -no-boot-anim -no-metrics -accel on -gpu sw
 launch_emulator() {
   emulator -avd "$AVD_NAME" "$@" "${EMULATOR_FLAGS[@]}" >"$EMULATOR_LOG" 2>&1 &
   EMULATOR_PID=$!
+  echo "$EMULATOR_PID" >"$EMULATOR_PID_FILE"
   EMULATOR_STARTED=true
 }
 
@@ -195,7 +199,7 @@ boot_from_snapshot() {
   echo "Starting emulator $AVD_NAME from its snapshot (log: $EMULATOR_LOG, timeout ${SNAPSHOT_BOOT_TIMEOUT}s)"
   launch_emulator -snapshot "$SNAPSHOT_NAME" -no-snapshot-save
   await_boot "$SNAPSHOT_BOOT_TIMEOUT" && return 0
-  echo "::warning::The emulator snapshot didn't load ($BOOT_ERROR); deleting it and booting cold"
+  echo "::warning::The emulator snapshot didn't load ($BOOT_ERROR); deleting it and booting cold. The cache keeps the old one under this key: bump avd-v1 in ci.yml to cache the new one"
   kill_emulator
   mv "$EMULATOR_LOG" "$EMULATOR_LOG.snapshot" 2>/dev/null || true
   rm -rf "$(avd_snapshot_dir)"
@@ -234,6 +238,29 @@ start_emulator() {
 # Kills the emulator this run started, unless KEEP_DEVICE=1.
 stop_emulator() {
   if [ "$EMULATOR_STARTED" = true ] && [ "${KEEP_DEVICE:-}" != 1 ]; then adb emu kill >/dev/null 2>&1 || true; fi
+}
+
+# True while the emulator that android.sh emulator started runs, or a device is still connected.
+emulator_running() {
+  local pid
+  if adb devices 2>/dev/null | grep -q '^emulator-'; then return 0; fi
+  pid="$(cat "$EMULATOR_PID_FILE" 2>/dev/null || true)"
+  [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+}
+
+# Stops the emulator and returns only once it has exited (fails after EMULATOR_STOP_TIMEOUT s), so that nothing is
+# still writing to the AVD when CI saves its cache. Works from another process than the one that booted it.
+stop_emulator_and_wait() {
+  local waited=0
+  if ! emulator_running; then echo "No emulator running"; return 0; fi
+  kill_emulator
+  adb emu kill >/dev/null 2>&1 || true
+  while emulator_running; do
+    [ "$waited" -lt "$EMULATOR_STOP_TIMEOUT" ] || die "the emulator didn't exit in ${EMULATOR_STOP_TIMEOUT}s (log: $EMULATOR_LOG)"
+    sleep 2; waited=$((waited + 2))
+  done
+  rm -f "$EMULATOR_PID_FILE"
+  echo "✓ Emulator stopped in ${waited}s"
 }
 
 # What a test run started: the emulator and the Gradle daemons.

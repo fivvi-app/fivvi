@@ -96,23 +96,28 @@ BUILD_ARGS=(-project TrainerHub.xcodeproj -scheme TrainerHub -testPlan TrainerHu
   -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData)
 
 # Builds the app and its tests once, for the simulator $1; the build log goes to .build/build-for-testing.log and its
-# timing summary to the output and the job summary.
+# timing summary to the output and the job summary. Build/Products is restored from CI's cache, so an .xctestrun left
+# by an earlier build (a renamed scheme or test plan) is deleted first: afterwards exactly this build's one remains.
+PRODUCTS=.build/DerivedData/Build/Products
+XCTESTRUN=""
 build_for_testing() {
-  local log=.build/build-for-testing.log timing
+  local log=.build/build-for-testing.log timing found
+  rm -f "$PRODUCTS"/*.xctestrun
   if ! xcodebuild build-for-testing "${BUILD_ARGS[@]}" -destination "id=$1" -showBuildTimingSummary CODE_SIGNING_ALLOWED=NO >"$log" 2>&1; then
     tail -n 300 "$log"
     return 1
   fi
+  found="$(find "$PRODUCTS" -maxdepth 1 -name '*.xctestrun')"
+  { [ -n "$found" ] && [ "$(wc -l <<<"$found")" -eq 1 ]; } \
+    || { echo "expected exactly one .xctestrun in $PRODUCTS after build-for-testing, found: $(tr '\n' ' ' <<<"${found:-none}")"; return 1; }
+  XCTESTRUN="$found"
   timing="$(sed -n '/^Build Timing Summary/,$p' "$log" | head -n 40)"
   [ -z "$timing" ] || { echo "$timing"; summary "### iOS build timing" "" '```' "$timing" '```' ""; }
 }
 
 # Runs one locale's configuration of the test plan on simulator $2 without building, into its own result bundle.
 test_locale() {
-  local xctestrun
-  xctestrun="$(find .build/DerivedData/Build/Products -maxdepth 1 -name '*.xctestrun' | head -n 1)"
-  [ -n "$xctestrun" ] || { echo "no .xctestrun in .build/DerivedData/Build/Products"; return 1; }
-  xcodebuild test-without-building -xctestrun "$xctestrun" -destination "id=$2" -only-test-configuration "$1" \
+  xcodebuild test-without-building -xctestrun "$XCTESTRUN" -destination "id=$2" -only-test-configuration "$1" \
     -resultBundlePath ".build/TestResults-$1.xcresult" -quiet
 }
 

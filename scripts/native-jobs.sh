@@ -5,7 +5,8 @@
 #   native-jobs.sh [--event <github event>] [--run-native]
 #       reads the changed paths on stdin and prints ios=true|false and android=true|false (the format of
 #       $GITHUB_OUTPUT), with the reason on stderr. A job runs when its project exists and a path it depends on
-#       changed. --event push (to main) runs neither: the PR ran them on the same up-to-date commit.
+#       changed, on a push to main too: main then writes the caches (Gradle, the AVD snapshot, DerivedData) that every PR
+#       reads. A push that touches no such path (docs, ci.yml, _lib.sh) runs neither.
 #       --event workflow_dispatch and --run-native (the PR's run-native label) run both, whatever changed.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
@@ -34,9 +35,7 @@ CHANGED="$(cat)"
 # decide <job> <project dir> <path regex>
 decide() {
   local run=false
-  if [ "$EVENT" = push ]; then
-    echo "$1: push to main, the PR ran it on this commit; skipping." >&2
-  elif [ ! -d "$ROOT/$2" ]; then
+  if [ ! -d "$ROOT/$2" ]; then
     echo "$1: $2 does not exist yet, skipping." >&2
   elif $FORCE; then
     run=true
