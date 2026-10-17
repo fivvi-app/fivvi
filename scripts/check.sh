@@ -80,15 +80,25 @@ turbo_checks() {
     && pnpm turbo run check ${contract:+"$contract"} --output-logs=errors-only
 }
 
-integration_tests() {
-  docker info >/dev/null 2>&1 || { echo "Docker is not running — start it (Postgres for integration tests)"; return 1; }
+# Local Postgres for the integration tests and the e2e servers' databases (apps/web/e2e/serve.ts).
+local_postgres() {
+  docker info >/dev/null 2>&1 || { echo "Docker is not running — start it (Postgres for integration and e2e tests)"; return 1; }
   [ -f packages/database/.env ] || cp packages/database/.env.example packages/database/.env
   pnpm db:up >/dev/null
-  TEST_DATABASE_URL="$(sed -n 's/^DATABASE_URL=//p' packages/database/.env)" \
-    pnpm turbo run test:integration --output-logs=errors-only
 }
 
-e2e_tests() { E2E_PORT="$(e2e_port "$ROOT")" pnpm turbo run test:e2e --output-logs=errors-only; }
+test_database_url() { sed -n 's/^DATABASE_URL=//p' packages/database/.env; }
+
+integration_tests() {
+  local_postgres || return 1
+  TEST_DATABASE_URL="$(test_database_url)" pnpm turbo run test:integration --output-logs=errors-only
+}
+
+e2e_tests() {
+  local_postgres || return 1
+  TEST_DATABASE_URL="$(test_database_url)" E2E_PORT="$(e2e_port "$ROOT")" \
+    pnpm turbo run test:e2e --output-logs=errors-only
+}
 
 api_prerequisites() {
   local missing=""

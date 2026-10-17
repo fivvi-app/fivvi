@@ -25,6 +25,7 @@ const nextConfig: NextConfig = {
   // Workspace packages ship TypeScript source.
   transpilePackages: [
     '@trainer-hub/api',
+    '@trainer-hub/contract',
     '@trainer-hub/database',
     '@trainer-hub/i18n',
     '@trainer-hub/observability',

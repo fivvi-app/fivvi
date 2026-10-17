@@ -10,11 +10,13 @@
     "lint": "biome check --formatter-enabled=false --error-on-warnings .",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "format:check": "biome format .",
     "test:e2e": "playwright test"
   },
   "dependencies": {
     "@trainer-hub/api": "workspace:*",
+    "@trainer-hub/contract": "workspace:*",
     "@trainer-hub/database": "workspace:*",
     "@trainer-hub/i18n": "workspace:*",
     "@trainer-hub/observability": "workspace:*",
