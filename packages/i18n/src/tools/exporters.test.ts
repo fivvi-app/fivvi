@@ -294,30 +294,37 @@ describe('E008 iOS InfoPlist String Catalog exporter', () => {
     return JSON.parse(renderInfoPlistXcstrings(analysisOf(nl, en, comments)));
   }
 
-  it('AC8: writes CFBundleDisplayName from app.name in nl and en, and nothing else', () => {
+  const appName = {
+    extractionState: 'manual',
+    localizations: {
+      en: { stringUnit: { state: 'translated', value: 'Sports app' } },
+      nl: { stringUnit: { state: 'translated', value: 'Sportapp' } },
+    },
+  };
+
+  // Xcode's string catalog sync (an Xcode build, `xcodebuild -exportLocalizations`) adds every localizable key of the
+  // app's Info.plist that the catalog lacks, as an `extracted_with_value` entry with only the source language: a
+  // tracked file changes on every build. A `manual` entry with both languages is one Xcode leaves alone.
+  it('AC8, #95: writes CFBundleDisplayName and CFBundleName from app.name in nl and en, and nothing else', () => {
     const catalog = infoPlist();
     expect(catalog.sourceLanguage).toBe('nl');
     expect(catalog.version).toBe('1.0');
-    expect(catalog.strings).toEqual({
-      CFBundleDisplayName: {
-        extractionState: 'manual',
-        localizations: {
-          en: { stringUnit: { state: 'translated', value: 'Sports app' } },
-          nl: { stringUnit: { state: 'translated', value: 'Sportapp' } },
-        },
-      },
-    });
+    expect(catalog.strings).toEqual({ CFBundleDisplayName: appName, CFBundleName: appName });
   });
 
-  it("uses Xcode's JSON layout", () => {
+  it("#95: uses Xcode's JSON layout, keys sorted as Xcode writes them", () => {
     const text = renderInfoPlistXcstrings(analysisOf(nl, en));
     expect(text).toMatch(/^\{\n {2}"sourceLanguage" : "nl",\n {2}"strings" : \{\n/);
+    expect(text).toMatch(
+      /\n {4}"CFBundleDisplayName" : \{\n[\s\S]*\n {4}\},\n {4}"CFBundleName" : \{\n/,
+    );
     expect(text.endsWith('\n  "version" : "1.0"\n}\n')).toBe(true);
   });
 
   it("passes app.name's translator comment on", () => {
     const catalog = infoPlist({ 'app.name': 'Name under the app icon' });
     expect(catalog.strings.CFBundleDisplayName?.comment).toBe('Name under the app icon');
+    expect(catalog.strings.CFBundleName?.comment).toBe('Name under the app icon');
   });
 
   it('is written as generated/ios/InfoPlist.xcstrings next to the other native catalogs', () => {
@@ -338,7 +345,7 @@ describe('E008 iOS InfoPlist String Catalog exporter', () => {
       renderNativeCatalogs(analysisOf({ 'hello.title': 'Welkom' }, { 'hello.title': 'Welcome' })),
     ).toThrow(
       new CatalogError([
-        '"app.name" is missing: it is the native app name (iOS CFBundleDisplayName, Android app label)',
+        '"app.name" is missing: it is the native app name (iOS CFBundleDisplayName and CFBundleName, Android app label)',
       ]),
     );
   });

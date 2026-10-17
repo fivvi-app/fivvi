@@ -2,8 +2,9 @@
 # The iOS app's checks, the same steps as the `iOS` CI job (E008). `pnpm test:ios` runs this.
 #
 #   test-ios.sh   SwiftLint and its fixtures (literal text, colours, direct Sentry calls), the Debug and Release
-#                 configurations (Release's Sentry DSN in the EU region), the Swift package allowlist, then the unit
-#                 and UI tests in nl and en on the newest iPhone simulator, in a worktree its own copy
+#                 configurations (Release's Sentry DSN in the EU region, Info.plists in Xcode's form), the Swift
+#                 package allowlist, that Xcode's string catalog sync leaves the generated catalogs unchanged, then the
+#                 unit and UI tests in nl and en on the newest iPhone simulator, in a worktree its own copy
 #                 (IOS_SIMULATOR="iPhone 17" picks one by name); shuts down the simulator it booted when it ends,
 #                 unless KEEP_DEVICE=1
 set -euo pipefail
@@ -76,6 +77,39 @@ swift_packages() {
   [ -z "$unexpected" ] || { echo "Swift packages not on the allowlist in scripts/test-ios.sh: $unexpected"; return 1; }
 }
 
+# Xcode rewrites a property list in its own form, keys sorted (plutil's), when it touches one; commit them that way
+# (#95).
+plists_in_xcode_form() {
+  local plist rc=0
+  for plist in Config/*.plist; do
+    plutil -convert xml1 -o - "$plist" | cmp -s - "$plist" \
+      || { echo "$plist is not in Xcode's form; run: plutil -convert xml1 apps/ios/$plist"; rc=1; }
+  done
+  return "$rc"
+}
+
+# Xcode's string catalog sync, which every Xcode build and -exportLocalizations run, adds the strings a catalog lacks
+# (Info.plist keys such as CFBundleName) and rewrites it. The generated catalogs must already have them, or a build
+# changes tracked files (#95). A catalog the sync changed is restored.
+catalog_sync() {
+  local catalogs=("$ROOT"/packages/i18n/generated/ios/*.xcstrings) before=.build/catalogs-before catalog saved rc=0
+  rm -rf "$before"
+  mkdir -p "$before"
+  cp "${catalogs[@]}" "$before/"
+  xcodebuild -exportLocalizations -project TrainerHub.xcodeproj -scheme TrainerHub \
+    -localizationPath .build/Localizations -exportLanguage nl -exportLanguage en \
+    -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData -quiet
+  for catalog in "${catalogs[@]}"; do
+    saved="$before/$(basename "$catalog")"
+    cmp -s "$saved" "$catalog" && continue
+    echo "Xcode's catalog sync changes ${catalog#"$ROOT"/}: generate what it adds (packages/i18n/src/tools/xcstrings.ts)"
+    diff -u "$saved" "$catalog" || true
+    cp "$saved" "$catalog"
+    rc=1
+  done
+  return "$rc"
+}
+
 echo "▶ SwiftLint"
 "$SWIFTLINT" lint --strict --quiet
 echo "▶ SwiftLint rejects literal text, colours and direct Sentry calls (lint/fixtures)"
@@ -85,8 +119,11 @@ lint_fixture lint/fixtures/DirectSentry.swift no_direct_sentry
 echo "▶ Debug and Release configurations"
 debug_configuration
 release_configuration
+plists_in_xcode_form
 echo "▶ Swift packages (no analytics SDK)"
 swift_packages
+echo "▶ Xcode's string catalog sync leaves the generated catalogs unchanged"
+catalog_sync
 
 udid="$(ios_simulator)"
 [ -n "$udid" ] || die "no iPhone simulator${IOS_SIMULATOR:+ named $IOS_SIMULATOR} — run scripts/bootstrap.sh --mobile"
