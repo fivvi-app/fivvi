@@ -27,12 +27,14 @@ export function isNativeKey(key: string): boolean {
 export function renderNativeCatalogs(fullAnalysis: Analysis): Map<string, string> {
   const problems = [...fullAnalysis.parity, ...fullAnalysis.icu];
   if (problems.length > 0) throw new CatalogError(problems);
-  const missing = Object.values(infoPlistKeys).filter((key) => !fullAnalysis.keys.includes(key));
+  const missing = [...new Set(Object.values(infoPlistKeys))].filter(
+    (key) => !fullAnalysis.keys.includes(key),
+  );
   if (missing.length > 0) {
     throw new CatalogError(
       missing.map(
         (key) =>
-          `"${key}" is missing: it is the native app name (iOS CFBundleDisplayName, Android app label)`,
+          `"${key}" is missing: it is the native app name (iOS CFBundleDisplayName and CFBundleName, Android app label)`,
       ),
     );
   }

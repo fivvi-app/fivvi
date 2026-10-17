@@ -2,7 +2,25 @@
   "sourceLanguage" : "nl",
   "strings" : {
     "CFBundleDisplayName" : {
-      "comment" : "Name of the native app under its home-screen icon (iOS CFBundleDisplayName, Android app label). The product name, the same in both languages.",
+      "comment" : "Name of the native app under its home-screen icon (iOS CFBundleDisplayName and CFBundleName, Android app label). The product name, the same in both languages.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer Hub"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer Hub"
+          }
+        }
+      }
+    },
+    "CFBundleName" : {
+      "comment" : "Name of the native app under its home-screen icon (iOS CFBundleDisplayName and CFBundleName, Android app label). The product name, the same in both languages.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

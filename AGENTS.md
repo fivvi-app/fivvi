@@ -26,7 +26,7 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 | `GLOSSARY.md`, `docs/decisions/` | Domain language; ADRs |
 | `CODING_STANDARDS.md`, `.github/instructions/` | How code is written and reviewed; rules per area |
 | `.agents/skills/` | `work` (the router) plus [Matt Pocock's skills](https://github.com/mattpocock/skills), pinned in `.agents/skills.yaml` |
-| `scripts/` | `bootstrap.sh`, `flow.sh`, `issue.sh`, `wt.sh`, `pr.sh`, `risk.sh`, `check.sh`, `skills.sh`, `github-settings.sh`, `test-ios.sh`, `android.sh`, `maestro.sh` |
+| `scripts/` | `bootstrap.sh`, `flow.sh`, `issue.sh`, `wt.sh`, `pr.sh`, `risk.sh`, `check.sh`, `skills.sh`, `github-settings.sh`, `test-ios.sh`, `ios-device.sh`, `android.sh`, `maestro.sh` |
 | `.worktrees/<branch>/` | Git worktrees: all work happens here |
 
 ## Rules
