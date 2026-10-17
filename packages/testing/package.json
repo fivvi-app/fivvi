@@ -6,6 +6,7 @@
   "exports": {
     "./clock": "./src/clock.ts",
     "./database": "./src/database.ts",
+    "./database/server": "./src/database-server.ts",
     "./database/setup": "./src/database-setup.ts",
     "./vitest": "./src/vitest.ts"
   },
