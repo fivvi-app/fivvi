@@ -154,7 +154,7 @@ describe('E005 i18n checks', () => {
       await writeEn({ hello: { title: 'Welcome' } });
       const [generated] = await runChecks(root, ['generated']);
       expect(generated?.problems).toEqual([
-        '"app.name" is missing: it is the native app name (iOS CFBundleDisplayName, Android app label)',
+        '"app.name" is missing: it is the native app name (iOS CFBundleDisplayName and CFBundleName, Android app label)',
       ]);
     });
 
@@ -251,10 +251,21 @@ describe('E008 hello-screen strings in the committed native catalogs', () => {
     }
   });
 
-  it('AC8: InfoPlist.xcstrings gives CFBundleDisplayName the app.name of each language', async () => {
-    const { localizations } = JSON.parse(await read('generated/ios/InfoPlist.xcstrings')).strings
-      .CFBundleDisplayName;
-    expect(localizations.nl.stringUnit.value).toBe(await source('nl-NL', 'app.name'));
-    expect(localizations.en.stringUnit.value).toBe(await source('en', 'app.name'));
-  });
+  it.each(['CFBundleDisplayName', 'CFBundleName'])(
+    'AC8, #95: InfoPlist.xcstrings gives %s the app.name of each language',
+    async (infoPlistKey) => {
+      const { extractionState, localizations } = JSON.parse(
+        await read('generated/ios/InfoPlist.xcstrings'),
+      ).strings[infoPlistKey];
+      expect(extractionState).toBe('manual');
+      expect(localizations.nl.stringUnit).toEqual({
+        state: 'translated',
+        value: await source('nl-NL', 'app.name'),
+      });
+      expect(localizations.en.stringUnit).toEqual({
+        state: 'translated',
+        value: await source('en', 'app.name'),
+      });
+    },
+  );
 });

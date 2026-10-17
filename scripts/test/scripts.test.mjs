@@ -514,6 +514,7 @@ esac`;
       'apps/ios/TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
       'packages/i18n/nl-NL.json',
       'packages/i18n/en.json',
+      'packages/i18n/generated/ios',
     ]) {
       cpSync(join(SCRIPTS, '..', path), join(repo, path), { recursive: true });
     }
@@ -555,18 +556,31 @@ case "$*" in *connectedDebugAndroidTest*) ${outcome} ;; esac`,
     ]);
 
     script(join(bin, 'xcrun'), fakeSimctl(state));
-    // Like the real one, `xcodebuild test` boots its destination simulator when it isn't booted.
+    // Like the real one, `xcodebuild test` boots its destination simulator when it isn't booted. FAKE_CATALOG_SYNC=add:
+    // `-exportLocalizations` adds an entry to InfoPlist.xcstrings and drops its final newline, as Xcode's sync does;
+    // FAKE_EXPORT=fail: it then fails; FAKE_EXPORT=hang: it then runs until interrupted.
     script(
       join(bin, 'xcodebuild'),
       `echo "$*" >>"${state}/xcodebuild.log"
 case "$*" in
+  -exportLocalizations*) [ "$FAKE_CATALOG_SYNC" != add ] || {
+      catalog="${repo}/packages/i18n/generated/ios/InfoPlist.xcstrings"
+      printf '%s' "$(sed 's/"strings" : {/"strings" : { "CFBundleName" : {},/' "$catalog")" >"$catalog"; }
+    [ "$FAKE_EXPORT" != hang ] || exec perl -e 'open my $f, ">", shift; close $f; sleep 30' "${state}/running"
+    [ "$FAKE_EXPORT" != fail ] || exit 70 ;;
   *-showBuildSettings*) printf '    TRAINER_HUB_API_BASE_URL = https://example.test/api\\n    INFOPLIST_FILE = Info.plist\\n    TRAINER_HUB_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    TRAINER_HUB_SENTRY_ENVIRONMENT = production\\n' ;;
   test\\ *) for arg; do case "$arg" in id=*) xcrun simctl bootstatus "\${arg#id=}" -b ;; esac; done
     ${outcome} ;;
 esac
 exit 0`,
     );
-    script(join(bin, 'plutil'), 'exit 1');
+    // The committed Info.plists are in plutil's (Xcode's) form, unless FAKE_PLIST_FORM=other; no ATS exception for
+    // Release.
+    script(
+      join(bin, 'plutil'),
+      `[ "$1" = -convert ] || exit 1
+if [ "$FAKE_PLIST_FORM" = other ]; then sed 1d "\${@: -1}"; else cat "\${@: -1}"; fi`,
+    );
     script(join(bin, 'java'), 'echo "openjdk version \\"21\\"" >&2');
     for (const tool of ['sleep', 'docker', 'pnpm']) script(join(bin, tool), 'exit 0');
     // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_HELLO=fail: GET /api/v1/hello fails.
@@ -749,6 +763,75 @@ esac`,
     );
   });
 
+  it("#95: pnpm test:ios fails when Xcode's catalog sync would change a generated catalog, and restores it", async () => {
+    const fake = checkout();
+    const catalog = join(fake.repo, 'packages/i18n/generated/ios/InfoPlist.xcstrings');
+    const committed = readFileSync(catalog, 'utf8');
+
+    const run = await fake.run('scripts/test-ios.sh', [], { FAKE_CATALOG_SYNC: 'add' });
+
+    assert.equal(run.status, 1, run.output);
+    assert.match(run.output, /packages\/i18n\/generated\/ios\/InfoPlist\.xcstrings/);
+    assert.match(run.output, /CFBundleName/);
+    assert.equal(readFileSync(catalog, 'utf8'), committed);
+    assert.ok(!fake.log('xcodebuild').some((line) => line.startsWith('test ')), 'no tests run');
+  });
+
+  it("#95: pnpm test:ios fails when a Config Info.plist is not in Xcode's form", async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/test-ios.sh', [], { FAKE_PLIST_FORM: 'other' });
+
+    assert.equal(run.status, 1, run.output);
+    assert.match(run.output, /Config\/Info-Debug\.plist is not in Xcode's form/);
+    assert.match(run.output, /Config\/Info\.plist is not in Xcode's form/);
+    assert.ok(!fake.log('xcodebuild').some((line) => line.startsWith('test ')), 'no tests run');
+  });
+
+  it("#95: pnpm test:ios restores the catalogs when Xcode's sync changes them and then fails", async () => {
+    const fake = checkout();
+    const catalog = join(fake.repo, 'packages/i18n/generated/ios/InfoPlist.xcstrings');
+    const committed = readFileSync(catalog, 'utf8');
+
+    const run = await fake.run('scripts/test-ios.sh', [], {
+      FAKE_CATALOG_SYNC: 'add',
+      FAKE_EXPORT: 'fail',
+    });
+
+    assert.equal(run.status, 1, run.output);
+    assert.equal(readFileSync(catalog, 'utf8'), committed);
+  });
+
+  it("#95: pnpm test:ios restores the catalogs when it is interrupted (Ctrl-C) during Xcode's sync", async () => {
+    const fake = checkout();
+    const catalog = join(fake.repo, 'packages/i18n/generated/ios/InfoPlist.xcstrings');
+    const committed = readFileSync(catalog, 'utf8');
+
+    const run = await fake.run(
+      'scripts/test-ios.sh',
+      [],
+      { FAKE_CATALOG_SYNC: 'add', FAKE_EXPORT: 'hang' },
+      { interrupt: true },
+    );
+
+    assert.equal(run.status, 130, run.output);
+    assert.equal(readFileSync(catalog, 'utf8'), committed);
+  });
+
+  it('#95: pnpm test:ios lets Xcode sync the catalogs before the tests and passes when nothing changes', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/test-ios.sh', []);
+
+    assert.equal(run.status, 0, run.output);
+    const calls = fake.log('xcodebuild');
+    const sync = calls.findIndex((line) => line.startsWith('-exportLocalizations '));
+    assert.ok(
+      sync >= 0 && sync < calls.findIndex((line) => line.startsWith('test ')),
+      calls.join('\n'),
+    );
+  });
+
   it('AC3: IOS_SIMULATOR overrides the worktree simulator', async () => {
     const fake = checkout();
     const worktree = fake.worktree('feature/9-own-simulator');
@@ -920,6 +1003,295 @@ esac`,
       ownLanguage > calls.findLastIndex(isFlow) && restored > ownLanguage,
       `the setting the device had (none) is back, after its language's framework restart:\n${calls.join('\n')}`,
     );
+  });
+});
+
+// ios-device.sh in a copy of the repo with a fake Xcode: `devicectl list devices` reports <state>/devices.json,
+// `xcodebuild build` writes the app with an Info.plist, and every call is logged. FAKE_LOCKED=install|launch makes that
+// devicectl step fail the way it does on a locked iPhone.
+describe('E008 #95 ios-device.sh runs the Debug app on a real iPhone', () => {
+  const dirs = [];
+  after(() => {
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+  });
+
+  // devicectl's layout; `legacy` is the one an older Xcode writes, whose fields newer ones deprecate.
+  const device = (
+    udid,
+    name,
+    { reality = 'physical', type = 'iPhone', paired = true, legacy = false } = {},
+  ) => {
+    const hardware = { udid, reality, deviceType: type, platform: 'iOS' };
+    const connection = { pairingState: paired ? 'paired' : 'unpaired' };
+    return legacy
+      ? {
+          identifier: `CORE-${udid}`,
+          deviceProperties: { name },
+          hardwareProperties: hardware,
+          connectionProperties: connection,
+        }
+      : { identifier: `CORE-${udid}`, properties: { hardware, connection, state: { name } } };
+  };
+  const phone = device('PHONE-1', 'Test iPhone');
+  const others = [
+    device('SIM-1', 'iPhone 18 Pro', { reality: 'simulated' }),
+    device('IPAD-1', 'Test iPad', { type: 'iPad' }),
+    device('PHONE-9', 'Unpaired iPhone', { paired: false }),
+  ];
+  const localXcconfig =
+    'DEVELOPMENT_TEAM = TEAM000001\nTRAINER_HUB_API_BASE_URL = http:/$()/mac.local:3000/api\n';
+
+  const checkout = ({ devices = [phone, ...others], local = localXcconfig } = {}) => {
+    const base = realpathSync(mkdtempSync(join(tmpdir(), 'ios-device-')));
+    dirs.push(base);
+    const repo = join(base, 'repo');
+    const state = join(base, 'state');
+    const bin = join(base, 'bin');
+    mkdirSync(state);
+    writeFileSync(join(state, 'devices.json'), JSON.stringify({ result: { devices } }));
+
+    execFileSync('git', ['init', '--quiet', '--initial-branch=main', repo]);
+    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+    for (const path of [
+      'apps/ios/.gitignore',
+      'apps/ios/Config/Debug.xcconfig',
+      'apps/ios/Config/Info-Debug.plist',
+      'packages/i18n/generated/ios',
+    ]) {
+      cpSync(join(SCRIPTS, '..', path), join(repo, path), { recursive: true });
+    }
+    execFileSync('git', ['-C', repo, 'add', '.']);
+    execFileSync('git', [
+      '-C',
+      repo,
+      '-c',
+      'user.name=Test',
+      '-c',
+      'user.email=test@example.com',
+      'commit',
+      '--quiet',
+      '-m',
+      'chore: init',
+    ]);
+    if (local !== null) writeFileSync(join(repo, 'apps/ios/Config/Local.xcconfig'), local);
+
+    const locked = (step) =>
+      `[ "$FAKE_LOCKED" != ${step} ] || { echo "ERROR: The device was not, or could not be, unlocked. (com.apple.dt.CoreDeviceError error 4000.)" >&2; exit 1; }`;
+    script(
+      join(bin, 'xcrun'),
+      `echo "$*" >>"${state}/xcrun.log"
+case "$1 $2" in
+  "devicectl list") [ "$FAKE_LIST" != fail ] || { echo "ERROR: CoreDevice service unavailable" >&2; exit 1; }
+    cat "${state}/devices.json" ;;
+  "devicectl device") case "$3" in install) ${locked('install')} ;; process) ${locked('launch')} ;; esac ;;
+esac
+exit 0`,
+    );
+    script(
+      join(bin, 'xcodebuild'),
+      `echo "$*" >>"${state}/xcodebuild.log"
+data=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -derivedDataPath) data="$2"; shift ;;
+    build) app="$data/Build/Products/Debug-iphoneos/TrainerHub.app"; mkdir -p "$app"
+      echo '<plist><dict><key>CFBundleIdentifier</key><string>test.trainerhub.app</string></dict></plist>' >"$app/Info.plist" ;;
+  esac
+  shift
+done
+exit 0`,
+    );
+    script(
+      join(bin, 'plutil'),
+      `[ "$1" = -extract ] || exit 1
+sed -nE "s#.*<key>$2</key><string>([^<]*)</string>.*#\\1#p" "\${@: -1}"`,
+    );
+
+    const run = (args = [], extraEnv = {}) => {
+      const result = spawnSync(join(repo, 'scripts/ios-device.sh'), args, {
+        cwd: repo,
+        encoding: 'utf8',
+        env: { PATH: `${bin}:${process.env.PATH}`, HOME: base, ...extraEnv },
+      });
+      return { status: result.status, output: result.stdout + result.stderr };
+    };
+    const log = (name) =>
+      existsSync(join(state, `${name}.log`))
+        ? readFileSync(join(state, `${name}.log`), 'utf8')
+            .split('\n')
+            .filter(Boolean)
+        : [];
+    const builds = () => log('xcodebuild').filter((line) => / build$/.test(line));
+    const devicectl = () =>
+      log('xcrun')
+        .filter((line) => line.startsWith('devicectl device '))
+        .map((line) => line.replace(`${repo}/`, ''));
+    const status = () =>
+      execFileSync('git', ['-C', repo, 'status', '--porcelain'], { encoding: 'utf8' });
+    const localFile = () => readFileSync(join(repo, 'apps/ios/Config/Local.xcconfig'), 'utf8');
+    return { run, builds, devicectl, status, localFile };
+  };
+
+  const app = 'apps/ios/.build/DerivedData/Build/Products/Debug-iphoneos/TrainerHub.app';
+
+  it('AC1: builds the Debug app for the paired iPhone, signed through Local.xcconfig, then installs and launches it', () => {
+    const fake = checkout();
+
+    const run = fake.run();
+
+    assert.equal(run.status, 0, run.output);
+    const [build, ...more] = fake.builds();
+    assert.deepEqual(more, [], 'one build');
+    assert.match(build, / -configuration Debug /);
+    assert.match(build, / -destination id=PHONE-1 /);
+    assert.match(build, / -allowProvisioningUpdates /);
+    assert.doesNotMatch(
+      build,
+      /CODE_SIGN|DEVELOPMENT_TEAM|TRAINER_HUB_API_BASE_URL/,
+      'all from Local.xcconfig',
+    );
+    assert.deepEqual(fake.devicectl(), [
+      `devicectl device install app --device PHONE-1 ${app}`,
+      'devicectl device process launch --device PHONE-1 --terminate-existing test.trainerhub.app',
+    ]);
+    assert.match(run.output, /Test iPhone/);
+    assert.match(run.output, /http:\/\/mac\.local:3000\/api/);
+  });
+
+  // What Xcode itself may write on a build (the catalog sync) is pnpm test:ios's catalog_sync check.
+  it("AC1: the script's own steps write no tracked file and leave Local.xcconfig alone", () => {
+    const fake = checkout();
+
+    const run = fake.run(['nl']);
+
+    assert.equal(run.status, 0, run.output);
+    assert.equal(fake.status(), '');
+    assert.equal(fake.localFile(), localXcconfig);
+  });
+
+  for (const language of ['nl', 'en']) {
+    it(`AC1: launches the app with the device language ${language} (-AppleLanguages)`, () => {
+      const fake = checkout();
+
+      const run = fake.run([language]);
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(
+        fake.devicectl().at(-1),
+        `devicectl device process launch --device PHONE-1 --terminate-existing test.trainerhub.app -- -AppleLanguages (${language})`,
+      );
+    });
+  }
+
+  it('AC1: IOS_DEVICE picks one of several paired iPhones; without it the script names them', () => {
+    const second = device('PHONE-2', 'Second iPhone');
+    const fake = checkout({ devices: [phone, second, ...others] });
+
+    const unpicked = fake.run();
+    const picked = fake.run([], { IOS_DEVICE: 'PHONE-2' });
+
+    assert.equal(unpicked.status, 1);
+    assert.match(unpicked.output, /IOS_DEVICE=/);
+    assert.match(unpicked.output, /PHONE-1 Test iPhone/);
+    assert.match(unpicked.output, /PHONE-2 Second iPhone/);
+    assert.equal(picked.status, 0, picked.output);
+    assert.equal(fake.builds().length, 1, 'only the picked run builds');
+    assert.match(fake.builds()[0], / -destination id=PHONE-2 /);
+  });
+
+  it("AC1: finds the iPhone in an older Xcode's devicectl layout too", () => {
+    const fake = checkout({
+      devices: [device('PHONE-3', 'Old iPhone', { legacy: true }), ...others],
+    });
+
+    const run = fake.run();
+
+    assert.equal(run.status, 0, run.output);
+    assert.match(fake.builds()[0], / -destination id=PHONE-3 /);
+    assert.match(run.output, /Old iPhone/);
+  });
+
+  it('AC1: fails when IOS_DEVICE is not a paired iPhone', () => {
+    const fake = checkout();
+
+    const run = fake.run([], { IOS_DEVICE: 'PHONE-9' });
+
+    assert.equal(run.status, 1);
+    assert.match(run.output, /IOS_DEVICE=PHONE-9 is not a paired iPhone/);
+    assert.deepEqual(fake.builds(), []);
+  });
+
+  it('AC1: without a paired iPhone it explains how to connect one, and builds nothing', () => {
+    const fake = checkout({ devices: others });
+
+    const run = fake.run();
+
+    assert.equal(run.status, 1);
+    assert.match(run.output, /no paired iPhone/);
+    assert.match(run.output, /cable/);
+    assert.match(run.output, /Developer Mode/);
+    assert.deepEqual(fake.builds(), []);
+  });
+
+  it('says so when devicectl itself fails to list the devices, and builds nothing', () => {
+    const fake = checkout();
+
+    const run = fake.run([], { FAKE_LIST: 'fail' });
+
+    assert.equal(run.status, 1);
+    assert.match(run.output, /CoreDevice service unavailable/);
+    assert.match(run.output, /devicectl list devices failed/);
+    assert.deepEqual(fake.builds(), []);
+  });
+
+  for (const [name, local] of [
+    ['no Local.xcconfig', null],
+    [
+      'no DEVELOPMENT_TEAM in Local.xcconfig',
+      'TRAINER_HUB_API_BASE_URL = http:/$()/mac.local:3000/api\n',
+    ],
+  ]) {
+    it(`AC1: with ${name} it explains that a signing team is missing, and builds nothing`, () => {
+      const fake = checkout({ local });
+
+      const run = fake.run();
+
+      assert.equal(run.status, 1);
+      assert.match(run.output, /DEVELOPMENT_TEAM/);
+      assert.match(run.output, /apps\/ios\/Config\/Local\.xcconfig/);
+      assert.deepEqual(fake.builds(), []);
+      assert.deepEqual(fake.devicectl(), []);
+    });
+  }
+
+  it("AC1: warns when Local.xcconfig has no API base URL, since the phone's localhost is the phone", () => {
+    const fake = checkout({ local: 'DEVELOPMENT_TEAM = TEAM000001\n' });
+
+    const run = fake.run();
+
+    assert.equal(run.status, 0, run.output);
+    assert.match(run.output, /TRAINER_HUB_API_BASE_URL/);
+    assert.match(run.output, /localhost/);
+  });
+
+  for (const step of ['install', 'launch']) {
+    it(`AC1: says to unlock the iPhone when it is locked at ${step}`, () => {
+      const fake = checkout();
+
+      const run = fake.run([], { FAKE_LOCKED: step });
+
+      assert.equal(run.status, 1);
+      assert.match(run.output, /could not be, unlocked/);
+      assert.match(run.output, /unlock Test iPhone and run scripts\/ios-device\.sh again/);
+    });
+  }
+
+  it('prints its usage for an unknown argument', () => {
+    const run = checkout().run(['de']);
+
+    assert.equal(run.status, 1);
+    assert.match(run.output, /ios-device\.sh \[nl\|en\]/);
+    assert.doesNotMatch(run.output, /set -euo|source /);
   });
 });
 

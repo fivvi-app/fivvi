@@ -27,7 +27,7 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 | `CODING_STANDARDS.md`, `.github/instructions/` | How code is written and reviewed; rules per area |
 | `.agents/skills/` | `work` (the router) plus [Matt Pocock's skills](https://github.com/mattpocock/skills), pinned in `.agents/skills.yaml` |
 | `.agents/agents/`, `.codex/` | The `builder`, `reviewer` and `mechanic` agents and the model of each tier per tool (`tiers.json`); `scripts/agents.sh` generates `.claude/agents/`, `.github/agents/` and `.codex/agents/` from them. Codex project config |
-| `scripts/` | `bootstrap.sh`, `flow.sh`, `issue.sh`, `wt.sh`, `pr.sh`, `risk.sh`, `check.sh`, `skills.sh`, `agents.sh`, `codex-agent.sh`, `github-settings.sh`, `test-ios.sh`, `android.sh`, `maestro.sh` |
+| `scripts/` | `bootstrap.sh`, `flow.sh`, `issue.sh`, `wt.sh`, `pr.sh`, `risk.sh`, `check.sh`, `skills.sh`, `agents.sh`, `codex-agent.sh`, `github-settings.sh`, `test-ios.sh`, `ios-device.sh`, `android.sh`, `maestro.sh` |
 | `.worktrees/<branch>/` | Git worktrees: all work happens here |
 
 ## Rules

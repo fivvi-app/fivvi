@@ -18,8 +18,13 @@ export function renderXcstrings(analysis: Analysis): string {
   return renderCatalog(analysis, new Map(analysis.keys.map((key) => [key, key])));
 }
 
-/** Info.plist keys localized by `InfoPlist.xcstrings`, and the catalog key each comes from. */
-export const infoPlistKeys = { CFBundleDisplayName: 'app.name' } as const;
+/**
+ * Info.plist keys localized by `InfoPlist.xcstrings`, and the catalog key each comes from.
+ * Xcode's string catalog sync adds every localizable key of the app's Info.plist that the
+ * catalog lacks (`CFBundleName` from `PRODUCT_NAME`), so each one is here: then a build leaves
+ * the generated file unchanged (`pnpm test:ios` checks this).
+ */
+export const infoPlistKeys = { CFBundleDisplayName: 'app.name', CFBundleName: 'app.name' } as const;
 
 /**
  * Renders the iOS `InfoPlist.xcstrings`: the localized Info.plist values, so the name under

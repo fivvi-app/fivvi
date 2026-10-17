@@ -7,6 +7,7 @@ scripts/bootstrap.sh --mobile   # once: checks Xcode and an iPhone simulator, in
 pnpm dev                        # the API, for running the app in the simulator
 open apps/ios/TrainerHub.xcodeproj
 pnpm test:ios                   # what the iOS CI job runs
+scripts/ios-device.sh nl        # the Debug app on your iPhone, in Dutch (A real iPhone, below)
 ```
 
 ## Layout
@@ -24,7 +25,7 @@ pnpm test:ios                   # what the iOS CI job runs
 
 **Dependencies** (Swift packages, pinned in `TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`): two local packages, the generated API client `TrainerHubAPI` from [`packages/contract/swift`](../../packages/contract/README.md) and the design tokens `TrainerHubDesignTokens` from [`packages/design-tokens/TrainerHubDesignTokens`](../../packages/design-tokens/README.md#using-the-tokens-on-ios-and-android), and Apple's `swift-openapi-runtime` and `swift-openapi-urlsession` for its URLSession transport, plus `sentry-cocoa` for crash reporting ([Crash reporting](#crash-reporting)). Never hand-write API calls: change the contract and regenerate. `pnpm test:ios` fails on a remote package that isn't on its allowlist (`swift_packages` in `scripts/test-ios.sh`): the app has no analytics SDK.
 
-**Strings:** `Localizable.xcstrings` and `InfoPlist.xcstrings` are referenced in place from [`packages/i18n/generated/ios`](../../packages/i18n/README.md#native-apps-e008), never copied or edited. The development region is `nl`; the localizations are `nl` and `en`. The display name under the icon, `CFBundleDisplayName`, comes from `app.name` through `InfoPlist.xcstrings`. String extraction is off (`SWIFT_EMIT_LOC_STRINGS = NO`), so Xcode never writes to the generated catalogs.
+**Strings:** `Localizable.xcstrings` and `InfoPlist.xcstrings` are referenced in place from [`packages/i18n/generated/ios`](../../packages/i18n/README.md#native-apps-e008), never copied or edited. The development region is `nl`; the localizations are `nl` and `en`. The display name under the icon, `CFBundleDisplayName`, comes from `app.name` through `InfoPlist.xcstrings`, and so does `CFBundleName`. Swift string extraction is off (`SWIFT_EMIT_LOC_STRINGS = NO`), but Xcode's string catalog sync (on a build in Xcode, and in `xcodebuild -exportLocalizations`) still adds every localizable Info.plist key a catalog lacks, `CFBundleName` among them, and rewrites the file. The generator writes those keys itself, so the sync leaves the generated catalogs unchanged; `pnpm test:ios` runs the sync and fails when it would change one. The Info.plists in `Config/` are in Xcode's own form (keys sorted, as `plutil -convert xml1` writes them), so Xcode doesn't reorder them; `pnpm test:ios` checks that too.
 
 ## A screen
 
@@ -66,9 +67,27 @@ The app picks its interface language itself, by ADR-017's rule, and uses it for 
 | Sentry DSN (`TRAINER_HUB_SENTRY_DSN`) | Empty: no crash reporting; `pnpm test:ios` checks this | The Sentry `ios` project's DSN (EU region, `<org>.ingest.de.sentry.io`); `pnpm test:ios` checks this |
 | Sentry environment (`TRAINER_HUB_SENTRY_ENVIRONMENT`) | `development` | `production` |
 
-To run a Debug build against a preview environment or the dev server on your Mac from a phone on the LAN, create `Config/Local.xcconfig` (git-ignored) with e.g. `TRAINER_HUB_API_BASE_URL = https:/$()/<preview-domain>/api` (`//` starts a comment in an xcconfig, hence `$()`). Debug builds also accept `-TrainerHubAPIBaseURL <url>` as a launch argument; the UI tests use it.
+**`Config/Local.xcconfig`** (git-ignored, included last by `Debug.xcconfig`) holds your own Debug settings; never put them in a tracked file:
 
-**Identifiers:** bundle ID `nl.trainerhub.app` (provisional until the first store upload, E017). **Signing:** none in the repo. CI builds for the simulator without signing; for a real-device Debug run, choose your own Apple team under *Signing & Capabilities* in Xcode and don't commit it.
+| Setting | For |
+|---|---|
+| `TRAINER_HUB_API_BASE_URL` | A preview environment, or the dev server on your Mac from a phone on the LAN: `https:/$()/<preview-domain>/api` or `http:/$()/<your-mac>.local:3000/api` (`//` starts a comment in an xcconfig, hence `$()`). Without it a phone calls `localhost`, which is the phone itself |
+| `DEVELOPMENT_TEAM` | Your Apple team ID, which signs a Debug build for a real iPhone ([A real iPhone](#a-real-iphone)) |
+| `TRAINER_HUB_SENTRY_DSN` | Only for the manual crash reporting check ([Crash reporting](#crash-reporting)) |
+
+Debug builds also accept `-TrainerHubAPIBaseURL <url>` as a launch argument; the UI tests use it.
+
+**Identifiers:** bundle ID `nl.trainerhub.app` (provisional until the first store upload, E017). **Signing:** none in the repo. CI builds for the simulator without signing; a real-device Debug run signs with the `DEVELOPMENT_TEAM` in `Config/Local.xcconfig`. Don't choose a team under *Signing & Capabilities* in Xcode: that writes it into the project file.
+
+## A real iPhone
+
+`scripts/ios-device.sh [nl|en]` builds the Debug app, installs it on your iPhone and launches it; with `nl` or `en` it launches in that device language (`-AppleLanguages`). It uses the same Xcode as `pnpm test:ios` (`/Applications/Xcode.app` when `xcode-select` points to the Command Line Tools) and writes nothing outside `.build/`.
+
+1. Once: pair the iPhone. Connect it with a cable, unlock it, tap *Trust*, and turn on Developer Mode (*Settings › Privacy & Security*). After that it also works over the same network.
+2. Once: in `Config/Local.xcconfig`, set `DEVELOPMENT_TEAM = <your team ID>` and `TRAINER_HUB_API_BASE_URL` to an API the phone can reach (the table above). Run `pnpm dev` for the dev server on your Mac.
+3. Unlock the phone and run `scripts/ios-device.sh nl`. It picks the paired iPhone from `xcrun devicectl list devices`; with several, set `IOS_DEVICE=<udid>`. The first launch of a build signed with a personal team asks you to trust the developer under *Settings › General › VPN & Device Management*.
+
+Without a paired iPhone or a team, the script says what's missing; a locked phone fails the install or launch, and the script says to unlock it.
 
 ## Tests
 
@@ -76,9 +95,10 @@ To run a Debug build against a preview environment or the dev server on your Mac
 
 1. SwiftLint with `--strict` on the app and its tests.
 2. SwiftLint on each fixture in `lint/fixtures/`, which must fail on exactly the lines marked `// expect: <rule>`: `LiteralText.swift` (`no_literal_text`), `ColourLiteral.swift` (`no_colour_literal`) and `DirectSentry.swift` (`no_direct_sentry`).
-3. The configurations: Debug's committed base URL is the local dev server (`http://localhost:3000/api`) and its Sentry DSN is empty; Release has an `https://…/api` base URL, no App Transport Security exception, a Sentry DSN in the EU region (`<org>.ingest.de.sentry.io`) and Sentry environment `production`.
+3. The configurations: Debug's committed base URL is the local dev server (`http://localhost:3000/api`) and its Sentry DSN is empty; Release has an `https://…/api` base URL, no App Transport Security exception, a Sentry DSN in the EU region (`<org>.ingest.de.sentry.io`) and Sentry environment `production`. The Info.plists in `Config/` are in Xcode's form.
 4. The Swift packages in `Package.resolved` are all on the allowlist: no analytics SDK.
-5. A simulator build without signing, then the test plan: unit and UI tests, each in `nl` and `en`, on the newest iPhone simulator, or in a worktree on the worktree's own copy of it (`IOS_SIMULATOR="iPhone 17"` picks one by name; cleanup and `KEEP_DEVICE=1` in `TESTING.md §7.2`). Results go to `.build/TestResults.xcresult`.
+5. Xcode's string catalog sync (`xcodebuild -exportLocalizations`) leaves the generated catalogs unchanged. When it would change one, the step shows the change, restores the file and fails: make the generator write what Xcode adds ([Strings](#layout)).
+6. A simulator build without signing, then the test plan: unit and UI tests, each in `nl` and `en`, on the newest iPhone simulator, or in a worktree on the worktree's own copy of it (`IOS_SIMULATOR="iPhone 17"` picks one by name; cleanup and `KEEP_DEVICE=1` in `TESTING.md §7.2`). Results go to `.build/TestResults.xcresult`.
 
 - **Unit tests** (`TrainerHubTests/`): the view model against `StubAPI`, a stub of `APIProtocol` that records the requested locale; the language rule with the same cases as `packages/i18n/src/locale.test.ts`; the configuration; the crash reporting scrubber and options (`ObservabilityTests`, `ObservabilityFieldTests`).
 - **UI tests** (`TrainerHubUITests/`): the app against `StubServer`, an HTTP server in the test runner, so a test controls the answer (greeting, error, or holding it to keep the spinner on screen) and asserts the requested `locale`. `HelloScreen.launch` sets the device languages (`-AppleLanguages`), the per-app language (a Debug-only launch argument, because UI tests can't change iOS Settings), the text size and light or dark mode (a Debug-only launch argument). `ScreenColours` reads a screenshot's pixels in sRGB, for the theme test. `TouchTarget` checks the 44 pt minimum in whole device pixels, because XCTest reports pixel-aligned frames with floating-point error (`TouchTargetTests` covers it without launching the app).
