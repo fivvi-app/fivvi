@@ -27,7 +27,7 @@ need_cmd jq
 need_cmd "$CODEX"
 MODEL="$(jq -r --arg t "$TIER" '.[$t].codex.model // empty' "$TIERS")"
 EFFORT="$(jq -r --arg t "$TIER" '.[$t].codex.effort // empty' "$TIERS")"
-[ -n "$MODEL" ] && [ -n "$EFFORT" ] || die "unknown tier: $TIER (high, mid or small)"
+if [ -z "$MODEL" ] || [ -z "$EFFORT" ]; then die "unknown tier: $TIER (high, mid or small)"; fi
 [ -d "$DIR" ] || die "folder not found: $DIR"
 [ "$PROMPT" = - ] || [ -f "$PROMPT" ] || die "prompt file not found: $PROMPT"
 
