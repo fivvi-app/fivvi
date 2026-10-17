@@ -2,10 +2,12 @@
 # Pull requests for the current worktree's branch. Run inside the worktree.
 #
 #   pr.sh check                                   run scripts/check.sh (create runs it too)
-#   pr.sh create [--title <t>] [--body-file <f|->] [--ready] [--no-check]
+#   pr.sh create [--title <t>] [--body-file <f|->] [--ready] [--full] [--no-check]
 #                                                 check, push, then open a draft PR (or update the open one, changing only
 #                                                 what you pass); a new PR's title defaults to the issue title, its body
-#                                                 gets "Closes #<issue>"
+#                                                 gets "Closes #<issue>". The first push runs the full scripts/check.sh;
+#                                                 a follow-up push (the PR exists) runs check.sh --fast, as CI runs the
+#                                                 full gate on every commit; --full forces the full run
 #   pr.sh ready                                   mark the draft ready for review
 #   pr.sh status                                  state, review, checks and open threads
 #   pr.sh wait [--timeout <minutes>]              wait for CI: exit 0 passed, 1 failed, 2 still running at the timeout
@@ -51,19 +53,27 @@ current_pr() {
   echo "$pr"
 }
 
+# run_check [--fast] [<why>]: scripts/check.sh in the given mode, announcing which mode ran and why.
+run_check() {
+  local flag="" mode=full
+  if [ "${1:-}" = --fast ]; then flag=--fast; mode=fast; shift; fi
+  echo "🔎 ${mode} checks${1:+: $1}"
+  (cd "$(git rev-parse --show-toplevel)" && scripts/check.sh ${flag:+"$flag"}) || die "checks failed — fix them before opening or updating a PR"
+}
+
 cmd_check() {
   [ $# -eq 0 ] || usage
-  echo "🔎 scripts/check.sh"
-  (cd "$(git rev-parse --show-toplevel)" && scripts/check.sh) || die "checks failed — fix them before opening or updating a PR"
+  run_check "scripts/check.sh"
 }
 
 cmd_create() {
-  local title="" body="" body_set=false draft=true check=true issue existing
+  local title="" body="" body_set=false draft=true check=true full=false issue existing
   while [ $# -gt 0 ]; do
     case "$1" in
       --title) title="${2:?}"; shift ;;
       --body-file) body="$(read_body "${2:?}")"; body_set=true; shift ;;
       --ready) draft=false ;;
+      --full) full=true ;;
       --no-check) check=false ;;
       *) usage ;;
     esac
@@ -83,7 +93,12 @@ cmd_create() {
     body="${body:+$body$'\n\n'}Closes #$issue"
   fi
 
-  ! $check || cmd_check
+  if $check; then
+    if $full; then run_check "--full"
+    elif [ -z "$existing" ]; then run_check "first push of the branch"
+    else run_check --fast "follow-up push to PR #$existing; CI runs the full gate (integration, e2e) on this commit; --full runs it here too"
+    fi
+  fi
   local out
   out="$(git push --quiet -u origin HEAD 2>&1)" || { echo "$out" >&2; die "push failed"; }
 

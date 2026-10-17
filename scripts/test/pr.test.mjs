@@ -377,3 +377,96 @@ describe('pr.sh refusal', () => {
     assert.match(failed.stderr, /could not read the body of PR #60/);
   });
 });
+
+describe('pr.sh create: which local check runs before the push', () => {
+  const gh = fakeGh();
+  let base;
+  let remote;
+  let repo;
+  let log;
+  const git = (...args) =>
+    execFileSync(
+      'git',
+      ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
+      { encoding: 'utf8' },
+    ).trim();
+
+  before(() => {
+    base = realpathSync(mkdtempSync(join(tmpdir(), 'pr-create-')));
+    repo = join(base, 'repo');
+    log = join(base, 'check.log');
+    remote = join(base, 'remote.git');
+    execFileSync('git', ['init', '--quiet', '--bare', remote]);
+    execFileSync('git', ['init', '--quiet', '--initial-branch=feature/57-hold-a-spot', repo]);
+    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+    writeFileSync(
+      join(repo, 'scripts/check.sh'),
+      `#!/usr/bin/env bash\necho "check.sh $*" >> "${log}"\nexit "\${FAKE_CHECK_EXIT:-0}"\n`,
+    );
+    chmodSync(join(repo, 'scripts/check.sh'), 0o755);
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'feat(F031): hold a spot');
+    git('remote', 'add', 'origin', 'https://github.com/example/trainer-hub.git');
+    git('config', `url.${remote}.pushInsteadOf`, 'https://github.com/example/trainer-hub.git');
+  });
+  after(() => {
+    gh.cleanup();
+    rmSync(base, { recursive: true, force: true });
+  });
+
+  const create = (existing, args = [], env = {}) => {
+    writeFileSync(log, '');
+    const result = spawnSync(join(repo, 'scripts/pr.sh'), ['create', ...args], {
+      cwd: repo,
+      encoding: 'utf8',
+      env: {
+        ...gh.env([
+          { match: '^pr list ', out: existing ? [{ number: 60 }] : [] },
+          { match: '^issue view 57 ', out: { title: 'Hold a spot' } },
+          { match: '^pr create ', out: 'https://github.com/example/trainer-hub/pull/60' },
+          { match: '^pr edit ', out: '' },
+          { match: '^pr view 60 ', out: { url: 'https://github.com/example/trainer-hub/pull/60' } },
+        ]),
+        ...env,
+      },
+    });
+    return { ...result, checks: readFileSync(log, 'utf8').trim().split('\n').filter(Boolean) };
+  };
+
+  it('runs the full check on the first push, when there is no PR yet', () => {
+    const result = create(false);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.checks, ['check.sh']);
+    assert.match(result.stdout, /full checks: first push/);
+  });
+
+  it('runs the fast check on a follow-up push, when the PR exists, and says why', () => {
+    const result = create(true);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.checks, ['check.sh --fast']);
+    assert.match(result.stdout, /fast checks: follow-up push to PR #60/);
+    assert.match(result.stdout, /CI runs the full gate/);
+  });
+
+  it('runs the full check on a follow-up push with --full', () => {
+    const result = create(true, ['--full']);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.checks, ['check.sh']);
+    assert.match(result.stdout, /full checks: --full/);
+  });
+
+  it('does not push when the chosen check fails', () => {
+    const pushed = git('ls-remote', remote);
+    git('commit', '--quiet', '--allow-empty', '-m', 'fix(F031): hold longer');
+    const result = create(true, [], { FAKE_CHECK_EXIT: '1' });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /checks failed/);
+    assert.equal(git('ls-remote', remote), pushed);
+  });
+
+  it('runs no check with --no-check', () => {
+    const result = create(true, ['--no-check']);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.checks, []);
+  });
+});
