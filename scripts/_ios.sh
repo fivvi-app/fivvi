@@ -166,13 +166,17 @@ report_steps() {
   summary "### iOS steps" "" "| Step | Duration |" "|---|--:|" "${rows%$'\n'}" "| **Total** | **$total s** |" ""
 }
 
-# The slowest tests of the result bundle $1 as table rows (`| test | seconds |`), at most $2. Nothing when the bundle
-# can't be read: a report never fails the run.
+# The slowest tests of the result bundle $1 as table rows (`| test | seconds |`), at most $2, in the test-plan
+# configuration $3. A bundle of both configurations has each test's time per configuration; a bundle of one has no
+# configuration nodes, and its tests count for $3. Nothing when the bundle can't be read: a report never fails the run.
 slowest_tests() {
-  xcrun xcresulttool get test-results tests --path "$1" 2>/dev/null | jq -r --argjson n "$2" '
-    [.. | objects | select(.nodeType? == "Test Case" and .durationInSeconds != null)]
-    | sort_by(-.durationInSeconds) | .[:$n][]
-    | "| \(.nodeIdentifier) | \(.durationInSeconds * 10 | round / 10) |"' 2>/dev/null || true
+  xcrun xcresulttool get test-results tests --path "$1" 2>/dev/null | jq -r --argjson n "$2" --arg config "$3" '
+    [.. | objects | select(.nodeType? == "Test Case") | . as $test
+      | [(.children // [])[] | select(.nodeType == "Test Plan Configuration")] as $configs
+      | (if $configs == [] then [$test] else [$configs[] | select(.name == $config)] end)[]
+      | {id: $test.nodeIdentifier, seconds: .durationInSeconds} | select(.seconds != null)]
+    | sort_by(-.seconds) | .[:$n][]
+    | "| \(.id) | \(.seconds * 10 | round / 10) |"' 2>/dev/null || true
 }
 
 # Deletes the simulator of the worktree in $1; nothing on a machine without Xcode.

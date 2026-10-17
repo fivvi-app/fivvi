@@ -30,6 +30,10 @@
           {
             "key" : "TRAINER_HUB_TEST_LANGUAGE",
             "value" : "en"
+          },
+          {
+            "key" : "TRAINER_HUB_SKIP_TESTS",
+            "value" : "HelloUITests\/test_E008_AC3_unsupportedDeviceLanguageShowsEnglish,HelloUITests\/test_E008_AC3_firstSupportedDeviceLanguageWins,HelloUITests\/test_E008_AC3_perAppLanguageOverridesTheDevice,HelloUITests\/test_E008_AC6_usesTokenColoursInLightAndDark,HelloUITests\/test_E008_AC7_largestTextSizeWraps"
           }
         ],
         "language" : "en",

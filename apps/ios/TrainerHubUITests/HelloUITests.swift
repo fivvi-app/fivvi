@@ -2,15 +2,17 @@ import TrainerHubDesignTokens
 import UIKit
 import XCTest
 
-/// The hello screen against a stub API. The test plan runs every test in nl and en (TrainerHub.xctestplan).
+/// The hello screen against a stub API. The test plan runs the text-dependent tests in nl and en, the others in nl
+/// only (`TestPlanSkips`, TrainerHub.xctestplan): the AC3 language tests, AC6 and AC7's largest text size.
 @MainActor
 final class HelloUITests: XCTestCase {
     private let timeout: TimeInterval = 10
     /// How far (per 8-bit channel) a colour on screen may be from its token: the screenshot's colour conversion rounds.
     private let colourTolerance = 4
 
-    override func setUp() {
+    override func setUpWithError() throws {
         continueAfterFailure = false
+        try TestPlanSkips.skipIfListed(self)
     }
 
     func test_E008_AC3_unsupportedDeviceLanguageShowsEnglish() throws {
@@ -18,7 +20,7 @@ final class HelloUITests: XCTestCase {
 
         let screen = HelloScreen.launch(against: server, deviceLanguages: ["de-DE", "fr-FR"])
 
-        XCTAssertTrue(screen.greeting.waitForExistence(timeout: timeout))
+        XCTAssertTrue(screen.greeting.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.greeting.label, TestCatalog("en")["hello.title"])
         XCTAssertEqual(server.requestedLocales, ["en"])
     }
@@ -28,7 +30,7 @@ final class HelloUITests: XCTestCase {
 
         let screen = HelloScreen.launch(against: server, deviceLanguages: ["fr-FR", "nl-BE"])
 
-        XCTAssertTrue(screen.greeting.waitForExistence(timeout: timeout))
+        XCTAssertTrue(screen.greeting.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.greeting.label, TestCatalog("nl")["hello.title"])
         XCTAssertEqual(server.requestedLocales, ["nl-NL"])
     }
@@ -39,7 +41,7 @@ final class HelloUITests: XCTestCase {
 
             let screen = HelloScreen.launch(against: server, deviceLanguages: device, perAppLanguage: perApp)
 
-            XCTAssertTrue(screen.greeting.waitForExistence(timeout: timeout), "\(perApp) on \(device)")
+            XCTAssertTrue(screen.greeting.waitUntilExists(timeout: timeout), "\(perApp) on \(device)")
             XCTAssertEqual(screen.greeting.label, expected["hello.title"], "\(perApp) on \(device)")
             XCTAssertEqual(server.requestedLocales, [expected.apiLocale], "\(perApp) on \(device)")
             screen.app.terminate()
@@ -52,7 +54,7 @@ final class HelloUITests: XCTestCase {
 
         let screen = HelloScreen.launch(against: server)
 
-        XCTAssertTrue(screen.error.waitForExistence(timeout: timeout))
+        XCTAssertTrue(screen.error.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.error.label, catalog["hello.error"])
         XCTAssertEqual(screen.retry.label, catalog["common.retry"])
         try assertTouchTarget(screen.retry, on: screen)
@@ -61,7 +63,7 @@ final class HelloUITests: XCTestCase {
         server.answer(with: .greeting(key: "hello.title"))
         screen.retry.tap()
 
-        XCTAssertTrue(screen.greeting.waitForExistence(timeout: timeout))
+        XCTAssertTrue(screen.greeting.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.greeting.label, catalog["hello.title"])
         XCTAssertFalse(screen.error.exists)
         XCTAssertEqual(server.requestedLocales, [catalog.apiLocale, catalog.apiLocale])
@@ -73,7 +75,7 @@ final class HelloUITests: XCTestCase {
 
         let screen = HelloScreen.launch(against: server)
 
-        XCTAssertTrue(screen.error.waitForExistence(timeout: timeout))
+        XCTAssertTrue(screen.error.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.error.label, catalog["hello.error"])
         XCTAssertTrue(screen.retry.exists)
     }
@@ -84,12 +86,12 @@ final class HelloUITests: XCTestCase {
 
         let screen = HelloScreen.launch(against: server)
 
-        XCTAssertTrue(screen.loading.waitForExistence(timeout: timeout))
+        XCTAssertTrue(screen.loading.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.loading.label, catalog["common.loading"])
 
         server.answer(with: .greeting(key: "hello.title"))
 
-        XCTAssertTrue(screen.greeting.waitForExistence(timeout: timeout))
+        XCTAssertTrue(screen.greeting.waitUntilExists(timeout: timeout))
         XCTAssertFalse(screen.loading.exists)
     }
 
@@ -105,7 +107,7 @@ final class HelloUITests: XCTestCase {
 
             let screen = HelloScreen.launch(against: server, appearance: mode)
 
-            XCTAssertTrue(screen.error.waitForExistence(timeout: timeout), mode)
+            XCTAssertTrue(screen.error.waitUntilExists(timeout: timeout), mode)
             var colours = try ScreenColours(screen.app)
             let window = screen.app.windows.firstMatch.frame
             // Above and below the centred content.
@@ -127,7 +129,7 @@ final class HelloUITests: XCTestCase {
             server.answer(with: .greeting(key: "hello.title"))
             screen.retry.tap()
 
-            XCTAssertTrue(screen.greeting.waitForExistence(timeout: timeout), mode)
+            XCTAssertTrue(screen.greeting.waitUntilExists(timeout: timeout), mode)
             colours = try ScreenColours(screen.app)
             assertColour(
                 colours.foreground(in: screen.greeting.frame, on: canvas), is: text, "greeting in \(mode) mode"
@@ -142,7 +144,7 @@ final class HelloUITests: XCTestCase {
 
         let screen = HelloScreen.launch(against: server)
 
-        XCTAssertTrue(screen.greeting.waitForExistence(timeout: timeout))
+        XCTAssertTrue(screen.greeting.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.greeting.label, catalog["hello.title"])
         XCTAssertEqual(server.requestedLocales, [catalog.apiLocale])
         XCTAssertTrue(try screen.greeting.hasTrait(.header))
@@ -153,14 +155,14 @@ final class HelloUITests: XCTestCase {
 
         let screen = HelloScreen.launch(against: server, textSize: "UICTContentSizeCategoryAccessibilityXXXL")
 
-        XCTAssertTrue(screen.error.waitForExistence(timeout: timeout))
+        XCTAssertTrue(screen.error.waitUntilExists(timeout: timeout))
         try assertReadable(screen, [screen.error, screen.retry])
         try assertTouchTarget(screen.retry, on: screen)
 
         server.answer(with: .greeting(key: "hello.title"))
         screen.retry.tap()
 
-        XCTAssertTrue(screen.greeting.waitForExistence(timeout: timeout))
+        XCTAssertTrue(screen.greeting.waitUntilExists(timeout: timeout))
         try assertReadable(screen, [screen.greeting])
     }
 

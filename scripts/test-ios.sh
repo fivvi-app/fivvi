@@ -3,13 +3,14 @@
 #
 #   test-ios.sh   SwiftLint and its fixtures (literal text, colours, direct Sentry calls), the Debug and Release
 #                 configurations (Release's Sentry DSN in the EU region, Info.plists in Xcode's form), the Swift package
-#                 allowlist, that Xcode's string catalog sync leaves the generated catalogs unchanged, then one
-#                 build-for-testing and the unit and UI tests in nl and en without building again, on the newest iPhone
-#                 simulator, in a worktree its own copy (IOS_SIMULATOR="iPhone 17" picks one by name). The locales run
-#                 one after the other on one simulator, also on CI (two simulators were slower on CI's 3-core runner);
-#                 IOS_PARALLEL=1 runs them at the same time on two. Prints the durations of its steps, the build timing
-#                 summary and the slowest tests (also in the job summary on CI). Shuts down the simulators it booted when
-#                 it ends, unless KEEP_DEVICE=1
+#                 allowlist, that every UI test runs in at least one test-plan configuration, that Xcode's string
+#                 catalog sync leaves the generated catalogs unchanged, then one build-for-testing and one run of the
+#                 unit and UI tests in nl and en without building again (one result bundle, both locales), on the newest
+#                 iPhone simulator, in a worktree its own copy (IOS_SIMULATOR="iPhone 17" picks one by name). Both
+#                 locales run on one simulator, also on CI (two simulators were slower on CI's 3-core runner);
+#                 IOS_PARALLEL=1 runs one run per locale at the same time on two. Prints the durations of its steps, the
+#                 build timing summary and the slowest tests per locale (also in the job summary on CI). Shuts down the
+#                 simulators it booted when it ends, unless KEEP_DEVICE=1
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
@@ -54,7 +55,11 @@ debug_configuration() {
 # the Sentry `ios` project in the EU region: its DSN's host is `<org>.ingest.de.sentry.io`.
 release_configuration() {
   local settings url dsn plist
-  settings="$(xcodebuild -project TrainerHub.xcodeproj -target TrainerHub -configuration Release -showBuildSettings)"
+  # The one xcodebuild call of this check. It resolves the Swift packages, so it uses the cached .build/SourcePackages
+  # like the build does (without it, it cloned them all again: 71 s of CI's first run, #105). Reading the xcconfig
+  # instead would not show what the project's Release configuration really resolves to.
+  settings="$(xcodebuild -project TrainerHub.xcodeproj -target TrainerHub -configuration Release -showBuildSettings \
+    -clonedSourcePackagesDirPath .build/SourcePackages)"
   url="$(sed -nE 's/^ *TRAINER_HUB_API_BASE_URL = //p' <<<"$settings")"
   dsn="$(sed -nE 's/^ *TRAINER_HUB_SENTRY_DSN = //p' <<<"$settings")"
   plist="$(sed -nE 's/^ *INFOPLIST_FILE = //p' <<<"$settings")"
@@ -78,6 +83,43 @@ swift_packages() {
     || { echo "could not read the Swift packages from Package.resolved"; return 1; }
   unexpected="$(grep -vxF -f <(tr ' ' '\n' <<<"$allowed") <<<"$resolved" || true)"
   [ -z "$unexpected" ] || { echo "Swift packages not on the allowlist in scripts/test-ios.sh: $unexpected"; return 1; }
+}
+
+# Which UI tests each configuration of the test plan skips (TRAINER_HUB_SKIP_TESTS, see TestPlanSkips.swift), as
+# `<configuration> <Class/test_name>` lines.
+plan_skips() {
+  jq -r '.configurations[] | .name as $config
+    | (.options.environmentVariableEntries // [])[] | select(.key == "TRAINER_HUB_SKIP_TESTS") | .value
+    | split(",")[] | gsub("^\\s+|\\s+$"; "") | select(. != "") | "\($config) \(.)"' TrainerHub.xctestplan | sort -u
+}
+
+# `Class/test_name` of every test of the UI test target.
+ui_tests() {
+  find TrainerHubUITests -name '*.swift' -exec awk '
+    /^[[:space:]]*(final[[:space:]]+)?class[[:space:]]+[A-Za-z0-9_]+/ {
+      name = $0; sub(/^.*class[[:space:]]+/, "", name); sub(/[^A-Za-z0-9_].*$/, "", name); class = name }
+    /^[[:space:]]*func[[:space:]]+test[A-Za-z0-9_]*\(/ {
+      name = $0; sub(/^.*func[[:space:]]+/, "", name); sub(/\(.*$/, "", name); print class "/" name }' {} + | sort -u
+}
+
+# The text-dependent UI tests run in every configuration (nl and en); the others the test plan skips in some of them.
+# A UI test the plan skips in every configuration would run nowhere, and a name that is no UI test (renamed, deleted)
+# is a skip that does nothing.
+test_plan_coverage() {
+  local tests skips configs rc=0 test skip
+  tests="$(ui_tests)"
+  skips="$(plan_skips)"
+  configs="$(jq '.configurations | length' TrainerHub.xctestplan)"
+  [ -n "$tests" ] || { echo "found no UI tests in TrainerHubUITests"; return 1; }
+  while read -r skip; do
+    [ -n "$skip" ] || continue
+    grep -qxF "$skip" <<<"$tests" || { echo "TrainerHub.xctestplan skips $skip, which is not a UI test"; rc=1; }
+  done <<<"$(cut -d' ' -f2 <<<"$skips" | sort -u)"
+  for test in $tests; do
+    [ "$(grep -cE " $test\$" <<<"$skips")" -lt "$configs" ] \
+      || { echo "$test is skipped in every configuration of TrainerHub.xctestplan: it runs in no configuration"; rc=1; }
+  done
+  return "$rc"
 }
 
 # Xcode rewrites a property list in its own form, keys sorted (plutil's), when it touches one; commit them that way
@@ -132,6 +174,8 @@ step "SwiftLint rejects literal text, colours and direct Sentry calls (lint/fixt
 lint_fixture lint/fixtures/LiteralText.swift no_literal_text
 lint_fixture lint/fixtures/ColourLiteral.swift no_colour_literal
 lint_fixture lint/fixtures/DirectSentry.swift no_direct_sentry
+step "Every UI test runs in at least one test-plan configuration"
+test_plan_coverage
 step "Debug and Release configurations"
 debug_configuration
 release_configuration
@@ -165,18 +209,26 @@ build_for_testing() {
   [ -z "$timing" ] || { echo "$timing"; summary "### iOS build timing" "" '```' "$timing" '```' ""; }
 }
 
-# Runs one locale's configuration of the test plan on simulator $2 without building, into its own result bundle.
-test_locale() {
-  xcodebuild test-without-building -xctestrun "$XCTESTRUN" -destination "id=$2" -only-test-configuration "$1" \
-    -resultBundlePath ".build/TestResults-$1.xcresult" -quiet
+# Runs the test plan on simulator $1 without building, both configurations (nl and en) in one run: the simulator is
+# prepared and the app installed once, and the one result bundle has each locale's results. With a locale in $2, runs
+# only that locale's configuration, into a bundle of its own.
+RESULTS=.build/TestResults-nl-en.xcresult
+run_tests() {
+  local only=() bundle=$RESULTS
+  if [ -n "${2:-}" ]; then
+    only=(-only-test-configuration "$2")
+    bundle=".build/TestResults-$2.xcresult"
+  fi
+  xcodebuild test-without-building -xctestrun "$XCTESTRUN" -destination "id=$1" ${only[@]+"${only[@]}"} \
+    -resultBundlePath "$bundle" -quiet
 }
 
 # Runs nl on simulator $1 and en on simulator $2 at the same time, each with its output in a log, shown when it ends.
 test_locales_in_parallel() {
   local status=0 nl_pid en_pid locale
-  test_locale nl "$1" >.build/test-nl.log 2>&1 &
+  run_tests "$1" nl >.build/test-nl.log 2>&1 &
   nl_pid=$!
-  test_locale en "$2" >.build/test-en.log 2>&1 &
+  run_tests "$2" en >.build/test-en.log 2>&1 &
   en_pid=$!
   wait "$nl_pid" || status=1
   wait "$en_pid" || status=1
@@ -184,14 +236,6 @@ test_locales_in_parallel() {
     echo "::group::Tests in $locale"
     cat ".build/test-$locale.log"
     echo "::endgroup::"
-  done
-  return $status
-}
-
-test_locales_in_turn() {
-  local status=0 locale
-  for locale in $LOCALES; do
-    test_locale "$locale" "$1" || status=1
   done
   return $status
 }
@@ -226,10 +270,12 @@ if $parallel; then
   test_locales_in_parallel "$udid" "$extra" || tests=1
 else
   step "Unit and UI tests in nl and en (simulator $udid)"
-  test_locales_in_turn "$udid" || tests=1
+  run_tests "$udid" || tests=1
 fi
 for locale in $LOCALES; do
-  rows="$(slowest_tests ".build/TestResults-$locale.xcresult" 10)"
+  bundle="$RESULTS"
+  ! $parallel || bundle=".build/TestResults-$locale.xcresult"
+  rows="$(slowest_tests "$bundle" 10 "$locale")"
   [ -z "$rows" ] || {
     echo "Slowest tests in $locale (seconds):"
     echo "$rows" | sed 's/^| /  /; s/ | / /; s/ |$//'
