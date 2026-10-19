@@ -20,12 +20,13 @@ esac
 
 cd "$ROOT"
 FAILED=0
+SUMMARY_JSON="$ROOT/.work/check-summary.json"
 # An early exit must not leave the summary of an earlier run behind.
-rm -f "$ROOT/.work/check-summary.json"
+rm -f "$SUMMARY_JSON"
 # What every check printed, passed or failed: test-summary.sh reads the suites' counts from it.
 LOG_DIR="$(mktemp -d)"
-trap 'rm -rf "$LOG_DIR"' EXIT
-SUMMARY_JSON=".work/check-summary.json"
+remove_log_dir() { rm -rf "$LOG_DIR"; }
+on_exit remove_log_dir
 
 # What a failed check shows. A turbo run is logged in full (the parser reads every task's counts), but only the output of
 # the tasks that failed (named by "<package>#<task>:  ERROR") is shown, with turbo's footer; any other check shows all.
@@ -167,14 +168,13 @@ expected_suites() {
 }
 
 # The suites' counts, after the checks so that a failed run shows them too.
-if $FAST; then
-  test_kinds=(--run unit --skip integration --skip e2e)
-else
-  test_kinds=(--run unit --run integration --run e2e)
-fi
+test_kinds=(--run unit)
+for kind in integration e2e; do
+  if $FAST; then test_kinds+=(--skip "$kind"); else test_kinds+=(--run "$kind"); fi
+done
 while IFS= read -r suite; do test_kinds+=(--expect "$suite"); done < <(expected_suites)
 echo
-"$ROOT/scripts/test-summary.sh" --json "$ROOT/$SUMMARY_JSON" "${test_kinds[@]}" "$LOG_DIR/output.log" \
+"$ROOT/scripts/test-summary.sh" --json "$SUMMARY_JSON" "${test_kinds[@]}" "$LOG_DIR/output.log" \
   || { echo "✗ test summary"; FAILED=1; }
 
 exit "$FAILED"

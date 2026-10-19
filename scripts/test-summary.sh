@@ -2,7 +2,7 @@
 # The test counts of a check run, from the logs turbo printed (E002 #112): a table on stdout and, with --json, a file.
 # check.sh calls it at the end, so a builder quotes the numbers instead of retyping them from long output.
 #
-#   test-summary.sh [--json FILE] [--run KIND]... [--skip KIND]... LOG...
+#   test-summary.sh [--json FILE] [--run KIND]... [--skip KIND]... [--expect SUITE]... LOG...
 #       reads the suites' counts from the LOGs (root tests, each package's unit, integration and e2e tests). Prints
 #       a table of passed, failed and skipped tests per suite and writes the same as JSON to FILE.
 #       --run KIND   the KIND (unit, integration or e2e) was run; with no counts in the logs it is listed as no-results

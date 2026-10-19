@@ -243,6 +243,27 @@ describe('E002 #112 test-summary.sh', () => {
     );
   });
 
+  const cancelled = (pkg) =>
+    task(
+      `@trainer-hub/${pkg}:test`,
+      'cache miss, executing 5edc6df4868ce48f',
+      '$ vitest run',
+      '',
+      ' RUN  v5.0.1 /x/y',
+    );
+
+  it('E002 #112 AC1: lists a task that started and was cancelled, with no counts and no error, as not-run', () => {
+    const result = summarize(
+      [...vitest('ui', 'test', '33 passed (33)'), ...cancelled('api')],
+      '--run',
+      'unit',
+    );
+    assert.deepEqual(result.json.suites, [
+      { name: 'api', kind: 'unit', status: 'not-run', passed: null, failed: null, skipped: null },
+      suite('ui', 'unit', 'pass', 33, 0, 0),
+    ]);
+  });
+
   it('E002 #112 AC1: ignores colours and the output of other tasks', () => {
     const result = summarize(
       [
@@ -473,6 +494,36 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       ],
     );
     assert.match(result.stdout, /api\s+not-run\s+-\s+-\s+-\n/);
+  });
+
+  it('E002 #112 AC1: lists the tasks turbo started and then cancelled after a failure as not-run', () => {
+    const cancelledApi = task(
+      '@trainer-hub/api:test',
+      'cache miss, executing 5edc6df4868ce48f',
+      '$ vitest run',
+      ' RUN  v5.0.1 /x/api',
+    );
+    const uiFails = {
+      lines: [
+        ...cancelledApi,
+        ...task('@trainer-hub/ui:test', ' Tests  1 failed | 34 passed (35)'),
+        '@trainer-hub/ui#test:  ERROR  command (/x/ui) pnpm run test exited (1)',
+      ],
+      exit: 1,
+    };
+    const result = check({ unit: uiFails, integration, e2e });
+    assert.deepEqual(
+      result.summary.suites
+        .filter((s) => s.kind === 'unit')
+        .map(({ name, status }) => [name, status]),
+      [
+        ['root', 'not-run'],
+        ['api', 'not-run'],
+        ['ui', 'fail'],
+      ],
+    );
+    assert.match(result.stdout, /api\s+not-run\s+-\s+-\s+-\n/);
+    assert.doesNotMatch(result.stdout, /no-results/);
   });
 
   it('E002 #112 AC1: leaves no stale summary when check.sh stops early', () => {
