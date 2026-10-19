@@ -441,13 +441,13 @@ describe('pr.sh smoke', () => {
   const REDEPLOY = `deployment redeploy -p ${PROJECT} -e trainer-hub-pr-60 -s web --from-source -y`;
   const LIST = `deployment list -p ${PROJECT} -e trainer-hub-pr-60 -s web --json`;
 
-  it('asks railway nothing when there is no preview', () => {
+  it('E002 #107 AC3: asks railway nothing when there is no preview', () => {
     const result = smoke({ out: WEB_SKIPPED });
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.railway, []);
   });
 
-  it('redeploys nothing when the head commit has a deployment', () => {
+  it('E002 #107 AC3: redeploys nothing when the head commit has a deployment', () => {
     const result = smoke({ out: WEB_DEPLOYED });
     assert.equal(result.status, 0, result.stderr);
     assert.ok(result.railway.includes(LIST), result.railway.join('\n'));
@@ -455,7 +455,7 @@ describe('pr.sh smoke', () => {
   });
 
   for (const mode of ['skipped', 'no deployment']) {
-    it(`redeploys the PR preview from source when its deployment for the head commit is ${mode === 'skipped' ? 'skipped' : 'missing'}, then smoke-checks it`, () => {
+    it(`E002 #107 AC3: redeploys the PR preview from source when its deployment for the head commit is ${mode === 'skipped' ? 'skipped' : 'missing'}, then smoke-checks it`, () => {
       const result = smoke({ out: WEB_DEPLOYED }, [], mode);
       assert.equal(result.status, 0, result.stderr);
       assert.equal(
@@ -470,14 +470,14 @@ describe('pr.sh smoke', () => {
     });
   }
 
-  it('redeploys a preview whose deploy never started while Railway still reports it pending', () => {
+  it('E002 #107 AC3: redeploys a preview whose deploy never started while Railway still reports it pending', () => {
     const pending = statuses(['trainer-hub - web', 'pending', 'Waiting for CI']);
     const result = smoke({ out: pending }, [], 'skipped');
     assert.equal(result.status, 0, result.stderr);
     assert.ok(result.railway.includes(REDEPLOY), result.railway.join('\n'));
   });
 
-  it('touches only the PR environment of the PR: never production or development', () => {
+  it('E002 #107 AC3: touches only the PR environment of the PR: never production or development', () => {
     for (const mode of ['deployed', 'skipped', 'no deployment']) {
       const result = smoke({ out: WEB_DEPLOYED }, [], mode);
       const deployments = result.railway.filter((call) => call.startsWith('deployment'));
@@ -489,25 +489,39 @@ describe('pr.sh smoke', () => {
     }
   });
 
-  it('fails at once with a hint when the railway CLI is missing, and records nothing', () => {
-    const result = smoke({ out: WEB_DEPLOYED }, ['--timeout', '15'], 'missing');
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /Railway CLI/);
-    assert.match(result.stderr, /railway login/);
-    assert.match(result.stderr, /trainer-hub-pr-60/);
-    assert.deepEqual(result.bodies, []);
-    assert.deepEqual(result.curls, []);
-  });
+  const FAILED_DEPLOY = statuses(['trainer-hub - web', 'failure', 'Deployment failed']);
 
-  it('fails at once with a hint when the railway CLI is not logged in', () => {
-    const result = smoke({ out: WEB_DEPLOYED }, [], 'logged out');
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /railway login/);
-    assert.ok(!result.railway.some((call) => call.startsWith('deployment')));
-    assert.deepEqual(result.bodies, []);
-  });
+  for (const mode of ['missing', 'logged out']) {
+    it(`E002 #107 AC3: smoke-checks a deployed preview with curl when the railway CLI is ${mode === 'missing' ? 'missing' : 'logged out'}`, () => {
+      const result = smoke({ out: WEB_DEPLOYED }, [], mode);
+      assert.equal(result.status, 0, result.stderr);
+      assert.ok(result.curls.length > 0 && result.curls.every((args) => args.endsWith(WEB_URL)));
+      assert.equal(result.bodies.length, 1);
+      assert.ok(!result.railway.some((call) => call.startsWith('deployment')));
+    });
 
-  it('records nothing when the redeployed preview fails to deploy', () => {
+    it(`E002 #107 AC3: fails at once with a hint when the preview did not deploy and the railway CLI is ${mode === 'missing' ? 'missing' : 'logged out'}`, () => {
+      const result = smoke({ out: FAILED_DEPLOY }, ['--timeout', '15'], mode);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /Railway CLI/);
+      assert.match(result.stderr, /railway login/);
+      assert.match(result.stderr, /trainer-hub-pr-60/);
+      assert.ok(!result.railway.some((call) => call.startsWith('deployment')));
+      assert.deepEqual(result.bodies, []);
+      assert.deepEqual(result.curls, []);
+    });
+
+    it(`E002 #107 AC3: says in the timeout message that a pending preview may be skipped when the railway CLI is ${mode === 'missing' ? 'missing' : 'logged out'}`, () => {
+      const pending = statuses(['trainer-hub - web', 'pending', 'Waiting for CI']);
+      const result = smoke({ out: pending }, ['--timeout', '0'], mode);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /still deploying/);
+      assert.match(result.stderr, /Railway CLI/);
+      assert.deepEqual(result.bodies, []);
+    });
+  }
+
+  it('E002 #107 AC3: records nothing when the redeployed preview fails to deploy', () => {
     const result = smoke({ out: WEB_DEPLOYED }, [], 'redeploy fails');
     assert.equal(result.status, 1);
     assert.match(result.stderr, /FAILED/);
@@ -639,7 +653,7 @@ describe('pr.sh create: which local check runs before the push', () => {
   });
 });
 
-describe('pr.sh ready', () => {
+describe('E002 #107 pr.sh ready', () => {
   const gh = fakeGh();
   after(() => gh.cleanup());
 
@@ -659,40 +673,40 @@ describe('pr.sh ready', () => {
   const SMOKED = `**Railway preview smoke check:** on \`${HEAD}\`: \`curl -fsS https://x/api/v1/health\` → \`{"status":"ok"}\` ✅`;
   const REVIEWED = `**Self-review:** standards and spec reviewers clean on \`${HEAD}\` ✅`;
 
-  it('marks the draft ready when every check passed, the review and the smoke are recorded for the head', () => {
+  it('E002 #107 AC1: marks the draft ready when every check passed, the review and the smoke are recorded for the head', () => {
     const result = ready();
     assert.equal(result.status, 0, result.stderr);
     assert.ok(result.calls.some((call) => /^pr ready 60 /.test(call)));
     assert.match(result.stdout, /PR #60 ready for review/);
   });
 
-  it('accepts a recorded smoke check of a preview that exists', () => {
+  it('E002 #107 AC1: accepts a recorded smoke check of a preview that exists', () => {
     const result = ready({ status: WEB_DEPLOYED, body: `${REVIEWED}\n\n${SMOKED}` });
     assert.equal(result.status, 0, result.stderr);
   });
 
-  it('refuses on a failing check and names it', () => {
+  it('E002 #107 AC1: refuses on a failing check and names it', () => {
     const rollup = CI.map((name) => checkRun(name, name === 'iOS' ? 'FAILURE' : 'SUCCESS'));
     refuses({ rollup }, /checks passed \(failing: iOS\)/);
   });
 
-  it('refuses on a pending check and names it', () => {
+  it('E002 #107 AC1: refuses on a pending check and names it', () => {
     const rollup = CI.map((name) =>
       name === 'E2E (Linux)' ? checkRun(name, null, 'IN_PROGRESS') : checkRun(name),
     );
     refuses({ rollup }, /checks passed \(pending: E2E \(Linux\)\)/);
   });
 
-  it('refuses on a missing check and names it', () => {
+  it('E002 #107 AC1: refuses on a missing check and names it', () => {
     const rollup = CI.filter((name) => name !== 'Android').map((name) => checkRun(name));
     refuses({ rollup }, /checks passed \(missing: Android\)/);
   });
 
-  it('refuses without a review record, and names it', () => {
+  it('E002 #107 AC1: refuses without a review record, and names it', () => {
     refuses({ body: `Closes #57\n\n${NO_PREVIEW}` }, /self-review clean \(no self-review record/);
   });
 
-  it('refuses when the review was recorded for an older commit', () => {
+  it('E002 #107 AC1: refuses when the review was recorded for an older commit', () => {
     const old = `**Self-review:** standards and spec reviewers clean on \`${'b'.repeat(40)}\` ✅`;
     refuses(
       { body: `Closes #57\n\n${old}\n\n${NO_PREVIEW}` },
@@ -700,11 +714,11 @@ describe('pr.sh ready', () => {
     );
   });
 
-  it('refuses without a smoke record, and names it', () => {
+  it('E002 #107 AC1: refuses without a smoke record, and names it', () => {
     refuses({ body: `Closes #57\n\n${REVIEWED}` }, /preview smoke-checked \(no smoke check record/);
   });
 
-  it('names every missing piece at once', () => {
+  it('E002 #107 AC1: names every missing piece at once', () => {
     const rollup = CI.map((name) => checkRun(name, name === 'iOS' ? 'FAILURE' : 'SUCCESS'));
     refuses(
       { rollup, body: 'Closes #57' },
@@ -714,7 +728,7 @@ describe('pr.sh ready', () => {
     );
   });
 
-  it("refuses when the head commit's statuses can't be read", () => {
+  it("E002 #107 AC1: refuses when the head commit's statuses can't be read", () => {
     const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['ready'], {
       encoding: 'utf8',
       env: gh.env([{ match: STATUS, out: '', status: 1 }, ...github()]),
@@ -724,13 +738,13 @@ describe('pr.sh ready', () => {
     assert.ok(!gh.calls().some((call) => call.args[1] === 'ready'));
   });
 
-  it("doesn't need the rest of the merge gate: a high-risk PR, open threads or a branch behind main", () => {
+  it("E002 #107 AC1: doesn't need the rest of the merge gate: a high-risk PR, open threads or a branch behind main", () => {
     const result = ready({ files: ['packages/database/migrations/0004.sql'], behind: 3 });
     assert.equal(result.status, 0, result.stderr);
   });
 });
 
-describe('pr.sh ship', () => {
+describe('E002 #107 pr.sh ship', () => {
   const gh = fakeGh();
   const railway = fakeRailway();
   const bin = mkdtempSync(join(tmpdir(), 'fake-curl-'));
@@ -784,7 +798,7 @@ describe('pr.sh ship', () => {
     return { ...result, calls, at };
   };
 
-  it('runs wait, smoke and ready in order and records nothing else', () => {
+  it('E002 #107 AC2: runs wait, smoke and ready in order and records nothing else', () => {
     const result = ship({
       body: `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${HEAD}\` ✅\n\n${NO_PREVIEW}`,
     });
@@ -797,14 +811,14 @@ describe('pr.sh ship', () => {
     assert.match(result.stdout, /PR #60 ready for review/);
   });
 
-  it('stops at a failed wait with its exit code, and runs neither smoke nor ready', () => {
+  it('E002 #107 AC2: stops at a failed wait with its exit code, and runs neither smoke nor ready', () => {
     const result = ship({ ci: checks(['iOS'], 'fail') });
     assert.equal(result.status, 1);
     assert.match(result.stdout, /checks failed: iOS/);
     assert.ok(!result.calls.some((call) => /^pr edit|^pr ready/.test(call)));
   });
 
-  it('passes on the exit code 2 of a wait that timed out', () => {
+  it('E002 #107 AC2: passes on the exit code 2 of a wait that timed out', () => {
     const result = ship({
       ci: checks(CI, 'pending'),
       run: ['in_progress', ''],
@@ -814,21 +828,21 @@ describe('pr.sh ship', () => {
     assert.ok(!result.calls.some((call) => /^pr edit|^pr ready/.test(call)));
   });
 
-  it('stops at a failed smoke with its exit code, and does not mark the PR ready', () => {
+  it('E002 #107 AC2: stops at a failed smoke with its exit code, and does not mark the PR ready', () => {
     const result = ship({ status: { total_count: 31, statuses: [] } });
     assert.equal(result.status, 1);
     assert.match(result.stderr, /could not read the statuses/);
     assert.ok(!result.calls.some((call) => /^pr ready/.test(call)));
   });
 
-  it('stops at a refused ready with its exit code', () => {
+  it('E002 #107 AC2: stops at a refused ready with its exit code', () => {
     const result = ship({ body: 'Closes #57' });
     assert.equal(result.status, 1);
     assert.match(result.stderr, /self-review clean/);
     assert.ok(!result.calls.some((call) => /^pr ready/.test(call)));
   });
 
-  it('waits up to 45 minutes when iOS or Android run, 20 otherwise', () => {
+  it('E002 #107 AC2: waits up to 45 minutes when iOS or Android run, 20 otherwise', () => {
     const native = ship();
     assert.match(native.stdout, /up to 45 min/);
     const rollup = ['Detect changes', 'Checks (Linux)', 'E2E (Linux)'].map((name) =>
@@ -839,12 +853,23 @@ describe('pr.sh ship', () => {
     assert.doesNotMatch(linux.stdout, /up to 45 min/);
   });
 
-  it('lets --timeout choose the wait', () => {
+  it('E002 #107 AC2: keeps the 20-minute wait when the native jobs are skipped, as they are in most PRs', () => {
+    const ci = [
+      ...checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']),
+      ...checks(['iOS', 'Android'], 'skipping'),
+    ];
+    const result = ship({ ci });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /up to 20 min/);
+    assert.doesNotMatch(result.stdout, /up to 45 min/);
+  });
+
+  it('E002 #107 AC2: lets --timeout choose the wait', () => {
     const result = ship({ args: ['--timeout', '7'] });
     assert.match(result.stdout, /up to 7 min/);
   });
 
-  it('prints the step durations of the native jobs at the end, and none of the others', () => {
+  it('E002 #107 AC2: prints the step durations of the native jobs at the end, and none of the others', () => {
     const result = ship();
     assert.equal(result.status, 0, result.stderr);
     const out = result.stdout.slice(result.stdout.indexOf('Step durations'));
@@ -855,7 +880,7 @@ describe('pr.sh ship', () => {
     assert.doesNotMatch(out, /Lint/);
   });
 
-  it('prints the durations also when a step failed, and prints none when no native job ran', () => {
+  it('E002 #107 AC2: prints the durations also when a step failed, and prints none when no native job ran', () => {
     const failed = ship({ ci: checks(['iOS'], 'fail') });
     assert.match(failed.stdout, /Step durations: iOS/);
     const none = ship({ jobs: { jobs: [JOBS.jobs[0]] } });
@@ -863,12 +888,12 @@ describe('pr.sh ship', () => {
     assert.doesNotMatch(none.stdout, /Step durations/);
   });
 
-  it("doesn't fail the ship when the durations can't be read", () => {
+  it("E002 #107 AC2: doesn't fail the ship when the durations can't be read", () => {
     const result = ship({ jobs: '' });
     assert.equal(result.status, 0, result.stderr);
   });
 
-  it('takes no unknown argument', () => {
+  it('E002 #107 AC2: takes no unknown argument', () => {
     const result = ship({ args: ['--body-file', '-'] });
     assert.equal(result.status, 1);
     assert.match(result.stderr, /pr\.sh ship \[--timeout <minutes>\]/);

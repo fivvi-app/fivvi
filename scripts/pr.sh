@@ -25,7 +25,9 @@
 #                                                 `trainer-hub - web` status on it is not a skipped deploy (preview_of). A
 #                                                 preview without a deployment of the head commit (Railway skipped it after
 #                                                 a failed first CI run) is redeployed with the railway CLI, only in the
-#                                                 PR's own environment, trainer-hub-pr-<n>; without the CLI smoke fails
+#                                                 PR's own environment, trainer-hub-pr-<n>. Without
+#                                                 the CLI, a preview whose status is success is only
+#                                                 health-checked; otherwise smoke fails with a hint
 #   pr.sh reviewed                                record in the PR body that both reviewers (standards and spec) found
 #                                                 nothing to fix on the PR's head commit; local HEAD must be that commit
 #   pr.sh merge                                   squash-merge a low-risk PR and delete its branch, only when every
@@ -218,7 +220,8 @@ cmd_status() {
 
 # Waits for the CI workflow run of the PR's head commit (.github/workflows/ci.yml), not for whatever checks exist yet:
 # right after a push, the jobs behind "Detect changes" don't exist, so "nothing pending" is not "passed". The timeout is
-# $WAIT_MINUTES, or $WAIT_MINUTES_NATIVE once a native job (iOS, Android) is among the checks; --timeout fixes it.
+# $WAIT_MINUTES, or $WAIT_MINUTES_NATIVE once a native job (iOS, Android) is among the checks and not skipped (they are
+# required checks, so they exist, skipped, in most PRs); --timeout fixes it.
 cmd_wait() {
   local timeout="" limit="$WAIT_MINUTES" pr head start run checks failed native job
   while [ $# -gt 0 ]; do
@@ -241,7 +244,7 @@ cmd_wait() {
     if [ -z "$timeout" ] && [ "$limit" -lt "$WAIT_MINUTES_NATIVE" ]; then
       native=""
       for job in "${NATIVE_JOBS[@]}"; do
-        ! jq -e --arg job "$job" 'any(.[]?; .name == $job)' <<<"${checks:-[]}" >/dev/null 2>&1 || native="${native:+$native, }$job"
+        ! jq -e --arg job "$job" 'any(.[]?; .name == $job and .bucket != "skipping")' <<<"${checks:-[]}" >/dev/null 2>&1 || native="${native:+$native, }$job"
       done
       if [ -n "$native" ]; then
         limit="$WAIT_MINUTES_NATIVE"
@@ -305,18 +308,25 @@ head_of() { gh pr view "$1" --repo "$REPO" --json headRefOid --jq .headRefOid; }
 # (Railway is still deploying). Yes when the latest $PREVIEW_CHECK status on the commit is not a skipped deploy; no when
 # there is no such status or Railway skipped the deploy. Dies when the statuses can't all be read: never a guessed "no".
 preview_of() {
+  local sha="$1"
+  web_status_of "$sha" | jq -r --arg skipped "$PREVIEW_SKIPPED" '
+    if . == null then "no"
+    elif .state == "pending" then "pending"
+    elif (.description // "") | startswith($skipped) then "no"
+    else "yes" end'
+}
+
+# The latest $PREVIEW_CHECK status of commit $1 as JSON, or null when there is none. Dies when the statuses can't all
+# be read.
+web_status_of() {
   local sha="$1" combined
   combined="$(gh api "repos/$REPO/commits/$sha/status?per_page=100")" \
     || die "could not read the statuses of ${sha:0:7}"
   # The combined status holds the latest status per context; more contexts than one page means some are unread.
-  jq -r --arg check "$PREVIEW_CHECK" --arg skipped "$PREVIEW_SKIPPED" '
+  jq -c --arg check "$PREVIEW_CHECK" '
     if (.statuses | type) != "array" or .total_count != (.statuses | length) then error("unread statuses")
-    else [.statuses[] | select(.context == $check)] | first
-      | if . == null then "no"
-        elif .state == "pending" then "pending"
-        elif (.description // "") | startswith($skipped) then "no"
-        else "yes" end
-    end' <<<"$combined" 2>/dev/null || die "could not read the statuses of ${sha:0:7}"
+    else [.statuses[] | select(.context == $check)] | first end' <<<"$combined" 2>/dev/null \
+    || die "could not read the statuses of ${sha:0:7}"
 }
 
 # Records a result in the PR body as one line, **<mark>:** …, replacing the previous one. scripts/merge-gate.jq reads it.
@@ -346,9 +356,11 @@ railway_preview() {
 
 railway_ready() { command -v railway >/dev/null && railway whoami >/dev/null 2>&1; }
 
-railway_hint() {
-  die "can't check or redeploy the preview of PR #$1 (trainer-hub-pr-$1) without the Railway CLI: install it and run 'railway login', or redeploy it in the Railway dashboard (trainer-hub-pr-$1 → web → Redeploy); nothing recorded"
+# What to do when only the Railway CLI could tell, or fix, whether the PR's preview was deployed for the head commit.
+railway_hint_text() {
+  echo "needs the Railway CLI (not installed or not logged in): install it and run 'railway login', or redeploy the preview in the Railway dashboard (trainer-hub-pr-$1 → web → Redeploy)"
 }
+railway_hint() { die "the preview of PR #$1 $(railway_hint_text "$1"); nothing recorded"; }
 
 # The state of the PR preview's deployment of commit $2: none (no deployment of it), skipped (Railway skipped it, as
 # after a failed first CI run: it is never deployed by a later green run), or the status of the latest other one.
@@ -396,8 +408,13 @@ cmd_smoke() {
     preview="$(preview_of "$head")" || die "nothing recorded on PR #$pr"
     case "$preview" in
       yes)
-        railway_ready || railway_hint "$pr"
-        case "$(head_deployment "$pr" "$head")" in none|skipped) redeploy=true ;; esac
+        # With the CLI, find a skipped deployment and redeploy it. Without it, a successful status is trusted and the
+        # health check decides; a failed one is a deploy that only the CLI (or the dashboard) can redo.
+        if railway_ready; then
+          case "$(head_deployment "$pr" "$head")" in none|skipped) redeploy=true ;; esac
+        elif [ "$(web_status_of "$head" | jq -r '.state // ""')" != success ]; then
+          railway_hint "$pr"
+        fi
         break ;;
       pending)
         # Still deploying, unless Railway skipped this commit and waits for nothing; without the CLI, just wait.
@@ -405,7 +422,8 @@ cmd_smoke() {
       *) break ;;
     esac
     [ "$(date +%s)" -lt "$deadline" ] \
-      || die "the preview of ${head:0:7} is still deploying after $timeout min; nothing recorded"
+      || die "the preview of ${head:0:7} is still deploying after $timeout min; nothing recorded$(
+        railway_ready || echo ". Railway may have skipped it (failed first CI run): it $(railway_hint_text "$pr")")"
     sleep 20
   done
   ! $redeploy || redeploy_preview "$pr" "$head" "$deadline"
