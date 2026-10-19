@@ -362,7 +362,7 @@ flowchart TB
 
 Every email exists in `nl-NL` and `en` with one template structure (`§51, §74`). Booking emails carry the workspace name, the date/time in the workspace timezone, and a link to manage the booking. The workout recap email (EM-12) carries the workout date and a link to the authenticated client workout view.
 
-**Recipient language** (communication language, [ADR-017](../decisions/ADR-017-language-policy.md)): stored user preference → language chosen at booking (also stored as the account's preference at the first verified booking, `PRODUCT.md §3, §26`) → workspace default. For trainer invitations it's the language picked for the invitee → workspace default (`§49`).
+**Recipient language** (communication language, [ADR-017](../decisions/ADR-017-language-policy.md)): stored user preference → language chosen at booking (also stored as the account's preference at the first verified booking, `PRODUCT.md §3, §26`) → workspace default. For trainer invitations it's the language picked for the invitee → workspace default (`§49`). For the sign-in email (EM-08) it's the stored preference → the interface language of the screen that asked ([ADR-019](../decisions/ADR-019-sign-in-communication-language.md)); there is no workspace default outside a workspace.
 
 | ID | NL subject (proposed) | EN subject (proposed) | To | Trigger | Features |
 |---|---|---|---|---|---|

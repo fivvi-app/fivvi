@@ -442,7 +442,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 **Goal:** A trainer's day runs from the phone, on either platform.
 
-**Scope:** Native sign-in (6-digit code, exchanged for a **bearer token** stored in Keychain/encrypted storage, per ADR-007 — M2's request-code and verify-code routes answer the web session flow; M8 adds the contract routes native needs to exchange a verified code for a bearer token and to sign out with one, #128) and screens for Today, personal calendar, clients (list, profile, quick add), session screen, workout logger, notes, attendance, the **+** menu by role (private session, client; owner/admin also group class with weekly repeat and Open Gym; §15), and the NL/EN switch (§85 I), built **in parallel**: one iOS track and one Android track. E017 App distribution.
+**Scope:** Native sign-in (6-digit code, exchanged for a **bearer token** stored in Keychain/encrypted storage, per ADR-007 — M2's request-code and verify-code routes answer the web sign-in flow; M8 adds the contract routes native needs to exchange a verified code for a bearer token and to sign out with one, #128) and screens for Today, personal calendar, clients (list, profile, quick add), session screen, workout logger, notes, attendance, the **+** menu by role (private session, client; owner/admin also group class with weekly repeat and Open Gym; §15), and the NL/EN switch (§85 I), built **in parallel**: one iOS track and one Android track. E017 App distribution.
 
 **When:** after Gate G4 (v1.15). The pilot runs on the web first; the apps join it through TestFlight and Play internal testing when they pass this milestone. The trainer web keeps working alongside them.
 

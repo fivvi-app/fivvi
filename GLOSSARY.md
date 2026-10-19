@@ -61,8 +61,8 @@ A login: required for a team member; created for a client at their first verifie
 To start using an account by verifying its email address with a magic link or a verification code.
 _Avoid_: log in, login (as a verb), sign up, register, session (for being signed in)
 
-**Sign-up**:
-Creating a new account by choice, separate from a first sign-in, an accepted invitation or a client's first verified booking. Closed in MVP (`PRODUCT.md §27`); opens with Release 2.0 (§58).
+**Sign-up** 🔜:
+Creating a new account by choice, separate from a first sign-in, an accepted invitation or a client's first verified booking.
 
 **Interface language**:
 The language a person sees on screen: Dutch or English. It follows the person (their choice, their preference or their device), or a booking link's fixed language; never the workspace's default communication language.

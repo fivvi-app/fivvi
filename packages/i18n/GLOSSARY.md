@@ -27,7 +27,7 @@ What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLO
 
 ### 1.1 Dutch (nl-NL): informal "je", friendly and short
 
-**Decision: always address the reader with "je", never "u".** `ROADMAP.md §10` sets the tone guide as *informal "je", friendly and short*, and `PRODUCT.md §26` already uses it ("Je boeking is bevestigd. We maken een account voor je aan, zodat je je boekingen kunt zien."). This applies to every audience (owners, trainers, clients) and every surface, including emails.
+**Decision: always address the reader with "je", never "u".** `ROADMAP.md §10` sets the tone guide as *informal "je", friendly and short*, and `PRODUCT.md §26` already uses it ("Je boeking is bevestigd." on the confirmation screen, "We maken een account voor je aan, zodat je je boekingen kunt zien." on the booking page). This applies to every audience (owners, trainers, clients) and every surface, including emails.
 
 | Rule | ✅ Do | ❌ Don't |
 |---|---|---|

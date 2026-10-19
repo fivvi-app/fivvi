@@ -953,7 +953,7 @@ English:
 Your booking is confirmed.
 ```
 
-The account can be deleted on request (E014).
+The account's stored language is the language the client booked in (§3, *Client language*). The account can be deleted on request (E014).
 
 ---
 
@@ -1573,7 +1573,7 @@ Do not build yet:
 - resource management
 - payroll
 - commissions
-- open sign-up (anyone creating a team account themselves, §27, §58)
+- open sign-up (anyone creating an account themselves, §27, §58)
 
 ---
 
