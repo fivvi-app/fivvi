@@ -76,6 +76,7 @@ if [ "${1:-}" = --mobile ]; then
 fi
 
 git -C "$MAIN_ROOT" config core.hooksPath .githooks
+"$ROOT/scripts/emails.sh" identity || warn "commits need a GitHub noreply user.email (AGENTS.md)"
 mkdir -p "$WORKTREES_DIR" "$NOTES_DIR"
 
 install_node || { warn "Node or pnpm missing — fix the above and re-run this script"; exit 1; }

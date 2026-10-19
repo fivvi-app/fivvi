@@ -22,7 +22,7 @@ How every change gets from idea to `main`, and how we clean up afterwards. It ap
 
 - **Spec issue title:** `[F031] Open Gym public booking`; ticket titles `[F031] <slice>` (`docs/agents/issue-tracker.md`)
 - **PR title:** the ticket's title, `[F031] Hold a spot during verification` (`pr.sh create` sets it)
-- **Commits:** Conventional Commits with the ID as scope, e.g. `feat(F031): hold a spot during verification` (the `.githooks/commit-msg` hook checks it)
+- **Commits:** Conventional Commits with the ID as scope, e.g. `feat(F031): hold a spot during verification` (the `.githooks/commit-msg` hook checks it, and that author, committer and `Co-authored-by` are GitHub noreply addresses)
 
 ## 3. Lifecycle of a change
 
