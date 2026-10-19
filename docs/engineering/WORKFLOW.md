@@ -34,7 +34,7 @@ We follow [Matt Pocock's skills](https://github.com/mattpocock/skills). The owne
 | 2. Spec | `to-spec` | `issue.sh create spec` | Spec issue `[F0xx] …`: ACs (NL/EN), Test plan, platforms, languages | Owner reviews on GitHub and approves with the `spec-approved` label |
 | 3. Tickets | `to-tickets` | `issue.sh create ticket --parent --blocked-by` | Tracer-bullet sub-issues with blocking edges, `ready-for-agent` | Agents, only for an approved spec |
 | 4. Build | `implement` (`tdd`) in a fresh mid-tier `builder` subagent, then `code-review` in a fresh high-tier `reviewer`, by `docs/agents/build.md` | `flow.sh start`, `check.sh` | One ticket per worktree, at most three in parallel, test-first, reviewed by the `reviewer` | Agents |
-| 5. Ship | `pr` | `pr.sh create`, `reviewed`, `wait`, `smoke`, `ready`, `merge` | One draft → ready PR per ticket that `Closes #<n>`, CI green, self-review and preview smoke check recorded for the head commit, squash-merged | Agents merge low-risk PRs through the merge gate; the owner merges high-risk ones (§4) |
+| 5. Ship | `pr` | `pr.sh create`, `reviewed`, `ship` (`wait`, `smoke`, `ready`), `merge` | One draft → ready PR per ticket that `Closes #<n>`, CI green, self-review and preview smoke check recorded for the head commit, squash-merged | Agents merge low-risk PRs through the merge gate; the owner merges high-risk ones (§4) |
 | 6. Clean up | | `flow.sh finish` | No worktree or branch left; the spec's next ready tickets | Agent |
 
 Tickets that aren't agent-ready and bugs go through `triage`; bugs also through `diagnosing-bugs` (failing test first). `implement-spec` (one integration branch for a whole spec) stays available when the owner asks for it.
@@ -45,7 +45,7 @@ Tickets that aren't agent-ready and bugs go through `triage`; bugs also through 
 - The spec's **Test plan** is written before implementing (`TESTING.md §6`).
 - A ticket PR changes only its feature's `FEATURES.md` Status: the spec's first ticket sets `IN PROGRESS`, the PR that completes the spec `IMPLEMENTED` with the final one-line summary, and the others leave the file alone (`flow.sh` prints the hint). Progress lives in the spec's tickets, not in the row. The feature's ID links the spec issue.
 - An API change regenerates `packages/contract` (OpenAPI + TS/Swift/Kotlin clients) in the same PR. A string change edits only `packages/i18n/*.json` and regenerates the native catalogs in the same PR.
-- Every PR that touches a Railway watch pattern gets a preview (its own migrated and seeded Postgres); `pr.sh smoke` checks it and records the result in the PR description. Merging to `main` deploys production ([`ENVIRONMENTS.md`](ENVIRONMENTS.md)).
+- Every PR that touches a Railway watch pattern gets a preview (its own migrated and seeded Postgres); `pr.sh smoke` checks it and records the result in the PR description; a preview Railway skipped (after a failed first CI run, "Wait for CI") is redeployed with the `railway` CLI, in `trainer-hub-pr-<n>` only. Merging to `main` deploys production ([`ENVIRONMENTS.md`](ENVIRONMENTS.md)).
 - Merge strategy: **squash merge** into `main`, the only method the repo allows, after the required CI checks (§7) pass. Who merges depends on the PR's risk (§4).
 
 ## 4. Working with AI agents
