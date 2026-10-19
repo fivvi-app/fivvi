@@ -20,10 +20,24 @@ esac
 
 cd "$ROOT"
 FAILED=0
+# An early exit must not leave the summary of an earlier run behind.
+rm -f "$ROOT/.work/check-summary.json"
 # What every check printed, passed or failed: test-summary.sh reads the suites' counts from it.
 LOG_DIR="$(mktemp -d)"
 trap 'rm -rf "$LOG_DIR"' EXIT
 SUMMARY_JSON=".work/check-summary.json"
+
+# What a failed check shows. A turbo run is logged in full (the parser reads every task's counts), but only the output of
+# the tasks that failed (named by "<package>#<task>:  ERROR") is shown, with turbo's footer; any other check shows all.
+failure_output() {
+  local prefixes
+  prefixes="$(sed -nE 's/^([^[:space:]]+)#([^[:space:]]+):[[:space:]]+ERROR[[:space:]].*/\1:\2: /p' <<<"$1")"
+  [ -n "$prefixes" ] || { printf '%s\n' "$1"; return; }
+  awk 'NR == FNR { prefix[++n] = $0; next }
+       footer || /^[^[:space:]]+#[^[:space:]]+:[[:space:]]+ERROR[[:space:]]/ { print; next }
+       /^ *Tasks: / { footer = 1; print; next }
+       { for (i = 1; i <= n; i++) if (index($0, prefix[i]) == 1) { print; break } }' <(printf '%s\n' "$prefixes") <(printf '%s\n' "$1")
+}
 
 check() {
   local name="$1" out rc=0
@@ -34,7 +48,7 @@ check() {
     echo "✓ $name"
   else
     echo "✗ $name"
-    [ -z "$out" ] || printf '    %s\n' "${out//$'\n'/$'\n'    }"
+    [ -z "$out" ] || { out="$(failure_output "$out")"; printf '    %s\n' "${out//$'\n'/$'\n'    }"; }
     FAILED=1
   fi
 }
@@ -141,12 +155,24 @@ if ! $FAST; then
   check "e2e tests (port $(e2e_port "$ROOT"))" e2e_tests
 fi
 
+# The suites of the workspace that turbo runs tests for: the root and every package with a test script. One that left no
+# output (turbo stops after the first failure) is listed as not-run.
+expected_suites() {
+  local file
+  echo "//:test:root"
+  for file in apps/*/package.json packages/*/package.json; do
+    [ -f "$file" ] || continue
+    jq -r '.name as $name | (.scripts // {}) | keys[] | select(. == "test" or . == "test:integration" or . == "test:e2e") | "\($name):\(.)"' "$file"
+  done
+}
+
 # The suites' counts, after the checks so that a failed run shows them too.
 if $FAST; then
   test_kinds=(--run unit --skip integration --skip e2e)
 else
   test_kinds=(--run unit --run integration --run e2e)
 fi
+while IFS= read -r suite; do test_kinds+=(--expect "$suite"); done < <(expected_suites)
 echo
 "$ROOT/scripts/test-summary.sh" --json "$ROOT/$SUMMARY_JSON" "${test_kinds[@]}" "$LOG_DIR/output.log" \
   || { echo "✗ test summary"; FAILED=1; }

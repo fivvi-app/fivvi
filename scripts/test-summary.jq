@@ -1,5 +1,6 @@
 # The test counts of a check run, read from the logs turbo prints. Pure: no I/O.
-# Input: the lines of the logs (jq --raw-input --slurp), the --run and --skip kinds as $run and $skip.
+# Input: the lines of the logs (jq --raw-input --slurp), the --run and --skip kinds as $run and $skip, and the suites
+# the workspace has as $expect, each as "<package>:<task>" like the prefix turbo prints ("@trainer-hub/ui:test").
 # Output: {suites: [{name, kind, status, passed, failed, skipped}], total: {passed, failed, skipped}}
 #
 # turbo puts "<package>:<task>: " before every line of a task, so the log of the whole run tells the suites apart:
@@ -7,8 +8,11 @@
 #   <package>:test                a package's unit tests (vitest)         kind unit, named after the package
 #   <package>:test:integration    its integration tests (vitest)          kind integration, "<package> integration"
 #   <package>:test:e2e            its e2e tests (Playwright)              kind e2e, "<package> e2e"
-# status is pass, fail, skipped (the kind was left out of this run) or no-results (the kind ran but printed no counts,
-# e.g. Docker was not running). A suite that failed before it printed counts has status fail and null counts.
+# status (chosen in found(), for expected suites with no output, and for kinds without suites below):
+#   pass, fail   the suite ran; a suite that failed before it printed counts is fail with null counts
+#   skipped      the kind was left out of this run (check.sh --fast)
+#   not-run      an expected suite printed nothing, e.g. turbo stopped after another task failed
+#   no-results   a kind that ran has no suite at all, e.g. Docker was not running
 
 def kind_of: if . == "test:integration" then "integration" elif . == "test:e2e" then "e2e" else "unit" end;
 
@@ -42,14 +46,22 @@ def pkg_name: sub("^@[^/]+/"; "") | if . == "//" then "root" else . end;
 
 def empty_counts: {passed: null, failed: null, skipped: null};
 
-def entry($s):
-  ($s.task | kind_of) as $kind
-  | ($s.pkg | pkg_name) as $name
-  | (($s.fail // 0) + ($s.cancelled // 0) + ($s.failed // 0)) as $failed
-  | {name: (if $kind == "unit" then $name else "\($name) \($kind)" end), kind: $kind,
-     status: (if $s.error or $failed > 0 then "fail" elif $s.seen then "pass" else "no-results" end)}
-    + (if $s.seen then {passed: (($s.passed // 0) + ($s.flaky // 0)), failed: $failed, skipped: (($s.skipped // 0) + ($s.todo // 0))}
-       else empty_counts end);
+# Every suite is made here, so the statuses are spelled in one place.
+def suite($pkg; $task; $status; $counts):
+  ($task | kind_of) as $kind
+  | ($pkg | pkg_name) as $name
+  | {name: (if $kind == "unit" then $name else "\($name) \($kind)" end), kind: $kind, status: $status} + $counts;
+
+def kind_suite($kind; $status): {name: $kind, kind: $kind, status: $status} + empty_counts;
+
+# A suite found in the logs: its counts, and whether it passed.
+def found($s):
+  (($s.fail // 0) + ($s.cancelled // 0) + ($s.failed // 0)) as $failed
+  | suite($s.pkg; $s.task;
+          (if $s.error or $failed > 0 then "fail" elif $s.seen then "pass" else "no-results" end);
+          if $s.seen
+          then {passed: (($s.passed // 0) + ($s.flaky // 0)), failed: $failed, skipped: (($s.skipped // 0) + ($s.todo // 0))}
+          else empty_counts end);
 
 def first_match(f): [f] | first;
 
@@ -65,11 +77,17 @@ def first_match(f): [f] | first;
           else . end
       end))
   as $tasks
-| [$tasks | to_entries[] | entry(.value)] as $found
-| ($found | map(.kind)) as $kinds
-| ($found
-   + [$run[] | select(. as $k | ($kinds | any(. == $k)) | not) | {name: ., kind: ., status: "no-results"} + empty_counts]
-   + [$skip[] | {name: ., kind: ., status: "skipped"} + empty_counts])
+| [$tasks[] | found(.)] as $found
+| [$expect[]
+   | first_match(capture("^(?<pkg>.+?):(?<task>test(:root|:integration|:e2e)?)$"))
+   | select(. != null)
+   | select((.task | kind_of) as $k | $skip | any(. == $k) | not)
+   | select($tasks["\(.pkg)|\(.task)"] == null)
+   | suite(.pkg; .task; "not-run"; empty_counts)] as $absent
+| ($found + $absent | map(.kind)) as $kinds
+| ($found + $absent
+   + [$run[] | select(. as $k | $kinds | any(. == $k) | not) | kind_suite(.; "no-results")]
+   + [$skip[] | kind_suite(.; "skipped")])
 | sort_by([({unit: 0, integration: 1, e2e: 2}[.kind]), (.name != "root"), .name]) as $suites
 | {suites: $suites,
    total: {passed: ([$suites[].passed // 0] | add // 0),
