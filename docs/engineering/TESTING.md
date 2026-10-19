@@ -80,7 +80,7 @@ These are the bugs that hurt most (`ROADMAP.md §13`: R2, R3, R4). They get dedi
 
 - Group tests by feature ID and name them after the behaviour, not the function:
   `describe('F029 booking hold')` → `it('releases the spot when the hold expires')`
-- Tests that cover an acceptance criterion reference it: `it('AC2: guest receives the confirmation email in their locale')`. A reviewer can then check the spec issue against the test list.
+- Tests that cover an acceptance criterion reference it: `it('AC2: client receives the confirmation email in their locale')`. A reviewer can then check the spec issue against the test list.
 - Native: the same idea in XCTest/JUnit method names, e.g. `test_F043_AC1_logsSetWhileOffline`.
 
 ### 5.2 Test data
@@ -128,7 +128,7 @@ Every spec issue (`docs/agents/issue-tracker.md`) has a **Test plan** in its *Te
 
 | AC | Layer | Test |
 |---|---|---|
-| AC1 (NL/EN) | Playwright | `apps/web/e2e/booking.spec.ts` → `AC1: guest books a class` |
+| AC1 (NL/EN) | Playwright | `apps/web/e2e/booking.spec.ts` → `AC1: client books a class` |
 | AC2 | API integration | `packages/api/test/bookings.test.ts` → `AC2: rejects booking when full` |
 | AC3 | Domain unit | `packages/domain/booking/hold.test.ts` → `AC3: hold expires after 10 minutes` |
 

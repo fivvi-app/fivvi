@@ -149,7 +149,7 @@ No event is live yet. The MVP features add theirs when they are built; their spe
 | Event | Status | Feature | Measures |
 |---|---|---|---|
 | `spot_held` | Planned | F029 Booking Hold | Booking started → confirmed conversion; time to verify |
-| `booking_confirmed` | Planned | F030 Magic-Link Verification, F031 Guest Booking | Booking conversion; share of bookings through public pages; Open Gym bookings per week |
+| `booking_confirmed` | Planned | F030 Magic-Link Verification, F031 Booking with Email Verification | Booking conversion; share of bookings through public pages; Open Gym bookings per week |
 | `booking_cancelled` | Planned | F026 Cancellations | Cancellations (3.2) |
 | `attendance_recorded` | Planned | F025 Attendance | Trainers using their assigned sessions; no-shows (3.2) |
 | `workout_logged` | Planned | F043 Live Workout Logging | Private sessions with a logged workout |

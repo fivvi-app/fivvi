@@ -90,7 +90,7 @@ flowchart TD
 ```
 
 - The header answers what, when, where, who, and which series (`§20`: each occurrence has its own trainer, date, capacity, bookings, attendance and status).
-- **Wacht op bevestiging** shows active holds (F029), so the owner understands why the public page says *gereserveerd*. Names of unverified guests are **not** shown.
+- **Wacht op bevestiging** shows active holds (F029), so the owner understands why the public page says *gereserveerd*. Names of unverified holds are **not** shown.
 - **Participant source**: *via boekingslink* (public, F031) or *toegevoegd door {name}* (CO-07).
 - **Attendance** (CO-06) is inline and enabled from 30 minutes before the start ⚑ [Q38](../open-questions.md#q38).
 - **Boekingslink ▾**: *Link kopiëren · QR-code tonen · Delen*, all scoped to this occurrence (F037/F038).

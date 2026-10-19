@@ -100,7 +100,7 @@ A QR code or URL opens a responsive booking page.
 
 ---
 
-## 2.4 Account creation is optional
+## 2.4 A client account is created at the first verified booking
 
 For first booking:
 
@@ -115,7 +115,7 @@ No password.
 
 Email is verified using a magic link.
 
-Account creation happens only if the client wants it.
+The client's account is created automatically the moment they verify their first booking; there is no separate account-creation step or choice (§26, §27).
 
 ---
 
@@ -195,7 +195,7 @@ Store language on the user profile:
 preferredLocale: "nl-NL" | "en"
 ```
 
-For guests without accounts:
+For a client with no stored preference yet:
 
 - detect browser/device locale: the first supported language in the browser's or device's order
 - fall back to English when neither Dutch nor English is requested
@@ -472,14 +472,13 @@ Can:
 
 ---
 
-## Client / Guest
+## Client
 
 Can:
 
 - book group classes
 - book Open Gym
-- verify email
-- optionally create account
+- verify email (creates the account automatically)
 - later use client web/mobile
 
 ---
@@ -661,7 +660,6 @@ Supports:
 - Open Gym
 - booking
 - magic-link verification
-- optional account creation
 
 Must have a prominent:
 
@@ -871,7 +869,7 @@ Email verified
         ↓
 Booking confirmed
         ↓
-Optional account creation
+Client account created
 ```
 
 The entire flow stays in the user's selected language.
@@ -906,9 +904,9 @@ expired
 
 ---
 
-# 25. Guest booking
+# 25. Booking with email verification
 
-Guest retains:
+The client retains:
 
 - name
 - verified email
@@ -921,35 +919,41 @@ Receives localized:
 - cancellations
 - changes
 
-No account required.
+Verifying the email creates the client's account (§26); there is no separate account step.
 
 ---
 
-# 26. Optional client account
+# 26. Client account created automatically
 
-After booking:
+Before submitting the booking form, it shows one explanatory line — no choice, no extra screen:
+
+Dutch:
+
+```text
+We maken een account voor je aan, zodat je je boekingen kunt zien.
+```
+
+English:
+
+```text
+We create an account for you so you can see your bookings.
+```
+
+After verification, the confirmation screen's headline is:
 
 Dutch:
 
 ```text
 Je boeking is bevestigd.
-
-Wil je een account aanmaken?
-
-[ Account aanmaken ]
-[ Doorgaan zonder account ]
 ```
 
 English:
 
 ```text
 Your booking is confirmed.
-
-Would you like to create an account?
-
-[ Create account ]
-[ Continue without account ]
 ```
+
+The account's stored language is the language the client booked in (§3, *Client language*). The account can be deleted on request (E014).
 
 ---
 
@@ -968,6 +972,16 @@ No:
 - SMS
 
 in MVP.
+
+Everyone signs in the same way: email, then the link or the 6-digit code from the email (ADR-007).
+
+Sign-up is closed in MVP. An account is only created by:
+
+- the first sign-in of an email address we've allowed (the pilot owner)
+- accepting a trainer invitation (§49)
+- a client's first verified booking (§26)
+
+Any other address gets the same "check your email" message and no email, so nobody can tell whether an account exists. Open sign-up comes with Release 2.0 (§58).
 
 ---
 
@@ -1496,8 +1510,8 @@ versions.
 - name/email
 - temporary hold
 - magic link
-- guest booking
-- optional account creation
+- booking with email verification
+- client account created automatically
 
 ## Sharing
 
@@ -1559,6 +1573,7 @@ Do not build yet:
 - resource management
 - payroll
 - commissions
+- open sign-up (anyone creating an account themselves, §27, §58)
 
 ---
 
@@ -2201,8 +2216,8 @@ F027 Public Booking Page
 F028 Booking Capacity
 F029 Booking Hold
 F030 Magic-Link Verification
-F031 Guest Booking
-F032 Optional Account Creation
+F031 Booking with Email Verification
+F032 Client Account on First Booking
 F033 Client Booking Dashboard
 ```
 
@@ -2305,8 +2320,8 @@ F050 Trainer Booking Notifications
 34. temporary booking hold
 35. localized magic link
 36. booking confirmation
-37. guest booking
-38. optional account
+37. booking with email verification
+38. client account created automatically
 39. client web dashboard
 
 ---

@@ -45,10 +45,7 @@ _Avoid_: freelancer
 
 **Client**:
 A person who trains with or books at a workspace. Belongs to the workspace, not to one trainer.
-_Avoid_: customer, member, user, athlete
-
-**Guest**:
-A client who booked without an account, with a verified email only.
+_Avoid_: customer, member, user, athlete, guest
 
 **Participant**:
 A client on a session's list: booked into a class or Open Gym slot, or the client of a private session.
@@ -58,20 +55,27 @@ _Avoid_: attendee, student
 An email from an owner asking someone to join the workspace as a trainer or admin.
 
 **Account**:
-A login: optional for a client, required for a team member.
+A login: required for a team member; created for a client at their first verified booking. One per person and email address, shared by every workspace the person belongs to.
+
+**Sign in**:
+To start using an account by verifying its email address with a magic link or a verification code.
+_Avoid_: log in, login (as a verb), sign up, register, session (for being signed in)
+
+**Sign-up** 🔜:
+Creating a new account by choice, separate from a first sign-in, an accepted invitation or a client's first verified booking.
 
 **Interface language**:
 The language a person sees on screen: Dutch or English. It follows the person (their choice, their preference or their device), or a booking link's fixed language; never the workspace's default communication language.
 _Avoid_: locale (outside code), app language
 
 **Communication language**:
-The language of an email or other message to a person: their own preference, otherwise the workspace's default communication language.
+The language of an email or other message to a person: their stored preference, otherwise the workspace's default communication language; for a message with no workspace, such as the sign-in email, the interface language of the screen that asked (ADR-019).
 _Avoid_: email language, workspace language
 
 ### Scheduling
 
 **Session**:
-The generic word for any scheduled item: a private session, a class occurrence or an Open Gym slot. Use the specific word when you mean one type.
+The generic word for any scheduled item: a private session, a class occurrence or an Open Gym slot. Use the specific word when you mean one type. Not the state of being signed in to an account; say *signed in* for that.
 _Avoid_: appointment, event, activity
 
 **Private session**:

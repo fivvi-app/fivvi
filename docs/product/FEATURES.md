@@ -23,7 +23,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F001 | Authentication | PLANNED | Must | M2 | E004, E006 | ⬜ | ⬜ | §2.4, §27 |
+| [F001](https://github.com/trainerrrzzz/trainer-hub/issues/128) | Authentication | PLANNED | Must | M2 (+M8 mobile) | E004, E006 | ⬜ | ⬜ | §2.4, §27 |
 | F002 | Workspaces | PLANNED | Must | M2 | F001 | ⬜ | ⬜ | §5 |
 | F003 | Workspace Membership | PLANNED | Must | M2 | F002 | ⬜ | ⬜ | §6 |
 | F004 | Roles | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9, §50 |
@@ -73,8 +73,8 @@ The single source of truth for feature status. A status changes **in the same PR
 | F028 | Booking Capacity | PLANNED | Must | M5 | F027 | ⬜ | ⬜ | §18 |
 | F029 | Booking Hold | PLANNED | Must | M5 | F028, E012 | ⬜ | ⬜ | §24 |
 | F030 | Magic-Link Verification | PLANNED | Must | M5 | F029, F049 | ⬜ | ⬜ | §23, §27 |
-| F031 | Guest Booking | PLANNED | Must | M5 | F030 | ⬜ | ⬜ | §25 |
-| F032 | Optional Account Creation | PLANNED | Must | M5 | F031, F001 | ⬜ | ⬜ | §2.4, §26 |
+| F031 | Booking with Email Verification | PLANNED | Must | M5 | F030 | ⬜ | ⬜ | §25 |
+| F032 | Client Account on First Booking | PLANNED | Must | M5 | F031, F001 | ⬜ | ⬜ | §2.4, §26 |
 | F033 | Client Booking Dashboard | PLANNED | Must | M5 | F031 | ⬜ | ⬜ | §15 (Client Web) |
 
 ### Open Gym
