@@ -27,7 +27,7 @@ What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLO
 
 ### 1.1 Dutch (nl-NL): informal "je", friendly and short
 
-**Decision: always address the reader with "je", never "u".** `ROADMAP.md §10` sets the tone guide as *informal "je", friendly and short*, and `PRODUCT.md §26` already uses it ("Je boeking is bevestigd. Wil je een account aanmaken?"). This applies to every audience (owners, trainers, clients, guests) and every surface, including emails.
+**Decision: always address the reader with "je", never "u".** `ROADMAP.md §10` sets the tone guide as *informal "je", friendly and short*, and `PRODUCT.md §26` already uses it ("Je boeking is bevestigd. We maken een account voor je aan, zodat je je boekingen kunt zien."). This applies to every audience (owners, trainers, clients) and every surface, including emails.
 
 | Rule | ✅ Do | ❌ Don't |
 |---|---|---|
@@ -161,8 +161,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | Owner | Eigenaar (de, eigenaren) | ❌ *baas, beheerder* (that's Admin), *owner* (NL). |
 | Admin | Beheerder (de, beheerders) | ❌ NL: *admin, administrator, manager*. |
 | Trainer | Trainer (de, trainers) | ❌ *coach, instructeur, docent, PT* (as a role name). "Personal trainer" is fine in marketing copy, not as a role. |
-| client | klant (de, klanten) | ❌ NL: *cliënt* (sounds medical), *lid, sporter, deelnemer* (see *participant*), *gebruiker*. ❌ EN: *customer, member, user, athlete*. |
-| guest | gast (de, gasten) | Mostly internal. In the UI, prefer describing it: "zonder account" / "without an account". |
+| client | klant (de, klanten) | ❌ NL: *cliënt* (sounds medical), *lid, sporter, deelnemer* (see *participant*), *gebruiker*. ❌ EN: *customer, member, user, athlete, guest*. |
 | participant | deelnemer (de, deelnemers) | ❌ EN: *attendee, student*. ❌ NL: *cursist, leerling*. |
 | independent trainer | zelfstandig trainer | ❌ *zzp'er, freelancer* in UI. |
 | gym | sportschool (de, sportscholen) | A physical fitness business or venue. "Gym" is fine in names ("John's Gym") and in *Open Gym*, but not as a generic Dutch noun. ❌ *fitnesscentrum, fitnessclub*. |
@@ -228,7 +227,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | magic link | *(internal)* — **inloglink** / **bevestigingslink** | EN: *sign-in link* / *confirmation link*. ❌ *magic link, magische link* in UI. Say *inloglink* when it signs someone in, *bevestigingslink* when it confirms a booking. |
 | verification code | verificatiecode (de, verificatiecodes); short: **code** | "Vul de code uit de e-mail in." / "Enter the code from the email." ❌ *pincode, wachtwoord, token, OTP, sms-code*. |
 | sign in / sign out | inloggen / uitloggen | EN: *Sign in / Sign out*. ❌ EN: *Log in, Login* (as a verb). ❌ NL: *aanmelden* (ambiguous with registering), *afmelden*. |
-| account | account (het, accounts) | *Account aanmaken / Create account*, *Doorgaan zonder account / Continue without account* (`PRODUCT.md §26`). ❌ *profiel* for the login itself. |
+| account | account (het, accounts) | Created automatically at a client's first verified booking (`PRODUCT.md §26`) — never shown as a choice, so there is no "Create account" / "Continue without account" copy. ❌ *profiel* for the login itself. |
 | email | e-mail (de, e-mails); *email address* → **e-mailadres** (het) | EN writes *email* without a hyphen. ❌ NL: *mail, mailadres, emailadres*. |
 | booking confirmation | boekingsbevestiging (de) |  |
 | my bookings | Mijn boekingen | The client's booking overview (`PRODUCT.md §15`, F033). Tabs: *Aankomend / Upcoming*, *Afgelopen / Past*. |
@@ -481,3 +480,4 @@ These terms are the best current choice. Confirm them in the M0 wireframe review
 | 2026-09-22 | 0.3 | Copy review checklist moved to the local author workflow; no GitHub Claude/Codex reviewer or CI job is required. Terminology is unchanged. |
 | 2026-09-23 | 0.4 | E005: §3.3 drops `=0` plural selectors (not portable to Android; use a separate key). §3.1, §6.3 and §6.6 point to the i18n package (date formats, key naming, `comments.json`). Terminology is unchanged. |
 | 2026-10-13 | 0.5 | Definitions moved to the root domain glossary (`GLOSSARY.md`, used by the agent skills); §4 keeps the NL/EN wording and forbidden alternatives, and explains UI-only terms in its notes. Terminology is unchanged. |
+| 2026-10-19 | 0.6 | F001 shaped: there are no guests, a client's account is created automatically at their first verified booking. §4 retires the *guest* row (never in UI, now also avoid internally — see *client*'s ❌ list) and drops the "Create account" / "Continue without account" copy from the *account* row. |

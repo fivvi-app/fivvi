@@ -1,10 +1,10 @@
 # Flow 01: Public booking on a phone
 
-**QR → class → name/email → verify → confirmed → optional account**
+**QR → class → name/email → verify → confirmed → client account created**
 
 | | |
 |---|---|
-| **Actors** | Guest (first booking), returning client (with or without account); assigned trainer (receives the notification) |
+| **Actors** | Client, first booking (account created automatically at verification), returning client (signed in, or via the email link); assigned trainer (receives the notification) |
 | **Surface** | Public booking web + client web, **phone first** (iOS Safari, Android Chrome); works on desktop |
 | **Milestone** | M5 (group classes), M6 (Open Gym, link scopes, QR) |
 | **Spec** | `PRODUCT.md §2.3, §2.4, §3, §21–§27, §30, §32, §33, §51`; `ROADMAP.md M5, M6, R1, R3, R5` |
@@ -18,8 +18,8 @@
 | F028 | Booking Capacity | Availability on PB-01/02; the "just missed it" error on PB-03 |
 | F029 | Booking Hold | PB-03 → PB-04; expiry; PB-08 |
 | F030 | Magic-Link Verification | EM-01, PB-04 (code), PB-05, PB-08 |
-| F031 | Guest Booking | PB-03, PB-06, `/manage/{token}` |
-| F032 | Optional Account Creation | PB-06, PB-07 |
+| F031 | Booking with Email Verification | PB-03, PB-06, `/manage/{token}` |
+| F032 | Client Account on First Booking | PB-06 |
 | F033 | Client Booking Dashboard | CW-01 – CW-04 |
 | F035 | Open Gym Public Booking | Open Gym items on PB-01/02 (same flow) |
 | F037 | Booking Links | Entry scopes; PB-09 |
@@ -62,8 +62,7 @@ flowchart TD
   check -- "les gaat niet door /<br/>al begonnen" --> pb08e["PB-08e Les niet meer te boeken"]
   pb04 -- "bevestigd op ander<br/>apparaat (polling)" --> pb06
   pb04 -. "15 min verstreken" .-> expired["hold → expired<br/>plek komt vrij"]
-  pb06 -- "Account aanmaken" --> pb07["PB-07 Account aanmaken"] --> cw02["CW-02 Mijn boekingen"]
-  pb06 -- "Doorgaan zonder account" --> done["Klaar<br/>beheer via link in EM-02"]
+  pb06 --> cw02["CW-02 Mijn boekingen"]
 ```
 
 ## Screens
@@ -402,21 +401,18 @@ A signed-in client has already verified their email, so tapping *Boeken* confirm
 │ Deze link staat ook in je              │
 │ bevestigingsmail.                      │
 │────────────────────────────────────────│
-│ Wil je een account aanmaken?           │
-│ Dan zie je al je boekingen op één plek │
-│ en boek je de volgende keer met één    │
-│ tik.                                   │
+│ We maken een account voor je aan,      │
+│ zodat je je boekingen kunt zien.       │
 │                                        │
-│ [       Account aanmaken             ] │
-│ [    Doorgaan zonder account         ] │
+│ [       Naar mijn boekingen          ] │
+│ [        Nog een les boeken          ] │
 └────────────────────────────────────────┘
 ```
 
-- The headline, question and button texts are taken literally from `§26`.
-- The account prompt doesn't show if the client already has an account (they only see *Naar mijn boekingen*).
+- The headline and the account note are taken literally from `§26`.
+- The account note doesn't repeat for a client who already has one; they just see *Naar mijn boekingen*.
 - *Zet in je agenda* downloads a single-event `.ics` ⚑ [Q15](../open-questions.md#q15).
 - *Beheer je boeking* opens CW-03 for this booking. It replaces the earlier passive sentence about cancelling via the email. In production the same link is in the confirmation email (`/manage/{token}`).
-- *Doorgaan zonder account* collapses the prompt into: *Klaar. Je kunt je boeking beheren via de link in de bevestigingsmail.* + *Beheer je boeking* + *Nog een les boeken*.
 
 | Element | NL | EN |
 |---|---|---|
@@ -424,54 +420,9 @@ A signed-in client has already verified their email, so tapping *Boeken* confirm
 | Add to calendar | Zet in je agenda | Add to calendar |
 | Email note | Je krijgt ook een bevestiging per e-mail. | We've also sent you a confirmation email. |
 | Manage | Beheer je boeking · Deze link staat ook in je bevestigingsmail. | Manage booking · This link is also in your confirmation email. |
-| Account question | Wil je een account aanmaken? | Would you like to create an account? |
-| Account benefit | Dan zie je al je boekingen op één plek en boek je de volgende keer met één tik. | You'll see all your bookings in one place and book with one tap next time. |
-| Buttons | Account aanmaken · Doorgaan zonder account | Create account · Continue without account |
-| After "without" | Klaar. Je kunt je boeking beheren via de link in de bevestigingsmail. | All set. You can manage your booking from the link in the confirmation email. |
+| Account note | We maken een account voor je aan, zodat je je boekingen kunt zien. | We create an account for you so you can see your bookings. |
 | More | Nog een les boeken | Book another class |
 | Has account | Naar mijn boekingen | Go to my bookings |
-
-### PB-07 · Account aanmaken / Create account
-
-**Features:** F032, F001
-
-```text
-┌────────────────────────────────────────┐
-│ ‹ Terug                        NL | EN │
-├────────────────────────────────────────┤
-│ Account aanmaken                       │
-│                                        │
-│ Naam                                   │
-│ [ Anna de Vries                      ] │
-│                                        │
-│ E-mailadres                            │
-│ anna@example.com  ✓ bevestigd            │
-│                                        │
-│ Taal                                   │
-│ ● Nederlands   ○ English               │
-│                                        │
-│ Geen wachtwoord nodig: je logt in met  │
-│ een link of code per e-mail.           │
-│                                        │
-│ Door een account aan te maken ga je    │
-│ akkoord met de voorwaarden en de       │
-│ privacyverklaring.                     │
-├────────────────────────────────────────┤
-│ [       Account aanmaken             ] │
-└────────────────────────────────────────┘
-```
-
-- The email was just verified, so there's no second verification. The client is signed in straight away and lands on CW-02.
-- The language defaults to the one used for the booking.
-
-| Element | NL | EN |
-|---|---|---|
-| Title / button | Account aanmaken | Create account |
-| Verified | bevestigd | verified |
-| Language | Taal · Nederlands · English | Language · Nederlands · English |
-| No password | Geen wachtwoord nodig: je logt in met een link of code per e-mail. | No password needed: you sign in with a link or code sent by email. |
-| Terms | Door een account aan te maken ga je akkoord met de voorwaarden en de privacyverklaring. | By creating an account you agree to the terms and the privacy statement. |
-| Success (toast on CW-02) | Je account is aangemaakt. | Your account has been created. |
 
 ### PB-08 · Linkproblemen / Link problems
 
@@ -557,8 +508,7 @@ CW-03 Boeking                             CW-04 Profiel
 
 - **CW-01** reuses the PB-04 pattern: *Check je e-mail* + code field. It never reveals whether an email has an account (*Als dit e-mailadres bij ons bekend is, krijg je een e-mail.*).
 - **CW-02** *Eerder* lists past bookings with their final status (*Aanwezig*, *Niet verschenen*, *Geannuleerd*).
-- **CW-03** for a guest without an account is the same screen reached via `/manage/{token}`, with *Account aanmaken* at the bottom instead of the back link. PB-06 links to it with *Beheer je boeking*.
-- The prototype's guest manage screen leaves out *Account aanmaken*, because the confirmation (PB-06) already offers it.
+- **CW-03** reached via `/manage/{token}` (the link in the confirmation email) shows the same screen without requiring a sign-in, for a client managing one booking straight from the email. PB-06 links to it with *Beheer je boeking*.
 - There is no modify action. One line under the actions explains how to change the time: cancel and book again.
 - **Cancel** asks for confirmation. After cancelling, EM-03 goes to the client and EM-07 to the trainer, and the spot is freed. In MVP a client can cancel until the class starts ⚑ [Q09](../open-questions.md#q09).
 - **Change email** sends a code to the new address; the change only happens after verification.
@@ -601,7 +551,7 @@ CW-03 Boeking                             CW-04 Profiel
 | **DST weekend** (25 oktober 2026) | A weekly 18:00 class shows 18:00 on both sides of the change. The `.ics` file carries the timezone (`TZID=Europe/Amsterdam`), not a floating time | PB-01, PB-06 |
 | **Hold countdown with a wrong device clock** | The countdown uses server-provided remaining seconds | PB-04 |
 | **Browser back from PB-04** | PB-03 shows *Je plek is al vastgehouden* + *Naar bevestigen*. Back never creates a second hold | PB-03 |
-| **Shared device** (e.g. a tablet at the gym desk) | Name and email are **not** remembered for guests. A signed-in session shows *Niet jij? Uitloggen* | PB-03 |
+| **Shared device** (e.g. a tablet at the gym desk) | Name and email are **not** remembered between bookings. A signed-in session shows *Niet jij? Uitloggen* | PB-03 |
 | **Occurrence link for a past date** | PB-08e + *Andere momenten bekijken* for the same class | PB-08e |
 | **JavaScript unavailable** | PB-01 – PB-03 and PB-05 work as server-rendered forms; only polling and the live countdown need JS | all |
 
@@ -625,4 +575,4 @@ This flow runs in the phone's browser, not in the native apps. It still has to f
 
 ## Open questions
 
-[Q07](../open-questions.md#q07) booking horizon · [Q08](../open-questions.md#q08) booking cut-off · [Q09](../open-questions.md#q09) client cancellation · [Q10](../open-questions.md#q10) hold length · [Q11](../open-questions.md#q11) show spot count and trainer · [Q12](../open-questions.md#q12) re-confirm after expiry · [Q13](../open-questions.md#q13) code on PB-04 · [Q14](../open-questions.md#q14) address, description, Open Gym trainer · [Q15](../open-questions.md#q15) add to calendar · [Q16](../open-questions.md#q16) value of a client account · [QE04](../open-questions.md#qe04)–[QE07](../open-questions.md#qe07)
+[Q07](../open-questions.md#q07) booking horizon · [Q08](../open-questions.md#q08) booking cut-off · [Q09](../open-questions.md#q09) client cancellation · [Q10](../open-questions.md#q10) hold length · [Q11](../open-questions.md#q11) show spot count and trainer · [Q12](../open-questions.md#q12) re-confirm after expiry · [Q13](../open-questions.md#q13) code on PB-04 · [Q14](../open-questions.md#q14) address, description, Open Gym trainer · [Q15](../open-questions.md#q15) add to calendar · [Q16](../open-questions.md#q16) client account created automatically (resolved) · [QE04](../open-questions.md#qe04)–[QE07](../open-questions.md#qe07)

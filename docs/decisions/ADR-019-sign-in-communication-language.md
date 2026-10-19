@@ -1,11 +1,11 @@
-# ADR-019: Sign-in email language
+# ADR-019: Sign-in communication language
 
 | | |
 |---|---|
 | **Status** | Proposed |
 | **Date** | 2026-10-19 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
-| **Related** | PRODUCT.md §3, §27; ADR-007, ADR-009, ADR-017; F001, F010 |
+| **Related** | Amends ADR-017 (communication-language order); PRODUCT.md §3, §27; ADR-007, ADR-009; F001, F010 |
 
 ## Context
 
@@ -26,7 +26,7 @@ Adds one rule to ADR-017's communication-language order, for emails sent outside
 
 - **Positive:** a person always gets the sign-in email in the language they were just reading, including at their first sign-in.
 - **Positive:** the account's first preference comes from a choice the person saw, not from a workspace setting.
-- **Negative:** a sign-in requested from a screen in the "wrong" language (a shared computer) sends the email in that language until the person has a stored preference.
+- **Negative:** on a shared computer whose screen is in a different language than the person's own, the first sign-in stores that screen's language as the person's stored preference; the person can change it afterwards in their profile (F010).
 - **Follow-ups:** F010 adds the in-app switch that changes the stored preference.
 
 ## Alternatives considered

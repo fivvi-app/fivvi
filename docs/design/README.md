@@ -17,7 +17,7 @@ Low-fidelity UX for the MVP (roadmap task **M0 / §4.2**). Everything here is wr
 | Document | What it covers |
 |---|---|
 | [information-architecture.md](information-architecture.md) | Surfaces, roles and permissions, sitemaps for trainer web, trainer iOS/Android, public booking and client web, emails, cross-cutting patterns, screen inventory |
-| [flows/01-public-booking.md](flows/01-public-booking.md) | QR → class → name/email → verify → confirmed → optional account (phone) |
+| [flows/01-public-booking.md](flows/01-public-booking.md) | QR → class → name/email → verify → confirmed, client account created |
 | [flows/02-trainer-today.md](flows/02-trainer-today.md) | Trainer "Vandaag" on iOS and Android |
 | [flows/03-workspace-calendar.md](flows/03-workspace-calendar.md) | Workspace calendar on web (owner view) |
 | [flows/04-private-session.md](flows/04-private-session.md) | Create and reschedule a private session, with location inference |

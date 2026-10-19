@@ -52,7 +52,7 @@ How much location detail does a class or Open Gym listing need, and must an Open
 Do clients use an add-to-calendar action from a booking confirmation? **Proposal:** one-event calendar download (PB-06).
 
 ### Q16
-What makes an optional account worthwhile after a guest booking? **Proposal:** access to all upcoming and past bookings; management of one booking remains possible by email link (PB-06/07, CW-02).
+**Resolved by the owner, 19 October 2026.** There are no guests: every client's account is created automatically at their first verified booking (`PRODUCT.md §25–§26`, ADR-007). The booking confirmation (PB-06) explains this with one line; there is no account-creation screen and no choice to make. Managing one booking by the email link remains possible either way (`/manage/{token}`, CW-02/03). Whether a signed-in, already-verified client can book again without a new confirmation email is still open — see QE06.
 
 ### Q17
 What must appear on a trainer's Today row to choose the next action quickly? **Proposal:** time, client/class, location, workspace and attendance cue (TD-01).

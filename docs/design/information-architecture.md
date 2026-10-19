@@ -28,9 +28,9 @@ Assumptions that `PRODUCT.md` doesn't settle are marked **⚑** and linked to [o
 | **Trainer web** | Owner, Admin, Trainer | Laptop/desktop (responsive down to tablet) | Next.js | M2–M7 | F001–F026, F034, F036–F048 |
 | **Trainer iOS app** | Trainer (incl. owner-trainers) | iPhone | Swift + SwiftUI | M8 | Mobile slices of F013, F020, F025, F043–F048, F010 |
 | **Trainer Android app** | Trainer (incl. owner-trainers) | Android phone | Kotlin + Compose (Material 3) | M8 | Same as iOS (parity) |
-| **Public booking web** | Guest, client | Phone first (from QR), also desktop | Next.js (SSR) | M5–M6 | F027–F032, F035, F037, F038 |
-| **Client web** | Guest (via email link), client with account | Phone first | Next.js | M5 | F033, F026, F010 |
-| **Emails** | Clients, guests, trainers | Any mail client | React Email | M1 → M5 | F049, F050, F011, F001 |
+| **Public booking web** | Client (before or after verification) | Phone first (from QR), also desktop | Next.js (SSR) | M5–M6 | F027–F032, F035, F037, F038 |
+| **Client web** | Client (via the email's manage link, or signed in) | Phone first | Next.js | M5 | F033, F026, F010 |
+| **Emails** | Clients, trainers | Any mail client | React Email | M1 → M5 | F049, F050, F011, F001 |
 
 ```mermaid
 flowchart LR
@@ -38,8 +38,7 @@ flowchart LR
     O["Owner (often also Trainer)"]
     A["Admin"]
     T["Trainer"]
-    C["Client with account"]
-    G["Guest (name + email)"]
+    C["Client"]
   end
   subgraph Surfaces
     TW["Trainer web"]
@@ -53,11 +52,8 @@ flowchart LR
   A --> TW
   T --> TM
   T --> TW
-  G --> PB
   C --> PB
-  G -- "manage link in email" --> CW
-  C --> CW
-  EM --> G
+  C -- "manage link in email, or signed in" --> CW
   EM --> C
   EM --> T
   PB -- "confirmation link" --> EM
@@ -67,13 +63,13 @@ flowchart LR
 
 ## 3. Roles and what each role sees
 
-Roles come from `PRODUCT.md §9, §50`: **Owner, Admin, Trainer** inside a workspace, plus **Client/Guest** on public surfaces. There are no custom permissions in MVP. A person has one role **per workspace**, so Sarah can be *Trainer* at John's Gym and *Owner* of Sarah Personal Training at the same time (`§6`).
+Roles come from `PRODUCT.md §9, §50`: **Owner, Admin, Trainer** inside a workspace, plus **Client** on public surfaces. There are no custom permissions in MVP. A person has one role **per workspace**, so Sarah can be *Trainer* at John's Gym and *Owner* of Sarah Personal Training at the same time (`§6`).
 
 ### 3.1 Permission matrix
 
 ✓ = can · 👁 = view only · — = can't · ⚑ = assumption, see the linked question
 
-| Capability | Owner | Admin | Trainer | Client (account) | Guest |
+| Capability | Owner | Admin | Trainer | Client (signed in) | Client (not signed in) |
 |---|---|---|---|---|---|
 | Workspace settings: name, default language, timezone, locations | ✓ | — ⚑ [Q05](open-questions.md#q05) | — | — | — |
 | Invite trainers | ✓ | ✓ | — | — | — |
@@ -318,8 +314,7 @@ flowchart LR
   form --> wait["PB-04 Check je e-mail<br/>(plek vastgehouden)"]
   wait -- "link in e-mail" --> confirm["PB-05 Bevestigen"]
   wait -- "6-cijferige code" --> done
-  confirm --> done["PB-06 Bevestigd"]
-  done --> acct["PB-07 Account aanmaken<br/>(optioneel)"]
+  confirm --> done["PB-06 Bevestigd<br/>account aangemaakt"]
   done --> cw["Client web"]
 ```
 
@@ -339,9 +334,9 @@ Initially: upcoming bookings, past bookings, cancellation, profile (`§15`).
 
 ```mermaid
 flowchart TB
-  mail["Link in confirmation email<br/>(Boeking beheren)"] --> manage["CW-03 Booking detail<br/>(no account needed)"]
+  mail["Link in confirmation email<br/>(Boeking beheren)"] --> manage["CW-03 Booking detail<br/>(no sign-in needed)"]
   signin["CW-01 Inloggen<br/>e-mail → link of code"] --> bookings["CW-02 Mijn boekingen<br/>Aankomend · Eerder"]
-  pb6["PB-06 / PB-07<br/>after booking"] --> bookings
+  pb6["PB-06<br/>after booking"] --> bookings
   bookings --> manage
   manage --> cancel["Annuleren<br/>(confirm)"]
   bookings --> prof["CW-04 Profiel<br/>naam · e-mail · taal ·<br/>account verwijderen"]
@@ -352,12 +347,12 @@ flowchart TB
 | Page (NL / EN) | Path | Who | Features |
 |---|---|---|---|
 | Inloggen / Sign in | `/my/login` | Client | F001, F033 |
-| Mijn boekingen / My bookings | `/my` | Client with account | F033 |
-| Boeking / Booking | `/my/bookings/{id}`, or `/manage/{token}` for guests | Client, guest | F033, F026 |
-| Profiel / Profile | `/my/profile` | Client with account | F033, F010, F006 |
+| Mijn boekingen / My bookings | `/my` | Signed-in client | F033 |
+| Boeking / Booking | `/my/bookings/{id}` signed in, or `/manage/{token}` from the confirmation email | Client | F033, F026 |
+| Profiel / Profile | `/my/profile` | Signed-in client | F033, F010, F006 |
 | Mijn trainingen / My workouts | `/my/workouts` and `/my/workouts/{id}` | Signed-in client | F045, F048 |
 
-- **Guests without an account** manage one booking through the tokenised link in their confirmation email (`/manage/{token}`). From there they can cancel it or *Account aanmaken* to see all their bookings.
+- **A client who isn't signed in** manages one booking through the tokenised link in their confirmation email (`/manage/{token}`). From there they can cancel it or sign in to see all their bookings.
 - A client can have bookings at more than one workspace (same email). *Mijn boekingen* lists them together with the workspace name on each booking. Each booking still belongs to its own workspace ⚑ [QE05](open-questions.md#qe05).
 - A trainer-created private session is not automatically a booking in CW-02/03. After the trainer explicitly shares its workout, the recap and optional client message appear in CW-05. Only the owning client can read it; the internal note stays in trainer surfaces ([QE04](open-questions.md#qe04)).
 
@@ -367,13 +362,13 @@ flowchart TB
 
 Every email exists in `nl-NL` and `en` with one template structure (`§51, §74`). Booking emails carry the workspace name, the date/time in the workspace timezone, and a link to manage the booking. The workout recap email (EM-12) carries the workout date and a link to the authenticated client workout view.
 
-**Recipient language** (communication language, [ADR-017](../decisions/ADR-017-language-policy.md)): stored user preference → language chosen at booking (guests) → workspace default. For trainer invitations it's the language picked for the invitee → workspace default (`§49`).
+**Recipient language** (communication language, [ADR-017](../decisions/ADR-017-language-policy.md)): stored user preference → language chosen at booking (also stored as the account's preference at the first verified booking, [ADR-019](../decisions/ADR-019-sign-in-communication-language.md)) → workspace default. For trainer invitations it's the language picked for the invitee → workspace default (`§49`).
 
 | ID | NL subject (proposed) | EN subject (proposed) | To | Trigger | Features |
 |---|---|---|---|---|---|
-| EM-01 | Bevestig je boeking bij {workspace} | Confirm your booking at {workspace} | Guest/client | PB-03 submitted (hold created) | F030, F049 |
-| EM-02 | Je boeking is bevestigd: {class}, {date} | Your booking is confirmed: {class}, {date} | Guest/client | Booking confirmed | F031, F049 |
-| EM-03 | Je boeking is geannuleerd | Your booking has been cancelled | Guest/client | Client cancels (CW-03) | F026, F049 |
+| EM-01 | Bevestig je boeking bij {workspace} | Confirm your booking at {workspace} | Client | PB-03 submitted (hold created) | F030, F049 |
+| EM-02 | Je boeking is bevestigd: {class}, {date} | Your booking is confirmed: {class}, {date} | Client | Booking confirmed | F031, F049 |
+| EM-03 | Je boeking is geannuleerd | Your booking has been cancelled | Client | Client cancels (CW-03) | F026, F049 |
 | EM-04 | Wijziging: {class} op {date} | Change: {class} on {date} | Booked clients; private-session client | Time or location changed (PS-05, CO-04) | F026, F049 |
 | EM-05 | {class} op {date} gaat niet door | {class} on {date} is cancelled | Booked clients | Occurrence cancelled (CO-03) | F026, F049 |
 | EM-06 | Nieuwe boeking: {name} voor {class} | New booking: {name} for {class} | Assigned trainer | Booking confirmed | F050 |
@@ -504,7 +499,7 @@ Every screen in the flow documents specifies these four states. The defaults:
 | Client note / session note | Klantnotitie / sessienotitie | Client note / session note | proposed |
 | Internal note / client message | Notitie voor trainers / Bericht voor de klant | Note for trainers / Message for the client | §37; share via WL-08 |
 | My day / my calendar | Mijn dag / Mijn agenda | My day / My calendar | §46; proposed |
-| Account (create / continue without) | Account aanmaken / Doorgaan zonder account | Create account / Continue without account | §26 |
+| Account note (PB-06) | We maken een account voor je aan, zodat je je boekingen kunt zien. | We create an account for you so you can see your bookings. | §26 |
 | Location types | Eigen locatie · Externe sportschool · Bij de klant thuis · Buiten · Online · Anders | Own location · External gym · Client's home · Outdoors · Online · Other | glossary §4.3 |
 
 ---
@@ -523,7 +518,6 @@ All screens with an ID. **Critical-flow** screens are wireframed in `flows/`. Th
 | PB-04 | Check je e-mail | Check your email | Public web | F029, F030 | M5 |
 | PB-05 | Boeking bevestigen | Confirm booking | Public web | F030 | M5 |
 | PB-06 | Boeking bevestigd | Booking confirmed | Public web | F031, F032 | M5 |
-| PB-07 | Account aanmaken | Create account | Public web | F032, F001 | M5 |
 | PB-08 | Link verlopen / gebruikt / ongeldig | Link expired / used / invalid | Public web | F029, F030 | M5 |
 | PB-09 | Boekingslink niet gevonden | Booking link not found | Public web | F037 | M6 |
 | CW-01 | Inloggen | Sign in | Client web | F001, F033 | M5 |
