@@ -5,7 +5,7 @@
 // environment is copied from). PR environments are never applied to directly.
 import { defineRailway, github, postgres, preserve, project, service } from 'railway/iac';
 
-const REPO = 'thekeyvan/trainer-hub';
+const REPO = 'trainerrrzzz/trainer-hub';
 
 /** EU West Metal, Amsterdam. Every service and volume runs here (ADR-011, PRODUCT.md §79). */
 const REGION = 'europe-west4-drams3a';

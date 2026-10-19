@@ -1,6 +1,6 @@
 # Observability
 
-What Trainer Hub reports about itself, and what it never sends ([ADR-013](../decisions/ADR-013-observability.md), spec [#32](https://github.com/thekeyvan/trainer-hub/issues/32)). Errors go to **Sentry (EU region)**, product events and page views to **PostHog (EU Cloud)**. This document covers error reporting for the API, the cron job and the web app (server and browser), server product events (§4) and the web app's page views (§5). Per native app:
+What Trainer Hub reports about itself, and what it never sends ([ADR-013](../decisions/ADR-013-observability.md), spec [#32](https://github.com/trainerrrzzz/trainer-hub/issues/32)). Errors go to **Sentry (EU region)**, product events and page views to **PostHog (EU Cloud)**. This document covers error reporting for the API, the cron job and the web app (server and browser), server product events (§4) and the web app's page views (§5). Per native app:
 
 - Android: crash reporting, §1 "Android".
 - iOS: crash reporting, §1 "iOS".
