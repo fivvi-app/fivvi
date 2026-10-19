@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Specs and tickets for this repo are GitHub issues in `thekeyvan/trainer-hub`. Use `scripts/issue.sh` for every operation; it wraps the `gh` CLI. Bodies and comments are Markdown; pass multi-line text with `--body-file -` and a heredoc. `docs/product/FEATURES.md` stays the registry of IDs, milestones and status: once a spec issue exists, the feature's **ID** links to it.
+Specs and tickets for this repo are GitHub issues in `trainerrrzzz/trainer-hub`. Use `scripts/issue.sh` for every operation; it wraps the `gh` CLI. Bodies and comments are Markdown; pass multi-line text with `--body-file -` and a heredoc. `docs/product/FEATURES.md` stays the registry of IDs, milestones and status: once a spec issue exists, the feature's **ID** links to it.
 
 | Skill term | GitHub |
 |---|---|
