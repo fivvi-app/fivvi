@@ -13,7 +13,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { after, before, describe, it } from 'node:test';
+import { after, afterEach, before, describe, it } from 'node:test';
 
 const SCRIPTS = join(import.meta.dirname, '..');
 
@@ -334,7 +334,13 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       const name = `@trainer-hub/${dir.split('/')[1]}`;
       write(join(repo(), dir, 'package.json'), JSON.stringify({ name, scripts }));
     }
-    for (const file of ['check.sh', '_lib.sh', 'test-summary.sh', 'test-summary.jq']) {
+    for (const file of [
+      'check.sh',
+      '_lib.sh',
+      '_shellcheck.sh',
+      'test-summary.sh',
+      'test-summary.jq',
+    ]) {
       copyFileSync(join(SCRIPTS, file), join(repo(), 'scripts', file));
     }
     // The other checks are not under test here.
@@ -553,6 +559,67 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       ],
     );
     assert.match(result.stdout, /e2e\s+skipped\s+-\s+-\s+-\n/);
+  });
+
+  describe('E002 #109 the pinned shellcheck (scripts/_shellcheck.sh)', () => {
+    const PINNED = execFileSync(
+      'bash',
+      [
+        '-c',
+        `source "${SCRIPTS}/_lib.sh"; source "${SCRIPTS}/_shellcheck.sh"; echo "$SHELLCHECK_VERSION"`,
+      ],
+      { encoding: 'utf8' },
+    ).trim();
+    const log = () => join(base, 'shellcheck.log');
+
+    // A shellcheck that reports `version`, records who it is when run on files, and passes.
+    const fakeShellcheck = (path, version, who) =>
+      write(
+        path,
+        `#!/bin/sh\ncase "$1" in --version) printf 'version: ${version}\\n' ;; *) echo ${who} >> "${log()}" ;; esac\n`,
+        0o755,
+      );
+    const WARNING = /shellcheck 0\.9\.0 found, CI runs /;
+
+    afterEach(() => {
+      rmSync(join(repo(), '.tools'), { recursive: true, force: true });
+      rmSync(log(), { force: true });
+      write(join(bin(), 'shellcheck'), '#!/bin/sh\nexit 0\n', 0o755);
+    });
+
+    it('warns about a different local version, names the fix, and still passes', () => {
+      const result = check({ unit: unit(), integration, e2e }, [], () =>
+        fakeShellcheck(join(bin(), 'shellcheck'), '0.9.0', 'system'),
+      );
+      assert.equal(result.status, 0, result.stdout);
+      assert.match(result.stdout, WARNING);
+      assert.match(result.stdout, new RegExp(`CI runs ${PINNED.replaceAll('.', '\\.')}`));
+      assert.match(result.stdout, /run: scripts\/bootstrap\.sh/);
+      assert.match(result.stdout, /✓ shellcheck\n/);
+    });
+
+    it('is silent when the local version is the pinned one', () => {
+      const result = check({ unit: unit(), integration, e2e }, [], () =>
+        fakeShellcheck(join(bin(), 'shellcheck'), PINNED, 'system'),
+      );
+      assert.equal(result.status, 0, result.stdout);
+      assert.doesNotMatch(result.stdout, /⚠️/);
+    });
+
+    it('runs the pinned binary from the tools directory in place of the one on PATH, without a warning', () => {
+      const result = check({ unit: unit(), integration, e2e }, [], () => {
+        fakeShellcheck(join(bin(), 'shellcheck'), '0.9.0', 'system');
+        mkdirSync(join(repo(), '.tools', `shellcheck-${PINNED}`), { recursive: true });
+        fakeShellcheck(
+          join(repo(), '.tools', `shellcheck-${PINNED}`, 'shellcheck'),
+          PINNED,
+          'pinned',
+        );
+      });
+      assert.equal(result.status, 0, result.stdout);
+      assert.doesNotMatch(result.stdout, /⚠️/);
+      assert.equal(readFileSync(log(), 'utf8').trim(), 'pinned');
+    });
   });
 
   it('E002 #112 AC1: is git-ignored: the summary goes to .work/', () => {

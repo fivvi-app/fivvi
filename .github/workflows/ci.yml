@@ -124,6 +124,25 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
+      # `pnpm lint:root` runs shellcheck, and its findings differ per version: the runner's preinstalled one flagged
+      # what the local one didn't. The version and checksums are pinned in scripts/_shellcheck.sh, the same file
+      # scripts/bootstrap.sh uses; the cache key follows that file, so a bump downloads the new release.
+      - name: Restore shellcheck
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tools
+          key: shellcheck-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/_shellcheck.sh') }}
+
+      - name: Install the pinned shellcheck
+        run: |
+          source scripts/_lib.sh
+          source scripts/_shellcheck.sh
+          install_shellcheck
+          echo "$SHELLCHECK_HOME" >>"$GITHUB_PATH"
+          export PATH="$SHELLCHECK_HOME:$PATH"
+          shellcheck --version
+          [[ "$(shellcheck_version)" == "$SHELLCHECK_VERSION" ]] || { echo "shellcheck is not $SHELLCHECK_VERSION"; exit 1; }
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

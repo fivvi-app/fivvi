@@ -1,6 +1,7 @@
 # Keep the build context small and free of secrets and local state.
 .git
 .worktrees
+.tools
 .claude
 .railway
 docs

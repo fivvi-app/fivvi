@@ -8,6 +8,7 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
+source "$ROOT/scripts/_shellcheck.sh"
 
 case "${1:-}" in
   --api | --mobile | "") ;;
@@ -62,7 +63,7 @@ install_ios_tools() {
 }
 
 need jq jq || true
-need shellcheck shellcheck || true
+ensure_shellcheck || warn "could not install shellcheck $SHELLCHECK_VERSION (scripts/_shellcheck.sh)"
 need gh gh || true
 gh auth status >/dev/null 2>&1 || warn "not logged in to GitHub — run: gh auth login"
 command -v docker >/dev/null || warn "Docker not found — install Docker Desktop (Postgres for integration tests)"
