@@ -32,6 +32,6 @@ Mark every item ✅, ❌ (finding, with a file reference) or n/a.
 - **Tests** (`docs/engineering/TESTING.md §3`, `§9`): the spec's Test plan is fully covered; tests would fail if the feature broke; both locales for user flows; no skipped, deleted or weakened tests; bug fixes have a regression test.
 - **Parity:** mobile features on iOS **and** Android.
 - **Docs:** `FEATURES.md` changed as the `flow.sh` hint says (at most the row's Status, plus the final summary in the PR that completes the spec, `WORKFLOW.md §3`); ADRs still match the code (or a new ADR is proposed).
-- **Hygiene:** no secrets, real personal data, debug output or scratch files; generated and vendored files not hand-edited; commits follow `feat(F0xx): …`.
+- **Hygiene:** no secrets, real personal data, debug output or scratch files; generated and vendored files not hand-edited; commits follow `feat(F0xx): …`; commits use only GitHub noreply addresses, and no personal email addresses go in files, PR bodies or issues (`scripts/emails.sh`).
 
 Run `scripts/check.sh` before a review and fix findings on the branch before the PR. A review is local only: never a GitHub reviewer or CI job (`docs/engineering/WORKFLOW.md §4`).

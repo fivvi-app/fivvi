@@ -46,6 +46,7 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 - Mobile features need iOS **and** Android parity before they count as done.
 - **Every behaviour change ships with tests** (`docs/engineering/TESTING.md §3`), test-first. Bug fixes start with a failing test. Never delete, skip or weaken a test to get green.
 - Don't guess product rules: check `docs/product/PRODUCT.md` and `GLOSSARY.md`, otherwise ask. Don't reverse an ADR without a new one. Nothing from `PRODUCT.md §53` (MVP exclusions).
+- **No personal email addresses.** Commits (author, committer, `Co-authored-by`) use only GitHub noreply addresses (`git config --local user.email <id>+<login>@users.noreply.github.com`, which `scripts/bootstrap.sh` sets), and no personal or work address goes in files, PR bodies or issues; use `example.com` in examples. `scripts/check.sh` and the commit hook enforce it with an allowlist (`scripts/email-allowlist.txt`).
 - Prefer free-tier services; no paid dependency without the owner's approval.
 
 ## Push and merge
