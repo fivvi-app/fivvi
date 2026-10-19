@@ -4,6 +4,10 @@
 #
 #   check.sh          everything: hygiene, lint, types, unit tests, static checks, build, integration and e2e tests
 #   check.sh --fast   skip the integration and e2e tests
+#
+# At the end it prints a table of the tests each suite passed, failed and skipped and writes it as JSON to
+# .work/check-summary.json (git-ignored, in this checkout). Quote that summary in reports; don't retype counts
+# from the output (scripts/test-summary.sh).
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -16,11 +20,17 @@ esac
 
 cd "$ROOT"
 FAILED=0
+# What every check printed, passed or failed: test-summary.sh reads the suites' counts from it.
+LOG_DIR="$(mktemp -d)"
+trap 'rm -rf "$LOG_DIR"' EXIT
+SUMMARY_JSON=".work/check-summary.json"
 
 check() {
-  local name="$1" out
+  local name="$1" out rc=0
   shift
-  if out="$("$@" 2>&1)"; then
+  out="$("$@" 2>&1)" || rc=$?
+  printf '%s\n' "$out" >>"$LOG_DIR/output.log"
+  if [ "$rc" = 0 ]; then
     echo "✓ $name"
   else
     echo "✗ $name"
@@ -76,7 +86,7 @@ touches_api() {
 turbo_checks() {
   local contract=--filter=!@trainer-hub/contract
   ! touches_api || contract=""
-  pnpm turbo run lint typecheck test format:check build --output-logs=errors-only \
+  pnpm turbo run lint typecheck test format:check build --output-logs=full \
     && pnpm turbo run check ${contract:+"$contract"} --output-logs=errors-only
 }
 
@@ -91,13 +101,13 @@ test_database_url() { sed -n 's/^DATABASE_URL=//p' packages/database/.env; }
 
 integration_tests() {
   local_postgres || return 1
-  TEST_DATABASE_URL="$(test_database_url)" pnpm turbo run test:integration --output-logs=errors-only
+  TEST_DATABASE_URL="$(test_database_url)" pnpm turbo run test:integration --output-logs=full
 }
 
 e2e_tests() {
   local_postgres || return 1
   TEST_DATABASE_URL="$(test_database_url)" E2E_PORT="$(e2e_port "$ROOT")" \
-    pnpm turbo run test:e2e --output-logs=errors-only
+    pnpm turbo run test:e2e --output-logs=full
 }
 
 api_prerequisites() {
@@ -130,5 +140,15 @@ if ! $FAST; then
   check "integration tests" integration_tests
   check "e2e tests (port $(e2e_port "$ROOT"))" e2e_tests
 fi
+
+# The suites' counts, after the checks so that a failed run shows them too.
+if $FAST; then
+  test_kinds=(--run unit --skip integration --skip e2e)
+else
+  test_kinds=(--run unit --run integration --run e2e)
+fi
+echo
+"$ROOT/scripts/test-summary.sh" --json "$ROOT/$SUMMARY_JSON" "${test_kinds[@]}" "$LOG_DIR/output.log" \
+  || { echo "✗ test summary"; FAILED=1; }
 
 exit "$FAILED"
