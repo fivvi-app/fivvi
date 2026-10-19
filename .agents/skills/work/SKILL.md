@@ -45,7 +45,7 @@ You route; Matt Pocock's vendored skills do the work. Run every script, skill an
 | `ready`, `in-progress` | **Build** (for `in-progress`, resume from the notes file and the worktree's commits) |
 | `draft-pr` | **Ship** from step 2; if the notes file has no `clean on <head sha>`, run **Build** step 3 first |
 | `changes-requested` | **Review loop** |
-| `ready-to-merge` | **Ship** from step 6 |
+| `ready-to-merge` | **Ship** from step 4 |
 | `merge-refused` | Report and stop: `pr.sh merge` refused this commit, so the owner decides. Never run `pr.sh merge` on it again; only a fix pushed with `pr.sh create` (a new commit) makes it `ready-to-merge` again. |
 | `in-review`, `approved` | Report and stop: high-risk (or risk unknown), so the owner reviews and merges. |
 | `merged` | `scripts/flow.sh finish <n>` from the main checkout, then continue with what it reports for the spec. |
@@ -77,19 +77,20 @@ Per ticket; run independent tickets in parallel, at most three at a time (`flow.
 
 Run `pr.sh` inside the worktree: `cd <worktree> && scripts/pr.sh …`.
 
-1. `pr.sh create --body-file -` with a body shaped by `.agents/skills/pr/SKILL.md`. It runs `scripts/check.sh`, pushes, opens a draft titled after the issue and adds `Closes #<n>`.
-2. If a `reviewer` reported `clean on <sha>` for the pushed head commit: `pr.sh reviewed` records it for the head commit. Otherwise skip it; the PR will stay for the owner.
-3. `pr.sh wait`: exit 0, CI passed; 1, a check failed: a `mechanic` digs the failing log out and reports the failing step and first error, a fresh `builder` fixes it (**Build** step 2), a `reviewer` reviews the new head commit (**Build** step 3), and push with `pr.sh create` (back to step 2); 2, still running after 20 minutes: report and stop.
-4. `pr.sh smoke` checks the Railway preview and records the result for the head commit.
-5. `pr.sh ready`, note the PR in the notes file.
-6. `scripts/flow.sh status <n>`. On `ready-to-merge`, run `pr.sh merge`: it checks the merge gate and squash-merges only when every condition holds. When it merged, run `scripts/flow.sh finish <n>` from the main checkout and continue with what it reports. When it refuses, it records the refusal and its reasons on the PR for the head commit: report it to the owner and stop, and never retry the merge. The PR stays for the owner (`merge-refused`, under "Waiting on the owner" in `flow.sh next`) until the owner decides or a fix is pushed. Same when the phase is `in-review`. If the only failure is that the branch is behind `main` (nothing is recorded then), a `mechanic` merges `origin/main` in the worktree (a plain union of both sides; anything else goes to a `builder`) and runs `scripts/check.sh`, a `reviewer` reviews the new commit (**Build** step 3), and continue from step 1 instead.
+1. `pr.sh create --body-file -` with a body shaped by `.agents/skills/pr/SKILL.md`. It runs `scripts/check.sh`, pushes, opens a draft titled after the issue and adds `Closes #<n>`. Every later push is a plain `pr.sh create`, without `--body-file`: on an open PR it keeps the body.
+2. If a `reviewer` reported `clean on <sha>` for the pushed head commit: `pr.sh reviewed` records it for the head commit. Otherwise skip it; the PR will stay for the owner (`ship` stops at `ready`, which names the missing review).
+3. `pr.sh ship` runs `wait`, `smoke` and `ready` in order and stops at the first failure with its exit code; it records nothing itself, so step 2 comes first. At the end it prints the step durations of the native jobs. Never chain `wait`, `smoke` and `ready` by hand. On exit 0 the PR is ready for review: note it in the notes file. Otherwise read the step that failed:
+   - `wait` exit 1, a check failed: a `mechanic` digs the failing log out and reports the failing step and first error, a fresh `builder` fixes it (**Build** step 2), a `reviewer` reviews the new head commit (**Build** step 3), and push with `pr.sh create` (back to step 2). Exit 2, still running after the timeout (20 minutes, 45 when iOS or Android run): report and stop.
+   - `smoke` fails: the preview is not healthy, or it is skipped and the `railway` CLI is missing or logged out (smoke redeploys a skipped preview itself with it, in the PR's own environment only): report and stop.
+   - `ready` refuses: it names what is missing, a check that is not green, the review or the smoke record for the head commit. Record or fix that and run `pr.sh ship` again; a PR left without a clean review stays a draft for the owner.
+4. `scripts/flow.sh status <n>`. On `ready-to-merge`, run `pr.sh merge`: it checks the merge gate and squash-merges only when every condition holds. When it merged, run `scripts/flow.sh finish <n>` from the main checkout and continue with what it reports. When it refuses, it records the refusal and its reasons on the PR for the head commit: report it to the owner and stop, and never retry the merge. The PR stays for the owner (`merge-refused`, under "Waiting on the owner" in `flow.sh next`) until the owner decides or a fix is pushed. Same when the phase is `in-review`. If the only failure is that the branch is behind `main` (nothing is recorded then), a `mechanic` merges `origin/main` in the worktree (a plain union of both sides; anything else goes to a `builder`) and runs `scripts/check.sh`, a `reviewer` reviews the new commit (**Build** step 3), and continue from step 1 instead.
 
 ## Review loop
 
 1. `pr.sh status` and `pr.sh threads` in the worktree.
 2. A fresh `builder` runs `implement` on the failing checks and threads (**Build** step 2), with the thread ids and text in its brief; a `reviewer` then reviews the new commit (**Build** step 3).
-3. Push with `pr.sh create`, then reply to each thread: `pr.sh reply <thread> --body "<what changed>" --resolve` when fixed; without `--resolve` when you disagree, so the owner decides.
-4. The push made the review and smoke records stale: continue with **Ship** from step 2.
+3. Push with `pr.sh create` (no `--body-file`: it keeps the body), then reply to each thread: `pr.sh reply <thread> --body "<what changed>" --resolve` when fixed; without `--resolve` when you disagree, so the owner decides.
+4. The push made the review and smoke records stale: continue with **Ship** from step 2 (`pr.sh create` without `--body-file`, as in step 1).
 5. Update the notes file, report.
 
 ## Factory

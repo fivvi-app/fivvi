@@ -8,14 +8,24 @@
 #                                                 gets "Closes #<issue>". The first push runs the full scripts/check.sh;
 #                                                 a follow-up push (the PR exists) runs check.sh --fast, as CI runs the
 #                                                 full gate on every commit; --full forces the full run
-#   pr.sh ready                                   mark the draft ready for review
+#   pr.sh ready                                   mark the draft ready for review, only when for the head commit every
+#                                                 CI check passed (the merge gate's rule), the clean review is recorded
+#                                                 (pr.sh reviewed) and so is the smoke check (pr.sh smoke); else names
+#                                                 what is missing
+#   pr.sh ship [--timeout <minutes>]              wait, smoke and ready in order, stopping at the first failure with its
+#                                                 exit code; records nothing itself (run pr.sh reviewed before it); then
+#                                                 prints the step durations of the native jobs (iOS, Android) that ran
 #   pr.sh status                                  state, review, checks and open threads
 #   pr.sh wait [--timeout <minutes>]              wait for CI: exit 0 passed, 1 failed, 2 still running at the timeout
+#                                                 (default 20 minutes, 45 once an iOS or Android check exists)
 #   pr.sh threads                                 open review threads with their ids
 #   pr.sh reply <thread-id> (--body <md>|--body-file <f|->) [--resolve]
 #   pr.sh smoke [--timeout <minutes>]             smoke-check the Railway preview and record the result for the PR's head
 #                                                 commit in the PR body; the head has a preview when Railway's
-#                                                 `trainer-hub - web` status on it is not a skipped deploy (preview_of)
+#                                                 `trainer-hub - web` status on it is not a skipped deploy (preview_of). A
+#                                                 preview without a deployment of the head commit (Railway skipped it after
+#                                                 a failed first CI run) is redeployed with the railway CLI, only in the
+#                                                 PR's own environment, trainer-hub-pr-<n>; without the CLI smoke fails
 #   pr.sh reviewed                                record in the PR body that both reviewers (standards and spec) found
 #                                                 nothing to fix on the PR's head commit; local HEAD must be that commit
 #   pr.sh merge                                   squash-merge a low-risk PR and delete its branch, only when every
@@ -44,6 +54,13 @@ NO_PREVIEW="no preview for this PR"
 # the PR touches no watch pattern (the status is then green, but there is no preview).
 PREVIEW_CHECK="trainer-hub - web"
 PREVIEW_SKIPPED="No deployment needed"
+# Railway: the project, the service of the web preview, and the only environments pr.sh smoke may touch.
+RAILWAY_PROJECT="5ac2d844-191a-4671-9632-50b66817f648"
+RAILWAY_SERVICE="web"
+# How long wait waits for CI, in minutes: the cold iOS run took 24.5 min, so the jobs of the native apps get longer.
+WAIT_MINUTES=20
+WAIT_MINUTES_NATIVE=45
+NATIVE_JOBS=(iOS Android)
 
 open_pr() { gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty'; }
 current_pr() {
@@ -115,13 +132,58 @@ cmd_create() {
   echo "✅ PR $(gh pr create "${args[@]}") ($($draft && echo draft || echo ready))"
 }
 
+# Conditions of the merge gate that must hold before a draft is published (decided by scripts/merge-gate.jq, so there is
+# one rule): the checks passed on the head commit, the clean review and the smoke check are recorded for it.
+READY_CONDITIONS=("checks passed" "self-review clean" "preview smoke-checked")
+
 cmd_ready() {
   [ $# -eq 0 ] || usage
-  local pr
+  local pr facts decision missing out
   pr="$(current_pr)"
-  local out
+  facts="$(pr_facts "$pr")" || exit 1
+  # The facts of the other conditions (risk, behind, threads) are not asked here: their conditions are not read.
+  decision="$(jq -c --arg review_mark "$REVIEW_MARK" --arg smoke_mark "$SMOKE_MARK" --arg no_preview "$NO_PREVIEW" \
+    -f "$ROOT/scripts/merge-gate.jq" <<<"$(jq '. + {risk: {risk: "low", reasons: []}, behind: 0, threads: 0}' <<<"$facts")")" \
+    || die "could not decide whether PR #$pr is ready; nothing changed"
+  missing="$(jq -r --argjson names "$(printf '%s\n' "${READY_CONDITIONS[@]}" | jq -R . | jq -sc .)" '
+    [.conditions[] | select(.name | IN($names[])) | select(.ok | not) | "\(.name) (\(.detail))"] | join("; ")' <<<"$decision")"
+  [ -z "$missing" ] || die "PR #$pr is not ready for review: $missing"
   out="$(gh pr ready "$pr" --repo "$REPO" 2>&1)" || die "$out"
   echo "✅ PR #$pr ready for review"
+}
+
+# The native jobs' steps with their durations, from the CI run of the PR's head commit. Best effort: never fails.
+native_durations() {
+  local head run jobs
+  head="$(head_of "$1" 2>/dev/null)" || return 0
+  run="$(gh run list --repo "$REPO" --workflow CI --commit "$head" --limit 1 --json databaseId \
+    --jq '.[0].databaseId // empty' 2>/dev/null)" || return 0
+  [ -n "$run" ] || return 0
+  jobs="$(gh api "repos/$REPO/actions/runs/$run/jobs?per_page=100" 2>/dev/null)" \
+    || { echo "could not read the jobs of CI run $run; no step durations" >&2; return 0; }
+  jq -r --argjson native "$(printf '%s\n' "${NATIVE_JOBS[@]}" | jq -R . | jq -sc .)" '
+    def seconds: (.completed_at | fromdateiso8601) - (.started_at | fromdateiso8601);
+    def clock: "\(. / 60 | floor) min \(. % 60) s";
+    .jobs[]? | select(.name | IN($native[])) | . as $job
+    | [.steps[] | select(.started_at != null and .completed_at != null)] as $steps
+    | "", "Step durations: \($job.name)",
+      ($steps[] | "  \(seconds | clock)  \(.name)"),
+      "  \([$steps[] | seconds] | add // 0 | clock)  Total"' <<<"$jobs" 2>/dev/null || true
+}
+
+# wait, smoke, ready in order, each as its own pr.sh run so a failing step (set -e inside it) ends it with its own exit
+# code, which ship returns at once. Records nothing itself: pr.sh reviewed stays the reviewer's verdict to record.
+cmd_ship() {
+  local pr rc=0 step
+  { [ $# -eq 0 ] || { [ $# -eq 2 ] && [ "$1" = --timeout ]; }; } || usage
+  pr="$(current_pr)"
+  for step in wait smoke ready; do
+    echo "▶ pr.sh $step"
+    if [ "$step" = wait ]; then "$0" wait "$@" || rc=$?; else "$0" "$step" || rc=$?; fi
+    [ "$rc" -eq 0 ] || break
+  done
+  native_durations "$pr"
+  return "$rc"
 }
 
 # Dies when the threads can't all be read: more than 100 counts as unknown, never as resolved.
@@ -155,9 +217,10 @@ cmd_status() {
 }
 
 # Waits for the CI workflow run of the PR's head commit (.github/workflows/ci.yml), not for whatever checks exist yet:
-# right after a push, the jobs behind "Detect changes" don't exist, so "nothing pending" is not "passed".
+# right after a push, the jobs behind "Detect changes" don't exist, so "nothing pending" is not "passed". The timeout is
+# $WAIT_MINUTES, or $WAIT_MINUTES_NATIVE once a native job (iOS, Android) is among the checks; --timeout fixes it.
 cmd_wait() {
-  local timeout=20 pr head deadline run failed
+  local timeout="" limit="$WAIT_MINUTES" pr head start run checks failed native job
   while [ $# -gt 0 ]; do
     case "$1" in
       --timeout) timeout="${2:?}"; shift ;;
@@ -167,20 +230,32 @@ cmd_wait() {
   done
   pr="$(current_pr)"
   head="$(gh pr view "$pr" --repo "$REPO" --json headRefOid --jq .headRefOid)"
-  deadline=$(( $(date +%s) + timeout * 60 ))
+  start="$(date +%s)"
+  [ -z "$timeout" ] || limit="$timeout"
+  echo "⏳ PR #$pr: waiting up to $limit min for CI on ${head:0:7}"
   while :; do
     run="$(gh run list --repo "$REPO" --workflow CI --commit "$head" --limit 1 --json status,conclusion \
       --jq '.[0] // {} | "\(.status // "") \(.conclusion // "")"')"
-    failed="$(gh pr checks "$pr" --repo "$REPO" --json name,bucket \
-      --jq '[.[] | select(.bucket == "fail" or .bucket == "cancel") | .name] | join(", ")' 2>/dev/null || true)"
+    checks="$(gh pr checks "$pr" --repo "$REPO" --json name,bucket 2>/dev/null || true)"
+    failed="$(jq -r '[.[]? | select(.bucket == "fail" or .bucket == "cancel") | .name] | join(", ")' <<<"${checks:-[]}" 2>/dev/null || true)"
+    if [ -z "$timeout" ] && [ "$limit" -lt "$WAIT_MINUTES_NATIVE" ]; then
+      native=""
+      for job in "${NATIVE_JOBS[@]}"; do
+        ! jq -e --arg job "$job" 'any(.[]?; .name == $job)' <<<"${checks:-[]}" >/dev/null 2>&1 || native="${native:+$native, }$job"
+      done
+      if [ -n "$native" ]; then
+        limit="$WAIT_MINUTES_NATIVE"
+        echo "⏳ $native run: waiting up to $limit min for CI"
+      fi
+    fi
     if [ -n "$failed" ]; then echo "✗ PR #$pr checks failed: $failed"; return 1; fi
     case "$run" in
       "completed success") echo "✓ PR #$pr: CI passed on ${head:0:7}"; return 0 ;;
       completed\ *) echo "✗ PR #$pr: CI ${run#completed } on ${head:0:7}"; return 1 ;;
     esac
-    if [ "$(date +%s)" -ge "$deadline" ]; then
+    if [ "$(date +%s)" -ge $(( start + limit * 60 )) ]; then
       run="${run% *}"
-      echo "⏱ PR #$pr: CI ${run:-not started} after $timeout min"
+      echo "⏱ PR #$pr: CI ${run:-not started} after $limit min"
       return 2
     fi
     sleep 30
@@ -255,10 +330,58 @@ record() {
   echo "📝 $line"
 }
 
+# The Railway CLI against the web service of the PR's own preview environment, trainer-hub-pr-<n>, the one place smoke
+# may touch: the environment is built here from the PR number, never taken from an argument, so production and
+# development are out of reach. <list|redeploy>: the deployments as JSON, or redeploy from the branch's latest commit.
+railway_preview() {
+  local pr="$1" action="$2" env
+  [[ "$pr" =~ ^[0-9]+$ ]] || die "not a PR number: '$pr'"
+  env="trainer-hub-pr-$pr"
+  case "$action" in
+    list) railway deployment list -p "$RAILWAY_PROJECT" -e "$env" -s "$RAILWAY_SERVICE" --json ;;
+    redeploy) railway deployment redeploy -p "$RAILWAY_PROJECT" -e "$env" -s "$RAILWAY_SERVICE" --from-source -y ;;
+    *) die "unknown railway action '$action'" ;;
+  esac
+}
+
+railway_ready() { command -v railway >/dev/null && railway whoami >/dev/null 2>&1; }
+
+railway_hint() {
+  die "can't check or redeploy the preview of PR #$1 (trainer-hub-pr-$1) without the Railway CLI: install it and run 'railway login', or redeploy it in the Railway dashboard (trainer-hub-pr-$1 → web → Redeploy); nothing recorded"
+}
+
+# The state of the PR preview's deployment of commit $2: none (no deployment of it), skipped (Railway skipped it, as
+# after a failed first CI run: it is never deployed by a later green run), or the status of the latest other one.
+head_deployment() {
+  local out
+  out="$(railway_preview "$1" list)" || die "could not list the deployments of trainer-hub-pr-$1; nothing recorded"
+  jq -r --arg sha "$2" '[.[] | select(.meta.commitHash == $sha)] as $mine
+    | if $mine == [] then "none"
+      elif any($mine[]; .status != "SKIPPED") then ([$mine[] | select(.status != "SKIPPED")] | first | .status)
+      else "skipped" end' <<<"$out" || die "could not read the deployments of trainer-hub-pr-$1; nothing recorded"
+}
+
+# Redeploys the preview from the branch's latest commit, then waits (within $3) until it is deployed.
+redeploy_preview() {
+  local pr="$1" head="$2" deadline="$3" out state
+  echo "↻ no deployment of ${head:0:7} in trainer-hub-pr-$pr: redeploying it from source"
+  out="$(railway_preview "$pr" redeploy 2>&1)" || die "redeploy of trainer-hub-pr-$pr failed: $out"
+  while :; do
+    state="$(head_deployment "$pr" "$head")"
+    case "$state" in
+      SUCCESS) return 0 ;;
+      FAILED|CRASHED|REMOVED) die "the redeployed preview of ${head:0:7} is $state; nothing recorded" ;;
+    esac
+    [ "$(date +%s)" -lt "$deadline" ] || die "the redeployed preview of ${head:0:7} is still $state after the timeout; nothing recorded"
+    sleep 20
+  done
+}
+
 # The preview exists only when the PR touches a Railway watch pattern (docs/engineering/ENVIRONMENTS.md); preview_of
-# decides. While Railway is still deploying, it waits (within the timeout) before it decides.
+# decides. While Railway is still deploying, it waits (within the timeout) before it decides. A preview Railway skipped
+# for the head commit (it waits for CI, and a failed first run means it is never deployed) is redeployed.
 cmd_smoke() {
-  local timeout=15 pr head preview url deadline result line
+  local timeout=15 pr head preview url deadline result line redeploy=false
   while [ $# -gt 0 ]; do
     case "$1" in
       --timeout) timeout="${2:?}"; shift ;;
@@ -271,11 +394,21 @@ cmd_smoke() {
   deadline=$(( $(date +%s) + timeout * 60 ))
   while :; do
     preview="$(preview_of "$head")" || die "nothing recorded on PR #$pr"
-    [ "$preview" = pending ] || break
+    case "$preview" in
+      yes)
+        railway_ready || railway_hint "$pr"
+        case "$(head_deployment "$pr" "$head")" in none|skipped) redeploy=true ;; esac
+        break ;;
+      pending)
+        # Still deploying, unless Railway skipped this commit and waits for nothing; without the CLI, just wait.
+        if railway_ready && [ "$(head_deployment "$pr" "$head")" = skipped ]; then redeploy=true; break; fi ;;
+      *) break ;;
+    esac
     [ "$(date +%s)" -lt "$deadline" ] \
       || die "the preview of ${head:0:7} is still deploying after $timeout min; nothing recorded"
     sleep 20
   done
+  ! $redeploy || redeploy_preview "$pr" "$head" "$deadline"
   if [ "$preview" = no ]; then
     line="**$SMOKE_MARK:** on \`$head\`: $NO_PREVIEW (it touches no Railway watch pattern)."
   else
@@ -284,7 +417,7 @@ cmd_smoke() {
       [ "$(date +%s)" -lt "$deadline" ] || die "preview not healthy after $timeout min: $url (${result:-no response})"
       sleep 20
     done
-    line="**$SMOKE_MARK:** on \`$head\`: \`curl -fsS $url\` → \`$result\` ✅"
+    line="**$SMOKE_MARK:** on \`$head\`: \`curl -fsS $url\` → \`${result}\` ✅"
   fi
   record "$pr" "$SMOKE_MARK" "$line"
 }
@@ -302,27 +435,35 @@ cmd_reviewed() {
   record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** standards and spec reviewers clean on \`$head\` ✅"
 }
 
-# The facts of scripts/merge-gate.jq. Required checks come from .github/rulesets/main.json in this worktree, the file
-# scripts/github-settings.sh applies to GitHub. Dies when a fact can't be read, so the gate never decides on a guess.
-merge_facts() {
-  local pr="$1" view head base behind threads risk preview required
+# The facts of scripts/merge-gate.jq that pr.sh ready reads too: the PR, its checks on the head commit, the required
+# checks and whether the head has a preview. Required checks come from .github/rulesets/main.json in this worktree, the
+# file scripts/github-settings.sh applies to GitHub. Dies when a fact can't be read, so nobody decides on a guess.
+pr_facts() {
+  local pr="$1" view head preview required
   view="$(gh pr view "$pr" --repo "$REPO" --json number,state,isDraft,baseRefName,headRefName,headRefOid,body,statusCheckRollup)" \
     || die "could not read PR #$pr"
   head="$(jq -r .headRefOid <<<"$view")" || die "could not read PR #$pr"
-  base="$(default_branch)"
-  behind="$(gh api "repos/$REPO/compare/$base...$head" --jq .behind_by)" || die "could not compare ${head:0:7} with $base"
-  threads="$(unresolved_threads "$pr")" || exit 1
-  risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr"
   preview="$(preview_of "$head")" || exit 1
   required="$(jq '[.rules[] | select(.type == "required_status_checks")
     | .parameters.required_status_checks[].context]' "$ROOT/.github/rulesets/main.json")" \
     || die "could not read the required checks from .github/rulesets/main.json"
-  jq --arg base "$base" --argjson behind "$behind" --argjson threads "$(jq length <<<"$threads")" \
-    --argjson risk "$risk" --argjson required "$required" --arg preview "$preview" '{
+  jq --arg base "$(default_branch)" --argjson required "$required" --arg preview "$preview" '{
     head: .headRefOid, branch: .headRefName, default_branch: $base,
     pr: {number, state, draft: .isDraft, base: .baseRefName, body: (.body // "")},
-    risk: $risk, required: $required, checks: (.statusCheckRollup // []), preview: $preview,
-    behind: $behind, threads: $threads}' <<<"$view"
+    required: $required, checks: (.statusCheckRollup // []), preview: $preview}' <<<"$view"
+}
+
+# All the facts of the merge gate: pr_facts and what only a merge needs (behind main, threads, risk).
+merge_facts() {
+  local pr="$1" facts head behind threads risk
+  facts="$(pr_facts "$pr")" || exit 1
+  head="$(jq -r .head <<<"$facts")"
+  behind="$(gh api "repos/$REPO/compare/$(default_branch)...$head" --jq .behind_by)" \
+    || die "could not compare ${head:0:7} with $(default_branch)"
+  threads="$(unresolved_threads "$pr")" || exit 1
+  risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr"
+  jq --argjson behind "$behind" --argjson threads "$(jq length <<<"$threads")" --argjson risk "$risk" \
+    '. + {risk: $risk, behind: $behind, threads: $threads}' <<<"$facts"
 }
 
 cmd_merge() {
@@ -339,7 +480,7 @@ cmd_merge() {
   head="$(jq -r .head <<<"$facts")"
   if ! jq -e .merge <<<"$decision" >/dev/null; then
     failed="$(jq -r '[.conditions[] | select(.ok | not) | .name] | join(", ")' <<<"$decision")"
-    # Behind main is the one refusal an agent fixes itself (the work skill's Ship step 6); the push makes a new head.
+    # Behind main is the one refusal an agent fixes itself (the work skill's Ship step 4); the push makes a new head.
     [ "$failed" != "up to date" ] \
       || die "PR #$pr is behind $(default_branch): merge origin/$(default_branch) in the worktree, check, self-review, push and run it again; nothing merged"
     # A refusal for the head commit makes the PR wait on the owner (flow.sh); a new push makes it stale.
@@ -381,5 +522,6 @@ case "${1:-}" in
   reviewed) shift; cmd_reviewed "$@" ;;
   merge)   shift; cmd_merge "$@" ;;
   refusal) shift; cmd_refusal "$@" ;;
+  ship)    shift; cmd_ship "$@" ;;
   *)       usage ;;
 esac

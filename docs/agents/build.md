@@ -22,6 +22,8 @@ The agents are defined once in `.agents/agents/` (`builder.md`, `reviewer.md`, `
 
 A new commit makes an earlier verdict stale: any fix, CI repair or merge of `origin/main` is followed by a review on the new head commit before `pr.sh reviewed`.
 
+After a clean verdict `work` ships with `pr.sh reviewed`, then `pr.sh ship` (`wait`, `smoke` and `ready` in order, stopping at the first failure; `ready` refuses unless CI passed, the review and the smoke are recorded for the head commit). The first push passes the PR body with `pr.sh create --body-file -`; every follow-up push (a fix round, a CI repair, a merge of `origin/main`) is a plain `pr.sh create` without `--body-file`, which keeps the body.
+
 ## Build (the builder)
 
 - **Read first**: `scripts/issue.sh show <n>` and its parent spec, the notes file, `AGENTS.md`, `CODING_STANDARDS.md`, `docs/agents/domain.md`, and the `.github/instructions/*.instructions.md` for the files you touch.
