@@ -2214,7 +2214,20 @@ describe('commit-msg hook', () => {
     const dir = mkdtempSync(join(tmpdir(), 'commit-msg-'));
     const file = join(dir, 'MSG');
     writeFileSync(file, `${message}\n\n# comment\n`);
-    const result = spawnSync(hook, [file], { cwd: SCRIPTS, encoding: 'utf8' });
+    // The hook also checks who is committing; give it a known noreply identity, whatever the machine has.
+    const result = spawnSync(hook, [file], {
+      cwd: SCRIPTS,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: 'Octo',
+        GIT_AUTHOR_EMAIL: '42+octocat@users.noreply.github.com',
+        GIT_COMMITTER_NAME: 'Octo',
+        GIT_COMMITTER_EMAIL: '42+octocat@users.noreply.github.com',
+        GIT_CONFIG_GLOBAL: '/dev/null',
+        GIT_CONFIG_NOSYSTEM: '1',
+      },
+    });
     rmSync(dir, { recursive: true, force: true });
     return result;
   };

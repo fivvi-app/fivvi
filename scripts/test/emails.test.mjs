@@ -322,6 +322,42 @@ describe('E002 #120 .githooks/commit-msg email check', () => {
     assert.match(result.stderr, /author/);
   });
 
+  it('says that git has no identity, instead of a raw git error, when there is none', () => {
+    const file = join(repo.dir, 'MSG');
+    writeFileSync(file, 'feat(E002): guard\n');
+    const env = {
+      ...process.env,
+      HOME: repo.dir,
+      GIT_CONFIG_GLOBAL: '/dev/null',
+      GIT_CONFIG_NOSYSTEM: '1',
+    };
+    for (const name of [
+      'GIT_AUTHOR_NAME',
+      'GIT_AUTHOR_EMAIL',
+      'GIT_COMMITTER_NAME',
+      'GIT_COMMITTER_EMAIL',
+      'EMAIL',
+    ]) {
+      delete env[name];
+    }
+    // Never guess an address from the host name.
+    Object.assign(env, {
+      GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_KEY_0: 'user.useConfigOnly',
+      GIT_CONFIG_VALUE_0: 'true',
+    });
+    const result = spawnSync(join(repo.dir, '.githooks/commit-msg'), [file], {
+      cwd: repo.dir,
+      encoding: 'utf8',
+      env,
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /author has no email address/);
+    assert.match(result.stderr, /committer has no email address/);
+    assert.match(result.stderr, /git config --local user\.email/);
+    assert.doesNotMatch(result.stderr, /fatal|unknown|Please tell me/i);
+  });
+
   it('still rejects a message that is not a Conventional Commit', () => {
     const result = commit('add a thing');
     assert.notEqual(result.status, 0);

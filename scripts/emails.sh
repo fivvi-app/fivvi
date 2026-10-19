@@ -13,12 +13,18 @@ source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 ALLOWLIST="$ROOT/scripts/email-allowlist.txt"
 EMAIL_RE='[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}'
 
+# One role's address ($3): fine when it is a noreply address, a problem when it is empty (git has no identity) or not.
+identity_problem() {
+  [ -n "$3" ] || { echo "$1: $2 has no email address (git does not know who you are)" >&2; return 1; }
+  is_noreply_email "$3" || { echo "$1: $2 is not a GitHub noreply address" >&2; return 1; }
+}
+
 # Problems found in one commit: "<what> <role> is not a GitHub noreply address". $1 is the commit label, then the
 # author, the committer and the message follow as $2, $3 and on stdin.
 commit_problems() {
   local label="$1" author="$2" committer="$3" email rc=0
-  is_noreply_email "$author" || { echo "$label: author is not a GitHub noreply address" >&2; rc=1; }
-  is_noreply_email "$committer" || { echo "$label: committer is not a GitHub noreply address" >&2; rc=1; }
+  identity_problem "$label" author "$author" || rc=1
+  identity_problem "$label" committer "$committer" || rc=1
   while IFS= read -r email; do
     is_noreply_email "$email" || { echo "$label: Co-authored-by is not a GitHub noreply address" >&2; rc=1; }
   done < <(coauthor_emails)
