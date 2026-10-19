@@ -427,6 +427,7 @@ describe('usage', () => {
       'codex-agent',
       'risk',
       'github-settings',
+      'emails',
       'android',
       'maestro',
     ]) {

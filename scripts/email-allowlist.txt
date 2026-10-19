@@ -1,0 +1,30 @@
+# Email addresses allowed in tracked files (scripts/emails.sh files), one entry per line. Everything else fails
+# scripts/check.sh: no personal or work address belongs in this public repo. The list never names a person.
+#
+#   example.com             addresses on exactly this domain
+#   *.test                  addresses on any domain ending in .test
+#   noreply@github.com      one full address (an entry with an @ matches the whole address)
+#   path: pnpm-lock.yaml    a file that is not scanned (shell glob on the path)
+#
+# Case does not matter. GitHub noreply addresses (*@users.noreply.github.com) are always allowed. Commits are held to
+# the stricter rule: only noreply addresses at all (scripts/_lib.sh).
+
+# Examples and tests
+example.com
+voorbeeld.nl
+*.test
+*.invalid
+
+# Service endpoints that look like addresses
+*.ingest.sentry.io
+*.ingest.de.sentry.io
+*.ingest.us.sentry.io
+*.railway.internal
+smtp-relay.mailin.fr
+git@github.com
+
+# GitHub's own no-reply sender
+noreply@github.com
+
+# Third-party text, not ours (maintainer contacts in package deprecation notices)
+path: pnpm-lock.yaml
