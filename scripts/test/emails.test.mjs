@@ -56,18 +56,34 @@ const makeRepo = () => {
   return { dir, git, run, write };
 };
 
-// Commits with the given author and committer address, and an optional message.
-const commitAs = (
+// Commits (or amends, with `amend`) as the given author and committer; returns git's result, hooks included.
+const tryCommitAs = (
   repo,
-  { author = NOREPLY, committer = NOREPLY, message = 'chore(E002): change' },
+  { author = NOREPLY, committer = NOREPLY, message = 'chore(E002): change', amend = false },
 ) =>
-  execFileSync(
+  spawnSync(
     'git',
-    ['-C', repo.dir, 'commit', '--quiet', '--allow-empty', '-m', message, `--author=A <${author}>`],
-    { env: { ...process.env, GIT_COMMITTER_NAME: 'C', GIT_COMMITTER_EMAIL: committer } },
+    [
+      '-C',
+      repo.dir,
+      'commit',
+      '--quiet',
+      '--allow-empty',
+      ...(amend ? ['--no-edit'] : ['-m', message]),
+      ...(amend ? ['--amend'] : []),
+      `--author=A <${author}>`,
+    ],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, GIT_COMMITTER_NAME: 'C', GIT_COMMITTER_EMAIL: committer },
+    },
   );
+const commitAs = (repo, options) => {
+  const result = tryCommitAs(repo, options);
+  assert.equal(result.status, 0, result.stderr);
+};
 
-describe('emails.sh commits (the commits of origin/main..HEAD)', () => {
+describe('E002 #120 emails.sh commits (the commits of origin/main..HEAD)', () => {
   let repo;
   beforeEach(() => {
     repo = makeRepo();
@@ -122,14 +138,19 @@ describe('emails.sh commits (the commits of origin/main..HEAD)', () => {
     repo.git('merge', '--no-ff', '--no-edit', 'origin/main');
     assert.equal(repo.run(['commits']).status, 0);
 
-    execFileSync(
-      'git',
-      ['-C', repo.dir, 'commit', '--quiet', '--amend', '--no-edit', `--author=A <${OTHER}>`],
-      { env: { ...process.env, GIT_COMMITTER_NAME: 'C', GIT_COMMITTER_EMAIL: NOREPLY } },
-    );
+    commitAs(repo, { author: OTHER, amend: true });
     const result = repo.run(['commits']);
     assert.equal(result.status, 1);
     assert.match(result.stdout + result.stderr, /author/);
+  });
+
+  it('fails with a hint, instead of passing, when origin/main does not exist', () => {
+    repo.git('update-ref', '-d', 'refs/remotes/origin/main');
+    const result = repo.run(['commits']);
+    const output = result.stdout + result.stderr;
+    assert.equal(result.status, 1, output);
+    assert.match(output, /origin\/main not found.*git fetch origin/);
+    assert.doesNotMatch(output, /fatal/);
   });
 
   it('is checked by scripts/check.sh next to the commit messages', () => {
@@ -140,7 +161,7 @@ describe('emails.sh commits (the commits of origin/main..HEAD)', () => {
   });
 });
 
-describe('emails.sh files (tracked and new files)', () => {
+describe('E002 #120 emails.sh files (tracked and new files)', () => {
   let repo;
   beforeEach(() => {
     repo = makeRepo();
@@ -155,7 +176,7 @@ describe('emails.sh files (tracked and new files)', () => {
         `${NOREPLY} noreply@github.com`,
         'https://key@o1.ingest.de.sentry.io/1 postgres://u:p@db.railway.internal:5432/x',
         'smtp-relay.mailin.fr user@smtp-relay.mailin.fr',
-        'npm package@1.2.3 and @types/node and git@github.com:owner/repo.git',
+        'npm package@1.2.3 and @types/node',
       ].join('\n'),
     );
     repo.git('add', '.');
@@ -197,6 +218,13 @@ describe('emails.sh files (tracked and new files)', () => {
     }
   });
 
+  it('does not take retina asset names such as icon@2x.png for addresses', () => {
+    repo.write('a.txt', 'icon@2x.png logo@3x.webp');
+    assert.equal(repo.run(['files']).status, 0);
+    repo.write('b.txt', addr('icon', '2x.png.evil.org'));
+    assert.equal(repo.run(['files']).status, 1);
+  });
+
   it('is case-insensitive', () => {
     repo.write('a.txt', 'X@EXAMPLE.COM and Y@Users.Noreply.GitHub.com');
     assert.equal(repo.run(['files']).status, 0);
@@ -227,7 +255,7 @@ describe('emails.sh files (tracked and new files)', () => {
   });
 });
 
-describe('.githooks/commit-msg', () => {
+describe('E002 #120 .githooks/commit-msg email check', () => {
   let repo;
   beforeEach(() => {
     repo = makeRepo();
@@ -235,17 +263,7 @@ describe('.githooks/commit-msg', () => {
   });
   afterEach(() => rmSync(repo.dir, { recursive: true, force: true }));
 
-  const commit = (message, { email = NOREPLY, committer = NOREPLY } = {}) =>
-    spawnSync('git', ['-C', repo.dir, 'commit', '--allow-empty', '-m', message], {
-      encoding: 'utf8',
-      env: {
-        ...process.env,
-        GIT_AUTHOR_NAME: 'A',
-        GIT_AUTHOR_EMAIL: email,
-        GIT_COMMITTER_NAME: 'C',
-        GIT_COMMITTER_EMAIL: committer,
-      },
-    });
+  const commit = (message, options = {}) => tryCommitAs(repo, { message, ...options });
 
   it('accepts a commit with noreply addresses', () => {
     const result = commit(`feat(E002): guard\n\nCo-authored-by: ${COPILOT}`);
@@ -253,7 +271,7 @@ describe('.githooks/commit-msg', () => {
   });
 
   for (const [what, message, options] of [
-    ['author', 'feat(E002): guard', { email: OTHER }],
+    ['author', 'feat(E002): guard', { author: OTHER }],
     ['committer', 'feat(E002): guard', { committer: OTHER }],
     ['Co-authored-by', `feat(E002): guard\n\nCo-authored-by: Pat <${OTHER}>`, {}],
   ]) {
@@ -269,7 +287,7 @@ describe('.githooks/commit-msg', () => {
   }
 
   it('also checks a merge commit, whose subject the message check skips', () => {
-    const result = commit('Merge branch main', { email: OTHER });
+    const result = commit('Merge branch main', { author: OTHER });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /author/);
   });
@@ -281,7 +299,7 @@ describe('.githooks/commit-msg', () => {
   });
 });
 
-describe('emails.sh identity (scripts/bootstrap.sh sets the noreply user.email)', () => {
+describe('E002 #120 emails.sh identity (scripts/bootstrap.sh sets the noreply user.email)', () => {
   const gh = fakeGh();
   let repo;
   beforeEach(() => {

@@ -21,7 +21,6 @@ voorbeeld.nl
 *.ingest.us.sentry.io
 *.railway.internal
 smtp-relay.mailin.fr
-git@github.com
 
 # GitHub's own no-reply sender
 noreply@github.com

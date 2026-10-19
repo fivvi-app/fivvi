@@ -25,19 +25,23 @@ commit_problems() {
   return "$rc"
 }
 
-report_commits() {
-  echo "  fix: $NOREPLY_HINT (then amend or rebase the commits above)" >&2
+# Ends a check with the one fix hint when it found problems ($1 is its status).
+finish() {
+  [ "$1" = 0 ] || echo "  fix: $NOREPLY_HINT" >&2
+  return "$1"
 }
 
 commits() {
-  local sha rc=0
+  local base sha rc=0
+  base="origin/$(default_branch)"
+  git rev-parse --verify --quiet "$base" >/dev/null \
+    || { echo "✗ $base not found, so the branch's commits are unknown — run: git fetch origin" >&2; return 1; }
   while IFS= read -r sha; do
     git log -1 --format=%B "$sha" \
       | commit_problems "$(git rev-parse --short "$sha")" "$(git log -1 --format=%ae "$sha")" "$(git log -1 --format=%ce "$sha")" \
       || rc=1
-  done < <(git log "origin/$(default_branch)..HEAD" --format=%H)
-  [ "$rc" = 0 ] || report_commits
-  return "$rc"
+  done < <(git log "$base..HEAD" --format=%H)
+  finish "$rc"
 }
 
 # The commit-msg hook: the identities git will use, and the Co-authored-by trailers of the message in $1.
@@ -46,25 +50,27 @@ hook() {
   author="$(ident_email "$(git var GIT_AUTHOR_IDENT 2>/dev/null || true)")"
   committer="$(ident_email "$(git var GIT_COMMITTER_IDENT 2>/dev/null || true)")"
   commit_problems "✗ this commit" "$author" "$committer" <"$1" || rc=1
-  [ "$rc" = 0 ] || echo "  fix: $NOREPLY_HINT" >&2
-  return "$rc"
+  finish "$rc"
 }
 
 # The allowlist, read once: lower-case entries, address and domain patterns in ADDRESS_ENTRIES, path globs in SKIP_PATHS.
 ADDRESS_ENTRIES=()
 SKIP_PATHS=()
+trim() {
+  local text="${1#"${1%%[![:space:]]*}"}"
+  echo "${text%"${text##*[![:space:]]}"}"
+}
+
 load_allowlist() {
   local line
   while IFS= read -r line; do
-    line="$(tr '[:upper:]' '[:lower:]' <<<"${line%%#*}")"
-    line="${line#"${line%%[![:space:]]*}"}"
-    line="${line%"${line##*[![:space:]]}"}"
+    line="$(trim "${line%%#*}")"
     case "$line" in
       "") ;;
-      path:*) line="${line#path:}"; SKIP_PATHS+=("${line#"${line%%[![:space:]]*}"}") ;;
+      path:*) SKIP_PATHS+=("$(trim "${line#path:}")") ;;
       *) ADDRESS_ENTRIES+=("$line") ;;
     esac
-  done <"$ALLOWLIST"
+  done < <(tr '[:upper:]' '[:lower:]' <"$ALLOWLIST")
 }
 
 # An entry with an @ matches the whole address, any other entry the domain; * matches anything, dots included.
@@ -82,6 +88,9 @@ email_allowed() {
   done
   return 1
 }
+
+# Retina asset names such as icon@2x.png look like addresses.
+is_asset_name() { [[ "$1" =~ @[0-9]+x\.[A-Za-z0-9]+$ ]]; }
 
 path_skipped() {
   local entry
@@ -101,6 +110,7 @@ files() {
     line="${rest%%:*}"
     address="${rest#*:}"
     path_skipped "$path" && continue
+    is_asset_name "$address" && continue
     email_allowed "$address" || { echo "$path:$line: email address outside the allowlist" >&2; rc=1; }
   done < <(git ls-files -z --cached --others --exclude-standard | xargs -0 grep -IHnoE "$EMAIL_RE" 2>/dev/null || true)
   [ "$rc" = 0 ] || echo "  fix: remove it, or use an example.com address; scripts/email-allowlist.txt lists what is allowed" >&2
