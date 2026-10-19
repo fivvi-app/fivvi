@@ -30,11 +30,16 @@
 #                                                 health-checked; otherwise smoke fails with a hint
 #   pr.sh reviewed                                record in the PR body that both reviewers (standards and spec) found
 #                                                 nothing to fix on the PR's head commit; local HEAD must be that commit
-#   pr.sh merge                                   squash-merge a low-risk PR and delete its branch, only when every
-#                                                 condition of the merge gate holds (ADR-016); otherwise merge nothing,
-#                                                 record the refusal for the head commit in the PR body, print why and
-#                                                 exit 1: the PR stays for the owner. Only behind main records nothing
+#   pr.sh merge                                   add a low-risk PR to the merge queue (ADR-018), which squash-merges it
+#                                                 after testing it on the latest main, only when every condition of the
+#                                                 merge gate holds (ADR-016); otherwise queue nothing, record the
+#                                                 refusal for the head commit in the PR body, print why and exit 1: the
+#                                                 PR stays for the owner. Never --auto or --admin; the queued commit is
+#                                                 recorded in the PR body
 #   pr.sh refusal <pr>                            the last refusal recorded in the PR body as {sha, reasons}, or null
+#   pr.sh queue <pr>                              the merge queue state as {state, position, reason}: state is "queued",
+#                                                 "removed" (GitHub took the PR out of the queue, reason says why, and no
+#                                                 commit was pushed after that) or null
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -51,6 +56,7 @@ BRANCH="$(git branch --show-current)"
 SMOKE_MARK="Railway preview smoke check"
 REVIEW_MARK="Self-review"
 REFUSAL_MARK="Merge gate"
+QUEUE_MARK="Merge queue"
 NO_PREVIEW="no preview for this PR"
 # Railway's commit status for the web preview, and how its description starts when Railway skipped the deploy because
 # the PR touches no watch pattern (the status is then green, but there is no preview).
@@ -143,9 +149,9 @@ cmd_ready() {
   local pr facts decision missing out
   pr="$(current_pr)"
   facts="$(pr_facts "$pr")" || exit 1
-  # The facts of the other conditions (risk, behind, threads) are not asked here: their conditions are not read.
+  # The facts of the other conditions (risk, threads) are not asked here: their conditions are not read.
   decision="$(jq -c --arg review_mark "$REVIEW_MARK" --arg smoke_mark "$SMOKE_MARK" --arg no_preview "$NO_PREVIEW" \
-    -f "$ROOT/scripts/merge-gate.jq" <<<"$(jq '. + {risk: {risk: "low", reasons: []}, behind: 0, threads: 0}' <<<"$facts")")" \
+    -f "$ROOT/scripts/merge-gate.jq" <<<"$(jq '. + {risk: {risk: "low", reasons: []}, threads: 0}' <<<"$facts")")" \
     || die "could not decide whether PR #$pr is ready; nothing changed"
   missing="$(jq -r --argjson names "$(printf '%s\n' "${READY_CONDITIONS[@]}" | jq -R . | jq -sc .)" '
     [.conditions[] | select(.name | IN($names[])) | select(.ok | not) | "\(.name) (\(.detail))"] | join("; ")' <<<"$decision")"
@@ -216,6 +222,10 @@ cmd_status() {
       "Review: \(value([.reviewDecision]) | if . == "?" then "none" else . end) · merge state: \(.mergeStateStatus)",
       "Checks: \([.statusCheckRollup[]? | "\(.name // .context): \(value([.conclusion, .state, .status]))"] | join("; "))",
       "Open threads: \($threads)"'
+  queue_state "$pr" | jq -r 'if .merged then "Merge queue: merged"
+    elif .queued then "Merge queue: queued (position \(.position))"
+    elif .removed then "Merge queue: removed (\(.reason // "no reason given")); look at the merge_group run of its queue branch"
+    else "Merge queue: not queued" end'
 }
 
 # Waits for the CI workflow run of the PR's head commit (.github/workflows/ci.yml), not for whatever checks exist yet:
@@ -471,52 +481,115 @@ pr_facts() {
     required: $required, checks: (.statusCheckRollup // []), preview: $preview}' <<<"$view"
 }
 
-# All the facts of the merge gate: pr_facts and what only a merge needs (behind main, threads, risk).
+# All the facts of the merge gate: pr_facts and what only a merge needs (threads, risk, whether the queue removed it). Not whether the branch is behind
+# main: the merge queue tests every PR on the latest main (ADR-018).
 merge_facts() {
-  local pr="$1" facts head behind threads risk
+  local pr="$1" facts threads risk removed
   facts="$(pr_facts "$pr")" || exit 1
-  head="$(jq -r .head <<<"$facts")"
-  behind="$(gh api "repos/$REPO/compare/$(default_branch)...$head" --jq .behind_by)" \
-    || die "could not compare ${head:0:7} with $(default_branch)"
   threads="$(unresolved_threads "$pr")" || exit 1
   risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr"
-  jq --argjson behind "$behind" --argjson threads "$(jq length <<<"$threads")" --argjson risk "$risk" \
-    '. + {risk: $risk, behind: $behind, threads: $threads}' <<<"$facts"
+  removed="$(queue_state "$pr" | jq .removed)" || exit 1
+  jq --argjson threads "$(jq length <<<"$threads")" --argjson risk "$risk" --argjson removed "$removed" \
+    '. + {risk: $risk, threads: $threads, queue_removed: $removed}' <<<"$facts"
 }
 
+# Where a PR is in the merge queue, from GitHub, as JSON {merged, queued, position, auto_merge, removed, reason}. A PR
+# is removed when the queue took it out (its last queue event on the timeline) after the head commit was made: a commit
+# pushed after the removal makes it stale, and a later removal (the owner queued the new commit) counts again. This reads
+# the event's time and the head commit's committedDate, not the **Merge queue:** record, which names only what an agent
+# queued. A commit pushed while the PR is queued makes GitHub remove it, with the removal after that commit's
+# committedDate: it shows as removed and the gate refuses it (fails closed); the owner decides.
+# Times are compared as UTC instants (GitHub's dates have a Z or an offset), not as text.
+queue_state() {
+  local out
+  # shellcheck disable=SC2016 # GraphQL variables, not shell
+  out="$(gh api graphql -F owner="$OWNER" -F name="$NAME" -F n="$1" -f query='
+    query($owner: String!, $name: String!, $n: Int!) {
+      repository(owner: $owner, name: $name) { pullRequest(number: $n) {
+        state headRefOid body commits(last: 1) { nodes { commit { committedDate } } } isInMergeQueue mergeQueueEntry { state position } autoMergeRequest { enabledAt }
+        timelineItems(last: 1, itemTypes: [ADDED_TO_MERGE_QUEUE_EVENT, REMOVED_FROM_MERGE_QUEUE_EVENT]) {
+          nodes { __typename ... on RemovedFromMergeQueueEvent { reason createdAt } } } } }
+    }')" || die "could not read the merge queue state of PR #$1"
+  jq '
+    def instant: capture("^(?<t>[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(?:\\.[0-9]+)?(?<z>Z|[+-][0-9]{2}:[0-9]{2})$")
+      | (.t + "Z" | fromdateiso8601)
+        - (if .z == "Z" then 0
+           else (if .z[0:1] == "-" then -1 else 1 end) * ((.z[1:3] | tonumber) * 3600 + (.z[4:6] | tonumber) * 60) end);
+    .data.repository.pullRequest as $p
+    | if $p == null then error("no such PR") else . end
+    | ($p.timelineItems.nodes | last) as $last
+    | ($p.commits.nodes | last | .commit.committedDate | instant) as $committed
+    | {merged: ($p.state == "MERGED"), queued: $p.isInMergeQueue, position: $p.mergeQueueEntry.position,
+       auto_merge: ($p.autoMergeRequest != null),
+       removed: ($p.state == "OPEN" and ($p.isInMergeQueue | not)
+         and $last.__typename == "RemovedFromMergeQueueEvent" and ($last.createdAt | instant) >= $committed),
+       reason: $last.reason}
+    | .reason = (if .removed then .reason else null end)' <<<"$out" \
+    || die "could not read the merge queue state of PR #$1"
+}
+
+cmd_queue() {
+  { [ $# -eq 1 ] && [[ "$1" =~ ^[0-9]+$ ]]; } || usage
+  queue_state "$1" | jq -c '{state: (if .queued then "queued" elif .removed then "removed" else null end),
+    position: (if .queued then .position else null end), reason}'
+}
+
+# Adds a low-risk PR that passes the whole merge gate to the merge queue, which tests it on top of the latest main and
+# squash-merges it (ADR-018). `gh pr merge` does that on a branch that requires the queue, when the required checks have
+# passed; when GitHub finds they haven't, it turns auto-merge on instead, which agents never use: turn it off again.
 cmd_merge() {
   [ $# -eq 0 ] || usage
-  local pr facts decision head branch issue out failed
+  local pr facts decision head branch issue out failed state attempt
   pr="$(current_pr)"
   if ! facts="$(merge_facts "$pr")" || [ -z "$facts" ]; then
-    die "could not read the facts of PR #$pr; nothing merged"
+    die "could not read the facts of PR #$pr; nothing queued"
   fi
   decision="$(jq -c --arg review_mark "$REVIEW_MARK" --arg smoke_mark "$SMOKE_MARK" --arg no_preview "$NO_PREVIEW" \
     -f "$ROOT/scripts/merge-gate.jq" <<<"$facts")" \
-    || die "could not decide the merge gate of PR #$pr; nothing merged"
+    || die "could not decide the merge gate of PR #$pr; nothing queued"
   jq -r '.conditions[] | "\(if .ok then "✓" else "✗" end) \(.name): \(.detail)"' <<<"$decision"
   head="$(jq -r .head <<<"$facts")"
   if ! jq -e .merge <<<"$decision" >/dev/null; then
     failed="$(jq -r '[.conditions[] | select(.ok | not) | .name] | join(", ")' <<<"$decision")"
-    # Behind main is the one refusal an agent fixes itself (the work skill's Ship step 4); the push makes a new head.
-    [ "$failed" != "up to date" ] \
-      || die "PR #$pr is behind $(default_branch): merge origin/$(default_branch) in the worktree, check, self-review, push and run it again; nothing merged"
     # A refusal for the head commit makes the PR wait on the owner (flow.sh); a new push makes it stale.
     record "$pr" "$REFUSAL_MARK" "**$REFUSAL_MARK:** refused on \`$head\`: $(jq -r \
       '[.conditions[] | select(.ok | not) | "\(.name) (\(.detail))"] | join("; ")' <<<"$decision")"
-    die "PR #$pr stays for the owner: $failed; nothing merged"
+    die "PR #$pr stays for the owner: $failed; nothing queued"
   fi
 
   branch="$(jq -r .branch <<<"$facts")"
-  out="$(gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$head" 2>&1)" || die "merge failed: $out"
-  echo "✅ PR #$pr squash-merged"
-  if gh api --method DELETE "repos/$REPO/git/refs/heads/$branch" >/dev/null 2>&1; then
-    echo "🗑  deleted '$branch' on GitHub"
-  else
-    echo "⚠  could not delete '$branch' on GitHub; flow.sh finish removes it"
-  fi
   issue="$(branch_issue "$branch")"
-  echo "Next: scripts/flow.sh finish ${issue:-<issue>} from the main checkout"
+  out="$(gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$head" 2>&1)" || die "merge failed: $out"
+  # The queue answers at once; look a few times in case GitHub is slow to show it.
+  for attempt in 1 2 3; do
+    state="$(queue_state "$pr")" || die "gh pr merge succeeded, but the state of PR #$pr can't be read: check it on GitHub"
+    if jq -e .merged <<<"$state" >/dev/null; then
+      # No merge queue on the branch (the ruleset isn't applied yet): GitHub merged it at once.
+      echo "✅ PR #$pr squash-merged"
+      if gh api --method DELETE "repos/$REPO/git/refs/heads/$branch" >/dev/null 2>&1; then
+        echo "🗑  deleted '$branch' on GitHub"
+      else
+        echo "⚠  could not delete '$branch' on GitHub; flow.sh finish removes it"
+      fi
+      echo "Next: scripts/flow.sh finish ${issue:-<issue>} from the main checkout"
+      return 0
+    elif jq -e .queued <<<"$state" >/dev/null; then
+      # The record is the audit trail of what an agent queued (removals are read from the timeline). The branch stays:
+      # deleting the head branch of a queued PR closes it; flow.sh finish removes it after the merge.
+      (record "$pr" "$QUEUE_MARK" "**$QUEUE_MARK:** added to the merge queue on \`$head\`") \
+        || echo "⚠  could not record the queued commit in the PR body"
+      echo "✅ PR #$pr added to the merge queue (position $(jq -r .position <<<"$state"))"
+      echo "GitHub tests it on the latest $(default_branch) and squash-merges it when the checks pass; if it removes the PR, flow.sh status shows why."
+      echo "Next: scripts/flow.sh status ${issue:-<issue>}; once GitHub merged it, scripts/flow.sh finish ${issue:-<issue>} from the main checkout"
+      return 0
+    elif jq -e .auto_merge <<<"$state" >/dev/null; then
+      gh pr merge "$pr" --repo "$REPO" --disable-auto >/dev/null 2>&1 \
+        || die "GitHub enabled auto-merge on PR #$pr instead of adding it to the merge queue, and auto-merge is still on: turn it off on GitHub; nothing queued"
+      die "GitHub enabled auto-merge instead of adding PR #$pr to the merge queue (it found a required check not passed); turned it off, nothing queued"
+    fi
+    [ "$attempt" -eq 3 ] || sleep 2
+  done
+  die "gh pr merge succeeded, but PR #$pr is neither in the merge queue nor merged: check it on GitHub"
 }
 
 cmd_refusal() {
@@ -540,6 +613,7 @@ case "${1:-}" in
   reviewed) shift; cmd_reviewed "$@" ;;
   merge)   shift; cmd_merge "$@" ;;
   refusal) shift; cmd_refusal "$@" ;;
+  queue)   shift; cmd_queue "$@" ;;
   ship)    shift; cmd_ship "$@" ;;
   *)       usage ;;
 esac

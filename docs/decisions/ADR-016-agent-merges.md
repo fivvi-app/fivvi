@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | Proposed |
+| **Status** | Proposed; decisions 2 and 3 amended by [ADR-018](ADR-018-merge-queue.md) |
 | **Date** | 2026-10-13 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
-| **Related** | ROADMAP.md §4.3, M4 (Gate G2), §16 v1.12; WORKFLOW.md §3, §4, §7; ENVIRONMENTS.md §4; ADR-011; issue #28 |
+| **Related** | ROADMAP.md §4.3, M4 (Gate G2), §16 v1.12; WORKFLOW.md §3, §4, §7; ENVIRONMENTS.md §4; ADR-011; ADR-018 (merge queue); issue #28 |
 
 ## Context
 
@@ -25,6 +25,8 @@ What must not change:
 
 Agents merge a PR when a script finds it **low-risk** and every condition of the **merge gate** holds. Everything else waits for the owner. Decided by the owner on 13 October 2026 (#28).
 
+> **Amended by [ADR-018](ADR-018-merge-queue.md) (19 October 2026):** merges go through the merge queue. In decision 2 the ruleset requires the merge queue instead of an up-to-date branch. In decision 3 `pr.sh merge` adds the PR to the queue (GitHub squash-merges it) instead of merging directly, and the "up to date with `main`" condition and the exception for a branch that is behind `main` are gone. The rest of this ADR stands.
+
 1. **Risk is decided by a script, never by an agent's judgment.** `scripts/risk.sh <pr>` classifies a PR as high-risk when it changes, adds, deletes or renames a path in `scripts/high-risk-paths.txt`, or when its issue or that issue's parent spec has the `owner-merge` label. It prints the reasons. The pure decision is `scripts/risk.jq`. The high-risk groups:
    - auth; tenant data (`packages/database`: schema, migrations, RLS); health notes; `docs/legal`; billing and payments;
    - product and decision docs: `docs/product`, `docs/decisions`;
@@ -38,7 +40,7 @@ Agents merge a PR when a script finds it **low-risk** and every condition of the
    - Every check on the head commit passed (or was skipped), and the five required ones exist.
    - Both local reviewers (standards and spec) were clean on the head commit: no must-fix or should-fix finding. `pr.sh reviewed` records this in the PR body with the commit's SHA, the way `pr.sh smoke` records its result. Any later push makes the record stale.
    - `pr.sh smoke` recorded for the head commit that the Railway preview passed, or that the PR has no preview. A missing record fails. Whether the head commit has a preview has one definition in `pr.sh` (`preview_of`), used by both: Railway's latest `trainer-hub - web` commit status, unless its description says Railway skipped the deploy ("No deployment needed …", posted green when the PR touches no watch pattern). No such status means no preview; a pending one makes the smoke check wait and the gate refuse; a failed read of the statuses fails.
-   - The branch is up to date with `main`.
+   - ~~The branch is up to date with `main`.~~ Removed by ADR-018: the merge queue tests the PR on the latest `main`.
    - No unresolved review threads. More than 100 threads count as unknown, so the gate fails.
    - The PR is open, ready for review (not a draft) and targets `main`.
 

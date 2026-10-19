@@ -78,7 +78,7 @@ railway environment config --json | jq '.services[].deploy.multiRegionConfig'
    curl -fsS https://<pr-domain>/api/v1/health
    ```
 
-5. **Merge.** The PR environment is deleted. CI runs on `main`; when it is green, `development` and `production` build `main`. In production, `release.ts` only migrates. Traffic switches after the health check passes.
+5. **Merge.** The PR goes through the merge queue ([ADR-018](../decisions/ADR-018-merge-queue.md)): GitHub tests it on the latest `main` and merges it when the checks pass. Railway deploys only `main` and the PR environments of open PRs, so the queue's temporary `gh-readonly-queue/main/*` branch deploys nothing. The PR environment is deleted when the PR is merged. CI runs on `main`; when it is green, `development` and `production` build `main`. In production, `release.ts` only migrates. Traffic switches after the health check passes.
 
 Watch patterns limit rebuilds: `web` rebuilds for `apps/web`, `packages/**` and root build files; `cron` for `apps/cron`, `packages/database`, `packages/observability` and root build files. A docs-only change deploys nothing, but Railway still posts a green `trainer-hub - web` status on the commit, described "No deployment needed - watched paths not modified". `scripts/pr.sh smoke` and the merge gate read that status's description, not just its presence, to tell whether a PR has a preview.
 

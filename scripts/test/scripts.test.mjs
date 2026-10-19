@@ -228,7 +228,15 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
   // Runs the `Filter paths` step of the Detect changes job as it is in ci.yml, in a repo whose last commit changed
   // `changed`, with the event and label the workflow would pass; returns what it writes to $GITHUB_OUTPUT.
-  const detectChanges = ({ event, label = false, changed = ['docs/product/FEATURES.md'] }) => {
+  // `earlier` are paths changed by a commit before it, in the same group: a merge queue group holds the commits of
+  // every queued PR on top of its base commit (the event's base_sha).
+  const detectChanges = ({
+    event,
+    label = false,
+    changed = ['docs/product/FEATURES.md'],
+    earlier = [],
+    noMergeBase = false,
+  }) => {
     const lines = ci().split('\n');
     const start = lines.findIndex((line) => line.includes('name: Filter paths'));
     const run = lines.findIndex((line, i) => i > start && /^ +run: \|$/.test(line));
@@ -244,6 +252,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       env('RUN_NATIVE'),
       expression("contains(github.event.pull_request.labels.*.name, 'run-native')"),
     );
+    assert.equal(env('MERGE_BASE'), expression('github.event.merge_group.base_sha'));
 
     const repo = realpathSync(mkdtempSync(join(tmpdir(), 'detect-')));
     try {
@@ -261,6 +270,14 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       writeFileSync(join(repo, 'apps/android/.keep'), '');
       git('add', '.');
       git('commit', '--quiet', '-m', 'chore: base');
+      if (earlier.length > 0) {
+        for (const path of earlier) {
+          mkdirSync(join(repo, path, '..'), { recursive: true });
+          writeFileSync(join(repo, path), 'earlier\n');
+        }
+        git('add', '.');
+        git('commit', '--quiet', '-m', 'chore: earlier');
+      }
       for (const path of changed) {
         mkdirSync(join(repo, path, '..'), { recursive: true });
         writeFileSync(join(repo, path), 'changed\n');
@@ -268,6 +285,10 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       git('add', '.');
       git('commit', '--quiet', '-m', 'chore: change');
       const before = event === 'push' ? git('rev-parse', 'HEAD~1').trim() : '';
+      const mergeBase =
+        event === 'merge_group' && !noMergeBase
+          ? git('rev-parse', earlier.length > 0 ? 'HEAD~2' : 'HEAD~1').trim()
+          : '';
       const output = join(repo, '..', `${basename(repo)}.out`);
       writeFileSync(output, '');
       const result = spawnSync('bash', ['-c', body.join('\n')], {
@@ -278,6 +299,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
           HOME: repo,
           EVENT: event,
           BEFORE: before,
+          MERGE_BASE: mergeBase,
           RUN_NATIVE: String(label),
           GITHUB_OUTPUT: output,
         },
@@ -295,6 +317,43 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       rmSync(repo, { recursive: true, force: true });
     }
   };
+
+  it("E002 #119: a merge group is compared with the queue's base commit, so native jobs skip when no native path changed", () => {
+    assert.deepEqual(detectChanges({ event: 'merge_group' }), { ios: 'false', android: 'false' });
+    assert.deepEqual(
+      detectChanges({ event: 'merge_group', changed: ['.github/workflows/ci.yml'] }),
+      { ios: 'false', android: 'false' },
+    );
+  });
+
+  it('E002 #119: a merge group runs a native job when a native path changed in it', () => {
+    assert.deepEqual(detectChanges({ event: 'merge_group', changed: ['apps/ios/App.swift'] }), {
+      ios: 'true',
+      android: 'false',
+    });
+    assert.deepEqual(detectChanges({ event: 'merge_group', changed: ['apps/android/App.kt'] }), {
+      ios: 'false',
+      android: 'true',
+    });
+  });
+
+  it("E002 #119: a merge group with several queued PRs looks at every commit since the base, not only the last one's", () => {
+    assert.deepEqual(
+      detectChanges({
+        event: 'merge_group',
+        earlier: ['apps/ios/App.swift'],
+        changed: ['docs/product/FEATURES.md'],
+      }),
+      { ios: 'true', android: 'false' },
+    );
+  });
+
+  it('E002 #119: a merge group without a base commit treats every path as changed', () => {
+    assert.deepEqual(detectChanges({ event: 'merge_group', noMergeBase: true }), {
+      ios: 'true',
+      android: 'true',
+    });
+  });
 
   it('E002 #91: ci.yml passes the event and the run-native label to scripts/native-jobs.sh', () => {
     assert.deepEqual(detectChanges({ event: 'pull_request' }), { ios: 'false', android: 'false' });
@@ -330,6 +389,21 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         android: 'false',
       },
     );
+  });
+});
+
+describe('E002 #119 CI on the merge queue (merge_group)', () => {
+  const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
+
+  it('runs on merge_group, for main only, so the required checks report on the queue branch', () => {
+    assert.match(
+      ci,
+      /^ {2}merge_group:\n {4}types: \[checks_requested\]\n {4}branches: \[main\]$/m,
+    );
+  });
+
+  it('never cancels a merge group run: only a new push to a PR cancels the run it replaces', () => {
+    assert.match(ci, /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/);
   });
 });
 

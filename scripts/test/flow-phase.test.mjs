@@ -203,7 +203,7 @@ describe('flow phase from the code', () => {
     assert.equal(low.phase, 'ready-to-merge');
     assert.match(
       low.next,
-      /^Low-risk: scripts\/pr\.sh merge in the worktree.*scripts\/flow\.sh finish 57/,
+      /^Low-risk: scripts\/pr\.sh merge in the worktree.*merge queue.*scripts\/flow\.sh finish 57/,
     );
     assert.equal(phaseOf(pr({ risk: 'low', review: 'APPROVED' })), 'ready-to-merge');
 
@@ -242,6 +242,64 @@ describe('flow phase from the code', () => {
     assert.equal(phaseOf(refused('b'.repeat(40))), 'ready-to-merge', 'a new push makes it stale');
     assert.equal(phaseOf(pr({ risk: 'low', head, refusal: null })), 'ready-to-merge');
     assert.equal(phaseOf(refused(null)), 'ready-to-merge', 'a record without a commit is stale');
+  });
+
+  it('E002 #119: a PR in the merge queue waits for GitHub to merge it: nothing to do, finish after the merge', () => {
+    const queued = decide(
+      issue({
+        branches: [
+          branch(pr({ risk: 'low', queue: { state: 'queued', position: 2, reason: null } })),
+        ],
+      }),
+    );
+    assert.equal(queued.phase, 'queued');
+    assert.match(queued.next, /^In the merge queue \(position 2\)/);
+    assert.match(queued.next, /scripts\/flow\.sh finish 57/);
+    assert.doesNotMatch(queued.next, /scripts\/pr\.sh merge/);
+    // The owner queues a high-risk PR: it is queued for the same reason.
+    assert.equal(
+      phaseOf(pr({ risk: 'high', queue: { state: 'queued', position: 1, reason: null } })),
+      'queued',
+    );
+  });
+
+  it('E002 #119: a PR GitHub removed from the queue shows the reason, and never gets queued again as it is', () => {
+    const removed = decide(
+      issue({
+        branches: [
+          branch(
+            pr({
+              risk: 'low',
+              queue: { state: 'removed', position: null, reason: 'Merge group failed' },
+            }),
+          ),
+        ],
+      }),
+    );
+    assert.equal(removed.phase, 'queue-removed');
+    assert.match(removed.next, /removed it from the merge queue \(Merge group failed\)/);
+    assert.match(removed.next, /gh run list --event merge_group/);
+    assert.match(removed.next, /Never queue the same commit again yourself/);
+    assert.doesNotMatch(removed.next, /^Low-risk: scripts\/pr\.sh merge/);
+  });
+
+  it('E002 #119: no queue state is the usual flow, and failing checks or open threads come before a removal', () => {
+    assert.equal(
+      phaseOf(pr({ risk: 'low', queue: { state: null, position: null, reason: null } })),
+      'ready-to-merge',
+    );
+    assert.equal(
+      phaseOf(pr({ risk: 'low', failing: 1, queue: { state: 'removed', reason: 'x' } })),
+      'changes-requested',
+    );
+    assert.equal(phaseOf(pr({ draft: true, queue: { state: 'queued', position: 1 } })), 'draft-pr');
+  });
+
+  it('E002 #119: a merged PR is merged, whatever the queue said', () => {
+    assert.equal(
+      phaseOf(pr({ state: 'MERGED', queue: { state: 'queued', position: 1, reason: null } })),
+      'merged',
+    );
   });
 
   it('asks for changes on failing checks, open threads or a change request', () => {
