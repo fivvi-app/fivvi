@@ -96,21 +96,21 @@ These give context and the denominators for the §8 percentages.
 | **N** Notities | Notities over klanten of trainingen schrijven of opzoeken · *Writing or looking up notes about clients or sessions* |
 | **A** Aanwezigheid | Bijhouden wie er was, niet verschenen opvolgen · *Tracking who attended, following up no-shows* |
 | **O** Open Gym | Vrij trainen plannen, aankondigen, aanmeldingen bijhouden · *Planning and announcing free training, tracking sign-ups* |
-| **C** Commerce | Facturen maken of aanpassen, betalingen opvolgen, lidmaatschappen en rittenkaarten bijhouden · *Making or editing invoices, following up payments, keeping track of memberships and session packs* |
+| **C** Commerce | Facturen maken of aanpassen, betalingen opvolgen, abonnementen en sessiepakketten bijhouden · *Making or editing invoices, following up payments, keeping track of memberships and session packs* |
 | **X** Overig | Salaris, marketing, boekhouding · *Payroll, marketing, bookkeeping* |
 
 **Minuten per dag / Minutes per day**
 
 | Dag / Day | Datum / Date | P | B | L | N | A | O | C | X | Na werktijd? (min) / After hours? (min) |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 | | | | | | | | | |
-| 2 | | | | | | | | | |
-| 3 | | | | | | | | | |
-| 4 | | | | | | | | | |
-| 5 | | | | | | | | | |
-| 6 | | | | | | | | | |
-| 7 | | | | | | | | | |
-| **Totaal / Total** | | | | | | | | | |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | | | | | | | | | | |
+| 2 | | | | | | | | | | |
+| 3 | | | | | | | | | | |
+| 4 | | | | | | | | | | |
+| 5 | | | | | | | | | | |
+| 6 | | | | | | | | | | |
+| 7 | | | | | | | | | | |
+| **Totaal / Total** | | | | | | | | | | |
 
 - Was dit een normale week? / *Was this a normal week?* ☐ Ja / Yes ☐ Nee / No, omdat / because: ______________________
 - Totaal P, B, L, N, A, O en C (min) / *Total P, B, L, N, A, O and C (min):* ________ → ÷ 60 = ________ uur / *hours* → **A2.1**

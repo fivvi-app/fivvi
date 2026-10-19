@@ -212,7 +212,7 @@ _Avoid_: drop-in, top-up
 
 **Session balance**:
 What a client can still use under one agreement: sessions in a pack, makeups from a membership. Always explained by its history (granted, used, returned, expired), never a bare counter.
-_Avoid_: credits, remaining sessions (as a stored number)
+_Avoid_: credits, remaining sessions
 
 **Cancellation policy**:
 The rules of an offer for cancellations and no-shows: the cutoff, the makeup limit and what each case does to the balance.
@@ -226,19 +226,19 @@ A right to attend another class, granted for a cancellation in time or a class t
 _Avoid_: credit, catch-up, reschedule (that moves a session)
 
 **Payment provider**:
-The payment company (Mollie or Stripe) through which clients' online payments and direct debits run. Who the merchant is, and whether the workspace has its own account with it, is set out in `PRODUCT.md §94`.
-_Avoid_: PSP (outside code), bank
+The payment company through which clients' online payments run. Who the merchant is, and whether the workspace has its own account with it, is set out in `PRODUCT.md §94`.
+_Avoid_: bank
 
 **Payment**:
 Money collected from a client: a first payment, a recurring payment or a single class.
 
 **Recurring payment**:
-A payment collected on a due date of an agreement's payment schedule, by direct debit under a mandate.
+A payment collected on a due date of an agreement's payment schedule, under a mandate. Which payment methods are used is open (QC06).
 _Avoid_: subscription, automatic payment
 
 **Mandate**:
-A client's permission to collect recurring payments from their bank account, given with the first payment.
-_Avoid_: authorization, machtiging (the Dutch word)
+A client's permission to collect recurring payments from them, given with the first payment. Whether existing mandates can move to a new provider account is open (QC09).
+_Avoid_: authorization
 
 **Invoice**:
 The numbered tax document for a payment, with the workspace's and the buyer's details as they were when it was issued. Never changes once issued.

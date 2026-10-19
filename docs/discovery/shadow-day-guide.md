@@ -43,7 +43,7 @@ Use the activity codes below in the timing log. **Codes P, B, L, N, A, O and C a
 | **N** | Notes about clients and sessions | Notities |
 | **A** | Attendance and no-shows | Aanwezigheid |
 | **O** | Open Gym: deciding on and announcing free gym time | Open Gym |
-| **C** | Commerce: invoices, payments, memberships and session packs | Facturen en betalingen |
+| **C** | Commerce: invoices, payments, memberships and session packs | Facturen, betalingen, abonnementen en sessiepakketten |
 | **X** | Other admin outside the MVP (payroll, marketing, bookkeeping) | Overige administratie |
 
 ### P — Scheduling / Planning
@@ -94,7 +94,7 @@ Look for:
 - [ ] How is a **no-show** noticed and recorded? Does anything happen afterwards (message, charge, nothing)?
 - [ ] Count today: booked, attended, cancelled, no-show per class and private session (numbers only).
 
-### C — Invoices and payments / Facturen en betalingen (also observe)
+### C — Invoices, payments, memberships and session packs / Facturen, betalingen, abonnementen en sessiepakketten (also observe)
 
 - [ ] How is a payment or membership change handled: which app, by whom, how long? Count today's invoices made or edited by hand (numbers only; never copy names, amounts or IBANs).
 - [ ] Which sessions or memberships are tracked outside the booking app (paper, Excel, Word)?

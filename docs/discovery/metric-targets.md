@@ -91,7 +91,7 @@ Tick **Confirm**, or write the adjusted target and the reason. Baselines come fr
 | B7 | Trainer rating "easy to see what they did last time" | ≥ 4 / 5 | ____ / 5 today (A3.7) | ☐ Confirm / ______ | The same question as the baseline (shadow-day guide 4.4 / 10.3), at the bi-weekly trainer check |
 | B8 | Developer interventions for routine operations | 0 in the final 2 weeks | n/a | ☐ Confirm | Support log in `docs/pilot/` |
 | B9 | Uptime; cross-tenant incidents; app crash-free sessions | ≥ 99.5 %; 0; ≥ 99 % | n/a | ☐ Confirm | Uptime monitor; incident log; Sentry |
-| B10 | "Would you go back to Excel + calendar + manual booking?" | **No** | satisfaction today ____ / 5 (A3.9) | ☐ Confirm | Question at the pilot review (see Part D) |
+| B10 | "Would you go back to the old booking and payment app, Google Calendar, Word and Excel?" | **No** | satisfaction today ____ / 5 (A3.9) | ☐ Confirm | Question at the pilot review (see Part D) |
 
 **Vraag (voor B1–B10):** Dit zijn de doelen die wij voorstellen. Is er een doel dat je te makkelijk of te moeilijk vindt, of dat voor jou niets zegt?\
 *Question (for B1–B10): these are the targets we propose. Is there one you find too easy or too hard, or that means nothing to you?*
@@ -120,8 +120,8 @@ These are agreed now so the pilot review asks exactly the same thing.
 **D1** Gebruik je naast Trainer Hub nog een ander programma, schrift of app voor notities over klanten? Zo ja, welke en waarvoor?\
 *Do you still use any other program, notebook or app for notes about clients besides Trainer Hub? If so, which one and what for?* → B6
 
-**D2** Zou je terug willen naar Excel, een aparte agenda en handmatig boeken? Waarom wel of niet?\
-*Would you want to go back to Excel, a separate calendar and manual booking? Why or why not?* → B10
+**D2** Zou je terug willen naar de oude boekings- en betaalapp, Google Agenda, Word en Excel? Waarom wel of niet?\
+*Would you want to go back to the old booking and payment app, Google Calendar, Word and Excel? Why or why not?* → B10
 
 **D3** Op een schaal van 1 tot 5: hoe makkelijk is het nu om te zien wat een klant vorige keer deed?\
 *On a scale of 1 to 5: how easy is it now to see what a client did last time?* → B7

@@ -156,12 +156,12 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | organization | — *(internal)* | Code and database name for a workspace (`organization_id`, `organizations`). Never shown in the UI. Say *workspace/werkruimte*. |
 | personal workspace 🔜 2.2 | persoonlijke werkruimte |  |
 | team | team (het, teams) |  |
-| team member | teamlid (het, teamleden) | ❌ *lid, leden, lidmaatschap, member, membership* for this concept. **"lid/lidmaatschap" and "member/membership" are reserved** for gym memberships (`PRODUCT.md §91`, MVP, M11). ❌ *medewerker, personeel, staff, gebruiker*. Internally `organization_member`. |
+| team member | teamlid (het, teamleden) | ❌ *lid, leden, lidmaatschap, member, membership* for this concept. *Membership* (*abonnement / lidmaatschap* ⚠️) means a client's membership (`PRODUCT.md §91`, §4.9); *member / lid* is not used for people in the UI. ❌ *medewerker, personeel, staff, gebruiker*. Internally `organization_member`. |
 | role | rol (de, rollen) | No custom roles in MVP. |
 | Owner | Eigenaar (de, eigenaren) | ❌ *baas, beheerder* (that's Admin), *owner* (NL). |
 | Admin | Beheerder (de, beheerders) | ❌ NL: *admin, administrator, manager*. |
 | Trainer | Trainer (de, trainers) | ❌ *coach, instructeur, docent, PT* (as a role name). "Personal trainer" is fine in marketing copy, not as a role. |
-| client | klant (de, klanten) | ❌ NL: *cliënt* (sounds medical), *lid, sporter, deelnemer* (see *participant*), *gebruiker*. ❌ EN: *customer, member, user, athlete, guest*. |
+| client | klant (de, klanten) | ❌ NL: *cliënt* (sounds medical), *lid, sporter, deelnemer* (see *participant*), *gebruiker*. ❌ EN: *customer, member, user, athlete, guest*. A client who has a membership is a *klant met een abonnement* / *client with a membership*, never a *lid* / *member*. |
 | participant | deelnemer (de, deelnemers) | ❌ EN: *attendee, student*. ❌ NL: *cursist, leerling*. |
 | independent trainer | zelfstandig trainer | ❌ *zzp'er, freelancer* in UI. |
 | gym | sportschool (de, sportscholen) | A physical fitness business or venue. "Gym" is fine in names ("John's Gym") and in *Open Gym*, but not as a generic Dutch noun. ❌ *fitnesscentrum, fitnessclub*. |
@@ -440,7 +440,7 @@ Added with roadmap v1.19 (M11). The ⚠️ terms are open until the pilot owner 
 | **training** (NL) | workout | a scheduled session or class → *sessie*, *les*, *privésessie* |
 | **herhaling** (NL) | rep | recurrence → *terugkerend*, *Herhalen: elke week* |
 | **annuleren / cancel** | cancelling a session, class or booking; also dismissing a dialog | both at once in one dialog → §5.3 |
-| **abonnement / lidmaatschap**, **member / membership** | a client's membership (§4.9) | team members → *teamlid / team member* |
+| **abonnement / lidmaatschap**, **membership** | a client's membership (§4.9) | a person: *klant met een abonnement / client with a membership* (never *lid / member*); a team member → *teamlid / team member* |
 | **plek** (NL) | a spot in a class | a location → *locatie* |
 | **privé / private** | the private session type | note visibility → *Alleen voor trainers / Trainer-only* |
 | **schedule** (EN) | the verb *to schedule* (*inplannen*) | the timetable noun → *timetable / rooster* |

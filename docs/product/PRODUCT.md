@@ -485,7 +485,7 @@ Can:
 - manage booking links
 - manage offers, prices and the cancellation policy (§90, §93)
 - manage agreements, payments and invoices (§91–§96)
-- connect the workspace's payment provider account (§94)
+- connect the workspace's payment provider account (proposed, ADR-020; §94)
 - manage settings
 
 The pilot PT is:
@@ -1614,7 +1614,7 @@ Everything below up to **Platforms** is needed for the pilot's go-live (`ROADMAP
 - private session packs (§92)
 - session balance with its history (§92)
 - cancellation cutoff, no-shows and limited makeups (§93)
-- recurring payments through the workspace's payment provider account (§94)
+- recurring payments through the workspace's payment provider account (proposed, ADR-020; §94)
 - single class purchase (§95)
 - invoices with billing details and credit notes (§96)
 - payouts and reconciliation (§97)
@@ -1667,7 +1667,7 @@ Do not build yet:
 - accounting integrations (Moneybird, e-Boekhouden, Exact Online)
 - point-of-sale or kiosk payments at the desk, until the pilot's current use is known ([QC11](../design/open-questions.md#qc11))
 - payments inside the native apps (clients pay on the web)
-- Trainer Hub holding client money in its own account (proposed in §94, decided in ADR-020)
+- Trainer Hub holding client money in its own account (proposed in §94, to be decided in ADR-020, which is still to come)
 - platform billing: charging gyms and trainers for Trainer Hub (§58)
 - phone number requirement
 - SMS
@@ -2461,7 +2461,7 @@ F050 Trainer Booking Notifications
 Runs after Phase D (it needs bookings and client accounts), next to Phases E and F, and before Phase J.
 
 79. offers and prices
-80. payment provider account per workspace
+80. payment provider account per workspace (proposed, ADR-020)
 81. memberships on fixed weekdays
 82. private session packs
 83. session balance and its history
@@ -2676,7 +2676,7 @@ The cutoff, the makeup limit and how long a makeup stays valid are open ([QC02](
 
 # 94. Recurring payments
 
-Payments run through a **payment provider** (Mollie or Stripe, chosen in the M11 spike and ADR-020, `ROADMAP.md`). **Proposed merchant model, decided in ADR-020:** each workspace connects its own account with the provider, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Trainer Hub. The provider pays out to the gym on a schedule; the pilot wants weekly payouts.
+Payments run through a **payment provider** (Mollie or Stripe, chosen in the M11 spike and ADR-020 (to come), `ROADMAP.md`). **Proposed merchant model, decided in ADR-020:** each workspace connects its own account with the provider, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Trainer Hub. The provider pays out to the gym on a schedule; the pilot wants weekly payouts.
 
 - **First payment:** the client pays online (iDEAL first; proposal, [QC06](../design/open-questions.md#qc06)) when confirming a membership or pack. That payment also gives the **mandate** for later collections.
 - **Recurring payments:** on each due date Trainer Hub asks the provider to collect the next amount by SEPA Direct Debit under the mandate (proposal, [QC06](../design/open-questions.md#qc06)). The payment schedule belongs to the agreement and has nothing to do with the class times.

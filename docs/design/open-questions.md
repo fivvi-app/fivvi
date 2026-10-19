@@ -31,7 +31,7 @@ How far ahead do clients expect to browse available lessons? **Proposal:** 14 da
 When should a class stop accepting bookings? **Proposal:** at its start time (PB-01/03).
 
 ### Q09
-When may a client cancel a booking, and must that differ for Open Gym? **Proposal:** until the start time. A cancellation cutoff per offer is now MVP with commerce (see QC02, `PRODUCT.md §93`); Open Gym may use a different cutoff or none (CW-03).
+When may a client cancel a booking, and must that differ for Open Gym? **Proposal:** until the start time. A cancellation cutoff per offer is now MVP with commerce (see QC02, `PRODUCT.md §93`); Open Gym may use a different cutoff or none (CW-03; cutoff rules in QC02).
 
 ### Q10
 How long should a pending email confirmation hold a place? **Proposal:** 15 minutes, ending earlier if the class starts (PB-04).
@@ -219,7 +219,7 @@ What is the "kiosk" or pay-at-the-desk option in the current app, and is it used
 Which commerce actions may an admin take (agreements, refunds, prices, payouts), and may a trainer see the session balance of the clients they train? **Proposal:** admins manage agreements and see payments; only the owner changes prices, refunds and the provider connection; trainers see the balance of their own clients, not amounts.
 
 ### QC13
-What does the pilot pay today: the subscription (per month or per year, VAT included?) and the fee per payment, and is there a separate provider fee? (The figures stay in the owner's private notes, not in the repository.) What does a weekly payout need to show? **Proposal:** record the answers here, like the other questions; compare in the ADR-020 spike.
+What does the pilot pay today: the subscription (per month or per year, VAT included?) and the fee per payment, and is there a separate provider fee? (The figures stay in the owner's private notes, not in the repository.) What does a weekly payout need to show? **Proposal:** record only the outcome of the comparison here (for example "cheaper / similar / more expensive per payment"), never the figures; compare in the ADR-020 spike.
 
 ### QC14
 Which data can the pilot export from the current app (clients, memberships, remaining sessions, next due dates), who does it, and how long does it take? **Proposal:** an export the gym owner makes, mapped to the E015 import template (`docs/discovery/import-checklist.md`).

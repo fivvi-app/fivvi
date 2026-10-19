@@ -15,7 +15,7 @@ No client names, bank details, contracts or invoices were shared or recorded.
 
 ### Tools today
 - Two apps, Google Calendar and Word documents, with data typed in by hand (R).
-- One app lets group clients book classes, keeps track of their memberships and collects their payments automatically. Its icon is blue with white lines; the app's name is not known yet (U).
+- One app lets group clients book classes, keeps track of their memberships and collects their payments automatically. The app's name is not known yet (U).
 - Private training is managed by hand by T1 (R).
 
 ### Private training and invoices
@@ -53,7 +53,7 @@ No client names, bank details, contracts or invoices were shared or recorded.
 2. Team roles and being a client are separate relationships of one account; trainers need team access, never a client account (`PRODUCT.md §2.9, §9`). F001 sign-in doesn't change.
 3. A shared scheduling engine isn't enough: each person needs a view filtered to what they may see, with types named in words.
 4. A class's recurrence, a membership's term, its payment schedule, attendance and the session balance are separate concepts.
-5. The import at go-live must carry active agreements, balances, due dates and mandates, and be reconciled with the old app before clients pay through Trainer Hub.
+5. The import at go-live must carry active agreements, balances and due dates, and be reconciled with the old app before clients pay through Trainer Hub. Mandates follow QC09 (default: new mandates), as in `import-checklist.md` §3.4a.
 
 Not shown by this interview: the app names, the real cost, client and trainer counts, the hours spent on invoices, the exact cancellation rules, that credits beat memberships, that Trainer Hub may hold funds, that T1 will move live payments, and that every small gym has the same needs. Workout logging, notes and Open Gym weren't raised as reasons to switch; that doesn't make them unimportant.
 
@@ -62,7 +62,7 @@ Not shown by this interview: the app names, the real cost, client and trainer co
 | Decision | Where |
 |---|---|
 | T1 is the pilot owner; the pilot scenario is corrected | `PRODUCT.md §8`, `ROADMAP.md §1` |
-| Commerce goes live before go-live, not in Release 4: memberships, session packs, single classes, recurring payments and invoices | `PRODUCT.md §90–§97`, `ROADMAP.md` M11, decision 11 |
+| Owner decided: memberships, recurring payments and invoices before go-live, part of G4 (M11). Session packs, single classes and payouts are in M11 as proposed scope from interview 01, to confirm when the owner approves the M11 specs | `PRODUCT.md §90–§97`, `ROADMAP.md` M11, decision 11 |
 | Recurring payments (the subscription model) and invoices ship together | `ROADMAP.md` decision 12 |
 | Training and notes (M7) and automatic location inference (F019) move after go-live | `ROADMAP.md` decision 13 |
 
