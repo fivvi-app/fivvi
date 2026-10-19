@@ -160,24 +160,33 @@ cmd_ready() {
   echo "✅ PR #$pr ready for review"
 }
 
-# The native jobs' steps with their durations, from the CI run of the PR's head commit. Best effort: never fails.
+# The native jobs' steps with their durations, from the CI run of the PR's head commit. Best effort: never fails, and
+# says on stderr why it printed nothing or less. A skipped job prints nothing (#121); a native job that ended without a
+# timed step (cancelled, timed out) prints one line saying so.
 native_durations() {
-  local head run jobs
-  head="$(head_of "$1" 2>/dev/null)" || return 0
+  local head run jobs out
+  head="$(head_of "$1" 2>/dev/null)" || { echo "could not read the head of PR #$1; no step durations" >&2; return 0; }
   run="$(gh run list --repo "$REPO" --workflow CI --commit "$head" --limit 1 --json databaseId \
-    --jq '.[0].databaseId // empty' 2>/dev/null)" || return 0
-  [ -n "$run" ] || return 0
+    --jq '.[0].databaseId // empty' 2>/dev/null)" || { echo "could not list the CI runs; no step durations" >&2; return 0; }
+  [ -n "$run" ] || { echo "no CI run for ${head:0:7}; no step durations" >&2; return 0; }
   jobs="$(gh api "repos/$REPO/actions/runs/$run/jobs?per_page=100" 2>/dev/null)" \
     || { echo "could not read the jobs of CI run $run; no step durations" >&2; return 0; }
-  jq -r --argjson native "$(printf '%s\n' "${NATIVE_JOBS[@]}" | jq -R . | jq -sc .)" '
+  jq -e . >/dev/null 2>&1 <<<"$jobs" \
+    || { echo "could not parse the jobs of CI run $run; no step durations" >&2; return 0; }
+  out="$(jq -r --argjson native "$(printf '%s\n' "${NATIVE_JOBS[@]}" | jq -R . | jq -sc .)" '
     def seconds: (.completed_at | fromdateiso8601) - (.started_at | fromdateiso8601);
     def clock: "\(. / 60 | floor) min \(. % 60) s";
     .jobs[]? | select(.name | IN($native[])) | . as $job
     | [(.steps // [])[] | select(.started_at != null and .completed_at != null)] as $steps
-    | select($steps | length > 0)   # a skipped job has no timed steps: print nothing for it (#121)
-    | "", "Step durations: \($job.name)",
-      ($steps[] | "  \(seconds | clock)  \(.name)"),
-      "  \([$steps[] | seconds] | add // 0 | clock)  Total"' <<<"$jobs" 2>/dev/null || true
+    | if ($steps | length) > 0 then
+        "", "Step durations: \($job.name)",
+        ($steps[] | "  \(seconds | clock)  \(.name)"),
+        "  \([$steps[] | seconds] | add // 0 | clock)  Total"
+      elif $job.conclusion == "skipped" then empty
+      else "", "Step durations: \($job.name): no step timings (\($job.conclusion // $job.status // "unknown"))"
+      end' <<<"$jobs" 2>/dev/null)" \
+    || { [ -z "$out" ] || echo "$out"; echo "could not read a step's timestamps; step durations may be cut off" >&2; return 0; }
+  [ -z "$out" ] || echo "$out"
 }
 
 # wait, smoke, ready in order, each as its own pr.sh run so a failing step (set -e inside it) ends it with its own exit
