@@ -60,7 +60,6 @@ const facts = (overrides = {}) => ({
     run('GitGuardian Security Checks'),
   ],
   preview: 'no',
-  behind: 0,
   threads: 0,
   ...overrides,
 });
@@ -69,7 +68,7 @@ const withPr = (pr) => facts({ pr: { ...facts().pr, ...pr } });
 const failed = (decision) => decision.conditions.filter((c) => !c.ok).map((c) => c.name);
 
 describe('merge gate', () => {
-  it('merges a low-risk, green, self-reviewed, up-to-date PR without a preview', () => {
+  it('merges a low-risk, green, self-reviewed PR without a preview', () => {
     const decision = gate(facts());
     assert.equal(decision.merge, true);
     assert.deepEqual(failed(decision), []);
@@ -80,7 +79,6 @@ describe('merge gate', () => {
         'checks passed',
         'self-review clean',
         'preview smoke-checked',
-        'up to date',
         'no open threads',
         'ready for review',
       ],
@@ -201,8 +199,13 @@ describe('merge gate', () => {
     assert.equal(nothing.merge, false);
   });
 
-  it('refuses a branch behind main, open threads, a draft, a closed PR or another base', () => {
-    assert.deepEqual(failed(gate(facts({ behind: 2 }))), ['up to date']);
+  it('E002 #119: does not ask whether the branch is up to date; the merge queue tests it on the latest main (ADR-018)', () => {
+    const decision = gate(facts({ behind: 7 }));
+    assert.equal(decision.merge, true);
+    assert.ok(decision.conditions.every((c) => c.name !== 'up to date'));
+  });
+
+  it('refuses open threads, a draft, a closed PR or another base', () => {
     assert.deepEqual(failed(gate(facts({ threads: 1 }))), ['no open threads']);
     assert.deepEqual(failed(gate(withPr({ draft: true }))), ['ready for review']);
     assert.deepEqual(failed(gate(withPr({ state: 'MERGED' }))), ['ready for review']);

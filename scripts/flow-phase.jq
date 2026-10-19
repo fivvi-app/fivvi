@@ -4,10 +4,13 @@
 #         children: [{number, title, state, labels, assignees, blocked}],
 #         branches: [{name, local, worktree, dirty,
 #                     pr: null|{number, state, draft, review, failing, threads, age_days, risk, risk_reasons,
-#                               head, refusal: null|{sha, reasons}}}]}
+#                               head, refusal: null|{sha, reasons},
+#                               queue: null|{state: null|"queued"|"removed", position, reason}}}]}
 # risk is "low", "high" or null (unknown) for an open PR (scripts/risk.sh). refusal is the last refusal of the merge
-# gate recorded on the PR (scripts/pr.sh refusal); it holds only for the head commit it names. answered is true when
-# there is a comment and the newest is not a triage note, i.e. someone replied to the needs-info question.
+# gate recorded on the PR (scripts/pr.sh refusal); it holds only for the head commit it names. queue is the PR's place
+# in the merge queue (scripts/pr.sh queue, ADR-018): "queued" while GitHub tests and merges it, "removed" when GitHub
+# took it out (the combined commit failed or timed out) and the branch has not been pushed to since. answered is true
+# when there is a comment and the newest is not a triage note, i.e. someone replied to the needs-info question.
 # Output: {phase, next, hint}
 
 def has($l): (.labels | index($l)) != null;
@@ -16,13 +19,16 @@ def open: .state == "OPEN";
 def unapproved_spec: has("spec") and (has("spec-approved") | not);
 
 def refused: .refusal != null and .refusal.sha != null and .refusal.sha == .head;
+def queue_state: .queue.state? // null;
 
 def code_phase:
   if .pr == null then {phase: "in-progress", rank: 0}
   elif .pr.state == "MERGED" then {phase: "merged", rank: 5}
   elif .pr.state == "CLOSED" then {phase: "abandoned", rank: -1}
   elif .pr.draft then {phase: "draft-pr", rank: 1}
+  elif (.pr | queue_state) == "queued" then {phase: "queued", rank: 4}
   elif .pr.failing > 0 or .pr.review == "CHANGES_REQUESTED" or .pr.threads > 0 then {phase: "changes-requested", rank: 1}
+  elif (.pr | queue_state) == "removed" then {phase: "queue-removed", rank: 3}
   elif .pr.risk == "low" and (.pr | refused) then {phase: "merge-refused", rank: 3}
   elif .pr.risk == "low" then {phase: "ready-to-merge", rank: 4}
   elif .pr.review == "APPROVED" then {phase: "approved", rank: 4}
@@ -39,10 +45,12 @@ def code_next($n):
     "in-progress": "Build it in its worktree with the implement skill (docs/agents/build.md), then scripts/pr.sh create from the worktree.",
     "draft-pr": "Finish checks and code-review (scripts/pr.sh reviewed), then scripts/pr.sh ready from the worktree.",
     "changes-requested": "Fix what is open: scripts/pr.sh status and scripts/pr.sh threads in the worktree, fix with the implement skill, push with scripts/pr.sh create, reply with scripts/pr.sh reply.",
-    "ready-to-merge": "Low-risk: scripts/pr.sh merge in the worktree. It merges only when the whole merge gate holds; otherwise the PR stays for the owner. Then scripts/flow.sh finish \($n).",
+    "ready-to-merge": "Low-risk: scripts/pr.sh merge in the worktree. It adds the PR to the merge queue only when the whole merge gate holds; otherwise the PR stays for the owner. Then scripts/flow.sh status \($n) until GitHub has merged it, and scripts/flow.sh finish \($n).",
+    "queued": "In the merge queue (position \(.pr.queue.position // "?")): GitHub tests it on the latest main and squash-merges it. Nothing to do: scripts/flow.sh status \($n) shows when it is merged, then scripts/flow.sh finish \($n). Never queue it again, and never use --auto or --admin.",
+    "queue-removed": "GitHub removed it from the merge queue (\(.pr.queue.reason // "no reason given")): the commit tested on the latest main failed a check or timed out. Read the merge_group run of its queue branch (gh run list --event merge_group). When the cause is in this PR, fix it and push (scripts/pr.sh create), which makes the removal stale, then review, smoke and scripts/pr.sh merge again. Otherwise (a flaky check, a timeout) report and stop: the owner decides whether to queue it again. Never queue the same commit again yourself.",
     "merge-refused": "The merge gate refused it on \(.pr.head[:7]): \(.pr.refusal.reasons). The owner decides, or fix it and push (scripts/pr.sh create), which makes the refusal stale. Report and stop; never retry the merge on this commit.",
-    "in-review": "\(.pr | owner_review) and merges it. Nothing to do.",
-    "approved": "Approved. \(.pr | owner_review | sub(": the owner reviews"; "")): the owner merges it on GitHub; then scripts/flow.sh finish \($n).",
+    "in-review": "\(.pr | owner_review) and adds it to the merge queue. Nothing to do.",
+    "approved": "Approved. \(.pr | owner_review | sub(": the owner reviews"; "")): the owner adds it to the merge queue on GitHub; then scripts/flow.sh finish \($n).",
     "merged": "scripts/flow.sh finish \($n)",
     "abandoned": "The PR was closed without merging. Ask the user what to do."
   }[.phase];

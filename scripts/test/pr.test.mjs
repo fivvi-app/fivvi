@@ -44,10 +44,39 @@ const checkRun = (name, conclusion = 'SUCCESS', status = 'COMPLETED') => ({
   conclusion,
 });
 
+// The merge queue facts of a PR (scripts/pr.sh queue_facts): the state of the PR, whether it is in the queue, whether
+// GitHub turned on auto-merge, and the last queue event on its timeline.
+const REMOVED = { __typename: 'RemovedFromMergeQueueEvent', reason: 'Merge group failed' };
+const ADDED = { __typename: 'AddedToMergeQueueEvent' };
+const queueFacts = ({
+  state = 'OPEN',
+  queued = false,
+  position = 1,
+  auto = false,
+  events = [],
+  body = '',
+  head = HEAD,
+} = {}) => ({
+  data: {
+    repository: {
+      pullRequest: {
+        state,
+        headRefOid: head,
+        body,
+        isInMergeQueue: queued,
+        mergeQueueEntry: queued ? { state: 'QUEUED', position } : null,
+        autoMergeRequest: auto ? { enabledAt: '2026-10-19T10:00:00Z' } : null,
+        timelineItems: { nodes: events },
+      },
+    },
+  },
+});
+const QUEUE = '^api graphql [\\s\\S]*isInMergeQueue';
+
 const github = ({
   files = ['apps/web/page.tsx'],
   body,
-  behind = 0,
+  queue = queueFacts({ queued: true }),
   status = statuses(),
   rollup = CI.map((name) => checkRun(name)),
 } = {}) => [
@@ -77,7 +106,7 @@ const github = ({
     },
   },
   { match: '^issue view 57 ', out: { number: 57, labels: [], parent: null } },
-  { match: '^api repos/[^ ]+/compare/main\\.\\.\\.', out: { behind_by: behind } },
+  { match: QUEUE, out: queue },
   { match: '^api graphql ', out: threads([]) },
   { match: STATUS, out: status },
   { match: '^pr edit 60 ', out: '' },
@@ -102,25 +131,90 @@ describe('pr.sh merge', () => {
     return { ...result, bodies, calls: gh.calls().map((call) => call.args.join(' ')) };
   };
 
-  it('squash-merges the head commit and deletes the branch when every condition holds', () => {
+  it('E002 #119: adds the PR to the merge queue, once every condition holds, and says so', () => {
     const result = merge(github());
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /✓ low-risk/);
     assert.ok(
       result.calls.some((call) =>
-        new RegExp(`^pr merge 60 .*--squash --match-head-commit ${HEAD}`).test(call),
+        new RegExp(`^pr merge 60 .*--squash --match-head-commit ${HEAD}$`).test(call),
       ),
       result.calls.join('\n'),
     );
+    assert.match(result.stdout, /✅ PR #60 added to the merge queue \(position 1\)/);
+    assert.match(result.stdout, /scripts\/flow\.sh finish 57/);
+  });
+
+  it('E002 #119: leaves the branch to flow.sh finish: deleting the head branch of a queued PR would close it', () => {
+    const result = merge(github());
+    assert.ok(!result.calls.some((call) => /--method DELETE/.test(call)), result.calls.join('\n'));
+  });
+
+  it('E002 #119: records the commit it queued in the PR body, which flow.sh reads to tell a removal from a stale one', () => {
+    const result = merge(github());
+    assert.deepEqual(result.bodies, [
+      `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${HEAD}\` ✅\n\n${NO_PREVIEW}\n\n**Merge queue:** added to the merge queue on \`${HEAD}\``,
+    ]);
+  });
+
+  it('E002 #119: never uses auto-merge or the admin bypass', () => {
+    for (const rules of [github(), github({ files: ['packages/database/migrations/0004.sql'] })]) {
+      const result = merge(rules);
+      assert.ok(!result.calls.some((call) => /--auto|--admin/.test(call)), result.calls.join('\n'));
+    }
+  });
+
+  it('E002 #119: does not ask whether the branch is behind main: the queue tests it on the latest main', () => {
+    const result = merge(github());
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(!result.calls.some((call) => /compare/.test(call)), result.calls.join('\n'));
+  });
+
+  it('E002 #119: refuses a high-risk PR and queues nothing: the owner adds it to the queue', () => {
+    const result = merge(github({ files: ['packages/database/migrations/0004.sql'] }));
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /✗ low-risk: high-risk/);
+    assert.ok(!result.calls.some((call) => /^pr merge/.test(call)), result.calls.join('\n'));
+  });
+
+  it('E002 #119: reports a squash-merge when GitHub merged at once (no merge queue applied yet), and deletes the branch', () => {
+    const result = merge(github({ queue: queueFacts({ state: 'MERGED' }) }));
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /✅ PR #60 squash-merged/);
     assert.ok(
       result.calls.some((call) =>
         /^api --method DELETE repos\/[^ ]+\/git\/refs\/heads\/feature\/57-hold-a-spot$/.test(call),
       ),
     );
-    assert.match(result.stdout, /scripts\/flow\.sh finish 57/);
+    assert.deepEqual(result.bodies, []);
   });
 
-  it('merges nothing and says why when a condition fails', () => {
+  it('E002 #119: turns auto-merge off again when GitHub enabled it instead of queueing, and fails', () => {
+    const result = merge(github({ queue: queueFacts({ auto: true }) }));
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /enabled auto-merge instead of adding PR #60 to the merge queue/);
+    assert.ok(
+      result.calls.some((call) => /^pr merge 60 --repo [^ ]+ --disable-auto$/.test(call)),
+      result.calls.join('\n'),
+    );
+    assert.deepEqual(result.bodies, []);
+  });
+
+  it('E002 #119: fails when the PR is neither queued nor merged after gh succeeded', () => {
+    const result = merge(github({ queue: queueFacts() }));
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /neither in the merge queue nor merged/);
+    assert.deepEqual(result.bodies, []);
+  });
+
+  it("fails and records nothing when gh can't add the PR to the queue", () => {
+    const result = merge([{ match: '^pr merge 60 ', out: 'not allowed', status: 1 }, ...github()]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /merge failed/);
+    assert.deepEqual(result.bodies, []);
+  });
+
+  it('queues nothing and says why when a condition fails', () => {
     const result = merge(github({ files: ['packages/database/migrations/0004.sql'], body: '' }));
     assert.equal(result.status, 1);
     assert.match(result.stdout, /✗ low-risk: high-risk: packages\/database\/migrations\/0004\.sql/);
@@ -137,29 +231,21 @@ describe('pr.sh merge', () => {
     ]);
   });
 
-  it('records no refusal when the branch is only behind main: merge main and run it again', () => {
-    const result = merge(github({ behind: 2 }));
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /behind main: merge origin\/main/);
-    assert.deepEqual(result.bodies, []);
-    assert.ok(!result.calls.some((call) => /^pr merge|--method DELETE/.test(call)));
-  });
-
   const refuses = (rules, reason) => {
     const result = merge(rules);
     assert.equal(result.status, 1, result.stdout);
     assert.match(result.stderr, reason);
-    assert.match(result.stderr, /nothing merged/);
+    assert.match(result.stderr, /nothing queued/);
     assert.ok(!result.calls.some((call) => /^pr merge|--method DELETE|^pr edit/.test(call)));
   };
 
-  it("merges nothing when the PR's risk can't be read", () => {
+  it("queues nothing when the PR's risk can't be read", () => {
     for (const match of ['^api repos/[^ ]+/pulls/60/files', '^issue view 57 ']) {
       refuses([{ match, out: '', status: 1 }, ...github()], /could not decide the risk of PR #60/);
     }
   });
 
-  it("merges nothing when the review threads can't all be read", () => {
+  it("queues nothing when the review threads can't all be read", () => {
     refuses(
       [{ match: '^api graphql ', out: '', status: 1 }, ...github()],
       /could not read the review threads/,
@@ -170,13 +256,13 @@ describe('pr.sh merge', () => {
     );
   });
 
-  it('merges nothing when GitHub lists fewer files than the PR changes', () => {
+  it('queues nothing when GitHub lists fewer files than the PR changes', () => {
     const rules = github();
     rules[2].out.changedFiles = 3001;
     refuses(rules, /could not decide the risk of PR #60/);
   });
 
-  it('merges a PR without a preview when Railway skipped the deploy', () => {
+  it('queues a PR without a preview when Railway skipped the deploy', () => {
     const result = merge(github({ status: WEB_SKIPPED }));
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /✓ preview smoke-checked: no preview/);
@@ -189,18 +275,11 @@ describe('pr.sh merge', () => {
     assert.ok(!result.calls.some((call) => /^pr merge|--method DELETE/.test(call)));
   });
 
-  it("merges nothing when it can't read the head commit's statuses", () => {
+  it("queues nothing when it can't read the head commit's statuses", () => {
     refuses([{ match: STATUS, out: '', status: 1 }, ...github()], /could not read the statuses/);
     refuses(
       [{ match: STATUS, out: { total_count: 31, statuses: [] } }, ...github()],
       /could not read the statuses/,
-    );
-  });
-
-  it("merges nothing when it can't tell whether the branch is behind main", () => {
-    refuses(
-      [{ match: '^api repos/[^ ]+/compare/', out: '', status: 1 }, ...github()],
-      /could not compare/,
     );
   });
 });
@@ -560,6 +639,103 @@ describe('pr.sh refusal', () => {
   });
 });
 
+describe('E002 #119 pr.sh queue', () => {
+  const gh = fakeGh();
+  after(() => gh.cleanup());
+
+  const OLD = 'b'.repeat(40);
+  const queued = (sha) => `**Merge queue:** added to the merge queue on \`${sha}\``;
+  const queue = (facts) => {
+    const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['queue', '60'], {
+      encoding: 'utf8',
+      env: gh.env([{ match: QUEUE, out: facts }]),
+    });
+    return { ...result, json: result.status === 0 ? JSON.parse(result.stdout) : null };
+  };
+
+  it('says the PR is queued, with its position', () => {
+    const result = queue(queueFacts({ queued: true, position: 2, events: [ADDED] }));
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.json, { state: 'queued', position: 2, reason: null });
+  });
+
+  it('says the PR was removed from the queue, and why, while it is still on the commit that was queued', () => {
+    const result = queue(queueFacts({ events: [ADDED, REMOVED], body: queued(HEAD) }));
+    assert.deepEqual(result.json, {
+      state: 'removed',
+      position: null,
+      reason: 'Merge group failed',
+    });
+  });
+
+  it('says it was removed also when the owner queued it, so no record names the commit', () => {
+    assert.equal(queue(queueFacts({ events: [ADDED, REMOVED] })).json.state, 'removed');
+  });
+
+  it('forgets a removal once the branch has a new head commit: the push makes it stale', () => {
+    const result = queue(queueFacts({ events: [REMOVED], body: queued(OLD) }));
+    assert.deepEqual(result.json, { state: null, position: null, reason: null });
+  });
+
+  it('says nothing for a PR that was never queued, one that is queued again, or one that is merged', () => {
+    assert.equal(queue(queueFacts()).json.state, null);
+    assert.equal(
+      queue(queueFacts({ queued: true, events: [REMOVED, ADDED] })).json.state,
+      'queued',
+    );
+    assert.equal(queue(queueFacts({ state: 'MERGED', events: [ADDED] })).json.state, null);
+  });
+
+  it('shows the queue state in pr.sh status', () => {
+    const status = (facts) =>
+      spawnSync(join(SCRIPTS, 'pr.sh'), ['status'], {
+        encoding: 'utf8',
+        env: gh.env([
+          { match: '^pr list ', out: [{ number: 60 }] },
+          {
+            match: '^pr view 60 ',
+            out: {
+              number: 60,
+              title: 'Hold a spot',
+              state: 'OPEN',
+              isDraft: false,
+              reviewDecision: '',
+              mergeStateStatus: 'CLEAN',
+              url: 'https://github.com/o/r/pull/60',
+              statusCheckRollup: [],
+            },
+          },
+          { match: QUEUE, out: facts },
+          { match: '^api graphql ', out: threads([]) },
+        ]),
+      });
+    assert.match(
+      status(queueFacts({ queued: true, position: 3 })).stdout,
+      /^Merge queue: queued \(position 3\)$/m,
+    );
+    assert.match(
+      status(queueFacts({ events: [REMOVED] })).stdout,
+      /^Merge queue: removed \(Merge group failed\)/m,
+    );
+    assert.match(status(queueFacts()).stdout, /^Merge queue: not queued$/m);
+  });
+
+  it("fails when it can't read the PR, and takes only a PR number", () => {
+    const failed = spawnSync(join(SCRIPTS, 'pr.sh'), ['queue', '60'], {
+      encoding: 'utf8',
+      env: gh.env([{ match: QUEUE, out: '', status: 1 }]),
+    });
+    assert.equal(failed.status, 1);
+    assert.equal(failed.stdout, '');
+    assert.match(failed.stderr, /could not read the merge queue state of PR #60/);
+    const bad = spawnSync(join(SCRIPTS, 'pr.sh'), ['queue', 'x'], {
+      encoding: 'utf8',
+      env: gh.env([]),
+    });
+    assert.notEqual(bad.status, 0);
+  });
+});
+
 describe('pr.sh create: which local check runs before the push', () => {
   const gh = fakeGh();
   let base;
@@ -738,8 +914,8 @@ describe('E002 #107 pr.sh ready', () => {
     assert.ok(!gh.calls().some((call) => call.args[1] === 'ready'));
   });
 
-  it("E002 #107 AC1: doesn't need the rest of the merge gate: a high-risk PR, open threads or a branch behind main", () => {
-    const result = ready({ files: ['packages/database/migrations/0004.sql'], behind: 3 });
+  it("E002 #107 AC1: doesn't need the rest of the merge gate: a high-risk PR or open threads", () => {
+    const result = ready({ files: ['packages/database/migrations/0004.sql'] });
     assert.equal(result.status, 0, result.stderr);
   });
 });

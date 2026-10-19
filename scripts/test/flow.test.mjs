@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { cpSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { after, describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 import { fakeGh } from './fake-gh.mjs';
 
 const SCRIPTS = join(import.meta.dirname, '..');
@@ -14,6 +15,30 @@ const DISCLAIMER = readFileSync(join(SCRIPTS, '../.agents/skills/triage/SKILL.md
 )[0];
 const TRIAGE_NOTE = `${DISCLAIMER}\n\n## Triage Notes`;
 const comments = (...bodies) => bodies.map((body) => ({ body }));
+
+// What the merge queue query of scripts/pr.sh answers for PR <number> (see pr.test.mjs queueFacts).
+const queueRule = (number, { queued = false, removed = false, position = 1 } = {}) => ({
+  match: `^api graphql -F owner=\\S+ -F name=\\S+ -F n=${number} [\\s\\S]*isInMergeQueue`,
+  out: {
+    data: {
+      repository: {
+        pullRequest: {
+          state: 'OPEN',
+          headRefOid: 'c'.repeat(40),
+          body: '',
+          isInMergeQueue: queued,
+          mergeQueueEntry: queued ? { state: 'QUEUED', position } : null,
+          autoMergeRequest: null,
+          timelineItems: {
+            nodes: removed
+              ? [{ __typename: 'RemovedFromMergeQueueEvent', reason: 'Merge group failed' }]
+              : [],
+          },
+        },
+      },
+    },
+  },
+});
 
 describe('flow.sh next', () => {
   const gh = fakeGh();
@@ -88,22 +113,30 @@ describe('flow.sh next', () => {
             { number: 61, title: '[F031] Show the hold', isDraft: false, headRefOid: HEAD },
             { number: 62, title: '[F031] Draft', isDraft: true, headRefOid: HEAD },
             { number: 63, title: '[F031] Release the hold', isDraft: false, headRefOid: HEAD },
+            { number: 64, title: '[F031] Hotfix', isDraft: false, headRefOid: HEAD },
+            { number: 65, title: '[F031] Queued by the agent', isDraft: false, headRefOid: HEAD },
+            { number: 66, title: '[F031] Queued by the owner', isDraft: false, headRefOid: HEAD },
           ],
         },
+        queueRule(64, { removed: true }),
+        queueRule(65, { queued: true }),
+        queueRule(66, { queued: true, position: 2 }),
+        ...[60, 61, 63].map((number) => queueRule(number)),
         { match: '^api repos/[^ ]+/pulls/60/files', out: [{ filename: 'scripts/pr.sh' }] },
         { match: '^api repos/[^ ]+/pulls/6[13]/files', out: [{ filename: 'apps/web/page.tsx' }] },
         { match: '^pr view 61 .*--json body', out: { body: refusal('b'.repeat(40)) } },
         { match: '^pr view 63 .*--json body', out: { body: refusal(HEAD) } },
         {
-          match: '^pr view 6[013] ',
+          match: '^pr view 6[013456] ',
           out: { headRefName: 'docs/no-issue', closingIssuesReferences: [], changedFiles: 1 },
         },
       ]),
     });
 
-  it('lists what waits on the owner: specs to approve, high-risk and refused PRs, questions', () => {
+  it('lists what waits on the owner: specs to approve, high-risk, refused and queue-removed PRs, questions', () => {
     // #71 and #73 still need a spec written (needs-spec) and #74 is complete: none waits on approval.
     // #61 was refused on an older commit: the push made that stale, so it is the factory's to merge.
+    // #65 and #66 are in the merge queue: they wait on GitHub, not on the owner. GitHub removed #64 from it.
     const result = next();
     assert.equal(result.status, 0, result.stderr);
     const owner = result.stdout.slice(result.stdout.indexOf('== Waiting on the owner'));
@@ -114,6 +147,7 @@ describe('flow.sh next', () => {
         'Approve spec #70 [F040] Waiting list (add spec-approved)',
         'Merge PR #60 [F031] Hold a spot (high-risk: scripts/pr.sh: guardrails (/scripts))',
         'Decide on PR #63 [F031] Release the hold (the merge gate refused it on ccccccc: self-review clean (no self-review record in the PR body); or fix it and push)',
+        'Decide on PR #64 [F031] Hotfix (GitHub removed it from the merge queue: Merge group failed; or fix it and push)',
         'Answer #72 Which reminder time? (needs-info)',
         '',
       ].join('\n'),
@@ -137,6 +171,7 @@ describe('flow.sh next', () => {
     const reads = {
       'the open PRs': '^pr list .*--state open',
       "a PR's refusal": '^pr view 63 .*--json body',
+      "a PR's merge queue state": '^api graphql -F owner=\\S+ -F name=\\S+ -F n=64 ',
       'the needs-info questions': '^issue list .*--label needs-info',
       'the ready tickets': '^issue list .*--label ready-for-agent',
     };
@@ -146,6 +181,131 @@ describe('flow.sh next', () => {
       assert.match(result.stderr, /^error: could not read/m, what);
       assert.doesNotMatch(result.stdout, /\(none\)\n$/, what);
     }
+  });
+});
+
+describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () => {
+  const gh = fakeGh();
+  const HEAD = 'c'.repeat(40);
+  let repo;
+  before(() => {
+    // The scripts run from their own checkout, which here has one branch of issue 9999 and no worktree.
+    repo = realpathSync(mkdtempSync(join(tmpdir(), 'flow-queue-')));
+    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+    const git = (...args) =>
+      execFileSync(
+        'git',
+        ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
+        { encoding: 'utf8' },
+      );
+    git('init', '--quiet', '--initial-branch=main');
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'chore: base');
+    git('remote', 'add', 'origin', 'https://github.com/o/r.git');
+    git('branch', 'chore/9999-queue');
+  });
+  after(() => {
+    gh.cleanup();
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  const run = (command, queue) =>
+    spawnSync(join(repo, 'scripts/flow.sh'), [command, '9999'], {
+      encoding: 'utf8',
+      env: gh.env([
+        { match: '^api user', out: { login: 'thekeyvan' } },
+        {
+          match: '^issue view 9999 ',
+          out: {
+            number: 9999,
+            title: 'Queue it',
+            state: 'OPEN',
+            labels: labels('ready-for-agent'),
+            assignees: [],
+            body: '## Acceptance criteria',
+            comments: [],
+            parent: null,
+            subIssues: { nodes: [] },
+            blockedBy: { nodes: [] },
+          },
+        },
+        {
+          match: '^pr list .*--head chore/9999-queue',
+          out: [
+            {
+              number: 70,
+              state: 'OPEN',
+              isDraft: false,
+              reviewDecision: '',
+              statusCheckRollup: [],
+              url: 'https://github.com/o/r/pull/70',
+              createdAt: '2026-10-18T10:00:00Z',
+              headRefOid: HEAD,
+            },
+          ],
+        },
+        { match: '^api repos/[^ ]+/pulls/70/files', out: [{ filename: 'apps/web/page.tsx' }] },
+        { match: '^pr view 70 .*--json body', out: { body: 'Closes #9999' } },
+        {
+          match: '^pr view 70 ',
+          out: { headRefName: 'chore/9999-queue', closingIssuesReferences: [], changedFiles: 1 },
+        },
+        queueRule(70, queue),
+        {
+          match: '^api graphql ',
+          out: { data: { repository: { pullRequest: { reviewThreads: { nodes: [] } } } } },
+        },
+      ]),
+    });
+
+  it('shows a queued PR and says to wait for GitHub, then finish', () => {
+    const result = run('status', { queued: true, position: 2 });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(
+      result.stdout,
+      /^PR: #70 OPEN .* · low-risk · in the merge queue \(position 2\) · /m,
+    );
+    assert.match(result.stdout, /^Phase: queued$/m);
+    assert.match(result.stdout, /^Next: In the merge queue \(position 2\)/m);
+  });
+
+  it('shows a PR GitHub removed from the queue, with the reason, and says not to queue it again as it is', () => {
+    const result = run('status', { removed: true });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, / · removed from the merge queue \(Merge group failed\) · /);
+    assert.match(result.stdout, /^Phase: queue-removed$/m);
+    assert.match(result.stdout, /Never queue the same commit again yourself/);
+  });
+
+  it('shows a PR that was never queued as ready to merge', () => {
+    const result = run('status', {});
+    assert.match(result.stdout, /^Phase: ready-to-merge$/m);
+    assert.doesNotMatch(result.stdout, /merge queue \(/);
+  });
+
+  it('finish waits while the PR is in the merge queue, and cleans nothing up', () => {
+    const result = run('finish', { queued: true });
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stderr,
+      /#9999: its PR is in the merge queue: wait until GitHub has merged it/,
+    );
+    assert.ok(!gh.calls().some((call) => call.args[0] === 'issue' && call.args[1] === 'close'));
+  });
+
+  it('finish stops when GitHub removed the PR from the merge queue: nothing is merged', () => {
+    const result = run('finish', { removed: true });
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stderr,
+      /#9999: GitHub removed its PR from the merge queue, so nothing is merged yet/,
+    );
+  });
+
+  it('finish still refuses a PR that is open and not queued', () => {
+    const result = run('finish', {});
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /not every branch has a merged PR/);
   });
 });
 

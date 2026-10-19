@@ -26,16 +26,15 @@ describe('the versioned GitHub settings', () => {
     assert.deepEqual(required, jobs);
   });
 
-  it('require a PR and an up-to-date branch, block force-pushes and deletion, squash only', () => {
+  it('require a PR, block force-pushes and deletion, squash only', () => {
     const types = RULESET.rules.map((rule) => rule.type);
     assert.deepEqual(types.sort(), [
       'deletion',
+      'merge_queue',
       'non_fast_forward',
       'pull_request',
       'required_status_checks',
     ]);
-    const checks = RULESET.rules.find((rule) => rule.type === 'required_status_checks');
-    assert.equal(checks.parameters.strict_required_status_checks_policy, true);
     const pr = RULESET.rules.find((rule) => rule.type === 'pull_request');
     assert.deepEqual(pr.parameters.allowed_merge_methods, ['squash']);
     assert.deepEqual(RULESET.bypass_actors, []);
@@ -45,6 +44,31 @@ describe('the versioned GitHub settings', () => {
       allow_rebase_merge: false,
       allow_auto_merge: false,
     });
+  });
+
+  it('E002 #119: no longer require an up-to-date branch: the merge queue tests the PR on the latest main', () => {
+    const checks = RULESET.rules.find((rule) => rule.type === 'required_status_checks');
+    assert.equal(checks.parameters.strict_required_status_checks_policy, false);
+  });
+
+  it('E002 #119: require the merge queue, squash, one PR per merge, sized for a cold iOS run (~25 min)', () => {
+    const queue = RULESET.rules.find((rule) => rule.type === 'merge_queue');
+    assert.deepEqual(queue.parameters, {
+      merge_method: 'SQUASH',
+      grouping_strategy: 'ALLGREEN',
+      max_entries_to_build: 3,
+      max_entries_to_merge: 1,
+      min_entries_to_merge: 1,
+      min_entries_to_merge_wait_minutes: 5,
+      check_response_timeout_minutes: 45,
+    });
+    const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
+    const ios = ci.slice(ci.indexOf('\n  ios:\n'), ci.indexOf('\n  android:\n'));
+    const iosTimeout = Number(ios.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
+    assert.ok(
+      queue.parameters.check_response_timeout_minutes > iosTimeout,
+      'the queue should time out after the iOS job does, so a hung job fails as itself',
+    );
   });
 });
 

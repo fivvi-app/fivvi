@@ -5,11 +5,13 @@
 #   flow.sh facts <n>                       the facts as JSON (input of scripts/flow-phase.jq)
 #   flow.sh next                            your open issues with their phase, the open specs, the ready tickets and
 #                                           answered needs-info questions, then what waits on the owner: specs to
-#                                           approve, high-risk PRs, PRs the merge gate refused, unanswered questions
+#                                           approve, high-risk PRs, PRs the merge gate refused, PRs GitHub removed from
+#                                           the merge queue, unanswered questions
 #   flow.sh start <n> [--type <t>] [--force]  claim a ready ticket and create its <type>/<n>-<slug> worktree and notes;
 #                                           refuses when 3 tickets are already in progress (--force to override)
-#   flow.sh finish <n>                      after its PR is merged: remove worktree, branches and the worktree's iOS
-#                                           simulator, close the issue, report what the spec needs next
+#   flow.sh finish <n>                      after its PR is merged (it says so when the PR is still in
+#                                           the merge queue, or GitHub removed it): remove worktree, branches and the
+#                                           worktree's iOS simulator, close the issue, report what the spec needs next
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -47,17 +49,19 @@ issue_branches() {
 }
 
 pr_facts() {
-  local branch="$1" pr number threads risk refusal
+  local branch="$1" pr number threads risk refusal queue
   pr="$(gh pr list --repo "$REPO" --head "$branch" --state all \
     --json number,state,isDraft,reviewDecision,statusCheckRollup,url,createdAt,headRefOid \
     --jq 'sort_by(.number) | last // empty')"
   [ -n "$pr" ] || { echo null; return; }
   number="$(jq -r .number <<<"$pr")"
-  threads=0 risk=null refusal=null
+  threads=0 risk=null refusal=null queue=null
   if [ "$(jq -r .state <<<"$pr")" = OPEN ]; then
     risk="$("$ROOT/scripts/risk.sh" "$number" --json 2>/dev/null)" || risk=null
     # A refusal of the merge gate for the head commit makes the PR wait on the owner (flow-phase.jq).
     refusal="$("$ROOT/scripts/pr.sh" refusal "$number")" || die "could not read the refusal of PR #$number"
+    # In the merge queue, or removed from it by GitHub (scripts/pr.sh queue, ADR-018).
+    queue="$("$ROOT/scripts/pr.sh" queue "$number")" || die "could not read the merge queue state of PR #$number"
     # shellcheck disable=SC2016 # GraphQL variables, not shell
     threads="$(gh api graphql -F owner="$OWNER" -F name="$NAME" -F n="$number" -f query='
       query($owner: String!, $name: String!, $n: Int!) {
@@ -65,11 +69,11 @@ pr_facts() {
       }' --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)] | length')"
   fi
   # GitHub reports unfinished conclusions and a missing review as "", not null.
-  jq --argjson threads "$threads" --argjson risk "$risk" --argjson refusal "$refusal" \
+  jq --argjson threads "$threads" --argjson risk "$risk" --argjson refusal "$refusal" --argjson queue "$queue" \
     'def value(f): [f[] | select(. != null and . != "")] | first // "";
     {
     number, state, url, draft: .isDraft, threads: $threads, risk: $risk.risk, risk_reasons: ($risk.reasons // []),
-    head: .headRefOid, refusal: $refusal,
+    head: .headRefOid, refusal: $refusal, queue: $queue,
     review: (if (.reviewDecision // "") == "" then null else .reviewDecision end),
     failing: [.statusCheckRollup[]? | select(value([.conclusion, .state])
       | IN("FAILURE", "ERROR", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE"))] | length,
@@ -131,7 +135,7 @@ render() {
     (if (.children | length) == 0 then empty else "Tickets:",
       (.children[] | "  \(ref)\(if (.labels | length) > 0 then " [\(.labels | join(", "))]" else "" end)\(if (.assignees | length) > 0 then " (\(.assignees | join(", ")))" else "" end)\(if .blocked then " ⛓" else "" end)") end),
     (.branches[] | "Branch: \(.name)\(if .ahead != null then " · \(.ahead) ahead of main" else "" end)\(if .worktree then " · worktree \(.worktree) · \(if .dirty == 0 then "clean" else "\(.dirty) uncommitted" end)" else "" end)",
-      (.pr // empty | "PR: #\(.number) \(.state)\(if .draft then " draft" else "" end) · \(.age_days) days old · failing checks \(.failing) · pending \(.pending) · open threads \(.threads) · review \(.review // "none")\(if .risk then " · \(.risk)-risk" else "" end) · \(.url)",
+      (.pr // empty | "PR: #\(.number) \(.state)\(if .draft then " draft" else "" end) · \(.age_days) days old · failing checks \(.failing) · pending \(.pending) · open threads \(.threads) · review \(.review // "none")\(if .risk then " · \(.risk)-risk" else "" end)\(if .queue.state == "queued" then " · in the merge queue (position \(.queue.position))" elif .queue.state == "removed" then " · removed from the merge queue (\(.queue.reason // "no reason given"))" else "" end) · \(.url)",
         (.risk_reasons[]? | "  high-risk: \(.)"))),
     (if $notes != "" then "Notes: \($notes)" else empty end),
     "Phase: \($d.phase)",
@@ -180,12 +184,13 @@ cmd_next() {
   grep . <<<"$owner" || echo "(none)"
 }
 
-# Specs to approve, high-risk PRs (scripts/risk.sh), low-risk PRs the merge gate refused on their head commit
-# (scripts/pr.sh refusal) and unanswered needs-info questions ($2, from cmd_next). A spec is to approve when flow-phase.jq would call it
-# needs-approval: not approved, not complete, and not still needs-spec (no tickets, not ready-for-agent, and
+# Specs to approve, high-risk PRs (scripts/risk.sh), PRs GitHub removed from the merge queue (scripts/pr.sh queue),
+# low-risk PRs the merge gate refused on their head commit (scripts/pr.sh refusal) and unanswered needs-info questions
+# ($2, from cmd_next). A PR in the merge queue waits on GitHub, not on the owner. A spec is to approve when flow-phase.jq
+# would call it needs-approval: not approved, not complete, and not still needs-spec (no tickets, not ready-for-agent, and
 # needs-triage or no body). Dies when a read fails, so an empty list means nothing waits.
 owner_items() {
-  local prs pr title head risk refusal
+  local prs pr title head risk refusal queue
   jq -r --arg approved "$APPROVED_LABEL" --arg ready "$READY_LABEL" '.[]
     | [.labels[].name] as $labels
     | ((.body // "") | gsub("\\s"; "") | length > 0) as $described
@@ -198,6 +203,15 @@ owner_items() {
     --jq '.[] | select(.isDraft | not) | [.number, .title, .headRefOid] | @tsv')" || die "could not read the open PRs"
   while IFS=$'\t' read -r pr title head; do
     [ -n "$pr" ] || continue
+    queue="$("$ROOT/scripts/pr.sh" queue "$pr")" || die "could not read the merge queue state of PR #$pr"
+    case "$(jq -r '.state // ""' <<<"$queue")" in
+      queued) continue ;;
+      removed)
+        jq -r --arg pr "$pr" --arg title "$title" \
+          '"Decide on PR #\($pr) \($title) (GitHub removed it from the merge queue: \(.reason // "no reason given"); or fix it and push)"' <<<"$queue" \
+          || die "could not read the merge queue state of PR #$pr"
+        continue ;;
+    esac
     risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || risk='{"risk": "high", "reasons": ["risk unknown"]}'
     if [ "$(jq -r .risk <<<"$risk")" = high ]; then
       jq -r --arg pr "$pr" --arg title "$title" \
@@ -272,6 +286,11 @@ cmd_finish() {
   local n="$1" f branch wt pr parent
   f="$(facts "$n")"
   [ "$(jq '.branches | length' <<<"$f")" -gt 0 ] || die "#$n has no branches"
+  # GitHub merges a PR in the merge queue by itself, so the cleanup waits for it; a removal needs a decision first.
+  ! jq -e 'any(.branches[].pr; .state == "OPEN" and .queue.state == "queued")' <<<"$f" >/dev/null \
+    || die "#$n: its PR is in the merge queue: wait until GitHub has merged it (scripts/flow.sh status $n), then finish"
+  ! jq -e 'any(.branches[].pr; .state == "OPEN" and .queue.state == "removed")' <<<"$f" >/dev/null \
+    || die "#$n: GitHub removed its PR from the merge queue, so nothing is merged yet (scripts/flow.sh status $n)"
   jq -e '[.branches[].pr.state] | all(. == "MERGED")' <<<"$f" >/dev/null || die "#$n: not every branch has a merged PR"
 
   for branch in $(jq -r '.branches[].name' <<<"$f"); do

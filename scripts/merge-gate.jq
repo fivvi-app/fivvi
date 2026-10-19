@@ -1,10 +1,11 @@
 # Whether an agent may merge a PR (ADR-016, decision 3), from the facts scripts/pr.sh merge collects. Pure: no I/O.
 # Input:  {head, default_branch, pr: {number, state, draft, base, body}, risk: {risk, reasons},
-#          required: [check name], checks: [statusCheckRollup entry], preview, behind, threads}
+#          required: [check name], checks: [statusCheckRollup entry], preview, threads}
 # preview: whether the head commit has a Railway preview, "yes", "no" or "pending" (pr.sh preview_of, the definition
 # pr.sh smoke uses too; the checks can't tell: Railway's status is green also when it skipped the deploy).
 # $review_mark, $smoke_mark: the marks of the records pr.sh writes in the PR body (`**<mark>:** …`).
 # $no_preview: what pr.sh smoke records when there is no preview.
+# There is no "up to date with main" condition: the merge queue tests every PR on top of the latest main (ADR-018).
 # Output: {merge, conditions: [{name, ok, detail}]}; merge only when every condition holds. A missing fact fails:
 # a head that isn't a full commit SHA, no required checks, an unknown preview, or a record that names no commit.
 
@@ -70,8 +71,6 @@ def on_head($what; $line):
         elif $line | contains($no_preview) then {ok: true, detail: "no preview, recorded for \($f.head | short)"}
         else {ok: false, detail: "the smoke check did not pass"}
         end),
-    {name: "up to date", ok: (.behind == 0),
-     detail: (if .behind == 0 then "up to date with \(.default_branch)" else "\(.behind) commits behind \(.default_branch)" end)},
     {name: "no open threads", ok: (.threads == 0), detail: "\(.threads) unresolved review threads"},
     {name: "ready for review", ok: (.pr.state == "OPEN" and (.pr.draft | not) and .pr.base == .default_branch),
      detail: (if .pr.state != "OPEN" then "the PR is \(.pr.state)" elif .pr.draft then "the PR is a draft"

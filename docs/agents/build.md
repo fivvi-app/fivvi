@@ -20,9 +20,9 @@ The agents are defined once in `.agents/agents/` (`builder.md`, `reviewer.md`, `
 3. On must-fix or should-fix findings, a `builder` fixes them and the `reviewer` reviews the new head commit. At most two fix rounds; the review after the second is a **review-only round**: nothing more is fixed, and findings still open are listed in the notes file, so the PR stays for the owner.
 4. The review is **clean** when the reviewer's last review, on the last commit, has no must-fix or should-fix finding. Only the reviewer's verdict `clean on <sha>` lets `work` record it with `pr.sh reviewed`; the builder never claims it.
 
-A new commit makes an earlier verdict stale: any fix, CI repair or merge of `origin/main` is followed by a review on the new head commit before `pr.sh reviewed`.
+A new commit makes an earlier verdict stale: any fix, CI repair or merge of `origin/main` is followed by a review on the new head commit before `pr.sh reviewed`. A branch that is merely behind `origin/main` needs no merge: the merge queue tests the PR on the latest `main` ([ADR-018](../decisions/ADR-018-merge-queue.md)); merge `origin/main` only to resolve a real conflict.
 
-After a clean verdict `work` records it with `pr.sh reviewed` and ships with `pr.sh ship`; how, including the follow-up pushes, is in the `work` skill's **Ship** section.
+After a clean verdict `work` records it with `pr.sh reviewed` and ships with `pr.sh ship`, then `pr.sh merge` adds a low-risk PR to the merge queue (GitHub squash-merges it when the checks pass on the latest `main`; the owner queues a high-risk PR); how, including the follow-up pushes, is in the `work` skill's **Ship** section. A PR the queue removes comes back as a fix round: the brief names the failing checks of its `merge_group` run, and the same rules apply.
 
 ## Build (the builder)
 
@@ -48,4 +48,4 @@ The `reviewer` runs `.agents/skills/code-review/SKILL.md` in the worktree on the
 
 ## Fix rounds (the builder again)
 
-A `builder` gets the reviewer's must-fix and should-fix findings in its brief (judgement findings are optional), fixes them test-first when behaviour changes, runs `scripts/check.sh`, commits and reports as above. Never delete, skip or weaken a test to make a finding go away.
+A `builder` gets the reviewer's must-fix and should-fix findings (or the failing checks of a `merge_group` run, when the merge queue removed the PR) in its brief (judgement findings are optional), fixes them test-first when behaviour changes, runs `scripts/check.sh`, commits and reports as above. Never delete, skip or weaken a test to make a finding go away.

@@ -1,4 +1,6 @@
-# CI for every pull request and every push to main (E002, E010), and on demand (workflow_dispatch).
+# CI for every pull request, every push to main and every merge group of the merge queue (E002, E010), and on demand
+# (workflow_dispatch). The queue tests a PR on top of the latest main on a temporary gh-readonly-queue/main/* branch;
+# the required checks must report there too, or the queue never merges (ADR-018).
 #
 # The job names ("Detect changes", "Checks (Linux)", "E2E (Linux)", "iOS",
 # "Android") are the intended required checks; see docs/engineering/WORKFLOW.md §7. Renaming a job
@@ -13,9 +15,12 @@ on:
   pull_request:
   push:
     branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
   workflow_dispatch:
 
-# A new push to a PR cancels the run for the previous push. Runs on main are
+# A new push to a PR cancels the run for the previous push. Runs on main and of merge groups are
 # never cancelled, so every merged commit keeps its own result.
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
@@ -49,17 +54,24 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
+          # A merge group's parent commit: main as the queue saw it. Empty on the other events.
+          MERGE_BASE: ${{ github.event.merge_group.base_sha }}
           RUN_NATIVE: ${{ contains(github.event.pull_request.labels.*.name, 'run-native') }}
         run: |
           set -euo pipefail
 
+          # The commit to compare with: a PR's base branch, the push's previous head, or the base commit of the
+          # merge group (every queued PR's commits sit on top of it).
+          prior="$BEFORE"
+          if [[ "$EVENT" == 'merge_group' ]]; then prior="$MERGE_BASE"; fi
+
           base=''
           if [[ "$EVENT" == 'pull_request' ]]; then
             base='HEAD^1'
-          elif [[ -n "$BEFORE" && ! "$BEFORE" =~ ^0+$ ]]; then
-            if git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
-              || git fetch --no-tags --depth=1 origin "$BEFORE"; then
-              base="$BEFORE"
+          elif [[ -n "$prior" && ! "$prior" =~ ^0+$ ]]; then
+            if git cat-file -e "$prior^{commit}" 2>/dev/null \
+              || git fetch --no-tags --depth=1 origin "$prior"; then
+              base="$prior"
             fi
           fi
 
@@ -70,9 +82,9 @@ jobs:
             changed="$(git ls-files)"
           fi
 
-          # Which native jobs run (scripts/native-jobs.sh): those whose paths changed, on a push to main too, so main
-          # writes the caches every PR reads. workflow_dispatch and the PR's run-native label (read on its pushes)
-          # force them.
+          # Which native jobs run (scripts/native-jobs.sh): those whose paths changed, on a push to main and in a merge
+          # group too, so main writes the caches every PR reads. workflow_dispatch and the PR's run-native label
+          # (read on its pushes) force them.
           args=(--event "$EVENT")
           if [[ "$RUN_NATIVE" == 'true' ]]; then args+=(--run-native); fi
           scripts/native-jobs.sh "${args[@]}" <<<"$changed" >>"$GITHUB_OUTPUT"
@@ -251,7 +263,7 @@ jobs:
     name: iOS
     needs: changes
     if: needs.changes.outputs.ios == 'true'
-    # Only starts when the app, its generated inputs or its own scripts changed (in a PR or a push to main), or on
+    # Only starts when the app, its generated inputs or its own scripts changed (in a PR, a merge group or a push to main), or on
     # demand (scripts/native-jobs.sh), to keep PR feedback fast. The image and Xcode are pinned, so a runner update doesn't
     # change the toolchain. One job, not a matrix per locale: the check keeps its name, and nl and en share one build
     # without an artifact upload and download. nl and en run in one test-without-building run on one simulator (scripts/test-ios.sh),
