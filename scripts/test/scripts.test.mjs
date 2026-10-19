@@ -2346,6 +2346,77 @@ describe('wt.sh done', () => {
     git(worktree, 'reset', '--quiet', '--hard', prHead);
   });
 
+  it('accepts a local head whose tree is the PR head tree after "Update branch" (E002 #108)', () => {
+    const worktree = join(repo, '.worktrees/feature-57-hold');
+    const original = git(worktree, 'rev-parse', 'HEAD');
+    // main moves on; the local branch merges it (the commit pnpm flow made), and GitHub's "Update branch"
+    // makes another merge commit with the same parents and the same files.
+    writeFileSync(join(repo, 'main-news.txt'), 'news\n');
+    git(repo, 'add', '.');
+    git(repo, 'commit', '--quiet', '-m', 'chore: main moves on');
+    git(repo, 'push', '--quiet', 'origin', 'main');
+    git(worktree, 'merge', '--quiet', '--no-ff', '-m', 'chore: merge main', 'main');
+    const local = git(worktree, 'rev-parse', 'HEAD');
+    const [, first, second] = git(worktree, 'rev-list', '--parents', '-n', '1', 'HEAD').split(' ');
+    const prHead = git(
+      worktree,
+      'commit-tree',
+      `${local}^{tree}`,
+      '-p',
+      first,
+      '-p',
+      second,
+      '-m',
+      "Merge branch 'main' into feature/57-hold",
+    );
+    assert.notEqual(prHead, local);
+    fakeGh('MERGED', prHead);
+    const result = done('--check');
+    git(worktree, 'reset', '--quiet', '--hard', original);
+    assert.equal(result.status, 0, result.stderr);
+  });
+
+  it('accepts a rewritten local head whose tree is a PR commit before the PR head (E002 #108)', () => {
+    const worktree = join(repo, '.worktrees/feature-57-hold');
+    const original = git(worktree, 'rev-parse', 'HEAD');
+    writeFileSync(join(worktree, 'step-1.txt'), 'one\n');
+    git(worktree, 'add', '.');
+    git(worktree, 'commit', '--quiet', '-m', 'feat(F031): step 1');
+    const step = git(worktree, 'rev-parse', 'HEAD');
+    writeFileSync(join(worktree, 'step-2.txt'), 'two\n');
+    git(worktree, 'add', '.');
+    git(worktree, 'commit', '--quiet', '-m', 'feat(F031): step 2');
+    const prHead = git(worktree, 'rev-parse', 'HEAD');
+    // The local branch was rewritten (e.g. a rebase): same tree as step 1, a different commit, not an ancestor of the PR head.
+    const rewritten = git(
+      worktree,
+      'commit-tree',
+      `${step}^{tree}`,
+      '-p',
+      original,
+      '-m',
+      'feat(F031): step 1 (rewritten)',
+    );
+    git(worktree, 'reset', '--quiet', '--hard', rewritten);
+    fakeGh('MERGED', prHead);
+    const result = done('--check');
+    git(worktree, 'reset', '--quiet', '--hard', original);
+    assert.equal(result.status, 0, result.stderr);
+  });
+
+  it('still refuses a local commit whose tree is not in the PR (E002 #108)', () => {
+    const worktree = join(repo, '.worktrees/feature-57-hold');
+    const prHead = git(worktree, 'rev-parse', 'HEAD');
+    writeFileSync(join(worktree, 'local-only.txt'), 'not in the PR\n');
+    git(worktree, 'add', '.');
+    git(worktree, 'commit', '--quiet', '-m', 'feat(F031): local only');
+    fakeGh('MERGED', prHead);
+    const result = done('--check');
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /commits that are not in PR #60/);
+    git(worktree, 'reset', '--quiet', '--hard', prHead);
+  });
+
   it('removes the worktree, both branches and the worktree simulator once merged (E008 #71 AC3)', () => {
     const simulators = () => readdirSync(join(base, 'state/devices')).sort();
     fakeGh('MERGED', git(repo, 'rev-parse', 'feature/57-hold'));
