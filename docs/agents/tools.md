@@ -6,7 +6,7 @@ Agents run on the owner's Mac, where `railway`, `gh`, `xcrun devicectl` and `adb
 
 | Allowed | Not allowed |
 |---|---|
-| Read status, build logs and deploy logs of `production`; any logs of `development` and PR previews | Reading or printing variable values: no `railway variables`, `railway variable list`, `--show-values` or `--decrypt-variables`. Never read or set production values. Also no `railway run` or `railway shell` (they inject every variable value into a process), `railway connect` (a `psql` session on any environment, production included) or `railway ssh` (a shell in a running service): they expose secrets or production data |
+| Read status and build logs of `production`; any logs of `development` and PR previews | Reading or printing variable values: no `railway variables`, `railway variable list`, `--show-values` or `--decrypt-variables`. Never read or set production values. Also no `railway run` or `railway shell` (they inject every variable value into a process), `railway connect` (a `psql` session on any environment, production included) or `railway ssh` (a shell in a running service): they expose secrets or production data |
 | Redeploy **PR previews** (`trainer-hub-pr-<n>`) | Redeploying, rolling back or changing `production` or `development` |
 | `railway config plan` on any environment (read-only, values redacted) | `railway config apply`, except when the owner asks for it, as in [ENVIRONMENTS.md §3](../engineering/ENVIRONMENTS.md): `development` first, never a PR environment |
 | Devices and emulators that hold synthetic data only | Screenshots, or a screen dump, of anything that could show real data. Prefer text (`uiautomator`) over screenshots |
