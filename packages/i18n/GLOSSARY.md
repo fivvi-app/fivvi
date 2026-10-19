@@ -242,7 +242,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | Attended | Aanwezig | ❌ *gekomen, present*. |
 | Cancelled | Geannuleerd | EN spelling *Cancelled* (en-GB). |
 | No-show | Niet verschenen | ❌ NL: *no-show, afwezig* (sounds like an excused absence), *niet gekomen*. |
-| late cancellation | Te laat geannuleerd | A cancellation after the cancellation cutoff (`PRODUCT.md §93`), not a fifth attendance status: the status stays *Cancelled* and this is the label for the late case. EN label: *Cancelled late*. ❌ *late annulering* as a status label. |
+| Cancelled late | Te laat geannuleerd | A cancellation after the cancellation cutoff (`PRODUCT.md §93`), not a fifth attendance status: the status stays *Cancelled* and this is the label for the late case. EN label: *Cancelled late*. ❌ *late annulering* as a status label. |
 
 ### 4.6 Training
 

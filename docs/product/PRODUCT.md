@@ -22,7 +22,7 @@ The first version must solve the real workflow of the pilot gym:
 - public class booking
 - Open Gym booking
 - client management
-- memberships and private session packs, with a session balance the owner and the client can trust
+- memberships and private session packs (packs: proposed, [decision 11](ROADMAP.md#14-decisions)), with a session balance the owner and the client can trust
 - recurring payments and invoices (§90–§97)
 - workout/program management
 - live workout logging
@@ -452,7 +452,7 @@ Therefore:
 
 > Multi-trainer organization support is an MVP requirement.
 
-> Memberships, private session packs, recurring payments and invoices are MVP requirements (§2.8).
+> Memberships, recurring payments and invoices are MVP requirements; private session packs are proposed ([decision 11](ROADMAP.md#14-decisions)) (§2.8).
 
 ---
 
@@ -1609,6 +1609,8 @@ Everything below up to **Platforms** is needed for the pilot's go-live (`ROADMAP
 
 ## Commerce
 
+Session packs, single classes and payouts are proposed scope ([decision 11](ROADMAP.md#14-decisions)).
+
 - offers and prices (§90)
 - memberships on fixed weekdays (§91)
 - private session packs (§92)
@@ -2460,6 +2462,8 @@ F050 Trainer Booking Notifications
 
 Runs after Phase D (it needs bookings and client accounts), next to Phases E and F, and before Phase J.
 
+Phase K: session packs, single classes and payouts are proposed scope ([decision 11](ROADMAP.md#14-decisions)).
+
 79. offers and prices
 80. payment provider account per workspace (proposed, ADR-020)
 81. memberships on fixed weekdays
@@ -2554,12 +2558,12 @@ The MVP succeeds if:
 - Dutch users can complete everything without English
 - English users can complete everything without Dutch
 - Open Gym receives bookings
-- private workout logging replaces Excel
+- private workout logging replaces Word and by-hand notes
 - notes replace scattered tools
 - previous performance is easy to access
 - owner sees organization schedule
 - trainer sees combined personal schedule, with their own team access
-- memberships and private session packs run in the platform, and every session balance can be explained from its history
+- memberships and private session packs (packs: proposed, [decision 11](ROADMAP.md#14-decisions)) run in the platform, and every session balance can be explained from its history
 - recurring payments are collected without the old app, with no duplicate charges
 - private invoices no longer need to be made by hand
 - normal usage requires no developer intervention

@@ -70,7 +70,7 @@ Which calendar view and visible hours match the pilot's timetable? **Proposal:**
 Is a month view or printable week needed for MVP? **Proposal:** print the week; no month grid until validated (WC-02).
 
 ### Q22
-Should calendar colour primarily identify session type or trainer? **Proposal:** type; text labels remain visible (WC-02). **Interview 01 (19 October 2026):** the pilot uses colour today to tell private sessions from classes, and not everyone understands it. Every calendar names the type in words and filters by type and trainer (`PRODUCT.md §45`); colour only supports that.
+Should calendar colour primarily identify session type or trainer? **Proposal:** type; text labels remain visible (WC-02). **Interview 01 (19 October 2026):** the pilot uses colour today to tell private sessions from classes, and not everyone understands it. Every calendar names the type in words and filters by type and trainer (`PRODUCT.md §48`); colour only supports that.
 
 ### Q23
 Will the owner move sessions by dragging them, or is a form enough? **Proposal:** both paths lead to the same confirmation (WC-07, PS-05).
