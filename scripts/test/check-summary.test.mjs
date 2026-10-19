@@ -334,7 +334,13 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       const name = `@trainer-hub/${dir.split('/')[1]}`;
       write(join(repo(), dir, 'package.json'), JSON.stringify({ name, scripts }));
     }
-    for (const file of ['check.sh', '_lib.sh', 'test-summary.sh', 'test-summary.jq']) {
+    for (const file of [
+      'check.sh',
+      '_lib.sh',
+      '_shellcheck.sh',
+      'test-summary.sh',
+      'test-summary.jq',
+    ]) {
       copyFileSync(join(SCRIPTS, file), join(repo(), 'scripts', file));
     }
     // The other checks are not under test here.

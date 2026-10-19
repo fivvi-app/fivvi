@@ -10,6 +10,7 @@
 # from the output (scripts/test-summary.sh).
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
+source "$ROOT/scripts/_shellcheck.sh"
 
 FAST=false
 case "${1:-}" in
@@ -19,6 +20,9 @@ case "${1:-}" in
 esac
 
 cd "$ROOT"
+# The pinned shellcheck (scripts/bootstrap.sh installs it) goes first on PATH, for this script and for turbo's lint:root.
+use_pinned_shellcheck
+warn_shellcheck_version
 FAILED=0
 SUMMARY_JSON="$ROOT/.work/check-summary.json"
 # An early exit must not leave the summary of an earlier run behind.

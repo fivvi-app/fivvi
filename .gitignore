@@ -34,6 +34,7 @@ packages/contract/swift/Package.resolved
 .claude/worktrees/
 
 # Local tooling
+.tools/
 .claude/settings.local.json
 .DS_Store
 *.log
