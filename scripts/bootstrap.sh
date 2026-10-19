@@ -63,9 +63,7 @@ install_ios_tools() {
 }
 
 need jq jq || true
-use_pinned_shellcheck
-[ "$(shellcheck_version)" = "$SHELLCHECK_VERSION" ] \
-  || install_shellcheck || warn "could not install shellcheck $SHELLCHECK_VERSION (scripts/_shellcheck.sh)"
+ensure_shellcheck || warn "could not install shellcheck $SHELLCHECK_VERSION (scripts/_shellcheck.sh)"
 need gh gh || true
 gh auth status >/dev/null 2>&1 || warn "not logged in to GitHub — run: gh auth login"
 command -v docker >/dev/null || warn "Docker not found — install Docker Desktop (Postgres for integration tests)"

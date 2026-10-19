@@ -51,32 +51,55 @@ warn_shellcheck_version() {
   fi
 }
 
-# Downloads the pinned release, checks its SHA-256 and unpacks it into $SHELLCHECK_HOME. Nothing when it's there already.
-# curl is the system one on macOS, which trusts the keychain, so a TLS-inspecting proxy (Zscaler) is no problem; the
-# checksum is what vouches for the file.
-install_shellcheck() {
-  [ -x "$SHELLCHECK_HOME/shellcheck" ] && return 0
-  local platform sha_var sha archive unpacked
+# Whether file $2 has the SHA-256 $1. macOS has shasum; a minimal Linux may have only sha256sum.
+sha256_matches() {
+  if command -v shasum >/dev/null; then
+    echo "$1  $2" | shasum -a 256 -c --status
+  else
+    echo "$1  $2" | sha256sum -c --status
+  fi
+}
+
+# Downloads the pinned release into the directory $1, checks its SHA-256 and unpacks the binary there.
+download_shellcheck() {
+  local platform sha_var sha
   platform="$(shellcheck_platform)"
   sha_var="SHELLCHECK_SHA256_${platform//./_}"
   sha="${!sha_var:-}"
   [ -n "$sha" ] || { echo "no shellcheck $SHELLCHECK_VERSION for $platform (scripts/_shellcheck.sh)" >&2; return 1; }
-  archive="$SHELLCHECK_HOME.tar.gz.partial"
-  unpacked="$SHELLCHECK_HOME.partial"
-  mkdir -p "$TOOLS_DIR"
-  rm -rf "$unpacked"
-  curl -fsSL --retry 3 -o "$archive" \
+  curl -fsSL --retry 3 -o "$1/release.tar.gz" \
     "https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.$platform.tar.gz" \
-    || { rm -f "$archive"; return 1; }
-  if ! echo "$sha  $archive" | shasum -a 256 -c --status; then
-    rm -f "$archive"
-    echo "the shellcheck $SHELLCHECK_VERSION download doesn't match its SHA-256" >&2
-    return 1
+    || return 1
+  sha256_matches "$sha" "$1/release.tar.gz" \
+    || { echo "the shellcheck $SHELLCHECK_VERSION download doesn't match its SHA-256" >&2; return 1; }
+  tar -xzf "$1/release.tar.gz" -C "$1" --strip-components=1 "shellcheck-v$SHELLCHECK_VERSION/shellcheck"
+}
+
+# Installs the pinned release into $SHELLCHECK_HOME. Nothing when it's there already. Safe to run twice at once (two
+# worktrees): each works in its own temporary directory inside $TOOLS_DIR and renames the binary into place, which never
+# shows a half-written file; when the other install was first, its binary stays.
+# curl is the system one on macOS, which trusts the keychain, so a TLS-inspecting proxy (Zscaler) is no problem; the
+# checksum is what vouches for the file.
+install_shellcheck() {
+  [ -x "$SHELLCHECK_HOME/shellcheck" ] && return 0
+  local tmp rc=0
+  mkdir -p "$TOOLS_DIR"
+  tmp="$(mktemp -d "$TOOLS_DIR/.shellcheck.XXXXXX")" || return 1
+  download_shellcheck "$tmp" || rc=$?
+  if [ "$rc" = 0 ]; then
+    mkdir -p "$SHELLCHECK_HOME"
+    [ -x "$SHELLCHECK_HOME/shellcheck" ] \
+      || mv "$tmp/shellcheck" "$SHELLCHECK_HOME/shellcheck" \
+      || [ -x "$SHELLCHECK_HOME/shellcheck" ] \
+      || rc=1
   fi
-  mkdir -p "$unpacked"
-  tar -xzf "$archive" -C "$unpacked" --strip-components=1 "shellcheck-v$SHELLCHECK_VERSION/shellcheck" \
-    || { rm -rf "$archive" "$unpacked"; return 1; }
-  rm -f "$archive"
-  rm -rf "$SHELLCHECK_HOME"
-  mv "$unpacked" "$SHELLCHECK_HOME"
+  rm -rf "$tmp"
+  return "$rc"
+}
+
+# What bootstrap.sh does: the pinned shellcheck first on PATH, installed unless the shellcheck on PATH is that version.
+ensure_shellcheck() {
+  use_pinned_shellcheck
+  [ "$(shellcheck_version)" = "$SHELLCHECK_VERSION" ] && return 0
+  install_shellcheck && use_pinned_shellcheck
 }
