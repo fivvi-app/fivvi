@@ -969,6 +969,16 @@ No:
 
 in MVP.
 
+Everyone signs in the same way: email, then the link or the 6-digit code from the email (ADR-007).
+
+Sign-up is closed in MVP. An account is only created by:
+
+- the first sign-in of an address the operator allowed (the pilot owner)
+- accepting a trainer invitation (§49)
+- a client choosing to create one after booking (§26)
+
+Any other address gets the same "check your email" message and no email, so nobody can tell whether an account exists. Open sign-up comes with Release 2.0 (§58).
+
 ---
 
 # 28. Open Gym

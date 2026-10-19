@@ -58,7 +58,11 @@ _Avoid_: attendee, student
 An email from an owner asking someone to join the workspace as a trainer or admin.
 
 **Account**:
-A login: optional for a client, required for a team member.
+A login: optional for a client, required for a team member. One per person and email address, shared by every workspace the person belongs to.
+
+**Sign in**:
+To start using an account by verifying its email address with a magic link or a verification code. The first sign-in of an allowed address creates the account.
+_Avoid_: log in, login (as a verb), sign up, register, session (for being signed in)
 
 **Interface language**:
 The language a person sees on screen: Dutch or English. It follows the person (their choice, their preference or their device), or a booking link's fixed language; never the workspace's default communication language.
@@ -72,7 +76,7 @@ _Avoid_: email language, workspace language
 
 **Session**:
 The generic word for any scheduled item: a private session, a class occurrence or an Open Gym slot. Use the specific word when you mean one type.
-_Avoid_: appointment, event, activity
+_Avoid_: appointment, event, activity, session for being signed in (say *signed in*)
 
 **Private session**:
 A trainer-led session for one named client, created by a trainer or admin.
