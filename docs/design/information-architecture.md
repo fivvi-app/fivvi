@@ -336,7 +336,7 @@ Initially: upcoming bookings, past bookings, cancellation, profile (`§15`).
 flowchart TB
   mail["Link in confirmation email<br/>(Boeking beheren)"] --> manage["CW-03 Booking detail<br/>(no sign-in needed)"]
   signin["CW-01 Inloggen<br/>e-mail → link of code"] --> bookings["CW-02 Mijn boekingen<br/>Aankomend · Eerder"]
-  pb6["PB-06<br/>after booking"] --> bookings
+  pb6["PB-06<br/>after booking"] -- "⚑ QE17" --> bookings
   bookings --> manage
   manage --> cancel["Annuleren<br/>(confirm)"]
   bookings --> prof["CW-04 Profiel<br/>naam · e-mail · taal ·<br/>account verwijderen"]
@@ -362,7 +362,7 @@ flowchart TB
 
 Every email exists in `nl-NL` and `en` with one template structure (`§51, §74`). Booking emails carry the workspace name, the date/time in the workspace timezone, and a link to manage the booking. The workout recap email (EM-12) carries the workout date and a link to the authenticated client workout view.
 
-**Recipient language** (communication language, [ADR-017](../decisions/ADR-017-language-policy.md)): stored user preference → language chosen at booking (also stored as the account's preference at the first verified booking, [ADR-019](../decisions/ADR-019-sign-in-communication-language.md)) → workspace default. For trainer invitations it's the language picked for the invitee → workspace default (`§49`).
+**Recipient language** (communication language, [ADR-017](../decisions/ADR-017-language-policy.md)): stored user preference → language chosen at booking (also stored as the account's preference at the first verified booking, `PRODUCT.md §3, §26`) → workspace default. For trainer invitations it's the language picked for the invitee → workspace default (`§49`).
 
 | ID | NL subject (proposed) | EN subject (proposed) | To | Trigger | Features |
 |---|---|---|---|---|---|
@@ -499,7 +499,7 @@ Every screen in the flow documents specifies these four states. The defaults:
 | Client note / session note | Klantnotitie / sessienotitie | Client note / session note | proposed |
 | Internal note / client message | Notitie voor trainers / Bericht voor de klant | Note for trainers / Message for the client | §37; share via WL-08 |
 | My day / my calendar | Mijn dag / Mijn agenda | My day / My calendar | §46; proposed |
-| Account note (PB-06) | We maken een account voor je aan, zodat je je boekingen kunt zien. | We create an account for you so you can see your bookings. | §26 |
+| Account note (PB-03) | We maken een account voor je aan, zodat je je boekingen kunt zien. | We create an account for you so you can see your bookings. | §26 |
 | Location types | Eigen locatie · Externe sportschool · Bij de klant thuis · Buiten · Online · Anders | Own location · External gym · Client's home · Outdoors · Online · Other | glossary §4.3 |
 
 ---

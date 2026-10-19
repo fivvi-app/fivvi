@@ -19,7 +19,7 @@
 | F029 | Booking Hold | PB-03 → PB-04; expiry; PB-08 |
 | F030 | Magic-Link Verification | EM-01, PB-04 (code), PB-05, PB-08 |
 | F031 | Booking with Email Verification | PB-03, PB-06, `/manage/{token}` |
-| F032 | Client Account on First Booking | PB-06 |
+| F032 | Client Account on First Booking | PB-03 (account note), PB-06 |
 | F033 | Client Booking Dashboard | CW-01 – CW-04 |
 | F035 | Open Gym Public Booking | Open Gym items on PB-01/02 (same flow) |
 | F037 | Booking Links | Entry scopes; PB-09 |
@@ -62,7 +62,7 @@ flowchart TD
   check -- "les gaat niet door /<br/>al begonnen" --> pb08e["PB-08e Les niet meer te boeken"]
   pb04 -- "bevestigd op ander<br/>apparaat (polling)" --> pb06
   pb04 -. "15 min verstreken" .-> expired["hold → expired<br/>plek komt vrij"]
-  pb06 --> cw02["CW-02 Mijn boekingen"]
+  pb06 -- "Naar mijn boekingen ⚑ QE17" --> cw02["CW-02 Mijn boekingen"]
 ```
 
 ## Screens
@@ -208,6 +208,9 @@ flowchart TD
 │ alleen voor je boekingen bij John's    │
 │ Gym. Privacyverklaring                 │
 │                                        │
+│ We maken een account voor je aan,      │
+│ zodat je je boekingen kunt zien.       │
+│                                        │
 ├────────────────────────────────────────┤
 │ [          Boeken                    ] │
 └────────────────────────────────────────┘
@@ -216,9 +219,10 @@ flowchart TD
 - Only **Naam** and **E-mailadres** (`§22`). No phone and no password (`§2.4`).
 - Cloudflare Turnstile runs invisibly (E013). If it needs an interaction, its widget appears above the button, in the page language.
 - The email typo hint ("Bedoel je …?") covers common domains (gmail.com, hotmail.com/.nl, outlook.com, live.nl, ziggo.nl, kpnmail.nl, icloud.com). It never blocks submitting.
+- The account note is taken literally from `§26`: confirming this form creates the client's account at verification, so it's explained here, before submitting, not on PB-06 where the account already exists.
 - Submitting creates the hold (`pending_verification`), stores the **page language** on it, sends EM-01 and goes to PB-04.
 
-**Signed-in variant** (a client with an account and a valid session):
+**Signed-in variant** (a signed-in client):
 
 ```text
 │ Boeken als                             │
@@ -228,7 +232,7 @@ flowchart TD
 │ [          Boeken                    ] │
 ```
 
-A signed-in client has already verified their email, so tapping *Boeken* confirms directly (→ PB-06 without the account prompt). There's no hold and no email round-trip ⚑ [QE06](../open-questions.md#qe06).
+A signed-in client has already verified their email. Whether tapping *Boeken* confirms directly (→ PB-06, no new hold and no email round-trip) is a proposal for the M5 spec, not yet decided ⚑ [QE06](../open-questions.md#qe06).
 
 | Element | NL | EN |
 |---|---|---|
@@ -236,6 +240,7 @@ A signed-in client has already verified their email, so tapping *Boeken* confirm
 | Typo hint | Bedoel je {suggestion}? [ Ja ] | Did you mean {suggestion}? [ Yes ] |
 | Explainer | Je krijgt een e-mail om je boeking te bevestigen. We houden je plek 15 minuten voor je vast. | We'll email you to confirm your booking. We'll hold your spot for 15 minutes. |
 | Privacy line | We gebruiken je naam en e-mailadres alleen voor je boekingen bij {workspace}. Privacyverklaring | We only use your name and email for your bookings at {workspace}. Privacy statement |
+| Account note | We maken een account voor je aan, zodat je je boekingen kunt zien. | We create an account for you so you can see your bookings. |
 | Button | Boeken | Book |
 | Signed in | Boeken als · Niet jij? Uitloggen | Booking as · Not you? Sign out |
 
@@ -400,19 +405,16 @@ A signed-in client has already verified their email, so tapping *Boeken* confirm
 │ [ Beheer je boeking                › ] │
 │ Deze link staat ook in je              │
 │ bevestigingsmail.                      │
-│────────────────────────────────────────│
-│ We maken een account voor je aan,      │
-│ zodat je je boekingen kunt zien.       │
 │                                        │
 │ [       Naar mijn boekingen          ] │
 │ [        Nog een les boeken          ] │
 └────────────────────────────────────────┘
 ```
 
-- The headline and the account note are taken literally from `§26`.
-- The account note doesn't repeat for a client who already has one; they just see *Naar mijn boekingen*.
+- The headline is taken literally from `§26`. The account-creation note itself is on PB-03, before this screen, since the account already exists by the time a client reaches PB-06.
 - *Zet in je agenda* downloads a single-event `.ics` ⚑ [Q15](../open-questions.md#q15).
 - *Beheer je boeking* opens CW-03 for this booking. It replaces the earlier passive sentence about cancelling via the email. In production the same link is in the confirmation email (`/manage/{token}`).
+- *Naar mijn boekingen* opens CW-02. Whether verifying a booking signs the client in so this link can go straight there, or whether it still needs a separate CW-01 sign-in, is not decided ⚑ [QE17](../open-questions.md#qe17).
 
 | Element | NL | EN |
 |---|---|---|
@@ -420,9 +422,8 @@ A signed-in client has already verified their email, so tapping *Boeken* confirm
 | Add to calendar | Zet in je agenda | Add to calendar |
 | Email note | Je krijgt ook een bevestiging per e-mail. | We've also sent you a confirmation email. |
 | Manage | Beheer je boeking · Deze link staat ook in je bevestigingsmail. | Manage booking · This link is also in your confirmation email. |
-| Account note | We maken een account voor je aan, zodat je je boekingen kunt zien. | We create an account for you so you can see your bookings. |
 | More | Nog een les boeken | Book another class |
-| Has account | Naar mijn boekingen | Go to my bookings |
+| My bookings | Naar mijn boekingen | Go to my bookings |
 
 ### PB-08 · Linkproblemen / Link problems
 
@@ -551,7 +552,7 @@ CW-03 Boeking                             CW-04 Profiel
 | **DST weekend** (25 oktober 2026) | A weekly 18:00 class shows 18:00 on both sides of the change. The `.ics` file carries the timezone (`TZID=Europe/Amsterdam`), not a floating time | PB-01, PB-06 |
 | **Hold countdown with a wrong device clock** | The countdown uses server-provided remaining seconds | PB-04 |
 | **Browser back from PB-04** | PB-03 shows *Je plek is al vastgehouden* + *Naar bevestigen*. Back never creates a second hold | PB-03 |
-| **Shared device** (e.g. a tablet at the gym desk) | Name and email are **not** remembered between bookings. A signed-in session shows *Niet jij? Uitloggen* | PB-03 |
+| **Shared device** (e.g. a tablet at the gym desk) | Name and email are **not** remembered between bookings. A signed-in client shows *Niet jij? Uitloggen* | PB-03 |
 | **Occurrence link for a past date** | PB-08e + *Andere momenten bekijken* for the same class | PB-08e |
 | **JavaScript unavailable** | PB-01 – PB-03 and PB-05 work as server-rendered forms; only polling and the live countdown need JS | all |
 

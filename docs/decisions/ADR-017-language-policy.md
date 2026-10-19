@@ -20,7 +20,7 @@ Native tickets need this decided before they are cut (E008 spec #34).
 
 ## Decision
 
-> **Amended by [ADR-019](ADR-019-sign-in-communication-language.md) (19 October 2026):** for an email sent outside a workspace, such as the sign-in email, the communication-language order gets a new second step — the interface language of the screen that asked — before the workspace default. The first sign-in that creates an account stores that language as the account's personal preference. The rest of this ADR stands.
+> **Amended by [ADR-019](ADR-019-sign-in-communication-language.md) (19 October 2026):** for an email sent outside a workspace, such as the sign-in email, the communication-language order is two steps only — the recipient's stored personal preference, otherwise the interface language of the screen that asked — with no workspace default (there is no workspace to fall back to). The first sign-in that creates an account stores that screen's language as the account's personal preference. The rest of this ADR stands.
 
 Trainer Hub resolves two separate languages. Both use only `nl-NL` and `en`.
 

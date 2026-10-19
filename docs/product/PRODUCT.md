@@ -925,22 +925,32 @@ Verifying the email creates the client's account (§26); there is no separate ac
 
 # 26. Client account created automatically
 
-After booking, the confirmation screen shows one explanatory line — no choice, no extra screen:
+Before submitting the booking form, it shows one explanatory line — no choice, no extra screen:
 
 Dutch:
 
 ```text
-Je boeking is bevestigd.
-
 We maken een account voor je aan, zodat je je boekingen kunt zien.
 ```
 
 English:
 
 ```text
-Your booking is confirmed.
-
 We create an account for you so you can see your bookings.
+```
+
+After verification, the confirmation screen's headline is:
+
+Dutch:
+
+```text
+Je boeking is bevestigd.
+```
+
+English:
+
+```text
+Your booking is confirmed.
 ```
 
 The account can be deleted on request (E014).
@@ -967,7 +977,7 @@ Everyone signs in the same way: email, then the link or the 6-digit code from th
 
 Sign-up is closed in MVP. An account is only created by:
 
-- the first sign-in of an email address we've allowed (the pilot owner, during the pilot)
+- the first sign-in of an email address we've allowed (the pilot owner)
 - accepting a trainer invitation (§49)
 - a client's first verified booking (§26)
 
@@ -1563,6 +1573,7 @@ Do not build yet:
 - resource management
 - payroll
 - commissions
+- open sign-up (anyone creating a team account themselves, §27, §58)
 
 ---
 

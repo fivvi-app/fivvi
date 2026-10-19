@@ -31,7 +31,7 @@ The spec rules out passwords, phone numbers and SMS in MVP; clients use an **ema
 - **Positive:** full control over email wording and language, which a hosted provider would limit.
 - **Positive:** the 6-digit code covers native sign-in and scanner-consumed links with one mechanism.
 - **Negative:** we own the security of the auth flows (rate limits, token hygiene, enumeration). Covered by the token tests in `TESTING.md §3` and the M9 security review.
-- **Negative:** Better Auth is a younger library; the native bearer flow is the least proven part, hence the M1 spike.
+- **Negative:** Better Auth is a younger library; the native bearer flow is the least proven part, hence the M8 spike (moved from M1, see the dated note above).
 - **Follow-ups:** M8 spike (moved from M1); F001 in M2; deep links in 1.1.
 
 ## Alternatives considered

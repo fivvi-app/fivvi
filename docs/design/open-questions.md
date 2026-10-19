@@ -52,7 +52,7 @@ How much location detail does a class or Open Gym listing need, and must an Open
 Do clients use an add-to-calendar action from a booking confirmation? **Proposal:** one-event calendar download (PB-06).
 
 ### Q16
-**Resolved by the owner, 19 October 2026.** There are no guests: every client's account is created automatically at their first verified booking (`PRODUCT.md §25–§26`, ADR-007). The booking confirmation (PB-06) explains this with one line; there is no account-creation screen and no choice to make. Managing one booking by the email link remains possible either way (`/manage/{token}`, CW-02/03). Whether a signed-in, already-verified client can book again without a new confirmation email is still open — see QE06.
+**Resolved by the owner, 19 October 2026.** There are no guests: every client's account is created automatically at their first verified booking (`PRODUCT.md §2.4, §26`). The booking page explains this with one line before the client submits it; there is no account-creation screen and no choice to make. Managing one booking by the email link remains possible either way (`/manage/{token}`, CW-02/03). Whether a signed-in, already-verified client can book again without a new confirmation email is still open — see QE06.
 
 ### Q17
 What must appear on a trainer's Today row to choose the next action quickly? **Proposal:** time, client/class, location, workspace and attendance cue (TD-01).
@@ -174,3 +174,6 @@ Starting a workout from a client profile creates a private session that starts n
 
 ### QE16
 The trainer apps can now create group classes (one-off or weekly) and Open Gym for owners/admins (flow 02, TD-05). Confirm the weekly series horizon (prototype: 8 weeks; ADR-012 proposes a rolling 12-week window) and that editing or ending a series stays web-only in MVP.
+
+### QE17
+Decide whether verifying a booking (PB-05/PB-06) signs the client in, so *Naar mijn boekingen* can go straight to CW-02, or whether it still needs a separate CW-01 sign-in. Nobody has decided this; it sits next to QE06 (PB-06, CW-01/02).

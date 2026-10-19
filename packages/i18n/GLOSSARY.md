@@ -32,7 +32,7 @@ What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLO
 | Rule | ✅ Do | ❌ Don't |
 |---|---|---|
 | Use "je" as subject and possessive. Use "jij/jouw" only for emphasis or contrast | Je boeking is bevestigd. | Uw boeking is bevestigd. / Jouw boeking is bevestigd. |
-| Never mix "je" and "u" in one product, screen or email | Wil je een account aanmaken? | Wilt u een account aanmaken? |
+| Never mix "je" and "u" in one product, screen or email | We maken een account voor je aan, zodat je je boekingen kunt zien. | Wij maken een account voor u aan, zodat u uw boekingen kunt zien. |
 | "Je" is lowercase mid-sentence, and there is no capital "U" | Kies een les die bij je past. | Kies een les die bij U past. |
 | Short sentences, active voice | We hebben je een e-mail gestuurd. | Er is door ons een e-mail naar u verzonden. |
 | Plain words instead of officialese | Vul je naam in. | Gelieve uw naam in te vullen. |
