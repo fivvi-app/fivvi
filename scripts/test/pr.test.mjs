@@ -1023,12 +1023,12 @@ describe('E002 #107 pr.sh ship', () => {
     run = ['completed', 'success'],
     args = [],
     jobs = JOBS,
-    listRun = [],
+    ghFirst = [], // fake-gh rules checked before the defaults below
     ...options
   } = {}) => {
     const env = railway.env(
       gh.env([
-        ...listRun,
+        ...ghFirst,
         { match: '^pr checks ', out: ci },
         { match: '^run list ', out: [{ status: run[0], conclusion: run[1], databaseId: 555 }] },
         { match: '^api repos/[^ ]+/actions/runs/555/jobs', out: jobs },
@@ -1156,7 +1156,7 @@ describe('E002 #107 pr.sh ship', () => {
     assert.doesNotMatch(result.stdout, /Step durations: Android/);
   });
 
-  it('E002 #121 AC3: says so, in one line, for a native job cancelled before its first step, and stays silent for a skipped one', () => {
+  it('E002 #107 AC2: says so, in one line, for a native job cancelled before its first step, and stays silent for a skipped one', () => {
     const job = (name, conclusion) => ({ name, status: 'completed', conclusion, steps: [] });
     const result = ship({ jobs: { jobs: [job('iOS', 'cancelled'), job('Android', 'skipped')] } });
     assert.equal(result.status, 0, result.stderr);
@@ -1165,29 +1165,29 @@ describe('E002 #107 pr.sh ship', () => {
     assert.doesNotMatch(result.stdout, /0 min 0 s/);
   });
 
-  it('E002 #121 AC4: names the missing CI run on stderr instead of staying silent, and still ships', () => {
-    const result = ship({ listRun: [{ match: '^run list .*--json databaseId', out: '[]' }] });
+  it('E002 #107 AC2: names the missing CI run on stderr instead of staying silent, and still ships', () => {
+    const result = ship({ ghFirst: [{ match: '^run list .*--json databaseId', out: '[]' }] });
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stderr, /no CI run for .*; no step durations/);
     assert.doesNotMatch(result.stdout, /Step durations/);
   });
 
-  it('E002 #121 AC4: names the failed run list on stderr', () => {
+  it('E002 #107 AC2: names the failed run list on stderr', () => {
     const result = ship({
-      listRun: [{ match: '^run list .*--json databaseId', out: '', status: 1 }],
+      ghFirst: [{ match: '^run list .*--json databaseId', out: '', status: 1 }],
     });
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stderr, /could not list the CI runs; no step durations/);
   });
 
-  it('E002 #121 AC4: names jobs that are not JSON on stderr', () => {
+  it('E002 #107 AC2: names jobs that are not JSON on stderr', () => {
     const result = ship({ jobs: '<html>rate limited</html>' });
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stderr, /could not parse the jobs of CI run 555; no step durations/);
     assert.doesNotMatch(result.stdout, /Step durations/);
   });
 
-  it("E002 #121 AC4: says on stderr when a step's timestamp can't be read, and keeps what was printed", () => {
+  it("E002 #107 AC2: says on stderr when a step's timestamp can't be read, and keeps what was printed", () => {
     const broken = { name: 'Android', steps: [step('Emulator tests', '00:00', '12:05')] };
     broken.steps.push({ name: 'Broken', started_at: 'soon', completed_at: 'later' });
     const result = ship({ jobs: { jobs: [JOBS.jobs[1], broken] } });
