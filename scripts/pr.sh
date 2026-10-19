@@ -497,7 +497,9 @@ merge_facts() {
 # is removed when the queue took it out (its last queue event on the timeline) after the head commit was made: a commit
 # pushed after the removal makes it stale, and a later removal (the owner queued the new commit) counts again. This reads
 # the event's time and the head commit's committedDate, not the **Merge queue:** record, which names only what an agent
-# queued.
+# queued. A commit pushed while the PR is queued makes GitHub remove it, with the removal after that commit's
+# committedDate: it shows as removed and the gate refuses it (fails closed); the owner decides.
+# Times are compared as UTC instants (GitHub's dates have a Z or an offset), not as text.
 queue_state() {
   local out
   # shellcheck disable=SC2016 # GraphQL variables, not shell
@@ -509,14 +511,18 @@ queue_state() {
           nodes { __typename ... on RemovedFromMergeQueueEvent { reason createdAt } } } } }
     }')" || die "could not read the merge queue state of PR #$1"
   jq '
+    def instant: capture("^(?<t>[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(?:\\.[0-9]+)?(?<z>Z|[+-][0-9]{2}:[0-9]{2})$")
+      | (.t + "Z" | fromdateiso8601)
+        - (if .z == "Z" then 0
+           else (if .z[0:1] == "-" then -1 else 1 end) * ((.z[1:3] | tonumber) * 3600 + (.z[4:6] | tonumber) * 60) end);
     .data.repository.pullRequest as $p
     | if $p == null then error("no such PR") else . end
     | ($p.timelineItems.nodes | last) as $last
-    | ($p.commits.nodes | last | .commit.committedDate) as $committed
+    | ($p.commits.nodes | last | .commit.committedDate | instant) as $committed
     | {merged: ($p.state == "MERGED"), queued: $p.isInMergeQueue, position: $p.mergeQueueEntry.position,
        auto_merge: ($p.autoMergeRequest != null),
        removed: ($p.state == "OPEN" and ($p.isInMergeQueue | not)
-         and $last.__typename == "RemovedFromMergeQueueEvent" and $last.createdAt >= $committed),
+         and $last.__typename == "RemovedFromMergeQueueEvent" and ($last.createdAt | instant) >= $committed),
        reason: $last.reason}
     | .reason = (if .removed then .reason else null end)' <<<"$out" \
     || die "could not read the merge queue state of PR #$1"

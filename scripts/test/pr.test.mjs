@@ -718,6 +718,17 @@ describe('E002 #119 pr.sh queue', () => {
     assert.deepEqual(result.json, { state: null, position: null, reason: null });
   });
 
+  it('E002 #119: compares times as instants, not as text: a commit date with an offset', () => {
+    // 11:30+02:00 is 09:30Z, before the removal at 10:00Z: removed. As text it would sort after the removal.
+    const before = queue(queueFacts({ events: [REMOVED], committed: '2026-10-19T11:30:00+02:00' }));
+    assert.equal(before.json.state, 'removed');
+    // 12:30+02:00 is 10:30Z, after the removal: stale. Fractional seconds are accepted too.
+    const after = queue(
+      queueFacts({ events: [REMOVED], committed: '2026-10-19T12:30:00.250+02:00' }),
+    );
+    assert.equal(after.json.state, null);
+  });
+
   it('E002 #119: shows the removal of a later commit the owner queued, although the record still names the first', () => {
     // A was queued by the agent and removed; B was pushed (stale), and the owner queued B, who removed it again.
     const second = removedAt('2026-10-19T12:00:00Z');
