@@ -20,9 +20,42 @@ const SCRIPTS = join(import.meta.dirname, '..');
 const ROOT = join(SCRIPTS, '..');
 const PIN = join(SCRIPTS, '_shellcheck.sh');
 
+const which = (tool) =>
+  spawnSync('sh', ['-c', `command -v ${tool}`], { encoding: 'utf8' }).stdout.trim();
+const BASH = which('bash');
+
+// The tools the scripts under test use.
+const TOOLS = [
+  'git',
+  'dirname',
+  'tr',
+  'mkdir',
+  'mktemp',
+  'tar',
+  'gzip',
+  'rm',
+  'mv',
+  'uname',
+  'sed',
+  'cp',
+  'sleep',
+  'shasum',
+  'sha256sum',
+];
+let bins = 0;
+// A directory with only those tools (minus `except`), to be the whole of a test's PATH: a runner or machine may have a
+// shellcheck of its own (Ubuntu's runner image has 0.9.0 in /usr/bin), and nothing of it may reach the tests.
+const toolBin = (parent, except = []) => {
+  const bin = join(parent, `tool-bin-${bins++}`);
+  mkdirSync(bin);
+  for (const tool of TOOLS)
+    if (!except.includes(tool) && which(tool)) symlinkSync(which(tool), join(bin, tool));
+  return bin;
+};
+
 // Runs bash code with the pin sourced (and _lib.sh, which it builds on); `env` replaces entries of the environment.
 const run = (code, env = {}) =>
-  spawnSync('bash', ['-c', `source "${SCRIPTS}/_lib.sh"; source "${PIN}"; ${code}`], {
+  spawnSync(BASH, ['-c', `source "${SCRIPTS}/_lib.sh"; source "${PIN}"; ${code}`], {
     encoding: 'utf8',
     env: { ...process.env, ...env },
   });
@@ -115,7 +148,7 @@ describe('E002 #109 one pinned shellcheck version (scripts/_shellcheck.sh)', () 
          install_shellcheck; echo "status=$?"; use_pinned_shellcheck; echo "version=$(shellcheck_version)"`,
         {
           TOOLS_DIR: tools,
-          PATH: `${fakeCurl(dir)}:/usr/bin:/bin`,
+          PATH: `${fakeCurl(dir)}:${toolBin(dir)}`,
           FAKE_DOWNLOAD: file,
           FAKE_CURL_LOG: join(dir, 'curl.log'),
         },
@@ -150,7 +183,7 @@ describe('E002 #109 one pinned shellcheck version (scripts/_shellcheck.sh)', () 
       const tools = join(dir, 'tools');
       const env = {
         TOOLS_DIR: tools,
-        PATH: `${fakeCurl(dir)}:/usr/bin:/bin`,
+        PATH: `${fakeCurl(dir)}:${toolBin(dir)}`,
         FAKE_DOWNLOAD: file,
         FAKE_CURL_LOG: join(dir, 'curl.log'),
       };
@@ -167,7 +200,7 @@ describe('E002 #109 one pinned shellcheck version (scripts/_shellcheck.sh)', () 
       );
       assert.match(result.stdout, /status=1$/m);
       assert.match(result.stderr, /doesn't match its SHA-256/);
-      assert.match(result.stdout, /version=$/m);
+      assert.match(result.stdout, /version=$/m, 'no shellcheck, whatever the machine has');
       assert.ok(!existsSync(join(tools, `shellcheck-${pinned()}`, 'shellcheck')));
       assert.deepEqual(leftovers(tools), []);
     });
@@ -179,7 +212,7 @@ describe('E002 #109 one pinned shellcheck version (scripts/_shellcheck.sh)', () 
       const env = {
         ...process.env,
         TOOLS_DIR: tools,
-        PATH: `${fakeCurl(dir)}:/usr/bin:/bin`,
+        PATH: `${fakeCurl(dir)}:${toolBin(dir)}`,
         FAKE_DOWNLOAD: file,
         FAKE_CURL_LOG: join(dir, 'curl.log'),
         FAKE_CURL_DELAY: '0.5', // both downloads overlap
@@ -190,7 +223,7 @@ describe('E002 #109 one pinned shellcheck version (scripts/_shellcheck.sh)', () 
         install_shellcheck && [ -x "$SHELLCHECK_HOME/shellcheck" ]`;
       const install = () =>
         new Promise((resolve) => {
-          const child = spawn('bash', ['-c', code], { env });
+          const child = spawn(BASH, ['-c', code], { env });
           let stderr = '';
           child.stderr.on('data', (chunk) => {
             stderr += chunk;
@@ -222,7 +255,7 @@ describe('E002 #109 one pinned shellcheck version (scripts/_shellcheck.sh)', () 
          install_shellcheck; echo "status=$?"`,
         {
           TOOLS_DIR: tools,
-          PATH: `${fakeCurl(dir)}:/usr/bin:/bin`,
+          PATH: `${fakeCurl(dir)}:${toolBin(dir)}`,
           FAKE_DOWNLOAD: file,
           FAKE_CURL_LOG: join(dir, 'curl.log'),
         },
@@ -236,27 +269,7 @@ describe('E002 #109 one pinned shellcheck version (scripts/_shellcheck.sh)', () 
       const file = tarball(dir, pinned());
       const tools = join(dir, 'tools');
       // A PATH without shasum: the tools install_shellcheck needs, and a sha256sum that records its use.
-      const bin = join(dir, 'minimal-bin');
-      mkdirSync(bin);
-      const which = (tool) =>
-        spawnSync('sh', ['-c', `command -v ${tool}`], { encoding: 'utf8' }).stdout.trim();
-      for (const tool of [
-        'git',
-        'dirname',
-        'tr',
-        'mkdir',
-        'mktemp',
-        'tar',
-        'gzip',
-        'rm',
-        'mv',
-        'uname',
-        'sed',
-        'cp',
-        'sleep',
-      ]) {
-        if (which(tool)) symlinkSync(which(tool), join(bin, tool));
-      }
+      const bin = toolBin(dir, ['shasum', 'sha256sum']);
       symlinkSync(join(fakeCurl(dir), 'curl'), join(bin, 'curl'));
       const hasher = which('shasum') ? `${which('shasum')} -a 256` : which('sha256sum');
       writeFileSync(
@@ -269,7 +282,7 @@ describe('E002 #109 one pinned shellcheck version (scripts/_shellcheck.sh)', () 
         SHELLCHECK_SHA256_linux_x86_64="@SHA@"
         install_shellcheck; echo "status=$?"`;
       const attempt = (sha) =>
-        spawnSync(which('bash'), ['-c', code.replace('@SHA@', sha)], {
+        spawnSync(BASH, ['-c', code.replace('@SHA@', sha)], {
           encoding: 'utf8',
           env: {
             TOOLS_DIR: tools,
@@ -341,7 +354,7 @@ describe('E002 #109 one pinned shellcheck version (scripts/_shellcheck.sh)', () 
          ensure_shellcheck; echo "status=$?"; echo "version=$(shellcheck_version)"`,
         {
           TOOLS_DIR: join(dir, 'tools'),
-          PATH: `${bin}:${local}:/usr/bin:/bin`,
+          PATH: `${bin}:${local}:${toolBin(dir)}`,
           FAKE_DOWNLOAD: file,
           FAKE_CURL_LOG: join(dir, 'curl.log'),
         },
