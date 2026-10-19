@@ -73,8 +73,8 @@ describe('E008 AC3 interface language', () => {
   });
 
   it('is never decided by the workspace default communication language', () => {
-    const guest = { requested: ['de-DE'], workspaceDefault: 'nl-NL' };
-    expect(resolveInterfaceLanguage(guest)).toBe('en');
+    const germanReader = { requested: ['de-DE'], workspaceDefault: 'nl-NL' };
+    expect(resolveInterfaceLanguage(germanReader)).toBe('en');
     const visitor = { requested: ['en-GB'], workspaceDefault: 'nl-NL' };
     expect(resolveInterfaceLanguage(visitor)).toBe('en');
   });
