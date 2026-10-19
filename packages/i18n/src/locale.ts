@@ -68,7 +68,7 @@ export function resolveInterfaceLanguage(sources: InterfaceLanguageSources): Loc
 
 /** What is known about the recipient of an email or other message. */
 export interface CommunicationLanguageSources {
-  /** The recipient's stored preference, including a language a guest chose while booking. */
+  /** The recipient's stored preference, including the language a client chose while booking. */
   recipientPreference?: string | null;
   /** The workspace's default communication language. Every workspace has one. */
   workspaceDefault: Locale;
