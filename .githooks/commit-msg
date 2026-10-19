@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Conventional Commits with the feature or enabler ID as scope, e.g. feat(F031): hold a spot. Checked without commitlint.
+# Author, committer and Co-authored-by must be GitHub noreply addresses, merge commits included.
 set -euo pipefail
 source "$(cd "$(dirname "$0")/.." && pwd)/scripts/_lib.sh"
+
+"$ROOT/scripts/emails.sh" hook "$1"
 
 subject="$(sed -n '/^[^#]/{p;q;}' "$1")"
 case "$subject" in Merge\ *|fixup!\ *|squash!\ *|amend!\ *|Revert\ *) exit 0 ;; esac

@@ -198,8 +198,8 @@ flowchart TD
 │ [ Anna de Vries                      ] │
 │                                        │
 │ E-mailadres                            │
-│ [ anna@exmaple.com                     ] │
-│ Bedoel je anna@example.com?  [ Ja ]      │
+│ [ anna@exmaple.test                    ] │
+│ Bedoel je anna@example.test? [ Ja ]      │
 │                                        │
 │ Je krijgt een e-mail om je boeking te  │
 │ bevestigen. We houden je plek 15       │
