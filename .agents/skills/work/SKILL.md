@@ -10,6 +10,7 @@ You route; Matt Pocock's vendored skills do the work. Run every script, skill an
 ## Rules
 
 - **Facts come from scripts, not memory.** Before acting on an issue run `scripts/flow.sh status <n>` and act on its `Phase`, `Next` and `Hint`. Run it again after each step instead of assuming what changed.
+- **Claims need evidence.** Before you record a manual or owner check result, or write a status claim in `FEATURES.md`, `ROADMAP.md` or on an issue, check it against the code and the data path: `docs/agents/build.md`, **Manual checks**.
 - **GitHub holds what was agreed:** specs, tickets, blocking edges, labels, assignees and PRs. Comment on an issue only when the owner must answer or act. Never post progress, logs or check results there.
 - **Working memory is the ticket's notes file** (`flow.sh start` and `status` print its path): decisions, check results, what's left. Update it at every phase change so a fresh session can continue from `flow.sh status`, the notes, git and the PR. Keep no other plan or state files.
 - **Run a vendored skill by reading `.agents/skills/<name>/SKILL.md` and following it.** Most are user-invoked only, so you can't load them as tools. Their tracker and docs steps resolve through `docs/agents/`.

@@ -4,6 +4,10 @@
 #
 #   check.sh          everything: hygiene, lint, types, unit tests, static checks, build, integration and e2e tests
 #   check.sh --fast   skip the integration and e2e tests
+#
+# At the end it prints a table of the tests each suite passed, failed and skipped and writes it as JSON to
+# .work/check-summary.json (git-ignored, in this checkout). Quote that summary in reports; don't retype counts
+# from the output (scripts/test-summary.sh).
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -16,15 +20,36 @@ esac
 
 cd "$ROOT"
 FAILED=0
+SUMMARY_JSON="$ROOT/.work/check-summary.json"
+# An early exit must not leave the summary of an earlier run behind.
+rm -f "$SUMMARY_JSON"
+# What every check printed, passed or failed: test-summary.sh reads the suites' counts from it.
+LOG_DIR="$(mktemp -d)"
+remove_log_dir() { rm -rf "$LOG_DIR"; }
+on_exit remove_log_dir
+
+# What a failed check shows. A turbo run is logged in full (the parser reads every task's counts), but only the output of
+# the tasks that failed (named by "<package>#<task>:  ERROR") is shown, with turbo's footer; any other check shows all.
+failure_output() {
+  local prefixes
+  prefixes="$(sed -nE 's/^([^[:space:]]+)#([^[:space:]]+):[[:space:]]+ERROR[[:space:]].*/\1:\2: /p' <<<"$1")"
+  [ -n "$prefixes" ] || { printf '%s\n' "$1"; return; }
+  awk 'NR == FNR { prefix[++n] = $0; next }
+       footer || /^[^[:space:]]+#[^[:space:]]+:[[:space:]]+ERROR[[:space:]]/ { print; next }
+       /^ *Tasks: / { footer = 1; print; next }
+       { for (i = 1; i <= n; i++) if (index($0, prefix[i]) == 1) { print; break } }' <(printf '%s\n' "$prefixes") <(printf '%s\n' "$1")
+}
 
 check() {
-  local name="$1" out
+  local name="$1" out rc=0
   shift
-  if out="$("$@" 2>&1)"; then
+  out="$("$@" 2>&1)" || rc=$?
+  printf '%s\n' "$out" >>"$LOG_DIR/output.log"
+  if [ "$rc" = 0 ]; then
     echo "✓ $name"
   else
     echo "✗ $name"
-    [ -z "$out" ] || printf '    %s\n' "${out//$'\n'/$'\n'    }"
+    [ -z "$out" ] || { out="$(failure_output "$out")"; printf '    %s\n' "${out//$'\n'/$'\n'    }"; }
     FAILED=1
   fi
 }
@@ -76,7 +101,7 @@ touches_api() {
 turbo_checks() {
   local contract=--filter=!@trainer-hub/contract
   ! touches_api || contract=""
-  pnpm turbo run lint typecheck test format:check build --output-logs=errors-only \
+  pnpm turbo run lint typecheck test format:check build --output-logs=full \
     && pnpm turbo run check ${contract:+"$contract"} --output-logs=errors-only
 }
 
@@ -91,13 +116,13 @@ test_database_url() { sed -n 's/^DATABASE_URL=//p' packages/database/.env; }
 
 integration_tests() {
   local_postgres || return 1
-  TEST_DATABASE_URL="$(test_database_url)" pnpm turbo run test:integration --output-logs=errors-only
+  TEST_DATABASE_URL="$(test_database_url)" pnpm turbo run test:integration --output-logs=full
 }
 
 e2e_tests() {
   local_postgres || return 1
   TEST_DATABASE_URL="$(test_database_url)" E2E_PORT="$(e2e_port "$ROOT")" \
-    pnpm turbo run test:e2e --output-logs=errors-only
+    pnpm turbo run test:e2e --output-logs=full
 }
 
 api_prerequisites() {
@@ -130,5 +155,26 @@ if ! $FAST; then
   check "integration tests" integration_tests
   check "e2e tests (port $(e2e_port "$ROOT"))" e2e_tests
 fi
+
+# The suites of the workspace that turbo runs tests for: the root and every package with a test script. One that left no
+# output (turbo stops after the first failure) is listed as not-run.
+expected_suites() {
+  local file
+  echo "//:test:root"
+  for file in apps/*/package.json packages/*/package.json; do
+    [ -f "$file" ] || continue
+    jq -r '.name as $name | (.scripts // {}) | keys[] | select(. == "test" or . == "test:integration" or . == "test:e2e") | "\($name):\(.)"' "$file"
+  done
+}
+
+# The suites' counts, after the checks so that a failed run shows them too.
+test_kinds=(--run unit)
+for kind in integration e2e; do
+  if $FAST; then test_kinds+=(--skip "$kind"); else test_kinds+=(--run "$kind"); fi
+done
+while IFS= read -r suite; do test_kinds+=(--expect "$suite"); done < <(expected_suites)
+echo
+"$ROOT/scripts/test-summary.sh" --json "$SUMMARY_JSON" "${test_kinds[@]}" "$LOG_DIR/output.log" \
+  || { echo "✗ test summary"; FAILED=1; }
 
 exit "$FAILED"
