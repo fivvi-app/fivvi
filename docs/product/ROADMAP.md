@@ -21,7 +21,7 @@
 2. [Delivery principles](#2-delivery-principles)
 3. [Roadmap at a glance](#3-roadmap-at-a-glance)
 4. [Phase 0: Discovery and decisions](#4-phase-0--discovery-and-decisions-m0)
-5. [MVP delivery plan (M1–M9)](#5-mvp-delivery-plan-m1m9)
+5. [MVP delivery plan (M1–M11)](#5-mvp-delivery-plan-m1m11)
 6. [Parallel tracks and dependencies](#6-parallel-tracks-and-dependencies)
 7. [Pilot plan (M10)](#7-pilot-plan-m10)
 8. [MVP success metrics](#8-mvp-success-metrics)
@@ -53,7 +53,7 @@
 | **H3: Open it** | Self-serve SaaS for independent trainers, freelancers and multi-location gyms | 2.0 – 2.3 | After the pilot says "would not go back" |
 | **H4+: Scale it** | Smart scheduling, analytics, payments, integrations, enterprise | 3.0 – 7.0 | Themes only; scoped when their gate opens |
 
-**MVP at a glance:** 61 user-facing features (F001–F061) plus 19 engineering enablers (E001–E019), delivered in **11 milestones**, followed by a **6-week real-world pilot**. Go-live (G4) needs scheduling, booking, Open Gym and **commerce** (M11: memberships, session packs, recurring payments, invoices, payouts). The pilot starts on the **web** (laptop and phone browser); training and notes (M7), automatic location inference (F019) and the native trainer apps (M8) follow after go-live and join the running pilot. Everything runs on **free tiers** until real clients are on the platform (§12).
+**MVP at a glance:** 61 user-facing features (F001–F061) plus 19 engineering enablers (E001–E019), delivered in **11 milestones**, followed by a **6-week real-world pilot**. Go-live (G4) needs scheduling, booking, Open Gym and **commerce** (M11: memberships, recurring payments and invoices; session packs, single classes and payouts are proposed scope, [decision 11](#14-decisions)). The pilot starts on the **web** (laptop and phone browser); training and notes (M7), automatic location inference (F019) and the native trainer apps (M8) follow after go-live and join the running pilot. Everything runs on **free tiers** until real clients are on the platform (§12).
 
 ---
 
@@ -139,7 +139,7 @@ Size is relative complexity (S / M / L / XL), not a duration.
 | **M4** | Scheduling core | Owner runs the real weekly schedule: private sessions, recurring classes, substitution, attendance, cancellations with a cutoff; every calendar labels and filters by type | F013, F014, F020–F026, E012 | XL |
 | **M5** | Public booking | A client scans a link, books a class with name + email, verifies, gets a localized confirmation | F027–F033, F049, F050, E013 | L |
 | **M6** | Open Gym & sharing | Owner publishes Open Gym; clients book it; booking links and QR posters are printable | F034–F038 | M |
-| **M11** | Commerce | A client confirms a membership or session pack and pays online; recurring payments are collected; every payment gets an invoice; balances, makeups and payouts are explainable | F052–F061, E019 | XL |
+| **M11** | Commerce | A client confirms a membership (and, as proposed scope, a session pack) and pays online; recurring payments are collected; every payment gets an invoice; balances, makeups and payouts are explainable (session packs and payouts: proposed scope, [decision 11](#14-decisions)) | F052–F061, E019 | XL |
 | **M7** | Training & notes, after G4 | Trainer logs live sets with or without a template, repeats the previous workout, keeps notes. Joins the running pilot; F019 location inference comes with it | F039–F048, F051, F019 | L |
 | **M8** | Native trainer apps (iOS + Android), after G4 | A trainer's day runs from the phone: Today, calendar, clients, logging, notes, attendance, and **+** by role. The apps join the running pilot | Mobile surfaces of F006, F013, F020–F022, F025, F034, F043–F048, F051; E017 | XL (×2 platforms) |
 | **M9** | Hardening & launch readiness | Security, privacy, accessibility, NL/EN QA, import tooling (incl. agreements and balances), backups, runbooks and the payments review are all done | E014–E016 | M |
@@ -269,7 +269,7 @@ The Sentry, Brevo and PostHog accounts currently belong to the owner's personal 
 
 ---
 
-## 5. MVP delivery plan (M1–M9)
+## 5. MVP delivery plan (M1–M11)
 
 Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **key technical notes**, **pilot touchpoint** and **exit criteria**. Every milestone must also meet the Definition of Done (`WORKFLOW.md §6`), including Dutch and English on every platform it touches.
 
@@ -373,7 +373,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - **Trainer web works on a phone too.** Today, the personal calendar, the session screen and attendance work in a phone browser with touch-sized targets, and the trainer web can be added to the home screen (web app manifest). Until the native apps arrive (M8, after G4), this is how trainers use the platform on their phone.
 - **Freeze the mobile-facing API** (Today, calendars, sessions, attendance) at the end of M4. The native apps build on it in M8.
 
-**Pilot touchpoint (Gate G2: owner alpha):** The owner enters the real weekly timetable on web and runs it **in parallel** with Excel. First real feedback loop.
+**Pilot touchpoint (Gate G2: owner alpha):** The owner enters the real weekly timetable on web and runs it **in parallel** with the current apps. First real feedback loop.
 
 **Exit criteria**
 - A full real week of the pilot gym is represented correctly, including a substitution and a cancellation.
@@ -432,7 +432,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 ### M11: Commerce
 
-**Goal:** The pilot gym runs its memberships, private session packs, recurring payments and invoices in the platform, so it can cancel its old booking and payment app (`PRODUCT.md §2.8, §90–§97`).
+**Goal:** The pilot gym runs its memberships, recurring payments and invoices in the platform, so it can cancel its old booking and payment app (`PRODUCT.md §2.8, §90–§97`). Session packs, single classes and payouts are proposed scope ([decision 11](#14-decisions)).
 
 **Scope:** F052 Offers and Prices, F053 Memberships, F054 Session Packs, F055 Session Balance, F056 Cancellation Policy and Makeups, F057 Recurring Payments, F058 Single Class Purchase, F059 Invoices and Billing Details, F060 Failed Payments and Refunds, F061 Payouts and Reconciliation, E019 Payment provider integration.
 
@@ -443,7 +443,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - **Money is a ledger, not a field.** Session balances, payments, refunds and invoices are append-only histories; a balance or an amount is always the sum of its lines (`PRODUCT.md §92`). Amounts in euro cents, VAT per offer.
 - **Exactly once:** every call to the provider carries an idempotency key, webhook events are stored and processed once, and the daily cron (ADR-010) creates due payments idempotently. Tests replay duplicate and out-of-order events.
 - **Separate clocks:** a class's recurrence (ADR-012), an agreement's term and its payment schedule are separate; no code derives one from another.
-- **Capacity stays correct** with memberships: their spots count against capacity in the same transaction as bookings (R3).
+- **Capacity stays correct** with memberships: their spots count against capacity in the same transaction as bookings (R3); whether a membership holds a standing spot is open (QC01).
 - **Invoices** follow the Dutch requirements (`PRODUCT.md §96`): a gapless number series per workspace (proposal, QC10), immutable once issued, credit notes for corrections, a PDF in the client's communication language. Invoice numbering is concurrency-tested.
 - **Permissions:** the owner manages offers, prices and the provider connection (proposed, ADR-020); what admins and trainers see of payments follows QC12. Clients see only their own agreements, balances, payments and invoices. All of it is tenant-scoped and in the E011 suite.
 - **No real money before G4.** Previews and the shadow run use the provider's test mode.
@@ -463,7 +463,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 ### M7: Training and notes (after G4)
 
-**Goal:** Workouts and notes replace Excel, Word and scattered notes.
+**Goal:** Workouts and notes replace Word and scattered notes.
 
 **When:** after Gate G4 (v1.19). It joins the running pilot, like M8; the logging contract it freezes is what M8's logging screens build on. F019 Automatic Location Selection is built in the same period.
 
@@ -559,11 +559,11 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 | **2–3: Switch-over** | All scheduling, booking and payments move to the platform, client group by client group; every payout reconciled; the old app is cancelled after the first full payment cycle matches |
 | **4–6: Observe** | Weekly 30-min check-in with the owner; trainers asked every two weeks; workaround log maintained |
 | **End of 6** | **Pilot review (Gate G5):** metrics vs. baseline and targets; ranked findings; Release 1.1 scope defined from evidence |
-| **When M7 is done** | Workouts are logged in-app and notes move in; Word and Excel retired for training |
+| **When M7 is done** | Workouts are logged in-app and notes move in; Word retired for training |
 | **When M8 is done** | Trainers install the native apps via TestFlight / Play internal testing; the web keeps working, so nobody has to switch on a given day |
 
 **What we observe (§85 J 75–77):**
-- Where people still use the old app, Google Calendar, Word, Excel or notes, and why.
+- Where people still use the old app, Google Calendar, Word or notes, and why.
 - Workarounds (things people do *around* the product).
 - Support requests and developer interventions (goal: zero for normal use).
 - Funnel drop-offs in public booking.
@@ -795,7 +795,7 @@ flowchart TB
 | 3 | Stack (ADRs) | **Native iOS (Swift/SwiftUI) + native Android (Kotlin/Compose)**; the rest as recommended; API switched to REST + OpenAPI because of native |
 | 4 | Hosting and budget | **Free tiers until real clients**; upgrades at G4 (§12) |
 | 5 | Dutch copy review | **Local review** with a glossary and tone guide; an LLM may assist locally, without a GitHub review job |
-| 6 | Owner alpha on web at M4 | **Yes:** the owner runs the real timetable in parallel with Excel from Gate G2 |
+| 6 | Owner alpha on web at M4 | **Yes:** the owner runs the real timetable in parallel with the current apps from Gate G2 |
 | 8 | Pilot order | **Web-first:** the pilot goes live on the web at G4; the native trainer apps (M8) follow and join the pilot (v1.15) |
 | 7 | Repository visibility | **Public** since 2026-10-16 (was private): free Actions minutes, macOS included. The native CI jobs stay path-filtered to keep PR feedback fast (`WORKFLOW.md §7`) |
 | 11 | Commerce before go-live (19 October 2026) | **Owner decided:** memberships, recurring payments and invoices before go-live, part of G4 (M11). Session packs, single classes and payouts are in M11 as proposed scope from interview 01, to confirm when the owner approves the M11 specs. The subscription model and invoices ship together. Evidence: interview 01 |
@@ -848,4 +848,4 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-10-15 | 1.16 | **Matt Pocock's skills are the delivery flow**, as in mijn-hcs. Our own `implementer` and `reviewer` agents and the `work` skill's Refine step did what `implement`, `code-review` and `triage` already do, so they are gone: a fresh subagent runs `implement` (`tdd`, then `code-review`), refinement is `triage`, and the repo's rules for them live in `docs/agents/build.md` and `issue-tracker.md`. A `needs-info` question now holds its issue in `flow.sh` (`waiting`, then `answered`) until a reply follows the triage notes. The merge gate is unchanged. |
 | 2026-10-15 | 1.17 | **Personal language policy proposed (ADR-017).** Building the native shells (E008) showed that ADR-008's single locale order mixes two questions and ends in Dutch for people who read neither language. ADR-017 splits it into an interface language (explicit choice → stored preference → a booking link's fixed language → first supported device/browser language → English) and a communication language (recipient's preference → workspace default). `PRODUCT.md §3` and `§32` (booking links detect or fix the page language instead of using the workspace default) and the M2 and M6 key notes updated; ADR-008's other decisions stand. |
 | 2026-10-19 | 1.18 | **F001 Authentication shaped (owner).** Sign-up is closed in MVP (`PRODUCT.md §27`): an account comes from the first sign-in of an email address we've allowed (the pilot owner), an accepted invitation, or a client's first verified booking. Every other address gets the same neutral answer and no email. **There are no guests:** a client's account is created automatically at their first verified booking (§2.4, §25–§26), never by choice. F001 is web only; native code sign-in and bearer tokens move to M8 with the apps. **ADR-019 (proposed):** a sign-in email uses the stored preference, otherwise the language of the screen that asked, which the first sign-in stores. `GLOSSARY.md` adds *Sign in* and *Sign-up*, updates *Account* and *Session*, and retires *Guest*. |
-| 2026-10-19 | 1.19 | **Interview 01 with the pilot owner (owner decision: commerce before go-live).** The pilot gym runs on two apps (one books group classes, tracks memberships and collects payments), Google Calendar and Word, and invoices private training by hand; it won't switch while payments stay in the old app ([`results/interview-01.md`](../discovery/results/interview-01.md)). New milestone **M11 Commerce** before M9: offers, fixed-weekday memberships, private session packs, a session balance with history, cancellation cutoff and makeups (moved from 1.1), recurring payments (proposed: through the gym's own payment provider account, to be decided in ADR-020, which is still to come), single class purchase, invoices with billing details and credit notes, payouts (F052–F061, E019; ADR-020 to come from the opening spike). The subscription model and invoices ship together. **M7 (training and notes) and F019 (location inference) move after G4**, like M8. The identity model is clarified: one account with a team role and a client relationship side by side (`PRODUCT.md §2.9, §9`). `PRODUCT.md §53` drops billing, invoices, payments, packages and subscriptions from the exclusions; §66 (Release 4) becomes advanced commerce. Pilot plan, metrics (§8), risks R17–R21, decisions 11–15, the M0 discovery list and the §4.4 legal list updated. |
+| 2026-10-19 | 1.19 | **Interview 01 with the pilot owner (owner decision: commerce before go-live).** The pilot gym runs on two apps (one books group classes, tracks memberships and collects payments), Google Calendar and Word, and invoices private training by hand; it won't switch while payments stay in the old app ([`results/interview-01.md`](../discovery/results/interview-01.md)). New milestone **M11 Commerce** before M9: offers, fixed-weekday memberships, private session packs, a session balance with history, cancellation cutoff and makeups (moved from 1.1), recurring payments (proposed: through the gym's own payment provider account, to be decided in ADR-020, which is still to come), single class purchase, invoices with billing details and credit notes, payouts (F052–F061, E019; ADR-020 to come from the opening spike). The subscription model and invoices ship together. **M7 (training and notes) and F019 (location inference) move after G4**, like M8. The identity model is clarified: one account with a team role and a client relationship side by side (`PRODUCT.md §2.9, §9`). `PRODUCT.md §53` drops billing, invoices, payments, packages and subscriptions from the exclusions; §66 (Release 4) becomes advanced commerce. The §6 scope levers drop the exercise library baseline and add F038 QR posters and a minimal F061, and the never-cut list adds payments exactly once, correct invoices and explainable balances. Pilot plan, metrics (§8), risks R17–R21, decisions 11–15, the M0 discovery list and the §4.4 legal list updated. |

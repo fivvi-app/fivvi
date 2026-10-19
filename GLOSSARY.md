@@ -24,7 +24,7 @@ One person in the team.
 _Avoid_: member, membership (a client's agreement, see Commerce), staff, user
 
 **Role**:
-What a team member may do in a workspace: Owner, Admin or Trainer, at most one per workspace. Being a client is not a role: the same account can have a role and be a client of the same workspace, side by side. Anonymous visitors have no role.
+What a team member may do in a workspace: Owner, Admin or Trainer, at most one per workspace. Being a client is not a role, and anonymous visitors have no role.
 _Avoid_: permission level, custom role
 
 **Owner**:
@@ -44,7 +44,7 @@ A trainer who runs their own workspace.
 _Avoid_: freelancer
 
 **Client**:
-A person who trains with or books at a workspace. Belongs to the workspace, not to one trainer. A team member can also be a client; the two never merge, and a team role gives no client rights or the other way round.
+A person who trains with or books at a workspace. Belongs to the workspace, not to one trainer. A team member can also be a client (`PRODUCT.md §2.9`).
 _Avoid_: customer, member, user, athlete, guest
 
 **Participant**:

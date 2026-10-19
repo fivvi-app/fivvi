@@ -8,7 +8,7 @@
 | **Surfaces** | Trainer web (CO-01 – CO-04, CO-06); trainer iOS/Android (CO-05 attendance; CO-02/CO-03 on mobile ⚑ [QE12](../open-questions.md#qe12)) |
 | **Milestone** | M4 (web), M8 (mobile attendance) |
 | **Spec** | `PRODUCT.md §18–§20, §43, §51`; `ROADMAP.md M4 (substitution changes the trainer only; cancellations notify in the recipient's language), ADR-012` |
-| **Why critical** | Sick trainers and cancelled classes are the moments where Excel + WhatsApp hurt most. Every participant must hear about it in their own language, and bookings must survive a trainer swap (`§19`) |
+| **Why critical** | Sick trainers and cancelled classes are the moments where manual updates and WhatsApp hurt most. Every participant must hear about it in their own language, and bookings must survive a trainer swap (`§19`) |
 
 ## Features
 

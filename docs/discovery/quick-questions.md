@@ -131,7 +131,7 @@ Type the answers into `results/quick-questions.md` (numbers and short answers on
 | 10, 11, 12, 13 | Baselines A3.7, A3.5, A3.6, A3.9 |
 | 14, 15 | Phone inventory → minimum OS versions (ADR-003) |
 | 16, 17, 18 | Import scope ([`import-checklist.md` §3](import-checklist.md#3-what-to-import)) |
-| 19, 20, 21 | The three ⚑ targets ([`metric-targets.md` Part A](metric-targets.md#part-a--the-three--targets-must-be-agreed)) |
+| 19, 20, 21 | The first three ⚑ targets, A1–A3 ([`metric-targets.md` Part A](metric-targets.md#part-a--the-six--targets-must-be-agreed); the commerce targets A4–A6 are agreed in the worksheet) |
 | 22 | Pilot-review question (metric targets Part C) |
 
 With these answers, the baseline, phone and target parts of Gate G0 are covered with estimates. The prototype check (flows validated by the gym owner) still needs the gym owner to click through the prototype once ([`prototype-validation-script.md`](prototype-validation-script.md)). That session can be as short as the 6 flows × a few minutes.

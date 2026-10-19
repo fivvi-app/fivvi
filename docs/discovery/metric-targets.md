@@ -1,6 +1,6 @@
 # MVP metric targets worksheet
 
-**Purpose:** agree the MVP success targets with the gym owner (`ROADMAP.md §4.1`, `§8`). Three targets are marked ⚑ in the roadmap and **must** get a number here. The others are defaults that the gym owner confirms or adjusts. At the pilot review (Gate G5, `§7`) the pilot is judged against these targets.
+**Purpose:** agree the MVP success targets with the gym owner (`ROADMAP.md §4.1`, `§8`). Six targets are marked ⚑ in the roadmap and **must** get a number here. The others are defaults that the gym owner confirms or adjusts. At the pilot review (Gate G5, `§7`) the pilot is judged against these targets.
 
 **When:** after the [baseline](baseline-sheet.md) or the [quick questions](quick-questions.md) (questions 19–22 already cover Part A) are done, because most targets are set relative to it. Takes about 30 minutes with the gym owner.
 
@@ -14,7 +14,7 @@
 
 ---
 
-## Part A — The three ⚑ targets (must be agreed)
+## Part A — The six ⚑ targets (must be agreed)
 
 ### A1. Customers book through public pages
 
@@ -74,6 +74,60 @@
 
 *Optional:* also set a target for the other trainers (baseline A2.3): ≤ ______ h/week in total.
 
+### A4. Memberships and packs run in the platform
+
+| | |
+|---|---|
+| **Metric** | Share of the gym's active agreements (memberships, and session packs if confirmed for M11) that run in the platform; unexplained balance differences |
+| **Baseline** (M0 walkthrough, [import checklist](import-checklist.md)) | Active agreements today: ____ · where they are kept: ____________ · differences between the old app and the owner's own records last month: ____ |
+| **Roadmap default** | 100 % from pilot week 3; 0 unexplained differences |
+| **Measured in the pilot** | Active agreements in the platform ÷ active agreements the gym owner counts; session balances and next due dates compared with the old app each week, every difference explained or open |
+| **Measured when** | From pilot week 3, weekly |
+
+**Vraag:** Hoeveel van je lopende abonnementen en pakketten moeten na de overstap in Trainer Hub staan, en vanaf welke week? Wanneer mag een saldo of vervaldatum afwijken van wat je nu ziet?\
+*Question: how many of your running memberships and packs should be in Trainer Hub after the switch-over, and from which week? When may a balance or due date differ from what you see today?*
+
+| | |
+|---|---|
+| **Agreed target** | ______ % of active agreements from pilot week ____ · unexplained differences ≤ ______ |
+| **Reason / exceptions** | |
+
+### A5. Payments are collected without the old app
+
+| | |
+|---|---|
+| **Metric** | Share of due payments collected through Trainer Hub; duplicate charges |
+| **Baseline** (M0 walkthrough) | Payments collected by the old app per month: ____ · of which failed or late: ____ · double charges ever seen: ____ |
+| **Roadmap default** | 100 % by pilot week 6; 0 duplicate charges |
+| **Measured in the pilot** | Due payments collected through Trainer Hub ÷ all due payments (payment records and the provider's payout reports); duplicate charges counted in the provider's reports |
+| **Measured when** | From the switch-over (weeks 2–3) to pilot week 6 |
+
+**Vraag:** Vanaf welke week wil je dat alle betalingen via Trainer Hub lopen, zodat je de oude app kunt opzeggen? Wat mag er in de tussentijd nog via de oude app?\
+*Question: from which week do you want all payments to run through Trainer Hub, so you can cancel the old app? What may still go through the old app in the meantime?*
+
+| | |
+|---|---|
+| **Agreed target** | ______ % of due payments by pilot week ____ · duplicate charges ≤ ______ |
+| **Reason / exceptions** | |
+
+### A6. Private invoices need no manual work
+
+| | |
+|---|---|
+| **Metric** | Invoices made or edited by hand per month |
+| **Baseline** (M0 walkthrough) | Invoices made by hand per month today: ____ · minutes per invoice: ____ · of which in a company's name: ____ |
+| **Roadmap default** | 0 |
+| **Measured in the pilot** | Invoices the gym owner still makes or edits outside Trainer Hub, counted at the weekly check-in and over the month |
+| **Measured when** | From pilot week 3, per month |
+
+**Vraag:** Hoeveel facturen maak je nu per maand zelf, en hoe lang kost dat? Bij hoeveel handmatige facturen zou je zeggen: dit is opgelost?\
+*Question: how many invoices do you make yourself per month now, and how long does it take? At how many manual invoices would you say: this is solved?*
+
+| | |
+|---|---|
+| **Agreed target** | ≤ ______ invoices by hand per month |
+| **Reason / exceptions** | |
+
 ---
 
 ## Part B — Confirm or adjust the other targets
@@ -91,7 +145,7 @@ Tick **Confirm**, or write the adjusted target and the reason. Baselines come fr
 | B7 | Trainer rating "easy to see what they did last time" | ≥ 4 / 5 | ____ / 5 today (A3.7) | ☐ Confirm / ______ | The same question as the baseline (shadow-day guide 4.4 / 10.3), at the bi-weekly trainer check |
 | B8 | Developer interventions for routine operations | 0 in the final 2 weeks | n/a | ☐ Confirm | Support log in `docs/pilot/` |
 | B9 | Uptime; cross-tenant incidents; app crash-free sessions | ≥ 99.5 %; 0; ≥ 99 % | n/a | ☐ Confirm | Uptime monitor; incident log; Sentry |
-| B10 | "Would you go back to the old booking and payment app, Google Calendar, Word and Excel?" | **No** | satisfaction today ____ / 5 (A3.9) | ☐ Confirm | Question at the pilot review (see Part D) |
+| B10 | "Would you go back to the old booking and payment app, Google Calendar and Word?" | **No** | satisfaction today ____ / 5 (A3.9) | ☐ Confirm | Question at the pilot review (see Part D) |
 
 **Vraag (voor B1–B10):** Dit zijn de doelen die wij voorstellen. Is er een doel dat je te makkelijk of te moeilijk vindt, of dat voor jou niets zegt?\
 *Question (for B1–B10): these are the targets we propose. Is there one you find too easy or too hard, or that means nothing to you?*
@@ -120,8 +174,8 @@ These are agreed now so the pilot review asks exactly the same thing.
 **D1** Gebruik je naast Trainer Hub nog een ander programma, schrift of app voor notities over klanten? Zo ja, welke en waarvoor?\
 *Do you still use any other program, notebook or app for notes about clients besides Trainer Hub? If so, which one and what for?* → B6
 
-**D2** Zou je terug willen naar de oude boekings- en betaalapp, Google Agenda, Word en Excel? Waarom wel of niet?\
-*Would you want to go back to the old booking and payment app, Google Calendar, Word and Excel? Why or why not?* → B10
+**D2** Zou je terug willen naar de oude boekings- en betaalapp, Google Agenda en Word? Waarom wel of niet?\
+*Would you want to go back to the old booking and payment app, Google Calendar and Word? Why or why not?* → B10
 
 **D3** Op een schaal van 1 tot 5: hoe makkelijk is het nu om te zien wat een klant vorige keer deed?\
 *On a scale of 1 to 5: how easy is it now to see what a client did last time?* → B7

@@ -115,7 +115,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 ### Commerce
 
-Added in roadmap v1.19 (M11), before go-live. The subscription model and invoices ship together.
+Added in roadmap v1.19 (M11), before go-live. The subscription model and invoices ship together. Session packs, single classes and payouts are proposed scope ([decision 11](ROADMAP.md#14-decisions)).
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
@@ -163,7 +163,7 @@ These are not user-facing, so they don't need NL/EN columns. They still go throu
 | E016 | Backups, restore drill & runbooks | PLANNED | M9 | A verified restore, incident/rollback runbooks |
 | E017 | App distribution | PLANNED | M8 | Existing Apple company membership (owner-reported): verify access; confirm Play Console account or enroll; set up TestFlight, Play internal testing and store requirements |
 | E018 | API contract & client generation | IMPLEMENTED | M1 | `packages/api`: Hono + zod-openapi, mounted in `apps/web` under `/api`; `GET /api/v1/hello` reads `system_greetings` (#93). `packages/contract`: committed `openapi.json` (3.1) → TS (openapi-typescript + openapi-fetch), Swift (swift-openapi-generator), Kotlin (openapi-generator, retrofit2 + kotlinx.serialization); generators pinned. Drift check: `pnpm check` (Turborepo `check` task); E002 makes it a required CI check (ADR-004) |
-| E019 | Payment provider integration | PLANNED | M11 | Opening spike and ADR-020 (to come; Mollie Connect vs Stripe Connect; the gym as merchant on its own account, proposed, ADR-020); connected-account onboarding, test mode for previews, idempotent requests, stored webhook events processed once, replay tests |
+| E019 | Payment provider integration | PLANNED | M11 | Opening spike and ADR-020 (to come; Mollie Connect vs Stripe Connect; the gym as merchant on its own account, proposed); connected-account onboarding, test mode for previews, idempotent requests, stored webhook events processed once, replay tests |
 
 ---
 

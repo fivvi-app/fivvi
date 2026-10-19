@@ -9,7 +9,7 @@
 | **Milestone** | M4 (web), M8 (mobile). Location inference (F019) comes after go-live, with M7 (`ROADMAP.md` v1.19); until then the default location is preselected (M3) |
 | **Spec** | `PRODUCT.md §2.6, §7, §12–§14, §17, §51`; `ROADMAP.md M3 (inference is a pure domain function), M4, ADR-012` |
 | **Note** | The location inference described below is F019 and is **not** in the go-live build: until it lands, PS-01 and PS-04 preselect the default location (client's preferred, else the trainer's, else the workspace's; order to confirm in the F016–F018 specs) and the trainer can change it. The "ambiguous, ask" state of PS-03 arrives with F019 |
-| **Why critical** | Private sessions are the pilot PT's core business, and today they live in Google Calendar, Word and Excel (`PRODUCT.md §8`). "*Infer obvious information automatically*" (`§2.1`) is proven or broken here |
+| **Why critical** | Private sessions are the pilot PT's core business, and today they live in Google Calendar and Word (`PRODUCT.md §8`). "*Infer obvious information automatically*" (`§2.1`) is proven or broken here |
 
 ## Features
 

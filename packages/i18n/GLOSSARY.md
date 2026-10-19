@@ -323,8 +323,8 @@ Added with roadmap v1.19 (M11). The ⚠️ terms are open until the pilot owner 
 | cancellation cutoff | annuleren tot … uur van tevoren | Phrase it as a sentence, not a noun: *Je kunt tot 12 uur van tevoren gratis annuleren.* |
 | makeup | inhaalles (de, inhaallessen) | ❌ *compensatieles*, *tegoedles*. |
 | payment | betaling (de, betalingen) |  |
-| recurring payment | automatische incasso (de) | Use *incasso* for the debit itself. ❌ *afschrijving* in UI. |
-| mandate | machtiging (de, machtigingen) | Dutch banks use this word. EN: *direct debit mandate*. |
+| recurring payment | automatische incasso (de) ⚠️ | Pending QC06 (which payment methods the pilot uses; `docs/design/open-questions.md`). Use *incasso* for the debit itself. ❌ *afschrijving* in UI. |
+| mandate | machtiging (de, machtigingen) ⚠️ | Pending QC06. Dutch banks use this word. EN: *direct debit mandate* ⚠️. |
 | invoice | factuur (de, facturen) | ❌ *rekening*, *nota*. |
 | credit note | creditfactuur (de, creditfacturen) | ❌ *negatieve factuur*. |
 | billing details | factuurgegevens (de) | Fields: *bedrijfsnaam, adres, btw-nummer*. |

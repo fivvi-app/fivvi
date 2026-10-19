@@ -96,7 +96,7 @@ These give context and the denominators for the §8 percentages.
 | **N** Notities | Notities over klanten of trainingen schrijven of opzoeken · *Writing or looking up notes about clients or sessions* |
 | **A** Aanwezigheid | Bijhouden wie er was, niet verschenen opvolgen · *Tracking who attended, following up no-shows* |
 | **O** Open Gym | Vrij trainen plannen, aankondigen, aanmeldingen bijhouden · *Planning and announcing free training, tracking sign-ups* |
-| **C** Commerce | Facturen maken of aanpassen, betalingen opvolgen, abonnementen en sessiepakketten bijhouden · *Making or editing invoices, following up payments, keeping track of memberships and session packs* |
+| **C** Facturen en betalingen | Facturen maken of aanpassen, betalingen opvolgen, abonnementen en sessiepakketten bijhouden · *Making or editing invoices, following up payments, keeping track of memberships and session packs* |
 | **X** Overig | Salaris, marketing, boekhouding · *Payroll, marketing, bookkeeping* |
 
 **Minuten per dag / Minutes per day**

@@ -58,7 +58,7 @@ The platform must reduce administration compared with:
 
 - the pilot's current booking and payment app
 - Google Calendar
-- Word documents and Excel
+- Word documents
 - manually prepared invoices
 - manual booking systems
 
@@ -171,7 +171,7 @@ Open Gym is simply a bookable offering with:
 
 A gym will not run two systems side by side for long. A product that only replaces the calendar, while memberships, payments and invoices stay in the old app, is not a replacement (`docs/discovery/results/interview-01.md`).
 
-So the MVP covers the whole chain for the pilot's two standard cases, a fixed-weekday group membership and a private session pack, plus single classes:
+So the MVP covers the whole chain for the pilot's two standard cases, a fixed-weekday group membership and a private session pack, plus single classes (session packs, single classes and payouts are proposed scope, [decision 11](ROADMAP.md#14-decisions)):
 
 ```text
 agreement → booking → attendance → session balance → payment → invoice
@@ -1442,8 +1442,6 @@ TODAY
 
 Owner sees workspace-wide schedule.
 
-Every calendar (§45–§48) names each session's type in words (Private, Group, Open Gym) and can filter by type and trainer. Colour may help, but never carries meaning on its own.
-
 ---
 
 # 46. Trainer dashboard
@@ -1485,6 +1483,8 @@ Fit Studio
 Shows only sessions belonging to that workspace.
 
 This remains separate from personal trainer calendar.
+
+**Calendar types and filters (all calendars, §45–§48):** every calendar names each session's type in words (Private, Group, Open Gym) and can filter by type and trainer. Colour may help, but never carries meaning on its own.
 
 ---
 
@@ -1906,7 +1906,7 @@ Analytics UI must remain bilingual.
 
 # 66. Release 4 — Advanced commerce
 
-Memberships, private session packs, single classes, recurring payments, invoices and payouts moved into the MVP on 19 October 2026 (§2.8, §90–§97). Release 4 builds on them:
+Memberships, recurring payments and invoices moved into the MVP on 19 October 2026 (§2.8, §90–§97); session packs, single classes and payouts are proposed scope ([decision 11](ROADMAP.md#14-decisions)). Release 4 builds on them:
 
 - credits that pay for different session types, and other pricing models the pilot shows a need for
 - discounts, coupons, gift cards, family or shared memberships
@@ -2522,7 +2522,7 @@ Phases G, H and I follow after go-live (§52).
 74. move clients' payments from the old app to Trainer Hub, a small group first
 75. observe usage
 76. track workarounds
-77. track remaining use of the old apps, Google Calendar, Word and Excel
+77. track remaining use of the old apps, Google Calendar and Word
 78. define Release 1.1 from actual evidence
 
 ---
@@ -2615,7 +2615,7 @@ Strongest validation signal:
 
 # Commerce (MVP)
 
-Added on 19 October 2026 after the first interview with the pilot owner (`docs/discovery/results/interview-01.md`), who can't switch without it (§2.8). The subscription model (recurring payments) and invoices arrive **together**: every payment, recurring or one-off, gets an invoice. Questions still open are in [`open-questions.md`](../design/open-questions.md) (QC01–QC15); the feature specs settle them with the owner, and nothing here guesses them.
+Added on 19 October 2026 after the first interview with the pilot owner (`docs/discovery/results/interview-01.md`), who can't switch without it (§2.8). The subscription model (recurring payments) and invoices arrive **together**: every payment, recurring or one-off, gets an invoice. Session packs, single classes and payouts are proposed scope ([decision 11](ROADMAP.md#14-decisions)). Questions still open are in [`open-questions.md`](../design/open-questions.md) (QC01–QC15); the feature specs settle them with the owner, and nothing here guesses them.
 
 Keep these concepts separate in the model, even where the screen combines them: a class's recurrence is not a payment schedule, a payment is not an invoice, and a missed class is not a missed payment.
 
@@ -2628,7 +2628,7 @@ An **offer** is what a workspace sells. MVP has three kinds:
 | Offer | Example | Paid |
 |---|---|---|
 | **Membership** | 2 group classes a week on fixed weekdays, for 6 or 12 months | Recurring, usually monthly (§94) |
-| **Session pack** | 26 private sessions to use within 6 months (about one a week) | Up front, or in recurring instalments (§94) |
+| **Session pack** | 26 private sessions to use within 6 months (about one a week) | Up front, or in recurring instalments (§94; open, [QC08](../design/open-questions.md#qc08)) |
 | **Single class** | One group class, on its own or on top of a membership | At booking (§95) |
 
 The owner sets each offer's name (Dutch, optional English, as in §18), price in euros including VAT, VAT rate, term and, for a membership, how many classes a week and which classes it covers. A price change applies to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)).
@@ -2640,7 +2640,7 @@ The owner sets each offer's name (Dutch, optional English, as in §18), price in
 A **membership** is a client's agreement for group classes on fixed weekdays, for a term (for example Monday and Thursday, 6 months).
 
 - The owner or the client chooses the weekly classes it covers, within what the offer allows. Whether that keeps a spot in those classes for the whole term or the client books each week is open ([QC01](../design/open-questions.md#qc01)); either way, capacity is never exceeded.
-- While the membership is active and paid up, the client books the included classes without paying again.
+- While the membership is active and paid up, the client books the included classes without paying again. What happens when a payment fails is open ([QC05](../design/open-questions.md#qc05)).
 - It has a start date, an end date, and what happens at the end: it stops, or it renews under the rules of Dutch consumer law ([QC07](../design/open-questions.md#qc07)). The terms the client agreed to are stored with the agreement.
 - The client confirms it online with its first payment, which also gives the mandate for the recurring payments (§94).
 
@@ -2650,7 +2650,7 @@ A **membership** is a client's agreement for group classes on fixed weekdays, fo
 
 A **session pack** is a client's agreement for a number of private sessions within a validity period.
 
-- The owner creates it for a client; the client confirms it and pays online (§94).
+- The owner creates it for a client; the client confirms it and pays online (§94). How packs are sold and paid is open ([QC08](../design/open-questions.md#qc08)).
 - A private session (§17) can use a session from one of the client's packs. The session screen shows which pack.
 
 A **session balance** shows what a client can still use under an agreement: sessions in a pack, makeups from a membership (§93). It is never a bare counter. Each change is a line in its history: granted, used, returned, expired, with the session, the person or rule that caused it, and the time. The balance is the sum of that history, so the owner and the client can always see why it says what it says.
@@ -2676,13 +2676,13 @@ The cutoff, the makeup limit and how long a makeup stays valid are open ([QC02](
 
 # 94. Recurring payments
 
-Payments run through a **payment provider** (Mollie or Stripe, chosen in the M11 spike and ADR-020 (to come), `ROADMAP.md`). **Proposed merchant model, decided in ADR-020:** each workspace connects its own account with the provider, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Trainer Hub. The provider pays out to the gym on a schedule; the pilot wants weekly payouts.
+Payments run through a **payment provider** (Mollie or Stripe, chosen in the M11 spike and ADR-020 (to come), `ROADMAP.md`). **Proposed merchant model, to be decided in ADR-020 (to come):** each workspace connects its own account with the provider, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Trainer Hub. The provider pays out to the gym on a schedule; the pilot wants weekly payouts.
 
 - **First payment:** the client pays online (iDEAL first; proposal, [QC06](../design/open-questions.md#qc06)) when confirming a membership or pack. That payment also gives the **mandate** for later collections.
 - **Recurring payments:** on each due date Trainer Hub asks the provider to collect the next amount by SEPA Direct Debit under the mandate (proposal, [QC06](../design/open-questions.md#qc06)). The payment schedule belongs to the agreement and has nothing to do with the class times.
 - **Exactly once:** a due amount is charged once, even when a job retries or the provider sends the same event twice.
 - **Failed payment:** the client and the owner get an email, and the agreement shows the open amount. Whether the client can keep booking until it is paid is a setting of the offer (proposal, [QC05](../design/open-questions.md#qc05)), never an accident.
-- **Refund and chargeback:** the owner can refund a payment fully or in part. A refund or a reversed direct debit gets a credit note (§96), and the policy says what happens to the balance.
+- **Refund and chargeback:** the owner can refund a payment fully or in part (whether admins may refund is open, [QC12](../design/open-questions.md#qc12)). A refund or a reversed direct debit gets a credit note (§96), and the policy says what happens to the balance.
 - The trainer and client apps never take payments; clients pay on the web.
 
 ---
