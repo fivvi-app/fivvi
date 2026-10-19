@@ -6,8 +6,9 @@
 |---|---|
 | **Actors** | Owner/Admin (any trainer's sessions), Trainer (own sessions ⚑ [Q27](../open-questions.md#q27)) |
 | **Surfaces** | Trainer web (PS-01) and trainer iOS/Android (PS-04); reschedule and cancel on all three |
-| **Milestone** | M4 (web), M8 (mobile). Location inference built in M3 |
+| **Milestone** | M4 (web), M8 (mobile). Location inference (F019) comes after go-live, with M7 (`ROADMAP.md` v1.19); until then the default location is preselected (M3) |
 | **Spec** | `PRODUCT.md §2.6, §7, §12–§14, §17, §51`; `ROADMAP.md M3 (inference is a pure domain function), M4, ADR-012` |
+| **Note** | The location inference described below is F019 and is **not** in the go-live build: until it lands, PS-01 and PS-04 preselect the default location (client's preferred, else the trainer's, else the workspace's; order to confirm in the F016–F018 specs) and the trainer can change it. The "ambiguous, ask" state of PS-03 arrives with F019 |
 | **Why critical** | Private sessions are the pilot PT's core business, and today they live in Excel + calendar. "*Infer obvious information automatically*" (`§2.1`) is proven or broken here |
 
 ## Features
@@ -15,7 +16,7 @@
 | ID | Feature | Where in this flow |
 |---|---|---|
 | F020 | Private Sessions | PS-01, PS-04, PS-05, PS-06 |
-| F019 | Automatic Location Selection | PS-03 (all states) |
+| F019 | Automatic Location Selection (after go-live) | PS-03 (all states) |
 | F015 / F016 / F017 / F018 | Locations / Org default / Trainer locations / Client preferred location | Inputs to inference; *Onthouden als vaste locatie* sets F018 |
 | F023 | Trainer Assignment | Trainer field |
 | F006 | Client Profile | PS-02, including a new client inline |

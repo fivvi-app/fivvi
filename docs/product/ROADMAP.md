@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.18 |
-| **Date** | 22 September 2026 |
+| **Version** | 1.19 |
+| **Date** | 19 October 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
 | **Builders** | AI coding agents: GitHub Copilot (VS Code + CLI), Claude Code and Codex, working in parallel worktrees |
-| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7; GitHub Copilot added as a builder in v1.8; Matt Pocock's skills and GitHub issue specs in v1.9; E006 owner to-dos placed at M2, G2 and G4 in v1.10; prototype feedback on workouts, clients and app creation applied in v1.11; agents merge low-risk PRs in v1.12 (ADR-016, proposed); workout duration added to §41 and packages confirmed outside the MVP in v1.13; bilingual class name and description, exercise types and a one-list logger in v1.14; web-first pilot, native trainer apps after go-live in v1.15; personal language policy in v1.17 (ADR-017, accepted); F001 shaped in v1.18: closed sign-up, a client account at first verified booking and the sign-in communication language (ADR-019, proposed) |
+| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7; GitHub Copilot added as a builder in v1.8; Matt Pocock's skills and GitHub issue specs in v1.9; E006 owner to-dos placed at M2, G2 and G4 in v1.10; prototype feedback on workouts, clients and app creation applied in v1.11; agents merge low-risk PRs in v1.12 (ADR-016, proposed); workout duration added to §41 and packages confirmed outside the MVP in v1.13; bilingual class name and description, exercise types and a one-list logger in v1.14; web-first pilot, native trainer apps after go-live in v1.15; personal language policy in v1.17 (ADR-017, accepted); F001 shaped in v1.18: closed sign-up, a client account at first verified booking and the sign-in communication language (ADR-019, proposed); commerce before go-live in v1.19: memberships, session packs, recurring payments and invoices (M11), workouts, notes and location inference after go-live |
 | **Requirements source** | [`PRODUCT.md`](PRODUCT.md) (what we build and why) |
 | **Feature registry** | [`FEATURES.md`](FEATURES.md) (status of every feature) |
 | **Engineering workflow** | [`../engineering/WORKFLOW.md`](../engineering/WORKFLOW.md) (branches, worktrees, reviews, cleanup, Definition of Done) |
@@ -40,7 +40,7 @@
 
 **What:** A Dutch-first, fully bilingual (nl-NL + en) operating platform for personal trainers and small fitness businesses. It covers scheduling, public booking, Open Gym, client management, workouts and notes, on **web, native iOS and native Android**.
 
-**First customer:** A pilot gym owner who is also a PT and works with other trainers. Today they run on Excel, a separate calendar, notes and manual booking.
+**First customer:** A pilot gym owner who is also a PT and works with other trainers. Today they run on two apps (one books group classes, tracks memberships and collects payments), Google Calendar and Word documents, and invoice private training by hand (`docs/discovery/results/interview-01.md`). They switch only when memberships, recurring payments and invoices move too, so these are part of the MVP (v1.19).
 
 **How it is built:** AI coding agents (GitHub Copilot, Claude Code and Codex) implement the work in parallel, one branch and worktree per change. They review their changes locally before pushing; another agent may help locally when useful. The product owner approves each milestone gate. The plan is therefore **sequence- and gate-based, not date-based**: a milestone is done when its exit criteria pass, not when a calendar date arrives.
 
@@ -48,12 +48,12 @@
 
 | Horizon | Goal | Releases | When |
 |---|---|---|---|
-| **H1: Prove it** | Replace the pilot gym's Excel + calendar + manual booking | MVP, 1.1 | Now |
+| **H1: Prove it** | Replace the pilot gym's booking and payment app, Google Calendar, Word documents and hand-made invoices | MVP, 1.1 | Now |
 | **H2: Deepen it** | Native client apps and AI assistance for trainers | 1.2, 1.3, 1.4 | After the pilot proves value |
 | **H3: Open it** | Self-serve SaaS for independent trainers, freelancers and multi-location gyms | 2.0 – 2.3 | After the pilot says "would not go back" |
 | **H4+: Scale it** | Smart scheduling, analytics, payments, integrations, enterprise | 3.0 – 7.0 | Themes only; scoped when their gate opens |
 
-**MVP at a glance:** 50 user-facing features (F001–F050) plus 18 engineering enablers (E001–E018), delivered in **10 milestones**, followed by a **6-week real-world pilot**. The pilot starts on the **web** (laptop and phone browser); the native trainer apps (M8) follow after go-live. Everything runs on **free tiers** until real clients are on the platform (§12).
+**MVP at a glance:** 61 user-facing features (F001–F061) plus 19 engineering enablers (E001–E019), delivered in **11 milestones**, followed by a **6-week real-world pilot**. Go-live (G4) needs scheduling, booking, Open Gym and **commerce** (M11: memberships, session packs, recurring payments, invoices, payouts). The pilot starts on the **web** (laptop and phone browser); training and notes (M7), automatic location inference (F019) and the native trainer apps (M8) follow after go-live and join the running pilot. Everything runs on **free tiers** until real clients are on the platform (§12).
 
 ---
 
@@ -87,12 +87,16 @@ flowchart LR
   M3 --> M4[M4 Scheduling<br/>core]
   M4 --> M5[M5 Public<br/>booking]
   M5 --> M6[M6 Open Gym<br/>& sharing]
-  M4 --> M7[M7 Training<br/>& notes]
+  M5 --> M11[M11 Commerce<br/>memberships, payments, invoices]
   M6 --> M9[M9 Hardening<br/>& launch readiness]
-  M7 --> M9
+  M11 --> M9
   M9 --> M10[M10 Pilot<br/>on web]
+  M9 --> M7[M7 Training<br/>& notes]
   M9 --> M8i[M8 iOS<br/>trainer app]
   M9 --> M8a[M8 Android<br/>trainer app]
+  M7 -.-> M10
+  M7 -.-> M8i
+  M7 -.-> M8a
   M8i -.-> M10
   M8a -.-> M10
 
@@ -112,13 +116,15 @@ flowchart LR
 
 **Web-first pilot (v1.15).** Clients only ever need the web (public booking, client web). Trainers do their admin on a laptop and use the trainer web on their phone's browser, added to the home screen. So the pilot goes live on the web after M9 (Gate G4), and the native trainer apps (M8) are built after that and join the pilot when ready. M1 still builds the native shells, so the contract and string catalogs are proven on every platform early.
 
+**Commerce before go-live (v1.19).** The pilot owner won't run a second system next to the app that collects their money (`PRODUCT.md §2.8`). So M11 (commerce) is part of go-live, and M7 (training and notes) and automatic location inference (F019) move after it, like M8. Milestone numbers are labels, not order: M11 runs before M9, and M7 and M8 after it.
+
 | Track | Milestones | Typical agent split |
 |---|---|---|
-| **Backend + web** | M5 → M6, and M7 (after M4) | One agent on booking/Open Gym, one on training/notes |
+| **Backend + web** | M5 → M6 and M11 in parallel; M7 after G4 | One agent on Open Gym/sharing, one or two on commerce; training/notes after go-live |
 | **iOS** | M8 (iOS), after G4 | One agent: Swift + SwiftUI |
 | **Android** | M8 (Android), after G4 | One agent: Kotlin + Jetpack Compose |
 
-The native tracks build on the contracts frozen at the end of M4 (Today, calendar, sessions, attendance) and M7 (logging, notes).
+The native tracks build on the contracts frozen at the end of M4 (Today, calendar, sessions, attendance) and M7 (logging, notes). Their scheduling screens can start after G4; the logging and notes screens wait for the M7 freeze.
 
 ### 3.2 Milestones summary
 
@@ -129,14 +135,15 @@ Size is relative complexity (S / M / L / XL), not a duration.
 | **M0** | Discovery & decisions | Validated flows, accepted ADRs, pilot baseline measured | — | S |
 | **M1** | Engineering foundation | A "hello" runs web + iOS + Android → API → DB → email, in NL and EN, with CI | E001–E010, E018 | L |
 | **M2** | Identity & tenancy | Owner signs in, creates a workspace, sees Dutch-default UI, switches to English | F001–F010, E011 | L |
-| **M3** | Trainers & locations | Owner invites trainers; a trainer belongs to several workspaces; locations are inferred | F011, F012, F015–F019 | M |
-| **M4** | Scheduling core | Owner runs the real weekly schedule: private sessions, recurring classes, substitution, attendance | F013, F014, F020–F026, E012 | XL |
+| **M3** | Trainers & locations | Owner invites trainers; a trainer belongs to several workspaces; sessions get the default location | F011, F012, F015–F018 | M |
+| **M4** | Scheduling core | Owner runs the real weekly schedule: private sessions, recurring classes, substitution, attendance, cancellations with a cutoff; every calendar labels and filters by type | F013, F014, F020–F026, E012 | XL |
 | **M5** | Public booking | A client scans a link, books a class with name + email, verifies, gets a localized confirmation | F027–F033, F049, F050, E013 | L |
 | **M6** | Open Gym & sharing | Owner publishes Open Gym; clients book it; booking links and QR posters are printable | F034–F038 | M |
-| **M7** | Training & notes | Trainer logs live sets with or without a template, repeats the previous workout, keeps notes | F039–F048, F051 | L |
+| **M11** | Commerce | A client confirms a membership or session pack and pays online; recurring payments are collected; every payment gets an invoice; balances, makeups and payouts are explainable | F052–F061, E019 | XL |
+| **M7** | Training & notes, after G4 | Trainer logs live sets with or without a template, repeats the previous workout, keeps notes. Joins the running pilot; F019 location inference comes with it | F039–F048, F051, F019 | L |
 | **M8** | Native trainer apps (iOS + Android), after G4 | A trainer's day runs from the phone: Today, calendar, clients, logging, notes, attendance, and **+** by role. The apps join the running pilot | Mobile surfaces of F006, F013, F020–F022, F025, F034, F043–F048, F051; E017 | XL (×2 platforms) |
-| **M9** | Hardening & launch readiness | Security, privacy, accessibility, NL/EN QA, import tooling, backups, runbooks are all done | E014–E016 | M |
-| **M10** | Pilot | The pilot gym runs on the web platform for 6 weeks, joined by the native apps when M8 is done; evidence collected; Release 1.1 defined | — | 6 weeks |
+| **M9** | Hardening & launch readiness | Security, privacy, accessibility, NL/EN QA, import tooling (incl. agreements and balances), backups, runbooks and the payments review are all done | E014–E016 | M |
+| **M10** | Pilot | The pilot gym runs on the web platform for 6 weeks, payments included, joined by M7 and the native apps when they are done; the old app is cancelled once everything reconciles; Release 1.1 defined | — | 6 weeks |
 
 ### 3.3 Release roadmap
 
@@ -154,7 +161,7 @@ Size is relative complexity (S / M / L / XL), not a duration.
 | **3.0** | Smart scheduling | H4 | Enough scheduling data to justify it |
 | **3.1** | Open Gym automation | H4 | Manual Open Gym publishing is a proven, repeated chore |
 | **3.2** | Business analytics | H4 | Customers ask for reports they currently build by hand |
-| **4.0** | Payments and billing | H4 | Customers ask to take payments in-platform |
+| **4.0** | Advanced commerce (basic payments and invoices are MVP since v1.19) | H4 | Customers ask for pricing models, reminders or accounting links beyond the MVP |
 | **5.0** | Advanced AI | H4+ | 1.3/1.4 adoption proves AI value |
 | **6.0** | Integrations | H4+ | Integration demand ranked from customer requests |
 | **7.0** | Larger-business features | H4+ | Pipeline of larger gyms |
@@ -174,8 +181,11 @@ Run it with the printable kit in [`docs/discovery/`](../discovery/README.md) (sh
 - [ ] Inventory: number of trainers, clients, recurring classes, Open Gym demand, and private sessions per week.
 - [ ] Inventory **which phones the trainers use** (iOS vs Android split, OS versions). This sets the minimum OS versions (ADR-003).
 - [ ] **Measure the baseline:** hours per week spent on admin, number of tools used, booking method, no-show rate. This is what M10 success is compared against.
-- [ ] Agree on the **data to import** at go-live (clients, class schedule, future sessions, optionally workout history).
+- [ ] Agree on the **data to import** at go-live (clients, class schedule, future sessions, active agreements, session balances and due dates, optionally workout history; `import-checklist.md §3.4a`).
 - [ ] Agree on MVP metric targets with the owner (see §8).
+- [x] **Interview 01** with the gym owner: current tools, money flows and switching conditions (19 October 2026, [`results/interview-01.md`](../discovery/results/interview-01.md)). It moved commerce into the MVP (v1.19).
+- [ ] **Commerce walkthrough** with the gym owner before the M11 specs: one private invoice and one fixed-weekday membership (booking, no-show, makeup, renewal), on their screen only; the app names, the real cost of the current app and the open questions QC01–QC15 ([`open-questions.md`](../design/open-questions.md)).
+- [ ] **Interview a second gym owner** without suggesting payments as the answer (R6). It checks the pilot's priorities; it doesn't block M11.
 
 ### 4.2 UX design
 
@@ -233,6 +243,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 - [ ] Complete the remaining legal-entity details and review the agreement and public texts before signing or publishing them.
 - [ ] Confirm Railway's signed DPA before real data enters at G2; resolve its special-category-data scope before health notes at M7.
 - [ ] Sign the processor agreement with the pilot gym before real personal data enters at G2; complete the pilot gym's DPIA assessment before G4.
+- [ ] **Commerce (M11, before G4):** add the payment provider to the sub-processor list and the role mapping (the gym is the merchant, as proposed in ADR-020; for its own payment data the provider may be a separate controller); reassess the DPIA (`docs/legal/dpia-assessment.md` says no payments in the MVP) and the retention policy for invoices (statutory retention period); the membership terms (term, renewal, cancellation) checked against Dutch consumer law (ACM) and shown to the client before the first payment; the gym's terms and invoice details complete.
 
 ### 4.5 Accounts and setup (free-first)
 
@@ -311,6 +322,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - Language resolution, implemented once in `packages/i18n` and used by every platform ([ADR-017](../decisions/ADR-017-language-policy.md)): **interface language** = explicit choice → stored preference → a booking link's fixed language → first supported device/browser language → English; **communication language** = recipient's stored preference → workspace default, except for a sign-in email, which falls back to the interface language of the screen that asked ([ADR-019](../decisions/ADR-019-sign-in-communication-language.md)). The workspace default never decides the interface language. The native apps follow the in-app choice, not only the OS language.
 - **Sign-up is closed in MVP** (`PRODUCT.md §27`): an account is created only by the first sign-in of an email address we've allowed, an accepted trainer invitation, or a client's first verified booking (M5). Every other address gets the same neutral answer and no email.
 - Roles: Owner, Admin, Trainer (§50). No custom permissions. Owner + Trainer on the same person is a normal case.
+- **One account, separate relationships** (`PRODUCT.md §2.9, §9`): a team role (F003/F004) and being a client (F006) are separate records for the same account and workspace, and can exist together. Accepting an invitation adds a team role to an existing account; removing it keeps the person's client history. The F003, F004 and F006 specs include these cases, and E011 tests one person who is a trainer in workspace A, owner of B and client of A.
 - Every business table carries `organization_id`; RLS policies are active; the cross-tenant test suite runs in CI.
 - **Sign-in email contains a magic link and a 6-digit code.** Web uses either one; native apps use the code, and deep links come later. Tokens are hashed, single-use, short-lived and rate-limited, with no account enumeration. The link opens a **confirm-click page**, so email scanners (e.g. Outlook Safe Links) can't consume it.
 - **Owner setup before F001 sends real email (E006):**
@@ -329,17 +341,17 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 **Goal:** A multi-trainer gym, and trainers who work across workspaces.
 
-**Scope:** F011 Trainer Invitations, F012 Multi-Workspace Trainer, F015 Locations, F016 Organization Default Location, F017 Trainer Locations, F018 Client Preferred Location, F019 Automatic Location Selection.
+**Scope:** F011 Trainer Invitations, F012 Multi-Workspace Trainer, F015 Locations, F016 Organization Default Location, F017 Trainer Locations, F018 Client Preferred Location. F019 Automatic Location Selection moves after go-live (v1.19): until then a new session gets the default location and the trainer can change it. Proposed order: the client's preferred location, else the trainer's, else the workspace's; to confirm in the F016–F018 specs.
 
 **Key notes**
 - Invitation emails are localized: **recipient language if known → workspace default** (§49).
 - Location types: `organization_location`, `external_gym`, `client_home`, `outdoor`, `online`, `other` (§12). No floors, rooms or resources.
-- Location inference is a **pure domain function** in `packages/domain`: (workspace, trainer, client, history) → a location or "ambiguous, ask". The server computes it and returns it through the API, so native apps never re-implement it.
+- Location inference (F019, after go-live) is a **pure domain function** in `packages/domain`: (workspace, trainer, client, history) → a location or "ambiguous, ask". The server computes it and returns it through the API, so native apps never re-implement it.
 
 **Exit criteria**
 - Owner invites 2 trainers (one NL, one EN); each receives the invite in their language and joins.
 - Sarah is a trainer at John's Gym and owner of "Sarah Personal Training" at the same time.
-- Inference picks the right location in all spec scenarios (§13) and asks only when the answer is ambiguous.
+- A new session gets the default location, and the trainer can change it. (Inference across the §13 scenarios is checked when F019 lands after go-live.)
 
 ---
 
@@ -355,7 +367,9 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - **Two calendars, one data model:** the workspace calendar filters by `organization_id`; the trainer calendar filters by `trainer_id` across all the trainer's workspaces (§78). Both are permission-checked.
 - Substitution changes the occurrence's trainer only; bookings stay untouched (§19).
 - Cancelling a session or class notifies participants in *their* language.
-- Attendance statuses: Booked / Attended / Cancelled / No-show (§43).
+- Attendance statuses: Booked / Attended / Cancelled / No-show (§43). A cancellation after the offer's cutoff is a late cancellation (§93); M4 records the time and the actor of every status change, so M11 can apply the cancellation policy to balances.
+- **Calendars label and filter by type** (Private / Group / Open Gym) and by trainer, in words, never by colour alone (`PRODUCT.md §45`). Trainers see their schedule with their team access; a client account is never the way in.
+- Leave room for M11: a private session can refer to the session pack it uses, and a class booking to the membership it falls under. M4 doesn't build either.
 - **Trainer web works on a phone too.** Today, the personal calendar, the session screen and attendance work in a phone browser with touch-sized targets, and the trainer web can be added to the home screen (web app manifest). Until the native apps arrive (M8, after G4), this is how trainers use the platform on their phone.
 - **Freeze the mobile-facing API** (Today, calendars, sessions, attendance) at the end of M4. The native apps build on it in M8.
 
@@ -385,7 +399,8 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - A prominent **NL | EN** switch; the chosen language is carried through the hold, the email, the confirmation and all future emails (§3, "Client language").
 - Email set (NL + EN each): magic link, booking confirmation, cancellation, schedule change, class cancellation; trainer: new booking, cancellation (§51).
 - **There are no guests.** A client's account is created automatically at their first verified booking (§26); the booking form still only asks for name + email, never a password, and its initial stored language preference is whatever language the booking was made in. Whether a signed-in client booking again should skip the confirmation email is open ([`open-questions.md`](../design/open-questions.md)).
-- Client web (F033): upcoming/past bookings, cancellation, profile, reachable after signing in, or by the email link of a booking.
+- Client web (F033): **my schedule** with group bookings and private sessions together, labelled by type and filterable; past bookings, cancellation, profile; reachable after signing in, or by the email link of a booking. M11 adds agreements, balances, payments and invoices to it.
+- The public booking page never lists private sessions. M11 makes booking membership-aware and adds paid single classes.
 - **Buy the domain before this milestone.** Real clients need emails from an authenticated domain (SPF, DKIM, DMARC).
 - Performance budget for the public page: fast on a mid-range phone over 4G (LCP < 2.5 s).
 
@@ -415,11 +430,44 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 ---
 
-### M7: Training and notes
+### M11: Commerce
 
-**Goal:** Workouts and notes replace Excel and scattered notes.
+**Goal:** The pilot gym runs its memberships, private session packs, recurring payments and invoices in the platform, so it can cancel its old booking and payment app (`PRODUCT.md §2.8, §90–§97`).
 
-**Scope:** F039 Exercise Library, F040 Custom Exercises, F041 Workout Templates, F042 Client Workouts, F043 Live Workout Logging, F044 Previous Workout Display, F045 Workout History, F046 Client Notes, F047 Session Notes, F048 Note Visibility, F051 Repeat Previous Workout.
+**Scope:** F052 Offers and Prices, F053 Memberships, F054 Session Packs, F055 Session Balance, F056 Cancellation Policy and Makeups, F057 Recurring Payments, F058 Single Class Purchase, F059 Invoices and Billing Details, F060 Failed Payments and Refunds, F061 Payouts and Reconciliation, E019 Payment provider integration.
+
+**When:** after M5 (it needs bookings and client accounts), in parallel with M6, before M9. The subscription model and invoices ship together: no recurring payment without its invoice.
+
+**Key notes**
+- **Opening spike (E019, ADR-020):** Mollie Connect vs Stripe Connect for a Dutch gym: the gym as merchant on its own connected account, as proposed (Trainer Hub never holds client money), iDEAL first payment that creates a SEPA mandate, SEPA Direct Debit for recurring payments, weekly payouts, refunds and reversed debits, all-in fees per payment against the per-payment fee the pilot pays today (figures in the owner's private notes), onboarding (KYC) effort for the gym, test mode for previews, EU data processing and the DPA. The owner decides from the ADR before any money code is written.
+- **Money is a ledger, not a field.** Session balances, payments, refunds and invoices are append-only histories; a balance or an amount is always the sum of its lines (`PRODUCT.md §92`). Amounts in euro cents, VAT per offer.
+- **Exactly once:** every call to the provider carries an idempotency key, webhook events are stored and processed once, and the daily cron (ADR-010) creates due payments idempotently. Tests replay duplicate and out-of-order events.
+- **Separate clocks:** a class's recurrence (ADR-012), an agreement's term and its payment schedule are separate; no code derives one from another.
+- **Capacity stays correct** with memberships: their spots count against capacity in the same transaction as bookings (R3).
+- **Invoices** follow the Dutch requirements (`PRODUCT.md §96`): a gapless number series per workspace, immutable once issued, credit notes for corrections, a PDF in the client's communication language. Invoice numbering is concurrency-tested.
+- **Permissions:** the owner manages offers, prices and the provider connection; what admins and trainers see of payments follows QC12. Clients see only their own agreements, balances, payments and invoices. All of it is tenant-scoped and in the E011 suite.
+- **No real money before G4.** Previews and the shadow run use the provider's test mode.
+
+**Pilot touchpoint (shadow run):** the owner enters the pilot's real offers and a few real agreements, and compares the session balances and due dates with the old app every week. The old app keeps collecting the money; Trainer Hub's payments run in test mode.
+
+**Exit criteria**
+- A client confirms a membership on a phone, pays the first amount with iDEAL (test mode), books the included classes without paying again, and gets an invoice; the next amount is collected by direct debit (test mode) with its invoice. In Dutch and in English.
+- A session pack is used by private sessions; a timely cancellation returns the session, a no-show uses it; the history explains every step.
+- A client with a membership buys an extra class; it doesn't change the membership or any pack.
+- A duplicate webhook and a retried job leave one payment, one invoice and one balance change.
+- A failed debit and a refund show up for the owner, the client gets an email, and a credit note is issued for the refund.
+- A client invoice in a company's name is correct, and stays unchanged after the client edits their details.
+- During the shadow run, every balance and due date matches the old app, or the difference is explained.
+
+---
+
+### M7: Training and notes (after G4)
+
+**Goal:** Workouts and notes replace Excel, Word and scattered notes.
+
+**When:** after Gate G4 (v1.19). It joins the running pilot, like M8; the logging contract it freezes is what M8's logging screens build on. F019 Automatic Location Selection is built in the same period.
+
+**Scope:** F039 Exercise Library, F040 Custom Exercises, F041 Workout Templates, F042 Client Workouts, F043 Live Workout Logging, F044 Previous Workout Display, F045 Workout History, F046 Client Notes, F047 Session Notes, F048 Note Visibility, F051 Repeat Previous Workout; F019 Automatic Location Selection.
 
 **Key notes**
 - **Exercise library baseline:** curate about 150 core exercises with Dutch and English names and aliases. Check the license of any open dataset before using it. Custom exercises are stored as entered (§38).
@@ -444,7 +492,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 **Scope:** Native sign-in (6-digit code, exchanged for a **bearer token** stored in Keychain/encrypted storage, per ADR-007 — M2's request-code and verify-code routes answer the web sign-in flow; M8 adds the contract routes native needs to exchange a verified code for a bearer token and to sign out with one, #128) and screens for Today, personal calendar, clients (list, profile, quick add), session screen, workout logger, notes, attendance, the **+** menu by role (private session, client; owner/admin also group class with weekly repeat and Open Gym; §15), and the NL/EN switch (§85 I), built **in parallel**: one iOS track and one Android track. E017 App distribution.
 
-**When:** after Gate G4 (v1.15). The pilot runs on the web first; the apps join it through TestFlight and Play internal testing when they pass this milestone. The trainer web keeps working alongside them.
+**When:** after Gate G4 (v1.15). The pilot runs on the web first; the apps join it through TestFlight and Play internal testing when they pass this milestone. The trainer web keeps working alongside them. Logging and notes screens wait for the M7 contract freeze (v1.19).
 
 **Key notes**
 - **Native bearer-token spike** opens the milestone (moved here from M1, ADR-007): code sign-in → token → authenticated generated-client call, proven end to end on iOS and Android before the rest of the milestone's screens are built.
@@ -466,7 +514,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 **Goal:** Nothing about going live is left to chance.
 
-**Scope:** E014 Privacy tooling (export, deletion, retention), E015 Data import tooling, E016 Backups, restore drill and runbooks, plus the checklist below.
+**Scope:** E014 Privacy tooling (export, deletion, retention), E015 Data import tooling (now including active agreements, session balances, next due dates and billing details), E016 Backups, restore drill and runbooks, plus the checklist below.
 
 **Launch checklist** (for the web pilot; its native-app items are checked in M8, before the apps join the pilot)
 - [ ] Local security review + owner sign-off: authn/authz on every route, tenant isolation suite green, rate limits, security headers, secrets rotation, dependency audit, native secure storage for tokens (Keychain / EncryptedSharedPreferences or DataStore).
@@ -476,7 +524,10 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - [ ] Performance: public page budget met; calendar loads a busy week quickly.
 - [ ] Backups verified by an **actual restore** to a scratch Postgres service on Railway.
 - [ ] Runbooks: incident response, rollback, "a client says they didn't get the email", "wrong booking".
-- [ ] Import scripts dry-run against a copy of the pilot's real data.
+- [ ] Import scripts dry-run against a copy of the pilot's real data, including agreements, balances and due dates, with a reconciliation report against the old app.
+- [ ] **Payments ready for real money:** the provider account of the pilot gym is verified and live; ADR-020's model, fees and the DPA are reviewed; the membership terms passed the consumer-law check (§4.4); invoices checked by the gym's accountant; runbooks for "a client was charged twice", "a debit failed", "a refund" and "the provider is down".
+- [ ] **Mandates:** how each active client gives a new mandate (or how existing mandates move) is agreed and the client email is ready ([QC09](../design/open-questions.md#qc09)).
+- [ ] The old app stays available as a fallback until the first full payment cycle reconciles.
 - [ ] **Free-tier limits reviewed** and the paid upgrades triggered by G4 are ready to switch on (§12).
 - [ ] **Email capacity:** a usage alert for Brevo's 300 emails/day free limit is set up, and the paid Brevo plan is ready to switch on, so sign-in and booking emails never stop at the cap (R14).
 - [ ] Support channel with the pilot agreed (response times, how to report issues).
@@ -489,13 +540,13 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 ## 6. Parallel tracks and dependencies
 
 - **Hard sequence:** M1 → M2 → M3 → M4. Everything depends on the foundation, identity/tenancy, and the scheduling engine.
-- **After M4, the backend/web track runs** M5 → M6 and M7 in parallel. **After G4, the native tracks run:** iOS (M8) and Android (M8). Each agent works in its own worktree and branch.
+- **After M4, the backend/web track runs** M5, then M6 and M11 in parallel; M11 is the critical path to G4. **After G4,** M7 (training and notes, plus F019) and the native tracks run: iOS (M8) and Android (M8). Each agent works in its own worktree and branch.
 - **Contract freezes are the sync points:** the mobile-facing contract freezes at the end of M4 (scheduling) and at the end of M7 (logging/notes). Any later contract change comes as a versioned, additive change with regenerated clients, never a silent break.
 - **The real bottleneck is review and integration, not typing.** To keep it moving:
   - Keep PRs small (one feature or sub-feature each).
   - The author completes the local review checklist before pushing. A second agent can review locally when useful; no agent review is required on GitHub.
   - At most **3–4 open worktrees at once**, to limit merge conflicts and review load.
-- **Scope levers, in order, if a gate is at risk:** F036 (Open Gym suggestions) → a minimal version of F033 client web → the size of the exercise library baseline. **Never cut:** bilingual, tenant isolation, booking capacity correctness, iOS/Android parity, privacy basics.
+- **Scope levers, in order, if a gate is at risk:** F036 (Open Gym suggestions) → F038 QR posters (keep plain booking links) → a minimal F061 (payout list without per-line matching) → a minimal version of F033 client web. **Never cut:** bilingual, tenant isolation, booking capacity correctness, payments exactly once, correct invoices, explainable balances, iOS/Android parity, privacy basics.
 
 ---
 
@@ -503,15 +554,16 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 | Week | Activity |
 |---|---|
-| **0: Setup** | Import data (clients, timetable, future sessions); 1:1 onboarding with the owner; short onboarding per trainer (Dutch quick guide); add the trainer web to each trainer's phone home screen; create classes and Open Gym; print QR posters |
-| **1: Soft launch** | Booking page shared with a subset of clients; the owner keeps Excel as a safety net |
-| **2–3: Switch-over** | All scheduling and booking move to the platform; Excel retired for scheduling; workouts logged in-app |
+| **0: Setup** | Import data (clients, timetable, future sessions, active agreements, balances, due dates); reconcile it with the old app; 1:1 onboarding with the owner; short onboarding per trainer (Dutch quick guide); add the trainer web to each trainer's phone home screen; create classes, offers and Open Gym; print QR posters |
+| **1: Soft launch** | Booking page shared with a subset of clients; a small group of clients gives a new mandate and pays through Trainer Hub; the old app keeps everyone else |
+| **2–3: Switch-over** | All scheduling, booking and payments move to the platform, client group by client group; every payout reconciled; the old app is cancelled after the first full payment cycle matches |
 | **4–6: Observe** | Weekly 30-min check-in with the owner; trainers asked every two weeks; workaround log maintained |
 | **End of 6** | **Pilot review (Gate G5):** metrics vs. baseline and targets; ranked findings; Release 1.1 scope defined from evidence |
+| **When M7 is done** | Workouts are logged in-app and notes move in; Word and Excel retired for training |
 | **When M8 is done** | Trainers install the native apps via TestFlight / Play internal testing; the web keeps working, so nobody has to switch on a given day |
 
-**What we observe (§85 J 74–76):**
-- Where people still use Excel, a separate calendar or notes, and why.
+**What we observe (§85 J 75–77):**
+- Where people still use the old app, Google Calendar, Word, Excel or notes, and why.
 - Workarounds (things people do *around* the product).
 - Support requests and developer interventions (goal: zero for normal use).
 - Funnel drop-offs in public booking.
@@ -533,13 +585,17 @@ These turn `PRODUCT.md §87` into measurable targets. **Targets marked ⚑ are c
 | Booking is easy | Started → confirmed conversion; median time to verify | ≥ 70 %; < 5 min |
 | Dutch-only and English-only users complete everything | Missing keys; e2e suites per locale on web, iOS, Android | 0 missing; all suites green |
 | Open Gym receives bookings | Open Gym bookings per week | ⚑ agreed in M0 |
-| Workout logging replaces Excel | Private sessions with a logged workout | ≥ 80 % |
+| Workout logging replaces Excel | Private sessions with a logged workout, measured from 2 weeks after M7 joins | ≥ 80 % |
 | Notes replace scattered tools | Owner/trainers confirm no other notes tool is in use | Yes, at pilot review |
 | Previous performance is easy to access | Trainer rating "easy to see what they did last time" | ≥ 4/5 |
 | Normal usage needs no developer | Developer interventions for routine operations | 0 in the final 2 weeks |
 | Reliability and safety | Uptime; cross-tenant incidents; app crash-free sessions | ≥ 99.5 %; 0; ≥ 99 % |
 | Admin time reduced | Hours per week on admin vs. M0 baseline | ⚑ e.g. −50 % |
-| **Strongest signal** | "Would you go back to Excel + calendar + manual booking?" | **No** |
+| Memberships and packs run in the platform | Share of active agreements in the platform; unexplained balance differences | 100 % from pilot week 3 ⚑; 0 |
+| Payments are collected without the old app | Share of due payments collected through Trainer Hub; duplicate charges | 100 % by pilot week 6 ⚑; 0 |
+| Private invoices need no manual work | Invoices made or edited by hand per month | 0 ⚑ baseline from the M0 walkthrough |
+| Trainers use team access | Trainers using a client account to see their schedule | 0 |
+| **Strongest signal** | "Would you go back to your old app, Google Calendar and Word?" and the old app cancelled | **No**, and cancelled |
 
 ---
 
@@ -551,7 +607,7 @@ Near-term releases have concrete scope. Later releases are **themes**, and their
 
 #### Release 1.1: Pilot refinement
 - **Goal:** Close the gaps the pilot exposes.
-- **Candidate scope (from `PRODUCT.md §54`, re-ranked by evidence):** waitlists, cancellation cutoff, recurring private appointments, schedule exceptions, holidays, blocked time, workout duplication, warm-up sets, supersets, workout reordering, pinned notes, note search, offline resilience, bulk attendance.
+- **Candidate scope (from `PRODUCT.md §54`, re-ranked by evidence):** waitlists, recurring private appointments, schedule exceptions, holidays, blocked time, workout duplication, warm-up sets, supersets, workout reordering, pinned notes, note search, offline resilience, bulk attendance.
 - **Suggested additions (not in spec, validate in pilot):**
   - **Session reminder emails** (e.g. 24 h before): a cheap way to reduce no-shows.
   - **Read-only calendar feed (ICS)** per trainer: covers much of the Google/Apple/Outlook need well before 6.0.
@@ -578,7 +634,7 @@ Near-term releases have concrete scope. Later releases are **themes**, and their
 
 #### Release 2.0: Public SaaS onboarding
 - **Scope:** self-serve signup; "What describes you?" (Independent trainer / Trainer at a gym / Studio or gym owner, in Dutch by default); a workspace setup wizard per persona; marketing site (NL/EN); help center; support process; public App Store / Play listings for the trainer apps.
-- ⚠️ **Decision needed before 2.0:** `PRODUCT.md` puts payments at 4.0, but a public SaaS needs a way to charge *our* customers. **Platform subscription billing** (charging trainers and gyms for the product) is different from **client payments** (gyms charging their clients, 4.0). Choose: free beta / manual invoicing / pull platform billing forward into 2.0.
+- ⚠️ **Decision needed before 2.0:** a public SaaS needs a way to charge *our* customers. **Platform subscription billing** (charging trainers and gyms for the product) is different from **client payments** (gyms charging their clients, MVP since v1.19). Choose: free beta / manual invoicing / pull platform billing forward into 2.0.
 
 #### Release 2.1: Freelance trainers
 - **Scope:** independent workspace polish, multiple external gyms, client default location, navigation links (open Apple Maps / Google Maps), combined schedule of org + independent clients, gym access info (§60, no billing).
@@ -597,7 +653,7 @@ Near-term releases have concrete scope. Later releases are **themes**, and their
 | **3.0** Smart scheduling | Travel warnings, client clustering, location optimization, buffer suggestions | Builds on 2.2 conflict detection and location data |
 | **3.1** Open Gym automation | Rules for capacity, days, time ranges, advance publication, trainer on-site | Automates the F036 suggestion from MVP |
 | **3.2** Business analytics | Sessions, occupancy, Open Gym usage, cancellations, no-shows, busy periods, trainer workload, retention | Bilingual UI; the event data must already be captured from MVP (see §10) |
-| **4.0** Payments & billing | Packages, credits, subscriptions, memberships, payments, invoices, recurring payments, reminders, accounting | **NL priorities:** iDEAL via a Dutch-friendly PSP (e.g. Mollie or Stripe); accounting links such as Moneybird, e-Boekhouden, Exact Online; validate with customers first. Check App Store rules on in-app purchases before adding payments to native apps |
+| **4.0** Advanced commerce | Credits across session types and other pricing models, discounts and gift cards, reminders and dunning, POS/kiosk, accounting, revenue reports (`PRODUCT.md §66`) | Builds on the MVP's provider integration (ADR-020). Accounting links such as Moneybird, e-Boekhouden, Exact Online; validate with customers first. Check App Store rules on in-app purchases before adding payments to native apps |
 | **5.0** Advanced AI | Note summaries, progression insights, training suggestions, schedule assistance | Trainer keeps final control; NL + EN |
 | **6.0** Integrations | Two-way Google/Apple/Outlook calendar sync, accounting, payments, **Apple HealthKit, Android Health Connect**, wearables, exercise media | Native apps make HealthKit and Health Connect straightforward; rank by customer requests |
 | **7.0** Larger business | Advanced permissions, reception role, branding, custom domain, staff analytics, commissions, enterprise controls, white-label | The role model from M2 must allow new roles without migration pain |
@@ -692,6 +748,7 @@ flowchart TB
 | iOS distribution | Existing Apple Developer Program company membership (owner-reported); verify access in E017 | Membership and team access must be active for TestFlight | **M8 (after G4):** use the existing company membership; renew if required |
 | Android distribution | Debug builds / APK to own devices; Play Console account unconfirmed | — | **M8 (after G4):** confirm access or enroll if needed |
 | Push notifications (1.2) | APNs + FCM | Free | — |
+| Payments (M11) | The payment provider's test mode; no monthly fee expected (verify in the ADR-020 spike) | Per-payment fees (proposed: paid by the gym as merchant on its own account, ADR-020) | **G4:** the pilot gym's account goes live; fees compared with the per-payment fee it pays today |
 
 **Expected new spend until pilot go-live:** a domain (~€10–15/year), plus Google Play Console enrollment at M8 only if the owner's account does not already exist. The Apple company membership and Railway Hobby plan are already paid by the owner; Apple renewal or additional membership cost depends on the account check in E017. **From G4:** Railway Pro, $20/month.
 
@@ -706,16 +763,21 @@ flowchart TB
 | R3 | **Overbooking via race conditions** | M | H | Transactional capacity checks; concurrency tests | M5 |
 | R4 | **Cross-tenant data leak** | L | Critical | Org-scoped data layer + RLS + CI isolation suite | M2 onward |
 | R5 | **Hold spam blocks classes** | L | M | Rate limits; hold caps per email; Turnstile | M5 |
-| R6 | **Single pilot = single point of failure and bias** | M | H | Recruit 1–2 "friendly" extra trainers/gyms during the pilot to sanity-check findings before 2.0 | M10 |
+| R6 | **Single pilot = single point of failure and bias** | M | H | Interview a second gym owner in M0 (v1.19); recruit 1–2 "friendly" extra trainers/gyms during the pilot to sanity-check findings before 2.0 | M0, M10 |
 | R7 | **Scope creep** from pilot requests during the build | H | M | Requests go to a 1.1 backlog unless they block a success criterion; roadmap changelog | All |
 | R8 | **AI-agent drift:** inconsistent patterns, duplicated logic, or plausible-but-wrong code across Copilot, Claude and Codex | M | H | One shared `AGENTS.md` + area rules + ADRs; edit guard hook (no edits on `main` or of generated files); deterministic CI; small PRs; local review checklist; optional local second-agent review; owner approval at every gate; business logic only in `packages/domain` | All |
 | R9 | **Native doubles the UI work; iOS and Android drift apart** | H | M | Generated API clients, strings and tokens; parity checklist; shared Maestro flows; parallel tracks | M8, 1.2 |
 | R10 | **LLM Dutch reads unnatural or inconsistent** and hurts trust | M | M | Glossary + tone guide; local copy review before pushing string changes; the pilot owner flags oddities; fix quickly | All |
 | R11 | **Health data in notes (GDPR special category)** | M | H | Trainer-only default; access audit log; DPIA assessment; EU residency; processor agreement | M0, M7, M9 |
 | R12 | **Weak gym connectivity** breaks live logging | M | M | Offline-tolerant logging API; the web logger keeps unsent sets on the device (M7), the native apps queue locally (M8); full offline in 1.1 | M7, M8 |
-| R13 | **Pilot data import is messier than expected** | H | M | M0: the gym owner describes the Excel structure (no files); go-live data entered by hand or imported from a template the gym owner fills in; import dry-runs in M9 | M0, M9 |
+| R13 | **Pilot data import is messier than expected**, now with agreements and balances from the old app | H | M | M0: the gym owner describes the old app's data and the Excel structure (no files); go-live data entered by hand or imported from a template the gym owner fills in; import dry-runs in M9 | M0, M9 |
 | R14 | **A free-tier limit bites at the worst moment** (email cap blocks magic links; DB cold starts slow booking; CI minutes run out) | M | H | Know the limits (§12); usage alerts; upgrade path ready before G4 | M1, M9, M10 |
 | R15 | **No over-the-air updates for native apps**, so pilot fixes are slower | M | M | Keep business rules server-side; TestFlight/internal builds are fast to ship; feature flags from the API for risky features | M8, M10 |
+| R17 | **Payments or balances go wrong** (double charge, lost debit, wrong session used) and the gym loses money or trust | M | H | Ledgers, idempotency keys, stored webhook events, replay tests, reconciliation per payout (M11); old app as fallback until a full cycle matches (M9) | M11, M10 |
+| R18 | **Membership terms break Dutch consumer law** (term, tacit renewal, cancellation) | M | H | Terms checked before G4 (§4.4); terms stored with each agreement; renewal rules configurable, not hard-coded | M11, M9 |
+| R19 | **Client money or regulation lands on Trainer Hub** | L | H | Proposed: the gym is the merchant on its own provider account and Trainer Hub never holds funds; decided in ADR-020 | M11 |
+| R20 | **Moving mandates and balances from the old app** fails or annoys clients | H | M | Walkthrough in M0; import with reconciliation report; new mandates group by group; clear client email (QC09) | M0, M9, M10 |
+| R21 | **Commerce scope creep** delays go-live | H | M | Only memberships, session packs and single classes (`PRODUCT.md §2.8, §53`); everything else goes to 4.0 | M11 |
 | R16 | **A phone browser feels less like an app** than the native apps, so trainers keep their old notes or Excel during the pilot | M | M | Phone-friendly trainer web with touch targets and a home-screen icon (M4, M7); watch the workaround log in weeks 1–3; the native apps follow after G4 | M4, M7, M10 |
 
 *L = likelihood, I = impact (L/M/H).*
@@ -736,6 +798,9 @@ flowchart TB
 | 6 | Owner alpha on web at M4 | **Yes:** the owner runs the real timetable in parallel with Excel from Gate G2 |
 | 8 | Pilot order | **Web-first:** the pilot goes live on the web at G4; the native trainer apps (M8) follow and join the pilot (v1.15) |
 | 7 | Repository visibility | **Public** since 2026-10-16 (was private): free Actions minutes, macOS included. The native CI jobs stay path-filtered to keep PR feedback fast (`WORKFLOW.md §7`) |
+| 11 | Commerce before go-live (19 October 2026) | **Yes:** memberships, session packs, single classes, recurring payments and invoices are MVP and part of G4 (M11). The subscription model and invoices ship together. Evidence: interview 01 |
+| 12 | Payments first slice | **Recurring payments (subscription model) with invoices**. Proposed: through the gym's own payment provider account (the merchant model, and the provider, are decided in ADR-020) |
+| 13 | Go-live without training and notes | **Yes:** M7 and F019 (location inference) follow after G4 and join the running pilot |
 
 ### Decided iteratively (at their entry gate, from evidence)
 
@@ -746,6 +811,8 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 8 | Platform billing model (free beta / manual invoicing / billing in 2.0) | 2.0 entry gate |
 | 9 | AI provider(s) and data terms | 1.3 entry gate |
 | 10 | Client apps: separate apps or a role mode inside the trainer apps | 1.2 entry gate |
+| 14 | Payment provider (Mollie or Stripe) and merchant model (ADR-020) | M11 opening spike |
+| 15 | Membership seats, cutoff, makeups and failed-payment access (QC01–QC15) | M11 specs, after the M0 commerce walkthrough |
 
 ---
 
@@ -781,3 +848,4 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-10-15 | 1.16 | **Matt Pocock's skills are the delivery flow**, as in mijn-hcs. Our own `implementer` and `reviewer` agents and the `work` skill's Refine step did what `implement`, `code-review` and `triage` already do, so they are gone: a fresh subagent runs `implement` (`tdd`, then `code-review`), refinement is `triage`, and the repo's rules for them live in `docs/agents/build.md` and `issue-tracker.md`. A `needs-info` question now holds its issue in `flow.sh` (`waiting`, then `answered`) until a reply follows the triage notes. The merge gate is unchanged. |
 | 2026-10-15 | 1.17 | **Personal language policy proposed (ADR-017).** Building the native shells (E008) showed that ADR-008's single locale order mixes two questions and ends in Dutch for people who read neither language. ADR-017 splits it into an interface language (explicit choice → stored preference → a booking link's fixed language → first supported device/browser language → English) and a communication language (recipient's preference → workspace default). `PRODUCT.md §3` and `§32` (booking links detect or fix the page language instead of using the workspace default) and the M2 and M6 key notes updated; ADR-008's other decisions stand. |
 | 2026-10-19 | 1.18 | **F001 Authentication shaped (owner).** Sign-up is closed in MVP (`PRODUCT.md §27`): an account comes from the first sign-in of an email address we've allowed (the pilot owner), an accepted invitation, or a client's first verified booking. Every other address gets the same neutral answer and no email. **There are no guests:** a client's account is created automatically at their first verified booking (§2.4, §25–§26), never by choice. F001 is web only; native code sign-in and bearer tokens move to M8 with the apps. **ADR-019 (proposed):** a sign-in email uses the stored preference, otherwise the language of the screen that asked, which the first sign-in stores. `GLOSSARY.md` adds *Sign in* and *Sign-up*, updates *Account* and *Session*, and retires *Guest*. |
+| 2026-10-19 | 1.19 | **Interview 01 with the pilot owner (owner decision: commerce before go-live).** The pilot gym runs on two apps (one books group classes, tracks memberships and collects payments), Google Calendar and Word, and invoices private training by hand; it won't switch while payments stay in the old app ([`results/interview-01.md`](../discovery/results/interview-01.md)). New milestone **M11 Commerce** before M9: offers, fixed-weekday memberships, private session packs, a session balance with history, cancellation cutoff and makeups (moved from 1.1), recurring payments (proposed: through the gym's own payment provider account, decided in ADR-020), single class purchase, invoices with billing details and credit notes, payouts (F052–F061, E019; ADR-020 to come from the opening spike). The subscription model and invoices ship together. **M7 (training and notes) and F019 (location inference) move after G4**, like M8. The identity model is clarified: one account with a team role and a client relationship side by side (`PRODUCT.md §2.9, §9`). `PRODUCT.md §53` drops billing, invoices, payments, packages and subscriptions from the exclusions; §66 (Release 4) becomes advanced commerce. Pilot plan, metrics (§8), risks R17–R21, decisions 11–15, the M0 discovery list and the §4.4 legal list updated. |

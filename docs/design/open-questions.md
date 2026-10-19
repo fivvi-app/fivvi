@@ -31,7 +31,7 @@ How far ahead do clients expect to browse available lessons? **Proposal:** 14 da
 When should a class stop accepting bookings? **Proposal:** at its start time (PB-01/03).
 
 ### Q09
-When may a client cancel a booking, and must that differ for Open Gym? **Proposal:** until the start time. A cancellation cutoff is listed for release 1.1, so any MVP cutoff changes roadmap scope (CW-03).
+When may a client cancel a booking, and must that differ for Open Gym? **Proposal:** until the start time. A cancellation cutoff per offer is now MVP with commerce (see QC02, `PRODUCT.md §93`); Open Gym may use a different cutoff or none (CW-03).
 
 ### Q10
 How long should a pending email confirmation hold a place? **Proposal:** 15 minutes, ending earlier if the class starts (PB-04).
@@ -70,7 +70,7 @@ Which calendar view and visible hours match the pilot's timetable? **Proposal:**
 Is a month view or printable week needed for MVP? **Proposal:** print the week; no month grid until validated (WC-02).
 
 ### Q22
-Should calendar colour primarily identify session type or trainer? **Proposal:** type; text labels remain visible (WC-02).
+Should calendar colour primarily identify session type or trainer? **Proposal:** type; text labels remain visible (WC-02). **Interview 01 (19 October 2026):** the pilot uses colour today to tell private sessions from classes, and not everyone understands it. Every calendar names the type in words and filters by type and trainer (`PRODUCT.md §45`); colour only supports that.
 
 ### Q23
 Will the owner move sessions by dragging them, or is a form enough? **Proposal:** both paths lead to the same confirmation (WC-07, PS-05).
@@ -177,3 +177,52 @@ The trainer apps can now create group classes (one-off or weekly) and Open Gym f
 
 ### QE17
 Decide whether verifying a booking (PB-05/PB-06) signs the client in, so *Naar mijn boekingen* can go straight to CW-02, or whether it still needs a separate CW-01 sign-in. Nobody has decided this; it sits next to QE06 (PB-06, CW-01/02).
+
+## Commerce (interview 01 follow-up)
+
+Commerce moved into the MVP after interview 01 with the pilot owner (19 October 2026, [`results/interview-01.md`](../discovery/results/interview-01.md), `ROADMAP.md` v1.19). These questions block the M11 specs; ask them in the commerce walkthrough (`ROADMAP.md §4.1`) and record the answers here. Never ask for or record real client names, bank details or invoices.
+
+### QC01
+Does a fixed-weekday membership keep a spot in the chosen classes for its whole term, or does the client book each week within what the membership allows? **Proposal:** a standing spot in the chosen weekly classes, counted against capacity; the client cancels single occurrences (`PRODUCT.md §91`).
+
+### QC02
+What is the cancellation cutoff (12 or 24 hours mentioned), and is it the same for every offer and for private sessions? **Proposal:** one cutoff per offer, default 24 hours for private sessions and 12 for classes (`§93`).
+
+### QC03
+How many makeups does a membership allow, how long do they stay valid, and can a makeup be used in any class or only the same type? **Proposal:** a limit per term set on the offer; valid until the end of the term; any class the membership could include (`§93`).
+
+### QC04
+What happens on illness, holidays, a gym closure or a trainer's absence: makeup, pause, or nothing? Is a pause (freeze) needed for go-live? **Proposal:** the workspace's own cancellation gives a makeup outside the limit; no freeze in MVP unless the pilot uses one today.
+
+### QC05
+When a recurring payment fails, can the client keep booking, and for how long? Who follows it up? **Proposal:** a setting per offer, default "keep booking for 14 days"; the owner gets an email and sees the open amount (`§94`).
+
+### QC06
+Which payment methods do the clients use today for the first payment and the recurring ones (iDEAL, SEPA Direct Debit, card)? On which day of the month is a membership collected? **Proposal:** iDEAL for the first payment, SEPA Direct Debit monthly on the agreement's start day.
+
+### QC07
+What are the membership terms today: minimum term, tacit renewal, notice period, early ending? They must fit Dutch consumer law (ACM) before G4. **Proposal:** fixed term, then monthly with one month's notice, reviewed in the §4.4 legal check.
+
+### QC08
+How are private sessions sold today: a number of sessions with a validity, or a weekly rhythm for a term, and paid up front or monthly? What happens to unused sessions at the end? **Proposal:** a number of sessions with a validity, paid up front or in monthly instalments; unused sessions expire, visible in the history (`§92`).
+
+### QC09
+Can the existing direct-debit mandates move from the current app to the gym's new payment provider account, or does every client give a new one? **Proposal:** a new mandate through a first payment link, sent client group by client group during the switch-over (`ROADMAP.md §7`).
+
+### QC10
+What must the invoices show: company names, VAT number, the gym's KvK and VAT number, a VAT rate per service, and is the private training sold by the same legal entity as the group classes? **Proposal:** one seller per workspace; billing details per client (`§96`); the gym's accountant checks a sample before G4.
+
+### QC11
+What is the "kiosk" or pay-at-the-desk option in the current app, and is it used? **Proposal:** not in MVP (`PRODUCT.md §53`) unless the pilot uses it weekly.
+
+### QC12
+Which commerce actions may an admin take (agreements, refunds, prices, payouts), and may a trainer see the session balance of the clients they train? **Proposal:** admins manage agreements and see payments; only the owner changes prices, refunds and the provider connection; trainers see the balance of their own clients, not amounts.
+
+### QC13
+What does the pilot pay today: the subscription (per month or per year, VAT included?) and the fee per payment, and is there a separate provider fee? (The figures stay in the owner's private notes, not in the repository.) What does a weekly payout need to show? **Proposal:** record the answers here, like the other questions; compare in the ADR-020 spike.
+
+### QC14
+Which data can the pilot export from the current app (clients, memberships, remaining sessions, next due dates), who does it, and how long does it take? **Proposal:** an export the gym owner makes, mapped to the E015 import template (`docs/discovery/import-checklist.md`).
+
+### QC15
+When the owner changes an offer's price or cancellation policy, does it also change agreements that already run? **Proposal:** a price change applies to new agreements only, and an agreement keeps the cancellation policy it started with (`PRODUCT.md §90`, `§93`).

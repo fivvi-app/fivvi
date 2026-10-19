@@ -22,10 +22,14 @@ The first version must solve the real workflow of the pilot gym:
 - public class booking
 - Open Gym booking
 - client management
+- memberships and private session packs, with a session balance the owner and the client can trust
+- recurring payments and invoices (§90–§97)
 - workout/program management
 - live workout logging
 - trainer notes
 - scheduling
+
+The pilot gym can only switch when the platform also takes over what its current booking and payment app does: memberships, recurring payments and invoices (§8, §2.8). Workout logging and notes follow right after go-live (§52).
 
 The same architecture must later support:
 
@@ -52,9 +56,10 @@ Therefore the entire product must be:
 
 The platform must reduce administration compared with:
 
-- Excel
-- Calendar
-- Notes
+- the pilot's current booking and payment app
+- Google Calendar
+- Word documents and Excel
+- manually prepared invoices
 - manual booking systems
 
 Avoid unnecessary configuration.
@@ -159,6 +164,28 @@ Open Gym is simply a bookable offering with:
 - end
 - location
 - capacity
+
+---
+
+## 2.8 The pilot must be able to switch
+
+A gym will not run two systems side by side for long. A product that only replaces the calendar, while memberships, payments and invoices stay in the old app, is not a replacement (`docs/discovery/results/interview-01.md`).
+
+So the MVP covers the whole chain for the pilot's two standard cases, a fixed-weekday group membership and a private session pack, plus single classes:
+
+```text
+agreement → booking → attendance → session balance → payment → invoice
+```
+
+Keep it to those cases. Every other pricing model waits for evidence (§53, §66).
+
+---
+
+## 2.9 One account, separate relationships
+
+A person has one account (§27). In each workspace that account can have a **team role** (Owner, Admin or Trainer) and, separately, be a **client**. The two exist side by side and never merge (§9).
+
+Trainers never need a client account to see their schedule.
 
 ---
 
@@ -408,17 +435,41 @@ The pilot PT:
 - runs some group classes
 - has other trainers working there
 - other trainers run additional group classes
-- uses Excel/calendar manually
 - tracks workouts and notes manually
 - wants Open Gym availability
+
+Today the gym runs on two apps, Google Calendar and Word documents (interview of 19 October 2026, `docs/discovery/results/interview-01.md`):
+
+- one app lets group clients book classes, keeps track of their memberships and collects their payments automatically
+- private training is managed by hand: the owner prepares and sends invoices for it, some in a company's name, and tracks how many prepaid sessions a client has left
+- group clients often commit for 6 or 12 months to fixed weekdays (for example Monday and Thursday); a missed class is normally lost, and a cancellation made in time may give a limited makeup
+- clients with a membership can buy an extra class on top of it
+- trainers have to use client access to see their schedule, and private sessions and group classes are mixed in one calendar, told apart only by colour
+
+The owner would switch, and even pay more, if the whole workflow works and is simpler. They won't move to a product that leaves payments in the old app.
 
 Therefore:
 
 > Multi-trainer organization support is an MVP requirement.
 
+> Memberships, private session packs, recurring payments and invoices are MVP requirements (§2.8).
+
 ---
 
 # 9. User roles
+
+Owner, Admin and Trainer are **team roles**: a person has at most one per workspace. **Client** is not a team role; it is a separate relationship with a workspace, and the same account can have both (§2.9):
+
+| Situation | What happens |
+|---|---|
+| The owner also teaches | One account; the owner runs sessions and classes like a trainer |
+| A trainer works at two gyms | One account; rights are checked per workspace |
+| Trainer in workspace A, owner of workspace B | Each workspace's data stays separate |
+| A client becomes a trainer | Accepting the invitation adds the team role to the existing account; the client's bookings and agreements stay |
+| A team member buys classes | Their own bookings appear under their client view; their team role shows them nothing more about other clients than it already did |
+| A team role is removed | Only the team rights go; the person's own bookings, agreements and invoices as a client stay |
+
+Hiding a screen is never the permission: every API call checks the workspace, the relationship and the role.
 
 ## Owner
 
@@ -432,6 +483,9 @@ Can:
 - manage Open Gym
 - assign trainers
 - manage booking links
+- manage offers, prices and the cancellation policy (§90, §93)
+- manage agreements, payments and invoices (§91–§96)
+- connect the workspace's payment provider account (§94)
 - manage settings
 
 The pilot PT is:
@@ -454,7 +508,7 @@ Can manage:
 - clients
 - trainers
 
-without full ownership permissions.
+without full ownership permissions. Which commerce actions an admin may take is open ([QC12](../design/open-questions.md#qc12)).
 
 ---
 
@@ -462,7 +516,7 @@ without full ownership permissions.
 
 Can:
 
-- view own schedule
+- view own schedule, with their own team access (never through a client account)
 - manage relevant sessions
 - run assigned classes
 - access relevant clients
@@ -479,7 +533,12 @@ Can:
 - book group classes
 - book Open Gym
 - verify email (creates the account automatically)
-- later use client web/mobile
+- see their own schedule: group bookings and private sessions together, clearly labelled (§15, Client Web)
+- see their memberships, session packs and session balance (§91–§92)
+- buy a single class (§95)
+- pay, and see their payments and invoices (§94, §96)
+- keep their billing details, including a company name (§96)
+- use client web; client apps come later (§55)
 
 ---
 
@@ -610,6 +669,7 @@ Primary administrative interface. The daily operational screens (Today, personal
 - workouts
 - booking links
 - QR codes
+- offers, agreements, payments and invoices (§90–§97)
 - settings
 
 Available in:
@@ -660,6 +720,9 @@ Supports:
 - Open Gym
 - booking
 - magic-link verification
+- paying for a single class (§95)
+
+It never lists private sessions. A client with a membership books the classes it includes without paying again (§91).
 
 Must have a prominent:
 
@@ -675,10 +738,14 @@ switch.
 
 Initially:
 
-- upcoming bookings
+- **my schedule**: upcoming group bookings and private sessions in one list, each labelled with its type, trainer and location, and filterable by type
 - past bookings
-- cancellation
-- profile
+- cancellation, with its effect on the session balance shown before confirming (§93)
+- memberships, session packs and the session balance with its history (§91–§92)
+- payments and invoices (§94, §96)
+- profile, including billing details (§96)
+
+A client who books group classes only sees no private sessions; a client with both sees both, never another client's.
 
 Dutch + English.
 
@@ -1112,8 +1179,14 @@ Later:
 
 ```text
 Progress
-Payments
-Memberships
+```
+
+In MVP the profile also shows (§90–§97):
+
+```text
+Agreements (memberships and session packs, with the session balance)
+Payments and invoices
+Billing details
 ```
 
 ---
@@ -1318,6 +1391,8 @@ Geannuleerd
 Niet verschenen
 ```
 
+A cancellation after the cutoff counts as a late cancellation (§93). What an attendance status does to a session balance follows the agreement's cancellation policy, never a separate count (§92, §93).
+
 ---
 
 # 44. Trainer web navigation
@@ -1366,6 +1441,8 @@ TODAY
 ```
 
 Owner sees workspace-wide schedule.
+
+Every calendar (§45–§48) names each session's type in words (Private, Group, Open Gym) and can filter by type and trainer. Colour may help, but never carries meaning on its own.
 
 ---
 
@@ -1420,6 +1497,8 @@ Invitation email must be bilingual/localized according to:
 1. selected recipient language if known
 2. otherwise workspace default
 
+If the email address already has an account (for example a client of the gym), accepting the invitation adds the team role to that account. It never creates a second account (§9).
+
 ---
 
 # 50. MVP roles
@@ -1432,6 +1511,8 @@ Trainer
 
 Do not build custom permissions yet.
 
+These are team roles. Being a client is a separate relationship, not a fourth role (§9).
+
 ---
 
 # 51. Notifications
@@ -1443,12 +1524,19 @@ MVP client emails:
 - cancellation
 - schedule change
 - class cancellation
-- trainer-shared workout recap and optional client message
+- trainer-shared workout recap and optional client message (after go-live, with workouts)
+- agreement confirmation with its terms, and the link for the first payment (§91, §94)
+- invoice, with the invoice attached (§96)
+- failed payment (§94)
 
 Trainer emails:
 
 - new booking
 - cancellation
+
+Owner emails:
+
+- failed payment (§94)
 
 All templates require:
 
@@ -1462,6 +1550,8 @@ versions.
 ---
 
 # 52. MVP scope
+
+Everything below up to **Platforms** is needed for the pilot's go-live (`ROADMAP.md` Gate G4). The items under **After go-live** are still MVP, but they join the running pilot, just like the native trainer apps.
 
 ## Foundation
 
@@ -1500,7 +1590,6 @@ versions.
 - organization location
 - external location
 - client preferred location
-- automatic inference
 
 ## Booking
 
@@ -1518,7 +1607,33 @@ versions.
 - booking links
 - QR codes
 
-## Training
+## Commerce
+
+- offers and prices (§90)
+- memberships on fixed weekdays (§91)
+- private session packs (§92)
+- session balance with its history (§92)
+- cancellation cutoff, no-shows and limited makeups (§93)
+- recurring payments through the workspace's payment provider account (§94)
+- single class purchase (§95)
+- invoices with billing details and credit notes (§96)
+- payouts and reconciliation (§97)
+
+## Platforms
+
+- trainer web
+- responsive public booking web
+- basic client web
+
+## After go-live (joins the running pilot)
+
+These follow right after go-live, in this order of need. The trainer web keeps working the whole time.
+
+### Locations
+
+- automatic location inference (§2.6, §13); until then the default location is preselected and the trainer can change it
+
+### Training
 
 - exercise library
 - custom exercises
@@ -1530,19 +1645,16 @@ versions.
 - previous performance
 - history
 
-## Notes
+### Notes
 
 - client notes
 - session notes
 - note visibility
 
-## Platforms
+### Platforms
 
-- trainer web
 - trainer iOS
 - trainer Android
-- responsive public booking web
-- basic client web
 
 ---
 
@@ -1550,11 +1662,13 @@ versions.
 
 Do not build yet:
 
-- billing
-- invoices
-- payments
-- packages
-- subscriptions
+- pricing models beyond memberships, private session packs and single classes (for example credits that pay for different session types, or pay-what-you-use)
+- discounts, coupons, gift cards, family or shared memberships
+- accounting integrations (Moneybird, e-Boekhouden, Exact Online)
+- point-of-sale or kiosk payments at the desk, until the pilot's current use is known ([QC11](../design/open-questions.md#qc11))
+- payments inside the native apps (clients pay on the web)
+- Trainer Hub holding client money in its own account (proposed in §94, decided in ADR-020)
+- platform billing: charging gyms and trainers for Trainer Hub (§58)
 - phone number requirement
 - SMS
 - complex permission system
@@ -1582,7 +1696,6 @@ Do not build yet:
 Based on actual usage:
 
 - waitlists
-- cancellation cutoff
 - recurring private appointments
 - schedule exceptions
 - holidays
@@ -1596,7 +1709,7 @@ Based on actual usage:
 - offline resilience
 - bulk attendance
 
-Previous-session duplication moved to the MVP (§41) on 23 September 2026, after prototype feedback.
+Previous-session duplication moved to the MVP (§41) on 23 September 2026, after prototype feedback. The cancellation cutoff moved to the MVP (§93) on 19 October 2026, because memberships and session packs depend on it.
 
 All additions must work in Dutch and English.
 
@@ -1791,19 +1904,16 @@ Analytics UI must remain bilingual.
 
 ---
 
-# 66. Release 4 — Commercial features
+# 66. Release 4 — Advanced commerce
 
-Add:
+Memberships, private session packs, single classes, recurring payments, invoices and payouts moved into the MVP on 19 October 2026 (§2.8, §90–§97). Release 4 builds on them:
 
-- packages
-- credits
-- subscriptions
-- memberships
-- payments
-- invoices
-- recurring payments
-- reminders
+- credits that pay for different session types, and other pricing models the pilot shows a need for
+- discounts, coupons, gift cards, family or shared memberships
+- payment reminders and dunning beyond the MVP's failed-payment handling
+- point-of-sale or kiosk payments
 - accounting integrations
+- revenue reports
 
 For the Dutch market, later integrations should prioritize the systems customers actually use locally.
 
@@ -2064,6 +2174,8 @@ Requirements:
 - minimal data collection
 - no unnecessary profiling
 
+Payment data stays with the payment provider: Trainer Hub stores its references (payment, mandate, refund), amounts and statuses, never card numbers or full bank account numbers (§94). Invoices are kept for the statutory retention period, also when a client asks for deletion; the rest of their data is deleted (E014, `docs/legal/retention-policy.md`).
+
 ---
 
 # 80. Feature tracking
@@ -2293,7 +2405,7 @@ F050 Trainer Booking Notifications
 17. Locations
 18. organization default location
 19. client preferred location
-20. automatic location inference
+20. automatic location inference (after go-live, §52)
 
 ---
 
@@ -2344,7 +2456,27 @@ F050 Trainer Booking Notifications
 
 ---
 
+## Phase K — Commerce
+
+Runs after Phase D (it needs bookings and client accounts), next to Phases E and F, and before Phase J.
+
+79. offers and prices
+80. payment provider account per workspace
+81. memberships on fixed weekdays
+82. private session packs
+83. session balance and its history
+84. cancellation cutoff, no-shows and makeups
+85. recurring payments
+86. single class purchase
+87. invoices, billing details and credit notes
+88. failed payments and refunds
+89. payouts and reconciliation
+
+---
+
 ## Phase G — Workouts
+
+Phases G, H and I follow after go-live (§52).
 
 48. bilingual exercise library baseline
 49. custom exercises
@@ -2379,7 +2511,7 @@ F050 Trainer Booking Notifications
 
 ## Phase J — Pilot
 
-66. import required existing data
+66. import required existing data, including active agreements, session balances and billing dates
 67. onboard gym owner
 68. onboard other trainers
 69. add group classes
@@ -2387,10 +2519,11 @@ F050 Trainer Booking Notifications
 71. verify English booking experience
 72. publish Open Gym
 73. run real sessions
-74. observe usage
-75. track workarounds
-76. track remaining Excel/calendar/notes usage
-77. define Release 1.1 from actual evidence
+74. move clients' payments from the old app to Trainer Hub, a small group first
+75. observe usage
+76. track workarounds
+77. track remaining use of the old apps, Google Calendar, Word and Excel
+78. define Release 1.1 from actual evidence
 
 ---
 
@@ -2425,12 +2558,15 @@ The MVP succeeds if:
 - notes replace scattered tools
 - previous performance is easy to access
 - owner sees organization schedule
-- trainer sees combined personal schedule
+- trainer sees combined personal schedule, with their own team access
+- memberships and private session packs run in the platform, and every session balance can be explained from its history
+- recurring payments are collected without the old app, with no duplicate charges
+- private invoices no longer need to be made by hand
 - normal usage requires no developer intervention
 
 Strongest validation signal:
 
-> The pilot gym does not want to return to Excel + separate calendar + manual booking.
+> The pilot gym cancels its old booking and payment app and does not want to go back to it, Google Calendar or Word documents.
 
 ---
 
@@ -2438,7 +2574,7 @@ Strongest validation signal:
 
 | Release | Objective |
 |---|---|
-| **MVP** | Dutch-first pilot gym platform |
+| **MVP** | Dutch-first pilot gym platform, including memberships, recurring payments and invoices |
 | **1.1** | Pilot-driven improvements |
 | **1.2** | Client iOS + Android |
 | **1.3** | Dutch/English AI note capture |
@@ -2450,7 +2586,7 @@ Strongest validation signal:
 | **3.0** | Smart scheduling |
 | **3.1** | Open Gym automation |
 | **3.2** | Business analytics |
-| **4.0** | Payments and billing |
+| **4.0** | Advanced commerce |
 | **5.0** | Advanced AI |
 | **6.0** | Integrations |
 | **7.0** | Larger-business features |
@@ -2461,7 +2597,7 @@ Strongest validation signal:
 
 ## Gym owners
 
-> Manage trainers, clients, private sessions, group classes and Open Gym in one place.
+> Manage trainers, clients, private sessions, group classes, Open Gym, memberships, payments and invoices in one place.
 
 ## Trainers
 
@@ -2474,3 +2610,103 @@ Strongest validation signal:
 ## Netherlands launch requirement
 
 > Every essential workflow must work naturally in Dutch first, with a complete English alternative available everywhere.
+
+---
+
+# Commerce (MVP)
+
+Added on 19 October 2026 after the first interview with the pilot owner (`docs/discovery/results/interview-01.md`), who can't switch without it (§2.8). The subscription model (recurring payments) and invoices arrive **together**: every payment, recurring or one-off, gets an invoice. Questions still open are in [`open-questions.md`](../design/open-questions.md) (QC01–QC15); the feature specs settle them with the owner, and nothing here guesses them.
+
+Keep these concepts separate in the model, even where the screen combines them: a class's recurrence is not a payment schedule, a payment is not an invoice, and a missed class is not a missed payment.
+
+---
+
+# 90. Offers and prices
+
+An **offer** is what a workspace sells. MVP has three kinds:
+
+| Offer | Example | Paid |
+|---|---|---|
+| **Membership** | 2 group classes a week on fixed weekdays, for 6 or 12 months | Recurring, usually monthly (§94) |
+| **Session pack** | 26 private sessions to use within 6 months (about one a week) | Up front, or in recurring instalments (§94) |
+| **Single class** | One group class, on its own or on top of a membership | At booking (§95) |
+
+The owner sets each offer's name (Dutch, optional English, as in §18), price in euros including VAT, VAT rate, term and, for a membership, how many classes a week and which classes it covers. A price change applies to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)).
+
+---
+
+# 91. Memberships
+
+A **membership** is a client's agreement for group classes on fixed weekdays, for a term (for example Monday and Thursday, 6 months).
+
+- The owner or the client chooses the weekly classes it covers, within what the offer allows. Whether that keeps a spot in those classes for the whole term or the client books each week is open ([QC01](../design/open-questions.md#qc01)); either way, capacity is never exceeded.
+- While the membership is active and paid up, the client books the included classes without paying again.
+- It has a start date, an end date, and what happens at the end: it stops, or it renews under the rules of Dutch consumer law ([QC07](../design/open-questions.md#qc07)). The terms the client agreed to are stored with the agreement.
+- The client confirms it online with its first payment, which also gives the mandate for the recurring payments (§94).
+
+---
+
+# 92. Session packs and the session balance
+
+A **session pack** is a client's agreement for a number of private sessions within a validity period.
+
+- The owner creates it for a client; the client confirms it and pays online (§94).
+- A private session (§17) can use a session from one of the client's packs. The session screen shows which pack.
+
+A **session balance** shows what a client can still use under an agreement: sessions in a pack, makeups from a membership (§93). It is never a bare counter. Each change is a line in its history: granted, used, returned, expired, with the session, the person or rule that caused it, and the time. The balance is the sum of that history, so the owner and the client can always see why it says what it says.
+
+Each agreement has its own balance: using a pack session never touches a membership, and a single class never touches either.
+
+---
+
+# 93. Cancellation, no-shows and makeups
+
+Each offer has a **cancellation policy**:
+
+| Event | Effect |
+|---|---|
+| The client cancels before the **cutoff** (hours before the start, set per offer; proposal, [QC02](../design/open-questions.md#qc02)) | Membership: may grant a **makeup**, up to a limit per term. Pack: the session returns to the balance |
+| The client cancels after the cutoff (late cancellation) | The session is used or lost, like a no-show |
+| **No-show** | The session is used (pack) or lost (membership) |
+| The workspace cancels the session or class | Pack: the session returns. Membership: a makeup, outside the limit (proposal, [QC04](../design/open-questions.md#qc04)) |
+
+The cutoff, the makeup limit and how long a makeup stays valid are open ([QC02](../design/open-questions.md#qc02), [QC03](../design/open-questions.md#qc03)). Before confirming a cancellation, the client sees what it does to their balance. An agreement keeps the policy that applied when it started (proposal, [QC15](../design/open-questions.md#qc15)).
+
+---
+
+# 94. Recurring payments
+
+Payments run through a **payment provider** (Mollie or Stripe, chosen in the M11 spike and ADR-020, `ROADMAP.md`). **Proposed merchant model, decided in ADR-020:** each workspace connects its own account with the provider, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Trainer Hub. The provider pays out to the gym on a schedule; the pilot wants weekly payouts.
+
+- **First payment:** the client pays online (iDEAL first; proposal, [QC06](../design/open-questions.md#qc06)) when confirming a membership or pack. That payment also gives the **mandate** for later collections.
+- **Recurring payments:** on each due date Trainer Hub asks the provider to collect the next amount by SEPA Direct Debit under the mandate (proposal, [QC06](../design/open-questions.md#qc06)). The payment schedule belongs to the agreement and has nothing to do with the class times.
+- **Exactly once:** a due amount is charged once, even when a job retries or the provider sends the same event twice.
+- **Failed payment:** the client and the owner get an email, and the agreement shows the open amount. Whether the client can keep booking until it is paid is a setting of the offer (proposal, [QC05](../design/open-questions.md#qc05)), never an accident.
+- **Refund and chargeback:** the owner can refund a payment fully or in part. A refund or a reversed direct debit gets a credit note (§96), and the policy says what happens to the balance.
+- The trainer and client apps never take payments; clients pay on the web.
+
+---
+
+# 95. Single class purchase
+
+A client can buy one class: as a client without a membership, or as a client with a membership who wants an extra class this week. They choose the class on the booking page (§21), pay online, and the booking is confirmed when the payment succeeds. The spot is held while they pay, like a booking hold (§24). Buying an extra class never changes what the membership includes.
+
+---
+
+# 96. Invoices
+
+Every payment gets an **invoice**, emailed to the client and kept on their profile and in client web.
+
+- **Billing details:** a client can put a company name, address and VAT number on their invoices; the owner can too. Without them, the invoice uses the client's name.
+- It meets the Dutch invoice requirements (Belastingdienst): a unique number in one series per workspace without gaps (one series per workspace is a proposal, [QC10](../design/open-questions.md#qc10)), the issue date, the workspace's legal name, address, KvK and VAT number, the buyer's details, what was supplied, the amount excluding VAT, the VAT rate and amount, and the total.
+- Once issued, an invoice never changes, even when the client's or workspace's details change later. A correction is a **credit note** that refers to it.
+- Private invoices are made automatically: the owner no longer types them.
+- Invoices are in the client's communication language (§3), with the amounts in euros.
+
+---
+
+# 97. Payouts and reconciliation
+
+The owner sees, per payout from the provider, which payments, refunds, chargebacks and provider fees it contains, and which payments failed or are still open. Everything the provider reports must match a payment in Trainer Hub; whatever doesn't is shown to the owner, never ignored.
+
+At go-live the active agreements, their session balances and their next due dates are imported (E015) and checked against the old app before any client pays through Trainer Hub (`ROADMAP.md §7`).

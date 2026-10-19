@@ -54,12 +54,13 @@ Type the filled-in results into `docs/discovery/results/`, one file per document
 | `results/import-plan.md` | the import checklist as agreed |
 | `results/metric-targets.md` | agreed targets and sign-off |
 | `results/prototype-validation.md` | findings list and sign-off |
+| `results/interview-01.md` | the first interview with the gym owner: tools, money flows, switching conditions (19 October 2026) |
 
 Commit them on their own branch and worktree (for example `docs/discovery-results`) and open a PR against `main`, as described in [`WORKFLOW.md`](../engineering/WORKFLOW.md).
 
 ### No personal data about clients (hard rule)
 
-The repository is private, but it is still not the place for personal data. Results may contain **counts, durations, percentages, tool names and anonymised quotes only**.
+The repository has been public since 2026-10-16 (`ROADMAP.md §4.5`), so the rule is stricter: it is never the place for personal data, and neither are the pilot gym's prices, fees or costs (keep those in your private notes). Results may contain **counts, durations, percentages, tool names and anonymised quotes only**.
 
 - **Never commit** client names, email addresses, phone numbers, dates of birth, addresses, health information, the content of real notes or workouts, or screenshots and photos that show any of these.
 - Refer to clients as **Klant A, Klant B, …** and to trainers as **T1, T2, …** (the gym owner is **T1**). Keep the code-to-name list on paper only. It never goes into the repository.

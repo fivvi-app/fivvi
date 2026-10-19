@@ -10,7 +10,7 @@
 
 - Aim for a target that would make the gym owner say "this was worth it", and that we can **measure the same way** as the baseline.
 - A target that is too low proves nothing. One that is too high makes a good pilot look like a failure. When in doubt, agree a range: a minimum and a hoped-for level.
-- Out of scope for targets: anything in `PRODUCT.md §53` (billing, payments, SMS, …).
+- Out of scope for targets: anything in `PRODUCT.md §53` (accounting integrations, SMS, …).
 
 ---
 
@@ -58,7 +58,7 @@
 
 | | |
 |---|---|
-| **Metric** | Gym owner's admin hours per week, **MVP scope** (codes P–O; excludes invoices, payroll and marketing, see [admin-time scope](baseline-sheet.md#admin-time-scope)) |
+| **Metric** | Gym owner's admin hours per week, **MVP scope** (codes P, B, L, N, A, O and C; excludes payroll, marketing and bookkeeping, see [admin-time scope](baseline-sheet.md#admin-time-scope)) |
 | **Baseline** (A2.1) | ______ h/week (diary week: ______) |
 | **Roadmap default** | e.g. −50 % |
 | **Measured in the pilot** | The same method as the baseline: if the baseline was the quick-questions estimate (question 9), ask that question again. If it was the diary, **the same 7-day diary** ([baseline sheet Part B](baseline-sheet.md#part-b--7-day-admin-diary)), repeated by the gym owner in **pilot week 5**. Same categories, same rules |

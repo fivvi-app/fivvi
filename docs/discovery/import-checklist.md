@@ -1,6 +1,6 @@
 # Go-live import checklist
 
-**Purpose:** agree with the gym owner **which data is imported at go-live, in which format, and how the source files are handled** (`ROADMAP.md §4.1`). This checklist is the input for E015 (data import tooling, M9) and deals with risk R13 ("pilot data import is messier than expected").
+**Purpose:** agree with the gym owner **which data is imported at go-live, in which format, and how the source files are handled** (`ROADMAP.md §4.1`). This checklist is the input for E015 (data import tooling, M9), including active agreements and balances since commerce moved into the MVP (§3.4a) and deals with risk R13 ("pilot data import is messier than expected").
 
 **You** = the product owner (and developer of the platform). **Gym owner** = the pilot gym's owner. Walk through it together in about 45 minutes, preferably with their real files open **on their screen** (see §1).
 
@@ -84,7 +84,7 @@ These are usually entered by hand during onboarding. Listing them here means the
 | Primary trainer | `trainer_email` | Optional | Which trainer usually trains this client |
 | Status | `status` | **Yes** | `active` / `inactive`. **Decision:** import inactive clients? ☐ No (default) ☐ Yes, if active in the last ____ months |
 
-**Not imported** (data minimisation, `PRODUCT.md §79`): phone numbers (the MVP doesn't require one, `§53`), dates of birth, addresses of private clients, payment or subscription data (out of MVP scope), photos, and any health information in separate columns.
+**Not imported** (data minimisation, `PRODUCT.md §79`): phone numbers (the MVP doesn't require one, `§53`), dates of birth, addresses of private clients (except a billing address a client wants on a company invoice, §3.4a), payment data beyond the agreements, balances and due dates of §3.4a (never IBANs, card data or mandate documents), photos, and any health information in separate columns.
 
 ☐ Scope agreed. Number of clients to import: ≈ ______
 
@@ -137,6 +137,35 @@ Only **from the go-live date onwards**. Past sessions are not imported (history,
 - [ ] Horizon: import future sessions and bookings up to ____ weeks ahead (suggestion: 12, the same as the recurrence horizon in ADR-012).
 - [ ] Emails on import: ☐ **No** confirmation emails to clients for imported bookings (default: the gym owner informs clients themselves) ☐ Yes, send confirmations.
 - [ ] Standing weekly private sessions: import them as individual future sessions (default) ☐ agreed.
+
+### 3.4a Agreements, balances and payments — **required** (v1.19)
+
+Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the active memberships and session packs come along. The current booking and payment app is the source; agree in M0 what it can export (QC14 in [`open-questions.md`](../design/open-questions.md#qc14)). **Never** import or copy IBANs, card data or mandate documents: mandates stay with the payment provider (QC09).
+
+**Offers** — one row per kind of membership or session pack sold today: `name`, `kind` (`membership` / `session_pack`), `price_eur` (incl. VAT), `vat_rate`, `term_months` or `validity_months`, `classes_per_week` (membership) or `sessions` (pack), `cutoff_hours`, `makeups_per_term`.
+
+**Active agreements** — one row per client per agreement:
+
+| Column | Required? | Notes |
+|---|---|---|
+| `client_key` | **Yes** | From 3.2 |
+| `offer_name` | **Yes** | From the offers above |
+| `start_date` / `end_date` | **Yes** | `YYYY-MM-DD` |
+| `renews` | **Yes** | `yes` / `no`, and the notice period if yes |
+| `weekly_classes` | Membership only | e.g. `Kracht di 18:00; Kracht do 18:00` |
+| `next_due_date` / `amount_eur` | **Yes** | The next recurring payment |
+| `open_amount_eur` | Optional | Unpaid amounts at go-live |
+
+**Session balances at go-live** — one row per agreement: `sessions_left` (pack) or `makeups_left` (membership), with the date it was counted. It becomes the first line of the balance history (`PRODUCT.md §92`), marked as imported.
+
+**Billing details** — only for clients who want a company invoice: `company_name`, `address` (the billing address on the invoice, not a home address otherwise), `vat_number`.
+
+**Decisions**
+
+- [ ] Mandates: ☐ every client gives a new one through a first payment link (default, QC09) ☐ the provider moves the existing ones.
+- [ ] Switch-over order: which client group pays through Trainer Hub first (`ROADMAP.md §7`, week 1).
+- [ ] Reconciliation: after the import, the gym owner checks a report with counts, totals per offer, the sum of balances and the next due dates against the old app. Nobody pays through Trainer Hub until it matches.
+- [ ] Invoice numbers: the series in Trainer Hub continues after the last number of the old app ☐ or starts a new series (ask the gym's accountant).
 
 ### 3.5 Workout history — **optional**
 

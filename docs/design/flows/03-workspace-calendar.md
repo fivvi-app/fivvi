@@ -23,7 +23,7 @@
 | F026 | Cancellations | Cancelled events; cancel from the quick view |
 | F034 | Open Gym Slots | Open Gym events, create |
 | F036 | Open Gym Suggestions *(Should)* | WC-08 |
-| F019 | Automatic Location Selection | Shown in quick view; applied on create |
+| F019 | Automatic Location Selection (after go-live) | Shown in quick view; applied on create |
 
 ## Flow diagram
 

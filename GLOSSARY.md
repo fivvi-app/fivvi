@@ -21,10 +21,10 @@ _Avoid_: staff, personnel
 
 **Team member**:
 One person in the team.
-_Avoid_: member, membership (reserved for gym memberships 🔜), staff, user
+_Avoid_: member, membership (a client's agreement, see Commerce), staff, user
 
 **Role**:
-What a team member may do in a workspace: Owner, Admin or Trainer. Clients are not team members; anonymous visitors have no role.
+What a team member may do in a workspace: Owner, Admin or Trainer, at most one per workspace. Being a client is not a role: the same account can have a role and be a client of the same workspace, side by side. Anonymous visitors have no role.
 _Avoid_: permission level, custom role
 
 **Owner**:
@@ -44,7 +44,7 @@ A trainer who runs their own workspace.
 _Avoid_: freelancer
 
 **Client**:
-A person who trains with or books at a workspace. Belongs to the workspace, not to one trainer.
+A person who trains with or books at a workspace. Belongs to the workspace, not to one trainer. A team member can also be a client; the two never merge, and a team role gives no client rights or the other way round.
 _Avoid_: customer, member, user, athlete, guest
 
 **Participant**:
@@ -52,7 +52,7 @@ A client on a session's list: booked into a class or Open Gym slot, or the clien
 _Avoid_: attendee, student
 
 **Invitation**:
-An email from an owner asking someone to join the workspace as a trainer or admin.
+An email from an owner asking someone to join the workspace as a trainer or admin. Accepting it adds the role to the person's existing account, if they have one.
 
 **Account**:
 A login: required for a team member; created for a client at their first verified booking. One per person and email address, shared by every workspace the person belongs to.
@@ -186,7 +186,77 @@ The email and screen a client gets after a confirmed booking.
 Whether each participant of a session showed up.
 
 **Attendance status**:
-One of **booked** (has a confirmed booking, not marked yet), **attended**, **cancelled** (the participant cancelled in time, or the session was cancelled) or **no-show** (booked, didn't come, didn't cancel). **Late cancel** 🔜 needs the cancellation cutoff.
+One of **booked** (has a confirmed booking, not marked yet), **attended**, **cancelled** (the participant cancelled, or the session was cancelled) or **no-show** (booked, didn't come, didn't cancel). A cancellation after the cutoff is a **late cancellation**.
+
+### Commerce
+
+**Offer**:
+Something a workspace sells: a membership, a session pack or a single class, with its price, VAT rate and terms.
+_Avoid_: product, plan, package
+
+**Agreement**:
+A client's commitment to a membership or session pack: start, end, renewal, price, payment schedule, cancellation policy and the terms the client agreed to.
+_Avoid_: contract (outside legal text), subscription (for the agreement itself)
+
+**Membership**:
+An agreement for group classes on fixed weekdays for a term, e.g. two classes a week for six months, paid in recurring payments. What people call the subscription model.
+_Avoid_: subscription, plan, pass
+
+**Session pack**:
+An agreement for a number of private sessions to use within a validity period.
+_Avoid_: package, bundle, credits
+
+**Single class**:
+One group class bought on its own, by a client without a membership or as an extra on top of one.
+_Avoid_: drop-in, top-up
+
+**Session balance**:
+What a client can still use under one agreement: sessions in a pack, makeups from a membership. Always explained by its history (granted, used, returned, expired), never a bare counter.
+_Avoid_: credits, remaining sessions (as a stored number)
+
+**Cancellation policy**:
+The rules of an offer for cancellations and no-shows: the cutoff, the makeup limit and what each case does to the balance.
+
+**Cancellation cutoff**:
+How many hours before the start a client can still cancel in time.
+_Avoid_: deadline, notice period
+
+**Makeup**:
+A right to attend another class, granted for a cancellation in time or a class the workspace cancelled. Limited per agreement.
+_Avoid_: credit, catch-up, reschedule (that moves a session)
+
+**Payment provider**:
+The payment company (Mollie or Stripe) through which clients' online payments and direct debits run. Who the merchant is, and whether the workspace has its own account with it, is set out in `PRODUCT.md §94`.
+_Avoid_: PSP (outside code), bank
+
+**Payment**:
+Money collected from a client: a first payment, a recurring payment or a single class.
+
+**Recurring payment**:
+A payment collected on a due date of an agreement's payment schedule, by direct debit under a mandate.
+_Avoid_: subscription, automatic payment
+
+**Mandate**:
+A client's permission to collect recurring payments from their bank account, given with the first payment.
+_Avoid_: authorization, machtiging (the Dutch word)
+
+**Invoice**:
+The numbered tax document for a payment, with the workspace's and the buyer's details as they were when it was issued. Never changes once issued.
+_Avoid_: bill, receipt
+
+**Credit note**:
+A document that corrects or cancels (part of) an invoice, e.g. after a refund.
+_Avoid_: negative invoice
+
+**Billing details**:
+The name, company name, address and VAT number a client wants on their invoices.
+
+**Refund**:
+Money the workspace returns to a client for a payment, fully or in part.
+
+**Payout**:
+A transfer from the payment provider to the workspace's bank account, made up of payments minus refunds, chargebacks and fees.
+_Avoid_: settlement, withdrawal
 
 ### Training
 

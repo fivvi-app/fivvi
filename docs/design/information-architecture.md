@@ -63,7 +63,9 @@ flowchart LR
 
 ## 3. Roles and what each role sees
 
-Roles come from `PRODUCT.md §9, §50`: **Owner, Admin, Trainer** inside a workspace, plus **Client** on public surfaces. There are no custom permissions in MVP. A person has one role **per workspace**, so Sarah can be *Trainer* at John's Gym and *Owner* of Sarah Personal Training at the same time (`§6`).
+Roles come from `PRODUCT.md §9, §50`: **Owner, Admin, Trainer** are team roles inside a workspace. There are no custom permissions in MVP. A person has at most one team role **per workspace**, so Sarah can be *Trainer* at John's Gym and *Owner* of Sarah Personal Training at the same time (`§6`).
+
+**Client** is not a team role but a separate relationship (`PRODUCT.md §2.9`). The same account can be a team member and a client of one workspace at once: a trainer who buys group classes sees their own bookings in client web, and their team role shows nothing more about other clients than it already did. Trainers reach their schedule through trainer web, never through a client account. The columns below are capabilities, so one person can hold a team column and a client column together.
 
 ### 3.1 Permission matrix
 
@@ -88,8 +90,14 @@ Roles come from `PRODUCT.md §9, §50`: **Owner, Admin, Trainer** inside a works
 | Notes: read *trainer-only* notes | ✓ | ✓ | ✓ ⚑ [Q04](open-questions.md#q04) | — | — |
 | Exercises, custom exercises, templates | ✓ | ✓ | ✓ | — | — |
 | Log workouts | ✓ | ✓ | ✓ own sessions | — | — |
+| Offers, prices, cancellation policy (`§90`, `§93`) | ✓ | — ⚑ [QC12](open-questions.md#qc12) | — | — | — |
+| Connect the payment provider account (`§94`) | ✓ | — | — | — | — |
+| Agreements: create, end, see balances (`§91`, `§92`) | ✓ | ✓ ⚑ [QC12](open-questions.md#qc12) | 👁 balance of own clients ⚑ [QC12](open-questions.md#qc12) | ✓ own | — |
+| Payments, invoices, refunds, payouts (`§94`–`§97`) | ✓ | ⚑ [QC12](open-questions.md#qc12) | — | 👁 own payments and invoices | — |
+| Buy a membership, session pack or single class; pay | — | — | — | ✓ | ✓ single class (account created at verification) |
+| Billing details | ✓ any client | ✓ any client | — | ✓ own | — |
 | Book group classes and Open Gym | — | — | — | ✓ | ✓ |
-| View and cancel own bookings | — | — | — | ✓ client web | ✓ via manage link in email |
+| View and cancel own bookings and private sessions (*my schedule*) | — | — | — | ✓ client web | ✓ via manage link in email |
 | Personal profile and language | ✓ | ✓ | ✓ | ✓ | language only (per booking) |
 
 ### 3.2 Role → navigation
@@ -537,10 +545,10 @@ All screens with an ID. **Critical-flow** screens are wireframed in `flows/`. Th
 | WC-06 | Nieuw op tijdslot | New at time slot | Web | F020, F021, F034 | M4 |
 | WC-07 | Verplaatsen door slepen | Move by dragging | Web | F020, F022, F049 | M4 |
 | WC-08 | Open Gym-suggestie | Open Gym suggestion | Web | F036 | M6 |
-| PS-01 | Nieuwe privésessie (web) | New private session (web) | Web | F020, F019, F023, F006 | M4 |
+| PS-01 | Nieuwe privésessie (web) | New private session (web) | Web | F020, F019 (after go-live), F023, F006 | M4 |
 | PS-02 | Klant kiezen | Choose client | Web, iOS, Android | F006 | M4/M8 |
-| PS-03 | Locatie | Location | Web, iOS, Android | F019, F015–F018 | M4/M8 |
-| PS-04 | Nieuwe privésessie (app) | New private session (app) | iOS, Android | F020, F019 | M8 |
+| PS-03 | Locatie | Location | Web, iOS, Android | F019 (after go-live), F015–F018 | M4/M8 |
+| PS-04 | Nieuwe privésessie (app) | New private session (app) | iOS, Android | F020, F019 (after go-live) | M8 |
 | PS-05 | Sessie verplaatsen | Reschedule session | Web, iOS, Android | F020, F049 | M4/M8 |
 | PS-06 | Sessie annuleren | Cancel session | Web, iOS, Android | F026, F049 | M4/M8 |
 | PS-07 | Dubbele boeking | Double booking | Web, iOS, Android | F020, F023 | M4/M8 |

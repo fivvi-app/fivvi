@@ -4,7 +4,7 @@ This is the **single wording source** for every user-facing string on every surf
 
 What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLOSSARY.md) at the repo root (English canonical terms, definitions, words to avoid). This file says how those terms are **worded** in nl-NL and en.
 
-- **Status:** v0.5, started in M0 (`ROADMAP.md §4.2`). Terms marked ⚠️ still need to be validated with the pilot owner (see [§8 Open questions](#8-open-questions-validate-with-the-pilot-owner)).
+- **Status:** v0.7, started in M0 (`ROADMAP.md §4.2`). Terms marked ⚠️ still need to be validated with the pilot owner (see [§8 Open questions](#8-open-questions-validate-with-the-pilot-owner)).
 - **Scope:** UI strings, emails, notifications, validation messages, empty states, public booking pages and QR posters. Legal documents (privacy policy, terms, verwerkersovereenkomst) follow their own register and are out of scope.
 - **Catalogs:** `packages/i18n/nl-NL.json` and `packages/i18n/en.json` (ICU MessageFormat, ADR-008). Native catalogs (`.xcstrings`, `strings.xml`) are generated from them and are never edited by hand.
 - **Precedence:** `PRODUCT.md` owns requirements. This file owns terminology, tone and copy style. Where it deliberately differs from example copy in `PRODUCT.md`, [§7](#7-deviations-from-productmd-example-copy) lists why.
@@ -156,7 +156,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | organization | — *(internal)* | Code and database name for a workspace (`organization_id`, `organizations`). Never shown in the UI. Say *workspace/werkruimte*. |
 | personal workspace 🔜 2.2 | persoonlijke werkruimte |  |
 | team | team (het, teams) |  |
-| team member | teamlid (het, teamleden) | ❌ *lid, leden, lidmaatschap, member, membership* for this concept. **"lid/lidmaatschap" and "member/membership" are reserved** for gym memberships (`PRODUCT.md §60`, 🔜 Release 4). ❌ *medewerker, personeel, staff, gebruiker*. Internally `organization_member`. |
+| team member | teamlid (het, teamleden) | ❌ *lid, leden, lidmaatschap, member, membership* for this concept. **"lid/lidmaatschap" and "member/membership" are reserved** for gym memberships (`PRODUCT.md §91`, MVP, M11). ❌ *medewerker, personeel, staff, gebruiker*. Internally `organization_member`. |
 | role | rol (de, rollen) | No custom roles in MVP. |
 | Owner | Eigenaar (de, eigenaren) | ❌ *baas, beheerder* (that's Admin), *owner* (NL). |
 | Admin | Beheerder (de, beheerders) | ❌ NL: *admin, administrator, manager*. |
@@ -242,7 +242,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | Attended | Aanwezig | ❌ *gekomen, present*. |
 | Cancelled | Geannuleerd | EN spelling *Cancelled* (en-GB). |
 | No-show | Niet verschenen | ❌ NL: *no-show, afwezig* (sounds like an excused absence), *niet gekomen*. |
-| Late cancel 🔜 1.1 | Te laat geannuleerd | EN label: *Cancelled late*. ❌ *late annulering* as a status label. |
+| late cancellation | Te laat geannuleerd | A cancellation after the cancellation cutoff (`PRODUCT.md §93`), not a fifth attendance status: the status stays *Cancelled* and this is the label for the late case. EN label: *Cancelled late*. ❌ *late annulering* as a status label. |
 
 ### 4.6 Training
 
@@ -306,6 +306,31 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | Trainers | Trainers |
 | Booking links | Boekingslinks |
 | Settings | Instellingen |
+
+### 4.9 Commerce
+
+Added with roadmap v1.19 (M11). The ⚠️ terms are open until the pilot owner confirms them (§8).
+
+| EN term | NL term | Notes / forbidden alternatives |
+|---|---|---|
+| offer | aanbod (het) ⚠️ | A single item: *dit aanbod*. ❌ *product*, *pakket*. |
+| agreement | overeenkomst (de, overeenkomsten) ⚠️ | Mostly internal; in the UI name the kind (*abonnement*, *sessiepakket*). ❌ *contract* outside the terms text. |
+| membership | abonnement (het, abonnementen) ⚠️ | The pilot owner calls it a subscription; *lidmaatschap* is the alternative to confirm. EN: *membership*, ❌ *subscription* in EN UI. |
+| session pack | sessiepakket (het, sessiepakketten) ⚠️ | Alternatives to confirm: *strippenkaart*, *rittenkaart*, *PT-pakket*. ❌ *bundel*, *credits*. |
+| single class | losse les (de, losse lessen) | ❌ *drop-in*, *extra les* as the offer name (*extra* is fine in a sentence). |
+| session balance | tegoed (het) ⚠️ | e.g. *Nog 12 sessies tegoed*. ❌ *saldo* (money), *credits*. |
+| cancellation policy | annuleringsbeleid (het) ⚠️ | The rules of an offer for cancellations and no-shows. In the UI show the rule itself (*Annuleren kan tot 12 uur van tevoren*) rather than the noun. ❌ *annuleringsvoorwaarden* unless it is the legal terms text. |
+| cancellation cutoff | annuleren tot … uur van tevoren | Phrase it as a sentence, not a noun: *Je kunt tot 12 uur van tevoren gratis annuleren.* |
+| makeup | inhaalles (de, inhaallessen) | ❌ *compensatieles*, *tegoedles*. |
+| payment | betaling (de, betalingen) |  |
+| recurring payment | automatische incasso (de) | Use *incasso* for the debit itself. ❌ *afschrijving* in UI. |
+| mandate | machtiging (de, machtigingen) | Dutch banks use this word. EN: *direct debit mandate*. |
+| invoice | factuur (de, facturen) | ❌ *rekening*, *nota*. |
+| credit note | creditfactuur (de, creditfacturen) | ❌ *negatieve factuur*. |
+| billing details | factuurgegevens (de) | Fields: *bedrijfsnaam, adres, btw-nummer*. |
+| refund | terugbetaling (de) | ❌ *refund*, *restitutie*. |
+| payout | uitbetaling (de, uitbetalingen) | ❌ *settlement*. |
+| payment provider | betaalprovider (de) ⚠️ | Usually name it (*Mollie*, *Stripe*) instead. |
 
 ---
 
@@ -415,7 +440,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | **training** (NL) | workout | a scheduled session or class → *sessie*, *les*, *privésessie* |
 | **herhaling** (NL) | rep | recurrence → *terugkerend*, *Herhalen: elke week* |
 | **annuleren / cancel** | cancelling a session, class or booking; also dismissing a dialog | both at once in one dialog → §5.3 |
-| **lid / lidmaatschap**, **member / membership** | gym memberships (🔜 Release 4) | team members → *teamlid / team member* |
+| **abonnement / lidmaatschap**, **member / membership** | a client's membership (§4.9) | team members → *teamlid / team member* |
 | **plek** (NL) | a spot in a class | a location → *locatie* |
 | **privé / private** | the private session type | note visibility → *Alleen voor trainers / Trainer-only* |
 | **schedule** (EN) | the verb *to schedule* (*inplannen*) | the timetable noun → *timetable / rooster* |
@@ -468,6 +493,7 @@ These terms are the best current choice. Confirm them in the M0 wireframe review
 2. **private session → privésessie.** Dutch trainers often say *PT-sessie*. Check which word the pilot gym uses with its clients.
 3. **workout template → trainingsschema.** Trainers say *schema*. Confirm it isn't confused with the timetable (*rooster*).
 4. **substitution → vervanger.** *Invaller* is also common in Dutch sport. Pick the one the pilot trainers use.
+5. **Commerce terms (§4.9).** Does the pilot gym say *abonnement* or *lidmaatschap*, and what does it call a prepaid set of private sessions? Is *tegoed* clear for what a client has left? Ask in the M0 commerce walkthrough (`ROADMAP.md §4.1`).
 
 ---
 
@@ -481,3 +507,4 @@ These terms are the best current choice. Confirm them in the M0 wireframe review
 | 2026-09-23 | 0.4 | E005: §3.3 drops `=0` plural selectors (not portable to Android; use a separate key). §3.1, §6.3 and §6.6 point to the i18n package (date formats, key naming, `comments.json`). Terminology is unchanged. |
 | 2026-10-13 | 0.5 | Definitions moved to the root domain glossary (`GLOSSARY.md`, used by the agent skills); §4 keeps the NL/EN wording and forbidden alternatives, and explains UI-only terms in its notes. Terminology is unchanged. |
 | 2026-10-19 | 0.6 | F001 shaped: there are no guests, a client's account is created automatically at their first verified booking. §4 retires the *guest* row (never in UI, now also avoid internally — see *client*'s ❌ list) and drops the "Create account" / "Continue without account" copy from the *account* row. |
+| 2026-10-19 | 0.7 | Commerce moved into the MVP (roadmap v1.19): new §4.9 with membership, session pack, session balance, makeup, payment, mandate, invoice and payout wording (⚠️ terms open, §8 question 5); *Te laat geannuleerd* is no longer post-MVP; *abonnement / lidmaatschap* now means a client's membership in §5.4. |

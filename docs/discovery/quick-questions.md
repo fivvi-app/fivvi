@@ -51,8 +51,8 @@ Date / Datum: ____________
 *Say 10 people have booked. Roughly how many don't show up without cancelling?*\
 → ______ out of 10 ☐ E ☐ G
 
-**9.** Hoeveel uur per week ben je ongeveer kwijt aan planning, boekingen, trainingen bijhouden en notities? Facturen en marketing niet meetellen.\
-*Roughly how many hours a week do you spend on scheduling, bookings, tracking workouts and notes? Don't count invoices and marketing.*\
+**9.** Hoeveel uur per week ben je ongeveer kwijt aan planning, boekingen, trainingen bijhouden, notities, facturen en betalingen? Marketing en boekhouding niet meetellen.\
+*Roughly how many hours a week do you spend on scheduling, bookings, tracking workouts, notes, invoices and payments? Don't count marketing and bookkeeping.*\
 → ______ hours per week ☐ E ☐ G
 
 **10.** Hoe makkelijk is het nu om te zien wat een klant vorige keer deed? Van 1 (heel moeilijk) tot 5 (heel makkelijk).\
