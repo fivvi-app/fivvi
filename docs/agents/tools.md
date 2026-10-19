@@ -6,13 +6,13 @@ Agents run on the owner's Mac, where `railway`, `gh`, `xcrun devicectl` and `adb
 
 | Allowed | Not allowed |
 |---|---|
-| Read status, deploy logs and build logs in any environment | Reading or printing variable values: no `railway variables`, `railway variable list`, `--show-values` or `--decrypt-variables`. Never read or set production values |
+| Read status, build logs and deploy logs of `production`; any logs of `development` and PR previews | Reading or printing variable values: no `railway variables`, `railway variable list`, `--show-values` or `--decrypt-variables`. Never read or set production values. Also no `railway run` or `railway shell` (they inject every variable value into a process), `railway connect` (a `psql` session on any environment, production included) or `railway ssh` (a shell in a running service): they expose secrets or production data |
 | Redeploy **PR previews** (`trainer-hub-pr-<n>`) | Redeploying, rolling back or changing `production` or `development` |
 | `railway config plan` on any environment (read-only, values redacted) | `railway config apply`, except when the owner asks for it, as in [ENVIRONMENTS.md §3](../engineering/ENVIRONMENTS.md): `development` first, never a PR environment |
 | Devices and emulators that hold synthetic data only | Screenshots, or a screen dump, of anything that could show real data. Prefer text (`uiautomator`) over screenshots |
-| `gh` for issues, PRs, Actions logs and artifacts, within the push and merge rules of `AGENTS.md` | Pasting production runtime or HTTP logs into a ticket or PR. Read them only to find an error; if they hold personal data, stop and quote none of it |
+| `gh` for Actions logs and artifacts; `scripts/issue.sh` and `scripts/pr.sh` for issues and PRs ([issue-tracker.md](issue-tracker.md)) | Runtime, HTTP and network logs of `production` (`railway logs --http`, `--network`, `--dns`, or `-d` on production): they can hold real data (D8), so they go through the owner |
 
-Pass `-p`, `-e` and `-s` on every `railway` command; don't `railway link` (it changes the owner's linked environment, which `config plan|apply` and `railway logs` default to).
+Pass `-p`, `-e` and `-s` on every command that takes them. `config plan|apply` take only `--environment`, and `environment list` takes no `-p`. Don't `railway link`: it changes the owner's linked environment, which every command defaults to.
 
 ## Railway
 
@@ -22,26 +22,26 @@ Pass `-p`, `-e` and `-s` on every `railway` command; don't `railway link` (it ch
 |---|---|
 | Deployments of a service, newest first, with ids and status | `railway deployment list -p $P -e trainer-hub-pr-<n> -s web --json` |
 | Build log of a deployment | `railway logs -p $P -e trainer-hub-pr-<n> -s web -b -n 200 <deployment-id>` |
-| Deploy (runtime) log | `railway logs -p $P -e trainer-hub-pr-<n> -s web -d -n 200 <deployment-id>` |
+| Deploy (runtime) log (not on `production`) | `railway logs -p $P -e trainer-hub-pr-<n> -s web -d -n 200 <deployment-id>` |
 | Only errors | add `-f '@level:error'` |
-| Redeploy a **PR preview** from the PR branch | `railway deployment redeploy -p $P -e trainer-hub-pr-<n> -s web --from-source -y` |
+| Redeploy a **PR preview** from the PR branch (**not yet run**: no PR was open; only `--help` was checked) | `railway deployment redeploy -p $P -e trainer-hub-pr-<n> -s web --from-source -y` |
 | Preview what `.railway/railway.ts` would change | `railway config plan --environment development --detailed-exit-code` (exit 0 = up to date, 2 = changes pending) |
 
 - Without a deployment id, `railway logs` takes the latest successful deployment. Always pass `-n`: without it the command streams until stopped.
 - A PR preview exists only while its PR is open, so list deployments right after CI is green. A docs-only PR has none ([ENVIRONMENTS.md §4](../engineering/ENVIRONMENTS.md)).
 - `web` sleeps when idle: status `SLEEPING` is normal, not a failure. `SKIPPED` means the watch paths didn't change.
-- Redeploy a preview when its build failed for a reason outside the PR, or after the owner changed a build-time variable. Never redeploy `development` or `production`.
+- Redeploy a preview when its build failed for a reason outside the PR, or after the owner changed a build-time variable. Once #107 merges, `scripts/pr.sh smoke` redeploys a skipped preview and is the normal way; the raw `redeploy` is the fallback.
 
 ## GitHub
 
-`gh` with a repo admin token.
+`gh` with a repo admin token. `repos/{owner}/{repo}` is filled in by `gh` from the checkout's remote, so nothing here names the owner.
 
 | Job | Command |
 |---|---|
-| Log of one CI job | `gh api --allow-escape-sequences repos/thekeyvan/trainer-hub/actions/jobs/<job-id>/logs` |
-| Job ids of a run | `gh run view <run-id> -R thekeyvan/trainer-hub --json jobs --jq '.jobs[] \| "\(.databaseId) \(.name)"'` |
-| Artifacts of a run | `gh api repos/thekeyvan/trainer-hub/actions/runs/<run-id>/artifacts --jq '.artifacts[].name'` |
-| Download an artifact | `gh run download <run-id> -R thekeyvan/trainer-hub -n <name> -D <dir>` (a temp dir outside the repo) |
+| Log of one CI job | `gh api --allow-escape-sequences repos/{owner}/{repo}/actions/jobs/<job-id>/logs` |
+| Job ids of a run | `gh run view <run-id> --json jobs --jq '.jobs[] \| "\(.databaseId) \(.name)"'` |
+| Artifacts of a run | `gh api repos/{owner}/{repo}/actions/runs/<run-id>/artifacts --jq '.artifacts[].name'` |
+| Download an artifact | `gh run download <run-id> -n <name> -D <dir>` (a temp dir outside the repo) |
 
 ## iPhone
 
@@ -50,7 +50,7 @@ Pass `-p`, `-e` and `-s` on every `railway` command; don't `railway link` (it ch
 | Job | Command |
 |---|---|
 | List devices | `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun devicectl list devices --timeout 30` |
-| Build, install, launch | `scripts/ios-device.sh en` |
+| Build, install, launch (**not yet run** to the end: it stopped at "no paired iPhone") | `scripts/ios-device.sh en` |
 
 - `scripts/_ios.sh` sets `DEVELOPER_DIR` for the scripts; set it yourself for a direct `xcrun devicectl`, because `xcode-select` may point at the Command Line Tools. Always pass `--timeout`: without it `devicectl` can hang.
 - Point the app at a PR preview or the dev server, never at production, and use synthetic data only.
