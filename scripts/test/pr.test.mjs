@@ -46,7 +46,15 @@ const checkRun = (name, conclusion = 'SUCCESS', status = 'COMPLETED') => ({
 
 // The merge queue facts of a PR (scripts/pr.sh queue_facts): the state of the PR, whether it is in the queue, whether
 // GitHub turned on auto-merge, and the last queue event on its timeline.
-const REMOVED = { __typename: 'RemovedFromMergeQueueEvent', reason: 'Merge group failed' };
+const BEFORE_REMOVAL = '2026-10-19T09:00:00Z';
+const REMOVAL = '2026-10-19T10:00:00Z';
+const AFTER_REMOVAL = '2026-10-19T11:00:00Z';
+const removedAt = (createdAt) => ({
+  __typename: 'RemovedFromMergeQueueEvent',
+  reason: 'Merge group failed',
+  createdAt,
+});
+const REMOVED = removedAt(REMOVAL);
 const ADDED = { __typename: 'AddedToMergeQueueEvent' };
 const queueFacts = ({
   state = 'OPEN',
@@ -56,12 +64,14 @@ const queueFacts = ({
   events = [],
   body = '',
   head = HEAD,
+  committed = BEFORE_REMOVAL,
 } = {}) => ({
   data: {
     repository: {
       pullRequest: {
         state,
         headRefOid: head,
+        commits: { nodes: [{ commit: { committedDate: committed } }] },
         body,
         isInMergeQueue: queued,
         mergeQueueEntry: queued ? { state: 'QUEUED', position } : null,
@@ -198,6 +208,35 @@ describe('pr.sh merge', () => {
       result.calls.join('\n'),
     );
     assert.deepEqual(result.bodies, []);
+  });
+
+  it('E002 #119: says auto-merge is still on when it could not turn it off, never that it is off', () => {
+    const result = merge([
+      { match: '^pr merge 60 .*--disable-auto', out: 'nope', status: 1 },
+      ...github({ queue: queueFacts({ auto: true }) }),
+    ]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /auto-merge is still on: turn it off on GitHub/);
+    assert.doesNotMatch(result.stderr, /turned it off/);
+    assert.deepEqual(result.bodies, []);
+  });
+
+  it('E002 #119: refuses a head commit the merge queue already removed, and queues nothing', () => {
+    const result = merge(github({ queue: queueFacts({ events: [ADDED, REMOVED] }) }));
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stdout,
+      /✗ not removed from the queue: GitHub removed .* from the merge queue/,
+    );
+    assert.match(result.stderr, /not removed from the queue; nothing queued/);
+    assert.ok(!result.calls.some((call) => /^pr merge/.test(call)), result.calls.join('\n'));
+  });
+
+  it('E002 #119: queues a commit pushed after a removal', () => {
+    const result = merge(
+      github({ queue: queueFacts({ queued: true, events: [REMOVED], committed: AFTER_REMOVAL }) }),
+    );
+    assert.equal(result.status, 0, result.stderr);
   });
 
   it('E002 #119: fails when the PR is neither queued nor merged after gh succeeded', () => {
@@ -673,8 +712,27 @@ describe('E002 #119 pr.sh queue', () => {
   });
 
   it('forgets a removal once the branch has a new head commit: the push makes it stale', () => {
-    const result = queue(queueFacts({ events: [REMOVED], body: queued(OLD) }));
+    const result = queue(
+      queueFacts({ events: [REMOVED], body: queued(OLD), committed: AFTER_REMOVAL }),
+    );
     assert.deepEqual(result.json, { state: null, position: null, reason: null });
+  });
+
+  it('E002 #119: shows the removal of a later commit the owner queued, although the record still names the first', () => {
+    // A was queued by the agent and removed; B was pushed (stale), and the owner queued B, who removed it again.
+    const second = removedAt('2026-10-19T12:00:00Z');
+    const result = queue(
+      queueFacts({
+        events: [ADDED, REMOVED, ADDED, second],
+        body: queued(OLD),
+        committed: AFTER_REMOVAL,
+      }),
+    );
+    assert.deepEqual(result.json, {
+      state: 'removed',
+      position: null,
+      reason: 'Merge group failed',
+    });
   });
 
   it('says nothing for a PR that was never queued, one that is queued again, or one that is merged', () => {

@@ -60,14 +60,17 @@ describe('the versioned GitHub settings', () => {
       max_entries_to_merge: 1,
       min_entries_to_merge: 1,
       min_entries_to_merge_wait_minutes: 5,
-      check_response_timeout_minutes: 45,
+      check_response_timeout_minutes: 60,
     });
     const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
-    const ios = ci.slice(ci.indexOf('\n  ios:\n'), ci.indexOf('\n  android:\n'));
-    const iosTimeout = Number(ios.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
+    // The job timeouts as ci.yml sets them (job-level, four spaces): the longest native job starts after
+    // Detect changes, and the queue should time out after both, so a hung job fails as itself.
+    const timeout = (job) =>
+      Number(ci.slice(ci.indexOf(`\n  ${job}:\n`)).match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
+    const longestNative = Math.max(timeout('ios'), timeout('android'));
     assert.ok(
-      queue.parameters.check_response_timeout_minutes > iosTimeout,
-      'the queue should time out after the iOS job does, so a hung job fails as itself',
+      queue.parameters.check_response_timeout_minutes > timeout('changes') + longestNative,
+      'the queue should time out after Detect changes plus the longest native job',
     );
   });
 });

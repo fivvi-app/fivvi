@@ -25,13 +25,20 @@ const queueRule = (number, { queued = false, removed = false, position = 1 } = {
         pullRequest: {
           state: 'OPEN',
           headRefOid: 'c'.repeat(40),
+          commits: { nodes: [{ commit: { committedDate: '2026-10-19T09:00:00Z' } }] },
           body: '',
           isInMergeQueue: queued,
           mergeQueueEntry: queued ? { state: 'QUEUED', position } : null,
           autoMergeRequest: null,
           timelineItems: {
             nodes: removed
-              ? [{ __typename: 'RemovedFromMergeQueueEvent', reason: 'Merge group failed' }]
+              ? [
+                  {
+                    __typename: 'RemovedFromMergeQueueEvent',
+                    reason: 'Merge group failed',
+                    createdAt: '2026-10-19T10:00:00Z',
+                  },
+                ]
               : [],
           },
         },

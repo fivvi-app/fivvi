@@ -60,6 +60,7 @@ const facts = (overrides = {}) => ({
     run('GitGuardian Security Checks'),
   ],
   preview: 'no',
+  queue_removed: false,
   threads: 0,
   ...overrides,
 });
@@ -81,6 +82,7 @@ describe('merge gate', () => {
         'preview smoke-checked',
         'no open threads',
         'ready for review',
+        'not removed from the queue',
       ],
     );
   });
@@ -203,6 +205,14 @@ describe('merge gate', () => {
     const decision = gate(facts({ behind: 7 }));
     assert.equal(decision.merge, true);
     assert.ok(decision.conditions.every((c) => c.name !== 'up to date'));
+  });
+
+  it('E002 #119: refuses a head commit the merge queue already removed, and fails closed when that is unknown', () => {
+    const removed = gate(facts({ queue_removed: true }));
+    assert.deepEqual(failed(removed), ['not removed from the queue']);
+    assert.equal(removed.merge, false);
+    const { queue_removed: _, ...unknown } = facts();
+    assert.deepEqual(failed(gate(unknown)), ['not removed from the queue']);
   });
 
   it('refuses open threads, a draft, a closed PR or another base', () => {

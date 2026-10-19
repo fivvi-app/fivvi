@@ -38,8 +38,8 @@
 #                                                 recorded in the PR body
 #   pr.sh refusal <pr>                            the last refusal recorded in the PR body as {sha, reasons}, or null
 #   pr.sh queue <pr>                              the merge queue state as {state, position, reason}: state is "queued",
-#                                                 "removed" (GitHub took the PR out of the queue, reason says why, and the
-#                                                 branch has not been pushed to since) or null
+#                                                 "removed" (GitHub took the PR out of the queue, reason says why, and no
+#                                                 commit was pushed after that) or null
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -481,41 +481,42 @@ pr_facts() {
     required: $required, checks: (.statusCheckRollup // []), preview: $preview}' <<<"$view"
 }
 
-# All the facts of the merge gate: pr_facts and what only a merge needs (threads, risk). Not whether the branch is behind
+# All the facts of the merge gate: pr_facts and what only a merge needs (threads, risk, whether the queue removed it). Not whether the branch is behind
 # main: the merge queue tests every PR on the latest main (ADR-018).
 merge_facts() {
-  local pr="$1" facts threads risk
+  local pr="$1" facts threads risk removed
   facts="$(pr_facts "$pr")" || exit 1
   threads="$(unresolved_threads "$pr")" || exit 1
   risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr"
-  jq --argjson threads "$(jq length <<<"$threads")" --argjson risk "$risk" \
-    '. + {risk: $risk, threads: $threads}' <<<"$facts"
+  removed="$(queue_state "$pr" | jq .removed)" || exit 1
+  jq --argjson threads "$(jq length <<<"$threads")" --argjson risk "$risk" --argjson removed "$removed" \
+    '. + {risk: $risk, threads: $threads, queue_removed: $removed}' <<<"$facts"
 }
 
 # Where a PR is in the merge queue, from GitHub, as JSON {merged, queued, position, auto_merge, removed, reason}. A PR
-# is removed when the queue took it out (its last queue event on the timeline) and the branch has not been pushed to
-# since: the record cmd_merge wrote names the commit it queued, and a different head makes the removal stale. A PR the
-# owner queued has no record, so a removal counts until the PR is queued again.
+# is removed when the queue took it out (its last queue event on the timeline) after the head commit was made: a commit
+# pushed after the removal makes it stale, and a later removal (the owner queued the new commit) counts again. This reads
+# the event's time and the head commit's committedDate, not the **Merge queue:** record, which names only what an agent
+# queued.
 queue_state() {
   local out
   # shellcheck disable=SC2016 # GraphQL variables, not shell
   out="$(gh api graphql -F owner="$OWNER" -F name="$NAME" -F n="$1" -f query='
     query($owner: String!, $name: String!, $n: Int!) {
       repository(owner: $owner, name: $name) { pullRequest(number: $n) {
-        state headRefOid body isInMergeQueue mergeQueueEntry { state position } autoMergeRequest { enabledAt }
+        state headRefOid body commits(last: 1) { nodes { commit { committedDate } } } isInMergeQueue mergeQueueEntry { state position } autoMergeRequest { enabledAt }
         timelineItems(last: 1, itemTypes: [ADDED_TO_MERGE_QUEUE_EVENT, REMOVED_FROM_MERGE_QUEUE_EVENT]) {
-          nodes { __typename ... on RemovedFromMergeQueueEvent { reason } } } } }
+          nodes { __typename ... on RemovedFromMergeQueueEvent { reason createdAt } } } } }
     }')" || die "could not read the merge queue state of PR #$1"
-  jq --arg mark "**$QUEUE_MARK:**" '
+  jq '
     .data.repository.pullRequest as $p
     | if $p == null then error("no such PR") else . end
     | ($p.timelineItems.nodes | last) as $last
-    | (([($p.body // "") | split("\n")[] | rtrimstr("\r") | select(startswith($mark))] | last // "")
-        | (capture("`(?<sha>[0-9a-f]{40})`").sha) // null) as $queued
+    | ($p.commits.nodes | last | .commit.committedDate) as $committed
     | {merged: ($p.state == "MERGED"), queued: $p.isInMergeQueue, position: $p.mergeQueueEntry.position,
        auto_merge: ($p.autoMergeRequest != null),
        removed: ($p.state == "OPEN" and ($p.isInMergeQueue | not)
-         and $last.__typename == "RemovedFromMergeQueueEvent" and ($queued == null or $queued == $p.headRefOid)),
+         and $last.__typename == "RemovedFromMergeQueueEvent" and $last.createdAt >= $committed),
        reason: $last.reason}
     | .reason = (if .removed then .reason else null end)' <<<"$out" \
     || die "could not read the merge queue state of PR #$1"
@@ -567,8 +568,8 @@ cmd_merge() {
       echo "Next: scripts/flow.sh finish ${issue:-<issue>} from the main checkout"
       return 0
     elif jq -e .queued <<<"$state" >/dev/null; then
-      # The record names the queued commit, so flow.sh can tell a removal of it from a stale one after a new push. The
-      # branch stays: deleting the head branch of a queued PR closes it; flow.sh finish removes it after the merge.
+      # The record is the audit trail of what an agent queued (removals are read from the timeline). The branch stays:
+      # deleting the head branch of a queued PR closes it; flow.sh finish removes it after the merge.
       (record "$pr" "$QUEUE_MARK" "**$QUEUE_MARK:** added to the merge queue on \`$head\`") \
         || echo "⚠  could not record the queued commit in the PR body"
       echo "✅ PR #$pr added to the merge queue (position $(jq -r .position <<<"$state"))"
@@ -577,7 +578,7 @@ cmd_merge() {
       return 0
     elif jq -e .auto_merge <<<"$state" >/dev/null; then
       gh pr merge "$pr" --repo "$REPO" --disable-auto >/dev/null 2>&1 \
-        || echo "⚠  could not turn auto-merge off: do it on GitHub"
+        || die "GitHub enabled auto-merge on PR #$pr instead of adding it to the merge queue, and auto-merge is still on: turn it off on GitHub; nothing queued"
       die "GitHub enabled auto-merge instead of adding PR #$pr to the merge queue (it found a required check not passed); turned it off, nothing queued"
     fi
     [ "$attempt" -eq 3 ] || sleep 2

@@ -20,8 +20,8 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# A new push to a PR cancels the run for the previous push. Runs on main and of merge groups are
-# never cancelled, so every merged commit keeps its own result.
+# A new push to a PR cancels the run for the previous push. Runs on main are never cancelled, so every merged commit
+# keeps its own result; nor are runs of merge groups, which the queue waits for.
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -82,9 +82,9 @@ jobs:
             changed="$(git ls-files)"
           fi
 
-          # Which native jobs run (scripts/native-jobs.sh): those whose paths changed, on a push to main and in a merge
-          # group too, so main writes the caches every PR reads. workflow_dispatch and the PR's run-native label
-          # (read on its pushes) force them.
+          # Which native jobs run (scripts/native-jobs.sh): those whose paths changed. That holds on a push to main,
+          # which writes the caches every PR reads, and in a merge group, whose caches only its own queue branch reads.
+          # workflow_dispatch and the PR's run-native label (read on its pushes) force them.
           args=(--event "$EVENT")
           if [[ "$RUN_NATIVE" == 'true' ]]; then args+=(--run-native); fi
           scripts/native-jobs.sh "${args[@]}" <<<"$changed" >>"$GITHUB_OUTPUT"
