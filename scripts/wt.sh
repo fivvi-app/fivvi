@@ -51,6 +51,17 @@ cmd_rm() {
   echo "🗑  removed ${wt#"$MAIN_ROOT"/} (branch '$1' kept)"
 }
 
+# Whether the local head's tree equals the tree of the PR head or of a commit the PR added to the default branch
+# (GitHub's "Update branch" makes a different merge commit with the same files).
+same_tree_in_pr() {
+  local tree fork trees
+  tree="$(git -C "$MAIN_ROOT" rev-parse --verify --quiet "$1^{tree}")" || return 1
+  fork="$(git -C "$MAIN_ROOT" merge-base "origin/$(default_branch)" "$2" 2>/dev/null)" || fork=""
+  trees="$(git -C "$MAIN_ROOT" log -1 --format=%T "$2")"
+  [ -z "$fork" ] || trees+=$'\n'"$(git -C "$MAIN_ROOT" log --format=%T "$2" "^$fork")"
+  grep -qxF "$tree" <<<"$trees"
+}
+
 cmd_done() {
   [ $# -eq 1 ] || { [ $# -eq 2 ] && [ "$2" = --check ]; } || usage
   local branch="$1" check="${2:-}" pr state pr_head head wt default
@@ -61,10 +72,12 @@ cmd_done() {
 
   head="$(git -C "$MAIN_ROOT" rev-parse --verify --quiet "refs/heads/$branch" || true)"
   if [ -n "$head" ] && [ "$head" != "$pr_head" ]; then
-    # The PR head may be ahead (GitHub's "Update branch" or a committed suggestion); that's fine, local extras are not.
+    # The PR head may be ahead (GitHub's "Update branch" or a committed suggestion) or a different commit with the
+    # same files; that's fine, local changes the PR lacks are not.
     git -C "$MAIN_ROOT" cat-file -e "$pr_head^{commit}" 2>/dev/null \
       || git -C "$MAIN_ROOT" fetch --quiet origin "pull/$pr/head" 2>/dev/null || true
     git -C "$MAIN_ROOT" merge-base --is-ancestor "$head" "$pr_head" 2>/dev/null \
+      || same_tree_in_pr "$head" "$pr_head" \
       || die "local '$branch' has commits that are not in PR #$pr"
   fi
   wt="$(worktree_of "$branch")"
