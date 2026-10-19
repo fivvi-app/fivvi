@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -225,6 +226,22 @@ describe('E002 #120 emails.sh files (tracked and new files)', () => {
     assert.equal(repo.run(['files']).status, 1);
   });
 
+  it('still checks an address on a domain that looks like a retina name', () => {
+    repo.write('a.txt', addr('x', '2x.com'));
+    const result = repo.run(['files']);
+    assert.equal(result.status, 1);
+    assert.match(result.stdout + result.stderr, /a\.txt:1/);
+  });
+
+  it('matches the paths of the allowlist as written, not lower-cased', () => {
+    repo.write('Docs/Notes.TXT', STRANGER);
+    assert.equal(repo.run(['files']).status, 1);
+    writeFileSync(join(repo.dir, 'scripts/email-allowlist.txt'), '\npath: Docs/Notes.TXT\n', {
+      flag: 'a',
+    });
+    assert.equal(repo.run(['files']).status, 0);
+  });
+
   it('is case-insensitive', () => {
     repo.write('a.txt', 'X@EXAMPLE.COM and Y@Users.Noreply.GitHub.com');
     assert.equal(repo.run(['files']).status, 0);
@@ -246,12 +263,25 @@ describe('E002 #120 emails.sh files (tracked and new files)', () => {
     assert.equal(repo.run(['files']).status, 0);
   });
 
-  it('finds no address outside the allowlist in this repo', () => {
-    const result = spawnSync(join(SCRIPTS, 'emails.sh'), ['files'], {
-      cwd: ROOT,
-      encoding: 'utf8',
-    });
-    assert.equal(result.status, 0, result.stdout + result.stderr);
+  it('finds no address outside the allowlist in the tracked files of this repo', () => {
+    // A copy of the tracked files only, so a developer's scratch files cannot fail the test.
+    const copy = realpathSync(mkdtempSync(join(tmpdir(), 'emails-tracked-')));
+    try {
+      const tracked = execFileSync('git', ['-C', ROOT, 'ls-files', '-z'], { encoding: 'utf8' })
+        .split('\0')
+        .filter((path) => path && existsSync(join(ROOT, path)));
+      for (const path of tracked) {
+        cpSync(join(ROOT, path), join(copy, path), { recursive: true, verbatimSymlinks: true });
+      }
+      execFileSync('git', ['init', '--quiet', copy]);
+      const result = spawnSync(join(copy, 'scripts/emails.sh'), ['files'], {
+        cwd: copy,
+        encoding: 'utf8',
+      });
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+    } finally {
+      rmSync(copy, { recursive: true, force: true });
+    }
   });
 });
 

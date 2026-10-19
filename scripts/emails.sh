@@ -53,7 +53,8 @@ hook() {
   finish "$rc"
 }
 
-# The allowlist, read once: lower-case entries, address and domain patterns in ADDRESS_ENTRIES, path globs in SKIP_PATHS.
+# The allowlist, read once: address and domain patterns in ADDRESS_ENTRIES (matched case-insensitively), path globs in
+# SKIP_PATHS (matched as written).
 ADDRESS_ENTRIES=()
 SKIP_PATHS=()
 trim() {
@@ -70,14 +71,13 @@ load_allowlist() {
       path:*) SKIP_PATHS+=("$(trim "${line#path:}")") ;;
       *) ADDRESS_ENTRIES+=("$line") ;;
     esac
-  done < <(tr '[:upper:]' '[:lower:]' <"$ALLOWLIST")
+  done <"$ALLOWLIST"
 }
 
 # An entry with an @ matches the whole address, any other entry the domain; * matches anything, dots included.
-email_allowed() {
-  local address domain entry
-  address="$(tr '[:upper:]' '[:lower:]' <<<"$1")"
-  domain="${address#*@}"
+email_allowed() { nocase address_listed "$1"; }
+address_listed() {
+  local address="$1" domain="${1#*@}" entry
   is_noreply_email "$address" && return 0
   for entry in "${ADDRESS_ENTRIES[@]}"; do
     # shellcheck disable=SC2254 # the entry is a glob on purpose
@@ -89,8 +89,9 @@ email_allowed() {
   return 1
 }
 
-# Retina asset names such as icon@2x.png look like addresses.
-is_asset_name() { [[ "$1" =~ @[0-9]+x\.[A-Za-z0-9]+$ ]]; }
+# Retina image names such as icon@2x.png look like addresses.
+is_asset_name() { nocase asset_match "$1"; }
+asset_match() { [[ "$1" =~ @[0-9]+x\.(png|jpe?g|gif|webp|svg)$ ]]; }
 
 path_skipped() {
   local entry

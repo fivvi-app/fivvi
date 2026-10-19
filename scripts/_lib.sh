@@ -82,10 +82,17 @@ is_conventional() { [[ "$1" =~ $COMMIT_RE ]] && [ "${#1}" -le 100 ]; }
 # Commits carry only GitHub noreply addresses: <id>+<login>@users.noreply.github.com, or noreply@github.com (the web
 # UI and Copilot). The guard is an allowlist, so no script or file has to name an address it forbids (emails.sh).
 NOREPLY_HINT="git config --local user.email <id>+<login>@users.noreply.github.com"
-is_noreply_email() {
-  local email
-  email="$(tr '[:upper:]' '[:lower:]' <<<"$1")"
-  [[ "$email" =~ ^[^@[:space:]]+@users\.noreply\.github\.com$ ]] || [ "$email" = noreply@github.com ]
+is_noreply_email() { nocase noreply_match "$1"; }
+noreply_match() { [[ "$1" =~ ^[^@[:space:]]+@users\.noreply\.github\.com$ ]] || [[ "$1" = noreply@github.com ]]; }
+
+# Runs the command with [[ ]] and case matching case-insensitive (addresses are), and restores the shell's setting.
+nocase() {
+  local was=0 rc=0
+  shopt -q nocasematch && was=1
+  shopt -s nocasematch
+  "$@" || rc=$?
+  [ "$was" = 1 ] || shopt -u nocasematch
+  return "$rc"
 }
 
 # The address in a git identity ("Name <address> 1700000000 +0100", as git var prints it), or on a trailer line.
