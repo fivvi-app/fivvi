@@ -51,8 +51,8 @@ cmd_rm() {
   echo "🗑  removed ${wt#"$MAIN_ROOT"/} (branch '$1' kept)"
 }
 
-# Whether the local head's tree equals the tree of the PR head or of a commit the PR added to the default branch
-# (GitHub's "Update branch" makes a different merge commit with the same files).
+# Whether the local head's tree equals the tree of the PR head or of a commit on the PR branch since it forked from the
+# default branch (GitHub's "Update branch" makes a different merge commit with the same files).
 same_tree_in_pr() {
   local tree fork trees
   tree="$(git -C "$MAIN_ROOT" rev-parse --verify --quiet "$1^{tree}")" || return 1
