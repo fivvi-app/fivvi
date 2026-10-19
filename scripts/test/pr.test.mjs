@@ -3,10 +3,12 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import {
   chmodSync,
   cpSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -35,7 +37,20 @@ const threads = (nodes, hasNextPage = false) => ({
   data: { repository: { pullRequest: { reviewThreads: { pageInfo: { hasNextPage }, nodes } } } },
 });
 
-const github = ({ files = ['apps/web/page.tsx'], body, behind = 0, status = statuses() } = {}) => [
+const checkRun = (name, conclusion = 'SUCCESS', status = 'COMPLETED') => ({
+  __typename: 'CheckRun',
+  name,
+  status,
+  conclusion,
+});
+
+const github = ({
+  files = ['apps/web/page.tsx'],
+  body,
+  behind = 0,
+  status = statuses(),
+  rollup = CI.map((name) => checkRun(name)),
+} = {}) => [
   { match: '^pr list ', out: [{ number: 60 }] },
   { match: '^api repos/[^ ]+/pulls/60/files', out: files.map((filename) => ({ filename })) },
   {
@@ -58,12 +73,7 @@ const github = ({ files = ['apps/web/page.tsx'], body, behind = 0, status = stat
       body:
         body ??
         `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${HEAD}\` ✅\n\n${NO_PREVIEW}`,
-      statusCheckRollup: CI.map((name) => ({
-        __typename: 'CheckRun',
-        name,
-        status: 'COMPLETED',
-        conclusion: 'SUCCESS',
-      })),
+      statusCheckRollup: rollup,
     },
   },
   { match: '^issue view 57 ', out: { number: 57, labels: [], parent: null } },
@@ -72,6 +82,7 @@ const github = ({ files = ['apps/web/page.tsx'], body, behind = 0, status = stat
   { match: STATUS, out: status },
   { match: '^pr edit 60 ', out: '' },
   { match: '^pr merge 60 ', out: '' },
+  { match: '^pr ready 60 ', out: '' },
   { match: '^api --method DELETE ', out: '' },
 ];
 
@@ -269,6 +280,74 @@ describe('pr.sh reviewed', () => {
   });
 });
 
+const PROJECT = '5ac2d844-191a-4671-9632-50b66817f648';
+const deployment = (status, commitHash = HEAD) => ({
+  id: `d-${status}`,
+  status,
+  meta: { commitHash },
+});
+const OTHER = 'b'.repeat(40);
+// What the fake `railway` lists before and after a redeploy, newest deployment first.
+const RAILWAY = {
+  deployed: { before: [deployment('SUCCESS')] },
+  skipped: {
+    before: [deployment('SKIPPED'), deployment('SUCCESS', OTHER)],
+    after: [deployment('SUCCESS'), deployment('SKIPPED'), deployment('SUCCESS', OTHER)],
+  },
+  'no deployment': {
+    before: [deployment('SUCCESS', OTHER)],
+    after: [deployment('SUCCESS'), deployment('SUCCESS', OTHER)],
+  },
+  'redeploy fails': {
+    before: [deployment('SKIPPED')],
+    after: [deployment('FAILED'), deployment('SKIPPED')],
+  },
+};
+
+// A stand-in for the railway CLI: logs its arguments, lists `before` until a redeploy ran and `after` since.
+function fakeRailway() {
+  const dir = mkdtempSync(join(tmpdir(), 'fake-railway-'));
+  writeFileSync(
+    join(dir, 'railway'),
+    `#!/bin/sh
+echo "$*" >> "$FAKE_RAILWAY_LOG"
+case "$1 $2" in
+  "whoami ") [ "$FAKE_RAILWAY_LOGGED_IN" = 0 ] && { echo "Unauthorized" >&2; exit 1; }; echo "Logged in as Test" ;;
+  "deployment list") if [ -f "$FAKE_RAILWAY_LOG.redeployed" ]; then echo "$FAKE_RAILWAY_AFTER"; else echo "$FAKE_RAILWAY_BEFORE"; fi ;;
+  "deployment redeploy") touch "$FAKE_RAILWAY_LOG.redeployed" ;;
+  *) echo "fake railway: unexpected: $*" >&2; exit 1 ;;
+esac
+`,
+  );
+  chmodSync(join(dir, 'railway'), 0o755);
+  // A PATH without any railway, for a machine that hasn't the CLI: only the tools pr.sh needs, linked.
+  const tools = join(dir, 'tools');
+  mkdirSync(tools);
+  for (const tool of ['jq', 'node', 'git']) {
+    symlinkSync(execFileSync('which', [tool], { encoding: 'utf8' }).trim(), join(tools, tool));
+  }
+  const log = join(dir, 'railway.log');
+  return {
+    // The environment for one run: `mode` is a RAILWAY key, 'missing' (no CLI) or 'logged out'.
+    env: (base, mode) => {
+      const [first] = base.PATH.split(':');
+      const state = RAILWAY[mode] ?? RAILWAY.deployed;
+      writeFileSync(log, '');
+      rmSync(`${log}.redeployed`, { force: true });
+      return {
+        ...base,
+        PATH: mode === 'missing' ? `${first}:${tools}:/usr/bin:/bin` : `${dir}:${base.PATH}`,
+        FAKE_RAILWAY_LOG: log,
+        FAKE_RAILWAY_LOGGED_IN: mode === 'logged out' ? '0' : '1',
+        FAKE_RAILWAY_BEFORE: JSON.stringify(state.before),
+        FAKE_RAILWAY_AFTER: JSON.stringify(state.after ?? state.before),
+      };
+    },
+    calls: () => readFileSync(log, 'utf8').split('\n').filter(Boolean),
+    cleanup: () => rmSync(dir, { recursive: true, force: true }),
+  };
+}
+
 describe('pr.sh smoke', () => {
   const gh = fakeGh();
   // A stand-in for curl: logs the URL and answers like a healthy preview.
@@ -279,20 +358,26 @@ describe('pr.sh smoke', () => {
   );
   chmodSync(join(bin, 'curl'), 0o755);
   const curlLog = join(bin, 'curl.log');
+  const railway = fakeRailway();
   after(() => {
     gh.cleanup();
+    railway.cleanup();
     rmSync(bin, { recursive: true, force: true });
   });
 
-  const smoke = (status, args = []) => {
+  // `mode`: what the fake railway reports for the PR's environment, see RAILWAY; or 'missing' / 'logged out'.
+  const smoke = (status, args = [], mode = 'deployed') => {
     writeFileSync(curlLog, '');
-    const env = gh.env([
-      { match: '^pr list ', out: [{ number: 60 }] },
-      { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: HEAD } },
-      { match: STATUS, ...status },
-      { match: '^pr view 60 .*--json body', out: { body: 'Closes #57' } },
-      { match: '^pr edit 60 ', out: '' },
-    ]);
+    const env = railway.env(
+      gh.env([
+        { match: '^pr list ', out: [{ number: 60 }] },
+        { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: HEAD } },
+        { match: STATUS, ...status },
+        { match: '^pr view 60 .*--json body', out: { body: 'Closes #57' } },
+        { match: '^pr edit 60 ', out: '' },
+      ]),
+      mode,
+    );
     const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['smoke', ...args], {
       encoding: 'utf8',
       env: { ...env, PATH: `${bin}:${env.PATH}`, FAKE_CURL_LOG: curlLog },
@@ -301,7 +386,12 @@ describe('pr.sh smoke', () => {
       .calls()
       .filter((call) => call.args[1] === 'edit')
       .map((call) => call.args[call.args.indexOf('--body') + 1]);
-    return { ...result, bodies, curls: readFileSync(curlLog, 'utf8').split('\n').filter(Boolean) };
+    return {
+      ...result,
+      bodies,
+      curls: readFileSync(curlLog, 'utf8').split('\n').filter(Boolean),
+      railway: railway.calls(),
+    };
   };
 
   it('records that the PR has no preview when Railway posted no preview status', () => {
@@ -345,6 +435,98 @@ describe('pr.sh smoke', () => {
       assert.deepEqual(result.bodies, []);
       assert.deepEqual(result.curls, []);
     }
+  });
+
+  const WEB_URL = 'https://web-trainer-hub-pr-60.up.railway.app/api/v1/health';
+  const REDEPLOY = `deployment redeploy -p ${PROJECT} -e trainer-hub-pr-60 -s web --from-source -y`;
+  const LIST = `deployment list -p ${PROJECT} -e trainer-hub-pr-60 -s web --json`;
+
+  it('E002 #107 AC3: asks railway nothing when there is no preview', () => {
+    const result = smoke({ out: WEB_SKIPPED });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.railway, []);
+  });
+
+  it('E002 #107 AC3: redeploys nothing when the head commit has a deployment', () => {
+    const result = smoke({ out: WEB_DEPLOYED });
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(result.railway.includes(LIST), result.railway.join('\n'));
+    assert.ok(!result.railway.some((call) => call.includes('redeploy')));
+  });
+
+  for (const mode of ['skipped', 'no deployment']) {
+    it(`E002 #107 AC3: redeploys the PR preview from source when its deployment for the head commit is ${mode === 'skipped' ? 'skipped' : 'missing'}, then smoke-checks it`, () => {
+      const result = smoke({ out: WEB_DEPLOYED }, [], mode);
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        result.railway.filter((call) => call.startsWith('deployment redeploy')).length,
+        1,
+      );
+      assert.ok(result.railway.includes(REDEPLOY), result.railway.join('\n'));
+      assert.ok(result.curls.length > 0 && result.curls.every((args) => args.endsWith(WEB_URL)));
+      assert.deepEqual(result.bodies, [
+        `Closes #57\n\n**Railway preview smoke check:** on \`${HEAD}\`: \`curl -fsS ${WEB_URL}\` → \`{"status":"ok"}\` ✅`,
+      ]);
+    });
+  }
+
+  it('E002 #107 AC3: redeploys a preview whose deploy never started while Railway still reports it pending', () => {
+    const pending = statuses(['trainer-hub - web', 'pending', 'Waiting for CI']);
+    const result = smoke({ out: pending }, [], 'skipped');
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(result.railway.includes(REDEPLOY), result.railway.join('\n'));
+  });
+
+  it('E002 #107 AC3: touches only the PR environment of the PR: never production or development', () => {
+    for (const mode of ['deployed', 'skipped', 'no deployment']) {
+      const result = smoke({ out: WEB_DEPLOYED }, [], mode);
+      const deployments = result.railway.filter((call) => call.startsWith('deployment'));
+      assert.ok(deployments.length > 0);
+      for (const call of deployments) {
+        assert.match(call, new RegExp(`-p ${PROJECT} -e trainer-hub-pr-60 -s web( |$)`), call);
+        assert.doesNotMatch(call, /production|development/);
+      }
+    }
+  });
+
+  const FAILED_DEPLOY = statuses(['trainer-hub - web', 'failure', 'Deployment failed']);
+
+  for (const mode of ['missing', 'logged out']) {
+    it(`E002 #107 AC3: smoke-checks a deployed preview with curl when the railway CLI is ${mode === 'missing' ? 'missing' : 'logged out'}`, () => {
+      const result = smoke({ out: WEB_DEPLOYED }, [], mode);
+      assert.equal(result.status, 0, result.stderr);
+      assert.ok(result.curls.length > 0 && result.curls.every((args) => args.endsWith(WEB_URL)));
+      assert.equal(result.bodies.length, 1);
+      assert.ok(!result.railway.some((call) => call.startsWith('deployment')));
+    });
+
+    it(`E002 #107 AC3: fails at once with a hint when the preview did not deploy and the railway CLI is ${mode === 'missing' ? 'missing' : 'logged out'}`, () => {
+      const result = smoke({ out: FAILED_DEPLOY }, ['--timeout', '15'], mode);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /Railway CLI/);
+      assert.match(result.stderr, /railway login/);
+      assert.match(result.stderr, /trainer-hub-pr-60/);
+      assert.ok(!result.railway.some((call) => call.startsWith('deployment')));
+      assert.deepEqual(result.bodies, []);
+      assert.deepEqual(result.curls, []);
+    });
+
+    it(`E002 #107 AC3: says in the timeout message that a pending preview may be skipped when the railway CLI is ${mode === 'missing' ? 'missing' : 'logged out'}`, () => {
+      const pending = statuses(['trainer-hub - web', 'pending', 'Waiting for CI']);
+      const result = smoke({ out: pending }, ['--timeout', '0'], mode);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /still deploying/);
+      assert.match(result.stderr, /Railway CLI/);
+      assert.deepEqual(result.bodies, []);
+    });
+  }
+
+  it('E002 #107 AC3: records nothing when the redeployed preview fails to deploy', () => {
+    const result = smoke({ out: WEB_DEPLOYED }, [], 'redeploy fails');
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /FAILED/);
+    assert.deepEqual(result.bodies, []);
+    assert.deepEqual(result.curls, []);
   });
 });
 
@@ -468,5 +650,253 @@ describe('pr.sh create: which local check runs before the push', () => {
     const result = create(true, ['--no-check']);
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.checks, []);
+  });
+});
+
+describe('E002 #107 pr.sh ready', () => {
+  const gh = fakeGh();
+  after(() => gh.cleanup());
+
+  const ready = (options) => {
+    const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['ready'], {
+      encoding: 'utf8',
+      env: gh.env(github(options)),
+    });
+    return { ...result, calls: gh.calls().map((call) => call.args.join(' ')) };
+  };
+  const refuses = (options, ...reasons) => {
+    const result = ready(options);
+    assert.equal(result.status, 1, result.stdout);
+    for (const reason of reasons) assert.match(result.stderr, reason);
+    assert.ok(!result.calls.some((call) => /^pr ready/.test(call)), 'marked the PR ready');
+  };
+  const SMOKED = `**Railway preview smoke check:** on \`${HEAD}\`: \`curl -fsS https://x/api/v1/health\` → \`{"status":"ok"}\` ✅`;
+  const REVIEWED = `**Self-review:** standards and spec reviewers clean on \`${HEAD}\` ✅`;
+
+  it('E002 #107 AC1: marks the draft ready when every check passed, the review and the smoke are recorded for the head', () => {
+    const result = ready();
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(result.calls.some((call) => /^pr ready 60 /.test(call)));
+    assert.match(result.stdout, /PR #60 ready for review/);
+  });
+
+  it('E002 #107 AC1: accepts a recorded smoke check of a preview that exists', () => {
+    const result = ready({ status: WEB_DEPLOYED, body: `${REVIEWED}\n\n${SMOKED}` });
+    assert.equal(result.status, 0, result.stderr);
+  });
+
+  it('E002 #107 AC1: refuses on a failing check and names it', () => {
+    const rollup = CI.map((name) => checkRun(name, name === 'iOS' ? 'FAILURE' : 'SUCCESS'));
+    refuses({ rollup }, /checks passed \(failing: iOS\)/);
+  });
+
+  it('E002 #107 AC1: refuses on a pending check and names it', () => {
+    const rollup = CI.map((name) =>
+      name === 'E2E (Linux)' ? checkRun(name, null, 'IN_PROGRESS') : checkRun(name),
+    );
+    refuses({ rollup }, /checks passed \(pending: E2E \(Linux\)\)/);
+  });
+
+  it('E002 #107 AC1: refuses on a missing check and names it', () => {
+    const rollup = CI.filter((name) => name !== 'Android').map((name) => checkRun(name));
+    refuses({ rollup }, /checks passed \(missing: Android\)/);
+  });
+
+  it('E002 #107 AC1: refuses without a review record, and names it', () => {
+    refuses({ body: `Closes #57\n\n${NO_PREVIEW}` }, /self-review clean \(no self-review record/);
+  });
+
+  it('E002 #107 AC1: refuses when the review was recorded for an older commit', () => {
+    const old = `**Self-review:** standards and spec reviewers clean on \`${'b'.repeat(40)}\` ✅`;
+    refuses(
+      { body: `Closes #57\n\n${old}\n\n${NO_PREVIEW}` },
+      /self-review clean \(the self-review record is for bbbbbbb, not the head ccccccc\)/,
+    );
+  });
+
+  it('E002 #107 AC1: refuses without a smoke record, and names it', () => {
+    refuses({ body: `Closes #57\n\n${REVIEWED}` }, /preview smoke-checked \(no smoke check record/);
+  });
+
+  it('E002 #107 AC1: names every missing piece at once', () => {
+    const rollup = CI.map((name) => checkRun(name, name === 'iOS' ? 'FAILURE' : 'SUCCESS'));
+    refuses(
+      { rollup, body: 'Closes #57' },
+      /checks passed \(failing: iOS\)/,
+      /self-review clean/,
+      /preview smoke-checked/,
+    );
+  });
+
+  it("E002 #107 AC1: refuses when the head commit's statuses can't be read", () => {
+    const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['ready'], {
+      encoding: 'utf8',
+      env: gh.env([{ match: STATUS, out: '', status: 1 }, ...github()]),
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /could not read the statuses/);
+    assert.ok(!gh.calls().some((call) => call.args[1] === 'ready'));
+  });
+
+  it("E002 #107 AC1: doesn't need the rest of the merge gate: a high-risk PR, open threads or a branch behind main", () => {
+    const result = ready({ files: ['packages/database/migrations/0004.sql'], behind: 3 });
+    assert.equal(result.status, 0, result.stderr);
+  });
+});
+
+describe('E002 #107 pr.sh ship', () => {
+  const gh = fakeGh();
+  const railway = fakeRailway();
+  const bin = mkdtempSync(join(tmpdir(), 'fake-curl-'));
+  writeFileSync(join(bin, 'curl'), '#!/bin/sh\necho \'{"status":"ok"}\'\n');
+  chmodSync(join(bin, 'curl'), 0o755);
+  after(() => {
+    gh.cleanup();
+    railway.cleanup();
+    rmSync(bin, { recursive: true, force: true });
+  });
+
+  const step = (name, started, completed) => ({
+    name,
+    started_at: `2026-10-19T10:${started}Z`,
+    completed_at: `2026-10-19T10:${completed}Z`,
+  });
+  const JOBS = {
+    jobs: [
+      { name: 'Checks (Linux)', steps: [step('Lint', '00:00', '00:30')] },
+      {
+        name: 'iOS',
+        steps: [step('Set up job', '00:00', '00:02'), step('Build and test', '00:02', '24:32')],
+      },
+      { name: 'Android', steps: [step('Emulator tests', '00:00', '12:05')] },
+    ],
+  };
+  const checks = (names, bucket = 'pass') => names.map((name) => ({ name, bucket }));
+
+  const ship = ({
+    ci = checks(CI),
+    run = ['completed', 'success'],
+    args = [],
+    jobs = JOBS,
+    ...options
+  } = {}) => {
+    const env = railway.env(
+      gh.env([
+        { match: '^pr checks ', out: ci },
+        { match: '^run list ', out: [{ status: run[0], conclusion: run[1], databaseId: 555 }] },
+        { match: '^api repos/[^ ]+/actions/runs/555/jobs', out: jobs },
+        ...github(options),
+      ]),
+      'deployed',
+    );
+    const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['ship', ...args], {
+      encoding: 'utf8',
+      env: { ...env, PATH: `${bin}:${env.PATH}` },
+    });
+    const calls = gh.calls().map((call) => call.args.join(' '));
+    const at = (pattern) => calls.findIndex((call) => pattern.test(call));
+    return { ...result, calls, at };
+  };
+
+  it('E002 #107 AC2: runs wait, smoke and ready in order and records nothing else', () => {
+    const result = ship({
+      body: `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${HEAD}\` ✅\n\n${NO_PREVIEW}`,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const [wait, smoke, ready] = [/^pr checks /, /^pr edit 60 /, /^pr ready 60 /].map(result.at);
+    assert.ok(wait >= 0 && wait < smoke && smoke < ready, result.calls.join('\n'));
+    const edits = result.calls.filter((call) => call.startsWith('pr edit'));
+    assert.equal(edits.length, 1, 'only the smoke record');
+    assert.ok(edits[0].includes('Railway preview smoke check'));
+    assert.match(result.stdout, /PR #60 ready for review/);
+  });
+
+  it('E002 #107 AC2: stops at a failed wait with its exit code, and runs neither smoke nor ready', () => {
+    const result = ship({ ci: checks(['iOS'], 'fail') });
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /checks failed: iOS/);
+    assert.ok(!result.calls.some((call) => /^pr edit|^pr ready/.test(call)));
+  });
+
+  it('E002 #107 AC2: passes on the exit code 2 of a wait that timed out', () => {
+    const result = ship({
+      ci: checks(CI, 'pending'),
+      run: ['in_progress', ''],
+      args: ['--timeout', '0'],
+    });
+    assert.equal(result.status, 2, result.stderr);
+    assert.ok(!result.calls.some((call) => /^pr edit|^pr ready/.test(call)));
+  });
+
+  it('E002 #107 AC2: stops at a failed smoke with its exit code, and does not mark the PR ready', () => {
+    const result = ship({ status: { total_count: 31, statuses: [] } });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /could not read the statuses/);
+    assert.ok(!result.calls.some((call) => /^pr ready/.test(call)));
+  });
+
+  it('E002 #107 AC2: stops at a refused ready with its exit code', () => {
+    const result = ship({ body: 'Closes #57' });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /self-review clean/);
+    assert.ok(!result.calls.some((call) => /^pr ready/.test(call)));
+  });
+
+  it('E002 #107 AC2: waits up to 45 minutes when iOS or Android run, 20 otherwise', () => {
+    const native = ship();
+    assert.match(native.stdout, /up to 45 min/);
+    const rollup = ['Detect changes', 'Checks (Linux)', 'E2E (Linux)'].map((name) =>
+      checkRun(name),
+    );
+    const linux = ship({ ci: checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']), rollup });
+    assert.match(linux.stdout, /up to 20 min/);
+    assert.doesNotMatch(linux.stdout, /up to 45 min/);
+  });
+
+  it('E002 #107 AC2: keeps the 20-minute wait when the native jobs are skipped, as they are in most PRs', () => {
+    const ci = [
+      ...checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']),
+      ...checks(['iOS', 'Android'], 'skipping'),
+    ];
+    const result = ship({ ci });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /up to 20 min/);
+    assert.doesNotMatch(result.stdout, /up to 45 min/);
+  });
+
+  it('E002 #107 AC2: lets --timeout choose the wait', () => {
+    const result = ship({ args: ['--timeout', '7'] });
+    assert.match(result.stdout, /up to 7 min/);
+  });
+
+  it('E002 #107 AC2: prints the step durations of the native jobs at the end, and none of the others', () => {
+    const result = ship();
+    assert.equal(result.status, 0, result.stderr);
+    const out = result.stdout.slice(result.stdout.indexOf('Step durations'));
+    assert.match(out, /Step durations: iOS/);
+    assert.match(out, /24 min 30 s +Build and test/);
+    assert.match(out, /Step durations: Android/);
+    assert.match(out, /12 min 5 s +Emulator tests/);
+    assert.doesNotMatch(out, /Lint/);
+  });
+
+  it('E002 #107 AC2: prints the durations also when a step failed, and prints none when no native job ran', () => {
+    const failed = ship({ ci: checks(['iOS'], 'fail') });
+    assert.match(failed.stdout, /Step durations: iOS/);
+    const none = ship({ jobs: { jobs: [JOBS.jobs[0]] } });
+    assert.equal(none.status, 0, none.stderr);
+    assert.doesNotMatch(none.stdout, /Step durations/);
+  });
+
+  it("E002 #107 AC2: doesn't fail the ship when the durations can't be read", () => {
+    const result = ship({ jobs: '' });
+    assert.equal(result.status, 0, result.stderr);
+  });
+
+  it('E002 #107 AC2: takes no unknown argument', () => {
+    const result = ship({ args: ['--body-file', '-'] });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /pr\.sh ship \[--timeout <minutes>\]/);
+    assert.ok(!result.calls.some((call) => /^pr (checks|edit|ready)/.test(call)));
   });
 });
