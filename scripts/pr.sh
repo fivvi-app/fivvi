@@ -173,7 +173,8 @@ native_durations() {
     def seconds: (.completed_at | fromdateiso8601) - (.started_at | fromdateiso8601);
     def clock: "\(. / 60 | floor) min \(. % 60) s";
     .jobs[]? | select(.name | IN($native[])) | . as $job
-    | [.steps[] | select(.started_at != null and .completed_at != null)] as $steps
+    | [(.steps // [])[] | select(.started_at != null and .completed_at != null)] as $steps
+    | select($steps | length > 0)   # a skipped job has no timed steps: print nothing for it (#121)
     | "", "Step durations: \($job.name)",
       ($steps[] | "  \(seconds | clock)  \(.name)"),
       "  \([$steps[] | seconds] | add // 0 | clock)  Total"' <<<"$jobs" 2>/dev/null || true

@@ -1133,6 +1133,27 @@ describe('E002 #107 pr.sh ship', () => {
     assert.doesNotMatch(none.stdout, /Step durations/);
   });
 
+  it('E002 #121 AC1: prints no duration block for native jobs that were skipped, and not an empty 0 min 0 s one', () => {
+    const skipped = (name) => ({ name, status: 'completed', conclusion: 'skipped', steps: [] });
+    const ci = [
+      ...checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']),
+      ...checks(['iOS', 'Android'], 'skipping'),
+    ];
+    const result = ship({ ci, jobs: { jobs: [JOBS.jobs[0], skipped('iOS'), skipped('Android')] } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, /Step durations/);
+    assert.doesNotMatch(result.stdout, /0 min 0 s/);
+  });
+
+  it('E002 #121 AC2: prints the durations of the native job that ran, and none for the one that was skipped', () => {
+    const android = { name: 'Android', status: 'completed', conclusion: 'skipped', steps: [] };
+    const result = ship({ jobs: { jobs: [JOBS.jobs[0], JOBS.jobs[1], android] } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Step durations: iOS/);
+    assert.match(result.stdout, /24 min 30 s +Build and test/);
+    assert.doesNotMatch(result.stdout, /Step durations: Android/);
+  });
+
   it("E002 #107 AC2: doesn't fail the ship when the durations can't be read", () => {
     const result = ship({ jobs: '' });
     assert.equal(result.status, 0, result.stderr);
