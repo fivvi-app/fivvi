@@ -23,6 +23,7 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 | `packages/ui` | Web component kit (shadcn/ui), themed by the design tokens |
 | `docs/product/` | `PRODUCT.md` (requirements), `ROADMAP.md` (milestones, decisions), `FEATURES.md` (registry and status) |
 | `docs/engineering/` | `WORKFLOW.md` (flow, Definition of Done), `TESTING.md`, `ENVIRONMENTS.md`, `OBSERVABILITY.md` |
+| `docs/agents/tools.md` | The owner's tools agents may use (`railway`, `gh`, iPhone, Android) and what stays with the owner |
 | `GLOSSARY.md`, `docs/decisions/` | Domain language; ADRs |
 | `CODING_STANDARDS.md`, `.github/instructions/` | How code is written and reviewed; rules per area |
 | `.agents/skills/` | `work` (the router) plus [Matt Pocock's skills](https://github.com/mattpocock/skills), pinned in `.agents/skills.yaml` |
