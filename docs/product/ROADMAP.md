@@ -400,7 +400,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - Email set (NL + EN each): magic link, booking confirmation, cancellation, schedule change, class cancellation; trainer: new booking, cancellation (§51).
 - **There are no guests.** A client's account is created automatically at their first verified booking (§26); the booking form still only asks for name + email, never a password, and its initial stored language preference is whatever language the booking was made in. Whether a signed-in client booking again should skip the confirmation email is open ([`open-questions.md`](../design/open-questions.md)).
 - Client web (F033): **my schedule** with group bookings and private sessions together, labelled by type and filterable; past bookings, cancellation, profile; reachable after signing in, or by the email link of a booking. M11 adds agreements, balances, payments and invoices to it.
-- The public booking page never lists private sessions. M11 makes booking membership-aware and adds paid single classes.
+- The public booking page never lists private sessions. M11 makes booking membership-aware and adds paid single classes (proposed, [decision 11](#14-decisions)).
 - **Buy the domain before this milestone.** Real clients need emails from an authenticated domain (SPF, DKIM, DMARC).
 - Performance budget for the public page: fast on a mid-range phone over 4G (LCP < 2.5 s).
 
@@ -453,7 +453,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 **Exit criteria**
 - A client confirms a membership on a phone, pays the first amount with iDEAL (test mode; the methods follow QC06), books the included classes without paying again, and gets an invoice; the next amount is collected by direct debit (test mode) with its invoice. In Dutch and in English.
 - A session pack (proposed, [decision 11](#14-decisions)) is used by private sessions; a timely cancellation returns the session, a no-show uses it; the history explains every step.
-- A client with a membership buys an extra class; it doesn't change the membership or any pack.
+- A client with a membership buys an extra class; it doesn't change the membership or any pack (proposed, [decision 11](#14-decisions)).
 - A duplicate webhook and a retried job leave one payment, one invoice and one balance change.
 - A failed debit and a refund show up for the owner, the client gets an email, and a credit note is issued for the refund.
 - A client invoice in a company's name is correct, and stays unchanged after the client edits their details.

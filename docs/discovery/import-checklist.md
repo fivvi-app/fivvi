@@ -27,7 +27,7 @@
 **How the data gets in at go-live** (decide in M9, not now):
 
 - ☐ **Entered by hand** during onboarding (week 0). Works for small numbers: clients, the weekly timetable and a few weeks of sessions. No file ever changes hands.
-- ☐ **The gym owner fills in the template** (§4) from their own Excel and hands it over, after the processor agreement is signed.
+- ☐ **The gym owner fills in the template** (§4) from their own records and hands it over, after the processor agreement is signed.
 - ☐ **The gym owner uploads the file themselves** with the importer (E015), so nobody else sees it. Only if E015 supports self-service upload.
 
 **Freeze window:** between the final export (or the start of entry by hand) and the gym owner's "import looks right", changes in the old system are written on a list and entered in the platform by hand afterwards. Agree how long it lasts: ____ days.
