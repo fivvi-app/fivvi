@@ -222,7 +222,7 @@ Which commerce actions may an admin take (agreements, refunds, prices, payouts, 
 What does the pilot pay today: the subscription (per month or per year, VAT included?) and the fee per payment, and is there a separate provider fee? (The figures stay in the owner's private notes, not in the repository.) What does a weekly payout need to show? **Proposal:** record only the outcome of the comparison here (for example "cheaper / similar / more expensive per payment"), never the figures; compare in the ADR-020 spike.
 
 ### QC14
-Which data can the pilot export from the current app (clients, memberships, remaining sessions, next due dates), who does it, and how long does it take? **Proposal:** an export the gym owner makes, mapped to the E015 import template (`docs/discovery/import-checklist.md`).
+Which data can the pilot export from the current app (clients, memberships, session balances, next due dates), who does it, and how long does it take? **Proposal:** an export the gym owner makes, mapped to the E015 import template (`docs/discovery/import-checklist.md`).
 
 ### QC15
 When the owner changes an offer's price or cancellation policy, does it also change agreements that already run? **Proposal:** a price change applies to new agreements only, and an agreement keeps the cancellation policy it started with (`PRODUCT.md §90`, `§93`).

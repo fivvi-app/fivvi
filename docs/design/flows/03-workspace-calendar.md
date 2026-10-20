@@ -8,7 +8,7 @@
 | **Surface** | Trainer web, laptop/desktop first; tablet landscape works |
 | **Milestone** | M4 (Gate G2: the owner runs the real timetable in parallel with the current apps) |
 | **Spec** | `PRODUCT.md §7, §16–§20, §44, §45, §48, §78`; `ROADMAP.md M4, ADR-012, R2` |
-| **Why critical** | It replaces the owner's current apps and calendar. Success = ≥ 95 % of the real weekly schedule lives here from pilot week 3 (`ROADMAP §8`) |
+| **Why critical** | It replaces the owner's current apps and calendar. Success = ≥ 95 % of the real weekly schedule lives here from pilot week 3 (`ROADMAP.md §8`) |
 
 ## Features
 

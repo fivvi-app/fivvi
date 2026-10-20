@@ -199,8 +199,8 @@ A client's commitment to a membership or session pack: start, end, renewal, pric
 _Avoid_: contract (outside legal text), subscription (for the agreement itself)
 
 **Membership**:
-An agreement for group classes on fixed weekdays for a term, e.g. two classes a week for six months, paid through recurring payments (the subscription model, see *Recurring payment*).
-_Avoid_: subscription as a name for the agreement ("the subscription model" means its recurring payments), plan, pass
+An agreement for group classes on fixed weekdays for a term, e.g. two classes a week for six months, paid through recurring payments (see *Recurring payment*).
+_Avoid_: subscription (see *Recurring payment*), plan, pass
 
 **Session pack**:
 An agreement for a number of private sessions to use within a validity period.
@@ -222,7 +222,7 @@ How many hours before the start a client can still cancel in time.
 _Avoid_: deadline, notice period
 
 **Makeup**:
-A right to attend another class, granted for a cancellation in time or a class the workspace cancelled. Limits are per the cancellation policy.
+A right to attend another class, granted under the cancellation policy, for example for a cancellation in time.
 _Avoid_: credit, catch-up, reschedule (that moves a session)
 
 **Payment provider**:
@@ -237,7 +237,7 @@ A payment collected on a due date of an agreement's payment schedule, under a ma
 _Avoid_: subscription as a name for a payment or for the agreement, automatic payment
 
 **Mandate**:
-A client's permission to collect recurring payments from them, given with the first payment.
+A client's permission to collect recurring payments from them.
 _Avoid_: authorization
 
 **Invoice**:

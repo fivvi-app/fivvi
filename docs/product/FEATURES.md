@@ -123,8 +123,8 @@ Added in roadmap v1.19 (M11), before go-live. The subscription model and invoice
 | F053 | Memberships | PLANNED | Must | M11 | F052, F022, F028, F057 | ⬜ | ⬜ | §91 (fixed weekdays, term, terms stored) |
 | F054 | Session Packs | PLANNED | Must (proposed, decision 11) | M11 | F052, F020, F055 | ⬜ | ⬜ | §92 |
 | F055 | Session Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (history: granted, used, returned, expired) |
-| F056 | Cancellation Policy and Makeups | PLANNED | Must | M11 | F026, F055 | ⬜ | ⬜ | §93 (cutoff, late cancellation, makeups; moved from 1.1) |
-| F057 | Recurring Payments | PLANNED | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit, exactly once) |
+| F056 | Cancellation Policy and Makeups | PLANNED | Must | M11 | F026, F055 | ⬜ | ⬜ | §93 (cutoff, late cancellation, makeups) |
+| F057 | Recurring Payments | PLANNED | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit: proposal, QC06; exactly once) |
 | F058 | Single Class Purchase | PLANNED | Must (proposed, decision 11) | M11 | F029, E019, F059 | ⬜ | ⬜ | §95 |
 | F059 | Invoices and Billing Details | PLANNED | Must | M11 | F006, F052 | ⬜ | ⬜ | §96 (company details, gapless numbers, credit notes) |
 | F060 | Failed Payments and Refunds | PLANNED | Must | M11 | F057, F059 | ⬜ | ⬜ | §94 |
