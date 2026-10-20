@@ -145,10 +145,11 @@ Tick **Confirm**, or write the adjusted target and the reason. Baselines come fr
 | B7 | Trainer rating "easy to see what they did last time" | ≥ 4 / 5 | ____ / 5 today (A3.7) | ☐ Confirm / ______ | The same question as the baseline (shadow-day guide 4.4 / 10.3), at the bi-weekly trainer check |
 | B8 | Developer interventions for routine operations | 0 in the final 2 weeks | n/a | ☐ Confirm | Support log in `docs/pilot/` |
 | B9 | Uptime; cross-tenant incidents; app crash-free sessions | ≥ 99.5 %; 0; ≥ 99 % | n/a | ☐ Confirm | Uptime monitor; incident log; Sentry |
-| B10 | "Would you go back to the old booking and payment app, Google Calendar and Word?" | **No** | satisfaction today ____ / 5 (A3.9) | ☐ Confirm | Question at the pilot review (see Part D) |
+| B10 | "Would you go back to the old booking and payment app, Google Calendar and Word?" | **No**, and cancelled (the old app is cancelled) | satisfaction today ____ / 5 (A3.9) | ☐ Confirm | Question at the pilot review (see Part D); the old app cancelled (confirmed by the gym owner) |
+| B11 | Trainers use team access: trainers using a client account to see their schedule | 0 | n/a | ☐ Confirm | Trainers who open their schedule through a client account (product events), checked at the weekly check-in |
 
-**Vraag (voor B1–B10):** Dit zijn de doelen die wij voorstellen. Is er een doel dat je te makkelijk of te moeilijk vindt, of dat voor jou niets zegt?\
-*Question (for B1–B10): these are the targets we propose. Is there one you find too easy or too hard, or that means nothing to you?*
+**Vraag (voor B1–B11):** Dit zijn de doelen die wij voorstellen. Is er een doel dat je te makkelijk of te moeilijk vindt, of dat voor jou niets zegt?\
+*Question (for B1–B11): these are the targets we propose. Is there one you find too easy or too hard, or that means nothing to you?*
 
 ---
 

@@ -10,9 +10,9 @@
 |---|---|
 | **Actors** | Trainer (during or right after a private session); Owner/Admin as trainers |
 | **Surfaces** | Trainer iOS/Android (primary, one hand, between sets); trainer web (WL-06, e.g. afterwards at a desk) |
-| **Milestone** | M7 (web + logging API, offline-ready), M8 (native) |
+| **Milestone** | M7, after go-live (web + logging API, offline-ready), M8 (native) |
 | **Spec** | `PRODUCT.md §38–§42, §36, §37, §89`; `ROADMAP.md M7 (offline-ready API: client IDs, idempotent writes, batch sync), M8, R12` |
-| **Why critical** | It replaces Excel for workouts (target: ≥ 80 % of private sessions logged) and answers "what did they do last time?" (target: ≥ 4/5 rating) (`ROADMAP §8`) |
+| **Why critical** | It replaces the pilot's current way of recording workouts (Word documents, by hand) in the platform (target: ≥ 80 % of private sessions logged) and answers "what did they do last time?" (target: ≥ 4/5 rating) (`ROADMAP §8`) |
 
 ## Features
 

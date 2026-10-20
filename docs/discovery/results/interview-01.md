@@ -68,7 +68,7 @@ Not shown by this interview: the app names, the real cost, client and trainer co
 
 ## 4. Follow-up
 
-The commerce walkthrough with T1 (`ROADMAP.md §4.1`) answers QC01–QC15 in [`open-questions.md`](../../design/open-questions.md#commerce-interview-01-follow-up). Most valuable first:
+The commerce walkthrough with T1 (`ROADMAP.md §4.1`) answers QC01–QC16 in [`open-questions.md`](../../design/open-questions.md#commerce-interview-01-follow-up). Most valuable first:
 
 - The names of both apps; what the subscription covers; the per-payment fee and any provider fee; the kiosk option (QC11, QC13).
 - Counts: trainers, active group clients, private clients, clients doing both; invoices made or edited per month and the time they take; no-show rate.

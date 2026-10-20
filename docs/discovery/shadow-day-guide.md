@@ -57,7 +57,7 @@ Look for:
 - [ ] Whether the gym owner has an overview of **all trainers' schedules** in one place, and whether trainers have one overview across several workplaces.
 - [ ] Double bookings, clashes, or "wait, where am I at 10?" moments.
 
-Things to ask the gym owner to describe (no files): the weekly class timetable, what a week in the calendar looks like, what columns the Excel planning sheet has.
+Things to ask the gym owner to describe (no files): the weekly class timetable, what a week in the calendar looks like, how the planning is kept today (the old booking and payment app, Google Calendar, Word documents, by hand).
 
 ### B — Booking / Boekingen
 
@@ -328,8 +328,8 @@ About 45 minutes with the gym owner, after the observed day. Use **section 5.10*
 **9.2** Wat moet absoluut blijven werken zoals het nu werkt?\
 *What absolutely has to keep working the way it does now?*
 
-**9.3** Wanneer zou je zeggen: dit nieuwe systeem is een succes? Wanneer zou je teruggaan naar Excel?\
-*When would you say this new system is a success? When would you go back to Excel?*
+**9.3** Wanneer zou je zeggen: dit nieuwe systeem is een succes? Wanneer zou je teruggaan naar je oude werkwijze (de oude boekings- en betaalapp, Google Agenda, Word, handwerk)?\
+*When would you say this new system is a success? When would you go back to your old way of working (the old booking and payment app, Google Calendar, Word documents, by hand)?*
 
 **9.4** Is er iets dat ik vandaag niet heb gezien maar wel zou moeten weten?\
 *Is there anything I didn't see today that I should know about?*
@@ -382,7 +382,7 @@ Fill in during or after the interview. Numbers only, no names. Copy these values
 **Described by the gym owner** (no files needed; tick what you now understand, see [`import-checklist.md`](import-checklist.md)):
 
 - [ ] Weekly class timetable
-- [ ] Excel planning and client sheets (which columns)
+- [ ] How planning and client records are kept today (old booking and payment app, Google Calendar, Word documents, by hand) and what they hold
 - [ ] How the calendar is used (one shared calendar or one per trainer)
 - [ ] How a workout log / programme looks
 - [ ] What kinds of notes are kept (no content)

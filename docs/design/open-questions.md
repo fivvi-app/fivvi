@@ -201,7 +201,7 @@ When a recurring payment fails, can the client keep booking, and for how long? W
 Which payment methods do the clients use today for the first payment and the recurring ones (iDEAL, SEPA Direct Debit, card)? On which day of the month is a membership collected? **Proposal:** iDEAL for the first payment, SEPA Direct Debit monthly on the agreement's start day.
 
 ### QC07
-What are the membership terms today: minimum term, tacit renewal, notice period, early ending? They must fit Dutch consumer law (ACM) before G4. **Proposal:** fixed term, then monthly with one month's notice, reviewed in the §4.4 legal check.
+What are the membership terms today: minimum term, tacit renewal, notice period, early ending? They must fit Dutch consumer law (ACM) before G4. **Proposal:** fixed term, then monthly with one month's notice, reviewed in the `ROADMAP.md §4.4` legal check.
 
 ### QC08
 How are private sessions sold today: a number of sessions with a validity, or a weekly rhythm for a term, and paid up front or monthly? What happens to unused sessions at the end? **Proposal:** a number of sessions with a validity, paid up front or in monthly instalments; unused sessions expire, visible in the history (`§92`).
@@ -226,3 +226,6 @@ Which data can the pilot export from the current app (clients, memberships, rema
 
 ### QC15
 When the owner changes an offer's price or cancellation policy, does it also change agreements that already run? **Proposal:** a price change applies to new agreements only, and an agreement keeps the cancellation policy it started with (`PRODUCT.md §90`, `§93`).
+
+### QC16
+Does the pilot agree with these four rules? (1) The trainer and client apps never take payments; clients pay on the web. (2) A single class's spot is held while the client pays. (3) The owner can also enter billing details (company name, address, VAT number) for a client. (4) A late cancellation counts like a no-show. **Proposal:** all four as written in `PRODUCT.md §93–§96`; the merchant model behind them (the gym as merchant, payouts to the workspace) is decided in ADR-020 (to come), not here.

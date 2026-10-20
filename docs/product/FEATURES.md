@@ -3,7 +3,7 @@
 The single source of truth for feature status. A status changes **in the same PR** as the code that earns it.
 
 - **Lifecycle:** `IDEA → PLANNED → DESIGNED → IN PROGRESS → IN REVIEW → IMPLEMENTED → RELEASED` (`PRODUCT.md §81`)
-- **Priority:** `Must` (MVP cannot ship without it) · `Should` (first to slip to 1.1 if dates are at risk)
+- **Priority:** `Must` (MVP cannot ship without it) · `Should` (first to slip to 1.1 if dates are at risk) · `Must (proposed, decision 11)` (proposed M11 scope, `ROADMAP.md` decision 11: a `Must` only once the owner confirms it)
 - **Languages:** a feature is not `IMPLEMENTED` until both NL and EN work (`PRODUCT.md §82`)
 - **Spec:** the *Spec* column points to the requirements in [`PRODUCT.md`](PRODUCT.md). Each feature's spec and tickets are GitHub issues (`/to-spec`, `/to-tickets`, [`docs/agents/issue-tracker.md`](../agents/issue-tracker.md)); once a spec issue exists, the ID links to it, e.g. `[F031](https://github.com/trainerrrzzz/trainer-hub/issues/<n>)`
 - **Rows:** a stable summary and a Status. A ticket PR changes only its row's Status: the spec's first ticket sets `IN PROGRESS`, and the PR that completes the spec sets `IMPLEMENTED` and writes the final one-line summary. A spec's progress (what's open, what's next) lives in its tickets (`scripts/flow.sh status <spec>`), not in the row, so parallel PRs don't edit the same lines
@@ -121,14 +121,14 @@ Added in roadmap v1.19 (M11), before go-live. The subscription model and invoice
 |---|---|---|---|---|---|---|---|---|
 | F052 | Offers and Prices | PLANNED | Must | M11 | F002, E019 | ⬜ | ⬜ | §90 |
 | F053 | Memberships | PLANNED | Must | M11 | F052, F022, F028, F057 | ⬜ | ⬜ | §91 (fixed weekdays, term, terms stored) |
-| F054 | Session Packs | PLANNED | Must | M11 | F052, F020, F055 | ⬜ | ⬜ | §92 |
+| F054 | Session Packs | PLANNED | Must (proposed, decision 11) | M11 | F052, F020, F055 | ⬜ | ⬜ | §92 |
 | F055 | Session Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (history: granted, used, returned, expired) |
 | F056 | Cancellation Policy and Makeups | PLANNED | Must | M11 | F026, F055 | ⬜ | ⬜ | §93 (cutoff, late cancellation, makeups; moved from 1.1) |
 | F057 | Recurring Payments | PLANNED | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit, exactly once) |
-| F058 | Single Class Purchase | PLANNED | Must | M11 | F029, E019, F059 | ⬜ | ⬜ | §95 |
+| F058 | Single Class Purchase | PLANNED | Must (proposed, decision 11) | M11 | F029, E019, F059 | ⬜ | ⬜ | §95 |
 | F059 | Invoices and Billing Details | PLANNED | Must | M11 | F006, F052 | ⬜ | ⬜ | §96 (company details, gapless numbers, credit notes) |
 | F060 | Failed Payments and Refunds | PLANNED | Must | M11 | F057, F059 | ⬜ | ⬜ | §94 |
-| F061 | Payouts and Reconciliation | PLANNED | Must | M11 | F057, F060 | ⬜ | ⬜ | §97 |
+| F061 | Payouts and Reconciliation | PLANNED | Must (proposed, decision 11) | M11 | F057, F060 | ⬜ | ⬜ | §97 |
 
 ### Notifications
 

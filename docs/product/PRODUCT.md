@@ -2670,7 +2670,7 @@ Each offer has a **cancellation policy**:
 | Event | Effect |
 |---|---|
 | The client cancels before the **cutoff** (hours before the start, set per offer; proposal, [QC02](../design/open-questions.md#qc02)) | Membership: may grant a **makeup**, up to a limit per term. Pack: the session returns to the balance |
-| The client cancels after the cutoff (late cancellation) | The session is used or lost, like a no-show |
+| The client cancels after the cutoff (late cancellation) | The session is used or lost, like a no-show (proposal, [QC16](../design/open-questions.md#qc16)) |
 | **No-show** | The session is used (pack) or lost (membership) |
 | The workspace cancels the session or class | Pack: the session returns. Membership: a makeup, outside the limit (proposal, [QC04](../design/open-questions.md#qc04)) |
 
@@ -2687,13 +2687,13 @@ Payments run through a **payment provider** (Mollie or Stripe, chosen in the M11
 - **Exactly once:** a due amount is charged once, even when a job retries or the provider sends the same event twice.
 - **Failed payment:** the client and the owner get an email, and the agreement shows the open amount. Whether the client can keep booking until it is paid is a setting of the offer (proposal, [QC05](../design/open-questions.md#qc05)), never an accident.
 - **Refund and chargeback:** the owner can refund a payment fully or in part (whether admins may refund is open, [QC12](../design/open-questions.md#qc12)). A refund or a reversed direct debit gets a credit note (§96), and the policy says what happens to the balance.
-- The trainer and client apps never take payments; clients pay on the web.
+- The trainer and client apps never take payments; clients pay on the web (proposal, [QC16](../design/open-questions.md#qc16)).
 
 ---
 
 # 95. Single class purchase
 
-A client can buy one class: as a client without a membership, or as a client with a membership who wants an extra class this week. They choose the class on the booking page (§21), pay online, and the booking is confirmed when the payment succeeds. The spot is held while they pay, like a booking hold (§24). Buying an extra class never changes what the membership includes.
+A client can buy one class: as a client without a membership, or as a client with a membership who wants an extra class this week. They choose the class on the booking page (§21), pay online, and the booking is confirmed when the payment succeeds. The spot is held while they pay, like a booking hold (§24; proposal, [QC16](../design/open-questions.md#qc16)). Buying an extra class never changes what the membership includes.
 
 ---
 
@@ -2701,7 +2701,7 @@ A client can buy one class: as a client without a membership, or as a client wit
 
 Every payment gets an **invoice**, emailed to the client and kept on their profile and in client web.
 
-- **Billing details:** a client can put a company name, address and VAT number on their invoices; the owner can too. Without them, the invoice uses the client's name.
+- **Billing details:** a client can put a company name, address and VAT number on their invoices; the owner can too, on behalf of a client (proposal, [QC16](../design/open-questions.md#qc16)). Without them, the invoice uses the client's name.
 - It meets the Dutch invoice requirements (Belastingdienst): a unique number in one series per workspace without gaps (one series per workspace is a proposal, [QC10](../design/open-questions.md#qc10)), the issue date, the workspace's legal name, address, KvK and VAT number, the buyer's details, what was supplied, the amount excluding VAT, the VAT rate and amount, and the total.
 - Once issued, an invoice never changes, even when the client's or workspace's details change later. A correction is a **credit note** that refers to it.
 - Private invoices are made automatically: the owner no longer types them.
