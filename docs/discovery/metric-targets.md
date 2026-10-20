@@ -23,8 +23,8 @@
 | **Metric** | Share of group-class + Open Gym bookings made via the public booking pages (not entered by staff) |
 | **Baseline** (baseline sheet A3.2, A2.5) | Self-service share today: ____ % · top channel today: ____________ (____ %) |
 | **Roadmap default** | ≥ 80 % |
-| **Measured in the pilot** | Bookings by source in the database (public page vs created by a trainer/admin), per week |
-| **Measured when** | Pilot weeks 4–6 (after the switch-over in weeks 2–3) |
+| **Measured in the pilot** | Bookings by source in the database (public page vs created by a trainer or the owner), per week |
+| **Measured when** | Pilot weeks 4–6 (after the cutover) |
 
 **Vraag:** Hoeveel procent van de boekingen voor groepslessen en Open Gym moeten klanten na de overstap zelf via de boekingspagina doen, voordat je zegt: dit werkt? Welke klanten zullen dat waarschijnlijk níet doen, en waarom?\
 *Question: what share of group-class and Open Gym bookings should clients make themselves on the booking page after the switch-over before you'd say: this works? Which clients probably won't, and why?*
@@ -100,7 +100,7 @@
 | **Baseline** (M0 walkthrough) | Payments collected by the old app per month: ____ · of which failed or late: ____ · double charges ever seen: ____ |
 | **Roadmap default** | 100 % by pilot week 6; 0 duplicate charges |
 | **Measured in the pilot** | Due payments collected through Trainer Hub ÷ all due payments (payment records and the provider's payout reports); duplicate charges counted in the provider's reports |
-| **Measured when** | From the switch-over (weeks 2–3) to pilot week 6 |
+| **Measured when** | From the cutover to pilot week 6 |
 
 **Vraag:** Vanaf welke week wil je dat alle betalingen via Trainer Hub lopen, zodat je de oude app kunt opzeggen? Wat mag er in de tussentijd nog via de oude app?\
 *Question: from which week do you want all payments to run through Trainer Hub, so you can cancel the old app? What may still go through the old app in the meantime?*

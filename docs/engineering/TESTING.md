@@ -40,7 +40,7 @@ Use this as the checklist when writing and reviewing a PR.
 | Change | Required tests |
 |---|---|
 | New or changed **business rule** | Domain unit tests, including edge cases and invalid input |
-| New or changed **API route** | Integration test: happy path, validation error, **every role** (Owner / Admin / Trainer / Client / anonymous) allowed or denied as specified, response matches the schema. The isolation suite picks the route up automatically (§4.1) |
+| New or changed **API route** | Integration test: happy path, validation error, **every role** (Owner / Trainer / Client / anonymous) allowed or denied as specified, response matches the schema. The isolation suite picks the route up automatically (§4.1) |
 | **Schema / migration** | Migrations apply to an empty DB and on top of the previous version; RLS policy exists for every new business table (a test checks this) |
 | **Scheduling, time, recurrence** | DST fixtures (§4.3); times near midnight in Europe/Amsterdam |
 | **Booking, capacity, holds** | Concurrency test (§4.2); hold expiry; cancellation frees the spot |

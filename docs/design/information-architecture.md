@@ -17,7 +17,7 @@ Assumptions that `PRODUCT.md` doesn't settle are marked **⚑** and linked to [o
 3. **Clients never need an app or a password.** Public booking and client web are responsive web pages, reached through a QR code, a link or an email (`§2.3, §2.4`).
 4. **One scheduling engine, one session screen.** Private sessions, group classes and Open Gym share one detail pattern. The type changes the sections, not the navigation (`§16`).
 5. **Language is always one tap away** on public surfaces (`NL | EN` in the header, `§15`), and one menu away on trainer surfaces.
-6. **Infer, then offer to change.** Location, workspace, trainer and duration are pre-filled and explained. The UI asks only when the answer is ambiguous (`§2.6, §13`).
+6. **Infer, then offer to change.** Location, workspace, trainer and duration are pre-filled and explained. The UI asks only when the answer is ambiguous (`§2.6, §13`). At go-live a workspace has one location, so a session simply shows it; choosing between locations and inference (F017–F019) come after go-live.
 
 ---
 
@@ -25,7 +25,7 @@ Assumptions that `PRODUCT.md` doesn't settle are marked **⚑** and linked to [o
 
 | Surface | Who | Device | Tech | Milestone | Main features |
 |---|---|---|---|---|---|
-| **Trainer web** | Owner, Admin, Trainer | Laptop/desktop (responsive down to tablet) | Next.js | M2–M7 | F001–F026, F034, F036–F048 |
+| **Trainer web** | Owner, Trainer | Laptop/desktop (responsive down to tablet) | Next.js | M2–M7 | F001–F026, F034, F036–F048 |
 | **Trainer iOS app** | Trainer (incl. owner-trainers) | iPhone | Swift + SwiftUI | M8 | Mobile slices of F013, F020, F025, F043–F048, F010 |
 | **Trainer Android app** | Trainer (incl. owner-trainers) | Android phone | Kotlin + Compose (Material 3) | M8 | Same as iOS (parity) |
 | **Public booking web** | Client (before or after verification) | Phone first (from QR), also desktop | Next.js (SSR) | M5–M6 | F027–F032, F035, F037, F038 |
@@ -36,7 +36,6 @@ Assumptions that `PRODUCT.md` doesn't settle are marked **⚑** and linked to [o
 flowchart LR
   subgraph People
     O["Owner (often also Trainer)"]
-    A["Admin"]
     T["Trainer"]
     C["Client"]
   end
@@ -49,7 +48,6 @@ flowchart LR
   end
   O --> TW
   O --> TM
-  A --> TW
   T --> TM
   T --> TW
   C --> PB
@@ -63,7 +61,7 @@ flowchart LR
 
 ## 3. Roles and what each role sees
 
-Roles come from `PRODUCT.md §9, §50`: **Owner, Admin, Trainer** are team roles inside a workspace. There are no custom permissions in MVP. A person has at most one team role **per workspace**, so Sarah can be *Trainer* at John's Gym and *Owner* of Sarah Personal Training at the same time (`§6`).
+Roles come from `PRODUCT.md §9, §50`: **Owner and Trainer** are the team roles inside a workspace. The Owner can do everything, including the money; the Trainer runs their own sessions and classes, calendar and attendance. **There is no Admin role in the MVP** (owner decision, 20 October 2026, [Q05](open-questions.md#q05)); it is a later role 🔜, for a gym that asks for a manager who isn't the owner. There are no custom permissions in MVP. A person has at most one team role **per workspace**, so Sarah can be *Trainer* at John's Gym and *Owner* of Sarah Personal Training at the same time (`§6`).
 
 **Client** is not a team role but a separate relationship (`PRODUCT.md §2.9`). The same account can be a team member and a client of one workspace at once: a trainer who buys group classes sees their own bookings in client web, and their team role shows nothing more about other clients than it already did. Trainers reach their schedule through trainer web, never through a client account. The columns below are capabilities, so one person can hold a team column and a client column together.
 
@@ -71,50 +69,50 @@ Roles come from `PRODUCT.md §9, §50`: **Owner, Admin, Trainer** are team roles
 
 ✓ = can · 👁 = view only · — = can't · ⚑ = assumption, see the linked question
 
-| Capability | Owner | Admin | Trainer | Client (signed in) | Client (not signed in) |
-|---|---|---|---|---|---|
-| Workspace settings: name, default language, timezone, locations | ✓ | — ⚑ [Q05](open-questions.md#q05) | — | — | — |
-| Invite trainers | ✓ | ✓ | — | — | — |
-| Change roles, remove members, transfer ownership | ✓ | — ⚑ [Q05](open-questions.md#q05) | — | — | — |
-| Dashboard: whole workspace today (`§45`) | ✓ | ✓ | — (sees *Mijn dag*, `§46`) | — | — |
-| Workspace calendar (`§48`) | ✓ | ✓ | 👁 ⚑ [Q02](open-questions.md#q02) | — | — |
-| Personal calendar across workspaces (`§47`) | ✓ own | ✓ own | ✓ own | — | — |
-| Create / reschedule / cancel private sessions | ✓ any | ✓ any | ✓ own ⚑ [Q27](open-questions.md#q27) | — | — |
-| Class templates and recurring series | ✓ | ✓ | — | — | — |
-| Substitute trainer / cancel a class occurrence | ✓ | ✓ | — ⚑ [Q40](open-questions.md#q40) | — | — |
-| Mark attendance | ✓ | ✓ | ✓ own sessions and classes | — | — |
-| Open Gym: create, publish | ✓ | ✓ ⚑ [Q05](open-questions.md#q05) | — | — | — |
-| Booking links and QR codes: manage | ✓ | ✓ ⚑ [Q05](open-questions.md#q05) | 👁 copy/share | — | — |
-| Clients: list and profile | ✓ all | ✓ all | ✓ ⚑ [Q03](open-questions.md#q03) | — | — |
-| Notes: write client and session notes | ✓ | ✓ | ✓ | — | — |
-| Notes: read *trainer-only* notes | ✓ | ✓ | ✓ ⚑ [Q04](open-questions.md#q04) | — | — |
-| Exercises, custom exercises, templates | ✓ | ✓ | ✓ | — | — |
-| Log workouts | ✓ | ✓ | ✓ own sessions | — | — |
-| Offers, prices, cancellation policy (`§90`, `§93`) | ✓ | — ⚑ [QC12](open-questions.md#qc12) | — | — | — |
-| Connect the payment provider account (proposed, ADR-020 (to come); `§94`) | ✓ | — | — | — | — |
-| Agreements: create, end, see balances (`§91`, `§92`) | ✓ | ✓ ⚑ [QC12](open-questions.md#qc12) | 👁 balance of own clients ⚑ [QC12](open-questions.md#qc12) | ✓ own | — |
-| Payments, invoices, refunds, payouts (`§94`–`§97`) | ✓ | ⚑ [QC12](open-questions.md#qc12) | — | 👁 own payments and invoices | — |
-| Buy a membership, session pack or single class; pay | — | — | — | ✓ | ✓ single class (account created at verification) |
-| Billing details | ✓ on behalf of a client ⚑ [QC16](open-questions.md#qc16) | ⚑ [QC12](open-questions.md#qc12) | — | ✓ own | — |
-| Book group classes and Open Gym | — | — | — | ✓ | ✓ |
-| View and cancel own bookings and private sessions (*my schedule*) | — | — | — | ✓ client web | ✓ via manage link in email |
-| Personal profile and language | ✓ | ✓ | ✓ | ✓ | language only (per booking) |
+| Capability | Owner | Trainer | Client (signed in) | Client (not signed in) |
+|---|---|---|---|---|
+| Workspace settings: name, default language, timezone, locations | ✓ | — | — | — |
+| Invite trainers | ✓ | — | — | — |
+| Change roles, remove members, transfer ownership | ✓ | — | — | — |
+| Dashboard: whole workspace today (`§45`) | ✓ | — (sees *Mijn dag*, `§46`) | — | — |
+| Workspace calendar (`§48`) | ✓ | 👁 ⚑ [Q02](open-questions.md#q02) | — | — |
+| Personal calendar across workspaces (`§47`) | ✓ own | ✓ own | — | — |
+| Create / reschedule / cancel private sessions | ✓ any | ✓ own ⚑ [Q27](open-questions.md#q27) | — | — |
+| Class templates and recurring series | ✓ | — | — | — |
+| Substitute trainer / cancel a class occurrence | ✓ | — ⚑ [Q40](open-questions.md#q40) | — | — |
+| Mark attendance | ✓ | ✓ own sessions and classes | — | — |
+| Open Gym: create, publish | ✓ | — | — | — |
+| Booking links and QR codes: manage | ✓ | 👁 copy/share | — | — |
+| Clients: list and profile | ✓ all | ✓ ⚑ [Q03](open-questions.md#q03) | — | — |
+| Notes: write client and session notes | ✓ | ✓ | — | — |
+| Notes: read *trainer-only* notes | ✓ | ✓ ⚑ [Q04](open-questions.md#q04) | — | — |
+| Exercises, custom exercises, templates | ✓ | ✓ | — | — |
+| Log workouts | ✓ | ✓ own sessions | — | — |
+| Offers, prices, cancellation policy (`§90`, `§93`) | ✓ | — | — | — |
+| Connect the payment provider account (proposed, ADR-020 (to come); `§94`) | ✓ | — | — | — |
+| Agreements: create, end, see balances (`§91`, `§92`) | ✓ | 👁 balance of own clients ⚑ [QC12](open-questions.md#qc12) | ✓ own | — |
+| Payments, invoices, refunds, payouts (`§94`–`§97`) | ✓ | — | 👁 own payments and invoices | — |
+| Buy a membership, session pack or single class; pay | — | — | ✓ | ✓ single class (account created at verification) |
+| Billing details | ✓ on behalf of a client ⚑ [QC16](open-questions.md#qc16) | — | ✓ own | — |
+| Book group classes and Open Gym | — | — | ✓ | ✓ |
+| View and cancel own bookings and private sessions (*my schedule*) | — | — | ✓ client web | ✓ via manage link in email |
+| Personal profile and language | ✓ | ✓ | ✓ | language only (per booking) |
 
 ### 3.2 Role → navigation
 
 Trainer web shows or hides whole sections by role. Hidden means absent from the navigation **and** blocked by the API; it's not just greyed out.
 
-| Nav item (NL / EN) | Owner | Admin | Trainer |
-|---|---|---|---|
-| Dashboard / Dashboard | Whole workspace, toggle to *Mijn dag* | Whole workspace | *Mijn dag* |
-| Agenda / Calendar | Edit | Edit | View ⚑ [Q02](open-questions.md#q02) |
-| Klanten / Clients | ✓ | ✓ | ✓ ⚑ [Q03](open-questions.md#q03) |
-| Lessen / Classes | ✓ | ✓ | — |
-| Open Gym / Open Gym | ✓ | ✓ ⚑ | — |
-| Trainingen / Workouts | ✓ | ✓ | ✓ |
-| Trainers / Trainers | ✓ | ✓ (invite only) | — |
-| Boekingslinks / Booking links | ✓ | ✓ ⚑ | 👁 |
-| Instellingen / Settings | ✓ | — ⚑ | — |
+| Nav item (NL / EN) | Owner | Trainer |
+|---|---|---|
+| Dashboard / Dashboard | Whole workspace, toggle to *Mijn dag* | *Mijn dag* |
+| Agenda / Calendar | Edit | View ⚑ [Q02](open-questions.md#q02) |
+| Klanten / Clients | ✓ | ✓ ⚑ [Q03](open-questions.md#q03) |
+| Lessen / Classes | ✓ | — |
+| Open Gym / Open Gym | ✓ | — |
+| Trainingen / Workouts | ✓ | ✓ |
+| Trainers / Trainers | ✓ | — |
+| Boekingslinks / Booking links | ✓ | 👁 |
+| Instellingen / Settings | ✓ | — |
 
 ---
 
@@ -149,7 +147,7 @@ The left sidebar holds the scope switcher and the workspace navigation (`§44`, 
 └──────────────────────┴──────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Scope switcher** (`▾ John's Gym`): lists every workspace with the user's role in it (`Eigenaar`, `Beheerder`, `Trainer`). With a single workspace it's a plain label, and the *Persoonlijk* group still shows (the pilot owner is also a trainer).
+- **Scope switcher** (`▾ John's Gym`): lists every workspace with the user's role in it (`Eigenaar`, `Trainer`). With a single workspace it's a plain label, and the *Persoonlijk* group still shows (the pilot owner is also a trainer).
 - **+ Nieuw ▾**: *Privésessie*, *Groepsles*, *Open Gym*, *Klant*. It shows only the items the role may create.
 - **User menu (⋯)**: *Mijn profiel*, *Taal: Nederlands / English*, *Uitloggen*.
 - **Feedback geven**: the pilot feedback link (`ROADMAP §7`) on every page.
@@ -160,7 +158,7 @@ The left sidebar holds the scope switcher and the workspace navigation (`§44`, 
 ```mermaid
 flowchart TB
   login["Inloggen<br/>/login"] --> home{"Role in current workspace"}
-  home -- "Owner / Admin" --> dash
+  home -- "Owner" --> dash
   home -- "Trainer" --> myday
 
   subgraph personal["PERSOONLIJK (all my workspaces)"]
@@ -181,7 +179,7 @@ flowchart TB
     workouts["Trainingen<br/>Oefeningen · Schema's"]
     trainers["Trainers"]
     links["Boekingslinks<br/>+ QR"]
-    settings["Instellingen<br/>Algemeen · Locaties · Taal"]
+    settings["Instellingen<br/>Algemeen · Locatie · Taal"]
   end
 
   session["Sessie<br/>/w/{slug}/sessions/{id}"]
@@ -209,18 +207,18 @@ Paths are proposals for the web routes. They're English and language-neutral; th
 | Mijn dag / My day | `/me/day` | anyone with a trainer profile | F013, F012, F025 | WC-01 (personal variant) |
 | Mijn agenda / My calendar | `/me/calendar` | anyone with a trainer profile | F013 | WC-02 (personal variant) |
 | Mijn profiel / My profile | `/me/profile` | all | F005, F010, F012 | TW-09 |
-| Dashboard | `/w/{slug}` | Owner, Admin | F014, F025, F036 | WC-01 |
-| Agenda / Calendar | `/w/{slug}/calendar?view=week\|day\|list` | Owner, Admin, (Trainer 👁) | F014 | WC-02 – WC-07 |
+| Dashboard | `/w/{slug}` | Owner | F014, F025, F036 | WC-01 |
+| Agenda / Calendar | `/w/{slug}/calendar?view=week\|day\|list` | Owner, (Trainer 👁) | F014 | WC-02 – WC-07 |
 | Sessie / Session | `/w/{slug}/sessions/{id}` | per role | F020, F025, F046, F047 | PS-05, PS-06 |
-| Training bijhouden / Log workout | `/w/{slug}/sessions/{id}/log` | Owner, Admin, assigned Trainer | F043, F044 | WL-06 |
-| Klanten / Clients | `/w/{slug}/clients` | Owner, Admin, Trainer ⚑ | F006 | TW-01 |
-| Klantprofiel / Client profile | `/w/{slug}/clients/{id}/{tab}` | Owner, Admin, Trainer ⚑ | F006, F018, F045, F046 | TW-02 |
-| Lessen / Classes | `/w/{slug}/classes` | Owner, Admin | F021, F022 | TW-03 |
-| Les op datum / Class on date | `/w/{slug}/classes/{id}/{yyyy-mm-dd}` | Owner, Admin, assigned Trainer | F022–F026, F028 | CO-01 – CO-06 |
-| Open Gym | `/w/{slug}/open-gym` | Owner, Admin | F034, F036 | TW-04 |
-| Trainingen / Workouts | `/w/{slug}/workouts/{exercises\|templates}` | Owner, Admin, Trainer | F039–F041 | TW-05 |
-| Trainers | `/w/{slug}/trainers` | Owner, Admin | F011, F017, F023 | TW-06 |
-| Boekingslinks / Booking links | `/w/{slug}/booking-links` | Owner, Admin, (Trainer 👁) | F037, F038 | TW-07 |
+| Training bijhouden / Log workout | `/w/{slug}/sessions/{id}/log` | Owner, assigned Trainer | F043, F044 | WL-06 |
+| Klanten / Clients | `/w/{slug}/clients` | Owner, Trainer ⚑ | F006 | TW-01 |
+| Klantprofiel / Client profile | `/w/{slug}/clients/{id}/{tab}` | Owner, Trainer ⚑ | F006, F018, F045, F046 | TW-02 |
+| Lessen / Classes | `/w/{slug}/classes` | Owner | F021, F022 | TW-03 |
+| Les op datum / Class on date | `/w/{slug}/classes/{id}/{yyyy-mm-dd}` | Owner, assigned Trainer | F022–F026, F028 | CO-01 – CO-06 |
+| Open Gym | `/w/{slug}/open-gym` | Owner | F034, F036 | TW-04 |
+| Trainingen / Workouts | `/w/{slug}/workouts/{exercises\|templates}` | Owner, Trainer | F039–F041 | TW-05 |
+| Trainers | `/w/{slug}/trainers` | Owner | F011, F017, F023 | TW-06 |
+| Boekingslinks / Booking links | `/w/{slug}/booking-links` | Owner, (Trainer 👁) | F037, F038 | TW-07 |
 | Instellingen / Settings | `/w/{slug}/settings/{general\|locations\|language}` | Owner | F002, F015, F016, F010 | TW-08 |
 
 **Client profile tabs** follow `§34` exactly: *Overzicht, Sessies, Trainingen, Boekingen, Notities, Geschiedenis* / *Overview, Sessions, Workouts, Bookings, Notes, History*.
@@ -257,7 +255,7 @@ flowchart LR
   today --> cd["Les / Open Gym<br/>TD-03"]
   agenda --> sd
   agenda --> cd
-  agenda -- "+" --> nieuw["Nieuw TD-05 (sheet)<br/>privésessie · klant ·<br/>groepsles · Open Gym (eigenaar/beheerder)"]
+  agenda -- "+" --> nieuw["Nieuw TD-05 (sheet)<br/>privésessie · klant ·<br/>groepsles · Open Gym (eigenaar)"]
   nieuw --> create["Nieuwe privésessie<br/>PS-04 (modal)"]
   klanten -- "+" --> newc["Nieuwe klant (modal)"]
   cp -- "Nu training starten" --> logger
@@ -271,7 +269,7 @@ flowchart LR
 ```
 
 - **Navigation depth stays at most 2 pushes** from a tab. The workout logger is a **full-screen modal** because it's a focused task with its own exit (*Afronden*).
-- **Owner/Admin on mobile.** M8 scopes the app to the trainer's day. Owners get two extras: a *Mijn dag | John's Gym* toggle on *Vandaag* to see the whole workspace today, read-mostly ⚑ [Q01](open-questions.md#q01), and **creating a group class (one-off or weekly) or Open Gym from *+*** (TD-05, `PRODUCT.md §15`, added 23 September 2026) ⚑ [QE16](open-questions.md#qe16). Other workspace administration (class templates, series edits, trainers, links, settings) stays on web. The app links out to it (*Beheer op het web* / *Manage on the web*).
+- **Owner on mobile.** M8 scopes the app to the trainer's day. Owners get two extras: a *Mijn dag | John's Gym* toggle on *Vandaag* to see the whole workspace today, read-mostly ⚑ [Q01](open-questions.md#q01), and **creating a group class (one-off or weekly) or Open Gym from *+*** (TD-05, `PRODUCT.md §15`, added 23 September 2026) ⚑ [QE16](open-questions.md#qe16). Other workspace administration (class templates, series edits, trainers, links, settings) stays on web. The app links out to it (*Beheer op het web* / *Manage on the web*).
 - **Sign-in** uses email + **6-digit code** (ADR-007); deep links come in 1.1. The code field uses the platform's one-time-code autofill.
 - **Language** is set in *Profiel → Taal* and follows the in-app choice, not only the OS language (`ROADMAP M2`). Changing it re-renders immediately without a restart.
 
@@ -476,7 +474,7 @@ Every screen in the flow documents specifies these four states. The defaults:
 | Concept | NL | EN | Source |
 |---|---|---|---|
 | Workspace | Werkruimte | Workspace | proposed ⚑ |
-| Owner / Admin / Trainer (roles) | Eigenaar / Beheerder / Trainer | Owner / Admin / Trainer | proposed |
+| Owner / Trainer (roles); Admin 🔜 | Eigenaar / Trainer; Beheerder 🔜 | Owner / Trainer; Admin 🔜 | proposed |
 | Dashboard | Dashboard | Dashboard | §44 |
 | Calendar | Agenda | Calendar | §44 |
 | Clients / client | Klanten / klant | Clients / client | §44 |
@@ -508,7 +506,7 @@ Every screen in the flow documents specifies these four states. The defaults:
 | Internal note / client message | Notitie voor trainers / Bericht voor de klant | Note for trainers / Message for the client | §37; share via WL-08 |
 | My day / my calendar | Mijn dag / Mijn agenda | My day / My calendar | §46; proposed |
 | Account note (PB-03) | We maken een account voor je aan, zodat je je boekingen kunt zien. | We create an account for you so you can see your bookings. | §26 |
-| Location types | Eigen locatie · Externe sportschool · Bij de klant thuis · Buiten · Online · Anders | Own location · External gym · Client's home · Outdoors · Online · Other | glossary §4.3 |
+| Location types | Eigen locatie · Externe sportschool · Bij de klant thuis · Buiten · Online · Anders | Own location · External gym · Client's home · Outdoors · Online · Other | glossary §4.3; at go-live only *Eigen locatie* / *Own location*, the rest after go-live |
 
 ---
 
@@ -547,7 +545,7 @@ All screens with an ID. **Critical-flow** screens are wireframed in `flows/`. Th
 | WC-08 | Open Gym-suggestie | Open Gym suggestion | Web | F036 | M6 |
 | PS-01 | Nieuwe privésessie (web) | New private session (web) | Web | F020, F019 (after go-live), F023, F006 | M4 |
 | PS-02 | Klant kiezen | Choose client | Web, iOS, Android | F006 | M4/M8 |
-| PS-03 | Locatie | Location | Web, iOS, Android | F019 (after go-live), F015–F018 | M4/M8 |
+| PS-03 | Locatie (go-live: the workspace's one location, shown, nothing to choose; choosing and inference after go-live) | Location | Web, iOS, Android | F015, F016; F017–F019 (after go-live) | M4/M8 |
 | PS-04 | Nieuwe privésessie (app) | New private session (app) | iOS, Android | F020, F019 (after go-live) | M8 |
 | PS-05 | Sessie verplaatsen | Reschedule session | Web, iOS, Android | F020, F049 | M4/M8 |
 | PS-06 | Sessie annuleren | Cancel session | Web, iOS, Android | F026, F049 | M4/M8 |
@@ -577,9 +575,9 @@ All screens with an ID. **Critical-flow** screens are wireframed in `flows/`. Th
 | TW-03 | Lessen / Classes (templates and series) | Web | F021, F022, F023 |
 | TW-04 | Open Gym | Web | F034, F036 |
 | TW-05 | Trainingen: Oefeningen, Schema's / Workouts: Exercises, Templates | Web | F039, F040, F041, F042 |
-| TW-06 | Trainers (list, invite, locations) | Web | F011, F017 |
+| TW-06 | Trainers (list, invite; trainer locations after go-live) | Web | F011, F017 (after go-live) |
 | TW-07 | Boekingslinks + QR / Booking links + QR | Web | F037, F038 |
-| TW-08 | Instellingen / Settings | Web | F002, F015, F016, F010 |
+| TW-08 | Instellingen / Settings (go-live: the gym's one location; more locations after go-live) | Web | F002, F015, F016, F010 |
 | TW-09 | Mijn profiel / My profile | Web | F005, F010, F012 |
 | TW-10 | Inloggen / Sign in | Web | F001 |
 | TM-01 | Inloggen / Sign in | iOS, Android | F001 |

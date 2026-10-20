@@ -4,9 +4,9 @@
 
 | | |
 |---|---|
-| **Actors** | Owner (primary), Admin; Trainer read-only ⚑ [Q02](../open-questions.md#q02) |
+| **Actors** | Owner (primary); Trainer read-only ⚑ [Q02](../open-questions.md#q02) |
 | **Surface** | Trainer web, laptop/desktop first; tablet landscape works |
-| **Milestone** | M4 (Gate G2: the owner runs the real timetable in parallel with the current apps) |
+| **Milestone** | M4 (Gate G2: an internal alpha; a full week shaped like the pilot's timetable runs from synthetic data, and the owner may click through a demo; no parallel run with the current apps) |
 | **Spec** | `PRODUCT.md §7, §16–§20, §44, §45, §48, §78`; `ROADMAP.md M4, ADR-012, R2` |
 | **Why critical** | It replaces the owner's current apps and calendar. Success = ≥ 95 % of the real weekly schedule lives here from pilot week 3 (`ROADMAP.md §8`) |
 
@@ -80,7 +80,7 @@ flowchart TD
 ```
 
 - The list format follows `§45`: time, type — trainer, then client or occupancy (`7/8`, `1/2`).
-- *John's Gym / Mijn dag* toggle: Owner/Admin default to the workspace ⚑ [Q01](../open-questions.md#q01). *Mijn dag* shows the same list as the app's TD-01, across all the user's workspaces.
+- *John's Gym / Mijn dag* toggle: the Owner defaults to the workspace ⚑ [Q01](../open-questions.md#q01). *Mijn dag* shows the same list as the app's TD-01, across all the user's workspaces.
 - **Aandacht nodig** only shows when there's something to do: sessions without attendance (yesterday and today), and occurrences without a trainer. It never shows vanity numbers (analytics is Release 3.2).
 - The Open Gym suggestion is WC-08.
 
@@ -130,13 +130,13 @@ flowchart TD
 
 - **Monday first**, 24 h. The visible hours fit the week's content (default 06:00–22:00 at compact density, 48 px per hour with a 15-minute grid, so a working day fits a laptop screen) and open scrolled to 07:00 or *now*. A red now-line runs across the grid; today's column is tinted.
 - **Click an empty moment** (day or week view) to open *+ Nieuw* at that time, snapped to 15 minutes; in the day view the lane's trainer is pre-filled.
-- **Event block** content by type. Blocks are cramped, so each shows only the type emoji, then the content: *👤 Mark*, *👥 Strength*, *🏋️ Open Gym 1/2* (owner, 14 October 2026). No type label is painted, so there's no truncated *Priv…*.
-  - **Private**: 👤, client name, trainer.
-  - **Group**: 👥, class name in the viewer's language (flows/01 PB-02), trainer, `booked/capacity`.
-  - **Open Gym**: 🏋️, *Open Gym*, `booked/capacity`, *vol* when full.
-- **Legend** above the grid is the key: colour, emoji and label for each type (*👤 Privé · 👥 Groepsles · 🏋️ Open Gym*).
-- **Accessible name**: the emoji is hidden from screen readers; each block's name starts with the type, so it reads *Privé · Mark*.
-- **Colour** by session type (default) or by trainer ⚑ [Q22](../open-questions.md#q22). Colour is never the only signal: the emoji marks the type in the block and the legend names it.
+- **Event block** content by type. Blocks are cramped, and `PRODUCT.md §48` requires the type in words, so each block starts with a short text label, then the content: *Privé · Mark*, *Groep · Strength*, *Open Gym 1/2*. The labels are short on purpose (*Privé*, *Groep*, *Open Gym*, glossary), so they never truncate; a narrow block truncates the content, not the label. No emoji mark the type.
+  - **Private**: *Privé*, client name, trainer.
+  - **Group**: *Groep*, class name in the viewer's language (flows/01 PB-02), trainer, `booked/capacity`.
+  - **Open Gym**: *Open Gym*, `booked/capacity`, *vol* when full.
+- **Legend** above the grid is the key: colour and label for each type (*Privé · Groep · Open Gym*).
+- **Accessible name**: each block's name starts with the type, so it reads *Privé · Mark*.
+- **Colour** by session type (default) or by trainer ⚑ [Q22](../open-questions.md#q22). Colour is never the only signal: the text label names the type in the block and the legend.
 - **Substituted**: `⇄` + the substitute's name; the tooltip and quick view say *Mike (vervangt Sarah)*.
 - **Cancelled**: hatched + struck through. *Geannuleerde tonen* in the Type filter is on by default.
 - **Overlaps** in one day column sit side by side, up to 3; then *+2 meer*.
@@ -156,7 +156,7 @@ flowchart TD
 | Cancelled | Geannuleerd | Cancelled |
 | More | +{n} meer | +{n} more |
 | DST autumn / spring | Wintertijd: de klok gaat 1 uur terug · Zomertijd: de klok gaat 1 uur vooruit | Clocks go back 1 hour · Clocks go forward 1 hour |
-| Legend | 👤 Privé · 👥 Groepsles · 🏋️ Open Gym · gepland · geannuleerd · suggestie · vervanger · actie nodig | 👤 Private · 👥 Group class · 🏋️ Open Gym · scheduled · cancelled · suggestion · substitute · action needed |
+| Legend | Privé · Groep · Open Gym · gepland · geannuleerd · suggestie · vervanger · actie nodig | Private · Group · Open Gym · scheduled · cancelled · suggestion · substitute · action needed |
 | Block (accessible name) | {type} · {client or class} | {type} · {client or class} |
 
 ### WC-03 · Agenda: dag per trainer / Calendar: day by trainer
@@ -235,7 +235,7 @@ Privésessie                                    Groepsles (les op datum)
 
 | Element | NL | EN |
 |---|---|---|
-| Auto location | {location} (automatisch) | {location} (automatic) |
+| Auto location (after go-live; at go-live the workspace's one location is shown without a reason) | {location} (automatisch) | {location} (automatic) |
 | Recurrence | Elke {weekday} {time} | Every {weekday} {time} |
 | Actions (private) | Openen · Verplaatsen · Annuleren · Klantprofiel | Open · Reschedule · Cancel · Client profile |
 | Actions (class) | Openen · Trainer vervangen · Les annuleren · Boekingslink kopiëren | Open · Substitute trainer · Cancel class · Copy booking link |
@@ -258,7 +258,7 @@ Privésessie                                    Groepsles (les op datum)
 
 - A click on an empty slot uses the slot start and the default duration. Click-and-drag sets start and end.
 - In the day-by-trainer view the column's trainer is pre-filled.
-- *Privésessie* → PS-01 (flow 04). *Groepsles* → the class form on *Lessen* with date/time/weekday pre-filled. *Open Gym* → a short form: start, end, capacity, location (inferred).
+- *Privésessie* → PS-01 (flow 04). *Groepsles* → the class form on *Lessen* with date/time/weekday pre-filled. *Open Gym* → a short form: start, end, capacity, location (go-live: the workspace's one location; inferred after go-live).
 
 | Element | NL | EN |
 |---|---|---|
@@ -342,7 +342,7 @@ Privésessie                                    Groepsles (les op datum)
 | **Double-booked trainer (same workspace)** | Both events shown side by side with a small `!`. Creating one shows a soft warning (PS-07) ⚑ [Q24](../open-questions.md#q24) |
 | **Trainer busy in another workspace** | **Not visible** here (tenant isolation). Detecting that is Release 2.2 |
 | **Very busy week** (pilot: ~15 classes + ~30 private sessions) | One request per week; renders < 1 s (`ROADMAP M9` performance) |
-| **Two admins edit at once** | Last write wins per field; the other screen refreshes with the *Dit item is net gewijzigd* notice |
+| **Two people edit at once** | Last write wins per field; the other screen refreshes with the *Dit item is net gewijzigd* notice |
 | **Occurrence edited individually** | Marked in the quick view: *Aangepast t.o.v. de reeks* / *Changed from the series* |
 | **Open Gym full** | The block shows *vol*; bookings are unaffected by the calendar |
 

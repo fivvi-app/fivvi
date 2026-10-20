@@ -53,7 +53,7 @@ No client names, bank details, agreements or invoices were shared or recorded.
 2. Team roles and being a client are separate relationships of one account; trainers need team access, never a client account (`PRODUCT.md §2.9, §9`). F001 sign-in doesn't change.
 3. A shared scheduling engine isn't enough: each person needs a view filtered to what they may see, with types named in words.
 4. A class's recurrence, a membership's term, its payment schedule, attendance and the session balance are separate concepts.
-5. The import at go-live must carry active agreements, balances and due dates, and be reconciled with the old app before clients pay through Trainer Hub. Mandates follow QC09 (default: new mandates), as in `import-checklist.md` §3.4a.
+5. The import at go-live must carry active agreements, balances and due dates, and be reconciled with the old app before the cutover, when clients start paying through Trainer Hub. Mandates follow QC09 (default: new mandates), as in `import-checklist.md` §3.4a.
 
 Not shown by this interview: the app names, the real cost, client and trainer counts, the hours spent on invoices, the exact cancellation rules, that credits beat memberships, that Trainer Hub may hold funds, that T1 will move live payments, and that every small gym has the same needs. Workout logging, notes and Open Gym weren't raised as reasons to switch; that doesn't make them unimportant.
 
@@ -62,9 +62,9 @@ Not shown by this interview: the app names, the real cost, client and trainer co
 | Decision | Where |
 |---|---|
 | T1 is the pilot owner; the pilot scenario is corrected | `PRODUCT.md §8`, `ROADMAP.md §1` |
-| Owner decided: memberships, recurring payments and invoices before go-live, part of G4 (M11). Session packs, single classes and payouts are in M11 as proposed scope from interview 01, to confirm when the owner approves the M11 specs | `PRODUCT.md §90–§97`, `ROADMAP.md` M11, decision 11 |
-| Recurring payments (the subscription model) and invoices ship together | `ROADMAP.md` decision 12 |
-| Training and notes (M7) and automatic location inference (F019) move after go-live | `ROADMAP.md` decision 13 |
+| Owner decided: memberships, recurring payments and invoices before go-live, part of G4 (M11); session packs were added on 20 October 2026 (pain point 4). Single classes and payouts stay proposed scope, to confirm when the owner approves the M11 specs | `PRODUCT.md §90–§97`, `ROADMAP.md` M11, decision 9 |
+| Recurring payments (the subscription model) and invoices ship together | `ROADMAP.md` decision 10 |
+| Training and notes (M7) and automatic location inference (F019) move after go-live | `ROADMAP.md` decision 11 |
 
 ## 4. Follow-up
 
@@ -75,3 +75,18 @@ The commerce walkthrough with T1 (`ROADMAP.md §4.1`) answers QC01–QC16 in [`o
 - A walkthrough, on T1's screen only, of one private invoice and one fixed-weekday membership: booking, no-show, makeup, renewal (QC01–QC08, QC10).
 - Whether mandates can move to a new payment provider account (QC09), and what can be exported from the current app (QC14).
 - T1's top three dealbreakers for any replacement, and what would make T1 keep using the pilot after 4–6 weeks.
+
+## Owner notes (20 October 2026)
+
+Added by the product owner (a recollection, not a recording):
+
+- **No parallel use.** T1 won't use Trainer Hub next to the old apps. T1 starts using it only when it solves at least the four pain points named in this interview (R):
+  1. billing: invoices for private training and recurring payments;
+  2. one clear calendar for private sessions and group classes, for the owner, the trainers and the clients;
+  3. proper roles: trainers use their own team access, never client access;
+  4. tracking prepaid private sessions: used and left.
+
+  These four are the go-live minimum. Session packs follow from the fourth.
+- **Start with one location.** The gym starts with its own location only; more locations and the other location types can wait until after go-live.
+
+Decisions taken from these notes: `ROADMAP.md` decisions 6, 9, 12 and 13 (no owner alpha with real data, session packs decided, one location, no Admin role in the MVP), `PRODUCT.md §2.8`.

@@ -145,7 +145,7 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
 *Add a one-off [Strength Express] group class in the calendar, then schedule Open Gym for another free hour.*
 
 - Done when: both appear in the owner calendar with the intended time and capacity.
-- Observe: [ ] finds both under *+ Nieuw* · [ ] understands a group class needs a trainer while Open Gym does not · [ ] understands that group class and Open Gym publishing is an owner/admin action under the current permission model.
+- Observe: [ ] finds both under *+ Nieuw* · [ ] understands a group class needs a trainer while Open Gym does not · [ ] understands that group class and Open Gym publishing is an owner action under the current permission model (there is no Admin role in the MVP).
 
 **Follow-up:** *Mis je iets wat je nu wel in je oude app, agenda of Word ziet?*\
 *Is anything missing that you do see in your old app, calendar or Word today?*

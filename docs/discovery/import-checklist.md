@@ -68,8 +68,8 @@ These are usually entered by hand during onboarding. Listing them here means the
 | Item | Fields | Decision |
 |---|---|---|
 | Workspace | name, timezone (default `Europe/Amsterdam`), default language (`nl`) | ☐ Enter by hand |
-| Locations | `location_name`, `location_type` (`organization_location` / `external_gym` / `client_home` / `outdoor` / `online` / `other`, `PRODUCT.md §12`), address (only for the gym's own locations) | ☐ Enter by hand ☐ Import |
-| Trainers | `trainer_name`, `trainer_email` (for the invitation), role (`owner` / `admin` / `trainer`), language (`nl` / `en`) | ☐ Enter by hand (invitations) ☐ Import |
+| Location | At go-live one location per workspace, the gym's own: `location_name`, address (`PRODUCT.md §12`). More locations and the other types (`external_gym` / `client_home` / `outdoor` / `online` / `other`) come after go-live | ☐ Enter by hand |
+| Trainers | `trainer_name`, `trainer_email` (for the invitation), role (`owner` / `trainer`; there is no Admin role in the MVP), language (`nl` / `en`) | ☐ Enter by hand (invitations) ☐ Import |
 
 ### 3.2 Clients — **required**
 
@@ -80,7 +80,7 @@ These are usually entered by hand during onboarding. Listing them here means the
 | Last name | `last_name` | Yes, if known | |
 | Email | `email` | Recommended | Needed for booking confirmations and the optional client account. Clients without an email can still be trained and logged |
 | Preferred language | `language` | Optional | `nl` or `en`; default `nl` (`PRODUCT.md §3`, client language) |
-| Default location | `default_location` | Optional | A `location_name` from 3.1 (`PRODUCT.md §14`) |
+| Default location | `default_location` | Optional, after go-live | Not used at go-live (one location per workspace); kept for later: a `location_name` (`PRODUCT.md §14`) |
 | Primary trainer | `trainer_email` | Optional | Which trainer usually trains this client |
 | Status | `status` | **Yes** | `active` / `inactive`. **Decision:** import inactive clients? ☐ No (default) ☐ Yes, if active in the last ____ months |
 
@@ -163,8 +163,8 @@ Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the
 **Decisions**
 
 - [ ] Mandates: ☐ every client gives a new one through a first payment link (default, QC09) ☐ the provider moves the existing ones.
-- [ ] Switch-over order: which client group pays through Trainer Hub first (`ROADMAP.md §7`, week 1).
-- [ ] Reconciliation: after the import, the gym owner checks a report with counts, totals per offer, the sum of balances and the next due dates against the old app. Nobody pays through Trainer Hub until it matches.
+- [ ] Cutover plan: scheduling, booking and payments all move on one day and every client gets the first-payment link for the new mandate that day; the old app stays read-only until the first full payment cycle reconciles, then it is cancelled (`ROADMAP.md §7`). Agree the cutover date and who sends the client email.
+- [ ] Reconciliation: after the import, the gym owner checks a report with counts, totals per offer, the sum of balances and the next due dates against the old app. The cutover does not happen until it matches.
 - [ ] Invoice numbers: the series in Trainer Hub continues after the last number of the old app ☐ or starts a new series (ask the gym's accountant).
 
 ### 3.5 Workout history — **optional**

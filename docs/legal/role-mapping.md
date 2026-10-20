@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Versie / Version** | 0.1 · 22 september 2026 |
+| **Versie / Version** | 0.2 · 20 oktober 2026 |
 | **Bronnen / Sources** | `PRODUCT.md` §4–11, §25, §34–37, §76–79 · `ROADMAP.md` §4.3, §10, §11 |
 
 Elke sectie staat eerst in het Nederlands en daarna in het Engels. Tabellen zijn tweetalig.
@@ -40,7 +40,7 @@ The role follows the purpose of processing. We process business records carrying
 | **Owner / Admin** | Pilot gym owner | Handelt namens de workspace; geen eigen AVG-rol / Acts on behalf of the workspace; no separate GDPR role |
 | **Trainer** (member of 1+ workspaces) | Sarah | Handelt namens elke workspace waarvan de trainer lid is. Een zelfstandige met een eigen workspace is zelf verwerkingsverantwoordelijke / Acts on behalf of each workspace the trainer belongs to. An independent with their own workspace is a controller themselves |
 | **Klant / gast** (client / guest) | Anna, who books a class | Betrokkene / Data subject |
-| **Subverwerkers / Sub-processors** | Hosting, database, email, error tracking | Subverwerker (art. 28(4)), see [`sub-processors.md`](sub-processors.md) |
+| **Subverwerkers / Sub-processors** | Hosting, database, email, error tracking, payments (the payment provider, M11) | Subverwerker (art. 28(4)), see [`sub-processors.md`](sub-processors.md) |
 
 ---
 
@@ -87,7 +87,9 @@ The role follows the purpose of processing. We process business records carrying
 | Owner / admin | Naam, e-mail, taal, workspace-instellingen / Name, email, language, workspace settings | Nee / No | Owner zelf / The owner |
 | Bezoeker van een boekingspagina / Booking-page visitor | IP-adres, user-agent (kortstondig, beveiliging); cookieloze gebeurtenissen / IP address, user agent (short-lived, security); cookieless events | Nee / No | Browser |
 
-**Niet verzameld (bewust) / Deliberately not collected:** telefoonnummer, wachtwoord, geboortedatum, BSN, betaalgegevens (`PRODUCT.md §2.4, §27, §53`) / phone number, password, date of birth, citizen service number (BSN), payment details.
+**Niet verzameld (bewust) / Deliberately not collected:** telefoonnummer, wachtwoord, geboortedatum, BSN, kaart- en bankgegevens (`PRODUCT.md §2.4, §27, §94`) / phone number, password, date of birth, citizen service number (BSN), card and bank details.
+
+**Betalingen (vanaf de MVP, M11) / Payments (from the MVP, M11).** **NL.** Betalingen komen in de MVP (`ROADMAP.md` v1.19). De betaalprovider verwerkt de betaalgegevens; Trainer Hub bewaart alleen verwijzingen, bedragen en statussen, naast de facturen die het uitgeeft (factuurgegevens, `PRODUCT.md §96`). Of de provider subverwerker is of voor eigen betaalgegevens een aparte verwerkingsverantwoordelijke, en wie de handelaar is, wordt vastgelegd in ADR-020 (nog te schrijven). Dit document wordt vóór G4 bijgewerkt, zodra de provider is gekozen. **EN.** Payments come into the MVP (`ROADMAP.md` v1.19). The payment provider processes the payment data; Trainer Hub stores only references, amounts and statuses, besides the invoices it issues (billing details, `PRODUCT.md §96`). Whether the provider is a sub-processor or a separate controller for its own payment data, and who the merchant is, is recorded in ADR-020 (to come). This document is updated before G4, once the provider is chosen.
 
 ---
 
@@ -180,8 +182,8 @@ flowchart LR
 
 **6.7 Toekomstige releases / Future releases**
 
-- **NL.** AI-notities (1.3) en AI-briefing (1.4) voegen een AI-aanbieder toe als subverwerker. Ze verwerken notities, dus mogelijk gezondheidsgegevens, met nieuwe technologie. Dat vraagt een DPIA vóór de start (zie `dpia-assessment.md` §6). Betalingen (4.0) en HealthKit/Health Connect (6.0) veranderen deze rolverdeling ook. Werk dit document dan bij.
-- **EN.** AI notes (1.3) and AI briefing (1.4) add an AI provider as a sub-processor. They process notes, so possibly health data, with new technology. That needs a DPIA before they start (see `dpia-assessment.md` §6). Payments (4.0) and HealthKit/Health Connect (6.0) also change this role mapping. Update this document when they come.
+- **NL.** AI-notities (1.3) en AI-briefing (1.4) voegen een AI-aanbieder toe als subverwerker. Ze verwerken notities, dus mogelijk gezondheidsgegevens, met nieuwe technologie. Dat vraagt een DPIA vóór de start (zie `dpia-assessment.md` §6). Betalingen (MVP, M11) veranderen deze rolverdeling ook: de betaalprovider komt op de subverwerkerslijst of is voor eigen betaalgegevens een aparte verwerkingsverantwoordelijke. Werk dit document bij vóór G4, zodra ADR-020 (nog te schrijven) de provider heeft gekozen. HealthKit/Health Connect (6.0) verandert de rolverdeling ook; werk het document dan opnieuw bij.
+- **EN.** AI notes (1.3) and AI briefing (1.4) add an AI provider as a sub-processor. They process notes, so possibly health data, with new technology. That needs a DPIA before they start (see `dpia-assessment.md` §6). Payments (MVP, M11) also change this role mapping: the payment provider joins the sub-processor list or is a separate controller for its own payment data. Update this document before G4, once ADR-020 (to come) has chosen the provider. HealthKit/Health Connect (6.0) also changes the role mapping; update this document again then.
 
 ---
 

@@ -3,7 +3,7 @@
 The single source of truth for feature status. A status changes **in the same PR** as the code that earns it.
 
 - **Lifecycle:** `IDEA → PLANNED → DESIGNED → IN PROGRESS → IN REVIEW → IMPLEMENTED → RELEASED` (`PRODUCT.md §81`)
-- **Priority:** `Must` (MVP cannot ship without it) · `Should` (first to slip to 1.1 if dates are at risk) · `Must (proposed, decision 11)` (proposed M11 scope, `ROADMAP.md` decision 11: a `Must` only once the owner confirms it)
+- **Priority:** `Must` (MVP cannot ship without it) · `Should` (first to slip to 1.1 if dates are at risk) · `Must (proposed, decision 9)` (proposed M11 scope, `ROADMAP.md` decision 9: a `Must` only once the owner confirms it)
 - **Languages:** a feature is not `IMPLEMENTED` until both NL and EN work (`PRODUCT.md §82`)
 - **Spec:** the *Spec* column points to the requirements in [`PRODUCT.md`](PRODUCT.md). Each feature's spec and tickets are GitHub issues (`/to-spec`, `/to-tickets`, [`docs/agents/issue-tracker.md`](../agents/issue-tracker.md)); once a spec issue exists, the ID links to it, e.g. `[F031](https://github.com/trainerrrzzz/trainer-hub/issues/<n>)`
 - **Rows:** a stable summary and a Status. A ticket PR changes only its row's Status: the spec's first ticket sets `IN PROGRESS`, and the PR that completes the spec sets `IMPLEMENTED` and writes the final one-line summary. A spec's progress (what's open, what's next) lives in its tickets (`scripts/flow.sh status <spec>`), not in the row, so parallel PRs don't edit the same lines
@@ -13,7 +13,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 61 (F001–F061) + 19 engineering enablers (E001–E019); F019 and M7 (F039–F048, F051) come after go-live | 0 |
+| MVP | 61 (F001–F061) + 19 engineering enablers (E001–E019); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live | 0 |
 
 ---
 
@@ -26,7 +26,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | [F001](https://github.com/trainerrrzzz/trainer-hub/issues/128) | Authentication | PLANNED | Must | M2 (+M8 mobile) | E004, E006 | ⬜ | ⬜ | §2.4, §27 |
 | F002 | Workspaces | PLANNED | Must | M2 | F001 | ⬜ | ⬜ | §5 |
 | F003 | Workspace Membership | PLANNED | Must | M2 | F002 | ⬜ | ⬜ | §2.9, §6, §9 (team role next to client relationship) |
-| F004 | Roles | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9, §50 |
+| F004 | Roles | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9, §50 (Owner and Trainer; Admin is a later role 🔜) |
 | F005 | Trainer Profile | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9 |
 | F006 | Client Profile | PLANNED | Must | M2 (+M8 mobile) | F002 | ⬜ | ⬜ | §2.9, §9, §10, §34 (quick add, name only; links to an existing account) |
 | F007 | Localization Infrastructure | PLANNED | Must | M1–M2 | E005 | ⬜ | ⬜ | §3, §73 |
@@ -47,10 +47,10 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F015 | Locations | PLANNED | Must | M3 | F002 | ⬜ | ⬜ | §12 |
-| F016 | Organization Default Location | PLANNED | Must | M3 | F015 | ⬜ | ⬜ | §13 |
-| F017 | Trainer Locations | PLANNED | Must | M3 | F005, F015 | ⬜ | ⬜ | §13 |
-| F018 | Client Preferred Location | PLANNED | Must | M3 | F006, F015 | ⬜ | ⬜ | §14 |
+| F015 | Locations | PLANNED | Must | M3 (one location; more after G4) | F002 | ⬜ | ⬜ | §12 (go-live: one location per workspace; after go-live: more locations and the other types) |
+| F016 | Organization Default Location | PLANNED | Must | M3 | F015 | ⬜ | ⬜ | §13 (the workspace's one location) |
+| F017 | Trainer Locations | PLANNED | Must | After G4, with M7 | F005, F015 | ⬜ | ⬜ | §13 |
+| F018 | Client Preferred Location | PLANNED | Must | After G4, with M7 | F006, F015 | ⬜ | ⬜ | §14 |
 | F019 | Automatic Location Selection | PLANNED | Must | After G4, with M7 (v1.19) | F016, F017, F018 | ⬜ | ⬜ | §2.6, §13 |
 
 ### Scheduling
@@ -115,20 +115,20 @@ The single source of truth for feature status. A status changes **in the same PR
 
 ### Commerce
 
-Added in roadmap v1.19 (M11), before go-live. The subscription model and invoices ship together. Session packs, single classes and payouts are proposed scope ([decision 11](ROADMAP.md#14-decisions)).
+Added in roadmap v1.19 (M11), before go-live. The subscription model and invoices ship together. Single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | F052 | Offers and Prices | PLANNED | Must | M11 | F002, E019 | ⬜ | ⬜ | §90 |
 | F053 | Memberships | PLANNED | Must | M11 | F052, F022, F028, F057 | ⬜ | ⬜ | §91 (fixed weekdays, term, terms stored) |
-| F054 | Session Packs | PLANNED | Must (proposed, decision 11) | M11 | F052, F020, F055 | ⬜ | ⬜ | §92 |
+| F054 | Session Packs | PLANNED | Must | M11 | F052, F020, F055 | ⬜ | ⬜ | §92 |
 | F055 | Session Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (history: granted, used, returned, expired) |
 | F056 | Cancellation Policy and Makeups | PLANNED | Must | M11 | F026, F055 | ⬜ | ⬜ | §93 (cutoff, late cancellation, makeups) |
 | F057 | Recurring Payments | PLANNED | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit: proposal, QC06; exactly once) |
-| F058 | Single Class Purchase | PLANNED | Must (proposed, decision 11) | M11 | F029, E019, F059 | ⬜ | ⬜ | §95 |
+| F058 | Single Class Purchase | PLANNED | Must (proposed, decision 9) | M11 | F029, E019, F059 | ⬜ | ⬜ | §95 |
 | F059 | Invoices and Billing Details | PLANNED | Must | M11 | F006, F052 | ⬜ | ⬜ | §96 (company details, gapless numbers, credit notes) |
 | F060 | Failed Payments and Refunds | PLANNED | Must | M11 | F057, F059 | ⬜ | ⬜ | §94 |
-| F061 | Payouts and Reconciliation | PLANNED | Must (proposed, decision 11) | M11 | F057, F060 | ⬜ | ⬜ | §97 |
+| F061 | Payouts and Reconciliation | PLANNED | Must (proposed, decision 9) | M11 | F057, F060 | ⬜ | ⬜ | §97 |
 
 ### Notifications
 

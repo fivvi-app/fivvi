@@ -16,7 +16,7 @@ _Avoid_: organization (outside code), org, company, account, tenant (outside cod
 A trainer's own independent workspace, next to the workspaces they work for.
 
 **Team**:
-Everyone with a role in a workspace: the owner, admins and trainers.
+Everyone with a role in a workspace: the owner and the trainers (the MVP has no Admin role, see *Admin*).
 _Avoid_: staff, personnel
 
 **Team member**:
@@ -24,15 +24,15 @@ One person in the team.
 _Avoid_: member, "membership" as a name for a person's place in the team (a client's agreement is the Commerce term; F003 "Workspace Membership" is the feature name), staff, user
 
 **Role**:
-What a team member may do in a workspace: Owner, Admin or Trainer, at most one per workspace. Being a client is not a role, and anonymous visitors have no role.
+What a team member may do in a workspace: Owner or Trainer, at most one per workspace (Admin is a later role 🔜). Being a client is not a role, and anonymous visitors have no role.
 _Avoid_: permission level, custom role
 
 **Owner**:
-Manages the whole workspace, including trainers, settings and booking links. Can also be a trainer.
-_Avoid_: boss, Admin (a different role)
+Manages the whole workspace, including trainers, settings, booking links and the money (offers, agreements, payments and invoices). Can also be a trainer.
+_Avoid_: boss, Admin (a different, later role)
 
-**Admin**:
-Manages the calendar, classes, bookings, clients and trainers, without full owner rights.
+**Admin** 🔜:
+A later role, not in the MVP: manages the calendar, classes, bookings, clients and trainers without full owner rights, for a gym that wants a manager who isn't the owner. Added when a gym asks for it (Release 7.0 "advanced permissions", or earlier on request).
 _Avoid_: administrator, manager
 
 **Trainer**:
@@ -52,7 +52,7 @@ A client on a session's list: booked into a class or Open Gym slot, or the clien
 _Avoid_: attendee, student
 
 **Invitation**:
-An email from an owner asking someone to join the workspace as a trainer or admin. Accepting it adds the role to the person's existing account, if they have one.
+An email from an owner asking someone to join the workspace as a trainer. Accepting it adds the role to the person's existing account, if they have one.
 
 **Account**:
 A login: required for a team member; created for a client at their first verified booking. One per person and email address, shared by every workspace the person belongs to.
@@ -79,7 +79,7 @@ The generic word for any scheduled item: a private session, a class occurrence o
 _Avoid_: appointment, event, activity
 
 **Private session**:
-A trainer-led session for one named client, created by a trainer or admin.
+A trainer-led session for one named client, created by a trainer (an owner who trains counts as one).
 _Avoid_: PT session, personal training, appointment, lesson
 
 **Class**:
@@ -141,13 +141,13 @@ A queue for a full class. Not in the MVP.
 ### Locations
 
 **Location**:
-The physical (or online) place where a session happens. Separate from the workspace that owns the session.
+The physical (or online) place where a session happens. Separate from the workspace that owns the session. At go-live a workspace has one location, its own, and every session takes it; more locations follow after go-live.
 
 **Location type**:
-What kind of place a location is: the workspace's own premises, an external gym where an independent trainer works, the client's home, outdoors, online, or other.
+What kind of place a location is: the workspace's own premises, an external gym where an independent trainer works, the client's home, outdoors, online, or other. At go-live only the workspace's own premises exist; the other types follow after go-live.
 
-**Default training location**:
-A client's usual location, used to infer the location of new sessions.
+**Default training location** 🔜:
+A client's usual location, used to infer the location of new sessions. After go-live, with more locations.
 
 ### Booking and verification
 
@@ -204,7 +204,11 @@ _Avoid_: subscription (see *Recurring payment*), plan, pass
 
 **Session pack**:
 An agreement for a number of private sessions to use within a validity period.
-_Avoid_: package, bundle, credits
+_Avoid_: package, bundle, credits (a post-MVP pricing model, see *Credit*)
+
+**Credit** 🔜:
+A post-MVP pricing model: a unit that pays for different session types (Release 4, `PRODUCT.md §66`). Not part of the MVP, where a session pack covers one kind of session.
+_Avoid_: using it for a session in a pack or a makeup
 
 **Single class**:
 One group class bought on its own, by a client without a membership or as an extra on top of one.
@@ -212,10 +216,11 @@ _Avoid_: drop-in, top-up
 
 **Session balance**:
 What a client can still use under one agreement: sessions in a pack, makeups from a membership. Always explained by its history (granted, used, returned, expired), never a bare counter.
-_Avoid_: credits, remaining sessions
+_Avoid_: credits (a post-MVP pricing model, see *Credit*), remaining sessions
 
 **Cancellation policy**:
 The rules of an offer for cancellations and no-shows: the cutoff, the makeup limit and what each case does to the balance.
+_Avoid_: terms, rules (alone)
 
 **Cancellation cutoff**:
 How many hours before the start a client can still cancel in time.
@@ -231,6 +236,7 @@ _Avoid_: bank
 
 **Payment**:
 Money collected from a client: a first payment, a recurring payment or a single class.
+_Avoid_: transaction (outside code), charge
 
 **Recurring payment**:
 A payment collected on a due date of an agreement's payment schedule, under a mandate. A membership's recurring payments together are what people call the subscription model.
@@ -250,9 +256,15 @@ _Avoid_: negative invoice
 
 **Billing details**:
 The name, company name, address and VAT number a client wants on their invoices.
+_Avoid_: invoice address (alone), company info
 
 **Refund**:
 Money the workspace returns to a client for a payment, fully or in part.
+_Avoid_: reimbursement, chargeback (a different thing)
+
+**Chargeback**:
+A payment that the client's bank or card issuer takes back, including a reversed direct debit. The client or the bank decides, not the workspace.
+_Avoid_: refund (a different thing)
 
 **Payout**:
 A transfer from the payment provider to the workspace, made up of payments minus refunds, chargebacks and fees.

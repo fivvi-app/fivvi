@@ -22,14 +22,14 @@ The first version must solve the real workflow of the pilot gym:
 - public class booking
 - Open Gym booking
 - client management
-- memberships and private session packs (packs: proposed, [decision 11](ROADMAP.md#14-decisions)), with a session balance the owner and the client can trust
+- memberships and private session packs, with a session balance the owner and the client can trust
 - recurring payments and invoices (§90–§97)
 - workout/program management
 - live workout logging
 - trainer notes
 - scheduling
 
-The pilot gym can only switch when the platform also takes over what its current booking and payment app does: memberships, recurring payments and invoices (§8, §2.8). Workout logging and notes follow right after go-live (§52).
+The pilot gym can only switch when the platform solves the four pain points it named (§8, §2.8): billing, one clear calendar, proper roles and tracking of prepaid sessions. So it also takes over what the current booking and payment app does: memberships, recurring payments and invoices. Workout logging, notes and more locations follow right after go-live (§52).
 
 The same architecture must later support:
 
@@ -169,9 +169,16 @@ Open Gym is simply a bookable offering with:
 
 ## 2.8 The pilot must be able to switch
 
-A gym will not run two systems side by side for long. A product that only replaces the calendar, while memberships, payments and invoices stay in the old app, is not a replacement (`docs/discovery/results/interview-01.md`).
+The pilot owner won't use Trainer Hub in parallel with the old apps (owner, 20 October 2026). He starts using it only when it solves at least the four pain points he named in interview 01. These four are the **go-live minimum**:
 
-So the MVP covers the whole chain for the pilot's two standard cases, a fixed-weekday group membership and a private session pack, plus single classes (session packs, single classes and payouts are proposed scope, [decision 11](ROADMAP.md#14-decisions)):
+1. **Billing:** invoices for private training and recurring payments.
+2. **One clear calendar** for private sessions and group classes, for owner, trainers and clients.
+3. **Proper roles:** trainers use their own team access, never client access.
+4. **Tracking prepaid private sessions:** used and left.
+
+A product that only replaces the calendar, while memberships, payments and invoices stay in the old app, is not a replacement (`docs/discovery/results/interview-01.md`). So there is no parallel run and no soft launch next to the old app: everything moves at one cutover (`ROADMAP.md §7`).
+
+So the MVP covers the whole chain for the pilot's two standard cases, a fixed-weekday group membership and a private session pack, plus single classes (single classes and payouts are proposed scope, [decision 9](ROADMAP.md#14-decisions)):
 
 ```text
 agreement → booking → attendance → session balance → payment → invoice
@@ -183,7 +190,7 @@ Keep it to those cases. Every other pricing model waits for evidence (§53, §66
 
 ## 2.9 One account, separate relationships
 
-A person has one account (§27). In each workspace that account can have a **team role** (Owner, Admin or Trainer) and, separately, be a **client**. The two exist side by side and never merge (§9).
+A person has one account (§27). In each workspace that account can have a **team role** (Owner or Trainer) and, separately, be a **client**. The two exist side by side and never merge (§9).
 
 Trainers never need a client account to see their schedule.
 
@@ -452,13 +459,15 @@ Therefore:
 
 > Multi-trainer organization support is an MVP requirement.
 
-> Memberships, recurring payments and invoices are MVP requirements; private session packs are proposed ([decision 11](ROADMAP.md#14-decisions)) (§2.8).
+> Memberships, recurring payments, invoices and private session packs are MVP requirements, and with the calendar and the roles they are the four pain points that define go-live (§2.8).
+
+The owner decided on 20 October 2026: no parallel run with the old apps, one location at go-live (§12) and no Admin role in the MVP (§9).
 
 ---
 
 # 9. User roles
 
-Owner, Admin and Trainer are **team roles**: a person has at most one per workspace. **Client** is not a team role; it is a separate relationship with a workspace, and the same account can have both (§2.9):
+Owner and Trainer are the **team roles** of the MVP: a person has at most one per workspace. An Admin role comes later (see **Admin** below). **Client** is not a team role; it is a separate relationship with a workspace, and the same account can have both (§2.9):
 
 | Situation | What happens |
 |---|---|
@@ -498,17 +507,9 @@ Trainer
 
 ---
 
-## Admin
+## Admin 🔜
 
-Can manage:
-
-- calendar
-- classes
-- bookings
-- clients
-- trainers
-
-without full ownership permissions. Which commerce actions an admin may take is open ([QC12](../design/open-questions.md#qc12)).
+Not in the MVP (owner, 20 October 2026). The Owner can do everything, including the money, and the Trainer runs their own sessions and classes. An Admin role (a manager who isn't the owner) is added when a gym asks for one: Release 7.0 "advanced permissions" (`ROADMAP.md §9`), or earlier on request.
 
 ---
 
@@ -523,6 +524,7 @@ Can:
 - log workouts
 - add notes
 - mark attendance
+- see the session balance of the clients they train, not amounts or invoices (proposal, [QC12](../design/open-questions.md#qc12)); the owner does all commerce
 
 ---
 
@@ -582,7 +584,9 @@ These clients belong to Sarah's independent workspace.
 
 # 12. Locations
 
-Supported MVP types:
+**At go-live each workspace has one location**, the gym's own (`organization_location`), and every session takes it (owner, 20 October 2026). Nobody has to choose.
+
+**After go-live, still in the MVP** (M7, with automatic location selection, F019), a workspace can have more locations and the other types:
 
 ```text
 organization_location
@@ -603,6 +607,8 @@ No complex resource management.
 
 # 13. Location UX
 
+At go-live only the first case below exists: the session shows the workspace's one location. The rest applies after go-live.
+
 ## Organization session
 
 If class belongs to John's Gym:
@@ -616,7 +622,7 @@ automatically.
 
 ---
 
-## Independent client
+## Independent client (after go-live)
 
 If Anna's normal gym is:
 
@@ -628,7 +634,7 @@ the next session automatically uses that location.
 
 ---
 
-## Ambiguous location
+## Ambiguous location (after go-live)
 
 Only then ask:
 
@@ -642,7 +648,7 @@ Other
 
 ---
 
-# 14. Client preferred location
+# 14. Client preferred location (after go-live)
 
 A client relationship can have:
 
@@ -699,8 +705,8 @@ A **+** action creates what the user's role allows, without switching to web:
 
 - private session (every trainer, for their own sessions)
 - client (name only; email and language can follow)
-- group class, one-off or repeating every week (owner/admin only)
-- Open Gym (owner/admin only)
+- group class, one-off or repeating every week (owner only)
+- Open Gym (owner only)
 
 Class templates, series edits, trainers, booking links and settings stay on Trainer Web.
 
@@ -777,14 +783,14 @@ Use a common scheduling engine where practical.
 
 # 17. Private sessions
 
-Trainer/admin can:
+Owner and trainer can:
 
 - create
 - reschedule
 - cancel
 - assign trainer
 - assign client
-- set/infer location
+- location: the workspace's one location at go-live; set or inferred after go-live (§12–§13)
 - attach workout
 - mark attendance
 - add notes
@@ -1162,7 +1168,7 @@ QR should lead to responsive bilingual pages.
 
 # 34. Client profile
 
-A client can be added wherever a client is chosen (new session, the client list, the app's **+**). Only a name is required; email, language for emails and default training location are optional. A matching email in the same workspace offers the existing client instead of a duplicate.
+A client can be added wherever a client is chosen (new session, the client list, the app's **+**). Only a name is required; email and language for emails are optional (a default training location follows after go-live, §14). A matching email in the same workspace offers the existing client instead of a duplicate.
 
 Contains:
 
@@ -1490,7 +1496,7 @@ This remains separate from personal trainer calendar.
 
 # 49. Trainer invitations
 
-Owner invites trainer by email.
+Owner invites a person by email to join the team as a trainer (the MVP has no other team role to invite for, §50).
 
 Invitation email must be bilingual/localized according to:
 
@@ -1505,9 +1511,10 @@ If the email address already has an account (for example a client of the gym), a
 
 ```text
 Owner
-Admin
 Trainer
 ```
+
+Owner can do everything, including the money; Trainer runs their own sessions and classes, calendar and attendance. Admin is a later role 🔜 (§9): added when a gym asks for a manager who isn't the owner (Release 7.0 "advanced permissions", or earlier on request).
 
 Do not build custom permissions yet.
 
@@ -1587,9 +1594,7 @@ Everything below up to **Platforms** is needed for the pilot's go-live (`ROADMAP
 
 ## Locations
 
-- organization location
-- external location
-- client preferred location
+- one location per workspace, the gym's own (§12); every session takes it
 
 ## Booking
 
@@ -1609,7 +1614,7 @@ Everything below up to **Platforms** is needed for the pilot's go-live (`ROADMAP
 
 ## Commerce
 
-Session packs, single classes and payouts are proposed scope ([decision 11](ROADMAP.md#14-decisions)).
+Single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
 
 - offers and prices (§90)
 - memberships on fixed weekdays (§91)
@@ -1633,7 +1638,9 @@ These follow right after go-live, in this order of need. The trainer web keeps w
 
 ### Locations
 
-- automatic location inference (§2.6, §13); until then the default location is preselected and the trainer can change it
+- more locations per workspace and the other location types: external gym, client home, outdoor, online (§12)
+- trainer locations and a client's preferred location (§14)
+- automatic location inference (§2.6, §13); until then the workspace's location is preselected
 
 ### Training
 
@@ -1664,7 +1671,7 @@ These follow right after go-live, in this order of need. The trainer web keeps w
 
 Do not build yet:
 
-- pricing models beyond memberships, private session packs and single classes (for example credits that pay for different session types, or pay-what-you-use)
+- pricing models beyond memberships, private session packs and single classes (for example *credits* that pay for different session types, see the glossary, or pay-what-you-use)
 - discounts, coupons, gift cards, family or shared memberships
 - accounting integrations (Moneybird, e-Boekhouden, Exact Online)
 - point-of-sale or kiosk payments at the desk, until the pilot's current use is known ([QC11](../design/open-questions.md#qc11))
@@ -1861,7 +1868,7 @@ Amsterdam Oost
 Utrecht
 ```
 
-Default location minimizes repetitive selection.
+Default location minimizes repetitive selection. (More locations in one workspace come earlier, after go-live, §12; this release is about organizations that span several sites.)
 
 ---
 
@@ -1908,9 +1915,9 @@ Analytics UI must remain bilingual.
 
 # 66. Release 4 — Advanced commerce
 
-Memberships, recurring payments and invoices moved into the MVP on 19 October 2026 (§2.8, §90–§97); session packs, single classes and payouts are proposed scope ([decision 11](ROADMAP.md#14-decisions)). Release 4 builds on them:
+Memberships, recurring payments and invoices moved into the MVP on 19 October 2026 (§2.8, §90–§97); single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)). Release 4 builds on them:
 
-- credits that pay for different session types, and other pricing models the pilot shows a need for
+- *credits* that pay for different session types (see the glossary), and other pricing models the pilot shows a need for
 - discounts, coupons, gift cards, family or shared memberships
 - payment reminders and dunning beyond the MVP's failed-payment handling
 - point-of-sale or kiosk payments
@@ -1957,6 +1964,7 @@ Potential:
 Potential:
 
 - advanced permissions
+- the Admin role (a manager who isn't the owner, §9; earlier on request)
 - reception role
 - custom branding
 - custom domain
@@ -2277,6 +2285,8 @@ PR:
 
 # 84. Initial feature registry
 
+The current registry, with status, priority and milestone of every feature, is [`FEATURES.md`](FEATURES.md); this list is the initial one, extended with F051–F061.
+
 ## Foundation
 
 ```text
@@ -2360,6 +2370,7 @@ F042 Client Workouts
 F043 Live Workout Logging
 F044 Previous Workout Display
 F045 Workout History
+F051 Repeat Previous Workout
 ```
 
 ## Notes
@@ -2375,6 +2386,21 @@ F048 Note Visibility
 ```text
 F049 Localized Transactional Emails
 F050 Trainer Booking Notifications
+```
+
+## Commerce
+
+```text
+F052 Offers and Prices
+F053 Memberships
+F054 Session Packs
+F055 Session Balance
+F056 Cancellation Policy and Makeups
+F057 Recurring Payments
+F058 Single Class Purchase
+F059 Invoices and Billing Details
+F060 Failed Payments and Refunds
+F061 Payouts and Reconciliation
 ```
 
 ---
@@ -2404,9 +2430,9 @@ F050 Trainer Booking Notifications
 14. Trainer invitations
 15. Multiple trainers
 16. Multi-workspace architecture
-17. Locations
-18. organization default location
-19. client preferred location
+17. Locations: one per workspace, the gym's own (more locations and the other types after go-live, §52)
+18. organization default location (that one location)
+19. trainer locations and client preferred location (after go-live, §52)
 20. automatic location inference (after go-live, §52)
 
 ---
@@ -2462,7 +2488,7 @@ F050 Trainer Booking Notifications
 
 Runs after Phase D (it needs bookings and client accounts), next to Phases E and F, and before Phase J.
 
-Phase K: session packs, single classes and payouts are proposed scope ([decision 11](ROADMAP.md#14-decisions)).
+Phase K: single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
 
 79. offers and prices
 80. payment provider account per workspace (proposed, ADR-020 (to come))
@@ -2515,7 +2541,7 @@ Phases G, H and I follow after go-live (§52).
 
 ## Phase J — Pilot
 
-66. import required existing data, including active agreements, session balances and billing dates
+66. import required existing data, including active agreements, session balances and billing dates; the owner checks the reconciliation report against the old app
 67. onboard gym owner
 68. onboard other trainers
 69. add group classes
@@ -2523,7 +2549,7 @@ Phases G, H and I follow after go-live (§52).
 71. verify English booking experience
 72. publish Open Gym
 73. run real sessions
-74. move clients' payments from the old app to Trainer Hub, a small group first
+74. cutover: scheduling, booking and payments all move to Trainer Hub at once and every client gets the first-payment link for the new mandate; the old app stays read-only until the first full payment cycle reconciles, then it is cancelled (`ROADMAP.md §7`)
 75. observe usage
 76. track workarounds
 77. track remaining use of the old apps, Google Calendar and Word
@@ -2563,7 +2589,7 @@ The MVP succeeds if:
 - previous performance is easy to access
 - owner sees organization schedule
 - trainer sees combined personal schedule, with their own team access
-- memberships and private session packs (packs: proposed, [decision 11](ROADMAP.md#14-decisions)) run in the platform, and every session balance can be explained from its history
+- memberships and private session packs run in the platform, and every session balance can be explained from its history
 - recurring payments are collected without the old app, with no duplicate charges
 - private invoices no longer need to be made by hand
 - normal usage requires no developer intervention
@@ -2619,7 +2645,7 @@ Strongest validation signal:
 
 # Commerce (MVP)
 
-Added on 19 October 2026 after the first interview with the pilot owner (`docs/discovery/results/interview-01.md`), who can't switch without it (§2.8). The subscription model (recurring payments) and invoices arrive **together**: every payment, recurring or one-off, gets an invoice. Session packs, single classes and payouts are proposed scope ([decision 11](ROADMAP.md#14-decisions)). Questions still open are in [`open-questions.md`](../design/open-questions.md) (QC01–QC16); the feature specs settle them with the owner, and nothing here guesses them.
+Added on 19 October 2026 after the first interview with the pilot owner (`docs/discovery/results/interview-01.md`), who can't switch without it (§2.8). The subscription model (recurring payments) and invoices arrive **together**: every payment, recurring or one-off, gets an invoice. Memberships, recurring payments, invoices and session packs are decided; single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)). Questions still open are in [`open-questions.md`](../design/open-questions.md) (QC01–QC16); the feature specs settle them with the owner, and nothing here guesses them.
 
 Keep these concepts separate in the model, even where the screen combines them: a class's recurrence is not a payment schedule, a payment is not an invoice, and a missed class is not a missed payment.
 
@@ -2686,7 +2712,7 @@ Payments run through a **payment provider** (Mollie or Stripe, chosen in the M11
 - **Recurring payments:** on each due date Trainer Hub asks the provider to collect the next amount by SEPA Direct Debit under the mandate (proposal, [QC06](../design/open-questions.md#qc06)). The payment schedule belongs to the agreement and has nothing to do with the class times.
 - **Exactly once:** a due amount is charged once, even when a job retries or the provider sends the same event twice.
 - **Failed payment:** the client and the owner get an email (proposal, [QC05](../design/open-questions.md#qc05)), and the agreement shows the open amount. Whether the client can keep booking until it is paid is a setting of the offer (proposal, [QC05](../design/open-questions.md#qc05)), never an accident.
-- **Refund and chargeback:** the owner can refund a payment fully or in part (whether admins may refund is open, [QC12](../design/open-questions.md#qc12)). A refund or a reversed direct debit gets a credit note (§96), and the policy says what happens to the balance.
+- **Refund and chargeback:** the owner can refund a payment fully or in part (only the owner refunds in the MVP, [QC12](../design/open-questions.md#qc12)). A refund or a reversed direct debit gets a credit note (§96), and the policy says what happens to the balance.
 - The trainer and client apps never take payments; clients pay on the web (proposal, [QC16](../design/open-questions.md#qc16)).
 
 ---
@@ -2713,4 +2739,4 @@ Every payment gets an **invoice**, emailed to the client and kept on their profi
 
 The owner sees, per payout from the provider, which payments, refunds, chargebacks and provider fees it contains, and which payments failed or are still open. Everything the provider reports must match a payment in Trainer Hub; whatever doesn't is shown to the owner, never ignored.
 
-At go-live the active agreements, their session balances and their next due dates are imported (E015) and checked against the old app before any client pays through Trainer Hub (`ROADMAP.md §7`).
+At go-live the active agreements, their session balances and their next due dates are imported (E015) and the owner checks the reconciliation report against the old app before the cutover, when every client gets the first-payment link for the new mandate (`ROADMAP.md §7`).

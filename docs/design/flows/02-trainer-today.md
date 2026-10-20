@@ -27,7 +27,7 @@
 | F026 | Cancellations | Cancelled items on TD-01 |
 | F010 | Locale Preference | All copy; *Profiel → Taal* |
 | F006 | Client Profile | TM-02 *Klanten* tab, TM-03 profile, quick add in TD-05 |
-| F021 / F022 / F034 | Group Class Templates / Recurring Classes / Open Gym Slots | TD-05 *Nieuw*: owner/admin create a class (optionally weekly) or Open Gym |
+| F021 / F022 / F034 | Group Class Templates / Recurring Classes / Open Gym Slots | TD-05 *Nieuw*: the owner creates a class (optionally weekly) or Open Gym |
 
 ## Flow diagram
 
@@ -106,7 +106,7 @@ flowchart TD
 - **+** opens *Nieuw* (TD-05): what the user's role may create.
 - **Morgen** preview: one line with tomorrow's count and first start time; tapping it opens *Agenda* on tomorrow.
 
-**Owner / Admin variant** ⚑ [Q01](../open-questions.md#q01): under the date there's a segmented control, *Mijn dag | John's Gym*. *John's Gym* shows the workspace's whole day (like WC-01), read-only except for attendance. Trainers without an Owner/Admin role never see the control.
+**Owner variant** ⚑ [Q01](../open-questions.md#q01): under the date there's a segmented control, *Mijn dag | John's Gym*. *John's Gym* shows the workspace's whole day (like WC-01), read-only except for attendance. Trainers without the Owner role never see the control.
 
 | Element | NL | EN |
 |---|---|---|
@@ -295,8 +295,8 @@ flowchart TD
 └────────────────────────────────────────┘
 ```
 
-- **The role decides the items** (information architecture §3.1). Every trainer sees *Privésessie* (own sessions, flow 04) and *Klant*. *Groepsles* and *Open Gym* appear only for workspaces where the user is Owner or Admin. If the user is only a trainer somewhere, a footnote says who schedules there: *Groepslessen en Open Gym van John's Gym en Fit Studio plant de eigenaar of een beheerder.*
-- **Groepsles (app)**: name, date, start, end, capacity, trainer (the workspace's trainers, or *Trainer nodig*), location (fixed for a gym; a choice for an independent workspace) and *Herhalen*: *Niet herhalen* or *Elke week op {weekday}*. A weekly class creates the series on the same weekday (F022, ADR-012). Editing a series, class templates and descriptions stay on web.
+- **The role decides the items** (information architecture §3.1). Every trainer sees *Privésessie* (own sessions, flow 04) and *Klant*. *Groepsles* and *Open Gym* appear only for workspaces where the user is Owner. If the user is only a trainer somewhere, a footnote says who schedules there: *Groepslessen en Open Gym van John's Gym en Fit Studio plant de eigenaar.*
+- **Groepsles (app)**: name, date, start, end, capacity, trainer (the workspace's trainers, or *Trainer nodig*), location (at go-live the workspace's one location, shown; a choice between locations comes after go-live) and *Herhalen*: *Niet herhalen* or *Elke week op {weekday}*. A weekly class creates the series on the same weekday (F022, ADR-012). Editing a series, class templates and descriptions stay on web.
 - **Open Gym (app)**: date, start, end, capacity; the location is the workspace's own. It's published on save, like WC-07.
 - **Klant**: the PS-02 new-client form (flow 04). With more than one workspace, the client's workspace is chosen first; the default is the one the user owns ⚑ [Q03](../open-questions.md#q03).
 - After saving, the new item opens (TD-03 for a class or Open Gym, TM-03 for a client) with a confirmation.
@@ -306,7 +306,7 @@ flowchart TD
 | Title | Nieuw | New |
 | Items | Privésessie · Groepsles · Open Gym · Klant | Private session · Group class · Open Gym · Client |
 | Where | Bij {workspace} | At {workspace} |
-| Trainer-only footnote | Groepslessen en Open Gym van {workspaces} plant de eigenaar of een beheerder. | The owner or an admin schedules group classes and Open Gym at {workspaces}. |
+| Trainer-only footnote | Groepslessen en Open Gym van {workspaces} plant de eigenaar. | The owner schedules group classes and Open Gym at {workspaces}. |
 | Repeat (glossary) | Herhalen · Niet herhalen · Elke week op {weekday} | Repeat · Don't repeat · Every week on {weekday} |
 | Series note | We zetten de komende {n} weken in de agenda. | We'll add the next {n} weeks to the calendar. |
 | Created | Groepsles toegevoegd · {n} groepslessen toegevoegd · Open Gym gepubliceerd · {name} toegevoegd | Group class added · {n} group classes added · Open Gym published · {name} added |
@@ -316,7 +316,7 @@ flowchart TD
 **Features:** F006, F045, F046
 
 - **TM-02** lists the clients the user can see, **grouped per workspace** (the same person at two workspaces is two profiles, `§10–11`). Each row shows the email (or *geen e-mailadres*) and the last session date. Search matches name and email and ignores accents and case.
-- **TM-03** shows workspace, email, language for emails, default training location and trainer-only client notes, then the workout history (name or *Training zonder schema*, date, exercise count, trainer).
+- **TM-03** shows workspace, email, language for emails, trainer-only client notes (and, after go-live, the default training location), then the workout history (name or *Training zonder schema*, date, exercise count, trainer).
 - Two actions: **Nu training starten** creates a private session that starts now and opens WL-01 (flow 05). **Sessie plannen** opens PS-04 with the client filled in.
 
 | Element | NL | EN |

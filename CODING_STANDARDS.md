@@ -23,7 +23,7 @@ Mark every item ✅, ❌ (finding, with a file reference) or n/a.
 - **Domain language:** names in code, tests and copy use the terms in `GLOSSARY.md`, not the words it says to avoid.
 - **Design:** business rules sit in `packages/domain` behind a small interface (deep modules); routes, apps and native code don't re-implement them. Tested through that interface.
 - **Tenant isolation:** business data carries `organization_id`, goes through tenant-scoped repositories, and cross-tenant access returns `404`.
-- **Roles:** Owner / Admin / Trainer / Client / anonymous are allowed or denied as specified, with a test for each.
+- **Roles:** Owner / Trainer / Client / anonymous are allowed or denied as specified, with a test for each.
 - **i18n:** no hard-coded user-facing strings; keys in both `nl-NL.json` and `en.json`; native catalogs regenerated; Dutch copy checked against `packages/i18n/GLOSSARY.md` (copy review).
 - **Time:** stored in UTC; rendered in the workspace zone (Europe/Amsterdam); injected `Clock`; DST and near-midnight cases tested where relevant.
 - **Notes and health data:** trainer-only by default; no note content in lists, emails, logs or errors.

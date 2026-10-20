@@ -6,7 +6,7 @@
 | | |
 |---|---|
 | **Versie / Version** | 0.1 · 22 september 2026 |
-| **Blocks** | **G2** = before real data enters the platform (owner alpha, M4) · **Sign** = before the processor agreement is signed · **Publish** = before the privacy policy and terms go live (M5) · **G4** = before pilot go-live · **Later** = no rush |
+| **Blocks** | **G2** = before real data enters the platform (G2 is an internal alpha on synthetic data since roadmap v1.19; real data now first enters at pilot setup, before G4) · **Sign** = before the processor agreement is signed · **Publish** = before the privacy policy and terms go live (M5) · **G4** = before pilot go-live · **Later** = no rush |
 
 Each question has a recommendation, so a short "agree" is a valid answer.
 

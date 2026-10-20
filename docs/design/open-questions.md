@@ -16,10 +16,10 @@ Should trainers see the whole workspace calendar, or only their assigned session
 Which workspace clients may a trainer open: all, assigned only, or clients they have trained? **Proposal:** workspace client list, with access to notes determined separately by Q04 (TW-01/02).
 
 ### Q04
-Who may read trainer-only notes about a client within a workspace? **Proposal:** owner, admin and trainers with access to that client. Health-related content makes this a privacy decision (TW-02, TD-02).
+Who may read trainer-only notes about a client within a workspace? **Proposal:** the owner and trainers with access to that client. Health-related content makes this a privacy decision (TW-02, TD-02).
 
 ### Q05
-Which administrative actions may an admin perform, and may a trainer copy or share booking links? **Proposal:** admin manages classes, Open Gym and links; only owner changes roles/settings; trainers may share a published link (TW-06/07/08, TD-03).
+**Resolved by the owner, 20 October 2026.** There is no Admin role in the MVP (`PRODUCT.md §9, §50`): the Owner does everything, including the money, and the Trainer runs their own sessions and classes, calendar and attendance. Admin is a later role 🔜, added when a gym asks for a manager who isn't the owner (Release 7.0 "advanced permissions", or earlier on request). Still open from this question: may a trainer copy or share booking links? **Proposal:** trainers may share a published link (TW-07, TD-03).
 
 ### Q06
 Does the gym say *privésessie* for a private appointment? Confirm *werkruimte*, *trainingsschema* and *vervanger* against the [glossary's open terms](../../packages/i18n/GLOSSARY.md#8-open-questions-validate-with-the-pilot-owner). **Proposal:** use glossary terms until validated (PS-01, CO-02).
@@ -85,10 +85,10 @@ Which private-session durations should be one tap away? **Proposal:** common pil
 Should new, moved and cancelled private sessions email the client automatically? **Proposal:** show the email effect before saving; notification scope also needs QE02 (PS-01/05/06).
 
 ### Q27
-May trainers create, move or cancel their own private sessions, and may they do so for another trainer? **Proposal:** own sessions only; owner/admin manage all in their workspace (PS-01/05/06).
+May trainers create, move or cancel their own private sessions, and may they do so for another trainer? **Proposal:** own sessions only; the owner manages all in their workspace (PS-01/05/06).
 
 ### Q28
-Which locations do trainers actually use, and when should the system remember a client's preferred location? **Proposal:** infer from client/workspace, ask only when ambiguous (PS-03).
+(After go-live: the first release has one location per workspace, `ROADMAP.md` decision 12.) Which locations do trainers actually use, and when should the system remember a client's preferred location? **Proposal:** infer from client/workspace, ask only when ambiguous (PS-03).
 
 ### Q29
 Does the gym need to record who initiated a private-session cancellation? **Proposal:** optional reason/initiator; omit if it adds administration without present value (PS-06).
@@ -120,13 +120,13 @@ Should a trainer substitution notify booked clients? **Proposal:** optional, off
 How does a substitute learn about an assignment, and should the original trainer get a notice? **Proposal:** email the substitute; this adds a template to the MVP email list (CO-02, QE01).
 
 ### Q38
-Who records class attendance, and when? **Proposal:** assigned trainer or owner/admin from 30 minutes before start (CO-05/06).
+Who records class attendance, and when? **Proposal:** assigned trainer or owner from 30 minutes before start (CO-05/06).
 
 ### Q39
 May staff add walk-ins, including when capacity is full? **Proposal:** add a participant within capacity only; anything else needs a capacity policy (CO-07).
 
 ### Q40
-May an assigned trainer substitute themselves or cancel a class occurrence? **Proposal:** owner/admin handle those changes; trainer handles attendance (CO-01/02/03).
+May an assigned trainer substitute themselves or cancel a class occurrence? **Proposal:** the owner handles those changes; trainer handles attendance (CO-01/02/03).
 
 ### Q41
 Does the owner need to undo a cancelled class after notifications have gone out? **Proposal:** no undo in MVP; validate the recovery action before building (CO-03).
@@ -173,7 +173,7 @@ Define concurrent edits to the same workout or set before implementing the propo
 Starting a workout from a client profile creates a private session that starts now (flow 05, WL-01). Confirm the default duration (proposal: 60 min), that it counts in *Mijn dag* and reports like a planned session, and whether a trainer in someone else's workspace may do this (same rule as creating their own private sessions, Q27).
 
 ### QE16
-The trainer apps can now create group classes (one-off or weekly) and Open Gym for owners/admins (flow 02, TD-05). Confirm the weekly series horizon (prototype: 8 weeks; ADR-012 proposes a rolling 12-week window) and that editing or ending a series stays web-only in MVP.
+The trainer apps can now create group classes (one-off or weekly) and Open Gym for owners (flow 02, TD-05). Confirm the weekly series horizon (prototype: 8 weeks; ADR-012 proposes a rolling 12-week window) and that editing or ending a series stays web-only in MVP.
 
 ### QE17
 Decide whether verifying a booking (PB-05/PB-06) signs the client in, so *Naar mijn boekingen* can go straight to CW-02, or whether it still needs a separate CW-01 sign-in. Nobody has decided this; it sits next to QE06 (PB-06, CW-01/02).
@@ -207,7 +207,7 @@ What are the membership terms today: minimum term, tacit renewal, notice period,
 How are private sessions sold today: a number of sessions with a validity, or a weekly rhythm for a term, and paid up front or monthly? What happens to unused sessions at the end? **Proposal:** a number of sessions with a validity, paid up front or in monthly instalments; unused sessions expire, visible in the history (`§92`).
 
 ### QC09
-Can the existing direct-debit mandates move from the current app to a new payment provider account (ADR-020, to come), or does every client give a new one? **Proposal:** a new mandate through a first payment link, sent client group by client group during the switch-over (`ROADMAP.md §7`).
+Can the existing direct-debit mandates move from the current app to a new payment provider account (ADR-020, to come), or does every client give a new one? **Proposal:** a new mandate through a first payment link, sent to every client at the cutover (`ROADMAP.md §7`).
 
 ### QC10
 What must the invoices show: company names, VAT number, the gym's KvK and VAT number, a VAT rate per service, and is the private training sold by the same legal entity as the group classes? **Proposal:** one seller per workspace; billing details per client (`§96`); the gym's accountant checks a sample before G4.
@@ -216,7 +216,7 @@ What must the invoices show: company names, VAT number, the gym's KvK and VAT nu
 What is the "kiosk" or pay-at-the-desk option in the current app, and is it used? **Proposal:** not in MVP (`PRODUCT.md §53`) unless the pilot uses it weekly.
 
 ### QC12
-Which commerce actions may an admin take (agreements, refunds, prices, payouts, a client's billing details), and may a trainer see the session balance of the clients they train? **Proposal:** admins manage agreements and see payments; only the owner changes prices, refunds and the provider connection; trainers see the balance of their own clients, not amounts.
+May a trainer see the session balance of the clients they train? **Proposal:** yes, the balance of their own clients, not amounts, payments or invoices; the owner does all commerce (agreements, prices, refunds, payouts, billing details, the provider connection). With no Admin role in the MVP (resolved by the owner, 20 October 2026, see Q05) there is no one in between.
 
 ### QC13
 What does the pilot pay today: the subscription (per month or per year, VAT included?) and the fee per payment, and is there a separate provider fee? (The figures stay in the owner's private notes, not in the repository.) What does a weekly payout need to show? **Proposal:** record only the outcome of the comparison here (for example "cheaper / similar / more expensive per payment"), never the figures; compare in the ADR-020 spike.

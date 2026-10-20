@@ -8,7 +8,7 @@
 
 | | |
 |---|---|
-| **Actors** | Trainer (during or right after a private session); Owner/Admin as trainers |
+| **Actors** | Trainer (during or right after a private session); an owner who also trains |
 | **Surfaces** | Trainer iOS/Android (primary, one hand, between sets); trainer web (WL-06, e.g. afterwards at a desk) |
 | **Milestone** | M7, after go-live (web + logging API, offline-ready), M8 (native) |
 | **Spec** | `PRODUCT.md §38–§42, §36, §37, §89`; `ROADMAP.md M7 (offline-ready API: client IDs, idempotent writes, batch sync), M8, R12` |
@@ -93,7 +93,7 @@ flowchart TD
 - **Lege training comes first**: training on the fly is a normal way to work, not an exception. It opens WL-02 with WL-04 on top, so the first exercise is one search away.
 - **Vorige training herhalen** (F051) copies the client's last logged workout: same exercises, same number of sets, prefilled with last time's values. Hidden when the client has no history.
 - **Schema's van Koen** = templates used with this client before (F042), most recent first; then the other workspace templates. With many templates, a search field appears above *Andere schema's*.
-- **Without a planned session**: *Nu training starten* on the client profile (TM-03) creates a private session for the trainer that starts now, with the inferred location (F019), then opens WL-01. ⚑ [QE15](../open-questions.md#qe15)
+- **Without a planned session**: *Nu training starten* on the client profile (TM-03) creates a private session for the trainer that starts now, with the workspace's location (inferred once F019 lands), then opens WL-01. ⚑ [QE15](../open-questions.md#qe15)
 
 | Element | NL | EN |
 |---|---|---|

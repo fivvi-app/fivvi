@@ -42,7 +42,7 @@ A spec issue is the requirement of record for one feature (`F0xx`) or enabler (`
   - **Platforms:** checklist of trainer web, trainer iOS, trainer Android, public booking web, client web.
   - **UX:** the screen IDs and flows it implements (`docs/design/`).
   - **Languages:** `Dutch ⬜` / `English ⬜`, ticked when each works (mandatory, `PRODUCT.md §82`).
-  - **Acceptance criteria:** `AC1:` … in Given/When/Then, each marked **NL** and/or **EN**. Cover every role that is allowed or denied (Owner, Admin, Trainer, Client, anonymous).
+  - **Acceptance criteria:** `AC1:` … in Given/When/Then, each marked **NL** and/or **EN**. Cover every role that is allowed or denied (Owner, Trainer, Client, anonymous).
   - **Test plan** (inside *Testing Decisions*): a table mapping every AC to a layer and a named test (`docs/engineering/TESTING.md §6`).
 - Use the vocabulary of the root `GLOSSARY.md`. Respect the ADRs in `docs/decisions/`. Nothing from `PRODUCT.md §53` (MVP exclusions).
 - Never put real personal data in an issue: GitHub only ever sees synthetic data (`docs/legal/sub-processors.md`).
