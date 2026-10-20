@@ -69,7 +69,7 @@ A monthly membership therefore costs the gym €0.32 + €0.35 a month with Moll
 
 ## Decision
 
-**Proposed: Mollie Connect for Platforms, with each gym as the merchant on its own Mollie account.** Trainer Hub never holds client money, never charges a platform fee in the MVP (ROADMAP decision 16), and keeps the provider behind one interface so Stripe stays a documented fallback.
+**Proposed: Mollie Connect for Platforms, with each gym as the merchant on its own Mollie account.** Trainer Hub never holds client money, takes no application fee on client payments in the MVP (Mollie's `applicationFee` stays the option for later; how Trainer Hub bills gyms is still open, ROADMAP decision 16), and keeps the provider behind one interface so Stripe stays a documented fallback.
 
 Why Mollie over Stripe:
 
