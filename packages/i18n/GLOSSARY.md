@@ -187,7 +187,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | recurring | terugkerend (adj.) | Field label *Herhalen / Repeat* with options such as *Niet herhalen*, *Elke week op dinsdag*. **Never the noun "herhaling" for recurrence**, because *herhaling* means *rep* (§4.5). ❌ *repeterend, recurrent, periodiek*. |
 | reschedule | verplaatsen | ❌ *herplannen, verzetten, omboeken*. |
 | cancel (a session, class or booking) | annuleren; *cancellation* → **annulering** (de, annuleringen) | See the **Cancel collision** rule in §5.3. ❌ *afzeggen, afmelden, schrappen*. |
-| assign | toewijzen; *assigned trainer* → **toegewezen trainer** | ❌ *koppelen, inroosteren*. |
+| assign | toewijzen; *assigned trainer* → **toegewezen trainer** | ❌ *koppelen, inroosteren*. *Koppelen* is fine for connecting an account (*Betalingen koppelen*, §4.9), see §5.4. |
 | substitution | vervanging (de); *substitute* (person) → **vervanger** (de) | UI: *Vervanger kiezen / Choose substitute*; badge *Vervanger: Mike / Substitute: Mike*. ❌ NL: *invaller, invaltrainer, invalkracht*. ❌ EN: *cover, stand-in, replacement*. |
 | capacity | capaciteit (de) | As a field label. In running text, talk about *plekken / spots*: "8 plekken". |
 | spot | plek (de, plekken) | ❌ NL: *plaats*. ❌ EN: *place, seat, slot* (*slot* belongs to Open Gym). |
@@ -333,6 +333,8 @@ Added with roadmap v1.19 (M11). The ⚠️ terms are open until the pilot owner 
 | chargeback | terugboeking (de, terugboekingen) | A payment the client's bank or card issuer takes back, including a reversed direct debit. ❌ *terugbetaling* (a refund is a different thing). |
 | payout | uitbetaling (de, uitbetalingen) | ❌ *settlement*. |
 | payment provider | betaalprovider (de) ⚠️ | Usually name it (*Mollie*, *Stripe*) instead. |
+| merchant | verkoper (de) ⚠️ | The business that sells to the client and receives the money; in Trainer Hub the workspace (proposed in ADR-020). Alternative to confirm: *handelaar*. Mostly internal; in the UI say *jouw sportschool* or the workspace name. ❌ *leverancier*, *vendor*. |
+| connect payments | Betalingen koppelen | The owner action that connects the workspace's Mollie account (a guided flow, `PRODUCT.md §94`). *Koppelen* is right here, unlike for *assign* (§4.1), where it is forbidden. |
 
 ---
 
@@ -441,6 +443,7 @@ Added with roadmap v1.19 (M11). The ⚠️ terms are open until the pilot owner 
 |---|---|---|
 | **training** (NL) | workout | a scheduled session or class → *sessie*, *les*, *privésessie* |
 | **herhaling** (NL) | rep | recurrence → *terugkerend*, *Herhalen: elke week* |
+| **koppelen** (NL) | connecting an account or provider: *Betalingen koppelen / Connect payments* (§4.9) | assigning a trainer to a session or class → *toewijzen* (§4.1); both words are fine in their own place, never swapped |
 | **annuleren / cancel** | cancelling a session, class or booking; also dismissing a dialog | both at once in one dialog → §5.3 |
 | **abonnement / lidmaatschap**, **membership** | a client's membership (§4.9) | a person: *klant met een abonnement / client with a membership* (never *lid / member*); a team member → *teamlid / team member* |
 | **plek** (NL) | a spot in a class | a location → *locatie* |
@@ -510,4 +513,4 @@ These terms are the best current choice. Confirm them in the M0 wireframe review
 | 2026-10-13 | 0.5 | Definitions moved to the root domain glossary (`GLOSSARY.md`, used by the agent skills); §4 keeps the NL/EN wording and forbidden alternatives, and explains UI-only terms in its notes. Terminology is unchanged. |
 | 2026-10-19 | 0.6 | F001 shaped: there are no guests, a client's account is created automatically at their first verified booking. §4 retires the *guest* row (never in UI, now also avoid internally — see *client*'s ❌ list) and drops the "Create account" / "Continue without account" copy from the *account* row. |
 | 2026-10-19 | 0.7 | Commerce moved into the MVP (roadmap v1.19): new §4.9 with membership, session pack, session balance, makeup, payment, mandate, invoice and payout wording (⚠️ terms open, §8 question 5); *Te laat geannuleerd* is no longer post-MVP; *abonnement / lidmaatschap* now means a client's membership in §5.4. |
-| 2026-10-20 | 0.8 | Owner review of roadmap v1.19: *Admin* is a later role 🔜 (the MVP roles are Eigenaar and Trainer); new type label **Groep** / **Group** next to **Privé** / **Private** for calendar blocks (`PRODUCT.md §48`); §4.3 notes that only the own location exists at go-live; §4.9 adds *credit* 🔜 and *chargeback* and more forbidden alternatives. |
+| 2026-10-20 | 0.8 | Owner review of roadmap v1.19: *Admin* is a later role 🔜 (the MVP roles are Eigenaar and Trainer); new type label **Groep** / **Group** next to **Privé** / **Private** for calendar blocks (`PRODUCT.md §48`); §4.3 notes that only the own location exists at go-live; §4.9 adds *credit* 🔜 and *chargeback* and more forbidden alternatives, *merchant* ⚠️ and *Betalingen koppelen / Connect payments*; §5.4 notes the *koppelen* collision with *assign*. |

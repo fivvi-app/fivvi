@@ -234,6 +234,10 @@ _Avoid_: credit, catch-up, reschedule (that moves a session)
 The payment company through which clients' online payments run. Who the merchant is, and whether the workspace has its own account with it, is set out in `PRODUCT.md §94`.
 _Avoid_: bank
 
+**Merchant**:
+The business that sells to the client and receives the money. In Trainer Hub it is the workspace (proposed in ADR-020), not Trainer Hub.
+_Avoid_: seller (alone), vendor
+
 **Payment**:
 Money collected from a client: a first payment, a recurring payment or a single class.
 _Avoid_: transaction (outside code), charge

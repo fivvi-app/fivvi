@@ -9,7 +9,7 @@
 
 ## Context
 
-The pilot gym won't switch without commerce, so memberships, session packs, recurring payments and invoices ship before go-live in M11 (`ROADMAP.md §14`, decision 9). The commerce requirements (`PRODUCT.md §90–§97`) and the decisions behind them are in the same PR (#141) as this ADR, which the owner approves by merging it. Decision 14 (the payment provider, Mollie or Stripe, and the merchant model) is the M11 opening spike (E019): no money code is written before the project owner decides it.
+The pilot gym won't switch without commerce, so memberships, session packs, recurring payments and invoices ship before go-live in M11 (`ROADMAP.md §14`, decision 9). The commerce requirements (`PRODUCT.md §90–§97`) and the decisions behind them are in the same PR (#141) as this ADR, which the owner accepts by approving the PR (status set to Accepted with the date before merge). Decision 14 (the payment provider, Mollie or Stripe, and the merchant model) is the M11 opening spike (E019): no money code is written before the project owner decides it.
 
 What the product needs from a provider (`PRODUCT.md §94–§97`):
 
@@ -119,7 +119,7 @@ Why Mollie over Stripe:
 
 **Data protection (for the project owner and `docs/legal`)**
 
-- The gym contracts Mollie directly. Mollie sees itself as an **independent controller** for the payment data, not as Trainer Hub's sub-processor. Trainer Hub, acting for the gym through OAuth, processes the client's payment data (name, email, mandate and payment status, the masked IBAN) as the gym's **processor**. This changes the role mapping, the DPIA (which today says no payments), the processor agreement, the privacy texts and the retention policy for invoices. Those documents stay the project owner's.
+- The gym contracts Mollie directly. Mollie sees itself as an **independent controller** for the payment data, not as Trainer Hub's sub-processor. Trainer Hub, acting for the gym through OAuth, processes the client's payment data (name, email, mandate and payment status, the masked IBAN) as the gym's **processor**. This changes the role mapping, the DPIA (`docs/legal/dpia-assessment.md`, which already records payments in the MVP (M11) and is reassessed before G4), the processor agreement, the privacy texts and the retention policy for invoices. Those documents stay the project owner's.
 - Trainer Hub sends Mollie only what a payment needs: name, email, amounts, a description without health or note content, and our ids. It doesn't keep full IBANs.
 
 ## Consequences

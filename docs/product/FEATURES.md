@@ -24,23 +24,23 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| [F001](https://github.com/trainerrrzzz/trainer-hub/issues/128) | Authentication | PLANNED | Must | M2 (web + native) | E004, E006 | ⬜ | ⬜ | §2.4, §27 |
+| [F001](https://github.com/trainerrrzzz/trainer-hub/issues/128) | Authentication | PLANNED | Must | M2 (+ iOS/Android; native sign-in: separate spec) | E004, E006 | ⬜ | ⬜ | §2.4, §27 |
 | F002 | Workspaces | PLANNED | Must | M2 | F001 | ⬜ | ⬜ | §5 |
 | F003 | Workspace Membership | PLANNED | Must | M2 | F002 | ⬜ | ⬜ | §2.9, §6, §9 (team role next to client relationship) |
 | F004 | Roles | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9, §50 (Owner and Trainer; Admin is a later role 🔜) |
-| F005 | Trainer Profile | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9 |
+| F005 | Trainer Profile | PLANNED | Must | M2 (+ iOS/Android: profile) | F003 | ⬜ | ⬜ | §9 |
 | F006 | Client Profile | PLANNED | Must | M2 (+ iOS/Android in M4) | F002 | ⬜ | ⬜ | §2.9, §9, §10, §34 (quick add, name only; links to an existing account) |
 | F007 | Localization Infrastructure | PLANNED | Must | M1–M2 | E005 | ⬜ | ⬜ | §3, §73 |
 | F008 | Dutch UI | PLANNED | Must | continuous | F007 | ⬜ | — | §2.2 |
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |
-| F010 | Locale Preference | PLANNED | Must | M2 (web + native) | F001, F007 | ⬜ | ⬜ | §3 |
+| F010 | Locale Preference | PLANNED | Must | M2 (+ iOS/Android) | F001, F007 | ⬜ | ⬜ | §3 |
 
 ### Trainers
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | F011 | Trainer Invitations | PLANNED | Must | M3 | F003, F004, E006 | ⬜ | ⬜ | §49 |
-| F012 | Multi-Workspace Trainer | PLANNED | Must | M3 | F003, F005 | ⬜ | ⬜ | §4, §6 |
+| F012 | Multi-Workspace Trainer | PLANNED | Must | M3 (+ iOS/Android: workspace switch in the profile) | F003, F005 | ⬜ | ⬜ | §4, §6 |
 | F013 | Personal Trainer Calendar | PLANNED | Must | M4 (+ iOS/Android) | F012, F020 | ⬜ | ⬜ | §45–§48, §78 (type labels and filters) |
 | F014 | Workspace Calendar | PLANNED | Must | M4 | F020 | ⬜ | ⬜ | §45, §48, §78 (type and trainer filters) |
 
@@ -48,11 +48,11 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F015 | Locations | PLANNED | Must | M3 (one location; more after G4) | F002 | ⬜ | ⬜ | §12 (go-live: one location per workspace; after go-live: more locations and the other types) |
-| F016 | Organization Default Location | PLANNED | Must | M3 | F015 | ⬜ | ⬜ | §13 (the workspace's one location) |
-| F017 | Trainer Locations | PLANNED | Must | After G4, with M7 | F005, F015 | ⬜ | ⬜ | §13 |
-| F018 | Client Preferred Location | PLANNED | Must | After G4, with M7 | F006, F015 | ⬜ | ⬜ | §14 |
-| F019 | Automatic Location Selection | PLANNED | Must | After G4, with M7 (v1.19) | F016, F017, F018 | ⬜ | ⬜ | §2.6, §13 |
+| F015 | Locations | PLANNED | Must | M3 (one location; more after G4) (+ iOS/Android: shown) | F002 | ⬜ | ⬜ | §12 (go-live: one location per workspace; after go-live: more locations and the other types) |
+| F016 | Organization Default Location | PLANNED | Must | M3 (+ iOS/Android: shown) | F015 | ⬜ | ⬜ | §13 (the workspace's one location) |
+| F017 | Trainer Locations | PLANNED | Must | After G4, with M7 (+ iOS/Android) | F005, F015 | ⬜ | ⬜ | §13 |
+| F018 | Client Preferred Location | PLANNED | Must | After G4, with M7 (+ iOS/Android) | F006, F015 | ⬜ | ⬜ | §14 |
+| F019 | Automatic Location Selection | PLANNED | Must | After G4, with M7 (v1.19) (+ iOS/Android) | F016, F017, F018 | ⬜ | ⬜ | §2.6, §13 |
 
 ### Scheduling
 
@@ -61,17 +61,17 @@ The single source of truth for feature status. A status changes **in the same PR
 | F020 | Private Sessions | PLANNED | Must | M4 (+ iOS/Android) | F005, F006, F015 | ⬜ | ⬜ | §17 |
 | F021 | Group Class Templates | PLANNED | Must | M4 (+ iOS/Android: create a class) | F005, F015 | ⬜ | ⬜ | §15, §18, §19 |
 | F022 | Recurring Classes | PLANNED | Must | M4 (+ iOS/Android: weekly repeat) | F021, E012 | ⬜ | ⬜ | §15, §20 |
-| F023 | Trainer Assignment | PLANNED | Must | M4 | F020, F021 | ⬜ | ⬜ | §17, §19 |
+| F023 | Trainer Assignment | PLANNED | Must | M4 (+ iOS/Android: double-booking check) | F020, F021 | ⬜ | ⬜ | §17, §19 |
 | F024 | Trainer Substitution | PLANNED | Must | M4 | F022, F023 | ⬜ | ⬜ | §19 |
 | F025 | Attendance | PLANNED | Must | M4 (+ iOS/Android) | F020, F022 | ⬜ | ⬜ | §43 |
-| F026 | Cancellations | PLANNED | Must | M4 | F020, F022, F049 | ⬜ | ⬜ | §17, §43, §51 (records time and actor for the §93 cutoff) |
+| F026 | Cancellations | PLANNED | Must | M4 (+ iOS/Android: cancel a session) | F020, F022, F049 | ⬜ | ⬜ | §17, §43, §51 (records time and actor for the §93 cutoff) |
 
 ### Booking
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | F027 | Public Booking Page | PLANNED | Must | M5 | F022, F007 | ⬜ | ⬜ | §15, §21 |
-| F028 | Booking Capacity | PLANNED | Must | M5 | F027 | ⬜ | ⬜ | §18 |
+| F028 | Booking Capacity | PLANNED | Must | M5 (+ iOS/Android: add a participant) | F027 | ⬜ | ⬜ | §18 |
 | F029 | Booking Hold | PLANNED | Must | M5 | F028, E012 | ⬜ | ⬜ | §24 |
 | F030 | Magic-Link Verification | PLANNED | Must | M5 | F029, F049 | ⬜ | ⬜ | §23, §27 |
 | F031 | Booking with Email Verification | PLANNED | Must | M5 | F030 | ⬜ | ⬜ | §25 |
@@ -97,10 +97,10 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F039 | Exercise Library | PLANNED | Must | M7, after G4 | F007 | ⬜ | ⬜ | §38 |
-| F040 | Custom Exercises | PLANNED | Must | M7, after G4 | F039 | ⬜ | ⬜ | §38 |
-| F041 | Workout Templates | PLANNED | Must | M7, after G4 | F039 | ⬜ | ⬜ | §39 (save a logged workout as template) |
-| F042 | Client Workouts | PLANNED | Must | M7, after G4 | F041, F006 | ⬜ | ⬜ | §40 |
+| F039 | Exercise Library | PLANNED | Must | M7, after G4 (+ iOS/Android) | F007 | ⬜ | ⬜ | §38 |
+| F040 | Custom Exercises | PLANNED | Must | M7, after G4 (+ iOS/Android) | F039 | ⬜ | ⬜ | §38 |
+| F041 | Workout Templates | PLANNED | Must | M7, after G4 (+ iOS/Android) | F039 | ⬜ | ⬜ | §39 (save a logged workout as template) |
+| F042 | Client Workouts | PLANNED | Must | M7, after G4 (+ iOS/Android) | F041, F006 | ⬜ | ⬜ | §40 |
 | F043 | Live Workout Logging | PLANNED | Must | M7, after G4 (+ iOS/Android) | F039, F020 | ⬜ | ⬜ | §41 (with or without a template) |
 | F044 | Previous Workout Display | PLANNED | Must | M7, after G4 (+ iOS/Android) | F043 | ⬜ | ⬜ | §41 |
 | F045 | Workout History | PLANNED | Must | M7, after G4 (+ iOS/Android) | F043 | ⬜ | ⬜ | §42, §37 (shared recap) |

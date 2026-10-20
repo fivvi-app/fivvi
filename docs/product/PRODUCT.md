@@ -703,7 +703,7 @@ English
 
 ## Trainer Mobile
 
-iOS + Android. Built in parallel with the web from M2 (`ROADMAP.md §3.1`; M8 is the label of this track), not after go-live: every feature with a trainer mobile surface gets iOS and Android tickets next to its web ticket, with the same acceptance criteria, and counts as done when web, iOS and Android all work. Trainers use the apps from go-live through TestFlight and Play internal testing; go-live doesn't wait for public App Store / Play listings. Client apps stay Release 1.2.
+iOS + Android. Built in parallel with the web from M2 (`ROADMAP.md §3.1`; M8 is the label of this track), not after go-live: every feature with a trainer mobile surface gets iOS and Android tickets next to its web ticket, with the same acceptance criteria, and counts as done when web, iOS and Android all work. Trainers use the apps from go-live through TestFlight and Play internal testing if they pass their checks; go-live doesn't wait for public App Store / Play listings. Client apps stay Release 1.2.
 
 Primary daily operational interface:
 
@@ -1572,7 +1572,7 @@ versions.
 
 # 52. MVP scope
 
-Everything above **After go-live** is needed for the pilot's go-live (`ROADMAP.md` Gate G4). The items under **After go-live** are still MVP, but they join the running pilot.
+Everything above **After go-live** is needed for the pilot's go-live (`ROADMAP.md` Gate G4), except the trainer apps bullet, which says so itself. The items under **After go-live** are still MVP, but they join the running pilot.
 
 ## Foundation
 
@@ -1645,7 +1645,7 @@ Single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisi
 - trainer web
 - responsive public booking web
 - basic client web
-- trainer iOS and Android apps, built in parallel with the web (`ROADMAP.md` M8, the native track): sign-in, Today, personal calendar, clients, session screen, attendance and the **+** menu come with the scheduling milestones; trainers install them through TestFlight and Play internal testing; no public store listings are needed for go-live
+- trainer iOS and Android apps, built in parallel with the web (not a G4 gate: an app that fails its checks stays off without delaying go-live, decision 8; `ROADMAP.md` M8, the native track): sign-in, Today, personal calendar, clients, session screen, attendance and the **+** menu come with the scheduling milestones; trainers install them through TestFlight and Play internal testing; no public store listings are needed for go-live
 
 ## After go-live (joins the running pilot)
 
@@ -2718,7 +2718,7 @@ The cutoff, the makeup limit and how long a makeup stays valid are open ([QC02](
 
 # 94. Recurring payments
 
-Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-payment-provider.md) (Proposed, approved when the owner merges this PR) proposes **Mollie Connect for Platforms**, with Stripe Connect as the fallback (see [`ROADMAP.md` decision 14](ROADMAP.md#14-decisions)). **Proposed merchant model (ADR-020):** each workspace connects its own Mollie account, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Trainer Hub. The provider pays out to the gym weekly (the gym sets the day in its own Mollie dashboard); the pilot wants weekly payouts.
+Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-payment-provider.md) (Proposed; accepted when the owner approves this PR, status set to Accepted with the date before merge) proposes **Mollie Connect for Platforms**, with Stripe Connect as the fallback (see [`ROADMAP.md` decision 14](ROADMAP.md#14-decisions)). **Proposed merchant model (ADR-020):** each workspace connects its own Mollie account, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Trainer Hub. The provider pays out to the gym weekly (the gym sets the day in its own Mollie dashboard); the pilot wants weekly payouts.
 
 - **Connecting payments is one guided step, and only the Owner does it** (trainers never; proposal, ADR-020). In Trainer Hub the owner chooses *Betalingen koppelen* / *Connect payments*. Trainer Hub creates a pre-filled Mollie account (name, email, company, KvK) and opens Mollie's onboarding in Dutch. The owner finishes Mollie's own checks (KvK, ID, owners, bank verification) and returns to Trainer Hub connected. An owner who already has a Mollie account just logs in and approves. Mollie reviews SEPA Direct Debit separately (it aims for 3 business days), so payments switch on only when Mollie reports that the account can receive them; until then Trainer Hub shows the status in plain words.
 

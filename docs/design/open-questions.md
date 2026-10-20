@@ -227,7 +227,7 @@ May a trainer see the session balance of the clients they train? **Proposal:** y
 ### QC13
 What does the pilot pay today: the subscription (per month or per year, VAT included?) and the fee per payment, and is there a separate provider fee? (The figures stay in the owner's private notes, not in the repository.) What does a weekly payout need to show? **Proposal:** record only the outcome of the comparison here (for example "cheaper / similar / more expensive per payment"), never the figures; compare with the list prices in ADR-020.
 
-ADR-020 proposes: the list prices of Mollie and Stripe are within cents of each other (Mollie €0.32 for the iDEAL first payment and €0.35 per SEPA debit), so fees don't decide the provider. This question stays open: the comparison with what the pilot pays today, and Mollie's failed-debit and storno fees for the gym.
+ADR-020 proposes: the public list prices of Mollie and Stripe are close enough that fees don't decide the provider (see the [fee comparison in ADR-020](../decisions/ADR-020-payment-provider.md#fees-per-payment-public-list-prices-netherlands-20-october-2026)). This question stays open: the comparison with what the pilot pays today, and Mollie's failed-debit and storno fees for the gym.
 
 ### QC14
 Which data can the pilot export from the current app (clients, memberships, session balances, next due dates), who does it, and how long does it take? **Proposal:** an export the gym owner makes, mapped to the E015 import template (`docs/discovery/import-checklist.md`).
