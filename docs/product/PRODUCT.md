@@ -14,6 +14,8 @@
 
 Build a simple operating platform for personal trainers and small fitness businesses.
 
+**The simple user experience is the product.** It is the one thing that must set us apart from the tools a gym can already buy, so every feature is judged by it (§2.0).
+
 The first version must solve the real workflow of the pilot gym:
 
 - private training
@@ -51,6 +53,18 @@ Therefore the entire product must be:
 ---
 
 # 2. Product principles
+
+## 2.0 Simple is the product
+
+The simple user experience is the only difference we can have with other platforms, and the most important thing to the owner (20 October 2026). Every feature and every screen is judged by it first:
+
+- **Few steps.** Every daily task takes as few steps as possible, on a phone for the trainer and the client, on a laptop for the owner. Count the taps before a flow is built.
+- **Ask nothing we can know.** Never ask for what the platform can know or infer (§2.1): the workspace, the language, the time zone, the location, the client's details from a booking.
+- **One place for everything.** Scheduling, booking, memberships, payments and invoices live in Trainer Hub, so no one needs a second app next to it (§2.8).
+- **Plain words.** Plain Dutch and English, no jargon: *Betalingen koppelen*, not "merchant onboarding" or "SEPA mandate" (`packages/i18n/GLOSSARY.md`).
+- **Hard things are done for the owner.** The owner never has to learn payments or KYC beyond one guided connect step (§94).
+
+---
 
 ## 2.1 Keep it simple
 
@@ -494,7 +508,7 @@ Can:
 - manage booking links
 - manage offers, prices and the cancellation policy (§90, §93)
 - manage agreements, payments and invoices (§91–§96)
-- connect the workspace's payment provider account (proposed, ADR-020 (to come); §94)
+- connect the workspace's payment provider account in one guided step (proposed in ADR-020; §94)
 - manage settings
 
 The pilot PT is:
@@ -1621,7 +1635,7 @@ Single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisi
 - private session packs (§92)
 - session balance with its history (§92)
 - cancellation cutoff, no-shows and limited makeups (§93)
-- recurring payments through the workspace's payment provider account (proposed, ADR-020 (to come); §94)
+- recurring payments through the workspace's payment provider account (proposed in ADR-020; §94)
 - single class purchase (§95)
 - invoices with billing details and credit notes (§96)
 - payouts and reconciliation (§97)
@@ -1676,7 +1690,7 @@ Do not build yet:
 - accounting integrations (Moneybird, e-Boekhouden, Exact Online)
 - point-of-sale or kiosk payments at the desk, until the pilot's current use is known ([QC11](../design/open-questions.md#qc11))
 - payments inside the native apps (clients pay on the web) (proposal, [QC16](../design/open-questions.md#qc16))
-- Trainer Hub holding client money in its own account (proposed in §94) until ADR-020 (to come) decides the merchant model
+- Trainer Hub holding client money in its own account (ADR-020 proposes the gym as merchant instead; §94)
 - platform billing: charging gyms and trainers for Trainer Hub ([`ROADMAP.md` decision 16](ROADMAP.md#14-decisions), listed under "Decided iteratively" and decided at the 2.0 entry gate)
 - phone number requirement
 - SMS
@@ -2491,7 +2505,7 @@ Runs after Phase D (it needs bookings and client accounts), next to Phases E and
 Phase K: single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
 
 79. offers and prices
-80. payment provider account per workspace (proposed, ADR-020 (to come))
+80. payment provider account per workspace (proposed in ADR-020)
 81. memberships on fixed weekdays
 82. private session packs
 83. session balance and its history
@@ -2706,7 +2720,9 @@ The cutoff, the makeup limit and how long a makeup stays valid are open ([QC02](
 
 # 94. Recurring payments
 
-Payments run through a **payment provider** (Mollie or Stripe, chosen in the M11 spike and ADR-020 (to come), see [`ROADMAP.md` decision 14](ROADMAP.md#14-decisions)). **Proposed merchant model, to be decided in ADR-020 (to come):** each workspace connects its own account with the provider, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Trainer Hub. The provider pays out to the gym on a schedule (proposal, ADR-020 (to come)); the pilot wants weekly payouts.
+Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-payment-provider.md) (Proposed, approved when the owner merges this PR) proposes **Mollie Connect for Platforms**, with Stripe Connect as the fallback (see [`ROADMAP.md` decision 14](ROADMAP.md#14-decisions)). **Proposed merchant model (ADR-020):** each workspace connects its own Mollie account, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Trainer Hub. The provider pays out to the gym weekly (the gym sets the day in its own Mollie dashboard); the pilot wants weekly payouts.
+
+- **Connecting payments is one guided step, and only the Owner does it** (trainers never; proposal, ADR-020). In Trainer Hub the owner chooses *Betalingen koppelen* / *Connect payments*. Trainer Hub creates a pre-filled Mollie account (name, email, company, KvK) and opens Mollie's onboarding in Dutch. The owner finishes Mollie's own checks (KvK, ID, owners, bank verification) and returns to Trainer Hub connected. An owner who already has a Mollie account just logs in and approves. Mollie reviews SEPA Direct Debit separately (it aims for 3 business days), so payments switch on only when Mollie reports that the account can receive them; until then Trainer Hub shows the status in plain words.
 
 - **First payment:** the client pays online (iDEAL first; proposal, [QC06](../design/open-questions.md#qc06)) when confirming a membership or pack. That payment also gives the **mandate** for later collections (proposal, [QC06](../design/open-questions.md#qc06)).
 - **Recurring payments:** on each due date Trainer Hub asks the provider to collect the next amount by SEPA Direct Debit under the mandate (proposal, [QC06](../design/open-questions.md#qc06)). The payment schedule belongs to the agreement and has nothing to do with the class times.

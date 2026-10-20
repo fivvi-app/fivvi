@@ -42,7 +42,7 @@ No client names, bank details, agreements or invoices were shared or recorded.
 - The deeper goal is that clients keep coming back regularly (R).
 - Price is not the main problem: T1 would pay more if the workflows work well (R). T1 sees Virtuagym as expensive (R, not checked).
 - The current app is paid with a subscription plus a fee per client payment (figures in the owner's private notes, not in this repository). Whether the subscription is monthly or yearly, whether VAT is included and whether a provider fee comes on top is not known (U).
-- T1 is fine with the money being collected through Trainer Hub and paid out to the gym weekly (R). That doesn't mean Trainer Hub may hold client money (H; the merchant model is proposed in `PRODUCT.md §94` and to be decided in ADR-020 (to come)).
+- T1 is fine with the money being collected through Trainer Hub and paid out to the gym weekly (R). That doesn't mean Trainer Hub may hold client money (H; ADR-020 proposes the gym as merchant on its own Mollie account, see `PRODUCT.md §94`).
 - The current app has a kiosk or pay-at-the-desk option; what it is exactly is not known (U).
 - T1 won't replace the current apps with a product that leaves payments behind; a partial product means more work, not less (R).
 - T1 is open to the pilot, but moving clients, bookings, memberships and payments is a real burden (R).

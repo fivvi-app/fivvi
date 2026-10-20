@@ -9,7 +9,7 @@
 
 ## Context
 
-The pilot gym won't switch without commerce, so memberships, session packs, recurring payments and invoices ship before go-live in M11 (`ROADMAP.md §14`, decision 9). The commerce requirements (`PRODUCT.md §90–§97`) and the decisions behind them are in PR #141, which this ADR builds on. Decision 14 (the payment provider, Mollie or Stripe, and the merchant model) is the M11 opening spike (E019): no money code is written before the project owner decides it.
+The pilot gym won't switch without commerce, so memberships, session packs, recurring payments and invoices ship before go-live in M11 (`ROADMAP.md §14`, decision 9). The commerce requirements (`PRODUCT.md §90–§97`) and the decisions behind them are in the same PR (#141) as this ADR, which the owner approves by merging it. Decision 14 (the payment provider, Mollie or Stripe, and the merchant model) is the M11 opening spike (E019): no money code is written before the project owner decides it.
 
 What the product needs from a provider (`PRODUCT.md §94–§97`):
 
@@ -47,7 +47,7 @@ Both candidates were researched against their primary sources on 19–20 October
 
 ### Fees per payment (public list prices, Netherlands, 20 October 2026)
 
-Paid by the gym as the merchant in both models, so Trainer Hub pays no per-payment or per-account fee. These are the public list prices; the comparison with what the pilot pays today stays in the project owner's private notes (QC13).
+Paid by the gym as the merchant in both models. With Stripe, Trainer Hub pays no per-payment or per-account fee; with Mollie, the platform cost is not confirmed (open question 5). These are the public list prices; the comparison with what the pilot pays today stays in the project owner's private notes (QC13).
 
 | Event | Mollie | Stripe |
 |---|---|---|
@@ -82,7 +82,7 @@ Why Mollie over Stripe:
 
 **Connection (E019)**
 
-- The **Owner** role connects the workspace's Mollie account in the web app with OAuth (decision 13): through a Client Link for a gym without Mollie, or the authorise URL for a gym that has one. One connection per workspace, with the gym's profile id.
+- The **Owner** role connects the workspace's Mollie account in the web app with OAuth (decision 13): through a Client Link for a gym without Mollie, or the authorise URL for a gym that has one. One connection per workspace, with the gym's profile id. It is one guided step in the web app (*Betalingen koppelen*, the flow in `PRODUCT.md §94`); the gym finishes only Mollie's own checks, in Dutch. Mollie reviews SEPA Direct Debit separately, so the pilot owner connects at least a week before the cutover.
 - The scopes are fixed before go-live, because adding scopes later makes every gym authorise again: payments, refunds, customers and mandates (read and write), settlements, balances, invoices, organisations (read), profiles and onboarding (read and write: Mollie advises creating the gym's profile and enabling its methods right after onboarding). No subscriptions scope: we don't use Mollie Subscriptions. Mollie's docs disagree on whether the balance report needs `balances.read` or `balance-reports.read`; E019 checks this with Mollie before the scope list is fixed.
 - The refresh token is a secret of the workspace: stored encrypted, scoped to the workspace (ADR-006), never logged or sent to Sentry. Access tokens (one hour) are refreshed before they expire, and always before a batch of collections.
 - Payments are only offered while Mollie reports the gym can receive payments (the Capabilities API, still beta, with `payments` enabled; or the onboarding status) and SEPA Direct Debit is active on its profile.
@@ -97,13 +97,13 @@ Why Mollie over Stripe:
 **Exactly once (R17)**
 
 - Before calling Mollie we insert our own payment row, unique on (agreement, due date) for recurring payments, and send its id as the `Idempotency-Key` and in the payment's `metadata`.
-- Mollie keeps a key for only one hour and per credential (a refreshed token is a new credential). So after a lost response, a retry first looks the payment up by our metadata among the customer's payments, and only creates it when it isn't there. Tests cover the retried job, the refreshed token and the duplicate webhook.
+- Mollie keeps a key for only one hour and per credential (a refreshed token is a new credential). So after a lost response, a retry first looks the payment up by our metadata among the customer's payments, and only creates it when it isn't there. The same rule applies to refunds (see below). Tests cover the retried job, the refreshed token, the retried refund and the duplicate webhook.
 - **Webhooks:** each payment's `webhookUrl` points to the environment that created it. The handler stores the notification, fetches the payment with the workspace's token (the id alone proves nothing, so a forged call changes nothing), and applies the state change once; replaying it does nothing. Classic webhooks only; Mollie's signed next-gen webhooks can follow when Mollie calls them ready for payments, as a second, not a replacement, signal.
-- A recurring payment is **paid** for the client when Mollie says so, but stays reversible: a rejection within 5 working days or a reversal within 8 weeks (13 months if unauthorised) becomes a reversal line with a credit note (`PRODUCT.md §96`), never an edit of the payment.
+- A recurring payment is **paid** for the client when Mollie says so, but stays reversible. A debit the bank rejects within 5 working days makes the payment **failed**: the amount is open again (`PRODUCT.md §94`), with no credit note. Only a reversal within 8 weeks (13 months if the debit was unauthorised) becomes a reversal line with a credit note (`PRODUCT.md §96`). Neither is ever an edit of the payment.
 
 **Refunds and reversals**
 
-- Only the Owner refunds (QC12, decision 13), fully or in part, through the Refunds API with an idempotency key. The UI warns that refunding a direct debit the client may still reverse can pay them twice.
+- Only the Owner refunds (QC12, decision 13), fully or in part, through the Refunds API with an idempotency key. Refunds have the same one-hour key limit as payments, so after a lost response a retry first looks the refund up (by our metadata, among the payment's refunds) and only creates it when it isn't there. The UI warns that refunding a direct debit the client may still reverse can pay them twice.
 - Reversals and failed debits arrive as the payment's chargeback or failure, with the bank's reason code. The Owner and the client get an email (`PRODUCT.md §94`); what happens to booking access is the offer's setting (QC05).
 
 **Payouts and reconciliation (`PRODUCT.md §97`)**
@@ -128,7 +128,7 @@ Why Mollie over Stripe:
 - **Positive:** previews test the full flow, from the iDEAL checkout to the mandate, recurring payments, failures, refunds and reversals, each preview with its own webhooks.
 - **Positive:** a Dutch gym gets onboarding in Dutch and weekly payouts by default.
 - **Positive:** our own schedule, ledger and idempotency keep a later provider switch possible: the provider sits behind one interface in the domain.
-- **Negative:** Mollie's one-hour, per-token idempotency is weaker than Stripe's; the lookup by metadata before a retry is required, not optional.
+- **Negative:** Mollie's one-hour, per-token idempotency is weaker than Stripe's; the lookup by metadata before a retry (of a payment or a refund) is required, not optional.
 - **Negative:** classic webhooks are unsigned; safety rests on fetching every resource ourselves.
 - **Negative:** reconciliation can't be tested end to end before real money; the first live payout of the pilot is its real test.
 - **Negative:** a direct debit reaches the gym's balance after 9 business days; with a weekly payout on top, the money of a debit reaches the gym's bank about two and a half weeks after the debit at worst. Stripe is a few days faster.
@@ -163,4 +163,4 @@ Why Mollie over Stripe:
 - Mollie: [Connect overview](https://docs.mollie.com/docs/connect-overview), [recurring payments](https://docs.mollie.com/docs/recurring-payments), [API idempotency](https://docs.mollie.com/reference/api-idempotency), [webhooks](https://docs.mollie.com/reference/webhooks), [testing](https://docs.mollie.com/reference/testing), [payouts](https://docs.mollie.com/docs/payouts), [pricing](https://www.mollie.com/nl/pricing), [data processing](https://help.mollie.com/hc/en-us/articles/360002761193-Do-I-have-to-sign-a-data-processing-agreement-with-Mollie)
 - Stripe: [charge types](https://docs.stripe.com/connect/charges), [iDEAL with saved SEPA](https://docs.stripe.com/payments/ideal/save-during-payment), [SEPA Direct Debit](https://docs.stripe.com/payments/sepa-debit), [webhooks](https://docs.stripe.com/webhooks), [Connect pricing](https://stripe.com/connect/pricing), [DPA](https://stripe.com/legal/dpa)
 - iDEAL to Wero: [ideal.nl](https://ideal.nl/en/naar-wero), [EPI, 16 July 2026](https://epicompany.eu/media-insights/successful-first-phase-marks-major-next-steps-in-ideal-to-wero-migration/)
-- `PRODUCT.md §90–§97` and `docs/design/open-questions.md` QC01–QC16, as in PR #141
+- `PRODUCT.md §90–§97` and `docs/design/open-questions.md` QC01–QC16, in the same PR (#141)

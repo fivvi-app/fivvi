@@ -197,8 +197,12 @@ What happens on illness, holidays, a gym closure or a trainer's absence: makeup,
 ### QC05
 When a recurring payment fails, can the client keep booking, and for how long? Who follows it up? **Proposal:** a setting per offer, default "keep booking for 14 days"; the client and the owner both get an email, and the owner sees the open amount (`§94`).
 
+ADR-020 proposes: no automatic retry in the MVP (Mollie documents none for payments we create; to confirm with Mollie); the client gets a link to pay the open amount by iDEAL. The booking period stays open here.
+
 ### QC06
 Which payment methods do the clients use today for the first payment and the recurring ones (iDEAL, SEPA Direct Debit, card)? On which day of the month is a membership collected? **Proposal:** iDEAL for the first payment, SEPA Direct Debit monthly on the agreement's start day.
+
+ADR-020 proposes: an iDEAL first payment that creates the SEPA mandate, then SEPA Direct Debit collected by our daily cron on the due date (no provider subscriptions). Open here: what the clients use today and the collection day. Open with Mollie: whether an iDEAL payment on Wero rails still creates a mandate (fallbacks: Pay by Bank, or IBAN and mandate on our page).
 
 ### QC07
 What are the membership terms today: minimum term, tacit renewal, notice period, early ending? They must fit Dutch consumer law (ACM) before G4. **Proposal:** fixed term, then monthly with one month's notice, reviewed in the `ROADMAP.md §4.4` legal check.
@@ -207,7 +211,9 @@ What are the membership terms today: minimum term, tacit renewal, notice period,
 How are private sessions sold today: a number of sessions with a validity, or a weekly rhythm for a term, and paid up front or monthly? What happens to unused sessions at the end? **Proposal:** a number of sessions with a validity, paid up front or in monthly instalments; unused sessions expire, visible in the history (`§92`).
 
 ### QC09
-Can the existing direct-debit mandates move from the current app to a new payment provider account (ADR-020, to come), or does every client give a new one? **Proposal:** a new mandate through a first payment link, sent to every client at the cutover (`ROADMAP.md §7`).
+Can the existing direct-debit mandates move from the current app to a new payment provider account (ADR-020 proposes the gym's own Mollie account), or does every client give a new one? **Proposal:** a new mandate through a first payment link, sent to every client at the cutover (`ROADMAP.md §7`).
+
+ADR-020 proposes: the same, a new mandate for every client. Mollie's Mandates API could import existing mandates, but that depends on the old provider and creditor identifier; it stays open and is only asked if the owner wants to avoid the first-payment links.
 
 ### QC10
 What must the invoices show: company names, VAT number, the gym's KvK and VAT number, a VAT rate per service, and is the private training sold by the same legal entity as the group classes? **Proposal:** one seller per workspace; billing details per client (`§96`); the gym's accountant checks a sample before G4.
@@ -219,7 +225,9 @@ What is the "kiosk" or pay-at-the-desk option in the current app, and is it used
 May a trainer see the session balance of the clients they train? **Proposal:** yes, the balance of their own clients, not amounts, payments or invoices; the owner does all commerce (agreements, prices, refunds, payouts, billing details, the provider connection). With no Admin role in the MVP (resolved by the owner, 20 October 2026, see Q05) there is no one in between.
 
 ### QC13
-What does the pilot pay today: the subscription (per month or per year, VAT included?) and the fee per payment, and is there a separate provider fee? (The figures stay in the owner's private notes, not in the repository.) What does a weekly payout need to show? **Proposal:** record only the outcome of the comparison here (for example "cheaper / similar / more expensive per payment"), never the figures; compare in the ADR-020 spike.
+What does the pilot pay today: the subscription (per month or per year, VAT included?) and the fee per payment, and is there a separate provider fee? (The figures stay in the owner's private notes, not in the repository.) What does a weekly payout need to show? **Proposal:** record only the outcome of the comparison here (for example "cheaper / similar / more expensive per payment"), never the figures; compare with the list prices in ADR-020.
+
+ADR-020 proposes: the list prices of Mollie and Stripe are within cents of each other (Mollie €0.32 for the iDEAL first payment and €0.35 per SEPA debit), so fees don't decide the provider. This question stays open: the comparison with what the pilot pays today, and Mollie's failed-debit and storno fees for the gym.
 
 ### QC14
 Which data can the pilot export from the current app (clients, memberships, session balances, next due dates), who does it, and how long does it take? **Proposal:** an export the gym owner makes, mapped to the E015 import template (`docs/discovery/import-checklist.md`).
@@ -228,4 +236,6 @@ Which data can the pilot export from the current app (clients, memberships, sess
 When the owner changes an offer's price or cancellation policy, does it also change agreements that already run? **Proposal:** a price change applies to new agreements only, and an agreement keeps the cancellation policy it started with (`PRODUCT.md §90`, `§93`).
 
 ### QC16
-Does the pilot agree with these four rules? (1) The trainer and client apps never take payments; clients pay on the web. (2) A single class's spot is held while the client pays. (3) The owner can also enter billing details (company name, address, VAT number) for a client. (4) A late cancellation counts like a no-show, and a no-show uses the session of a pack or is lost on a membership. **Proposal:** all four as written in `PRODUCT.md §93–§96`; the merchant model behind them (the gym as merchant, payouts to the workspace) is decided in ADR-020 (to come), not here.
+Does the pilot agree with these four rules? (1) The trainer and client apps never take payments; clients pay on the web. (2) A single class's spot is held while the client pays. (3) The owner can also enter billing details (company name, address, VAT number) for a client. (4) A late cancellation counts like a no-show, and a no-show uses the session of a pack or is lost on a membership. **Proposal:** all four as written in `PRODUCT.md §93–§96`; the merchant model behind them (the gym as merchant, payouts to the workspace) is proposed in ADR-020, not decided here.
+
+ADR-020 proposes: Mollie's hosted checkout on the web, a single class as a one-off iDEAL payment, and the spot held while the client pays; how long the hold lasts is set in the F058 spec.
