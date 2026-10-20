@@ -6,8 +6,8 @@
 |---|---|
 | **Actors** | Trainer (incl. an owner who also trains, like the pilot PT) |
 | **Surface** | Trainer iOS app and trainer Android app (parity) |
-| **Milestone** | M8 (API frozen at the end of M4 and M7) |
-| **Spec** | `PRODUCT.md §4, §6, §15 (Trainer Mobile), §43, §46, §47, §78, §89`; `ROADMAP.md M8, R12, R15` |
+| **Milestone** | M4, built beside the web (the native track, `ROADMAP.md` M8; API frozen at the end of M4). The workout and note actions in this flow come with M7, on iOS and Android together with the web |
+| **Spec** | `PRODUCT.md §4, §6, §15 (Trainer Mobile), §43, §46, §47, §78, §89`; `ROADMAP.md M4, M8 (the native track), R12, R15` |
 | **Why critical** | It's the promise to trainers: "*Know where you need to be, who you're training, what they did last time and what you need to remember*" (`§89`). It's the screen trainers open most |
 
 ## Features

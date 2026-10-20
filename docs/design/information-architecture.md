@@ -26,8 +26,8 @@ Assumptions that `PRODUCT.md` doesn't settle are marked **⚑** and linked to [o
 | Surface | Who | Device | Tech | Milestone | Main features |
 |---|---|---|---|---|---|
 | **Trainer web** | Owner, Trainer | Laptop/desktop (responsive down to tablet) | Next.js | M2–M7 | F001–F026, F034, F036–F048 |
-| **Trainer iOS app** | Trainer (incl. owner-trainers) | iPhone | Swift + SwiftUI | M8 | Mobile slices of F013, F020, F025, F043–F048, F010 |
-| **Trainer Android app** | Trainer (incl. owner-trainers) | Android phone | Kotlin + Compose (Material 3) | M8 | Same as iOS (parity) |
+| **Trainer iOS app** | Trainer (incl. owner-trainers) | iPhone | Swift + SwiftUI | M2–M7, built beside the web (the M8 native track) | Mobile slices of F001, F006, F010, F013, F020–F022, F025, F034, F043–F048, F051 |
+| **Trainer Android app** | Trainer (incl. owner-trainers) | Android phone | Kotlin + Compose (Material 3) | M2–M7, built beside the web (the M8 native track) | Same as iOS (parity) |
 | **Public booking web** | Client (before or after verification) | Phone first (from QR), also desktop | Next.js (SSR) | M5–M6 | F027–F032, F035, F037, F038 |
 | **Client web** | Client (via the email's manage link, or signed in) | Phone first | Next.js | M5 | F033, F026, F010 |
 | **Emails** | Clients, trainers | Any mail client | React Email | M1 → M5 | F049, F050, F011, F001 |
@@ -269,7 +269,7 @@ flowchart LR
 ```
 
 - **Navigation depth stays at most 2 pushes** from a tab. The workout logger is a **full-screen modal** because it's a focused task with its own exit (*Afronden*).
-- **Owner on mobile.** M8 scopes the app to the trainer's day. Owners get two extras: a *Mijn dag | John's Gym* toggle on *Vandaag* to see the whole workspace today, read-mostly ⚑ [Q01](open-questions.md#q01), and **creating a group class (one-off or weekly) or Open Gym from *+*** (TD-05, `PRODUCT.md §15`, added 23 September 2026) ⚑ [QE16](open-questions.md#qe16). Other workspace administration (class templates, series edits, trainers, links, settings) stays on web. The app links out to it (*Beheer op het web* / *Manage on the web*).
+- **Owner on mobile.** The native track (M8) scopes the app to the trainer's day. Owners get two extras: a *Mijn dag | John's Gym* toggle on *Vandaag* to see the whole workspace today, read-mostly ⚑ [Q01](open-questions.md#q01), and **creating a group class (one-off or weekly) or Open Gym from *+*** (TD-05, `PRODUCT.md §15`, added 23 September 2026) ⚑ [QE16](open-questions.md#qe16). Other workspace administration (class templates, series edits, trainers, links, settings) stays on web. The app links out to it (*Beheer op het web* / *Manage on the web*).
 - **Sign-in** uses email + **6-digit code** (ADR-007); deep links come in 1.1. The code field uses the platform's one-time-code autofill.
 - **Language** is set in *Profiel → Taal* and follows the in-app choice, not only the OS language (`ROADMAP M2`). Changing it re-renders immediately without a restart.
 
@@ -531,10 +531,10 @@ All screens with an ID. **Critical-flow** screens are wireframed in `flows/`. Th
 | CW-03 | Boeking | Booking | Client web | F033, F026, F050 | M5 |
 | CW-04 | Profiel | Profile | Client web | F033, F010, F006 | M5 |
 | CW-05 | Mijn trainingen | My workouts | Client web | F045, F048 | M7 |
-| TD-01 | Vandaag | Today | iOS, Android | F013, F012, F025 | M8 |
-| TD-02 | Sessie (privé) | Session (private) | iOS, Android | F020, F025, F042, F044, F046, F047 | M8 |
-| TD-03 | Les / Open Gym | Class / Open Gym | iOS, Android | F022, F025, F034 | M8 |
-| TD-04 | Agenda | Calendar | iOS, Android | F013 | M8 |
+| TD-01 | Vandaag | Today | iOS, Android | F013, F012, F025 | M4 |
+| TD-02 | Sessie (privé) | Session (private) | iOS, Android | F020, F025, F042, F044, F046, F047 | M4 (workout and notes parts: M7) |
+| TD-03 | Les / Open Gym | Class / Open Gym | iOS, Android | F022, F025, F034 | M4 (Open Gym: M6) |
+| TD-04 | Agenda | Calendar | iOS, Android | F013 | M4 |
 | WC-01 | Dashboard | Dashboard | Web | F014, F013, F025, F036 | M4 |
 | WC-02 | Agenda: week | Calendar: week | Web | F014, F013 | M4 |
 | WC-03 | Agenda: dag per trainer | Calendar: day by trainer | Web | F014 | M4 |
@@ -544,27 +544,27 @@ All screens with an ID. **Critical-flow** screens are wireframed in `flows/`. Th
 | WC-07 | Verplaatsen door slepen | Move by dragging | Web | F020, F022, F049 | M4 |
 | WC-08 | Open Gym-suggestie | Open Gym suggestion | Web | F036 | M6 |
 | PS-01 | Nieuwe privésessie (web) | New private session (web) | Web | F020, F019 (after go-live), F023, F006 | M4 |
-| PS-02 | Klant kiezen | Choose client | Web, iOS, Android | F006 | M4/M8 |
-| PS-03 | Locatie (go-live: the workspace's one location, shown, nothing to choose; choosing and inference after go-live) | Location | Web, iOS, Android | F015, F016; F017–F019 (after go-live) | M4/M8 |
-| PS-04 | Nieuwe privésessie (app) | New private session (app) | iOS, Android | F020, F019 (after go-live) | M8 |
-| PS-05 | Sessie verplaatsen | Reschedule session | Web, iOS, Android | F020, F049 | M4/M8 |
-| PS-06 | Sessie annuleren | Cancel session | Web, iOS, Android | F026, F049 | M4/M8 |
-| PS-07 | Dubbele boeking | Double booking | Web, iOS, Android | F020, F023 | M4/M8 |
-| WL-01 | Training starten | Start workout | iOS, Android, Web | F042, F041 | M7/M8 |
-| WL-02 | Training loggen | Log workout | iOS, Android, Web | F043, F044 | M7/M8 |
-| WL-03 | Oefening loggen (merged into WL-02, 14 October 2026) | Log exercise (merged into WL-02) | iOS, Android | F043, F044 | M8 |
-| WL-04 | Oefening toevoegen | Add exercise | iOS, Android, Web | F039, F040 | M7/M8 |
-| WL-05 | Training afronden | Finish workout | iOS, Android, Web | F045, F047, F048, F025 | M7/M8 |
+| PS-02 | Klant kiezen | Choose client | Web, iOS, Android | F006 | M4 |
+| PS-03 | Locatie (go-live: the workspace's one location, shown, nothing to choose; choosing and inference after go-live) | Location | Web, iOS, Android | F015, F016; F017–F019 (after go-live) | M4 |
+| PS-04 | Nieuwe privésessie (app) | New private session (app) | iOS, Android | F020, F019 (after go-live) | M4 |
+| PS-05 | Sessie verplaatsen | Reschedule session | Web, iOS, Android | F020, F049 | M4 |
+| PS-06 | Sessie annuleren | Cancel session | Web, iOS, Android | F026, F049 | M4 |
+| PS-07 | Dubbele boeking | Double booking | Web, iOS, Android | F020, F023 | M4 |
+| WL-01 | Training starten | Start workout | iOS, Android, Web | F042, F041 | M7 |
+| WL-02 | Training loggen | Log workout | iOS, Android, Web | F043, F044 | M7 |
+| WL-03 | Oefening loggen (merged into WL-02, 14 October 2026) | Log exercise (merged into WL-02) | iOS, Android | F043, F044 | M7 |
+| WL-04 | Oefening toevoegen | Add exercise | iOS, Android, Web | F039, F040 | M7 |
+| WL-05 | Training afronden | Finish workout | iOS, Android, Web | F045, F047, F048, F025 | M7 |
 | WL-06 | Training bijhouden (web) | Log workout (web) | Web | F043, F044 | M7 |
-| WL-07 | Synchronisatie | Sync status | iOS, Android | F043 | M8 |
-| WL-08 | Training delen | Share workout | iOS, Android, Web | F045, F048, F049 | M7/M8 |
+| WL-07 | Synchronisatie | Sync status | iOS, Android | F043 | M7 |
+| WL-08 | Training delen | Share workout | iOS, Android, Web | F045, F048, F049 | M7 |
 | CO-01 | Les op datum | Class on date | Web | F022, F023, F028, F037 | M4 |
 | CO-02 | Trainer vervangen | Substitute trainer | Web (app ⚑) | F024, F023 | M4 |
 | CO-03 | Les annuleren | Cancel class | Web (app ⚑) | F026, F049 | M4 |
 | CO-04 | Les wijzigen | Edit class | Web | F022, F049 | M4 |
-| CO-05 | Aanwezigheid (app) | Attendance (app) | iOS, Android | F025 | M8 |
+| CO-05 | Aanwezigheid (app) | Attendance (app) | iOS, Android | F025 | M4 |
 | CO-06 | Aanwezigheid (web) | Attendance (web) | Web | F025 | M4 |
-| CO-07 | Deelnemer toevoegen | Add participant | Web, iOS, Android | F025, F028 ⚑ | M4/M8 |
+| CO-07 | Deelnemer toevoegen | Add participant | Web, iOS, Android | F025, F028 ⚑ | M4 |
 
 ### 11.2 Other screens (IA only, no wireframe yet)
 

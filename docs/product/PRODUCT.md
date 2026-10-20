@@ -678,7 +678,7 @@ Especially useful for independent trainers.
 
 ## Trainer Web
 
-Primary administrative interface. The daily operational screens (Today, personal calendar, sessions, attendance, workout logging, notes) also work in a phone browser, with touch-sized targets, and the trainer web can be added to the phone's home screen. Until the native trainer apps arrive, this is how trainers work from a phone. The workout logger keeps sets that weren't sent yet on the device and sends them when the connection returns.
+Primary administrative interface. The daily operational screens (Today, personal calendar, sessions, attendance, workout logging, notes) also work in a phone browser, with touch-sized targets, and the trainer web can be added to the phone's home screen. The native trainer apps are built in parallel with the web (Trainer Mobile, below); the phone browser stays a fallback for a trainer whose app isn't ready or who prefers it. The workout logger keeps sets that weren't sent yet on the device and sends them when the connection returns.
 
 - dashboard
 - calendar
@@ -703,7 +703,7 @@ English
 
 ## Trainer Mobile
 
-iOS + Android. Delivered after the pilot goes live on the web (`ROADMAP.md §3.1`); the apps then join the pilot.
+iOS + Android. Built in parallel with the web from M2 (`ROADMAP.md §3.1`; M8 is the label of this track), not after go-live: every feature with a trainer mobile surface gets iOS and Android tickets next to its web ticket, with the same acceptance criteria, and counts as done when web, iOS and Android all work. Trainers use the apps from go-live through TestFlight and Play internal testing; go-live doesn't wait for public App Store / Play listings. Client apps stay Release 1.2.
 
 Primary daily operational interface:
 
@@ -1572,7 +1572,7 @@ versions.
 
 # 52. MVP scope
 
-Everything below up to **Platforms** is needed for the pilot's go-live (`ROADMAP.md` Gate G4). The items under **After go-live** are still MVP, but they join the running pilot, just like the native trainer apps.
+Everything above **After go-live** is needed for the pilot's go-live (`ROADMAP.md` Gate G4). The items under **After go-live** are still MVP, but they join the running pilot.
 
 ## Foundation
 
@@ -1645,10 +1645,11 @@ Single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisi
 - trainer web
 - responsive public booking web
 - basic client web
+- trainer iOS and Android apps, built in parallel with the web (`ROADMAP.md` M8, the native track): sign-in, Today, personal calendar, clients, session screen, attendance and the **+** menu come with the scheduling milestones; trainers install them through TestFlight and Play internal testing; no public store listings are needed for go-live
 
 ## After go-live (joins the running pilot)
 
-These follow right after go-live, in this order of need. The trainer web keeps working the whole time.
+These follow right after go-live, in this order of need. The trainer web keeps working the whole time. Training and notes ship on web, iOS and Android together: the logger, history and notes screens in the trainer apps come with them.
 
 ### Locations
 
@@ -1673,11 +1674,6 @@ These follow right after go-live, in this order of need. The trainer web keeps w
 - client notes
 - session notes
 - note visibility
-
-### Platforms
-
-- trainer iOS
-- trainer Android
 
 ---
 
@@ -2520,7 +2516,7 @@ Phase K: single classes and payouts are proposed scope ([decision 9](ROADMAP.md#
 
 ## Phase G — Workouts
 
-Phases G, H and I follow after go-live (§52).
+Phases G and H follow after go-live (§52). Phase I is built in parallel with the web (§52, §15 Trainer Mobile): its first items come with the scheduling milestones and the logger and notes (62–63) with Phases G and H.
 
 48. bilingual exercise library baseline
 49. custom exercises
@@ -2541,6 +2537,8 @@ Phases G, H and I follow after go-live (§52).
 ---
 
 ## Phase I — Trainer mobile
+
+Built in parallel with the web, next to each web feature (`ROADMAP.md` M8, the native track); iOS and Android together.
 
 58. Today
 59. personal calendar

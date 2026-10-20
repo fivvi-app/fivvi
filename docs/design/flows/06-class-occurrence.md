@@ -6,7 +6,7 @@
 |---|---|
 | **Actors** | Owner (substitute, edit, cancel), assigned Trainer (attendance; substitute/cancel ⚑ [Q40](../open-questions.md#q40)) |
 | **Surfaces** | Trainer web (CO-01 – CO-04, CO-06); trainer iOS/Android (CO-05 attendance; CO-02/CO-03 on mobile ⚑ [QE12](../open-questions.md#qe12)) |
-| **Milestone** | M4 (web), M8 (mobile attendance) |
+| **Milestone** | M4 (web and the apps' attendance, built together; `ROADMAP.md` v1.20, decision 8) |
 | **Spec** | `PRODUCT.md §18–§20, §43, §51`; `ROADMAP.md M4 (substitution changes the trainer only; cancellations notify in the recipient's language), ADR-012` |
 | **Why critical** | Sick trainers and cancelled classes are the moments where manual updates and WhatsApp hurt most. Every participant must hear about it in their own language, and bookings must survive a trainer swap (`§19`) |
 
@@ -353,7 +353,7 @@ flowchart TD
 
 ## Platform notes: iOS HIG vs Material 3
 
-Attendance (CO-05) is in the M8 apps. Substitution and cancellation on mobile are an open question ([QE12](../open-questions.md#qe12)); if they're added, they follow the same patterns as flow 04.
+Attendance (CO-05) is in the apps from M4, built beside the web. Substitution and cancellation on mobile are an open question ([QE12](../open-questions.md#qe12)); if they're added, they follow the same patterns as flow 04.
 
 | Topic | iOS (SwiftUI) | Android (Compose, Material 3) |
 |---|---|---|

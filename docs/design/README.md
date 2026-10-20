@@ -10,6 +10,8 @@ Low-fidelity UX for the MVP (roadmap task **M0 / §4.2**). Everything here is wr
 | **Sequencing** | [`ROADMAP.md §4.2`](../product/ROADMAP.md#42-ux-design) |
 | **Feature IDs** | [`FEATURES.md`](../product/FEATURES.md) |
 
+> **Native timing (`ROADMAP.md` v1.20, decision 8).** The trainer iOS and Android screens (`TD-xx`, the app screens of `PS-xx`, `WL-xx` and `CO-xx`) are built in parallel with their web screens, milestone by milestone, not after go-live: each feature with a mobile surface has web, iOS and Android tickets with the same acceptance criteria. The milestone column of the screen inventory in [information-architecture.md](information-architecture.md#11-screen-inventory) says which milestone carries each screen.
+
 > **Scope.** This task covers IA, wireframes and copy only. The clickable prototype and the design tokens are separate §4.2 tasks. Nothing here changes a requirement. Where a wireframe had to assume something that `PRODUCT.md` leaves open, the assumption is marked **⚑** and linked to [open-questions.md](open-questions.md).
 
 ## Contents
