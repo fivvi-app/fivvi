@@ -195,7 +195,7 @@ How many makeups does a membership allow, how long do they stay valid, and can a
 What happens on illness, holidays, a gym closure or a trainer's absence: makeup, pause, or nothing? Is a pause (freeze) needed for go-live? **Proposal:** the workspace's own cancellation gives a makeup outside the limit; no freeze in MVP unless the pilot uses one today.
 
 ### QC05
-When a recurring payment fails, can the client keep booking, and for how long? Who follows it up? **Proposal:** a setting per offer, default "keep booking for 14 days"; the owner gets an email and sees the open amount (`§94`).
+When a recurring payment fails, can the client keep booking, and for how long? Who follows it up? **Proposal:** a setting per offer, default "keep booking for 14 days"; the client and the owner both get an email, and the owner sees the open amount (`§94`).
 
 ### QC06
 Which payment methods do the clients use today for the first payment and the recurring ones (iDEAL, SEPA Direct Debit, card)? On which day of the month is a membership collected? **Proposal:** iDEAL for the first payment, SEPA Direct Debit monthly on the agreement's start day.
@@ -228,4 +228,4 @@ Which data can the pilot export from the current app (clients, memberships, sess
 When the owner changes an offer's price or cancellation policy, does it also change agreements that already run? **Proposal:** a price change applies to new agreements only, and an agreement keeps the cancellation policy it started with (`PRODUCT.md §90`, `§93`).
 
 ### QC16
-Does the pilot agree with these four rules? (1) The trainer and client apps never take payments; clients pay on the web. (2) A single class's spot is held while the client pays. (3) The owner can also enter billing details (company name, address, VAT number) for a client. (4) A late cancellation counts like a no-show. **Proposal:** all four as written in `PRODUCT.md §93–§96`; the merchant model behind them (the gym as merchant, payouts to the workspace) is decided in ADR-020 (to come), not here.
+Does the pilot agree with these four rules? (1) The trainer and client apps never take payments; clients pay on the web. (2) A single class's spot is held while the client pays. (3) The owner can also enter billing details (company name, address, VAT number) for a client. (4) A late cancellation counts like a no-show, and a no-show uses the session of a pack or is lost on a membership. **Proposal:** all four as written in `PRODUCT.md §93–§96`; the merchant model behind them (the gym as merchant, payouts to the workspace) is decided in ADR-020 (to come), not here.

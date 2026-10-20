@@ -21,7 +21,7 @@ _Avoid_: staff, personnel
 
 **Team member**:
 One person in the team.
-_Avoid_: member, membership (a client's agreement, see Commerce), staff, user
+_Avoid_: member, "membership" as a name for a person's place in the team (a client's agreement is the Commerce term; F003 "Workspace Membership" is the feature name), staff, user
 
 **Role**:
 What a team member may do in a workspace: Owner, Admin or Trainer, at most one per workspace. Being a client is not a role, and anonymous visitors have no role.

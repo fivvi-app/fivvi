@@ -9,7 +9,7 @@
 
 **Evidence labels:** **R** = reported by T1. **U** = reported, details unclear. **H** = our interpretation. One interview is not a market-wide requirement; a second gym owner is interviewed in M0 (`ROADMAP.md §4.1`, R6).
 
-No client names, bank details, contracts or invoices were shared or recorded.
+No client names, bank details, agreements or invoices were shared or recorded.
 
 ## 1. What T1 reported
 

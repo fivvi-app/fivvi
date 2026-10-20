@@ -91,7 +91,7 @@ Roles come from `PRODUCT.md §9, §50`: **Owner, Admin, Trainer** are team roles
 | Exercises, custom exercises, templates | ✓ | ✓ | ✓ | — | — |
 | Log workouts | ✓ | ✓ | ✓ own sessions | — | — |
 | Offers, prices, cancellation policy (`§90`, `§93`) | ✓ | — ⚑ [QC12](open-questions.md#qc12) | — | — | — |
-| Connect the payment provider account (proposed, ADR-020; `§94`) | ✓ | — | — | — | — |
+| Connect the payment provider account (proposed, ADR-020 (to come); `§94`) | ✓ | — | — | — | — |
 | Agreements: create, end, see balances (`§91`, `§92`) | ✓ | ✓ ⚑ [QC12](open-questions.md#qc12) | 👁 balance of own clients ⚑ [QC12](open-questions.md#qc12) | ✓ own | — |
 | Payments, invoices, refunds, payouts (`§94`–`§97`) | ✓ | ⚑ [QC12](open-questions.md#qc12) | — | 👁 own payments and invoices | — |
 | Buy a membership, session pack or single class; pay | — | — | — | ✓ | ✓ single class (account created at verification) |

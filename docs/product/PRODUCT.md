@@ -485,7 +485,7 @@ Can:
 - manage booking links
 - manage offers, prices and the cancellation policy (§90, §93)
 - manage agreements, payments and invoices (§91–§96)
-- connect the workspace's payment provider account (proposed, ADR-020; §94)
+- connect the workspace's payment provider account (proposed, ADR-020 (to come); §94)
 - manage settings
 
 The pilot PT is:
@@ -1616,7 +1616,7 @@ Session packs, single classes and payouts are proposed scope ([decision 11](ROAD
 - private session packs (§92)
 - session balance with its history (§92)
 - cancellation cutoff, no-shows and limited makeups (§93)
-- recurring payments through the workspace's payment provider account (proposed, ADR-020; §94)
+- recurring payments through the workspace's payment provider account (proposed, ADR-020 (to come); §94)
 - single class purchase (§95)
 - invoices with billing details and credit notes (§96)
 - payouts and reconciliation (§97)
@@ -2465,7 +2465,7 @@ Runs after Phase D (it needs bookings and client accounts), next to Phases E and
 Phase K: session packs, single classes and payouts are proposed scope ([decision 11](ROADMAP.md#14-decisions)).
 
 79. offers and prices
-80. payment provider account per workspace (proposed, ADR-020)
+80. payment provider account per workspace (proposed, ADR-020 (to come))
 81. memberships on fixed weekdays
 82. private session packs
 83. session balance and its history
@@ -2669,9 +2669,9 @@ Each offer has a **cancellation policy**:
 
 | Event | Effect |
 |---|---|
-| The client cancels before the **cutoff** (hours before the start, set per offer; proposal, [QC02](../design/open-questions.md#qc02)) | Membership: may grant a **makeup**, up to a limit per term. Pack: the session returns to the balance |
+| The client cancels before the **cutoff** (hours before the start, set per offer; proposal, [QC02](../design/open-questions.md#qc02)) | Membership: may grant a **makeup**, up to a limit per term. Pack: the session returns to the balance (proposal, [QC02](../design/open-questions.md#qc02)) |
 | The client cancels after the cutoff (late cancellation) | The session is used or lost, like a no-show (proposal, [QC16](../design/open-questions.md#qc16)) |
-| **No-show** | The session is used (pack) or lost (membership) |
+| **No-show** | The session is used (pack) or lost (membership) (proposal, [QC16](../design/open-questions.md#qc16)) |
 | The workspace cancels the session or class | Pack: the session returns. Membership: a makeup, outside the limit (proposal, [QC04](../design/open-questions.md#qc04)) |
 
 The cutoff, the makeup limit and how long a makeup stays valid are open ([QC02](../design/open-questions.md#qc02), [QC03](../design/open-questions.md#qc03)). Before confirming a cancellation, the client sees what it does to their balance. An agreement keeps the policy that applied when it started (proposal, [QC15](../design/open-questions.md#qc15)).
@@ -2682,10 +2682,10 @@ The cutoff, the makeup limit and how long a makeup stays valid are open ([QC02](
 
 Payments run through a **payment provider** (Mollie or Stripe, chosen in the M11 spike and ADR-020 (to come), see [`ROADMAP.md` decision 14](ROADMAP.md#14-decisions)). **Proposed merchant model, to be decided in ADR-020 (to come):** each workspace connects its own account with the provider, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Trainer Hub. The provider pays out to the gym on a schedule (proposal, ADR-020 (to come)); the pilot wants weekly payouts.
 
-- **First payment:** the client pays online (iDEAL first; proposal, [QC06](../design/open-questions.md#qc06)) when confirming a membership or pack. That payment also gives the **mandate** for later collections.
+- **First payment:** the client pays online (iDEAL first; proposal, [QC06](../design/open-questions.md#qc06)) when confirming a membership or pack. That payment also gives the **mandate** for later collections (proposal, [QC06](../design/open-questions.md#qc06)).
 - **Recurring payments:** on each due date Trainer Hub asks the provider to collect the next amount by SEPA Direct Debit under the mandate (proposal, [QC06](../design/open-questions.md#qc06)). The payment schedule belongs to the agreement and has nothing to do with the class times.
 - **Exactly once:** a due amount is charged once, even when a job retries or the provider sends the same event twice.
-- **Failed payment:** the client and the owner get an email, and the agreement shows the open amount. Whether the client can keep booking until it is paid is a setting of the offer (proposal, [QC05](../design/open-questions.md#qc05)), never an accident.
+- **Failed payment:** the client and the owner get an email (proposal, [QC05](../design/open-questions.md#qc05)), and the agreement shows the open amount. Whether the client can keep booking until it is paid is a setting of the offer (proposal, [QC05](../design/open-questions.md#qc05)), never an accident.
 - **Refund and chargeback:** the owner can refund a payment fully or in part (whether admins may refund is open, [QC12](../design/open-questions.md#qc12)). A refund or a reversed direct debit gets a credit note (§96), and the policy says what happens to the balance.
 - The trainer and client apps never take payments; clients pay on the web (proposal, [QC16](../design/open-questions.md#qc16)).
 

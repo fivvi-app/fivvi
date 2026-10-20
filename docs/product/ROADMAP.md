@@ -243,7 +243,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 - [ ] Complete the remaining legal-entity details and review the agreement and public texts before signing or publishing them.
 - [ ] Confirm Railway's signed DPA before real data enters at G2; resolve its special-category-data scope before health notes at M7.
 - [ ] Sign the processor agreement with the pilot gym before real personal data enters at G2; complete the pilot gym's DPIA assessment before G4.
-- [ ] **Commerce (M11, before G4):** add the payment provider to the sub-processor list and the role mapping (the gym is the merchant, proposed in `PRODUCT.md §94`, decided in ADR-020 (to come); for its own payment data the provider may be a separate controller); reassess the DPIA (`docs/legal/dpia-assessment.md` says no payments in the MVP, and still describes the pilot's tools as Excel and a separate calendar) and the retention policy for invoices (statutory retention period); the membership terms (term, renewal, cancellation) checked against Dutch consumer law (ACM) and shown to the client before the first payment; the gym's terms and invoice details complete.
+- [ ] **Commerce (M11, before G4):** add the payment provider to the sub-processor list and the role mapping (the gym is the merchant, proposed in `PRODUCT.md §94`, to be decided in ADR-020 (to come); for its own payment data the provider may be a separate controller); reassess the DPIA (`docs/legal/dpia-assessment.md` says no payments in the MVP, and still describes the pilot's tools as Excel and a separate calendar) and `docs/legal/role-mapping.md` (it says payment details are deliberately not collected, citing `PRODUCT.md §53`) and the retention policy for invoices (statutory retention period); the membership terms (term, renewal, cancellation) checked against Dutch consumer law (ACM) and shown to the client before the first payment; the gym's terms and invoice details complete.
 
 ### 4.5 Accounts and setup (free-first)
 
@@ -445,17 +445,17 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - **Separate clocks:** a class's recurrence (ADR-012), an agreement's term and its payment schedule are separate; no code derives one from another.
 - **Capacity stays correct** with memberships: their spots count against capacity in the same transaction as bookings (R3); whether a membership holds a standing spot is open (QC01).
 - **Invoices** follow the Dutch requirements (`PRODUCT.md §96`): a gapless number series per workspace (proposal, QC10), immutable once issued, credit notes for corrections, a PDF in the client's communication language. Invoice numbering is concurrency-tested.
-- **Permissions:** the owner manages offers, prices and the provider connection (proposed, ADR-020); what admins and trainers see of payments follows QC12. Clients see only their own agreements, balances, payments and invoices. All of it is tenant-scoped and in the E011 suite.
+- **Permissions:** the owner manages offers, prices and the provider connection (proposed, ADR-020 (to come)); what admins and trainers see of payments follows QC12. Clients see only their own agreements, balances, payments and invoices. All of it is tenant-scoped and in the E011 suite.
 - **No real money before G4.** Previews and the shadow run use the provider's test mode.
 
 **Pilot touchpoint (shadow run):** the owner enters the pilot's real offers and a few real agreements, and compares the session balances and due dates with the old app every week. The old app keeps collecting the money; Trainer Hub's payments run in test mode.
 
 **Exit criteria**
 - A client confirms a membership on a phone, pays the first amount with iDEAL (test mode; the methods follow QC06), books the included classes without paying again, and gets an invoice; the next amount is collected by direct debit (test mode) with its invoice. In Dutch and in English.
-- A session pack (proposed, [decision 11](#14-decisions)) is used by private sessions; a timely cancellation returns the session, a no-show uses it; the history explains every step.
+- A session pack (proposed, [decision 11](#14-decisions)) is used by private sessions; a timely cancellation returns the session ([QC02](../design/open-questions.md#qc02)), a no-show uses it ([QC16](../design/open-questions.md#qc16)); the history explains every step.
 - A client with a membership buys an extra class; it doesn't change the membership or any pack (proposed, [decision 11](#14-decisions)).
 - A duplicate webhook and a retried job leave one payment, one invoice and one balance change.
-- A failed debit and a refund show up for the owner, the client gets an email, and a credit note is issued for the refund.
+- A failed debit and a refund show up for the owner, the client gets an email (proposal, [QC05](../design/open-questions.md#qc05)), and a credit note is issued for the refund.
 - A client invoice in a company's name is correct, and stays unchanged after the client edits their details.
 - During the shadow run, every balance and due date matches the old app, or the difference is explained.
 
