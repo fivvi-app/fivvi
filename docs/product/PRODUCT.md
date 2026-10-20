@@ -1668,9 +1668,9 @@ Do not build yet:
 - discounts, coupons, gift cards, family or shared memberships
 - accounting integrations (Moneybird, e-Boekhouden, Exact Online)
 - point-of-sale or kiosk payments at the desk, until the pilot's current use is known ([QC11](../design/open-questions.md#qc11))
-- payments inside the native apps (clients pay on the web)
-- Trainer Hub holding client money in its own account (proposed in §94, to be decided in ADR-020, which is still to come)
-- platform billing: charging gyms and trainers for Trainer Hub ([`ROADMAP.md` decision 8](ROADMAP.md#14-decisions), listed under "Decided iteratively" and decided at the 2.0 entry gate)
+- payments inside the native apps (clients pay on the web) (proposal, [QC16](../design/open-questions.md#qc16))
+- Trainer Hub holding client money in its own account (proposed in §94) until ADR-020 (to come) decides the merchant model
+- platform billing: charging gyms and trainers for Trainer Hub ([`ROADMAP.md` decision 16](ROADMAP.md#14-decisions), listed under "Decided iteratively" and decided at the 2.0 entry gate)
 - phone number requirement
 - SMS
 - complex permission system
@@ -2646,7 +2646,7 @@ A **membership** is a client's agreement for group classes on fixed weekdays, fo
 - The owner or the client chooses the weekly classes it covers, within what the offer allows. Whether that keeps a spot in those classes for the whole term or the client books each week is open ([QC01](../design/open-questions.md#qc01)); either way, capacity is never exceeded.
 - While the membership is active and paid up, the client books the included classes without paying again. What happens when a payment fails is open ([QC05](../design/open-questions.md#qc05)).
 - It has a start date, an end date, and what happens at the end: it stops, or it renews under the rules of Dutch consumer law ([QC07](../design/open-questions.md#qc07)). The terms the client agreed to are stored with the agreement.
-- The client confirms it online with its first payment, which also gives the mandate for the recurring payments (§94).
+- The client confirms it online with its first payment, which also gives the mandate for the recurring payments (§94; proposal, [QC06](../design/open-questions.md#qc06)).
 
 ---
 
@@ -2680,7 +2680,7 @@ The cutoff, the makeup limit and how long a makeup stays valid are open ([QC02](
 
 # 94. Recurring payments
 
-Payments run through a **payment provider** (Mollie or Stripe, chosen in the M11 spike and ADR-020 (to come), `ROADMAP.md`). **Proposed merchant model, to be decided in ADR-020 (to come):** each workspace connects its own account with the provider, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Trainer Hub. The provider pays out to the gym on a schedule; the pilot wants weekly payouts.
+Payments run through a **payment provider** (Mollie or Stripe, chosen in the M11 spike and ADR-020 (to come), see [`ROADMAP.md` decision 14](ROADMAP.md#14-decisions)). **Proposed merchant model, to be decided in ADR-020 (to come):** each workspace connects its own account with the provider, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Trainer Hub. The provider pays out to the gym on a schedule (proposal, ADR-020 (to come)); the pilot wants weekly payouts.
 
 - **First payment:** the client pays online (iDEAL first; proposal, [QC06](../design/open-questions.md#qc06)) when confirming a membership or pack. That payment also gives the **mandate** for later collections.
 - **Recurring payments:** on each due date Trainer Hub asks the provider to collect the next amount by SEPA Direct Debit under the mandate (proposal, [QC06](../design/open-questions.md#qc06)). The payment schedule belongs to the agreement and has nothing to do with the class times.

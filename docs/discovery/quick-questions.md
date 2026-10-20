@@ -85,8 +85,8 @@ Date / Datum: ____________
 
 ## D. De overstap / The switch-over
 
-**16.** Wat houd je in Excel bij over een klant? Welke gegevens staan erin? (Je hoeft het niet te laten zien.)\
-*What do you keep in Excel about a client? What information is in it? (You don't need to show it.)*\
+**16.** Wat houd je buiten je boekingsapp bij over een klant (Word, papier, Excel, …)? Welke gegevens staan erin? (Je hoeft het niet te laten zien.)\
+*What do you keep about a client outside your booking app (Word, paper, Excel, …)? What information is in it? (You don't need to show it.)*\
 → ☐ naam / *name* ☐ e-mail ☐ telefoon / *phone* ☐ trainingen / *workouts* ☐ notities / *notes* ☐ betalingen / *payments* ☐ anders / *other*: ______
 
 **17.** Hoe ver vooruit staan afspraken en lessen gepland?\

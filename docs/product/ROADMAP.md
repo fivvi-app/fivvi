@@ -243,7 +243,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 - [ ] Complete the remaining legal-entity details and review the agreement and public texts before signing or publishing them.
 - [ ] Confirm Railway's signed DPA before real data enters at G2; resolve its special-category-data scope before health notes at M7.
 - [ ] Sign the processor agreement with the pilot gym before real personal data enters at G2; complete the pilot gym's DPIA assessment before G4.
-- [ ] **Commerce (M11, before G4):** add the payment provider to the sub-processor list and the role mapping (the gym is the merchant, as proposed in ADR-020, which is still to come; for its own payment data the provider may be a separate controller); reassess the DPIA (`docs/legal/dpia-assessment.md` says no payments in the MVP) and the retention policy for invoices (statutory retention period); the membership terms (term, renewal, cancellation) checked against Dutch consumer law (ACM) and shown to the client before the first payment; the gym's terms and invoice details complete.
+- [ ] **Commerce (M11, before G4):** add the payment provider to the sub-processor list and the role mapping (the gym is the merchant, proposed in `PRODUCT.md §94`, decided in ADR-020 (to come); for its own payment data the provider may be a separate controller); reassess the DPIA (`docs/legal/dpia-assessment.md` says no payments in the MVP) and the retention policy for invoices (statutory retention period); the membership terms (term, renewal, cancellation) checked against Dutch consumer law (ACM) and shown to the client before the first payment; the gym's terms and invoice details complete.
 
 ### 4.5 Accounts and setup (free-first)
 
@@ -555,7 +555,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 | Week | Activity |
 |---|---|
 | **0: Setup** | Import data (clients, timetable, future sessions, active agreements, balances, due dates); reconcile it with the old app; 1:1 onboarding with the owner; short onboarding per trainer (Dutch quick guide); add the trainer web to each trainer's phone home screen; create classes, offers and Open Gym; print QR posters |
-| **1: Soft launch** | Booking page shared with a subset of clients; a small group of clients gives a new mandate and pays through Trainer Hub; the old app keeps everyone else |
+| **1: Soft launch** | Booking page shared with a subset of clients; a small group of clients gives a new mandate ([QC09](../design/open-questions.md#qc09)) and pays through Trainer Hub; the old app keeps everyone else |
 | **2–3: Switch-over** | All scheduling, booking and payments move to the platform, client group by client group; every payout reconciled; the old app is cancelled after the first full payment cycle matches |
 | **4–6: Observe** | Weekly 30-min check-in with the owner; trainers asked every two weeks; workaround log maintained |
 | **End of 6** | **Pilot review (Gate G5):** metrics vs. baseline and targets; ranked findings; Release 1.1 scope defined from evidence |
@@ -748,7 +748,7 @@ flowchart TB
 | iOS distribution | Existing Apple Developer Program company membership (owner-reported); verify access in E017 | Membership and team access must be active for TestFlight | **M8 (after G4):** use the existing company membership; renew if required |
 | Android distribution | Debug builds / APK to own devices; Play Console account unconfirmed | — | **M8 (after G4):** confirm access or enroll if needed |
 | Push notifications (1.2) | APNs + FCM | Free | — |
-| Payments (M11) | The payment provider's test mode; no monthly fee expected (verify in the ADR-020 (to come) spike) | Per-payment fees (proposed: paid by the gym as merchant on its own account, ADR-020 (to come)) | **G4:** the account chosen in ADR-020 (to come) goes live; fees compared with the per-payment fee it pays today |
+| Payments (M11) | The payment provider's test mode; no monthly fee expected (verify in the ADR-020 (to come) spike) | Per-payment fees (proposed: paid by the gym as merchant on its own account, ADR-020 (to come)) | **G4:** the account chosen in ADR-020 (to come) goes live; fees compared with the per-payment fee the gym pays today |
 
 **Expected new spend until pilot go-live:** a domain (~€10–15/year), plus Google Play Console enrollment at M8 only if the owner's account does not already exist. The Apple company membership and Railway Hobby plan are already paid by the owner; Apple renewal or additional membership cost depends on the account check in E017. **From G4:** Railway Pro, $20/month.
 
@@ -808,11 +808,11 @@ These are intentionally left open. Each one is decided when its release's entry 
 
 | # | Decision | Decided at |
 |---|---|---|
-| 8 | Platform billing model (free beta / manual invoicing / billing in 2.0) | 2.0 entry gate |
-| 9 | AI provider(s) and data terms | 1.3 entry gate |
-| 10 | Client apps: separate apps or a role mode inside the trainer apps | 1.2 entry gate |
 | 14 | Payment provider (Mollie or Stripe) and merchant model (ADR-020, to come) | M11 opening spike |
-| 15 | Membership seats, cutoff, makeups and failed-payment access (QC01–QC16) | M11 specs, after the M0 commerce walkthrough |
+| 15 | Open commerce rules (QC01–QC16): membership seats, cutoff, makeups, failed-payment access and more | M11 specs, after the M0 commerce walkthrough |
+| 16 | Platform billing model (free beta / manual invoicing / billing in 2.0) | 2.0 entry gate |
+| 17 | AI provider(s) and data terms | 1.3 entry gate |
+| 18 | Client apps: separate apps or a role mode inside the trainer apps | 1.2 entry gate |
 
 ---
 

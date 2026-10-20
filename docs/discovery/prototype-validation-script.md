@@ -147,8 +147,8 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
 - Done when: both appear in the owner calendar with the intended time and capacity.
 - Observe: [ ] finds both under *+ Nieuw* · [ ] understands a group class needs a trainer while Open Gym does not · [ ] understands that group class and Open Gym publishing is an owner/admin action under the current permission model.
 
-**Follow-up:** *Mis je iets wat je nu wel in je Excel of agenda ziet?*\
-*Is anything missing that you do see in your Excel or calendar today?*
+**Follow-up:** *Mis je iets wat je nu wel in je oude app, agenda of Word ziet?*\
+*Is anything missing that you do see in your old app, calendar or Word today?*
 
 ### Flow 4 — Create / reschedule a private session (with location inference)
 
@@ -280,8 +280,8 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
 **S3** Voelde de app op je telefoon hetzelfde aan als je andere apps?\
 *Did the app on your phone feel like the other apps on your phone?* → platform conventions
 
-**S4** Mis je iets wat je nu wel met Excel, je agenda of WhatsApp doet?\
-*Is anything missing that you do today with Excel, your calendar or WhatsApp?*
+**S4** Mis je iets wat je nu wel met je oude app, je agenda, Word of WhatsApp doet?\
+*Is anything missing that you do today with your old app, your calendar, Word or WhatsApp?*
 
 **S5** Zie je jezelf dit elke dag gebruiken? Wat zou je tegenhouden?\
 *Can you see yourself using this every day? What would stop you?*

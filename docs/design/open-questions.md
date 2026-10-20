@@ -207,7 +207,7 @@ What are the membership terms today: minimum term, tacit renewal, notice period,
 How are private sessions sold today: a number of sessions with a validity, or a weekly rhythm for a term, and paid up front or monthly? What happens to unused sessions at the end? **Proposal:** a number of sessions with a validity, paid up front or in monthly instalments; unused sessions expire, visible in the history (`§92`).
 
 ### QC09
-Can the existing direct-debit mandates move from the current app to the gym's new payment provider account, or does every client give a new one? **Proposal:** a new mandate through a first payment link, sent client group by client group during the switch-over (`ROADMAP.md §7`).
+Can the existing direct-debit mandates move from the current app to a new payment provider account (ADR-020, to come), or does every client give a new one? **Proposal:** a new mandate through a first payment link, sent client group by client group during the switch-over (`ROADMAP.md §7`).
 
 ### QC10
 What must the invoices show: company names, VAT number, the gym's KvK and VAT number, a VAT rate per service, and is the private training sold by the same legal entity as the group classes? **Proposal:** one seller per workspace; billing details per client (`§96`); the gym's accountant checks a sample before G4.
@@ -216,7 +216,7 @@ What must the invoices show: company names, VAT number, the gym's KvK and VAT nu
 What is the "kiosk" or pay-at-the-desk option in the current app, and is it used? **Proposal:** not in MVP (`PRODUCT.md §53`) unless the pilot uses it weekly.
 
 ### QC12
-Which commerce actions may an admin take (agreements, refunds, prices, payouts), and may a trainer see the session balance of the clients they train? **Proposal:** admins manage agreements and see payments; only the owner changes prices, refunds and the provider connection; trainers see the balance of their own clients, not amounts.
+Which commerce actions may an admin take (agreements, refunds, prices, payouts, a client's billing details), and may a trainer see the session balance of the clients they train? **Proposal:** admins manage agreements and see payments; only the owner changes prices, refunds and the provider connection; trainers see the balance of their own clients, not amounts.
 
 ### QC13
 What does the pilot pay today: the subscription (per month or per year, VAT included?) and the fee per payment, and is there a separate provider fee? (The figures stay in the owner's private notes, not in the repository.) What does a weekly payout need to show? **Proposal:** record only the outcome of the comparison here (for example "cheaper / similar / more expensive per payment"), never the figures; compare in the ADR-020 spike.

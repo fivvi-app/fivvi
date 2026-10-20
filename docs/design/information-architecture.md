@@ -95,7 +95,7 @@ Roles come from `PRODUCT.md §9, §50`: **Owner, Admin, Trainer** are team roles
 | Agreements: create, end, see balances (`§91`, `§92`) | ✓ | ✓ ⚑ [QC12](open-questions.md#qc12) | 👁 balance of own clients ⚑ [QC12](open-questions.md#qc12) | ✓ own | — |
 | Payments, invoices, refunds, payouts (`§94`–`§97`) | ✓ | ⚑ [QC12](open-questions.md#qc12) | — | 👁 own payments and invoices | — |
 | Buy a membership, session pack or single class; pay | — | — | — | ✓ | ✓ single class (account created at verification) |
-| Billing details | ✓ on behalf of a client ⚑ [QC16](open-questions.md#qc16) | ⚑ [QC12](open-questions.md#qc12), [QC16](open-questions.md#qc16) | — | ✓ own | — |
+| Billing details | ✓ on behalf of a client ⚑ [QC16](open-questions.md#qc16) | ⚑ [QC12](open-questions.md#qc12) | — | ✓ own | — |
 | Book group classes and Open Gym | — | — | — | ✓ | ✓ |
 | View and cancel own bookings and private sessions (*my schedule*) | — | — | — | ✓ client web | ✓ via manage link in email |
 | Personal profile and language | ✓ | ✓ | ✓ | ✓ | language only (per booking) |
