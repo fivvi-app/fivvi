@@ -19,7 +19,7 @@ These terms have two parts:
 - **Service:** the Trainer Hub platform: the website, the public booking pages, the iOS and Android apps and the API.
 - **Workspace:** the environment of a gym, studio or independent trainer within the Service.
 - **Customer, you:** the business or independent professional that creates or manages a Workspace.
-- **Users:** the owners, admins and trainers you give access to your Workspace.
+- **Users:** the owners and trainers you give access to your Workspace.
 - **Your data:** all data that you, your Users or your clients enter in your Workspace. This includes client data, bookings, workouts and notes.
 - **Processor agreement:** the processor agreement between you and us, which forms part of these terms.
 

@@ -146,7 +146,7 @@ The physical (or online) place where a session happens. Separate from the worksp
 **Location type**:
 What kind of place a location is: the workspace's own premises, an external gym where an independent trainer works, the client's home, outdoors, online, or other. At go-live only the workspace's own premises exist; the other types follow after go-live.
 
-**Default training location** 🔜:
+**Default training location**:
 A client's usual location, used to infer the location of new sessions. After go-live, with more locations.
 
 ### Booking and verification

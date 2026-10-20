@@ -89,4 +89,4 @@ Added by the product owner (a recollection, not a recording):
   These four are the go-live minimum. Session packs follow from the fourth.
 - **Start with one location.** The gym starts with its own location only; more locations and the other location types can wait until after go-live.
 
-Decisions taken from these notes: `ROADMAP.md` decisions 6, 9, 12 and 13 (no owner alpha with real data, session packs decided, one location, no Admin role in the MVP), `PRODUCT.md §2.8`.
+Decisions taken from these notes: `ROADMAP.md` decisions 6, 9 and 12 (no owner alpha with real data, session packs decided, one location), `PRODUCT.md §2.8`. Decision 13 (no Admin role in the MVP) did not come from the interview notes; the owner took it in his PR review on 2026-10-20.

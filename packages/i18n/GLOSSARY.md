@@ -158,8 +158,8 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | team | team (het, teams) |  |
 | team member | teamlid (het, teamleden) | ❌ *lid, leden, lidmaatschap, member, membership* for this concept. *Membership* (*abonnement / lidmaatschap* ⚠️) means a client's membership (`PRODUCT.md §91`, §4.9); *member / lid* is not used for people in the UI. ❌ *medewerker, personeel, staff, gebruiker*. Internally `organization_member`. |
 | role | rol (de, rollen) | No custom roles in MVP. The MVP roles are Eigenaar and Trainer. |
-| Owner | Eigenaar (de, eigenaren) | ❌ *baas, beheerder* (that's Admin 🔜), *owner* (NL). |
-| Admin 🔜 | Beheerder (de, beheerders) | A later role, not in the MVP (owner decision, 2026-10-20): no strings until it is built. ❌ NL: *admin, administrator, manager*. |
+| Owner | Eigenaar (de, eigenaren) | ❌ *baas, beheerder* (that's Admin 🔜 7.0), *owner* (NL). |
+| Admin 🔜 7.0 | Beheerder (de, beheerders) | A later role, not in the MVP (owner decision, 2026-10-20): no strings until it is built. ❌ NL: *admin, administrator, manager*. |
 | Trainer | Trainer (de, trainers) | ❌ *coach, instructeur, docent, PT* (as a role name). "Personal trainer" is fine in marketing copy, not as a role. |
 | client | klant (de, klanten) | ❌ NL: *cliënt* (sounds medical), *lid, sporter, deelnemer* (see *participant*), *gebruiker*. ❌ EN: *customer, member, user, athlete, guest*. A client who has a membership is a *klant met een abonnement* / *client with a membership*, never a *lid* / *member*. |
 | participant | deelnemer (de, deelnemers) | ❌ EN: *attendee, student*. ❌ NL: *cursist, leerling*. |
@@ -203,7 +203,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | EN term | NL term | Notes / forbidden alternatives |
 |---|---|---|
 | location | locatie (de, locaties) | ❌ *plek* (that's *spot*), *adres* (only for the address field), *vestiging* (reserved for branches of a multi-location business, 🔜 2.3), *venue*. |
-| default training location 🔜 | standaard trainingslocatie | After go-live, with more locations (at go-live a workspace has one location). |
+| default training location | standaard trainingslocatie | After go-live, with more locations (at go-live a workspace has one location). |
 | Location type: `organization_location` | Eigen locatie | The workspace's own premises. EN: *Own location*. The only type at go-live; the other types follow after go-live. |
 | Location type: `external_gym` | Externe sportschool | Another gym where an independent trainer works. EN: *External gym*. |
 | Location type: `client_home` | Bij de klant thuis | EN: *Client's home*. |
@@ -317,7 +317,7 @@ Added with roadmap v1.19 (M11). The ⚠️ terms are open until the pilot owner 
 | agreement | overeenkomst (de, overeenkomsten) ⚠️ | Mostly internal; in the UI name the kind (*abonnement*, *sessiepakket*). ❌ *contract* outside the terms text. |
 | membership | abonnement (het, abonnementen) ⚠️ | The pilot owner calls it a subscription; *lidmaatschap* is the alternative to confirm. EN: *membership*, ❌ *subscription* in EN UI. |
 | session pack | sessiepakket (het, sessiepakketten) ⚠️ | Alternatives to confirm: *strippenkaart*, *rittenkaart*, *PT-pakket*. ❌ *bundel*, *credits* (a post-MVP pricing model, see *credit* 🔜). |
-| credit 🔜 | tegoedpunt (het, tegoedpunten) ⚠️ | A post-MVP pricing model (Release 4): a unit that pays for different session types. No UI strings yet. Not *tegoed*, which is the session balance. |
+| credit 🔜 4.0 | tegoedpunt (het, tegoedpunten) ⚠️ | A post-MVP pricing model (Release 4): a unit that pays for different session types. No UI strings yet. Not *tegoed*, which is the session balance. |
 | single class | losse les (de, losse lessen) | ❌ *drop-in*, *extra les* as the offer name (*extra* is fine in a sentence). |
 | session balance | tegoed (het) ⚠️ | e.g. *Nog 12 sessies tegoed*. ❌ *saldo* (money), *credits* (a post-MVP pricing model, see *credit* 🔜). |
 | cancellation policy | annuleringsbeleid (het) ⚠️ | The rules of an offer for cancellations and no-shows. In the UI show the rule itself (*Annuleren kan tot 12 uur van tevoren*) rather than the noun. ❌ *annuleringsvoorwaarden* unless it is the legal terms text. ❌ EN: *terms, rules* (alone). |

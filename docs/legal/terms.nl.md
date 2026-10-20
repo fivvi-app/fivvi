@@ -19,7 +19,7 @@ Deze voorwaarden bestaan uit twee delen:
 - **Dienst:** het platform Trainer Hub: de website, de publieke boekingspagina's, de iOS- en Android-apps en de API.
 - **Workspace:** de omgeving van een sportschool, studio of zelfstandige trainer binnen de Dienst.
 - **Klant, jij, je:** de onderneming of zelfstandige die een Workspace aanmaakt of beheert.
-- **Gebruikers:** de owners, admins en trainers die jij toegang geeft tot je Workspace.
+- **Gebruikers:** de owners en trainers die jij toegang geeft tot je Workspace.
 - **Jouw gegevens:** alle gegevens die jij, je Gebruikers of je klanten in je Workspace invoeren. Dat zijn onder andere klantgegevens, boekingen, trainingen en notities.
 - **Verwerkersovereenkomst:** de verwerkersovereenkomst tussen jou en ons, die bij deze voorwaarden hoort.
 
