@@ -233,11 +233,11 @@ _Avoid_: bank
 Money collected from a client: a first payment, a recurring payment or a single class.
 
 **Recurring payment**:
-A payment collected on a due date of an agreement's payment schedule, under a mandate. A membership's recurring payments together are what people call the subscription model. Which payment methods are used is open (QC06).
+A payment collected on a due date of an agreement's payment schedule, under a mandate. A membership's recurring payments together are what people call the subscription model.
 _Avoid_: subscription as a name for a payment or for the agreement, automatic payment
 
 **Mandate**:
-A client's permission to collect recurring payments from them, given with the first payment. Whether existing mandates can move to a new provider account is open (QC09).
+A client's permission to collect recurring payments from them, given with the first payment.
 _Avoid_: authorization
 
 **Invoice**:
@@ -255,7 +255,7 @@ The name, company name, address and VAT number a client wants on their invoices.
 Money the workspace returns to a client for a payment, fully or in part.
 
 **Payout**:
-A transfer from the payment provider to the workspace (merchant model: ADR-020, to come; proposal, QC16), made up of payments minus refunds, chargebacks and fees.
+A transfer from the payment provider to the workspace, made up of payments minus refunds, chargebacks and fees.
 _Avoid_: settlement, withdrawal
 
 ### Training

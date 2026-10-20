@@ -1670,7 +1670,7 @@ Do not build yet:
 - point-of-sale or kiosk payments at the desk, until the pilot's current use is known ([QC11](../design/open-questions.md#qc11))
 - payments inside the native apps (clients pay on the web)
 - Trainer Hub holding client money in its own account (proposed in §94, to be decided in ADR-020, which is still to come)
-- platform billing: charging gyms and trainers for Trainer Hub (§58)
+- platform billing: charging gyms and trainers for Trainer Hub ([`ROADMAP.md` decision 8](ROADMAP.md#14-decisions), listed under "Decided iteratively" and decided at the 2.0 entry gate)
 - phone number requirement
 - SMS
 - complex permission system
@@ -2619,7 +2619,7 @@ Strongest validation signal:
 
 # Commerce (MVP)
 
-Added on 19 October 2026 after the first interview with the pilot owner (`docs/discovery/results/interview-01.md`), who can't switch without it (§2.8). The subscription model (recurring payments) and invoices arrive **together**: every payment, recurring or one-off, gets an invoice. Session packs, single classes and payouts are proposed scope ([decision 11](ROADMAP.md#14-decisions)). Questions still open are in [`open-questions.md`](../design/open-questions.md) (QC01–QC15); the feature specs settle them with the owner, and nothing here guesses them.
+Added on 19 October 2026 after the first interview with the pilot owner (`docs/discovery/results/interview-01.md`), who can't switch without it (§2.8). The subscription model (recurring payments) and invoices arrive **together**: every payment, recurring or one-off, gets an invoice. Session packs, single classes and payouts are proposed scope ([decision 11](ROADMAP.md#14-decisions)). Questions still open are in [`open-questions.md`](../design/open-questions.md) (QC01–QC16); the feature specs settle them with the owner, and nothing here guesses them.
 
 Keep these concepts separate in the model, even where the screen combines them: a class's recurrence is not a payment schedule, a payment is not an invoice, and a missed class is not a missed payment.
 

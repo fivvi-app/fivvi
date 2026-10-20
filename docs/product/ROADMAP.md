@@ -525,7 +525,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - [ ] Backups verified by an **actual restore** to a scratch Postgres service on Railway.
 - [ ] Runbooks: incident response, rollback, "a client says they didn't get the email", "wrong booking".
 - [ ] Import scripts dry-run against a copy of the pilot's real data, including agreements, balances and due dates, with a reconciliation report against the old app.
-- [ ] **Payments ready for real money:** the provider account of the pilot gym is verified and live; ADR-020's (to come) model, fees and the DPA are reviewed; the membership terms passed the consumer-law check (§4.4); invoices checked by the gym's accountant; runbooks for "a client was charged twice", "a debit failed", "a refund" and "the provider is down".
+- [ ] **Payments ready for real money:** the payment provider account chosen in ADR-020 (to come) is verified and live; ADR-020's (to come) model, fees and the DPA are reviewed; the membership terms passed the consumer-law check (§4.4); invoices checked by the gym's accountant; runbooks for "a client was charged twice", "a debit failed", "a refund" and "the provider is down".
 - [ ] **Mandates:** how each active client gives a new mandate (or how existing mandates move) is agreed and the client email is ready ([QC09](../design/open-questions.md#qc09)).
 - [ ] The old app stays available as a fallback until the first full payment cycle reconciles.
 - [ ] **Free-tier limits reviewed** and the paid upgrades triggered by G4 are ready to switch on (§12).
@@ -748,7 +748,7 @@ flowchart TB
 | iOS distribution | Existing Apple Developer Program company membership (owner-reported); verify access in E017 | Membership and team access must be active for TestFlight | **M8 (after G4):** use the existing company membership; renew if required |
 | Android distribution | Debug builds / APK to own devices; Play Console account unconfirmed | — | **M8 (after G4):** confirm access or enroll if needed |
 | Push notifications (1.2) | APNs + FCM | Free | — |
-| Payments (M11) | The payment provider's test mode; no monthly fee expected (verify in the ADR-020 (to come) spike) | Per-payment fees (proposed: paid by the gym as merchant on its own account, ADR-020 (to come)) | **G4:** the pilot gym's account goes live; fees compared with the per-payment fee it pays today |
+| Payments (M11) | The payment provider's test mode; no monthly fee expected (verify in the ADR-020 (to come) spike) | Per-payment fees (proposed: paid by the gym as merchant on its own account, ADR-020 (to come)) | **G4:** the account chosen in ADR-020 (to come) goes live; fees compared with the per-payment fee it pays today |
 
 **Expected new spend until pilot go-live:** a domain (~€10–15/year), plus Google Play Console enrollment at M8 only if the owner's account does not already exist. The Apple company membership and Railway Hobby plan are already paid by the owner; Apple renewal or additional membership cost depends on the account check in E017. **From G4:** Railway Pro, $20/month.
 
