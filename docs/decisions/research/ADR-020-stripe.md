@@ -2,11 +2,11 @@
 
 > Source notes for [ADR-020](../ADR-020-payment-provider.md), gathered by a research agent from primary sources on 19–20 October 2026. Provider terms and prices change; re-check before relying on a figure.
 
-Accessed 2026-10-19. Primary sources only (docs.stripe.com, stripe.com, support.stripe.com). Quotes are short excerpts. Some stripe.com pages were served in Dutch (geo-redirect); Dutch quotes are translated where useful. "NOT CONFIRMED" marks items I could not verify. The web tools hit a session limit before the last few fetches (privacy policy, Connected Account Agreement, platform activation). Those items are listed at the end.
+Accessed 2026-10-19 and 2026-10-20. Primary sources only (docs.stripe.com, stripe.com, support.stripe.com). Quotes are short excerpts. Some stripe.com pages were served in Dutch (geo-redirect); Dutch quotes are translated where useful. "NOT CONFIRMED" marks items I could not verify. The web tools hit a session limit before the last few fetches (privacy policy, Connected Account Agreement, platform activation). Those items are listed at the end.
 
-## TL;DR recommendation (derived from the sources below)
+## Summary of findings (the decision is in ADR-020, not here)
 
-- Give each gym an **Accounts v2 `Account` with the `merchant` configuration**: `dashboard: "full"`, `defaults.responsibilities.fees_collector: "stripe"`, `defaults.responsibilities.losses_collector: "stripe"`. In v1 controller terms this is `fees.payer=account`, `losses.payments=stripe`, `requirement_collection=stripe`, `stripe_dashboard.type=full`, the old "Standard" equivalent.
+- If Stripe were chosen, the fitting set-up is an **Accounts v2 `Account` with the `merchant` configuration**: `dashboard: "full"`, `defaults.responsibilities.fees_collector: "stripe"`, `defaults.responsibilities.losses_collector: "stripe"`. In v1 controller terms this is `fees.payer=account`, `losses.payments=stripe`, `requirement_collection=stripe`, `stripe_dashboard.type=full`, the old "Standard" equivalent.
 - Use **direct charges** (`Stripe-Account: acct_…` header). Funds land in the gym's balance and never in the platform's. The gym is merchant of record, its SEPA creditor ID and name are used, and Stripe fees, refunds and disputes are debited from the gym.
 - **Connect fees for the platform: none** in this configuration.
 - Recurring billing: either (a) an iDEAL | Wero SetupIntent or PaymentIntent with `setup_future_usage=off_session`, which generates a `sepa_debit` PaymentMethod and mandate, followed by off-session PaymentIntents from our cron (no Billing fee), or (b) Stripe Billing subscriptions on the connected account (0.7% Billing fee, paid by the gym when fees_collector=stripe).
