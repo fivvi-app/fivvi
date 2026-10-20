@@ -6,7 +6,7 @@
 |---|---|
 | **Actors** | Owner (any trainer's sessions), Trainer (own sessions ⚑ [Q27](../open-questions.md#q27)) |
 | **Surfaces** | Trainer web (PS-01) and trainer iOS/Android (PS-04); reschedule and cancel on all three |
-| **Milestone** | M4 (web), M8 (mobile). At go-live a workspace has one location (M3), so the session shows it and nothing is chosen; more locations and inference (F017–F019) come after go-live, with M7 (`ROADMAP.md` v1.19, decision 12) |
+| **Milestone** | M4 (web), M8 (mobile). At go-live a workspace has one location (M3), so the session shows it and nothing is chosen; more locations and inference (F017–F019) come after go-live, with M7 (`ROADMAP.md` v1.20, decision 12) |
 | **Spec** | `PRODUCT.md §2.6, §7, §12–§14, §17, §51`; `ROADMAP.md M3 (inference is a pure domain function), M4, ADR-012` |
 | **Note** | Everything below about location choice and inference (PS-03, the reasons, the location types, remembering a client's location) is **after go-live** (F015 extended, F017–F019). In the go-live build a workspace has one location: PS-01 and PS-04 show it as a plain line (*Locatie: {workspace}*), there is nothing to choose, and PS-03 and the *Standaard trainingslocatie* field of PS-02 do not exist yet |
 | **Why critical** | Private sessions are the pilot PT's core business, and today they live in Google Calendar and Word (`PRODUCT.md §8`). "*Infer obvious information automatically*" (`§2.1`) is proven or broken here |

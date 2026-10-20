@@ -157,7 +157,7 @@ The native apps aren't on Railway: their variables are build settings, per platf
 Measured in the M1 spike (ADR-011, "M1 spike results"):
 
 - **Hobby (now):** volume backups and scheduled backups are refused. Postgres **point-in-time recovery (PITR)** can be enabled; a restore to a point in time into a new service works (about 2 minutes for a small database).
-- **Before real data (G2):** enable PITR on production: `railway postgres pitr enable --service postgres --environment production`. Owner decision; it adds bucket storage cost.
+- **Before real data (pilot setup, no later than G2):** enable PITR on production: `railway postgres pitr enable --service postgres --environment production`. Owner decision; it adds bucket storage cost.
 - **At G4 (Pro):** enable daily backups and repeat the restore drill (E016).
 
 Restore into a new service, then point `web` at it after checking the data:

@@ -232,7 +232,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 | [018](../decisions/ADR-018-merge-queue.md) | Merge queue | **Merges go through the GitHub merge queue** (squash). Agents add low-risk PRs with `scripts/pr.sh merge`; the owner adds high-risk ones. CI also runs on `merge_group`. The ruleset requires the queue, not an up-to-date branch. Amends ADR-016 | Proposed | Updating branches by hand before every merge was the biggest time sink of the retro; the queue tests each PR on the latest `main` |
 | [019](../decisions/ADR-019-sign-in-communication-language.md) | Sign-in communication language | A sign-in email uses the recipient's stored preference, otherwise the **interface language of the screen that asked**; the first sign-in stores it as the preference. Amends ADR-017 | Proposed | A sign-in has no workspace, so ADR-017's workspace fallback doesn't apply; the person gets the language they were just reading |
 
-> **Two notes on the table (owner review, 20 October 2026).** (1) The MVP configures only the Owner and Trainer roles (decision 13); Better Auth's role setup in ADR-007, which also lists Admin, is unchanged, and Admin is a later role. (2) Real data now first enters at pilot setup, before G4 (decision 6), so wherever ADR-011 and ADR-016 say real data arrives at G2, read "no later than G2".
+> **Two notes on the table (owner review, 20 October 2026).** (1) The MVP configures only the Owner and Trainer roles (decision 13); Better Auth's role setup in ADR-007, which also lists Admin, is unchanged, and Admin is a later role. (2) the safeguards ADR-011 and ADR-016 tie to G2 (the Railway DPA, PITR, the release step) stay due no later than G2, while real data first enters at pilot setup, before G4 (decision 6).
 
 ### 4.4 Legal and privacy preparation
 
@@ -247,8 +247,8 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 - [x] **Privacy policy and terms drafted** in **NL and EN**.
 - [x] **Data retention policy drafted** for guest bookings, expired holds, deleted clients and backups.
 - [ ] Complete the remaining legal-entity details and review the agreement and public texts before signing or publishing them.
-- [ ] Confirm Railway's signed DPA before real data enters at G2; resolve its special-category-data scope before health notes at M7. *(Since v1.19 there is no parallel run: real data first enters at pilot setup, before G4. The G2 items stay where they are; doing them early is harmless.)*
-- [ ] Sign the processor agreement with the pilot gym before real personal data enters at G2; complete the pilot gym's DPIA assessment before G4.
+- [ ] Confirm Railway's signed DPA before real data enters (pilot setup), no later than G2; resolve its special-category-data scope before health notes at M7. *(Since v1.20 there is no parallel run: real data first enters at pilot setup, before G4. The G2 items stay where they are; doing them early is harmless.)*
+- [ ] Sign the processor agreement with the pilot gym before real personal data enters (pilot setup), no later than G2; complete the pilot gym's DPIA assessment before G4.
 - [ ] **Commerce (M11, before G4):** add the payment provider to the sub-processor list and the role mapping (the gym is the merchant, proposed in `PRODUCT.md §94`, to be decided in ADR-020 (to come); for its own payment data the provider may be a separate controller); reassess the DPIA (`docs/legal/dpia-assessment.md`) and role mapping (`docs/legal/role-mapping.md`) before G4, once ADR-020 (to come) has chosen the provider, and the retention policy for invoices (statutory retention period); the membership terms (term, renewal, cancellation) checked against Dutch consumer law (ACM) and shown to the client before the first payment; the gym's terms and invoice details complete.
 
 ### 4.5 Accounts and setup (free-first)

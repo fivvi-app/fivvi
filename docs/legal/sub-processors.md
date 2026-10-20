@@ -52,14 +52,14 @@
 **NL.**
 
 - ADR-011 kiest Railway in Amsterdam voor web, API, cron **en PostgreSQL**. Vercel en Neon maken geen deel uit van de geplande verwerking.
-- De [Railway-DPA](https://railway.com/legal/dpa) zegt dat zij pas bindend wordt nadat de klant het DocuSign-formulier indient **en Railway tekent**. Controleer de ondertekende overeenkomst uiterlijk vóór G2, wanneer echte klantnamen in het rooster komen (G2 is een interne alpha op synthetische data; echte gegevens komen sinds roadmap v1.19 voor het eerst bij de pilot-setup, vóór G4).
+- De [Railway-DPA](https://railway.com/legal/dpa) zegt dat zij pas bindend wordt nadat de klant het DocuSign-formulier indient **en Railway tekent**. Controleer de getekende overeenkomst uiterlijk bij G2 (ADR-011); sinds roadmap v1.20 komen echte gegevens pas bij de pilotopzet binnen, vóór G4.
 - Bijlage A van de gepubliceerde Railway-DPA vermeldt voor bijzondere persoonsgegevens **“None”**. Notities kunnen gezondheidsgegevens bevatten. Leg vóór M7 schriftelijk vast dat de DPA deze verwerking dekt, of zorg dat er geen gezondheidsgegevens op Railway worden opgeslagen tot dit is opgelost.
 - De DPA noemt primaire verwerking in de VS, ook wanneer app en database in Amsterdam staan. Documenteer de toepasselijke doorgiftegrondslag en bevestig de ingestelde regio voor app, database en back-ups.
 
 **EN.**
 
 - ADR-011 selects Railway in Amsterdam for web, API, cron **and PostgreSQL**. Vercel and Neon are not part of the planned processing.
-- The [Railway DPA](https://railway.com/legal/dpa) says it becomes binding only after the customer submits the DocuSign form **and Railway signs**. Check the executed agreement no later than G2, when real client names enter the timetable (G2 is an internal alpha on synthetic data; since roadmap v1.19 real data first enters at pilot setup, before G4).
+- The [Railway DPA](https://railway.com/legal/dpa) says it becomes binding only after the customer submits the DocuSign form **and Railway signs**. Check the executed agreement no later than G2 (ADR-011); since roadmap v1.20 real data first enters at pilot setup, before G4.
 - Exhibit A of Railway's published DPA lists **“None”** for special-category personal data. Notes may contain health data. Obtain written confirmation that the DPA covers this processing before M7, or keep health data off Railway until resolved.
 - The DPA says primary processing takes place in the US, even if the app and database are in Amsterdam. Document the applicable transfer mechanism and confirm the configured region for app, database and backups.
 
