@@ -1,6 +1,6 @@
 ---
 name: work
-description: "Entry point for all delivery work in Trainer Hub: new ideas or features, existing issues (#n), bugs, 'what's next', 'run the factory', PR feedback and merged PRs. Routes each step to the right Matt Pocock skill or script so the user only has to talk. Use whenever the user wants to build, refine, pick up, continue, review, ship, merge or clean up work."
+description: "Entry point for all delivery work in Fivvi: new ideas or features, existing issues (#n), bugs, 'what's next', 'run the factory', PR feedback and merged PRs. Routes each step to the right Matt Pocock skill or script so the user only has to talk. Use whenever the user wants to build, refine, pick up, continue, review, ship, merge or clean up work."
 ---
 
 # Work
