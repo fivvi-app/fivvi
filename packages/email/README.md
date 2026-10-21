@@ -1,9 +1,9 @@
-# @trainer-hub/email
+# @fivvi/email
 
 Transactional email (ADR-009): React Email templates, localized from `packages/i18n`, sent through Brevo behind a small `sendEmail` interface. Server-side only.
 
 ```ts
-import { createBrevoTransport, createSendEmail, helloEmail, readEmailConfig } from '@trainer-hub/email';
+import { createBrevoTransport, createSendEmail, helloEmail, readEmailConfig } from '@fivvi/email';
 
 const config = readEmailConfig(); // BREVO_API_KEY, EMAIL_FROM_ADDRESS, EMAIL_FROM_NAME
 const sendEmail = createSendEmail({
@@ -15,7 +15,7 @@ await sendEmail({
   template: helloEmail,
   props: { firstName: 'Anna', sentAt },
   to: { email: 'anna@example.com', name: 'Anna' },
-  locale: 'nl-NL', // resolveCommunicationLanguage() from @trainer-hub/i18n
+  locale: 'nl-NL', // resolveCommunicationLanguage() from @fivvi/i18n
   timeZone: 'Europe/Amsterdam', // the workspace time zone
 });
 ```
@@ -110,7 +110,7 @@ Sources: [Brevo pricing](https://www.brevo.com/pricing/), [send transactional em
 ## Tests
 
 ```bash
-pnpm --filter @trainer-hub/email test
+pnpm --filter @fivvi/email test
 ```
 
 | File | Proves |

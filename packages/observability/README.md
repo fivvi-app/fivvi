@@ -1,9 +1,9 @@
-# @trainer-hub/observability
+# @fivvi/observability
 
 Error reporting to Sentry (EU region) for the API, the cron job and the web app's server and browser, plus the web build's source map upload; server product events and cookieless web page views to PostHog EU (E009, ADR-013). The only code in the repo that imports `@sentry/*`, `posthog-node` or `posthog-js`; a Biome rule in the root `biome.json` enforces that. What is captured and the scrubbing rules: [docs/engineering/OBSERVABILITY.md](../../docs/engineering/OBSERVABILITY.md).
 
 ```ts
-import { createErrorReporter } from '@trainer-hub/observability';
+import { createErrorReporter } from '@fivvi/observability';
 
 const errorReporter = createErrorReporter(); // SENTRY_DSN, RAILWAY_ENVIRONMENT_NAME, RAILWAY_GIT_COMMIT_SHA
 
@@ -55,7 +55,7 @@ export function register() { checkPageViewsConfig(errorReporter); }
 Product events go to PostHog (`POSTHOG_HOST`) from server code, only from the catalog ([OBSERVABILITY.md §4](../../docs/engineering/OBSERVABILITY.md#4-product-events)).
 
 ```ts
-import { createProductEvents } from '@trainer-hub/observability';
+import { createProductEvents } from '@fivvi/observability';
 
 const productEvents = createProductEvents({ errorReporter }); // POSTHOG_KEY, POSTHOG_HOST, RAILWAY_ENVIRONMENT_NAME
 

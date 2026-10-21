@@ -1,4 +1,4 @@
-# @trainer-hub/contract
+# @fivvi/contract
 
 The API contract and the clients generated from it (ADR-004, E018).
 
@@ -8,7 +8,7 @@ The API contract and the clients generated from it (ADR-004, E018).
 packages/api (zod routes)
   └─▶ openapi.json (OpenAPI 3.1)
         ├─▶ src/generated/schema.ts                  TypeScript (web)
-        ├─▶ swift/Sources/TrainerHubAPI/Generated/   Swift (iOS)
+        ├─▶ swift/Sources/FivviAPI/Generated/   Swift (iOS)
         └─▶ kotlin/generated/                        Kotlin (Android)
 ```
 
@@ -68,13 +68,13 @@ Every generator version is pinned, so the output only changes when the API or a 
 ### Swift: swift-openapi-generator
 
 - Apple's generator, as ADR-004 requires. It produces `Types` and a `Client` (`generate: [types, client]`, `public`, idiomatic naming). The output is committed, so the iOS app doesn't run the generator as a build plugin.
-- `swift/` is a Swift package (`TrainerHubAPI`) with the generated sources and the runtime dependencies (`swift-openapi-runtime`, `swift-openapi-urlsession`). The iOS app (E008) adds it as a local package.
+- `swift/` is a Swift package (`FivviAPI`) with the generated sources and the runtime dependencies (`swift-openapi-runtime`, `swift-openapi-urlsession`). The iOS app (E008) adds it as a local package.
 - `tools/swift-generator` pins the generator and all its dependencies in `Package.resolved`. SwiftPM only builds a dependency's executable when a target uses it, so that package has a no-op plugin that depends on it.
 
 ### Kotlin: openapi-generator
 
 - `kotlin` generator with `jvm-retrofit2`, `kotlinx_serialization` and coroutines (`suspend` functions). This stack is common on Android, and kotlinx.serialization needs no reflection.
-- Package `nl.trainerhub.api`. Change it in `config/kotlin.json` if E008 picks a different application ID, then regenerate.
+- Package `app.fivvi.api`. Change it in `config/kotlin.json` if E008 picks a different application ID, then regenerate.
 - Only `src/main/kotlin` is kept. The generator's Gradle files, docs and test stubs are dropped; E008 compiles `kotlin/generated` in its own Gradle module with retrofit 3, okhttp and kotlinx-serialization-json.
 - openapi-generator runs on Java, from the jar on Maven Central, verified against the pinned SHA-256. Set `JAVA_HOME`, or have `java` on the `PATH`.
 

@@ -1,6 +1,6 @@
-# @trainer-hub/ui
+# @fivvi/ui
 
-The web component kit (ADR-015, E007): [shadcn/ui](https://ui.shadcn.com/) components on Tailwind CSS v4, themed only by the design tokens in [`@trainer-hub/design-tokens`](../design-tokens/README.md). The components are copied in by the shadcn CLI (style `radix-nova`), so shadcn's documentation applies as written.
+The web component kit (ADR-015, E007): [shadcn/ui](https://ui.shadcn.com/) components on Tailwind CSS v4, themed only by the design tokens in [`@fivvi/design-tokens`](../design-tokens/README.md). The components are copied in by the shadcn CLI (style `radix-nova`), so shadcn's documentation applies as written.
 
 | Path | What |
 |---|---|
@@ -16,11 +16,11 @@ The web component kit (ADR-015, E007): [shadcn/ui](https://ui.shadcn.com/) compo
 Import the stylesheet once, in the root layout, and the components by path:
 
 ```tsx
-import '@trainer-hub/ui/globals.css';
-import { Button } from '@trainer-hub/ui/components/button';
+import '@fivvi/ui/globals.css';
+import { Button } from '@fivvi/ui/components/button';
 ```
 
-The app needs `@tailwindcss/postcss` in its PostCSS config (see `apps/web/postcss.config.mjs`) and `@trainer-hub/ui` in `transpilePackages`. The page follows the system light or dark setting through the token CSS; Tailwind's `dark:` variant uses the same media query.
+The app needs `@tailwindcss/postcss` in its PostCSS config (see `apps/web/postcss.config.mjs`) and `@fivvi/ui` in `transpilePackages`. The page follows the system light or dark setting through the token CSS; Tailwind's `dark:` variant uses the same media query.
 
 Style with shadcn's theme classes (`bg-primary`, `text-muted-foreground`, `border-input`, `ring-ring`) and our extras (`bg-session-private-bg`, `text-status-danger-fg`). There is nothing else: Tailwind's default palette (`bg-red-500`, `text-white`, `bg-black/50`) is removed, so such a class produces no CSS at all. The components carry no text of their own; every label comes from `packages/i18n`.
 
@@ -63,7 +63,7 @@ The components themselves are unchanged. The kit differs from a fresh `shadcn in
 
 | What | Why |
 |---|---|
-| The theme variables come from `@trainer-hub/design-tokens` (`tokens.css`, `shadcn.css`, `theme.css`) instead of the `:root` and `.dark` blocks `init` writes | The tokens are the one source of colour for web, iOS and Android (ADR-015) |
+| The theme variables come from `@fivvi/design-tokens` (`tokens.css`, `shadcn.css`, `theme.css`) instead of the `:root` and `.dark` blocks `init` writes | The tokens are the one source of colour for web, iOS and Android (ADR-015) |
 | No `@custom-variant dark (&:is(.dark *))` | The app follows the system setting (`prefers-color-scheme`), as the token CSS does; there is no manual toggle |
 | Tailwind's default palette is removed (`palette-reset.css`) | Only token colours exist, so every colour follows light and dark mode and the contrast checks of the token package |
 | A `:focus-visible` outline in the focus colour (`--ring`), `border.width.focus` wide (2px) with a 2px offset, outside Tailwind's cascade layers | Upstream's `ring-ring/50` is about 2.4:1 against the light canvas, below the 3:1 a focus indicator needs (WCAG 2.4.7, 1.4.11). Being unlayered, the rule wins over the components' `outline-none` without editing them, and every future component gets it too. shadcn has no theme variable for the width, so the rule reads the token variable `--th-border-width-focus`, as the density rules read theirs; app code still never uses `--th-*` |
@@ -92,4 +92,4 @@ The generated token files live in `packages/design-tokens`, outside the guard's 
 
 ## Checks
 
-`pnpm --filter @trainer-hub/ui typecheck`, `lint`, `test` and `check` (the raw-colour guard); `scripts/check.sh` and CI run them through turbo. The rendered result is tested in `apps/web/e2e/theme.spec.ts`: token colours and axe in light and dark (AC5), the densities (AC6), the focus indicator on `Button` and `Input` (AC7) and the self-hosted display font (AC9).
+`pnpm --filter @fivvi/ui typecheck`, `lint`, `test` and `check` (the raw-colour guard); `scripts/check.sh` and CI run them through turbo. The rendered result is tested in `apps/web/e2e/theme.spec.ts`: token colours and axe in light and dark (AC5), the densities (AC6), the focus indicator on `Button` and `Input` (AC7) and the self-hosted display font (AC9).

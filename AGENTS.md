@@ -1,6 +1,8 @@
-# Trainer Hub: rules for coding agents
+# Fivvi: rules for coding agents
 
 Dutch-first, bilingual (nl-NL + en) platform for personal trainers and small gyms. Next.js web + API (Hono + zod-openapi, REST), native iOS (Swift + SwiftUI) and Android (Kotlin + Jetpack Compose), PostgreSQL (Drizzle), Better Auth. Free tiers until real clients arrive.
+
+The product is **Fivvi** (domain `fivvi.app`: web app, booking pages and the API under `/api`). The native app for owners and trainers is **Fivvi Pro** (`apps/ios`, `apps/android`, app ID `app.fivvi.pro`); the client app (Release 1.2) will be Fivvi (`app.fivvi`). The npm scope is `@fivvi/*`.
 
 This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI) and Codex read it directly, Claude Code through `CLAUDE.md`.
 
