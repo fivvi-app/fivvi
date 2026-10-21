@@ -24,6 +24,7 @@ The documents below are **optional deeper dives**. Use any of them if the gym ow
 | 4 | [`import-checklist.md`](import-checklist.md) | Agree what data is imported at go-live, in which format, and how the source files are handled safely | §4.1 import, §4.4, R13 |
 | 5 | [`metric-targets.md`](metric-targets.md) | Agree the MVP metric targets with the gym owner, especially the ⚑ ones | §4.1 targets, §8 |
 | 6 | [`prototype-validation-script.md`](prototype-validation-script.md) | Test the clickable prototype with the gym owner and at least one other trainer, task by task, and record findings | §4.2, G0 |
+| 7 | [`competitors.md`](competitors.md) | Products a gym could choose instead of Trainer Hub (Huppa first), and what we learn from them | §13 R22, `PRODUCT.md §2.0` |
 
 ## Order of use (full kit, optional)
 
