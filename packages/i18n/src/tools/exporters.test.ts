@@ -353,12 +353,12 @@ describe('E008 iOS InfoPlist String Catalog exporter', () => {
 
 describe('E006 server-only namespaces', () => {
   const nl = {
-    'app.name': 'Trainer Hub',
+    'app.name': 'Fivvi',
     'hello.title': 'Welkom',
     'email.hello.subject': 'Testbericht',
   };
   const en = {
-    'app.name': 'Trainer Hub',
+    'app.name': 'Fivvi',
     'hello.title': 'Welcome',
     'email.hello.subject': 'Test message',
   };
@@ -375,7 +375,7 @@ describe('E006 server-only namespaces', () => {
 
   it('still checks email keys for parity', () => {
     const analysis = analyze(
-      catalogSet(nl, { 'app.name': 'Trainer Hub', 'hello.title': 'Welcome' }),
+      catalogSet(nl, { 'app.name': 'Fivvi', 'hello.title': 'Welcome' }),
     );
     expect(analysis.parity).toEqual([
       '"email.hello.subject" is in nl-NL.json but missing from en.json',

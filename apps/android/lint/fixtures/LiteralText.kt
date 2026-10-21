@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 
 @Composable
 fun HardCodedText(name: String) {
-    Text("Welkom bij Trainer Hub")
+    Text("Welkom bij Fivvi")
     Text(text = "Loading…", maxLines = 2)
     Button(onClick = {}) {
         Text("Try again")

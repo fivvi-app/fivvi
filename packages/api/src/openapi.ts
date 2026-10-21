@@ -7,7 +7,7 @@ export type OpenApiDocument = ReturnType<OpenAPIHono['getOpenAPI31Document']>;
 export function buildOpenApiDocument(app: OpenAPIHono = createApp()): OpenApiDocument {
   return app.getOpenAPI31Document({
     openapi: '3.1.0',
-    info: { title: 'Trainer Hub API', version: '0.1.0' },
+    info: { title: 'Fivvi API', version: '0.1.0' },
     servers: [{ url: API_BASE_PATH }],
   });
 }

@@ -5,7 +5,7 @@ import { createSendEmail } from './send.ts';
 import { helloEmail } from './templates/hello.tsx';
 import { EmailSendError } from './transport.ts';
 
-const sender = { email: 'noreply@example.com', name: 'Trainer Hub' };
+const sender = { email: 'noreply@fivvi.app', name: 'Fivvi' };
 const props = { firstName: 'Anna', sentAt: new Date('2026-09-22T16:00:00Z') };
 
 function setup() {

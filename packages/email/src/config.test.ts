@@ -3,14 +3,14 @@ import { readEmailConfig } from './config.ts';
 
 const env = {
   BREVO_API_KEY: 'xkeysib-test-secret',
-  EMAIL_FROM_ADDRESS: 'noreply@example.com',
-  EMAIL_FROM_NAME: 'Trainer Hub',
+  EMAIL_FROM_ADDRESS: 'noreply@fivvi.app',
+  EMAIL_FROM_NAME: 'Fivvi',
 };
 
 describe('E006 email config', () => {
   it('reads the sender and API key from the environment', () => {
-    expect(readEmailConfig({ ...env, EMAIL_FROM_NAME: ' Trainer Hub ' })).toEqual({
-      sender: { email: 'noreply@example.com', name: 'Trainer Hub' },
+    expect(readEmailConfig({ ...env, EMAIL_FROM_NAME: ' Fivvi ' })).toEqual({
+      sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
       brevoApiKey: 'xkeysib-test-secret',
     });
   });
@@ -25,7 +25,7 @@ describe('E006 email config', () => {
   });
 
   it('rejects a sender that is not an email address', () => {
-    expect(() => readEmailConfig({ ...env, EMAIL_FROM_ADDRESS: 'Trainer Hub' })).toThrow(
+    expect(() => readEmailConfig({ ...env, EMAIL_FROM_ADDRESS: 'Fivvi' })).toThrow(
       'EMAIL_FROM_ADDRESS is not an email address.',
     );
   });

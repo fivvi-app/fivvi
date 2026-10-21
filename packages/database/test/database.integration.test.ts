@@ -198,7 +198,7 @@ describe('E004 database', () => {
       });
     });
 
-    it.each(['Hallo, welkom bij Trainer Hub!', 'hello', 'system hello'])(
+    it.each(['Hallo, welkom bij Fivvi!', 'hello', 'system hello'])(
       'rejects %j as an i18n key',
       async (i18nKey) => {
         await withRollback(db, async (tx) => {
