@@ -60,7 +60,9 @@ class HelloScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private v
 
     @Test
     fun E008_AC7_fontScale200Wraps() {
-        show(HelloState.Loaded(R.string.hello_title))
+        // The greeting copy is short and may change, so the greeting style gets a catalog sentence that is always too
+        // long for one line at 200% on 320dp. The test then proves long greetings wrap and aren't cut off.
+        show(HelloState.Loaded(R.string.hello_error))
 
         val greeting = compose.onNodeWithTag(HelloTags.GREETING).textLayout()
         assertTrue("the greeting wraps", greeting.lineCount > 1)
