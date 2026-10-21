@@ -2675,11 +2675,11 @@ An **offer** is what a workspace sells. MVP has four kinds (single class: propos
 | **Credit plan** (group or private) | 4 group credits every month, with a carry-over limit | Recurring, monthly (§94) |
 | **Single class** (proposed, [decision 9](ROADMAP.md#14-decisions)) | One group class, on its own or on top of a membership | At booking (§95) |
 
-The owner sets each offer's name (Dutch, optional English, as in §18), price in euros including VAT, VAT rate, term and, for a membership, how many classes a week and which classes it covers; for a credit pack how many credits and how long they stay valid, for a credit plan how many credits each month and the carry-over limit (both open, [QC17](../design/open-questions.md#qc17)). A credit offer is either group or private, never both (§92). A price change applies to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)).
+The owner sets each offer's name (Dutch, optional English, as in §18), price in euros including VAT, VAT rate, term and, for a membership, how many classes a week and which classes it covers; for a credit pack how many credits and how long they stay valid, for a credit plan how many credits each month and the carry-over limit (both open, [QC17](../design/open-questions.md#qc17)). A credit offer is either group or private, never both (§92). A change to an offer applies to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)); the defaults a new workspace starts with are in *Default plans* below.
 
 ## Default plans
 
-A new workspace starts with three ready-made offers, the **default plans** (owner, 21 October 2026). They are pre-filled and **switched off**: clients can't see or buy them until the owner turns them on. Trainer Hub never suggests a price, so the owner adds the price (including VAT) first; an offer without a price can't be switched on. Which VAT rate a default starts with is open and settled in the F052 spec.
+A new workspace starts with three ready-made offers, the **default plans** (owner, 21 October 2026). They are pre-filled and **switched off**: clients can't see or buy them until the owner turns them on. Trainer Hub never suggests a price, so the owner adds the price (including VAT) first. The rest of this section is a proposal, tied to [QC19](../design/open-questions.md#qc19): an offer can't be switched on without a price (QC19 a), and the default's VAT rate is the owner's to set, starting from the workspace's usual rate and checked with the gym's accountant (QC19 c, [QC10](../design/open-questions.md#qc10)).
 
 | Default plan | Kind | Pre-filled | Paid |
 |---|---|---|---|
@@ -2687,10 +2687,10 @@ A new workspace starts with three ready-made offers, the **default plans** (owne
 | **Group credit pack** | Credit pack, group | 10 group credits, valid for 3 months | Once, up front (§94) |
 | **Private credit plan** | Credit plan, private | 4 private credits a month (about one session a week) | Monthly (§94) |
 
-- **The owner can change everything about a default**: its name (Dutch and optional English, as in §18), the classes a week or the number of credits, the term or how long credits are valid, the cancellation cutoff and, where it applies, the carry-over limit. The owner can also switch it off again or delete it.
-- **Cutoff and carry-over are not decided here.** The defaults start with the proposals of [QC02](../design/open-questions.md#qc02) (a cutoff of 12 hours for classes and 24 hours for private sessions) and [QC17](../design/open-questions.md#qc17) (a carry-over limit of 0) until the pilot says otherwise; the membership's makeup limit is [QC03](../design/open-questions.md#qc03).
-- **A default is a starting point, not a template that stays linked.** The workspace gets its own copy when it is created; later changes to Trainer Hub's defaults never change an existing workspace.
-- **Changes apply to new agreements only** (proposal, [QC15](../design/open-questions.md#qc15)); this includes switching an offer off or deleting it: agreements that already run keep their terms.
+- **The owner can change every field of an offer** (owner decision), a default included: its name (Dutch and optional English, as in §18), price, VAT rate, classes and weekdays, credits, term or validity, payment schedule, cancellation cutoff, makeup limit and carry-over, where they apply. The owner can also switch a default off again or delete it.
+- **Proposed starting values, not decisions.** The defaults start with the proposals of [QC02](../design/open-questions.md#qc02) (a cutoff of 12 hours for classes and 24 hours for private sessions) and [QC17](../design/open-questions.md#qc17) (a carry-over limit of 0) until the pilot says otherwise. The private credit plan has no fixed term: it is paid monthly and cancellable per the membership rules of [QC07](../design/open-questions.md#qc07) (QC19 d). No makeup limit is proposed for the membership yet; it stays with [QC03](../design/open-questions.md#qc03) (QC19 e).
+- **A default is a starting point, not a template that stays linked** (proposal, QC19 b). The workspace gets its own copy when it is created; later changes to Trainer Hub's defaults never change an existing workspace.
+- **Changes apply to new agreements only** (proposal, [QC15](../design/open-questions.md#qc15)); this includes changing any field, switching an offer off or deleting it: agreements that already run keep their terms.
 
 ## Owner-made plans
 
