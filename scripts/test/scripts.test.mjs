@@ -434,7 +434,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.match(android, /android\.sh avd-key/);
     assert.match(
       android,
-      /path: ~\/\.android\/avd\n +key: avd-v1-\$\{\{ runner\.os \}\}-\$\{\{ steps\.avd\.outputs\.key \}\}/,
+      /path: ~\/\.android\/avd\n +key: avd-v2-\$\{\{ runner\.os \}\}-\$\{\{ steps\.avd\.outputs\.key \}\}/,
     );
     const boot = android.slice(android.indexOf('name: Boot the emulator'));
     assert.match(boot.slice(0, boot.indexOf('- name:', 10)), /AVD_SNAPSHOT: '1'/);

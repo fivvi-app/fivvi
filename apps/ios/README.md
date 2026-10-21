@@ -67,7 +67,9 @@ The app picks its interface language itself, by ADR-017's rule, and uses it for 
 | Sentry DSN (`FIVVI_SENTRY_DSN`) | Empty: no crash reporting; `pnpm test:ios` checks this | The Sentry `ios` project's DSN (EU region, `<org>.ingest.de.sentry.io`); `pnpm test:ios` checks this |
 | Sentry environment (`FIVVI_SENTRY_ENVIRONMENT`) | `development` | `production` |
 
-**`Config/Local.xcconfig`** (git-ignored, included last by `Debug.xcconfig`) holds your own Debug settings; never put them in a tracked file. *Since the Fivvi rename (21 October 2026) its keys are `FIVVI_*`: rename any `TRAINER_HUB_*` key in your copy, and delete old "Trainer Hub …" simulators.*
+**`Config/Local.xcconfig`** (git-ignored, included last by `Debug.xcconfig`) holds your own Debug settings; never put them in a tracked file.
+
+- **Since the Fivvi rename (21 October 2026)** its keys are `FIVVI_*`: rename any `TRAINER_HUB_*` key in your copy, and delete the old "Trainer Hub …" simulators.
 
 | Setting | For |
 |---|---|
