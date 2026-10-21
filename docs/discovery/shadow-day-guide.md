@@ -33,7 +33,7 @@
 
 ## 2. What to observe per activity
 
-Use the activity codes below in the timing log. **Codes P, B, L, N, A and O are the admin the MVP should reduce. Code X is admin outside the MVP (billing, payroll, marketing).** Record X too, but it is kept out of the admin-time target (see [`baseline-sheet.md`](baseline-sheet.md#admin-time-scope)).
+Use the activity codes below in the timing log. **Codes P, B, L, N, A, O and C are the admin the MVP should reduce. Code X is admin outside the MVP (payroll, marketing, bookkeeping).** Record X too, but it is kept out of the admin-time target (see [`baseline-sheet.md`](baseline-sheet.md#admin-time-scope)).
 
 | Code | Activity | Activiteit |
 |---|---|---|
@@ -43,7 +43,8 @@ Use the activity codes below in the timing log. **Codes P, B, L, N, A and O are 
 | **N** | Notes about clients and sessions | Notities |
 | **A** | Attendance and no-shows | Aanwezigheid |
 | **O** | Open Gym: deciding on and announcing free gym time | Open Gym |
-| **X** | Other admin outside the MVP (invoices, payments, payroll, marketing) | Overige administratie |
+| **C** | Commerce: invoices, payments, memberships, credit packs and credit plans | Facturen, betalingen, abonnementen, creditpakketten en creditabonnementen |
+| **X** | Other admin outside the MVP (payroll, marketing, bookkeeping) | Overige administratie |
 
 ### P — Scheduling / Planning
 
@@ -56,7 +57,7 @@ Look for:
 - [ ] Whether the gym owner has an overview of **all trainers' schedules** in one place, and whether trainers have one overview across several workplaces.
 - [ ] Double bookings, clashes, or "wait, where am I at 10?" moments.
 
-Things to ask the gym owner to describe (no files): the weekly class timetable, what a week in the calendar looks like, what columns the Excel planning sheet has.
+Things to ask the gym owner to describe (no files): the weekly class timetable, what a week in the calendar looks like, how the planning is kept today (the old booking and payment app, Google Calendar, Word documents, by hand).
 
 ### B — Booking / Boekingen
 
@@ -93,6 +94,12 @@ Look for:
 - [ ] How is a **no-show** noticed and recorded? Does anything happen afterwards (message, charge, nothing)?
 - [ ] Count today: booked, attended, cancelled, no-show per class and private session (numbers only).
 
+### C — Invoices, payments, memberships, credit packs and credit plans / Facturen, betalingen, abonnementen, creditpakketten en creditabonnementen (also observe)
+
+- [ ] How is a payment or membership change handled: which app, by whom, how long? Count today's invoices made or edited by hand (numbers only; never copy names, amounts or IBANs).
+- [ ] Which sessions or memberships are tracked outside the booking app (paper, Excel, Word)?
+- [ ] Follow-up of failed or late payments: who, how, how often.
+
 ### O — Open Gym (also observe)
 
 - [ ] Does Open Gym (free gym time with limited capacity) exist today? How is it offered and announced?
@@ -103,7 +110,7 @@ Look for:
 
 ## 3. Tools seen today
 
-Tick every tool used for P/B/L/N/A/O/X work and note what it was used for. This feeds "number of tools" in the [baseline](baseline-sheet.md).
+Tick every tool used for P/B/L/N/A/O/C/X work and note what it was used for. This feeds "number of tools" in the [baseline](baseline-sheet.md).
 
 | Tool | Seen | Used for (codes) | By (T-codes) |
 |---|---|---|---|
@@ -166,7 +173,8 @@ Add up the log after the day.
 | N | | | | |
 | A | | | | |
 | O | | | | |
-| **Subtotal P–O (MVP scope)** | | | | |
+| C | | | | |
+| **Subtotal P, B, L, N, A, O and C (MVP scope)** | | | | |
 | X | | | | |
 
 - Sessions observed: private ____ · group classes ____ · Open Gym ____
@@ -301,8 +309,8 @@ About 45 minutes with the gym owner, after the observed day. Use **section 5.10*
 **8.1** Welke programma's, apps en papieren gebruik je voor je administratie? Laten we ze samen opschrijven.\
 *Which programs, apps and paper do you use for your admin? Let's write them down together.*
 
-**8.2** Hoeveel uur per week denk je kwijt te zijn aan planning, boekingen, loggen en notities? En aan facturen en andere administratie?\
-*How many hours a week do you think you spend on scheduling, booking, logging and notes? And on invoices and other admin?*\
+**8.2** Hoeveel uur per week denk je kwijt te zijn aan planning, boekingen, loggen, notities, facturen en betalingen? En aan andere administratie?\
+*How many hours a week do you think you spend on scheduling, booking, logging, notes, invoices and payments? And on other admin?*\
 → Estimate MVP scope: ____ h/week · other admin: ____ h/week *(compare with the 7-day diary in the [baseline sheet](baseline-sheet.md))*
 
 **8.3** Welke administratieve taak kost je de meeste energie, niet per se de meeste tijd?\
@@ -320,8 +328,8 @@ About 45 minutes with the gym owner, after the observed day. Use **section 5.10*
 **9.2** Wat moet absoluut blijven werken zoals het nu werkt?\
 *What absolutely has to keep working the way it does now?*
 
-**9.3** Wanneer zou je zeggen: dit nieuwe systeem is een succes? Wanneer zou je teruggaan naar Excel?\
-*When would you say this new system is a success? When would you go back to Excel?*
+**9.3** Wanneer zou je zeggen: dit nieuwe systeem is een succes? Wanneer zou je teruggaan naar je oude werkwijze (de oude boekings- en betaalapp, Google Agenda, Word, handwerk)?\
+*When would you say this new system is a success? When would you go back to your old way of working (the old booking and payment app, Google Calendar, Word documents, by hand)?*
 
 **9.4** Is er iets dat ik vandaag niet heb gezien maar wel zou moeten weten?\
 *Is there anything I didn't see today that I should know about?*
@@ -374,7 +382,7 @@ Fill in during or after the interview. Numbers only, no names. Copy these values
 **Described by the gym owner** (no files needed; tick what you now understand, see [`import-checklist.md`](import-checklist.md)):
 
 - [ ] Weekly class timetable
-- [ ] Excel planning and client sheets (which columns)
+- [ ] How planning and client records are kept today (old booking and payment app, Google Calendar, Word documents, by hand) and what they hold
 - [ ] How the calendar is used (one shared calendar or one per trainer)
 - [ ] How a workout log / programme looks
 - [ ] What kinds of notes are kept (no content)

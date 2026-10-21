@@ -3,17 +3,18 @@
 The single source of truth for feature status. A status changes **in the same PR** as the code that earns it.
 
 - **Lifecycle:** `IDEA → PLANNED → DESIGNED → IN PROGRESS → IN REVIEW → IMPLEMENTED → RELEASED` (`PRODUCT.md §81`)
-- **Priority:** `Must` (MVP cannot ship without it) · `Should` (first to slip to 1.1 if dates are at risk)
+- **Priority:** `Must` (MVP cannot ship without it) · `Should` (first to slip to 1.1 if dates are at risk) · `Must (proposed, decision 9)` (proposed M11 scope, `ROADMAP.md` decision 9: a `Must` only once the owner confirms it)
 - **Languages:** a feature is not `IMPLEMENTED` until both NL and EN work (`PRODUCT.md §82`)
+- **Platforms:** a feature with a trainer mobile surface (marked `+ iOS/Android` in the Milestone column) is not `IMPLEMENTED` until web, iOS and Android all work; its iOS and Android tickets sit next to the web ticket with the same acceptance criteria (`ROADMAP.md` M8, the native track). Client apps stay Release 1.2
 - **Spec:** the *Spec* column points to the requirements in [`PRODUCT.md`](PRODUCT.md). Each feature's spec and tickets are GitHub issues (`/to-spec`, `/to-tickets`, [`docs/agents/issue-tracker.md`](../agents/issue-tracker.md)); once a spec issue exists, the ID links to it, e.g. `[F031](https://github.com/trainerrrzzz/trainer-hub/issues/<n>)`
 - **Rows:** a stable summary and a Status. A ticket PR changes only its row's Status: the spec's first ticket sets `IN PROGRESS`, and the PR that completes the spec sets `IMPLEMENTED` and writes the final one-line summary. A spec's progress (what's open, what's next) lives in its tickets (`scripts/flow.sh status <spec>`), not in the row, so parallel PRs don't edit the same lines
-- **Milestones:** see [`ROADMAP.md §5`](ROADMAP.md#5-mvp-delivery-plan-m1m9)
+- **Milestones:** see [`ROADMAP.md §5`](ROADMAP.md#5-mvp-delivery-plan-m1m11)
 
 ## Summary
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 51 (F001–F051) + 18 engineering enablers (E001–E018) | 0 |
+| MVP | 61 (F001–F061) + 19 engineering enablers (E001–E019); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live; trainer iOS and Android screens are built with their web features (the M8 native track) | 0 |
 
 ---
 
@@ -23,65 +24,65 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| [F001](https://github.com/trainerrrzzz/trainer-hub/issues/128) | Authentication | PLANNED | Must | M2 (+M8 mobile) | E004, E006 | ⬜ | ⬜ | §2.4, §27 |
+| [F001](https://github.com/trainerrrzzz/trainer-hub/issues/128) | Authentication | PLANNED | Must | M2 (+ iOS/Android; native sign-in: separate spec) | E004, E006 | ⬜ | ⬜ | §2.4, §27 |
 | F002 | Workspaces | PLANNED | Must | M2 | F001 | ⬜ | ⬜ | §5 |
-| F003 | Workspace Membership | PLANNED | Must | M2 | F002 | ⬜ | ⬜ | §6 |
-| F004 | Roles | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9, §50 |
-| F005 | Trainer Profile | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9 |
-| F006 | Client Profile | PLANNED | Must | M2 (+M8 mobile) | F002 | ⬜ | ⬜ | §10, §34 (quick add, name only) |
+| F003 | Workspace Membership | PLANNED | Must | M2 | F002 | ⬜ | ⬜ | §2.9, §6, §9 (team role next to client relationship) |
+| F004 | Roles | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9, §50 (Owner and Trainer; Admin is a later role 🔜) |
+| F005 | Trainer Profile | PLANNED | Must | M2 (+ iOS/Android: profile) | F003 | ⬜ | ⬜ | §9 |
+| F006 | Client Profile | PLANNED | Must | M2 (+ iOS/Android in M4) | F002 | ⬜ | ⬜ | §2.9, §9, §10, §34 (quick add, name only; links to an existing account) |
 | F007 | Localization Infrastructure | PLANNED | Must | M1–M2 | E005 | ⬜ | ⬜ | §3, §73 |
 | F008 | Dutch UI | PLANNED | Must | continuous | F007 | ⬜ | — | §2.2 |
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |
-| F010 | Locale Preference | PLANNED | Must | M2 | F001, F007 | ⬜ | ⬜ | §3 |
+| F010 | Locale Preference | PLANNED | Must | M2 (+ iOS/Android) | F001, F007 | ⬜ | ⬜ | §3 |
 
 ### Trainers
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | F011 | Trainer Invitations | PLANNED | Must | M3 | F003, F004, E006 | ⬜ | ⬜ | §49 |
-| F012 | Multi-Workspace Trainer | PLANNED | Must | M3 | F003, F005 | ⬜ | ⬜ | §4, §6 |
-| F013 | Personal Trainer Calendar | PLANNED | Must | M4 (+M8 mobile) | F012, F020 | ⬜ | ⬜ | §46, §47, §78 |
-| F014 | Workspace Calendar | PLANNED | Must | M4 | F020 | ⬜ | ⬜ | §45, §48, §78 |
+| F012 | Multi-Workspace Trainer | PLANNED | Must | M3 (+ iOS/Android: workspace switch in the profile) | F003, F005 | ⬜ | ⬜ | §4, §6 |
+| F013 | Personal Trainer Calendar | PLANNED | Must | M4 (+ iOS/Android) | F012, F020 | ⬜ | ⬜ | §45–§48, §78 (type labels and filters) |
+| F014 | Workspace Calendar | PLANNED | Must | M4 | F020 | ⬜ | ⬜ | §45, §48, §78 (type and trainer filters) |
 
 ### Locations
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F015 | Locations | PLANNED | Must | M3 | F002 | ⬜ | ⬜ | §12 |
-| F016 | Organization Default Location | PLANNED | Must | M3 | F015 | ⬜ | ⬜ | §13 |
-| F017 | Trainer Locations | PLANNED | Must | M3 | F005, F015 | ⬜ | ⬜ | §13 |
-| F018 | Client Preferred Location | PLANNED | Must | M3 | F006, F015 | ⬜ | ⬜ | §14 |
-| F019 | Automatic Location Selection | PLANNED | Must | M3 (wired in M4) | F016, F017, F018 | ⬜ | ⬜ | §2.6, §13 |
+| F015 | Locations | PLANNED | Must | M3 (one location; more after G4) (+ iOS/Android: shown) | F002 | ⬜ | ⬜ | §12 (go-live: one location per workspace; after go-live: more locations and the other types) |
+| F016 | Organization Default Location | PLANNED | Must | M3 (+ iOS/Android: shown) | F015 | ⬜ | ⬜ | §13 (the workspace's one location) |
+| F017 | Trainer Locations | PLANNED | Must | After G4, with M7 (+ iOS/Android) | F005, F015 | ⬜ | ⬜ | §13 |
+| F018 | Client Preferred Location | PLANNED | Must | After G4, with M7 (+ iOS/Android) | F006, F015 | ⬜ | ⬜ | §14 |
+| F019 | Automatic Location Selection | PLANNED | Must | After G4, with M7 (v1.19) (+ iOS/Android) | F016, F017, F018 | ⬜ | ⬜ | §2.6, §13 |
 
 ### Scheduling
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F020 | Private Sessions | PLANNED | Must | M4 (+M8 mobile) | F005, F006, F015 | ⬜ | ⬜ | §17 |
-| F021 | Group Class Templates | PLANNED | Must | M4 (+M8 mobile: create a class) | F005, F015 | ⬜ | ⬜ | §15, §18, §19 |
-| F022 | Recurring Classes | PLANNED | Must | M4 (+M8 mobile: weekly repeat) | F021, E012 | ⬜ | ⬜ | §15, §20 |
-| F023 | Trainer Assignment | PLANNED | Must | M4 | F020, F021 | ⬜ | ⬜ | §17, §19 |
+| F020 | Private Sessions | PLANNED | Must | M4 (+ iOS/Android) | F005, F006, F015 | ⬜ | ⬜ | §17 |
+| F021 | Group Class Templates | PLANNED | Must | M4 (+ iOS/Android: create a class) | F005, F015 | ⬜ | ⬜ | §15, §18, §19 |
+| F022 | Recurring Classes | PLANNED | Must | M4 (+ iOS/Android: weekly repeat) | F021, E012 | ⬜ | ⬜ | §15, §20 |
+| F023 | Trainer Assignment | PLANNED | Must | M4 (+ iOS/Android: double-booking check) | F020, F021 | ⬜ | ⬜ | §17, §19 |
 | F024 | Trainer Substitution | PLANNED | Must | M4 | F022, F023 | ⬜ | ⬜ | §19 |
-| F025 | Attendance | PLANNED | Must | M4 (+M8 mobile) | F020, F022 | ⬜ | ⬜ | §43 |
-| F026 | Cancellations | PLANNED | Must | M4 | F020, F022, F049 | ⬜ | ⬜ | §17, §51 |
+| F025 | Attendance | PLANNED | Must | M4 (+ iOS/Android) | F020, F022 | ⬜ | ⬜ | §43 |
+| F026 | Cancellations | PLANNED | Must | M4 (+ iOS/Android: cancel a session) | F020, F022, F049 | ⬜ | ⬜ | §17, §43, §51 (records time and actor for the §93 cutoff) |
 
 ### Booking
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | F027 | Public Booking Page | PLANNED | Must | M5 | F022, F007 | ⬜ | ⬜ | §15, §21 |
-| F028 | Booking Capacity | PLANNED | Must | M5 | F027 | ⬜ | ⬜ | §18 |
+| F028 | Booking Capacity | PLANNED | Must | M5 (+ iOS/Android: add a participant) | F027 | ⬜ | ⬜ | §18 |
 | F029 | Booking Hold | PLANNED | Must | M5 | F028, E012 | ⬜ | ⬜ | §24 |
 | F030 | Magic-Link Verification | PLANNED | Must | M5 | F029, F049 | ⬜ | ⬜ | §23, §27 |
 | F031 | Booking with Email Verification | PLANNED | Must | M5 | F030 | ⬜ | ⬜ | §25 |
 | F032 | Client Account on First Booking | PLANNED | Must | M5 | F031, F001 | ⬜ | ⬜ | §2.4, §26 |
-| F033 | Client Booking Dashboard | PLANNED | Must | M5 | F031 | ⬜ | ⬜ | §15 (Client Web) |
+| F033 | Client Booking Dashboard | PLANNED | Must | M5 (+M11 commerce) | F031 | ⬜ | ⬜ | §15 (Client Web: my schedule with private + group) |
 
 ### Open Gym
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F034 | Open Gym Slots | PLANNED | Must | M6 (+M8 mobile) | F015, F020 | ⬜ | ⬜ | §2.7, §15, §28 |
+| F034 | Open Gym Slots | PLANNED | Must | M6 (+ iOS/Android) | F015, F020 | ⬜ | ⬜ | §2.7, §15, §28 |
 | F035 | Open Gym Public Booking | PLANNED | Must | M6 | F034, F027–F031 | ⬜ | ⬜ | §30 |
 | F036 | Open Gym Suggestions | PLANNED | **Should** | M6 | F034, F013 | ⬜ | ⬜ | §29 |
 
@@ -96,28 +97,45 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F039 | Exercise Library | PLANNED | Must | M7 | F007 | ⬜ | ⬜ | §38 |
-| F040 | Custom Exercises | PLANNED | Must | M7 | F039 | ⬜ | ⬜ | §38 |
-| F041 | Workout Templates | PLANNED | Must | M7 | F039 | ⬜ | ⬜ | §39 (save a logged workout as template) |
-| F042 | Client Workouts | PLANNED | Must | M7 | F041, F006 | ⬜ | ⬜ | §40 |
-| F043 | Live Workout Logging | PLANNED | Must | M7 (+M8 mobile) | F039, F020 | ⬜ | ⬜ | §41 (with or without a template) |
-| F044 | Previous Workout Display | PLANNED | Must | M7 (+M8 mobile) | F043 | ⬜ | ⬜ | §41 |
-| F045 | Workout History | PLANNED | Must | M7 (+M8 mobile) | F043 | ⬜ | ⬜ | §42, §37 (shared recap) |
-| F051 | Repeat Previous Workout | PLANNED | Must | M7 (+M8 mobile) | F043, F045 | ⬜ | ⬜ | §41 (moved from §54) |
+| F039 | Exercise Library | PLANNED | Must | M7, after G4 (+ iOS/Android) | F007 | ⬜ | ⬜ | §38 |
+| F040 | Custom Exercises | PLANNED | Must | M7, after G4 (+ iOS/Android) | F039 | ⬜ | ⬜ | §38 |
+| F041 | Workout Templates | PLANNED | Must | M7, after G4 (+ iOS/Android) | F039 | ⬜ | ⬜ | §39 (save a logged workout as template) |
+| F042 | Client Workouts | PLANNED | Must | M7, after G4 (+ iOS/Android) | F041, F006 | ⬜ | ⬜ | §40 |
+| F043 | Live Workout Logging | PLANNED | Must | M7, after G4 (+ iOS/Android) | F039, F020 | ⬜ | ⬜ | §41 (with or without a template) |
+| F044 | Previous Workout Display | PLANNED | Must | M7, after G4 (+ iOS/Android) | F043 | ⬜ | ⬜ | §41 |
+| F045 | Workout History | PLANNED | Must | M7, after G4 (+ iOS/Android) | F043 | ⬜ | ⬜ | §42, §37 (shared recap) |
+| F051 | Repeat Previous Workout | PLANNED | Must | M7, after G4 (+ iOS/Android) | F043, F045 | ⬜ | ⬜ | §41 (moved from §54) |
 
 ### Notes
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F046 | Client Notes | PLANNED | Must | M7 (+M8 mobile) | F006 | ⬜ | ⬜ | §35 |
-| F047 | Session Notes | PLANNED | Must | M7 (+M8 mobile) | F020 | ⬜ | ⬜ | §36–37 (internal note) |
-| F048 | Note Visibility | PLANNED | Must | M7 (+M8 mobile) | F046, F047 | ⬜ | ⬜ | §37, §79 (explicit client share) |
+| F046 | Client Notes | PLANNED | Must | M7, after G4 (+ iOS/Android) | F006 | ⬜ | ⬜ | §35 |
+| F047 | Session Notes | PLANNED | Must | M7, after G4 (+ iOS/Android) | F020 | ⬜ | ⬜ | §36–37 (internal note) |
+| F048 | Note Visibility | PLANNED | Must | M7, after G4 (+ iOS/Android) | F046, F047 | ⬜ | ⬜ | §37, §79 (explicit client share) |
+
+### Commerce
+
+Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, group and private, followed in v1.21 (owner, 21 October 2026). The subscription model and invoices ship together. Single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
+
+| ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
+|---|---|---|---|---|---|---|---|---|
+| F052 | Offers and Prices | PLANNED | Must | M11 | F002, E019 | ⬜ | ⬜ | §90 (three default plans, pre-filled and switched off until the owner turns them on; the owner adds the price; owner-made offers of the four kinds; rules around the defaults are proposals, QC19) |
+| F053 | Memberships | PLANNED | Must | M11 | F052, F022, F028, F057 | ⬜ | ⬜ | §91 (fixed weekdays, term, terms stored) |
+| F054 | Credit Packs and Plans (group and private) | PLANNED | Must | M11 | F052, F020, F028, F055, F057 | ⬜ | ⬜ | §92 (credit packs bought once; credit plans paid monthly, with a carry-over limit; group and private credits never mix) |
+| F055 | Credit Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (one balance per kind, group or private, per agreement; history: granted, used, returned, expired) |
+| F056 | Cancellation Policy and Makeups | PLANNED | Must | M11 | F026, F055 | ⬜ | ⬜ | §93 (cutoff, late cancellation, makeups) |
+| F057 | Recurring Payments | PLANNED | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit: proposal, QC06; exactly once) |
+| F058 | Single Class Purchase | PLANNED | Must (proposed, decision 9) | M11 | F029, E019, F059 | ⬜ | ⬜ | §95 |
+| F059 | Invoices and Billing Details | PLANNED | Must | M11 | F006, F052 | ⬜ | ⬜ | §96 (company details, gapless numbers, credit notes) |
+| F060 | Failed Payments and Refunds | PLANNED | Must | M11 | F057, F059 | ⬜ | ⬜ | §94 |
+| F061 | Payouts and Reconciliation | PLANNED | Must (proposed, decision 9) | M11 | F057, F060 | ⬜ | ⬜ | §97 |
 
 ### Notifications
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F049 | Localized Transactional Emails | PLANNED | Must | M1 (infra) → M5 | E006, F007 | ⬜ | ⬜ | §51, §74 (EM-12 in M7) |
+| F049 | Localized Transactional Emails | PLANNED | Must | M1 (infra) → M5 | E006, F007 | ⬜ | ⬜ | §51, §74 (commerce emails in M11, EM-12 in M7) |
 | F050 | Trainer Booking Notifications | PLANNED | Must | M5 | F049, F031 | ⬜ | ⬜ | §51 |
 
 ---
@@ -142,10 +160,11 @@ These are not user-facing, so they don't need NL/EN columns. They still go throu
 | E012 | Scheduled jobs | PLANNED | M4 | Daily cron: recurrence materialization, hold cleanup, retention; holds expire lazily (ADR-010) |
 | E013 | Public surface security | PLANNED | M5 | Rate limits, hold caps, Cloudflare Turnstile, headers |
 | E014 | Privacy tooling | PLANNED | M9 | Data export, deletion, retention jobs, note-access audit log (§79) |
-| E015 | Data import tooling | PLANNED | M9 | Pilot Excel/CSV → clients, timetable, sessions |
+| E015 | Data import tooling | PLANNED | M9 | Pilot data from the old app export or a CSV template → clients, timetable, sessions, active agreements, credit balances, next due dates, billing details; reconciliation report |
 | E016 | Backups, restore drill & runbooks | PLANNED | M9 | A verified restore, incident/rollback runbooks |
-| E017 | App distribution | PLANNED | M8 | Existing Apple company membership (owner-reported): verify access; confirm Play Console account or enroll; set up TestFlight, Play internal testing and store requirements |
+| E017 | App distribution | PLANNED | M2 | Existing Apple company membership (owner-reported): verify access; confirm Play Console account or enroll; set up TestFlight and Play internal testing early (M2), so the internal alpha runs on the apps; app IDs `app.fivvi.pro` (Fivvi Pro, the trainer and owner app) and `app.fivvi` (the client app, Release 1.2), and check that the store names are available; store requirements follow before the first public listing |
 | E018 | API contract & client generation | IMPLEMENTED | M1 | `packages/api`: Hono + zod-openapi, mounted in `apps/web` under `/api`; `GET /api/v1/hello` reads `system_greetings` (#93). `packages/contract`: committed `openapi.json` (3.1) → TS (openapi-typescript + openapi-fetch), Swift (swift-openapi-generator), Kotlin (openapi-generator, retrofit2 + kotlinx.serialization); generators pinned. Drift check: `pnpm check` (Turborepo `check` task); E002 makes it a required CI check (ADR-004) |
+| E019 | Payment provider integration | PLANNED | M11 | ADR-020 (Accepted 21 October 2026: Mollie Connect for Platforms, the gym as merchant on its own Mollie account; Stripe Connect as fallback) and the questions for Mollie it lists; one guided connection step for the Owner (Mollie Client Links), test mode for previews, idempotent requests, stored webhook events processed once, replay tests |
 
 ---
 
@@ -155,7 +174,7 @@ These get `F0xx` IDs when they move to `PLANNED`. Full context is in [`ROADMAP.m
 
 | Release | Candidate items |
 |---|---|
-| 1.1 | Waitlists · cancellation cutoff · recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · warm-up sets · supersets · workout reordering · pinned notes · note search · offline resilience · bulk attendance · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *Universal Links / App Links (suggested)* |
+| 1.1 | Waitlists · recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · warm-up sets · supersets · workout reordering · pinned notes · note search · offline resilience · bulk attendance · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *Universal Links / App Links (suggested)* |
 | 1.2 | Native client iOS/Android apps · push (APNs + FCM) · email → app deep links |
 | 1.3 | AI note capture (NL/EN, speech + text, trainer confirms) |
 | 1.4 | AI pre-session client briefing |
@@ -163,4 +182,5 @@ These get `F0xx` IDs when they move to `PLANNED`. Full context is in [`ROADMAP.m
 | 2.1 | Freelance improvements · gym access information |
 | 2.2 | Workspace switching · cross-workspace conflict detection · workspace-specific permissions |
 | 2.3 | Multi-location organizations |
-| 3.0 – 7.0 | See roadmap themes |
+| 4.0 | Advanced commerce: discounts · gift cards · reminders and dunning · POS/kiosk · accounting integrations · revenue reports |
+| 3.0 – 3.2, 5.0 – 7.0 | See roadmap themes |

@@ -35,9 +35,9 @@
 
 ## Placeholders
 
-Waarden die nog niet bekend zijn staan als `{{…}}`, bijvoorbeeld `{{Naam aanbieder}}`, `{{KvK-nummer}}`, `{{domein}}`. Zie [`open-questions.md`](open-questions.md).
+Waarden die nog niet bekend zijn staan als `{{…}}`, bijvoorbeeld `{{Naam aanbieder}}`, `{{KvK-nummer}}`, `{{adres}}`. Zie [`open-questions.md`](open-questions.md).
 
-Values that aren't known yet appear as `{{…}}`, for example `{{Provider name}}`, `{{KvK number}}`, `{{domain}}`. See [`open-questions.md`](open-questions.md).
+Values that aren't known yet appear as `{{…}}`, for example `{{Provider name}}`, `{{KvK number}}`, `{{address}}`. See [`open-questions.md`](open-questions.md).
 
 ## Bronnen / Sources
 

@@ -10,9 +10,9 @@
 | **Bron / Source** | ADR-005, 009, 011, 013 and the E013 Turnstile choice; `ROADMAP.md` §4.3 and §12. |
 | **DPA's gecontroleerd / DPAs checked** | 22 september 2026; Brevo: 29 september 2026 |
 
-**NL.** Dit is de lijst van derde partijen die persoonsgegevens verwerken voor Trainer Hub. Een workspace geeft met de verwerkersovereenkomst algemene toestemming voor deze subverwerkers (art. 28(2) AVG). Wijzigingen melden we vooraf (verwerkersovereenkomst art. 7). Voorwaarden van aanbieders veranderen vaak. Controleer de links opnieuw vóór G2 en vóór G4.
+**NL.** Dit is de lijst van derde partijen die persoonsgegevens verwerken voor Fivvi. Een workspace geeft met de verwerkersovereenkomst algemene toestemming voor deze subverwerkers (art. 28(2) AVG). Wijzigingen melden we vooraf (verwerkersovereenkomst art. 7). Voorwaarden van aanbieders veranderen vaak. Controleer de links opnieuw vóór G2 en vóór G4.
 
-**EN.** This is the list of third parties that process personal data for Trainer Hub. Through the processor agreement, a workspace gives general authorization for these sub-processors (GDPR art. 28(2)). We announce changes in advance (processor agreement art. 7). Provider terms change often. Re-check the links before G2 and before G4.
+**EN.** This is the list of third parties that process personal data for Fivvi. Through the processor agreement, a workspace gives general authorization for these sub-processors (GDPR art. 28(2)). We announce changes in advance (processor agreement art. 7). Provider terms change often. Re-check the links before G2 and before G4.
 
 ---
 
@@ -52,14 +52,14 @@
 **NL.**
 
 - ADR-011 kiest Railway in Amsterdam voor web, API, cron **en PostgreSQL**. Vercel en Neon maken geen deel uit van de geplande verwerking.
-- De [Railway-DPA](https://railway.com/legal/dpa) zegt dat zij pas bindend wordt nadat de klant het DocuSign-formulier indient **en Railway tekent**. Controleer de ondertekende overeenkomst vóór G2, wanneer echte klantnamen in het rooster komen.
+- De [Railway-DPA](https://railway.com/legal/dpa) zegt dat zij pas bindend wordt nadat de klant het DocuSign-formulier indient **en Railway tekent**. Controleer de getekende overeenkomst uiterlijk bij G2 (ADR-011); sinds roadmap v1.20 komen echte gegevens pas bij de pilotopzet binnen, vóór G4.
 - Bijlage A van de gepubliceerde Railway-DPA vermeldt voor bijzondere persoonsgegevens **“None”**. Notities kunnen gezondheidsgegevens bevatten. Leg vóór M7 schriftelijk vast dat de DPA deze verwerking dekt, of zorg dat er geen gezondheidsgegevens op Railway worden opgeslagen tot dit is opgelost.
 - De DPA noemt primaire verwerking in de VS, ook wanneer app en database in Amsterdam staan. Documenteer de toepasselijke doorgiftegrondslag en bevestig de ingestelde regio voor app, database en back-ups.
 
 **EN.**
 
 - ADR-011 selects Railway in Amsterdam for web, API, cron **and PostgreSQL**. Vercel and Neon are not part of the planned processing.
-- The [Railway DPA](https://railway.com/legal/dpa) says it becomes binding only after the customer submits the DocuSign form **and Railway signs**. Check the executed agreement before G2, when real client names enter the timetable.
+- The [Railway DPA](https://railway.com/legal/dpa) says it becomes binding only after the customer submits the DocuSign form **and Railway signs**. Check the executed agreement no later than G2 (ADR-011); since roadmap v1.20 real data first enters at pilot setup, before G4.
 - Exhibit A of Railway's published DPA lists **“None”** for special-category personal data. Notes may contain health data. Obtain written confirmation that the DPA covers this processing before M7, or keep health data off Railway until resolved.
 - The DPA says primary processing takes place in the US, even if the app and database are in Amsterdam. Document the applicable transfer mechanism and confirm the configured region for app, database and backups.
 
@@ -71,7 +71,7 @@
 - **Toegang van buiten de EU:** groepsbedrijven in de VS en India hebben toegang voor support en beheer, en enkele optionele functies (zoals AI) gebruiken Amerikaanse subverwerkers. EU-opslag betekent dus niet dat er geen doorgifte is. Grondslag: SCC in de DPA. We zetten Brevo's AI-functies niet aan.
 - **DPA:** bijlage 2 bij de Brevo-voorwaarden. Die hoort bij de overeenkomst die je met de voorwaarden accepteert; aparte ondertekening is niet nodig. De DPA bevat de subverwerkerslijst.
 - **Gratis plan:** 300 e-mails per dag, voor transactionele e-mail en campagnes samen. Bereiken we die grens, dan komen inloglinks niet meer aan (R14). Vóór G4: gebruikswaarschuwing en een betaald plan klaar.
-- **Afzender:** nog geen eigen domein. Brevo herschrijft het afzenderadres van een gratis mailbox naar `@brevosend.com`. Eigen domein met SPF, DKIM en DMARC vóór M5 (ADR-009).
+- **Afzender:** `Fivvi` (noreply at fivvi.app). De eigenaar kocht fivvi.app op 21 oktober 2026. Zolang SPF, DKIM en DMARC niet staan, herschrijft Brevo het afzenderadres van een gratis mailbox naar `@brevosend.com`. Nog te doen: SPF, DKIM en DMARC voor fivvi.app in Brevo en DNS, vóór M5 (ADR-009).
 
 **Open punten vóór echte e-mails (G2), voor de eigenaar:**
 
@@ -86,7 +86,7 @@
 - **Access from outside the EU:** group companies in the US and India have support and operations access, and some optional features (such as AI) use US sub-processors. EU storage doesn't mean there is no transfer. Mechanism: SCCs in the DPA. We don't enable Brevo's AI features.
 - **DPA:** Annex 2 to the Brevo terms. It is part of the agreement you accept with the terms; no separate signature is needed. It includes the sub-processor list.
 - **Free plan:** 300 emails per day, shared by transactional and marketing email. Hitting the cap would stop sign-in links (R14). Before G4: a usage alert and a paid plan ready.
-- **Sender:** no own domain yet. Brevo rewrites a free-mailbox From address to `@brevosend.com`. Own domain with SPF, DKIM and DMARC before M5 (ADR-009).
+- **Sender:** `Fivvi` (noreply at fivvi.app). The owner bought fivvi.app on 21 October 2026. Until SPF, DKIM and DMARC are in place, Brevo rewrites a free-mailbox From address to `@brevosend.com`. Still to do: SPF, DKIM and DMARC for fivvi.app in Brevo and DNS, before M5 (ADR-009).
 
 **Open items before real emails (G2), for the owner:**
 
@@ -104,7 +104,7 @@
 | AI-codeeragents (GitHub Copilot, Anthropic Claude Code, OpenAI Codex) | Zij bouwen de software; ze voeren de dienst niet uit | **Nooit** productietoegang, echte exports, Excel-bestanden van de pilot of screenshots met echte gegevens (D8 in `role-mapping.md`). Verandert dat, dan worden ze subverwerker en zijn DPA's nodig |
 | Better Auth | Een bibliotheek die in onze eigen backend draait, geen externe dienst | — |
 | Apple (TestFlight, App Store), Google (Play Console) | App-distributie. Apple en Google zijn zelf verwerkingsverantwoordelijke voor store- en testeraccounts | Opnieuw bekijken bij 1.2 als pushmeldingen (APNs/FCM) komen; pushberichten zonder persoonsgegevens |
-| Domeinregistrar / DNS | DNS bevat geen persoonsgegevens | Registrar nog niet gekozen (`ROADMAP.md §4.5`) |
+| Domeinregistrar / DNS | DNS bevat geen persoonsgegevens | fivvi.app is gekocht (21 oktober 2026); registrar en DNS-host nog invullen (`ROADMAP.md §4.5`) |
 
 <details>
 <summary>English version of the table</summary>
@@ -116,7 +116,7 @@
 | AI coding agents (GitHub Copilot, Anthropic Claude Code, OpenAI Codex) | They build the software; they don't operate the service | **Never** give them production access, real exports, pilot Excel files or screenshots with real data (D8 in `role-mapping.md`). If that ever changes, they become sub-processors and need DPAs |
 | Better Auth | A library running inside our own backend, not a third-party service | — |
 | Apple (TestFlight, App Store), Google (Play Console) | App distribution. Apple and Google are independent controllers for store and tester accounts | Revisit at 1.2 when push notifications (APNs/FCM) arrive; keep push payloads free of personal data |
-| Domain registrar / DNS | DNS contains no personal data | Registrar not yet chosen (`ROADMAP.md §4.5`) |
+| Domain registrar / DNS | DNS contains no personal data | fivvi.app is bought (21 October 2026); fill in the registrar and DNS host (`ROADMAP.md §4.5`) |
 
 </details>
 

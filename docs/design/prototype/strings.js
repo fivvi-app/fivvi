@@ -184,7 +184,7 @@ window.PROTO_STRINGS = {
     "b.footer": "Boeken zonder account of app",
 
     "mail.inbox": "Inbox",
-    "mail.from": "{ws} via Trainer Hub",
+    "mail.from": "{ws} via Fivvi",
     "mail.to": "Aan: {email}",
     "mail.subject": "Bevestig je boeking: {class}",
     "mail.hi": "Hoi {name},",
@@ -700,7 +700,7 @@ window.PROTO_STRINGS = {
     "b.footer": "Book without an account or app",
 
     "mail.inbox": "Inbox",
-    "mail.from": "{ws} via Trainer Hub",
+    "mail.from": "{ws} via Fivvi",
     "mail.to": "To: {email}",
     "mail.subject": "Confirm your booking: {class}",
     "mail.hi": "Hi {name},",

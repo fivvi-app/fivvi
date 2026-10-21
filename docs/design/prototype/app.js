@@ -1,5 +1,5 @@
 /*
- * Trainer Hub, M0 clickable prototype. Static, no build, no dependencies.
+ * Fivvi, M0 clickable prototype. Static, no build, no dependencies.
  * All data is fake and lives in memory. Copy comes from strings.js (prototype-only).
  */
 (function () {
@@ -575,7 +575,7 @@
       return `<div class="hub">
         <header class="hub-head">
           <p class="eyebrow">${t("proto.label")} · M0</p>
-          <h1 class="t-display" tabindex="-1">Trainer Hub</h1>
+          <h1 class="t-display" tabindex="-1">Fivvi</h1>
           <p class="lede">${t("hub.calmIntro")}</p>
         </header>
         <section class="hub-settings" aria-labelledby="set-h">

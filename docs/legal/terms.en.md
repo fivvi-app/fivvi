@@ -1,4 +1,4 @@
-# Trainer Hub Terms of Service
+# Fivvi Terms of Service
 
 > **⚠️ DRAFT — NOT LEGAL ADVICE.** Written by an AI agent, not reviewed by a lawyer. Don't publish until the open questions are answered and the text has been reviewed. This is a translation of [`terms.nl.md`](terms.nl.md); if the two differ, the Dutch text prevails.
 
@@ -6,8 +6,8 @@
 
 These terms have two parts:
 
-- **Part A** applies to gyms, studios and trainers that use Trainer Hub for their business.
-- **Part B** applies to clients and guests who book through Trainer Hub.
+- **Part A** applies to gyms, studios and trainers that use Fivvi for their business.
+- **Part B** applies to clients who book through Fivvi.
 
 ---
 
@@ -15,11 +15,11 @@ These terms have two parts:
 
 ### A1. Definitions
 
-- **Provider, we, us:** {{Provider name}}, trading as Trainer Hub, KvK {{KvK number}}, {{address}}.
-- **Service:** the Trainer Hub platform: the website, the public booking pages, the iOS and Android apps and the API.
+- **Provider, we, us:** {{Provider name}}, trading as Fivvi, KvK {{KvK number}}, {{address}}.
+- **Service:** the Fivvi platform (fivvi.app): the website, the public booking pages, the iOS and Android apps and the API.
 - **Workspace:** the environment of a gym, studio or independent trainer within the Service.
 - **Customer, you:** the business or independent professional that creates or manages a Workspace.
-- **Users:** the owners, admins and trainers you give access to your Workspace.
+- **Users:** the owners and trainers you give access to your Workspace.
 - **Your data:** all data that you, your Users or your clients enter in your Workspace. This includes client data, bookings, workouts and notes.
 - **Processor agreement:** the processor agreement between you and us, which forms part of these terms.
 
@@ -118,9 +118,9 @@ We may change these terms. We announce material changes **at least 30 days** bef
 
 ## Part B: Terms for clients and guests
 
-### B1. What Trainer Hub does for you
+### B1. What Fivvi does for you
 
-1. Through Trainer Hub you book classes, Open Gym or other sessions with a gym or trainer.
+1. Through Fivvi you book classes, Open Gym or other sessions with a gym or trainer.
 2. **Your appointment is with that gym or trainer, not with us.** Their rules apply, for example on prices, cancellation, no-shows and safety during training. We only provide the platform.
 
 ### B2. Booking

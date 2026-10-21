@@ -18,11 +18,11 @@
 ## Partijen
 
 1. **{{Naam workspace / pilotgym}}**, gevestigd te {{plaats}}, ingeschreven bij de Kamer van Koophandel onder nummer {{KvK-nummer}}, hierbij vertegenwoordigd door {{naam, functie}}. Hierna: **"Verwerkingsverantwoordelijke"**.
-2. **{{Naam aanbieder}}**, handelend onder de naam Trainer Hub, gevestigd te {{plaats}}, ingeschreven bij de Kamer van Koophandel onder nummer {{KvK-nummer}}, hierbij vertegenwoordigd door {{naam, functie}}. Hierna: **"Verwerker"**.
+2. **{{Naam aanbieder}}**, handelend onder de naam Fivvi, gevestigd te {{plaats}}, ingeschreven bij de Kamer van Koophandel onder nummer {{KvK-nummer}}, hierbij vertegenwoordigd door {{naam, functie}}. Hierna: **"Verwerker"**.
 
 ## Overwegingen
 
-- A. Verwerkingsverantwoordelijke gebruikt Trainer Hub, een platform voor planning, boekingen, klantbeheer, trainingen en notities (de **"Dienst"**). Dat gebeurt op grond van de algemene voorwaarden van Verwerker en eventuele aanvullende (pilot)afspraken (samen de **"Hoofdovereenkomst"**).
+- A. Verwerkingsverantwoordelijke gebruikt Fivvi, een platform voor planning, boekingen, klantbeheer, trainingen en notities (de **"Dienst"**). Dat gebeurt op grond van de algemene voorwaarden van Verwerker en eventuele aanvullende (pilot)afspraken (samen de **"Hoofdovereenkomst"**).
 - B. Bij het leveren van de Dienst verwerkt Verwerker persoonsgegevens in opdracht van Verwerkingsverantwoordelijke. Het gaat onder meer om gegevens van klanten en trainers en om vrije notities, die gezondheidsgegevens kunnen bevatten.
 - C. Partijen leggen in deze overeenkomst de afspraken vast die artikel 28 van de Algemene verordening gegevensbescherming (**"AVG"**) voorschrijft.
 
@@ -46,7 +46,7 @@ Begrippen uit de AVG (zoals *persoonsgegevens*, *verwerking*, *betrokkene*, *inb
 
 1. Verwerker verwerkt persoonsgegevens alleen op basis van schriftelijke instructies van Verwerkingsverantwoordelijke (art. 28(3)(a) AVG). Die instructies zijn:
    - deze overeenkomst en de Hoofdovereenkomst;
-   - wat Verwerkingsverantwoordelijke (of iemand die namens haar handelt, zoals een owner, admin of trainer) in de Dienst instelt of doet;
+   - wat Verwerkingsverantwoordelijke (of iemand die namens haar handelt, zoals een owner of trainer) in de Dienst instelt of doet;
    - aanvullende schriftelijke instructies, bijvoorbeeld per e-mail.
 2. Een wettelijke plicht kan Verwerker dwingen tot een verwerking zonder instructie. Dan meldt Verwerker dat vooraf aan Verwerkingsverantwoordelijke, tenzij de wet dat verbiedt.
 3. Vindt Verwerker dat een instructie in strijd is met de AVG of andere wetgeving over gegevensbescherming, dan meldt Verwerker dat direct. Verwerker mag de uitvoering van die instructie opschorten totdat Verwerkingsverantwoordelijke de instructie bevestigt of aanpast.
@@ -159,7 +159,7 @@ Verwerker geeft Verwerkingsverantwoordelijke de informatie en hulp die zij redel
 
 | Verwerkingsverantwoordelijke | Verwerker |
 |---|---|
-| {{Naam workspace}} | {{Naam aanbieder}} (Trainer Hub) |
+| {{Naam workspace}} | {{Naam aanbieder}} (Fivvi) |
 | Naam: {{naam}} | Naam: {{naam}} |
 | Functie: {{functie}} | Functie: {{functie}} |
 | Datum: {{datum}} | Datum: {{datum}} |
@@ -171,10 +171,10 @@ Verwerker geeft Verwerkingsverantwoordelijke de informatie en hulp die zij redel
 
 | Onderdeel | Beschrijving |
 |---|---|
-| **Onderwerp** | Het leveren van de Dienst Trainer Hub aan Verwerkingsverantwoordelijke |
+| **Onderwerp** | Het leveren van de Dienst Fivvi aan Verwerkingsverantwoordelijke |
 | **Aard** | Opslaan, ordenen, raadplegen, wijzigen, versturen (e-mail), exporteren en verwijderen van persoonsgegevens via web, iOS- en Android-apps en API |
 | **Doelen** | Planning van privésessies, groepslessen en Open Gym; publieke boeking met e-mailverificatie; klantbeheer; trainingen en logging; notities; aanwezigheid; transactionele e-mails; import van bestaande gegevens; support, beveiliging, back-ups en foutoplossing van de Dienst |
-| **Categorieën betrokkenen** | Klanten en gasten van Verwerkingsverantwoordelijke; trainers, owners en admins van de Workspace; genodigden |
+| **Categorieën betrokkenen** | Klanten en gasten van Verwerkingsverantwoordelijke; trainers en owners van de Workspace; genodigden |
 | **Soorten persoonsgegevens** | Naam; e-mailadres; taalvoorkeur; boekingen, sessies en aanwezigheid; locatie van sessies (kan een thuisadres zijn); trainingen, sets, herhalingen, gewichten en zwaarte; vrije notities; rol en planning van trainers; toegangslog op notities; technische gegevens (IP-adres, user-agent), kortstondig, voor beveiliging |
 | **Bijzondere persoonsgegevens** | Mogelijk **gezondheidsgegevens** in vrije notities (art. 9 AVG). Verder niet bedoeld: Verwerker vraagt geen telefoonnummer, geboortedatum, BSN of betaalgegevens |
 | **Duur** | Zolang de Hoofdovereenkomst loopt, plus de termijnen van artikel 11 |
@@ -188,7 +188,7 @@ Verwerker geeft Verwerkingsverantwoordelijke de informatie en hulp die zij redel
 | # | Maatregel | Status |
 |---|---|---|
 | T1 | **Tenant-isolatie:** elke bedrijfsrecord heeft een `organization_id`. Er zijn twee onafhankelijke barrières: een org-gebonden datalaag en PostgreSQL Row-Level Security. Geautomatiseerde tests tegen cross-tenant-lekken draaien in CI (ADR-006, E011) | Gepland M2 |
-| T2 | **Toegang op basis van rollen** (owner, admin, trainer, klant); least privilege | Gepland M2 |
+| T2 | **Toegang op basis van rollen** (owner, trainer, klant); least privilege | Gepland M2 |
 | T3 | **Notities standaard alleen voor trainers**; zichtbaarheid voor de klant is een bewuste keuze per notitie; toegang tot notities wordt gelogd | Gepland M7, E014 |
 | T4 | **Inloggen zonder wachtwoord:** magic link of 6-cijferige code; eenmalig, kort geldig en gehasht opgeslagen | Gepland M2 |
 | T5 | **Versleuteling:** TLS voor alle verbindingen; opslag versleuteld in rust (database, back-ups); tokens op apparaten in Keychain (iOS) en EncryptedSharedPreferences/DataStore (Android) | Gepland M1, M8 |
@@ -224,11 +224,11 @@ Zie [`sub-processors.md`](sub-processors.md), versie {{versie}} van {{datum}}. V
 ## Parties
 
 1. **{{Workspace / pilot gym name}}**, established in {{city}}, registered with the Dutch Chamber of Commerce (KvK) under number {{KvK number}}, represented by {{name, role}}. Hereinafter: **"Controller"**.
-2. **{{Provider name}}**, trading as Trainer Hub, established in {{city}}, registered with the KvK under number {{KvK number}}, represented by {{name, role}}. Hereinafter: **"Processor"**.
+2. **{{Provider name}}**, trading as Fivvi, established in {{city}}, registered with the KvK under number {{KvK number}}, represented by {{name, role}}. Hereinafter: **"Processor"**.
 
 ## Recitals
 
-- A. Controller uses Trainer Hub, a platform for scheduling, bookings, client management, workouts and notes (the **"Service"**). It does so under Processor's terms of service and any additional (pilot) arrangements (together the **"Main Agreement"**).
+- A. Controller uses Fivvi, a platform for scheduling, bookings, client management, workouts and notes (the **"Service"**). It does so under Processor's terms of service and any additional (pilot) arrangements (together the **"Main Agreement"**).
 - B. In providing the Service, Processor processes personal data on Controller's behalf. This includes data about clients and trainers, and free-text notes that may contain health data.
 - C. In this agreement the parties record the arrangements that Article 28 of the General Data Protection Regulation (**"GDPR"**) requires.
 
@@ -252,7 +252,7 @@ Terms from the GDPR (such as *personal data*, *processing*, *data subject*, *per
 
 1. Processor processes personal data only on documented instructions from Controller (GDPR art. 28(3)(a)). Those instructions are:
    - this agreement and the Main Agreement;
-   - what Controller (or someone acting on its behalf, such as an owner, admin or trainer) configures or does in the Service;
+   - what Controller (or someone acting on its behalf, such as an owner or trainer) configures or does in the Service;
    - additional written instructions, for example by email.
 2. A legal obligation may force Processor to process without an instruction. Processor then informs Controller beforehand, unless the law prohibits this.
 3. If Processor considers an instruction to infringe the GDPR or other data protection law, it informs Controller immediately. Processor may suspend that instruction until Controller confirms or changes it.
@@ -365,7 +365,7 @@ Processor gives Controller the information and help it reasonably needs for (GDP
 
 | Controller | Processor |
 |---|---|
-| {{Workspace name}} | {{Provider name}} (Trainer Hub) |
+| {{Workspace name}} | {{Provider name}} (Fivvi) |
 | Name: {{name}} | Name: {{name}} |
 | Role: {{role}} | Role: {{role}} |
 | Date: {{date}} | Date: {{date}} |
@@ -375,10 +375,10 @@ Processor gives Controller the information and help it reasonably needs for (GDP
 
 | Item | Description |
 |---|---|
-| **Subject matter** | Providing the Trainer Hub Service to Controller |
+| **Subject matter** | Providing the Fivvi Service to Controller |
 | **Nature** | Storing, organizing, consulting, changing, sending (email), exporting and deleting personal data via web, iOS and Android apps and the API |
 | **Purposes** | Scheduling private sessions, group classes and Open Gym; public booking with email verification; client management; workouts and logging; notes; attendance; transactional emails; import of existing data; support, security, backups and troubleshooting of the Service |
-| **Categories of data subjects** | Controller's clients and guests; the Workspace's trainers, owners and admins; invitees |
+| **Categories of data subjects** | Controller's clients and guests; the Workspace's trainers and owners; invitees |
 | **Types of personal data** | Name; email address; language preference; bookings, sessions and attendance; session location (may be a home address); workouts, sets, reps, weights and difficulty; free-text notes; trainers' roles and schedules; note access log; technical data (IP address, user agent), short-lived, for security |
 | **Special categories** | Possibly **health data** in free-text notes (GDPR art. 9). Nothing else is intended: Processor asks for no phone number, date of birth, citizen service number (BSN) or payment details |
 | **Duration** | For as long as the Main Agreement runs, plus the periods in Article 11 |
@@ -392,7 +392,7 @@ Processor gives Controller the information and help it reasonably needs for (GDP
 | # | Measure | Status |
 |---|---|---|
 | T1 | **Tenant isolation:** every business record carries an `organization_id`. There are two independent barriers: an org-scoped data layer and PostgreSQL Row-Level Security. Automated cross-tenant leak tests run in CI (ADR-006, E011) | Planned M2 |
-| T2 | **Role-based access** (owner, admin, trainer, client); least privilege | Planned M2 |
+| T2 | **Role-based access** (owner, trainer, client); least privilege | Planned M2 |
 | T3 | **Notes are trainer-only by default**; client visibility is a deliberate choice per note; note access is logged | Planned M7, E014 |
 | T4 | **Passwordless sign-in:** magic link or 6-digit code; single use, short-lived and stored hashed | Planned M2 |
 | T5 | **Encryption:** TLS on every connection; storage encrypted at rest (database, backups); tokens on devices in Keychain (iOS) and EncryptedSharedPreferences/DataStore (Android) | Planned M1, M8 |

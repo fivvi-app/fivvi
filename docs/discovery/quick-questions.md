@@ -51,8 +51,8 @@ Date / Datum: ____________
 *Say 10 people have booked. Roughly how many don't show up without cancelling?*\
 → ______ out of 10 ☐ E ☐ G
 
-**9.** Hoeveel uur per week ben je ongeveer kwijt aan planning, boekingen, trainingen bijhouden en notities? Facturen en marketing niet meetellen.\
-*Roughly how many hours a week do you spend on scheduling, bookings, tracking workouts and notes? Don't count invoices and marketing.*\
+**9.** Hoeveel uur per week ben je ongeveer kwijt aan planning, boekingen, trainingen bijhouden, notities, facturen en betalingen? Marketing en boekhouding niet meetellen.\
+*Roughly how many hours a week do you spend on scheduling, bookings, tracking workouts, notes, invoices and payments? Don't count marketing and bookkeeping.*\
 → ______ hours per week ☐ E ☐ G
 
 **10.** Hoe makkelijk is het nu om te zien wat een klant vorige keer deed? Van 1 (heel moeilijk) tot 5 (heel makkelijk).\
@@ -85,8 +85,8 @@ Date / Datum: ____________
 
 ## D. De overstap / The switch-over
 
-**16.** Wat houd je in Excel bij over een klant? Welke gegevens staan erin? (Je hoeft het niet te laten zien.)\
-*What do you keep in Excel about a client? What information is in it? (You don't need to show it.)*\
+**16.** Wat houd je buiten je boekingsapp bij over een klant (Word, papier, Excel, …)? Welke gegevens staan erin? (Je hoeft het niet te laten zien.)\
+*What do you keep about a client outside your booking app (Word, paper, Excel, …)? What information is in it? (You don't need to show it.)*\
 → ☐ naam / *name* ☐ e-mail ☐ telefoon / *phone* ☐ trainingen / *workouts* ☐ notities / *notes* ☐ betalingen / *payments* ☐ anders / *other*: ______
 
 **17.** Hoe ver vooruit staan afspraken en lessen gepland?\
@@ -131,7 +131,7 @@ Type the answers into `results/quick-questions.md` (numbers and short answers on
 | 10, 11, 12, 13 | Baselines A3.7, A3.5, A3.6, A3.9 |
 | 14, 15 | Phone inventory → minimum OS versions (ADR-003) |
 | 16, 17, 18 | Import scope ([`import-checklist.md` §3](import-checklist.md#3-what-to-import)) |
-| 19, 20, 21 | The three ⚑ targets ([`metric-targets.md` Part A](metric-targets.md#part-a--the-three--targets-must-be-agreed)) |
+| 19, 20, 21 | The first three ⚑ targets, A1–A3 ([`metric-targets.md` Part A](metric-targets.md#part-a--the-six--targets-must-be-agreed); the commerce targets A4–A6 are agreed in the worksheet) |
 | 22 | Pilot-review question (metric targets Part C) |
 
 With these answers, the baseline, phone and target parts of Gate G0 are covered with estimates. The prototype check (flows validated by the gym owner) still needs the gym owner to click through the prototype once ([`prototype-validation-script.md`](prototype-validation-script.md)). That session can be as short as the 6 flows × a few minutes.

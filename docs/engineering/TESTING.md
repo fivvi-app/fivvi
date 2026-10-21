@@ -1,6 +1,6 @@
 # Testing Strategy
 
-How we test Trainer Hub so that AI agents and humans can change it often without breaking it. The tools are fixed by ADR-014 (`ROADMAP.md §4`). This document covers **what** to test, **where**, **how**, and **what blocks a merge**. It applies to every PR.
+How we test Fivvi so that AI agents and humans can change it often without breaking it. The tools are fixed by ADR-014 (`ROADMAP.md §4`). This document covers **what** to test, **where**, **how**, and **what blocks a merge**. It applies to every PR.
 
 ## 1. Principles
 
@@ -26,7 +26,7 @@ How we test Trainer Hub so that AI agents and humans can change it often without
 | **iOS UI** | XCUITest | `apps/ios/TrainerHubUITests/` | A few platform-specific flows Maestro can't cover | minutes |
 | **Android unit** | JUnit | `apps/android/app/src/test/` | View models, state handling, API-client mapping, error states | seconds |
 | **Android UI** | Compose UI tests | `apps/android/app/src/androidTest/` | Screen states and interactions | minutes |
-| **Mobile e2e** | Maestro | `e2e/maestro/` | **The same flow YAML on iOS and Android**, in both locales. This is the parity acceptance test (M8) | minutes |
+| **Mobile e2e** | Maestro | `e2e/maestro/` | **The same flow YAML on iOS and Android**, in both locales. This is the parity acceptance test (M8, the native track: run per milestone from M2) | minutes |
 | **Static checks** | CI (E002, E005, E018) | — | Lint, typecheck, i18n parity, ICU syntax, no hard-coded strings, OpenAPI drift, generated clients up to date | seconds |
 
 The file name picks the suite: `*.test.ts(x)` is a unit test (`pnpm test`, no database), `*.integration.test.ts` an integration test (`pnpm test:integration`, real Postgres), and `apps/web/e2e/*.spec.ts` a Playwright spec (`pnpm test:e2e`). The shared Vitest presets in `packages/testing` (`unitConfig`, `integrationConfig`) apply this split, run tests with `TZ=UTC`, restore mocks, stubbed env and globals after every test, and turn retries off.
@@ -40,7 +40,7 @@ Use this as the checklist when writing and reviewing a PR.
 | Change | Required tests |
 |---|---|
 | New or changed **business rule** | Domain unit tests, including edge cases and invalid input |
-| New or changed **API route** | Integration test: happy path, validation error, **every role** (Owner / Admin / Trainer / Client / anonymous) allowed or denied as specified, response matches the schema. The isolation suite picks the route up automatically (§4.1) |
+| New or changed **API route** | Integration test: happy path, validation error, **every role** (Owner / Trainer / Client / anonymous) allowed or denied as specified, response matches the schema. The isolation suite picks the route up automatically (§4.1) |
 | **Schema / migration** | Migrations apply to an empty DB and on top of the previous version; RLS policy exists for every new business table (a test checks this) |
 | **Scheduling, time, recurrence** | DST fixtures (§4.3); times near midnight in Europe/Amsterdam |
 | **Booking, capacity, holds** | Concurrency test (§4.2); hold expiry; cancellation frees the spot |

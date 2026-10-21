@@ -4,19 +4,21 @@
 
 | | |
 |---|---|
-| **Actors** | Owner/Admin (any trainer's sessions), Trainer (own sessions ⚑ [Q27](../open-questions.md#q27)) |
+| **Actors** | Owner (any trainer's sessions), Trainer (own sessions ⚑ [Q27](../open-questions.md#q27)) |
 | **Surfaces** | Trainer web (PS-01) and trainer iOS/Android (PS-04); reschedule and cancel on all three |
-| **Milestone** | M4 (web), M8 (mobile). Location inference built in M3 |
+| **Milestone** | M4 (web, iOS and Android, built together; `ROADMAP.md` v1.20, decision 8). At go-live a workspace has one location (M3), so the session shows it and nothing is chosen; more locations and inference (F017–F019) come after go-live, with M7 (`ROADMAP.md` v1.20, decision 12) |
 | **Spec** | `PRODUCT.md §2.6, §7, §12–§14, §17, §51`; `ROADMAP.md M3 (inference is a pure domain function), M4, ADR-012` |
-| **Why critical** | Private sessions are the pilot PT's core business, and today they live in Excel + calendar. "*Infer obvious information automatically*" (`§2.1`) is proven or broken here |
+| **Note** | Everything below about location choice and inference (PS-03, the reasons, the location types, remembering a client's location) is **after go-live** (F015 extended, F017–F019). In the go-live build a workspace has one location: PS-01 and PS-04 show it as a plain line (*Locatie: {workspace}*), there is nothing to choose, and PS-03 and the *Standaard trainingslocatie* field of PS-02 do not exist yet |
+| **Why critical** | Private sessions are the pilot PT's core business, and today they live in Google Calendar and Word (`PRODUCT.md §8`). "*Infer obvious information automatically*" (`§2.1`) is proven or broken here |
 
 ## Features
 
 | ID | Feature | Where in this flow |
 |---|---|---|
 | F020 | Private Sessions | PS-01, PS-04, PS-05, PS-06 |
-| F019 | Automatic Location Selection | PS-03 (all states) |
-| F015 / F016 / F017 / F018 | Locations / Org default / Trainer locations / Client preferred location | Inputs to inference; *Onthouden als vaste locatie* sets F018 |
+| F015 / F016 | Locations / Org default | At go-live: the workspace's one location, shown on PS-01 and PS-04 |
+| F019 | Automatic Location Selection (after go-live) | PS-03 (all states) |
+| F017 / F018 | Trainer locations / Client preferred location (after go-live) | Inputs to inference; *Onthouden als vaste locatie* sets F018 |
 | F023 | Trainer Assignment | Trainer field |
 | F006 | Client Profile | PS-02, including a new client inline |
 | F042 | Client Workouts | Optional *Training* field |
@@ -24,7 +26,7 @@
 | F049 | Localized Transactional Emails | EM-04 (change), EM-11 ⚑ (new), cancellation email |
 | F012 / F013 | Multi-workspace / Personal calendar | Workspace chosen from the client when creating from the personal scope |
 
-## Location inference: what the UI shows
+## Location inference: what the UI shows (after go-live)
 
 The inference runs **on the server** (`packages/domain`, `ROADMAP M3`). The API returns a location **and a reason code**. The UI only turns the reason into a sentence and never re-implements the rules. Inputs are the workspace, trainer, client and history.
 
@@ -140,7 +142,7 @@ flowchart TD
 
 ### PS-02 · Klant kiezen / Choose client
 
-**Features:** F006, F018
+**Features:** F006, F018 (the default-location field, after go-live)
 
 ```text
 ┌──────────────────────────────────────────────────────────┐
@@ -187,7 +189,7 @@ flowchart TD
 
 ### PS-03 · Locatie / Location
 
-**Features:** F019, F015, F016, F017, F018 · Three states of the same field.
+**Features:** F019, F015, F016, F017, F018 (after go-live) · Three states of the same field.
 
 ```text
 A · Automatisch                                          B · Onduidelijk: de vraag uit §13

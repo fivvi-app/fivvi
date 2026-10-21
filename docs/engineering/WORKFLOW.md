@@ -83,7 +83,7 @@ From `PRODUCT.md §86`, extended for native apps. A user-facing feature is **not
 
 - [ ] Web behaviour works where required
 - [ ] iOS **and** Android behaviour works where required (parity: same screens and states on both)
-- [ ] Permissions are correct (Owner / Admin / Trainer / Client)
+- [ ] Permissions are correct (Owner / Trainer / Client)
 - [ ] Tenant isolation holds (covered by the isolation suite)
 - [ ] Dutch UI exists and has passed the local copy review against `packages/i18n/GLOSSARY.md`
 - [ ] English UI exists

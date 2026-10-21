@@ -1,6 +1,6 @@
 # Coding standards
 
-What every change to Trainer Hub must follow. Before every PR, the `code-review` skill checks the diff on two axes ([docs/agents/build.md](docs/agents/build.md)): `standards` against this file, `spec` against the ticket and spec issue. Tooling already enforces formatting, lint, types, i18n parity and contract drift, so a review doesn't repeat those. It looks for what tooling can't see.
+What every change to Fivvi must follow. Before every PR, the `code-review` skill checks the diff on two axes ([docs/agents/build.md](docs/agents/build.md)): `standards` against this file, `spec` against the ticket and spec issue. Tooling already enforces formatting, lint, types, i18n parity and contract drift, so a review doesn't repeat those. It looks for what tooling can't see.
 
 ## Where the detailed rules live
 
@@ -23,7 +23,7 @@ Mark every item ✅, ❌ (finding, with a file reference) or n/a.
 - **Domain language:** names in code, tests and copy use the terms in `GLOSSARY.md`, not the words it says to avoid.
 - **Design:** business rules sit in `packages/domain` behind a small interface (deep modules); routes, apps and native code don't re-implement them. Tested through that interface.
 - **Tenant isolation:** business data carries `organization_id`, goes through tenant-scoped repositories, and cross-tenant access returns `404`.
-- **Roles:** Owner / Admin / Trainer / Client / anonymous are allowed or denied as specified, with a test for each.
+- **Roles:** Owner / Trainer / Client / anonymous are allowed or denied as specified, with a test for each.
 - **i18n:** no hard-coded user-facing strings; keys in both `nl-NL.json` and `en.json`; native catalogs regenerated; Dutch copy checked against `packages/i18n/GLOSSARY.md` (copy review).
 - **Time:** stored in UTC; rendered in the workspace zone (Europe/Amsterdam); injected `Clock`; DST and near-midnight cases tested where relevant.
 - **Notes and health data:** trainer-only by default; no note content in lists, emails, logs or errors.

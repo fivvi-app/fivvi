@@ -1,6 +1,6 @@
 # Go-live import checklist
 
-**Purpose:** agree with the gym owner **which data is imported at go-live, in which format, and how the source files are handled** (`ROADMAP.md §4.1`). This checklist is the input for E015 (data import tooling, M9) and deals with risk R13 ("pilot data import is messier than expected").
+**Purpose:** agree with the gym owner **which data is imported at go-live, in which format, and how the source files are handled** (`ROADMAP.md §4.1`). This checklist is the input for E015 (data import tooling, M9), including active agreements and balances since commerce moved into the MVP (§3.4a) and deals with risk R13 ("pilot data import is messier than expected").
 
 **You** = the product owner (and developer of the platform). **Gym owner** = the pilot gym's owner. Walk through it together in about 45 minutes, preferably with their real files open **on their screen** (see §1).
 
@@ -27,7 +27,7 @@
 **How the data gets in at go-live** (decide in M9, not now):
 
 - ☐ **Entered by hand** during onboarding (week 0). Works for small numbers: clients, the weekly timetable and a few weeks of sessions. No file ever changes hands.
-- ☐ **The gym owner fills in the template** (§4) from their own Excel and hands it over, after the processor agreement is signed.
+- ☐ **The gym owner fills in the template** (§4) from their own records and hands it over, after the processor agreement is signed.
 - ☐ **The gym owner uploads the file themselves** with the importer (E015), so nobody else sees it. Only if E015 supports self-service upload.
 
 **Freeze window:** between the final export (or the start of entry by hand) and the gym owner's "import looks right", changes in the old system are written on a list and entered in the platform by hand afterwards. Agree how long it lasts: ____ days.
@@ -68,8 +68,8 @@ These are usually entered by hand during onboarding. Listing them here means the
 | Item | Fields | Decision |
 |---|---|---|
 | Workspace | name, timezone (default `Europe/Amsterdam`), default language (`nl`) | ☐ Enter by hand |
-| Locations | `location_name`, `location_type` (`organization_location` / `external_gym` / `client_home` / `outdoor` / `online` / `other`, `PRODUCT.md §12`), address (only for the gym's own locations) | ☐ Enter by hand ☐ Import |
-| Trainers | `trainer_name`, `trainer_email` (for the invitation), role (`owner` / `admin` / `trainer`), language (`nl` / `en`) | ☐ Enter by hand (invitations) ☐ Import |
+| Location | At go-live one location per workspace, the gym's own: `location_name`, address (`PRODUCT.md §12`). More locations and the other types (`external_gym` / `client_home` / `outdoor` / `online` / `other`) come after go-live | ☐ Enter by hand |
+| Trainers | `trainer_name`, `trainer_email` (for the invitation), role (`owner` / `trainer`; there is no Admin role in the MVP), language (`nl` / `en`) | ☐ Enter by hand (invitations) ☐ Import |
 
 ### 3.2 Clients — **required**
 
@@ -80,11 +80,11 @@ These are usually entered by hand during onboarding. Listing them here means the
 | Last name | `last_name` | Yes, if known | |
 | Email | `email` | Recommended | Needed for booking confirmations and the optional client account. Clients without an email can still be trained and logged |
 | Preferred language | `language` | Optional | `nl` or `en`; default `nl` (`PRODUCT.md §3`, client language) |
-| Default location | `default_location` | Optional | A `location_name` from 3.1 (`PRODUCT.md §14`) |
+| Default location | `default_location` | Optional, after go-live | Not used at go-live (one location per workspace); kept for later: a `location_name` (`PRODUCT.md §14`) |
 | Primary trainer | `trainer_email` | Optional | Which trainer usually trains this client |
 | Status | `status` | **Yes** | `active` / `inactive`. **Decision:** import inactive clients? ☐ No (default) ☐ Yes, if active in the last ____ months |
 
-**Not imported** (data minimisation, `PRODUCT.md §79`): phone numbers (the MVP doesn't require one, `§53`), dates of birth, addresses of private clients, payment or subscription data (out of MVP scope), photos, and any health information in separate columns.
+**Not imported** (data minimisation, `PRODUCT.md §79`): phone numbers (the MVP doesn't require one, `§53`), dates of birth, addresses of private clients (except a billing address a client wants on a company invoice, §3.4a), payment data beyond the agreements, balances and due dates of §3.4a (never IBANs, card data or mandate documents), photos, and any health information in separate columns.
 
 ☐ Scope agreed. Number of clients to import: ≈ ______
 
@@ -137,6 +137,35 @@ Only **from the go-live date onwards**. Past sessions are not imported (history,
 - [ ] Horizon: import future sessions and bookings up to ____ weeks ahead (suggestion: 12, the same as the recurrence horizon in ADR-012).
 - [ ] Emails on import: ☐ **No** confirmation emails to clients for imported bookings (default: the gym owner informs clients themselves) ☐ Yes, send confirmations.
 - [ ] Standing weekly private sessions: import them as individual future sessions (default) ☐ agreed.
+
+### 3.4a Agreements, balances and payments — **required** (v1.19)
+
+Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the active memberships, credit packs and credit plans (group and private credits) come along. The current booking and payment app is the source; agree in M0 what it can export (QC14 in [`open-questions.md`](../design/open-questions.md#qc14)). **Never** import or copy IBANs, card data or mandate documents: mandates stay with the payment provider (QC09).
+
+**Offers** — one row per kind of membership, credit pack or credit plan sold today: `name`, `kind` (`membership` / `credit_pack` / `credit_plan`), `credit_kind` (`group` / `private`, credit offers only), `price_eur` (incl. VAT), `vat_rate`, `term_months` or `validity_months`, `classes_per_week` (membership), `credits` (pack) or `credits_per_month` and `carry_over_limit` (plan), `cutoff_hours`, `makeups_per_term` (membership). Group and private credits never mix, so an old offer that covers both kinds is listed as two offers (proposal, [QC14](../design/open-questions.md#qc14)). A new workspace starts with three default plans, switched off (`PRODUCT.md §90`); proposal: the import creates the pilot's real offers from these rows, an imported offer may reuse a default (the same kind and values) instead of making a second one, and every default the gym doesn't use stays switched off.
+
+**Active agreements** — one row per client per agreement:
+
+| Column | Required? | Notes |
+|---|---|---|
+| `client_key` | **Yes** | From 3.2 |
+| `offer_name` | **Yes** | From the offers above |
+| `start_date` / `end_date` | **Yes** | `YYYY-MM-DD` |
+| `renews` | **Yes** | `yes` / `no`, and the notice period if yes |
+| `weekly_classes` | Membership only | e.g. `Kracht di 18:00; Kracht do 18:00` |
+| `next_due_date` / `amount_eur` | Membership and credit plan | The next recurring payment (a credit pack has none) |
+| `open_amount_eur` | Optional | Unpaid amounts at go-live |
+
+**Credit balances at go-live** — one row per agreement: `credits_left` (credit pack or plan, in the offer's `credit_kind`) or `makeups_left` (membership), with the date it was counted. It becomes the first line of the balance history (`PRODUCT.md §92`), marked as imported.
+
+**Billing details** — only for clients who want a company invoice: `company_name`, `address` (the billing address on the invoice, not a home address otherwise), `vat_number`.
+
+**Decisions**
+
+- [ ] Mandates: ☐ every client gives a new one through a first payment link (default, QC09) ☐ the provider moves the existing ones.
+- [ ] Cutover plan: scheduling, booking and payments all move on one day and every client gets the first-payment link for the new mandate that day; the old app stays read-only until the first full payment cycle reconciles, then it is cancelled (`ROADMAP.md §7`). Agree the cutover date and who sends the client email.
+- [ ] Reconciliation: after the import, the gym owner checks a report with counts, totals per offer, the sum of balances and the next due dates against the old app. The cutover does not happen until it matches.
+- [ ] Invoice numbers: the series in Fivvi continues after the last number of the old app ☐ or starts a new series (ask the gym's accountant).
 
 ### 3.5 Workout history — **optional**
 

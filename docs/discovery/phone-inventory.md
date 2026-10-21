@@ -4,7 +4,7 @@
 
 **Who:** every person who will use the trainer app in the pilot, **including the gym owner (T1)**. It takes about 5 minutes per trainer; you can do it together with the short interview in [`shadow-day-guide.md` §5.10](shadow-day-guide.md#510-short-version-for-other-trainers--korte-versie-voor-andere-trainers).
 
-**Privacy:** use the trainer code (T1, T2, …) only. **Do not record** phone numbers, IMEI or serial numbers, Apple ID or Google account email addresses. The account needed for TestFlight / Play internal testing is collected separately in M8 (E017).
+**Privacy:** use the trainer code (T1, T2, …) only. **Do not record** phone numbers, IMEI or serial numbers, Apple ID or Google account email addresses. The account needed for TestFlight / Play internal testing is collected separately in M2 (E017).
 
 ---
 
@@ -91,10 +91,10 @@ Apply these in order, once the summary table is complete:
 1. **Every pilot trainer's phone must be supported.** The pilot fails if a trainer can't install the app (§8: active trainers = 100 %). Use the version the phone will have **after** installing any update that is already waiting (form item 8).
 2. **All pilot phones at or above the default → keep the default.** Don't raise the minimum just because the pilot phones are newer. Release 2.0 opens the app to other trainers (`ROADMAP.md §9`), and a higher floor would exclude them for no reason. Only raise it for a concrete API the MVP needs, and write that API down in the ADR.
 3. **A pilot phone is below the default:**
-   1. It can update to the default or higher → ask the trainer to update before M8. Keep the default.
+   1. It can update to the default or higher → ask the trainer to update before they install the app (go-live at the latest). Keep the default.
    2. It can't update (the device is too old) → decide with the gym owner:
       - **Lower the minimum** to that version, if the extra cost is small. Estimate the cost first: for example, iOS 16 means an `ObservableObject` fallback throughout the app, which is not small.
-      - Or the trainer **changes phones** before M8 (form item 11 may already answer this).
+      - Or the trainer **changes phones** before they install the app (form item 11 may already answer this).
       - Or the trainer uses **trainer web in the phone's browser** for the pilot. This is a limited fallback without the mobile logger. It is acceptable for a trainer with few sessions, not for the gym owner.
 4. **A platform with no pilot trainers is still built** (ADR-003: iOS and Android both). Flag it: that platform gets no real-world pilot testing (R9). Plan at least one physical test device for it.
 5. **Test devices:** per platform, test on at least one real device at the minimum version (or the lowest pilot phone) and one on the latest OS. Use simulators and emulators for the rest.
@@ -104,4 +104,4 @@ Apply these in order, once the summary table is complete:
 - [ ] Add a **"Minimum OS versions"** section to the ADR-003 write-up in `docs/decisions/`. Include the chosen minimum per platform, the date, the platform split and version counts from the summary table (no names or codes needed), and which step of the decision rule was applied and why.
 - [ ] Put the same values in `results/phone-inventory.md`.
 - [ ] E008 uses them as the Xcode deployment target and the Gradle `minSdk`.
-- [ ] Any device-specific follow-up (a trainer must update or change phones before M8) goes on the M8 checklist.
+- [ ] Any device-specific follow-up (a trainer must update or change phones before installing the app) goes on the E017 checklist.

@@ -4,11 +4,11 @@
 
 | | |
 |---|---|
-| **Actors** | Owner/Admin (substitute, edit, cancel), assigned Trainer (attendance; substitute/cancel ⚑ [Q40](../open-questions.md#q40)) |
+| **Actors** | Owner (substitute, edit, cancel), assigned Trainer (attendance; substitute/cancel ⚑ [Q40](../open-questions.md#q40)) |
 | **Surfaces** | Trainer web (CO-01 – CO-04, CO-06); trainer iOS/Android (CO-05 attendance; CO-02/CO-03 on mobile ⚑ [QE12](../open-questions.md#qe12)) |
-| **Milestone** | M4 (web), M8 (mobile attendance) |
+| **Milestone** | M4 (web and the apps' attendance, built together; `ROADMAP.md` v1.20, decision 8) |
 | **Spec** | `PRODUCT.md §18–§20, §43, §51`; `ROADMAP.md M4 (substitution changes the trainer only; cancellations notify in the recipient's language), ADR-012` |
-| **Why critical** | Sick trainers and cancelled classes are the moments where Excel + WhatsApp hurt most. Every participant must hear about it in their own language, and bookings must survive a trainer swap (`§19`) |
+| **Why critical** | Sick trainers and cancelled classes are the moments where manual updates and WhatsApp hurt most. Every participant must hear about it in their own language, and bookings must survive a trainer swap (`§19`) |
 
 ## Features
 
@@ -95,7 +95,7 @@ flowchart TD
 - **Attendance** (CO-06) is inline and enabled from 30 minutes before the start ⚑ [Q38](../open-questions.md#q38).
 - **Boekingslink ▾**: *Link kopiëren · QR-code tonen · Delen*, all scoped to this occurrence (F037/F038).
 - If the occurrence differs from its series: *Aangepast t.o.v. de reeks: tijd* / *Changed from the series: time*.
-- **Trainer (assigned) view**: the same page without *Trainer vervangen / Wijzigen / Les annuleren* ⚑ [Q40](../open-questions.md#q40). Participant emails are hidden from trainers; owners and admins can reveal them with a button available by keyboard and touch as well as pointer.
+- **Trainer (assigned) view**: the same page without *Trainer vervangen / Wijzigen / Les annuleren* ⚑ [Q40](../open-questions.md#q40). Participant emails are hidden from trainers; owners can reveal them with a button available by keyboard and touch as well as pointer.
 
 | Element | NL | EN |
 |---|---|---|
@@ -353,7 +353,7 @@ flowchart TD
 
 ## Platform notes: iOS HIG vs Material 3
 
-Attendance (CO-05) is in the M8 apps. Substitution and cancellation on mobile are an open question ([QE12](../open-questions.md#qe12)); if they're added, they follow the same patterns as flow 04.
+Attendance (CO-05) is in the apps from M4, built beside the web. Substitution and cancellation on mobile are an open question ([QE12](../open-questions.md#qe12)); if they're added, they follow the same patterns as flow 04.
 
 | Topic | iOS (SwiftUI) | Android (Compose, Material 3) |
 |---|---|---|

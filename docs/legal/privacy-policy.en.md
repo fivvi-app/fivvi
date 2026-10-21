@@ -1,20 +1,20 @@
-# Trainer Hub Privacy Policy
+# Fivvi Privacy Policy
 
 > **⚠️ DRAFT — NOT LEGAL ADVICE.** Written by an AI agent, not reviewed by a lawyer. Don't publish until the open questions are answered and the text has been reviewed. This is a translation of [`privacy-policy.nl.md`](privacy-policy.nl.md); if the two differ, the Dutch text prevails.
 
 **Version 0.1 (draft) · 22 September 2026**
 
-Trainer Hub is a platform that personal trainers and gyms use to manage their scheduling, bookings, clients, workouts and notes. This privacy policy explains which personal data we process, why, for how long, and what rights you have.
+Fivvi (fivvi.app) is a platform that personal trainers and gyms use to manage their scheduling, bookings, clients, workouts and notes. This privacy policy explains which personal data we process, why, for how long, and what rights you have.
 
 ## 1. Who are we?
 
-Trainer Hub is provided by **{{Provider name}}**, established at {{address}}, registered with the Dutch Chamber of Commerce (KvK) under number {{KvK number}} ("**we**" or "**us**").
+Fivvi is provided by **{{Provider name}}**, established at {{address}}, registered with the Dutch Chamber of Commerce (KvK) under number {{KvK number}} ("**we**" or "**us**").
 
 Questions about privacy? Email **{{privacy email address}}**.
 
 ## 2. Two roles: the gym or trainer, and us
 
-At Trainer Hub, two parties are responsible for your data. Which one depends on the data.
+At Fivvi, two parties are responsible for your data. Which one depends on the data.
 
 **Do you book with a gym or trainer, or are you their client?** Then **that gym or trainer** is responsible for your data: your bookings, attendance, workouts and the notes your trainer keeps about you. They decide which data they record and why. We only process that data on their behalf, as a **processor**, under a processor agreement with them.
 
@@ -23,10 +23,10 @@ At Trainer Hub, two parties are responsible for your data. Which one depends on 
 
 **We are responsible ourselves** for a few things:
 
-- your Trainer Hub account and signing in;
+- your Fivvi account and signing in;
 - the security of the platform;
 - product statistics using pseudonymous IDs;
-- our relationship with the gyms and trainers that use Trainer Hub.
+- our relationship with the gyms and trainers that use Fivvi.
 
 This privacy policy covers that data.
 
@@ -36,10 +36,10 @@ This privacy policy covers that data.
 
 | What | Which data | Why | Legal basis (GDPR) |
 |---|---|---|---|
-| **Your account and signing in** | Name, email address, language preference (Dutch or English), hashed sign-in codes and links, session data, app and device version | So you can sign in without a password and use Trainer Hub in your own language | Performance of a contract (art. 6(1)(b)) |
+| **Your account and signing in** | Name, email address, language preference (Dutch or English), hashed sign-in codes and links, session data, app and device version | So you can sign in without a password and use Fivvi in your own language | Performance of a contract (art. 6(1)(b)) |
 | **Security and abuse prevention** | IP address, browser and device data, hashed email address, timestamps | To stop anyone from blocking classes with fake bookings or attacking the platform | Legitimate interest: a secure, reliable service (art. 6(1)(f)) |
-| **Product statistics** | Which features are used, with pseudonymous user and workspace IDs. These are personal data. **No** names, email addresses, booking, workout or note content | To improve Trainer Hub | Legitimate interest: product improvement (art. 6(1)(f)) |
-| **Contact with the gyms and trainers that use Trainer Hub** | Name, email address, organization, messages | Support, agreements, important notices about the service | Performance of a contract; legitimate interest (art. 6(1)(b) and (f)) |
+| **Product statistics** | Which features are used, with pseudonymous user and workspace IDs. These are personal data. **No** names, email addresses, booking, workout or note content | To improve Fivvi | Legitimate interest: product improvement (art. 6(1)(f)) |
+| **Contact with the gyms and trainers that use Fivvi** | Name, email address, organization, messages | Support, agreements, important notices about the service | Performance of a contract; legitimate interest (art. 6(1)(b) and (f)) |
 | **Legal obligations** | Contract and (later) invoice data | Bookkeeping and retention obligations | Legal obligation (art. 6(1)(c)) |
 
 ### 3.2 When we process on behalf of a gym or trainer
@@ -54,7 +54,7 @@ We process this data only on behalf of the gym or trainer:
 
 ## 4. Cookies
 
-Trainer Hub uses **only functional cookies and similar storage**, for example to keep you signed in and remember your language choice. These don't need your consent.
+Fivvi uses **only functional cookies and similar storage**, for example to keep you signed in and remember your language choice. These don't need your consent.
 
 - We use **no** advertising or tracking cookies.
 - Our product statistics work **without cookies**.
@@ -123,7 +123,7 @@ We respond **within one month**. We may ask you to confirm your identity, for ex
 
 ## 10. Children
 
-You can create a Trainer Hub account from the age of **{{16}}**. For younger children, a parent or guardian books.
+You can create a Fivvi account from the age of **{{16}}**. For younger children, a parent or guardian books.
 
 ## 11. Automated decisions
 
@@ -131,4 +131,4 @@ We make no decisions about you based solely on automated processing that have le
 
 ## 12. Changes
 
-We may update this privacy policy, for example when Trainer Hub gets new features. We announce important changes in advance by email or in the app. The date at the top shows when the policy last changed.
+We may update this privacy policy, for example when Fivvi gets new features. We announce important changes in advance by email or in the app. The date at the top shows when the policy last changed.

@@ -1,4 +1,4 @@
-# Algemene voorwaarden Trainer Hub
+# Algemene voorwaarden Fivvi
 
 > **⚠️ CONCEPT — GEEN JURIDISCH ADVIES.** Opgesteld door een AI-agent, niet gecontroleerd door een jurist. Niet publiceren voordat de open vragen zijn beantwoord en de tekst is getoetst. Deze Nederlandse tekst is leidend; de Engelse vertaling staat in [`terms.en.md`](terms.en.md).
 
@@ -6,8 +6,8 @@
 
 Deze voorwaarden bestaan uit twee delen:
 
-- **Deel A** geldt voor sportscholen, studio's en trainers die Trainer Hub gebruiken voor hun bedrijf.
-- **Deel B** geldt voor klanten en gasten die via Trainer Hub boeken.
+- **Deel A** geldt voor sportscholen, studio's en trainers die Fivvi gebruiken voor hun bedrijf.
+- **Deel B** geldt voor klanten die via Fivvi boeken.
 
 ---
 
@@ -15,11 +15,11 @@ Deze voorwaarden bestaan uit twee delen:
 
 ### A1. Definities
 
-- **Aanbieder, wij, ons:** {{Naam aanbieder}}, handelend onder de naam Trainer Hub, KvK {{KvK-nummer}}, {{adres}}.
-- **Dienst:** het platform Trainer Hub: de website, de publieke boekingspagina's, de iOS- en Android-apps en de API.
+- **Aanbieder, wij, ons:** {{Naam aanbieder}}, handelend onder de naam Fivvi, KvK {{KvK-nummer}}, {{adres}}.
+- **Dienst:** het platform Fivvi (fivvi.app): de website, de publieke boekingspagina's, de iOS- en Android-apps en de API.
 - **Workspace:** de omgeving van een sportschool, studio of zelfstandige trainer binnen de Dienst.
 - **Klant, jij, je:** de onderneming of zelfstandige die een Workspace aanmaakt of beheert.
-- **Gebruikers:** de owners, admins en trainers die jij toegang geeft tot je Workspace.
+- **Gebruikers:** de owners en trainers die jij toegang geeft tot je Workspace.
 - **Jouw gegevens:** alle gegevens die jij, je Gebruikers of je klanten in je Workspace invoeren. Dat zijn onder andere klantgegevens, boekingen, trainingen en notities.
 - **Verwerkersovereenkomst:** de verwerkersovereenkomst tussen jou en ons, die bij deze voorwaarden hoort.
 
@@ -118,9 +118,9 @@ We kunnen deze voorwaarden wijzigen. Wezenlijke wijzigingen melden we **ten mins
 
 ## Deel B: Voorwaarden voor klanten en gasten
 
-### B1. Wat Trainer Hub voor jou doet
+### B1. Wat Fivvi voor jou doet
 
-1. Via Trainer Hub boek je lessen, Open Gym of andere sessies bij een sportschool of trainer.
+1. Via Fivvi boek je lessen, Open Gym of andere sessies bij een sportschool of trainer.
 2. **Je afspraak is met die sportschool of trainer, niet met ons.** Hun regels gelden, bijvoorbeeld over prijzen, annuleren, niet verschijnen en veiligheid tijdens de training. Wij leveren alleen het platform.
 
 ### B2. Boeken

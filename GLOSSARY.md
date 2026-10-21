@@ -1,12 +1,20 @@
-# Trainer Hub
+# Fivvi
 
-The domain language of Trainer Hub: a platform where gyms, studios and independent trainers run their scheduling, public booking, Open Gym, clients, workouts and notes. Use these terms in code, issues, specs, tests and conversation.
+The domain language of Fivvi: a platform where gyms, studios and independent trainers run their scheduling, public booking, Open Gym, clients, workouts and notes. Use these terms in code, issues, specs, tests and conversation.
 
 This glossary says what a concept **is**, in English. How each term is worded in the Dutch and English UI, plus tone and copy rules, is in [`packages/i18n/GLOSSARY.md`](packages/i18n/GLOSSARY.md) §4. Code names and i18n keys follow the English term here. 🔜 marks a concept for a post-MVP release, listed so nobody uses the word for something else meanwhile. Requirements: `docs/product/PRODUCT.md`.
 
 ## Language
 
 ### Workspaces, people and roles
+
+**Fivvi**:
+The product and its brand (domain fivvi.app; the working name was Trainer Hub). The client app of Release 1.2 is also called Fivvi.
+_Avoid_: Trainer Hub (retired working name), FIVVI, Fivvi App
+
+**Fivvi Pro**:
+The business app for owners and trainers, on iOS and Android. Separate from the client app, **Fivvi** (Release 1.2).
+_Avoid_: trainer app (in user-facing text)
 
 **Workspace**:
 A business on the platform: a gym, studio or independent trainer's business. It owns its clients, sessions, classes, locations and settings, and is the tenant boundary for all business data. Code and the database call it `organization` (`organization_id`).
@@ -16,23 +24,23 @@ _Avoid_: organization (outside code), org, company, account, tenant (outside cod
 A trainer's own independent workspace, next to the workspaces they work for.
 
 **Team**:
-Everyone with a role in a workspace: the owner, admins and trainers.
+Everyone with a role in a workspace: the owner and the trainers (the MVP has no Admin role, see *Admin*).
 _Avoid_: staff, personnel
 
 **Team member**:
 One person in the team.
-_Avoid_: member, membership (reserved for gym memberships 🔜), staff, user
+_Avoid_: member, "membership" as a name for a person's place in the team (a client's agreement is the Commerce term; F003 "Workspace Membership" is the feature name), staff, user
 
 **Role**:
-What a team member may do in a workspace: Owner, Admin or Trainer. Clients are not team members; anonymous visitors have no role.
+What a team member may do in a workspace: Owner or Trainer, at most one per workspace (Admin is a later role 🔜). Being a client is not a role, and anonymous visitors have no role.
 _Avoid_: permission level, custom role
 
 **Owner**:
-Manages the whole workspace, including trainers, settings and booking links. Can also be a trainer.
-_Avoid_: boss, Admin (a different role)
+Manages the whole workspace, including trainers, settings, booking links and the money (offers, agreements, payments and invoices). Can also be a trainer.
+_Avoid_: boss, Admin (a different, later role)
 
-**Admin**:
-Manages the calendar, classes, bookings, clients and trainers, without full owner rights.
+**Admin** 🔜:
+A later role, not in the MVP: manages the calendar, classes, bookings, clients and trainers without full owner rights, for a gym that wants a manager who isn't the owner. Added when a gym asks for it (Release 7.0 "advanced permissions", or earlier on request).
 _Avoid_: administrator, manager
 
 **Trainer**:
@@ -44,7 +52,7 @@ A trainer who runs their own workspace.
 _Avoid_: freelancer
 
 **Client**:
-A person who trains with or books at a workspace. Belongs to the workspace, not to one trainer.
+A person who trains with or books at a workspace. Belongs to the workspace, not to one trainer. A team member can also be a client (`PRODUCT.md §2.9`).
 _Avoid_: customer, member, user, athlete, guest
 
 **Participant**:
@@ -52,7 +60,7 @@ A client on a session's list: booked into a class or Open Gym slot, or the clien
 _Avoid_: attendee, student
 
 **Invitation**:
-An email from an owner asking someone to join the workspace as a trainer or admin.
+An email from an owner asking someone to join the workspace as a trainer. Accepting it adds the role to the person's existing account, if they have one.
 
 **Account**:
 A login: required for a team member; created for a client at their first verified booking. One per person and email address, shared by every workspace the person belongs to.
@@ -79,7 +87,7 @@ The generic word for any scheduled item: a private session, a class occurrence o
 _Avoid_: appointment, event, activity
 
 **Private session**:
-A trainer-led session for one named client, created by a trainer or admin.
+A trainer-led session for one named client, created by a trainer (an owner who trains counts as one).
 _Avoid_: PT session, personal training, appointment, lesson
 
 **Class**:
@@ -141,13 +149,13 @@ A queue for a full class. Not in the MVP.
 ### Locations
 
 **Location**:
-The physical (or online) place where a session happens. Separate from the workspace that owns the session.
+The physical (or online) place where a session happens. Separate from the workspace that owns the session. At go-live a workspace has one location, its own, and every session takes it; more locations follow after go-live.
 
 **Location type**:
-What kind of place a location is: the workspace's own premises, an external gym where an independent trainer works, the client's home, outdoors, online, or other.
+What kind of place a location is: the workspace's own premises, an external gym where an independent trainer works, the client's home, outdoors, online, or other. At go-live only the workspace's own premises exist; the other types follow after go-live.
 
 **Default training location**:
-A client's usual location, used to infer the location of new sessions.
+A client's usual location, used to infer the location of new sessions. After go-live, with more locations.
 
 ### Booking and verification
 
@@ -186,7 +194,104 @@ The email and screen a client gets after a confirmed booking.
 Whether each participant of a session showed up.
 
 **Attendance status**:
-One of **booked** (has a confirmed booking, not marked yet), **attended**, **cancelled** (the participant cancelled in time, or the session was cancelled) or **no-show** (booked, didn't come, didn't cancel). **Late cancel** 🔜 needs the cancellation cutoff.
+One of **booked** (has a confirmed booking, not marked yet), **attended**, **cancelled** (the participant cancelled, or the session was cancelled) or **no-show** (booked, didn't come, didn't cancel). A cancellation after the cutoff is a **late cancellation**.
+
+### Commerce
+
+**Offer**:
+Something a workspace sells: a membership, a credit pack, a credit plan or a single class, with its price, VAT rate and terms.
+_Avoid_: product, plan (alone; *credit plan* is a kind), package
+
+**Default plan**:
+One of the three offers a new workspace starts with (a membership, a group credit pack and a private credit plan), pre-filled and switched off until the owner turns it on. The owner adds the price; the rest of the rules around the defaults are proposals (QC19 in `docs/design/open-questions.md`).
+_Avoid_: template, preset, package
+
+**Agreement**:
+A client's commitment to a membership, credit pack or credit plan: start, end, renewal, price, payment schedule, cancellation policy and the terms the client agreed to.
+_Avoid_: contract (outside legal text), subscription (for the agreement itself)
+
+**Membership**:
+An agreement for group classes on fixed weekdays for a term, e.g. two classes a week for six months, paid through recurring payments (see *Recurring payment*).
+_Avoid_: subscription (see *Recurring payment*), plan, pass
+
+**Credit**:
+One unit of a group or private credit balance. One credit books one session of its kind: a **group credit** books a group class, a **private credit** books a private session. The two kinds never mix and have no exchange rate. Combined credits, one balance for every session type, are not planned (`PRODUCT.md §53`).
+_Avoid_: token, point, voucher; using it for a makeup
+
+**Credit pack**:
+An offer, and the agreement it makes, for a number of group or private credits bought once and valid for a period. The pilot's private agreement (about one session a week for six months) can be a private credit pack.
+_Avoid_: package, bundle, session pack (retired, see below)
+
+**Credit plan**:
+An offer, and the agreement it makes, for a number of group or private credits each month, paid by recurring payment (see *Recurring payment*), with a carry-over limit for credits left at the end of the month. When a plan's monthly credits are granted is open ([QC17](docs/design/open-questions.md#qc17)).
+_Avoid_: subscription (see *Recurring payment*), credit subscription
+
+**Session pack** (retired):
+Retired on 21 October 2026. Use *Credit pack*: a private session pack is a private credit pack.
+
+**Single class** (proposed, [decision 9](docs/product/ROADMAP.md#14-decisions)):
+One group class bought on its own, by a client without a membership or as an extra on top of one.
+_Avoid_: drop-in, top-up
+
+**Credit balance**:
+What a client can still use under one agreement, in credits of one kind (group or private); a client with group and private credits sees two balances. Always explained by its history (granted, used, returned, expired), never a bare counter. A membership's makeups are tracked the same way but are not credits.
+_Avoid_: session balance (retired), saldo, remaining sessions
+
+**Cancellation policy**:
+The rules of an offer for cancellations and no-shows: the cutoff, the makeup limit and what each case does to the balance.
+_Avoid_: terms, rules (alone)
+
+**Cancellation cutoff**:
+How many hours before the start a client can still cancel in time.
+_Avoid_: deadline, notice period
+
+**Makeup**:
+A right to attend another class, granted under the cancellation policy, for example for a cancellation in time.
+_Avoid_: credit (a makeup is not a credit), catch-up, reschedule (that moves a session)
+
+**Payment provider**:
+The payment company through which clients' online payments run. In Fivvi it is Mollie, as [ADR-020](docs/decisions/ADR-020-payment-provider.md) decided (Accepted, 21 October 2026), with Stripe Connect as the fallback. Who the merchant is, and that the workspace has its own account with it, is set out in `PRODUCT.md §94`.
+_Avoid_: bank
+
+**Merchant**:
+The business that sells to the client and receives the money. In Fivvi it is the workspace, not Fivvi itself (decided in ADR-020, Accepted 21 October 2026).
+_Avoid_: seller (alone), vendor
+
+**Payment**:
+Money collected from a client: a first payment, a recurring payment or a single class.
+_Avoid_: transaction (outside code), charge
+
+**Recurring payment**:
+A payment collected on a due date of an agreement's payment schedule, under a mandate. A membership's recurring payments together are what people call the subscription model.
+_Avoid_: subscription as a name for a payment or for the agreement, automatic payment
+
+**Mandate**:
+A client's permission to collect recurring payments from them.
+_Avoid_: authorization
+
+**Invoice**:
+The numbered tax document for a payment, with the workspace's and the buyer's details as they were when it was issued. Never changes once issued.
+_Avoid_: bill, receipt
+
+**Credit note**:
+A document that corrects or cancels (part of) an invoice, e.g. after a refund.
+_Avoid_: negative invoice
+
+**Billing details**:
+The name, company name, address and VAT number a client wants on their invoices.
+_Avoid_: invoice address (alone), company info
+
+**Refund**:
+Money the workspace returns to a client for a payment, fully or in part.
+_Avoid_: reimbursement, chargeback (a different thing)
+
+**Chargeback**:
+A payment that the client's bank or card issuer takes back, including a reversed direct debit. The client or the bank decides, not the workspace.
+_Avoid_: refund (a different thing)
+
+**Payout**:
+A transfer from the payment provider to the workspace, made up of payments minus refunds, chargebacks and fees.
+_Avoid_: settlement, withdrawal
 
 ### Training
 

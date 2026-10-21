@@ -16,8 +16,8 @@
 
 The admin-time target (§8) compares like with like. So split admin time into:
 
-- **MVP scope (codes P, B, L, N, A, O):** scheduling, booking and messages about appointments, workout logging and programming, notes, attendance, Open Gym. The platform is meant to reduce this time.
-- **Outside MVP (code X):** invoices, payments, payroll, marketing, bookkeeping. These are excluded from the MVP (`PRODUCT.md §53`). Record them for context, but they are **not** part of the admin-time target.
+- **MVP scope (codes P, B, L, N, A, O, C):** scheduling, booking and messages about appointments, workout logging and programming, notes, attendance, Open Gym, and (since commerce moved into the MVP, `PRODUCT.md §90–§97`) invoices, payments, memberships, credit packs and credit plans (code C). The platform is meant to reduce this time.
+- **Outside MVP (code X):** payroll, marketing, bookkeeping and accounting. These are excluded from the MVP (`PRODUCT.md §53`). Record them for context, but they are **not** part of the admin-time target.
 
 Training time itself (being with a client) is not admin. Admin is the time spent *around* training.
 
@@ -46,10 +46,10 @@ These give context and the denominators for the §8 percentages.
 
 | # | Metric | Definition | How to measure | Result | Source |
 |---|---|---|---|---|---|
-| A2.1 | **Admin hours per week: gym owner, MVP scope** | Hours per week the gym owner spends on P, B, L, N, A and O | Part B diary total for P–O ÷ 60. Sanity-check against the shadow-day timing log for that day, and against the interview estimate (5.8, question 8.2). If the diary week was unusual, say why | h/week | D |
+| A2.1 | **Admin hours per week: gym owner, MVP scope** | Hours per week the gym owner spends on P, B, L, N, A, O and C | Part B diary total for P, B, L, N, A, O and C ÷ 60. Sanity-check against the shadow-day timing log for that day, and against the interview estimate (5.8, question 8.2). If the diary week was unusual, say why | h/week | D |
 | A2.2 | Admin hours per week: gym owner, outside MVP | Same, code X | Part B diary total for X ÷ 60 | h/week | D |
 | A2.3 | Admin hours per week: other trainers, MVP scope | Sum over T2, T3, … | Interview estimate (5.10, question 10.6), or a diary if a trainer is willing to keep one | h/week | I / D |
-| A2.4 | **Number of tools** | Distinct tools used **at least weekly** for P–O work. A tool is any separate place where information is kept or exchanged: an app, a spreadsheet product, a messaging channel, a paper notebook. Count per product (several Excel files = 1 tool), but list the files. Memory doesn't count | Shadow-day §3 + interview 8.1 | ____ tools: _________________ | S / I |
+| A2.4 | **Number of tools** | Distinct tools used **at least weekly** for P, B, L, N, A, O and C work. A tool is any separate place where information is kept or exchanged: an app, a spreadsheet product, a messaging channel, a paper notebook. Count per product (several Excel files = 1 tool), but list the files. Memory doesn't count | Shadow-day §3 + interview 8.1 | ____ tools: _________________ | S / I |
 | A2.5 | **Booking method** | How booking requests for group classes, Open Gym and private sessions arrive, as a % per channel | Part C booking tally over 7 days; if very few bookings, add the gym owner's estimate and mark it **E** | see Part C | T |
 | A2.6 | **No-show rate** | No-shows ÷ (attended + no-shows), over group classes and private sessions. A no-show is booked, not cancelled, didn't come (`PRODUCT.md §43`: *Niet verschenen*) | Preferably the last 4 weeks from records. If attendance isn't recorded, use the Part C tally for the 7 diary days (and more if possible) | % (n = ___ bookings) | R / T |
 | A2.7 | Late-cancellation rate | Late cancellations ÷ all bookings. "Late" = the gym's own rule (interview 3.4): ____ hours before start | Same source as A2.6 | % | R / T |
@@ -62,7 +62,7 @@ These give context and the denominators for the §8 percentages.
 | A3.2 | Customers book through public pages (≥ 80 % ⚑) | Share of group + Open Gym bookings that clients make **themselves, without a message to a person** | Part C: self-service bookings ÷ all group + Open Gym bookings (probably 0 %) | % | T |
 | A3.3 | Booking is easy (≥ 70 % conversion; < 5 min to verify) | Time from a client's first booking message to a confirmed booking | Part C: note the time for each booking where you can see both moments; report the median | median ____ min (n = ___) | T / S |
 | A3.4 | Open Gym receives bookings (⚑) | Open Gym bookings per week today, and requests per week | Part C Open Gym rows + interview 7.2 | bookings ___/wk · requests ___/wk | T / I |
-| A3.5 | Workout logging replaces Excel (≥ 80 %) | Share of private sessions with a workout recorded anywhere (Excel, paper, app) | Shadow day: count the observed private sessions with a recorded workout; and ask per trainer for the last week | % (n = ___ sessions) | S / I |
+| A3.5 | Workout logging replaces Word and by-hand notes (≥ 80 %) | Share of private sessions with a workout recorded anywhere (Word, paper, app) | Shadow day: count the observed private sessions with a recorded workout; and ask per trainer for the last week | % (n = ___ sessions) | S / I |
 | A3.6 | Notes replace scattered tools | Number of places where client notes live | Interview 5.1 + 10.4; count distinct places | ____ places: ______ | I |
 | A3.7 | Previous performance is easy to access (≥ 4/5) | Trainer rating 1–5 "how easy is it to see what a client did last time" + measured seconds to find it | Interview 4.4 / 10.3 (median over trainers); shadow day: time the look-up | rating ____ /5 · ____ s | I / S |
 | A3.8 | Admin time reduced (⚑ e.g. −50 %) | = A2.1 | — | h/week | D |
@@ -96,23 +96,24 @@ These give context and the denominators for the §8 percentages.
 | **N** Notities | Notities over klanten of trainingen schrijven of opzoeken · *Writing or looking up notes about clients or sessions* |
 | **A** Aanwezigheid | Bijhouden wie er was, niet verschenen opvolgen · *Tracking who attended, following up no-shows* |
 | **O** Open Gym | Vrij trainen plannen, aankondigen, aanmeldingen bijhouden · *Planning and announcing free training, tracking sign-ups* |
-| **X** Overig | Facturen, betalingen, salaris, marketing, boekhouding · *Invoices, payments, payroll, marketing, bookkeeping* |
+| **C** Facturen en betalingen | Facturen maken of aanpassen, betalingen opvolgen, abonnementen, creditpakketten en creditabonnementen bijhouden · *Making or editing invoices, following up payments, keeping track of memberships, credit packs and credit plans* |
+| **X** Overig | Salaris, marketing, boekhouding · *Payroll, marketing, bookkeeping* |
 
 **Minuten per dag / Minutes per day**
 
-| Dag / Day | Datum / Date | P | B | L | N | A | O | X | Na werktijd? (min) / After hours? (min) |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 | | | | | | | | | |
-| 2 | | | | | | | | | |
-| 3 | | | | | | | | | |
-| 4 | | | | | | | | | |
-| 5 | | | | | | | | | |
-| 6 | | | | | | | | | |
-| 7 | | | | | | | | | |
-| **Totaal / Total** | | | | | | | | | |
+| Dag / Day | Datum / Date | P | B | L | N | A | O | C | X | Na werktijd? (min) / After hours? (min) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | | | | | | | | | | |
+| 2 | | | | | | | | | | |
+| 3 | | | | | | | | | | |
+| 4 | | | | | | | | | | |
+| 5 | | | | | | | | | | |
+| 6 | | | | | | | | | | |
+| 7 | | | | | | | | | | |
+| **Totaal / Total** | | | | | | | | | | |
 
 - Was dit een normale week? / *Was this a normal week?* ☐ Ja / Yes ☐ Nee / No, omdat / because: ______________________
-- Totaal P t/m O (min) / *Total P–O (min):* ________ → ÷ 60 = ________ uur / *hours* → **A2.1**
+- Totaal P, B, L, N, A, O en C (min) / *Total P, B, L, N, A, O and C (min):* ________ → ÷ 60 = ________ uur / *hours* → **A2.1**
 - Totaal X (min) / *Total X (min):* ________ → ÷ 60 = ________ uur / *hours* → **A2.2**
 
 ---

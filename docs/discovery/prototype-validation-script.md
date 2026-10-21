@@ -45,7 +45,7 @@
 
 ## 2. Introduction (read aloud)
 
-Bedankt dat je mee wilt doen. We testen vandaag een eerste, klikbare versie van Trainer Hub. Het is nog geen echte app: niet alles werkt en alle gegevens zijn verzonnen.
+Bedankt dat je mee wilt doen. We testen vandaag een eerste, klikbare versie van Fivvi. Het is nog geen echte app: niet alles werkt en alle gegevens zijn verzonnen.
 
 We testen het ontwerp, niet jou. Als iets niet lukt, ligt dat aan het ontwerp, en dat is precies wat we willen weten.
 
@@ -53,7 +53,7 @@ Ik geef je steeds een korte opdracht. Probeer hardop te denken: zeg wat je ziet,
 
 Ik maak aantekeningen, zonder namen. Vind je het goed als ik het scherm en het geluid opneem? Dat gebruik ik alleen om mijn aantekeningen uit te werken, daarna verwijder ik het.
 
-*Thank you for taking part. Today we're testing an early, clickable version of Trainer Hub. It isn't a real app yet: not everything works and all the data is made up.*
+*Thank you for taking part. Today we're testing an early, clickable version of Fivvi. It isn't a real app yet: not everything works and all the data is made up.*
 
 *We're testing the design, not you. If something doesn't work, that's the design's fault, and that's exactly what we want to find out.*
 
@@ -145,10 +145,10 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
 *Add a one-off [Strength Express] group class in the calendar, then schedule Open Gym for another free hour.*
 
 - Done when: both appear in the owner calendar with the intended time and capacity.
-- Observe: [ ] finds both under *+ Nieuw* · [ ] understands a group class needs a trainer while Open Gym does not · [ ] understands that group class and Open Gym publishing is an owner/admin action under the current permission model.
+- Observe: [ ] finds both under *+ Nieuw* · [ ] understands a group class needs a trainer while Open Gym does not · [ ] understands that group class and Open Gym publishing is an owner action under the current permission model (there is no Admin role in the MVP).
 
-**Follow-up:** *Mis je iets wat je nu wel in je Excel of agenda ziet?*\
-*Is anything missing that you do see in your Excel or calendar today?*
+**Follow-up:** *Mis je iets wat je nu wel in je oude app, agenda of Word ziet?*\
+*Is anything missing that you do see in your old app, calendar or Word today?*
 
 ### Flow 4 — Create / reschedule a private session (with location inference)
 
@@ -280,8 +280,8 @@ For every task, record on the [task-results sheet](#5-task-results-sheet): **res
 **S3** Voelde de app op je telefoon hetzelfde aan als je andere apps?\
 *Did the app on your phone feel like the other apps on your phone?* → platform conventions
 
-**S4** Mis je iets wat je nu wel met Excel, je agenda of WhatsApp doet?\
-*Is anything missing that you do today with Excel, your calendar or WhatsApp?*
+**S4** Mis je iets wat je nu wel met je oude app, je agenda, Word of WhatsApp doet?\
+*Is anything missing that you do today with your old app, your calendar, Word or WhatsApp?*
 
 **S5** Zie je jezelf dit elke dag gebruiken? Wat zou je tegenhouden?\
 *Can you see yourself using this every day? What would stop you?*

@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Versie / Version** | 0.1 · 22 september 2026 |
+| **Versie / Version** | 0.2 · 20 oktober 2026 |
 | **Bronnen / Sources** | `PRODUCT.md` §4–11, §25, §34–37, §76–79 · `ROADMAP.md` §4.3, §10, §11 |
 
 Elke sectie staat eerst in het Nederlands en daarna in het Engels. Tabellen zijn tweetalig.
@@ -15,14 +15,14 @@ Each section is in Dutch first, then English. Tables are bilingual.
 
 ## 1. Samenvatting / Summary
 
-**NL.** Trainer Hub heeft twee rollen tegelijk:
+**NL.** Fivvi heeft twee rollen tegelijk:
 
 1. **Verwerker** (AVG art. 4(8), art. 28) voor alle bedrijfsgegevens van een workspace: klanten, boekingen, sessies, aanwezigheid, trainingen en notities. De **workspace** (gym, studio of zelfstandige trainer) is daarvoor de **verwerkingsverantwoordelijke**. Zij bepaalt waarom en welke klantgegevens ze vastlegt; wij verwerken alleen in opdracht. Daarvoor sluiten we met elke workspace een verwerkersovereenkomst.
 2. **Verwerkingsverantwoordelijke** voor een klein aantal eigen doelen: gebruikersaccounts en inloggen, de klantrelatie met workspaces, beveiliging en misbruikpreventie van het platform als geheel, en productanalyse met pseudonieme ID's maar zonder boekings-, trainings- of notitie-inhoud.
 
 De rol volgt het doel van de verwerking. Bedrijfsgegevens met een `organization_id` verwerken we in opdracht van de workspace. Account-, beveiligings- en beperkte gebruiksgegevens voor onze eigen platformdoelen verwerken we als verwerkingsverantwoordelijke; een pseudoniem workspace-ID in een productevent verandert dat niet.
 
-**EN.** Trainer Hub has two roles at once:
+**EN.** Fivvi has two roles at once:
 
 1. **Processor** (GDPR art. 4(8), art. 28) for all of a workspace's business data: clients, bookings, sessions, attendance, workouts and notes. The **workspace** (gym, studio or independent trainer) is the **controller** for that data. It decides why and which client data it records; we only process it on its behalf. We sign a processor agreement with every workspace for this.
 2. **Controller** for a small set of our own purposes: user accounts and sign-in, the customer relationship with workspaces, security and abuse prevention for the platform as a whole, and product analytics using pseudonymous identifiers but no booking, workout or note content.
@@ -35,12 +35,12 @@ The role follows the purpose of processing. We process business records carrying
 
 | Partij / Party | Voorbeeld / Example | AVG-rol / GDPR role |
 |---|---|---|
-| **Aanbieder / Provider** (Trainer Hub, `{{Naam aanbieder}}`) | Operator of the platform | Verwerker voor workspace-gegevens; verwerkingsverantwoordelijke voor eigen doelen (§3.1) / Processor for workspace data; controller for its own purposes (§3.1) |
+| **Aanbieder / Provider** (Fivvi, `{{Naam aanbieder}}`) | Operator of the platform | Verwerker voor workspace-gegevens; verwerkingsverantwoordelijke voor eigen doelen (§3.1) / Processor for workspace data; controller for its own purposes (§3.1) |
 | **Workspace** (organisatie / organization) | John's Gym; Sarah Personal Training | Verwerkingsverantwoordelijke voor haar klant- en bedrijfsgegevens / Controller for its client and business data |
-| **Owner / Admin** | Pilot gym owner | Handelt namens de workspace; geen eigen AVG-rol / Acts on behalf of the workspace; no separate GDPR role |
+| **Owner** | Pilot gym owner | Handelt namens de workspace; geen eigen AVG-rol / Acts on behalf of the workspace; no separate GDPR role |
 | **Trainer** (member of 1+ workspaces) | Sarah | Handelt namens elke workspace waarvan de trainer lid is. Een zelfstandige met een eigen workspace is zelf verwerkingsverantwoordelijke / Acts on behalf of each workspace the trainer belongs to. An independent with their own workspace is a controller themselves |
 | **Klant / gast** (client / guest) | Anna, who books a class | Betrokkene / Data subject |
-| **Subverwerkers / Sub-processors** | Hosting, database, email, error tracking | Subverwerker (art. 28(4)), see [`sub-processors.md`](sub-processors.md) |
+| **Subverwerkers / Sub-processors** | Hosting, database, email, error tracking, payments (the payment provider, M11) | Subverwerker (art. 28(4)), see [`sub-processors.md`](sub-processors.md) |
 
 ---
 
@@ -50,8 +50,8 @@ The role follows the purpose of processing. We process business records carrying
 
 | # | Verwerking / Processing | Betrokkenen / Data subjects | Gegevens / Data | Grondslag / Legal basis |
 |---|---|---|---|---|
-| P1 | Gebruikersaccount en inloggen (magic link, 6-cijferige code, sessies, taalvoorkeur) / User account and sign-in (magic link, 6-digit code, sessions, language preference) | Owners, admins, trainers, klanten met account / clients with an account | Naam, e-mail, `preferredLocale`, gehashte tokens, sessie-ID's, apparaat-/app-versie / Name, email, `preferredLocale`, hashed tokens, session IDs, device/app version | Art. 6(1)(b), uitvoering overeenkomst / contract |
-| P2 | Klantrelatie met workspaces (contract, support, service-mededelingen) / Customer relationship with workspaces (contract, support, service notices) | Owners/admins, contactpersonen / contacts | Naam, e-mail, organisatie, correspondentie / Name, email, organization, correspondence | Art. 6(1)(b); art. 6(1)(f) voor service-mededelingen / for service notices |
+| P1 | Gebruikersaccount en inloggen (magic link, 6-cijferige code, sessies, taalvoorkeur) / User account and sign-in (magic link, 6-digit code, sessions, language preference) | Owners, trainers, klanten met account / clients with an account | Naam, e-mail, `preferredLocale`, gehashte tokens, sessie-ID's, apparaat-/app-versie / Name, email, `preferredLocale`, hashed tokens, session IDs, device/app version | Art. 6(1)(b), uitvoering overeenkomst / contract |
+| P2 | Klantrelatie met workspaces (contract, support, service-mededelingen) / Customer relationship with workspaces (contract, support, service notices) | Owners, contactpersonen / contacts | Naam, e-mail, organisatie, correspondentie / Name, email, organization, correspondence | Art. 6(1)(b); art. 6(1)(f) voor service-mededelingen / for service notices |
 | P3 | Beveiliging en misbruikpreventie van het platform (rate limits, hold-caps, Turnstile, beveiligingslogs) / Platform security and abuse prevention (rate limits, hold caps, Turnstile, security logs) | Alle bezoekers en gebruikers / All visitors and users | IP-adres (kort), gehasht e-mailadres, user-agent, tijdstip / IP address (short-lived), hashed email, user agent, timestamp | Art. 6(1)(f), gerechtvaardigd belang: veilige dienst / legitimate interest: a secure service |
 | P4 | Productanalyse (PostHog EU, cookieloos) / Product analytics (PostHog EU, cookieless) | Gebruikers, ook klanten met account; elke bezoeker van de webapp, ook van boekingspagina's / Users, including clients with accounts; every visitor of the web app, including booking pages | Gebeurtenistype en pseudonieme gebruikers-/workspace-ID's; bij een paginaweergave van de webapp het URL-pad zonder querystring of fragment, browser, besturingssysteem, apparaattype, user-agent en tijdzone, en het IP-adres van de browser voor de dagelijkse bezoekershash; **persoonsgegevens**, maar geen klantnamen, e-mail, boekings-, trainings- of notitie-inhoud / Event type and pseudonymous user/workspace IDs; for a page view of the web app, the URL path without query string or fragment, browser, operating system, device type, user agent and time zone, and the browser's IP address for the daily visitor hash; **personal data**, but no client names, email, booking, workout or note content | Art. 6(1)(f), productverbetering / product improvement |
 | P5 | Wettelijke verplichtingen en geschillen (o.a. administratie zodra er facturen zijn) / Legal obligations and disputes (e.g. bookkeeping once there are invoices) | Workspace-contacten / Workspace contacts | Contract- en factuurgegevens / Contract and invoice data | Art. 6(1)(c); art. 6(1)(f) |
@@ -68,8 +68,8 @@ The role follows the purpose of processing. We process business records carrying
 | W6 | **Notities** (klant- en sessienotities, vrije tekst) / **Notes** (client and session notes, free text) | Klanten | Vrije tekst; **kan gezondheidsgegevens bevatten** (blessures, klachten, medicatie, zwangerschap) / Free text; **may contain health data** (injuries, complaints, medication, pregnancy) | Art. 6(1)(b) **plus** an art. 9(2) exception for health data, in practice **explicit consent**, art. 9(2)(a). See [`dpia-assessment.md`](dpia-assessment.md) §4 |
 | W7 | Transactionele e-mails (magic link, bevestiging, annulering, wijziging) / Transactional emails (magic link, confirmation, cancellation, change) | Klanten, trainers | E-mail, naam, sessiegegevens, taal / Email, name, session details, language | Art. 6(1)(b) |
 | W8 | Trainers en rollen in de workspace, uitnodigingen / Trainers and roles in the workspace, invitations | Trainers, genodigden / invitees | Naam, e-mail, rol, toegewezen sessies / Name, email, role, assigned sessions | Art. 6(1)(b) or (f) |
-| W9 | Import van bestaande gegevens (Excel/CSV) bij go-live / Import of existing data (Excel/CSV) at go-live | Klanten, trainers | Wat de workspace aanlevert / Whatever the workspace supplies | As W1–W6 |
-| W10 | Toegangslog op notities (audit log) / Note access audit log | Trainers, admins | Wie welke notitie wanneer heeft bekeken of gewijzigd / Who viewed or changed which note, and when | Art. 32 (security), on the workspace's behalf |
+| W9 | Import van bestaande gegevens (Excel/CSV) bij go-live / Import of existing data (Excel/CSV) at go-live | Klanten, trainers | Wat de workspace aanlevert, ook lopende afspraken, tegoeden (credits en inhaallessen), volgende vervaldata en factuurgegevens (`import-checklist.md` §3.4a) / Whatever the workspace supplies, including active agreements, credit balances and makeups, next due dates and billing details (`import-checklist.md` §3.4a) | As W1–W6 |
+| W10 | Toegangslog op notities (audit log) / Note access audit log | Trainers, owners | Wie welke notitie wanneer heeft bekeken of gewijzigd / Who viewed or changed which note, and when | Art. 32 (security), on the workspace's behalf |
 | W11 | Beheer, hosting, back-ups, foutmonitoring, support op verzoek van de workspace / Operations, hosting, backups, error monitoring, support at the workspace's request | Alle bovenstaande / All of the above | Alle bovenstaande, zo min mogelijk / All of the above, minimized | Part of the service under the processor agreement |
 
 **NL.** De grondslagen in §3.2 zijn een **voorstel**: de workspace kiest en draagt ze zelf. Wij leveren wel de middelen, zoals een toestemmingsregistratie voor gezondheidsgegevens als de pilotgym die wil (zie open vragen).
@@ -84,10 +84,12 @@ The role follows the purpose of processing. We process business records carrying
 |---|---|---|---|
 | Klant of gast / Client or guest | Naam, e-mail, taal, boekingen, aanwezigheid, trainingen, locatie / Name, email, language, bookings, attendance, workouts, location | **Gezondheidsgegevens in vrije notities** (art. 9); mogelijk thuisadres; mogelijk **minderjarigen** / **Health data in free-text notes** (art. 9); possibly home address; possibly **minors** | Klant zelf (boeking), trainer (notities, logging), import / The client (booking), the trainer (notes, logging), import |
 | Trainer | Naam, e-mail, taal, rollen, planning over workspaces heen / Name, email, language, roles, schedule across workspaces | Nee / No | Trainer zelf, owner (uitnodiging) / The trainer, the owner (invitation) |
-| Owner / admin | Naam, e-mail, taal, workspace-instellingen / Name, email, language, workspace settings | Nee / No | Owner zelf / The owner |
+| Owner | Naam, e-mail, taal, workspace-instellingen / Name, email, language, workspace settings | Nee / No | Owner zelf / The owner |
 | Bezoeker van een boekingspagina / Booking-page visitor | IP-adres, user-agent (kortstondig, beveiliging); cookieloze gebeurtenissen / IP address, user agent (short-lived, security); cookieless events | Nee / No | Browser |
 
-**Niet verzameld (bewust) / Deliberately not collected:** telefoonnummer, wachtwoord, geboortedatum, BSN, betaalgegevens (`PRODUCT.md §2.4, §27, §53`) / phone number, password, date of birth, citizen service number (BSN), payment details.
+**Niet verzameld (bewust) / Deliberately not collected:** telefoonnummer, wachtwoord, geboortedatum, BSN, kaart- en bankgegevens (`PRODUCT.md §2.4, §27, §94`) / phone number, password, date of birth, citizen service number (BSN), card and bank details.
+
+**Betalingen (vanaf de MVP, M11) / Payments (from the MVP, M11).** **NL.** Betalingen komen in de MVP (`ROADMAP.md` v1.19). De betaalprovider verwerkt de betaalgegevens; Fivvi bewaart alleen verwijzingen, bedragen en statussen, naast de facturen die het uitgeeft (factuurgegevens, `PRODUCT.md §96`). Of de provider subverwerker is of voor eigen betaalgegevens een aparte verwerkingsverantwoordelijke, en wie de handelaar is, is vastgelegd in ADR-020 (geaccepteerd op 21 oktober 2026): Mollie Connect for Platforms, de sportschool als handelaar op een eigen Mollie-account. Mollie ziet zichzelf als zelfstandig verwerkingsverantwoordelijke voor de betaalgegevens; ADR-020 laat de bevestiging van die rolverdeling open (open vraag 7). Dit document wordt vóór G4 bijgewerkt, nu de provider is gekozen. **EN.** Payments come into the MVP (`ROADMAP.md` v1.19). The payment provider processes the payment data; Fivvi stores only references, amounts and statuses, besides the invoices it issues (billing details, `PRODUCT.md §96`). Whether the provider is a sub-processor or a separate controller for its own payment data, and who the merchant is, is recorded in ADR-020 (accepted 21 October 2026): Mollie Connect for Platforms, the gym as merchant on its own Mollie account. Mollie sees itself as an independent controller for the payment data; ADR-020 leaves the confirmation of that role split open (open question 7). This document is updated before G4, now that the provider is chosen.
 
 ---
 
@@ -106,7 +108,7 @@ flowchart LR
     NA[iOS / Android trainer apps]
   end
 
-  subgraph Platform["Trainer Hub backend (EU)"]
+  subgraph Platform["Fivvi backend (EU)"]
     API[API + domain logic<br/>tenant-scoped]
     CRON[Dagelijkse cron / Daily cron<br/>holds, retention]
   end
@@ -141,7 +143,7 @@ flowchart LR
 | F5 | E-mail via de e-maildienst / Email through the email provider | Adres, naam, inhoud / Address, name, content | Verwerker; e-maildienst = subverwerker / Processor; email provider = sub-processor |
 | F6 | Foutrapport naar Sentry / Error report to Sentry | Stacktrace, route, app- en apparaatgegevens, pseudonieme user-ID (in de apps zonder ingelogde gebruiker: het willekeurige ID per installatie, zie D5); **geen** request bodies of notities / Stack trace, route, app and device details, pseudonymous user ID (in the apps without a signed-in user: the random per-installation ID, see D5); **no** request bodies or notes | Verwerker (onderdeel van de dienst) / Processor (part of operating the service) |
 | F7 | Productgebeurtenis of paginaweergave naar PostHog / Product event or page view to PostHog | Type gebeurtenis, pseudonieme ID's; bij een paginaweergave de gegevens uit P4 / Event type, pseudonymous IDs; for a page view the data listed in P4 | Verwerkingsverantwoordelijke (P4) / Controller (P4) |
-| F8 | Import van pilotgegevens (Excel/CSV) / Import of pilot data (Excel/CSV) | Klantenlijst, rooster, eventueel historie / Client list, timetable, optionally history | Verwerker, **pas na ondertekening van de verwerkersovereenkomst** / Processor, **only after the processor agreement is signed** |
+| F8 | Import van pilotgegevens (Excel/CSV) / Import of pilot data (Excel/CSV) | Klantenlijst, rooster, lopende afspraken, tegoeden (credits en inhaallessen), volgende vervaldata, factuurgegevens, eventueel historie / Client list, timetable, active agreements, credit balances and makeups, next due dates, billing details, optionally history | Verwerker, **pas na ondertekening van de verwerkersovereenkomst** / Processor, **only after the processor agreement is signed** |
 | F9 | Export of verwijdering op verzoek / Export or deletion on request | Alles van een klant of workspace / Everything for one client or workspace | Verwerker (assistentie art. 28(3)(e)) / Processor (assistance, art. 28(3)(e)) |
 
 ---
@@ -180,8 +182,8 @@ flowchart LR
 
 **6.7 Toekomstige releases / Future releases**
 
-- **NL.** AI-notities (1.3) en AI-briefing (1.4) voegen een AI-aanbieder toe als subverwerker. Ze verwerken notities, dus mogelijk gezondheidsgegevens, met nieuwe technologie. Dat vraagt een DPIA vóór de start (zie `dpia-assessment.md` §6). Betalingen (4.0) en HealthKit/Health Connect (6.0) veranderen deze rolverdeling ook. Werk dit document dan bij.
-- **EN.** AI notes (1.3) and AI briefing (1.4) add an AI provider as a sub-processor. They process notes, so possibly health data, with new technology. That needs a DPIA before they start (see `dpia-assessment.md` §6). Payments (4.0) and HealthKit/Health Connect (6.0) also change this role mapping. Update this document when they come.
+- **NL.** AI-notities (1.3) en AI-briefing (1.4) voegen een AI-aanbieder toe als subverwerker. Ze verwerken notities, dus mogelijk gezondheidsgegevens, met nieuwe technologie. Dat vraagt een DPIA vóór de start (zie `dpia-assessment.md` §6). Betalingen (MVP, M11) veranderen deze rolverdeling ook: de betaalprovider komt op de subverwerkerslijst of is voor eigen betaalgegevens een aparte verwerkingsverantwoordelijke. Werk dit document bij vóór G4, nu ADR-020 (Mollie, geaccepteerd op 21 oktober 2026) de provider heeft gekozen. HealthKit/Health Connect (6.0) verandert de rolverdeling ook; werk het document dan opnieuw bij.
+- **EN.** AI notes (1.3) and AI briefing (1.4) add an AI provider as a sub-processor. They process notes, so possibly health data, with new technology. That needs a DPIA before they start (see `dpia-assessment.md` §6). Payments (MVP, M11) also change this role mapping: the payment provider joins the sub-processor list or is a separate controller for its own payment data. Update this document before G4, now that ADR-020 (Mollie, accepted 21 October 2026) has chosen the provider. HealthKit/Health Connect (6.0) also changes the role mapping; update this document again then.
 
 ---
 
