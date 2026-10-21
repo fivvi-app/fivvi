@@ -118,7 +118,7 @@ Railway passes every variable to the Docker build too, but the build only sees t
 | `PORT` | `web` | `3000` | `3000` | `.railway/railway.ts`. Railway would inject `8080`, but the Railway domain targets 3000: a mismatch passes the health check and answers 502 publicly |
 | `BREVO_API_KEY` | `web` | The production Brevo API key (secret) | A separate dev/test key, **never** the production one; empty turns sending off (`readEmailConfig` throws) | Owner (`preserve()` in `.railway/railway.ts`) |
 | `EMAIL_FROM_ADDRESS` | `web` | The verified Brevo sender. Changes to the `noreply` address on fivvi.app once fivvi.app has SPF, DKIM and DMARC in Brevo (before M5) | The same verified sender | Owner (`preserve()` in `.railway/railway.ts`) |
-| `EMAIL_FROM_NAME` | `web` | `Fivvi` | `Fivvi` | `.railway/railway.ts` |
+| `EMAIL_FROM_NAME` | `web` | `Trainer Hub` (becomes `Fivvi` with the code rename PR) | `Trainer Hub` (becomes `Fivvi` with the code rename PR) | `.railway/railway.ts` |
 | `POSTHOG_KEY` | `web` | The project API key of the PostHog EU project, for server-side product events ([OBSERVABILITY.md](OBSERVABILITY.md) §4) | Empty: analytics is production-only, so previews and test traffic never skew the pilot metrics. **Never** the production key | Owner (`preserve()` in `.railway/railway.ts`) |
 | `SENTRY_DSN` | `web` | The DSN of the Sentry `web` project (EU region), which also receives API errors | The same DSN (allowed, see the rules below): previews report as `preview`, `development` as `development`. Empty turns reporting off | Owner (`preserve()` in `.railway/railway.ts`) |
 | `SENTRY_DSN` | `cron` | The DSN of the Sentry `cron` project (EU region) | The same DSN, or empty to turn it off | Owner (`preserve()` in `.railway/railway.ts`) |

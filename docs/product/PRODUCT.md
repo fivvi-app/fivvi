@@ -888,7 +888,7 @@ Each occurrence has:
 Example:
 
 ```text
-app.com/book/johns-gym
+fivvi.app/book/johns-gym
 ```
 
 Dutch default:

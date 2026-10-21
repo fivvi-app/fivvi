@@ -55,7 +55,7 @@ Keep established loanwords that Dutch trainers actually use: *training, trainer,
 - **Say what happened and what to do next.** No error codes, stack traces or blame.
 - **Specific over generic.** "Les annuleren" beats "Annuleren"; "Boeking bevestigd" beats "Gelukt".
 - **User content is never translated.** Class names, workspace names, exercise names a trainer typed, and notes stay exactly as entered (`PRODUCT.md §3`, §35).
-- **The product name is a brand and is never translated.** It is written *Fivvi* in both languages, and *Fivvi Pro* for the business app for owners and trainers (the client app of Release 1.2 is *Fivvi*). Never *FIVVI* or *Fivvi App*; a Dutch compound is hyphenated (*Fivvi-account*). It reads the same in every catalog string, the email sender (*Fivvi*, the address *noreply* at fivvi.app) and the store listings. The previous working name *Trainer Hub* appears nowhere in user-facing text.
+- **The product name is a brand and is never translated.** It is written *Fivvi* in both languages, and *Fivvi Pro* for the business app for owners and trainers (the client app of Release 1.2 is *Fivvi*). Never *FIVVI* or *Fivvi App*; a Dutch compound is hyphenated (*Fivvi-account*). It reads the same in every catalog string, the email sender (*Fivvi*, the address *noreply* at fivvi.app) and the store listings. The previous working name *Trainer Hub* must not appear in user-facing text (the code rename PR removes the last ones from the catalogs).
 - **Language names are always written in their own language:** *Nederlands*, *English*. The switch reads `NL | EN`.
 
 ---

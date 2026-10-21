@@ -10,10 +10,10 @@ This glossary says what a concept **is**, in English. How each term is worded in
 
 **Fivvi**:
 The product and its brand (domain fivvi.app; the working name was Trainer Hub). The client app of Release 1.2 is also called Fivvi.
-_Avoid_: Trainer Hub (retired working name), FIVVI
+_Avoid_: Trainer Hub (retired working name), FIVVI, Fivvi App
 
 **Fivvi Pro**:
-The business app for owners and trainers, on iOS and Android (app ID `app.fivvi.pro`). Separate from the client app, **Fivvi** (app ID `app.fivvi`, Release 1.2).
+The business app for owners and trainers, on iOS and Android. Separate from the client app, **Fivvi** (Release 1.2).
 _Avoid_: trainer app (in user-facing text)
 
 **Workspace**:
@@ -254,7 +254,7 @@ The payment company through which clients' online payments run. Who the merchant
 _Avoid_: bank
 
 **Merchant**:
-The business that sells to the client and receives the money. In Fivvi it is the workspace (proposed in ADR-020); Fivvi itself is never the merchant and never holds the money.
+The business that sells to the client and receives the money. In Fivvi it is the workspace, not Fivvi itself (proposed in ADR-020).
 _Avoid_: seller (alone), vendor
 
 **Payment**:

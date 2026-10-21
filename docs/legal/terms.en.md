@@ -7,7 +7,7 @@
 These terms have two parts:
 
 - **Part A** applies to gyms, studios and trainers that use Fivvi for their business.
-- **Part B** applies to clients and guests who book through Fivvi.
+- **Part B** applies to clients who book through Fivvi.
 
 ---
 

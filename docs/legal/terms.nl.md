@@ -7,7 +7,7 @@
 Deze voorwaarden bestaan uit twee delen:
 
 - **Deel A** geldt voor sportscholen, studio's en trainers die Fivvi gebruiken voor hun bedrijf.
-- **Deel B** geldt voor klanten en gasten die via Fivvi boeken.
+- **Deel B** geldt voor klanten die via Fivvi boeken.
 
 ---
 
