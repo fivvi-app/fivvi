@@ -30,18 +30,18 @@ Products a Dutch gym or PT studio could choose instead of Trainer Hub, and what 
 | Member app | Branded member app for iOS and Android: book classes, buy or upgrade a membership, buy credits and products | Client web in the MVP; client apps in Release 1.2. Trainer apps in parallel from M2 |
 | Leads | Booking widget for trial lessons, automatic lead follow-up | Public booking page and QR codes (M5, M6); no lead follow-up planned |
 | Bookings | Waiting lists, credits, no-shows, bring a friend | Credits (group and private, never mixed), cutoff, makeups (M11); waitlists are a 1.1 candidate |
-| Finance | "Closed-loop finance": automated payments, invoices, reminders and follow-up; flexible payment methods | Recurring payments and invoices together, failed-payment handling, payouts (M11) |
-| Business clients | Company accounts that bill business ride passes or memberships | Billing details with a company name on invoices (§96); no separate company accounts |
-| Selling | In-app shop for merchandise and products; discount codes | Excluded from the MVP (§53: discounts); no shop planned |
-| Families | Family accounts: a parent books for children | Not planned |
+| Finance | "Closed-loop finance": automated payments, invoices, reminders and follow-up; flexible payment methods | Recurring payments and invoices together, failed-payment handling, payouts (proposed) (M11); reminders and dunning beyond that in Release 4 (`PRODUCT.md §66`) |
+| Business clients | Company accounts that bill business ride passes or memberships | Billing details with a company name on invoices (`PRODUCT.md §96`); no separate company accounts |
+| Selling | In-app shop for merchandise and products; discount codes | Excluded from the MVP (`PRODUCT.md §53`: discounts); no shop planned |
+| Families | Family accounts: a parent books for children | Excluded from the MVP (`PRODUCT.md §53`); Release 4 (`PRODUCT.md §66`) |
 | Training | Workout programming, members log results (time, weight, reps) | Trainer-led live logging and notes (M7, after go-live) |
-| Data | KPI dashboard (revenue, members, VAT); "Huppa AI" answers questions about the data | Analytics in Release 3.2; AI in 1.3+ |
+| Data | KPI dashboard (revenue, members, VAT); "Huppa AI" answers questions about the data | Analytics in Release 3.2; no AI on business data planned (AI note capture is Release 1.3) |
 | Team | Access for coaches, managers and administrative staff by responsibility | Owner and Trainer only in the MVP (decision 13) |
 | Locations | Multiple locations; a year of schedule ahead; bulk changes | One location at go-live (decision 12); more after go-live |
 | Pricing model | One fixed price per active customer, all features, no modules (their claim; the amount isn't published) | Platform pricing is open (decision 16) |
 | Partners | Mentions Urban Sports Club and ClassPass as part of gyms' business | Not planned |
 
-**Where Huppa is ahead.** It is live with gyms, has funding and a team, has member apps on both platforms, and covers more ground: shop, discounts, family and company accounts, insights and AI. It is built around the gym and its members.
+**Where Huppa is ahead.** It has customers (its words), funding and a team, has member apps on both platforms, and covers more ground: shop, discounts, family and company accounts, insights and AI. It is built around the gym and its members.
 
 **Where we can be different.** These are hypotheses to test with the pilot and the second interview, not facts:
 
@@ -52,8 +52,8 @@ Products a Dutch gym or PT studio could choose instead of Trainer Hub, and what 
 
 **What we take from Huppa** (the owner likes it):
 
-- **Company billing** confirms the pilot's need for invoices in a company's name (§96).
-- **Members buy and upgrade themselves** in the app: in our MVP clients buy single classes and confirm agreements on the web (§91, §95); keep that path as short as Huppa's.
+- **Company billing** confirms the pilot's need for invoices in a company's name (`PRODUCT.md §96`).
+- **Members buy and upgrade themselves** in the app: in our MVP clients confirm agreements and (proposed) buy single classes on the web (`PRODUCT.md §91, §95`); keep that path as short as Huppa's.
 - **Trial lessons** as a first booking: candidate for the booking page (M5) or 1.1.
 - **One all-inclusive price** is a clear message for platform pricing when decision 16 comes up.
 
