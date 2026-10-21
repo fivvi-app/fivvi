@@ -63,6 +63,7 @@ The simple user experience is the only difference we can have with other platfor
 - **One place for everything.** Scheduling, booking, memberships, payments and invoices live in Trainer Hub, so no one needs a second app next to it (§2.8).
 - **Plain words.** Plain Dutch and English, no jargon: *Betalingen koppelen*, not "merchant onboarding" or "SEPA mandate" (`packages/i18n/GLOSSARY.md`).
 - **Hard things are done for the owner.** The owner never has to learn payments or KYC beyond one guided connect step (§94).
+- **Start from something ready.** A new workspace comes with three default plans, switched off: the owner adds the price and turns one on, instead of building an offer from an empty form (§90; owner, 21 October 2026).
 
 ---
 
@@ -506,7 +507,7 @@ Can:
 - manage Open Gym
 - assign trainers
 - manage booking links
-- manage offers, prices and the cancellation policy (§90, §93)
+- manage offers, prices and the cancellation policy: start from the three default plans or make their own (§90, §93)
 - manage agreements, payments and invoices (§91–§96)
 - connect the workspace's payment provider account in one guided step (proposed in ADR-020; §94)
 - manage settings
@@ -2657,7 +2658,7 @@ Strongest validation signal:
 
 # Commerce (MVP)
 
-Added on 19 October 2026 after the first interview with the pilot owner (`docs/discovery/results/interview-01.md`), who can't switch without it (§2.8). The subscription model (recurring payments) and invoices arrive **together**: every payment, recurring or one-off, gets an invoice. Memberships, credit packs and credit plans (group and private; owner, 21 October 2026), recurring payments and invoices are decided; single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)). Questions still open are in [`open-questions.md`](../design/open-questions.md) (QC01–QC18); the feature specs settle them with the owner, and nothing here guesses them.
+Added on 19 October 2026 after the first interview with the pilot owner (`docs/discovery/results/interview-01.md`), who can't switch without it (§2.8). The subscription model (recurring payments) and invoices arrive **together**: every payment, recurring or one-off, gets an invoice. Memberships, credit packs and credit plans (group and private; owner, 21 October 2026), recurring payments and invoices are decided; single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)). A new workspace starts with three default plans, and the owner can make their own offers (§90; owner, 21 October 2026). Questions still open are in [`open-questions.md`](../design/open-questions.md) (QC01–QC18); the feature specs settle them with the owner, and nothing here guesses them.
 
 Keep these concepts separate in the model, even where the screen combines them: a class's recurrence is not a payment schedule, a payment is not an invoice, and a missed class is not a missed payment.
 
@@ -2675,6 +2676,25 @@ An **offer** is what a workspace sells. MVP has four kinds (single class: propos
 | **Single class** (proposed, [decision 9](ROADMAP.md#14-decisions)) | One group class, on its own or on top of a membership | At booking (§95) |
 
 The owner sets each offer's name (Dutch, optional English, as in §18), price in euros including VAT, VAT rate, term and, for a membership, how many classes a week and which classes it covers; for a credit pack how many credits and how long they stay valid, for a credit plan how many credits each month and the carry-over limit (both open, [QC17](../design/open-questions.md#qc17)). A credit offer is either group or private, never both (§92). A price change applies to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)).
+
+## Default plans
+
+A new workspace starts with three ready-made offers, the **default plans** (owner, 21 October 2026). They are pre-filled and **switched off**: clients can't see or buy them until the owner turns them on. Trainer Hub never suggests a price, so the owner adds the price (including VAT) first; an offer without a price can't be switched on. Which VAT rate a default starts with is open and settled in the F052 spec.
+
+| Default plan | Kind | Pre-filled | Paid |
+|---|---|---|---|
+| **Membership** | Membership | 2 group classes a week on fixed weekdays, for 6 months | Monthly (§94) |
+| **Group credit pack** | Credit pack, group | 10 group credits, valid for 3 months | Once, up front (§94) |
+| **Private credit plan** | Credit plan, private | 4 private credits a month (about one session a week) | Monthly (§94) |
+
+- **The owner can change everything about a default**: its name (Dutch and optional English, as in §18), the classes a week or the number of credits, the term or how long credits are valid, the cancellation cutoff and, where it applies, the carry-over limit. The owner can also switch it off again or delete it.
+- **Cutoff and carry-over are not decided here.** The defaults start with the proposals of [QC02](../design/open-questions.md#qc02) (a cutoff of 12 hours for classes and 24 hours for private sessions) and [QC17](../design/open-questions.md#qc17) (a carry-over limit of 0) until the pilot says otherwise; the membership's makeup limit is [QC03](../design/open-questions.md#qc03).
+- **A default is a starting point, not a template that stays linked.** The workspace gets its own copy when it is created; later changes to Trainer Hub's defaults never change an existing workspace.
+- **Changes apply to new agreements only** (proposal, [QC15](../design/open-questions.md#qc15)); this includes switching an offer off or deleting it: agreements that already run keep their terms.
+
+## Owner-made plans
+
+The owner can **create their own offers** from scratch (*Nieuw aanbod* / *New offer*; the UI term is to confirm, `packages/i18n/GLOSSARY.md` §4.9), next to or instead of the defaults, with the same fields as a default. Every offer is **one of the four kinds** above (membership, credit pack, credit plan or single class; the single class is proposed, [decision 9](ROADMAP.md#14-decisions)). An owner can't create a new kind, and a credit offer is group or private, never both, so group and private credits never mix (§92).
 
 ---
 

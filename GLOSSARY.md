@@ -191,8 +191,8 @@ One of **booked** (has a confirmed booking, not marked yet), **attended**, **can
 ### Commerce
 
 **Offer**:
-Something a workspace sells: a membership, a credit pack, a credit plan or a single class, with its price, VAT rate and terms.
-_Avoid_: product, plan, package
+Something a workspace sells: a membership, a credit pack, a credit plan or a single class, with its price, VAT rate and terms. A new workspace starts with three **default plans**, ready-made offers switched off until the owner adds a price.
+_Avoid_: product, plan (alone; *credit plan* is a kind, *default plan* a starting offer), package
 
 **Agreement**:
 A client's commitment to a membership, credit pack or credit plan: start, end, renewal, price, payment schedule, cancellation policy and the terms the client agreed to.

@@ -88,7 +88,7 @@ Roles come from `PRODUCT.md §9, §50`: **Owner and Trainer** are the team roles
 | Notes: read *trainer-only* notes | ✓ | ✓ ⚑ [Q04](open-questions.md#q04) | — | — |
 | Exercises, custom exercises, templates | ✓ | ✓ | — | — |
 | Log workouts | ✓ | ✓ own sessions | — | — |
-| Offers, prices, cancellation policy (`§90`, `§93`) | ✓ | — | — | — |
+| Offers, prices, cancellation policy; start from the three default plans (switched off until priced) or make own offers (`§90`, `§93`) | ✓ | — | — | — |
 | Connect the payment provider account (proposed in ADR-020; `§94`) | ✓ | — | — | — |
 | Agreements: create, end, see credit balances (`§91`, `§92`) | ✓ | 👁 credit balances of own clients ⚑ [QC12](open-questions.md#qc12) | ✓ own | — |
 | Payments, invoices, refunds, payouts (`§94`–`§97`) | ✓ | — | 👁 own payments and invoices | — |
