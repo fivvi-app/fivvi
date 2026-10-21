@@ -491,16 +491,18 @@ pr_facts() {
     required: $required, checks: (.statusCheckRollup // []), preview: $preview}' <<<"$view"
 }
 
-# All the facts of the merge gate: pr_facts and what only a merge needs (threads, risk, whether the queue removed it). Not whether the branch is behind
+# All the facts of the merge gate: pr_facts and what only a merge needs (threads, risk, whether the queue removed it, and
+# for pr.sh merge the PR's node ID and whether its base branch has a merge queue). Not whether the branch is behind
 # main: the merge queue tests every PR on the latest main (ADR-018).
 merge_facts() {
-  local pr="$1" facts threads risk removed
+  local pr="$1" facts threads risk queue
   facts="$(pr_facts "$pr")" || exit 1
   threads="$(unresolved_threads "$pr")" || exit 1
   risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr"
-  removed="$(queue_state "$pr" | jq .removed)" || exit 1
-  jq --argjson threads "$(jq length <<<"$threads")" --argjson risk "$risk" --argjson removed "$removed" \
-    '. + {risk: $risk, threads: $threads, queue_removed: $removed}' <<<"$facts"
+  queue="$(queue_state "$pr")" || exit 1
+  jq --argjson threads "$(jq length <<<"$threads")" --argjson risk "$risk" --argjson queue "$queue" \
+    '. + {risk: $risk, threads: $threads, queue_removed: $queue.removed, pr_id: $queue.id,
+      queue_enabled: $queue.queue_enabled}' <<<"$facts"
 }
 
 # Where a PR is in the merge queue, from GitHub, as JSON {id, queue_enabled, merged, queued, position, auto_merge, removed,
@@ -571,10 +573,9 @@ cmd_merge() {
 
   branch="$(jq -r .branch <<<"$facts")"
   issue="$(branch_issue "$branch")"
-  state="$(queue_state "$pr")" || exit 1
-  if jq -e .queue_enabled <<<"$state" >/dev/null; then
+  if jq -e .queue_enabled <<<"$facts" >/dev/null; then
     # shellcheck disable=SC2016 # GraphQL variables, not shell
-    out="$(gh api graphql -f id="$(jq -r .id <<<"$state")" -f head="$head" -f query='
+    out="$(gh api graphql -f id="$(jq -r .pr_id <<<"$facts")" -f head="$head" -f query='
       mutation($id: ID!, $head: GitObjectID!) {
         enqueuePullRequest(input: {pullRequestId: $id, expectedHeadOid: $head}) { mergeQueueEntry { position } }
       }' 2>&1)" || die "could not add PR #$pr to the merge queue: $out"
@@ -605,8 +606,8 @@ cmd_merge() {
       return 0
     elif jq -e .auto_merge <<<"$state" >/dev/null; then
       gh pr merge "$pr" --repo "$REPO" --disable-auto >/dev/null 2>&1 \
-        || die "GitHub enabled auto-merge on PR #$pr instead of adding it to the merge queue, and auto-merge is still on: turn it off on GitHub; nothing queued"
-      die "GitHub enabled auto-merge instead of adding PR #$pr to the merge queue (it found a required check not passed); turned it off, nothing queued"
+        || die "auto-merge is on for PR #$pr, which is not in the merge queue, and auto-merge is still on: turn it off on GitHub; nothing queued"
+      die "auto-merge is on for PR #$pr, which is not in the merge queue; turned it off, nothing queued"
     fi
     [ "$attempt" -eq 3 ] || sleep 2
   done
