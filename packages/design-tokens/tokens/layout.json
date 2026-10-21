@@ -57,7 +57,7 @@
     "xs": {
       "$value": "4px",
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "android": "shapes.extraSmall"
         }
       }
@@ -66,7 +66,7 @@
       "$value": "8px",
       "$description": "Chips, small tags, inputs.",
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "android": "shapes.small"
         }
       }
@@ -75,7 +75,7 @@
       "$value": "12px",
       "$description": "Cards, list groups (iOS inset grouped list ~10–12).",
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "android": "shapes.medium"
         }
       }
@@ -84,7 +84,7 @@
       "$value": "16px",
       "$description": "Prominent cards (next-up session), large buttons in the logger.",
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "android": "shapes.large"
         }
       }
@@ -93,7 +93,7 @@
       "$value": "28px",
       "$description": "Bottom sheets and dialogs (top corners).",
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "android": "shapes.extraLarge"
         }
       }

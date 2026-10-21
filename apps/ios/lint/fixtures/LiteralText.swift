@@ -7,7 +7,7 @@ struct LiteralText: View {
 
     var body: some View {
         VStack {
-            Text("Welkom bij Trainer Hub") // expect: no_literal_text
+            Text("Welkom bij Fivvi") // expect: no_literal_text
             Text(verbatim: "Welkom") // expect: no_literal_text
             Button("Opnieuw proberen") {} // expect: no_literal_text
             Label("Laden", systemImage: "hourglass") // expect: no_literal_text

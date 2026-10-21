@@ -1,5 +1,5 @@
 {
-  "name": "@trainer-hub/design-tokens",
+  "name": "@fivvi/design-tokens",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "@trainer-hub/testing": "workspace:*",
+    "@fivvi/testing": "workspace:*",
     "@types/node": "catalog:",
     "style-dictionary": "catalog:",
     "tailwindcss": "catalog:",

@@ -1,9 +1,9 @@
-# @trainer-hub/email
+# @fivvi/email
 
 Transactional email (ADR-009): React Email templates, localized from `packages/i18n`, sent through Brevo behind a small `sendEmail` interface. Server-side only.
 
 ```ts
-import { createBrevoTransport, createSendEmail, helloEmail, readEmailConfig } from '@trainer-hub/email';
+import { createBrevoTransport, createSendEmail, helloEmail, readEmailConfig } from '@fivvi/email';
 
 const config = readEmailConfig(); // BREVO_API_KEY, EMAIL_FROM_ADDRESS, EMAIL_FROM_NAME
 const sendEmail = createSendEmail({
@@ -15,7 +15,7 @@ await sendEmail({
   template: helloEmail,
   props: { firstName: 'Anna', sentAt },
   to: { email: 'anna@example.com', name: 'Anna' },
-  locale: 'nl-NL', // resolveCommunicationLanguage() from @trainer-hub/i18n
+  locale: 'nl-NL', // resolveCommunicationLanguage() from @fivvi/i18n
   timeZone: 'Europe/Amsterdam', // the workspace time zone
 });
 ```
@@ -67,8 +67,8 @@ Transports implement `EmailTransport` (`send(email) → { messageId }`, one atte
 | Variable | Example | Notes |
 |---|---|---|
 | `BREVO_API_KEY` | `xkeysib-…` | Brevo → Settings → SMTP & API → API keys. **Secret.** |
-| `EMAIL_FROM_ADDRESS` | the verified sender | Must be a verified sender in Brevo (Settings → Senders, domains & dedicated IPs) |
-| `EMAIL_FROM_NAME` | `Trainer Hub` | Display name of the sender |
+| `EMAIL_FROM_ADDRESS` | `noreply@fivvi.app` | Must be a verified sender in Brevo (Settings → Senders, domains & dedicated IPs) |
+| `EMAIL_FROM_NAME` | `Fivvi` | Display name of the sender |
 
 - **Local:** put the three variables in `packages/email/.env` (git-ignored; every worktree needs its own). The `send:test` script loads it.
 - **Preview and production:** Railway variables on `web`, declared in `.railway/railway.ts` (`preserve()` for the key and address, so the file holds no value) and listed in [`docs/engineering/ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). The owner sets the values: the real key only in `production`, a separate test key in `development` (every preview copies it). Never commit a key; rotate it in Brevo if it leaks.
@@ -110,7 +110,7 @@ Sources: [Brevo pricing](https://www.brevo.com/pricing/), [send transactional em
 ## Tests
 
 ```bash
-pnpm --filter @trainer-hub/email test
+pnpm --filter @fivvi/email test
 ```
 
 | File | Proves |

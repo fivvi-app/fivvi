@@ -1,6 +1,6 @@
 // AC6 fixture: hard-coded colours in app code. ktlintCheck must fail on every colour below and name this file and line.
 // Not compiled; NoColourLiteralRuleTest reads it.
-package nl.trainerhub.lint.fixtures
+package app.fivvi.lint.fixtures
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text

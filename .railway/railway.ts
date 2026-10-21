@@ -68,7 +68,7 @@ export default defineRailway((ctx) => {
       // here: production gets the real Brevo key, development (and so previews) a test key.
       BREVO_API_KEY: preserve(),
       EMAIL_FROM_ADDRESS: preserve(),
-      EMAIL_FROM_NAME: 'Trainer Hub',
+      EMAIL_FROM_NAME: 'Fivvi',
       // Product events (E009, packages/observability): the PostHog EU project key, set in the
       // dashboard for production only. Empty (development, previews) sends nothing.
       POSTHOG_KEY: preserve(),

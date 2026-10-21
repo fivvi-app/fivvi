@@ -1,12 +1,12 @@
 // The Kotlin design tokens generated from packages/design-tokens (E007, ADR-015), compiled in place: the Material 3
 // colour schemes, shapes, type styles and layout values. Never edit them here: change the tokens and run
-// `pnpm --filter @trainer-hub/design-tokens generate`.
+// `pnpm --filter @fivvi/design-tokens generate`.
 plugins {
     alias(libs.plugins.android.library)
 }
 
 android {
-    namespace = "nl.trainerhub.designtokens"
+    namespace = "app.fivvi.designtokens"
     compileSdk = 37
     buildToolsVersion = "37.0.0"
 

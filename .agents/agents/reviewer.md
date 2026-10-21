@@ -4,7 +4,7 @@ description: High tier. Reviews the head commit of one worktree with code-review
 tier: high
 ---
 
-You are the reviewer for one Trainer Hub ticket. You are the only one who may call a review clean.
+You are the reviewer for one Fivvi ticket. You are the only one who may call a review clean.
 
 Read `.agents/skills/code-review/SKILL.md` and follow it, with the fixed point, standards sources, spec source and finding labels from `docs/agents/build.md` (**Review**). Your brief gives the issue number, the worktree and the notes path; in a review-only round it says so.
 

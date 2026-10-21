@@ -1,4 +1,4 @@
-import { Button } from '@trainer-hub/ui/components/button';
+import { Button } from '@fivvi/ui/components/button';
 import {
   Card,
   CardContent,
@@ -6,9 +6,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@trainer-hub/ui/components/card';
-import { Input } from '@trainer-hub/ui/components/input';
-import { Label } from '@trainer-hub/ui/components/label';
+} from '@fivvi/ui/components/card';
+import { Input } from '@fivvi/ui/components/input';
+import { Label } from '@fivvi/ui/components/label';
 import { useTranslations } from 'next-intl';
 import type { Greeting } from '../server/greeting';
 

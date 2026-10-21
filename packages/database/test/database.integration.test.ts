@@ -6,7 +6,7 @@ import {
   createTestDatabase,
   type TestDatabase,
   withRollback,
-} from '@trainer-hub/testing/database';
+} from '@fivvi/testing/database';
 import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -88,7 +88,7 @@ describe('E004 migrations', () => {
 
   it('applies the latest migration on top of the previous version', async () => {
     const journal = await readJournal(migrationsFolder);
-    const previous = await mkdtemp(join(tmpdir(), 'trainer-hub-migrations-'));
+    const previous = await mkdtemp(join(tmpdir(), 'fivvi-migrations-'));
     try {
       // A copy of the migrations folder as it was before the latest migration.
       await cp(migrationsFolder, previous, { recursive: true });
@@ -198,7 +198,7 @@ describe('E004 database', () => {
       });
     });
 
-    it.each(['Hallo, welkom bij Trainer Hub!', 'hello', 'system hello'])(
+    it.each(['Hallo, welkom bij Fivvi!', 'hello', 'system hello'])(
       'rejects %j as an i18n key',
       async (i18nKey) => {
         await withRollback(db, async (tx) => {

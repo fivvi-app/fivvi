@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
-import { createDatabase } from '@trainer-hub/database';
-import { runMigrations } from '@trainer-hub/database/migrate';
-import { databaseUrl, identifier, onServer } from '@trainer-hub/testing/database/server';
+import { createDatabase } from '@fivvi/database';
+import { runMigrations } from '@fivvi/database/migrate';
+import { databaseUrl, identifier, onServer } from '@fivvi/testing/database/server';
 
 // Playwright's web server command (playwright.config.ts): the standalone server, as in production
 // (Dockerfile), on a database of its own. Each run starts from an empty database with every

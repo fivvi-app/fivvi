@@ -2,7 +2,7 @@ import {
   checkPageViewsConfig,
   createErrorReporter,
   createRequestErrorHandler,
-} from '@trainer-hub/observability';
+} from '@fivvi/observability';
 import type { Instrumentation } from 'next';
 
 const errorReporter = createErrorReporter();

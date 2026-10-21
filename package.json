@@ -1,5 +1,5 @@
 {
-  "name": "trainer-hub",
+  "name": "fivvi",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.5.1",
@@ -26,7 +26,7 @@
     "test:maestro": "scripts/maestro.sh android",
     "format:check": "turbo run format:check",
     "check": "turbo run check",
-    "generate:contract": "pnpm --filter @trainer-hub/contract generate",
+    "generate:contract": "pnpm --filter @fivvi/contract generate",
     "format:check:root": "biome format ./*.json .claude scripts/test",
     "lint:root": "biome lint .claude scripts/test && shellcheck -x scripts/*.sh .githooks/*",
     "check:root": "scripts/skills.sh check && scripts/agents.sh check",
@@ -35,11 +35,11 @@
     "fix": "biome check --write .",
     "db:up": "docker compose up --detach --wait postgres",
     "db:down": "docker compose down",
-    "db:generate": "pnpm --filter @trainer-hub/database db:generate",
-    "db:migrate": "pnpm --filter @trainer-hub/database db:migrate",
-    "db:seed": "pnpm --filter @trainer-hub/database db:seed",
-    "email:preview": "pnpm --filter @trainer-hub/email preview",
-    "email:send-test": "pnpm --filter @trainer-hub/email send:test"
+    "db:generate": "pnpm --filter @fivvi/database db:generate",
+    "db:migrate": "pnpm --filter @fivvi/database db:migrate",
+    "db:seed": "pnpm --filter @fivvi/database db:seed",
+    "email:preview": "pnpm --filter @fivvi/email preview",
+    "email:send-test": "pnpm --filter @fivvi/email send:test"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

@@ -1,5 +1,5 @@
 {
-  "name": "@trainer-hub/email",
+  "name": "@fivvi/email",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "format:check": "biome format ."
   },
   "dependencies": {
-    "@trainer-hub/i18n": "workspace:*",
+    "@fivvi/i18n": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-email": "catalog:",
@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "@trainer-hub/testing": "workspace:*",
+    "@fivvi/testing": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

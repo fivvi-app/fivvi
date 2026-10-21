@@ -1,4 +1,4 @@
-import type { ProductEvents } from '@trainer-hub/observability';
+import type { ProductEvents } from '@fivvi/observability';
 import { describe, expect, it, vi } from 'vitest';
 import { createApp, NO_DEPENDENCIES } from '../src/index.ts';
 

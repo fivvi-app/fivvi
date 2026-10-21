@@ -2,11 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>TrainerHubAPIBaseURL</key>
-	<string>$(TRAINER_HUB_API_BASE_URL)</string>
-	<key>TrainerHubSentryDSN</key>
-	<string>$(TRAINER_HUB_SENTRY_DSN)</string>
-	<key>TrainerHubSentryEnvironment</key>
-	<string>$(TRAINER_HUB_SENTRY_ENVIRONMENT)</string>
+	<key>FivviAPIBaseURL</key>
+	<string>$(FIVVI_API_BASE_URL)</string>
+	<key>FivviSentryDSN</key>
+	<string>$(FIVVI_SENTRY_DSN)</string>
+	<key>FivviSentryEnvironment</key>
+	<string>$(FIVVI_SENTRY_ENVIRONMENT)</string>
 </dict>
 </plist>

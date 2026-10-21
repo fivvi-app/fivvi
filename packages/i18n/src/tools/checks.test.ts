@@ -95,8 +95,8 @@ describe('E005 i18n checks', () => {
     beforeEach(async () => {
       root = await mkdtemp(path.join(tmpdir(), 'i18n-check-'));
       const set = catalogSet(
-        { 'app.name': 'Trainer Hub', 'hello.title': 'Welkom' },
-        { 'app.name': 'Trainer Hub', 'hello.title': 'Welcome' },
+        { 'app.name': 'Fivvi', 'hello.title': 'Welkom' },
+        { 'app.name': 'Fivvi', 'hello.title': 'Welcome' },
       );
       await writeFile(path.join(root, 'nl-NL.json'), JSON.stringify(set.messages['nl-NL']));
       await writeFile(path.join(root, 'en.json'), JSON.stringify(set.messages.en));
@@ -120,23 +120,23 @@ describe('E005 i18n checks', () => {
     });
 
     it('fails when the JSON changed but the native catalogs were not regenerated', async () => {
-      await writeEn({ app: { name: 'Trainer Hub' }, hello: { title: 'Hello' } });
+      await writeEn({ app: { name: 'Fivvi' }, hello: { title: 'Hello' } });
       const [generated] = await runChecks(root, ['generated']);
       expect(generated?.problems).toEqual([
         'generated/ios/Localizable.xcstrings is out of date',
         'generated/android/values-en/strings.xml is out of date',
-        'Run `pnpm --filter @trainer-hub/i18n generate` and commit the result.',
+        'Run `pnpm --filter @fivvi/i18n generate` and commit the result.',
       ]);
     });
 
     it('E008 AC8: fails when app.name changed but InfoPlist.xcstrings was not regenerated', async () => {
-      await writeEn({ app: { name: 'Trainer Hub app' }, hello: { title: 'Welcome' } });
+      await writeEn({ app: { name: 'Fivvi Pro app' }, hello: { title: 'Welcome' } });
       const [generated] = await runChecks(root, ['generated']);
       expect(generated?.problems).toEqual([
         'generated/ios/Localizable.xcstrings is out of date',
         'generated/ios/InfoPlist.xcstrings is out of date',
         'generated/android/values-en/strings.xml is out of date',
-        'Run `pnpm --filter @trainer-hub/i18n generate` and commit the result.',
+        'Run `pnpm --filter @fivvi/i18n generate` and commit the result.',
       ]);
     });
 

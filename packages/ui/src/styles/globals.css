@@ -1,14 +1,14 @@
 /*
  * The kit's stylesheet: Tailwind, the design tokens as shadcn/ui's theme, and the kit's components.
- * Apps import only this file (`@trainer-hub/ui/globals.css`). See README.md.
+ * Apps import only this file (`@fivvi/ui/globals.css`). See README.md.
  */
 @import "tailwindcss";
 
 /* Only token colours: drops Tailwind's default palette before the token theme adds ours. */
 @import "./palette-reset.css";
-@import "@trainer-hub/design-tokens/tokens.css";
-@import "@trainer-hub/design-tokens/shadcn.css";
-@import "@trainer-hub/design-tokens/theme.css";
+@import "@fivvi/design-tokens/tokens.css";
+@import "@fivvi/design-tokens/shadcn.css";
+@import "@fivvi/design-tokens/theme.css";
 
 /* The app's own files are found automatically; the kit's components live outside the app. */
 @source "../components";

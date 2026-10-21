@@ -1,5 +1,5 @@
 {
-  "name": "@trainer-hub/i18n",
+  "name": "@fivvi/i18n",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -22,7 +22,7 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@formatjs/icu-messageformat-parser": "catalog:",
-    "@trainer-hub/testing": "workspace:*",
+    "@fivvi/testing": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

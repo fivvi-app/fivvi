@@ -1,4 +1,4 @@
-# @trainer-hub/i18n
+# @fivvi/i18n
 
 The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.json` hold ICU MessageFormat messages. The web reads them through next-intl; iOS and Android get catalogs generated from them. Terminology and tone: [`GLOSSARY.md`](GLOSSARY.md).
 
@@ -16,7 +16,7 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 ## Adding or changing a string
 
 1. Add the key to **both** `nl-NL.json` and `en.json`, following `GLOSSARY.md §6`. Add context to `comments.json` when the string is ambiguous.
-2. `pnpm --filter @trainer-hub/i18n generate` and commit the regenerated `generated/` files.
+2. `pnpm --filter @fivvi/i18n generate` and commit the regenerated `generated/` files.
 3. `pnpm check` must pass.
 
 **Email copy** goes under the `email` namespace (`email.hello.subject`). It follows the same rules and checks, but the native exporters leave `email.*` out (`serverOnlyNamespaces` in `src/config.ts`), because only `packages/email` renders it.
@@ -70,12 +70,12 @@ The `no-hard-coded-jsx-text` Biome plugin (registered in `apps/web/biome.json`) 
 
 - **iOS:** add `generated/ios/Localizable.xcstrings` and `generated/ios/InfoPlist.xcstrings` to the app target by reference, with `nl` as the development region. Keys are marked `extractionState: manual`, so Xcode keeps them. The display name under the app icon comes from `app.name` through `InfoPlist.xcstrings`; the generator fails when `app.name` is missing. `InfoPlist.xcstrings` also has every other localizable key of the app's Info.plist (`CFBundleName`, from `app.name` too): Xcode's string catalog sync adds a missing one on a build and rewrites the file, which `pnpm test:ios` fails on ([`apps/ios/README.md`](../../apps/ios/README.md#layout)).
 - **Android:** add `packages/i18n/generated/android` as a resource directory (`sourceSets.main.res.srcDirs`). The app label is `@string/app_name`.
-- No hard-coded strings: on iOS, SwiftLint's `no_literal_text` rule rejects a string literal in `Text`, `Button`, `Label` and similar views ([`apps/ios/README.md`](../../apps/ios/README.md#no-hard-coded-text)); on Android, ktlint's `trainer-hub:no-literal-text` rule rejects one in a Compose `Text` ([`apps/android/README.md`](../../apps/android/README.md#rules)).
+- No hard-coded strings: on iOS, SwiftLint's `no_literal_text` rule rejects a string literal in `Text`, `Button`, `Label` and similar views ([`apps/ios/README.md`](../../apps/ios/README.md#no-hard-coded-text)); on Android, ktlint's `fivvi:no-literal-text` rule rejects one in a Compose `Text` ([`apps/android/README.md`](../../apps/android/README.md#rules)).
 - Both pick the interface language themselves, from the OS per-app language and the raw preferred-language list, as `resolveInterfaceLanguage()` does (see [Locales](#locales)). The bundle's resolved language can't be the input: it falls back to the Dutch source resources.
 
 ## Checks
 
-`pnpm check` (turbo) runs `node src/cli.ts check` in this package. Run one check with `pnpm --filter @trainer-hub/i18n check:parity`, `check:icu` or `check:generated`.
+`pnpm check` (turbo) runs `node src/cli.ts check` in this package. Run one check with `pnpm --filter @fivvi/i18n check:parity`, `check:icu` or `check:generated`.
 
 | Check | Fails when |
 |---|---|

@@ -44,7 +44,7 @@ export function unitConfig(overrides: ViteUserConfig = {}): ViteUserConfig {
 
 /**
  * Integration tests against real Postgres: `**\/*.integration.test.ts`. Pass the
- * package's global setup (see `setupTemplateDatabase` in `@trainer-hub/testing/database`)
+ * package's global setup (see `setupTemplateDatabase` in `@fivvi/testing/database`)
  * as `test.globalSetup` when the tests use the migrated template database.
  */
 export function integrationConfig(overrides: ViteUserConfig = {}): ViteUserConfig {

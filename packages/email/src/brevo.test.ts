@@ -5,7 +5,7 @@ import { helloEmail } from './templates/hello.tsx';
 import { EmailSendError } from './transport.ts';
 
 const apiKey = 'xkeysib-test-not-a-real-key';
-const sender = { email: 'noreply@example.com', name: 'Trainer Hub' };
+const sender = { email: 'noreply@fivvi.app', name: 'Fivvi' };
 const to = { email: 'anna@example.com', name: 'Anna' };
 const props = { firstName: 'Anna', sentAt: new Date('2026-09-22T16:00:00Z') };
 
@@ -78,7 +78,7 @@ describe('E006 Brevo transport', () => {
     expect(request?.body).toMatchObject({
       sender,
       to: [to],
-      subject: 'Testbericht van Trainer Hub',
+      subject: 'Testbericht van Fivvi',
       tags: ['hello'],
       headers: { idempotencyKey: '6f1c1f3e-5b2a-4c7e-9a51-3c0e2f5d8b10' },
     });

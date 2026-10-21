@@ -1,4 +1,4 @@
-import { type Database, pingDatabase } from '@trainer-hub/database';
+import { type Database, pingDatabase } from '@fivvi/database';
 
 export interface DailyJobContext {
   db: Database;

@@ -1,5 +1,5 @@
 {
-  "name": "@trainer-hub/cron",
+  "name": "@fivvi/cron",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,12 +12,12 @@
     "format:check": "biome format ."
   },
   "dependencies": {
-    "@trainer-hub/database": "workspace:*",
-    "@trainer-hub/observability": "workspace:*"
+    "@fivvi/database": "workspace:*",
+    "@fivvi/observability": "workspace:*"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "@trainer-hub/testing": "workspace:*",
+    "@fivvi/testing": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

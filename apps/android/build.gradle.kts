@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
 }
 
-// ktlint with the Trainer Hub rules from lint/ (no hard-coded text or colours in Compose, Sentry only in
+// ktlint with the Fivvi rules from lint/ (no hard-coded text or colours in Compose, Sentry only in
 // observability/). Runs on our own sources only: the generated API client is excluded, and the fixtures in
 // lint/fixtures fail on purpose.
 val ktlint by configurations.creating
@@ -44,7 +44,7 @@ val ktlintFixtures = tasks.register<JavaExec>("ktlintFixtures") {
         check(result.get().exitValue != 0) { "ktlint passed lint/fixtures" }
         val lines = report.readLines()
         expected.forEach { (rule, places) ->
-            val reported = lines.filter { it.endsWith("(trainer-hub:$rule)") }
+            val reported = lines.filter { it.endsWith("(fivvi:$rule)") }
             val wanted = places.map { "lint/fixtures/$it:" }
             check(reported.map { it.substringBefore(" ") } == wanted) {
                 "ktlint should report $rule at $wanted, reported:\n${reported.joinToString("\n")}"

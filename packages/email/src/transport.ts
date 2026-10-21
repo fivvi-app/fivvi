@@ -1,4 +1,4 @@
-import type { Locale } from '@trainer-hub/i18n';
+import type { Locale } from '@fivvi/i18n';
 
 export interface EmailAddress {
   email: string;

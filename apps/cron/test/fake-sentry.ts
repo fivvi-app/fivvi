@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { type CaptureTransport, createCaptureTransport } from '@trainer-hub/observability';
+import { type CaptureTransport, createCaptureTransport } from '@fivvi/observability';
 
 export interface FakeSentry {
   /** A DSN that points at this server, for `SENTRY_DSN`. */

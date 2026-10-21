@@ -1,11 +1,11 @@
-import { messages } from '@trainer-hub/i18n';
+import { messages } from '@fivvi/i18n';
 import { describe, expect, it } from 'vitest';
 import { createMemoryTransport } from './memory.ts';
 import { createSendEmail } from './send.ts';
 import { helloEmail } from './templates/hello.tsx';
 import { EmailSendError } from './transport.ts';
 
-const sender = { email: 'noreply@example.com', name: 'Trainer Hub' };
+const sender = { email: 'noreply@fivvi.app', name: 'Fivvi' };
 const props = { firstName: 'Anna', sentAt: new Date('2026-09-22T16:00:00Z') };
 
 function setup() {

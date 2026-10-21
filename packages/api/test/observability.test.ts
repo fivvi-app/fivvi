@@ -1,4 +1,4 @@
-import { createCaptureTransport, createErrorReporter } from '@trainer-hub/observability';
+import { createCaptureTransport, createErrorReporter } from '@fivvi/observability';
 import { HTTPException } from 'hono/http-exception';
 import { describe, expect, it, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';

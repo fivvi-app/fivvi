@@ -26,6 +26,6 @@ function server(serverPort: number) {
   return {
     port: serverPort,
     baseURL: `http://localhost:${serverPort}`,
-    database: `trainer_hub_test_e2e_${serverPort}`,
+    database: `fivvi_test_e2e_${serverPort}`,
   };
 }

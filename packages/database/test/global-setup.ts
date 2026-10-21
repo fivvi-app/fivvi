@@ -1,4 +1,4 @@
-import { setupTemplateDatabase } from '@trainer-hub/testing/database/setup';
+import { setupTemplateDatabase } from '@fivvi/testing/database/setup';
 import { createDatabase } from '../src/client.ts';
 import { runMigrations } from '../src/migrate.ts';
 

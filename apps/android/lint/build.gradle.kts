@@ -1,6 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-// Trainer Hub's ktlint rules, loaded by ktlintCheck (../build.gradle.kts). fixtures/ holds code that must fail.
+// Fivvi's ktlint rules, loaded by ktlintCheck (../build.gradle.kts). fixtures/ holds code that must fail.
 plugins {
     alias(libs.plugins.kotlin.jvm)
 }

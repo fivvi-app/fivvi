@@ -298,17 +298,17 @@ importers:
 
   apps/cron:
     dependencies:
-      '@trainer-hub/database':
+      '@fivvi/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@trainer-hub/observability':
+      '@fivvi/observability':
         specifier: workspace:*
         version: link:../../packages/observability
     devDependencies:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
-      '@trainer-hub/testing':
+      '@fivvi/testing':
         specifier: workspace:*
         version: link:../../packages/testing
       '@types/node':
@@ -323,22 +323,22 @@ importers:
 
   apps/web:
     dependencies:
-      '@trainer-hub/api':
+      '@fivvi/api':
         specifier: workspace:*
         version: link:../../packages/api
-      '@trainer-hub/contract':
+      '@fivvi/contract':
         specifier: workspace:*
         version: link:../../packages/contract
-      '@trainer-hub/database':
+      '@fivvi/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@trainer-hub/i18n':
+      '@fivvi/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
-      '@trainer-hub/observability':
+      '@fivvi/observability':
         specifier: workspace:*
         version: link:../../packages/observability
-      '@trainer-hub/ui':
+      '@fivvi/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       next:
@@ -360,18 +360,18 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
+      '@fivvi/design-tokens':
+        specifier: workspace:*
+        version: link:../../packages/design-tokens
+      '@fivvi/testing':
+        specifier: workspace:*
+        version: link:../../packages/testing
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.63.0
       '@tailwindcss/postcss':
         specifier: 'catalog:'
         version: 4.3.3
-      '@trainer-hub/design-tokens':
-        specifier: workspace:*
-        version: link:../../packages/design-tokens
-      '@trainer-hub/testing':
-        specifier: workspace:*
-        version: link:../../packages/testing
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.2
@@ -390,18 +390,18 @@ importers:
 
   packages/api:
     dependencies:
+      '@fivvi/database':
+        specifier: workspace:*
+        version: link:../database
+      '@fivvi/i18n':
+        specifier: workspace:*
+        version: link:../i18n
+      '@fivvi/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@hono/zod-openapi':
         specifier: 'catalog:'
         version: 1.6.3(hono@4.13.10)(zod@4.6.5)
-      '@trainer-hub/database':
-        specifier: workspace:*
-        version: link:../database
-      '@trainer-hub/i18n':
-        specifier: workspace:*
-        version: link:../i18n
-      '@trainer-hub/observability':
-        specifier: workspace:*
-        version: link:../observability
       hono:
         specifier: 'catalog:'
         version: 4.13.10
@@ -412,7 +412,7 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
-      '@trainer-hub/testing':
+      '@fivvi/testing':
         specifier: workspace:*
         version: link:../testing
       '@types/node':
@@ -434,18 +434,18 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
+      '@fivvi/api':
+        specifier: workspace:*
+        version: link:../api
+      '@fivvi/testing':
+        specifier: workspace:*
+        version: link:../testing
+      '@fivvi/typescript-generator':
+        specifier: workspace:*
+        version: link:tools/typescript-generator
       '@hono/zod-openapi':
         specifier: 'catalog:'
         version: 1.6.3(hono@4.13.10)(zod@4.6.5)
-      '@trainer-hub/api':
-        specifier: workspace:*
-        version: link:../api
-      '@trainer-hub/testing':
-        specifier: workspace:*
-        version: link:../testing
-      '@trainer-hub/typescript-generator':
-        specifier: workspace:*
-        version: link:tools/typescript-generator
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.2
@@ -477,7 +477,7 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
-      '@trainer-hub/testing':
+      '@fivvi/testing':
         specifier: workspace:*
         version: link:../testing
       '@types/node':
@@ -501,7 +501,7 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
-      '@trainer-hub/testing':
+      '@fivvi/testing':
         specifier: workspace:*
         version: link:../testing
       '@types/node':
@@ -522,7 +522,7 @@ importers:
 
   packages/email:
     dependencies:
-      '@trainer-hub/i18n':
+      '@fivvi/i18n':
         specifier: workspace:*
         version: link:../i18n
       react:
@@ -541,7 +541,7 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
-      '@trainer-hub/testing':
+      '@fivvi/testing':
         specifier: workspace:*
         version: link:../testing
       '@types/node':
@@ -568,12 +568,12 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
+      '@fivvi/testing':
+        specifier: workspace:*
+        version: link:../testing
       '@formatjs/icu-messageformat-parser':
         specifier: 'catalog:'
         version: 3.5.20
-      '@trainer-hub/testing':
-        specifier: workspace:*
-        version: link:../testing
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.2
@@ -605,12 +605,12 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
+      '@fivvi/testing':
+        specifier: workspace:*
+        version: link:../testing
       '@sentry/cli':
         specifier: 'catalog:'
         version: 3.8.0
-      '@trainer-hub/testing':
-        specifier: workspace:*
-        version: link:../testing
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.2
@@ -648,7 +648,7 @@ importers:
 
   packages/ui:
     dependencies:
-      '@trainer-hub/design-tokens':
+      '@fivvi/design-tokens':
         specifier: workspace:*
         version: link:../design-tokens
       class-variance-authority:
@@ -670,12 +670,12 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
+      '@fivvi/testing':
+        specifier: workspace:*
+        version: link:../testing
       '@tailwindcss/node':
         specifier: 'catalog:'
         version: 4.3.3
-      '@trainer-hub/testing':
-        specifier: workspace:*
-        version: link:../testing
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.2

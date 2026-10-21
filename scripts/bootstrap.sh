@@ -81,7 +81,7 @@ git -C "$MAIN_ROOT" config core.hooksPath .githooks
 mkdir -p "$WORKTREES_DIR" "$NOTES_DIR"
 
 install_node || { warn "Node or pnpm missing — fix the above and re-run this script"; exit 1; }
-(cd "$ROOT" && pnpm install --frozen-lockfile && pnpm --filter @trainer-hub/web exec playwright install chromium --only-shell) \
+(cd "$ROOT" && pnpm install --frozen-lockfile && pnpm --filter @fivvi/web exec playwright install chromium --only-shell) \
   || { warn "workspace install failed"; exit 1; }
 [ -f "$ROOT/packages/database/.env" ] || cp "$ROOT/packages/database/.env.example" "$ROOT/packages/database/.env"
 

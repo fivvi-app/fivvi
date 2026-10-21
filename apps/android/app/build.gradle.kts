@@ -4,21 +4,21 @@ plugins {
 }
 
 // API base URL per build type (spec #34), from gradle.properties or -P. Release must be HTTPS.
-val debugApiBaseUrl = providers.gradleProperty("trainerhub.apiBaseUrl").get()
-val releaseApiBaseUrl = providers.gradleProperty("trainerhub.releaseApiBaseUrl").getOrElse("")
+val debugApiBaseUrl = providers.gradleProperty("fivvi.apiBaseUrl").get()
+val releaseApiBaseUrl = providers.gradleProperty("fivvi.releaseApiBaseUrl").getOrElse("")
 
 // Sentry DSN per build type (E009, OBSERVABILITY.md §1 "Android"), from gradle.properties or -P. Empty means no crash
 // reporting: the SDK isn't even started.
-val debugSentryDsn = providers.gradleProperty("trainerhub.sentryDsn").getOrElse("")
-val releaseSentryDsn = providers.gradleProperty("trainerhub.releaseSentryDsn").getOrElse("")
+val debugSentryDsn = providers.gradleProperty("fivvi.sentryDsn").getOrElse("")
+val releaseSentryDsn = providers.gradleProperty("fivvi.releaseSentryDsn").getOrElse("")
 
 android {
-    namespace = "nl.trainerhub.app"
+    namespace = "app.fivvi.pro"
     compileSdk = 37
     buildToolsVersion = "37.0.0"
 
     defaultConfig {
-        applicationId = "nl.trainerhub.app"
+        applicationId = "app.fivvi.pro"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
@@ -64,11 +64,11 @@ android {
 }
 
 val checkReleaseApiBaseUrl = tasks.register("checkReleaseApiBaseUrl") {
-    description = "Fails a release build without an HTTPS trainerhub.releaseApiBaseUrl."
+    description = "Fails a release build without an HTTPS fivvi.releaseApiBaseUrl."
     val url = releaseApiBaseUrl
     doLast {
         check(url.startsWith("https://")) {
-            "Set trainerhub.releaseApiBaseUrl (apps/android/gradle.properties) to the production API URL over HTTPS"
+            "Set fivvi.releaseApiBaseUrl (apps/android/gradle.properties) to the production API URL over HTTPS"
         }
     }
 }
@@ -77,11 +77,11 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(checkR
 // E009 (#85): release builds report to the Sentry project `android` in the EU region, so the DSN's host must be
 // `<org>.ingest.de.sentry.io`. Runs before every release build and in `pnpm test:android`.
 val checkReleaseSentryDsn = tasks.register("checkReleaseSentryDsn") {
-    description = "Fails unless trainerhub.releaseSentryDsn is an EU-region Sentry DSN."
+    description = "Fails unless fivvi.releaseSentryDsn is an EU-region Sentry DSN."
     val dsn = releaseSentryDsn
     doLast {
         check(Regex("""https://[^@/]+@[a-z0-9]+\.ingest\.de\.sentry\.io/[0-9]+""").matches(dsn)) {
-            "Set trainerhub.releaseSentryDsn (apps/android/gradle.properties) to the DSN of the Sentry project " +
+            "Set fivvi.releaseSentryDsn (apps/android/gradle.properties) to the DSN of the Sentry project " +
                 "`android`, https://<key>@<org>.ingest.de.sentry.io/<project> (EU region): '$dsn'"
         }
     }

@@ -1,5 +1,5 @@
 {
-  "name": "@trainer-hub/contract",
+  "name": "@fivvi/contract",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -20,9 +20,9 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@hono/zod-openapi": "catalog:",
-    "@trainer-hub/api": "workspace:*",
-    "@trainer-hub/testing": "workspace:*",
-    "@trainer-hub/typescript-generator": "workspace:*",
+    "@fivvi/api": "workspace:*",
+    "@fivvi/testing": "workspace:*",
+    "@fivvi/typescript-generator": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

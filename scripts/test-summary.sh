@@ -7,7 +7,7 @@
 #       a table of passed, failed and skipped tests per suite and writes the same as JSON to FILE.
 #       --run KIND   the KIND (unit, integration or e2e) was run; with no counts in the logs it is listed as no-results
 #       --skip KIND  the KIND was left out of this run (check.sh --fast); it is listed as skipped
-#       --expect SUITE  the workspace has this suite ("@trainer-hub/ui:test"); with no output in the logs it is listed
+#       --expect SUITE  the workspace has this suite ("@fivvi/ui:test"); with no output in the logs it is listed
 #                       as not-run, e.g. when turbo stopped after another task failed
 #       Suite status: pass, fail, skipped, not-run or no-results. See test-summary.jq for the log format it reads.
 set -euo pipefail

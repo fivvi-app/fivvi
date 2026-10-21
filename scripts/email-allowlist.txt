@@ -25,5 +25,8 @@ smtp-relay.mailin.fr
 # GitHub's own no-reply sender
 noreply@github.com
 
+# The product's own no-reply sender (Fivvi <noreply@fivvi.app>)
+noreply@fivvi.app
+
 # Third-party text, not ours (maintainer contacts in package deprecation notices)
 path: pnpm-lock.yaml

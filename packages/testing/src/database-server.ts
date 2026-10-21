@@ -7,12 +7,12 @@ import pg from 'pg';
 declare module 'vitest' {
   export interface ProvidedContext {
     /** Set by `setupTemplateDatabase` in a package's Vitest global setup. */
-    trainerHubTestRun?: { runId: string; templateName: string };
+    fivviTestRun?: { runId: string; templateName: string };
   }
 }
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
-const PREFIX = 'trainer_hub_test_';
+const PREFIX = 'fivvi_test_';
 
 /**
  * The Postgres server tests create their databases on: `TEST_DATABASE_URL`, else

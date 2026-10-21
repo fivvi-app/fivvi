@@ -1,11 +1,11 @@
-import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
-import { HELLO_GREETING } from '@trainer-hub/database';
+import { HELLO_GREETING } from '@fivvi/database';
 import {
   locales,
   type MessageKey,
   parseAcceptLanguage,
   resolveInterfaceLanguage,
-} from '@trainer-hub/i18n';
+} from '@fivvi/i18n';
+import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
 import type { ApiDependencies } from '../dependencies.ts';
 import { internalServerErrorResponse, ValidationErrorSchema } from '../errors.ts';
 

@@ -1,5 +1,5 @@
 {
-  "name": "@trainer-hub/api",
+  "name": "@fivvi/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,15 +15,15 @@
   },
   "dependencies": {
     "@hono/zod-openapi": "catalog:",
-    "@trainer-hub/database": "workspace:*",
-    "@trainer-hub/i18n": "workspace:*",
-    "@trainer-hub/observability": "workspace:*",
+    "@fivvi/database": "workspace:*",
+    "@fivvi/i18n": "workspace:*",
+    "@fivvi/observability": "workspace:*",
     "hono": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "@trainer-hub/testing": "workspace:*",
+    "@fivvi/testing": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

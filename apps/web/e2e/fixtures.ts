@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
+import { type Locale, locales, type Messages, messages } from '@fivvi/i18n';
 import { test as base, expect, type Page } from '@playwright/test';
-import { type Locale, locales, type Messages, messages } from '@trainer-hub/i18n';
 
 /** Options each Playwright project sets (playwright.config.ts). */
 export interface E2EOptions {

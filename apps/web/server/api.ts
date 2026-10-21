@@ -1,6 +1,6 @@
-import { createApiHandler } from '@trainer-hub/api';
-import { findSystemGreeting, pingDatabase } from '@trainer-hub/database';
-import { createErrorReporter, createProductEvents } from '@trainer-hub/observability';
+import { createApiHandler } from '@fivvi/api';
+import { findSystemGreeting, pingDatabase } from '@fivvi/database';
+import { createErrorReporter, createProductEvents } from '@fivvi/observability';
 import { inProcessApiClient } from './api-client';
 import { database } from './database';
 

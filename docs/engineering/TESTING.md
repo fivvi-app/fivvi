@@ -22,8 +22,8 @@ How we test Fivvi so that AI agents and humans can change it often without break
 | **Email** | Vitest | `packages/email/**/*.test.ts` | Every template renders in nl-NL and en with no missing keys; links and dates are correct | ms |
 | **Web component** | Vitest + Testing Library | `apps/web/**/*.test.tsx` | Only for components with real logic (forms, pickers, stateful widgets). Not for static markup | ms |
 | **Web e2e** | Playwright | `apps/web/e2e/*.spec.ts` | Critical user flows in a real browser, **in NL and EN**, with axe accessibility checks; mobile viewport for public pages | minutes |
-| **iOS unit** | XCTest | `apps/ios/TrainerHubTests/` | View models, state handling, API-client mapping, error states | seconds |
-| **iOS UI** | XCUITest | `apps/ios/TrainerHubUITests/` | A few platform-specific flows Maestro can't cover | minutes |
+| **iOS unit** | XCTest | `apps/ios/FivviProTests/` | View models, state handling, API-client mapping, error states | seconds |
+| **iOS UI** | XCUITest | `apps/ios/FivviProUITests/` | A few platform-specific flows Maestro can't cover | minutes |
 | **Android unit** | JUnit | `apps/android/app/src/test/` | View models, state handling, API-client mapping, error states | seconds |
 | **Android UI** | Compose UI tests | `apps/android/app/src/androidTest/` | Screen states and interactions | minutes |
 | **Mobile e2e** | Maestro | `e2e/maestro/` | **The same flow YAML on iOS and Android**, in both locales. This is the parity acceptance test (M8, the native track: run per milestone from M2) | minutes |
@@ -93,11 +93,11 @@ These are the bugs that hurt most (`ROADMAP.md §13`: R2, R3, R4). They get dedi
 ### 5.3 Database
 
 - Local: Postgres in Docker (`pnpm db:up`, same major version as production). CI: a `postgres:18-alpine` service container in `Checks (Linux)` and in `E2E (Linux)`, where the e2e servers create their own databases. Never run tests against the Railway production or preview databases: the helpers refuse any server that isn't on `localhost`.
-- Tests never share data. `@trainer-hub/testing/database` isolates them at three levels:
+- Tests never share data. `@fivvi/testing/database` isolates them at three levels:
 
 | Level | How | Helper |
 |---|---|---|
-| **Run** | The package's Vitest global setup creates a **template database** and applies the migrations once. Nobody may connect to it afterwards. Teardown drops the template and every database the run created | `setupTemplateDatabase(migrate)` from `@trainer-hub/testing/database/setup`, in `test/global-setup.ts` |
+| **Run** | The package's Vitest global setup creates a **template database** and applies the migrations once. Nobody may connect to it afterwards. Teardown drops the template and every database the run created | `setupTemplateDatabase(migrate)` from `@fivvi/testing/database/setup`, in `test/global-setup.ts` |
 | **Test file** | `beforeAll` clones the template into the file's own database (`CREATE DATABASE … TEMPLATE`, milliseconds, no migrations), `afterAll` drops it. Files run in parallel on different workers without seeing each other | `cloneTemplateDatabase()` |
 | **Test** | The test body runs in one transaction that is **always rolled back**, so every test starts from the migrated, empty state | `withRollback(db, async (tx) => …)` |
 
@@ -109,7 +109,7 @@ These are the bugs that hurt most (`ROADMAP.md §13`: R2, R3, R4). They get dedi
 
 ### 5.4 Time, locale and external services
 
-- **Clock:** domain code gets "now" from an injected `Clock` (`{ now(): Date }`), never `Date.now()` / `Date()` / `new Date()` directly. Tests use a fixed clock. The test process runs with `TZ=UTC` so the machine's timezone never leaks in. `@trainer-hub/testing/clock` has the helpers:
+- **Clock:** domain code gets "now" from an injected `Clock` (`{ now(): Date }`), never `Date.now()` / `Date()` / `new Date()` directly. Tests use a fixed clock. The test process runs with `TZ=UTC` so the machine's timezone never leaks in. `@fivvi/testing/clock` has the helpers:
   - `fixedClock(instant)`, `manualClock(start)` with `advance({ hours: 25 })`, and `freezeSystemTime(instant)` for code that can't take a clock (it restores the real clock after the test);
   - `zonedTime('2026-03-31T18:00')` turns Europe/Amsterdam wall-clock time into an instant, and `wallTime(instant)` goes back. A time in the skipped or repeated DST hour throws unless the test passes `disambiguation` (`earlier`, `later`, `compatible`), so no test picks one by accident;
   - `dstTransitions(2026)` gives the §4.3 fixtures from the time zone database: the instant, local date, offsets and the skipped/repeated hour of the March and October changes.
@@ -149,14 +149,14 @@ The reviewer checks this table against the code.
 
 ### 7.1 Commands
 
-Run from the repo root. Turbo runs the task in every package that has it; add `--filter <package>` to run one package, e.g. `pnpm test --filter @trainer-hub/database`.
+Run from the repo root. Turbo runs the task in every package that has it; add `--filter <package>` to run one package, e.g. `pnpm test --filter @fivvi/database`.
 
 | Command | Runs | Needs |
 |---|---|---|
 | `scripts/check.sh` | Everything below plus repo hygiene (shellcheck, version pinned in `scripts/_shellcheck.sh`; vendored skills, commit messages, commit emails, file emails, doc links); `--fast` skips integration and e2e. At the end it prints the tests each suite passed, failed and skipped and writes them to `.work/check-summary.json` (git-ignored); native iOS and Android counts are not in it, `check.sh` doesn't run them. The contract check runs only when the branch touches `packages/api` or `packages/contract`; CI runs it whenever turbo has no cached result for its inputs. The pre-PR gate | `scripts/bootstrap.sh` once; `--api` for API changes (Java, Swift) |
 | `pnpm test` | Every unit suite (`*.test.ts(x)`) | Nothing |
 | `pnpm test:integration` | Every integration suite (`*.integration.test.ts`) against real Postgres | `pnpm db:up`, and `TEST_DATABASE_URL` set to it (below) |
-| `pnpm test:e2e` | Builds `apps/web`, starts it on port 3100 (`E2E_PORT`), and a second time with a synthetic PostHog key on `E2E_PORT + 1000` for the page view tests, each on a fresh migrated database of its own (`trainer_hub_test_e2e_<port>`, `apps/web/e2e/serve.ts`), and runs every Playwright spec in **nl-NL and en** with axe | `pnpm db:up` (or `TEST_DATABASE_URL`); Chromium, once: `pnpm --filter @trainer-hub/web exec playwright install chromium --only-shell` |
+| `pnpm test:e2e` | Builds `apps/web`, starts it on port 3100 (`E2E_PORT`), and a second time with a synthetic PostHog key on `E2E_PORT + 1000` for the page view tests, each on a fresh migrated database of its own (`fivvi_test_e2e_<port>`, `apps/web/e2e/serve.ts`), and runs every Playwright spec in **nl-NL and en** with axe | `pnpm db:up` (or `TEST_DATABASE_URL`); Chromium, once: `pnpm --filter @fivvi/web exec playwright install chromium --only-shell` |
 | `pnpm test:android` | `scripts/android.sh test`: ktlint with the literal-text, colour and Sentry rules, the release Sentry DSN (EU region), build, Android unit tests (nl-NL and en), Compose UI tests on an emulator (booted when none is connected). What CI's `Android` job runs | `scripts/bootstrap.sh --mobile` once |
 | `pnpm test:maestro` | `scripts/maestro.sh android`: Postgres (migrated, seeded) and the web server on `E2E_PORT`, warmed up with `GET /api/v1/hello` in both locales, the debug app on the emulator, every flow in `e2e/maestro/` with the emulator in **nl-NL and en**, each once Android has settled after the language change | Docker, `scripts/bootstrap.sh --mobile` once |
 | `scripts/maestro.sh ios` | The same flows on the iPhone simulator (local only), after the same warm-up | Docker, `scripts/bootstrap.sh --mobile` once |
@@ -169,7 +169,7 @@ export TEST_DATABASE_URL=postgres://trainer_hub:trainer_hub@localhost:5432/train
 pnpm test:integration
 ```
 
-`TEST_DATABASE_URL` falls back to `DATABASE_URL`; `packages/database` also reads either from its git-ignored `.env`. Without one, integration tests fail with a message instead of being skipped. Tests only create and drop their own `trainer_hub_test_*` databases, so they don't disturb the dev database on the same server.
+`TEST_DATABASE_URL` falls back to `DATABASE_URL`; `packages/database` also reads either from its git-ignored `.env`. Without one, integration tests fail with a message instead of being skipped. Tests only create and drop their own `fivvi_test_*` databases, so they don't disturb the dev database on the same server.
 
 Inside a package, `pnpm exec vitest` watches unit tests, `pnpm exec vitest --config vitest.integration.config.ts` integration tests, and in `apps/web`, `pnpm exec playwright test --ui` debugs e2e specs (after `pnpm build` and `pnpm db:up`). Playwright writes `playwright-report/` and `test-results/` (git-ignored); CI uploads them when `E2E (Linux)` fails.
 
@@ -184,8 +184,8 @@ How to run them, per app:
 
 | Suite | Location | What it is |
 |---|---|---|
-| **iOS unit** (XCTest) | `apps/ios/TrainerHubTests/` | The unit test target in the Xcode project. The shared scheme's **test plan** (`apps/ios/TrainerHub.xctestplan`) has two configurations, `nl` / region `NL` and `en` / `GB`, time zone `Europe/Amsterdam`; the unit tests run in both. View models run against a stub of the generated client's `APIProtocol` |
-| **iOS UI** (XCUITest) | `apps/ios/TrainerHubUITests/` | The UI test target in the same scheme and test plan. Find elements by `accessibilityIdentifier`, never by visible text. The app runs against a stub HTTP server in the test runner, so tests assert the requested `locale` too. The text-dependent tests (greeting, error and loading text, display name) run in both configurations; the locale-independent ones run in `nl` only. Which ones and why: [`apps/ios/README.md`](../../apps/ios/README.md#tests) ("Which tests run in which locale"); `pnpm test:ios` fails if a UI test would run in no configuration |
+| **iOS unit** (XCTest) | `apps/ios/FivviProTests/` | The unit test target in the Xcode project. The shared scheme's **test plan** (`apps/ios/FivviPro.xctestplan`) has two configurations, `nl` / region `NL` and `en` / `GB`, time zone `Europe/Amsterdam`; the unit tests run in both. View models run against a stub of the generated client's `APIProtocol` |
+| **iOS UI** (XCUITest) | `apps/ios/FivviProUITests/` | The UI test target in the same scheme and test plan. Find elements by `accessibilityIdentifier`, never by visible text. The app runs against a stub HTTP server in the test runner, so tests assert the requested `locale` too. The text-dependent tests (greeting, error and loading text, display name) run in both configurations; the locale-independent ones run in `nl` only. Which ones and why: [`apps/ios/README.md`](../../apps/ios/README.md#tests) ("Which tests run in which locale"); `pnpm test:ios` fails if a UI test would run in no configuration |
 | **Android unit** (JUnit) | `apps/android/app/src/test/` | JUnit dependencies in the app module; run with `./gradlew testDebugUnitTest`. Locale-dependent tests run for `nl-NL` and `en` (parameterised) |
 | **Android UI** (Compose UI tests) | `apps/android/app/src/androidTest/` | `androidx.compose.ui:ui-test-junit4` and the `testInstrumentationRunner`; run with `./gradlew connectedDebugAndroidTest` on an emulator. Find nodes by `testTag`, never by visible text |
 | **Mobile e2e** (Maestro) | `e2e/maestro/` at the repo root, one flow per feature (`<feature>.yaml`) plus a shared `config.yaml` | The **same flow file** runs on both apps: the apps use the same `accessibilityIdentifier` / `testTag` for the same element, and one bundle/application id per platform goes in the flow's `env`. Each flow runs once per locale, by setting the device or simulator language before launch |

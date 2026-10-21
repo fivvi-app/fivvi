@@ -60,7 +60,7 @@ export function tokenPaths(tree: TokenTree, prefix: string[] = []): string[] {
 export type Platform = 'ios' | 'android';
 
 /** The `$extensions` key for platform mapping notes, e.g. the native text style of a type style. */
-const platformExtension = 'app.trainerhub.platform';
+const platformExtension = 'app.fivvi.platform';
 
 /** The platform note of every token in `tree` that has one, by token path. */
 export function platformNotes(tree: TokenTree, platform: Platform): Map<string, string> {

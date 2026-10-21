@@ -124,11 +124,11 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
   it('E008 AC9: the iOS job runs for the app and its generated inputs, including the Swift design tokens', () => {
     for (const path of [
-      'apps/ios/TrainerHub/Hello/HelloView.swift',
-      'packages/contract/swift/Sources/TrainerHubAPI/Generated/Client.swift',
+      'apps/ios/FivviPro/Hello/HelloView.swift',
+      'packages/contract/swift/Sources/FivviAPI/Generated/Client.swift',
       'packages/i18n/generated/ios/Localizable.xcstrings',
-      'packages/design-tokens/TrainerHubDesignTokens/Package.swift',
-      'packages/design-tokens/TrainerHubDesignTokens/Sources/TrainerHubDesignTokens/Generated/Colors.swift',
+      'packages/design-tokens/FivviDesignTokens/Package.swift',
+      'packages/design-tokens/FivviDesignTokens/Sources/FivviDesignTokens/Generated/Colors.swift',
       'scripts/test-ios.sh',
       'scripts/_ios.sh',
     ]) {
@@ -137,7 +137,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     for (const path of [
       'docs/product/FEATURES.md',
       'packages/design-tokens/generated/web/tokens.css',
-      'packages/design-tokens/kotlin/generated/nl/trainerhub/designtokens/Colors.kt',
+      'packages/design-tokens/kotlin/generated/app/fivvi/designtokens/Colors.kt',
       'packages/i18n/generated/android/values/strings.xml',
     ]) {
       assert.ok(!runs('ios', path), path);
@@ -146,10 +146,10 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
   it('E008 AC9: the Android job runs for the app and its generated inputs, including the Kotlin design tokens', () => {
     for (const path of [
-      'apps/android/app/src/main/kotlin/nl/trainerhub/app/MainActivity.kt',
-      'packages/contract/kotlin/generated/nl/trainerhub/api/apis/HelloApi.kt',
+      'apps/android/app/src/main/kotlin/app/fivvi/pro/MainActivity.kt',
+      'packages/contract/kotlin/generated/app/fivvi/api/apis/HelloApi.kt',
       'packages/i18n/generated/android/values/strings.xml',
-      'packages/design-tokens/kotlin/generated/nl/trainerhub/designtokens/Colors.kt',
+      'packages/design-tokens/kotlin/generated/app/fivvi/designtokens/Colors.kt',
       'e2e/maestro/hello.yaml',
       'scripts/android.sh',
       'scripts/_android.sh',
@@ -160,7 +160,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     for (const path of [
       'docs/product/FEATURES.md',
       'packages/design-tokens/generated/web/tokens.css',
-      'packages/design-tokens/TrainerHubDesignTokens/Sources/TrainerHubDesignTokens/Generated/Colors.swift',
+      'packages/design-tokens/FivviDesignTokens/Sources/FivviDesignTokens/Generated/Colors.swift',
       'packages/i18n/generated/ios/Localizable.xcstrings',
     ]) {
       assert.ok(!runs('android', path), path);
@@ -178,7 +178,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
   });
 
   it('E002 #91: a push to main runs a native job only when its own paths changed, so main warms the caches', () => {
-    const ios = nativeJobs(['apps/ios/TrainerHub/App.swift'], ['--event', 'push']);
+    const ios = nativeJobs(['apps/ios/FivviPro/App.swift'], ['--event', 'push']);
     assert.equal(ios.ios, 'true');
     assert.equal(ios.android, 'false');
     const android = nativeJobs(['apps/android/app/build.gradle.kts'], ['--event', 'push']);
@@ -434,7 +434,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.match(android, /android\.sh avd-key/);
     assert.match(
       android,
-      /path: ~\/\.android\/avd\n +key: avd-v1-\$\{\{ runner\.os \}\}-\$\{\{ steps\.avd\.outputs\.key \}\}/,
+      /path: ~\/\.android\/avd\n +key: avd-v2-\$\{\{ runner\.os \}\}-\$\{\{ steps\.avd\.outputs\.key \}\}/,
     );
     const boot = android.slice(android.indexOf('name: Boot the emulator'));
     assert.match(boot.slice(0, boot.indexOf('- name:', 10)), /AVD_SNAPSHOT: '1'/);
@@ -471,14 +471,11 @@ describe('iOS local Swift packages (apps/ios)', () => {
     // directories share a name (the design tokens and the API client were both `swift`) can't both link.
     const root = join(SCRIPTS, '..');
     const ios = join(root, 'apps/ios');
-    const project = readFileSync(join(ios, 'TrainerHub.xcodeproj/project.pbxproj'), 'utf8');
+    const project = readFileSync(join(ios, 'FivviPro.xcodeproj/project.pbxproj'), 'utf8');
     const packages = [
       ...project.matchAll(/isa = XCLocalSwiftPackageReference;\s*relativePath = "?([^";]+)"?;/g),
     ].map(([, dir]) => join(ios, dir));
-    for (const dir of [
-      'packages/contract/swift',
-      'packages/design-tokens/TrainerHubDesignTokens',
-    ]) {
+    for (const dir of ['packages/contract/swift', 'packages/design-tokens/FivviDesignTokens']) {
       assert.ok(packages.includes(join(root, dir)), `the app links ${dir}`);
     }
     for (const dir of packages) {
@@ -576,7 +573,7 @@ exit 0`
     const setup = () =>
       spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], { encoding: 'utf8', env });
     const installed = () => readFileSync(log, 'utf8');
-    const config = join(home, '.android/avd/trainer-hub.avd/config.ini');
+    const config = join(home, '.android/avd/fivvi.avd/config.ini');
     return { env, setup, installed, config };
   };
 
@@ -679,7 +676,7 @@ describe('android.sh emulator', () => {
     mkdirSync(join(base, 'jdk'));
     script(join(base, 'bin/java'), 'echo "openjdk version \\"21\\"" >&2');
     script(join(base, 'bin/sleep'), `echo "$*" >>"${join(state, 'sleeps')}"`);
-    const snapshots = join(base, 'home/.android/avd/trainer-hub.avd/snapshots/default_boot');
+    const snapshots = join(base, 'home/.android/avd/fivvi.avd/snapshots/default_boot');
     if (snapshot) {
       mkdirSync(snapshots, { recursive: true });
       writeFileSync(join(snapshots, 'snapshot.pb'), '');
@@ -714,7 +711,7 @@ exit 0`,
     script(
       join(sdk, 'emulator/emulator'),
       `case "$1" in
-  -list-avds) echo trainer-hub ;;
+  -list-avds) echo fivvi ;;
   -accel-check) echo 'accel: KVM (fake) is installed and usable' ;;
   *) echo $$ >"${state}/pid"
      echo "$*" >>"${state}/emulator.log"
@@ -859,10 +856,7 @@ esac`,
 
       assert.equal(result.status, 0, result.stdout + result.stderr);
       assert.equal(result.launches.length, 1);
-      assert.match(
-        result.launches[0],
-        /^-avd trainer-hub -snapshot default_boot -no-snapshot-save /,
-      );
+      assert.match(result.launches[0], /^-avd fivvi -snapshot default_boot -no-snapshot-save /);
       assert.match(result.stdout, /Emulator booted from its snapshot in \d+s/);
       assert.deepEqual(
         result.adb.filter((call) => call.startsWith('emu')),
@@ -875,7 +869,7 @@ esac`,
 
       assert.equal(result.status, 0, result.stdout + result.stderr);
       assert.equal(result.launches.length, 1);
-      assert.match(result.launches[0], /^-avd trainer-hub -no-snapshot-load -no-snapshot-save /);
+      assert.match(result.launches[0], /^-avd fivvi -no-snapshot-load -no-snapshot-save /);
       assert.match(result.stdout, /Emulator booted cold in \d+s/);
       assert.ok(result.adb.includes('emu avd snapshot save default_boot'), result.adb.join('\n'));
       assert.ok(result.snapshotSaved);
@@ -1047,9 +1041,9 @@ esac`;
     for (const path of [
       'apps/ios/lint',
       'apps/ios/Config',
-      'apps/ios/TrainerHub.xctestplan',
-      'apps/ios/TrainerHubUITests',
-      'apps/ios/TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
+      'apps/ios/FivviPro.xctestplan',
+      'apps/ios/FivviProUITests',
+      'apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
       'packages/i18n/nl-NL.json',
       'packages/i18n/en.json',
       'packages/i18n/generated/ios',
@@ -1106,11 +1100,11 @@ case "$*" in
       printf '%s' "$(sed 's/"strings" : {/"strings" : { "CFBundleName" : {},/' "$catalog")" >"$catalog"; }
     [ "$FAKE_EXPORT" != hang ] || exec perl -e 'open my $f, ">", shift; close $f; sleep 30' "${state}/running"
     [ "$FAKE_EXPORT" != fail ] || exit 70 ;;
-  *-showBuildSettings*) printf '    TRAINER_HUB_API_BASE_URL = https://example.test/api\\n    INFOPLIST_FILE = Info.plist\\n    TRAINER_HUB_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    TRAINER_HUB_SENTRY_ENVIRONMENT = production\\n' ;;
+  *-showBuildSettings*) printf '    FIVVI_API_BASE_URL = https://example.test/api\\n    INFOPLIST_FILE = Info.plist\\n    FIVVI_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    FIVVI_SENTRY_ENVIRONMENT = production\\n' ;;
   build-for-testing\\ *) [ "$FAKE_BUILD" != fail ] || { echo 'error: build failed (fake)'; exit 1; }
     mkdir -p .build/DerivedData/Build/Products
     # FAKE_XCTESTRUN: none (the build leaves no .xctestrun) or two (it leaves two).
-    [ "$FAKE_XCTESTRUN" = none ] || touch .build/DerivedData/Build/Products/TrainerHub.xctestrun
+    [ "$FAKE_XCTESTRUN" = none ] || touch .build/DerivedData/Build/Products/FivviPro.xctestrun
     [ "$FAKE_XCTESTRUN" != two ] || touch .build/DerivedData/Build/Products/Other.xctestrun
     printf 'Build Timing Summary\\n\\nSwiftCompile (1 task) | 1.000 seconds\\n\\n** TEST BUILD SUCCEEDED **\\n' ;;
   test-without-building\\ *) ${outcome} ;;
@@ -1155,7 +1149,7 @@ exit 0`,
     script(
       join(sdk, 'emulator/emulator'),
       `case "$1" in
-  -list-avds) echo trainer-hub ;;
+  -list-avds) echo fivvi ;;
   -accel-check) ;;
   *) echo $$ >"${state}/pid"; touch "${state}/booted"; exec /bin/sleep 60 ;;
 esac`,
@@ -1365,7 +1359,7 @@ esac`,
       for (const line of tests) {
         assert.match(
           line,
-          /-xctestrun \.build\/DerivedData\/Build\/Products\/TrainerHub\.xctestrun /,
+          /-xctestrun \.build\/DerivedData\/Build\/Products\/FivviPro\.xctestrun /,
         );
       }
     });
@@ -1452,11 +1446,9 @@ esac`,
         .log('xcodebuild')
         .map((line) => line.split(' ')[0])
         .filter((command) => /^(build-for-testing|test-without-building)$/.test(command));
-    const planPath = (fake) => join(fake.repo, 'apps/ios/TrainerHub.xctestplan');
+    const planPath = (fake) => join(fake.repo, 'apps/ios/FivviPro.xctestplan');
     const skipList = (config) =>
-      config.options.environmentVariableEntries.find(
-        (entry) => entry.key === 'TRAINER_HUB_SKIP_TESTS',
-      );
+      config.options.environmentVariableEntries.find((entry) => entry.key === 'FIVVI_SKIP_TESTS');
     // Rewrites the test plan in the fake checkout: `edit` gets the plan's configurations by name.
     const editPlan = (fake, edit) => {
       const plan = JSON.parse(readFileSync(planPath(fake), 'utf8'));
@@ -1477,7 +1469,7 @@ esac`,
 
     it('D: nl runs every UI test and en skips only the locale-independent ones', () => {
       const plan = JSON.parse(
-        readFileSync(join(SCRIPTS, '../apps/ios/TrainerHub.xctestplan'), 'utf8'),
+        readFileSync(join(SCRIPTS, '../apps/ios/FivviPro.xctestplan'), 'utf8'),
       );
       const [nl, en] = ['nl', 'en'].map((name) => plan.configurations.find((c) => c.name === name));
 
@@ -1495,7 +1487,7 @@ esac`,
       const fake = checkout();
       editPlan(fake, ({ nl }) => {
         nl.options.environmentVariableEntries.push({
-          key: 'TRAINER_HUB_SKIP_TESTS',
+          key: 'FIVVI_SKIP_TESTS',
           value: 'HelloUITests/test_E008_AC6_usesTokenColoursInLightAndDark',
         });
       });
@@ -1532,7 +1524,7 @@ esac`,
         const run = await fake.run('scripts/test-ios.sh');
 
         assert.equal(run.status, 1, run.output);
-        assert.match(run.output, new RegExp(`${key}.*TRAINER_HUB_SKIP_TESTS`));
+        assert.match(run.output, new RegExp(`${key}.*FIVVI_SKIP_TESTS`));
         assert.deepEqual(commands(fake), []);
       });
     }
@@ -1555,7 +1547,7 @@ esac`,
 
     it('D: finds the tests of a private final class and of a second class in the same target', async () => {
       const fake = checkout();
-      const extra = join(fake.repo, 'apps/ios/TrainerHubUITests/ExtraTests.swift');
+      const extra = join(fake.repo, 'apps/ios/FivviProUITests/ExtraTests.swift');
       writeFileSync(
         extra,
         'private final class Helper {\n    class func test_notATest() {}\n}\nprivate final class ExtraTests: XCTestCase {\n    func test_E002_extra() {}\n}\n',
@@ -1573,7 +1565,7 @@ esac`,
 
     it('D: a class does not leak into the next file: a test outside any class is not a UI test, whatever order the files are read in', async () => {
       const fake = checkout();
-      const dir = join(fake.repo, 'apps/ios/TrainerHubUITests');
+      const dir = join(fake.repo, 'apps/ios/FivviProUITests');
       rmSync(dir, { recursive: true });
       mkdirSync(dir);
       // Each file has a free function, then the class: whichever file is read second would give its free function the
@@ -1586,7 +1578,7 @@ esac`,
       }
       editPlan(fake, ({ nl, en }) => {
         nl.options.environmentVariableEntries = nl.options.environmentVariableEntries.filter(
-          (entry) => entry.key !== 'TRAINER_HUB_SKIP_TESTS',
+          (entry) => entry.key !== 'FIVVI_SKIP_TESTS',
         );
         skipList(en).value = 'HelloUITests/test_freeA,HelloUITests/test_freeB';
       });
@@ -1677,7 +1669,7 @@ esac`,
     const fake = checkout();
     const worktree = fake.worktree('feature/9-own-simulator');
     const own = () =>
-      fake.simulators().filter((device) => device.name === 'Trainer Hub feature-9-own-simulator');
+      fake.simulators().filter((device) => device.name === 'Fivvi feature-9-own-simulator');
 
     const first = await fake.run('scripts/test-ios.sh', [], {}, { cwd: worktree });
     const second = await fake.run('scripts/test-ios.sh', [], {}, { cwd: worktree });
@@ -1992,7 +1984,7 @@ describe('E008 #95 ios-device.sh runs the Debug app on a real iPhone', () => {
     device('PHONE-9', 'Unpaired iPhone', { paired: false }),
   ];
   const localXcconfig =
-    'DEVELOPMENT_TEAM = TEAM000001\nTRAINER_HUB_API_BASE_URL = http:/$()/mac.local:3000/api\n';
+    'DEVELOPMENT_TEAM = TEAM000001\nFIVVI_API_BASE_URL = http:/$()/mac.local:3000/api\n';
 
   const checkout = ({ devices = [phone, ...others], local = localXcconfig } = {}) => {
     const base = realpathSync(mkdtempSync(join(tmpdir(), 'ios-device-')));
@@ -2047,8 +2039,8 @@ data=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -derivedDataPath) data="$2"; shift ;;
-    build) app="$data/Build/Products/Debug-iphoneos/TrainerHub.app"; mkdir -p "$app"
-      echo '<plist><dict><key>CFBundleIdentifier</key><string>test.trainerhub.app</string></dict></plist>' >"$app/Info.plist" ;;
+    build) app="$data/Build/Products/Debug-iphoneos/FivviPro.app"; mkdir -p "$app"
+      echo '<plist><dict><key>CFBundleIdentifier</key><string>test.fivvi.pro</string></dict></plist>' >"$app/Info.plist" ;;
   esac
   shift
 done
@@ -2085,7 +2077,7 @@ sed -nE "s#.*<key>$2</key><string>([^<]*)</string>.*#\\1#p" "\${@: -1}"`,
     return { run, builds, devicectl, status, localFile };
   };
 
-  const app = 'apps/ios/.build/DerivedData/Build/Products/Debug-iphoneos/TrainerHub.app';
+  const app = 'apps/ios/.build/DerivedData/Build/Products/Debug-iphoneos/FivviPro.app';
 
   it('AC1: builds the Debug app for the paired iPhone, signed through Local.xcconfig, then installs and launches it', () => {
     const fake = checkout();
@@ -2100,12 +2092,12 @@ sed -nE "s#.*<key>$2</key><string>([^<]*)</string>.*#\\1#p" "\${@: -1}"`,
     assert.match(build, / -allowProvisioningUpdates /);
     assert.doesNotMatch(
       build,
-      /CODE_SIGN|DEVELOPMENT_TEAM|TRAINER_HUB_API_BASE_URL/,
+      /CODE_SIGN|DEVELOPMENT_TEAM|FIVVI_API_BASE_URL/,
       'all from Local.xcconfig',
     );
     assert.deepEqual(fake.devicectl(), [
       `devicectl device install app --device PHONE-1 ${app}`,
-      'devicectl device process launch --device PHONE-1 --terminate-existing test.trainerhub.app',
+      'devicectl device process launch --device PHONE-1 --terminate-existing test.fivvi.pro',
     ]);
     assert.match(run.output, /Test iPhone/);
     assert.match(run.output, /http:\/\/mac\.local:3000\/api/);
@@ -2131,7 +2123,7 @@ sed -nE "s#.*<key>$2</key><string>([^<]*)</string>.*#\\1#p" "\${@: -1}"`,
       assert.equal(run.status, 0, run.output);
       assert.equal(
         fake.devicectl().at(-1),
-        `devicectl device process launch --device PHONE-1 --terminate-existing test.trainerhub.app -- -AppleLanguages (${language})`,
+        `devicectl device process launch --device PHONE-1 --terminate-existing test.fivvi.pro -- -AppleLanguages (${language})`,
       );
     });
   }
@@ -2201,7 +2193,7 @@ sed -nE "s#.*<key>$2</key><string>([^<]*)</string>.*#\\1#p" "\${@: -1}"`,
     ['no Local.xcconfig', null],
     [
       'no DEVELOPMENT_TEAM in Local.xcconfig',
-      'TRAINER_HUB_API_BASE_URL = http:/$()/mac.local:3000/api\n',
+      'FIVVI_API_BASE_URL = http:/$()/mac.local:3000/api\n',
     ],
   ]) {
     it(`AC1: with ${name} it explains that a signing team is missing, and builds nothing`, () => {
@@ -2223,7 +2215,7 @@ sed -nE "s#.*<key>$2</key><string>([^<]*)</string>.*#\\1#p" "\${@: -1}"`,
     const run = fake.run();
 
     assert.equal(run.status, 0, run.output);
-    assert.match(run.output, /TRAINER_HUB_API_BASE_URL/);
+    assert.match(run.output, /FIVVI_API_BASE_URL/);
     assert.match(run.output, /localhost/);
   });
 
@@ -2351,7 +2343,7 @@ describe('wt.sh done', () => {
     // The worktree's own simulator (pnpm test:ios), booted, next to the shared one.
     mkdirSync(join(base, 'state/devices'), { recursive: true });
     for (const device of [
-      iPhone('OWN', 'Trainer Hub feature-57-hold', '27-0', 'Booted'),
+      iPhone('OWN', 'Fivvi feature-57-hold', '27-0', 'Booted'),
       iPhone('SHARED', 'iPhone 18 Pro', '27-0', 'Booted'),
     ]) {
       writeFileSync(join(base, 'state/devices', device.udid), JSON.stringify(device));
@@ -2504,6 +2496,6 @@ describe('wt.sh done', () => {
     assert.equal(git(repo, 'branch', '--list', 'feature/57-hold'), '');
     assert.equal(git(repo, 'ls-remote', '--heads', 'origin', 'feature/57-hold'), '');
     assert.deepEqual(simulators(), ['SHARED']);
-    assert.match(result.stdout, /deleted simulator 'Trainer Hub feature-57-hold'/);
+    assert.match(result.stdout, /deleted simulator 'Fivvi feature-57-hold'/);
   });
 });

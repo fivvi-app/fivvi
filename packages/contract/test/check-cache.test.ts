@@ -19,12 +19,12 @@ const run = promisify(execFile);
 async function planCheckTask(): Promise<DryRunTask> {
   const { stdout } = await run(
     'pnpm',
-    ['exec', 'turbo', 'run', 'check', '--filter=@trainer-hub/contract', '--dry=json'],
+    ['exec', 'turbo', 'run', 'check', '--filter=@fivvi/contract', '--dry=json'],
     { cwd: join(CONTRACT_ROOT, '../..'), maxBuffer: 16 * 1024 * 1024 },
   );
   const { tasks } = JSON.parse(stdout) as { tasks: DryRunTask[] };
-  const task = tasks.find(({ taskId }) => taskId === '@trainer-hub/contract#check');
-  if (!task) throw new Error('turbo plans no @trainer-hub/contract#check task');
+  const task = tasks.find(({ taskId }) => taskId === '@fivvi/contract#check');
+  if (!task) throw new Error('turbo plans no @fivvi/contract#check task');
   return task;
 }
 
@@ -66,7 +66,7 @@ describe('#30 cached contract drift check', () => {
 
   it('AC2: re-runs when a route or schema in packages/api changes, through its build', () => {
     expect(task.dependencies).toEqual(
-      expect.arrayContaining(['@trainer-hub/api#build', '@trainer-hub/typescript-generator#build']),
+      expect.arrayContaining(['@fivvi/api#build', '@fivvi/typescript-generator#build']),
     );
   });
 });

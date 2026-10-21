@@ -5,7 +5,7 @@
     "jsx": "react-jsx",
     "types": ["node"],
     "paths": {
-      "@trainer-hub/ui/*": ["./src/*"]
+      "@fivvi/ui/*": ["./src/*"]
     }
   },
   "include": ["src", "lint", "test", "*.ts"],

@@ -1,9 +1,9 @@
 // E009 fixture: Sentry called outside the observability module. ktlintCheck must fail on the import and the fully
 // qualified call below and name this file and line. Not compiled; NoSentryOutsideObservabilityRuleTest reads it.
-package nl.trainerhub.app.hello
+package app.fivvi.pro.hello
 
 import io.sentry.Sentry
-import nl.trainerhub.app.observability.Observability
+import app.fivvi.pro.observability.Observability
 
 fun reportFailure(error: Throwable) {
     Sentry.captureException(error)

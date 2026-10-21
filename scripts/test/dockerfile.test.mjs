@@ -40,12 +40,12 @@ describe('E009 the Docker image', () => {
   const webBuild = readFileSync(join(ROOT, 'apps/web/package.json'), 'utf8');
   const buildStage = [...stages.values()].find((stage) =>
     stage.instructions.some((instruction) =>
-      /^RUN pnpm --filter @trainer-hub\/web build\b/.test(instruction),
+      /^RUN pnpm --filter @fivvi\/web build\b/.test(instruction),
     ),
   );
 
   it('builds the web app in a stage, and that build publishes the source maps', () => {
-    assert.ok(buildStage, 'no stage runs pnpm --filter @trainer-hub/web build');
+    assert.ok(buildStage, 'no stage runs pnpm --filter @fivvi/web build');
     assert.match(webBuild, /"build": "[^"]*node scripts\/publish-source-maps\.ts/);
   });
 

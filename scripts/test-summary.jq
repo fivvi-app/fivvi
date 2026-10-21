@@ -1,6 +1,6 @@
 # The test counts of a check run, read from the logs turbo prints. Pure: no I/O.
 # Input: the lines of the logs (jq --raw-input --slurp), the --run and --skip kinds as $run and $skip, and the suites
-# the workspace has as $expect, each as "<package>:<task>" like the prefix turbo prints ("@trainer-hub/ui:test").
+# the workspace has as $expect, each as "<package>:<task>" like the prefix turbo prints ("@fivvi/ui:test").
 # Output: {suites: [{name, kind, status, passed, failed, skipped}], total: {passed, failed, skipped}}
 #
 # turbo puts "<package>:<task>: " before every line of a task, so the log of the whole run tells the suites apart:

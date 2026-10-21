@@ -1,10 +1,10 @@
-import type { SystemGreetingView } from '@trainer-hub/database';
+import type { SystemGreetingView } from '@fivvi/database';
 import {
   createErrorReporter,
   createProductEvents,
   type ErrorReporter,
   type ProductEvents,
-} from '@trainer-hub/observability';
+} from '@fivvi/observability';
 
 /** What the API needs from the outside world. apps/web wires the real ones; tests pass fakes. */
 export interface ApiDependencies {

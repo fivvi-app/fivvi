@@ -40,7 +40,7 @@ start_stack() {
   pnpm db:up >/dev/null
   pnpm db:migrate >/dev/null
   pnpm db:seed >/dev/null
-  pnpm turbo run build --filter=@trainer-hub/web --output-logs=errors-only
+  pnpm turbo run build --filter=@fivvi/web --output-logs=errors-only
   mkdir -p "$REPORTS"
   (cd apps/web && PORT="$PORT" HOSTNAME=127.0.0.1 exec node --env-file=../../packages/database/.env \
     .next/standalone/apps/web/server.js) >"$REPORTS/web.log" 2>&1 &
@@ -121,7 +121,7 @@ cmd_android() {
   DEVICE_LOCALE="$(adb shell getprop persist.sys.locale | tr -d '\r')"
   [ -n "$DEVICE_LOCALE" ] || DEVICE_LOCALE="$(adb shell getprop ro.product.locale | tr -d '\r')"
   hide_error_dialogs
-  gradle installDebug "-Ptrainerhub.apiBaseUrl=http://10.0.2.2:$PORT/api/"
+  gradle installDebug "-Pfivvi.apiBaseUrl=http://10.0.2.2:$PORT/api/"
 
   local locale failed=""
   for locale in $LOCALES; do
@@ -183,11 +183,11 @@ cmd_ios() {
 
   # The Debug app with the API on this run's port; the simulator reaches the Mac as localhost.
   echo "Building the iOS app for simulator $SIMULATOR"
-  (cd "$IOS_DIR" && xcodebuild build -project TrainerHub.xcodeproj -scheme TrainerHub -configuration Debug \
+  (cd "$IOS_DIR" && xcodebuild build -project FivviPro.xcodeproj -scheme FivviPro -configuration Debug \
     -destination "id=$SIMULATOR" -clonedSourcePackagesDirPath .build/SourcePackages \
     -derivedDataPath .build/MaestroDerivedData -quiet CODE_SIGNING_ALLOWED=NO \
-    "TRAINER_HUB_API_BASE_URL=http://localhost:$PORT/api")
-  xcrun simctl install "$SIMULATOR" "$IOS_DIR/.build/MaestroDerivedData/Build/Products/Debug-iphonesimulator/TrainerHub.app"
+    "FIVVI_API_BASE_URL=http://localhost:$PORT/api")
+  xcrun simctl install "$SIMULATOR" "$IOS_DIR/.build/MaestroDerivedData/Build/Products/Debug-iphonesimulator/FivviPro.app"
 
   local locale failed=""
   for locale in $LOCALES; do

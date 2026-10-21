@@ -6,7 +6,7 @@ import {
   type Locale,
   type MessageKey,
   messages,
-} from '@trainer-hub/i18n';
+} from '@fivvi/i18n';
 import type { ReactElement } from 'react';
 import { render } from 'react-email';
 import { createTranslator } from 'use-intl/core';
@@ -25,7 +25,7 @@ export interface EmailContext {
   /** IANA time zone every date and time is shown in. */
   timeZone: string;
   t: Translate;
-  /** Formats an instant with a shared format from `@trainer-hub/i18n`, in `timeZone`. */
+  /** Formats an instant with a shared format from `@fivvi/i18n`, in `timeZone`. */
   formatDateTime: (instant: Date, format: DateTimeFormatName) => string;
 }
 

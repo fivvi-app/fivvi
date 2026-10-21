@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs the Debug app on a real iPhone (E008): builds it, installs it and launches it. The signing team and the API come
-# from apps/ios/Config/Local.xcconfig (git-ignored): DEVELOPMENT_TEAM and TRAINER_HUB_API_BASE_URL (apps/ios/README.md).
+# from apps/ios/Config/Local.xcconfig (git-ignored): DEVELOPMENT_TEAM and FIVVI_API_BASE_URL (apps/ios/README.md).
 #
 #   ios-device.sh [nl|en]   on the paired iPhone (by cable, or on the same network once paired); IOS_DEVICE=<udid>
 #                           picks one of several. With nl or en, launches the app in that device language
@@ -48,9 +48,9 @@ device() {
 
 team="$(local_setting DEVELOPMENT_TEAM)"
 [ -n "$team" ] || die "no signing team: add \`DEVELOPMENT_TEAM = <your Apple team ID>\` to $LOCAL_XCCONFIG (git-ignored, apps/ios/README.md)"
-api="$(local_setting TRAINER_HUB_API_BASE_URL)"
+api="$(local_setting FIVVI_API_BASE_URL)"
 if [ -z "$api" ]; then
-  echo "warning: no TRAINER_HUB_API_BASE_URL in $LOCAL_XCCONFIG: the app calls localhost, which on a phone is the phone itself" >&2
+  echo "warning: no FIVVI_API_BASE_URL in $LOCAL_XCCONFIG: the app calls localhost, which on a phone is the phone itself" >&2
 fi
 
 need_cmd jq
@@ -72,10 +72,10 @@ name="${phone#* }"
 cd "$IOS_DIR"
 # shellcheck disable=SC2016 # the xcconfig's literal `$()`, which keeps `//` from starting a comment
 echo "▶ Build the Debug app for $name ($udid), team $team, API ${api:-localhost}" | sed 's#\$()##g'
-xcodebuild -project TrainerHub.xcodeproj -scheme TrainerHub -configuration Debug -destination "id=$udid" \
+xcodebuild -project FivviPro.xcodeproj -scheme FivviPro -configuration Debug -destination "id=$udid" \
   -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData -allowProvisioningUpdates \
   -quiet build
-app="$IOS_DIR/.build/DerivedData/Build/Products/Debug-iphoneos/TrainerHub.app"
+app="$IOS_DIR/.build/DerivedData/Build/Products/Debug-iphoneos/FivviPro.app"
 bundle_id="$(plutil -extract CFBundleIdentifier raw -o - "$app/Info.plist")"
 
 echo "▶ Install on $name"
@@ -86,4 +86,4 @@ if [ -n "$language" ]; then
 else
   device process launch --device "$udid" --terminate-existing "$bundle_id"
 fi
-echo "✓ Trainer Hub runs on $name"
+echo "✓ Fivvi runs on $name"

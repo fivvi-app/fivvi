@@ -1,0 +1,68 @@
+{
+  "configurations" : [
+    {
+      "id" : "0E008A11-0000-4000-8000-00000000004E",
+      "name" : "nl",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "TZ",
+            "value" : "Europe\/Amsterdam"
+          },
+          {
+            "key" : "FIVVI_TEST_LANGUAGE",
+            "value" : "nl"
+          }
+        ],
+        "language" : "nl",
+        "region" : "NL"
+      }
+    },
+    {
+      "id" : "0E008A11-0000-4000-8000-000000000045",
+      "name" : "en",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "TZ",
+            "value" : "Europe\/Amsterdam"
+          },
+          {
+            "key" : "FIVVI_TEST_LANGUAGE",
+            "value" : "en"
+          },
+          {
+            "key" : "FIVVI_SKIP_TESTS",
+            "value" : "HelloUITests\/test_E008_AC3_unsupportedDeviceLanguageShowsEnglish,HelloUITests\/test_E008_AC3_firstSupportedDeviceLanguageWins,HelloUITests\/test_E008_AC3_perAppLanguageOverridesTheDevice,HelloUITests\/test_E008_AC6_usesTokenColoursInLightAndDark,HelloUITests\/test_E008_AC7_largestTextSizeWraps"
+          }
+        ],
+        "language" : "en",
+        "region" : "GB"
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:FivviPro.xcodeproj",
+      "identifier" : "E00800000000000000000050",
+      "name" : "FivviPro"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:FivviPro.xcodeproj",
+        "identifier" : "E00800000000000000000051",
+        "name" : "FivviProTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:FivviPro.xcodeproj",
+        "identifier" : "E00800000000000000000052",
+        "name" : "FivviProUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

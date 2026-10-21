@@ -48,7 +48,7 @@ Pass `-p`, `-e` and `-s` on every command that takes them; `environment list` ta
 
 ## iPhone
 
-`scripts/ios-device.sh [nl|en]` builds the Debug app, installs it on the paired iPhone and launches it, in the given language. It signs with `DEVELOPMENT_TEAM` and calls the API in `TRAINER_HUB_API_BASE_URL`, both from `apps/ios/Config/Local.xcconfig` ([iOS README](../../apps/ios/README.md)). That file is git-ignored, so a worktree has none: link the main checkout's (`ln -s <main checkout>/apps/ios/Config/Local.xcconfig apps/ios/Config/Local.xcconfig`) and remove the link when done.
+`scripts/ios-device.sh [nl|en]` builds the Debug app, installs it on the paired iPhone and launches it, in the given language. It signs with `DEVELOPMENT_TEAM` and calls the API in `FIVVI_API_BASE_URL`, both from `apps/ios/Config/Local.xcconfig` ([iOS README](../../apps/ios/README.md)). That file is git-ignored, so a worktree has none: link the main checkout's (`ln -s <main checkout>/apps/ios/Config/Local.xcconfig apps/ios/Config/Local.xcconfig`) and remove the link when done.
 
 | Job | Command |
 |---|---|
@@ -70,10 +70,10 @@ bash -c 'source scripts/_lib.sh && source scripts/_android.sh && android_env && 
 | Job | `<command>` |
 |---|---|
 | Connected devices | `adb devices` |
-| Install the Debug app | `gradle installDebug -Ptrainerhub.apiBaseUrl=https://<preview-domain>/api/` |
-| Launch | `adb shell am start -n nl.trainerhub.app/.MainActivity` |
-| Per-app language | `adb shell cmd locale set-app-locales nl.trainerhub.app --locales nl-NL` (`en` for English), then launch again |
-| Stop the app | `adb shell am force-stop nl.trainerhub.app` |
+| Install the Debug app | `gradle installDebug -Pfivvi.apiBaseUrl=https://<preview-domain>/api/` |
+| Launch | `adb shell am start -n app.fivvi.pro/.MainActivity` |
+| Per-app language | `adb shell cmd locale set-app-locales app.fivvi.pro --locales nl-NL` (`en` for English), then launch again |
+| Stop the app | `adb shell am force-stop app.fivvi.pro` |
 
 With no device connected, boot the emulator headless with `scripts/android.sh emulator` (no wrapper needed) and end it with `scripts/android.sh stop`. Use `gradle` (a function in `_android.sh`) rather than `./gradlew`: it keeps the daemons of this worktree apart. End with `gradle --stop` unless the next run follows soon.
 

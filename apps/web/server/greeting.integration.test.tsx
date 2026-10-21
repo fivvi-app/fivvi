@@ -1,17 +1,13 @@
-import { createApiHandler, NO_DEPENDENCIES } from '@trainer-hub/api';
+import { createApiHandler, NO_DEPENDENCIES } from '@fivvi/api';
 import {
   createDatabase,
   type DatabaseClient,
   type DatabaseExecutor,
   findSystemGreeting,
   systemGreetings,
-} from '@trainer-hub/database';
-import { type Locale, locales, messages } from '@trainer-hub/i18n';
-import {
-  cloneTemplateDatabase,
-  type TestDatabase,
-  withRollback,
-} from '@trainer-hub/testing/database';
+} from '@fivvi/database';
+import { type Locale, locales, messages } from '@fivvi/i18n';
+import { cloneTemplateDatabase, type TestDatabase, withRollback } from '@fivvi/testing/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Hello } from '../app/hello';
 import { render } from '../test/render';

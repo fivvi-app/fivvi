@@ -3,10 +3,10 @@
 // the owner replaces the reserved `.invalid` placeholder before the first Release build (E017).
 // `//` starts a comment in an xcconfig, hence `$()`.
 INFOPLIST_FILE = Config/Info.plist
-TRAINER_HUB_API_BASE_URL = https:/$()/production.trainerhub.invalid/api
+FIVVI_API_BASE_URL = https:/$()/production.fivvi.invalid/api
 
 // Error reporting (E009, docs/engineering/OBSERVABILITY.md §1 "iOS") to the Sentry `ios` project. A DSN can only send
 // events and ships inside the app, so it isn't a secret (#85). EU region: `pnpm test:ios` fails unless it is
 // `https:/$()/<key>@<org>.ingest.de.sentry.io/<project>`.
-TRAINER_HUB_SENTRY_DSN = https:/$()/3d12695a1d4aaf5878e911e39b072238@o4512131315531776.ingest.de.sentry.io/4512266384113744
-TRAINER_HUB_SENTRY_ENVIRONMENT = production
+FIVVI_SENTRY_DSN = https:/$()/3d12695a1d4aaf5878e911e39b072238@o4512131315531776.ingest.de.sentry.io/4512266384113744
+FIVVI_SENTRY_ENVIRONMENT = production

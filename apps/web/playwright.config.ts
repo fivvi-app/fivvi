@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
+import { defaultTimeZone, formattingLocales, locales } from '@fivvi/i18n';
 import { defineConfig, devices } from '@playwright/test';
-import { defaultTimeZone, formattingLocales, locales } from '@trainer-hub/i18n';
 import type { E2EOptions } from './e2e/fixtures';
 import { analyticsServer, appServer, TEST_POSTHOG_HOST, TEST_POSTHOG_KEY } from './e2e/servers';
 

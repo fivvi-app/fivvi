@@ -1,8 +1,8 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { createApp } from '@fivvi/api';
 import { createRoute, z } from '@hono/zod-openapi';
-import { createApp } from '@trainer-hub/api';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   CONTRACT_ROOT,

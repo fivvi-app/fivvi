@@ -40,7 +40,7 @@ export function setupTemplateDatabase(migrate: (url: string) => Promise<void>) {
       throw error;
     }
 
-    project.provide('trainerHubTestRun', { runId, templateName });
+    project.provide('fivviTestRun', { runId, templateName });
     return teardown;
   };
 }

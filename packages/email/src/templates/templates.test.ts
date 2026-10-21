@@ -1,4 +1,4 @@
-import { type Locale, locales, messages } from '@trainer-hub/i18n';
+import { type Locale, locales, messages } from '@fivvi/i18n';
 import { describe, expect, it } from 'vitest';
 import { createEmailContext, type EmailTemplate, renderEmail } from '../render.tsx';
 import { helloEmail } from './hello.tsx';

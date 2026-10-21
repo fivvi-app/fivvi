@@ -80,7 +80,7 @@ export async function runChecks(
           problems = await staleOutputs(root, outputs.value);
           if (problems.length > 0) {
             problems.push(
-              'Run `pnpm --filter @trainer-hub/design-tokens generate` and commit the result.',
+              'Run `pnpm --filter @fivvi/design-tokens generate` and commit the result.',
             );
           }
         }

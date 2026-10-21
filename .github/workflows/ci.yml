@@ -243,7 +243,7 @@ jobs:
 
       - name: Read Playwright version
         id: playwright
-        run: echo "version=$(pnpm --filter @trainer-hub/web exec playwright --version | awk '{print $2}')" >>"$GITHUB_OUTPUT"
+        run: echo "version=$(pnpm --filter @fivvi/web exec playwright --version | awk '{print $2}')" >>"$GITHUB_OUTPUT"
 
       # Browsers are cached per Playwright version; the OS packages they need are not
       # cacheable, so they are installed on every run.
@@ -256,11 +256,11 @@ jobs:
 
       - name: Install Chromium and its OS packages
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @trainer-hub/web exec playwright install --with-deps --only-shell chromium
+        run: pnpm --filter @fivvi/web exec playwright install --with-deps --only-shell chromium
 
       - name: Install Chromium's OS packages
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --filter @trainer-hub/web exec playwright install-deps chromium
+        run: pnpm --filter @fivvi/web exec playwright install-deps chromium
 
       # Builds the web app, then runs every spec in nl-NL and en with axe checks.
       - name: Web e2e (nl-NL and en)
@@ -315,7 +315,7 @@ jobs:
             apps/ios/.build/DerivedData
             apps/ios/.build/SourcePackages
             !apps/ios/.build/DerivedData/Logs
-          key: ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          key: ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
             ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-
 
@@ -418,7 +418,7 @@ jobs:
 
       # The AVD with the snapshot of its booted state. Keyed by the system image, the emulator and the AVD settings
       # (a snapshot only loads on the same ones). Saved when the job passes on a miss, after the emulator has stopped.
-      # A missing or broken snapshot is not an error: the boot below falls back to a cold boot. Bump v1 to drop every
+      # A missing or broken snapshot is not an error: the boot below falls back to a cold boot. Bump the version (now v2) to drop every
       # cached AVD, and do it when a snapshot that no longer loads was replaced by a cold boot: the cache action never
       # overwrites an existing key, so the replacement isn't saved and every run would fall back to a cold boot. The
       # caches of a PR are its own and main's (written by pushes to main that change native paths).
@@ -426,7 +426,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.android/avd
-          key: avd-v1-${{ runner.os }}-${{ steps.avd.outputs.key }}
+          key: avd-v2-${{ runner.os }}-${{ steps.avd.outputs.key }}
 
       # Booted once; test:android and test:maestro reuse it. From the snapshot when it is cached, else cold: then the
       # script saves one. It gives up after EMULATOR_BOOT_TIMEOUT (a cold boot can take minutes) and prints the

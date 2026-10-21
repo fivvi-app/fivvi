@@ -1,14 +1,14 @@
 {
   "app": {
-    "title": "Trainer Hub",
-    "name": "Trainer Hub"
+    "title": "Fivvi",
+    "name": "Fivvi Pro"
   },
   "common": {
     "loading": "Loading…",
     "retry": "Try again"
   },
   "hello": {
-    "title": "Welcome to Trainer Hub",
+    "title": "Welcome to Fivvi",
     "description": "Enter your first name and we'll greet you.",
     "firstNameLabel": "First name",
     "continue": "Continue",
@@ -25,14 +25,14 @@
   },
   "email": {
     "layout": {
-      "footer": "This email was sent by Trainer Hub."
+      "footer": "This email was sent by Fivvi."
     },
     "hello": {
-      "subject": "Test message from Trainer Hub",
-      "preview": "If you can read this, emails from Trainer Hub are getting through.",
+      "subject": "Test message from Fivvi",
+      "preview": "If you can read this, emails from Fivvi are getting through.",
       "greeting": "Hi {firstName},",
       "greetingWithoutName": "Hi,",
-      "body": "This is a test message. If you can read this, emails from Trainer Hub are getting through.",
+      "body": "This is a test message. If you can read this, emails from Fivvi are getting through.",
       "sentAt": "Sent on {date} at {time}."
     }
   }

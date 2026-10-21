@@ -1,4 +1,4 @@
-import { initBrowserErrorReporting } from '@trainer-hub/observability/browser';
+import { initBrowserErrorReporting } from '@fivvi/observability/browser';
 
 // Reports uncaught browser errors to Sentry when NEXT_PUBLIC_SENTRY_DSN is set (E009,
 // docs/engineering/OBSERVABILITY.md). Runs before the app renders. Next.js inlines these

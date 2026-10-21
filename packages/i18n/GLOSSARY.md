@@ -97,7 +97,7 @@ Timestamps are stored in UTC. Render them in the **workspace timezone** (default
 ### 3.1 Formatting rules
 
 - **Always format with the platform formatter** (`Intl.DateTimeFormat`/next-intl on web, `FormatStyle`/`DateFormatter` on iOS, `java.time` `DateTimeFormatter` on Android) with an explicit locale and timezone. Never build date strings by hand or hard-code month/weekday names in the catalog.
-- **Pass formatted values into placeholders.** Format dates, times and numbers in code (web: `dateTimeFormats` from `@trainer-hub/i18n`) and pass the result as a plain `{date}` / `{time}` argument. ICU `{d, date, …}` skeletons don't survive export to `.xcstrings`/`strings.xml`, so the `icu` check rejects them (E005).
+- **Pass formatted values into placeholders.** Format dates, times and numbers in code (web: `dateTimeFormats` from `@fivvi/i18n`) and pass the result as a plain `{date}` / `{time}` argument. ICU `{d, date, …}` skeletons don't survive export to `.xcstrings`/`strings.xml`, so the `icu` check rejects them (E005).
 - **Formatting locale for English is `en-GB`**, not `en`/`en-US` (owner decision, 2026-09-22). Our English users are in the Netherlands and expect day-month order and 24-hour time. The catalog locale stays `en`; E005 maps it to `en-GB` for formatting.
 - **24-hour time in both languages.** No AM/PM, and no "uur" after the time in UI labels.
 - **Weeks start on Monday** in both languages.

@@ -11,10 +11,10 @@
   },
   "iconLibrary": "lucide",
   "aliases": {
-    "components": "@trainer-hub/ui/components",
-    "utils": "@trainer-hub/ui/lib/utils",
-    "hooks": "@trainer-hub/ui/hooks",
-    "lib": "@trainer-hub/ui/lib",
-    "ui": "@trainer-hub/ui/components"
+    "components": "@fivvi/ui/components",
+    "utils": "@fivvi/ui/lib/utils",
+    "hooks": "@fivvi/ui/hooks",
+    "lib": "@fivvi/ui/lib",
+    "ui": "@fivvi/ui/components"
   }
 }
