@@ -211,13 +211,13 @@ An offer, and the agreement it makes, for a number of group or private credits b
 _Avoid_: package, bundle, session pack (retired, see below)
 
 **Credit plan**:
-An offer, and the agreement it makes, for a number of group or private credits each month, paid by recurring payment (see *Recurring payment*), with a carry-over limit for credits left at the end of the month. Credits are granted per paid cycle.
+An offer, and the agreement it makes, for a number of group or private credits each month, paid by recurring payment (see *Recurring payment*), with a carry-over limit for credits left at the end of the month. When a plan's monthly credits are granted is open ([QC17](docs/design/open-questions.md#qc17)).
 _Avoid_: subscription (see *Recurring payment*), credit subscription
 
 **Session pack** (retired):
 Retired on 21 October 2026. Use *Credit pack*: a private session pack is a private credit pack.
 
-**Single class**:
+**Single class** (proposed, [decision 9](docs/product/ROADMAP.md#14-decisions)):
 One group class bought on its own, by a client without a membership or as an extra on top of one.
 _Avoid_: drop-in, top-up
 

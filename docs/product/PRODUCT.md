@@ -2665,14 +2665,14 @@ Keep these concepts separate in the model, even where the screen combines them: 
 
 # 90. Offers and prices
 
-An **offer** is what a workspace sells. MVP has four kinds:
+An **offer** is what a workspace sells. MVP has four kinds (single class: proposed, [decision 9](ROADMAP.md#14-decisions)):
 
 | Offer | Example | Paid |
 |---|---|---|
 | **Membership** | 2 group classes a week on fixed weekdays, for 6 or 12 months | Recurring, usually monthly (§94) |
 | **Credit pack** (group or private) | 26 private credits to use within 6 months (about one session a week) | Once, up front (§94; instalments are open, [QC08](../design/open-questions.md#qc08)) |
 | **Credit plan** (group or private) | 4 group credits every month, with a carry-over limit | Recurring, monthly (§94) |
-| **Single class** | One group class, on its own or on top of a membership | At booking (§95) |
+| **Single class** (proposed, [decision 9](ROADMAP.md#14-decisions)) | One group class, on its own or on top of a membership | At booking (§95) |
 
 The owner sets each offer's name (Dutch, optional English, as in §18), price in euros including VAT, VAT rate, term and, for a membership, how many classes a week and which classes it covers; for a credit pack how many credits and how long they stay valid, for a credit plan how many credits each month and the carry-over limit (both open, [QC17](../design/open-questions.md#qc17)). A credit offer is either group or private, never both (§92). A price change applies to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)).
 
@@ -2706,7 +2706,7 @@ Credits come with an agreement, from one of two offers (§90):
 The pilot's private agreement today (about one session a week for six months) is a private credit pack or a private credit plan; which of the two the gym wants is open ([QC08](../design/open-questions.md#qc08)).
 
 - The owner creates the agreement for a client; the client confirms it and pays online (§94).
-- A group class (§21) can use one group credit and a private session (§17) one private credit, from an agreement of the matching kind. The booking and the session screen show which agreement. What counts as one credit for a private session of another length, whether Open Gym uses group credits, and which agreement is used when a client has several that fit are open ([QC18](../design/open-questions.md#qc18)).
+- A group class (§18) can use one group credit and a private session (§17) one private credit, from an agreement of the matching kind. The booking and the session screen show which agreement. What counts as one credit for a private session of another length, whether Open Gym uses group credits, and which agreement is used when a client has several that fit are open (several credit agreements of one kind: [QC17](../design/open-questions.md#qc17); a membership and group credits: [QC18](../design/open-questions.md#qc18)).
 
 A **credit balance** shows what a client can still use under an agreement, in credits of that agreement's kind. It is never a bare counter. Each change is a line in its history: granted, used, returned, expired, with the session, the person or rule that caused it, and the time. The balance is the sum of that history, so the owner and the client can always see why it says what it says. A membership's makeups (§93) are tracked the same way, as their own lines, and are not credits.
 
@@ -2723,7 +2723,7 @@ Each offer has a **cancellation policy**:
 | The client cancels before the **cutoff** (hours before the start, set per offer; proposal, [QC02](../design/open-questions.md#qc02)) | Membership: may grant a **makeup**, up to a limit per term. Credits (pack or plan): the credit returns to the balance (proposal, [QC02](../design/open-questions.md#qc02)) |
 | The client cancels after the cutoff (late cancellation) | The credit is used or the membership class is lost, like a no-show (proposal, [QC16](../design/open-questions.md#qc16)) |
 | **No-show** | The credit is used (pack or plan) or the class is lost (membership) (proposal, [QC16](../design/open-questions.md#qc16)) |
-| The workspace cancels the session or class | Credits: the credit returns. Membership: a makeup, outside the limit (proposal, [QC04](../design/open-questions.md#qc04)) |
+| The workspace cancels the session or class | Credits: the credit returns (proposal, [QC02](../design/open-questions.md#qc02)). Membership: a makeup, outside the limit (proposal, [QC04](../design/open-questions.md#qc04)) |
 
 The cutoff, the makeup limit and how long a makeup stays valid are open ([QC02](../design/open-questions.md#qc02), [QC03](../design/open-questions.md#qc03)). Before confirming a cancellation, the client sees what it does to their balance or makeups. An agreement keeps the policy that applied when it started (proposal, [QC15](../design/open-questions.md#qc15)).
 
@@ -2744,7 +2744,7 @@ Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-paym
 
 ---
 
-# 95. Single class purchase
+# 95. Single class purchase (proposed, [decision 9](ROADMAP.md#14-decisions))
 
 A client can buy one class: as a client without a membership, or as a client with a membership who wants an extra class this week. They choose the class on the booking page (§21), pay online, and the booking is confirmed when the payment succeeds. The spot is held while they pay, like a booking hold (§24; proposal, [QC16](../design/open-questions.md#qc16)). Buying an extra class never changes what the membership includes.
 

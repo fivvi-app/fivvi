@@ -74,7 +74,7 @@
 
 *Optional:* also set a target for the other trainers (baseline A2.3): ≤ ______ h/week in total.
 
-### A4. Memberships and packs run in the platform
+### A4. Memberships, credit packs and credit plans run in the platform
 
 | | |
 |---|---|

@@ -230,7 +230,7 @@ What does the pilot pay today: the subscription (per month or per year, VAT incl
 ADR-020 proposes: the public list prices of Mollie and Stripe are close enough that fees don't decide the provider (see the [fee comparison in ADR-020](../decisions/ADR-020-payment-provider.md#fees-per-payment-public-list-prices-netherlands-20-october-2026)). This question stays open: the comparison with what the pilot pays today, and Mollie's failed-debit and storno fees for the gym.
 
 ### QC14
-Which data can the pilot export from the current app (clients, memberships, credit balances and makeups, next due dates), who does it, and how long does it take? **Proposal:** an export the gym owner makes, mapped to the E015 import template (`docs/discovery/import-checklist.md`).
+Which data can the pilot export from the current app (clients, memberships, credit balances and makeups, next due dates), who does it, and how long does it take? **Proposal:** an export the gym owner makes, mapped to the E015 import template (`docs/discovery/import-checklist.md`); an old offer that covers both group and private credits is listed as two offers, since the kinds never mix.
 
 ### QC15
 When the owner changes an offer's price or cancellation policy, does it also change agreements that already run? **Proposal:** a price change applies to new agreements only, and an agreement keeps the cancellation policy it started with (`PRODUCT.md §90`, `§93`).

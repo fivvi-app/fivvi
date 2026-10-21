@@ -142,7 +142,7 @@ Only **from the go-live date onwards**. Past sessions are not imported (history,
 
 Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the active memberships, credit packs and credit plans (group and private credits) come along. The current booking and payment app is the source; agree in M0 what it can export (QC14 in [`open-questions.md`](../design/open-questions.md#qc14)). **Never** import or copy IBANs, card data or mandate documents: mandates stay with the payment provider (QC09).
 
-**Offers** — one row per kind of membership, credit pack or credit plan sold today: `name`, `kind` (`membership` / `credit_pack` / `credit_plan`), `credit_kind` (`group` / `private`, credit offers only), `price_eur` (incl. VAT), `vat_rate`, `term_months` or `validity_months`, `classes_per_week` (membership), `credits` (pack) or `credits_per_month` and `carry_over_limit` (plan), `cutoff_hours`, `makeups_per_term` (membership). Group and private credits never mix, so an old offer that covers both kinds is listed as two offers.
+**Offers** — one row per kind of membership, credit pack or credit plan sold today: `name`, `kind` (`membership` / `credit_pack` / `credit_plan`), `credit_kind` (`group` / `private`, credit offers only), `price_eur` (incl. VAT), `vat_rate`, `term_months` or `validity_months`, `classes_per_week` (membership), `credits` (pack) or `credits_per_month` and `carry_over_limit` (plan), `cutoff_hours`, `makeups_per_term` (membership). Group and private credits never mix, so an old offer that covers both kinds is listed as two offers (proposal, [QC14](../design/open-questions.md#qc14)).
 
 **Active agreements** — one row per client per agreement:
 
@@ -153,7 +153,7 @@ Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the
 | `start_date` / `end_date` | **Yes** | `YYYY-MM-DD` |
 | `renews` | **Yes** | `yes` / `no`, and the notice period if yes |
 | `weekly_classes` | Membership only | e.g. `Kracht di 18:00; Kracht do 18:00` |
-| `next_due_date` / `amount_eur` | **Yes** | The next recurring payment |
+| `next_due_date` / `amount_eur` | Membership and credit plan | The next recurring payment (a credit pack has none) |
 | `open_amount_eur` | Optional | Unpaid amounts at go-live |
 
 **Credit balances at go-live** — one row per agreement: `credits_left` (credit pack or plan, in the offer's `credit_kind`) or `makeups_left` (membership), with the date it was counted. It becomes the first line of the balance history (`PRODUCT.md §92`), marked as imported.
