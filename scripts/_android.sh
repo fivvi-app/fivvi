@@ -199,7 +199,7 @@ boot_from_snapshot() {
   echo "Starting emulator $AVD_NAME from its snapshot (log: $EMULATOR_LOG, timeout ${SNAPSHOT_BOOT_TIMEOUT}s)"
   launch_emulator -snapshot "$SNAPSHOT_NAME" -no-snapshot-save
   await_boot "$SNAPSHOT_BOOT_TIMEOUT" && return 0
-  echo "::warning::The emulator snapshot didn't load ($BOOT_ERROR); deleting it and booting cold. The cache keeps the old one under this key: bump avd-v1 in ci.yml to cache the new one"
+  echo "::warning::The emulator snapshot didn't load ($BOOT_ERROR); deleting it and booting cold. The cache keeps the old one under this key: bump the avd-vN version in ci.yml to cache the new one"
   kill_emulator
   mv "$EMULATOR_LOG" "$EMULATOR_LOG.snapshot" 2>/dev/null || true
   rm -rf "$(avd_snapshot_dir)"

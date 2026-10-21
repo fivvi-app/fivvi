@@ -418,7 +418,7 @@ jobs:
 
       # The AVD with the snapshot of its booted state. Keyed by the system image, the emulator and the AVD settings
       # (a snapshot only loads on the same ones). Saved when the job passes on a miss, after the emulator has stopped.
-      # A missing or broken snapshot is not an error: the boot below falls back to a cold boot. Bump v2 to drop every
+      # A missing or broken snapshot is not an error: the boot below falls back to a cold boot. Bump the version (now v2) to drop every
       # cached AVD, and do it when a snapshot that no longer loads was replaced by a cold boot: the cache action never
       # overwrites an existing key, so the replacement isn't saved and every run would fall back to a cold boot. The
       # caches of a PR are its own and main's (written by pushes to main that change native paths).
