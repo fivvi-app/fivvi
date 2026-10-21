@@ -5,7 +5,7 @@
 #   web       node web/apps/web/server.js                      (default command)
 #   release   node ops/packages/database/src/scripts/release.ts  (web's pre-deploy command)
 #   cron      node ops/apps/cron/src/main.ts
-# Railway builds it from the repo root; build locally with `docker build -t trainer-hub .`.
+# Railway builds it from the repo root; build locally with `docker build -t fivvi .`.
 
 # Node 26 as in .nvmrc, pinned by digest. Bump the tag and digest together.
 ARG NODE_IMAGE=node:26.10.0-trixie-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1
@@ -37,12 +37,12 @@ ARG NEXT_PUBLIC_SENTRY_DSN \
     RAILWAY_ENVIRONMENT_NAME \
     RAILWAY_GIT_COMMIT_SHA \
     SENTRY_AUTH_TOKEN
-RUN pnpm --filter @trainer-hub/web build
+RUN pnpm --filter @fivvi/web build
 
 # Production dependencies of the release step and the cron job, in the monorepo layout, so
 # Node runs their TypeScript sources directly (type stripping, as in local development).
 FROM base AS ops
-RUN pnpm install --frozen-lockfile --prod --filter @trainer-hub/cron...
+RUN pnpm install --frozen-lockfile --prod --filter @fivvi/cron...
 
 FROM ${NODE_IMAGE} AS runtime
 ENV NODE_ENV=production \

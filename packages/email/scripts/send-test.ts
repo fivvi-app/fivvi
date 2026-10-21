@@ -4,7 +4,7 @@
 // Reads BREVO_API_KEY, EMAIL_FROM_ADDRESS and EMAIL_FROM_NAME from the environment or from
 // packages/email/.env (see the README). Never prints the API key.
 import { parseArgs } from 'node:util';
-import { defaultLocale, defaultTimeZone, isLocale, locales } from '@trainer-hub/i18n';
+import { defaultLocale, defaultTimeZone, isLocale, locales } from '@fivvi/i18n';
 import {
   createBrevoTransport,
   createSendEmail,

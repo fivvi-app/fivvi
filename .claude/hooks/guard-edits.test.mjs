@@ -80,22 +80,22 @@ describe('agent edit guard', () => {
       gitDir,
     );
     assert.match(reason, /is generated/);
-    assert.match(reason, /pnpm --filter @trainer-hub\/i18n generate/);
+    assert.match(reason, /pnpm --filter @fivvi\/i18n generate/);
 
     for (const file of [
       'packages/design-tokens/generated/web/tokens.css',
-      'packages/design-tokens/TrainerHubDesignTokens/Sources/TrainerHubDesignTokens/Generated/Colors.swift',
-      'packages/design-tokens/kotlin/generated/nl/trainerhub/designtokens/Colors.kt',
+      'packages/design-tokens/FivviDesignTokens/Sources/FivviDesignTokens/Generated/Colors.swift',
+      'packages/design-tokens/kotlin/generated/app/fivvi/designtokens/Colors.kt',
     ]) {
       assert.match(
         evaluate(claudeEdit(join(worktree, file)), gitDir) ?? '',
-        /pnpm --filter @trainer-hub\/design-tokens generate/,
+        /pnpm --filter @fivvi\/design-tokens generate/,
         file,
       );
     }
     assert.equal(
       evaluate(
-        claudeEdit(join(worktree, 'packages/design-tokens/TrainerHubDesignTokens/Package.swift')),
+        claudeEdit(join(worktree, 'packages/design-tokens/FivviDesignTokens/Package.swift')),
         gitDir,
       ),
       null,

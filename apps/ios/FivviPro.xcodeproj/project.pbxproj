@@ -1,0 +1,589 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E00800000000000000000070 /* FivviAPI in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A0 /* FivviAPI */; };
+		E00800000000000000000071 /* FivviDesignTokens in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A1 /* FivviDesignTokens */; };
+		E00800000000000000000072 /* OpenAPIRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A2 /* OpenAPIRuntime */; };
+		E00800000000000000000073 /* OpenAPIURLSession in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A3 /* OpenAPIURLSession */; };
+		E00800000000000000000074 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
+		E00800000000000000000075 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000041 /* InfoPlist.xcstrings */; };
+		E00800000000000000000076 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
+		E00800000000000000000077 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
+		E00800000000000000000079 /* FivviDesignTokens in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A9 /* FivviDesignTokens */; };
+		E00900000000000000000070 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E009000000000000000000A0 /* Sentry */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E00800000000000000000080 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E00800000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E00800000000000000000050;
+			remoteInfo = FivviPro;
+		};
+		E00800000000000000000081 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E00800000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E00800000000000000000050;
+			remoteInfo = FivviPro;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		E00800000000000000000040 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		E00800000000000000000041 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		E00800000000000000000042 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		E00800000000000000000043 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		E00800000000000000000044 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		E00800000000000000000045 /* Info-Debug.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-Debug.plist"; sourceTree = "<group>"; };
+		E00800000000000000000046 /* FivviPro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FivviPro.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E00800000000000000000047 /* FivviProTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FivviProTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E00800000000000000000048 /* FivviProUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FivviProUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E00800000000000000000049 /* FivviPro.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = FivviPro.xctestplan; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		E00800000000000000000030 /* FivviPro */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FivviPro;
+			sourceTree = "<group>";
+		};
+		E00800000000000000000031 /* FivviProTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FivviProTests;
+			sourceTree = "<group>";
+		};
+		E00800000000000000000032 /* FivviProUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FivviProUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E00800000000000000000061 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E00800000000000000000070 /* FivviAPI in Frameworks */,
+				E00800000000000000000071 /* FivviDesignTokens in Frameworks */,
+				E00800000000000000000072 /* OpenAPIRuntime in Frameworks */,
+				E00800000000000000000073 /* OpenAPIURLSession in Frameworks */,
+				E00900000000000000000070 /* Sentry in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E00800000000000000000064 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E00800000000000000000067 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E00800000000000000000079 /* FivviDesignTokens in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E00800000000000000000020 = {
+			isa = PBXGroup;
+			children = (
+				E00800000000000000000049 /* FivviPro.xctestplan */,
+				E00800000000000000000030 /* FivviPro */,
+				E00800000000000000000031 /* FivviProTests */,
+				E00800000000000000000032 /* FivviProUITests */,
+				E00800000000000000000022 /* Config */,
+				E00800000000000000000021 /* Strings */,
+				E00800000000000000000023 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E00800000000000000000021 /* Strings */ = {
+			isa = PBXGroup;
+			children = (
+				E00800000000000000000040 /* Localizable.xcstrings */,
+				E00800000000000000000041 /* InfoPlist.xcstrings */,
+			);
+			name = Strings;
+			path = ../../packages/i18n/generated/ios;
+			sourceTree = "<group>";
+		};
+		E00800000000000000000022 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				E00800000000000000000042 /* Debug.xcconfig */,
+				E00800000000000000000043 /* Release.xcconfig */,
+				E00800000000000000000044 /* Info.plist */,
+				E00800000000000000000045 /* Info-Debug.plist */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		E00800000000000000000023 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E00800000000000000000046 /* FivviPro.app */,
+				E00800000000000000000047 /* FivviProTests.xctest */,
+				E00800000000000000000048 /* FivviProUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E00800000000000000000050 /* FivviPro */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E00800000000000000000003 /* Build configuration list for PBXNativeTarget "FivviPro" */;
+			buildPhases = (
+				E00800000000000000000060 /* Sources */,
+				E00800000000000000000061 /* Frameworks */,
+				E00800000000000000000062 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E00800000000000000000030 /* FivviPro */,
+			);
+			name = FivviPro;
+			packageProductDependencies = (
+				E008000000000000000000A0 /* FivviAPI */,
+				E008000000000000000000A1 /* FivviDesignTokens */,
+				E008000000000000000000A2 /* OpenAPIRuntime */,
+				E008000000000000000000A3 /* OpenAPIURLSession */,
+				E009000000000000000000A0 /* Sentry */,
+			);
+			productName = FivviPro;
+			productReference = E00800000000000000000046 /* FivviPro.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E00800000000000000000051 /* FivviProTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E00800000000000000000004 /* Build configuration list for PBXNativeTarget "FivviProTests" */;
+			buildPhases = (
+				E00800000000000000000063 /* Sources */,
+				E00800000000000000000064 /* Frameworks */,
+				E00800000000000000000065 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E00800000000000000000082 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E00800000000000000000031 /* FivviProTests */,
+			);
+			name = FivviProTests;
+			productName = FivviProTests;
+			productReference = E00800000000000000000047 /* FivviProTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E00800000000000000000052 /* FivviProUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E00800000000000000000005 /* Build configuration list for PBXNativeTarget "FivviProUITests" */;
+			buildPhases = (
+				E00800000000000000000066 /* Sources */,
+				E00800000000000000000067 /* Frameworks */,
+				E00800000000000000000068 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E00800000000000000000083 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E00800000000000000000032 /* FivviProUITests */,
+			);
+			name = FivviProUITests;
+			packageProductDependencies = (
+				E008000000000000000000A9 /* FivviDesignTokens */,
+			);
+			productName = FivviProUITests;
+			productReference = E00800000000000000000048 /* FivviProUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E00800000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					E00800000000000000000050 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					E00800000000000000000051 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = E00800000000000000000050;
+					};
+					E00800000000000000000052 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = E00800000000000000000050;
+					};
+				};
+			};
+			buildConfigurationList = E00800000000000000000002 /* Build configuration list for PBXProject "FivviPro" */;
+			developmentRegion = nl;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				nl,
+				en,
+				Base,
+			);
+			mainGroup = E00800000000000000000020;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E00800000000000000000090 /* XCLocalSwiftPackageReference "../../packages/contract/swift" */,
+				E00800000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/FivviDesignTokens" */,
+				E00800000000000000000092 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */,
+				E00800000000000000000093 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */,
+				E00900000000000000000090 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E00800000000000000000023 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E00800000000000000000050 /* FivviPro */,
+				E00800000000000000000051 /* FivviProTests */,
+				E00800000000000000000052 /* FivviProUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E00800000000000000000062 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E00800000000000000000074 /* Localizable.xcstrings in Resources */,
+				E00800000000000000000075 /* InfoPlist.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E00800000000000000000065 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E00800000000000000000076 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E00800000000000000000068 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E00800000000000000000077 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E00800000000000000000060 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E00800000000000000000063 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E00800000000000000000066 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E00800000000000000000082 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E00800000000000000000050 /* FivviPro */;
+			targetProxy = E00800000000000000000080 /* PBXContainerItemProxy */;
+		};
+		E00800000000000000000083 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E00800000000000000000050 /* FivviPro */;
+			targetProxy = E00800000000000000000081 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		E00800000000000000000010 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		E00800000000000000000011 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		E00800000000000000000012 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E00800000000000000000042 /* Debug.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.pro;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		E00800000000000000000013 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E00800000000000000000043 /* Release.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.pro;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		E00800000000000000000014 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.pro.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FivviPro.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FivviPro";
+			};
+			name = Debug;
+		};
+		E00800000000000000000015 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.pro.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FivviPro.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FivviPro";
+			};
+			name = Release;
+		};
+		E00800000000000000000016 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.pro.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_TARGET_NAME = FivviPro;
+			};
+			name = Debug;
+		};
+		E00800000000000000000017 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.pro.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_TARGET_NAME = FivviPro;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E00800000000000000000002 /* Build configuration list for PBXProject "FivviPro" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E00800000000000000000010 /* Debug */,
+				E00800000000000000000011 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E00800000000000000000003 /* Build configuration list for PBXNativeTarget "FivviPro" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E00800000000000000000012 /* Debug */,
+				E00800000000000000000013 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E00800000000000000000004 /* Build configuration list for PBXNativeTarget "FivviProTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E00800000000000000000014 /* Debug */,
+				E00800000000000000000015 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E00800000000000000000005 /* Build configuration list for PBXNativeTarget "FivviProUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E00800000000000000000016 /* Debug */,
+				E00800000000000000000017 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		E00800000000000000000090 /* XCLocalSwiftPackageReference "../../packages/contract/swift" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../packages/contract/swift;
+		};
+		E00800000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/FivviDesignTokens" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../packages/design-tokens/FivviDesignTokens;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E00800000000000000000092 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-openapi-runtime";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.12.1;
+			};
+		};
+		E00800000000000000000093 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-openapi-urlsession";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.1;
+			};
+		};
+		E00900000000000000000090 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.30.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E008000000000000000000A0 /* FivviAPI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E00800000000000000000090 /* XCLocalSwiftPackageReference "../../packages/contract/swift" */;
+			productName = FivviAPI;
+		};
+		E008000000000000000000A1 /* FivviDesignTokens */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E00800000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/FivviDesignTokens" */;
+			productName = FivviDesignTokens;
+		};
+		E008000000000000000000A2 /* OpenAPIRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E00800000000000000000092 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */;
+			productName = OpenAPIRuntime;
+		};
+		E008000000000000000000A3 /* OpenAPIURLSession */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E00800000000000000000093 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */;
+			productName = OpenAPIURLSession;
+		};
+		E008000000000000000000A9 /* FivviDesignTokens */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E00800000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/FivviDesignTokens" */;
+			productName = FivviDesignTokens;
+		};
+		E009000000000000000000A0 /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E00900000000000000000090 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = E00800000000000000000001 /* Project object */;
+}

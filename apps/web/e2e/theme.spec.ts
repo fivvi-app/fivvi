@@ -9,7 +9,7 @@ const colorSchemes: ColorScheme[] = ['light', 'dark'];
 // The expected colours come from the generated token CSS, light on `:root` and dark in the
 // `prefers-color-scheme: dark` block, so the test follows a token change without edits.
 const tokensCss = readFileSync(
-  createRequire(import.meta.url).resolve('@trainer-hub/design-tokens/tokens.css'),
+  createRequire(import.meta.url).resolve('@fivvi/design-tokens/tokens.css'),
   'utf8',
 );
 const [lightCss = '', darkCss = ''] = tokensCss.split('@media (prefers-color-scheme: dark)');

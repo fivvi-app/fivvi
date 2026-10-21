@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { integrationConfig } from '@trainer-hub/testing/vitest';
+import { integrationConfig } from '@fivvi/testing/vitest';
 
 // Local convenience: pick up TEST_DATABASE_URL / DATABASE_URL from packages/database/.env.
 if (existsSync('.env')) {

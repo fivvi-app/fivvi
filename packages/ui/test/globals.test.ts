@@ -3,7 +3,7 @@ import path from 'node:path';
 import { compile } from '@tailwindcss/node';
 import { describe, expect, it } from 'vitest';
 
-// The stylesheet apps import (`@trainer-hub/ui/globals.css`), compiled as Tailwind compiles it in an app.
+// The stylesheet apps import (`@fivvi/ui/globals.css`), compiled as Tailwind compiles it in an app.
 const stylesheet = path.resolve(import.meta.dirname, '../src/styles/globals.css');
 
 async function compileKit() {

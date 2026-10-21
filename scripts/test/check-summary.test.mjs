@@ -21,7 +21,7 @@ const SCRIPTS = join(import.meta.dirname, '..');
 const task = (name, ...lines) => lines.map((line) => `${name}: ${line}`);
 const vitest = (pkg, task_, summary) =>
   task(
-    `@trainer-hub/${pkg}:${task_}`,
+    `@fivvi/${pkg}:${task_}`,
     '$ vitest run',
     ' ✓ test/a.test.ts (3 tests) 10ms',
     '',
@@ -42,10 +42,10 @@ const node = (pass, fail, skipped) =>
     `ℹ skipped ${skipped}`,
     'ℹ todo 0',
   );
-const playwright = (...lines) => task('@trainer-hub/web:test:e2e', 'Running 15 tests', ...lines);
+const playwright = (...lines) => task('@fivvi/web:test:e2e', 'Running 15 tests', ...lines);
 const failed = (name) => [
-  `@trainer-hub/${name}: [ELIFECYCLE] Test failed. See above for more details.`,
-  `@trainer-hub/${name.replace(':', '#')}:  ERROR  command (/x/y) pnpm run test exited (1)`,
+  `@fivvi/${name}: [ELIFECYCLE] Test failed. See above for more details.`,
+  `@fivvi/${name.replace(':', '#')}:  ERROR  command (/x/y) pnpm run test exited (1)`,
 ];
 
 const suite = (name, kind, status, passed, failed_, skipped) => ({
@@ -119,7 +119,7 @@ describe('E002 #112 test-summary.sh', () => {
 
   it('E002 #112 AC1: reports a suite that failed before it printed counts as failed, with no counts', () => {
     const result = summarize(
-      [...task('@trainer-hub/ui:test', '$ vitest run'), ...failed('ui:test')],
+      [...task('@fivvi/ui:test', '$ vitest run'), ...failed('ui:test')],
       '--run',
       'unit',
     );
@@ -227,11 +227,11 @@ describe('E002 #112 test-summary.sh', () => {
       '--skip',
       'integration',
       '--expect',
-      '@trainer-hub/ui:test',
+      '@fivvi/ui:test',
       '--expect',
-      '@trainer-hub/api:test',
+      '@fivvi/api:test',
       '--expect',
-      '@trainer-hub/api:test:integration',
+      '@fivvi/api:test:integration',
     );
     assert.deepEqual(
       result.json.suites.map(({ name, status }) => [name, status]),
@@ -245,7 +245,7 @@ describe('E002 #112 test-summary.sh', () => {
 
   const cancelled = (pkg) =>
     task(
-      `@trainer-hub/${pkg}:test`,
+      `@fivvi/${pkg}:test`,
       'cache miss, executing 5edc6df4868ce48f',
       '$ vitest run',
       '',
@@ -267,7 +267,7 @@ describe('E002 #112 test-summary.sh', () => {
   it('E002 #112 AC1: ignores colours and the output of other tasks', () => {
     const result = summarize(
       [
-        '@trainer-hub/ui:lint: Checked 9 files in 4ms. No fixes applied.',
+        '@fivvi/ui:lint: Checked 9 files in 4ms. No fixes applied.',
         ...vitest('ui', 'test', '\u001b[32m33 passed\u001b[39m (33)').map((line) =>
           line.replace('      Tests', '\u001b[2m      Tests\u001b[22m'),
         ),
@@ -331,7 +331,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     };
     for (const [dir, scripts] of Object.entries(workspace)) {
       mkdirSync(join(repo(), dir), { recursive: true });
-      const name = `@trainer-hub/${dir.split('/')[1]}`;
+      const name = `@fivvi/${dir.split('/')[1]}`;
       write(join(repo(), dir, 'package.json'), JSON.stringify({ name, scripts }));
     }
     for (const file of [
@@ -426,17 +426,17 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
   const failingUnit = {
     lines: [
       ...node(260, 0, 0),
-      ...task('@trainer-hub/api:test', 'PASSING-API-OUTPUT', ' Tests  29 passed (29)'),
+      ...task('@fivvi/api:test', 'PASSING-API-OUTPUT', ' Tests  29 passed (29)'),
       ...task(
-        '@trainer-hub/ui:test',
+        '@fivvi/ui:test',
         'FAILING-UI-OUTPUT',
         ' Tests  1 failed | 34 passed (35)',
         '[ELIFECYCLE] Test failed. See above for more details.',
       ),
-      '@trainer-hub/ui#test:  ERROR  command (/x/ui) pnpm run test exited (1)',
+      '@fivvi/ui#test:  ERROR  command (/x/ui) pnpm run test exited (1)',
       '',
       ' Tasks:    3 successful, 4 total',
-      'Failed:    @trainer-hub/ui#test',
+      'Failed:    @fivvi/ui#test',
     ],
     exit: 1,
   };
@@ -456,7 +456,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     assert.match(result.stdout, /✗ lint, types, unit tests/);
     assert.match(result.stdout, /FAILING-UI-OUTPUT/);
     assert.match(result.stdout, /ui#test:\s+ERROR/);
-    assert.match(result.stdout, /Failed:\s+@trainer-hub\/ui#test/);
+    assert.match(result.stdout, /Failed:\s+@fivvi\/ui#test/);
     assert.doesNotMatch(result.stdout, /PASSING-API-OUTPUT/);
     assert.doesNotMatch(result.stdout, /ℹ pass 260/);
     // The parser still read the passing suites from the log it did not print.
@@ -504,7 +504,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
 
   it('E002 #112 AC1: lists the tasks turbo started and then cancelled after a failure as not-run', () => {
     const cancelledApi = task(
-      '@trainer-hub/api:test',
+      '@fivvi/api:test',
       'cache miss, executing 5edc6df4868ce48f',
       '$ vitest run',
       ' RUN  v5.0.1 /x/api',
@@ -512,8 +512,8 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     const uiFails = {
       lines: [
         ...cancelledApi,
-        ...task('@trainer-hub/ui:test', ' Tests  1 failed | 34 passed (35)'),
-        '@trainer-hub/ui#test:  ERROR  command (/x/ui) pnpm run test exited (1)',
+        ...task('@fivvi/ui:test', ' Tests  1 failed | 34 passed (35)'),
+        '@fivvi/ui#test:  ERROR  command (/x/ui) pnpm run test exited (1)',
       ],
       exit: 1,
     };

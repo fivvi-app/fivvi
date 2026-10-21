@@ -1,4 +1,4 @@
-import type { Locale } from '@trainer-hub/i18n';
+import type { Locale } from '@fivvi/i18n';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';

@@ -6,7 +6,7 @@ export type { components, operations, paths } from './generated/schema.ts';
 export type Schemas = components['schemas'];
 
 /**
- * Typed client for the Trainer Hub API, generated from openapi.json.
+ * Typed client for the Fivvi API, generated from openapi.json.
  * `baseUrl` includes the mount path, e.g. `https://example.com/api`.
  */
 export function createApiClient(options: ClientOptions & { baseUrl: string }) {

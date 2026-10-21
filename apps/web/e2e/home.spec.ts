@@ -1,4 +1,4 @@
-import { formattingLocales, type Messages, messages } from '@trainer-hub/i18n';
+import { formattingLocales, type Messages, messages } from '@fivvi/i18n';
 import { localeCookie } from '../i18n/config';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 

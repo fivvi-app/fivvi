@@ -49,7 +49,7 @@ describe('risk of a pull request', () => {
     auth: [
       'packages/api/src/auth/session.ts',
       'apps/web/src/app/api/auth/[...all]/route.ts',
-      'apps/ios/TrainerHub/AuthView.swift',
+      'apps/ios/FivviPro/AuthView.swift',
     ],
     'tenant-data': [
       'packages/database/src/schema/organizations.ts',

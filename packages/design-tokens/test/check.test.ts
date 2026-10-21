@@ -67,7 +67,7 @@ describe('E007 design tokens check (what `pnpm check` runs)', {
     expect(stale.output).toContain(`${webOutputs.tokens} is out of date`);
     expect(stale.output).toContain(`${swiftOutputs.colors} is out of date`);
     expect(stale.output).toContain(`${kotlinOutputs.colors} is out of date`);
-    expect(stale.output).toContain('Run `pnpm --filter @trainer-hub/design-tokens generate`');
+    expect(stale.output).toContain('Run `pnpm --filter @fivvi/design-tokens generate`');
     expect(stale.output).not.toContain(`${webOutputs.shadcn} is out of date`);
     expect(stale.code).toBe(1);
 

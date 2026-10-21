@@ -54,15 +54,15 @@
             "patterns": [
               {
                 "group": ["@sentry/**"],
-                "message": "Report errors through @trainer-hub/observability, which scrubs personal data (E009)."
+                "message": "Report errors through @fivvi/observability, which scrubs personal data (E009)."
               },
               {
                 "group": ["posthog-node", "posthog-node/**"],
-                "message": "Send product events with track() from @trainer-hub/observability, which only accepts catalog events (E009)."
+                "message": "Send product events with track() from @fivvi/observability, which only accepts catalog events (E009)."
               },
               {
                 "group": ["posthog-js", "posthog-js/**"],
-                "message": "Capture page views through @trainer-hub/observability/page-views, which is cookieless and sends the path only (E009)."
+                "message": "Capture page views through @fivvi/observability/page-views, which is cookieless and sends the path only (E009)."
               }
             ]
           }

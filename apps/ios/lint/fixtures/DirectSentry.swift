@@ -10,7 +10,7 @@ enum DirectSentry {
     }
 
     // SentrySDK in a comment is fine, and so is the app's own module.
-    static let reason = "SentrySDK is only called from TrainerHub/Observability/"
+    static let reason = "SentrySDK is only called from FivviPro/Observability/"
     static func start() {
         ErrorReporting.start()
     }

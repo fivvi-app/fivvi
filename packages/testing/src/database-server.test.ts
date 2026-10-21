@@ -37,7 +37,7 @@ describe('E010 test database server', () => {
   });
 
   it('only quotes names it generated', () => {
-    expect(identifier('trainer_hub_test_ab12_cd34')).toBe('"trainer_hub_test_ab12_cd34"');
+    expect(identifier('fivvi_test_ab12_cd34')).toBe('"fivvi_test_ab12_cd34"');
     expect(() => identifier('x"; drop database prod; --')).toThrow('Unexpected database name');
   });
 });

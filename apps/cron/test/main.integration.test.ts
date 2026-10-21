@@ -1,4 +1,4 @@
-import { createTestDatabase } from '@trainer-hub/testing/database';
+import { createTestDatabase } from '@fivvi/testing/database';
 import { describe, expect, it } from 'vitest';
 import { runMain, SPAWN_TEST_TIMEOUT_MS } from './run-main.ts';
 

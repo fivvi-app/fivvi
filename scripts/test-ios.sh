@@ -41,14 +41,14 @@ lint_fixture() {
 # Sentry (a developer's Config/Local.xcconfig may override both; CI has none).
 debug_configuration() {
   local url dsn
-  url="$(sed -nE 's/^TRAINER_HUB_API_BASE_URL = //p' Config/Debug.xcconfig)"
+  url="$(sed -nE 's/^FIVVI_API_BASE_URL = //p' Config/Debug.xcconfig)"
   # shellcheck disable=SC2016 # the xcconfig's literal `$()`, which keeps `//` from starting a comment
   [ "$url" = 'http:/$()/localhost:3000/api' ] \
     || { echo "Config/Debug.xcconfig: base URL is not the local dev server: $url"; return 1; }
-  # Every setting of the DSN, also indented or conditional (`TRAINER_HUB_SENTRY_DSN[sdk=…] = …`), must be empty.
-  dsn="$(sed -nE 's/^[[:space:]]*TRAINER_HUB_SENTRY_DSN[^=]*=[[:space:]]*//p' Config/Debug.xcconfig | tr -d '[:space:]')"
+  # Every setting of the DSN, also indented or conditional (`FIVVI_SENTRY_DSN[sdk=…] = …`), must be empty.
+  dsn="$(sed -nE 's/^[[:space:]]*FIVVI_SENTRY_DSN[^=]*=[[:space:]]*//p' Config/Debug.xcconfig | tr -d '[:space:]')"
   [ -z "$dsn" ] \
-    || { echo "Config/Debug.xcconfig: TRAINER_HUB_SENTRY_DSN must stay empty; set it in Local.xcconfig"; return 1; }
+    || { echo "Config/Debug.xcconfig: FIVVI_SENTRY_DSN must stay empty; set it in Local.xcconfig"; return 1; }
 }
 
 # Release talks HTTPS to the production API only: no App Transport Security exception in its Info.plist. It reports to
@@ -58,15 +58,15 @@ release_configuration() {
   # The one xcodebuild call of this check. It resolves the Swift packages, so it uses the cached .build/SourcePackages
   # like the build does (without it, it cloned them all again: 71 s of CI's first run, #105). Reading the xcconfig
   # instead would not show what the project's Release configuration really resolves to.
-  settings="$(xcodebuild -project TrainerHub.xcodeproj -target TrainerHub -configuration Release -showBuildSettings \
+  settings="$(xcodebuild -project FivviPro.xcodeproj -target FivviPro -configuration Release -showBuildSettings \
     -clonedSourcePackagesDirPath .build/SourcePackages)"
-  url="$(sed -nE 's/^ *TRAINER_HUB_API_BASE_URL = //p' <<<"$settings")"
-  dsn="$(sed -nE 's/^ *TRAINER_HUB_SENTRY_DSN = //p' <<<"$settings")"
+  url="$(sed -nE 's/^ *FIVVI_API_BASE_URL = //p' <<<"$settings")"
+  dsn="$(sed -nE 's/^ *FIVVI_SENTRY_DSN = //p' <<<"$settings")"
   plist="$(sed -nE 's/^ *INFOPLIST_FILE = //p' <<<"$settings")"
   [[ "$url" == https://?*/api ]] || { echo "Release API base URL is not https://<host>/api: $url"; return 1; }
   [[ "$dsn" =~ ^https://[^@/]+@[a-z0-9]+\.ingest\.de\.sentry\.io/[0-9]+$ ]] \
     || { echo "Release Sentry DSN is not https://<key>@<org>.ingest.de.sentry.io/<project> (EU region): $dsn"; return 1; }
-  grep -qE '^ *TRAINER_HUB_SENTRY_ENVIRONMENT = production$' <<<"$settings" \
+  grep -qE '^ *FIVVI_SENTRY_ENVIRONMENT = production$' <<<"$settings" \
     || { echo "Release does not report to Sentry as environment production"; return 1; }
   if plutil -extract NSAppTransportSecurity raw -o - "$plist" >/dev/null 2>&1; then
     echo "$plist has NSAppTransportSecurity: plain HTTP is for Debug only"
@@ -79,23 +79,23 @@ release_configuration() {
 swift_packages() {
   local allowed resolved unexpected
   allowed='sentry-cocoa swift-collections swift-http-types swift-openapi-runtime swift-openapi-urlsession'
-  resolved="$(jq -er '.pins[].identity' TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved)" \
+  resolved="$(jq -er '.pins[].identity' FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved)" \
     || { echo "could not read the Swift packages from Package.resolved"; return 1; }
   unexpected="$(grep -vxF -f <(tr ' ' '\n' <<<"$allowed") <<<"$resolved" || true)"
   [ -z "$unexpected" ] || { echo "Swift packages not on the allowlist in scripts/test-ios.sh: $unexpected"; return 1; }
 }
 
-# Which UI tests each configuration of the test plan skips (TRAINER_HUB_SKIP_TESTS, see TestPlanSkips.swift), as
+# Which UI tests each configuration of the test plan skips (FIVVI_SKIP_TESTS, see TestPlanSkips.swift), as
 # `<configuration> <Class/test_name>` lines.
 plan_skips() {
   jq -r '.configurations[] | .name as $config
-    | (.options.environmentVariableEntries // [])[] | select(.key == "TRAINER_HUB_SKIP_TESTS") | .value
-    | split(",")[] | gsub("^\\s+|\\s+$"; "") | select(. != "") | "\($config) \(.)"' TrainerHub.xctestplan | sort -u
+    | (.options.environmentVariableEntries // [])[] | select(.key == "FIVVI_SKIP_TESTS") | .value
+    | split(",")[] | gsub("^\\s+|\\s+$"; "") | select(. != "") | "\($config) \(.)"' FivviPro.xctestplan | sort -u
 }
 
 # `Class/test_name` of every test of the UI test target.
 ui_tests() {
-  find TrainerHubUITests -name '*.swift' -exec awk '
+  find FivviProUITests -name '*.swift' -exec awk '
     FNR == 1 { class = "" }
     /^[[:space:]]*((private|fileprivate|internal|public|open|final)[[:space:]]+)*class[[:space:]]+[A-Za-z0-9_]+/ \
       && !/class[[:space:]]+(func|var|let)[[:space:]]/ {
@@ -112,25 +112,25 @@ ui_tests() {
 test_plan_coverage() {
   local tests skips configs rc=0 test skip filtered
   filtered="$(jq -r '.testTargets[] | .target.name as $target | ["skippedTests", "selectedTests"][] as $key
-    | select((.[$key] // []) | length > 0) | "\($target) \($key)"' TrainerHub.xctestplan)"
+    | select((.[$key] // []) | length > 0) | "\($target) \($key)"' FivviPro.xctestplan)"
   while read -r skip; do
     [ -n "$skip" ] || continue
-    echo "TrainerHub.xctestplan: ${skip% *} has ${skip#* }, which applies to every configuration; skip tests per configuration in TRAINER_HUB_SKIP_TESTS"
+    echo "FivviPro.xctestplan: ${skip% *} has ${skip#* }, which applies to every configuration; skip tests per configuration in FIVVI_SKIP_TESTS"
     rc=1
   done <<<"$filtered"
   tests="$(ui_tests)"
   skips="$(plan_skips)"
-  configs="$(jq '.configurations | length' TrainerHub.xctestplan)"
-  [ -n "$tests" ] || { echo "found no UI tests in TrainerHubUITests"; return 1; }
+  configs="$(jq '.configurations | length' FivviPro.xctestplan)"
+  [ -n "$tests" ] || { echo "found no UI tests in FivviProUITests"; return 1; }
   while read -r skip; do
     [ -n "$skip" ] || continue
-    grep -qxF "$skip" <<<"$tests" || { echo "TrainerHub.xctestplan skips $skip, which is not a UI test"; rc=1; continue; }
+    grep -qxF "$skip" <<<"$tests" || { echo "FivviPro.xctestplan skips $skip, which is not a UI test"; rc=1; continue; }
     [[ "$skip" == HelloUITests/* ]] \
-      || { echo "TrainerHub.xctestplan skips $skip, but only HelloUITests acts on TRAINER_HUB_SKIP_TESTS"; rc=1; }
+      || { echo "FivviPro.xctestplan skips $skip, but only HelloUITests acts on FIVVI_SKIP_TESTS"; rc=1; }
   done <<<"$(cut -d' ' -f2 <<<"$skips" | sort -u)"
   for test in $tests; do
     [ "$(grep -cE " $test\$" <<<"$skips")" -lt "$configs" ] \
-      || { echo "$test is skipped in every configuration of TrainerHub.xctestplan: it runs in no configuration"; rc=1; }
+      || { echo "$test is skipped in every configuration of FivviPro.xctestplan: it runs in no configuration"; rc=1; }
   done
   return "$rc"
 }
@@ -172,7 +172,7 @@ catalog_sync() {
   mkdir -p "$CATALOGS_BEFORE"
   cp "${CATALOGS[@]}" "$CATALOGS_BEFORE/"
   on_exit 'restore_catalogs || true'
-  xcodebuild -exportLocalizations -project TrainerHub.xcodeproj -scheme TrainerHub \
+  xcodebuild -exportLocalizations -project FivviPro.xcodeproj -scheme FivviPro \
     -localizationPath .build/Localizations -exportLanguage nl -exportLanguage en \
     -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData -quiet \
     || { echo "xcodebuild -exportLocalizations failed"; rc=1; }
@@ -199,7 +199,7 @@ step "Xcode's string catalog sync leaves the generated catalogs unchanged"
 catalog_sync
 
 LOCALES="nl en"
-BUILD_ARGS=(-project TrainerHub.xcodeproj -scheme TrainerHub -testPlan TrainerHub
+BUILD_ARGS=(-project FivviPro.xcodeproj -scheme FivviPro -testPlan FivviPro
   -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData)
 
 # Builds the app and its tests once, for the simulator $1; the build log goes to .build/build-for-testing.log and its

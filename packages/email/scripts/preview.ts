@@ -7,7 +7,7 @@
 // This is a developer tool, so its page chrome is not translated.
 import { createServer } from 'node:http';
 import { parseArgs } from 'node:util';
-import { defaultTimeZone, isLocale, locales } from '@trainer-hub/i18n';
+import { defaultTimeZone, isLocale, locales } from '@fivvi/i18n';
 import { type EmailTemplate, renderEmail, templates } from '../src/index.ts';
 
 const { values } = parseArgs({

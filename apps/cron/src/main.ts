@@ -1,5 +1,5 @@
-import { createDatabaseFromEnv } from '@trainer-hub/database';
-import { createErrorReporter } from '@trainer-hub/observability';
+import { createDatabaseFromEnv } from '@fivvi/database';
+import { createErrorReporter } from '@fivvi/observability';
 import { runDailyJobs } from './daily.ts';
 
 // Entrypoint of the Railway cron service (docs/engineering/ENVIRONMENTS.md). Railway starts

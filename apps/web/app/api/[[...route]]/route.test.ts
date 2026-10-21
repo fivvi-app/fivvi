@@ -1,4 +1,4 @@
-import { INTERNAL_SERVER_ERROR } from '@trainer-hub/api';
+import { INTERNAL_SERVER_ERROR } from '@fivvi/api';
 import { describe, expect, it, vi } from 'vitest';
 import { GET } from './route';
 

@@ -1,3 +1,3 @@
-import { unitConfig } from '@trainer-hub/testing/vitest';
+import { unitConfig } from '@fivvi/testing/vitest';
 
 export default unitConfig();

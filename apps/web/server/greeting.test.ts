@@ -1,5 +1,5 @@
-import { type ApiDependencies, createApiHandler, NO_DEPENDENCIES } from '@trainer-hub/api';
-import { locales } from '@trainer-hub/i18n';
+import { type ApiDependencies, createApiHandler, NO_DEPENDENCIES } from '@fivvi/api';
+import { locales } from '@fivvi/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import { inProcessApiClient } from './api-client';
 import { loadGreeting } from './greeting';

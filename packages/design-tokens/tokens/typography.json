@@ -1,5 +1,5 @@
 {
-  "$description": "Font families, weights and the type scale. Native apps map each style to a platform text style ($extensions app.trainerhub.platform); the sizes are the web reference, not fixed native sizes.",
+  "$description": "Font families, weights and the type scale. Native apps map each style to a platform text style ($extensions app.fivvi.platform); the sizes are the web reference, not fixed native sizes.",
   "font": {
     "family": {
       "$type": "fontFamily",
@@ -14,7 +14,7 @@
         ],
         "$description": "All UI text. Native apps use the platform system font (SF Pro on iOS, Roboto on Android) so Dynamic Type and font scaling work for free. No web font for body text: keeps the public booking page inside its LCP budget.",
         "$extensions": {
-          "app.trainerhub.platform": {
+          "app.fivvi.platform": {
             "ios": "system (SF Pro)",
             "android": "system (Roboto)"
           }
@@ -31,7 +31,7 @@
         ],
         "$description": "Brand voice, used sparingly: public booking page headings and the workspace name. Never for body text or form labels. Native apps keep the system font (see visual-direction.md §3).",
         "$extensions": {
-          "app.trainerhub.platform": {
+          "app.fivvi.platform": {
             "ios": "system (SF Pro Display)",
             "android": "system (Roboto)"
           }
@@ -66,7 +66,7 @@
         "letterSpacing": "-0.01em"
       },
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "ios": "largeTitle",
           "android": "headlineLarge"
         }
@@ -81,7 +81,7 @@
         "letterSpacing": "-0.005em"
       },
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "ios": "title",
           "android": "headlineMedium"
         }
@@ -96,7 +96,7 @@
         "letterSpacing": "0"
       },
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "ios": "title2",
           "android": "titleLarge"
         }
@@ -111,7 +111,7 @@
         "letterSpacing": "0"
       },
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "ios": "headline",
           "android": "titleMedium"
         }
@@ -127,7 +127,7 @@
       },
       "$description": "Web inputs never go below 16px (prevents iOS Safari zoom on focus).",
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "ios": "body",
           "android": "bodyLarge"
         }
@@ -142,7 +142,7 @@
         "letterSpacing": "0"
       },
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "ios": "subheadline",
           "android": "bodyMedium"
         }
@@ -158,7 +158,7 @@
       },
       "$description": "Buttons, chips, tab labels.",
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "ios": "subheadline.weight(.semibold)",
           "android": "labelLarge"
         }
@@ -173,7 +173,7 @@
         "letterSpacing": "0"
       },
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "ios": "footnote",
           "android": "bodySmall"
         }
@@ -189,7 +189,7 @@
       },
       "$description": "Uppercase section labels (e.g. VANDAAG). Minimum size for any text.",
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "ios": "caption",
           "android": "labelMedium"
         }
@@ -205,7 +205,7 @@
       },
       "$description": "Weight/reps in the live logger, read at arm's length between sets. Tabular figures.",
       "$extensions": {
-        "app.trainerhub.platform": {
+        "app.fivvi.platform": {
           "ios": "largeTitle, semibold, monospaced digits",
           "android": "displaySmall + tnum"
         }

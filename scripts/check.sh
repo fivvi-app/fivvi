@@ -103,7 +103,7 @@ touches_api() {
 }
 
 turbo_checks() {
-  local contract=--filter=!@trainer-hub/contract
+  local contract=--filter=!@fivvi/contract
   ! touches_api || contract=""
   pnpm turbo run lint typecheck test format:check build --output-logs=full \
     && pnpm turbo run check ${contract:+"$contract"} --output-logs=errors-only

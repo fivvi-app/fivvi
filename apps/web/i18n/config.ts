@@ -6,7 +6,7 @@ import {
   messages,
   parseAcceptLanguage,
   resolveInterfaceLanguage,
-} from '@trainer-hub/i18n';
+} from '@fivvi/i18n';
 
 /** Cookie holding an explicit language choice. The language switch arrives with F010. */
 export const localeCookie = 'NEXT_LOCALE';

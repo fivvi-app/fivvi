@@ -1,5 +1,5 @@
 {
-  "name": "@trainer-hub/ui",
+  "name": "@fivvi/ui",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "format:check": "biome format ."
   },
   "dependencies": {
-    "@trainer-hub/design-tokens": "workspace:*",
+    "@fivvi/design-tokens": "workspace:*",
     "class-variance-authority": "catalog:",
     "cn": "catalog:",
     "radix-ui": "catalog:",
@@ -25,7 +25,7 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@tailwindcss/node": "catalog:",
-    "@trainer-hub/testing": "workspace:*",
+    "@fivvi/testing": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

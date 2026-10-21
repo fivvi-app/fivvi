@@ -374,9 +374,7 @@ describe('E006 server-only namespaces', () => {
   });
 
   it('still checks email keys for parity', () => {
-    const analysis = analyze(
-      catalogSet(nl, { 'app.name': 'Fivvi', 'hello.title': 'Welcome' }),
-    );
+    const analysis = analyze(catalogSet(nl, { 'app.name': 'Fivvi', 'hello.title': 'Welcome' }));
     expect(analysis.parity).toEqual([
       '"email.hello.subject" is in nl-NL.json but missing from en.json',
     ]);

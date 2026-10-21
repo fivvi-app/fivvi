@@ -1,4 +1,4 @@
-import { messages } from '@trainer-hub/i18n';
+import { messages } from '@fivvi/i18n';
 import { describe, expect, it } from 'vitest';
 import { createMemoryTransport } from './memory.ts';
 import { createSendEmail } from './send.ts';

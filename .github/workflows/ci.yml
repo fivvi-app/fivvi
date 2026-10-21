@@ -243,7 +243,7 @@ jobs:
 
       - name: Read Playwright version
         id: playwright
-        run: echo "version=$(pnpm --filter @trainer-hub/web exec playwright --version | awk '{print $2}')" >>"$GITHUB_OUTPUT"
+        run: echo "version=$(pnpm --filter @fivvi/web exec playwright --version | awk '{print $2}')" >>"$GITHUB_OUTPUT"
 
       # Browsers are cached per Playwright version; the OS packages they need are not
       # cacheable, so they are installed on every run.
@@ -256,11 +256,11 @@ jobs:
 
       - name: Install Chromium and its OS packages
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @trainer-hub/web exec playwright install --with-deps --only-shell chromium
+        run: pnpm --filter @fivvi/web exec playwright install --with-deps --only-shell chromium
 
       - name: Install Chromium's OS packages
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --filter @trainer-hub/web exec playwright install-deps chromium
+        run: pnpm --filter @fivvi/web exec playwright install-deps chromium
 
       # Builds the web app, then runs every spec in nl-NL and en with axe checks.
       - name: Web e2e (nl-NL and en)
@@ -315,7 +315,7 @@ jobs:
             apps/ios/.build/DerivedData
             apps/ios/.build/SourcePackages
             !apps/ios/.build/DerivedData/Logs
-          key: ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/TrainerHub.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          key: ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
             ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-
 

@@ -58,7 +58,7 @@ iphone_simulator() {
 # runs. Empty for the main checkout, which (like CI) uses the newest iPhone. scripts/wt.sh done deletes it.
 worktree_simulator_name() {
   local dir="${1:-$ROOT}"
-  [ "$dir" = "$MAIN_ROOT" ] || echo "Trainer Hub $(basename "$dir")"
+  [ "$dir" = "$MAIN_ROOT" ] || echo "Fivvi $(basename "$dir")"
 }
 
 # UDID of the simulator to test on: the one named $IOS_SIMULATOR; else this worktree's own, created as a copy of the
@@ -120,7 +120,7 @@ create_extra_simulator() {
   local type runtime
   read -r _ type runtime <<<"$(iphone_simulator "${IOS_SIMULATOR:-}")"
   [ -n "$type" ] || return 1
-  EXTRA_SIMULATOR="$(xcrun simctl create "Trainer Hub parallel $$" "$type" "$runtime")"
+  EXTRA_SIMULATOR="$(xcrun simctl create "Fivvi parallel $$" "$type" "$runtime")"
 }
 
 delete_extra_simulator() {

@@ -2,7 +2,7 @@
 // from the design tokens (`Tokens.Colors`). scripts/test-ios.sh lints this file and compares the reported lines with
 // the markers. It is not part of any target.
 import SwiftUI
-import TrainerHubDesignTokens
+import FivviDesignTokens
 import UIKit
 
 struct ColourLiteral: View {

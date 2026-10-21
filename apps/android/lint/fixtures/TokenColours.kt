@@ -1,15 +1,15 @@
 // AC6 fixture: colours from the theme and the design tokens, which ktlintCheck accepts. Not compiled;
 // NoColourLiteralRuleTest reads it.
-package nl.trainerhub.lint.fixtures
+package app.fivvi.lint.fixtures
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import nl.trainerhub.designtokens.DarkColorScheme
-import nl.trainerhub.designtokens.DarkTokenColors
-import nl.trainerhub.designtokens.LightColorScheme
-import nl.trainerhub.designtokens.LightTokenColors
+import app.fivvi.designtokens.DarkColorScheme
+import app.fivvi.designtokens.DarkTokenColors
+import app.fivvi.designtokens.LightColorScheme
+import app.fivvi.designtokens.LightTokenColors
 
 @Composable
 fun TokenColours(label: String, dark: Boolean, tint: Color = Color.Unspecified) {

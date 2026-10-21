@@ -1,4 +1,4 @@
-import { messages } from '@trainer-hub/i18n';
+import { messages } from '@fivvi/i18n';
 import { createFormatter, createTranslator } from 'next-intl';
 import { describe, expect, it } from 'vitest';
 import { intlConfig, requestLocale } from './config';

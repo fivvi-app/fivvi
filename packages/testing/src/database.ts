@@ -12,7 +12,7 @@ import {
  * Database isolation for integration tests (TESTING.md §5.3):
  *
  * 1. Per run: the package's global setup migrates one **template database**
- *    (`setupTemplateDatabase` from `@trainer-hub/testing/database/setup`).
+ *    (`setupTemplateDatabase` from `@fivvi/testing/database/setup`).
  * 2. Per test file: `cloneTemplateDatabase()` in `beforeAll` gives the file its own
  *    migrated database in milliseconds, so files run in parallel without sharing data.
  * 3. Per test: `withRollback()` runs the test in a transaction that is always rolled
@@ -35,7 +35,7 @@ function testDatabase(name: string): TestDatabase {
 }
 
 function testRun() {
-  return inject('trainerHubTestRun');
+  return inject('fivviTestRun');
 }
 
 /** Creates an empty database. Use it for migration tests; everything else clones the template. */

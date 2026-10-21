@@ -1,6 +1,6 @@
 'use client';
 
-import { capturePageView } from '@trainer-hub/observability/page-views';
+import { capturePageView } from '@fivvi/observability/page-views';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 

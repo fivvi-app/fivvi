@@ -16,7 +16,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "trainer-hub"
+rootProject.name = "fivvi"
 
 // The app; the generated API client (packages/contract/kotlin); the generated design tokens
 // (packages/design-tokens/kotlin); the ktlint rules with their fixtures (lint/).

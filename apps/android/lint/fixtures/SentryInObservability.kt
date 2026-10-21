@@ -1,6 +1,6 @@
 // E009 fixture: the observability module, the one place that may call Sentry, which ktlintCheck accepts. Not compiled;
 // NoSentryOutsideObservabilityRuleTest reads it.
-package nl.trainerhub.app.observability
+package app.fivvi.pro.observability
 
 import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroidOptions

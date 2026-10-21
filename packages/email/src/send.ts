@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
-import type { Locale } from '@trainer-hub/i18n';
+import type { Locale } from '@fivvi/i18n';
 import { type EmailTemplate, renderEmail } from './render.tsx';
 import { defaultRetryPolicy, nextDelay, type RetryPolicy } from './retry.ts';
 import {
@@ -16,7 +16,7 @@ export interface SendEmailOptions<Props> {
   to: EmailAddress;
   /**
    * The recipient's communication language, resolved with `resolveCommunicationLanguage`
-   * from `@trainer-hub/i18n` (ADR-017).
+   * from `@fivvi/i18n` (ADR-017).
    */
   locale: Locale;
   /** The workspace or user time zone. Default: Europe/Amsterdam. */

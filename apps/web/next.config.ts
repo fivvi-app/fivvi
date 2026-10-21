@@ -24,12 +24,12 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: fileURLToPath(new URL('../..', import.meta.url)),
   // Workspace packages ship TypeScript source.
   transpilePackages: [
-    '@trainer-hub/api',
-    '@trainer-hub/contract',
-    '@trainer-hub/database',
-    '@trainer-hub/i18n',
-    '@trainer-hub/observability',
-    '@trainer-hub/ui',
+    '@fivvi/api',
+    '@fivvi/contract',
+    '@fivvi/database',
+    '@fivvi/i18n',
+    '@fivvi/observability',
+    '@fivvi/ui',
   ],
 };
 

@@ -7,7 +7,7 @@ ANDROID_DIR="$ROOT/apps/android"
 SDK_PACKAGES="platform-tools platforms;android-37.0 build-tools;37.0.0 emulator"
 # The emulator for the Compose UI tests and Maestro. Google APIs images allow `adb root`, which maestro.sh needs to
 # set the device language.
-AVD_NAME="trainer-hub"
+AVD_NAME="fivvi"
 AVD_API=35
 # GitHub's runners have 2 cores; the device profile asks for 4. The data partition can't be made smaller: on the first
 # boot the emulator creates 6 GB whatever config.ini or -partition-size say, and needs 7.4 GB free for it (CI frees
@@ -38,7 +38,7 @@ system_image() {
 # manager and Gradle can't download anything. Give Java a trust store with its own CAs plus the System keychain's.
 java_trust_keychain() {
   [ "$(uname)" = Darwin ] || return 0
-  local dir="$HOME/.config/trainer-hub" store cacerts certs f
+  local dir="$HOME/.config/fivvi" store cacerts certs f
   store="$dir/java-cacerts"
   if [ ! -s "$store" ] || [ /Library/Keychains/System.keychain -nt "$store" ]; then
     cacerts="$(find -L "$JAVA_HOME" -path '*/lib/security/cacerts' 2>/dev/null | head -1 || true)"

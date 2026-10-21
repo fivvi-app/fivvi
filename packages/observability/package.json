@@ -1,5 +1,5 @@
 {
-  "name": "@trainer-hub/observability",
+  "name": "@fivvi/observability",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@sentry/cli": "catalog:",
-    "@trainer-hub/testing": "workspace:*",
+    "@fivvi/testing": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

@@ -1,5 +1,5 @@
 // AC8 fixture: text from resources, which ktlintCheck accepts. Not compiled; NoLiteralTextRuleTest reads it.
-package nl.trainerhub.lint.fixtures
+package app.fivvi.lint.fixtures
 
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text

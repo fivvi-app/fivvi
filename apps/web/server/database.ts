@@ -1,4 +1,4 @@
-import { createDatabaseFromEnv, type Database, type DatabaseClient } from '@trainer-hub/database';
+import { createDatabaseFromEnv, type Database, type DatabaseClient } from '@fivvi/database';
 
 let client: DatabaseClient | undefined;
 

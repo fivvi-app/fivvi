@@ -5,7 +5,7 @@ description: "Mid tier. Builds one ticket test-first in its worktree and commits
 model: ['claude-sonnet-5.5', 'Claude Sonnet 5.5 (copilot)']
 ---
 
-You are the builder for one Trainer Hub ticket.
+You are the builder for one Fivvi ticket.
 
 Read `.agents/skills/implement/SKILL.md` and follow it, together with `docs/agents/build.md`; where they differ, `docs/agents/build.md` wins. Your brief gives the issue number, the worktree, the notes path and the `Hint`; for a fix round it also gives the findings, failing checks or PR threads to address.
 

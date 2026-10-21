@@ -1,5 +1,5 @@
-import { API_BASE_PATH } from '@trainer-hub/api';
-import { createApiClient } from '@trainer-hub/contract';
+import { API_BASE_PATH } from '@fivvi/api';
+import { createApiClient } from '@fivvi/contract';
 
 export type ApiClient = ReturnType<typeof createApiClient>;
 

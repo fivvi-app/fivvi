@@ -125,7 +125,7 @@ describe('E005 i18n checks', () => {
       expect(generated?.problems).toEqual([
         'generated/ios/Localizable.xcstrings is out of date',
         'generated/android/values-en/strings.xml is out of date',
-        'Run `pnpm --filter @trainer-hub/i18n generate` and commit the result.',
+        'Run `pnpm --filter @fivvi/i18n generate` and commit the result.',
       ]);
     });
 
@@ -136,7 +136,7 @@ describe('E005 i18n checks', () => {
         'generated/ios/Localizable.xcstrings is out of date',
         'generated/ios/InfoPlist.xcstrings is out of date',
         'generated/android/values-en/strings.xml is out of date',
-        'Run `pnpm --filter @trainer-hub/i18n generate` and commit the result.',
+        'Run `pnpm --filter @fivvi/i18n generate` and commit the result.',
       ]);
     });
 

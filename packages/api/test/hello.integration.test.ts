@@ -1,4 +1,3 @@
-import { z } from '@hono/zod-openapi';
 import {
   createDatabase,
   type DatabaseClient,
@@ -6,13 +5,10 @@ import {
   findSystemGreeting,
   HELLO_GREETING,
   systemGreetings,
-} from '@trainer-hub/database';
-import { createCaptureTransport, createErrorReporter } from '@trainer-hub/observability';
-import {
-  cloneTemplateDatabase,
-  type TestDatabase,
-  withRollback,
-} from '@trainer-hub/testing/database';
+} from '@fivvi/database';
+import { createCaptureTransport, createErrorReporter } from '@fivvi/observability';
+import { cloneTemplateDatabase, type TestDatabase, withRollback } from '@fivvi/testing/database';
+import { z } from '@hono/zod-openapi';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   type ApiDependencies,

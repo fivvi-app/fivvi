@@ -1,4 +1,4 @@
-import { locales, messages } from '@trainer-hub/i18n';
+import { locales, messages } from '@fivvi/i18n';
 import { describe, expect, it } from 'vitest';
 import type { Greeting } from '../server/greeting';
 import { escapeHtml, render } from '../test/render';

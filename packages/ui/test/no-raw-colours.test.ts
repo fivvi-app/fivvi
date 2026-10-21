@@ -202,7 +202,7 @@ describe('E007 raw-colour guard (what `pnpm check` runs)', {
       JSON.parse(await readFile(path.join(packageRoot, file), 'utf8'));
     const alias: string = (await readJson('components.json')).aliases.ui;
     const paths: Record<string, string[]> = (await readJson('tsconfig.json')).compilerOptions.paths;
-    // The shadcn CLI resolves the alias (`@trainer-hub/ui/components`) through tsconfig's paths.
+    // The shadcn CLI resolves the alias (`@fivvi/ui/components`) through tsconfig's paths.
     const resolved = Object.entries(paths).flatMap(([from, [to]]) => {
       const prefix = from.replace(/\*$/, '');
       return alias.startsWith(prefix) && to ? [to.replace(/\*$/, alias.slice(prefix.length))] : [];

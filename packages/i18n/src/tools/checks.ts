@@ -48,7 +48,7 @@ export async function runChecks(
         try {
           problems = await staleNativeCatalogs(root, renderNativeCatalogs(analysis));
           if (problems.length > 0) {
-            problems.push('Run `pnpm --filter @trainer-hub/i18n generate` and commit the result.');
+            problems.push('Run `pnpm --filter @fivvi/i18n generate` and commit the result.');
           }
         } catch (error) {
           if (!(error instanceof CatalogError)) throw error;

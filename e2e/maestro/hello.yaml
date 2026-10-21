@@ -5,7 +5,7 @@ appId: ${APP_ID}
 name: AC1_AC2 greeting from the database
 env:
   # The Android application id and the iOS bundle id.
-  APP_ID: nl.trainerhub.app
+  APP_ID: app.fivvi.pro
 ---
 - launchApp:
     clearState: true

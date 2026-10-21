@@ -1,4 +1,4 @@
-import { type Locale, type MessageKey, messages } from '@trainer-hub/i18n';
+import { type Locale, type MessageKey, messages } from '@fivvi/i18n';
 import type { ApiClient } from './api-client';
 
 /** The hello page's greeting: a catalog key to render, or the error state. */

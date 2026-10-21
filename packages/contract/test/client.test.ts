@@ -3,7 +3,7 @@ import {
   createApiHandler,
   INTERNAL_SERVER_ERROR,
   NO_DEPENDENCIES,
-} from '@trainer-hub/api';
+} from '@fivvi/api';
 import { describe, expect, it, vi } from 'vitest';
 import { createApiClient } from '../src/index.ts';
 

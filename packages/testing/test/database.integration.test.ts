@@ -65,7 +65,7 @@ describe('E010 template database', () => {
   });
 
   it('refuses connections to the template itself', async () => {
-    const run = inject('trainerHubTestRun');
+    const run = inject('fivviTestRun');
     const client = new pg.Client({ connectionString: databaseUrl(run?.templateName ?? '') });
 
     await expect(client.connect()).rejects.toMatchObject({ code: '55000' });
