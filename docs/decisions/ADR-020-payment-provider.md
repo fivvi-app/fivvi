@@ -5,17 +5,17 @@
 | **Status** | Proposed |
 | **Date** | 2026-10-20 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
-| **Related** | PRODUCT.md §2.8, §53, §90–§97; ROADMAP.md M11, §4.4, §7, §12, §13 (R17, R19, R20), §14 decision 14; ADR-004, ADR-006, ADR-010, ADR-011, ADR-012; E019, F052–F061; open questions QC05, QC06, QC09, QC12, QC13, QC16 |
+| **Related** | PRODUCT.md §2.8, §53, §90–§97; ROADMAP.md M11, §4.4, §7, §12, §13 (R17, R19, R20), §14 decision 14; ADR-004, ADR-006, ADR-010, ADR-011, ADR-012; E019, F052–F061; open questions QC05, QC06, QC09, QC12, QC13, QC16, QC17 |
 
 ## Context
 
-The pilot gym won't switch without commerce, so memberships, session packs, recurring payments and invoices ship before go-live in M11 (`ROADMAP.md §14`, decision 9). The commerce requirements (`PRODUCT.md §90–§97`) and the decisions behind them are in the same PR (#141) as this ADR, which the owner accepts by approving the PR (status set to Accepted with the date before merge). Decision 14 (the payment provider, Mollie or Stripe, and the merchant model) is the M11 opening spike (E019): no money code is written before the project owner decides it.
+The pilot gym won't switch without commerce, so memberships, credit packs, credit plans (group and private credits; `PRODUCT.md §92`), recurring payments and invoices ship before go-live in M11 (`ROADMAP.md §14`, decision 9). The commerce requirements (`PRODUCT.md §90–§97`) and the decisions behind them are in the same PR (#141) as this ADR, which the owner accepts by approving the PR (status set to Accepted with the date before merge). Decision 14 (the payment provider, Mollie or Stripe, and the merchant model) is the M11 opening spike (E019): no money code is written before the project owner decides it.
 
 What the product needs from a provider (`PRODUCT.md §94–§97`):
 
 - **The workspace (the gym) is the merchant.** Client money goes from the provider to the gym's bank account and never through an account of Trainer Hub (R19).
-- **First payment by iDEAL** when a client confirms a membership or pack, which also gives the **SEPA Direct Debit mandate** (QC06).
-- **Recurring payments:** on each due date Trainer Hub asks the provider to collect the amount under the mandate. The payment schedule belongs to the agreement, not to the class times (ADR-012).
+- **First payment by iDEAL** when a client confirms a membership, a credit pack or a credit plan, which also gives the **SEPA Direct Debit mandate** (QC06).
+- **Recurring payments:** on each due date Trainer Hub asks the provider to collect the amount under the mandate. The payment schedule belongs to the agreement, not to the class times (ADR-012). A credit plan is a recurring payment like a membership; a credit pack is one up-front payment, so it needs no recurring collection unless the pilot wants instalments (QC08).
 - **Exactly once:** a due amount is charged once, even when a job retries or the provider sends the same event twice (R17).
 - **Failed payments, refunds and reversed debits** reach the Owner and the client (QC05); refunds and reversed debits get credit notes (`PRODUCT.md §96`).
 - **Weekly payouts**, and per payout the payments, refunds, reversals and fees in it (`PRODUCT.md §97`).

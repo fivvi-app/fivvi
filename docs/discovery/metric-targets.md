@@ -78,14 +78,14 @@
 
 | | |
 |---|---|
-| **Metric** | Share of the gym's active agreements (memberships, and session packs if confirmed for M11) that run in the platform; unexplained balance differences |
+| **Metric** | Share of the gym's active agreements (memberships, credit packs and credit plans) that run in the platform; unexplained balance differences |
 | **Baseline** (M0 walkthrough, [import checklist](import-checklist.md)) | Active agreements today: ____ · where they are kept: ____________ · differences between the old app and the owner's own records last month: ____ |
 | **Roadmap default** | 100 % from pilot week 3; 0 unexplained differences |
-| **Measured in the pilot** | Active agreements in the platform ÷ active agreements the gym owner counts; session balances and next due dates compared with the old app each week, every difference explained or open |
+| **Measured in the pilot** | Active agreements in the platform ÷ active agreements the gym owner counts; credit balances and next due dates compared with the old app each week, every difference explained or open |
 | **Measured when** | From pilot week 3, weekly |
 
-**Vraag:** Hoeveel van je lopende abonnementen en pakketten moeten na de overstap in Trainer Hub staan, en vanaf welke week? Wanneer mag een saldo of vervaldatum afwijken van wat je nu ziet?\
-*Question: how many of your running memberships and packs should be in Trainer Hub after the switch-over, and from which week? When may a balance or due date differ from what you see today?*
+**Vraag:** Hoeveel van je lopende abonnementen, creditpakketten en creditabonnementen moeten na de overstap in Trainer Hub staan, en vanaf welke week? Wanneer mag een tegoed of vervaldatum afwijken van wat je nu ziet?\
+*Question: how many of your running memberships, credit packs and credit plans should be in Trainer Hub after the switch-over, and from which week? When may a credit balance or due date differ from what you see today?*
 
 | | |
 |---|---|

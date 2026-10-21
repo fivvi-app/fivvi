@@ -140,9 +140,9 @@ Only **from the go-live date onwards**. Past sessions are not imported (history,
 
 ### 3.4a Agreements, balances and payments — **required** (v1.19)
 
-Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the active memberships and session packs come along. The current booking and payment app is the source; agree in M0 what it can export (QC14 in [`open-questions.md`](../design/open-questions.md#qc14)). **Never** import or copy IBANs, card data or mandate documents: mandates stay with the payment provider (QC09).
+Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the active memberships, credit packs and credit plans (group and private credits) come along. The current booking and payment app is the source; agree in M0 what it can export (QC14 in [`open-questions.md`](../design/open-questions.md#qc14)). **Never** import or copy IBANs, card data or mandate documents: mandates stay with the payment provider (QC09).
 
-**Offers** — one row per kind of membership or session pack sold today: `name`, `kind` (`membership` / `session_pack`), `price_eur` (incl. VAT), `vat_rate`, `term_months` or `validity_months`, `classes_per_week` (membership) or `sessions` (pack), `cutoff_hours`, `makeups_per_term`.
+**Offers** — one row per kind of membership, credit pack or credit plan sold today: `name`, `kind` (`membership` / `credit_pack` / `credit_plan`), `credit_kind` (`group` / `private`, credit offers only), `price_eur` (incl. VAT), `vat_rate`, `term_months` or `validity_months`, `classes_per_week` (membership), `credits` (pack) or `credits_per_month` and `carry_over_limit` (plan), `cutoff_hours`, `makeups_per_term` (membership). Group and private credits never mix, so an old offer that covers both kinds is listed as two offers.
 
 **Active agreements** — one row per client per agreement:
 
@@ -156,7 +156,7 @@ Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the
 | `next_due_date` / `amount_eur` | **Yes** | The next recurring payment |
 | `open_amount_eur` | Optional | Unpaid amounts at go-live |
 
-**Session balances at go-live** — one row per agreement: `sessions_left` (pack) or `makeups_left` (membership), with the date it was counted. It becomes the first line of the balance history (`PRODUCT.md §92`), marked as imported.
+**Credit balances at go-live** — one row per agreement: `credits_left` (credit pack or plan, in the offer's `credit_kind`) or `makeups_left` (membership), with the date it was counted. It becomes the first line of the balance history (`PRODUCT.md §92`), marked as imported.
 
 **Billing details** — only for clients who want a company invoice: `company_name`, `address` (the billing address on the invoice, not a home address otherwise), `vat_number`.
 

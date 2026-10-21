@@ -90,9 +90,9 @@ Roles come from `PRODUCT.md §9, §50`: **Owner and Trainer** are the team roles
 | Log workouts | ✓ | ✓ own sessions | — | — |
 | Offers, prices, cancellation policy (`§90`, `§93`) | ✓ | — | — | — |
 | Connect the payment provider account (proposed in ADR-020; `§94`) | ✓ | — | — | — |
-| Agreements: create, end, see balances (`§91`, `§92`) | ✓ | 👁 balance of own clients ⚑ [QC12](open-questions.md#qc12) | ✓ own | — |
+| Agreements: create, end, see credit balances (`§91`, `§92`) | ✓ | 👁 credit balances of own clients ⚑ [QC12](open-questions.md#qc12) | ✓ own | — |
 | Payments, invoices, refunds, payouts (`§94`–`§97`) | ✓ | — | 👁 own payments and invoices | — |
-| Buy a membership, session pack or single class; pay | — | — | ✓ | ✓ single class (account created at verification) |
+| Buy a membership, credit pack, credit plan or single class; pay | — | — | ✓ | ✓ single class (account created at verification) |
 | Billing details | ✓ on behalf of a client ⚑ [QC16](open-questions.md#qc16) | — | ✓ own | — |
 | Book group classes and Open Gym | — | — | ✓ | ✓ |
 | View and cancel own bookings and private sessions (*my schedule*) | — | — | ✓ client web | ✓ via manage link in email |

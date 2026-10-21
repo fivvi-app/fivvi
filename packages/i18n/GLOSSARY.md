@@ -4,7 +4,7 @@ This is the **single wording source** for every user-facing string on every surf
 
 What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLOSSARY.md) at the repo root (English canonical terms, definitions, words to avoid). This file says how those terms are **worded** in nl-NL and en.
 
-- **Status:** v0.8, started in M0 (`ROADMAP.md §4.2`). Terms marked ⚠️ still need to be validated with the pilot owner (see [§8 Open questions](#8-open-questions-validate-with-the-pilot-owner)).
+- **Status:** v0.9, started in M0 (`ROADMAP.md §4.2`). Terms marked ⚠️ still need to be validated with the pilot owner (see [§8 Open questions](#8-open-questions-validate-with-the-pilot-owner)).
 - **Scope:** UI strings, emails, notifications, validation messages, empty states, public booking pages and QR posters. Legal documents (privacy policy, terms, verwerkersovereenkomst) follow their own register and are out of scope.
 - **Catalogs:** `packages/i18n/nl-NL.json` and `packages/i18n/en.json` (ICU MessageFormat, ADR-008). Native catalogs (`.xcstrings`, `strings.xml`) are generated from them and are never edited by hand.
 - **Precedence:** `PRODUCT.md` owns requirements. This file owns terminology, tone and copy style. Where it deliberately differs from example copy in `PRODUCT.md`, [§7](#7-deviations-from-productmd-example-copy) lists why.
@@ -313,13 +313,14 @@ Added with roadmap v1.19 (M11). The ⚠️ terms are open until the pilot owner 
 
 | EN term | NL term | Notes / forbidden alternatives |
 |---|---|---|
-| offer | aanbod (het) ⚠️ | A single item: *dit aanbod*. ❌ *product*, *pakket*. |
-| agreement | overeenkomst (de, overeenkomsten) ⚠️ | Mostly internal; in the UI name the kind (*abonnement*, *sessiepakket*). ❌ *contract* outside the terms text. |
+| offer | aanbod (het) ⚠️ | A single item: *dit aanbod*. ❌ *product*, *pakket* (alone; *creditpakket* is the name of one kind of offer). |
+| agreement | overeenkomst (de, overeenkomsten) ⚠️ | Mostly internal; in the UI name the kind (*abonnement*, *creditpakket*, *creditabonnement*). ❌ *contract* outside the terms text. |
 | membership | abonnement (het, abonnementen) ⚠️ | The pilot owner calls it a subscription; *lidmaatschap* is the alternative to confirm. EN: *membership*, ❌ *subscription* in EN UI. |
-| session pack | sessiepakket (het, sessiepakketten) ⚠️ | Alternatives to confirm: *strippenkaart*, *rittenkaart*, *PT-pakket*. ❌ *bundel*, *credits* (a post-MVP pricing model, see *credit* 🔜). |
-| credit 🔜 4.0 | tegoedpunt (het, tegoedpunten) ⚠️ | A post-MVP pricing model (Release 4): a unit that pays for different session types. No UI strings yet. Not *tegoed*, which is the session balance. |
+| credit | credit (de, credits) ⚠️ | One unit of a credit balance (`GLOSSARY.md`). Name the kind with a compound: *groepscredit* (group credit), *privécredit* (private credit), e.g. *6 groepscredits, 3 privécredits*. One credit books one session of its kind; the two kinds never mix. Alternative to confirm: *tegoedpunt*. ❌ *token*, *punt*, *voucher*; ❌ *tegoed* for one unit (*tegoed* is the balance). |
+| credit pack | creditpakket (het, creditpakketten) ⚠️ | A number of credits bought once, valid for a period. Name the kind next to it (*Groep* / *Privé*, as on calendar blocks) instead of a longer compound. Alternatives to confirm: *strippenkaart*, *rittenkaart*, *PT-pakket* (private only). ❌ *sessiepakket* (the retired *session pack*), *bundel*. |
+| credit plan | creditabonnement (het, creditabonnementen) ⚠️ | A number of credits each month, paid by recurring payment, with a carry-over limit. Alternative to confirm: *maandelijkse credits*. EN: *credit plan*, ❌ *credit subscription*. |
 | single class | losse les (de, losse lessen) | ❌ *drop-in*, *extra les* as the offer name (*extra* is fine in a sentence). |
-| session balance | tegoed (het) ⚠️ | e.g. *Nog 12 sessies tegoed*. ❌ *saldo* (money), *credits* (a post-MVP pricing model, see *credit* 🔜). |
+| credit balance | tegoed (het) ⚠️ | What is left, per kind: *Nog 6 groepscredits en 3 privécredits tegoed*. Keep the word for the balance only; the unit is *credit*. ❌ *saldo* (money), *sessiesaldo* (the retired *session balance*). |
 | cancellation policy | annuleringsbeleid (het) ⚠️ | The rules of an offer for cancellations and no-shows. In the UI show the rule itself (*Annuleren kan tot 12 uur van tevoren*) rather than the noun. ❌ *annuleringsvoorwaarden* unless it is the legal terms text. ❌ EN: *terms, rules* (alone). |
 | cancellation cutoff | annuleren tot … uur van tevoren | Phrase it as a sentence, not a noun: *Je kunt tot 12 uur van tevoren gratis annuleren.* |
 | makeup | inhaalles (de, inhaallessen) | ❌ *compensatieles*, *tegoedles*. |
@@ -498,7 +499,7 @@ These terms are the best current choice. Confirm them in the M0 wireframe review
 2. **private session → privésessie.** Dutch trainers often say *PT-sessie*. Check which word the pilot gym uses with its clients.
 3. **workout template → trainingsschema.** Trainers say *schema*. Confirm it isn't confused with the timetable (*rooster*).
 4. **substitution → vervanger.** *Invaller* is also common in Dutch sport. Pick the one the pilot trainers use.
-5. **Commerce terms (§4.9).** Does the pilot gym say *abonnement* or *lidmaatschap*, and what does it call a prepaid set of private sessions? Is *tegoed* clear for what a client has left? Ask in the M0 commerce walkthrough (`ROADMAP.md §4.1`).
+5. **Commerce terms (§4.9).** Does the pilot gym say *abonnement* or *lidmaatschap*, and what does it call a set of group or private credits bought once (*creditpakket*, *strippenkaart*) and credits paid every month (*creditabonnement*)? Is *credit* clear as the unit and *tegoed* for what a client has left, in *groepscredits* and *privécredits*? Ask in the M0 commerce walkthrough (`ROADMAP.md §4.1`).
 
 ---
 
@@ -514,3 +515,4 @@ These terms are the best current choice. Confirm them in the M0 wireframe review
 | 2026-10-19 | 0.6 | F001 shaped: there are no guests, a client's account is created automatically at their first verified booking. §4 retires the *guest* row (never in UI, now also avoid internally — see *client*'s ❌ list) and drops the "Create account" / "Continue without account" copy from the *account* row. |
 | 2026-10-19 | 0.7 | Commerce moved into the MVP (roadmap v1.19): new §4.9 with membership, session pack, session balance, makeup, payment, mandate, invoice and payout wording (⚠️ terms open, §8 question 5); *Te laat geannuleerd* is no longer post-MVP; *abonnement / lidmaatschap* now means a client's membership in §5.4. |
 | 2026-10-20 | 0.8 | Owner review of roadmap v1.19: *Admin* is a later role 🔜 (the MVP roles are Eigenaar and Trainer); new type label **Groep** / **Group** next to **Privé** / **Private** for calendar blocks (`PRODUCT.md §48`); §4.3 notes that only the own location exists at go-live; §4.9 adds *credit* 🔜 and *chargeback* and more forbidden alternatives, *merchant* ⚠️ and *Betalingen koppelen / Connect payments*; §5.4 notes the *koppelen* collision with *assign*. |
+| 2026-10-21 | 0.9 | Credits in the MVP (roadmap v1.21): §4.9 retires *session pack* and *credit* 🔜 and adds *credit* (*groepscredit*, *privécredit*), *credit pack* (*creditpakket*), *credit plan* (*creditabonnement*) and *credit balance* (*tegoed*, as the session balance was); the NL terms are proposals marked ⚠️ for the pilot to confirm (§8 question 5). |

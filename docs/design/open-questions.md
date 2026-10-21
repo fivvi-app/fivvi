@@ -180,13 +180,13 @@ Decide whether verifying a booking (PB-05/PB-06) signs the client in, so *Naar m
 
 ## Commerce (interview 01 follow-up)
 
-Commerce moved into the MVP after interview 01 with the pilot owner (19 October 2026, [`results/interview-01.md`](../discovery/results/interview-01.md), `ROADMAP.md` v1.19). These questions block the M11 specs; ask them in the commerce walkthrough (`ROADMAP.md §4.1`) and record the answers here. Never ask for or record real client names, bank details or invoices.
+Commerce moved into the MVP after interview 01 with the pilot owner (19 October 2026, [`results/interview-01.md`](../discovery/results/interview-01.md), `ROADMAP.md` v1.19). Credits (group and private, in packs and plans) followed on 21 October 2026 (owner decision, `ROADMAP.md` v1.21, decision 9): QC17 and QC18 are about them, and QC02, QC08, QC12, QC14 and QC16 mention them. These questions block the M11 specs; ask them in the commerce walkthrough (`ROADMAP.md §4.1`) and record the answers here. Never ask for or record real client names, bank details or invoices.
 
 ### QC01
 Does a fixed-weekday membership keep a spot in the chosen classes for its whole term, or does the client book each week within what the membership allows? **Proposal:** a standing spot in the chosen weekly classes, counted against capacity; the client cancels single occurrences (`PRODUCT.md §91`).
 
 ### QC02
-What is the cancellation cutoff (12 or 24 hours mentioned), and is it the same for every offer and for private sessions? **Proposal:** one cutoff per offer, default 24 hours for private sessions and 12 for classes (`§93`).
+What is the cancellation cutoff (12 or 24 hours mentioned), and is it the same for every offer and for private sessions? Does a cancellation in time return the credit of a credit pack or plan, and does the workspace's own cancellation? **Proposal:** one cutoff per offer, default 24 hours for private sessions and 12 for classes; a cancellation in time and a cancellation by the workspace return the credit (`§93`).
 
 ### QC03
 How many makeups does a membership allow, how long do they stay valid, and can a makeup be used in any class or only the same type? **Proposal:** a limit per term set on the offer; valid until the end of the term; any class the membership could include (`§93`).
@@ -195,7 +195,7 @@ How many makeups does a membership allow, how long do they stay valid, and can a
 What happens on illness, holidays, a gym closure or a trainer's absence: makeup, pause, or nothing? Is a pause (freeze) needed for go-live? **Proposal:** the workspace's own cancellation gives a makeup outside the limit; no freeze in MVP unless the pilot uses one today.
 
 ### QC05
-When a recurring payment fails, can the client keep booking, and for how long? Who follows it up? **Proposal:** a setting per offer, default "keep booking for 14 days"; the client and the owner both get an email, and the owner sees the open amount (`§94`).
+When a recurring payment fails, can the client keep booking, and for how long? Who follows it up? (What happens to a credit plan's credits of that month is QC17.) **Proposal:** a setting per offer, default "keep booking for 14 days"; the client and the owner both get an email, and the owner sees the open amount (`§94`).
 
 ADR-020 proposes: no automatic retry in the MVP (Mollie documents none for payments we create; to confirm with Mollie); the client gets a link to pay the open amount by iDEAL. The booking period stays open here.
 
@@ -208,7 +208,7 @@ ADR-020 proposes: an iDEAL first payment that creates the SEPA mandate, then SEP
 What are the membership terms today: minimum term, tacit renewal, notice period, early ending? They must fit Dutch consumer law (ACM) before G4. **Proposal:** fixed term, then monthly with one month's notice, reviewed in the `ROADMAP.md §4.4` legal check.
 
 ### QC08
-How are private sessions sold today: a number of sessions with a validity, or a weekly rhythm for a term, and paid up front or monthly? What happens to unused sessions at the end? **Proposal:** a number of sessions with a validity, paid up front or in monthly instalments; unused sessions expire, visible in the history (`§92`).
+How are private sessions sold today: a number of sessions with a validity, or a weekly rhythm for a term, and paid up front or monthly? Would the gym sell them as a private credit pack (bought once) or a private credit plan (credits every month, paid monthly), and does it want group credits too? What happens to unused credits at the end (QC17)? **Proposal:** offer both kinds, group and private; a credit pack paid up front (monthly instalments only if the pilot uses them today) and a credit plan paid monthly; unused credits expire, visible in the history (`§90`, `§92`).
 
 ### QC09
 Can the existing direct-debit mandates move from the current app to a new payment provider account (ADR-020 proposes the gym's own Mollie account), or does every client give a new one? **Proposal:** a new mandate through a first payment link, sent to every client at the cutover (`ROADMAP.md §7`).
@@ -222,7 +222,7 @@ What must the invoices show: company names, VAT number, the gym's KvK and VAT nu
 What is the "kiosk" or pay-at-the-desk option in the current app, and is it used? **Proposal:** not in MVP (`PRODUCT.md §53`) unless the pilot uses it weekly.
 
 ### QC12
-May a trainer see the session balance of the clients they train? **Proposal:** yes, the balance of their own clients, not amounts, payments or invoices; the owner does all commerce (agreements, prices, refunds, payouts, billing details, the provider connection). With no Admin role in the MVP (resolved by the owner, 20 October 2026, see Q05) there is no one in between.
+May a trainer see the credit balances of the clients they train? **Proposal:** yes, the balances of their own clients, not amounts, payments or invoices; the owner does all commerce (agreements, prices, refunds, payouts, billing details, the provider connection). With no Admin role in the MVP (resolved by the owner, 20 October 2026, see Q05) there is no one in between.
 
 ### QC13
 What does the pilot pay today: the subscription (per month or per year, VAT included?) and the fee per payment, and is there a separate provider fee? (The figures stay in the owner's private notes, not in the repository.) What does a weekly payout need to show? **Proposal:** record only the outcome of the comparison here (for example "cheaper / similar / more expensive per payment"), never the figures; compare with the list prices in ADR-020.
@@ -230,12 +230,18 @@ What does the pilot pay today: the subscription (per month or per year, VAT incl
 ADR-020 proposes: the public list prices of Mollie and Stripe are close enough that fees don't decide the provider (see the [fee comparison in ADR-020](../decisions/ADR-020-payment-provider.md#fees-per-payment-public-list-prices-netherlands-20-october-2026)). This question stays open: the comparison with what the pilot pays today, and Mollie's failed-debit and storno fees for the gym.
 
 ### QC14
-Which data can the pilot export from the current app (clients, memberships, session balances, next due dates), who does it, and how long does it take? **Proposal:** an export the gym owner makes, mapped to the E015 import template (`docs/discovery/import-checklist.md`).
+Which data can the pilot export from the current app (clients, memberships, credit balances and makeups, next due dates), who does it, and how long does it take? **Proposal:** an export the gym owner makes, mapped to the E015 import template (`docs/discovery/import-checklist.md`).
 
 ### QC15
 When the owner changes an offer's price or cancellation policy, does it also change agreements that already run? **Proposal:** a price change applies to new agreements only, and an agreement keeps the cancellation policy it started with (`PRODUCT.md §90`, `§93`).
 
 ### QC16
-Does the pilot agree with these four rules? (1) The trainer and client apps never take payments; clients pay on the web. (2) A single class's spot is held while the client pays. (3) The owner can also enter billing details (company name, address, VAT number) for a client. (4) A late cancellation counts like a no-show, and a no-show uses the session of a pack or is lost on a membership. **Proposal:** all four as written in `PRODUCT.md §93–§96`; the merchant model behind them (the gym as merchant, payouts to the workspace) is proposed in ADR-020, not decided here.
+Does the pilot agree with these four rules? (1) The trainer and client apps never take payments; clients pay on the web. (2) A single class's spot is held while the client pays. (3) The owner can also enter billing details (company name, address, VAT number) for a client. (4) A late cancellation counts like a no-show, and a no-show uses the credit of a credit pack or plan or is lost on a membership. **Proposal:** all four as written in `PRODUCT.md §93–§96`; the merchant model behind them (the gym as merchant, payouts to the workspace) is proposed in ADR-020, not decided here.
 
 ADR-020 proposes: Mollie's hosted checkout on the web, a single class as a one-off iDEAL payment, and the spot held while the client pays; how long the hold lasts is set in the F058 spec.
+
+### QC17
+What are the rules of the credit offers? (1) How long does a **credit pack** stay valid, and do unused credits expire or can the owner extend them? (2) What is the **carry-over limit** of a **credit plan**, and do carried-over credits expire (after one month, or never)? (3) When are a plan's credits for the month granted, and what happens to them when the payment fails or a debit is reversed? (4) When a client has several credit agreements of the same kind, which credit is used first? **Proposal:** (1) a validity set on the offer; unused credits expire at the end, shown as an *expired* line in the history, and the owner can extend them by a new line with a reason; (2) a carry-over limit set on the offer, default 0 (no carry-over) until the pilot says otherwise, and carried-over credits expire at the end of the next month; (3) the credits are granted when the month's payment is paid, and a reversed debit takes back the credits of that month that are still unused, the rest is left to the owner; (4) the credits that expire first (`PRODUCT.md §92`). The pilot's private agreement of about one session a week for six months can be a private credit pack or a private credit plan; the pilot decides which one it sells (QC08).
+
+### QC18
+What does one credit cover? (1) Does one **private credit** cover a private session of any length, or does the length decide how many credits it takes? (2) Does **Open Gym** use group credits? (3) Can a group credit book any group class, or are some classes excluded (a workshop, a class with a guest trainer)? (4) When a client has both a membership and group credits, which agreement does a booking use? **Proposal:** (1) yes, one credit per session whatever its length; the trainer sets the length on the session; (2) no: Open Gym is booked like today, without credits, and the pilot decides whether that changes; (3) any group class, with an exclusion set per class if the pilot needs it; (4) the membership first, and the client or the owner can choose the credits for an extra class (`PRODUCT.md §92`).

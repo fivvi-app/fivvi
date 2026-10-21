@@ -16,7 +16,7 @@
 
 The admin-time target (§8) compares like with like. So split admin time into:
 
-- **MVP scope (codes P, B, L, N, A, O, C):** scheduling, booking and messages about appointments, workout logging and programming, notes, attendance, Open Gym, and (since commerce moved into the MVP, `PRODUCT.md §90–§97`) invoices, payments, memberships and session packs (code C). The platform is meant to reduce this time.
+- **MVP scope (codes P, B, L, N, A, O, C):** scheduling, booking and messages about appointments, workout logging and programming, notes, attendance, Open Gym, and (since commerce moved into the MVP, `PRODUCT.md §90–§97`) invoices, payments, memberships, credit packs and credit plans (code C). The platform is meant to reduce this time.
 - **Outside MVP (code X):** payroll, marketing, bookkeeping and accounting. These are excluded from the MVP (`PRODUCT.md §53`). Record them for context, but they are **not** part of the admin-time target.
 
 Training time itself (being with a client) is not admin. Admin is the time spent *around* training.
@@ -96,7 +96,7 @@ These give context and the denominators for the §8 percentages.
 | **N** Notities | Notities over klanten of trainingen schrijven of opzoeken · *Writing or looking up notes about clients or sessions* |
 | **A** Aanwezigheid | Bijhouden wie er was, niet verschenen opvolgen · *Tracking who attended, following up no-shows* |
 | **O** Open Gym | Vrij trainen plannen, aankondigen, aanmeldingen bijhouden · *Planning and announcing free training, tracking sign-ups* |
-| **C** Facturen en betalingen | Facturen maken of aanpassen, betalingen opvolgen, abonnementen en sessiepakketten bijhouden · *Making or editing invoices, following up payments, keeping track of memberships and session packs* |
+| **C** Facturen en betalingen | Facturen maken of aanpassen, betalingen opvolgen, abonnementen, creditpakketten en creditabonnementen bijhouden · *Making or editing invoices, following up payments, keeping track of memberships, credit packs and credit plans* |
 | **X** Overig | Salaris, marketing, boekhouding · *Payroll, marketing, bookkeeping* |
 
 **Minuten per dag / Minutes per day**

@@ -49,10 +49,10 @@ No client names, bank details, agreements or invoices were shared or recorded.
 
 ## 2. What we concluded (H)
 
-1. The minimum product T1 can switch to includes memberships, private session packs with a trustworthy balance, recurring payments and invoices. A calendar-only pilot isn't a replacement (`PRODUCT.md §2.8`).
+1. The minimum product T1 can switch to includes memberships, prepaid private sessions with a trustworthy balance (since 21 October 2026 private credits, in credit packs or credit plans), recurring payments and invoices. A calendar-only pilot isn't a replacement (`PRODUCT.md §2.8`).
 2. Team roles and being a client are separate relationships of one account; trainers need team access, never a client account (`PRODUCT.md §2.9, §9`). F001 sign-in doesn't change.
 3. A shared scheduling engine isn't enough: each person needs a view filtered to what they may see, with types named in words.
-4. A class's recurrence, a membership's term, its payment schedule, attendance and the session balance are separate concepts.
+4. A class's recurrence, a membership's term, its payment schedule, attendance and the credit balance are separate concepts.
 5. The import at go-live must carry active agreements, balances and due dates, and be reconciled with the old app before the cutover, when clients start paying through Trainer Hub. Mandates follow QC09 (default: new mandates), as in `import-checklist.md` §3.4a.
 
 Not shown by this interview: the app names, the real cost, client and trainer counts, the hours spent on invoices, the exact cancellation rules, that credits beat memberships, that Trainer Hub may hold funds, that T1 will move live payments, and that every small gym has the same needs. Workout logging, notes and Open Gym weren't raised as reasons to switch; that doesn't make them unimportant.
@@ -62,13 +62,14 @@ Not shown by this interview: the app names, the real cost, client and trainer co
 | Decision | Where |
 |---|---|
 | T1 is the pilot owner; the pilot scenario is corrected | `PRODUCT.md §8`, `ROADMAP.md §1` |
-| Owner decided: memberships, recurring payments and invoices before go-live, part of G4 (M11); session packs were added on 20 October 2026 (pain point 4). Single classes and payouts stay proposed scope, to confirm when the owner approves the M11 specs | `PRODUCT.md §90–§97`, `ROADMAP.md` M11, decision 9 |
+| Owner decided: memberships, recurring payments and invoices before go-live, part of G4 (M11); private session packs were added on 20 October 2026 (pain point 4). Single classes and payouts stay proposed scope, to confirm when the owner approves the M11 specs | `PRODUCT.md §90–§97`, `ROADMAP.md` M11, decision 9 |
+| Owner decided on 21 October 2026: credits are in the MVP, in two kinds that never mix (group credits for group classes, private credits for private sessions; one credit books one session of its kind), as a credit pack (bought once) or a credit plan (a number of credits each month, paid by recurring payment, with a carry-over limit). The private credits replace the session pack and answer pain point 4; combined credits are not planned. The open rules are QC17 and QC18 | `PRODUCT.md §92`, `ROADMAP.md` decision 9 (v1.21) |
 | Recurring payments (the subscription model) and invoices ship together | `ROADMAP.md` decision 10 |
 | Training and notes (M7) and automatic location inference (F019) move after go-live | `ROADMAP.md` decision 11 |
 
 ## 4. Follow-up
 
-The commerce walkthrough with T1 (`ROADMAP.md §4.1`) answers QC01–QC16 in [`open-questions.md`](../../design/open-questions.md#commerce-interview-01-follow-up). Most valuable first:
+The commerce walkthrough with T1 (`ROADMAP.md §4.1`) answers QC01–QC18 in [`open-questions.md`](../../design/open-questions.md#commerce-interview-01-follow-up). Most valuable first:
 
 - The names of both apps; what the subscription covers; the per-payment fee and any provider fee; the kiosk option (QC11, QC13).
 - Counts: trainers, active group clients, private clients, clients doing both; invoices made or edited per month and the time they take; no-show rate.
@@ -86,7 +87,7 @@ Added by the product owner (a recollection, not a recording):
   3. proper roles: trainers use their own team access, never client access;
   4. tracking prepaid private sessions: used and left.
 
-  These four are the go-live minimum. Session packs follow from the fourth.
+  These four are the go-live minimum. Prepaid private sessions (private credits since 21 October 2026) follow from the fourth.
 - **Start with one location.** The gym starts with its own location only; more locations and the other location types can wait until after go-live.
 
-Decisions taken from these notes: `ROADMAP.md` decisions 6, 9 and 12 (no owner alpha with real data, session packs decided, one location), `PRODUCT.md §2.8`. Decision 13 (no Admin role in the MVP) did not come from the interview notes; the owner took it in his PR review on 2026-10-20.
+Decisions taken from these notes: `ROADMAP.md` decisions 6, 9 and 12 (no owner alpha with real data, prepaid private sessions decided, one location), `PRODUCT.md §2.8`. Decision 13 (no Admin role in the MVP) did not come from the interview notes; the owner took it in his PR review on 2026-10-20.

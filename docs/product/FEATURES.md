@@ -116,14 +116,14 @@ The single source of truth for feature status. A status changes **in the same PR
 
 ### Commerce
 
-Added in roadmap v1.19 (M11), before go-live. The subscription model and invoices ship together. Single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
+Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, group and private, followed in v1.21 (owner, 21 October 2026). The subscription model and invoices ship together. Single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | F052 | Offers and Prices | PLANNED | Must | M11 | F002, E019 | ⬜ | ⬜ | §90 |
 | F053 | Memberships | PLANNED | Must | M11 | F052, F022, F028, F057 | ⬜ | ⬜ | §91 (fixed weekdays, term, terms stored) |
-| F054 | Session Packs | PLANNED | Must | M11 | F052, F020, F055 | ⬜ | ⬜ | §92 |
-| F055 | Session Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (history: granted, used, returned, expired) |
+| F054 | Credit Packs and Plans (group and private) | PLANNED | Must | M11 | F052, F020, F028, F055, F057 | ⬜ | ⬜ | §92 (credit packs bought once; credit plans paid monthly, with a carry-over limit; group and private credits never mix) |
+| F055 | Credit Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (one balance per kind, group or private, per agreement; history: granted, used, returned, expired) |
 | F056 | Cancellation Policy and Makeups | PLANNED | Must | M11 | F026, F055 | ⬜ | ⬜ | §93 (cutoff, late cancellation, makeups) |
 | F057 | Recurring Payments | PLANNED | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit: proposal, QC06; exactly once) |
 | F058 | Single Class Purchase | PLANNED | Must (proposed, decision 9) | M11 | F029, E019, F059 | ⬜ | ⬜ | §95 |
@@ -160,7 +160,7 @@ These are not user-facing, so they don't need NL/EN columns. They still go throu
 | E012 | Scheduled jobs | PLANNED | M4 | Daily cron: recurrence materialization, hold cleanup, retention; holds expire lazily (ADR-010) |
 | E013 | Public surface security | PLANNED | M5 | Rate limits, hold caps, Cloudflare Turnstile, headers |
 | E014 | Privacy tooling | PLANNED | M9 | Data export, deletion, retention jobs, note-access audit log (§79) |
-| E015 | Data import tooling | PLANNED | M9 | Pilot data from the old app export or a CSV template → clients, timetable, sessions, active agreements, session balances, next due dates, billing details; reconciliation report |
+| E015 | Data import tooling | PLANNED | M9 | Pilot data from the old app export or a CSV template → clients, timetable, sessions, active agreements, credit balances, next due dates, billing details; reconciliation report |
 | E016 | Backups, restore drill & runbooks | PLANNED | M9 | A verified restore, incident/rollback runbooks |
 | E017 | App distribution | PLANNED | M2 | Existing Apple company membership (owner-reported): verify access; confirm Play Console account or enroll; set up TestFlight and Play internal testing early (M2), so the internal alpha runs on the apps; store requirements follow before the first public listing |
 | E018 | API contract & client generation | IMPLEMENTED | M1 | `packages/api`: Hono + zod-openapi, mounted in `apps/web` under `/api`; `GET /api/v1/hello` reads `system_greetings` (#93). `packages/contract`: committed `openapi.json` (3.1) → TS (openapi-typescript + openapi-fetch), Swift (swift-openapi-generator), Kotlin (openapi-generator, retrofit2 + kotlinx.serialization); generators pinned. Drift check: `pnpm check` (Turborepo `check` task); E002 makes it a required CI check (ADR-004) |
@@ -182,5 +182,5 @@ These get `F0xx` IDs when they move to `PLANNED`. Full context is in [`ROADMAP.m
 | 2.1 | Freelance improvements · gym access information |
 | 2.2 | Workspace switching · cross-workspace conflict detection · workspace-specific permissions |
 | 2.3 | Multi-location organizations |
-| 4.0 | Advanced commerce: credits across session types · discounts · gift cards · reminders and dunning · POS/kiosk · accounting integrations · revenue reports |
+| 4.0 | Advanced commerce: discounts · gift cards · reminders and dunning · POS/kiosk · accounting integrations · revenue reports |
 | 3.0 – 3.2, 5.0 – 7.0 | See roadmap themes |

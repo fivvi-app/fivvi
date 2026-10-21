@@ -191,32 +191,39 @@ One of **booked** (has a confirmed booking, not marked yet), **attended**, **can
 ### Commerce
 
 **Offer**:
-Something a workspace sells: a membership, a session pack or a single class, with its price, VAT rate and terms.
+Something a workspace sells: a membership, a credit pack, a credit plan or a single class, with its price, VAT rate and terms.
 _Avoid_: product, plan, package
 
 **Agreement**:
-A client's commitment to a membership or session pack: start, end, renewal, price, payment schedule, cancellation policy and the terms the client agreed to.
+A client's commitment to a membership, credit pack or credit plan: start, end, renewal, price, payment schedule, cancellation policy and the terms the client agreed to.
 _Avoid_: contract (outside legal text), subscription (for the agreement itself)
 
 **Membership**:
 An agreement for group classes on fixed weekdays for a term, e.g. two classes a week for six months, paid through recurring payments (see *Recurring payment*).
 _Avoid_: subscription (see *Recurring payment*), plan, pass
 
-**Session pack**:
-An agreement for a number of private sessions to use within a validity period.
-_Avoid_: package, bundle, credits (a post-MVP pricing model, see *Credit*)
+**Credit**:
+One unit of a group or private credit balance. One credit books one session of its kind: a **group credit** books a group class, a **private credit** books a private session. The two kinds never mix and have no exchange rate. Combined credits, one balance for every session type, are not planned (`PRODUCT.md §53`).
+_Avoid_: token, point, voucher; using it for a makeup
 
-**Credit** 🔜:
-A post-MVP pricing model: a unit that pays for different session types (Release 4, `PRODUCT.md §66`). Not part of the MVP, where a session pack covers one kind of session.
-_Avoid_: using it for a session in a pack or a makeup
+**Credit pack**:
+An offer, and the agreement it makes, for a number of group or private credits bought once and valid for a period. The pilot's private agreement (about one session a week for six months) can be a private credit pack.
+_Avoid_: package, bundle, session pack (retired, see below)
+
+**Credit plan**:
+An offer, and the agreement it makes, for a number of group or private credits each month, paid by recurring payment (see *Recurring payment*), with a carry-over limit for credits left at the end of the month. Credits are granted per paid cycle.
+_Avoid_: subscription (see *Recurring payment*), credit subscription
+
+**Session pack** (retired):
+Retired on 21 October 2026. Use *Credit pack*: a private session pack is a private credit pack.
 
 **Single class**:
 One group class bought on its own, by a client without a membership or as an extra on top of one.
 _Avoid_: drop-in, top-up
 
-**Session balance**:
-What a client can still use under one agreement: sessions in a pack, makeups from a membership. Always explained by its history (granted, used, returned, expired), never a bare counter.
-_Avoid_: credits (a post-MVP pricing model, see *Credit*), remaining sessions
+**Credit balance**:
+What a client can still use under one agreement, in credits of one kind (group or private); a client with group and private credits sees two balances. Always explained by its history (granted, used, returned, expired), never a bare counter. A membership's makeups are tracked the same way but are not credits.
+_Avoid_: session balance (retired), saldo, remaining sessions
 
 **Cancellation policy**:
 The rules of an offer for cancellations and no-shows: the cutoff, the makeup limit and what each case does to the balance.
@@ -228,7 +235,7 @@ _Avoid_: deadline, notice period
 
 **Makeup**:
 A right to attend another class, granted under the cancellation policy, for example for a cancellation in time.
-_Avoid_: credit, catch-up, reschedule (that moves a session)
+_Avoid_: credit (a makeup is not a credit), catch-up, reschedule (that moves a session)
 
 **Payment provider**:
 The payment company through which clients' online payments run. Who the merchant is, and whether the workspace has its own account with it, is set out in `PRODUCT.md §94`.
