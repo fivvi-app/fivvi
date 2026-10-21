@@ -491,19 +491,22 @@ pr_facts() {
     required: $required, checks: (.statusCheckRollup // []), preview: $preview}' <<<"$view"
 }
 
-# All the facts of the merge gate: pr_facts and what only a merge needs (threads, risk, whether the queue removed it). Not whether the branch is behind
+# All the facts of the merge gate: pr_facts and what only a merge needs (threads, risk, whether the queue removed it, and
+# for pr.sh merge the PR's node ID and whether its base branch has a merge queue). Not whether the branch is behind
 # main: the merge queue tests every PR on the latest main (ADR-018).
 merge_facts() {
-  local pr="$1" facts threads risk removed
+  local pr="$1" facts threads risk queue
   facts="$(pr_facts "$pr")" || exit 1
   threads="$(unresolved_threads "$pr")" || exit 1
   risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr"
-  removed="$(queue_state "$pr" | jq .removed)" || exit 1
-  jq --argjson threads "$(jq length <<<"$threads")" --argjson risk "$risk" --argjson removed "$removed" \
-    '. + {risk: $risk, threads: $threads, queue_removed: $removed}' <<<"$facts"
+  queue="$(queue_state "$pr")" || exit 1
+  jq --argjson threads "$(jq length <<<"$threads")" --argjson risk "$risk" --argjson queue "$queue" \
+    '. + {risk: $risk, threads: $threads, queue_removed: $queue.removed, pr_id: $queue.id,
+      queue_enabled: $queue.queue_enabled}' <<<"$facts"
 }
 
-# Where a PR is in the merge queue, from GitHub, as JSON {merged, queued, position, auto_merge, removed, reason}. A PR
+# Where a PR is in the merge queue, from GitHub, as JSON {id, queue_enabled, merged, queued, position, auto_merge, removed,
+# reason}: id is the PR's node ID, queue_enabled whether its base branch has a merge queue. A PR
 # is removed when the queue took it out (its last queue event on the timeline) after the head commit was made: a commit
 # pushed after the removal makes it stale, and a later removal (the owner queued the new commit) counts again. This reads
 # the event's time and the head commit's committedDate, not the **Merge queue:** record, which names only what an agent
@@ -516,7 +519,7 @@ queue_state() {
   out="$(gh api graphql -F owner="$OWNER" -F name="$NAME" -F n="$1" -f query='
     query($owner: String!, $name: String!, $n: Int!) {
       repository(owner: $owner, name: $name) { pullRequest(number: $n) {
-        state headRefOid body commits(last: 1) { nodes { commit { committedDate } } } isInMergeQueue mergeQueueEntry { state position } autoMergeRequest { enabledAt }
+        id state isMergeQueueEnabled headRefOid body commits(last: 1) { nodes { commit { committedDate } } } isInMergeQueue mergeQueueEntry { state position } autoMergeRequest { enabledAt }
         timelineItems(last: 1, itemTypes: [ADDED_TO_MERGE_QUEUE_EVENT, REMOVED_FROM_MERGE_QUEUE_EVENT]) {
           nodes { __typename ... on RemovedFromMergeQueueEvent { reason createdAt } } } } }
     }')" || die "could not read the merge queue state of PR #$1"
@@ -529,7 +532,7 @@ queue_state() {
     | if $p == null then error("no such PR") else . end
     | ($p.timelineItems.nodes | last) as $last
     | ($p.commits.nodes | last | .commit.committedDate | instant) as $committed
-    | {merged: ($p.state == "MERGED"), queued: $p.isInMergeQueue, position: $p.mergeQueueEntry.position,
+    | {id: $p.id, queue_enabled: $p.isMergeQueueEnabled, merged: ($p.state == "MERGED"), queued: $p.isInMergeQueue, position: $p.mergeQueueEntry.position,
        auto_merge: ($p.autoMergeRequest != null),
        removed: ($p.state == "OPEN" and ($p.isInMergeQueue | not)
          and $last.__typename == "RemovedFromMergeQueueEvent" and ($last.createdAt | instant) >= $committed),
@@ -545,8 +548,9 @@ cmd_queue() {
 }
 
 # Adds a low-risk PR that passes the whole merge gate to the merge queue, which tests it on top of the latest main and
-# squash-merges it (ADR-018). `gh pr merge` does that on a branch that requires the queue, when the required checks have
-# passed; when GitHub finds they haven't, it turns auto-merge on instead, which agents never use: turn it off again.
+# squash-merges it (ADR-018). On a branch with a merge queue, `gh pr merge` always asks for auto-merge (whatever the
+# flags), which the repo doesn't allow and agents never use, so the PR is enqueued with GraphQL's enqueuePullRequest. A
+# branch without a queue is squash-merged with `gh pr merge`. Should auto-merge ever be on afterwards, turn it off again.
 cmd_merge() {
   [ $# -eq 0 ] || usage
   local pr facts decision head branch issue out failed state attempt
@@ -569,10 +573,18 @@ cmd_merge() {
 
   branch="$(jq -r .branch <<<"$facts")"
   issue="$(branch_issue "$branch")"
-  out="$(gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$head" 2>&1)" || die "merge failed: $out"
+  if jq -e .queue_enabled <<<"$facts" >/dev/null; then
+    # shellcheck disable=SC2016 # GraphQL variables, not shell
+    out="$(gh api graphql -f id="$(jq -r .pr_id <<<"$facts")" -f head="$head" -f query='
+      mutation($id: ID!, $head: GitObjectID!) {
+        enqueuePullRequest(input: {pullRequestId: $id, expectedHeadOid: $head}) { mergeQueueEntry { position } }
+      }' 2>&1)" || die "could not add PR #$pr to the merge queue: $out"
+  else
+    out="$(gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$head" 2>&1)" || die "merge failed: $out"
+  fi
   # The queue answers at once; look a few times in case GitHub is slow to show it.
   for attempt in 1 2 3; do
-    state="$(queue_state "$pr")" || die "gh pr merge succeeded, but the state of PR #$pr can't be read: check it on GitHub"
+    state="$(queue_state "$pr")" || die "GitHub took PR #$pr, but its state can't be read: check it on GitHub"
     if jq -e .merged <<<"$state" >/dev/null; then
       # No merge queue on the branch (the ruleset isn't applied yet): GitHub merged it at once.
       echo "✅ PR #$pr squash-merged"
@@ -594,12 +606,12 @@ cmd_merge() {
       return 0
     elif jq -e .auto_merge <<<"$state" >/dev/null; then
       gh pr merge "$pr" --repo "$REPO" --disable-auto >/dev/null 2>&1 \
-        || die "GitHub enabled auto-merge on PR #$pr instead of adding it to the merge queue, and auto-merge is still on: turn it off on GitHub; nothing queued"
-      die "GitHub enabled auto-merge instead of adding PR #$pr to the merge queue (it found a required check not passed); turned it off, nothing queued"
+        || die "auto-merge is on for PR #$pr, which is not in the merge queue, and auto-merge is still on: turn it off on GitHub; nothing queued"
+      die "auto-merge is on for PR #$pr, which is not in the merge queue; turned it off, nothing queued"
     fi
     [ "$attempt" -eq 3 ] || sleep 2
   done
-  die "gh pr merge succeeded, but PR #$pr is neither in the merge queue nor merged: check it on GitHub"
+  die "GitHub took PR #$pr, but it is neither in the merge queue nor merged: check it on GitHub"
 }
 
 cmd_refusal() {
