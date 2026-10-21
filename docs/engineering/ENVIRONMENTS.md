@@ -1,6 +1,6 @@
 # Environments and deployment
 
-Where Trainer Hub runs, how a change gets there, and how to undo it (E003, [ADR-011](../decisions/ADR-011-hosting-and-environments.md)). Everything runs on Railway, project `trainer-hub`, region **EU West Metal, Amsterdam** (`europe-west4-drams3a`).
+Where Fivvi runs, how a change gets there, and how to undo it (E003, [ADR-011](../decisions/ADR-011-hosting-and-environments.md)). Everything runs on Railway, project `trainer-hub`, region **EU West Metal, Amsterdam** (`europe-west4-drams3a`).
 
 ## 1. Environments
 
@@ -14,7 +14,7 @@ Where Trainer Hub runs, how a change gets there, and how to undo it (E003, [ADR-
 - **PR environments** are created when a PR opens and deleted when it is merged or closed. Railway copies them from the **base environment**. Bot PR environments and focused PR environments are off.
 - **`development` is the base environment, so production values never reach a preview.** Without a base environment, Railway copies PR environments from `production`, including every secret (Brevo, Sentry, …). Previews run code nobody has merged yet, so they only ever get the test values in `development`. It also deploys `main` with demo data, as a shared place to try things. Its `web` sleeps when idle, so it costs little.
 - No `staging` environment (`ROADMAP.md` M1). Add one only when a real need appears.
-- **Production address:** `https://web-production-d3fe2.up.railway.app`, the Railway domain of `web`. A bought domain replaces it before M5 (`ROADMAP.md` §4.5).
+- **Production address:** `https://web-production-d3fe2.up.railway.app`, the Railway domain of `web`. fivvi.app (bought 21 October 2026) replaces it, once it is added as a custom domain in Railway, before M5 (`ROADMAP.md` §4.5).
 - **Uptime monitors** (UptimeRobot, free plan, set up by the owner in #47): every 5 minutes, with an email alert to the owner, on the production address:
   - `GET /api/v1/health`, which expects `200` (it answers `503` when Postgres is unreachable);
   - `/`, the web app.
@@ -25,7 +25,7 @@ One Docker image ([`Dockerfile`](../../Dockerfile)) serves every service. Each s
 
 | Service | What runs | Command in the image | Notes |
 |---|---|---|---|
-| `web` | Next.js web + API (Hono under `/api`), standalone Node server | `node web/apps/web/server.js` (image default) | Health check `GET /api/v1/health` pings Postgres. Railway domain; no custom domain until launch |
+| `web` | Next.js web + API (Hono under `/api`), standalone Node server | `node web/apps/web/server.js` (image default) | Health check `GET /api/v1/health` pings Postgres. Railway domain; the custom domain fivvi.app is added before M5 (`ROADMAP.md` §4.5) |
 | `web` pre-deploy | Release step: migrations (+ seed outside production) | `node /app/ops/packages/database/src/scripts/release.ts [--seed]` | Runs once per deploy, before the new version gets traffic |
 | `cron` | Daily jobs (ADR-010). Skeleton until E012: connects, logs, exits 0 | `node /app/ops/apps/cron/src/main.ts` | `0 3 * * *` UTC. Exits 1 on failure, after reporting it to Sentry ([OBSERVABILITY.md](OBSERVABILITY.md)); no retries |
 | `postgres` | Railway Postgres 18 (`postgres-ssl:18`) with a volume | n/a | **Private network only**: no TCP proxy, no public address |
@@ -117,8 +117,8 @@ Railway passes every variable to the Docker build too, but the build only sees t
 | `DATABASE_URL` | `web`, `cron` | Reference `${{postgres.DATABASE_URL}}` (private network) | Same reference: each environment has its own Postgres | `.railway/railway.ts` |
 | `PORT` | `web` | `3000` | `3000` | `.railway/railway.ts`. Railway would inject `8080`, but the Railway domain targets 3000: a mismatch passes the health check and answers 502 publicly |
 | `BREVO_API_KEY` | `web` | The production Brevo API key (secret) | A separate dev/test key, **never** the production one; empty turns sending off (`readEmailConfig` throws) | Owner (`preserve()` in `.railway/railway.ts`) |
-| `EMAIL_FROM_ADDRESS` | `web` | The verified Brevo sender. Changes to the own domain before M5 | The same verified sender | Owner (`preserve()` in `.railway/railway.ts`) |
-| `EMAIL_FROM_NAME` | `web` | `Trainer Hub` | `Trainer Hub` | `.railway/railway.ts` |
+| `EMAIL_FROM_ADDRESS` | `web` | The verified Brevo sender. Changes to the `noreply` address on fivvi.app once fivvi.app has SPF, DKIM and DMARC in Brevo (before M5) | The same verified sender | Owner (`preserve()` in `.railway/railway.ts`) |
+| `EMAIL_FROM_NAME` | `web` | `Fivvi` | `Fivvi` | `.railway/railway.ts` |
 | `POSTHOG_KEY` | `web` | The project API key of the PostHog EU project, for server-side product events ([OBSERVABILITY.md](OBSERVABILITY.md) §4) | Empty: analytics is production-only, so previews and test traffic never skew the pilot metrics. **Never** the production key | Owner (`preserve()` in `.railway/railway.ts`) |
 | `SENTRY_DSN` | `web` | The DSN of the Sentry `web` project (EU region), which also receives API errors | The same DSN (allowed, see the rules below): previews report as `preview`, `development` as `development`. Empty turns reporting off | Owner (`preserve()` in `.railway/railway.ts`) |
 | `SENTRY_DSN` | `cron` | The DSN of the Sentry `cron` project (EU region) | The same DSN, or empty to turn it off | Owner (`preserve()` in `.railway/railway.ts`) |

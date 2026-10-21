@@ -15,14 +15,14 @@ Each section is in Dutch first, then English. Tables are bilingual.
 
 ## 1. Samenvatting / Summary
 
-**NL.** Trainer Hub heeft twee rollen tegelijk:
+**NL.** Fivvi heeft twee rollen tegelijk:
 
 1. **Verwerker** (AVG art. 4(8), art. 28) voor alle bedrijfsgegevens van een workspace: klanten, boekingen, sessies, aanwezigheid, trainingen en notities. De **workspace** (gym, studio of zelfstandige trainer) is daarvoor de **verwerkingsverantwoordelijke**. Zij bepaalt waarom en welke klantgegevens ze vastlegt; wij verwerken alleen in opdracht. Daarvoor sluiten we met elke workspace een verwerkersovereenkomst.
 2. **Verwerkingsverantwoordelijke** voor een klein aantal eigen doelen: gebruikersaccounts en inloggen, de klantrelatie met workspaces, beveiliging en misbruikpreventie van het platform als geheel, en productanalyse met pseudonieme ID's maar zonder boekings-, trainings- of notitie-inhoud.
 
 De rol volgt het doel van de verwerking. Bedrijfsgegevens met een `organization_id` verwerken we in opdracht van de workspace. Account-, beveiligings- en beperkte gebruiksgegevens voor onze eigen platformdoelen verwerken we als verwerkingsverantwoordelijke; een pseudoniem workspace-ID in een productevent verandert dat niet.
 
-**EN.** Trainer Hub has two roles at once:
+**EN.** Fivvi has two roles at once:
 
 1. **Processor** (GDPR art. 4(8), art. 28) for all of a workspace's business data: clients, bookings, sessions, attendance, workouts and notes. The **workspace** (gym, studio or independent trainer) is the **controller** for that data. It decides why and which client data it records; we only process it on its behalf. We sign a processor agreement with every workspace for this.
 2. **Controller** for a small set of our own purposes: user accounts and sign-in, the customer relationship with workspaces, security and abuse prevention for the platform as a whole, and product analytics using pseudonymous identifiers but no booking, workout or note content.
@@ -35,7 +35,7 @@ The role follows the purpose of processing. We process business records carrying
 
 | Partij / Party | Voorbeeld / Example | AVG-rol / GDPR role |
 |---|---|---|
-| **Aanbieder / Provider** (Trainer Hub, `{{Naam aanbieder}}`) | Operator of the platform | Verwerker voor workspace-gegevens; verwerkingsverantwoordelijke voor eigen doelen (§3.1) / Processor for workspace data; controller for its own purposes (§3.1) |
+| **Aanbieder / Provider** (Fivvi, `{{Naam aanbieder}}`) | Operator of the platform | Verwerker voor workspace-gegevens; verwerkingsverantwoordelijke voor eigen doelen (§3.1) / Processor for workspace data; controller for its own purposes (§3.1) |
 | **Workspace** (organisatie / organization) | John's Gym; Sarah Personal Training | Verwerkingsverantwoordelijke voor haar klant- en bedrijfsgegevens / Controller for its client and business data |
 | **Owner** | Pilot gym owner | Handelt namens de workspace; geen eigen AVG-rol / Acts on behalf of the workspace; no separate GDPR role |
 | **Trainer** (member of 1+ workspaces) | Sarah | Handelt namens elke workspace waarvan de trainer lid is. Een zelfstandige met een eigen workspace is zelf verwerkingsverantwoordelijke / Acts on behalf of each workspace the trainer belongs to. An independent with their own workspace is a controller themselves |
@@ -89,7 +89,7 @@ The role follows the purpose of processing. We process business records carrying
 
 **Niet verzameld (bewust) / Deliberately not collected:** telefoonnummer, wachtwoord, geboortedatum, BSN, kaart- en bankgegevens (`PRODUCT.md §2.4, §27, §94`) / phone number, password, date of birth, citizen service number (BSN), card and bank details.
 
-**Betalingen (vanaf de MVP, M11) / Payments (from the MVP, M11).** **NL.** Betalingen komen in de MVP (`ROADMAP.md` v1.19). De betaalprovider verwerkt de betaalgegevens; Trainer Hub bewaart alleen verwijzingen, bedragen en statussen, naast de facturen die het uitgeeft (factuurgegevens, `PRODUCT.md §96`). Of de provider subverwerker is of voor eigen betaalgegevens een aparte verwerkingsverantwoordelijke, en wie de handelaar is, wordt voorgesteld in ADR-020: Mollie Connect for Platforms, de sportschool als handelaar op een eigen Mollie-account en Mollie als zelfstandig verwerkingsverantwoordelijke voor de betaalgegevens. ADR-020 is voorgesteld en wordt geaccepteerd zodra de eigenaar de PR goedkeurt (status op Geaccepteerd met de datum vóór het samenvoegen). Dit document wordt vóór G4 bijgewerkt, zodra de provider is gekozen. **EN.** Payments come into the MVP (`ROADMAP.md` v1.19). The payment provider processes the payment data; Trainer Hub stores only references, amounts and statuses, besides the invoices it issues (billing details, `PRODUCT.md §96`). Whether the provider is a sub-processor or a separate controller for its own payment data, and who the merchant is, is proposed in ADR-020: Mollie Connect for Platforms, the gym as merchant on its own Mollie account, and Mollie as an independent controller for the payment data. ADR-020 is Proposed and is accepted when the owner approves the PR (status set to Accepted with the date before merge). This document is updated before G4, once the provider is chosen.
+**Betalingen (vanaf de MVP, M11) / Payments (from the MVP, M11).** **NL.** Betalingen komen in de MVP (`ROADMAP.md` v1.19). De betaalprovider verwerkt de betaalgegevens; Fivvi bewaart alleen verwijzingen, bedragen en statussen, naast de facturen die het uitgeeft (factuurgegevens, `PRODUCT.md §96`). Of de provider subverwerker is of voor eigen betaalgegevens een aparte verwerkingsverantwoordelijke, en wie de handelaar is, wordt voorgesteld in ADR-020: Mollie Connect for Platforms, de sportschool als handelaar op een eigen Mollie-account en Mollie als zelfstandig verwerkingsverantwoordelijke voor de betaalgegevens. ADR-020 is voorgesteld en wordt geaccepteerd zodra de eigenaar de PR goedkeurt (status op Geaccepteerd met de datum vóór het samenvoegen). Dit document wordt vóór G4 bijgewerkt, zodra de provider is gekozen. **EN.** Payments come into the MVP (`ROADMAP.md` v1.19). The payment provider processes the payment data; Fivvi stores only references, amounts and statuses, besides the invoices it issues (billing details, `PRODUCT.md §96`). Whether the provider is a sub-processor or a separate controller for its own payment data, and who the merchant is, is proposed in ADR-020: Mollie Connect for Platforms, the gym as merchant on its own Mollie account, and Mollie as an independent controller for the payment data. ADR-020 is Proposed and is accepted when the owner approves the PR (status set to Accepted with the date before merge). This document is updated before G4, once the provider is chosen.
 
 ---
 
@@ -108,7 +108,7 @@ flowchart LR
     NA[iOS / Android trainer apps]
   end
 
-  subgraph Platform["Trainer Hub backend (EU)"]
+  subgraph Platform["Fivvi backend (EU)"]
     API[API + domain logic<br/>tenant-scoped]
     CRON[Dagelijkse cron / Daily cron<br/>holds, retention]
   end

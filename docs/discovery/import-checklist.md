@@ -165,7 +165,7 @@ Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the
 - [ ] Mandates: ☐ every client gives a new one through a first payment link (default, QC09) ☐ the provider moves the existing ones.
 - [ ] Cutover plan: scheduling, booking and payments all move on one day and every client gets the first-payment link for the new mandate that day; the old app stays read-only until the first full payment cycle reconciles, then it is cancelled (`ROADMAP.md §7`). Agree the cutover date and who sends the client email.
 - [ ] Reconciliation: after the import, the gym owner checks a report with counts, totals per offer, the sum of balances and the next due dates against the old app. The cutover does not happen until it matches.
-- [ ] Invoice numbers: the series in Trainer Hub continues after the last number of the old app ☐ or starts a new series (ask the gym's accountant).
+- [ ] Invoice numbers: the series in Fivvi continues after the last number of the old app ☐ or starts a new series (ask the gym's accountant).
 
 ### 3.5 Workout history — **optional**
 

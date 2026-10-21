@@ -1,6 +1,6 @@
 # Testing Strategy
 
-How we test Trainer Hub so that AI agents and humans can change it often without breaking it. The tools are fixed by ADR-014 (`ROADMAP.md §4`). This document covers **what** to test, **where**, **how**, and **what blocks a merge**. It applies to every PR.
+How we test Fivvi so that AI agents and humans can change it often without breaking it. The tools are fixed by ADR-014 (`ROADMAP.md §4`). This document covers **what** to test, **where**, **how**, and **what blocks a merge**. It applies to every PR.
 
 ## 1. Principles
 

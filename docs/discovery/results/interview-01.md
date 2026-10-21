@@ -42,7 +42,7 @@ No client names, bank details, agreements or invoices were shared or recorded.
 - The deeper goal is that clients keep coming back regularly (R).
 - Price is not the main problem: T1 would pay more if the workflows work well (R). T1 sees Virtuagym as expensive (R, not checked).
 - The current app is paid with a subscription plus a fee per client payment (figures in the owner's private notes, not in this repository). Whether the subscription is monthly or yearly, whether VAT is included and whether a provider fee comes on top is not known (U).
-- T1 is fine with the money being collected through Trainer Hub and paid out to the gym weekly (R). That doesn't mean Trainer Hub may hold client money (H; ADR-020 proposes the gym as merchant on its own Mollie account, see `PRODUCT.md §94`).
+- T1 is fine with the money being collected through Fivvi and paid out to the gym weekly (R). That doesn't mean Fivvi may hold client money (H; ADR-020 proposes the gym as merchant on its own Mollie account, see `PRODUCT.md §94`).
 - The current app has a kiosk or pay-at-the-desk option; what it is exactly is not known (U).
 - T1 won't replace the current apps with a product that leaves payments behind; a partial product means more work, not less (R).
 - T1 is open to the pilot, but moving clients, bookings, memberships and payments is a real burden (R).
@@ -53,9 +53,9 @@ No client names, bank details, agreements or invoices were shared or recorded.
 2. Team roles and being a client are separate relationships of one account; trainers need team access, never a client account (`PRODUCT.md §2.9, §9`). F001 sign-in doesn't change.
 3. A shared scheduling engine isn't enough: each person needs a view filtered to what they may see, with types named in words.
 4. A class's recurrence, a membership's term, its payment schedule, attendance and the credit balance are separate concepts.
-5. The import at go-live must carry active agreements, balances and due dates, and be reconciled with the old app before the cutover, when clients start paying through Trainer Hub. Mandates follow QC09 (default: new mandates), as in `import-checklist.md` §3.4a.
+5. The import at go-live must carry active agreements, balances and due dates, and be reconciled with the old app before the cutover, when clients start paying through Fivvi. Mandates follow QC09 (default: new mandates), as in `import-checklist.md` §3.4a.
 
-Not shown by this interview: the app names, the real cost, client and trainer counts, the hours spent on invoices, the exact cancellation rules, that credits beat memberships, that Trainer Hub may hold funds, that T1 will move live payments, and that every small gym has the same needs. Workout logging, notes and Open Gym weren't raised as reasons to switch; that doesn't make them unimportant.
+Not shown by this interview: the app names, the real cost, client and trainer counts, the hours spent on invoices, the exact cancellation rules, that credits beat memberships, that Fivvi may hold funds, that T1 will move live payments, and that every small gym has the same needs. Workout logging, notes and Open Gym weren't raised as reasons to switch; that doesn't make them unimportant.
 
 ## 3. Decisions the product owner took from it (19 October 2026)
 
@@ -81,7 +81,7 @@ The commerce walkthrough with T1 (`ROADMAP.md §4.1`) answers QC01–QC18 in [`o
 
 Added by the product owner (a recollection, not a recording):
 
-- **No parallel use.** T1 won't use Trainer Hub next to the old apps. T1 starts using it only when it solves at least the four pain points named in this interview (R):
+- **No parallel use.** T1 won't use Fivvi next to the old apps. T1 starts using it only when it solves at least the four pain points named in this interview (R):
   1. billing: invoices for private training and recurring payments;
   2. one clear calendar for private sessions and group classes, for the owner, the trainers and the clients;
   3. proper roles: trainers use their own team access, never client access;

@@ -1,20 +1,20 @@
-# Privacyverklaring Trainer Hub
+# Privacyverklaring Fivvi
 
 > **⚠️ CONCEPT — GEEN JURIDISCH ADVIES.** Opgesteld door een AI-agent, niet gecontroleerd door een jurist. Niet publiceren voordat de open vragen zijn beantwoord en de tekst is getoetst. Deze Nederlandse tekst is leidend; de Engelse vertaling staat in [`privacy-policy.en.md`](privacy-policy.en.md).
 
 **Versie 0.1 (concept) · 22 september 2026**
 
-Trainer Hub is een platform waarmee personal trainers en sportscholen hun planning, boekingen, klanten, trainingen en notities beheren. In deze privacyverklaring lees je welke persoonsgegevens we verwerken, waarom, hoe lang, en welke rechten je hebt.
+Fivvi (fivvi.app) is een platform waarmee personal trainers en sportscholen hun planning, boekingen, klanten, trainingen en notities beheren. In deze privacyverklaring lees je welke persoonsgegevens we verwerken, waarom, hoe lang, en welke rechten je hebt.
 
 ## 1. Wie zijn wij?
 
-Trainer Hub wordt aangeboden door **{{Naam aanbieder}}**, gevestigd te {{adres}}, ingeschreven bij de Kamer van Koophandel onder nummer {{KvK-nummer}} ("**wij**" of "**ons**").
+Fivvi wordt aangeboden door **{{Naam aanbieder}}**, gevestigd te {{adres}}, ingeschreven bij de Kamer van Koophandel onder nummer {{KvK-nummer}} ("**wij**" of "**ons**").
 
 Vragen over privacy? Mail naar **{{privacy-e-mailadres}}**.
 
 ## 2. Twee rollen: de sportschool of trainer, en wij
 
-Bij Trainer Hub zijn er twee partijen die over jouw gegevens gaan. Welke partij verantwoordelijk is, hangt af van de gegevens.
+Bij Fivvi zijn er twee partijen die over jouw gegevens gaan. Welke partij verantwoordelijk is, hangt af van de gegevens.
 
 **Boek je bij een sportschool of trainer, of ben je daar klant?** Dan is **die sportschool of trainer** verantwoordelijk voor je gegevens: je boekingen, aanwezigheid, trainingen en de notities die je trainer over je maakt. Zij bepalen welke gegevens ze vastleggen en waarom. Wij verwerken die gegevens alleen in hun opdracht, als **verwerker**, en hebben daarvoor een verwerkersovereenkomst met ze.
 
@@ -23,10 +23,10 @@ Bij Trainer Hub zijn er twee partijen die over jouw gegevens gaan. Welke partij 
 
 **Wij zijn zelf verantwoordelijk** voor een klein aantal dingen:
 
-- je Trainer Hub-account en het inloggen;
+- je Fivvi-account en het inloggen;
 - de beveiliging van het platform;
 - productstatistieken met pseudonieme ID's;
-- onze relatie met de sportscholen en trainers die Trainer Hub gebruiken.
+- onze relatie met de sportscholen en trainers die Fivvi gebruiken.
 
 Voor die gegevens geldt deze privacyverklaring.
 
@@ -36,10 +36,10 @@ Voor die gegevens geldt deze privacyverklaring.
 
 | Wat | Welke gegevens | Waarom | Grondslag (AVG) |
 |---|---|---|---|
-| **Je account en inloggen** | Naam, e-mailadres, taalvoorkeur (Nederlands of Engels), gehashte inlogcodes en -links, sessiegegevens, app- en apparaatversie | Zodat je kunt inloggen zonder wachtwoord en Trainer Hub in je eigen taal werkt | Uitvoering van de overeenkomst (art. 6 lid 1 sub b) |
+| **Je account en inloggen** | Naam, e-mailadres, taalvoorkeur (Nederlands of Engels), gehashte inlogcodes en -links, sessiegegevens, app- en apparaatversie | Zodat je kunt inloggen zonder wachtwoord en Fivvi in je eigen taal werkt | Uitvoering van de overeenkomst (art. 6 lid 1 sub b) |
 | **Beveiliging en misbruik voorkomen** | IP-adres, browser- en apparaatgegevens, gehasht e-mailadres, tijdstippen | Om te voorkomen dat iemand lessen blokkeert met nepboekingen of het platform aanvalt | Gerechtvaardigd belang: een veilige, betrouwbare dienst (art. 6 lid 1 sub f) |
-| **Productstatistieken** | Welke functies worden gebruikt, met pseudonieme gebruikers- en workspace-ID's. Dit zijn persoonsgegevens. **Geen** namen, e-mailadressen, boekings-, trainings- of notitie-inhoud | Om Trainer Hub te verbeteren | Gerechtvaardigd belang: productverbetering (art. 6 lid 1 sub f) |
-| **Contact met sportscholen en trainers die Trainer Hub gebruiken** | Naam, e-mailadres, organisatie, berichten | Support, afspraken, belangrijke mededelingen over de dienst | Uitvoering van de overeenkomst; gerechtvaardigd belang (art. 6 lid 1 sub b en f) |
+| **Productstatistieken** | Welke functies worden gebruikt, met pseudonieme gebruikers- en workspace-ID's. Dit zijn persoonsgegevens. **Geen** namen, e-mailadressen, boekings-, trainings- of notitie-inhoud | Om Fivvi te verbeteren | Gerechtvaardigd belang: productverbetering (art. 6 lid 1 sub f) |
+| **Contact met sportscholen en trainers die Fivvi gebruiken** | Naam, e-mailadres, organisatie, berichten | Support, afspraken, belangrijke mededelingen over de dienst | Uitvoering van de overeenkomst; gerechtvaardigd belang (art. 6 lid 1 sub b en f) |
 | **Wettelijke plichten** | Contract- en (later) factuurgegevens | Administratie- en bewaarplichten | Wettelijke plicht (art. 6 lid 1 sub c) |
 
 ### 3.2 Als wij verwerken voor een sportschool of trainer
@@ -54,7 +54,7 @@ Deze gegevens verwerken we alleen in opdracht van de sportschool of trainer:
 
 ## 4. Cookies
 
-Trainer Hub gebruikt **alleen functionele cookies en vergelijkbare opslag**, bijvoorbeeld om je ingelogd te houden en je taalkeuze te onthouden. Daarvoor is geen toestemming nodig.
+Fivvi gebruikt **alleen functionele cookies en vergelijkbare opslag**, bijvoorbeeld om je ingelogd te houden en je taalkeuze te onthouden. Daarvoor is geen toestemming nodig.
 
 - We gebruiken **geen** advertentie- of trackingcookies.
 - Onze productstatistieken werken **zonder cookies**.
@@ -123,7 +123,7 @@ We reageren **binnen een maand**. We kunnen je vragen je identiteit te bevestige
 
 ## 10. Kinderen
 
-Een Trainer Hub-account kun je aanmaken vanaf **{{16}} jaar**. Voor jongere kinderen boekt een ouder of verzorger.
+Een Fivvi-account kun je aanmaken vanaf **{{16}} jaar**. Voor jongere kinderen boekt een ouder of verzorger.
 
 ## 11. Geautomatiseerde besluiten
 
@@ -131,4 +131,4 @@ We nemen geen besluiten over jou die alleen op geautomatiseerde verwerking zijn 
 
 ## 12. Wijzigingen
 
-We kunnen deze privacyverklaring aanpassen, bijvoorbeeld als Trainer Hub nieuwe functies krijgt. Belangrijke wijzigingen melden we vooraf per e-mail of in de app. De datum bovenaan laat zien wanneer de verklaring voor het laatst is gewijzigd.
+We kunnen deze privacyverklaring aanpassen, bijvoorbeeld als Fivvi nieuwe functies krijgt. Belangrijke wijzigingen melden we vooraf per e-mail of in de app. De datum bovenaan laat zien wanneer de verklaring voor het laatst is gewijzigd.

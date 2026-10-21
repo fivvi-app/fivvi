@@ -1,6 +1,6 @@
 # Competitors
 
-Products a Dutch gym or PT studio could choose instead of Trainer Hub, and what we learn from each. Read with [`PRODUCT.md §2.0`](../product/PRODUCT.md) (simple is the product) and risk R22 in [`ROADMAP.md §13`](../product/ROADMAP.md#13-risk-register).
+Products a Dutch gym or PT studio could choose instead of Fivvi, and what we learn from each. Read with [`PRODUCT.md §2.0`](../product/PRODUCT.md) (simple is the product) and risk R22 in [`ROADMAP.md §13`](../product/ROADMAP.md#13-risk-register).
 
 - **Sources:** the companies' public websites, read on 21 October 2026, unless a line says otherwise. Marketing claims are recorded as claims, not as checked facts.
 - **Not here:** prices we haven't seen published, people's names, and anything from a demo or a customer that isn't public.
@@ -25,7 +25,7 @@ Products a Dutch gym or PT studio could choose instead of Trainer Hub, and what 
 
 **What it offers** (from its platform pages):
 
-| Area | Huppa | Trainer Hub plan |
+| Area | Huppa | Fivvi plan |
 |---|---|---|
 | Member app | Branded member app for iOS and Android: book classes, buy or upgrade a membership, buy credits and products | Client web in the MVP; client apps in Release 1.2. Trainer apps in parallel from M2 |
 | Leads | Booking widget for trial lessons, automatic lead follow-up | Public booking page and QR codes (M5, M6); no lead follow-up planned |
@@ -46,7 +46,7 @@ Products a Dutch gym or PT studio could choose instead of Trainer Hub, and what 
 **Where we can be different.** These are hypotheses to test with the pilot and the second interview, not facts:
 
 1. **Simpler, not bigger.** Huppa grows by adding features (shop, discounts, AI, partners). Our edge is fewer steps for the daily work and nothing to set up that the platform can know (`PRODUCT.md §2.0`). Interesting: Huppa's own principles include *via negativa*: "the greatest improvements come from removing what doesn't work". So simplicity alone won't set us apart; how simple the daily flows feel in practice will.
-2. **The trainer, not only the gym.** Trainer Hub treats the trainer as a person with one account across workspaces: a trainer at a gym can also run their own PT business, with one personal calendar (`PRODUCT.md §4–§6, §47`). Huppa reads as one gym's system.
+2. **The trainer, not only the gym.** Fivvi treats the trainer as a person with one account across workspaces: a trainer at a gym can also run their own PT business, with one personal calendar (`PRODUCT.md §4–§6, §47`). Huppa reads as one gym's system.
 3. **Private training next to group classes.** The pilot's pain was private training managed by hand next to an app for classes. We plan one calendar, private and group credits, and private invoices made automatically. Huppa's PT offer looks strong; check how it bills private sessions and company invoices in practice.
 4. **Bilingual everywhere.** Dutch-first with full English on every surface. Huppa's site has Dutch and English; check whether the member app and emails do too.
 

@@ -1,4 +1,4 @@
-# Trainer Hub: terminology and tone glossary (nl-NL + en)
+# Fivvi: terminology and tone glossary (nl-NL + en)
 
 This is the **single wording source** for every user-facing string on every surface: trainer web, iOS, Android, public booking, client web and email. Humans and LLM translators both use it. If a string and this glossary disagree, the string is wrong.
 
@@ -55,6 +55,7 @@ Keep established loanwords that Dutch trainers actually use: *training, trainer,
 - **Say what happened and what to do next.** No error codes, stack traces or blame.
 - **Specific over generic.** "Les annuleren" beats "Annuleren"; "Boeking bevestigd" beats "Gelukt".
 - **User content is never translated.** Class names, workspace names, exercise names a trainer typed, and notes stay exactly as entered (`PRODUCT.md §3`, §35).
+- **The product name is a brand and is never translated.** It is written *Fivvi* in both languages, and *Fivvi Pro* for the business app for owners and trainers (the client app of Release 1.2 is *Fivvi*). Never *FIVVI* or *Fivvi App*; a Dutch compound is hyphenated (*Fivvi-account*). It reads the same in every catalog string, the email sender (*Fivvi*, the address *noreply* at fivvi.app) and the store listings. The previous working name *Trainer Hub* appears nowhere in user-facing text.
 - **Language names are always written in their own language:** *Nederlands*, *English*. The switch reads `NL | EN`.
 
 ---
@@ -65,7 +66,7 @@ Keep established loanwords that Dutch trainers actually use: *training, trainer,
 
 - **Sentence case everywhere, in both languages:** buttons, headings, tabs, navigation, labels, email subjects. EN: "Booking links", "Add client". NL: "Boekingslinks", "Klant toevoegen".
 - **Never write all-caps in the catalog.** Headings like "GROEPSLESSEN" in `PRODUCT.md §21` are a visual style. Store "Groepslessen" and apply `text-transform`/platform styling.
-- **Always capitalized:** *Open Gym* (a product term, both words capitalized, in both languages), *Trainer Hub*, workspace/brand names as entered.
+- **Always capitalized:** *Open Gym* (a product term, both words capitalized, in both languages), *Fivvi* and *Fivvi Pro* (brand names, see §1.3), workspace/brand names as entered.
 - **NL weekdays and months are lowercase** in running text: "dinsdag 22 september". They take a capital only at the start of a sentence or label. EN weekdays and months are always capitalized.
 - **Role and status labels** start with a capital when shown as a label or badge ("Eigenaar", "Niet verschenen"). In running text they're lowercase ("je bent eigenaar van John's Gym").
 
@@ -336,7 +337,7 @@ Added with roadmap v1.19 (M11). The ⚠️ terms are open until the pilot owner 
 | chargeback | terugboeking (de, terugboekingen) | A payment the client's bank or card issuer takes back, including a reversed direct debit. ❌ *terugbetaling* (a refund is a different thing). |
 | payout | uitbetaling (de, uitbetalingen) | ❌ *settlement*. |
 | payment provider | betaalprovider (de) ⚠️ | Usually name it (*Mollie*, *Stripe*) instead. |
-| merchant | verkoper (de) ⚠️ | The business that sells to the client and receives the money; in Trainer Hub the workspace (proposed in ADR-020). Alternative to confirm: *handelaar*. Mostly internal; in the UI say *jouw sportschool* or the workspace name. ❌ *leverancier*, *vendor*. |
+| merchant | verkoper (de) ⚠️ | The business that sells to the client and receives the money; in Fivvi the workspace (proposed in ADR-020). Alternative to confirm: *handelaar*. Mostly internal; in the UI say *jouw sportschool* or the workspace name. ❌ *leverancier*, *vendor*. |
 | connect payments | Betalingen koppelen | The owner action that connects the workspace's Mollie account (a guided flow, `PRODUCT.md §94`). *Koppelen* is right here, unlike for *assign* (§4.1), where it is forbidden. |
 
 ---

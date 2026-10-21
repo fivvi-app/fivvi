@@ -84,8 +84,8 @@
 | **Measured in the pilot** | Active agreements in the platform ÷ active agreements the gym owner counts; credit balances and next due dates compared with the old app each week, every difference explained or open |
 | **Measured when** | From pilot week 3, weekly |
 
-**Vraag:** Hoeveel van je lopende abonnementen, creditpakketten en creditabonnementen moeten na de overstap in Trainer Hub staan, en vanaf welke week? Wanneer mag een tegoed of vervaldatum afwijken van wat je nu ziet?\
-*Question: how many of your running memberships, credit packs and credit plans should be in Trainer Hub after the switch-over, and from which week? When may a credit balance or due date differ from what you see today?*
+**Vraag:** Hoeveel van je lopende abonnementen, creditpakketten en creditabonnementen moeten na de overstap in Fivvi staan, en vanaf welke week? Wanneer mag een tegoed of vervaldatum afwijken van wat je nu ziet?\
+*Question: how many of your running memberships, credit packs and credit plans should be in Fivvi after the switch-over, and from which week? When may a credit balance or due date differ from what you see today?*
 
 | | |
 |---|---|
@@ -96,14 +96,14 @@
 
 | | |
 |---|---|
-| **Metric** | Share of due payments collected through Trainer Hub; duplicate charges |
+| **Metric** | Share of due payments collected through Fivvi; duplicate charges |
 | **Baseline** (M0 walkthrough) | Payments collected by the old app per month: ____ · of which failed or late: ____ · double charges ever seen: ____ |
 | **Roadmap default** | 100 % by pilot week 6; 0 duplicate charges |
-| **Measured in the pilot** | Due payments collected through Trainer Hub ÷ all due payments (payment records and the provider's payout reports); duplicate charges counted in the provider's reports |
+| **Measured in the pilot** | Due payments collected through Fivvi ÷ all due payments (payment records and the provider's payout reports); duplicate charges counted in the provider's reports |
 | **Measured when** | From the cutover to pilot week 6 |
 
-**Vraag:** Vanaf welke week wil je dat alle betalingen via Trainer Hub lopen, zodat je de oude app kunt opzeggen? Wat mag er in de tussentijd nog via de oude app?\
-*Question: from which week do you want all payments to run through Trainer Hub, so you can cancel the old app? What may still go through the old app in the meantime?*
+**Vraag:** Vanaf welke week wil je dat alle betalingen via Fivvi lopen, zodat je de oude app kunt opzeggen? Wat mag er in de tussentijd nog via de oude app?\
+*Question: from which week do you want all payments to run through Fivvi, so you can cancel the old app? What may still go through the old app in the meantime?*
 
 | | |
 |---|---|
@@ -117,7 +117,7 @@
 | **Metric** | Invoices made or edited by hand per month |
 | **Baseline** (M0 walkthrough) | Invoices made by hand per month today: ____ · minutes per invoice: ____ · of which in a company's name: ____ |
 | **Roadmap default** | 0 |
-| **Measured in the pilot** | Invoices the gym owner still makes or edits outside Trainer Hub, counted at the weekly check-in and over the month |
+| **Measured in the pilot** | Invoices the gym owner still makes or edits outside Fivvi, counted at the weekly check-in and over the month |
 | **Measured when** | From pilot week 3, per month |
 
 **Vraag:** Hoeveel facturen maak je nu per maand zelf, en hoe lang kost dat? Bij hoeveel handmatige facturen zou je zeggen: dit is opgelost?\
@@ -172,8 +172,8 @@ From the shadow-day interview (question 9.3, "when would you say this is a succe
 
 These are agreed now so the pilot review asks exactly the same thing.
 
-**D1** Gebruik je naast Trainer Hub nog een ander programma, schrift of app voor notities over klanten? Zo ja, welke en waarvoor?\
-*Do you still use any other program, notebook or app for notes about clients besides Trainer Hub? If so, which one and what for?* → B6
+**D1** Gebruik je naast Fivvi nog een ander programma, schrift of app voor notities over klanten? Zo ja, welke en waarvoor?\
+*Do you still use any other program, notebook or app for notes about clients besides Fivvi? If so, which one and what for?* → B6
 
 **D2** Zou je terug willen naar de oude boekings- en betaalapp, Google Agenda en Word? Waarom wel of niet?\
 *Would you want to go back to the old booking and payment app, Google Calendar and Word? Why or why not?* → B10

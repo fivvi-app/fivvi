@@ -320,7 +320,7 @@ A signed-in client has already verified their email. Whether tapping *Boeken* co
 
 ```text
 ┌────────────────────────────────────────┐
-│ Van: John's Gym via Trainer Hub        │
+│ Van: John's Gym via Fivvi        │
 │ Onderwerp: Bevestig je boeking bij     │
 │ John's Gym                             │
 ├────────────────────────────────────────┤
@@ -470,7 +470,7 @@ A signed-in client has already verified their email. Whether tapping *Boeken* co
 ```text
 CW-01 Inloggen                            CW-02 Mijn boekingen
 ┌────────────────────────────────────────┐┌────────────────────────────────────────┐
-│ Trainer Hub                    NL | EN ││ Mijn boekingen           NL | EN  ○ ☰  │
+│ Fivvi                    NL | EN ││ Mijn boekingen           NL | EN  ○ ☰  │
 ├────────────────────────────────────────┤├────────────────────────────────────────┤
 │ Inloggen                               ││ ● Aankomend   ○ Eerder                 │
 │                                        ││                                        │

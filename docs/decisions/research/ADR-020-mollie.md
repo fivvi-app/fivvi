@@ -1,10 +1,10 @@
-# Mollie for Trainer Hub: Connect, recurring SEPA, testing, pricing, data protection
+# Mollie for Fivvi: Connect, recurring SEPA, testing, pricing, data protection
 
 > Source notes for [ADR-020](../ADR-020-payment-provider.md), gathered by a research agent from primary sources on 19–20 October 2026. Provider terms and prices change; re-check before relying on a figure.
 
 Research date: 2026-10-19/20 (all pages accessed then). Primary sources only: docs.mollie.com (the `.md` versions listed in https://docs.mollie.com/llms.txt, with `updatedAt` noted where it matters), mollie.com, help.mollie.com (Mollie's own help centre), the EPI / iDEAL / Wero sites, the DNB register and Mollie's GitHub SDKs. Quotes are short and exact. Items marked **[NOT CONFIRMED]** are inferences or gaps.
 
-Model in scope: Trainer Hub = platform, each gym = its own Mollie organisation (merchant of record), connected through OAuth. Mollie calls this **Connect for Platforms**.
+Model in scope: Fivvi = platform, each gym = its own Mollie organisation (merchant of record), connected through OAuth. Mollie calls this **Connect for Platforms**.
 
 ---
 
@@ -29,7 +29,7 @@ Model in scope: Trainer Hub = platform, each gym = its own Mollie organisation (
 **Scopes** (full list at https://docs.mollie.com/docs/permissions)
 - Scopes exist for `payments`, `refunds`, `customers`, `mandates`, `subscriptions` (each `.read`/`.write`), plus `settlements.read`, `balances.read`, `invoices.read`, `onboarding.read/.write`, `organizations.read/.write`, `profiles.read/.write`, `payouts.read/.write`, `webhooks.read/.write`, `balance-transfers.read/.write` and `persons.read/.write`. `payments.read` also covers chargebacks.
 - Mollie's recommended sets: subscriptions and recurring = `payments.* customers.* mandates.* subscriptions.*`; bookkeeping = `payments.read invoices.read settlements.read balances.read`; onboarding = `organizations.read organizations.write onboarding.read profiles.read profiles.write`. https://docs.mollie.com/docs/authentication-via-oauth
-- Suggested scope set for Trainer Hub (derived): `payments.read payments.write refunds.read refunds.write customers.read customers.write mandates.read mandates.write subscriptions.read subscriptions.write settlements.read balances.read invoices.read onboarding.read onboarding.write organizations.read profiles.read profiles.write`. Add `webhooks.read/.write` only if next-gen webhooks are used, and `payouts.read` for payout events.
+- Suggested scope set for Fivvi (derived): `payments.read payments.write refunds.read refunds.write customers.read customers.write mandates.read mandates.write subscriptions.read subscriptions.write settlements.read balances.read invoices.read onboarding.read onboarding.write organizations.read profiles.read profiles.write`. Add `webhooks.read/.write` only if next-gen webhooks are used, and `payouts.read` for payout events.
 - "Adding scopes after you go-live **requires your merchants to re-authorize the app.**" https://docs.mollie.com/docs/authentication-via-oauth
 - The Get balance report endpoint lists a `balance-reports.read` scope that the Permissions page does not show. https://docs.mollie.com/reference/get-balance-report **[NOT CONFIRMED which is right]**
 
@@ -69,7 +69,7 @@ Model in scope: Trainer Hub = platform, each gym = its own Mollie organisation (
 - Refunds: "Application Fees are **non-refundable**". The full refund comes out of the gym's balance. Same URL and https://docs.mollie.com/docs/connect-process-payments
 - Invoicing and VAT: "You are responsible for invoicing your connected accounts for the Application Fees you charge and for handling VAT correctly on those fees." https://docs.mollie.com/docs/application-fees. **Connect Billing** (beta) can send these invoices monthly on the 2nd on the platform's behalf. https://docs.mollie.com/docs/connect-billing (updated 2026-10-01)
 - Testing: "Test payments do not trigger any balance movement: no Application Fee is transferred". Verify with a small live payment. https://docs.mollie.com/docs/application-fees
-- Routing and split payments: these are Marketplace-only features (delayed routing up to 90 days, `reverseRouting` "only available to marketplace operators"), so they don't apply to Trainer Hub's model. https://docs.mollie.com/docs/connect-overview, https://docs.mollie.com/reference/create-refund
+- Routing and split payments: these are Marketplace-only features (delayed routing up to 90 days, `reverseRouting` "only available to marketplace operators"), so they don't apply to Fivvi's model. https://docs.mollie.com/docs/connect-overview, https://docs.mollie.com/reference/create-refund
 - Availability in NL: Connect payments are "available across Europe". No NL restriction on application fees is stated. https://docs.mollie.com/docs/connect-overview
 - Partner programme or revenue share outside Resell Pricing: not covered in the docs. The NL pricing page only says "Neem contact op met het partnerschipsteam". https://www.mollie.com/nl/pricing **[NOT CONFIRMED: terms]**
 
@@ -82,7 +82,7 @@ Model in scope: Trainer Hub = platform, each gym = its own Mollie organisation (
 - On-demand recurring (cron-driven): `sequenceType=recurring` plus `customerId` (required) and `mandateId`, no `redirectUrl` needed, and "it gets executed immediately". https://docs.mollie.com/docs/recurring-payments, https://docs.mollie.com/reference/create-payment, https://docs.mollie.com/reference/api-idempotency
 - Subscriptions API: `amount`, `interval`, `times`, `startDate`, `webhookUrl`, `applicationFee`. A subscription needs a `pending` or `valid` mandate. Mollie spawns payments, and the webhook gets payment ids you have never seen, carrying `subscriptionId`. "We do not provide webhooks specifically for status changes of a Subscription itself." Monthly on the 29th–31st charges on the last day of short months. https://docs.mollie.com/docs/recurring-payments, https://docs.mollie.com/reference/create-subscription
 - Subscription failures: Mollie retries "up to 5 times (once a day), depending on the failure reason", then cancels the subscription. Reason codes AC01/AC04/AC06/MD07 cancel it immediately; MD01/MD06/MS02/MS03/SL01 cancel it "After 3 times". If the subscription has a fixed `mandateId`, cancellation "will also revoke the mandate". https://docs.mollie.com/docs/recurring-payments
-- Trade-off (derived): on-demand recurring payments give Trainer Hub full control (pro-rating, pauses, variable amounts, own retry policy) but need idempotency (§6) and our own retries. Subscriptions are fixed amount and interval with Mollie-run retries and cancellations we must mirror.
+- Trade-off (derived): on-demand recurring payments give Fivvi full control (pro-rating, pauses, variable amounts, own retry policy) but need idempotency (§6) and our own retries. Subscriptions are fixed amount and interval with Mollie-run retries and cancellations we must mirror.
 - Mandates live on the customer inside the gym's organisation (`/v2/customers/{id}/mandates`, OAuth `mandates.*`). Use a unique `mandateReference`: "Some banks will decline Direct Debit payments if the mandate reference is not unique." https://docs.mollie.com/reference/create-mandate. Revoking a mandate cancels connected subscriptions. https://docs.mollie.com/reference/revoke-mandate (index summary)
 - SEPA DD default max is "1,000.00 EUR (Default Limit)" per transaction. https://docs.mollie.com/docs/sepa-direct-debit
 
@@ -178,9 +178,9 @@ Source: https://www.mollie.com/nl/pricing, accessed 2026-10-20 ("Transactietarie
 - Licence: DNB register lists Mollie B.V. (relation number F0038) as an electronic money institution, which also covers payment services such as direct debits. https://www.dnb.nl/en/public-register/information-detail/?registerCode=WFTEG&relationNumber=F0038. Mollie's impressum says the same. https://www.mollie.com/legal/impressum
 - User Agreement 2026 (in force 7 Sep 2026 for new, 7 Oct 2026 for existing customers) moves Mollie Connect terms to separate "Product Specific Terms". https://help.mollie.com/hc/en-us/articles/38518105024146-Updating-our-User-Agreement-2026
 - Implications (my interpretation, not from Mollie):
-  - The gym contracts directly with Mollie as an independent controller, so Mollie is not Trainer Hub's sub-processor.
-  - Trainer Hub, acting for the gym through OAuth, processes payer data (name, IBAN in mandate details, payment history) as the gym's processor. That belongs in Trainer Hub's DPA with the gym.
-  - Trainer Hub should store only what it needs (Mollie ids, status, amounts; avoid copying IBAN beyond display).
+  - The gym contracts directly with Mollie as an independent controller, so Mollie is not Fivvi's sub-processor.
+  - Fivvi, acting for the gym through OAuth, processes payer data (name, IBAN in mandate details, payment history) as the gym's processor. That belongs in Fivvi's DPA with the gym.
+  - Fivvi should store only what it needs (Mollie ids, status, amounts; avoid copying IBAN beyond display).
   - Our privacy notice should name Mollie as a separate controller.
   - Get the Connect Product Specific Terms reviewed. **[NOT CONFIRMED: content of those terms]**
 

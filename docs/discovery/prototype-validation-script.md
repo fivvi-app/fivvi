@@ -45,7 +45,7 @@
 
 ## 2. Introduction (read aloud)
 
-Bedankt dat je mee wilt doen. We testen vandaag een eerste, klikbare versie van Trainer Hub. Het is nog geen echte app: niet alles werkt en alle gegevens zijn verzonnen.
+Bedankt dat je mee wilt doen. We testen vandaag een eerste, klikbare versie van Fivvi. Het is nog geen echte app: niet alles werkt en alle gegevens zijn verzonnen.
 
 We testen het ontwerp, niet jou. Als iets niet lukt, ligt dat aan het ontwerp, en dat is precies wat we willen weten.
 
@@ -53,7 +53,7 @@ Ik geef je steeds een korte opdracht. Probeer hardop te denken: zeg wat je ziet,
 
 Ik maak aantekeningen, zonder namen. Vind je het goed als ik het scherm en het geluid opneem? Dat gebruik ik alleen om mijn aantekeningen uit te werken, daarna verwijder ik het.
 
-*Thank you for taking part. Today we're testing an early, clickable version of Trainer Hub. It isn't a real app yet: not everything works and all the data is made up.*
+*Thank you for taking part. Today we're testing an early, clickable version of Fivvi. It isn't a real app yet: not everything works and all the data is made up.*
 
 *We're testing the design, not you. If something doesn't work, that's the design's fault, and that's exactly what we want to find out.*
 

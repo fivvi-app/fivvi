@@ -18,11 +18,11 @@
 ## Partijen
 
 1. **{{Naam workspace / pilotgym}}**, gevestigd te {{plaats}}, ingeschreven bij de Kamer van Koophandel onder nummer {{KvK-nummer}}, hierbij vertegenwoordigd door {{naam, functie}}. Hierna: **"Verwerkingsverantwoordelijke"**.
-2. **{{Naam aanbieder}}**, handelend onder de naam Trainer Hub, gevestigd te {{plaats}}, ingeschreven bij de Kamer van Koophandel onder nummer {{KvK-nummer}}, hierbij vertegenwoordigd door {{naam, functie}}. Hierna: **"Verwerker"**.
+2. **{{Naam aanbieder}}**, handelend onder de naam Fivvi, gevestigd te {{plaats}}, ingeschreven bij de Kamer van Koophandel onder nummer {{KvK-nummer}}, hierbij vertegenwoordigd door {{naam, functie}}. Hierna: **"Verwerker"**.
 
 ## Overwegingen
 
-- A. Verwerkingsverantwoordelijke gebruikt Trainer Hub, een platform voor planning, boekingen, klantbeheer, trainingen en notities (de **"Dienst"**). Dat gebeurt op grond van de algemene voorwaarden van Verwerker en eventuele aanvullende (pilot)afspraken (samen de **"Hoofdovereenkomst"**).
+- A. Verwerkingsverantwoordelijke gebruikt Fivvi, een platform voor planning, boekingen, klantbeheer, trainingen en notities (de **"Dienst"**). Dat gebeurt op grond van de algemene voorwaarden van Verwerker en eventuele aanvullende (pilot)afspraken (samen de **"Hoofdovereenkomst"**).
 - B. Bij het leveren van de Dienst verwerkt Verwerker persoonsgegevens in opdracht van Verwerkingsverantwoordelijke. Het gaat onder meer om gegevens van klanten en trainers en om vrije notities, die gezondheidsgegevens kunnen bevatten.
 - C. Partijen leggen in deze overeenkomst de afspraken vast die artikel 28 van de Algemene verordening gegevensbescherming (**"AVG"**) voorschrijft.
 
@@ -159,7 +159,7 @@ Verwerker geeft Verwerkingsverantwoordelijke de informatie en hulp die zij redel
 
 | Verwerkingsverantwoordelijke | Verwerker |
 |---|---|
-| {{Naam workspace}} | {{Naam aanbieder}} (Trainer Hub) |
+| {{Naam workspace}} | {{Naam aanbieder}} (Fivvi) |
 | Naam: {{naam}} | Naam: {{naam}} |
 | Functie: {{functie}} | Functie: {{functie}} |
 | Datum: {{datum}} | Datum: {{datum}} |
@@ -171,7 +171,7 @@ Verwerker geeft Verwerkingsverantwoordelijke de informatie en hulp die zij redel
 
 | Onderdeel | Beschrijving |
 |---|---|
-| **Onderwerp** | Het leveren van de Dienst Trainer Hub aan Verwerkingsverantwoordelijke |
+| **Onderwerp** | Het leveren van de Dienst Fivvi aan Verwerkingsverantwoordelijke |
 | **Aard** | Opslaan, ordenen, raadplegen, wijzigen, versturen (e-mail), exporteren en verwijderen van persoonsgegevens via web, iOS- en Android-apps en API |
 | **Doelen** | Planning van privésessies, groepslessen en Open Gym; publieke boeking met e-mailverificatie; klantbeheer; trainingen en logging; notities; aanwezigheid; transactionele e-mails; import van bestaande gegevens; support, beveiliging, back-ups en foutoplossing van de Dienst |
 | **Categorieën betrokkenen** | Klanten en gasten van Verwerkingsverantwoordelijke; trainers en owners van de Workspace; genodigden |
@@ -224,11 +224,11 @@ Zie [`sub-processors.md`](sub-processors.md), versie {{versie}} van {{datum}}. V
 ## Parties
 
 1. **{{Workspace / pilot gym name}}**, established in {{city}}, registered with the Dutch Chamber of Commerce (KvK) under number {{KvK number}}, represented by {{name, role}}. Hereinafter: **"Controller"**.
-2. **{{Provider name}}**, trading as Trainer Hub, established in {{city}}, registered with the KvK under number {{KvK number}}, represented by {{name, role}}. Hereinafter: **"Processor"**.
+2. **{{Provider name}}**, trading as Fivvi, established in {{city}}, registered with the KvK under number {{KvK number}}, represented by {{name, role}}. Hereinafter: **"Processor"**.
 
 ## Recitals
 
-- A. Controller uses Trainer Hub, a platform for scheduling, bookings, client management, workouts and notes (the **"Service"**). It does so under Processor's terms of service and any additional (pilot) arrangements (together the **"Main Agreement"**).
+- A. Controller uses Fivvi, a platform for scheduling, bookings, client management, workouts and notes (the **"Service"**). It does so under Processor's terms of service and any additional (pilot) arrangements (together the **"Main Agreement"**).
 - B. In providing the Service, Processor processes personal data on Controller's behalf. This includes data about clients and trainers, and free-text notes that may contain health data.
 - C. In this agreement the parties record the arrangements that Article 28 of the General Data Protection Regulation (**"GDPR"**) requires.
 
@@ -365,7 +365,7 @@ Processor gives Controller the information and help it reasonably needs for (GDP
 
 | Controller | Processor |
 |---|---|
-| {{Workspace name}} | {{Provider name}} (Trainer Hub) |
+| {{Workspace name}} | {{Provider name}} (Fivvi) |
 | Name: {{name}} | Name: {{name}} |
 | Role: {{role}} | Role: {{role}} |
 | Date: {{date}} | Date: {{date}} |
@@ -375,7 +375,7 @@ Processor gives Controller the information and help it reasonably needs for (GDP
 
 | Item | Description |
 |---|---|
-| **Subject matter** | Providing the Trainer Hub Service to Controller |
+| **Subject matter** | Providing the Fivvi Service to Controller |
 | **Nature** | Storing, organizing, consulting, changing, sending (email), exporting and deleting personal data via web, iOS and Android apps and the API |
 | **Purposes** | Scheduling private sessions, group classes and Open Gym; public booking with email verification; client management; workouts and logging; notes; attendance; transactional emails; import of existing data; support, security, backups and troubleshooting of the Service |
 | **Categories of data subjects** | Controller's clients and guests; the Workspace's trainers and owners; invitees |

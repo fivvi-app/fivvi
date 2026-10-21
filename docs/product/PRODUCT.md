@@ -1,4 +1,4 @@
-# Trainer Platform
+# Fivvi
 ## Product Specification & Roadmap
 
 **Purpose:** Starting specification for building the product from scratch  
@@ -60,7 +60,7 @@ The simple user experience is the only difference we can have with other platfor
 
 - **Few steps.** Every daily task takes as few steps as possible, on a phone for the trainer and the client, on a laptop for the owner. Count the taps before a flow is built.
 - **Ask nothing we can know.** Never ask for what the platform can know or infer (§2.1): the workspace, the language, the time zone, the location, the client's details from a booking.
-- **One place for everything.** Scheduling, booking, memberships, payments and invoices live in Trainer Hub, so no one needs a second app next to it (§2.8).
+- **One place for everything.** Scheduling, booking, memberships, payments and invoices live in Fivvi, so no one needs a second app next to it (§2.8).
 - **Plain words.** Plain Dutch and English, no jargon: *Betalingen koppelen*, not "merchant onboarding" or "SEPA mandate" (`packages/i18n/GLOSSARY.md`).
 - **Hard things are done for the owner.** The owner never has to learn payments or KYC beyond one guided connect step (§94).
 - **Start from something ready.** A new workspace comes with three default plans, switched off: the owner adds the price and turns one on, instead of building an offer from an empty form (§90; owner, 21 October 2026).
@@ -184,7 +184,7 @@ Open Gym is simply a bookable offering with:
 
 ## 2.8 The pilot must be able to switch
 
-The pilot owner won't use Trainer Hub in parallel with the old apps (owner, 20 October 2026). He starts using it only when it solves at least the four pain points he named in interview 01. These four are the **go-live minimum**:
+The pilot owner won't use Fivvi in parallel with the old apps (owner, 20 October 2026). He starts using it only when it solves at least the four pain points he named in interview 01. These four are the **go-live minimum**:
 
 1. **Billing:** invoices for private training and recurring payments.
 2. **One clear calendar** for private sessions and group classes, for owner, trainers and clients.
@@ -704,7 +704,7 @@ English
 
 ## Trainer Mobile
 
-iOS + Android. Built in parallel with the web from M2 (`ROADMAP.md §3.1`; M8 is the label of this track), not after go-live: every feature with a trainer mobile surface gets iOS and Android tickets next to its web ticket, with the same acceptance criteria, and counts as done when web, iOS and Android all work. Trainers use the apps from go-live through TestFlight and Play internal testing if they pass their checks; go-live doesn't wait for public App Store / Play listings. Client apps stay Release 1.2.
+The trainer app is **Fivvi Pro** (app ID `app.fivvi.pro`, the iOS bundle ID and the Android application ID); the client app of Release 1.2 is a separate app, **Fivvi** (`app.fivvi`, §55; `ROADMAP.md` decision 18). iOS + Android. Built in parallel with the web from M2 (`ROADMAP.md §3.1`; M8 is the label of this track), not after go-live: every feature with a trainer mobile surface gets iOS and Android tickets next to its web ticket, with the same acceptance criteria, and counts as done when web, iOS and Android all work. Trainers use the apps from go-live through TestFlight and Play internal testing if they pass their checks; go-live doesn't wait for public App Store / Play listings. Client apps stay Release 1.2.
 
 Primary daily operational interface:
 
@@ -1687,8 +1687,8 @@ Do not build yet:
 - accounting integrations (Moneybird, e-Boekhouden, Exact Online)
 - point-of-sale or kiosk payments at the desk, until the pilot's current use is known ([QC11](../design/open-questions.md#qc11))
 - payments inside the native apps (clients pay on the web) (proposal, [QC16](../design/open-questions.md#qc16))
-- Trainer Hub holding client money in its own account (ADR-020 proposes the gym as merchant instead; §94)
-- platform billing: charging gyms and trainers for Trainer Hub ([`ROADMAP.md` decision 16](ROADMAP.md#14-decisions), listed under "Decided iteratively" and decided at the 2.0 entry gate)
+- Fivvi holding client money in its own account (ADR-020 proposes the gym as merchant instead; §94)
+- platform billing: charging gyms and trainers for Fivvi ([`ROADMAP.md` decision 16](ROADMAP.md#14-decisions), listed under "Decided iteratively" and decided at the 2.0 entry gate)
 - phone number requirement
 - SMS
 - complex permission system
@@ -1736,6 +1736,8 @@ All additions must work in Dutch and English.
 ---
 
 # 55. Release 1.2 — Client apps
+
+The client app is a separate app, **Fivvi** (app ID `app.fivvi`, iOS and Android), next to **Fivvi Pro** for owners and trainers (`app.fivvi.pro`); resolved by the owner on 21 October 2026 (`ROADMAP.md` decision 18). Check the store names for availability before the first listing.
 
 Launch:
 
@@ -2195,7 +2197,7 @@ Requirements:
 - minimal data collection
 - no unnecessary profiling
 
-Payment data stays with the payment provider: Trainer Hub stores its references (payment, mandate, refund), amounts and statuses, never card numbers or full bank account numbers (§94). Invoices are kept for the statutory retention period, also when a client asks for deletion; the rest of their data is deleted (E014, `docs/legal/retention-policy.md`).
+Payment data stays with the payment provider: Fivvi stores its references (payment, mandate, refund), amounts and statuses, never card numbers or full bank account numbers (§94). Invoices are kept for the statutory retention period, also when a client asks for deletion; the rest of their data is deleted (E014, `docs/legal/retention-policy.md`).
 
 ---
 
@@ -2562,7 +2564,7 @@ Built in parallel with the web, next to each web feature (`ROADMAP.md` M8, the n
 71. verify English booking experience
 72. publish Open Gym
 73. run real sessions
-74. cutover: scheduling, booking and payments all move to Trainer Hub at once and every client gets the first-payment link for the new mandate; the old app stays read-only until the first full payment cycle reconciles, then it is cancelled (`ROADMAP.md §7`)
+74. cutover: scheduling, booking and payments all move to Fivvi at once and every client gets the first-payment link for the new mandate; the old app stays read-only until the first full payment cycle reconciles, then it is cancelled (`ROADMAP.md §7`)
 75. observe usage
 76. track workarounds
 77. track remaining use of the old apps, Google Calendar and Word
@@ -2679,7 +2681,7 @@ The owner sets each offer's name (Dutch, optional English, as in §18), price in
 
 ## Default plans
 
-A new workspace starts with three ready-made offers, the **default plans** (owner, 21 October 2026). They are pre-filled and **switched off**: clients can't see or buy them until the owner turns them on. Trainer Hub never suggests a price, so the owner adds the price (including VAT) first. The rest of this section is a proposal, tied to [QC19](../design/open-questions.md#qc19): an offer can't be switched on without a price (QC19 a), and the default's VAT rate is the owner's to set, starting from the workspace's usual rate and checked with the gym's accountant (QC19 c, [QC10](../design/open-questions.md#qc10)).
+A new workspace starts with three ready-made offers, the **default plans** (owner, 21 October 2026). They are pre-filled and **switched off**: clients can't see or buy them until the owner turns them on. Fivvi never suggests a price, so the owner adds the price (including VAT) first. The rest of this section is a proposal, tied to [QC19](../design/open-questions.md#qc19): an offer can't be switched on without a price (QC19 a), and the default's VAT rate is the owner's to set, starting from the workspace's usual rate and checked with the gym's accountant (QC19 c, [QC10](../design/open-questions.md#qc10)).
 
 | Default plan | Kind | Pre-filled | Paid |
 |---|---|---|---|
@@ -2689,7 +2691,7 @@ A new workspace starts with three ready-made offers, the **default plans** (owne
 
 - **The owner can change every field of an offer** (owner decision), a default included: its name (Dutch and optional English, as in §18), price, VAT rate, classes and weekdays, credits, term or validity, payment schedule, cancellation cutoff, makeup limit and carry-over, where they apply. The owner can also switch a default off again or delete it.
 - **Proposed starting values, not decisions.** The defaults start with the proposals of [QC02](../design/open-questions.md#qc02) (a cutoff of 12 hours for classes and 24 hours for private sessions) and [QC17](../design/open-questions.md#qc17) (a carry-over limit of 0) until the pilot says otherwise. The private credit plan has no fixed term: it is paid monthly and cancellable per the membership rules of [QC07](../design/open-questions.md#qc07) (QC19 d). No makeup limit is proposed for the membership yet; it stays with [QC03](../design/open-questions.md#qc03) (QC19 e).
-- **A default is a starting point, not a template that stays linked** (proposal, QC19 b). The workspace gets its own copy when it is created; later changes to Trainer Hub's defaults never change an existing workspace.
+- **A default is a starting point, not a template that stays linked** (proposal, QC19 b). The workspace gets its own copy when it is created; later changes to Fivvi's defaults never change an existing workspace.
 - **Changes apply to new agreements only** (proposal, [QC15](../design/open-questions.md#qc15)); this includes changing any field, switching an offer off or deleting it: agreements that already run keep their terms.
 
 ## Owner-made plans
@@ -2751,12 +2753,12 @@ The cutoff, the makeup limit and how long a makeup stays valid are open ([QC02](
 
 # 94. Recurring payments
 
-Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-payment-provider.md) (Proposed; accepted when the owner approves this PR, status set to Accepted with the date before merge) proposes **Mollie Connect for Platforms**, with Stripe Connect as the fallback (see [`ROADMAP.md` decision 14](ROADMAP.md#14-decisions)). **Proposed merchant model (ADR-020):** each workspace connects its own Mollie account, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Trainer Hub. The provider pays out to the gym weekly (the gym sets the day in its own Mollie dashboard); the pilot wants weekly payouts.
+Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-payment-provider.md) (Proposed; accepted when the owner approves this PR, status set to Accepted with the date before merge) proposes **Mollie Connect for Platforms**, with Stripe Connect as the fallback (see [`ROADMAP.md` decision 14](ROADMAP.md#14-decisions)). **Proposed merchant model (ADR-020):** each workspace connects its own Mollie account, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Fivvi. The provider pays out to the gym weekly (the gym sets the day in its own Mollie dashboard); the pilot wants weekly payouts.
 
-- **Connecting payments is one guided step, and only the Owner does it** (trainers never; proposal, ADR-020). In Trainer Hub the owner chooses *Betalingen koppelen* / *Connect payments*. Trainer Hub creates a pre-filled Mollie account (name, email, company, KvK) and opens Mollie's onboarding in Dutch. The owner finishes Mollie's own checks (KvK, ID, owners, bank verification) and returns to Trainer Hub connected. An owner who already has a Mollie account just logs in and approves. Mollie reviews SEPA Direct Debit separately (it aims for 3 business days), so payments switch on only when Mollie reports that the account can receive them; until then Trainer Hub shows the status in plain words.
+- **Connecting payments is one guided step, and only the Owner does it** (trainers never; proposal, ADR-020). In Fivvi the owner chooses *Betalingen koppelen* / *Connect payments*. Fivvi creates a pre-filled Mollie account (name, email, company, KvK) and opens Mollie's onboarding in Dutch. The owner finishes Mollie's own checks (KvK, ID, owners, bank verification) and returns to Fivvi connected. An owner who already has a Mollie account just logs in and approves. Mollie reviews SEPA Direct Debit separately (it aims for 3 business days), so payments switch on only when Mollie reports that the account can receive them; until then Fivvi shows the status in plain words.
 
 - **First payment:** the client pays online (iDEAL first; proposal, [QC06](../design/open-questions.md#qc06)) when confirming a membership, a credit pack or a credit plan. That payment also gives the **mandate** for later collections (proposal, [QC06](../design/open-questions.md#qc06)).
-- **Recurring payments:** on each due date Trainer Hub asks the provider to collect the next amount by SEPA Direct Debit under the mandate (proposal, [QC06](../design/open-questions.md#qc06)). The payment schedule belongs to the agreement and has nothing to do with the class times. A credit plan is paid this way like a membership; when its credits for the month are granted is open ([QC17](../design/open-questions.md#qc17)).
+- **Recurring payments:** on each due date Fivvi asks the provider to collect the next amount by SEPA Direct Debit under the mandate (proposal, [QC06](../design/open-questions.md#qc06)). The payment schedule belongs to the agreement and has nothing to do with the class times. A credit plan is paid this way like a membership; when its credits for the month are granted is open ([QC17](../design/open-questions.md#qc17)).
 - **Exactly once:** a due amount is charged once, even when a job retries or the provider sends the same event twice.
 - **Failed payment:** the client and the owner get an email (proposal, [QC05](../design/open-questions.md#qc05)), and the agreement shows the open amount. Whether the client can keep booking until it is paid is a setting of the offer (proposal, [QC05](../design/open-questions.md#qc05)), never an accident.
 - **Refund and chargeback:** the owner can refund a payment fully or in part (only the owner refunds in the MVP, [QC12](../design/open-questions.md#qc12)). A refund or a reversed direct debit gets a credit note (§96), and the policy says what happens to the credits.
@@ -2784,6 +2786,6 @@ Every payment gets an **invoice**, emailed to the client and kept on their profi
 
 # 97. Payouts and reconciliation
 
-The owner sees, per payout from the provider, which payments, refunds, chargebacks and provider fees it contains, and which payments failed or are still open. Everything the provider reports must match a payment in Trainer Hub; whatever doesn't is shown to the owner, never ignored.
+The owner sees, per payout from the provider, which payments, refunds, chargebacks and provider fees it contains, and which payments failed or are still open. Everything the provider reports must match a payment in Fivvi; whatever doesn't is shown to the owner, never ignored.
 
 At go-live the active agreements, their credit balances and their next due dates are imported (E015) and the owner checks the reconciliation report against the old app before the cutover, when every client gets the first-payment link for the new mandate (`ROADMAP.md §7`).

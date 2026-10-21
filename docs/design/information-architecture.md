@@ -379,7 +379,7 @@ Every email exists in `nl-NL` and `en` with one template structure (`§51, §74`
 | EM-05 | {class} op {date} gaat niet door | {class} on {date} is cancelled | Booked clients | Occurrence cancelled (CO-03) | F026, F049 |
 | EM-06 | Nieuwe boeking: {name} voor {class} | New booking: {name} for {class} | Assigned trainer | Booking confirmed | F050 |
 | EM-07 | Afmelding: {name} voor {class} | Cancellation: {name} for {class} | Assigned trainer | Client cancels | F050 |
-| EM-08 | Je inlogcode voor Trainer Hub | Your sign-in code for Trainer Hub | Anyone signing in | Sign-in requested | F001 |
+| EM-08 | Je inlogcode voor Fivvi | Your sign-in code for Fivvi | Anyone signing in | Sign-in requested | F001 |
 | EM-09 | {inviter} nodigt je uit voor {workspace} | {inviter} invited you to {workspace} | Invited trainer | Invitation sent | F011 |
 | EM-10 ⚑ | Je valt in: {class} op {date} | You're covering: {class} on {date} | Substitute trainer | Substitution (CO-02) | F024 — **not in `§51`**, see [QE01](open-questions.md#qe01) |
 | EM-11 ⚑ | Nieuwe afspraak: {date} om {time} | New appointment: {date} at {time} | Private-session client | Private session created (PS-01) | F020 — **not in `§51`**, see [QE02](open-questions.md#qe02) |

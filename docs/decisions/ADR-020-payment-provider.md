@@ -13,9 +13,9 @@ The pilot gym won't switch without commerce, so memberships, credit packs, credi
 
 What the product needs from a provider (`PRODUCT.md §94–§97`):
 
-- **The workspace (the gym) is the merchant.** Client money goes from the provider to the gym's bank account and never through an account of Trainer Hub (R19).
+- **The workspace (the gym) is the merchant.** Client money goes from the provider to the gym's bank account and never through an account of Fivvi (R19).
 - **First payment by iDEAL** when a client confirms a membership, a credit pack or a credit plan, which also gives the **SEPA Direct Debit mandate** (QC06).
-- **Recurring payments:** on each due date Trainer Hub asks the provider to collect the amount under the mandate. The payment schedule belongs to the agreement, not to the class times (ADR-012). A credit plan is a recurring payment like a membership; a credit pack is one up-front payment, so it needs no recurring collection unless the pilot wants instalments (QC08).
+- **Recurring payments:** on each due date Fivvi asks the provider to collect the amount under the mandate. The payment schedule belongs to the agreement, not to the class times (ADR-012). A credit plan is a recurring payment like a membership; a credit pack is one up-front payment, so it needs no recurring collection unless the pilot wants instalments (QC08).
 - **Exactly once:** a due amount is charged once, even when a job retries or the provider sends the same event twice (R17).
 - **Failed payments, refunds and reversed debits** reach the Owner and the client (QC05); refunds and reversed debits get credit notes (`PRODUCT.md §96`).
 - **Weekly payouts**, and per payout the payments, refunds, reversals and fees in it (`PRODUCT.md §97`).
@@ -30,7 +30,7 @@ Both candidates were researched against their primary sources on 19–20 October
 | Need | Mollie Connect for Platforms | Stripe Connect (direct charges, full-Dashboard accounts) |
 |---|---|---|
 | Gym as merchant, money never with us | Yes: the gym's own Mollie organisation, connected by OAuth; payments created with its token are its own, with its name on the bank statement and its liability | Yes: an account with full Dashboard and Stripe-collected fees (v1 "Standard" defaults, or Accounts v2 `merchant`), direct charges with the `Stripe-Account` header |
-| Platform prerequisite | A Mollie partner account (Trainer Hub's own Mollie organisation, KYC'd) | A Stripe platform account; whether it must be live and verified before live connected accounts: not confirmed |
+| Platform prerequisite | A Mollie partner account (Fivvi's own Mollie organisation, KYC'd) | A Stripe platform account; whether it must be live and verified before live connected accounts: not confirmed |
 | Gym onboarding (KYC) | Client Links: we pre-fill the gym, the gym finishes Mollie's onboarding (in Dutch with `locale=nl_NL`; KvK, legal representative, UBO, ID, a bank verification payment, website). SEPA Direct Debit is reviewed separately, "within 3 business days". No typical total duration is published | Stripe-hosted Account Links or embedded onboarding (KvK, representative, owners, directors, IBAN). SEPA Direct Debit needs extra verification and the `sepa_debit_payments` capability. No typical duration is published |
 | iDEAL first payment → SEPA mandate | `sequenceType=first` with `method=ideal` creates a `directdebit` mandate; the first payment can be the real first amount | iDEAL PaymentIntent with `setup_future_usage=off_session` yields a generated `sepa_debit` payment method and mandate |
 | Recurring collection on our due date | `sequenceType=recurring` payment with the mandate, created by our cron; no subscription needed | Off-session PaymentIntent with the SEPA payment method, created by our cron; no Billing needed (Billing would add 0.7%) |
@@ -47,7 +47,7 @@ Both candidates were researched against their primary sources on 19–20 October
 
 ### Fees per payment (public list prices, Netherlands, 20 October 2026)
 
-Paid by the gym as the merchant in both models. With Stripe, Trainer Hub pays no per-payment or per-account fee; with Mollie, the platform cost is not confirmed (open question 5). These are the public list prices; the comparison with what the pilot pays today stays in the project owner's private notes (QC13).
+Paid by the gym as the merchant in both models. With Stripe, Fivvi pays no per-payment or per-account fee; with Mollie, the platform cost is not confirmed (open question 5). These are the public list prices; the comparison with what the pilot pays today stays in the project owner's private notes (QC13).
 
 | Event | Mollie | Stripe |
 |---|---|---|
@@ -64,12 +64,12 @@ A monthly membership therefore costs the gym €0.32 once and then €0.35 a mon
 ### What both share
 
 - **Wero.** iDEAL is moving onto Wero: Dutch banks connect in October 2026, and EPI aims to finish the move by the end of 2027 (Stripe estimates iDEAL's end at 2027–2028). Neither provider supports a Wero payment that creates a mandate today; Wero recurring is planned for 2027. Whether an iDEAL payment that runs on Wero rails still creates a SEPA mandate is documented by neither. Stripe documents that subscriptions started with iDEAL and running on SEPA are not affected; Mollie says nothing about existing mandates. The fallbacks are similar with both: the client enters their IBAN and accepts the mandate on our page, and we create the mandate through the provider (Mollie: Mandates API; Stripe: a SEPA Direct Debit payment method with mandate acceptance), with the first amount paid separately or collected by direct debit. Mollie also documents Pay by Bank (`paybybank`) as a first payment that creates a `directdebit` mandate, without a mandate screen of our own.
-- **Failed recurring payments are ours.** Neither provider documents a retry of a payment we create ourselves: their documented retries belong to their subscription products (Mollie Subscriptions, Stripe Billing). So the retry and access rules of QC05 are Trainer Hub's, and a failure is only final after the debit's rejection window. Whether Mollie never retries such a payment on its own is a question for Mollie (a silent retry next to ours could charge twice, R17).
+- **Failed recurring payments are ours.** Neither provider documents a retry of a payment we create ourselves: their documented retries belong to their subscription products (Mollie Subscriptions, Stripe Billing). So the retry and access rules of QC05 are Fivvi's, and a failure is only final after the debit's rejection window. Whether Mollie never retries such a payment on its own is a question for Mollie (a silent retry next to ours could charge twice, R17).
 - **Reconciliation runs on our ledger.** Both report per payout what it contains; we match each line to our own payment, refund or reversal (`PRODUCT.md §97`).
 
 ## Decision
 
-**Proposed: Mollie Connect for Platforms, with each gym as the merchant on its own Mollie account.** Trainer Hub never holds client money, takes no application fee on client payments in the MVP (Mollie's `applicationFee` stays the option for later; how Trainer Hub bills gyms is still open, `ROADMAP.md §14` decision 16), and keeps the provider behind one interface so Stripe stays a documented fallback.
+**Proposed: Mollie Connect for Platforms, with each gym as the merchant on its own Mollie account.** Fivvi never holds client money, takes no application fee on client payments in the MVP (Mollie's `applicationFee` stays the option for later; how Fivvi bills gyms is still open, `ROADMAP.md §14` decision 16), and keeps the provider behind one interface so Stripe stays a documented fallback.
 
 Why Mollie over Stripe:
 
@@ -109,22 +109,22 @@ Why Mollie over Stripe:
 **Payouts and reconciliation (`PRODUCT.md §97`)**
 
 - Mollie pays the gym out weekly; the gym chooses the day in its own Mollie dashboard (Mollie has no documented API for the schedule). The web app shows the gym how.
-- Per settlement (the T-reference on the gym's bank statement) Trainer Hub lists its payments, refunds, chargebacks and fees from the Settlements and Balances APIs, and shows every line it can't match. Mollie's test mode has no settlements or balances, so reconciliation is tested with fixtures built from Mollie's documented responses, and checked live on the pilot's first payout.
+- Per settlement (the T-reference on the gym's bank statement) Fivvi lists its payments, refunds, chargebacks and fees from the Settlements and Balances APIs, and shows every line it can't match. Mollie's test mode has no settlements or balances, so reconciliation is tested with fixtures built from Mollie's documented responses, and checked live on the pilot's first payout.
 
 **Environments (ADR-011)**
 
-- Production holds the credentials of Trainer Hub's live OAuth app. Mollie has no test-only OAuth credentials: a token belongs to an organisation, and test mode is a parameter of each request. So `development` and every PR environment use **a separate OAuth app**, connected only to an organisation that can't take live payments (a Mollie demo account, or an organisation without live payment methods), never to the pilot gym or Trainer Hub's own live organisation (`ENVIRONMENTS.md §7`). Every API call outside production sends `testmode=true`.
+- Production holds the credentials of Fivvi's live OAuth app. Mollie has no test-only OAuth credentials: a token belongs to an organisation, and test mode is a parameter of each request. So `development` and every PR environment use **a separate OAuth app**, connected only to an organisation that can't take live payments (a Mollie demo account, or an organisation without live payment methods), never to the pilot gym or Fivvi's own live organisation (`ENVIRONMENTS.md §7`). Every API call outside production sends `testmode=true`.
 - The registered redirect URL makes OAuth awkward on per-PR domains (Mollie's docs speak of one redirect URL per app). So a PR environment starts with a connected test workspace: the seed connects it with that test organisation's refresh token, kept in `development`. The connection flow itself is tested on `development`'s stable domain. If Mollie rotates refresh tokens, previews can't share one; E019 checks this first (open question 8).
 - A preview that is deleted stops answering webhooks; that only affects test payments.
 
 **Data protection (for the project owner and `docs/legal`)**
 
-- The gym contracts Mollie directly. Mollie sees itself as an **independent controller** for the payment data, not as Trainer Hub's sub-processor. Trainer Hub, acting for the gym through OAuth, processes the client's payment data (name, email, mandate and payment status, the masked IBAN) as the gym's **processor**. This changes the role mapping, the DPIA (`docs/legal/dpia-assessment.md`, which already records payments in the MVP (M11) and is reassessed before G4), the processor agreement, the privacy texts and the retention policy for invoices. Those documents stay the project owner's.
-- Trainer Hub sends Mollie only what a payment needs: name, email, amounts, a description without health or note content, and our ids. It doesn't keep full IBANs.
+- The gym contracts Mollie directly. Mollie sees itself as an **independent controller** for the payment data, not as Fivvi's sub-processor. Fivvi, acting for the gym through OAuth, processes the client's payment data (name, email, mandate and payment status, the masked IBAN) as the gym's **processor**. This changes the role mapping, the DPIA (`docs/legal/dpia-assessment.md`, which already records payments in the MVP (M11) and is reassessed before G4), the processor agreement, the privacy texts and the retention policy for invoices. Those documents stay the project owner's.
+- Fivvi sends Mollie only what a payment needs: name, email, amounts, a description without health or note content, and our ids. It doesn't keep full IBANs.
 
 ## Consequences
 
-- **Positive:** the gym is the merchant and Mollie the licensed party: Trainer Hub never holds client money (R19).
+- **Positive:** the gym is the merchant and Mollie the licensed party: Fivvi never holds client money (R19).
 - **Positive:** previews test the full flow, from the iDEAL checkout to the mandate, recurring payments, failures, refunds and reversals, each preview with its own webhooks.
 - **Positive:** a Dutch gym gets onboarding in Dutch and weekly payouts by default.
 - **Positive:** our own schedule, ledger and idempotency keep a later provider switch possible: the provider sits behind one interface in the domain.
@@ -133,7 +133,7 @@ Why Mollie over Stripe:
 - **Negative:** reconciliation can't be tested end to end before real money; the first live payout of the pilot is its real test.
 - **Negative:** a direct debit reaches the gym's balance after 9 business days; with a weekly payout on top, the money of a debit reaches the gym's bank about two and a half weeks after the debit at worst. Stripe is a few days faster.
 - **Negative:** Mollie offers no DPA for payment data; the legal documents describe it as an independent controller, which the project owner must confirm.
-- **Follow-ups:** E019 builds the connection, the provider interface and the webhook handling first; F057–F061 build on it. Trainer Hub's Mollie partner account is opened by the project owner. The questions below are asked of Mollie before E019 starts. The `ROADMAP.md §4.4` legal checklist gets the role changes above.
+- **Follow-ups:** E019 builds the connection, the provider interface and the webhook handling first; F057–F061 build on it. Fivvi's Mollie partner account is opened by the project owner. The questions below are asked of Mollie before E019 starts. The `ROADMAP.md §4.4` legal checklist gets the role changes above.
 
 ### Open questions for the project owner
 
@@ -141,9 +141,9 @@ Why Mollie over Stripe:
 2. **Wero and the cutover mandates (QC06, QC09).** Ask Mollie whether an iDEAL | Wero first payment still creates a SEPA mandate once it runs on Wero rails, and until when. If it doesn't by the cutover, the first-payment link becomes Pay by Bank, or "enter your IBAN and accept the mandate" (the fallbacks above). Should E019 build that fallback from the start, so the cutover doesn't depend on the answer?
 3. **Moving existing mandates (QC09).** Mollie's Mandates API can create a mandate from an IBAN, the signature date and a mandate reference. Whether the pilot's current mandates may legally move to the gym's Mollie account depends on the old provider and the creditor identifier; the decided plan stays a new mandate for every client. Ask the old provider and Mollie only if the project owner wants to avoid the first-payment links.
 4. **Fees (QC13).** Compare the list prices above with what the pilot pays today, and record only the outcome (cheaper, similar or more expensive per payment). Ask Mollie for the gym's failed-debit and storno fees.
-5. **Mollie partner terms.** Trainer Hub needs a Mollie partner account for Connect and Client Links. Ask Mollie for the Connect product-specific terms and any platform cost.
+5. **Mollie partner terms.** Fivvi needs a Mollie partner account for Connect and Client Links. Ask Mollie for the Connect product-specific terms and any platform cost.
 6. **Failed payments (QC05).** Mollie documents no retry of our own payments (confirm with Mollie). Proposal to confirm in the F060 spec: no automatic retry in the MVP; the client gets a link to pay the open amount by iDEAL, and the offer's setting decides how long they keep booking.
-7. **Data protection.** Confirm the roles above (Mollie as the gym's independent controller, Trainer Hub as the gym's processor for payment data) when the legal documents are updated for M11.
+7. **Data protection.** Confirm the roles above (Mollie as the gym's independent controller, Fivvi as the gym's processor for payment data) when the legal documents are updated for M11.
 8. **Test connection.** Ask Mollie: can a connected organisation take test payments before its verification is complete (or is a demo account the way)? Can one OAuth app register several redirect URLs, or should `development` have its own app? Does a token refresh rotate the refresh token? The answers decide how `development` and the previews connect a test workspace.
 
 ## Alternatives considered
@@ -151,11 +151,11 @@ Why Mollie over Stripe:
 | Option | Why not (now) |
 |---|---|
 | **Stripe Connect** (direct charges, full-Dashboard accounts paying their own fees; v1 defaults or Accounts v2 `merchant`) | Fully capable, with signed webhooks, 24-hour idempotency, rich SEPA test IBANs and a DPA. But each account has at most 16 webhook endpoints, so per-PR previews need a relay; weekly payouts need platform controls or the gym's own setting; data goes to the US under the DPF and SCCs; Accounts v2 still uses preview API versions in places. **The fallback** if Mollie can't answer the Wero or partner questions |
-| **Trainer Hub as the merchant** (Mollie for Marketplaces, Stripe destination charges or separate transfers) | Client money passes through Trainer Hub's balance, with refunds and chargebacks on our account, and brings payment regulation to Trainer Hub (R19). It also makes us the creditor of every mandate |
+| **Fivvi as the merchant** (Mollie for Marketplaces, Stripe destination charges or separate transfers) | Client money passes through Fivvi's balance, with refunds and chargebacks on our account, and brings payment regulation to Fivvi (R19). It also makes us the creditor of every mandate |
 | **Mollie Subscriptions API** or **Stripe Billing** for recurring payments | The provider would own the payment schedule and its retries, a second clock next to the agreement (ADR-012); pausing and pro-rating fight it; Mollie cancels a subscription and can revoke the mandate after failures; Stripe Billing costs 0.7% of volume |
 | **Signed next-gen webhooks only** (Mollie) | Mollie still advises classic webhooks for payments, and test mode allows two subscriptions per organisation, too few for previews |
 | **IBAN entry and mandate on our page as the default** | It needs our own mandate screen and doesn't take the first amount; iDEAL does both in one step the clients know. It is the fallback for Wero (open question 2) |
-| **The gym's current provider and app** | The goal is to cancel the old app (`PRODUCT.md §2.8`); its mandates and payments can't be driven from Trainer Hub |
+| **The gym's current provider and app** | The goal is to cancel the old app (`PRODUCT.md §2.8`); its mandates and payments can't be driven from Fivvi |
 
 ## References
 

@@ -1,4 +1,4 @@
-# Stripe Connect for Trainer Hub: research notes
+# Stripe Connect for Fivvi: research notes
 
 > Source notes for [ADR-020](../ADR-020-payment-provider.md), gathered by a research agent from primary sources on 19–20 October 2026. Provider terms and prices change; re-check before relying on a figure.
 
@@ -205,7 +205,7 @@ Note: the stripe.com/nl/pricing summary also mentioned a "0.25%" Connect line fo
   - Transfers go to Stripe, LLC (US) under a Data Transfer Addendum using the EU-US Data Privacy Framework "indien van toepassing" (where applicable), EEA SCCs (Decision 2021/914, Modules 1–3), and the UK addendum.
   - Sub-processor changes get "ten minste 30 dagen" (at least 30 days) notice for subscribed users, with a 30-day objection right.
 - **Sub-processors**: https://stripe.com/legal/service-providers (last updated September 27, 2026). Stripe lists affiliates including Ireland, and most providers are in the US.
-- **Implications** (inference): the gym holds its own Stripe agreement and DPA as merchant. Trainer Hub, as platform, accesses gym data via the `Stripe-Account` header and needs its own DPA with each gym. The data sent to Stripe (member names, emails, IBANs) should be minimal and include no health notes. The Stripe DPA does not address Connect platform-to-account roles.
+- **Implications** (inference): the gym holds its own Stripe agreement and DPA as merchant. Fivvi, as platform, accesses gym data via the `Stripe-Account` header and needs its own DPA with each gym. The data sent to Stripe (member names, emails, IBANs) should be minimal and include no health notes. The Stripe DPA does not address Connect platform-to-account roles.
 - The EEA contracting entity (expected: Stripe Payments Europe, Limited, Ireland) is NOT CONFIRMED: the DPA page only says "de Stripe-entiteit die in de overeenkomst vermeld staat" (the Stripe entity named in the agreement), and the privacy policy fetch failed.
 
 ## 11. Restrictions and platform prerequisites

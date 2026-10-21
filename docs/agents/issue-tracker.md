@@ -31,7 +31,7 @@ Write titles and bodies in English, in the vocabulary of `GLOSSARY.md`.
 
 GitHub shares one number space across issues and PRs, so a bare `#42` may be either: resolve with `gh pr view 42` and fall back to `scripts/issue.sh show 42`.
 
-## Trainer Hub rules for specs (`/to-spec`)
+## Fivvi rules for specs (`/to-spec`)
 
 A spec issue is the requirement of record for one feature (`F0xx`) or enabler (`E0xx`). The owner reviews it on GitHub and approves it with the `spec-approved` label; tickets are cut only after that (`scripts/issue.sh create ticket` refuses an unapproved spec, `scripts/flow.sh` reports `needs-approval`).
 
@@ -47,7 +47,7 @@ A spec issue is the requirement of record for one feature (`F0xx`) or enabler (`
 - Use the vocabulary of the root `GLOSSARY.md`. Respect the ADRs in `docs/decisions/`. Nothing from `PRODUCT.md §53` (MVP exclusions).
 - Never put real personal data in an issue: GitHub only ever sees synthetic data (`docs/legal/sub-processors.md`).
 
-## Trainer Hub rules for tickets (`/to-tickets`)
+## Fivvi rules for tickets (`/to-tickets`)
 
 - **Title:** `[F0xx] <slice>`. Each ticket is a sub-issue of its approved spec (`--parent`), with native blocking edges (`--blocked-by`), labelled `ready-for-agent` (`scripts/issue.sh create ticket` sets it).
 - Each ticket has an `## Acceptance criteria` checklist; `scripts/flow.sh status` reports a ticket without one as `needs-refinement`.

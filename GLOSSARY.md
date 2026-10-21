@@ -1,12 +1,20 @@
-# Trainer Hub
+# Fivvi
 
-The domain language of Trainer Hub: a platform where gyms, studios and independent trainers run their scheduling, public booking, Open Gym, clients, workouts and notes. Use these terms in code, issues, specs, tests and conversation.
+The domain language of Fivvi: a platform where gyms, studios and independent trainers run their scheduling, public booking, Open Gym, clients, workouts and notes. Use these terms in code, issues, specs, tests and conversation.
 
 This glossary says what a concept **is**, in English. How each term is worded in the Dutch and English UI, plus tone and copy rules, is in [`packages/i18n/GLOSSARY.md`](packages/i18n/GLOSSARY.md) §4. Code names and i18n keys follow the English term here. 🔜 marks a concept for a post-MVP release, listed so nobody uses the word for something else meanwhile. Requirements: `docs/product/PRODUCT.md`.
 
 ## Language
 
 ### Workspaces, people and roles
+
+**Fivvi**:
+The product and its brand (domain fivvi.app; the working name was Trainer Hub). The client app of Release 1.2 is also called Fivvi.
+_Avoid_: Trainer Hub (retired working name), FIVVI
+
+**Fivvi Pro**:
+The business app for owners and trainers, on iOS and Android (app ID `app.fivvi.pro`). Separate from the client app, **Fivvi** (app ID `app.fivvi`, Release 1.2).
+_Avoid_: trainer app (in user-facing text)
 
 **Workspace**:
 A business on the platform: a gym, studio or independent trainer's business. It owns its clients, sessions, classes, locations and settings, and is the tenant boundary for all business data. Code and the database call it `organization` (`organization_id`).
@@ -246,7 +254,7 @@ The payment company through which clients' online payments run. Who the merchant
 _Avoid_: bank
 
 **Merchant**:
-The business that sells to the client and receives the money. In Trainer Hub it is the workspace (proposed in ADR-020), not Trainer Hub.
+The business that sells to the client and receives the money. In Fivvi it is the workspace (proposed in ADR-020); Fivvi itself is never the merchant and never holds the money.
 _Avoid_: seller (alone), vendor
 
 **Payment**:

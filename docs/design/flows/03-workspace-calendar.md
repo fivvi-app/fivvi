@@ -94,7 +94,7 @@ flowchart TD
 | No trainer | {class}, {date} {time}: nog geen trainer · Toewijzen | {class}, {date} {time}: no trainer yet · Assign |
 | To calendar | Naar de agenda | Go to calendar |
 
-**States:** Empty day → *Vandaag staat er niets gepland in {workspace}.* / *Nothing is scheduled today at {workspace}.* + *[ + Nieuw ]*. Brand-new workspace → *Welkom bij Trainer Hub. Begin met je lesrooster of een privésessie.* / *Welcome to Trainer Hub. Start with your class timetable or a private session.* with *[ Groepsles toevoegen ]* *[ Privésessie toevoegen ]*. Loading = 5 skeleton rows. Error = inline retry.
+**States:** Empty day → *Vandaag staat er niets gepland in {workspace}.* / *Nothing is scheduled today at {workspace}.* + *[ + Nieuw ]*. Brand-new workspace → *Welkom bij Fivvi. Begin met je lesrooster of een privésessie.* / *Welcome to Fivvi. Start with your class timetable or a private session.* with *[ Groepsles toevoegen ]* *[ Privésessie toevoegen ]*. Loading = 5 skeleton rows. Error = inline retry.
 
 ### WC-02 · Agenda: week / Calendar: week
 
