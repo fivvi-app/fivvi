@@ -509,7 +509,7 @@ Can:
 - manage booking links
 - manage offers, prices and the cancellation policy: start from the three default plans or make their own (§90, §93)
 - manage agreements, payments and invoices (§91–§96)
-- connect the workspace's payment provider account in one guided step (proposed in ADR-020; §94)
+- connect the workspace's payment provider account in one guided step (decided in ADR-020; §94)
 - manage settings
 
 The pilot PT is:
@@ -1636,7 +1636,7 @@ Single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisi
 - credit packs and credit plans, group and private (§92)
 - credit balance per kind with its history (§92)
 - cancellation cutoff, no-shows and limited makeups (§93)
-- recurring payments through the workspace's payment provider account (proposed in ADR-020; §94)
+- recurring payments through the workspace's payment provider account (decided in ADR-020; §94)
 - single class purchase (§95)
 - invoices with billing details and credit notes (§96)
 - payouts and reconciliation (§97)
@@ -1687,7 +1687,7 @@ Do not build yet:
 - accounting integrations (Moneybird, e-Boekhouden, Exact Online)
 - point-of-sale or kiosk payments at the desk, until the pilot's current use is known ([QC11](../design/open-questions.md#qc11))
 - payments inside the native apps (clients pay on the web) (proposal, [QC16](../design/open-questions.md#qc16))
-- Fivvi holding client money in its own account (ADR-020 proposes the gym as merchant instead; §94)
+- Fivvi holding client money in its own account (ADR-020 decides the gym as merchant instead; §94)
 - platform billing: charging gyms and trainers for Fivvi ([`ROADMAP.md` decision 16](ROADMAP.md#14-decisions), listed under "Decided iteratively" and decided at the 2.0 entry gate)
 - phone number requirement
 - SMS
@@ -2504,7 +2504,7 @@ Runs after Phase D (it needs bookings and client accounts), next to Phases E and
 Phase K: single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
 
 79. offers and prices
-80. payment provider account per workspace (proposed in ADR-020)
+80. payment provider account per workspace (decided in ADR-020)
 81. memberships on fixed weekdays
 82. credit packs and credit plans, group and private
 83. credit balance per kind and its history
@@ -2753,9 +2753,9 @@ The cutoff, the makeup limit and how long a makeup stays valid are open ([QC02](
 
 # 94. Recurring payments
 
-Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-payment-provider.md) (Proposed; accepted when the owner approves this PR, status set to Accepted with the date before merge) proposes **Mollie Connect for Platforms**, with Stripe Connect as the fallback (see [`ROADMAP.md` decision 14](ROADMAP.md#14-decisions)). **Proposed merchant model (ADR-020):** each workspace connects its own Mollie account, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Fivvi. The provider pays out to the gym weekly (the gym sets the day in its own Mollie dashboard); the pilot wants weekly payouts.
+Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-payment-provider.md) (Accepted by the owner, 21 October 2026) decides on **Mollie Connect for Platforms**, with Stripe Connect as the fallback (see [`ROADMAP.md` decision 14](ROADMAP.md#14-decisions)). **Merchant model (decided in ADR-020):** each workspace connects its own Mollie account, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Fivvi. The provider pays out to the gym weekly (the gym sets the day in its own Mollie dashboard); the pilot wants weekly payouts.
 
-- **Connecting payments is one guided step, and only the Owner does it** (trainers never; proposal, ADR-020). In Fivvi the owner chooses *Betalingen koppelen* / *Connect payments*. Fivvi creates a pre-filled Mollie account (name, email, company, KvK) and opens Mollie's onboarding in Dutch. The owner finishes Mollie's own checks (KvK, ID, owners, bank verification) and returns to Fivvi connected. An owner who already has a Mollie account just logs in and approves. Mollie reviews SEPA Direct Debit separately (it aims for 3 business days), so payments switch on only when Mollie reports that the account can receive them; until then Fivvi shows the status in plain words.
+- **Connecting payments is one guided step, and only the Owner does it** (trainers never; decision 13 and ADR-020). In Fivvi the owner chooses *Betalingen koppelen* / *Connect payments*. Fivvi creates a pre-filled Mollie account (name, email, company, KvK) and opens Mollie's onboarding in Dutch. The owner finishes Mollie's own checks (KvK, ID, owners, bank verification) and returns to Fivvi connected. An owner who already has a Mollie account just logs in and approves. Mollie reviews SEPA Direct Debit separately (it aims for 3 business days), so payments switch on only when Mollie reports that the account can receive them; until then Fivvi shows the status in plain words.
 
 - **First payment:** the client pays online (iDEAL first; proposal, [QC06](../design/open-questions.md#qc06)) when confirming a membership, a credit pack or a credit plan. That payment also gives the **mandate** for later collections (proposal, [QC06](../design/open-questions.md#qc06)).
 - **Recurring payments:** on each due date Fivvi asks the provider to collect the next amount by SEPA Direct Debit under the mandate (proposal, [QC06](../design/open-questions.md#qc06)). The payment schedule belongs to the agreement and has nothing to do with the class times. A credit plan is paid this way like a membership; when its credits for the month are granted is open ([QC17](../design/open-questions.md#qc17)).

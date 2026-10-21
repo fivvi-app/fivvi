@@ -23,7 +23,7 @@
   - Daarmee valt ze niet onder de categorie *gezondheidsgegevens* van de AP-lijst. Die gaat over **grootschalige** verwerking.
 - **De DPIA-plicht ligt bij de verwerkingsverantwoordelijke**, dus bij de workspace (art. 35). Wij zijn verwerker en moeten helpen (art. 28(3)(f)). Omdat bijna geen kleine gym dit zelf kan, levert Fivvi een ingevulde DPIA die de pilotgym kan overnemen en aanvullen.
 - **Een DPIA kan wel verplicht worden** bij de veranderingen in §6. Beoordeel die vóór de betreffende release. De belangrijkste zijn:
-  - **betalingen (MVP, M11)**: betalingen komen in de MVP (`ROADMAP.md` v1.19). De betaalprovider verwerkt de betaalgegevens; Fivvi bewaart alleen verwijzingen, bedragen en statussen. Deze DPIA-toets wordt vóór G4 opnieuw beoordeeld, zodra ADR-020 (voorstel: Mollie) is goedgekeurd en de provider gekozen is;
+  - **betalingen (MVP, M11)**: betalingen komen in de MVP (`ROADMAP.md` v1.19). De betaalprovider verwerkt de betaalgegevens; Fivvi bewaart alleen verwijzingen, bedragen en statussen. Deze DPIA-toets wordt vóór G4 opnieuw beoordeeld, nu ADR-020 (Mollie, geaccepteerd op 21 oktober 2026) de provider heeft gekozen;
   - **AI-notities (1.3) en AI-briefing (1.4)**: nieuwe technologie + gezondheidsgegevens + evaluatie;
   - **publieke SaaS (2.0)**: beoordeel vóór die release opnieuw per verwerkingsverantwoordelijke of aard en schaal van de verwerking een DPIA vereisen;
   - **HealthKit/Health Connect (6.0)**: stelselmatige gezondheidsgegevens;
@@ -38,7 +38,7 @@
   - It therefore doesn't fall under the *health data* category of the AP list, which covers **large-scale** processing.
 - **The DPIA obligation lies with the controller**, i.e. the workspace (art. 35). We are the processor and must assist (art. 28(3)(f)). Since almost no small gym can do this alone, Fivvi provides a pre-filled DPIA that the pilot gym can adopt and complete.
 - **A DPIA may become required** with the changes in §6. Assess them before the relevant release. The main ones are:
-  - **payments (MVP, M11)**: payments come into the MVP (`ROADMAP.md` v1.19). The payment provider processes the payment data; Fivvi stores only references, amounts and statuses. This assessment is reassessed before G4, once ADR-020 (which proposes Mollie) is approved and the provider is chosen;
+  - **payments (MVP, M11)**: payments come into the MVP (`ROADMAP.md` v1.19). The payment provider processes the payment data; Fivvi stores only references, amounts and statuses. This assessment is reassessed before G4, now that ADR-020 (Mollie, accepted 21 October 2026) has chosen the provider;
   - **AI notes (1.3) and AI briefing (1.4)**: new technology + health data + evaluation;
   - **public SaaS (2.0)**: reassess before that release whether the nature and scale of processing require a DPIA for each relevant controller;
   - **HealthKit/Health Connect (6.0)**: systematic health data;
@@ -76,7 +76,7 @@
 | 2 | Zwarte lijsten | Nee | Blokkadelijsten voor rate limits (R14) bevatten 30 dagen gehashte kenmerken om misbruik te stoppen. Ze worden niet gedeeld en hebben geen gevolgen buiten het platform |
 | 3 | Fraudebestrijding | Nee | — |
 | 4 | Creditscores | Nee | — |
-| 5 | Financiële situatie | Nee (voorlopig) | Betalingen komen in de MVP (`ROADMAP.md` v1.19, M11). De betaalprovider verwerkt de betaalgegevens; Fivvi bewaart alleen verwijzingen, bedragen en statussen. Opnieuw toetsen vóór G4, zodra ADR-020 (voorstel: Mollie) is goedgekeurd en de provider gekozen is |
+| 5 | Financiële situatie | Nee (voorlopig) | Betalingen komen in de MVP (`ROADMAP.md` v1.19, M11). De betaalprovider verwerkt de betaalgegevens; Fivvi bewaart alleen verwijzingen, bedragen en statussen. Opnieuw toetsen vóór G4, nu ADR-020 (Mollie, geaccepteerd op 21 oktober 2026) de provider heeft gekozen |
 | 6 | Genetische gegevens | Nee | — |
 | 7 | **Gezondheidsgegevens** | **Niet grootschalig → nee (nu)** | De categorie gaat over *grootschalige* verwerking van gezondheidsgegevens. De AP-lijst noemt instellingen (zorg, verzekeraars, re-integratie) en zondert individuele zorgverleners uit met een verwijzing naar overweging 91. Eén gym met een beperkt klantenbestand lijkt meer op het laatste. **Opnieuw beoordelen vóór 2.0, per verwerkingsverantwoordelijke** |
 | 8 | Samenwerkingsverbanden | Nee | Workspaces delen niets met elkaar (D2 in `role-mapping.md`) |
@@ -98,7 +98,7 @@
 | 2 | Zwarte lijsten / Blacklists | Nee / No | Rate-limit block lists (R14) contain hashed identifiers for 30 days to stop abuse. They aren't shared and have no effect outside the platform |
 | 3 | Fraudebestrijding / Fraud prevention | Nee / No | — |
 | 4 | Creditscores / Credit scores | Nee / No | — |
-| 5 | Financiële situatie / Financial situation | Nee (voorlopig) / No (for now) | Payments come into the MVP (`ROADMAP.md` v1.19, M11). The payment provider processes the payment data; Fivvi stores only references, amounts and statuses. Reassess before G4, once ADR-020 (which proposes Mollie) is approved and the provider is chosen |
+| 5 | Financiële situatie / Financial situation | Nee (voorlopig) / No (for now) | Payments come into the MVP (`ROADMAP.md` v1.19, M11). The payment provider processes the payment data; Fivvi stores only references, amounts and statuses. Reassess before G4, now that ADR-020 (Mollie, accepted 21 October 2026) has chosen the provider |
 | 6 | Genetische gegevens / Genetic data | Nee / No | — |
 | 7 | **Gezondheidsgegevens** / **Health data** | **Niet grootschalig → nee (nu)** / **Not large scale → no (now)** | The category covers *large-scale* processing of health data. The AP's list names institutions (care, insurers, reintegration) and exempts individual care professionals with a reference to recital 91. A single gym with a limited client base is closer to the latter. **Reassess before 2.0 for each controller** |
 | 8 | Samenwerkingsverbanden / Data-sharing partnerships | Nee / No | Workspaces share nothing with each other (D2 in `role-mapping.md`) |
@@ -213,7 +213,7 @@
 | Publieke SaaS (2.0) | Herbeoordeel per verwerkingsverantwoordelijke de aard, schaal en risico's; de totale omvang van de verwerker maakt een DPIA niet automatisch verplicht voor elke workspace | Vóór de entry gate van 2.0 |
 | Structureel gezondheidsinformatie van minderjarigen vastleggen | Kwetsbare betrokkenen + gevoelige gegevens | Zodra dat bekend is (Q9) |
 | Analytics over trainers (3.2) | Controle werknemers (AP-lijst) | Vóór 3.2 |
-| Betalingen (MVP, M11) | Financiële gegevens; de betaalprovider verwerkt de betaalgegevens, Fivvi bewaart verwijzingen, bedragen en statussen | Vóór G4, zodra ADR-020 (voorstel: Mollie) is goedgekeurd en de provider gekozen is |
+| Betalingen (MVP, M11) | Financiële gegevens; de betaalprovider verwerkt de betaalgegevens, Fivvi bewaart verwijzingen, bedragen en statussen | Vóór G4, nu ADR-020 (Mollie, geaccepteerd op 21 oktober 2026) de provider heeft gekozen |
 | Geavanceerde commerce (4.0) | Financiële gegevens, bijv. herinneringen, boekhoudkoppelingen | Vóór 4.0 |
 | HealthKit / Health Connect / wearables (6.0) | Stelselmatige gezondheidsgegevens, IoT | Vóór 6.0 |
 | Wezenlijke verandering in het soort notities (bijv. gestructureerde gezondheidsvelden, uploads zoals medische brieven) | Meer en specifiekere gezondheidsgegevens | Vóór de wijziging |
@@ -227,7 +227,7 @@
 | Public SaaS (2.0) | Reassess nature, scale and risks for each controller; the processor's aggregate scale does not automatically require every workspace to perform a DPIA | Before the 2.0 entry gate |
 | Structurally recording minors' health information | Vulnerable data subjects + sensitive data | As soon as it's known (Q9) |
 | Analytics about trainers (3.2) | Employee monitoring (AP list) | Before 3.2 |
-| Payments (MVP, M11) | Financial data; the payment provider processes the payment data, Fivvi stores references, amounts and statuses | Before G4, once ADR-020 (which proposes Mollie) is approved and the provider is chosen |
+| Payments (MVP, M11) | Financial data; the payment provider processes the payment data, Fivvi stores references, amounts and statuses | Before G4, now that ADR-020 (Mollie, accepted 21 October 2026) has chosen the provider |
 | Advanced commerce (4.0) | Financial data, e.g. reminders, accounting links | Before 4.0 |
 | HealthKit / Health Connect / wearables (6.0) | Systematic health data, IoT | Before 6.0 |
 | Significant change in the nature of notes (e.g. structured health fields, file uploads such as medical letters) | More and more specific health data | Before the change |

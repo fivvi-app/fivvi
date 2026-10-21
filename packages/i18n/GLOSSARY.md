@@ -337,7 +337,7 @@ Added with roadmap v1.19 (M11). The ⚠️ terms are open until the pilot owner 
 | chargeback | terugboeking (de, terugboekingen) | A payment the client's bank or card issuer takes back, including a reversed direct debit. ❌ *terugbetaling* (a refund is a different thing). |
 | payout | uitbetaling (de, uitbetalingen) | ❌ *settlement*. |
 | payment provider | betaalprovider (de) ⚠️ | Usually name it (*Mollie*, *Stripe*) instead. |
-| merchant | verkoper (de) ⚠️ | The business that sells to the client and receives the money; in Fivvi the workspace (proposed in ADR-020). Alternative to confirm: *handelaar*. Mostly internal; in the UI say *jouw sportschool* or the workspace name. ❌ *leverancier*, *vendor*. |
+| merchant | verkoper (de) ⚠️ | The business that sells to the client and receives the money; in Fivvi the workspace (decided in ADR-020, Accepted 21 October 2026). Alternative to confirm: *handelaar*. Mostly internal; in the UI say *jouw sportschool* or the workspace name. ❌ *leverancier*, *vendor*. |
 | connect payments | Betalingen koppelen | The owner action that connects the workspace's Mollie account (a guided flow, `PRODUCT.md §94`). *Koppelen* is right here, unlike for *assign* (§4.1), where it is forbidden. |
 
 ---

@@ -19,7 +19,7 @@ Products a Dutch gym or PT studio could choose instead of Fivvi, and what we lea
 
 [huppa.app](https://www.huppa.app/en/): "the digital manager for your gym, box, or studio".
 
-**Company.** Based in Amsterdam, with Dutch support 7 days a week (their claim). It announced a €1M pre-seed round on 12 October 2026, from founders of Dutch software companies (among them Moneybird and TicketSwap) and NL SportTech Ventures. It names **Mollie** as its payments partner, including Mollie Capital for working capital. That is the provider ADR-020 proposes for us.
+**Company.** Based in Amsterdam, with Dutch support 7 days a week (their claim). It announced a €1M pre-seed round on 12 October 2026, from founders of Dutch software companies (among them Moneybird and TicketSwap) and NL SportTech Ventures. It names **Mollie** as its payments partner, including Mollie Capital for working capital. That is the provider ADR-020 chose for us.
 
 **Who it's for.** CrossFit, martial arts, HYROX, yoga and Pilates, indoor cycling and rowing, and **PT and small group training**. Its PT page offers trainer availability with clients booking sessions themselves, lead intake and workouts for small groups.
 

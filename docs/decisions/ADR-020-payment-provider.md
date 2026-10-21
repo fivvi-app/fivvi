@@ -2,14 +2,14 @@
 
 | | |
 |---|---|
-| **Status** | Proposed |
-| **Date** | 2026-10-20 |
+| **Status** | Accepted |
+| **Date** | 2026-10-21 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | PRODUCT.md §2.8, §53, §90–§97; ROADMAP.md M11, §4.4, §7, §12, §13 (R17, R19, R20), §14 decision 14; ADR-004, ADR-006, ADR-010, ADR-011, ADR-012; E019, F052–F061; open questions QC05, QC06, QC09, QC12, QC13, QC16, QC17 |
 
 ## Context
 
-The pilot gym won't switch without commerce, so memberships, credit packs, credit plans (group and private credits; `PRODUCT.md §92`), recurring payments and invoices ship before go-live in M11 (`ROADMAP.md §14`, decision 9). The commerce requirements (`PRODUCT.md §90–§97`) and the decisions behind them are in the same PR (#141) as this ADR, which the owner accepts by approving the PR (status set to Accepted with the date before merge). Decision 14 (the payment provider, Mollie or Stripe, and the merchant model) is the M11 opening spike (E019): no money code is written before the project owner decides it.
+The pilot gym won't switch without commerce, so memberships, credit packs, credit plans (group and private credits; `PRODUCT.md §92`), recurring payments and invoices ship before go-live in M11 (`ROADMAP.md §14`, decision 9). The commerce requirements (`PRODUCT.md §90–§97`) and the decisions behind them are in the same PR (#141) as this ADR, which the owner accepted by approving the PR on 21 October 2026 (accepted by the owner on 21 October 2026 with PR #141). Decision 14 (the payment provider, Mollie or Stripe, and the merchant model) was the M11 opening spike (E019): no money code is written before the project owner decides it, and the owner decided it by accepting this ADR.
 
 What the product needs from a provider (`PRODUCT.md §94–§97`):
 
@@ -69,7 +69,7 @@ A monthly membership therefore costs the gym €0.32 once and then €0.35 a mon
 
 ## Decision
 
-**Proposed: Mollie Connect for Platforms, with each gym as the merchant on its own Mollie account.** Fivvi never holds client money, takes no application fee on client payments in the MVP (Mollie's `applicationFee` stays the option for later; how Fivvi bills gyms is still open, `ROADMAP.md §14` decision 16), and keeps the provider behind one interface so Stripe stays a documented fallback.
+**Decided: Mollie Connect for Platforms, with each gym as the merchant on its own Mollie account.** Fivvi never holds client money, takes no application fee on client payments in the MVP (Mollie's `applicationFee` stays the option for later; how Fivvi bills gyms is still open, `ROADMAP.md §14` decision 16), and keeps the provider behind one interface so Stripe stays a documented fallback.
 
 Why Mollie over Stripe:
 
@@ -137,7 +137,7 @@ Why Mollie over Stripe:
 
 ### Open questions for the project owner
 
-1. **Accept Mollie Connect for Platforms**, or prefer Stripe Connect (the alternative below)?
+1. **Decided (21 October 2026):** the owner accepted Mollie Connect for Platforms over Stripe Connect (the alternative below), with each gym as the merchant.
 2. **Wero and the cutover mandates (QC06, QC09).** Ask Mollie whether an iDEAL | Wero first payment still creates a SEPA mandate once it runs on Wero rails, and until when. If it doesn't by the cutover, the first-payment link becomes Pay by Bank, or "enter your IBAN and accept the mandate" (the fallbacks above). Should E019 build that fallback from the start, so the cutover doesn't depend on the answer?
 3. **Moving existing mandates (QC09).** Mollie's Mandates API can create a mandate from an IBAN, the signature date and a mandate reference. Whether the pilot's current mandates may legally move to the gym's Mollie account depends on the old provider and the creditor identifier; the decided plan stays a new mandate for every client. Ask the old provider and Mollie only if the project owner wants to avoid the first-payment links.
 4. **Fees (QC13).** Compare the list prices above with what the pilot pays today, and record only the outcome (cheaper, similar or more expensive per payment). Ask Mollie for the gym's failed-debit and storno fees.

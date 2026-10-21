@@ -250,11 +250,11 @@ A right to attend another class, granted under the cancellation policy, for exam
 _Avoid_: credit (a makeup is not a credit), catch-up, reschedule (that moves a session)
 
 **Payment provider**:
-The payment company through which clients' online payments run. Who the merchant is, and whether the workspace has its own account with it, is set out in `PRODUCT.md §94`.
+The payment company through which clients' online payments run. In Fivvi it is Mollie, as [ADR-020](docs/decisions/ADR-020-payment-provider.md) decided (Accepted, 21 October 2026), with Stripe Connect as the fallback. Who the merchant is, and that the workspace has its own account with it, is set out in `PRODUCT.md §94`.
 _Avoid_: bank
 
 **Merchant**:
-The business that sells to the client and receives the money. In Fivvi it is the workspace, not Fivvi itself (proposed in ADR-020).
+The business that sells to the client and receives the money. In Fivvi it is the workspace, not Fivvi itself (decided in ADR-020, Accepted 21 October 2026).
 _Avoid_: seller (alone), vendor
 
 **Payment**:

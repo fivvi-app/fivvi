@@ -89,7 +89,7 @@ Roles come from `PRODUCT.md §9, §50`: **Owner and Trainer** are the team roles
 | Exercises, custom exercises, templates | ✓ | ✓ | — | — |
 | Log workouts | ✓ | ✓ own sessions | — | — |
 | Offers, prices, cancellation policy; start from the three default plans (switched off until the owner adds a price and turns one on; proposal, QC19) or make own offers (`§90`, `§93`) | ✓ | — | — | — |
-| Connect the payment provider account (proposed in ADR-020; `§94`) | ✓ | — | — | — |
+| Connect the payment provider account (decided in ADR-020; `§94`) | ✓ | — | — | — |
 | Agreements: create, end, see credit balances (`§91`, `§92`) | ✓ | 👁 credit balances of own clients ⚑ [QC12](open-questions.md#qc12) | ✓ own | — |
 | Payments, invoices, refunds, payouts (`§94`–`§97`) | ✓ | — | 👁 own payments and invoices | — |
 | Buy a membership, credit pack, credit plan or single class (proposed, [decision 9](../product/ROADMAP.md#14-decisions)); pay | — | — | ✓ | ✓ single class (account created at verification) |
