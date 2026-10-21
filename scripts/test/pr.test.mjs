@@ -44,8 +44,8 @@ const checkRun = (name, conclusion = 'SUCCESS', status = 'COMPLETED') => ({
   conclusion,
 });
 
-// The merge queue facts of a PR (scripts/pr.sh queue_facts): the state of the PR, whether it is in the queue, whether
-// GitHub turned on auto-merge, and the last queue event on its timeline.
+// The merge queue facts of a PR (scripts/pr.sh queue_state): the state of the PR, whether its base branch has a merge
+// queue, whether it is in the queue, whether GitHub turned on auto-merge, and the last queue event on its timeline.
 const BEFORE_REMOVAL = '2026-10-19T09:00:00Z';
 const REMOVAL = '2026-10-19T10:00:00Z';
 const AFTER_REMOVAL = '2026-10-19T11:00:00Z';
@@ -56,8 +56,10 @@ const removedAt = (createdAt) => ({
 });
 const REMOVED = removedAt(REMOVAL);
 const ADDED = { __typename: 'AddedToMergeQueueEvent' };
+const PR_ID = 'PR_kwDOtrainer60';
 const queueFacts = ({
   state = 'OPEN',
+  queueEnabled = true,
   queued = false,
   position = 1,
   auto = false,
@@ -69,7 +71,9 @@ const queueFacts = ({
   data: {
     repository: {
       pullRequest: {
+        id: PR_ID,
         state,
+        isMergeQueueEnabled: queueEnabled,
         headRefOid: head,
         commits: { nodes: [{ commit: { committedDate: committed } }] },
         body,
@@ -82,6 +86,7 @@ const queueFacts = ({
   },
 });
 const QUEUE = '^api graphql [\\s\\S]*isInMergeQueue';
+const ENQUEUE = '^api graphql [\\s\\S]*enqueuePullRequest';
 
 const github = ({
   files = ['apps/web/page.tsx'],
@@ -117,6 +122,7 @@ const github = ({
   },
   { match: '^issue view 57 ', out: { number: 57, labels: [], parent: null } },
   { match: QUEUE, out: queue },
+  { match: ENQUEUE, out: { data: { enqueuePullRequest: { mergeQueueEntry: { position: 1 } } } } },
   { match: '^api graphql ', out: threads([]) },
   { match: STATUS, out: status },
   { match: '^pr edit 60 ', out: '' },
@@ -146,11 +152,16 @@ describe('pr.sh merge', () => {
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /✓ low-risk/);
     assert.ok(
-      result.calls.some((call) =>
-        new RegExp(`^pr merge 60 .*--squash --match-head-commit ${HEAD}$`).test(call),
+      result.calls.some(
+        (call) =>
+          new RegExp(ENQUEUE).test(call) &&
+          call.includes(`id=${PR_ID}`) &&
+          call.includes(`head=${HEAD}`),
       ),
       result.calls.join('\n'),
     );
+    // gh pr merge asks for auto-merge on a merge queue branch, whatever the flags, which the repo forbids.
+    assert.ok(!result.calls.some((call) => /^pr merge/.test(call)), result.calls.join('\n'));
     assert.match(result.stdout, /✅ PR #60 added to the merge queue \(position 1\)/);
     assert.match(result.stdout, /scripts\/flow\.sh finish 57/);
   });
@@ -168,7 +179,11 @@ describe('pr.sh merge', () => {
   });
 
   it('E002 #119: never uses auto-merge or the admin bypass', () => {
-    for (const rules of [github(), github({ files: ['packages/database/migrations/0004.sql'] })]) {
+    for (const rules of [
+      github(),
+      github({ queue: queueFacts({ state: 'MERGED', queueEnabled: false }) }),
+      github({ files: ['packages/database/migrations/0004.sql'] }),
+    ]) {
       const result = merge(rules);
       assert.ok(!result.calls.some((call) => /--auto|--admin/.test(call)), result.calls.join('\n'));
     }
@@ -187,9 +202,19 @@ describe('pr.sh merge', () => {
     assert.ok(!result.calls.some((call) => /^pr merge/.test(call)), result.calls.join('\n'));
   });
 
-  it('E002 #119: reports a squash-merge when GitHub merged at once (no merge queue applied yet), and deletes the branch', () => {
-    const result = merge(github({ queue: queueFacts({ state: 'MERGED' }) }));
+  it('E002 #119: squash-merges at once when the branch has no merge queue (not applied yet), and deletes the branch', () => {
+    const result = merge(github({ queue: queueFacts({ state: 'MERGED', queueEnabled: false }) }));
     assert.equal(result.status, 0, result.stderr);
+    assert.ok(
+      result.calls.some((call) =>
+        new RegExp(`^pr merge 60 --repo [^ ]+ --squash --match-head-commit ${HEAD}$`).test(call),
+      ),
+      result.calls.join('\n'),
+    );
+    assert.ok(
+      !result.calls.some((call) => new RegExp(ENQUEUE).test(call)),
+      result.calls.join('\n'),
+    );
     assert.match(result.stdout, /✅ PR #60 squash-merged/);
     assert.ok(
       result.calls.some((call) =>
@@ -199,10 +224,13 @@ describe('pr.sh merge', () => {
     assert.deepEqual(result.bodies, []);
   });
 
-  it('E002 #119: turns auto-merge off again when GitHub enabled it instead of queueing, and fails', () => {
+  it('E002 #119: turns auto-merge off again when it is on and the PR is not queued, and fails', () => {
     const result = merge(github({ queue: queueFacts({ auto: true }) }));
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /enabled auto-merge instead of adding PR #60 to the merge queue/);
+    assert.match(
+      result.stderr,
+      /auto-merge is on for PR #60, which is not in the merge queue; turned it off/,
+    );
     assert.ok(
       result.calls.some((call) => /^pr merge 60 --repo [^ ]+ --disable-auto$/.test(call)),
       result.calls.join('\n'),
@@ -239,17 +267,27 @@ describe('pr.sh merge', () => {
     assert.equal(result.status, 0, result.stderr);
   });
 
-  it('E002 #119: fails when the PR is neither queued nor merged after gh succeeded', () => {
+  it('E002 #119: fails when the PR is neither queued nor merged after GitHub took it', () => {
     const result = merge(github({ queue: queueFacts() }));
     assert.equal(result.status, 1);
     assert.match(result.stderr, /neither in the merge queue nor merged/);
     assert.deepEqual(result.bodies, []);
   });
 
-  it("fails and records nothing when gh can't add the PR to the queue", () => {
-    const result = merge([{ match: '^pr merge 60 ', out: 'not allowed', status: 1 }, ...github()]);
+  it("E002: fails and records nothing when GitHub can't add the PR to the queue", () => {
+    const result = merge([{ match: ENQUEUE, out: 'not allowed', status: 1 }, ...github()]);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /merge failed/);
+    assert.match(result.stderr, /could not add PR #60 to the merge queue: not allowed/);
+    assert.deepEqual(result.bodies, []);
+  });
+
+  it("E002: fails and records nothing when gh can't squash-merge a PR on a branch without a merge queue", () => {
+    const result = merge([
+      { match: '^pr merge 60 ', out: 'not allowed', status: 1 },
+      ...github({ queue: queueFacts({ queueEnabled: false }) }),
+    ]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /merge failed: not allowed/);
     assert.deepEqual(result.bodies, []);
   });
 
