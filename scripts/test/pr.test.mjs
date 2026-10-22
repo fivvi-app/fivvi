@@ -21,17 +21,17 @@ const HEAD = 'c'.repeat(40);
 const CI = ['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android'];
 
 const NO_PREVIEW = `**Railway preview smoke check:** on \`${HEAD}\`: no preview for this PR (it touches no Railway watch pattern).`;
-// GitHub's combined status of a commit; Railway posts `trainer-hub - web` also when it skips the deploy.
+// GitHub's combined status of a commit; Railway posts `fivvi - web` also when it skips the deploy.
 const SKIPPED = 'No deployment needed - watched paths not modified';
 const statuses = (...entries) => ({
   total_count: entries.length,
   statuses: entries.map(([context, state, description]) => ({ context, state, description })),
 });
 const WEB_SKIPPED = statuses(
-  ['trainer-hub - cron', 'success', SKIPPED],
-  ['trainer-hub - web', 'success', SKIPPED],
+  ['fivvi - cron', 'success', SKIPPED],
+  ['fivvi - web', 'success', SKIPPED],
 );
-const WEB_DEPLOYED = statuses(['trainer-hub - web', 'success', 'Deployment succeeded']);
+const WEB_DEPLOYED = statuses(['fivvi - web', 'success', 'Deployment succeeded']);
 const STATUS = `^api repos/[^ ]+/commits/${HEAD}/status`;
 const threads = (nodes, hasNextPage = false) => ({
   data: { repository: { pullRequest: { reviewThreads: { pageInfo: { hasNextPage }, nodes } } } },
@@ -379,7 +379,7 @@ describe('pr.sh reviewed', () => {
     cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
     git('add', '.');
     git('commit', '--quiet', '-m', 'feat(F031): hold a spot');
-    git('remote', 'add', 'origin', 'https://github.com/example/trainer-hub.git');
+    git('remote', 'add', 'origin', 'https://github.com/example/fivvi.git');
   });
   after(() => {
     gh.cleanup();
@@ -567,7 +567,7 @@ describe('pr.sh smoke', () => {
   it("checks the preview's health when Railway deployed one", () => {
     const result = smoke({ out: WEB_DEPLOYED });
     assert.equal(result.status, 0, result.stderr);
-    const url = 'https://web-trainer-hub-pr-60.up.railway.app/api/v1/health';
+    const url = 'https://web-fivvi-pr-60.up.railway.app/api/v1/health';
     assert.ok(result.curls.length > 0 && result.curls.every((args) => args.endsWith(url)));
     assert.deepEqual(result.bodies, [
       `Closes #57\n\n**Railway preview smoke check:** on \`${HEAD}\`: \`curl -fsS ${url}\` → \`{"status":"ok"}\` ✅`,
@@ -575,7 +575,7 @@ describe('pr.sh smoke', () => {
   });
 
   it('records nothing while the preview is still deploying', () => {
-    const deploying = statuses(['trainer-hub - web', 'pending', 'Deployment in progress']);
+    const deploying = statuses(['fivvi - web', 'pending', 'Deployment in progress']);
     const result = smoke({ out: deploying }, ['--timeout', '0']);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /still deploying/);
@@ -593,9 +593,9 @@ describe('pr.sh smoke', () => {
     }
   });
 
-  const WEB_URL = 'https://web-trainer-hub-pr-60.up.railway.app/api/v1/health';
-  const REDEPLOY = `deployment redeploy -p ${PROJECT} -e trainer-hub-pr-60 -s web --from-source -y`;
-  const LIST = `deployment list -p ${PROJECT} -e trainer-hub-pr-60 -s web --json`;
+  const WEB_URL = 'https://web-fivvi-pr-60.up.railway.app/api/v1/health';
+  const REDEPLOY = `deployment redeploy -p ${PROJECT} -e fivvi-pr-60 -s web --from-source -y`;
+  const LIST = `deployment list -p ${PROJECT} -e fivvi-pr-60 -s web --json`;
 
   it('E002 #107 AC3: asks railway nothing when there is no preview', () => {
     const result = smoke({ out: WEB_SKIPPED });
@@ -627,7 +627,7 @@ describe('pr.sh smoke', () => {
   }
 
   it('E002 #107 AC3: redeploys a preview whose deploy never started while Railway still reports it pending', () => {
-    const pending = statuses(['trainer-hub - web', 'pending', 'Waiting for CI']);
+    const pending = statuses(['fivvi - web', 'pending', 'Waiting for CI']);
     const result = smoke({ out: pending }, [], 'skipped');
     assert.equal(result.status, 0, result.stderr);
     assert.ok(result.railway.includes(REDEPLOY), result.railway.join('\n'));
@@ -639,13 +639,13 @@ describe('pr.sh smoke', () => {
       const deployments = result.railway.filter((call) => call.startsWith('deployment'));
       assert.ok(deployments.length > 0);
       for (const call of deployments) {
-        assert.match(call, new RegExp(`-p ${PROJECT} -e trainer-hub-pr-60 -s web( |$)`), call);
+        assert.match(call, new RegExp(`-p ${PROJECT} -e fivvi-pr-60 -s web( |$)`), call);
         assert.doesNotMatch(call, /production|development/);
       }
     }
   });
 
-  const FAILED_DEPLOY = statuses(['trainer-hub - web', 'failure', 'Deployment failed']);
+  const FAILED_DEPLOY = statuses(['fivvi - web', 'failure', 'Deployment failed']);
 
   for (const mode of ['missing', 'logged out']) {
     it(`E002 #107 AC3: smoke-checks a deployed preview with curl when the railway CLI is ${mode === 'missing' ? 'missing' : 'logged out'}`, () => {
@@ -661,14 +661,14 @@ describe('pr.sh smoke', () => {
       assert.equal(result.status, 1);
       assert.match(result.stderr, /Railway CLI/);
       assert.match(result.stderr, /railway login/);
-      assert.match(result.stderr, /trainer-hub-pr-60/);
+      assert.match(result.stderr, /fivvi-pr-60/);
       assert.ok(!result.railway.some((call) => call.startsWith('deployment')));
       assert.deepEqual(result.bodies, []);
       assert.deepEqual(result.curls, []);
     });
 
     it(`E002 #107 AC3: says in the timeout message that a pending preview may be skipped when the railway CLI is ${mode === 'missing' ? 'missing' : 'logged out'}`, () => {
-      const pending = statuses(['trainer-hub - web', 'pending', 'Waiting for CI']);
+      const pending = statuses(['fivvi - web', 'pending', 'Waiting for CI']);
       const result = smoke({ out: pending }, ['--timeout', '0'], mode);
       assert.equal(result.status, 1);
       assert.match(result.stderr, /still deploying/);
@@ -871,8 +871,8 @@ describe('pr.sh create: which local check runs before the push', () => {
     chmodSync(join(repo, 'scripts/check.sh'), 0o755);
     git('add', '.');
     git('commit', '--quiet', '-m', 'feat(F031): hold a spot');
-    git('remote', 'add', 'origin', 'https://github.com/example/trainer-hub.git');
-    git('config', `url.${remote}.pushInsteadOf`, 'https://github.com/example/trainer-hub.git');
+    git('remote', 'add', 'origin', 'https://github.com/example/fivvi.git');
+    git('config', `url.${remote}.pushInsteadOf`, 'https://github.com/example/fivvi.git');
   });
   after(() => {
     gh.cleanup();
@@ -888,9 +888,9 @@ describe('pr.sh create: which local check runs before the push', () => {
         ...gh.env([
           { match: '^pr list ', out: existing ? [{ number: 60 }] : [] },
           { match: '^issue view 57 ', out: { title: 'Hold a spot' } },
-          { match: '^pr create ', out: 'https://github.com/example/trainer-hub/pull/60' },
+          { match: '^pr create ', out: 'https://github.com/example/fivvi/pull/60' },
           { match: '^pr edit ', out: '' },
-          { match: '^pr view 60 ', out: { url: 'https://github.com/example/trainer-hub/pull/60' } },
+          { match: '^pr view 60 ', out: { url: 'https://github.com/example/fivvi/pull/60' } },
         ]),
         ...env,
       },

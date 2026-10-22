@@ -80,7 +80,7 @@ describe('issue.sh', () => {
   describe('create ticket', () => {
     const rules = (names) => [
       viewOf(50, names),
-      { match: '^issue create ', out: 'https://github.com/example/trainer-hub/issues/57' },
+      { match: '^issue create ', out: 'https://github.com/example/fivvi/issues/57' },
     ];
     const ticket = (names) =>
       issueSh(

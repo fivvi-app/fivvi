@@ -22,10 +22,10 @@
 #   pr.sh reply <thread-id> (--body <md>|--body-file <f|->) [--resolve]
 #   pr.sh smoke [--timeout <minutes>]             smoke-check the Railway preview and record the result for the PR's head
 #                                                 commit in the PR body; the head has a preview when Railway's
-#                                                 `trainer-hub - web` status on it is not a skipped deploy (preview_of). A
+#                                                 `<project> - web` status on it is not a skipped deploy (preview_of). A
 #                                                 preview without a deployment of the head commit (Railway skipped it after
 #                                                 a failed first CI run) is redeployed with the railway CLI, only in the
-#                                                 PR's own environment, trainer-hub-pr-<n>. Without
+#                                                 PR's own environment, <project>-pr-<n>. Without
 #                                                 the CLI, a preview whose status is success is only
 #                                                 health-checked; otherwise smoke fails with a hint
 #   pr.sh reviewed                                record in the PR body that both reviewers (standards and spec) found
@@ -58,13 +58,15 @@ REVIEW_MARK="Self-review"
 REFUSAL_MARK="Merge gate"
 QUEUE_MARK="Merge queue"
 NO_PREVIEW="no preview for this PR"
+# Railway: the project (named fivvi), the web service of its preview, and the only environments pr.sh smoke may touch,
+# `<project>-pr-<n>` (preview_env). Railway names the commit status of the web preview `<project> - <service>`.
+RAILWAY_PROJECT_ID="5ac2d844-191a-4671-9632-50b66817f648"
+RAILWAY_PROJECT_NAME="fivvi"
+RAILWAY_SERVICE="web"
 # Railway's commit status for the web preview, and how its description starts when Railway skipped the deploy because
 # the PR touches no watch pattern (the status is then green, but there is no preview).
-PREVIEW_CHECK="trainer-hub - web"
+PREVIEW_CHECK="$RAILWAY_PROJECT_NAME - $RAILWAY_SERVICE"
 PREVIEW_SKIPPED="No deployment needed"
-# Railway: the project, the service of the web preview, and the only environments pr.sh smoke may touch.
-RAILWAY_PROJECT="5ac2d844-191a-4671-9632-50b66817f648"
-RAILWAY_SERVICE="web"
 # How long wait waits for CI, in minutes: the cold iOS run took 24.5 min, so the jobs of the native apps get longer.
 WAIT_MINUTES=20
 WAIT_MINUTES_NATIVE=45
@@ -360,16 +362,22 @@ record() {
   echo "📝 $line"
 }
 
-# The Railway CLI against the web service of the PR's own preview environment, trainer-hub-pr-<n>, the one place smoke
-# may touch: the environment is built here from the PR number, never taken from an argument, so production and
-# development are out of reach. <list|redeploy>: the deployments as JSON, or redeploy from the branch's latest commit.
+# The name of the Railway environment of PR $1, `<project>-pr-<n>`: the only one pr.sh smoke may touch. It is built
+# from the PR number and the project name alone, never taken from an argument, so production and development are out
+# of reach.
+preview_env() {
+  [[ "$1" =~ ^[0-9]+$ ]] || die "not a PR number: '$1'"
+  echo "$RAILWAY_PROJECT_NAME-pr-$1"
+}
+
+# The Railway CLI against the web service of the PR's own preview environment (preview_env).
+# <list|redeploy>: the deployments as JSON, or redeploy from the branch's latest commit.
 railway_preview() {
   local pr="$1" action="$2" env
-  [[ "$pr" =~ ^[0-9]+$ ]] || die "not a PR number: '$pr'"
-  env="trainer-hub-pr-$pr"
+  env="$(preview_env "$pr")" || exit 1
   case "$action" in
-    list) railway deployment list -p "$RAILWAY_PROJECT" -e "$env" -s "$RAILWAY_SERVICE" --json ;;
-    redeploy) railway deployment redeploy -p "$RAILWAY_PROJECT" -e "$env" -s "$RAILWAY_SERVICE" --from-source -y ;;
+    list) railway deployment list -p "$RAILWAY_PROJECT_ID" -e "$env" -s "$RAILWAY_SERVICE" --json ;;
+    redeploy) railway deployment redeploy -p "$RAILWAY_PROJECT_ID" -e "$env" -s "$RAILWAY_SERVICE" --from-source -y ;;
     *) die "unknown railway action '$action'" ;;
   esac
 }
@@ -378,7 +386,7 @@ railway_ready() { command -v railway >/dev/null && railway whoami >/dev/null 2>&
 
 # What to do when only the Railway CLI could tell, or fix, whether the PR's preview was deployed for the head commit.
 railway_hint_text() {
-  echo "needs the Railway CLI (not installed or not logged in): install it and run 'railway login', or redeploy the preview in the Railway dashboard (trainer-hub-pr-$1 → web → Redeploy)"
+  echo "needs the Railway CLI (not installed or not logged in): install it and run 'railway login', or redeploy the preview in the Railway dashboard ($(preview_env "$1") → $RAILWAY_SERVICE → Redeploy)"
 }
 railway_hint() { die "the preview of PR #$1 $(railway_hint_text "$1"); nothing recorded"; }
 
@@ -386,18 +394,18 @@ railway_hint() { die "the preview of PR #$1 $(railway_hint_text "$1"); nothing r
 # after a failed first CI run: it is never deployed by a later green run), or the status of the latest other one.
 head_deployment() {
   local out
-  out="$(railway_preview "$1" list)" || die "could not list the deployments of trainer-hub-pr-$1; nothing recorded"
+  out="$(railway_preview "$1" list)" || die "could not list the deployments of $(preview_env "$1"); nothing recorded"
   jq -r --arg sha "$2" '[.[] | select(.meta.commitHash == $sha)] as $mine
     | if $mine == [] then "none"
       elif any($mine[]; .status != "SKIPPED") then ([$mine[] | select(.status != "SKIPPED")] | first | .status)
-      else "skipped" end' <<<"$out" || die "could not read the deployments of trainer-hub-pr-$1; nothing recorded"
+      else "skipped" end' <<<"$out" || die "could not read the deployments of $(preview_env "$1"); nothing recorded"
 }
 
 # Redeploys the preview from the branch's latest commit, then waits (within $3) until it is deployed.
 redeploy_preview() {
   local pr="$1" head="$2" deadline="$3" out state
-  echo "↻ no deployment of ${head:0:7} in trainer-hub-pr-$pr: redeploying it from source"
-  out="$(railway_preview "$pr" redeploy 2>&1)" || die "redeploy of trainer-hub-pr-$pr failed: $out"
+  echo "↻ no deployment of ${head:0:7} in $(preview_env "$pr"): redeploying it from source"
+  out="$(railway_preview "$pr" redeploy 2>&1)" || die "redeploy of $(preview_env "$pr") failed: $out"
   while :; do
     state="$(head_deployment "$pr" "$head")"
     case "$state" in
@@ -450,7 +458,7 @@ cmd_smoke() {
   if [ "$preview" = no ]; then
     line="**$SMOKE_MARK:** on \`$head\`: $NO_PREVIEW (it touches no Railway watch pattern)."
   else
-    url="https://web-trainer-hub-pr-$pr.up.railway.app/api/v1/health"
+    url="https://$RAILWAY_SERVICE-$(preview_env "$pr").up.railway.app/api/v1/health"
     until result="$(curl -fsS --max-time 20 "$url" 2>/dev/null)" && jq -e '.status == "ok"' <<<"$result" >/dev/null; do
       [ "$(date +%s)" -lt "$deadline" ] || die "preview not healthy after $timeout min: $url (${result:-no response})"
       sleep 20

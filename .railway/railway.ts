@@ -1,11 +1,11 @@
-// Railway Infrastructure as Code for the `trainer-hub` project (E003, ADR-011).
+// Railway Infrastructure as Code for the `fivvi` project (E003, ADR-011).
 // How to plan and apply it, and what each environment is for: docs/engineering/ENVIRONMENTS.md.
 //
 // Apply it to `production` and to `development` (the base environment that every PR
 // environment is copied from). PR environments are never applied to directly.
 import { defineRailway, github, postgres, preserve, project, service } from 'railway/iac';
 
-const REPO = 'trainerrrzzz/trainer-hub';
+const REPO = 'fivvi-app/fivvi';
 
 /** EU West Metal, Amsterdam. Every service and volume runs here (ADR-011, PRODUCT.md §79). */
 const REGION = 'europe-west4-drams3a';
@@ -114,5 +114,5 @@ export default defineRailway((ctx) => {
     },
   });
 
-  return project('trainer-hub', { resources: [db, web, cron] });
+  return project('fivvi', { resources: [db, web, cron] });
 });
