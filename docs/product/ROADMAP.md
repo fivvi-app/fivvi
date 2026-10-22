@@ -193,7 +193,7 @@ Run it with the printable kit in [`docs/discovery/`](../discovery/README.md) (sh
 - [ ] Agree on the **data to import** at go-live (clients, class schedule, future sessions, active agreements, credit balances and due dates, optionally workout history; `import-checklist.md §3.4a`).
 - [ ] Agree on MVP metric targets with the owner (see §8).
 - [x] **Interview 01** with the gym owner: current tools, money flows and switching conditions (19 October 2026, [`results/interview-01.md`](../discovery/results/interview-01.md)). It moved commerce into the MVP (v1.19).
-- [ ] **Commerce walkthrough** with the gym owner before the M11 specs: one private invoice and one fixed-weekday membership (booking, no-show, makeup, renewal), on their screen only; the app names, the real cost of the current app and the open questions QC01–QC18 ([`open-questions.md`](../design/open-questions.md)).
+- [ ] **Commerce walkthrough** with the gym owner before the M11 specs: one private invoice and one fixed-weekday membership (booking, no-show, makeup, renewal), on their screen only; the app names, the real cost of the current app and the open questions QC01–QC19 ([`open-questions.md`](../design/open-questions.md)).
 - [ ] **Interview a second gym owner** without suggesting payments as the answer (R6). It checks the pilot's priorities; it doesn't block M11.
 - [ ] **Competitors:** ask the pilot owner and the second gym owner whether they know Huppa and what they think of it; the owner books a Huppa demo ([`competitors.md`](../discovery/competitors.md), R22).
 
@@ -856,7 +856,7 @@ These are intentionally left open. Each one is decided when its release's entry 
 
 | # | Decision | Decided at |
 |---|---|---|
-| 15 | Open commerce rules (QC01–QC18): membership seats, cutoff, makeups, failed-payment access, credit expiry and carry-over and more | M11 specs, after the M0 commerce walkthrough |
+| 15 | Open commerce rules (QC01–QC19): membership seats, cutoff, makeups, failed-payment access, credit expiry and carry-over and more | M11 specs, after the M0 commerce walkthrough |
 | 16 | Platform billing model (free beta / manual invoicing / billing in 2.0) | 2.0 entry gate |
 | 17 | AI provider(s) and data terms | 1.3 entry gate |
 
