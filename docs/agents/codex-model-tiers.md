@@ -1,6 +1,6 @@
 # Codex: running one delivery flow on three model tiers (Sol, Terra, Luna)
 
-Research note for issue #99, read on 2026-10-17. The last section, **How trainer-hub uses it**, says what the repo ships and what was checked.
+Research note for issue #99, read on 2026-10-17. The last section, **How Fivvi uses it**, says what the repo ships and what was checked.
 
 ## Summary
 
@@ -175,7 +175,7 @@ From the bundled catalog `codex@ce0323f:codex-rs/models-manager/models.json`; th
 
 ---
 
-## How trainer-hub uses it
+## How Fivvi uses it
 
 **One home for the tiers.** `.agents/agents/tiers.json` holds the model of each tier for Claude Code, Copilot and Codex; `.agents/agents/<name>.md` holds each agent's description, tier and instructions. `scripts/agents.sh sync` generates `.claude/agents/`, `.github/agents/` and `.codex/agents/` from them, and `scripts/agents.sh check` (part of `scripts/check.sh` and CI) fails when a definition has no tier, a tool has no model for a tier, or a generated file differs. The Codex part of the table:
 

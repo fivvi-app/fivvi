@@ -1,6 +1,6 @@
 # Environments and deployment
 
-Where Fivvi runs, how a change gets there, and how to undo it (E003, [ADR-011](../decisions/ADR-011-hosting-and-environments.md)). Everything runs on Railway, project `trainer-hub`, region **EU West Metal, Amsterdam** (`europe-west4-drams3a`).
+Where Fivvi runs, how a change gets there, and how to undo it (E003, [ADR-011](../decisions/ADR-011-hosting-and-environments.md)). Everything runs on Railway, project `fivvi`, region **EU West Metal, Amsterdam** (`europe-west4-drams3a`).
 
 ## 1. Environments
 
@@ -33,7 +33,7 @@ One Docker image ([`Dockerfile`](../../Dockerfile)) serves every service. Each s
 **Why a Dockerfile, not Railpack:** Node 26 ships without Corepack, so the image installs the pinned pnpm itself. The image also needs two layouts: the standalone Next.js server, and the release and cron TypeScript sources with their production dependencies, run by Node directly as in local development. A Dockerfile pins all of this (base image by digest), and `docker build .` reproduces it locally.
 
 ```bash
-docker build -t trainer-hub .
+docker build -t fivvi .
 ```
 
 ## 3. Infrastructure as code
@@ -43,7 +43,7 @@ docker build -t trainer-hub .
 Railway doesn't read this file on deploy. Changes are planned and applied with the Railway CLI, logged in as the owner, **to both environments**:
 
 ```bash
-railway link --project trainer-hub --environment development
+railway link --project fivvi --environment development
 ```
 
 ```bash
@@ -80,7 +80,7 @@ railway environment config --json | jq '.services[].deploy.multiRegionConfig'
 
 5. **Merge.** The PR goes through the merge queue ([ADR-018](../decisions/ADR-018-merge-queue.md)): GitHub tests it on the latest `main` and merges it when the checks pass. Railway deploys only `main` and the PR environments of open PRs, so the queue's temporary `gh-readonly-queue/main/*` branch deploys nothing. The PR environment is deleted when the PR is merged. CI runs on `main`; when it is green, `development` and `production` build `main`. In production, `release.ts` only migrates. Traffic switches after the health check passes.
 
-Watch patterns limit rebuilds: `web` rebuilds for `apps/web`, `packages/**` and root build files; `cron` for `apps/cron`, `packages/database`, `packages/observability` and root build files. A docs-only change deploys nothing, but Railway still posts a green `trainer-hub - web` status on the commit, described "No deployment needed - watched paths not modified". `scripts/pr.sh smoke` and the merge gate read that status's description, not just its presence, to tell whether a PR has a preview.
+Watch patterns limit rebuilds: `web` rebuilds for `apps/web`, `packages/**` and root build files; `cron` for `apps/cron`, `packages/database`, `packages/observability` and root build files. A docs-only change deploys nothing, but Railway still posts a green `fivvi - web` status on the commit, described "No deployment needed - watched paths not modified". `scripts/pr.sh smoke` and the merge gate read that status's description, not just its presence, to tell whether a PR has a preview.
 
 ## 5. Migrations
 
@@ -118,7 +118,7 @@ Railway passes every variable to the Docker build too, but the build only sees t
 | `PORT` | `web` | `3000` | `3000` | `.railway/railway.ts`. Railway would inject `8080`, but the Railway domain targets 3000: a mismatch passes the health check and answers 502 publicly |
 | `BREVO_API_KEY` | `web` | The production Brevo API key (secret) | A separate dev/test key, **never** the production one; empty turns sending off (`readEmailConfig` throws) | Owner (`preserve()` in `.railway/railway.ts`) |
 | `EMAIL_FROM_ADDRESS` | `web` | The verified Brevo sender. Changes to the `noreply` address on fivvi.app once fivvi.app has SPF, DKIM and DMARC in Brevo (before M5) | The same verified sender | Owner (`preserve()` in `.railway/railway.ts`) |
-| `EMAIL_FROM_NAME` | `web` | `Trainer Hub` (becomes `Fivvi` with the code rename PR) | `Trainer Hub` (becomes `Fivvi` with the code rename PR) | `.railway/railway.ts` |
+| `EMAIL_FROM_NAME` | `web` | `Fivvi` | `Fivvi` | `.railway/railway.ts` |
 | `POSTHOG_KEY` | `web` | The project API key of the PostHog EU project, for server-side product events ([OBSERVABILITY.md](OBSERVABILITY.md) §4) | Empty: analytics is production-only, so previews and test traffic never skew the pilot metrics. **Never** the production key | Owner (`preserve()` in `.railway/railway.ts`) |
 | `SENTRY_DSN` | `web` | The DSN of the Sentry `web` project (EU region), which also receives API errors | The same DSN (allowed, see the rules below): previews report as `preview`, `development` as `development`. Empty turns reporting off | Owner (`preserve()` in `.railway/railway.ts`) |
 | `SENTRY_DSN` | `cron` | The DSN of the Sentry `cron` project (EU region) | The same DSN, or empty to turn it off | Owner (`preserve()` in `.railway/railway.ts`) |

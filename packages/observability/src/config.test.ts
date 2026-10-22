@@ -85,7 +85,7 @@ describe('E009 error reporting config', () => {
     ['production', 'production'],
     ['development', 'development'],
     ['pr-43', 'preview'],
-    ['trainer-hub-pr-43', 'preview'],
+    ['fivvi-pr-43', 'preview'],
     [undefined, 'development'],
   ])('maps Railway environment %s to %s', (railway, environment) => {
     expect(

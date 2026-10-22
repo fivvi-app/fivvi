@@ -37,7 +37,7 @@ const reviewed = (sha = HEAD) =>
 const noPreview = (sha = HEAD) =>
   `**Railway preview smoke check:** on \`${sha}\`: no preview for this PR (it touches no Railway watch pattern).`;
 const smoked = (sha = HEAD) =>
-  `**Railway preview smoke check:** on \`${sha}\`: \`curl -fsS https://web-trainer-hub-pr-60.up.railway.app/api/v1/health\` → \`{"status":"ok"}\` ✅`;
+  `**Railway preview smoke check:** on \`${sha}\`: \`curl -fsS https://web-fivvi-pr-60.up.railway.app/api/v1/health\` → \`{"status":"ok"}\` ✅`;
 
 const facts = (overrides = {}) => ({
   head: HEAD,
@@ -112,8 +112,8 @@ describe('merge gate', () => {
     assert.deepEqual(failed(gate(missing)), ['checks passed']);
     assert.match(gate(missing).conditions[1].detail, /missing: E2E \(Linux\)/);
 
-    const railway = facts({ checks: [...facts().checks, status('trainer-hub - cron', 'ERROR')] });
-    assert.match(gate(railway).conditions[1].detail, /failing: trainer-hub - cron/);
+    const railway = facts({ checks: [...facts().checks, status('fivvi - cron', 'ERROR')] });
+    assert.match(gate(railway).conditions[1].detail, /failing: fivvi - cron/);
   });
 
   it('requires a self-review record for the head commit, and rejects a stale one', () => {
@@ -155,9 +155,9 @@ describe('merge gate', () => {
   });
 
   it('takes whether the PR has a preview from pr.sh, not from the checks', () => {
-    // Railway posts a green `trainer-hub - web` status also when it skips the deploy (no preview).
+    // Railway posts a green `fivvi - web` status also when it skips the deploy (no preview).
     const skipped = facts({
-      checks: [...facts().checks, status('trainer-hub - web', 'SUCCESS')],
+      checks: [...facts().checks, status('fivvi - web', 'SUCCESS')],
       preview: 'no',
     });
     assert.equal(gate(skipped).merge, true);
