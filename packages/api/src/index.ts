@@ -12,3 +12,4 @@ export {
   HealthResponseSchema,
 } from './routes/health.ts';
 export { HelloResponseSchema, LocaleSchema } from './routes/hello.ts';
+export { MeResponseSchema } from './routes/me.ts';

@@ -1,6 +1,7 @@
-import type { Database } from '@fivvi/database';
+import type { Database, SignedInAccount } from '@fivvi/database';
 import { authIdentities, authSessions, authUsers, authVerifications } from '@fivvi/database';
 import type { SendEmail } from '@fivvi/email';
+import { isLocale } from '@fivvi/i18n';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { type Clock, signInWithCode, systemClock } from './sign-in-plugin.ts';
@@ -23,6 +24,11 @@ export interface CreateAuthOptions {
  * (ADR-007), so a different library, or Better Auth's own API, never leaks out.
  */
 export interface Auth {
+  /**
+   * The account of the sign-in session in the request's cookie, or `undefined` for an
+   * anonymous request, an unknown or expired session.
+   */
+  findAccount(headers: Headers): Promise<SignedInAccount | undefined>;
   /** Serves Better Auth's endpoints under `/api/auth/*` (mounted by apps/web). */
   handler(request: Request): Promise<Response>;
 }
@@ -84,5 +90,13 @@ export function createAuth({
     // Nothing leaves the process: no usage reports.
     telemetry: { enabled: false },
   });
-  return { handler: (request) => auth.handler(request) };
+  return {
+    handler: (request) => auth.handler(request),
+    async findAccount(headers) {
+      const session = await auth.api.getSession({ headers });
+      if (!session) return undefined;
+      const { id, email, preferredLocale } = session.user;
+      return { id, email, preferredLocale: isLocale(preferredLocale) ? preferredLocale : null };
+    },
+  };
 }
