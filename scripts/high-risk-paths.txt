@@ -34,11 +34,14 @@ guardrails            /.githooks
 guardrails            /scripts
 guardrails            /docs/agents
 guardrails            /docs/engineering/WORKFLOW.md
-# The files that define the checks: the root package.json holds their scripts and also matches the dependencies rule
-# below, so it is owner-only, while every other package.json stays a dependency change. Configs that a nested folder can
-# add or override match at every depth: turbo.json (inputs), biome.json and biome.jsonc (they can load the i18n lint
-# rule), vitest configs (what the tests run, integration ones too), Playwright, tsconfig, SwiftLint. The shared vitest
-# preset and the NL/EN parity check (packages/i18n/src/cli.ts) are single files, anchored so that no other file matches.
+# The files that define the checks, or can switch one off or hide drift: the root package.json holds their scripts and
+# also matches the dependencies rule below, so it is owner-only, while every other package.json stays a dependency
+# change. Configs that a nested folder can add or override match at every depth: turbo.json (inputs), biome.json and
+# biome.jsonc (they can load the i18n lint rule), vitest configs (what the tests run, integration ones too), Playwright,
+# tsconfig, SwiftLint, .editorconfig (ktlint), Xcode test plans (they skip tests) and the global setup of a test
+# folder. The shared vitest preset, the CLI of the i18n tools, the drift checks and the Android lint wiring are single
+# files, anchored so that no other file matches. Other source inside packages, test helpers included, stays low and is
+# covered by review.
 guardrails            /package.json
 guardrails            turbo.json
 guardrails            biome.json
@@ -46,10 +49,19 @@ guardrails            biome.jsonc
 guardrails            /.shellcheckrc
 guardrails            /packages/i18n/lint
 guardrails            /packages/i18n/src/cli.ts
+guardrails            /packages/i18n/src/tools
 guardrails            /packages/testing/src/vitest.ts
+guardrails            /packages/contract/scripts/check.ts
+guardrails            /packages/design-tokens/src/check.ts
+guardrails            /packages/ui/lint
 guardrails            /apps/android/lint
+guardrails            /apps/android/build.gradle.kts
 guardrails            /apps/ios/lint
+guardrails            /apps/ios/FivviProUITests/Support/TestPlanSkips.swift
+guardrails            *.xctestplan
+guardrails            .editorconfig
 guardrails            .swiftlint.yml
+guardrails            test/global-setup.ts
 guardrails            /docs/engineering/TESTING.md
 guardrails            vitest*.config.*
 guardrails            playwright.config.*

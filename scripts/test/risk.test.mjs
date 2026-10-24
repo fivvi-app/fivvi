@@ -114,6 +114,24 @@ describe('risk of a pull request', () => {
       'apps/web/tsconfig.base.json',
       'biome.jsonc',
       'packages/ui/biome.jsonc',
+      // What can switch a check off or hide drift: the parity check itself, test-skip files, drift checks, lint
+      // rules, the Android lint wiring and the global setup of a test folder.
+      'packages/i18n/src/tools/checks.ts',
+      'packages/i18n/src/tools/icu.ts',
+      'apps/ios/FivviPro.xctestplan',
+      'apps/ios/Other/Deep.xctestplan',
+      'FivviPro.xctestplan',
+      'apps/ios/FivviProUITests/Support/TestPlanSkips.swift',
+      'packages/contract/scripts/check.ts',
+      'packages/design-tokens/src/check.ts',
+      'packages/ui/lint/no-raw-colours.ts',
+      'packages/ui/lint/cli.ts',
+      'apps/android/build.gradle.kts',
+      '.editorconfig',
+      'apps/android/.editorconfig',
+      'apps/web/test/global-setup.ts',
+      'packages/api/test/global-setup.ts',
+      'packages/testing/test/global-setup.ts',
     ],
     dependencies: [
       'apps/web/package.json',
@@ -183,9 +201,41 @@ describe('risk of a pull request', () => {
         'apps/web/src/biome.ts',
         'docs/agents-overview.md',
         'apps/web/docs/agents/x.md',
+        // Other source inside packages, test helpers included, stays low (ADR-021 decision 1): only the named check
+        // scripts, the configs and the files that skip a check are guarded.
+        'packages/i18n/src/tools.ts',
+        'packages/i18n/src/toolsets/x.ts',
+        'apps/web/packages/i18n/src/tools/x.ts',
+        'apps/ios/FivviProUITests/Support/Fixtures.swift',
+        'apps/ios/FivviProUITests/TestPlanSkipsTests.swift',
+        'apps/ios/FivviPro.xctestplan.md',
+        'apps/ios/xctestplan.swift',
+        'packages/contract/scripts/generate.ts',
+        'packages/contract/src/check.ts',
+        'packages/design-tokens/src/build.ts',
+        'packages/design-tokens/scripts/check.ts',
+        'packages/ui/src/lint.ts',
+        'packages/ui/linting/x.ts',
+        'apps/android/app/build.gradle.kts',
+        'apps/android/build.gradle',
+        'apps/android/editorconfig.md',
+        'apps/web/.editorconfig-checker.json',
+        'apps/web/src/global-setup.ts',
+        'apps/web/latest/global-setup.ts',
+        'apps/web/test/global-setup.test.ts',
+        'apps/web/test/setup.ts',
+        'packages/testing/test/database.ts',
+        'packages/testing/src/global-setup.ts',
       ]).risk,
       'low',
     );
+  });
+
+  it('ADR-021: GLOSSARY.md and DESIGN.md are not owner-only, on purpose (ADR-021 decision 1)', () => {
+    assert.deepEqual(pr(['GLOSSARY.md', 'packages/i18n/GLOSSARY.md', 'DESIGN.md']), {
+      risk: 'low',
+      reasons: [],
+    });
   });
 
   it('lists every high-risk file with the rule it matched', () => {
