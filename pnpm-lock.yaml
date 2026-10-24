@@ -433,6 +433,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.2
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.3(@types/pg@8.23.1)(kysely@0.29.7)(pg@8.23.0)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

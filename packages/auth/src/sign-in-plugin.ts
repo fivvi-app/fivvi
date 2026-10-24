@@ -1,4 +1,5 @@
 import { randomBytes, randomInt } from 'node:crypto';
+import { type Database, recordWrongSignInCode } from '@fivvi/database';
 import { type SendEmail, signInEmail } from '@fivvi/email';
 import { parseAcceptLanguage, resolveInterfaceLanguage } from '@fivvi/i18n';
 import type { BetterAuthPlugin } from 'better-auth';
@@ -9,6 +10,9 @@ import { hashesEqual, hashSecretValue } from './hash.ts';
 
 /** How long the emailed code and link work (AC5). */
 export const SIGN_IN_EXPIRES_IN_MINUTES = 15;
+
+/** The wrong codes after which a verification is dead, the right code included (AC6). */
+export const MAX_WRONG_CODES = 5;
 
 /** The path of the sign-in page's confirm step (TW-10), which the emailed link opens. */
 export const CONFIRM_PATH = '/login/confirm';
@@ -21,6 +25,8 @@ export interface Clock {
 export const systemClock: Clock = { now: () => new Date() };
 
 export interface SignInWithCodeOptions {
+  /** Counts wrong codes in one atomic statement, which Better Auth's adapter has no call for. */
+  db: Database;
   /** `BETTER_AUTH_SECRET`: the key of the hashes. */
   secret: string;
   sendEmail: SendEmail;
@@ -46,7 +52,7 @@ const REQUESTED = { status: true } as const;
  *   email in the page's language. Every other address gets the same answer and no email.
  * - `POST /sign-in/code/verify` `{ email, code }`: the right code signs this browser in.
  */
-export function signInWithCode({ secret, sendEmail, clock }: SignInWithCodeOptions) {
+export function signInWithCode({ db, secret, sendEmail, clock }: SignInWithCodeOptions) {
   return {
     id: 'sign-in-with-code',
     schema: {
@@ -54,6 +60,8 @@ export function signInWithCode({ secret, sendEmail, clock }: SignInWithCodeOptio
         fields: {
           // The hash of the code. The base field `value` holds the hash of the link token.
           codeHash: { type: 'string', required: true },
+          // How many wrong codes were entered for this verification (AC6).
+          failedAttempts: { type: 'number', required: false, defaultValue: 0 },
         },
       },
     },
@@ -115,13 +123,20 @@ export function signInWithCode({ secret, sendEmail, clock }: SignInWithCodeOptio
 
           const identifier = identifierFor(email);
           const verification = await ctx.context.internalAdapter.findVerificationValue(identifier);
-          const stored = (verification as { codeHash?: unknown } | null)?.codeHash;
+          const { codeHash: stored, failedAttempts } = (verification ?? {}) as {
+            codeHash?: unknown;
+            failedAttempts?: unknown;
+          };
           if (
             !verification ||
             typeof stored !== 'string' ||
             verification.expiresAt.getTime() <= clock.now().getTime() ||
-            !hashesEqual(hashSecretValue(secret, 'code', `${email}:${code}`), stored)
+            (typeof failedAttempts === 'number' && failedAttempts >= MAX_WRONG_CODES)
           ) {
+            throw rejected();
+          }
+          if (!hashesEqual(hashSecretValue(secret, 'code', `${email}:${code}`), stored)) {
+            await recordWrongSignInCode(db, verification.id, MAX_WRONG_CODES);
             throw rejected();
           }
 
@@ -136,7 +151,11 @@ export function signInWithCode({ secret, sendEmail, clock }: SignInWithCodeOptio
           // verifications, this path has to be wired in by hand.
           const consumed = await ctx.context.adapter.consumeOne({
             model: 'verification',
-            where: [{ field: 'id', value: verification.id }],
+            // Also not past the limit: the 5th wrong code may still be on its way to delete it.
+            where: [
+              { field: 'id', value: verification.id },
+              { field: 'failedAttempts', operator: 'lt', value: MAX_WRONG_CODES },
+            ],
           });
           const found = await ctx.context.internalAdapter.findUserByEmail(email);
           if (!consumed || !found) throw rejected();

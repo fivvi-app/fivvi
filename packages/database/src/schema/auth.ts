@@ -1,6 +1,6 @@
 import type { Locale } from '@fivvi/i18n';
 import { sql } from 'drizzle-orm';
-import { boolean, check, index, pgTable, text, uuid } from 'drizzle-orm/pg-core';
+import { boolean, check, index, integer, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 import { id, instant, timestamps } from './columns.ts';
 
 // Better Auth's four models under our names (F001, ADR-007, spec #128): its "user" is an
@@ -80,6 +80,8 @@ export const authVerifications = pgTable(
     value: text('value').notNull(),
     /** Keyed hash of the 6-digit code. */
     codeHash: text('code_hash').notNull(),
+    /** Wrong codes entered for this verification; at `MAX_WRONG_CODES` it is dead, link and code (AC6). */
+    failedAttempts: integer('failed_attempts').notNull().default(0),
     expiresAt: instant('expires_at').notNull(),
     ...timestamps(),
   },

@@ -60,7 +60,7 @@ export function createAuth({
         verification: authVerifications,
       },
     }),
-    plugins: [signInWithCode({ secret, sendEmail, clock })],
+    plugins: [signInWithCode({ db, secret, sendEmail, clock })],
     user: {
       additionalFields: {
         // The language of the screen of the first sign-in (ADR-019).

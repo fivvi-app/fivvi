@@ -27,6 +27,7 @@
     "@fivvi/email": "workspace:*",
     "@fivvi/testing": "workspace:*",
     "@types/node": "catalog:",
+    "drizzle-orm": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

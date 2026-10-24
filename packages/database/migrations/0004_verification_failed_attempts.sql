@@ -1,0 +1,1 @@
+ALTER TABLE "auth_verifications" ADD COLUMN "failed_attempts" integer DEFAULT 0 NOT NULL;
