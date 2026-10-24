@@ -76,7 +76,7 @@ describe('merge gate', () => {
     assert.deepEqual(
       decision.conditions.map((c) => c.name),
       [
-        'low-risk',
+        'not owner-only',
         'checks passed',
         'self-review clean',
         'preview smoke-checked',
@@ -87,13 +87,45 @@ describe('merge gate', () => {
     );
   });
 
-  it('keeps a high-risk PR for the owner, with the reasons', () => {
+  it('keeps an owner-only PR for the owner, with the reasons', () => {
     const decision = gate(
-      facts({ risk: { risk: 'high', reasons: ['scripts/pr.sh: guardrails (/scripts)'] } }),
+      facts({ risk: { risk: 'owner', reasons: ['scripts/pr.sh: guardrails (/scripts)'] } }),
     );
     assert.equal(decision.merge, false);
-    assert.deepEqual(failed(decision), ['low-risk']);
-    assert.match(decision.conditions[0].detail, /scripts\/pr\.sh: guardrails/);
+    assert.deepEqual(failed(decision), ['not owner-only']);
+    assert.match(decision.conditions[0].detail, /owner-only: scripts\/pr\.sh: guardrails/);
+  });
+
+  it('ADR-021: merges an agent-queueable high-risk PR when every other condition holds', () => {
+    const decision = gate(
+      facts({
+        risk: { risk: 'high', reasons: ['packages/database/migrations/0004.sql: tenant-data'] },
+      }),
+    );
+    assert.equal(decision.merge, true);
+    assert.deepEqual(failed(decision), []);
+    assert.match(decision.conditions[0].detail, /high-risk.*migrations\/0004\.sql/);
+  });
+
+  it('ADR-021: a high-risk PR still fails every other condition', () => {
+    const high = { risk: 'high', reasons: ['package.json: dependencies (package.json)'] };
+    assert.deepEqual(failed(gate(facts({ risk: high, threads: 2 }))), ['no open threads']);
+    assert.deepEqual(failed(gate(facts({ risk: high, queue_removed: true }))), [
+      'not removed from the queue',
+    ]);
+    assert.deepEqual(failed(gate(facts({ risk: high, checks: [] }))), ['checks passed']);
+    assert.deepEqual(failed(gate({ ...facts({ risk: high }), pr: { ...facts().pr, body: 'x' } })), [
+      'self-review clean',
+      'preview smoke-checked',
+    ]);
+  });
+
+  it('ADR-021: fails closed when the risk is unknown', () => {
+    for (const risk of [undefined, null, {}, { risk: 'maybe', reasons: [] }]) {
+      const decision = gate(facts({ risk }));
+      assert.equal(decision.merge, false, JSON.stringify(risk));
+      assert.deepEqual(failed(decision), ['not owner-only'], JSON.stringify(risk));
+    }
   });
 
   it('refuses failing, pending or missing checks on the head commit', () => {

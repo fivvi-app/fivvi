@@ -6,7 +6,8 @@
 #                     pr: null|{number, state, draft, review, failing, threads, age_days, risk, risk_reasons,
 #                               head, refusal: null|{sha, reasons},
 #                               queue: null|{state: null|"queued"|"removed", position, reason}}}]}
-# risk is "low", "high" or null (unknown) for an open PR (scripts/risk.sh). refusal is the last refusal of the merge
+# risk is "low", "high", "owner" or null (unknown) for an open PR (scripts/risk.sh, ADR-021): an agent merges low and
+# high; owner (owner-only) and unknown wait for the owner. refusal is the last refusal of the merge
 # gate recorded on the PR (scripts/pr.sh refusal); it holds only for the head commit it names. queue is the PR's place
 # in the merge queue (scripts/pr.sh queue, ADR-018): "queued" while GitHub tests and merges it, "removed" when GitHub
 # took it out (the combined commit failed or timed out) and the branch has not been pushed to since. answered is true
@@ -29,15 +30,20 @@ def code_phase:
   elif (.pr | queue_state) == "queued" then {phase: "queued", rank: 4}
   elif .pr.failing > 0 or .pr.review == "CHANGES_REQUESTED" or .pr.threads > 0 then {phase: "changes-requested", rank: 1}
   elif (.pr | queue_state) == "removed" then {phase: "queue-removed", rank: 3}
-  elif .pr.risk == "low" and (.pr | refused) then {phase: "merge-refused", rank: 3}
-  elif .pr.risk == "low" then {phase: "ready-to-merge", rank: 4}
+  elif (.pr.risk | IN("low", "high")) and (.pr | refused) then {phase: "merge-refused", rank: 3}
+  elif .pr.risk | IN("low", "high") then {phase: "ready-to-merge", rank: 4}
   elif .pr.review == "APPROVED" then {phase: "approved", rank: 4}
   else {phase: "in-review", rank: 3}
   end;
 
 def owner_review:
-  if .risk == "high" then "High-risk (\(.risk_reasons // [] | join("; "))): the owner reviews"
+  if .risk == "owner" then "Owner-only (\(.risk_reasons // [] | join("; "))): the owner reviews"
   else "Risk unknown: the owner reviews" end;
+
+def merge_next($n):
+  (if .pr.risk == "high" then "High-risk (\(.pr.risk_reasons // [] | join("; "))): scripts/pr.sh merge in the worktree. It records the high-risk merge in the PR body and adds the PR to the merge queue"
+   else "Low-risk: scripts/pr.sh merge in the worktree. It adds the PR to the merge queue" end)
+  + " only when the whole merge gate holds; otherwise the PR stays for the owner. Then scripts/flow.sh status \($n) until GitHub has merged it, and scripts/flow.sh finish \($n).";
 
 # Input: {phase, pr} of the least advanced branch.
 def code_next($n):
@@ -45,7 +51,7 @@ def code_next($n):
     "in-progress": "Build it in its worktree with the implement skill (docs/agents/build.md), then scripts/pr.sh create from the worktree.",
     "draft-pr": "Finish checks and code-review (scripts/pr.sh reviewed), then scripts/pr.sh ready from the worktree.",
     "changes-requested": "Fix what is open: scripts/pr.sh status and scripts/pr.sh threads in the worktree, fix with the implement skill, push with scripts/pr.sh create, reply with scripts/pr.sh reply.",
-    "ready-to-merge": "Low-risk: scripts/pr.sh merge in the worktree. It adds the PR to the merge queue only when the whole merge gate holds; otherwise the PR stays for the owner. Then scripts/flow.sh status \($n) until GitHub has merged it, and scripts/flow.sh finish \($n).",
+    "ready-to-merge": merge_next($n),
     "queued": "In the merge queue (position \(.pr.queue.position // "?")): GitHub tests it on the latest main and squash-merges it. Nothing to do: scripts/flow.sh status \($n) shows when it is merged, then scripts/flow.sh finish \($n). Never queue it again, and never use --auto or --admin.",
     "queue-removed": "GitHub removed it from the merge queue (\(.pr.queue.reason // "no reason given")): the commit tested on the latest main failed a check or timed out. Read the merge_group run of its queue branch (gh run list --event merge_group). When the cause is in this PR, fix it and push (scripts/pr.sh create), which makes the removal stale, then review, smoke and scripts/pr.sh merge again. Otherwise (a flaky check, a timeout) report and stop: the owner decides whether to queue it again. Never queue the same commit again yourself.",
     "merge-refused": "The merge gate refused it on \(.pr.head[:7]): \(.pr.refusal.reasons). The owner decides, or fix it and push (scripts/pr.sh create), which makes the refusal stale. Report and stop; never retry the merge on this commit.",
@@ -110,7 +116,7 @@ def ticket_phase($n):
      else
        ($f | ready_children) as $ready
        | {phase: "building",
-          next: "\([$f.children[] | select(open)] | length) of \($f.children | length) tickets open. Ready now: \(if ($ready | length) == 0 then "none" else [$ready[] | "#\(.)"] | join(" ") end). Build each with scripts/flow.sh start <n>, at most three at a time; triage tickets without ready-for-agent first."}
+          next: "\([$f.children[] | select(open)] | length) of \($f.children | length) tickets open. Ready now: \(if ($ready | length) == 0 then "none" else [$ready[] | "#\(.)"] | join(" ") end). Build each with scripts/flow.sh start <n> (no fixed limit; two tickets that change the same files go one after the other); triage tickets without ready-for-agent first."}
      end
    elif ($f.assignees | length) > 0 and ($f.assignees | index($f.me) | not) then
      {phase: "taken", next: "Assigned to \($f.assignees | join(", ")). Leave it unless the user says otherwise."}

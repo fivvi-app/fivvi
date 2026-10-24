@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import { fakeGh } from './fake-gh.mjs';
@@ -38,7 +39,7 @@ describe('risk of a pull request', () => {
         'apps/web/src/app/[locale]/page.tsx',
         'packages/api/src/routes/health.ts',
         'packages/i18n/nl-NL.json',
-        'docs/engineering/TESTING.md',
+        'docs/engineering/ENVIRONMENTS.md',
         'README.md',
       ]),
       { risk: 'low', reasons: [] },
@@ -75,10 +76,28 @@ describe('risk of a pull request', () => {
       'scripts/agents.sh',
       'scripts/codex-agent.sh',
       'scripts/high-risk-paths.txt',
+      // The rules agents work by and the files that define the checks (ADR-021: agents never loosen their own rules).
+      'docs/agents/build.md',
+      'docs/agents/issue-tracker.md',
+      'docs/agents/triage-labels.md',
+      'docs/engineering/WORKFLOW.md',
+      'apps/AGENTS.md',
+      'packages/api/CLAUDE.md',
+      'turbo.json',
+      'biome.json',
+      '.shellcheckrc',
+      // Check-defining files at any depth or in their own folder: a nested biome.json loads the i18n lint rule.
+      'apps/web/biome.json',
+      'packages/i18n/lint/no-hard-coded-jsx-text.grit',
+      'docs/engineering/TESTING.md',
+      'vitest.config.ts',
+      'apps/web/vitest.config.ts',
+      'packages/api/vitest.config.mts',
+      'tsconfig.base.json',
     ],
     dependencies: [
-      'package.json',
       'apps/web/package.json',
+      'packages/api/package.json',
       'pnpm-lock.yaml',
       'pnpm-workspace.yaml',
       '.npmrc',
@@ -86,11 +105,15 @@ describe('risk of a pull request', () => {
     infrastructure: ['Dockerfile', 'apps/cron/Dockerfile.cron', '.railway/railway.ts'],
   };
 
+  // ADR-021: these groups are agent-queueable ("high"); every other group is owner-only ("owner").
+  const AGENT_QUEUE = ['auth', 'tenant-data', 'health-notes', 'dependencies', 'infrastructure'];
+
   for (const [group, files] of Object.entries(groups)) {
-    it(`is high when it touches ${group}`, () => {
+    const level = AGENT_QUEUE.includes(group) ? 'high' : 'owner';
+    it(`is ${level} when it touches ${group}`, () => {
       for (const file of files) {
         const result = pr(['apps/web/src/lib/format.ts', file]);
-        assert.equal(result.risk, 'high', file);
+        assert.equal(result.risk, level, file);
         assert.equal(result.reasons.length, 1, file);
         assert.match(
           result.reasons[0],
@@ -100,6 +123,19 @@ describe('risk of a pull request', () => {
     });
   }
 
+  it('ADR-021: the root package.json defines the checks, so it is owner-only; other package.json files stay dependencies', () => {
+    const root = pr(['package.json']);
+    assert.equal(root.risk, 'owner');
+    assert.deepEqual(root.reasons, [
+      'package.json: guardrails (/package.json)',
+      'package.json: dependencies (package.json)',
+    ]);
+    assert.deepEqual(pr(['apps/web/package.json']), {
+      risk: 'high',
+      reasons: ['apps/web/package.json: dependencies (package.json)'],
+    });
+  });
+
   it('anchors root paths: a nested folder with the same name is not a guardrail', () => {
     assert.equal(
       pr([
@@ -107,6 +143,14 @@ describe('risk of a pull request', () => {
         'apps/web/docs/product.md',
         'apps/web/.npmrc',
         'examples/pnpm-workspace.yaml',
+        'apps/web/turbo.json',
+        'docs/engineering/ENVIRONMENTS.md',
+        'packages/i18n/src/lint.ts',
+        'packages/i18n/linting/x.ts',
+        'apps/web/src/vitest-setup.ts',
+        'apps/web/tsconfig.base.json',
+        'docs/agents-overview.md',
+        'apps/web/docs/agents/x.md',
       ]).risk,
       'low',
     );
@@ -117,6 +161,56 @@ describe('risk of a pull request', () => {
       'scripts/pr.sh: guardrails (/scripts)',
       'docs/legal/dpa.md: legal (/docs/legal)',
     ]);
+  });
+
+  it('ADR-021: is owner when one owner-only path is among agent-queueable ones, and lists all reasons', () => {
+    assert.deepEqual(pr(['packages/api/src/auth/session.ts', 'AGENTS.md']), {
+      risk: 'owner',
+      reasons: [
+        'packages/api/src/auth/session.ts: auth (*auth*)',
+        'AGENTS.md: guardrails (AGENTS.md)',
+      ],
+    });
+  });
+
+  // A path can match rules of several groups; the file is owner-only when any matching group is, so an agent-queueable
+  // rule (a name with "auth" or "note") never hides an owner-only one.
+  it('ADR-021: is owner when an owner-only path also matches an agent-queueable rule', () => {
+    const overlaps = {
+      'docs/decisions/ADR-007-authentication.md': ['auth', 'product-docs'],
+      '.github/instructions/auth.instructions.md': ['auth', 'guardrails'],
+      'scripts/auth-check.sh': ['auth', 'guardrails'],
+      'docs/legal/release-notes.md': ['health-notes', 'legal'],
+      '.agents/skills/notes/SKILL.md': ['health-notes', 'guardrails'],
+      'packages/database/src/billing.ts': ['tenant-data', 'billing'],
+    };
+    for (const [file, groups] of Object.entries(overlaps)) {
+      const result = pr([file]);
+      assert.equal(result.risk, 'owner', file);
+      assert.equal(result.reasons.length, groups.length, file);
+      for (const group of groups) {
+        assert.ok(
+          result.reasons.some((r) => r.startsWith(`${file}: ${group} (`)),
+          `${file}: ${group}`,
+        );
+      }
+    }
+  });
+
+  it('ADR-021: a path matching two rules of one group gives one reason', () => {
+    assert.deepEqual(pr(['packages/billing-payments/x.ts']).reasons, [
+      'packages/billing-payments/x.ts: billing (*billing*)',
+    ]);
+  });
+
+  it('ADR-021: is high with only agent-queueable reasons, whatever their number', () => {
+    const result = pr([
+      'packages/database/migrations/0003.sql',
+      'apps/web/package.json',
+      'Dockerfile',
+    ]);
+    assert.equal(result.risk, 'high');
+    assert.equal(result.reasons.length, 3);
   });
 
   it('is high when the ticket or its spec is labelled owner-merge', () => {
@@ -130,6 +224,44 @@ describe('risk of a pull request', () => {
       risk: 'high',
       reasons: ['spec #50 of #57 is labelled owner-merge'],
     });
+  });
+
+  it('ADR-021: is owner when the ticket or its spec is labelled owner-only', () => {
+    const labelled = pr(['apps/web/page.tsx'], [ticket({ labels: ['owner-only'] })]);
+    assert.deepEqual(labelled, { risk: 'owner', reasons: ['#57 is labelled owner-only'] });
+    const specLabelled = pr(
+      ['apps/web/page.tsx'],
+      [ticket({ parent: { number: 50, labels: ['spec', 'owner-only'] } })],
+    );
+    assert.deepEqual(specLabelled, {
+      risk: 'owner',
+      reasons: ['spec #50 of #57 is labelled owner-only'],
+    });
+  });
+
+  it('ADR-021: owner-only wins over owner-merge, and both reasons are listed', () => {
+    const result = pr(['apps/web/page.tsx'], [ticket({ labels: ['owner-merge', 'owner-only'] })]);
+    assert.equal(result.risk, 'owner');
+    assert.deepEqual(result.reasons, ['#57 is labelled owner-merge', '#57 is labelled owner-only']);
+  });
+
+  it('matches the owner-merge and owner-only labels whatever their case', () => {
+    assert.equal(pr(['apps/web/page.tsx'], [ticket({ labels: ['Owner-Only'] })]).risk, 'owner');
+    assert.equal(pr(['apps/web/page.tsx'], [ticket({ labels: ['OWNER-MERGE'] })]).risk, 'high');
+    const spec = ticket({ parent: { number: 50, labels: ['spec', 'Owner-Only'] } });
+    assert.equal(pr(['apps/web/page.tsx'], [spec]).risk, 'owner');
+  });
+
+  it('is an error, never a verdict, when the labels of an issue or its spec are not a list', () => {
+    for (const labels of [null, 'owner-only', { name: 'owner-only' }, 7]) {
+      for (const issue of [
+        ticket({ labels }),
+        ticket({ parent: { number: 50, labels } }),
+        { number: 57, parent: null },
+      ]) {
+        assert.throws(() => pr(['apps/web/page.tsx'], [issue]), /labels/, JSON.stringify(issue));
+      }
+    }
   });
 
   it('is low without a linked issue when no path is high-risk', () => {
@@ -177,7 +309,7 @@ describe('risk.sh', () => {
       '60',
     );
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, 'high\n  scripts/pr.sh: guardrails (/scripts)\n');
+    assert.equal(result.stdout, 'owner\n  scripts/pr.sh: guardrails (/scripts)\n');
   });
 
   it("reads the owner-merge label from the PR's ticket and its spec", () => {
@@ -189,6 +321,29 @@ describe('risk.sh', () => {
     assert.deepEqual(JSON.parse(result.stdout), {
       risk: 'high',
       reasons: ['spec #50 of #57 is labelled owner-merge'],
+    });
+  });
+
+  it('ADR-021: prints high for a PR with only agent-queueable reasons', () => {
+    const result = run(
+      github({ files: [{ filename: 'packages/database/migrations/0004.sql' }] }),
+      '60',
+    );
+    assert.equal(
+      result.stdout,
+      'high\n  packages/database/migrations/0004.sql: tenant-data (/packages/database)\n',
+    );
+  });
+
+  it("ADR-021: reads the owner-only label from the PR's ticket and its spec", () => {
+    const result = run(
+      github({ files: [{ filename: 'apps/web/page.tsx' }], ticketLabels: ['owner-only'] }),
+      '60',
+      '--json',
+    );
+    assert.deepEqual(JSON.parse(result.stdout), {
+      risk: 'owner',
+      reasons: ['#57 is labelled owner-only'],
     });
   });
 
@@ -229,6 +384,47 @@ describe('risk.sh', () => {
 });
 
 describe('high-risk paths', () => {
+  const decide = (rules, files = ['apps/web/page.tsx']) =>
+    spawnSync('jq', ['-c', '--arg', 'rules', rules, '-f', join(SCRIPTS, 'risk.jq')], {
+      input: JSON.stringify({ files, issues: [] }),
+      encoding: 'utf8',
+    });
+
+  it('ADR-021: the file declares exactly the agent-queueable groups, and every one has a path rule', () => {
+    const text = readFileSync(join(SCRIPTS, 'high-risk-paths.txt'), 'utf8');
+    const declared = [...text.matchAll(/^@agent-queue\s+(\S+)\s*(#.*)?$/gm)].map((m) => m[1]);
+    assert.deepEqual(declared.sort(), [
+      'auth',
+      'dependencies',
+      'health-notes',
+      'infrastructure',
+      'tenant-data',
+    ]);
+    const ruled = new Set([...text.matchAll(/^([a-z][a-z-]*)\s+\S+\s*(#.*)?$/gm)].map((m) => m[1]));
+    for (const group of declared) assert.ok(ruled.has(group), `${group} has a path rule`);
+  });
+
+  it('ADR-021: a group is owner-only unless it is declared @agent-queue', () => {
+    const rules = '@agent-queue docs\ndocs *.md\nsecret *.key\n';
+    assert.equal(JSON.parse(decide(rules, ['a.md']).stdout).risk, 'high');
+    assert.equal(JSON.parse(decide(rules, ['a.key']).stdout).risk, 'owner');
+    assert.equal(JSON.parse(decide(rules, ['a.md', 'a.key']).stdout).risk, 'owner');
+  });
+
+  it('ADR-021: an @agent-queue group with no path rule is an error (fail closed)', () => {
+    const result = decide('@agent-queue ghost\ndocs *.md\n');
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /agent-queue group 'ghost' has no path rule/);
+  });
+
+  it('ADR-021: an @agent-queue line that is not exactly the directive and a group is an error', () => {
+    for (const line of ['@agent-queue', '@agent-queue a b', '@agent-que auth', '@auth *auth*']) {
+      const result = decide(`${line}\nauth *auth*\n`);
+      assert.notEqual(result.status, 0, line);
+      assert.match(result.stderr, /malformed rule/, line);
+    }
+  });
+
   it('is an error when a rule line does not have exactly a group and a pattern', () => {
     for (const line of ['dependencies', 'dependencies package.json extra']) {
       const result = spawnSync(

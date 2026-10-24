@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed |
+| **Status** | Proposed; the rule that agents add only low-risk PRs (context and decision 4) amended by [ADR-021](ADR-021-agents-queue-high-risk.md) |
 | **Date** | 2026-10-19; decision 4 amended 2026-10-21 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | Amends ADR-016 (decisions 2 and 3); WORKFLOW.md §3, §4, §7; ENVIRONMENTS.md §4; ADR-011; issue #119 (supersedes the idea of #113) |
@@ -14,6 +14,8 @@ Retro of 15 to 17 October 2026: PRs kept falling behind `main`, and each needed 
 The repo now lives in the organisation `trainerrrzzz`, and merge queues are available for public repositories owned by an organisation. A merge queue gives what "require branches to be up to date" gave, without the manual round: GitHub builds a temporary branch with the PR on top of the latest `main`, runs the required checks on it, and merges only when they pass.
 
 What must not change (ADR-016): agents never approve PRs, push to `main`, force-push or enable auto-merge; the owner adds high-risk PRs; the merge gate decides for agents.
+
+> **Amended by [ADR-021](ADR-021-agents-queue-high-risk.md) (24 October 2026):** until G2 the owner adds only the owner-only PRs to the queue; agents also add a high-risk PR that is not owner-only, when the whole merge gate holds.
 
 Facts checked against GitHub's documentation on 2026-10-19:
 
@@ -28,6 +30,8 @@ Facts checked against GitHub's documentation on 2026-10-19:
 
 Merges into `main` go through the merge queue (squash). Agents add low-risk PRs to the queue; the owner adds high-risk PRs. Decided by the owner for issue #119.
 
+> **Amended by [ADR-021](ADR-021-agents-queue-high-risk.md) (24 October 2026):** until G2 agents add low-risk PRs and high-risk PRs that are not owner-only; the owner adds the owner-only ones. In decision 4 "a high-risk PR is refused as before; the owner adds it with 'Merge when ready'" now holds for an owner-only PR only.
+
 1. **The ruleset requires the merge queue and no longer requires an up-to-date branch.** `.github/rulesets/main.json` gets a `merge_queue` rule with `merge_method: SQUASH`, `grouping_strategy: ALLGREEN`, `max_entries_to_build: 3` (the parallel limit of tickets, `WORKFLOW.md §4`), `max_entries_to_merge: 1` (one PR, one squash commit, one production deploy, as before), `min_entries_to_merge: 1`, `min_entries_to_merge_wait_minutes: 5` and `check_response_timeout_minutes: 60`. A check starts after `Detect changes` (`timeout-minutes: 5`), and the longest native job, `Android`, times out after 45 minutes (`iOS` after 30; a cold `iOS` run takes about 25, see `WORKFLOW.md §7`). So 60 is above 5 + 45: a hung job fails on its own timeout, not by the queue's. `strict_required_status_checks_policy` is `false`. The five required checks, the PR rule (squash only), force-push and deletion blocks stay. `allow_auto_merge` stays `false`. `scripts/github-settings.sh apply` applies it.
 2. **CI runs on `merge_group`.** `.github/workflows/ci.yml` has `merge_group: types: [checks_requested], branches: [main]`, so the five required checks report on the queue's temporary branch. Runs of merge groups are not cancelled. `Detect changes` compares the merge group's head with `github.event.merge_group.base_sha` (fetched if it is not in the shallow checkout), so the native jobs run only when a native path changed in the group (`scripts/native-jobs.sh`, unchanged), exactly as on a PR. Without a `base_sha` every path counts as changed (all jobs run), never fewer. The `run-native` label belongs to the PR's own run; the merge group runs a native job only when a native path changed.
 3. **The merge gate loses "up to date with `main`".** `scripts/merge-gate.jq` and `scripts/pr.sh` no longer check it; the queue tests the PR on the latest `main`. The other conditions of ADR-016 (low-risk, checks passed on the head commit, both `code-review` axes clean, preview smoke-checked, no open threads, ready for review) stay.
@@ -39,6 +43,8 @@ Merges into `main` go through the merge queue (squash). Agents add low-risk PRs 
 AI still never approves a PR and never turns on auto-merge.
 
 > **Amended 21 October 2026:** decision 4 first ran `gh pr merge --squash --match-head-commit <head>` on the queue branch too. The first real run (PR #176) failed: gh asks for auto-merge there, which `allow_auto_merge: false` rejects. `pr.sh merge` now enqueues the PR with `enqueuePullRequest`, so `allow_auto_merge` stays `false` and no auto-merge request is ever made. The rest of this ADR stands.
+
+> **Amended by [ADR-021](ADR-021-agents-queue-high-risk.md) (24 October 2026):** until G2 `pr.sh merge` also adds a high-risk PR to the queue when it is not owner-only; the merge gate's first condition is "not owner-only", and an owner-only PR is still refused. `max_entries_to_build: 3` limits the checks running at once, not the tickets in progress (there is no fixed limit on those any more).
 
 ## Consequences
 
