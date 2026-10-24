@@ -25,6 +25,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/hello`.
     /// - Remark: Generated from `#/paths//v1/hello/get(getHello)`.
     func getHello(_ input: Operations.GetHello.Input) async throws -> Operations.GetHello.Output
+    /// The signed-in account
+    ///
+    /// The account of the sign-in session in the request. The web sends the sign-in session cookie; there is no other way to sign in yet.
+    ///
+    /// - Remark: HTTP `GET /v1/me`.
+    /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
+    func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -52,6 +59,15 @@ extension APIProtocol {
             query: query,
             headers: headers
         ))
+    }
+    /// The signed-in account
+    ///
+    /// The account of the sign-in session in the request. The web sends the sign-in session cookie; there is no other way to sign in yet.
+    ///
+    /// - Remark: HTTP `GET /v1/me`.
+    /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
+    public func getMe(headers: Operations.GetMe.Input.Headers = .init()) async throws -> Operations.GetMe.Output {
+        try await getMe(Operations.GetMe.Input(headers: headers))
     }
 }
 
