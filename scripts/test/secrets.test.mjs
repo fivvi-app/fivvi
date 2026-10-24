@@ -9,6 +9,7 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -22,7 +23,7 @@ const dashes = '-----';
 const pem = (kind = '') =>
   `${dashes}BEGIN ${kind}PRIVATE KEY${dashes}\nMIGTAgEAsentinel\n${dashes}END ${kind}PRIVATE KEY${dashes}\n`;
 const awsKey = `AK${'IA'}${'0123456789ABCDEF'}`;
-const githubToken = `gh${'p'}_${'a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8'}`;
+const githubToken = `gh${'p'}_${'a1B2c3D4e5F6'.repeat(3)}`;
 const slackToken = `xo${'xb'}-123456789012-abcdefghijkl`;
 const sentryOrgToken = `sntry${'s'}_${'a1b2c3d4'.repeat(5)}`;
 const sentryUserToken = `sntry${'u'}_${'0123456789abcdef'.repeat(4)}`;
@@ -138,6 +139,27 @@ describe('E017 AC7 secrets.sh files', () => {
     const result = repo.run();
     assert.equal(result.status, 1, output(result));
     assert.match(output(result), /config\/key\.txt:1.*private key/i);
+  });
+
+  it('reads a file named exactly "-" as a file, not as standard input', () => {
+    repo.write('-', pem());
+    repo.git('add', '.');
+    const result = repo.run();
+    assert.equal(result.status, 1, output(result));
+    assert.match(output(result), /^-:1: .*private key/im);
+  });
+
+  it('does not read a symlink that points out of the repo', () => {
+    const outside = join(repo.dir, '..', `${repo.dir.split('/').pop()}-outside.txt`);
+    writeFileSync(outside, pem());
+    try {
+      symlinkSync(outside, join(repo.dir, 'link.txt'));
+      repo.git('add', '.');
+      const result = repo.run();
+      assert.equal(result.status, 0, output(result));
+    } finally {
+      rmSync(outside, { force: true });
+    }
   });
 
   it('does not take a name that only ends like a key file for one', () => {

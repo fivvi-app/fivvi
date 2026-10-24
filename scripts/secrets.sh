@@ -53,17 +53,18 @@ path_allowed() {
 }
 
 files() {
-  local rc=0 path name i line last rest status
+  local rc=0 path name i line last rest status LIST HITS
   # git ls-files is relative to the working directory: always scan the whole repo.
   cd "$ROOT"
   load_allowlist
   rc=$allowlist_problems
-  # The files to read, listed once (NUL-separated). Only regular files: a deleted or dangling path would make grep fail.
+  # The files to read, listed once (NUL-separated, as ./path so that a file named "-" is not read as stdin). Only regular
+  # files inside the repo: a deleted or dangling path would make grep fail, and a symlink could lead out of the repo.
   LIST="$(mktemp)"
   HITS="$(mktemp)"
-  trap 'rm -f "$LIST" "$HITS"' EXIT
+  on_exit "rm -f '$LIST' '$HITS'"
   while IFS= read -r -d '' path; do
-    [ ! -f "$path" ] || printf '%s\0' "$path" >>"$LIST"
+    { [ ! -f "$path" ] || [ -L "$path" ]; } || printf './%s\0' "$path" >>"$LIST"
     path_allowed "$path" && continue
     name="$(printf '%s' "${path##*/}" | tr '[:upper:]' '[:lower:]')"
     if [[ "$name" =~ $KEY_FILE_NAME_RE ]]; then
@@ -84,6 +85,7 @@ files() {
     fi
     # grep --null ends the path with a NUL, so a ":" in a path is safe; the rest is "line:match", and the match is never printed.
     while IFS= read -r -d '' path && IFS= read -r rest; do
+      path="${path#./}"
       line="${rest%%:*}"
       [ "$path:$line" != "$last" ] || continue
       last="$path:$line"

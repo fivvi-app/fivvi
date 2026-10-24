@@ -1,6 +1,6 @@
 // E017 AC7: the owner's secret-setup script (scripts/release-secrets.sh), run against a fake gh and synthetic files. Every
-// value is a made-up sentinel the tests can look for anywhere it must not appear; each is built from parts, so no
-// secret scanner takes it for a real one.
+// value is a made-up sentinel the tests can look for anywhere it must not appear; the ones a scanner could take for real secrets
+// are built from parts, so no secret scanner takes them for real ones.
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
@@ -333,11 +333,11 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
     });
     return { result, dir, keytool };
   };
-  const passwords = `${SENTINEL.keystoreAnswer}\n${SENTINEL.keystoreAnswer}\n`;
+  const answers = `${SENTINEL.keystoreAnswer}\n${SENTINEL.keystoreAnswer}\n`;
 
   it('makes the keystore outside the repo, readable by the owner only, and sets its secrets', () => {
     const before = repoStatus();
-    const { result, dir } = generate(passwords);
+    const { result, dir } = generate(answers);
     assert.equal(result.status, 0, result.stderr);
     const keystore = join(dir, 'fivvi-pro-upload.p12');
     assert.equal(readFileSync(keystore, 'utf8'), SENTINEL.keystore);
@@ -354,7 +354,7 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
   });
 
   it('gives keytool the password through its environment, never its command line or the output', () => {
-    const { result, keytool } = generate(passwords);
+    const { result, keytool } = generate(answers);
     assert.equal(result.status, 0, result.stderr);
     const log = readFileSync(keytool.log, 'utf8');
     assert.ok(
@@ -370,7 +370,7 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
     mkdirSync(dir, { mode: 0o755 });
     chmodSync(dir, 0o755);
     const keytool = fakeKeytool();
-    const result = run(['android-keystore', '--dir', dir], passwords, { extraPath: keytool.bin });
+    const result = run(['android-keystore', '--dir', dir], answers, { extraPath: keytool.bin });
     assert.equal(result.status, 0, result.stderr);
     assert.equal(statSync(dir).mode & 0o777, 0o755);
     assert.equal(statSync(join(dir, 'fivvi-pro-upload.p12')).mode & 0o077, 0);
@@ -379,7 +379,7 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
   it('refuses a directory inside the repository and creates nothing there', () => {
     const inRepo = join(ROOT, 'release-keys-do-not-create');
     const keytool = fakeKeytool();
-    const result = run(['android-keystore', '--dir', inRepo], passwords, {
+    const result = run(['android-keystore', '--dir', inRepo], answers, {
       extraPath: keytool.bin,
     });
     assert.notEqual(result.status, 0);
@@ -389,9 +389,9 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
   });
 
   it('refuses to overwrite a keystore and when the two passwords differ', () => {
-    const first = generate(passwords);
+    const first = generate(answers);
     assert.equal(first.result.status, 0, first.result.stderr);
-    const again = run(['android-keystore', '--dir', first.dir], passwords, {
+    const again = run(['android-keystore', '--dir', first.dir], answers, {
       extraPath: first.keytool.bin,
     });
     assert.notEqual(again.status, 0);
