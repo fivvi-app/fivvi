@@ -175,6 +175,8 @@ Inside a package, `pnpm exec vitest` watches unit tests, `pnpm exec vitest --con
 
 **Writing a Playwright spec:** import `test` and `expect` from `apps/web/e2e/fixtures.ts`. Each spec runs once per locale project (`nl-NL`, `en`); the browser language is set to the project's locale. The `messages` fixture is that locale's catalog, `otherLocale` the other one, for switching. Every test ends with an automatic axe check (WCAG 2.2 A and AA) on the page it left open; call `expectNoAxeViolations(page, 'the open dialog')` for states in between.
 
+**Sign-in specs and the rate limits (F001 AC10):** sign-in requests are limited per IP address (20 an hour) and per email address (3 in 15 minutes), counted in the app server's database, which lives as long as the e2e run. The server reads the client IP address from the `x-real-ip` header only (`packages/auth/src/rate-limit.ts`; `x-forwarded-for` is ignored). A spec that signs in therefore gives its browser context its own IP address, `context.setExtraHTTPHeaders({ 'x-real-ip': newIpAddress() })` with a fresh documentation-range address per spec (`apps/web/e2e/accounts.ts`; IPv6 addresses are grouped by /64), and a fresh email address per spec (`newAddress()`), so specs, locales and retries never share a bucket. A spec that tests the limits uses its own address and IP address too.
+
 ### 7.2 Native tests (E008)
 
 How to run them, per app:
