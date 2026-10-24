@@ -218,12 +218,11 @@ agent_merged_items() {
     || die "could not compute the date 7 days ago"
   merged="$(gh pr list --repo "$REPO" --state merged --search "merged:>=$since" --limit 200 \
     --json number,title,body,mergedAt,headRefOid)" || die "could not read the merged PRs"
-  jq -r --arg risk "**$HIGH_RISK_MARK:**" --argjson now "$now" '
-    def record($mark): [(.body // "") | split("\n")[] | rtrimstr("\r") | select(startswith($mark))] | last;
-    def sha: capture("`(?<sha>[0-9a-f]{40})`").sha;
+  jq -r -L "$ROOT/scripts" --arg risk "$HIGH_RISK_MARK" --argjson now "$now" '
+    include "records";
     [.[] | select((.mergedAt | fromdateiso8601) >= $now - 7 * 86400)
-      | {number, title, mergedAt, head: .headRefOid, record: record($risk)}
-      | select(.record != null and .head != null and (.record | sha) == .head)]
+      | {number, title, mergedAt, head: .headRefOid, record: (.body | record($risk))}
+      | select(.record != null and .head != null and (.record | record_sha) == .head)]
     | sort_by(.mergedAt) | reverse | .[]
     | "PR #\(.number) \(.title) (merged by an agent; high-risk: \(.record
         | capture("^[^`]*`[0-9a-f]{40}`: (?<reasons>.*)$").reasons // "reasons not recorded"))"' <<<"$merged" \

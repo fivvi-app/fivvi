@@ -35,11 +35,16 @@ guardrails            /scripts
 guardrails            /docs/agents
 guardrails            /docs/engineering/WORKFLOW.md
 # The files that define the checks: the root package.json holds their scripts and also matches the dependencies rule
-# below, so it is owner-only, while every other package.json stays a dependency change.
+# below, so it is owner-only, while every other package.json stays a dependency change. A biome.json at any depth can
+# load the i18n lint rule, and a vitest config at any depth sets what the tests run.
 guardrails            /package.json
 guardrails            /turbo.json
-guardrails            /biome.json
+guardrails            biome.json
 guardrails            /.shellcheckrc
+guardrails            /packages/i18n/lint
+guardrails            /docs/engineering/TESTING.md
+guardrails            vitest.config.*
+guardrails            /tsconfig.base.json
 dependencies          package.json
 dependencies          /pnpm-lock.yaml
 dependencies          /pnpm-workspace.yaml

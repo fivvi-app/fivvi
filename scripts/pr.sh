@@ -53,8 +53,8 @@ REPO="$(repo_slug)"
 OWNER="${REPO%%/*}"
 NAME="${REPO#*/}"
 BRANCH="$(git branch --show-current)"
-# The records pr.sh writes in the PR body; scripts/merge-gate.jq gets them from here, and scripts/flow.sh reads refusals
-# with pr.sh refusal.
+# The records pr.sh writes in the PR body (read back by scripts/records.jq); scripts/merge-gate.jq gets the marks from
+# here, and scripts/flow.sh reads refusals with pr.sh refusal.
 SMOKE_MARK="Railway preview smoke check"
 REVIEW_MARK="Self-review"
 REFUSAL_MARK="Merge gate"
@@ -638,9 +638,10 @@ cmd_refusal() {
   { [ $# -eq 1 ] && [[ "$1" =~ ^[0-9]+$ ]]; } || usage
   local body
   body="$(gh pr view "$1" --repo "$REPO" --json body --jq .body)" || die "could not read the body of PR #$1"
-  jq -Rn --arg mark "**$REFUSAL_MARK:**" '[inputs | rtrimstr("\r") | select(startswith($mark))] | last
+  jq -n -L "$ROOT/scripts" --arg mark "$REFUSAL_MARK" --arg body "$body" 'include "records";
+    $body | record($mark)
     | if . == null then null
-      else (capture("refused on `(?<sha>[0-9a-f]{40})`: (?<reasons>.*)$") // {sha: null, reasons: .}) end' <<<"$body"
+      else (capture("refused on `(?<sha>[0-9a-f]{40})`: (?<reasons>.*)$") // {sha: null, reasons: .}) end'
 }
 
 case "${1:-}" in

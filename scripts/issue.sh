@@ -3,15 +3,17 @@
 # --body-file - and a heredoc.
 #
 #   issue.sh show <n>                                        fields, parent, open blockers, sub-issues and body
-#   issue.sh create <spec|ticket|bug> --title <t> --body-file <f|-> [--parent <n>] [--blocked-by <n>]... [--label <l>]...
-#                                                            a ticket of a spec needs the spec approved (spec-approved);
-#                                                            --label owner-only on a spec that touches legal or money
-#                                                            (owner-merge: high-risk, agents may queue its PRs)
+#   issue.sh create <spec|ticket|bug> --title <t> --body-file <f|-> [--parent <n>] [--blocked-by <n>]...
+#                                     [--label <l>]...       a ticket of a spec needs the spec approved (spec-approved);
+#                                                            --label owner-only on a spec that touches legal, money or
+#                                                            the agents' own rules (owner-merge: high-risk, agents may
+#                                                            queue its PRs)
 #   issue.sh update <n> [--title <t>] [--body-file <f|->] [--minor]
 #                                                            on an approved spec, removes spec-approved so the owner
 #                                                            approves again; --minor (a typo fix) keeps it
 #   issue.sh comment <n> --body-file <f|->
-#   issue.sh label <n> [--add <l>]... [--remove <l>]...      refuses --remove owner-only and owner-merge (the owner does)
+#   issue.sh label <n> [--add <l>]... [--remove <l>]...      refuses --remove owner-only and owner-merge, also in a
+#                                                            comma list (the owner removes them)
 #   issue.sh block <n> --by <m>                              <n> is blocked by <m>
 #   issue.sh ready [--parent <n>]                            open, unassigned ready-for-agent tickets with no open blocker,
 #                                                            of an approved spec
@@ -126,6 +128,17 @@ cmd_comment() {
   echo "💬 commented on #$1"
 }
 
+# Whether a --remove value names owner-only or owner-merge. gh splits a label flag on commas and reads CSV quotes, so
+# the value is read the same way, only stricter: quotes dropped, split on commas, each name trimmed, any case.
+removes_owner_label() {
+  local name
+  while IFS= read -r name; do
+    name="$(sed 's/^[[:space:]]*//; s/[[:space:]]*$//' <<<"$name" | tr '[:upper:]' '[:lower:]')"
+    case "$name" in owner-only | owner-merge) return 0 ;; esac
+  done < <(tr -d '"' <<<"$1" | tr ',' '\n')
+  return 1
+}
+
 cmd_label() {
   [ $# -ge 3 ] || usage
   local n="$1"
@@ -137,9 +150,7 @@ cmd_label() {
       --add) args+=(--add-label "${2:?}"); shift ;;
       --remove)
         # ADR-021: only the owner takes these off; an agent doing it would lower the risk of its own PR.
-        case "$(tr '[:upper:]' '[:lower:]' <<<"${2:?}")" in
-          owner-only|owner-merge) die "only the owner removes owner-only and owner-merge; nothing changed" ;;
-        esac
+        removes_owner_label "${2:?}" && die "only the owner removes owner-only and owner-merge; nothing changed"
         args+=(--remove-label "$2"); shift ;;
       *) usage ;;
     esac

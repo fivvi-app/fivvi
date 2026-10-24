@@ -178,6 +178,49 @@ describe('issue.sh', () => {
       }
     });
 
+    // gh splits label flags on commas and reads CSV quotes, so these all remove owner-only.
+    it('ADR-021: refuses owner-only or owner-merge inside a comma list, quoted or spaced, and changes nothing', () => {
+      const values = [
+        'bug,owner-only',
+        'owner-only,bug',
+        'bug, owner-only',
+        ' owner-only ',
+        'bug,Owner-Merge',
+        '"owner-only"',
+        '"bug","owner-only"',
+        'bug,"owner-merge"',
+        'bug,\tOWNER-ONLY\t,spec',
+      ];
+      for (const value of values) {
+        const result = issueSh(rules, 'label', '50', '--remove', value);
+        assert.equal(result.status, 1, value);
+        assert.match(result.stderr, /only the owner removes owner-only and owner-merge/, value);
+        assert.equal(edit(result.calls), undefined, value);
+      }
+    });
+
+    it('ADR-021: refuses when a later --remove carries the label', () => {
+      const result = issueSh(
+        rules,
+        'label',
+        '50',
+        '--remove',
+        'bug',
+        '--remove',
+        'spec,owner-only',
+      );
+      assert.equal(result.status, 1);
+      assert.equal(edit(result.calls), undefined);
+    });
+
+    it('removes a comma list of ordinary labels, and names that only contain the protected ones', () => {
+      for (const value of ['bug,spec', '"bug", "spec"', 'owner-only-not,my-owner-merge']) {
+        const result = issueSh(rules, 'label', '50', '--remove', value);
+        assert.equal(result.status, 0, `${value}: ${result.stderr}`);
+        assert.ok(edit(result.calls).includes(value), value);
+      }
+    });
+
     it('ADR-021: still adds owner-only and owner-merge', () => {
       for (const label of ['owner-only', 'owner-merge']) {
         const result = issueSh(rules, 'label', '50', '--add', label);

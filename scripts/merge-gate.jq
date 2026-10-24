@@ -12,6 +12,8 @@
 # Output: {merge, conditions: [{name, ok, detail}]}; merge only when every condition holds. A missing fact fails:
 # a head that isn't a full commit SHA, no required checks, an unknown preview, or a record that names no commit.
 
+include "records" {search: "./"};
+
 def short: .[:7];
 def is_sha: type == "string" and test("^[0-9a-f]{40}$");
 def ok_result: IN("SUCCESS", "SKIPPED", "NEUTRAL");
@@ -23,11 +25,6 @@ def results:
     result: (if .__typename == "StatusContext" then .state
              elif .status != "COMPLETED" then "PENDING"
              else .conclusion end)}];
-
-# The last line of the PR body that records <mark> (`**<mark>:** …`, written by pr.sh), or null.
-def record($mark):
-  [.pr.body | split("\n")[] | rtrimstr("\r") | select(startswith("**\($mark):**"))] | last // null;
-def record_sha: if . == null then null else (capture("`(?<sha>[0-9a-f]{40})`").sha // null) end;
 
 def checks_on_head:
   .head as $head
@@ -64,9 +61,9 @@ def on_head($what; $line):
               elif .risk.risk == "owner" then "owner-only: \(.risk.reasons | join("; "))"
               else "the risk is unknown: the owner decides" end)},
     checks_passed,
-    {name: "self-review clean"} + on_head("self-review"; $f | record($review_mark)),
+    {name: "self-review clean"} + on_head("self-review"; $f.pr.body | record($review_mark)),
     {name: "preview smoke-checked"} + (
-      ($f | record($smoke_mark)) as $line
+      ($f.pr.body | record($smoke_mark)) as $line
       | if $f.preview | IN("yes", "no", "pending") | not then {ok: false, detail: "whether the PR has a preview is unknown"}
         elif $f.preview == "pending" then {ok: false, detail: "the preview of \($f.head | short) is still deploying"}
         else on_head("smoke check"; $line) end
