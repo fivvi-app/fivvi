@@ -649,15 +649,13 @@ describe('F001 sign in with the emailed code through the API', () => {
 
       /** The log of `console.error`, which the tests keep out of the output. */
       function spyOnLog() {
-        const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-        onTestFinished(() => log.mockRestore());
-        return log;
+        return vi.spyOn(console, 'error').mockImplementation(() => {});
       }
 
       /** What a sign-in request for the account answers when nothing went wrong. */
       const normalAnswer = async () => await seen(await requestCode('nobody@example.com', 'en'));
 
-      it('an email that fails to send still gets the same answer, and is logged and reported without the address', async () => {
+      it('an email that fails to send still gets the same answer, and is logged and reported with a name and message that carry no address', async () => {
         const unknown = await normalAnswer();
         const log = spyOnLog();
         // The provider's own error quotes the recipient.
@@ -678,6 +676,8 @@ describe('F001 sign in with the emailed code through the API', () => {
         expect(log.mock.calls).toEqual([[`${LOG_PREFIX}: failing: send failed`]]);
         expect(reportedErrors).toHaveLength(1);
         expect(reportedErrors[0]).toBeInstanceOf(EmailSendError);
+        // The name and message only: the error's `cause` still quotes the address, and the
+        // reporter's scrubber masks it (packages/observability).
         expect(String(reportedErrors[0])).not.toContain(SECRET_ADDRESS);
       });
 

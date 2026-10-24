@@ -17,12 +17,13 @@ export const onRequestError: Instrumentation.onRequestError =
 // reported here, once, instead of on every request the layout reads it (OBSERVABILITY.md §5).
 // A malformed SIGN_UP_ALLOWED_EMAILS stops the server here, so a bad deploy fails its health
 // check instead of answering every sign-in request with a 500 (F001, ENVIRONMENTS.md §7). Only
-// that variable is checked: the build runs this too, and has no secret.
+// that variable is checked here: the secret and BETTER_AUTH_URL are still read on the first
+// sign-in request (server/auth.ts), as before this check existed.
 export async function register(): Promise<void> {
   checkPageViewsConfig(errorReporter);
   // Not in the edge runtime, which cannot load the sign-in code.
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const { checkSignUpAllowlist } = await import('./server/auth');
-    checkSignUpAllowlist(process.env);
+    const { parseSignUpAllowlist } = await import('@fivvi/auth');
+    parseSignUpAllowlist(process.env.SIGN_UP_ALLOWED_EMAILS);
   }
 }

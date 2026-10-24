@@ -25,7 +25,7 @@ export function readAuthConfig(env: Readonly<Record<string, string | undefined>>
   if (secret.length < MIN_SECRET_LENGTH) {
     throw new Error(`BETTER_AUTH_SECRET must be at least ${MIN_SECRET_LENGTH} characters.`);
   }
-  const signUpAllowlist = checkSignUpAllowlist(env);
+  const signUpAllowlist = parseSignUpAllowlist(env.SIGN_UP_ALLOWED_EMAILS);
   const url = env.BETTER_AUTH_URL?.trim();
   if (!url) {
     if (env.NODE_ENV === 'production') {
@@ -35,16 +35,6 @@ export function readAuthConfig(env: Readonly<Record<string, string | undefined>>
   }
   if (!URL.canParse(url)) throw new Error('BETTER_AUTH_URL is not a URL.');
   return { secret, baseURL: url.replace(/\/+$/, ''), signUpAllowlist };
-}
-
-/**
- * Reads `SIGN_UP_ALLOWED_EMAILS` alone, so the server can fail at start-up on a malformed one
- * (instrumentation.ts). The error names the entry's position, never the entry.
- */
-export function checkSignUpAllowlist(
-  env: Readonly<Record<string, string | undefined>>,
-): SignUpAllowlist {
-  return parseSignUpAllowlist(env.SIGN_UP_ALLOWED_EMAILS);
 }
 
 let instance: Auth | undefined;
@@ -60,8 +50,8 @@ export function auth(): Auth {
     ...readAuthConfig(process.env),
     sendEmail: createEnvironmentSendEmail(),
     // Failures of the work after a sign-in request's answer (a failed email) go to the shared
-    // reporter (Sentry when SENTRY_DSN is set, E009), whose scrubber masks email addresses and
-    // drops query strings, so a link's token never leaves.
+    // reporter (Sentry when SENTRY_DSN is set, E009), whose scrubber masks email addresses in
+    // error messages and drops query strings from request and breadcrumb URLs.
     reportError: (error) => errorReporter.captureError(error),
   });
   return instance;

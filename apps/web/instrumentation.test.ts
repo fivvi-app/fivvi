@@ -44,20 +44,20 @@ describe('E009 page views config at server start', () => {
 describe('F001 sign-up allowlist at server start (AC9)', () => {
   it('stops the server on a malformed SIGN_UP_ALLOWED_EMAILS, naming the position and not the entry', async () => {
     vi.stubEnv('NEXT_RUNTIME', 'nodejs');
-    vi.stubEnv('SIGN_UP_ALLOWED_EMAILS', 'pilot@gym.test,gym.test');
+    vi.stubEnv('SIGN_UP_ALLOWED_EMAILS', 'pilot@example.com,example-bad');
 
     const failure = await register().catch((error: Error) => error);
 
     expect(failure).toBeInstanceOf(Error);
     const { message } = failure as Error;
     expect(message).toMatch(/SIGN_UP_ALLOWED_EMAILS entry 2/);
-    expect(message).not.toContain('gym.test');
+    expect(message).not.toContain('example-bad');
   });
 
   it.each([
     ['not set', undefined],
     ['empty', ''],
-    ['valid', 'pilot@gym.test, @example.com'],
+    ['valid', 'pilot@example.com, @example.org'],
   ])('starts when it is %s', async (_, value) => {
     vi.stubEnv('NEXT_RUNTIME', 'nodejs');
     vi.stubEnv('SIGN_UP_ALLOWED_EMAILS', value);
