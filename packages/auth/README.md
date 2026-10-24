@@ -7,6 +7,7 @@ import { createAuth } from '@fivvi/auth';
 
 const auth = createAuth({ db, secret, baseURL, sendEmail }); // apps/web/server/auth.ts
 auth.handler(request); // served under /api/auth/* by apps/web/app/api/auth/[...all]/route.ts
+await auth.findAccount(request.headers); // the signed-in account of the cookie, or undefined (GET /api/v1/me)
 ```
 
 ## How sign-in works
@@ -25,7 +26,7 @@ A person signs in with only their email address. One request creates **one verif
 - **Cookie.** `HttpOnly`, `SameSite=Lax`, `Secure` unless the base URL is plain `http` (local); 30 days, renewed on use.
 - No passwords, no sign-up: an address without an account is answered like any other.
 
-Not here yet (spec #128, later tickets): the confirm-link endpoint (#136), rate limits (#134), the sign-up allowlist, `GET /api/v1/me`, the web pages and product events.
+Not here yet (spec #128, later tickets): the confirm-link endpoint (#136), rate limits (#134), the sign-up allowlist, the web pages and product events.
 
 ## Tables
 

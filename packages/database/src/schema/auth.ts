@@ -1,3 +1,4 @@
+import type { Locale } from '@fivvi/i18n';
 import { sql } from 'drizzle-orm';
 import { boolean, check, index, integer, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 import { id, instant, timestamps } from './columns.ts';
@@ -20,7 +21,7 @@ export const authUsers = pgTable(
     email: text('email').notNull().unique(),
     emailVerified: boolean('email_verified').notNull().default(false),
     /** The language of the screen where the person first signed in (ADR-019); F010 changes it. */
-    preferredLocale: text('preferred_locale'),
+    preferredLocale: text('preferred_locale').$type<Locale>(),
     ...timestamps(),
   },
   (table) => [
@@ -88,3 +89,6 @@ export const authVerifications = pgTable(
 );
 
 export type AuthUser = typeof authUsers.$inferSelect;
+
+/** The account behind a request's sign-in session (spec #128). */
+export type SignedInAccount = Pick<AuthUser, 'id' | 'email' | 'preferredLocale'>;
