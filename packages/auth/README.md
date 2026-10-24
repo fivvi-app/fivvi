@@ -19,12 +19,13 @@ A person signs in with only their email address. One request creates **one verif
 | `POST /sign-in/code/verify` | `{ email, code }` | The right code: `200` and the sign-in session cookie. Anything else: `401 INVALID_OR_EXPIRED_CODE`, never saying which case it was |
 
 - **Hashes only (AC11).** `auth_verifications.value` holds the HMAC-SHA256 of the link token and `code_hash` that of the code, keyed with `BETTER_AUTH_SECRET` (a code has a million values, so an unkeyed hash would fall to brute force). The database never holds a usable token or code.
-- **One per address.** `identifier` is `sign-in:<lower-case email>`; a new request deletes the old verification, and using the code consumes it (Better Auth's atomic `consumeVerificationValue`).
+- **One per address.** `identifier` is `sign-in:<lower-case email>`; a new request deletes the old verification (the old link and code stop working), and using the code consumes the checked row in one atomic delete, so the link is used up with it (AC4).
+- **5 wrong codes kill it (AC6).** `auth_verifications.failed_attempts` counts wrong codes in one `UPDATE ... RETURNING`, so parallel guesses are all counted. At 5 the row is deleted, link and code, and even the right code fails; a new request starts a fresh verification. Every failure (wrong, expired, used, replaced, killed, unknown address) is the same `401 INVALID_OR_EXPIRED_CODE`.
 - **Expires after 15 minutes.** The link in the email points at the sign-in page's confirm step, `/login/confirm?token=…` (TW-10, built later), never at a Better Auth URL that would consume the token on a scanner's GET.
 - **Cookie.** `HttpOnly`, `SameSite=Lax`, `Secure` unless the base URL is plain `http` (local); 30 days, renewed on use.
 - No passwords, no sign-up: an address without an account is answered like any other.
 
-Not here yet (spec #128, later tickets): the confirm-link endpoint, attempt and rate limits, the sign-up allowlist, `GET /api/v1/me`, the web pages and product events.
+Not here yet (spec #128, later tickets): the confirm-link endpoint (#136), rate limits (#134), the sign-up allowlist, `GET /api/v1/me`, the web pages and product events.
 
 ## Tables
 
