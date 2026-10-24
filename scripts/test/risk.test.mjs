@@ -95,7 +95,8 @@ describe('risk of a pull request', () => {
       'packages/api/vitest.config.mts',
       'tsconfig.base.json',
       // The rest of what defines a check: a nested turbo.json overrides inputs, the shared vitest preset, the
-      // integration configs, the Playwright config, the CLIs that pick the checks, the native lint rules, every tsconfig.
+      // integration configs, the Playwright config, the CLIs that pick the checks, the native lint rules, every
+      // tsconfig.
       'packages/contract/turbo.json',
       'apps/web/vitest.integration.config.ts',
       'packages/testing/vitest.integration.config.ts',
@@ -125,6 +126,7 @@ describe('risk of a pull request', () => {
       'packages/contract/scripts/check.ts',
       'packages/design-tokens/src/check.ts',
       'packages/design-tokens/src/cli.ts',
+      'packages/design-tokens/src/contrast.ts',
       'packages/contract/scripts/pipeline.ts',
       'packages/ui/lint/no-raw-colours.ts',
       'packages/ui/lint/cli.ts',
@@ -231,6 +233,8 @@ describe('risk of a pull request', () => {
         'packages/design-tokens/scripts/check.ts',
         'packages/design-tokens/src/cli.test.ts',
         'packages/design-tokens/src/native.ts',
+        'packages/design-tokens/src/source.ts',
+        'packages/design-tokens/src/contrast.test.ts',
         'packages/design-tokens/tokens/contrast-pairs.json',
         'packages/contract/scripts/pipeline.test.ts',
         'packages/contract/src/pipeline.ts',
