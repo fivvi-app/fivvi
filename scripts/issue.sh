@@ -11,7 +11,7 @@
 #                                                            on an approved spec, removes spec-approved so the owner
 #                                                            approves again; --minor (a typo fix) keeps it
 #   issue.sh comment <n> --body-file <f|->
-#   issue.sh label <n> [--add <l>]... [--remove <l>]...
+#   issue.sh label <n> [--add <l>]... [--remove <l>]...      refuses --remove owner-only and owner-merge (the owner does)
 #   issue.sh block <n> --by <m>                              <n> is blocked by <m>
 #   issue.sh ready [--parent <n>]                            open, unassigned ready-for-agent tickets with no open blocker,
 #                                                            of an approved spec
@@ -135,7 +135,12 @@ cmd_label() {
   while [ $# -gt 0 ]; do
     case "$1" in
       --add) args+=(--add-label "${2:?}"); shift ;;
-      --remove) args+=(--remove-label "${2:?}"); shift ;;
+      --remove)
+        # ADR-021: only the owner takes these off; an agent doing it would lower the risk of its own PR.
+        case "$(tr '[:upper:]' '[:lower:]' <<<"${2:?}")" in
+          owner-only|owner-merge) die "only the owner removes owner-only and owner-merge; nothing changed" ;;
+        esac
+        args+=(--remove-label "$2"); shift ;;
       *) usage ;;
     esac
     shift

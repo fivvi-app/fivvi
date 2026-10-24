@@ -32,7 +32,11 @@ def glob_regex:
   | ltrimstr("/") | gsub("(?<c>[.+?^${}()|\\[\\]\\\\])"; "\\\(.c)") | gsub("\\*"; "[^/]*")
   | "\($start)\(.)(/|$)";
 
-def labelled($l): (.labels | index($l)) != null;
+# Labels are compared without regard to case, and a labels field that isn't a list is an error: a label that could be
+# missed would lower the risk.
+def labelled($l):
+  (.labels | if type == "array" then map(ascii_downcase) else error("labels is not a list: \(tojson)") end)
+  | index($l) != null;
 
 # A file can match rules of several groups (docs/decisions/ADR-007-authentication.md is auth and product-docs). Every
 # matching group counts, once each (its first pattern), so an agent-queueable rule never hides an owner-only one.

@@ -188,24 +188,42 @@ cmd_next() {
   grep . <<<"$read_items" || echo "(none)"
 }
 
-# The high-risk PRs agents merged in the last 7 days (ADR-021), newest first, from the two records pr.sh merge writes in
-# the PR body: `**High-risk agent merge:** `<sha>`: <reasons>`, then `**Merge queue:** added to the merge queue on
-# `<sha>``. A PR counts only when both name the same commit: otherwise the queue dropped the commit an agent queued and
-# the owner merged a later one. The owner reads them after the fact. A search by day narrows what GitHub returns and jq
-# applies the exact 7 days; the 200 latest merged PRs are enough for a week. Dies when the read fails, so an empty list
-# means nothing was merged.
+# Now as seconds since the epoch: the real clock, or FIVVI_NOW (ISO-8601 UTC, like 2026-10-20T12:00:00Z) so tests and
+# reruns don't depend on it. Dies on a FIVVI_NOW that is set but not such a time (set-but-empty included), never
+# falls back to the real clock.
+now_epoch() {
+  local now
+  if [ -n "${FIVVI_NOW+set}" ]; then
+    now="$FIVVI_NOW"
+  else
+    now="$(date -u +%Y-%m-%dT%H:%M:%SZ)" || die "could not read the clock"
+  fi
+  [[ "$now" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] \
+    || die "FIVVI_NOW must be an ISO-8601 UTC time like 2026-10-20T12:00:00Z, not '$now'"
+  jq -rn --arg now "$now" '$now | fromdateiso8601' 2>/dev/null \
+    || die "FIVVI_NOW must be an ISO-8601 UTC time like 2026-10-20T12:00:00Z, not '$now'"
+}
+
+# The high-risk PRs agents merged in the last 7 days (ADR-021), newest first, from the record pr.sh merge writes in the
+# PR body before it queues the PR: `**High-risk agent merge:** `<sha>`: <reasons>`. A PR counts when the commit GitHub
+# merged (the PR's headRefOid) is the recorded one, whether it went through the merge queue or was squash-merged at
+# once: if another commit was merged (the queue dropped the recorded one and the owner merged a later one), the owner
+# merged it. The owner reads them after the fact. A search by day narrows what GitHub returns and jq applies the exact
+# 7 days (a PR merged exactly 7 days ago counts); the 200 latest merged PRs are enough for a week. Dies when the read
+# fails, so an empty list means nothing was merged.
 agent_merged_items() {
-  local since merged
-  since="$(date -u -v-7d +%Y-%m-%d 2>/dev/null || date -u -d '7 days ago' +%Y-%m-%d)" \
+  local now since merged
+  now="$(now_epoch)" || exit 1
+  since="$(jq -rn --argjson now "$now" '$now - 7 * 86400 | strftime("%Y-%m-%d")')" \
     || die "could not compute the date 7 days ago"
   merged="$(gh pr list --repo "$REPO" --state merged --search "merged:>=$since" --limit 200 \
-    --json number,title,body,mergedAt)" || die "could not read the merged PRs"
-  jq -r --arg risk "**$HIGH_RISK_MARK:**" --arg queue "**$QUEUE_MARK:**" '
+    --json number,title,body,mergedAt,headRefOid)" || die "could not read the merged PRs"
+  jq -r --arg risk "**$HIGH_RISK_MARK:**" --argjson now "$now" '
     def record($mark): [(.body // "") | split("\n")[] | rtrimstr("\r") | select(startswith($mark))] | last;
     def sha: capture("`(?<sha>[0-9a-f]{40})`").sha;
-    [.[] | select((.mergedAt | fromdateiso8601) >= now - 7 * 86400)
-      | {number, title, mergedAt, record: record($risk), queued: record($queue)}
-      | select(.record != null and .queued != null and (.record | sha) == (.queued | sha))]
+    [.[] | select((.mergedAt | fromdateiso8601) >= $now - 7 * 86400)
+      | {number, title, mergedAt, head: .headRefOid, record: record($risk)}
+      | select(.record != null and .head != null and (.record | sha) == .head)]
     | sort_by(.mergedAt) | reverse | .[]
     | "PR #\(.number) \(.title) (merged by an agent; high-risk: \(.record
         | capture("^[^`]*`[0-9a-f]{40}`: (?<reasons>.*)$").reasons // "reasons not recorded"))"' <<<"$merged" \
@@ -214,9 +232,10 @@ agent_merged_items() {
 
 # Specs to approve, owner-only PRs (scripts/risk.sh; an unknown risk counts as owner-only), PRs GitHub removed from the
 # merge queue (scripts/pr.sh queue), low-risk and high-risk PRs the merge gate refused on their head commit
-# (scripts/pr.sh refusal) and unanswered needs-info questions ($2, from cmd_next). A PR in the merge queue waits on GitHub, not on the owner. A spec is to approve when flow-phase.jq
-# would call it needs-approval: not approved, not complete, and not still needs-spec (no tickets, not ready-for-agent, and
-# needs-triage or no body). Dies when a read fails, so an empty list means nothing waits.
+# (scripts/pr.sh refusal) and unanswered needs-info questions ($2, from cmd_next). A PR in the merge queue waits on
+# GitHub, not on the owner. A spec is to approve when flow-phase.jq would call it needs-approval: not approved, not
+# complete, and not still needs-spec (no tickets, not ready-for-agent, and needs-triage or no body). Dies when a read
+# fails, so an empty list means nothing waits.
 owner_items() {
   local prs pr title head risk refusal queue
   jq -r --arg approved "$APPROVED_LABEL" --arg ready "$READY_LABEL" '.[]

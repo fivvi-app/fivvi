@@ -153,6 +153,40 @@ describe('issue.sh', () => {
     });
   });
 
+  describe('label', () => {
+    const rules = [viewOf(50, ['spec', 'owner-only']), { match: '^issue edit ', out: '' }];
+
+    it('adds and removes ordinary labels', () => {
+      const result = issueSh(rules, 'label', '50', '--add', 'needs-info', '--remove', 'spec');
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(edit(result.calls).slice(-4), [
+        '--add-label',
+        'needs-info',
+        '--remove-label',
+        'spec',
+      ]);
+    });
+
+    // ADR-021 decision 2: only the owner removes owner-only (or owner-merge); an agent doing it would lower the risk
+    // of its own PR.
+    it('ADR-021: refuses to remove owner-only or owner-merge, whatever the case, and changes nothing', () => {
+      for (const label of ['owner-only', 'owner-merge', 'Owner-Only', 'OWNER-MERGE']) {
+        const result = issueSh(rules, 'label', '50', '--add', 'needs-info', '--remove', label);
+        assert.equal(result.status, 1, label);
+        assert.match(result.stderr, /only the owner removes owner-only and owner-merge/, label);
+        assert.equal(edit(result.calls), undefined, label);
+      }
+    });
+
+    it('ADR-021: still adds owner-only and owner-merge', () => {
+      for (const label of ['owner-only', 'owner-merge']) {
+        const result = issueSh(rules, 'label', '50', '--add', label);
+        assert.equal(result.status, 0, result.stderr);
+        assert.ok(edit(result.calls).includes(label), label);
+      }
+    });
+  });
+
   describe('ready', () => {
     const item = (number, names, parent) => ({
       match: `^issue view ${number} `,

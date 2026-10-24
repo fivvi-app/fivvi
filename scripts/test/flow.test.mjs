@@ -16,8 +16,12 @@ const DISCLAIMER = readFileSync(join(SCRIPTS, '../.agents/skills/triage/SKILL.md
 const TRIAGE_NOTE = `${DISCLAIMER}\n\n## Triage Notes`;
 const comments = (...bodies) => bodies.map((body) => ({ body }));
 
-const daysAgo = (days) =>
-  new Date(Date.now() - days * 86400000).toISOString().replace(/\.\d+Z$/, 'Z');
+// The scripts take "now" from FIVVI_NOW (ISO-8601, UTC), so no test reads the real clock.
+const NOW = '2026-10-20T12:00:00Z';
+const secondsAgo = (seconds) =>
+  new Date(Date.parse(NOW) - seconds * 1000).toISOString().replace(/\.\d+Z$/, 'Z');
+const daysAgo = (days) => secondsAgo(days * 86400);
+// The record pr.sh merge writes for a high-risk PR, and (when the PR went through the queue) the queue record.
 const agentMerge = (sha, reasons, queuedSha = sha) =>
   `Closes #50\n\n**High-risk agent merge:** \`${sha}\`: ${reasons}` +
   (queuedSha ? `\n\n**Merge queue:** added to the merge queue on \`${queuedSha}\`` : '');
@@ -61,150 +65,190 @@ describe('flow.sh next', () => {
   const refusal = (sha) =>
     `Closes #63\n\n**Merge gate:** refused on \`${sha}\`: self-review clean (no self-review record in the PR body)`;
 
-  const next = (failing = []) =>
+  const next = (failing = [], now = NOW) =>
     spawnSync(join(SCRIPTS, 'flow.sh'), ['next'], {
       encoding: 'utf8',
-      env: gh.env([
-        ...failing.map((match) => ({ match, out: '', status: 1 })),
-        { match: '^issue list .*--assignee @me', out: [] },
-        {
-          match: '^issue list .*--label spec ',
-          out: [
-            {
-              number: 50,
-              title: '[F031] Open Gym booking',
-              body: '## Acceptance criteria',
-              labels: labels('spec', 'spec-approved'),
-              subIssuesSummary: { completed: 1, total: 3 },
-            },
-            {
-              number: 70,
-              title: '[F040] Waiting list',
-              body: '## Acceptance criteria',
-              labels: labels('spec'),
-              subIssuesSummary: { completed: 0, total: 0 },
-            },
-            {
-              number: 71,
-              title: '[F041] Untriaged idea',
-              body: 'An idea from the owner',
-              labels: labels('spec', 'needs-triage'),
-              subIssuesSummary: { completed: 0, total: 0 },
-            },
-            {
-              number: 73,
-              title: '[F042] Empty spec',
-              body: ' \n',
-              labels: labels('spec'),
-              subIssuesSummary: { completed: 0, total: 0 },
-            },
-            {
-              number: 74,
-              title: '[F043] Done spec',
-              body: '## Acceptance criteria',
-              labels: labels('spec'),
-              subIssuesSummary: { completed: 2, total: 2 },
-            },
-          ],
-        },
-        { match: '^issue list .*--label ready-for-agent', out: [] },
-        {
-          match: '^issue list .*--label needs-info',
-          out: [
-            { number: 72, title: 'Which reminder time?', comments: comments(TRIAGE_NOTE) },
-            {
-              number: 75,
-              title: 'Which cancel window?',
-              comments: comments(TRIAGE_NOTE, '24 hours'),
-            },
-          ],
-        },
-        {
-          match: '^pr list .*--state open',
-          out: [
-            { number: 60, title: '[F031] Hold a spot', isDraft: false, headRefOid: HEAD },
-            { number: 61, title: '[F031] Show the hold', isDraft: false, headRefOid: HEAD },
-            { number: 62, title: '[F031] Draft', isDraft: true, headRefOid: HEAD },
-            { number: 63, title: '[F031] Release the hold', isDraft: false, headRefOid: HEAD },
-            { number: 64, title: '[F031] Hotfix', isDraft: false, headRefOid: HEAD },
-            { number: 65, title: '[F031] Queued by the agent', isDraft: false, headRefOid: HEAD },
-            { number: 66, title: '[F031] Queued by the owner', isDraft: false, headRefOid: HEAD },
-            { number: 67, title: '[F031] Agent-queueable', isDraft: false, headRefOid: HEAD },
-            {
-              number: 68,
-              title: '[F031] Agent-queueable, refused',
-              isDraft: false,
-              headRefOid: HEAD,
-            },
-          ],
-        },
-        queueRule(64, { removed: true }),
-        queueRule(65, { queued: true }),
-        queueRule(66, { queued: true, position: 2 }),
-        ...[60, 61, 63, 67, 68].map((number) => queueRule(number)),
-        {
-          match: '^pr list .*--state merged',
-          out: [
-            {
-              number: 80,
-              title: '[F001] Verification rules',
-              body: agentMerge(
-                'd'.repeat(40),
-                'packages/database/migrations/0004.sql: tenant-data (/packages/database)',
-              ),
-              mergedAt: daysAgo(2),
-            },
-            {
-              number: 81,
-              title: '[F001] Too old',
-              body: agentMerge('d'.repeat(40), 'package.json: dependencies (package.json)'),
-              mergedAt: daysAgo(8),
-            },
-            { number: 82, title: '[F002] Low-risk', body: 'Closes #51', mergedAt: daysAgo(1) },
-            {
-              number: 83,
-              title: '[F001] Two reasons',
-              body: agentMerge(
-                'e'.repeat(40),
-                'package.json: dependencies (package.json); Dockerfile: infrastructure (Dockerfile*)',
-              ),
-              mergedAt: daysAgo(0.5),
-            },
-            {
-              // The queue dropped the commit the agent queued; the owner merged a later one: not an agent merge.
-              number: 84,
-              title: '[F001] Owner merged after the queue',
-              body: agentMerge(
-                'f'.repeat(40),
-                'package.json: dependencies (package.json)',
-                'a'.repeat(40),
-              ),
-              mergedAt: daysAgo(0.2),
-            },
-            {
-              // The record was written, but nothing was queued on it.
-              number: 85,
-              title: '[F001] Recorded, never queued',
-              body: agentMerge('f'.repeat(40), 'package.json: dependencies (package.json)', null),
-              mergedAt: daysAgo(0.1),
-            },
-          ],
-        },
-        { match: '^api repos/[^ ]+/pulls/60/files', out: [{ filename: 'scripts/pr.sh' }] },
-        { match: '^api repos/[^ ]+/pulls/6[13]/files', out: [{ filename: 'apps/web/page.tsx' }] },
-        {
-          match: '^api repos/[^ ]+/pulls/6[78]/files',
-          out: [{ filename: 'packages/database/migrations/0004.sql' }],
-        },
-        { match: '^pr view 67 .*--json body', out: { body: 'Closes #57' } },
-        { match: '^pr view 68 .*--json body', out: { body: refusal(HEAD) } },
-        { match: '^pr view 61 .*--json body', out: { body: refusal('b'.repeat(40)) } },
-        { match: '^pr view 63 .*--json body', out: { body: refusal(HEAD) } },
-        {
-          match: '^pr view 6[01345678] ',
-          out: { headRefName: 'docs/no-issue', closingIssuesReferences: [], changedFiles: 1 },
-        },
-      ]),
+      env: {
+        ...gh.env([
+          ...failing.map((match) => ({ match, out: '', status: 1 })),
+          { match: '^issue list .*--assignee @me', out: [] },
+          {
+            match: '^issue list .*--label spec ',
+            out: [
+              {
+                number: 50,
+                title: '[F031] Open Gym booking',
+                body: '## Acceptance criteria',
+                labels: labels('spec', 'spec-approved'),
+                subIssuesSummary: { completed: 1, total: 3 },
+              },
+              {
+                number: 70,
+                title: '[F040] Waiting list',
+                body: '## Acceptance criteria',
+                labels: labels('spec'),
+                subIssuesSummary: { completed: 0, total: 0 },
+              },
+              {
+                number: 71,
+                title: '[F041] Untriaged idea',
+                body: 'An idea from the owner',
+                labels: labels('spec', 'needs-triage'),
+                subIssuesSummary: { completed: 0, total: 0 },
+              },
+              {
+                number: 73,
+                title: '[F042] Empty spec',
+                body: ' \n',
+                labels: labels('spec'),
+                subIssuesSummary: { completed: 0, total: 0 },
+              },
+              {
+                number: 74,
+                title: '[F043] Done spec',
+                body: '## Acceptance criteria',
+                labels: labels('spec'),
+                subIssuesSummary: { completed: 2, total: 2 },
+              },
+            ],
+          },
+          { match: '^issue list .*--label ready-for-agent', out: [] },
+          {
+            match: '^issue list .*--label needs-info',
+            out: [
+              { number: 72, title: 'Which reminder time?', comments: comments(TRIAGE_NOTE) },
+              {
+                number: 75,
+                title: 'Which cancel window?',
+                comments: comments(TRIAGE_NOTE, '24 hours'),
+              },
+            ],
+          },
+          {
+            match: '^pr list .*--state open',
+            out: [
+              { number: 60, title: '[F031] Hold a spot', isDraft: false, headRefOid: HEAD },
+              { number: 61, title: '[F031] Show the hold', isDraft: false, headRefOid: HEAD },
+              { number: 62, title: '[F031] Draft', isDraft: true, headRefOid: HEAD },
+              { number: 63, title: '[F031] Release the hold', isDraft: false, headRefOid: HEAD },
+              { number: 64, title: '[F031] Hotfix', isDraft: false, headRefOid: HEAD },
+              { number: 65, title: '[F031] Queued by the agent', isDraft: false, headRefOid: HEAD },
+              { number: 66, title: '[F031] Queued by the owner', isDraft: false, headRefOid: HEAD },
+              { number: 67, title: '[F031] Agent-queueable', isDraft: false, headRefOid: HEAD },
+              {
+                number: 68,
+                title: '[F031] Agent-queueable, refused',
+                isDraft: false,
+                headRefOid: HEAD,
+              },
+              { number: 69, title: '[F031] Risk unreadable', isDraft: false, headRefOid: HEAD },
+            ],
+          },
+          queueRule(64, { removed: true }),
+          queueRule(65, { queued: true }),
+          queueRule(66, { queued: true, position: 2 }),
+          ...[60, 61, 63, 67, 68, 69].map((number) => queueRule(number)),
+          {
+            match: '^pr list .*--state merged',
+            out: [
+              {
+                number: 80,
+                title: '[F001] Verification rules',
+                body: agentMerge(
+                  'd'.repeat(40),
+                  'packages/database/migrations/0004.sql: tenant-data (/packages/database)',
+                ),
+                headRefOid: 'd'.repeat(40),
+                mergedAt: daysAgo(2),
+              },
+              {
+                number: 81,
+                title: '[F001] Too old',
+                body: agentMerge('d'.repeat(40), 'package.json: dependencies (package.json)'),
+                headRefOid: 'd'.repeat(40),
+                mergedAt: daysAgo(8),
+              },
+              {
+                number: 82,
+                title: '[F002] Low-risk',
+                body: 'Closes #51',
+                headRefOid: 'd'.repeat(40),
+                mergedAt: daysAgo(1),
+              },
+              {
+                number: 83,
+                title: '[F001] Two reasons',
+                body: agentMerge(
+                  'e'.repeat(40),
+                  'package.json: dependencies (package.json); Dockerfile: infrastructure (Dockerfile*)',
+                ),
+                headRefOid: 'e'.repeat(40),
+                mergedAt: daysAgo(0.5),
+              },
+              {
+                // The agent queued one commit, a later one was pushed and the owner merged that: not an agent merge.
+                number: 84,
+                title: '[F001] Owner merged a later commit',
+                body: agentMerge(
+                  'f'.repeat(40),
+                  'package.json: dependencies (package.json)',
+                  'f'.repeat(40),
+                ),
+                headRefOid: 'a'.repeat(40),
+                mergedAt: daysAgo(0.2),
+              },
+              {
+                // Squash-merged at once (no merge queue) or the queue record failed to write: the merged commit is
+                // the recorded one, so it still counts.
+                number: 85,
+                title: '[F001] Merged without a queue record',
+                body: agentMerge('f'.repeat(40), 'package.json: dependencies (package.json)', null),
+                headRefOid: 'f'.repeat(40),
+                mergedAt: daysAgo(0.1),
+              },
+              {
+                // Exactly 7 days ago is still inside the window ...
+                number: 86,
+                title: '[F001] Seven days',
+                body: agentMerge('9'.repeat(40), 'Dockerfile: infrastructure (Dockerfile*)'),
+                headRefOid: '9'.repeat(40),
+                mergedAt: daysAgo(7),
+              },
+              {
+                // ... one second more is not.
+                number: 87,
+                title: '[F001] Seven days and a second',
+                body: agentMerge('8'.repeat(40), 'Dockerfile: infrastructure (Dockerfile*)'),
+                headRefOid: '8'.repeat(40),
+                mergedAt: secondsAgo(7 * 86400 + 1),
+              },
+              {
+                // No head commit read: it can't be matched, so it is not listed.
+                number: 88,
+                title: '[F001] No head commit',
+                body: agentMerge('7'.repeat(40), 'Dockerfile: infrastructure (Dockerfile*)'),
+                mergedAt: daysAgo(0.3),
+              },
+            ],
+          },
+          { match: '^api repos/[^ ]+/pulls/69/files', out: '', status: 1 },
+          { match: '^api repos/[^ ]+/pulls/60/files', out: [{ filename: 'scripts/pr.sh' }] },
+          { match: '^api repos/[^ ]+/pulls/6[13]/files', out: [{ filename: 'apps/web/page.tsx' }] },
+          {
+            match: '^api repos/[^ ]+/pulls/6[78]/files',
+            out: [{ filename: 'packages/database/migrations/0004.sql' }],
+          },
+          { match: '^pr view 67 .*--json body', out: { body: 'Closes #57' } },
+          { match: '^pr view 68 .*--json body', out: { body: refusal(HEAD) } },
+          { match: '^pr view 61 .*--json body', out: { body: refusal('b'.repeat(40)) } },
+          { match: '^pr view 63 .*--json body', out: { body: refusal(HEAD) } },
+          {
+            match: '^pr view 6[01345678] ',
+            out: { headRefName: 'docs/no-issue', closingIssuesReferences: [], changedFiles: 1 },
+          },
+        ]),
+        FIVVI_NOW: now,
+      },
     });
 
   it('lists what waits on the owner: specs to approve, owner-only, refused and queue-removed PRs, questions', () => {
@@ -226,13 +270,14 @@ describe('flow.sh next', () => {
         'Decide on PR #63 [F031] Release the hold (the merge gate refused it on ccccccc: self-review clean (no self-review record in the PR body); or fix it and push)',
         'Decide on PR #64 [F031] Hotfix (GitHub removed it from the merge queue: Merge group failed; or fix it and push)',
         'Decide on PR #68 [F031] Agent-queueable, refused (the merge gate refused it on ccccccc: self-review clean (no self-review record in the PR body); or fix it and push)',
+        'Merge PR #69 [F031] Risk unreadable (owner-only: risk unknown)',
         'Answer #72 Which reminder time? (needs-info)',
         '',
       ].join('\n'),
     );
   });
 
-  it('ADR-021: lists under "For the owner to read" the high-risk PRs agents merged in the last 7 days, newest first, when the queued commit is the recorded one', () => {
+  it('ADR-021: lists under "For the owner to read" the high-risk PRs agents merged in the last 7 days, newest first, when the merged commit is the recorded one', () => {
     const result = next();
     assert.equal(result.status, 0, result.stderr);
     const read = result.stdout.slice(result.stdout.indexOf('== For the owner to read'));
@@ -240,11 +285,40 @@ describe('flow.sh next', () => {
       read,
       [
         '== For the owner to read',
+        'PR #85 [F001] Merged without a queue record (merged by an agent; high-risk: package.json: dependencies (package.json))',
         'PR #83 [F001] Two reasons (merged by an agent; high-risk: package.json: dependencies (package.json); Dockerfile: infrastructure (Dockerfile*))',
         'PR #80 [F001] Verification rules (merged by an agent; high-risk: packages/database/migrations/0004.sql: tenant-data (/packages/database))',
+        'PR #86 [F001] Seven days (merged by an agent; high-risk: Dockerfile: infrastructure (Dockerfile*))',
         '',
       ].join('\n'),
     );
+  });
+
+  it('ADR-021: takes "now" from FIVVI_NOW, so the 7 days move with it', () => {
+    // 8 days after NOW only the PRs merged in the day before are inside the window.
+    const result = next(
+      [],
+      new Date(Date.parse(NOW) + 8 * 86400000).toISOString().replace(/\.\d+Z$/, 'Z'),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(
+      result.stdout.slice(result.stdout.indexOf('== For the owner to read')),
+      /^== For the owner to read\n\(none\)\n$/,
+    );
+  });
+
+  it('ADR-021: FIVVI_NOW that is not an ISO-8601 UTC time is an error, never the real clock', () => {
+    for (const now of [
+      '',
+      'tomorrow',
+      '2026-10-20',
+      '2026-10-20 12:00:00',
+      '2026-13-40T12:00:00Z',
+    ]) {
+      const result = next([], now);
+      assert.notEqual(result.status, 0, now);
+      assert.match(result.stderr, /^error: FIVVI_NOW must be an ISO-8601 UTC time/m, now);
+    }
   });
 
   it('ADR-021: a high-risk PR an agent can merge does not wait on the owner, and one in the merge queue neither', () => {

@@ -36,8 +36,8 @@
 #                                                 (ADR-016); a high-risk PR is first recorded in the PR body with its
 #                                                 reasons; an owner-only PR is never queued; otherwise queue
 #                                                 nothing, record the refusal for the head commit in the PR body, print
-#                                                 why and exit 1: the PR stays for the owner. Never --auto or --admin; the queued commit is
-#                                                 recorded in the PR body
+#                                                 why and exit 1: the PR stays for the owner. Never --auto or --admin;
+#                                                 the queued commit is recorded in the PR body
 #   pr.sh refusal <pr>                            the last refusal recorded in the PR body as {sha, reasons}, or null
 #   pr.sh queue <pr>                              the merge queue state as {state, position, reason}: state is "queued",
 #                                                 "removed" (GitHub took the PR out of the queue, reason says why, and no
@@ -559,12 +559,13 @@ cmd_queue() {
 }
 
 # Adds a low-risk or high-risk (agent-queueable) PR that passes the whole merge gate to the merge queue, which tests it
-# on top of the latest main and squash-merges it (ADR-018). On a branch with a merge queue, `gh pr merge` always asks for auto-merge (whatever the
-# flags), which the repo doesn't allow and agents never use, so the PR is enqueued with GraphQL's enqueuePullRequest. A
-# branch without a queue is squash-merged with `gh pr merge`. Should auto-merge ever be on afterwards, turn it off again.
+# on top of the latest main and squash-merges it (ADR-018). On a branch with a merge queue, `gh pr merge` always asks
+# for auto-merge (whatever the flags), which the repo doesn't allow and agents never use, so the PR is enqueued with
+# GraphQL's enqueuePullRequest. A branch without a queue is squash-merged with `gh pr merge`. Should auto-merge ever be
+# on afterwards, turn it off again.
 cmd_merge() {
   [ $# -eq 0 ] || usage
-  local pr facts decision head branch issue out failed state attempt
+  local pr facts decision head branch issue out failed state attempt reasons
   pr="$(current_pr)"
   if ! facts="$(merge_facts "$pr")" || [ -z "$facts" ]; then
     die "could not read the facts of PR #$pr; nothing queued"
@@ -585,7 +586,9 @@ cmd_merge() {
   # The owner reads afterwards what an agent merged and why it counted as high-risk (ADR-021): record it before
   # queueing, and queue nothing when it can't be recorded (record dies).
   if [ "$(jq -r .risk.risk <<<"$facts")" = high ]; then
-    record "$pr" "$HIGH_RISK_MARK" "**$HIGH_RISK_MARK:** \`$head\`: $(jq -r '.risk.reasons | join("; ")' <<<"$facts")"
+    reasons="$(jq -r '.risk.reasons | join("; ")' <<<"$facts")" \
+      || die "could not read the risk reasons of PR #$pr; nothing queued"
+    record "$pr" "$HIGH_RISK_MARK" "**$HIGH_RISK_MARK:** \`$head\`: $reasons"
   fi
 
   branch="$(jq -r .branch <<<"$facts")"

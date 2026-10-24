@@ -23,8 +23,8 @@ billing               *billing*
 billing               *payment*
 product-docs          /docs/product
 product-docs          /docs/decisions
-guardrails            /AGENTS.md
-guardrails            /CLAUDE.md
+guardrails            AGENTS.md
+guardrails            CLAUDE.md
 guardrails            /CODING_STANDARDS.md
 guardrails            /.agents
 guardrails            /.claude
@@ -32,6 +32,14 @@ guardrails            /.codex
 guardrails            /.github
 guardrails            /.githooks
 guardrails            /scripts
+guardrails            /docs/agents
+guardrails            /docs/engineering/WORKFLOW.md
+# The files that define the checks: the root package.json holds their scripts and also matches the dependencies rule
+# below, so it is owner-only, while every other package.json stays a dependency change.
+guardrails            /package.json
+guardrails            /turbo.json
+guardrails            /biome.json
+guardrails            /.shellcheckrc
 dependencies          package.json
 dependencies          /pnpm-lock.yaml
 dependencies          /pnpm-workspace.yaml

@@ -76,10 +76,20 @@ describe('risk of a pull request', () => {
       'scripts/agents.sh',
       'scripts/codex-agent.sh',
       'scripts/high-risk-paths.txt',
+      // The rules agents work by and the files that define the checks (ADR-021: agents never loosen their own rules).
+      'docs/agents/build.md',
+      'docs/agents/issue-tracker.md',
+      'docs/agents/triage-labels.md',
+      'docs/engineering/WORKFLOW.md',
+      'apps/AGENTS.md',
+      'packages/api/CLAUDE.md',
+      'turbo.json',
+      'biome.json',
+      '.shellcheckrc',
     ],
     dependencies: [
-      'package.json',
       'apps/web/package.json',
+      'packages/api/package.json',
       'pnpm-lock.yaml',
       'pnpm-workspace.yaml',
       '.npmrc',
@@ -105,6 +115,19 @@ describe('risk of a pull request', () => {
     });
   }
 
+  it('ADR-021: the root package.json defines the checks, so it is owner-only; other package.json files stay dependencies', () => {
+    const root = pr(['package.json']);
+    assert.equal(root.risk, 'owner');
+    assert.deepEqual(root.reasons, [
+      'package.json: guardrails (/package.json)',
+      'package.json: dependencies (package.json)',
+    ]);
+    assert.deepEqual(pr(['apps/web/package.json']), {
+      risk: 'high',
+      reasons: ['apps/web/package.json: dependencies (package.json)'],
+    });
+  });
+
   it('anchors root paths: a nested folder with the same name is not a guardrail', () => {
     assert.equal(
       pr([
@@ -112,6 +135,11 @@ describe('risk of a pull request', () => {
         'apps/web/docs/product.md',
         'apps/web/.npmrc',
         'examples/pnpm-workspace.yaml',
+        'apps/web/turbo.json',
+        'examples/biome.json',
+        'docs/engineering/TESTING.md',
+        'docs/agents-overview.md',
+        'apps/web/docs/agents/x.md',
       ]).risk,
       'low',
     );
@@ -129,7 +157,7 @@ describe('risk of a pull request', () => {
       risk: 'owner',
       reasons: [
         'packages/api/src/auth/session.ts: auth (*auth*)',
-        'AGENTS.md: guardrails (/AGENTS.md)',
+        'AGENTS.md: guardrails (AGENTS.md)',
       ],
     });
   });
@@ -165,7 +193,11 @@ describe('risk of a pull request', () => {
   });
 
   it('ADR-021: is high with only agent-queueable reasons, whatever their number', () => {
-    const result = pr(['packages/database/migrations/0003.sql', 'package.json', 'Dockerfile']);
+    const result = pr([
+      'packages/database/migrations/0003.sql',
+      'apps/web/package.json',
+      'Dockerfile',
+    ]);
     assert.equal(result.risk, 'high');
     assert.equal(result.reasons.length, 3);
   });
@@ -200,6 +232,25 @@ describe('risk of a pull request', () => {
     const result = pr(['apps/web/page.tsx'], [ticket({ labels: ['owner-merge', 'owner-only'] })]);
     assert.equal(result.risk, 'owner');
     assert.deepEqual(result.reasons, ['#57 is labelled owner-merge', '#57 is labelled owner-only']);
+  });
+
+  it('matches the owner-merge and owner-only labels whatever their case', () => {
+    assert.equal(pr(['apps/web/page.tsx'], [ticket({ labels: ['Owner-Only'] })]).risk, 'owner');
+    assert.equal(pr(['apps/web/page.tsx'], [ticket({ labels: ['OWNER-MERGE'] })]).risk, 'high');
+    const spec = ticket({ parent: { number: 50, labels: ['spec', 'Owner-Only'] } });
+    assert.equal(pr(['apps/web/page.tsx'], [spec]).risk, 'owner');
+  });
+
+  it('is an error, never a verdict, when the labels of an issue or its spec are not a list', () => {
+    for (const labels of [null, 'owner-only', { name: 'owner-only' }, 7]) {
+      for (const issue of [
+        ticket({ labels }),
+        ticket({ parent: { number: 50, labels } }),
+        { number: 57, parent: null },
+      ]) {
+        assert.throws(() => pr(['apps/web/page.tsx'], [issue]), /labels/, JSON.stringify(issue));
+      }
+    }
   });
 
   it('is low without a linked issue when no path is high-risk', () => {
