@@ -95,9 +95,7 @@ export function createAuth({
     async findAccount(headers) {
       const session = await auth.api.getSession({ headers });
       if (!session) return undefined;
-      const { id, email, preferredLocale } = session.user as typeof session.user & {
-        preferredLocale?: string | null;
-      };
+      const { id, email, preferredLocale } = session.user;
       return { id, email, preferredLocale: isLocale(preferredLocale) ? preferredLocale : null };
     },
   };

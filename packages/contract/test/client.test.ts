@@ -24,6 +24,15 @@ function client(
   });
 }
 
+// The same, signed in as a fake account (or nobody).
+function meClient(account: Awaited<ReturnType<ApiDependencies['findSignedInAccount']>>) {
+  const handle = createApiHandler({ ...NO_DEPENDENCIES, findSignedInAccount: async () => account });
+  return createApiClient({
+    baseUrl: 'http://localhost/api',
+    fetch: async (request) => await handle(request),
+  });
+}
+
 describe('E018 TypeScript client', () => {
   it('calls GET /v1/hello and returns the typed response', async () => {
     const { data, error, response } = await client().GET('/v1/hello', {
@@ -59,5 +68,24 @@ describe('E018 TypeScript client', () => {
     expect(response.status).toBe(500);
     expect(data).toBeUndefined();
     expect(error).toBe(INTERNAL_SERVER_ERROR);
+  });
+
+  it('calls GET /v1/me and returns the typed account, with a nullable language', async () => {
+    const account = { id: '0197c0de-0000-7000-8000-000000000001', email: 'owner@example.com' };
+
+    const withLanguage = await meClient({ ...account, preferredLocale: 'nl-NL' }).GET('/v1/me');
+    expect(withLanguage.response.status).toBe(200);
+    expect(withLanguage.data).toEqual({ ...account, preferredLocale: 'nl-NL' });
+
+    const withoutLanguage = await meClient({ ...account, preferredLocale: null }).GET('/v1/me');
+    expect(withoutLanguage.data?.preferredLocale).toBeNull();
+  });
+
+  it('returns the typed 401 on GET /v1/me when nobody is signed in', async () => {
+    const { data, error, response } = await meClient(undefined).GET('/v1/me');
+
+    expect(response.status).toBe(401);
+    expect(data).toBeUndefined();
+    expect(error).toEqual({ code: 'unauthorized' });
   });
 });

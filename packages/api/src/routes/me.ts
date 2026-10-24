@@ -66,6 +66,8 @@ const meRoute = createRoute({
 
 export function registerMe(app: OpenAPIHono, dependencies: ApiDependencies) {
   // Its own router, so `account` is typed (and set) only on the routes behind the middleware.
+  // /me has no input to validate, so it needs no `defaultHook`; a route with input added here
+  // must pass the one `createApp` sets, so its validation errors stay the same.
   const me = new OpenAPIHono<SignedInEnv>();
   me.use(meRoute.getRoutingPath(), resolveSignedInAccount(dependencies));
   me.openapi(meRoute, (c) => {

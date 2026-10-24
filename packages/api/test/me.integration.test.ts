@@ -96,7 +96,7 @@ describe('F001 GET /v1/me', () => {
     transport.clear();
   });
 
-  it('AC14: 401 anonymous, 200 signed in, matches the schema and the contract', async () => {
+  it('AC14: 401 anonymous, 200 signed in, matches the schema', async () => {
     const anonymous = await api(client.db).request('/v1/me');
     expect(anonymous.status).toBe(401);
     expect(await anonymous.json()).toEqual({ code: 'unauthorized' });
