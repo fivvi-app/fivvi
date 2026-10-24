@@ -2,6 +2,7 @@ import { createApiHandler } from '@fivvi/api';
 import { findSystemGreeting, pingDatabase } from '@fivvi/database';
 import { createProductEvents } from '@fivvi/observability';
 import { inProcessApiClient } from './api-client';
+import { auth } from './auth';
 import { database } from './database';
 import { errorReporter } from './error-reporter';
 
@@ -13,6 +14,8 @@ import { errorReporter } from './error-reporter';
 export const apiHandler = createApiHandler({
   pingDatabase: () => pingDatabase(database()),
   findSystemGreeting: (slug) => findSystemGreeting(database(), slug),
+  // The account of the sign-in session cookie (F001).
+  findSignedInAccount: (headers) => auth().findAccount(headers),
   errorReporter,
   // Sends product events to PostHog, at POSTHOG_HOST, when POSTHOG_KEY is set (E009).
   productEvents: createProductEvents({ errorReporter }),

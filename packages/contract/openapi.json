@@ -110,6 +110,54 @@
           "issues"
         ],
         "description": "The request did not match the contract. Contains no user-facing text."
+      },
+      "MeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The account ID."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "The address the account signs in with."
+          },
+          "preferredLocale": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "nl-NL",
+              "en",
+              null
+            ],
+            "description": "The language stored on the account; null until one is stored."
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "preferredLocale"
+        ],
+        "description": "The signed-in account."
+      },
+      "Unauthorized": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "unauthorized"
+            ]
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "The request has no valid sign-in session. Contains no user-facing text."
       }
     },
     "parameters": {}
@@ -183,6 +231,49 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me": {
+      "get": {
+        "operationId": "getMe",
+        "tags": [
+          "me"
+        ],
+        "summary": "The signed-in account",
+        "description": "The account of the sign-in session in the request. The web sends the sign-in session cookie; there is no other way to sign in yet.",
+        "responses": {
+          "200": {
+            "description": "The account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid sign-in session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
                 }
               }
             }

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed; decisions 2 and 3 amended by [ADR-018](ADR-018-merge-queue.md) |
+| **Status** | Proposed; decisions 2 and 3 amended by [ADR-018](ADR-018-merge-queue.md); decision 1, the "low-risk" condition of the merge gate and the parallel limit of three amended by [ADR-021](ADR-021-agents-queue-high-risk.md) |
 | **Date** | 2026-10-13 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | ROADMAP.md §4.3, M4 (Gate G2), §16 v1.12; WORKFLOW.md §3, §4, §7; ENVIRONMENTS.md §4; ADR-011; ADR-018 (merge queue); issue #28 |
@@ -26,6 +26,8 @@ What must not change:
 Agents merge a PR when a script finds it **low-risk** and every condition of the **merge gate** holds. Everything else waits for the owner. Decided by the owner on 13 October 2026 (#28).
 
 > **Amended by [ADR-018](ADR-018-merge-queue.md) (19 October 2026):** merges go through the merge queue. In decision 2 the ruleset requires the merge queue instead of an up-to-date branch. In decision 3 `pr.sh merge` adds the PR to the queue (GitHub squash-merges it) instead of merging directly, and the "up to date with `main`" condition and the exception for a branch that is behind `main` are gone. The rest of this ADR stands.
+
+> **Amended by [ADR-021](ADR-021-agents-queue-high-risk.md) (24 October 2026):** until G2 agents also add a high-risk PR to the merge queue unless it is owner-only. In decision 1 `scripts/risk.sh` reports three levels (`low`, `high` for agent-queueable reasons, `owner` for any owner-only reason) and the path groups guardrails, legal, billing and product docs are owner-only; in decision 3 the first condition of the merge gate is "not owner-only" and `pr.sh merge` records a high-risk merge in the PR body. The parallel limit of three tickets is gone (it stays optional through `FIVVI_MAX_TICKETS`). The rest of this ADR stands.
 
 1. **Risk is decided by a script, never by an agent's judgment.** `scripts/risk.sh <pr>` classifies a PR as high-risk when it changes, adds, deletes or renames a path in `scripts/high-risk-paths.txt`, or when its issue or that issue's parent spec has the `owner-merge` label. It prints the reasons. The pure decision is `scripts/risk.jq`. The high-risk groups:
    - auth; tenant data (`packages/database`: schema, migrations, RLS); health notes; `docs/legal`; billing and payments;

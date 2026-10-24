@@ -44,6 +44,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The signed-in account
+         * @description The account of the sign-in session in the request. The web sends the sign-in session cookie; there is no other way to sign in yet.
+         */
+        get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -83,6 +103,29 @@ export interface components {
                 /** @description Machine-readable issue code. */
                 code: string;
             }[];
+        };
+        /** @description The signed-in account. */
+        MeResponse: {
+            /**
+             * Format: uuid
+             * @description The account ID.
+             */
+            id: string;
+            /**
+             * Format: email
+             * @description The address the account signs in with.
+             */
+            email: string;
+            /**
+             * @description The language stored on the account; null until one is stored.
+             * @enum {string|null}
+             */
+            preferredLocale: "nl-NL" | "en" | null;
+        };
+        /** @description The request has no valid sign-in session. Contains no user-facing text. */
+        Unauthorized: {
+            /** @enum {string} */
+            code: "unauthorized";
         };
     };
     responses: never;
@@ -150,6 +193,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The account. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+            /** @description No valid sign-in session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unauthorized"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
