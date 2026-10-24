@@ -1,4 +1,4 @@
-import { createAccount, newAddress, newAllowedAddress, newIpAddress } from './accounts';
+import { clientIpHeaders, createAccount, newAddress, newAllowedAddress } from './accounts';
 import { emailsTo, signInCode, signInLink, waitForEmail, waitForEmails } from './brevo';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 
@@ -7,13 +7,10 @@ import { expect, expectNoAxeViolations, test } from './fixtures';
 // the code from; every spec has an address of its own.
 test.describe('F001 sign in on TW-10', () => {
   // Better Auth limits sign-in requests per IP address, and every browser here comes from the same
-  // one. An address of its own gives each spec its own limit, like separate visitors. Both headers
-  // are sent because which one Better Auth reads depends on #134 (rate limits): today it takes
-  // `x-forwarded-for`; once #134 trusts `X-Real-IP`, a request without it (under `next start`) falls
-  // into one shared "unknown IP" bucket. `x-forwarded-for` can go once #134 is on main.
+  // one. An address of its own gives each spec its own limit, like separate visitors (the headers
+  // and why there are two: `clientIpHeaders` in accounts.ts).
   test.beforeEach(async ({ context }) => {
-    const ipAddress = newIpAddress();
-    await context.setExtraHTTPHeaders({ 'x-forwarded-for': ipAddress, 'x-real-ip': ipAddress });
+    await context.setExtraHTTPHeaders(clientIpHeaders());
   });
 
   test('AC2: signs in with the code and returns to the requested page', async ({
@@ -158,8 +155,9 @@ test.describe('F001 sign in on TW-10', () => {
     await expect(page.getByLabel(copy.signIn.codeLabel)).toHaveCount(0);
   });
 
-  test('AC8: an allowed address without an account signs in and gets its account', async ({
+  test('AC9 (page): an allowed address without an account signs in and gets its account in the page language', async ({
     page,
+    appLocale,
     messages: copy,
   }) => {
     const address = newAllowedAddress('pilot');
@@ -180,9 +178,14 @@ test.describe('F001 sign in on TW-10', () => {
     const session = await page.request.get('/api/auth/get-session');
     expect(((await session.json()) as { user: { email: string } }).user.email).toBe(address);
     expect(await emailsTo(address)).toHaveLength(1);
+
+    // The new account carries the language of the sign-in page.
+    const me = await page.request.get('/api/v1/me');
+    const { preferredLocale } = (await me.json()) as { preferredLocale: string | null };
+    expect(preferredLocale).toBe(appLocale);
   });
 
-  test('AC9: an address that is neither an account nor allowed sees the same code step', async ({
+  test('AC8 (page): an address that is neither an account nor allowed sees the same code step', async ({
     page,
     messages: copy,
   }) => {
