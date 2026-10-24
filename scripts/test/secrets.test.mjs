@@ -24,6 +24,8 @@ const pem = (kind = '') =>
 const awsKey = `AK${'IA'}${'0123456789ABCDEF'}`;
 const githubToken = `gh${'p'}_${'a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8'}`;
 const slackToken = `xo${'xb'}-123456789012-abcdefghijkl`;
+const sentryOrgToken = `sntry${'s'}_${'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7bC0eF3hJ6kM9n'}`;
+const sentryUserToken = `sntry${'u'}_${'0123456789abcdef'.repeat(4)}`;
 
 const makeRepo = () => {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), 'secrets-')));
@@ -38,8 +40,8 @@ const makeRepo = () => {
         GIT_COMMITTER_EMAIL: '42+octocat@users.noreply.github.com',
       },
     }).trim();
-  const run = (args = ['files']) =>
-    spawnSync(join(dir, 'scripts/secrets.sh'), args, { cwd: dir, encoding: 'utf8' });
+  const run = (args = ['files'], cwd = dir) =>
+    spawnSync(join(dir, 'scripts/secrets.sh'), args, { cwd, encoding: 'utf8' });
   const write = (path, text) => {
     mkdirSync(dirname(join(dir, path)), { recursive: true });
     writeFileSync(join(dir, path), text);
@@ -85,6 +87,8 @@ describe('E017 AC7 secrets.sh files', () => {
     ['an AWS access key ID', awsKey],
     ['a GitHub token', githubToken],
     ['a Slack token', slackToken],
+    ['a Sentry organization auth token', sentryOrgToken],
+    ['a Sentry user auth token', sentryUserToken],
   ]) {
     it(`fails on ${name} in a file, without printing it`, () => {
       repo.write('src/config.ts', `export const x = '${token}';\n`);
@@ -96,7 +100,16 @@ describe('E017 AC7 secrets.sh files', () => {
     });
   }
 
-  for (const extension of ['p12', 'p8', 'jks', 'keystore', 'mobileprovision', 'P12']) {
+  for (const extension of [
+    'p12',
+    'p8',
+    'jks',
+    'keystore',
+    'mobileprovision',
+    'pfx',
+    'P12',
+    'PFX',
+  ]) {
     it(`fails on a tracked *.${extension} file, whatever it holds`, () => {
       repo.write(`apps/ios/signing/dist.${extension}`, 'binary-ish');
       repo.git('add', '-f', '.');
@@ -146,6 +159,31 @@ describe('E017 AC7 secrets.sh files', () => {
     assert.equal(repo.run().status, 0, output(repo.run()));
   });
 
+  it('names a path containing a colon whole, with its line, and lets an allowlist entry for it apply', () => {
+    repo.write('docs/we:ird.txt', `one\n${pem()}`);
+    repo.write('docs/ok:name.p12', 'x');
+    repo.git('add', '-f', '.');
+    const result = repo.run();
+    assert.equal(result.status, 1, output(result));
+    assert.match(output(result), /^docs\/we:ird\.txt:2: .*private key/im);
+    assert.match(output(result), /^docs\/ok:name\.p12: key or certificate file/m);
+    writeFileSync(
+      join(repo.dir, 'scripts/secret-allowlist.txt'),
+      'docs/we:ird.txt | a made-up key for the parser test\ndocs/ok:name.p12 | empty file for a parser test\n',
+      { flag: 'a' },
+    );
+    assert.equal(repo.run().status, 0, output(repo.run()));
+  });
+
+  it('scans the whole repo when it runs from a subdirectory', () => {
+    repo.write('docs/key.txt', pem());
+    repo.write('src/app/index.ts', 'export {};\n');
+    repo.git('add', '.');
+    const result = repo.run(['files'], join(repo.dir, 'src/app'));
+    assert.equal(result.status, 1, output(result));
+    assert.match(output(result), /^docs\/key\.txt:1: /m);
+  });
+
   it('fails on an allowlist entry without a reason', () => {
     repo.write('fixtures/dummy.p12', 'x');
     writeFileSync(join(repo.dir, 'scripts/secret-allowlist.txt'), 'fixtures/*.p12\n', {
@@ -179,7 +217,7 @@ describe('E017 AC7 the repo itself', () => {
 
   it('keeps key files out of git with .gitignore', () => {
     const ignore = readFileSync(join(ROOT, '.gitignore'), 'utf8').split('\n');
-    for (const pattern of ['*.p12', '*.p8', '*.jks', '*.keystore', '*.mobileprovision']) {
+    for (const pattern of ['*.p12', '*.p8', '*.jks', '*.keystore', '*.mobileprovision', '*.pfx']) {
       assert.ok(ignore.includes(pattern), pattern);
     }
   });

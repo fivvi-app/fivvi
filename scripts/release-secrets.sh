@@ -219,7 +219,7 @@ do_sentry() {
 command="${1:-}"
 [ $# -eq 0 ] || shift
 case "$command" in
-  list) [ $# -eq 0 ] || usage; need_cmd jq; do_list ;;
+  list) [ $# -eq 0 ] || usage; do_list ;;
   ios) need_cmd base64; do_ios "$@" ;;
   android) need_cmd base64; do_android "$@" ;;
   android-keystore) need_cmd base64; do_android_keystore "$@" ;;

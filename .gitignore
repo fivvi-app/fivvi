@@ -41,6 +41,7 @@ packages/contract/swift/Package.resolved
 
 # Signing material of the release lanes (E017): keys live in the GitHub environment `release`, never in the repo
 *.p12
+*.pfx
 *.p8
 *.jks
 *.keystore

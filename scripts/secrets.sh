@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Keep keys and tokens out of this public repo (E017 AC7). Dependency-free, over tracked and new files (not ignored ones).
 #
-#   secrets.sh files     no file named *.p12, *.p8, *.jks, *.keystore or *.mobileprovision, and no private-key block
-#                        (PEM), AWS access key ID, GitHub token or Slack token inside a file
+#   secrets.sh files     no file named *.p12, *.pfx, *.p8, *.jks, *.keystore or *.mobileprovision, and no private-key
+#                        block (PEM), AWS access key ID, GitHub, Slack or Sentry token inside a file
 #
 # Findings name the file and line, never the value. A file that has to stay is listed with a reason in
 # scripts/secret-allowlist.txt (it lifts both checks for that path).
@@ -10,14 +10,15 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
 ALLOWLIST="$ROOT/scripts/secret-allowlist.txt"
-KEY_FILE_NAME_RE='\.(p12|p8|jks|keystore|mobileprovision)$'
+KEY_FILE_NAME_RE='\.(p12|pfx|p8|jks|keystore|mobileprovision)$'
 # One pattern per kind of key material; each is written so that it does not match its own source text.
-KINDS=("PEM private key" "AWS access key ID" "GitHub token" "Slack token")
+KINDS=("PEM private key" "AWS access key ID" "GitHub token" "Slack token" "Sentry auth token")
 PATTERNS=(
   '-----BEGIN ([A-Z0-9]+ )*PRIVATE KEY'
   '(^|[^A-Za-z0-9])AKIA[0-9A-Z]{16}([^A-Za-z0-9]|$)'
   '(^|[^A-Za-z0-9_])(gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,})'
   '(^|[^A-Za-z0-9])xox[abprs]-[A-Za-z0-9-]{10,}'
+  '(^|[^A-Za-z0-9_])sntry[su]_[A-Za-z0-9+/=_-]{20,}'
 )
 
 # The allowlist, read once: path globs in ALLOWED, each with a reason after "|". An entry without one is itself a finding.
@@ -52,7 +53,9 @@ path_allowed() {
 }
 
 files() {
-  local rc=0 path name i row line
+  local rc=0 path name i rest line last
+  # git ls-files is relative to the working directory: always scan the whole repo.
+  cd "$ROOT"
   load_allowlist
   rc=$allowlist_problems
   while IFS= read -r -d '' path; do
@@ -64,14 +67,17 @@ files() {
     fi
   done < <(git ls-files -z --cached --others --exclude-standard)
   for i in "${!PATTERNS[@]}"; do
-    while IFS= read -r row; do
-      path="${row%%:*}"
-      line="${row#*:}"
-      line="${line%%:*}"
+    last=""
+    # grep --null ends the path with a NUL, so a ":" in a path is safe; the rest is "line:match" and the match is never kept.
+    while IFS= read -r -d '' path && IFS= read -r rest; do
+      line="${rest%%:*}"
+      rest=""
+      [ "$path:$line" != "$last" ] || continue
+      last="$path:$line"
       path_allowed "$path" && continue
       echo "$path:$line: ${KINDS[$i]}" >&2
       rc=1
-    done < <(git ls-files -z --cached --others --exclude-standard | xargs -0 grep -IHnoE -e "${PATTERNS[$i]}" 2>/dev/null | cut -d: -f1,2 | sort -u || true)
+    done < <(git ls-files -z --cached --others --exclude-standard | xargs -0 grep -IHnoE --null -e "${PATTERNS[$i]}" 2>/dev/null || true)
   done
   [ "$rc" = 0 ] || echo "  fix: keep keys, certificates and tokens out of the repo (docs/engineering/RELEASE.md); scripts/secret-allowlist.txt lists the files that are fine, each with a reason" >&2
   return "$rc"
