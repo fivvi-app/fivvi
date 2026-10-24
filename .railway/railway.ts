@@ -69,6 +69,14 @@ export default defineRailway((ctx) => {
       BREVO_API_KEY: preserve(),
       EMAIL_FROM_ADDRESS: preserve(),
       EMAIL_FROM_NAME: 'Fivvi',
+      // Sign-in (F001, packages/auth). Signs and hashes sign-in sessions, links and codes: a
+      // secret per environment, set in the dashboard, and production's never reaches
+      // development. Without it, sign-in fails.
+      BETTER_AUTH_SECRET: preserve(),
+      // The public address of this environment, so the link in a sign-in email points at the
+      // environment that sent it (a preview's links open that preview). It follows the Railway
+      // domain of `web`; set it explicitly when the custom domain fivvi.app is added.
+      BETTER_AUTH_URL: 'https://${{RAILWAY_PUBLIC_DOMAIN}}',
       // Product events (E009, packages/observability): the PostHog EU project key, set in the
       // dashboard for production only. Empty (development, previews) sends nothing.
       POSTHOG_KEY: preserve(),

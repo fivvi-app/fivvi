@@ -13,7 +13,7 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 | `apps/ios` | Native iOS app (Swift, SwiftUI), `pnpm test:ios` |
 | `apps/android` | Native Android app (Kotlin, Jetpack Compose), `pnpm test:android`; see its `README.md` |
 | `packages/api` | API routes (zod-openapi) |
-| `packages/auth` | Planned: Better Auth configuration (ADR-007, M2) |
+| `packages/auth` | Better Auth configuration and the sign-in with the emailed link and code (ADR-007, F001); the only code that imports Better Auth |
 | `packages/contract` | The API contract: committed `openapi.json` + generated TS/Swift/Kotlin clients |
 | `packages/database` | Schema and migrations |
 | `packages/design-tokens` | Design tokens: the one source of colours, type, spacing, radii and motion, generated for web, Swift and Kotlin |

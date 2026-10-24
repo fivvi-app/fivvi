@@ -23,9 +23,15 @@ try {
   await client.close();
 }
 
+// Sign-in (F001): a synthetic secret, and this server's own address for the links in emails.
 const server = spawn(process.execPath, ['.next/standalone/apps/web/server.js'], {
   stdio: 'inherit',
-  env: { ...process.env, DATABASE_URL: url },
+  env: {
+    ...process.env,
+    DATABASE_URL: url,
+    BETTER_AUTH_SECRET: 'e2e-secret-that-is-at-least-thirty-two-characters-long',
+    BETTER_AUTH_URL: `http://localhost:${process.env.PORT}`,
+  },
 });
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => server.kill(signal));

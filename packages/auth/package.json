@@ -1,0 +1,30 @@
+{
+  "name": "@fivvi/auth",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "biome check --formatter-enabled=false --error-on-warnings .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "format:check": "biome format ."
+  },
+  "dependencies": {
+    "@fivvi/database": "workspace:*",
+    "@fivvi/email": "workspace:*",
+    "@fivvi/i18n": "workspace:*",
+    "better-auth": "catalog:",
+    "drizzle-orm": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@fivvi/testing": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

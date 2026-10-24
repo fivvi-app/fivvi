@@ -1,0 +1,88 @@
+import { sql } from 'drizzle-orm';
+import { boolean, check, index, pgTable, text, uuid } from 'drizzle-orm/pg-core';
+import { id, instant, timestamps } from './columns.ts';
+
+// Better Auth's four models under our names (F001, ADR-007, spec #128): its "user" is an
+// account (`auth_users`), its "session" a sign-in session (`auth_sessions`; *Session* is a
+// scheduled training in the glossary), its "account" an identity (`auth_identities`) and its
+// "verification" a sign-in verification (`auth_verifications`). An account is global and
+// shared by every workspace of its person, and these tables hold no business data, so none of
+// them has an `organization_id` (ADR-006 scoping does not apply; membership comes with F002).
+
+/** An account: the login of one person. */
+export const authUsers = pgTable(
+  'auth_users',
+  {
+    id: id(),
+    /** Better Auth requires a name. Sign-in by email collects none, so it stays empty. */
+    name: text('name').notNull().default(''),
+    /** Lower case: Better Auth normalises it before every read and write. */
+    email: text('email').notNull().unique(),
+    emailVerified: boolean('email_verified').notNull().default(false),
+    /** The language of the screen where the person first signed in (ADR-019); F010 changes it. */
+    preferredLocale: text('preferred_locale'),
+    ...timestamps(),
+  },
+  (table) => [
+    check('auth_users_email_lowercase', sql`${table.email} = lower(${table.email})`),
+    check(
+      'auth_users_preferred_locale_supported',
+      sql`${table.preferredLocale} IS NULL OR ${table.preferredLocale} IN ('nl-NL', 'en')`,
+    ),
+  ],
+);
+
+/** A sign-in session: one signed-in browser (or, later, app). */
+export const authSessions = pgTable(
+  'auth_sessions',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => authUsers.id, { onDelete: 'cascade' }),
+    token: text('token').notNull().unique(),
+    expiresAt: instant('expires_at').notNull(),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    ...timestamps(),
+  },
+  (table) => [index('auth_sessions_user_id_idx').on(table.userId)],
+);
+
+/** How an account signs in. Unused by sign-in with the emailed code; kept for Better Auth. */
+export const authIdentities = pgTable(
+  'auth_identities',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => authUsers.id, { onDelete: 'cascade' }),
+    accountId: text('account_id').notNull(),
+    providerId: text('provider_id').notNull(),
+    ...timestamps(),
+  },
+  (table) => [index('auth_identities_user_id_idx').on(table.userId)],
+);
+
+/**
+ * One sign-in request: the emailed link token and code, which are one verification. Only
+ * hashes are stored (AC11): `value` holds the hash of the link token, `codeHash` the hash of
+ * the code. A usable token or code is never in the database.
+ */
+export const authVerifications = pgTable(
+  'auth_verifications',
+  {
+    id: id(),
+    /** `sign-in:<lower-case email>`: one verification per address, a new request replaces it. */
+    identifier: text('identifier').notNull(),
+    /** Keyed hash of the sign-in link's token. */
+    value: text('value').notNull(),
+    /** Keyed hash of the 6-digit code. */
+    codeHash: text('code_hash').notNull(),
+    expiresAt: instant('expires_at').notNull(),
+    ...timestamps(),
+  },
+  (table) => [index('auth_verifications_identifier_idx').on(table.identifier)],
+);
+
+export type AuthUser = typeof authUsers.$inferSelect;
