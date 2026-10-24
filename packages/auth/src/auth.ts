@@ -23,10 +23,11 @@ export interface CreateAuthOptions {
    */
   log?: (line: string) => void;
   /**
-   * Whether this is the production server (`NODE_ENV=production` when left out): a sign-in
-   * request without a client IP address then counts against one shared IP limit (AC10).
+   * Whether a proxy always sets the client IP header, so a sign-in request without a usable one
+   * counts against one shared IP limit (AC10). `NODE_ENV=production` when left out: every
+   * Railway environment and e2e (`next start`), not only the production environment.
    */
-  production?: boolean;
+  requireClientIp?: boolean;
 }
 
 /**
@@ -50,7 +51,7 @@ export function createAuth({
   sendEmail,
   clock = systemClock,
   log = (line) => console.warn(line),
-  production = process.env.NODE_ENV === 'production',
+  requireClientIp = process.env.NODE_ENV === 'production',
 }: CreateAuthOptions): Auth {
   const auth = betterAuth({
     appName: 'Fivvi',
@@ -69,7 +70,7 @@ export function createAuth({
     }),
     plugins: [
       // First, so the limits hold before the endpoint does anything (AC10).
-      signInRateLimits({ db, secret, clock, log, production }),
+      signInRateLimits({ db, secret, clock, log, requireClientIp }),
       signInWithCode({ db, secret, sendEmail, clock }),
     ],
     // Better Auth's own limiter (production only) answers 429 and keeps its counts in memory.

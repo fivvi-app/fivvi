@@ -1,3 +1,4 @@
+import { isIP } from 'node:net';
 import {
   consumeRateLimit,
   type Database,
@@ -18,20 +19,12 @@ export const ADDRESS_LIMIT: RateLimitRule = { max: 3, windowMinutes: 15 };
 /** Sign-in requests per IP address: 20 in an hour (AC10). */
 export const IP_LIMIT: RateLimitRule = { max: 20, windowMinutes: 60 };
 
-/**
- * The header that carries the client's IP address. Railway's docs name `X-Real-IP` "for
- * identifying client's remote IP" (https://docs.railway.com/networking/public-networking/specs-and-limits),
- * the only client IP header they list. That the edge overwrites a value the client sent is
- * reported by Railway staff on their forum, not stated in the docs, and has not been checked
- * here: check it on the PR preview (`ENVIRONMENTS.md §7`). `X-Forwarded-For` is not trusted:
- * clients can put anything in it. Outside Railway (local, e2e) the client sends this header
- * itself, which is how a test picks its IP address (`TESTING.md §7.1`).
- */
+/** Where the client's IP address comes from, and why only this header: `ENVIRONMENTS.md §7`. */
 export const CLIENT_IP_HEADER = 'x-real-ip';
 
 /**
- * The IP bucket of a request that carries no usable client IP address in production, where
- * Railway's proxy always sets the header. Such a request did not come through the proxy (or
+ * The IP bucket of a request that carries no usable client IP address when `requireClientIp`
+ * is set, because the proxy always sets the header. Such a request did not come through the proxy (or
  * forged the header), so all of them share one limit instead of none. Real addresses can't
  * collide with it.
  */
@@ -54,22 +47,28 @@ export interface SignInRateLimitOptions {
   clock: Clock;
   /** Gets one line per limited request. It never holds an email address or an IP address. */
   log: (line: string) => void;
-  /** Production: a request without a client IP address counts against one shared bucket. */
-  production: boolean;
+  /**
+   * True when a proxy always sets the client IP header (every Railway environment, and e2e,
+   * where `next start` runs with `NODE_ENV=production`): a request without a usable one then
+   * counts against one shared bucket. Not "the production environment" (`ENVIRONMENTS.md §7`).
+   */
+  requireClientIp: boolean;
 }
 
 type LimitName = 'address' | 'ip';
 
 /**
- * The IP address to count a request under, or `null` for no per-IP limit. Outside production
- * a request without the header (local, tests) is not limited per IP. The header is checked
- * first because Better Auth's `getIP` answers 127.0.0.1 without it outside production, which
- * would put every local request in one bucket. In production a missing or unusable header
- * means the shared `UNKNOWN_IP` bucket.
+ * The IP address to count a request under, or `null` for no per-IP limit. A missing or invalid
+ * header (not an IP address, or several) is "no usable client IP": with `requireClientIp` it
+ * means the shared `UNKNOWN_IP` bucket, otherwise (local, tests) no per-IP limit. The header is
+ * checked first because Better Auth's `getIP` answers 127.0.0.1 for a missing or invalid one
+ * outside production, which would put every such request in one bucket.
  */
-function clientIp(headers: Headers | undefined, production: boolean): string | null {
-  const ip = headers?.has(CLIENT_IP_HEADER) ? getIP(headers, { advanced: clientIpOptions }) : null;
-  return ip ?? (production ? UNKNOWN_IP : null);
+function clientIp(headers: Headers | undefined, requireClientIp: boolean): string | null {
+  const value = headers?.get(CLIENT_IP_HEADER)?.trim();
+  const ip =
+    headers && value && isIP(value) !== 0 ? getIP(headers, { advanced: clientIpOptions }) : null;
+  return ip ?? (requireClientIp ? UNKNOWN_IP : null);
 }
 
 /**
@@ -80,9 +79,15 @@ function clientIp(headers: Headers | undefined, production: boolean): string | n
  * Auth's own limiter answers 429, lives in memory and knows no addresses, so it is switched off
  * for this path (`rateLimit.customRules` in `auth.ts`).
  */
-export function signInRateLimits({ db, secret, clock, log, production }: SignInRateLimitOptions) {
+export function signInRateLimits({
+  db,
+  secret,
+  clock,
+  log,
+  requireClientIp,
+}: SignInRateLimitOptions) {
   /** Counts the request under `<name>:<keyed hash of value>`; true when it is over the rule. */
-  async function overLimit(name: LimitName, value: string, rule: RateLimitRule, now: Date) {
+  async function countAndCheck(name: LimitName, value: string, rule: RateLimitRule, now: Date) {
     const key = `${name}:${hashSecretValue(secret, `rate-limit-${name}`, value)}`;
     const { allowed } = await consumeRateLimit(db, key, rule, now);
     return !allowed;
@@ -100,12 +105,12 @@ export function signInRateLimits({ db, secret, clock, log, production }: SignInR
 
             const body = ctx.body as { email?: unknown } | undefined;
             const email = emailSchema.safeParse(body?.email);
-            if (email.success && (await overLimit('address', email.data, ADDRESS_LIMIT, now))) {
+            if (email.success && (await countAndCheck('address', email.data, ADDRESS_LIMIT, now))) {
               limited.push('address');
             }
 
-            const ip = clientIp(ctx.headers, production);
-            if (ip && (await overLimit('ip', ip, IP_LIMIT, now))) limited.push('ip');
+            const ip = clientIp(ctx.headers, requireClientIp);
+            if (ip && (await countAndCheck('ip', ip, IP_LIMIT, now))) limited.push('ip');
 
             await deleteExpiredRateLimits(db, now);
             if (limited.length === 0) return;

@@ -25,7 +25,7 @@ A person signs in with only their email address. One request creates **one verif
 - **Cookie.** `HttpOnly`, `SameSite=Lax`, `Secure` unless the base URL is plain `http` (local); 30 days, renewed on use.
 - No passwords, no sign-up: an address without an account is answered like any other.
 - **Rate limits (AC10, `src/rate-limit.ts`).** A request is counted per email address (3 in 15 minutes) and per IP address (20 in an hour), whether or not the address has an account. Over a limit, the answer is the same `200 { status: true }`, no email is sent, nothing is replaced, and one line `Sign-in request rate-limited: address` (or `ip`) is logged, never with the address or the IP address. The counts are in `auth_rate_limits` (Postgres, so a restart or a deploy keeps them), keyed by a keyed hash of the address or IP address, in fixed windows that start at the first request. They run as a Better Auth `before` hook ahead of the endpoint. Better Auth's own limiter (production only, in memory, answers 429) is switched off for that path; it stays on for the code entry (3 tries in 10 seconds per IP address, per instance).
-- **Client IP address.** From the `X-Real-IP` header only; IPv6 addresses count per /64 network. Why that header, what a missing one means and how tests set it: `ENVIRONMENTS.md §7`.
+- **Client IP address.** From the `X-Real-IP` header only; IPv6 addresses count per /64 network. Why that header, what a missing or invalid one means (`requireClientIp`) and how tests set it: `ENVIRONMENTS.md §7`.
 
 Not here yet (spec #128, later tickets): the confirm-link endpoint (#136), the sign-up allowlist, `GET /api/v1/me`, the web pages and product events.
 
