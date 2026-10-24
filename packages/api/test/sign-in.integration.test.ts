@@ -5,6 +5,7 @@ import { createMemoryTransport, createSendEmail } from '@fivvi/email';
 import { messages } from '@fivvi/i18n';
 import { type Clock, freezeSystemTime, manualClock } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 
 const SECRET = 'test-secret-that-is-at-least-thirty-two-characters-long';
@@ -86,12 +87,35 @@ describe('F001 sign in with the emailed code through the API', () => {
   async function addTrainerAccount() {
     await client.db.insert(authUsers).values({ email: 'trainer@example.com' });
     onTestFinished(async () => {
-      const pool = (client.db as unknown as { $client: PoolLike }).$client;
-      await pool.query("delete from auth_users where email = 'trainer@example.com'");
+      await client.db.delete(authUsers).where(eq(authUsers.email, 'trainer@example.com'));
     });
   }
 
   const verifications = () => client.db.select().from(authVerifications);
+
+  /**
+   * Runs `during` right after the verification was found and before it is consumed (Better Auth
+   * then tidies up expired rows), to make another request land in between. Drizzle keeps its
+   * connection pool on `$client`, which the `Database` type doesn't show.
+   */
+  function interleave(during: () => Promise<unknown>) {
+    const pool = (client.db as unknown as { $client: PoolLike }).$client;
+    const query = pool.query.bind(pool);
+    let landed: Promise<unknown> | undefined;
+    vi.spyOn(pool, 'query').mockImplementation((async (...args: unknown[]) => {
+      const first = args[0];
+      const text = typeof first === 'string' ? first : (first as { text?: string }).text;
+      if (!landed && text?.includes('"expires_at" <')) {
+        landed = during();
+        await landed;
+      }
+      return await query(...args);
+    }) as never);
+    onTestFinished(() => {
+      vi.restoreAllMocks();
+    });
+    return { landed: () => landed };
+  }
 
   beforeAll(async () => {
     database = await cloneTemplateDatabase();
@@ -239,28 +263,12 @@ describe('F001 sign in with the emailed code through the API', () => {
     await requestCode('owner@example.com', 'en');
     const old = readEmail().code;
 
-    // Right after the old code was found and before it is consumed (Better Auth then tidies up
-    // expired rows), a second request replaces the verification with a new one.
-    // Drizzle keeps its connection pool on `$client`, which the `Database` type doesn't show.
-    const pool = (client.db as unknown as { $client: PoolLike }).$client;
-    const query = pool.query.bind(pool);
-    let landed: Promise<unknown> | undefined;
-    vi.spyOn(pool, 'query').mockImplementation((async (...args: unknown[]) => {
-      const first = args[0];
-      const text = typeof first === 'string' ? first : (first as { text?: string }).text;
-      if (!landed && text?.includes('"expires_at" <')) {
-        landed = requestCode('owner@example.com', 'en');
-        await landed;
-      }
-      return await query(...args);
-    }) as never);
-    onTestFinished(() => {
-      vi.restoreAllMocks();
-    });
+    // A second request replaces the verification with a new one while the old code is checked.
+    const interleaving = interleave(() => requestCode('owner@example.com', 'en'));
 
     const response = await enterCode('owner@example.com', old);
 
-    expect(landed).toBeDefined();
+    expect(interleaving.landed()).toBeDefined();
     expect(response.status).toBe(401);
     expect(response.headers.getSetCookie()).toEqual([]);
     // The new email still works: the old code did not void it.
@@ -338,7 +346,7 @@ describe('F001 sign in with the emailed code through the API', () => {
   });
 
   describe('AC6: 5 wrong codes kill the verification', () => {
-    async function wrongCodes(count: number, email = 'owner@example.com', code = '000000') {
+    async function wrongCodes(count: number, email: string, code: string) {
       const responses: Response[] = [];
       for (let attempt = 0; attempt < count; attempt += 1) {
         responses.push(await enterCode(email, code));
@@ -395,10 +403,25 @@ describe('F001 sign in with the emailed code through the API', () => {
     it('a verification at the limit is dead even before it is deleted', async () => {
       await requestCode('owner@example.com', 'en');
       const { code } = readEmail();
-      const pool = (client.db as unknown as { $client: PoolLike }).$client;
-      await pool.query('update auth_verifications set failed_attempts = 5');
+      await client.db.update(authVerifications).set({ failedAttempts: 5 });
 
       expect((await enterCode('owner@example.com', code)).status).toBe(401);
+    });
+
+    it('a 5th wrong code that lands while the right code is checked still kills it', async () => {
+      await requestCode('owner@example.com', 'en');
+      const { code } = readEmail();
+
+      // The 5th wrong code has counted itself and not yet deleted the verification when the right
+      // code, which was found below the limit, is consumed.
+      const interleaving = interleave(
+        async () => await client.db.update(authVerifications).set({ failedAttempts: 5 }),
+      );
+      const response = await enterCode('owner@example.com', code);
+
+      expect(interleaving.landed()).toBeDefined();
+      expect(response.status).toBe(401);
+      expect(response.headers.getSetCookie()).toEqual([]);
     });
 
     it('guesses made in parallel are counted too', async () => {
@@ -414,21 +437,28 @@ describe('F001 sign in with the emailed code through the API', () => {
 
   it('AC6: every code failure returns the same response', async () => {
     await requestCode('owner@example.com', 'en');
-    const { code } = readEmail();
+    const replaced = readEmail().code;
+    await requestCode('owner@example.com', 'en');
+    const { code } = readEmail(2);
     const wrong = wrongCodeFor(code);
 
-    // A wrong code, a malformed one, the 5th wrong code, the right code after it, a code for
-    // an address with no verification and one for an address without an account.
+    // The code of a replaced email, a wrong code, a malformed one, more wrong codes up to the
+    // 5th, the right code after it, the same again and a code for an address with no account.
     const failures = [
+      await enterCode('owner@example.com', replaced),
       await enterCode('owner@example.com', wrong),
       await enterCode('owner@example.com', 'not-a-code'),
-      await enterCode('owner@example.com', wrong),
       await enterCode('owner@example.com', wrong),
       await enterCode('owner@example.com', wrong),
       await enterCode('owner@example.com', code),
       await enterCode('owner@example.com', code),
       await enterCode('nobody@example.com', code),
     ];
+    // A used code: a new verification that signs in once and is then entered again.
+    await requestCode('owner@example.com', 'en');
+    const used = readEmail(3).code;
+    expect((await enterCode('owner@example.com', used)).status).toBe(200);
+    failures.push(await enterCode('owner@example.com', used));
 
     const [first, ...rest] = await Promise.all(failures.map(outcome));
     expect(first).toMatchObject({
