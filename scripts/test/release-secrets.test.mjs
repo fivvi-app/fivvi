@@ -2,7 +2,15 @@
 // value is a made-up sentinel, so the tests can look for it anywhere it must not appear.
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, afterEach, beforeEach, describe, it } from 'node:test';
@@ -22,7 +30,10 @@ const SENTINEL = {
   keystorePassword: 'store-pass-sentinel-4d2e',
   alias: 'alias-sentinel-upload',
   keyPassword: 'key-pass-sentinel-8a8a',
-  serviceAccount: JSON.stringify({ type: 'service_account', private_key: 'PLAY-KEY-sentinel-6b6b' }),
+  serviceAccount: JSON.stringify({
+    type: 'service_account',
+    private_key: 'PLAY-KEY-sentinel-6b6b',
+  }),
   sentryToken: 'sntrys_token-sentinel-3c3c',
 };
 const b64 = (text) => Buffer.from(text, 'utf8').toString('base64');
@@ -66,15 +77,22 @@ const run = (args, stdin = '', { rules = [], extraPath = '' } = {}) => {
 };
 const sets = (calls) =>
   Object.fromEntries(
-    calls.filter((call) => call.args[0] === 'secret' && call.args[1] === 'set').map((call) => [call.args[2], call.stdin]),
+    calls
+      .filter((call) => call.args[0] === 'secret' && call.args[1] === 'set')
+      .map((call) => [call.args[2], call.stdin]),
   );
-const repoStatus = () => execFileSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' });
-const everything = (result) => result.stdout + result.stderr + JSON.stringify(result.calls.map((call) => call.args));
+const repoStatus = () =>
+  execFileSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' });
+const everything = (result) =>
+  result.stdout + result.stderr + JSON.stringify(result.calls.map((call) => call.args));
 
 const noValueLeaks = (result, values) => {
   for (const value of values) {
     for (const form of [value, b64(value)]) {
-      assert.ok(!everything(result).includes(form), `leaked in output or arguments: ${form.slice(0, 12)}…`);
+      assert.ok(
+        !everything(result).includes(form),
+        `leaked in output or arguments: ${form.slice(0, 12)}…`,
+      );
     }
   }
 };
@@ -83,9 +101,12 @@ describe('E017 AC7: release-secrets.sh ios', () => {
   const ios = (stdin = '') => {
     const args = [
       'ios',
-      '--certificate', file('dist.p12', SENTINEL.certificate),
-      '--profile', file('app.mobileprovision', SENTINEL.profile),
-      '--api-key', file('AuthKey_X.p8', SENTINEL.apiKey),
+      '--certificate',
+      file('dist.p12', SENTINEL.certificate),
+      '--profile',
+      file('app.mobileprovision', SENTINEL.profile),
+      '--api-key',
+      file('AuthKey_X.p8', SENTINEL.apiKey),
     ];
     return run(args, stdin);
   };
@@ -113,14 +134,24 @@ describe('E017 AC7: release-secrets.sh ios', () => {
     const result = ios(answers);
     assert.equal(result.status, 0, result.stderr);
     noValueLeaks(result, [
-      SENTINEL.certificate, SENTINEL.certificatePassword, SENTINEL.profile, SENTINEL.apiKey,
-      SENTINEL.keyId, SENTINEL.issuerId,
+      SENTINEL.certificate,
+      SENTINEL.certificatePassword,
+      SENTINEL.profile,
+      SENTINEL.apiKey,
+      SENTINEL.keyId,
+      SENTINEL.issuerId,
     ]);
     assert.match(result.stdout, /IOS_DISTRIBUTION_CERTIFICATE_PASSWORD/);
   });
 
   it('asks for a file path it was not given', () => {
-    const args = ['ios', '--profile', file('p.mobileprovision', SENTINEL.profile), '--api-key', file('k.p8', SENTINEL.apiKey)];
+    const args = [
+      'ios',
+      '--profile',
+      file('p.mobileprovision', SENTINEL.profile),
+      '--api-key',
+      file('k.p8', SENTINEL.apiKey),
+    ];
     const result = run(args, `${file('c.p12', SENTINEL.certificate)}\n${answers}`);
     assert.equal(result.status, 0, result.stderr);
     assert.equal(sets(result.calls).IOS_DISTRIBUTION_CERTIFICATE, b64(SENTINEL.certificate));
@@ -129,7 +160,15 @@ describe('E017 AC7: release-secrets.sh ios', () => {
   it('refuses a key file inside the repository, and sets nothing', () => {
     const inRepo = join(ROOT, 'scripts', 'test-key-do-not-create.p12');
     const result = run(
-      ['ios', '--certificate', inRepo, '--profile', file('p', 'x'), '--api-key', file('k.p8', SENTINEL.apiKey)],
+      [
+        'ios',
+        '--certificate',
+        inRepo,
+        '--profile',
+        file('p', 'x'),
+        '--api-key',
+        file('k.p8', SENTINEL.apiKey),
+      ],
       answers,
     );
     assert.notEqual(result.status, 0);
@@ -138,7 +177,15 @@ describe('E017 AC7: release-secrets.sh ios', () => {
 
   it('refuses a file in the repository that exists (a key left in a checkout)', () => {
     const result = run(
-      ['ios', '--certificate', join(ROOT, 'package.json'), '--profile', file('p', 'x'), '--api-key', file('k.p8', SENTINEL.apiKey)],
+      [
+        'ios',
+        '--certificate',
+        join(ROOT, 'package.json'),
+        '--profile',
+        file('p', 'x'),
+        '--api-key',
+        file('k.p8', SENTINEL.apiKey),
+      ],
       answers,
     );
     assert.notEqual(result.status, 0);
@@ -148,7 +195,15 @@ describe('E017 AC7: release-secrets.sh ios', () => {
 
   it('stops before setting anything when the .p8 is not a private key', () => {
     const result = run(
-      ['ios', '--certificate', file('c', 'x'), '--profile', file('p', 'x'), '--api-key', file('k.p8', 'not a key')],
+      [
+        'ios',
+        '--certificate',
+        file('c', 'x'),
+        '--profile',
+        file('p', 'x'),
+        '--api-key',
+        file('k.p8', 'not a key'),
+      ],
       answers,
     );
     assert.notEqual(result.status, 0);
@@ -163,7 +218,15 @@ describe('E017 AC7: release-secrets.sh ios', () => {
 
   it('says how to fix a missing environment without printing a value', () => {
     const result = run(
-      ['ios', '--certificate', file('c', SENTINEL.certificate), '--profile', file('p', SENTINEL.profile), '--api-key', file('k.p8', SENTINEL.apiKey)],
+      [
+        'ios',
+        '--certificate',
+        file('c', SENTINEL.certificate),
+        '--profile',
+        file('p', SENTINEL.profile),
+        '--api-key',
+        file('k.p8', SENTINEL.apiKey),
+      ],
       answers,
       { rules: [{ match: '^secret set ', status: 1 }] },
     );
@@ -187,7 +250,12 @@ describe('E017 AC7: release-secrets.sh android, play and sentry', () => {
       ANDROID_UPLOAD_KEY_ALIAS: SENTINEL.alias,
       ANDROID_UPLOAD_KEY_PASSWORD: SENTINEL.keyPassword,
     });
-    noValueLeaks(result, [SENTINEL.keystore, SENTINEL.keystorePassword, SENTINEL.alias, SENTINEL.keyPassword]);
+    noValueLeaks(result, [
+      SENTINEL.keystore,
+      SENTINEL.keystorePassword,
+      SENTINEL.alias,
+      SENTINEL.keyPassword,
+    ]);
     assert.equal(repoStatus(), before);
   });
 
@@ -220,7 +288,9 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
   const generate = (stdin, extra = []) => {
     const keytool = fakeKeytool();
     const dir = join(work, 'keys');
-    const result = run(['android-keystore', '--dir', dir, ...extra], stdin, { extraPath: keytool.bin });
+    const result = run(['android-keystore', '--dir', dir, ...extra], stdin, {
+      extraPath: keytool.bin,
+    });
     return { result, dir, keytool };
   };
   const passwords = `${SENTINEL.keystorePassword}\n${SENTINEL.keystorePassword}\n`;
@@ -246,7 +316,10 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
     const { result, keytool } = generate(passwords);
     assert.equal(result.status, 0, result.stderr);
     const log = readFileSync(keytool.log, 'utf8');
-    assert.ok(!log.split('\n')[0].includes(SENTINEL.keystorePassword), 'password not on the command line');
+    assert.ok(
+      !log.split('\n')[0].includes(SENTINEL.keystorePassword),
+      'password not on the command line',
+    );
     assert.match(log, new RegExp(`PASSWORD_IN_ENV=${SENTINEL.keystorePassword}`));
     noValueLeaks(result, [SENTINEL.keystore, SENTINEL.keystorePassword]);
   });
@@ -254,7 +327,9 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
   it('refuses a directory inside the repository and creates nothing there', () => {
     const inRepo = join(ROOT, 'release-keys-do-not-create');
     const keytool = fakeKeytool();
-    const result = run(['android-keystore', '--dir', inRepo], passwords, { extraPath: keytool.bin });
+    const result = run(['android-keystore', '--dir', inRepo], passwords, {
+      extraPath: keytool.bin,
+    });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /inside the repository/);
     assert.ok(!existsSync(inRepo));
@@ -264,13 +339,17 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
   it('refuses to overwrite a keystore and when the two passwords differ', () => {
     const first = generate(passwords);
     assert.equal(first.result.status, 0, first.result.stderr);
-    const again = run(['android-keystore', '--dir', first.dir], passwords, { extraPath: first.keytool.bin });
+    const again = run(['android-keystore', '--dir', first.dir], passwords, {
+      extraPath: first.keytool.bin,
+    });
     assert.notEqual(again.status, 0);
     assert.match(again.stderr, /exists already/);
     assert.equal(readFileSync(join(first.dir, 'fivvi-pro-upload.p12'), 'utf8'), SENTINEL.keystore);
 
     const other = join(work, 'other');
-    const mismatch = run(['android-keystore', '--dir', other], 'one\ntwo\n', { extraPath: first.keytool.bin });
+    const mismatch = run(['android-keystore', '--dir', other], 'one\ntwo\n', {
+      extraPath: first.keytool.bin,
+    });
     assert.notEqual(mismatch.status, 0);
     assert.ok(!existsSync(other));
   });
@@ -279,12 +358,20 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
 describe('E017 AC7: release-secrets.sh list', () => {
   it('names the secrets that are set and the ones still missing, with the command that sets each', () => {
     const result = run(['list'], '', {
-      rules: [{ match: '^secret list ', out: [{ name: 'SENTRY_AUTH_TOKEN' }, { name: 'IOS_PROVISIONING_PROFILE' }] }],
+      rules: [
+        {
+          match: '^secret list ',
+          out: [{ name: 'SENTRY_AUTH_TOKEN' }, { name: 'IOS_PROVISIONING_PROFILE' }],
+        },
+      ],
     });
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /✅ SENTRY_AUTH_TOKEN/);
     assert.match(result.stdout, /✅ IOS_PROVISIONING_PROFILE/);
     assert.match(result.stdout, /⬜ PLAY_SERVICE_ACCOUNT_JSON +scripts\/release-secrets\.sh play/);
-    assert.match(result.stdout, /⬜ ANDROID_UPLOAD_KEYSTORE +scripts\/release-secrets\.sh android\b/);
+    assert.match(
+      result.stdout,
+      /⬜ ANDROID_UPLOAD_KEYSTORE +scripts\/release-secrets\.sh android\b/,
+    );
   });
 });

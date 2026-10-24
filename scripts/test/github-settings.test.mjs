@@ -128,7 +128,8 @@ describe('github-settings.sh apply', () => {
   });
 
   describe('E017 AC7: the release environment', () => {
-    const env = (calls) => writes(calls).filter((call) => call.args.join(' ').includes('/environments/release'));
+    const env = (calls) =>
+      writes(calls).filter((call) => call.args.join(' ').includes('/environments/release'));
 
     it('is recorded as a versioned file: the owner reviews every deployment, only main deploys', () => {
       assert.equal(RELEASE.name, 'release');
@@ -155,10 +156,13 @@ describe('github-settings.sh apply', () => {
 
     it('E017 AC7: running it again adds nothing and removes any other branch policy', () => {
       const calls = env(
-        apply([], [
-          { id: 1, name: 'main' },
-          { id: 2, name: 'feature/*' },
-        ]),
+        apply(
+          [],
+          [
+            { id: 1, name: 'main' },
+            { id: 2, name: 'feature/*' },
+          ],
+        ),
       );
       assert.equal(calls.filter((call) => call.args.includes('POST')).length, 0);
       const deletes = calls.filter((call) => call.args.includes('DELETE'));

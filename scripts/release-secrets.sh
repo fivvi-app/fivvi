@@ -44,8 +44,8 @@ REPO="$(repo_slug)"
 
 # Absolute path of a file or directory that may not exist yet, with symlinks of its existing part resolved.
 absolute() {
-  local path="$1" tail=""
-  case "$path" in "~") path="$HOME" ;; "~/"*) path="$HOME/${path#"~/"}" ;; esac
+  local path="$1" tail="" tilde='~'
+  case "$path" in "$tilde") path="$HOME" ;; "$tilde"/*) path="$HOME/${path#"$tilde"/}" ;; esac
   case "$path" in /*) ;; *) path="$PWD/$path" ;; esac
   while [ ! -e "$path" ]; do
     tail="/$(basename "$path")$tail"
