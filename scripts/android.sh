@@ -5,8 +5,9 @@
 #                         (scripts/bootstrap.sh --mobile runs this)
 #   android.sh test       ktlint with the literal-text, colour and Sentry checks, the release API address (HTTPS, not a
 #                         placeholder; the check must also reject an empty, plain-HTTP and .invalid one) and Sentry DSN
-#                         (EU region), build, unit tests (nl-NL and en; BuildInfoTest once more with build number 42), and the Compose UI tests on an emulator, booted
-#                         for the run when none is connected (pnpm test:android)
+#                         (EU region), build, unit tests (nl-NL and en; BuildInfoTest once more with build number 42),
+#                         and the Compose UI tests on an emulator, booted for the run when none is connected
+#                         (pnpm test:android)
 #   android.sh emulator   boot the emulator headless and leave it running, so test and maestro.sh reuse it. With
 #                         AVD_SNAPSHOT=1 (CI) it boots from a saved snapshot, or cold when there is none or it
 #                         doesn't load, and then saves one

@@ -3,8 +3,8 @@
 // designed icon exists). The source is the mark below (an "F" on a 108 x 108 grid, the size of an Android adaptive
 // icon layer) and the colours of the primary action in packages/design-tokens (`color.action.primary.bg` and `.fg`).
 //
-//   node scripts/app-icon.mjs            write every icon file (pnpm app-icon)
-//   node scripts/app-icon.mjs check      fail when a committed file differs from what the source generates
+//   node scripts/app-icon.mjs            write every icon file (pnpm app-icon); scripts/test/app-icon.test.mjs fails when a
+//                                        committed file differs from what the source generates
 //
 // Output (generated, never edited by hand):
 //   apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset/AppIcon.png   1024 px, RGB without alpha (App Store)
@@ -14,7 +14,7 @@
 //
 // A designed icon replaces the placeholder by changing MARK and the tokens here, or this script. No dependency: the PNG
 // is rasterised and encoded with Node's zlib.
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crc32, deflateSync, inflateSync } from 'node:zlib';
@@ -232,30 +232,8 @@ export async function renderIcons(root = ROOT) {
 
 async function main(argv) {
   const files = await renderIcons();
-  if (argv[0] === 'check') {
-    const stale = [];
-    for (const [path, content] of files) {
-      let committed;
-      try {
-        committed = readFileSync(join(ROOT, path));
-      } catch {
-        stale.push(`${path} (missing)`);
-        continue;
-      }
-      const same = path.endsWith('.png')
-        ? decodePng(committed).pixels.equals(decodePng(content).pixels)
-        : committed.equals(Buffer.from(content));
-      if (!same) stale.push(path);
-    }
-    if (stale.length > 0) {
-      console.error(`The app icon is stale; run pnpm app-icon:\n  ${stale.join('\n  ')}`);
-      return 1;
-    }
-    console.log(`✓ app icon: ${files.size} files match the source`);
-    return 0;
-  }
   if (argv.length > 0) {
-    console.error('Usage: node scripts/app-icon.mjs [check]');
+    console.error('Usage: node scripts/app-icon.mjs');
     return 2;
   }
   for (const [path, content] of files) {

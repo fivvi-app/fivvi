@@ -121,6 +121,7 @@ describe('agent edit guard', () => {
       'apps/android/app/src/main/AndroidManifest.xml',
       'apps/android/app/src/main/res/xml/network_security_config.xml',
       'apps/ios/FivviPro/FivviProApp.swift',
+      'apps/ios/FivviPro/Assets.xcassets/AccentColor.colorset/Contents.json',
       'scripts/app-icon.mjs',
     ]) {
       assert.equal(evaluate(claudeEdit(join(worktree, file)), gitDir), null, file);

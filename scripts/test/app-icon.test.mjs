@@ -1,11 +1,17 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, matchesGlob } from 'node:path';
 import { describe, it } from 'node:test';
+import { sourceFiles } from '@fivvi/design-tokens/source';
 import { decodePng, renderIcons } from '../app-icon.mjs';
 
 const ROOT = join(import.meta.dirname, '..', '..');
-const read = (path) => readFileSync(join(ROOT, path));
+// Every file this test reads: turbo caches `//#test:root` by its `inputs`, so each must be one of them (last test below).
+const reads = new Set();
+const read = (path) => {
+  reads.add(path);
+  return readFileSync(join(ROOT, path));
+};
 const text = (path) => read(path).toString('utf8');
 
 const IOS_ICON = 'apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset/AppIcon.png';
@@ -118,5 +124,33 @@ describe('E017 AC8: the app icon is generated from the design tokens', () => {
         );
       }
     }
+  });
+});
+
+describe('E017 AC8: a change to what the icon depends on is not served from the test cache', () => {
+  it('turbo.json lists as inputs of the root tests every file the icon test and the generator read', () => {
+    const { inputs } = JSON.parse(text('turbo.json')).tasks['//#test:root'];
+    // What the generator reads that the test does not read itself: the token source files (as the token package names
+    // them), the package's `./source` export and the script.
+    const depends = new Set([
+      ...reads,
+      ...[
+        sourceFiles.palette,
+        sourceFiles.light,
+        sourceFiles.dark,
+        ...sourceFiles.shared,
+        sourceFiles.contrastPairs,
+      ].map((file) => `packages/design-tokens/${file}`),
+      'packages/design-tokens/src/source.ts',
+      'packages/design-tokens/package.json',
+      'scripts/app-icon.mjs',
+    ]);
+    // turbo.json itself needs no entry: a task's definition is part of its hash.
+    depends.delete('turbo.json');
+
+    const uncovered = [...depends].filter(
+      (file) => !inputs.some((input) => matchesGlob(file, input)),
+    );
+    assert.deepEqual(uncovered, [], 'add these to the inputs of //#test:root in turbo.json');
   });
 });

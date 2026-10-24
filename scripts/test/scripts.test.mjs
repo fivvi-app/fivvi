@@ -1109,12 +1109,15 @@ case "$*" in
     [ "$FAKE_EXPORT" != fail ] || exit 70 ;;
   *-showBuildSettings*)
     # FAKE_VERSION: the version the project resolves instead of the one of apps/Version.xcconfig. A build setting passed
-    # on the command line (CURRENT_PROJECT_VERSION=42) overrides the file's, unless FAKE_IGNORE_OVERRIDE is set; as Xcode
-    # does, it lists an override a second time at the end.
-    overridden=''
+    # on the command line (CURRENT_PROJECT_VERSION=42) is echoed first, as Xcode does ("Build settings from command
+    # line:"), and overrides the file's in the target's block, unless FAKE_IGNORE_OVERRIDE is set (the target then
+    # resolves the default and only the echo says 42).
+    echoed=''
     number="$(sed -nE 's/^CURRENT_PROJECT_VERSION = //p' ${repo}/apps/Version.xcconfig)"
-    case "$*" in *\\ CURRENT_PROJECT_VERSION=*) [ -n "$FAKE_IGNORE_OVERRIDE" ] || { number="$(sed -E 's/.* CURRENT_PROJECT_VERSION=([^ ]*).*/\\1/' <<<"$*")"; overridden="    CURRENT_PROJECT_VERSION = $number\\n"; } ;; esac
-    printf '    FIVVI_API_BASE_URL = %s\\n    INFOPLIST_FILE = Info.plist\\n    FIVVI_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    FIVVI_SENTRY_ENVIRONMENT = production\\n    MARKETING_VERSION = %s\\n    CURRENT_PROJECT_VERSION = %s\\n    PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.pro\\n%b' "\${FAKE_BASE_URL-https://example.test/api}" "\${FAKE_VERSION:-$(sed -nE 's/^MARKETING_VERSION = //p' ${repo}/apps/Version.xcconfig)}" "$number" "$overridden" ;;
+    case "$*" in *\\ CURRENT_PROJECT_VERSION=*)
+      echoed="Build settings from command line:\\n    CURRENT_PROJECT_VERSION = $(sed -E 's/.* CURRENT_PROJECT_VERSION=([^ ]*).*/\\1/' <<<"$*")\\n\\n"
+      [ -n "$FAKE_IGNORE_OVERRIDE" ] || number="$(sed -E 's/.* CURRENT_PROJECT_VERSION=([^ ]*).*/\\1/' <<<"$*")" ;; esac
+    printf '%bBuild settings for action build and target FivviPro:\\n    FIVVI_API_BASE_URL = %s\\n    INFOPLIST_FILE = Info.plist\\n    FIVVI_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    FIVVI_SENTRY_ENVIRONMENT = production\\n    MARKETING_VERSION = %s\\n    CURRENT_PROJECT_VERSION = %s\\n    PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.pro\\n' "$echoed" "\${FAKE_BASE_URL-https://example.test/api}" "\${FAKE_VERSION:-$(sed -nE 's/^MARKETING_VERSION = //p' ${repo}/apps/Version.xcconfig)}" "$number" ;;
   build-for-testing\\ *) [ "$FAKE_BUILD" != fail ] || { echo 'error: build failed (fake)'; exit 1; }
     mkdir -p .build/DerivedData/Build/Products
     # FAKE_XCTESTRUN: none (the build leaves no .xctestrun) or two (it leaves two).

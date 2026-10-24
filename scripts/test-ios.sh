@@ -83,8 +83,16 @@ build_settings() {
     -clonedSourcePackagesDirPath .build/SourcePackages "$@"
 }
 
-# A setting passed on the command line is listed twice (with the build's settings and again as an override): the first.
-setting_of() { sed -nE "s/^ *$1 = //p" <<<"$2" | head -n 1; }
+# A setting's value in the target's block of the output. Xcode first echoes the settings given on the command line
+# ("Build settings from command line:"), which says nothing about what the target resolves to, so only the block "Build
+# settings for action build and target FivviPro:" counts.
+setting_of() {
+  awk -v key="$1" '
+    /^Build settings for action build and target FivviPro:/ { in_target = 1; next }
+    /^Build settings / { in_target = 0 }
+    in_target && $1 == key && $2 == "=" { sub(/^[[:space:]]*[^[:space:]]+ = /, ""); print; exit }
+  ' <<<"$2"
+}
 
 # The one place that reads apps/Version.xcconfig here: a setting of the file both apps take their version from.
 shared_setting() {
