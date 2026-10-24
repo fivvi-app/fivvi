@@ -39,9 +39,12 @@ guardrails            /docs/engineering/WORKFLOW.md
 # change. Configs that a nested folder can add or override match at every depth: turbo.json (inputs), biome.json and
 # biome.jsonc (they can load the i18n lint rule), vitest configs (what the tests run, integration ones too), Playwright,
 # tsconfig, SwiftLint, .editorconfig (ktlint), Xcode test plans (they skip tests) and the global setup of a test
-# folder. The shared vitest preset, the CLI of the i18n tools, the drift checks and the Android lint wiring are single
-# files, anchored so that no other file matches. Other source inside packages, test helpers included, stays low and is
-# covered by review.
+# folder, and the Xcode scheme (it names the test plan). The anchored files and folders, which no other path matches,
+# are the shared vitest preset, the CLI and tools of i18n, the lint folders (i18n, ui, Android, iOS), the drift checks,
+# the iOS test-skip file, the Android build files that wire the checks (the root and app build.gradle.kts hold the lint
+# and release checks, settings.gradle.kts picks the lint-rules folder) and e2e/maestro/config.yaml (which flows CI
+# runs). project.pbxproj also carries every ordinary project change, so it stays low (ADR-021). Other source inside
+# packages, test helpers included, stays low and is covered by review.
 guardrails            /package.json
 guardrails            turbo.json
 guardrails            biome.json
@@ -56,6 +59,10 @@ guardrails            /packages/design-tokens/src/check.ts
 guardrails            /packages/ui/lint
 guardrails            /apps/android/lint
 guardrails            /apps/android/build.gradle.kts
+guardrails            /apps/android/app/build.gradle.kts
+guardrails            /apps/android/settings.gradle.kts
+guardrails            /e2e/maestro/config.yaml
+guardrails            *.xcscheme
 guardrails            /apps/ios/lint
 guardrails            /apps/ios/FivviProUITests/Support/TestPlanSkips.swift
 guardrails            *.xctestplan

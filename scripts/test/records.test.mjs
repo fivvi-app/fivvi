@@ -15,7 +15,7 @@ const run = (body, filter) => {
   return JSON.parse(result.stdout);
 };
 
-// The self-review, smoke and merge gate records predate ADR-021 (ADR-016, ADR-018); the reasons reader is ADR-021's.
+// The self-review, smoke and merge gate records are ADR-016's; the reasons reader below is ADR-021's.
 describe('ADR-016: records.jq reads the records pr.sh writes', () => {
   it('reads the last line that records the mark, whatever the line ending', () => {
     const body = `intro\r\n**Self-review:** \`${'b'.repeat(40)}\`: old\r\n\n**Self-review:** \`${SHA}\`: clean\r\n`;

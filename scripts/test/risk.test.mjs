@@ -127,6 +127,11 @@ describe('risk of a pull request', () => {
       'packages/ui/lint/no-raw-colours.ts',
       'packages/ui/lint/cli.ts',
       'apps/android/build.gradle.kts',
+      'apps/android/app/build.gradle.kts',
+      'apps/android/settings.gradle.kts',
+      'e2e/maestro/config.yaml',
+      'apps/ios/FivviPro.xcodeproj/xcshareddata/xcschemes/FivviPro.xcscheme',
+      'apps/ios/Other.xcscheme',
       '.editorconfig',
       'apps/android/.editorconfig',
       'apps/web/test/global-setup.ts',
@@ -216,8 +221,14 @@ describe('risk of a pull request', () => {
         'packages/design-tokens/scripts/check.ts',
         'packages/ui/src/lint.ts',
         'packages/ui/linting/x.ts',
-        'apps/android/app/build.gradle.kts',
         'apps/android/build.gradle',
+        'apps/android/app/settings.gradle.kts',
+        'e2e/maestro/flows/sign-in.yaml',
+        'e2e/maestro/config.yml',
+        'e2e/config.yaml',
+        'apps/web/e2e/maestro/config.yaml',
+        'apps/ios/FivviPro.xcodeproj/project.pbxproj',
+        'apps/ios/FivviPro.xcscheme.md',
         'apps/android/editorconfig.md',
         'apps/web/.editorconfig-checker.json',
         'apps/web/src/global-setup.ts',
@@ -231,7 +242,7 @@ describe('risk of a pull request', () => {
     );
   });
 
-  it('ADR-021: GLOSSARY.md and DESIGN.md are not owner-only, on purpose (ADR-021 decision 1)', () => {
+  it('GLOSSARY.md, packages/i18n/GLOSSARY.md and DESIGN.md are low with no reasons', () => {
     assert.deepEqual(pr(['GLOSSARY.md', 'packages/i18n/GLOSSARY.md', 'DESIGN.md']), {
       risk: 'low',
       reasons: [],
