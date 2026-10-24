@@ -8,6 +8,8 @@ import { expect, expectNoAxeViolations, test } from './fixtures';
 test.describe('F001 sign in on TW-10', () => {
   // Better Auth limits sign-in requests per IP address, and every browser here comes from the same
   // one. A forwarded address of its own gives each spec its own limit, like separate visitors.
+  // This works only because packages/auth sets no trusted IP header yet, so Better Auth takes the
+  // client-sent `x-forwarded-for`; #134 (rate limits) changes that, and this helper with it.
   test.beforeEach(async ({ context }) => {
     await context.setExtraHTTPHeaders({ 'x-forwarded-for': newIpAddress() });
   });
@@ -34,6 +36,10 @@ test.describe('F001 sign in on TW-10', () => {
     await expect(
       page.getByText(copy.signIn.checkEmailBody.replace('{email}', address)),
     ).toBeVisible();
+    // The label is the word alone; the sentence is helper text the field is described by.
+    await expect(page.getByLabel(copy.signIn.codeLabel)).toHaveAccessibleDescription(
+      copy.signIn.codeHelp,
+    );
     await expectNoAxeViolations(page, `the code step in ${appLocale}`);
 
     // Exactly one EM-08 per request, in the language of the page (the account has no stored one).
@@ -56,7 +62,7 @@ test.describe('F001 sign in on TW-10', () => {
     expect(await emailsTo(address)).toHaveLength(1);
   });
 
-  test('a wrong code shows the neutral message and keeps the code step', async ({
+  test('AC7 (code): a wrong code shows the neutral message and keeps the code step', async ({
     page,
     messages: copy,
   }) => {

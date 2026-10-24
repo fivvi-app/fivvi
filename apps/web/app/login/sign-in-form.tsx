@@ -109,7 +109,7 @@ export function SignInForm({ locale }: { locale: Locale }) {
                 aria-describedby={error ? 'sign-in-error' : undefined}
               />
               {errorMessage ? (
-                <p id="sign-in-error" role="alert" className="text-destructive">
+                <p id="sign-in-error" role="alert" className="text-status-danger-fg">
                   {errorMessage}
                 </p>
               ) : null}
@@ -130,6 +130,7 @@ export function SignInForm({ locale }: { locale: Locale }) {
             </CardHeader>
             <CardContent className="grid gap-2">
               <Label htmlFor="code">{t('codeLabel')}</Label>
+              <CardDescription id="code-help">{t('codeHelp')}</CardDescription>
               <Input
                 id="code"
                 name="code"
@@ -138,10 +139,10 @@ export function SignInForm({ locale }: { locale: Locale }) {
                 autoComplete="one-time-code"
                 maxLength={6}
                 aria-invalid={error ? true : undefined}
-                aria-describedby={error ? 'sign-in-error' : undefined}
+                aria-describedby={error ? 'code-help sign-in-error' : 'code-help'}
               />
               {errorMessage ? (
-                <p id="sign-in-error" role="alert" className="text-destructive">
+                <p id="sign-in-error" role="alert" className="text-status-danger-fg">
                   {errorMessage}
                 </p>
               ) : null}

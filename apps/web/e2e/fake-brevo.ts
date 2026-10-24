@@ -1,16 +1,10 @@
 import { createServer } from 'node:http';
+import type { ReceivedEmail } from './brevo';
 
 // The fake Brevo server (F001), a Playwright web server (playwright.config.ts). The app posts its
 // emails here like it would to Brevo's `POST /v3/smtp/email`; the specs read them back with
 // `GET /emails?to=<address>` (e2e/brevo.ts). Emails are kept in memory until the server stops,
 // so every spec uses an address of its own.
-
-interface ReceivedEmail {
-  to: string;
-  subject: string;
-  text: string;
-  html: string;
-}
 
 const port = Number(process.env.PORT);
 if (!port) throw new Error('Set PORT to the port of the fake Brevo server.');

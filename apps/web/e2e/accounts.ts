@@ -11,10 +11,13 @@ export function newAddress(label: string): string {
   return `${label}-${randomUUID().slice(0, 8)}@fivvi.e2e.test`;
 }
 
-/** A new documentation-range IPv4 address (RFC 5737), for the `x-forwarded-for` header of a spec. */
+/**
+ * A new documentation-range IPv6 address (RFC 3849, `2001:db8::/32`), for the `x-forwarded-for`
+ * header of a spec. Better Auth groups IPv6 addresses by /64, so the random part is the first 32
+ * bits of the network prefix.
+ */
 export function newIpAddress(): string {
-  const bytes = randomBytes(2);
-  return `198.51.${bytes[0]}.${bytes[1]}`;
+  return `2001:db8:${randomBytes(2).toString('hex')}:${randomBytes(2).toString('hex')}::1`;
 }
 
 /** Creates the account `email` on the e2e app server's database; the sign-in page has no sign-up. */

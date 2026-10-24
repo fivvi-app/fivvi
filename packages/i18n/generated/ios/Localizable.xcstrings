@@ -419,8 +419,8 @@
         }
       }
     },
-    "signIn.codeLabel" : {
-      "comment" : "Label of the field for the 6-digit code from the email (one-time-code autofill on phones).",
+    "signIn.codeHelp" : {
+      "comment" : "Helper text under the code field on the second step of the sign-in page. The field is described by it.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -433,6 +433,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vul de code uit de e-mail in."
+          }
+        }
+      }
+    },
+    "signIn.codeLabel" : {
+      "comment" : "Label of the field for the 6-digit code from the email (one-time-code autofill on phones). The word alone; the sentence is signIn.codeHelp.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code"
           }
         }
       }
@@ -534,13 +552,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Request a new code"
+            "value" : "Resend code"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nieuwe code aanvragen"
+            "value" : "Code opnieuw versturen"
           }
         }
       }
@@ -576,7 +594,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stuur code"
+            "value" : "Code versturen"
           }
         }
       }

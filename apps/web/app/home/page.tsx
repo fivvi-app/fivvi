@@ -17,7 +17,7 @@ export default async function HomePage() {
     <main className="flex min-h-dvh items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="font-display">
+          <CardTitle>
             <h1>{t('title')}</h1>
           </CardTitle>
           <CardDescription>{t('description')}</CardDescription>
