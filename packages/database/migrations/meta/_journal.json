@@ -22,6 +22,13 @@
       "when": 1792174638998,
       "tag": "0002_system_greeting_hello_title",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792851955728,
+      "tag": "0003_auth_tables",
+      "breakpoints": true
     }
   ]
 }

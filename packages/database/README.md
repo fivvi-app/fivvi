@@ -98,7 +98,7 @@ node src/scripts/release.ts --seed   # development and previews: migrations, the
 
 **Rows that every environment needs, production included, are data migrations.** The `hello` greeting is inserted by `migrations/0001_system_greeting_hello.sql` (`INSERT … ON CONFLICT DO NOTHING`), not by the seed. `HELLO_GREETING` in `src/system-data.ts` holds the same values, and the integration test checks that a migrated database contains exactly that row.
 
-**The seed is demo data only, and production never runs it.** It's empty until the first business tables (M2).
+**The seed is demo data only, and production never runs it.** Today it creates the account `owner@example.com` (F001), so every preview has an account to sign in with; `seed()` also creates nothing when `RAILWAY_ENVIRONMENT_NAME` is `production` (a second lock). The rest comes with the first business tables (M2).
 
 Why not run an idempotent seed in production as well: the seed is going to fill up with demo workspaces, fake clients and test bookings. If production ran it, one missed check would put demo data next to real client data. A data migration runs exactly once per database, in order with the schema it depends on, is reviewed as SQL like any other migration, and needs no extra deploy step.
 

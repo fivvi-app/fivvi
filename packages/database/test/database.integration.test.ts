@@ -11,6 +11,7 @@ import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  authUsers,
   createDatabase,
   type DatabaseClient,
   type DatabaseExecutor,
@@ -27,7 +28,14 @@ import { seed } from '../src/seed.ts';
  * Tables that are not business data and therefore have no `organization_id`.
  * Adding a table here needs a reason in the PR (AGENTS.md, ADR-006).
  */
-const NON_BUSINESS_TABLES = ['system_greetings'];
+const NON_BUSINESS_TABLES = [
+  'system_greetings',
+  // Sign-in tables (F001): an account is global and shared by every workspace of its person.
+  'auth_identities',
+  'auth_sessions',
+  'auth_users',
+  'auth_verifications',
+];
 
 interface Journal {
   entries: { tag: string }[];
@@ -180,6 +188,42 @@ describe('E004 database', () => {
 
         expect(await tx.$count(systemGreetings)).toBe(1);
         expect(await findSystemGreeting(tx, 'hello')).toEqual(HELLO_GREETING);
+      });
+    });
+  });
+
+  describe('F001 seed accounts', () => {
+    it('creates the account owner@example.com with Dutch as its language, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
+
+        const users = await tx.select().from(authUsers);
+        expect(users).toEqual([
+          expect.objectContaining({
+            email: 'owner@example.com',
+            preferredLocale: 'nl-NL',
+            emailVerified: true,
+          }),
+        ]);
+      });
+    });
+
+    it('creates no account in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true });
+
+        expect(await tx.$count(authUsers)).toBe(0);
+      });
+    });
+
+    it('seeds a deployed environment only outside production', async () => {
+      await withFreshDatabase(async (client) => {
+        await release(client.db, { seed: true, production: true }, () => {});
+        expect(await client.db.$count(authUsers)).toBe(0);
+
+        await release(client.db, { seed: true }, () => {});
+        expect(await client.db.$count(authUsers)).toBe(1);
       });
     });
   });
