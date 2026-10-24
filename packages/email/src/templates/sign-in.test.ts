@@ -7,7 +7,7 @@ const escapeRegExp = (text: string) => text.replaceAll(/[.*+?^${}()|[\]\\]/g, '\
 
 const props = {
   code: '482915',
-  url: 'https://fivvi.example.com/login/confirm?token=Zq3vB9xTj2LwK8mN',
+  url: 'https://fivvi.example.com/login/confirm?token=test-token',
   expiresInMinutes: 15,
 };
 
