@@ -4,6 +4,9 @@
 
 const port = Number(process.env.E2E_PORT ?? 3100);
 
+/** The domain the e2e servers allow to sign up (`SIGN_UP_ALLOWED_EMAILS`, playwright.config.ts). */
+export const ALLOWED_SIGN_UP_DOMAIN = 'allowed.e2e.test';
+
 /** The app as in CI and local development: no Sentry DSN and no PostHog key. */
 export const appServer = server(port);
 

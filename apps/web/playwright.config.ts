@@ -3,6 +3,7 @@ import { defaultTimeZone, formattingLocales, locales } from '@fivvi/i18n';
 import { defineConfig, devices } from '@playwright/test';
 import type { E2EOptions } from './e2e/fixtures';
 import {
+  ALLOWED_SIGN_UP_DOMAIN,
   analyticsServer,
   appServer,
   brevoServer,
@@ -79,6 +80,8 @@ function standaloneServer(
       BREVO_API_KEY: 'e2e-synthetic-brevo-key',
       EMAIL_FROM_ADDRESS: 'noreply@fivvi.e2e.test',
       EMAIL_FROM_NAME: 'Fivvi',
+      // Closed sign-up (F001): only this domain gets an account at its first sign-in.
+      SIGN_UP_ALLOWED_EMAILS: `@${ALLOWED_SIGN_UP_DOMAIN}`,
     },
     url: baseURL,
     reuseExistingServer: !ci,

@@ -1,4 +1,4 @@
-import { createAccount, newAddress, newIpAddress } from './accounts';
+import { createAccount, newAddress, newAllowedAddress, newIpAddress } from './accounts';
 import { emailsTo, signInCode, signInLink, waitForEmail, waitForEmails } from './brevo';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 
@@ -7,11 +7,13 @@ import { expect, expectNoAxeViolations, test } from './fixtures';
 // the code from; every spec has an address of its own.
 test.describe('F001 sign in on TW-10', () => {
   // Better Auth limits sign-in requests per IP address, and every browser here comes from the same
-  // one. A forwarded address of its own gives each spec its own limit, like separate visitors.
-  // This works only because packages/auth sets no trusted IP header yet, so Better Auth takes the
-  // client-sent `x-forwarded-for`; #134 (rate limits) changes that, and this helper with it.
+  // one. An address of its own gives each spec its own limit, like separate visitors. Both headers
+  // are sent because which one Better Auth reads depends on #134 (rate limits): today it takes
+  // `x-forwarded-for`; once #134 trusts `X-Real-IP`, a request without it (under `next start`) falls
+  // into one shared "unknown IP" bucket. `x-forwarded-for` can go once #134 is on main.
   test.beforeEach(async ({ context }) => {
-    await context.setExtraHTTPHeaders({ 'x-forwarded-for': newIpAddress() });
+    const ipAddress = newIpAddress();
+    await context.setExtraHTTPHeaders({ 'x-forwarded-for': ipAddress, 'x-real-ip': ipAddress });
   });
 
   test('AC2: signs in with the code and returns to the requested page', async ({
@@ -154,5 +156,59 @@ test.describe('F001 sign in on TW-10', () => {
     await expect(page.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
     await expect(page.getByLabel(copy.signIn.emailLabel)).toHaveValue(address);
     await expect(page.getByLabel(copy.signIn.codeLabel)).toHaveCount(0);
+  });
+
+  test('AC8: an allowed address without an account signs in and gets its account', async ({
+    page,
+    messages: copy,
+  }) => {
+    const address = newAllowedAddress('pilot');
+
+    await page.goto('/login');
+    await page.getByLabel(copy.signIn.emailLabel).fill(address);
+    await page.getByRole('button', { name: copy.signIn.sendCode }).click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.signIn.checkEmailTitle }),
+    ).toBeVisible();
+    // The email is sent after the answer: wait for it, don't race it.
+    const email = await waitForEmail(address);
+
+    await page.getByLabel(copy.signIn.codeLabel).fill(signInCode(email));
+    await page.getByRole('button', { name: copy.signIn.submitCode }).click();
+
+    await expect(page).toHaveURL(/\/home$/);
+    const session = await page.request.get('/api/auth/get-session');
+    expect(((await session.json()) as { user: { email: string } }).user.email).toBe(address);
+    expect(await emailsTo(address)).toHaveLength(1);
+  });
+
+  test('AC9: an address that is neither an account nor allowed sees the same code step', async ({
+    page,
+    messages: copy,
+  }) => {
+    const stranger = newAddress('stranger');
+    const allowed = newAllowedAddress('pilot');
+
+    await page.goto('/login');
+    await page.getByLabel(copy.signIn.emailLabel).fill(stranger);
+    await page.getByRole('button', { name: copy.signIn.sendCode }).click();
+
+    // The same step and wording as for an account: nothing shows the address is unknown.
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.signIn.checkEmailTitle }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(copy.signIn.checkEmailBody.replace('{email}', stranger)),
+    ).toBeVisible();
+    await expect(page.getByLabel(copy.signIn.codeLabel)).toBeVisible();
+
+    // No email goes out for it. An email cannot be waited for when none comes, so a later request
+    // (an allowed address) is awaited first: its email arrives after the first request's work
+    // (which started earlier and does less) has had its chance to send one.
+    await page.getByRole('button', { name: copy.signIn.changeEmail }).click();
+    await page.getByLabel(copy.signIn.emailLabel).fill(allowed);
+    await page.getByRole('button', { name: copy.signIn.sendCode }).click();
+    await waitForEmail(allowed);
+    expect(await emailsTo(stranger)).toHaveLength(0);
   });
 });
