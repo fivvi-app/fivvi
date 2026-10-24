@@ -53,12 +53,17 @@ path_allowed() {
 }
 
 files() {
-  local rc=0 path name i rest line last
+  local rc=0 path name i line last rest status
   # git ls-files is relative to the working directory: always scan the whole repo.
   cd "$ROOT"
   load_allowlist
   rc=$allowlist_problems
+  # The files to read, listed once (NUL-separated). Only regular files: a deleted or dangling path would make grep fail.
+  LIST="$(mktemp)"
+  HITS="$(mktemp)"
+  trap 'rm -f "$LIST" "$HITS"' EXIT
   while IFS= read -r -d '' path; do
+    [ ! -f "$path" ] || printf '%s\0' "$path" >>"$LIST"
     path_allowed "$path" && continue
     name="$(printf '%s' "${path##*/}" | tr '[:upper:]' '[:lower:]')"
     if [[ "$name" =~ $KEY_FILE_NAME_RE ]]; then
@@ -68,16 +73,24 @@ files() {
   done < <(git ls-files -z --cached --others --exclude-standard)
   for i in "${!PATTERNS[@]}"; do
     last=""
-    # grep --null ends the path with a NUL, so a ":" in a path is safe; the rest is "line:match" and the match is never kept.
+    # grep status 1 is "no match" and fine; any other status means a file was not read, which must not pass silently.
+    # "--" keeps a file named like an option (-rfoo.txt) from being read as one.
+    status=0
+    # shellcheck disable=SC2016 # $0 and $@ are for the inner shell on purpose
+    xargs -0 sh -c 'grep -IHnoE --null -e "$0" -- "$@"; [ $? -le 1 ]' "${PATTERNS[$i]}" <"$LIST" >"$HITS" || status=$?
+    if [ "$status" != 0 ]; then
+      echo "secrets.sh: grep failed (${KINDS[$i]}), so the files were not all checked" >&2
+      rc=1
+    fi
+    # grep --null ends the path with a NUL, so a ":" in a path is safe; the rest is "line:match", and the match is never printed.
     while IFS= read -r -d '' path && IFS= read -r rest; do
       line="${rest%%:*}"
-      rest=""
       [ "$path:$line" != "$last" ] || continue
       last="$path:$line"
       path_allowed "$path" && continue
       echo "$path:$line: ${KINDS[$i]}" >&2
       rc=1
-    done < <(git ls-files -z --cached --others --exclude-standard | xargs -0 grep -IHnoE --null -e "${PATTERNS[$i]}" 2>/dev/null || true)
+    done <"$HITS"
   done
   [ "$rc" = 0 ] || echo "  fix: keep keys, certificates and tokens out of the repo (docs/engineering/RELEASE.md); scripts/secret-allowlist.txt lists the files that are fine, each with a reason" >&2
   return "$rc"

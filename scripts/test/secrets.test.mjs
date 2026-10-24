@@ -24,7 +24,7 @@ const pem = (kind = '') =>
 const awsKey = `AK${'IA'}${'0123456789ABCDEF'}`;
 const githubToken = `gh${'p'}_${'a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8'}`;
 const slackToken = `xo${'xb'}-123456789012-abcdefghijkl`;
-const sentryOrgToken = `sntry${'s'}_${'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7bC0eF3hJ6kM9n'}`;
+const sentryOrgToken = `sntry${'s'}_${'a1b2c3d4'.repeat(5)}`;
 const sentryUserToken = `sntry${'u'}_${'0123456789abcdef'.repeat(4)}`;
 
 const makeRepo = () => {
@@ -129,6 +129,15 @@ describe('E017 AC7 secrets.sh files', () => {
     assert.equal(result.status, 1);
     assert.match(output(result), /new\.txt:1/);
     assert.doesNotMatch(output(result), /ignored|upload\.p12/);
+  });
+
+  it('reads a file named like an option as a file, so it cannot switch the content checks off', () => {
+    repo.write('-rfoo.txt', 'harmless\n');
+    repo.write('config/key.txt', pem());
+    repo.git('add', '.');
+    const result = repo.run();
+    assert.equal(result.status, 1, output(result));
+    assert.match(output(result), /config\/key\.txt:1.*private key/i);
   });
 
   it('does not take a name that only ends like a key file for one', () => {

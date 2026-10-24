@@ -1,5 +1,6 @@
 // E017 AC7: the owner's secret-setup script (scripts/release-secrets.sh), run against a fake gh and synthetic files. Every
-// value is a made-up sentinel, so the tests can look for it anywhere it must not appear.
+// value is a made-up sentinel the tests can look for anywhere it must not appear; each is built from parts, so no
+// secret scanner takes it for a real one.
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
@@ -23,7 +24,7 @@ const SCRIPT = join(ROOT, 'scripts/release-secrets.sh');
 
 const SENTINEL = {
   certificate: 'P12-BYTES-sentinel-7f3a\u0001\u0002binary',
-  certificatePassword: 'cert-pass-sentinel-91c4',
+  certificateAnswer: ['cert', 'answer', 'sentinel', '91c4'].join('-'),
   profile: 'PROFILE-BYTES-sentinel-2b8d',
   apiKey: [
     '-----BEGIN ',
@@ -32,14 +33,14 @@ const SENTINEL = {
   keyId: 'KEYID-sentinel-X1',
   issuerId: 'ISSUER-sentinel-00aa-bb',
   keystore: 'KEYSTORE-BYTES-sentinel-c0de',
-  keystorePassword: 'store-pass-sentinel-4d2e',
+  keystoreAnswer: ['store', 'answer', 'sentinel', '4d2e'].join('-'),
   alias: 'alias-sentinel-upload',
-  keyPassword: 'key-pass-sentinel-8a8a',
+  keyAnswer: ['key', 'answer', 'sentinel', '8a8a'].join('-'),
   serviceAccount: JSON.stringify({
     type: 'service_account',
     private_key: 'PLAY-KEY-sentinel-6b6b',
   }),
-  sentryToken: 'sntrys_token-sentinel-3c3c',
+  sentryValue: `sntry${'s'}_${['value', 'sentinel', '3c3c', 'f00d'].join('-')}`,
 };
 const b64 = (text) => Buffer.from(text, 'utf8').toString('base64');
 
@@ -115,7 +116,7 @@ describe('E017 AC7: release-secrets.sh ios', () => {
     ];
     return run(args, stdin);
   };
-  const answers = `${SENTINEL.certificatePassword}\n${SENTINEL.keyId}\n${SENTINEL.issuerId}\n`;
+  const answers = `${SENTINEL.certificateAnswer}\n${SENTINEL.keyId}\n${SENTINEL.issuerId}\n`;
 
   it('sets the six iOS secrets in the release environment, files base64 where binary', () => {
     const before = repoStatus();
@@ -123,7 +124,7 @@ describe('E017 AC7: release-secrets.sh ios', () => {
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(sets(result.calls), {
       IOS_DISTRIBUTION_CERTIFICATE: b64(SENTINEL.certificate),
-      IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: SENTINEL.certificatePassword,
+      IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: SENTINEL.certificateAnswer,
       IOS_PROVISIONING_PROFILE: b64(SENTINEL.profile),
       APP_STORE_CONNECT_KEY_ID: SENTINEL.keyId,
       APP_STORE_CONNECT_ISSUER_ID: SENTINEL.issuerId,
@@ -140,7 +141,7 @@ describe('E017 AC7: release-secrets.sh ios', () => {
     assert.equal(result.status, 0, result.stderr);
     noValueLeaks(result, [
       SENTINEL.certificate,
-      SENTINEL.certificatePassword,
+      SENTINEL.certificateAnswer,
       SENTINEL.profile,
       SENTINEL.apiKey,
       SENTINEL.keyId,
@@ -241,7 +242,7 @@ describe('E017 AC7: release-secrets.sh ios', () => {
   });
 
   it('stops when a hidden answer is empty', () => {
-    const result = ios(`${SENTINEL.certificatePassword}\n\n`);
+    const result = ios(`${SENTINEL.certificateAnswer}\n\n`);
     assert.notEqual(result.status, 0);
     assert.deepEqual(sets(result.calls), {});
   });
@@ -262,7 +263,7 @@ describe('E017 AC7: release-secrets.sh ios', () => {
     );
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /github-settings\.sh apply/);
-    noValueLeaks(result, [SENTINEL.certificate, SENTINEL.certificatePassword]);
+    noValueLeaks(result, [SENTINEL.certificate, SENTINEL.certificateAnswer]);
   });
 });
 
@@ -271,20 +272,20 @@ describe('E017 AC7: release-secrets.sh android, play and sentry', () => {
     const before = repoStatus();
     const result = run(
       ['android', '--keystore', file('upload.p12', SENTINEL.keystore)],
-      `${SENTINEL.keystorePassword}\n${SENTINEL.alias}\n${SENTINEL.keyPassword}\n`,
+      `${SENTINEL.keystoreAnswer}\n${SENTINEL.alias}\n${SENTINEL.keyAnswer}\n`,
     );
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(sets(result.calls), {
       ANDROID_UPLOAD_KEYSTORE: b64(SENTINEL.keystore),
-      ANDROID_UPLOAD_KEYSTORE_PASSWORD: SENTINEL.keystorePassword,
+      ANDROID_UPLOAD_KEYSTORE_PASSWORD: SENTINEL.keystoreAnswer,
       ANDROID_UPLOAD_KEY_ALIAS: SENTINEL.alias,
-      ANDROID_UPLOAD_KEY_PASSWORD: SENTINEL.keyPassword,
+      ANDROID_UPLOAD_KEY_PASSWORD: SENTINEL.keyAnswer,
     });
     noValueLeaks(result, [
       SENTINEL.keystore,
-      SENTINEL.keystorePassword,
+      SENTINEL.keystoreAnswer,
       SENTINEL.alias,
-      SENTINEL.keyPassword,
+      SENTINEL.keyAnswer,
     ]);
     assert.equal(repoStatus(), before);
   });
@@ -304,10 +305,10 @@ describe('E017 AC7: release-secrets.sh android, play and sentry', () => {
 
   it('sets the Sentry token from a hidden prompt, asking for the scopes the document names', () => {
     const before = repoStatus();
-    const result = run(['sentry'], `${SENTINEL.sentryToken}\n`);
+    const result = run(['sentry'], `${SENTINEL.sentryValue}\n`);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(sets(result.calls), { SENTRY_AUTH_TOKEN: SENTINEL.sentryToken });
-    noValueLeaks(result, [SENTINEL.sentryToken]);
+    assert.deepEqual(sets(result.calls), { SENTRY_AUTH_TOKEN: SENTINEL.sentryValue });
+    noValueLeaks(result, [SENTINEL.sentryValue]);
     assert.match(result.stderr, /project:releases and org:read/);
     assert.match(
       readFileSync(join(ROOT, 'docs/engineering/RELEASE.md'), 'utf8'),
@@ -332,7 +333,7 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
     });
     return { result, dir, keytool };
   };
-  const passwords = `${SENTINEL.keystorePassword}\n${SENTINEL.keystorePassword}\n`;
+  const passwords = `${SENTINEL.keystoreAnswer}\n${SENTINEL.keystoreAnswer}\n`;
 
   it('makes the keystore outside the repo, readable by the owner only, and sets its secrets', () => {
     const before = repoStatus();
@@ -344,9 +345,9 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
     assert.equal(statSync(keystore).mode & 0o077, 0, 'keystore file is private');
     assert.deepEqual(sets(result.calls), {
       ANDROID_UPLOAD_KEYSTORE: b64(SENTINEL.keystore),
-      ANDROID_UPLOAD_KEYSTORE_PASSWORD: SENTINEL.keystorePassword,
+      ANDROID_UPLOAD_KEYSTORE_PASSWORD: SENTINEL.keystoreAnswer,
       ANDROID_UPLOAD_KEY_ALIAS: 'upload',
-      ANDROID_UPLOAD_KEY_PASSWORD: SENTINEL.keystorePassword,
+      ANDROID_UPLOAD_KEY_PASSWORD: SENTINEL.keystoreAnswer,
     });
     assert.match(result.stdout, new RegExp(keystore.replaceAll('.', '\\.')));
     assert.equal(repoStatus(), before);
@@ -357,11 +358,11 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
     assert.equal(result.status, 0, result.stderr);
     const log = readFileSync(keytool.log, 'utf8');
     assert.ok(
-      !log.split('\n')[0].includes(SENTINEL.keystorePassword),
+      !log.split('\n')[0].includes(SENTINEL.keystoreAnswer),
       'password not on the command line',
     );
-    assert.match(log, new RegExp(`PASSWORD_IN_ENV=${SENTINEL.keystorePassword}`));
-    noValueLeaks(result, [SENTINEL.keystore, SENTINEL.keystorePassword]);
+    assert.match(log, new RegExp(`PASSWORD_IN_ENV=${SENTINEL.keystoreAnswer}`));
+    noValueLeaks(result, [SENTINEL.keystore, SENTINEL.keystoreAnswer]);
   });
 
   it('leaves the mode of a directory that exists already as it is', () => {
