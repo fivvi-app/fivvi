@@ -5,6 +5,11 @@ export interface EmailConfig {
   sender: EmailAddress;
   /** Brevo API key (`xkeysib-…`). A secret: never log it. */
   brevoApiKey: string;
+  /**
+   * Where to send the requests instead of Brevo's own API, from `BREVO_API_URL`. Set by e2e
+   * runs that point it at a fake Brevo server; absent everywhere else.
+   */
+  brevoApiUrl?: string;
 }
 
 // Deliberately loose: Brevo validates the address; this only catches a wrong variable.
@@ -32,5 +37,9 @@ export function readEmailConfig(env: NodeJS.ProcessEnv = process.env): EmailConf
   if (!EMAIL.test(address)) {
     throw new Error('EMAIL_FROM_ADDRESS is not an email address.');
   }
-  return { sender: { email: address, name }, brevoApiKey };
+  const brevoApiUrl = env.BREVO_API_URL?.trim();
+  if (brevoApiUrl && !URL.canParse(brevoApiUrl)) {
+    throw new Error('BREVO_API_URL is not a URL.');
+  }
+  return { sender: { email: address, name }, brevoApiKey, ...(brevoApiUrl && { brevoApiUrl }) };
 }

@@ -5,6 +5,11 @@ export const brevoApiUrl = 'https://api.brevo.com/v3/smtp/email';
 export interface BrevoTransportOptions {
   /** From `readEmailConfig().brevoApiKey`. */
   apiKey: string;
+  /**
+   * The API address. Default: Brevo's (`brevoApiUrl`). e2e tests point it at a fake Brevo server
+   * (`BREVO_API_URL`).
+   */
+  apiUrl?: string;
   /** Injected in tests. Default: the global `fetch`. */
   fetch?: typeof fetch;
   /** Per-attempt timeout. A timed-out attempt is retried with the same idempotency key. */
@@ -17,6 +22,7 @@ export interface BrevoTransportOptions {
  */
 export function createBrevoTransport({
   apiKey,
+  apiUrl = brevoApiUrl,
   fetch: fetchFn = fetch,
   timeoutMs = 5_000,
 }: BrevoTransportOptions): EmailTransport {
@@ -25,7 +31,7 @@ export function createBrevoTransport({
     async send(email) {
       let response: Response;
       try {
-        response = await fetchFn(brevoApiUrl, {
+        response = await fetchFn(apiUrl, {
           method: 'POST',
           headers: {
             accept: 'application/json',

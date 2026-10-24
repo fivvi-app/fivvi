@@ -27,6 +27,7 @@ await sendEmail({
 | `src/render.tsx` | `renderEmail()` and the per-locale context (`t`, `formatDateTime`) |
 | `src/send.ts` | `createSendEmail()`: render, send, inline retry |
 | `src/brevo.ts` | Brevo transport (`POST /v3/smtp/email`) |
+| `src/log.ts`, `src/environment.ts` | Log transport and the per-environment choice of transport (`createEnvironmentSendEmail`) |
 | `src/memory.ts` | In-memory capture transport for tests and local development |
 | `scripts/` | Preview server and the test-send CLI |
 
@@ -69,6 +70,9 @@ Transports implement `EmailTransport` (`send(email) → { messageId }`, one atte
 | `BREVO_API_KEY` | `xkeysib-…` | Brevo → Settings → SMTP & API → API keys. **Secret.** |
 | `EMAIL_FROM_ADDRESS` | `noreply@fivvi.app` | Must be a verified sender in Brevo (Settings → Senders, domains & dedicated IPs) |
 | `EMAIL_FROM_NAME` | `Fivvi` | Display name of the sender |
+| `BREVO_API_URL` | `http://localhost:4010/v3/smtp/email` | Optional. Sends the requests here instead of to Brevo, for e2e runs against a fake Brevo server. Leave it unset everywhere else |
+
+`createEnvironmentSendEmail()` is the `sendEmail` the server uses (F001): **production** always sends through Brevo and never logs an email; **outside production**, mail to an `@example.com` address is written to the server log instead (the whole text, so the sign-in code and link can be read from it), and all other mail goes through Brevo. "Production" is the Railway environment named `production` (`RAILWAY_ENVIRONMENT_NAME`). Outside production the Brevo variables may be missing while only `@example.com` mail is sent.
 
 - **Local:** put the three variables in `packages/email/.env` (git-ignored; every worktree needs its own). The `send:test` script loads it.
 - **Preview and production:** Railway variables on `web`, declared in `.railway/railway.ts` (`preserve()` for the key and address, so the file holds no value) and listed in [`docs/engineering/ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). The owner sets the values: the real key only in `production`, a separate test key in `development` (every preview copies it). Never commit a key; rotate it in Brevo if it leaks.
