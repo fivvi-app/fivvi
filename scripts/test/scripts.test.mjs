@@ -125,6 +125,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
   it('E008 AC9: the iOS job runs for the app and its generated inputs, including the Swift design tokens', () => {
     for (const path of [
       'apps/ios/FivviPro/Hello/HelloView.swift',
+      'apps/Version.xcconfig',
       'packages/contract/swift/Sources/FivviAPI/Generated/Client.swift',
       'packages/i18n/generated/ios/Localizable.xcstrings',
       'packages/design-tokens/FivviDesignTokens/Package.swift',
@@ -147,6 +148,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
   it('E008 AC9: the Android job runs for the app and its generated inputs, including the Kotlin design tokens', () => {
     for (const path of [
       'apps/android/app/src/main/kotlin/app/fivvi/pro/MainActivity.kt',
+      'apps/Version.xcconfig',
       'packages/contract/kotlin/generated/app/fivvi/api/apis/HelloApi.kt',
       'packages/i18n/generated/android/values/strings.xml',
       'packages/design-tokens/kotlin/generated/app/fivvi/designtokens/Colors.kt',
@@ -1041,6 +1043,8 @@ esac`;
     for (const path of [
       'apps/ios/lint',
       'apps/ios/Config',
+      'apps/ios/README.md',
+      'apps/Version.xcconfig',
       'apps/ios/FivviPro.xctestplan',
       'apps/ios/FivviProUITests',
       'apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
@@ -1071,7 +1075,10 @@ esac`;
     script(
       join(repo, 'apps/android/gradlew'),
       `echo "$*" >>"${state}/gradle.log"
-case "$*" in *connectedDebugAndroidTest*) ${outcome} ;; esac`,
+case "$*" in
+  *checkReleaseApiBaseUrl*-Pfivvi.releaseApiBaseUrl=*) [ "$FAKE_URL_CHECK" = accept ] || { echo 'Set fivvi.releaseApiBaseUrl (fake)'; exit 1; } ;;
+  *connectedDebugAndroidTest*) ${outcome} ;;
+esac`,
     );
     execFileSync('git', ['-C', repo, 'add', '.']);
     execFileSync('git', [
@@ -1100,7 +1107,7 @@ case "$*" in
       printf '%s' "$(sed 's/"strings" : {/"strings" : { "CFBundleName" : {},/' "$catalog")" >"$catalog"; }
     [ "$FAKE_EXPORT" != hang ] || exec perl -e 'open my $f, ">", shift; close $f; sleep 30' "${state}/running"
     [ "$FAKE_EXPORT" != fail ] || exit 70 ;;
-  *-showBuildSettings*) printf '    FIVVI_API_BASE_URL = https://example.test/api\\n    INFOPLIST_FILE = Info.plist\\n    FIVVI_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    FIVVI_SENTRY_ENVIRONMENT = production\\n' ;;
+  *-showBuildSettings*) printf '    FIVVI_API_BASE_URL = %s\\n    INFOPLIST_FILE = Info.plist\\n    FIVVI_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    FIVVI_SENTRY_ENVIRONMENT = production\\n    MARKETING_VERSION = %s\\n    CURRENT_PROJECT_VERSION = 1\\n    PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.pro\\n' "\${FAKE_BASE_URL-https://example.test/api}" "$(sed -nE 's/^MARKETING_VERSION = //p' ${repo}/apps/Version.xcconfig)" ;;
   build-for-testing\\ *) [ "$FAKE_BUILD" != fail ] || { echo 'error: build failed (fake)'; exit 1; }
     mkdir -p .build/DerivedData/Build/Products
     # FAKE_XCTESTRUN: none (the build leaves no .xctestrun) or two (it leaves two).
@@ -1115,7 +1122,8 @@ exit 0`,
     // Release.
     script(
       join(bin, 'plutil'),
-      `[ "$1" = -convert ] || exit 1
+      `[ "$1" = -extract ] && [ "$2" = ITSAppUsesNonExemptEncryption ] && [ "$FAKE_ENCRYPTION" != missing ] && { echo false; exit 0; }
+[ "$1" = -convert ] || exit 1
 if [ "$FAKE_PLIST_FORM" = other ]; then sed 1d "\${@: -1}"; else cat "\${@: -1}"; fi`,
     );
     script(join(bin, 'java'), 'echo "openjdk version \\"21\\"" >&2');
@@ -1456,15 +1464,19 @@ esac`,
       writeFileSync(planPath(fake), JSON.stringify(plan));
     };
 
-    it('C: the configuration check makes one -showBuildSettings call, into the cached Swift packages', async () => {
+    it('C: the configuration checks make one -showBuildSettings call per configuration, into the cached Swift packages', async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/test-ios.sh');
 
       assert.equal(run.status, 0, run.output);
       const calls = fake.log('xcodebuild').filter((line) => line.includes('-showBuildSettings'));
-      assert.equal(calls.length, 1);
-      assert.match(calls[0], /-clonedSourcePackagesDirPath \.build\/SourcePackages/);
+      assert.equal(calls.length, 2);
+      assert.ok(calls.some((call) => call.includes('-configuration Release')));
+      assert.ok(calls.some((call) => call.includes('-configuration Debug')));
+      for (const call of calls) {
+        assert.match(call, /-clonedSourcePackagesDirPath \.build\/SourcePackages/);
+      }
     });
 
     it('D: nl runs every UI test and en skips only the locale-independent ones', () => {
@@ -1731,6 +1743,65 @@ esac`,
         .some((line) => /^(build-for-testing|test-without-building) /.test(line)),
       'nothing built or tested',
     );
+  });
+
+  for (const [name, url] of [
+    ['empty', ''],
+    ['plain HTTP', 'http://production.fivvi.app/api'],
+    ['the .invalid placeholder', 'https://production.fivvi.invalid/api'],
+  ]) {
+    it(`E017 AC5: pnpm test:ios fails on a Release base URL that is ${name}`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', [], { FAKE_BASE_URL: url });
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /E017 AC5: Release base URL is not https:\/\/<real host>\/api/);
+      assert.ok(
+        !fake
+          .log('xcodebuild')
+          .some((line) => /^(build-for-testing|test-without-building) /.test(line)),
+        'nothing built or tested',
+      );
+    });
+  }
+
+  it('E017 AC1: pnpm test:ios fails when the Release Info.plist does not declare no non-exempt encryption', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/test-ios.sh', [], { FAKE_ENCRYPTION: 'missing' });
+
+    assert.equal(run.status, 1, run.output);
+    assert.match(run.output, /E017 AC1: .* must set ITSAppUsesNonExemptEncryption to NO/);
+  });
+
+  it('E017 AC8: pnpm test:ios fails when the README does not record the final bundle ID', async () => {
+    const fake = checkout();
+    const readme = join(fake.repo, 'apps/ios/README.md');
+    writeFileSync(
+      readme,
+      readFileSync(readme, 'utf8').replace(
+        'bundle ID `app.fivvi.pro` (final',
+        'bundle ID `app.fivvi.pro` (provisional',
+      ),
+    );
+
+    const run = await fake.run('scripts/test-ios.sh');
+
+    assert.equal(run.status, 1, run.output);
+    assert.match(
+      run.output,
+      /E017 AC8: bundle ID 'app\.fivvi\.pro' is not the final ID the README records/,
+    );
+  });
+
+  it('E017 AC5: pnpm test:android fails when checkReleaseApiBaseUrl accepts a bad address', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/android.sh', ['test'], { FAKE_URL_CHECK: 'accept' });
+
+    assert.equal(run.status, 1, run.output);
+    assert.match(run.output, /checkReleaseApiBaseUrl accepted fivvi\.releaseApiBaseUrl=''/);
   });
 
   it("#95: pnpm test:ios restores the catalogs when Xcode's sync changes them and then fails", async () => {

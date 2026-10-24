@@ -3,9 +3,10 @@
 #
 #   android.sh setup      install or check the JDK, the Android SDK, the emulator and its image, and Maestro
 #                         (scripts/bootstrap.sh --mobile runs this)
-#   android.sh test       ktlint with the literal-text, colour and Sentry checks, the release Sentry DSN (EU region),
-#                         build, unit tests (nl-NL and en), and the Compose UI tests on an emulator, booted for the run
-#                         when none is connected (pnpm test:android)
+#   android.sh test       ktlint with the literal-text, colour and Sentry checks, the release API address (HTTPS, not a
+#                         placeholder; the check must also reject an empty, plain-HTTP and .invalid one) and Sentry DSN
+#                         (EU region), build, unit tests (nl-NL and en), and the Compose UI tests on an emulator, booted
+#                         for the run when none is connected (pnpm test:android)
 #   android.sh emulator   boot the emulator headless and leave it running, so test and maestro.sh reuse it. With
 #                         AVD_SNAPSHOT=1 (CI) it boots from a saved snapshot, or cold when there is none or it
 #                         doesn't load, and then saves one
@@ -106,11 +107,24 @@ cmd_setup() {
   fi
 }
 
+# E017 AC5: checkReleaseApiBaseUrl must fail, with its own message, on an empty, a plain-HTTP and a `.invalid` address.
+release_url_check_rejects_bad_addresses() {
+  local url out
+  for url in "" "http://production.fivvi.app/api/" "https://production.fivvi.invalid/api/"; do
+    if out="$(gradle --quiet checkReleaseApiBaseUrl "-Pfivvi.releaseApiBaseUrl=$url" 2>&1)"; then
+      die "checkReleaseApiBaseUrl accepted fivvi.releaseApiBaseUrl='$url'"
+    fi
+    grep -q "Set fivvi.releaseApiBaseUrl" <<<"$out" \
+      || die "checkReleaseApiBaseUrl failed for '$url', but not with its message:"$'\n'"$out"
+  done
+}
+
 cmd_test() {
   [ $# -eq 0 ] || usage
   android_env
   on_exit stop_android
-  gradle ktlintCheck :lint-rules:test checkReleaseSentryDsn assembleDebug testDebugUnitTest
+  gradle ktlintCheck :lint-rules:test checkReleaseApiBaseUrl checkReleaseSentryDsn assembleDebug testDebugUnitTest
+  release_url_check_rejects_bad_addresses
   start_emulator
   gradle connectedDebugAndroidTest
 }

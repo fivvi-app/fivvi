@@ -24,6 +24,7 @@
     "test:ios": "scripts/test-ios.sh",
     "test:android": "scripts/android.sh test",
     "test:maestro": "scripts/maestro.sh android",
+    "app-icon": "node scripts/app-icon.mjs",
     "format:check": "turbo run format:check",
     "check": "turbo run check",
     "generate:contract": "pnpm --filter @fivvi/contract generate",
