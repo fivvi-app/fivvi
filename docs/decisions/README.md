@@ -28,6 +28,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [018](ADR-018-merge-queue.md) | Merge queue: agents add low-risk PRs to the queue, the owner adds high-risk ones; amends ADR-016 | Proposed |
 | [019](ADR-019-sign-in-communication-language.md) | Sign-in communication language: stored preference, otherwise the language of the screen that asked; amends ADR-017 | Proposed |
 | [020](ADR-020-payment-provider.md) | Payment provider and merchant model: Mollie Connect for Platforms, the gym as merchant on its own account | Accepted |
+| [021](ADR-021-agents-queue-high-risk.md) | Agents queue high-risk PRs before G2, except owner-only changes (guardrails, legal, money, product and decision docs); amends ADR-016 and ADR-018 | Proposed |
 
 ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. ADR-011 was re-evaluated during the write-up and accepted in its new form (Railway) the same day. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
 
