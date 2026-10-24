@@ -43,10 +43,6 @@ android {
     }
 
     buildTypes {
-        all {
-            buildConfigField("String", "APP_VERSION", "\"$appVersion\"")
-            buildConfigField("int", "BUILD_NUMBER", "$buildNumber")
-        }
         debug {
             buildConfigField("String", "API_BASE_URL", "\"$debugApiBaseUrl\"")
             buildConfigField("String", "SENTRY_DSN", "\"$debugSentryDsn\"")
@@ -97,7 +93,7 @@ val checkReleaseApiBaseUrl = tasks.register("checkReleaseApiBaseUrl") {
         val uri = runCatching { URI(url) }.getOrNull()
         val host = uri?.host.orEmpty()
         val production = uri?.scheme == "https" && host.contains('.') && !host.endsWith(".invalid") &&
-            uri.path.startsWith("/api")
+            uri.path in listOf("/api", "/api/")
         check(production) {
             "Set fivvi.releaseApiBaseUrl (apps/android/gradle.properties) to the production API URL over HTTPS " +
                 "(https://<host>/api/, not empty, plain HTTP or a .invalid placeholder): '$url'"

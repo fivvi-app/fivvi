@@ -1107,7 +1107,14 @@ case "$*" in
       printf '%s' "$(sed 's/"strings" : {/"strings" : { "CFBundleName" : {},/' "$catalog")" >"$catalog"; }
     [ "$FAKE_EXPORT" != hang ] || exec perl -e 'open my $f, ">", shift; close $f; sleep 30' "${state}/running"
     [ "$FAKE_EXPORT" != fail ] || exit 70 ;;
-  *-showBuildSettings*) printf '    FIVVI_API_BASE_URL = %s\\n    INFOPLIST_FILE = Info.plist\\n    FIVVI_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    FIVVI_SENTRY_ENVIRONMENT = production\\n    MARKETING_VERSION = %s\\n    CURRENT_PROJECT_VERSION = 1\\n    PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.pro\\n' "\${FAKE_BASE_URL-https://example.test/api}" "$(sed -nE 's/^MARKETING_VERSION = //p' ${repo}/apps/Version.xcconfig)" ;;
+  *-showBuildSettings*)
+    # FAKE_VERSION: the version the project resolves instead of the one of apps/Version.xcconfig. A build setting passed
+    # on the command line (CURRENT_PROJECT_VERSION=42) overrides the file's, unless FAKE_IGNORE_OVERRIDE is set; as Xcode
+    # does, it lists an override a second time at the end.
+    overridden=''
+    number="$(sed -nE 's/^CURRENT_PROJECT_VERSION = //p' ${repo}/apps/Version.xcconfig)"
+    case "$*" in *\\ CURRENT_PROJECT_VERSION=*) [ -n "$FAKE_IGNORE_OVERRIDE" ] || { number="$(sed -E 's/.* CURRENT_PROJECT_VERSION=([^ ]*).*/\\1/' <<<"$*")"; overridden="    CURRENT_PROJECT_VERSION = $number\\n"; } ;; esac
+    printf '    FIVVI_API_BASE_URL = %s\\n    INFOPLIST_FILE = Info.plist\\n    FIVVI_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    FIVVI_SENTRY_ENVIRONMENT = production\\n    MARKETING_VERSION = %s\\n    CURRENT_PROJECT_VERSION = %s\\n    PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.pro\\n%b' "\${FAKE_BASE_URL-https://example.test/api}" "\${FAKE_VERSION:-$(sed -nE 's/^MARKETING_VERSION = //p' ${repo}/apps/Version.xcconfig)}" "$number" "$overridden" ;;
   build-for-testing\\ *) [ "$FAKE_BUILD" != fail ] || { echo 'error: build failed (fake)'; exit 1; }
     mkdir -p .build/DerivedData/Build/Products
     # FAKE_XCTESTRUN: none (the build leaves no .xctestrun) or two (it leaves two).
@@ -1464,16 +1471,20 @@ esac`,
       writeFileSync(planPath(fake), JSON.stringify(plan));
     };
 
-    it('C: the configuration checks make one -showBuildSettings call per configuration, into the cached Swift packages', async () => {
+    it('C: the configuration checks make one -showBuildSettings call per configuration and one for the build number, into the cached Swift packages', async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/test-ios.sh');
 
       assert.equal(run.status, 0, run.output);
       const calls = fake.log('xcodebuild').filter((line) => line.includes('-showBuildSettings'));
-      assert.equal(calls.length, 2);
+      assert.equal(calls.length, 3);
       assert.ok(calls.some((call) => call.includes('-configuration Release')));
       assert.ok(calls.some((call) => call.includes('-configuration Debug')));
+      assert.ok(
+        calls.some((call) => call.includes('CURRENT_PROJECT_VERSION=42')),
+        'a build number passed from outside',
+      );
       for (const call of calls) {
         assert.match(call, /-clonedSourcePackagesDirPath \.build\/SourcePackages/);
       }
@@ -1750,7 +1761,7 @@ esac`,
     ['plain HTTP', 'http://production.fivvi.app/api'],
     ['the .invalid placeholder', 'https://production.fivvi.invalid/api'],
   ]) {
-    it(`E017 AC5: pnpm test:ios fails on a Release base URL that is ${name}`, async () => {
+    it(`E017 AC5: Release base URL is HTTPS and not .invalid: pnpm test:ios fails on one that is ${name}`, async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/test-ios.sh', [], { FAKE_BASE_URL: url });
@@ -1766,7 +1777,7 @@ esac`,
     });
   }
 
-  it('E017 AC1: pnpm test:ios fails when the Release Info.plist does not declare no non-exempt encryption', async () => {
+  it('E017 AC1: Release declares no non-exempt encryption: pnpm test:ios fails when it does not', async () => {
     const fake = checkout();
 
     const run = await fake.run('scripts/test-ios.sh', [], { FAKE_ENCRYPTION: 'missing' });
@@ -1775,7 +1786,7 @@ esac`,
     assert.match(run.output, /E017 AC1: .* must set ITSAppUsesNonExemptEncryption to NO/);
   });
 
-  it('E017 AC8: pnpm test:ios fails when the README does not record the final bundle ID', async () => {
+  it('E017 AC8: bundle and application ID match the recorded final ID: pnpm test:ios fails when the README does not record the bundle ID', async () => {
     const fake = checkout();
     const readme = join(fake.repo, 'apps/ios/README.md');
     writeFileSync(
@@ -1795,7 +1806,80 @@ esac`,
     );
   });
 
-  it('E017 AC5: pnpm test:android fails when checkReleaseApiBaseUrl accepts a bad address', async () => {
+  it('E017 AC4: both platforms read the same version: pnpm test:ios fails when the app resolves another one', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/test-ios.sh', [], { FAKE_VERSION: '9.9.9' });
+
+    assert.equal(run.status, 1, run.output);
+    assert.match(
+      run.output,
+      /E017 AC4: the app's version is '9\.9\.9', not '0\.1\.0' of apps\/Version\.xcconfig/,
+    );
+    assert.ok(
+      !fake
+        .log('xcodebuild')
+        .some((line) => /^(build-for-testing|test-without-building) /.test(line)),
+      'nothing built or tested',
+    );
+  });
+
+  it('E017 AC4: pnpm test:ios fails when the version of apps/Version.xcconfig is not <major>.<minor>.<patch>', async () => {
+    const fake = checkout();
+    const file = join(fake.repo, 'apps/Version.xcconfig');
+    writeFileSync(file, readFileSync(file, 'utf8').replace('0.1.0', '0.1'));
+
+    const run = await fake.run('scripts/test-ios.sh', [], { FAKE_VERSION: '0.1' });
+
+    assert.equal(run.status, 1, run.output);
+    assert.match(run.output, /MARKETING_VERSION is not <major>\.<minor>\.<patch>: '0\.1'/);
+  });
+
+  it('E017 AC4: pnpm test:ios fails when the default build number is not 1', async () => {
+    const fake = checkout();
+    const file = join(fake.repo, 'apps/Version.xcconfig');
+    writeFileSync(
+      file,
+      readFileSync(file, 'utf8').replace(
+        'CURRENT_PROJECT_VERSION = 1',
+        'CURRENT_PROJECT_VERSION = 7',
+      ),
+    );
+
+    const run = await fake.run('scripts/test-ios.sh');
+
+    assert.equal(run.status, 1, run.output);
+    assert.match(run.output, /E017 AC4: the default build number is '7'.*not 1/);
+  });
+
+  it('E017 AC4: pnpm test:ios fails when a build number passed from outside does not come through', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/test-ios.sh', [], { FAKE_IGNORE_OVERRIDE: '1' });
+
+    assert.equal(run.status, 1, run.output);
+    assert.match(run.output, /E017 AC4: CURRENT_PROJECT_VERSION=42 .* resolves to '1', not 42/);
+  });
+
+  it('E017 AC4: pnpm test:android also runs BuildInfoTest with a build number passed from outside', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/android.sh', ['test']);
+
+    assert.equal(run.status, 0, run.output);
+    assert.ok(
+      fake
+        .log('gradle')
+        .some(
+          (line) =>
+            line.includes('testDebugUnitTest') &&
+            line.includes('--tests app.fivvi.pro.BuildInfoTest') &&
+            line.includes('-Pfivvi.buildNumber=42'),
+        ),
+    );
+  });
+
+  it('E017 AC5: Release base URL is HTTPS and not .invalid: pnpm test:android fails when checkReleaseApiBaseUrl accepts a bad address', async () => {
     const fake = checkout();
 
     const run = await fake.run('scripts/android.sh', ['test'], { FAKE_URL_CHECK: 'accept' });

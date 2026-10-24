@@ -64,6 +64,13 @@
         "e2e/maestro/*.yaml",
         "e2e/maestro/*.yml",
         "apps/ios/**/project.pbxproj",
+        "apps/ios/FivviPro/Assets.xcassets/**",
+        "apps/ios/README.md",
+        "apps/android/README.md",
+        "apps/android/app/src/main/res/**",
+        "apps/android/app/src/main/ic_launcher-playstore.png",
+        "apps/Version.xcconfig",
+        "packages/design-tokens/src/**",
         "packages/*/*/Package.swift"
       ]
     },

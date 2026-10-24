@@ -17,7 +17,7 @@ class BuildInfoTest {
     fun E017_AC4_bothPlatformsReadTheSameVersion() {
         val shared = setting("../../Version.xcconfig", "MARKETING_VERSION")
 
-        assertEquals(shared, BuildConfig.APP_VERSION)
+        assertEquals(shared, BuildConfig.VERSION_NAME)
         assertTrue("$shared is not <major>.<minor>.<patch>", Regex("""\d+\.\d+\.\d+""").matches(shared))
     }
 
@@ -28,7 +28,7 @@ class BuildInfoTest {
         val default = setting("../../Version.xcconfig", "CURRENT_PROJECT_VERSION").toInt()
         val expected = System.getProperty("fivvi.buildNumber")?.toInt() ?: default
 
-        assertEquals(expected, BuildConfig.BUILD_NUMBER)
+        assertEquals(expected, BuildConfig.VERSION_CODE)
     }
 
     @Test

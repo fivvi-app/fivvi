@@ -72,22 +72,31 @@ production_base_url_fixtures() {
   return "$rc"
 }
 
-# The settings an Xcode configuration of the app resolves to. It resolves the Swift packages, so it uses the cached
-# .build/SourcePackages like the build does (without it, it cloned them all again: 71 s of CI's first run, #105).
-# Reading the xcconfig instead would not show what the project's configuration really resolves to.
+# The settings an Xcode configuration of the app resolves to, with any build settings given after it (as `xcodebuild`
+# takes them on its command line). It resolves the Swift packages, so it uses the cached .build/SourcePackages like the
+# build does (without it, it cloned them all again: 71 s of CI's first run, #105). Reading the xcconfig instead would not
+# show what the project's configuration really resolves to.
 build_settings() {
-  xcodebuild -project FivviPro.xcodeproj -target FivviPro -configuration "$1" -showBuildSettings \
-    -clonedSourcePackagesDirPath .build/SourcePackages
+  local configuration=$1
+  shift
+  xcodebuild -project FivviPro.xcodeproj -target FivviPro -configuration "$configuration" -showBuildSettings \
+    -clonedSourcePackagesDirPath .build/SourcePackages "$@"
 }
 
-setting_of() { sed -nE "s/^ *$1 = //p" <<<"$2"; }
+# A setting passed on the command line is listed twice (with the build's settings and again as an override): the first.
+setting_of() { sed -nE "s/^ *$1 = //p" <<<"$2" | head -n 1; }
 
-# E017 AC4 and AC8: both configurations resolve the version of apps/Version.xcconfig (the one Android reads), the default
+# The one place that reads apps/Version.xcconfig here: a setting of the file both apps take their version from.
+shared_setting() {
+  sed -nE "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*([^[:space:]]+)[[:space:]]*\$/\1/p" "$ROOT/apps/Version.xcconfig"
+}
+
+# E017 AC4 and AC8: a configuration resolves the version of apps/Version.xcconfig (the one Android reads), the default
 # build number 1 and the bundle ID that apps/ios/README.md records as final.
 version_and_identifier() {
   local settings=$1 shared default recorded id version number rc=0
-  shared="$(sed -nE 's/^MARKETING_VERSION = //p' "$ROOT/apps/Version.xcconfig")"
-  default="$(sed -nE 's/^CURRENT_PROJECT_VERSION = //p' "$ROOT/apps/Version.xcconfig")"
+  shared="$(shared_setting MARKETING_VERSION)"
+  default="$(shared_setting CURRENT_PROJECT_VERSION)"
   version="$(setting_of MARKETING_VERSION "$settings")"
   number="$(setting_of CURRENT_PROJECT_VERSION "$settings")"
   id="$(setting_of PRODUCT_BUNDLE_IDENTIFIER "$settings")"
@@ -101,6 +110,15 @@ version_and_identifier() {
   [ -n "$recorded" ] && [ "$id" = "$recorded" ] \
     || { echo "E017 AC8: bundle ID '$id' is not the final ID the README records: '$recorded'"; rc=1; }
   return "$rc"
+}
+
+# E017 AC4: a release run passes its build number from outside (`xcodebuild CURRENT_PROJECT_VERSION=<n>`); a number other
+# than the default must come through to the Release configuration (it is CFBundleVersion).
+build_number_from_outside() {
+  local number
+  number="$(setting_of CURRENT_PROJECT_VERSION "$(build_settings Release CURRENT_PROJECT_VERSION=42)")"
+  [ "$number" = 42 ] \
+    || { echo "E017 AC4: CURRENT_PROJECT_VERSION=42 on the command line resolves to '$number', not 42"; return 1; }
 }
 
 # Release talks HTTPS to the production API only: no App Transport Security exception in its Info.plist, and the app
@@ -246,6 +264,7 @@ debug_configuration
 production_base_url_fixtures
 release_configuration
 version_and_identifier "$(build_settings Debug)"
+build_number_from_outside
 plists_in_xcode_form
 step "Swift packages (no analytics SDK)"
 swift_packages

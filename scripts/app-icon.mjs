@@ -18,7 +18,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crc32, deflateSync, inflateSync } from 'node:zlib';
-import { readTokenSource } from '../packages/design-tokens/src/source.ts';
+import { readTokenSource } from '@fivvi/design-tokens/source';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
