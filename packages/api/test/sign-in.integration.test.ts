@@ -70,6 +70,29 @@ describe('F001 sign in with the emailed code through the API', () => {
     return { email, code, link, token: new URL(link, ORIGIN).searchParams.get('token') ?? '' };
   }
 
+  /** A 6-digit code that is not `code`. */
+  const wrongCodeFor = (code: string) => (code === '000000' ? '000001' : '000000');
+
+  /** Status and body of a response, to compare failures: they must look the same. */
+  async function outcome(response: Response) {
+    return {
+      status: response.status,
+      body: await response.json(),
+      cookies: response.headers.getSetCookie(),
+    };
+  }
+
+  /** A second account, removed again when the test ends. */
+  async function addTrainerAccount() {
+    await client.db.insert(authUsers).values({ email: 'trainer@example.com' });
+    onTestFinished(async () => {
+      const pool = (client.db as unknown as { $client: PoolLike }).$client;
+      await pool.query("delete from auth_users where email = 'trainer@example.com'");
+    });
+  }
+
+  const verifications = () => client.db.select().from(authVerifications);
+
   beforeAll(async () => {
     database = await cloneTemplateDatabase();
     client = createDatabase({ url: database.url, maxConnections: 4 });
@@ -175,6 +198,43 @@ describe('F001 sign in with the emailed code through the API', () => {
     expect((await enterCode('owner@example.com', code)).status).toBe(401);
   });
 
+  it('AC4: link and code are one single-use verification; a new request replaces it', async () => {
+    await requestCode('owner@example.com', 'en');
+    const first = readEmail();
+    const [row] = await verifications();
+    expect(await verifications()).toHaveLength(1);
+
+    // A second request for the same address replaces the first verification: its link token and
+    // its code are gone, and only the newest email works.
+    await requestCode('owner@example.com', 'en');
+    const second = readEmail(2);
+    const [replacement, ...others] = await verifications();
+    expect(others).toEqual([]);
+    expect(replacement?.id).not.toBe(row?.id);
+    expect(replacement?.value).not.toBe(row?.value);
+    expect(replacement?.codeHash).not.toBe(row?.codeHash);
+    expect(second.token).not.toBe(first.token);
+    expect((await enterCode('owner@example.com', first.code)).status).toBe(401);
+
+    // Using the code of the newest email uses up its link too: nothing is left to use.
+    expect((await enterCode('owner@example.com', second.code)).status).toBe(200);
+    expect(await verifications()).toEqual([]);
+    expect((await enterCode('owner@example.com', second.code)).status).toBe(401);
+  });
+
+  it('AC4: using a code does not touch the verification of another address', async () => {
+    await addTrainerAccount();
+    await requestCode('owner@example.com', 'en');
+    const owner = readEmail().code;
+    await requestCode('trainer@example.com', 'en');
+    const trainer = readEmail(2).code;
+
+    expect((await enterCode('owner@example.com', owner)).status).toBe(200);
+
+    expect(await verifications()).toHaveLength(1);
+    expect((await enterCode('trainer@example.com', trainer)).status).toBe(200);
+  });
+
   it('AC4: a new request that lands while the old code is checked cannot be used up by the old code', async () => {
     await requestCode('owner@example.com', 'en');
     const old = readEmail().code;
@@ -208,7 +268,7 @@ describe('F001 sign in with the emailed code through the API', () => {
     expect((await enterCode('owner@example.com', fresh)).status).toBe(200);
   });
 
-  describe('AC5: the code works for 15 minutes', () => {
+  describe('AC5: link and code expire after 15 minutes', () => {
     // Better Auth tidies up expired rows by the system clock, which it can't take as a clock, so
     // that is frozen at the same instant as the injected one (TESTING.md §5.4).
     function startAt() {
@@ -240,6 +300,31 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(response.headers.getSetCookie()).toEqual([]);
     });
 
+    it('link and code share one expiry: 15 minutes after the request', async () => {
+      const { server } = startAt();
+      await post('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' }, { server });
+
+      // One row holds the link token and the code, so one `expiresAt` ends both.
+      const [row, ...others] = await verifications();
+      expect(others).toEqual([]);
+      expect(row?.expiresAt.toISOString()).toBe('2026-03-31T10:15:00.000Z');
+    });
+
+    it('an expired code is rejected like a wrong one, and a new request starts afresh', async () => {
+      const { clock, server } = startAt();
+      await post('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' }, { server });
+      const old = readEmail().code;
+      clock.advance({ minutes: 16 });
+      const expired = await outcome(await enterCode('owner@example.com', old, server));
+      const wrong = await outcome(await enterCode('owner@example.com', wrongCodeFor(old), server));
+      expect(expired).toEqual(wrong);
+
+      await post('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' }, { server });
+      clock.advance({ minutes: 14 });
+
+      expect((await enterCode('owner@example.com', readEmail(2).code, server)).status).toBe(200);
+    });
+
     it('the validity is counted from the request, not from the server start', async () => {
       const { clock, server } = startAt();
       clock.advance({ minutes: 20 });
@@ -250,6 +335,108 @@ describe('F001 sign in with the emailed code through the API', () => {
 
       expect((await enterCode('owner@example.com', code, server)).status).toBe(200);
     });
+  });
+
+  describe('AC6: 5 wrong codes kill the verification', () => {
+    async function wrongCodes(count: number, email = 'owner@example.com', code = '000000') {
+      const responses: Response[] = [];
+      for (let attempt = 0; attempt < count; attempt += 1) {
+        responses.push(await enterCode(email, code));
+      }
+      return responses;
+    }
+
+    it('5 wrong codes kill the verification, even for the right code', async () => {
+      await requestCode('owner@example.com', 'en');
+      const { code } = readEmail();
+      const wrong = wrongCodeFor(code);
+
+      for (const response of await wrongCodes(5, 'owner@example.com', wrong)) {
+        expect(response.status).toBe(401);
+      }
+      const right = await enterCode('owner@example.com', code);
+
+      expect(right.status).toBe(401);
+      expect(right.headers.getSetCookie()).toEqual([]);
+      // The link is dead too: no verification is left that holds its token.
+      expect(await verifications()).toEqual([]);
+    });
+
+    it('a new email after that works again', async () => {
+      await requestCode('owner@example.com', 'en');
+      await wrongCodes(5, 'owner@example.com', wrongCodeFor(readEmail().code));
+
+      await requestCode('owner@example.com', 'en');
+
+      expect((await enterCode('owner@example.com', readEmail(2).code)).status).toBe(200);
+    });
+
+    it('4 wrong codes do not: the right code still signs in', async () => {
+      await requestCode('owner@example.com', 'en');
+      const { code } = readEmail();
+      await wrongCodes(4, 'owner@example.com', wrongCodeFor(code));
+
+      expect((await enterCode('owner@example.com', code)).status).toBe(200);
+    });
+
+    it('wrong codes are counted per email', async () => {
+      await addTrainerAccount();
+      await requestCode('owner@example.com', 'en');
+      const owner = readEmail().code;
+      await requestCode('trainer@example.com', 'en');
+      const trainer = readEmail(2).code;
+
+      await wrongCodes(5, 'trainer@example.com', wrongCodeFor(trainer));
+
+      expect((await enterCode('trainer@example.com', trainer)).status).toBe(401);
+      expect((await enterCode('owner@example.com', owner)).status).toBe(200);
+    });
+
+    it('a verification at the limit is dead even before it is deleted', async () => {
+      await requestCode('owner@example.com', 'en');
+      const { code } = readEmail();
+      const pool = (client.db as unknown as { $client: PoolLike }).$client;
+      await pool.query('update auth_verifications set failed_attempts = 5');
+
+      expect((await enterCode('owner@example.com', code)).status).toBe(401);
+    });
+
+    it('guesses made in parallel are counted too', async () => {
+      await requestCode('owner@example.com', 'en');
+      const { code } = readEmail();
+      const wrong = wrongCodeFor(code);
+
+      await Promise.all(Array.from({ length: 12 }, () => enterCode('owner@example.com', wrong)));
+
+      expect((await enterCode('owner@example.com', code)).status).toBe(401);
+    });
+  });
+
+  it('AC6: every code failure returns the same response', async () => {
+    await requestCode('owner@example.com', 'en');
+    const { code } = readEmail();
+    const wrong = wrongCodeFor(code);
+
+    // A wrong code, a malformed one, the 5th wrong code, the right code after it, a code for
+    // an address with no verification and one for an address without an account.
+    const failures = [
+      await enterCode('owner@example.com', wrong),
+      await enterCode('owner@example.com', 'not-a-code'),
+      await enterCode('owner@example.com', wrong),
+      await enterCode('owner@example.com', wrong),
+      await enterCode('owner@example.com', wrong),
+      await enterCode('owner@example.com', code),
+      await enterCode('owner@example.com', code),
+      await enterCode('nobody@example.com', code),
+    ];
+
+    const [first, ...rest] = await Promise.all(failures.map(outcome));
+    expect(first).toMatchObject({
+      status: 401,
+      body: { code: 'INVALID_OR_EXPIRED_CODE' },
+      cookies: [],
+    });
+    for (const failure of rest) expect(failure).toEqual(first);
   });
 
   it('AC8: an unknown address gets the same answer as an account and no email', async () => {
