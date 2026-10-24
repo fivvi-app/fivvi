@@ -69,7 +69,9 @@ describe('E018 TypeScript client', () => {
     expect(data).toBeUndefined();
     expect(error).toBe(INTERNAL_SERVER_ERROR);
   });
+});
 
+describe('F001 TypeScript client: GET /v1/me', () => {
   it('calls GET /v1/me and returns the typed account, with a nullable language', async () => {
     const account = { id: '0197c0de-0000-7000-8000-000000000001', email: 'owner@example.com' };
 
