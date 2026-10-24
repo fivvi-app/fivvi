@@ -39,13 +39,15 @@ describe('F001 sign in with the emailed code through the API', () => {
 
   const auth = () => authAt();
 
+  interface PostOptions {
+    headers?: Record<string, string>;
+    server?: ReturnType<typeof auth>;
+  }
+
   async function post(
     path: string,
     body: unknown,
-    {
-      headers = {},
-      server = auth(),
-    }: { headers?: Record<string, string>; server?: ReturnType<typeof auth> } = {},
+    { headers = {}, server = auth() }: PostOptions = {},
   ) {
     return await server.handler(
       new Request(`${ORIGIN}/api/auth${path}`, {
@@ -56,8 +58,8 @@ describe('F001 sign in with the emailed code through the API', () => {
     );
   }
 
-  const requestCode = (email: string, locale?: string, headers: Record<string, string> = {}) =>
-    post('/sign-in/code/request', { email, locale }, { headers });
+  const requestCode = (email: string, locale?: string, options: PostOptions = {}) =>
+    post('/sign-in/code/request', { email, locale }, options);
   const enterCode = (email: string, code: string, server = auth()) =>
     post('/sign-in/code/verify', { email, code }, { server });
 
@@ -91,6 +93,16 @@ describe('F001 sign in with the emailed code through the API', () => {
     });
   }
 
+  /** Both accounts have asked for a code; their codes, in order. */
+  async function ownerAndTrainerCodes() {
+    await addTrainerAccount();
+    await requestCode('owner@example.com', 'en');
+    const owner = readEmail().code;
+    await requestCode('trainer@example.com', 'en');
+    const trainer = readEmail(2).code;
+    return { owner, trainer };
+  }
+
   const verifications = () => client.db.select().from(authVerifications);
 
   /**
@@ -102,7 +114,7 @@ describe('F001 sign in with the emailed code through the API', () => {
     const pool = (client.db as unknown as { $client: PoolLike }).$client;
     const query = pool.query.bind(pool);
     let landed: Promise<unknown> | undefined;
-    vi.spyOn(pool, 'query').mockImplementation((async (...args: unknown[]) => {
+    const spy = vi.spyOn(pool, 'query').mockImplementation((async (...args: unknown[]) => {
       const first = args[0];
       const text = typeof first === 'string' ? first : (first as { text?: string }).text;
       if (!landed && text?.includes('"expires_at" <')) {
@@ -112,7 +124,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       return await query(...args);
     }) as never);
     onTestFinished(() => {
-      vi.restoreAllMocks();
+      spy.mockRestore();
     });
     return { landed: () => landed };
   }
@@ -153,7 +165,9 @@ describe('F001 sign in with the emailed code through the API', () => {
   });
 
   it('AC1: without a page language, the browser language decides', async () => {
-    await requestCode('owner@example.com', undefined, { 'accept-language': 'nl-BE,nl;q=0.9' });
+    await requestCode('owner@example.com', undefined, {
+      headers: { 'accept-language': 'nl-BE,nl;q=0.9' },
+    });
     expect(readEmail().email.locale).toBe('nl-NL');
   });
 
@@ -189,11 +203,7 @@ describe('F001 sign in with the emailed code through the API', () => {
 
   it('AC2: the sign-in session cookie is Secure outside local (https)', async () => {
     const https = authAt('https://fivvi.example.net');
-    await post(
-      '/sign-in/code/request',
-      { email: 'owner@example.com', locale: 'en' },
-      { server: https },
-    );
+    await requestCode('owner@example.com', 'en', { server: https });
     const response = await enterCode('owner@example.com', readEmail().code, https);
 
     const cookie = response.headers.getSetCookie().find((c) => c.includes('session_token'));
@@ -247,11 +257,7 @@ describe('F001 sign in with the emailed code through the API', () => {
   });
 
   it('AC4: using a code does not touch the verification of another address', async () => {
-    await addTrainerAccount();
-    await requestCode('owner@example.com', 'en');
-    const owner = readEmail().code;
-    await requestCode('trainer@example.com', 'en');
-    const trainer = readEmail(2).code;
+    const { owner, trainer } = await ownerAndTrainerCodes();
 
     expect((await enterCode('owner@example.com', owner)).status).toBe(200);
 
@@ -287,7 +293,7 @@ describe('F001 sign in with the emailed code through the API', () => {
 
     it('a code one second short of 15 minutes still signs in', async () => {
       const { clock, server } = startAt();
-      await post('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' }, { server });
+      await requestCode('owner@example.com', 'en', { server });
       const { code } = readEmail();
 
       clock.advance({ minutes: 14, seconds: 59 });
@@ -297,7 +303,7 @@ describe('F001 sign in with the emailed code through the API', () => {
 
     it('a code at 15 minutes is rejected like a wrong code, and sets no cookie', async () => {
       const { clock, server } = startAt();
-      await post('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' }, { server });
+      await requestCode('owner@example.com', 'en', { server });
       const { code } = readEmail();
 
       clock.advance({ minutes: 15 });
@@ -310,7 +316,7 @@ describe('F001 sign in with the emailed code through the API', () => {
 
     it('link and code share one expiry: 15 minutes after the request', async () => {
       const { server } = startAt();
-      await post('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' }, { server });
+      await requestCode('owner@example.com', 'en', { server });
 
       // One row holds the link token and the code, so one `expiresAt` ends both.
       const [row, ...others] = await verifications();
@@ -320,14 +326,14 @@ describe('F001 sign in with the emailed code through the API', () => {
 
     it('an expired code is rejected like a wrong one, and a new request starts afresh', async () => {
       const { clock, server } = startAt();
-      await post('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' }, { server });
+      await requestCode('owner@example.com', 'en', { server });
       const old = readEmail().code;
       clock.advance({ minutes: 16 });
       const expired = await outcome(await enterCode('owner@example.com', old, server));
       const wrong = await outcome(await enterCode('owner@example.com', wrongCodeFor(old), server));
       expect(expired).toEqual(wrong);
 
-      await post('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' }, { server });
+      await requestCode('owner@example.com', 'en', { server });
       clock.advance({ minutes: 14 });
 
       expect((await enterCode('owner@example.com', readEmail(2).code, server)).status).toBe(200);
@@ -336,7 +342,7 @@ describe('F001 sign in with the emailed code through the API', () => {
     it('the validity is counted from the request, not from the server start', async () => {
       const { clock, server } = startAt();
       clock.advance({ minutes: 20 });
-      await post('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' }, { server });
+      await requestCode('owner@example.com', 'en', { server });
       const { code } = readEmail();
 
       clock.advance({ minutes: 10 });
@@ -346,10 +352,10 @@ describe('F001 sign in with the emailed code through the API', () => {
   });
 
   describe('AC6: 5 wrong codes kill the verification', () => {
-    async function wrongCodes(count: number, email: string, code: string) {
+    async function wrongCodes(count: number, email: string, wrongCode: string) {
       const responses: Response[] = [];
       for (let attempt = 0; attempt < count; attempt += 1) {
-        responses.push(await enterCode(email, code));
+        responses.push(await enterCode(email, wrongCode));
       }
       return responses;
     }
@@ -388,11 +394,7 @@ describe('F001 sign in with the emailed code through the API', () => {
     });
 
     it('wrong codes are counted per email', async () => {
-      await addTrainerAccount();
-      await requestCode('owner@example.com', 'en');
-      const owner = readEmail().code;
-      await requestCode('trainer@example.com', 'en');
-      const trainer = readEmail(2).code;
+      const { owner, trainer } = await ownerAndTrainerCodes();
 
       await wrongCodes(5, 'trainer@example.com', wrongCodeFor(trainer));
 
@@ -403,9 +405,13 @@ describe('F001 sign in with the emailed code through the API', () => {
     it('a verification at the limit is dead even before it is deleted', async () => {
       await requestCode('owner@example.com', 'en');
       const { code } = readEmail();
+      const wrong = await outcome(await enterCode('owner@example.com', wrongCodeFor(code)));
       await client.db.update(authVerifications).set({ failedAttempts: 5 });
 
-      expect((await enterCode('owner@example.com', code)).status).toBe(401);
+      const dead = await outcome(await enterCode('owner@example.com', code));
+
+      expect(dead.status).toBe(401);
+      expect(dead).toEqual(wrong);
     });
 
     it('a 5th wrong code that lands while the right code is checked still kills it', async () => {
@@ -444,6 +450,8 @@ describe('F001 sign in with the emailed code through the API', () => {
 
     // The code of a replaced email, a wrong code, a malformed one, more wrong codes up to the
     // 5th, the right code after it, the same again and a code for an address with no account.
+    // The replaced and the malformed code each count as a wrong code: the 3rd failure here is
+    // the 3rd count, the 5th kills the verification, and the right code after it is killed.
     const failures = [
       await enterCode('owner@example.com', replaced),
       await enterCode('owner@example.com', wrong),

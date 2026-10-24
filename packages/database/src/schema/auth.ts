@@ -79,7 +79,7 @@ export const authVerifications = pgTable(
     value: text('value').notNull(),
     /** Keyed hash of the 6-digit code. */
     codeHash: text('code_hash').notNull(),
-    /** Wrong codes entered for this verification; at 5 it is dead, link and code (AC6). */
+    /** Wrong codes entered for this verification; at `MAX_WRONG_CODES` it is dead, link and code (AC6). */
     failedAttempts: integer('failed_attempts').notNull().default(0),
     expiresAt: instant('expires_at').notNull(),
     ...timestamps(),

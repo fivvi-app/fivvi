@@ -1,11 +1,10 @@
 import { randomBytes, randomInt } from 'node:crypto';
-import { authVerifications, type Database } from '@fivvi/database';
+import { type Database, recordWrongSignInCode } from '@fivvi/database';
 import { type SendEmail, signInEmail } from '@fivvi/email';
 import { parseAcceptLanguage, resolveInterfaceLanguage } from '@fivvi/i18n';
 import type { BetterAuthPlugin } from 'better-auth';
 import { APIError, createAuthEndpoint } from 'better-auth/api';
 import { setSessionCookie } from 'better-auth/cookies';
-import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { hashesEqual, hashSecretValue } from './hash.ts';
 
@@ -54,22 +53,6 @@ const REQUESTED = { status: true } as const;
  * - `POST /sign-in/code/verify` `{ email, code }`: the right code signs this browser in.
  */
 export function signInWithCode({ db, secret, sendEmail, clock }: SignInWithCodeOptions) {
-  /**
-   * Counts one wrong code against a verification and deletes it at the limit, which kills the
-   * link and the code. The count goes up in one statement, so guesses made in parallel are all
-   * counted.
-   */
-  async function recordWrongCode(verificationId: string) {
-    const [counted] = await db
-      .update(authVerifications)
-      .set({ failedAttempts: sql`${authVerifications.failedAttempts} + 1` })
-      .where(eq(authVerifications.id, verificationId))
-      .returning({ failedAttempts: authVerifications.failedAttempts });
-    if (counted && counted.failedAttempts >= MAX_WRONG_CODES) {
-      await db.delete(authVerifications).where(eq(authVerifications.id, verificationId));
-    }
-  }
-
   return {
     id: 'sign-in-with-code',
     schema: {
@@ -153,7 +136,7 @@ export function signInWithCode({ db, secret, sendEmail, clock }: SignInWithCodeO
             throw rejected();
           }
           if (!hashesEqual(hashSecretValue(secret, 'code', `${email}:${code}`), stored)) {
-            await recordWrongCode(verification.id);
+            await recordWrongSignInCode(db, verification.id, MAX_WRONG_CODES);
             throw rejected();
           }
 
