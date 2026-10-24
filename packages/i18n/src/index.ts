@@ -20,6 +20,8 @@ export {
   parseAcceptLanguage,
   resolveCommunicationLanguage,
   resolveInterfaceLanguage,
+  resolveSignInCommunicationLanguage,
+  type SignInCommunicationLanguageSources,
 } from './locale.ts';
 
 /** Message tree of the source catalog. `en.json` must have the same shape. */

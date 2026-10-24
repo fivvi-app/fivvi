@@ -10,7 +10,46 @@ describe('F001 sign-in configuration', () => {
         BETTER_AUTH_SECRET: secret,
         BETTER_AUTH_URL: 'https://pr-130.up.example.net/',
       }),
-    ).toEqual({ secret, baseURL: 'https://pr-130.up.example.net' });
+    ).toEqual({
+      secret,
+      baseURL: 'https://pr-130.up.example.net',
+      signUpAllowlist: expect.objectContaining({ allows: expect.any(Function) }),
+    });
+  });
+
+  describe('SIGN_UP_ALLOWED_EMAILS (AC9)', () => {
+    const base = { BETTER_AUTH_SECRET: secret, BETTER_AUTH_URL: 'https://fivvi.app' };
+
+    it('reads exact addresses and @domain entries', () => {
+      const { signUpAllowlist } = readAuthConfig({
+        ...base,
+        SIGN_UP_ALLOWED_EMAILS: 'pilot@gym.test, @example.com',
+      });
+
+      expect(signUpAllowlist.allows('pilot@gym.test')).toBe(true);
+      expect(signUpAllowlist.allows('anyone@example.com')).toBe(true);
+      expect(signUpAllowlist.allows('anyone@voorbeeld.nl')).toBe(false);
+    });
+
+    it('is closed when the variable is not set or empty (production until the owner sets it)', () => {
+      for (const env of [base, { ...base, SIGN_UP_ALLOWED_EMAILS: '' }]) {
+        expect(readAuthConfig(env).signUpAllowlist.allows('owner@example.com')).toBe(false);
+      }
+    });
+
+    it('fails on a malformed entry, without printing it', () => {
+      let message = '';
+      try {
+        readAuthConfig({
+          ...base,
+          SIGN_UP_ALLOWED_EMAILS: 'pilot@gym.test,gym.test',
+        });
+      } catch (error) {
+        message = (error as Error).message;
+      }
+      expect(message).toMatch(/SIGN_UP_ALLOWED_EMAILS entry 2/);
+      expect(message).not.toContain('gym.test');
+    });
   });
 
   it('needs a secret, and says which variable is missing', () => {

@@ -37,6 +37,8 @@ describe('F001 GET /v1/me', () => {
   let database: TestDatabase;
   let client: DatabaseClient;
   const transport = createMemoryTransport();
+  /** The work a sign-in request does after its answer (#133); a test waits for it. */
+  const pending: Promise<void>[] = [];
 
   /** Sign-in as apps/web wires it: the real Better Auth on the test database. */
   const auth = (db: Database) =>
@@ -48,6 +50,7 @@ describe('F001 GET /v1/me', () => {
         transport,
         sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
       }),
+      runInBackground: (task) => pending.push(task),
     });
 
   /** The API as apps/web wires it: the signed-in account comes from the sign-in session. */
@@ -72,6 +75,7 @@ describe('F001 GET /v1/me', () => {
         }),
       );
     await post('/sign-in/code/request', { email, locale: 'en' });
+    await Promise.all(pending.splice(0));
     const code = /\b(\d{6})\b/.exec(transport.sent.at(-1)?.text ?? '')?.[1] ?? '';
     const response = await post('/sign-in/code/verify', { email, code });
     expect(response.status).toBe(200);

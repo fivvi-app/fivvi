@@ -80,12 +80,23 @@ export const authVerifications = pgTable(
     value: text('value').notNull(),
     /** Keyed hash of the 6-digit code. */
     codeHash: text('code_hash').notNull(),
+    /**
+     * The language of the email that carries this link and code: the account's stored language,
+     * else the sign-in page's (ADR-019). The first sign-in stores it on a new account.
+     */
+    locale: text('locale'),
     /** Wrong codes entered for this verification; at `MAX_WRONG_CODES` it is dead, link and code (AC6). */
     failedAttempts: integer('failed_attempts').notNull().default(0),
     expiresAt: instant('expires_at').notNull(),
     ...timestamps(),
   },
-  (table) => [index('auth_verifications_identifier_idx').on(table.identifier)],
+  (table) => [
+    index('auth_verifications_identifier_idx').on(table.identifier),
+    check(
+      'auth_verifications_locale_supported',
+      sql`${table.locale} IS NULL OR ${table.locale} IN ('nl-NL', 'en')`,
+    ),
+  ],
 );
 
 export type AuthUser = typeof authUsers.$inferSelect;

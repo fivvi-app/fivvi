@@ -9,7 +9,7 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 | `generated/ios/Localizable.xcstrings` | iOS String Catalog. **Generated, never edit** |
 | `generated/ios/InfoPlist.xcstrings` | iOS Info.plist strings: `CFBundleDisplayName` and `CFBundleName` from `app.name`, in nl and en. **Generated, never edit** |
 | `generated/android/values*/strings.xml` | Android resources (`values/` = nl-NL, `values-en/` = en). **Generated, never edit** |
-| `src/index.ts` | Runtime exports: `locales`, `defaultLocale`, `messages`, `MessageKey`, `formattingLocales`, `dateTimeFormats`, `resolveInterfaceLanguage`, `resolveCommunicationLanguage` |
+| `src/index.ts` | Runtime exports: `locales`, `defaultLocale`, `messages`, `MessageKey`, `formattingLocales`, `dateTimeFormats`, `resolveInterfaceLanguage`, `resolveCommunicationLanguage`, `resolveSignInCommunicationLanguage` |
 | `src/tools/` | Checks and exporters (Node only) |
 | `lint/no-hard-coded-jsx-text.grit` | Biome plugin that fails on literal text in JSX |
 
@@ -57,6 +57,7 @@ Two languages, two orders ([ADR-017](../../docs/decisions/ADR-017-language-polic
 
 - **Interface language** (`resolveInterfaceLanguage()`): what a screen shows and the `locale` it sends to the API. Explicit choice (the language switch, or the OS per-app language) → stored preference → a booking link's fixed language → the first supported device/browser language, in the user's order → `en`. An empty or entirely unsupported list gives `en`. `[fr-FR, nl-BE]` gives `nl-NL`; `[de-DE, en-GB, nl-NL]` gives `en`.
 - **Communication language** (`resolveCommunicationLanguage()`): the language of an email or other message. The recipient's stored preference → the workspace's default communication language. The workspace default never decides the interface language.
+- **Sign-in email language** (`resolveSignInCommunicationLanguage()`, [ADR-019](../../docs/decisions/ADR-019-sign-in-communication-language.md)): an email outside a workspace has no workspace default. The recipient's stored preference → the interface language of the page that asked for the email (so itself falling back to the browser language, then `en`). The first sign-in that creates an account stores that language on it.
 
 Any `nl-*` tag matches `nl-NL`, any `en-*` tag matches `en`, and unsupported values are skipped. Stored preferences arrive with F010 (M2) and booking-link languages with M6; until then callers pass what they have.
 
