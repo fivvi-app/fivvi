@@ -1,4 +1,4 @@
-import type { SystemGreetingView } from '@fivvi/database';
+import type { SignedInAccount, SystemGreetingView } from '@fivvi/database';
 import {
   createErrorReporter,
   createProductEvents,
@@ -12,6 +12,11 @@ export interface ApiDependencies {
   pingDatabase(): Promise<void>;
   /** Reads a system greeting by slug from Postgres; `undefined` when the row is missing. */
   findSystemGreeting(slug: string): Promise<SystemGreetingView | undefined>;
+  /**
+   * The account of the sign-in session in the request's cookie; `undefined` when the request is
+   * anonymous or the session is unknown or expired (F001). apps/web wires `@fivvi/auth`.
+   */
+  findSignedInAccount(headers: Headers): Promise<SignedInAccount | undefined>;
   /** Reports unhandled route errors to Sentry (E009). Off without a DSN. */
   errorReporter: ErrorReporter;
   /** Sends product events to PostHog EU (E009); flushed after every request. Off without a key. */
@@ -27,6 +32,8 @@ const errorReporter = createErrorReporter({ env: {} });
 export const NO_DEPENDENCIES: ApiDependencies = {
   pingDatabase: () => Promise.reject(new Error('No database configured.')),
   findSystemGreeting: () => Promise.reject(new Error('No database configured.')),
+  // Nobody is signed in.
+  findSignedInAccount: () => Promise.resolve(undefined),
   errorReporter,
   productEvents: createProductEvents({ env: {}, errorReporter }),
 };

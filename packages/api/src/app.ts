@@ -5,6 +5,7 @@ import { type ApiDependencies, NO_DEPENDENCIES } from './dependencies.ts';
 import { INTERNAL_SERVER_ERROR, toValidationError } from './errors.ts';
 import { registerHealth } from './routes/health.ts';
 import { registerHello } from './routes/hello.ts';
+import { registerMe } from './routes/me.ts';
 
 /** Where apps/web mounts the API. Contract paths don't include it, so the API can move later. */
 export const API_BASE_PATH = '/api';
@@ -32,6 +33,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   });
   registerHealth(app, dependencies);
   registerHello(app, dependencies);
+  registerMe(app, dependencies);
   return app;
 }
 

@@ -1,8 +1,10 @@
-import type { Database } from '@fivvi/database';
+import type { Database, SignedInAccount } from '@fivvi/database';
 import { authIdentities, authSessions, authUsers, authVerifications } from '@fivvi/database';
-import type { SendEmail } from '@fivvi/email';
+import { EmailSendError, type SendEmail } from '@fivvi/email';
+import { isLocale } from '@fivvi/i18n';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { closedSignUp, type SignUpAllowlist } from './allowlist.ts';
 import { clientIpOptions, defaultRequireClientIp, signInRateLimits } from './rate-limit.ts';
 import { type Clock, REQUEST_PATH, signInWithCode, systemClock } from './sign-in-plugin.ts';
 
@@ -28,6 +30,23 @@ export interface CreateAuthOptions {
    * (`ENVIRONMENTS.md §7`).
    */
   requireClientIp?: boolean;
+  /**
+   * Who may create an account by signing in for the first time: `parseSignUpAllowlist` of
+   * `SIGN_UP_ALLOWED_EMAILS`. Nobody when left out, so sign-up stays closed.
+   */
+  signUpAllowlist?: SignUpAllowlist;
+  /**
+   * Receives the failure of the work that follows a sign-in request's answer (a failed email, a
+   * database error), e.g. for Sentry. Called in addition to a safe log line. It must not put the
+   * address, a code or a link anywhere.
+   */
+  reportError?: (error: unknown) => void;
+  /**
+   * Holds that work, which runs after the answer so that the answer's timing is the same for
+   * every address (AC8). It never rejects. Left out, it simply runs on in this process, which
+   * is what a long-running Node server wants; tests pass a function that keeps the promise.
+   */
+  runInBackground?: (task: Promise<void>) => void;
 }
 
 /**
@@ -35,6 +54,11 @@ export interface CreateAuthOptions {
  * (ADR-007), so a different library, or Better Auth's own API, never leaks out.
  */
 export interface Auth {
+  /**
+   * The account of the sign-in session in the request's cookie, or `undefined` for an
+   * anonymous request, an unknown or expired session.
+   */
+  findAccount(headers: Headers): Promise<SignedInAccount | undefined>;
   /** Serves Better Auth's endpoints under `/api/auth/*` (mounted by apps/web). */
   handler(request: Request): Promise<Response>;
 }
@@ -52,6 +76,9 @@ export function createAuth({
   clock = systemClock,
   log = (line) => console.warn(line),
   requireClientIp = defaultRequireClientIp(),
+  signUpAllowlist = closedSignUp,
+  reportError,
+  runInBackground = () => {},
 }: CreateAuthOptions): Auth {
   const auth = betterAuth({
     appName: 'Fivvi',
@@ -69,9 +96,21 @@ export function createAuth({
       },
     }),
     plugins: [
-      // First, so the limits hold before the endpoint does anything (AC10).
+      // First, so the limits hold before the endpoint does anything (AC10), including the
+      // background work that follows its answer.
       signInRateLimits({ db, secret, clock, log, requireClientIp }),
-      signInWithCode({ db, secret, sendEmail, clock }),
+      signInWithCode({
+        db,
+        secret,
+        sendEmail,
+        clock,
+        signUpAllowlist,
+        runInBackground,
+        reportError: (error) => {
+          logFailure(error);
+          reportError?.(error);
+        },
+      }),
     ],
     // Better Auth's own limiter (production only) answers 429 and keeps its counts in memory.
     // The sign-in request has its own limits in Postgres with the neutral answer (rate-limit.ts).
@@ -107,5 +146,24 @@ export function createAuth({
     // Nothing leaves the process: no usage reports.
     telemetry: { enabled: false },
   });
-  return { handler: (request) => auth.handler(request) };
+  return {
+    handler: (request) => auth.handler(request),
+    async findAccount(headers) {
+      const session = await auth.api.getSession({ headers });
+      if (!session) return undefined;
+      const { id, email, preferredLocale } = session.user;
+      return { id, email, preferredLocale: isLocale(preferredLocale) ? preferredLocale : null };
+    },
+  };
+}
+
+/**
+ * One log line for a failed sign-in request. The email's own error says only the provider, status
+ * and error code (`EmailSendError`); anything else is logged by name alone, because a database
+ * error can quote the address.
+ */
+function logFailure(error: unknown): void {
+  const what =
+    error instanceof EmailSendError ? error.message : error instanceof Error ? error.name : 'Error';
+  console.error(`Sign-in request failed after its answer: ${what}`);
 }

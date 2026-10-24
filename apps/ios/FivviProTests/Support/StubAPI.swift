@@ -36,4 +36,8 @@ actor StubAPI: APIProtocol {
     func getHealth(_ input: Operations.GetHealth.Input) async throws -> Operations.GetHealth.Output {
         fatalError("The hello screen doesn't call getHealth")
     }
+
+    func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
+        fatalError("The hello screen doesn't call getMe")
+    }
 }

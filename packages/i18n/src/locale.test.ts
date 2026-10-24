@@ -4,6 +4,7 @@ import {
   parseAcceptLanguage,
   resolveCommunicationLanguage,
   resolveInterfaceLanguage,
+  resolveSignInCommunicationLanguage,
 } from './locale.ts';
 
 describe('E005 locale matching', () => {
@@ -97,5 +98,46 @@ describe('E008 communication language', () => {
   it('does not use the recipient device languages', () => {
     const recipient = { requested: ['en-GB'], workspaceDefault: 'nl-NL' } as const;
     expect(resolveCommunicationLanguage(recipient)).toBe('nl-NL');
+  });
+});
+
+// ADR-019: an email outside a workspace (the sign-in email) has no workspace default.
+describe('F001 AC9: communication language order for sign-in emails (ADR-019)', () => {
+  it('uses the stored preference, also when the page is in another language', () => {
+    expect(
+      resolveSignInCommunicationLanguage({
+        recipientPreference: 'en',
+        page: { explicit: 'nl-NL' },
+      }),
+    ).toBe('en');
+    expect(
+      resolveSignInCommunicationLanguage({
+        recipientPreference: 'nl-BE',
+        page: { explicit: 'en', requested: ['en-GB'] },
+      }),
+    ).toBe('nl-NL');
+  });
+
+  it.each([
+    ['no stored preference', null],
+    ['no stored preference at all', undefined],
+    ['an unsupported stored preference', 'de-DE'],
+  ])('uses the language of the requesting page for %s', (_, recipientPreference) => {
+    expect(
+      resolveSignInCommunicationLanguage({ recipientPreference, page: { explicit: 'nl-NL' } }),
+    ).toBe('nl-NL');
+    expect(
+      resolveSignInCommunicationLanguage({ recipientPreference, page: { explicit: 'en' } }),
+    ).toBe('en');
+  });
+
+  it('falls back like the interface language when the page says nothing: browser, then English', () => {
+    expect(
+      resolveSignInCommunicationLanguage({
+        recipientPreference: null,
+        page: { requested: ['nl'] },
+      }),
+    ).toBe('nl-NL');
+    expect(resolveSignInCommunicationLanguage({ page: {} })).toBe('en');
   });
 });

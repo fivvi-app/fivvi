@@ -192,13 +192,13 @@ describe('flow phase from the code', () => {
   it('follows the PR through its states', () => {
     assert.equal(phaseOf(null), 'in-progress');
     assert.equal(phaseOf(pr({ draft: true })), 'draft-pr');
-    assert.equal(phaseOf(pr({ risk: 'high' })), 'in-review');
-    assert.equal(phaseOf(pr({ risk: 'high', review: 'APPROVED' })), 'approved');
+    assert.equal(phaseOf(pr({ risk: 'owner' })), 'in-review');
+    assert.equal(phaseOf(pr({ risk: 'owner', review: 'APPROVED' })), 'approved');
     assert.equal(phaseOf(pr({ state: 'MERGED' })), 'merged');
     assert.equal(phaseOf(pr({ state: 'CLOSED' })), 'abandoned');
   });
 
-  it('lets an agent merge a low-risk PR and leaves a high-risk one to the owner', () => {
+  it('lets an agent merge a low-risk PR and an agent-queueable high-risk one, and leaves an owner-only PR to the owner', () => {
     const low = decide(issue({ branches: [branch(pr({ risk: 'low' }))] }));
     assert.equal(low.phase, 'ready-to-merge');
     assert.match(
@@ -210,16 +210,50 @@ describe('flow phase from the code', () => {
     const high = decide(
       issue({
         branches: [
-          branch(pr({ risk: 'high', risk_reasons: ['scripts/pr.sh: guardrails (/scripts)'] })),
+          branch(
+            pr({
+              risk: 'high',
+              risk_reasons: ['packages/database/migrations/0004.sql: tenant-data'],
+            }),
+          ),
         ],
       }),
     );
-    assert.equal(high.phase, 'in-review');
+    assert.equal(high.phase, 'ready-to-merge');
     assert.match(
       high.next,
-      /^High-risk \(scripts\/pr\.sh: guardrails \(\/scripts\)\): the owner reviews/,
+      /^High-risk \(packages\/database\/migrations\/0004\.sql: tenant-data\): scripts\/pr\.sh merge in the worktree.*records.*merge queue.*scripts\/flow\.sh finish 57/,
     );
+    assert.equal(phaseOf(pr({ risk: 'high', review: 'APPROVED' })), 'ready-to-merge');
+
+    const owner = decide(
+      issue({
+        branches: [
+          branch(pr({ risk: 'owner', risk_reasons: ['scripts/pr.sh: guardrails (/scripts)'] })),
+        ],
+      }),
+    );
+    assert.equal(owner.phase, 'in-review');
+    assert.match(
+      owner.next,
+      /^Owner-only \(scripts\/pr\.sh: guardrails \(\/scripts\)\): the owner reviews/,
+    );
+    assert.doesNotMatch(owner.next, /scripts\/pr\.sh merge/);
     assert.equal(phaseOf(pr({ risk: null })), 'in-review', 'unknown risk waits for the owner');
+  });
+
+  it('ADR-021: a high-risk PR the merge gate refused on its head commit waits for the owner, like a low-risk one', () => {
+    const head = 'c'.repeat(40);
+    const refused = pr({
+      risk: 'high',
+      head,
+      refusal: { sha: head, reasons: 'checks passed (failing: Android)' },
+    });
+    assert.equal(phaseOf(refused), 'merge-refused');
+    assert.equal(
+      phaseOf({ ...refused, refusal: { sha: 'b'.repeat(40), reasons: 'x' } }),
+      'ready-to-merge',
+    );
   });
 
   it('leaves a low-risk PR the merge gate refused on its head commit to the owner', () => {
@@ -256,9 +290,9 @@ describe('flow phase from the code', () => {
     assert.match(queued.next, /^In the merge queue \(position 2\)/);
     assert.match(queued.next, /scripts\/flow\.sh finish 57/);
     assert.doesNotMatch(queued.next, /scripts\/pr\.sh merge/);
-    // The owner queues a high-risk PR: it is queued for the same reason.
+    // The owner queues an owner-only PR: it is queued for the same reason.
     assert.equal(
-      phaseOf(pr({ risk: 'high', queue: { state: 'queued', position: 1, reason: null } })),
+      phaseOf(pr({ risk: 'owner', queue: { state: 'queued', position: 1, reason: null } })),
       'queued',
     );
   });
@@ -387,6 +421,14 @@ describe('flow phase of a spec', () => {
     assert.match(decide(own).hint, /its own ticket: .*IMPLEMENTED .* final one-line summary/);
     assert.equal(decide(spec({ labels })).phase, 'needs-refinement');
     assert.equal(decide({ ...own, branches: [branch(null)] }).phase, 'in-progress');
+  });
+
+  it('ADR-021: sets no fixed limit on the tickets built at once', () => {
+    const decision = decide(spec({ children: [child(51), child(52), child(53), child(54)] }));
+    assert.equal(decision.phase, 'building');
+    assert.match(decision.next, /Ready now: #51 #52 #53 #54\./);
+    assert.doesNotMatch(decision.next, /at most three/);
+    assert.match(decision.next, /same files/);
   });
 
   it('treats an issue with sub-issues as a spec even without the label', () => {
