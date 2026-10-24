@@ -42,14 +42,22 @@ MAX_SECRET_BYTES=49152
 need_cmd gh
 REPO="$(repo_slug)"
 
-# Absolute path of a file or directory that may not exist yet, with symlinks of its existing part resolved.
+# Absolute path of a file or directory that may not exist yet, with the symlinks of its existing part resolved, a symlink
+# in the last place included (a link to a key inside the repository is a key inside the repository).
 absolute() {
-  local path="$1" tail="" tilde='~'
+  local path="$1" tail="" tilde='~' hops=0 target
   case "$path" in "$tilde") path="$HOME" ;; "$tilde"/*) path="$HOME/${path#"$tilde"/}" ;; esac
   case "$path" in /*) ;; *) path="$PWD/$path" ;; esac
-  while [ ! -e "$path" ]; do
-    tail="/$(basename "$path")$tail"
-    path="$(dirname "$path")"
+  while :; do
+    while [ ! -e "$path" ] && [ ! -L "$path" ]; do
+      tail="/$(basename "$path")$tail"
+      path="$(dirname "$path")"
+    done
+    [ -L "$path" ] && [ ! -d "$path" ] || break
+    hops=$((hops + 1))
+    [ "$hops" -le 20 ] || die "too many symbolic links: $1"
+    target="$(readlink "$path")"
+    case "$target" in /*) path="$target" ;; *) path="$(dirname "$path")/$target" ;; esac
   done
   if [ -d "$path" ]; then echo "$(cd "$path" && pwd -P)$tail"; else echo "$(cd "$(dirname "$path")" && pwd -P)/$(basename "$path")$tail"; fi
 }
@@ -70,9 +78,9 @@ ask_file() {
   fi
   [ -n "$FILE" ] || die "no file for: $label"
   FILE="$(absolute "$FILE")"
+  die_if_in_repo "$FILE"
   [ -f "$FILE" ] && [ -r "$FILE" ] || die "not a readable file: $FILE"
   [ -s "$FILE" ] || die "empty file: $FILE"
-  die_if_in_repo "$FILE"
 }
 
 # Reads a value without echoing it; sets VALUE.
@@ -184,7 +192,8 @@ do_android_keystore() {
   ask_secret "Again"
   again="$VALUE"
   [ "$password" = "$again" ] || die "the passwords differ"
-  (umask 077 && mkdir -p "$(dirname "$keystore")" && chmod 700 "$(dirname "$keystore")")
+  # A new directory is private; an existing one is left as it is.
+  [ -d "$(dirname "$keystore")" ] || (umask 077 && mkdir -p "$(dirname "$keystore")")
   # The password reaches keytool through its environment, not its command line.
   (umask 077 && FIVVI_KEYSTORE_PASSWORD="$password" keytool -genkeypair -keystore "$keystore" -storetype PKCS12 \
     -alias "$alias" -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Fivvi Pro upload key, O=Fivvi" \
@@ -203,7 +212,7 @@ do_play() {
 }
 
 do_sentry() {
-  ask_secret "Sentry auth token (scopes: project:releases, org:read)"
+  ask_secret "Sentry auth token (scopes: project:releases and org:read only)"
   store_value SENTRY_AUTH_TOKEN
 }
 

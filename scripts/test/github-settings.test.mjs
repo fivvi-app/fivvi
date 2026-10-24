@@ -137,12 +137,17 @@ describe('github-settings.sh apply', () => {
       assert.deepEqual(RELEASE.deployment_branches, ['main']);
     });
 
+    it("E017 AC7: admins cannot bypass the protection rules (agents use the owner's admin token)", () => {
+      assert.equal(RELEASE.can_admins_bypass, false);
+    });
+
     it('E017 AC7: creates the environment with the owner as the required reviewer, and only custom branch policies', () => {
       const [put] = env(apply([]));
       assert.match(put.args.join(' '), /^api --method PUT repos\/[^ ]+\/environments\/release /);
       assert.deepEqual(JSON.parse(put.input), {
         reviewers: [{ type: 'User', id: OWNER_ID }],
         prevent_self_review: false,
+        can_admins_bypass: false,
         deployment_branch_policy: { protected_branches: false, custom_branch_policies: true },
       });
     });

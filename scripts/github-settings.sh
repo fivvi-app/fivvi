@@ -36,7 +36,8 @@ apply_merge_settings() {
 }
 
 # The `release` environment holds the signing keys and API keys of the release lanes (E017 AC7). The owner is its required
-# reviewer; deployments are allowed from main only, by a custom branch policy for each branch in the file.
+# reviewer; deployments are allowed from main only, by a custom branch policy for each branch in the file. Admins can't
+# bypass the rules: agents run with the owner's admin token, and a bypass would let them deploy without the owner's approval.
 apply_release_environment() {
   local name login id reviewers='[]' policies branch policy_id
   name="$(jq -r .name "$RELEASE_ENV")"
@@ -45,7 +46,7 @@ apply_release_environment() {
     reviewers="$(jq -c --argjson id "$id" '. + [{type: "User", id: $id}]' <<<"$reviewers")"
   done < <(jq -r '.reviewers[]' "$RELEASE_ENV")
   jq --argjson reviewers "$reviewers" \
-    '{reviewers: $reviewers, prevent_self_review, deployment_branch_policy: {protected_branches: false, custom_branch_policies: true}}' \
+    '{reviewers: $reviewers, prevent_self_review, can_admins_bypass, deployment_branch_policy: {protected_branches: false, custom_branch_policies: true}}' \
     "$RELEASE_ENV" | gh api --method PUT "repos/$REPO/environments/$name" --input - >/dev/null
   policies="$(gh api "repos/$REPO/environments/$name/deployment-branch-policies" --jq '.branch_policies[] | [.id, .name] | @tsv')"
   while IFS=$'\t' read -r policy_id branch; do

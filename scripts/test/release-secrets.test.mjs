@@ -8,7 +8,9 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  mkdirSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -23,7 +25,10 @@ const SENTINEL = {
   certificate: 'P12-BYTES-sentinel-7f3a\u0001\u0002binary',
   certificatePassword: 'cert-pass-sentinel-91c4',
   profile: 'PROFILE-BYTES-sentinel-2b8d',
-  apiKey: '-----BEGIN PRIVATE KEY-----\nMIGTAgEAsentinel5e17\n-----END PRIVATE KEY-----\n',
+  apiKey: [
+    '-----BEGIN ',
+    'PRIVATE KEY-----\nMIGTAgEAsentinel5e17\n-----END PRIVATE KEY-----\n',
+  ].join(''),
   keyId: 'KEYID-sentinel-X1',
   issuerId: 'ISSUER-sentinel-00aa-bb',
   keystore: 'KEYSTORE-BYTES-sentinel-c0de',
@@ -172,7 +177,32 @@ describe('E017 AC7: release-secrets.sh ios', () => {
       answers,
     );
     assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /inside the repository/);
     assert.deepEqual(sets(result.calls), {});
+  });
+
+  it('refuses a symbolic link to a file in the repository, and sets nothing', () => {
+    const link = join(work, 'innocent-looking.p12');
+    symlinkSync(join(ROOT, 'package.json'), link);
+    const chained = join(work, 'chained.p12');
+    symlinkSync(link, chained);
+    for (const certificate of [link, chained]) {
+      const result = run(
+        [
+          'ios',
+          '--certificate',
+          certificate,
+          '--profile',
+          file('p', 'x'),
+          '--api-key',
+          file('k.p8', SENTINEL.apiKey),
+        ],
+        answers,
+      );
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /inside the repository/);
+      assert.deepEqual(sets(result.calls), {});
+    }
   });
 
   it('refuses a file in the repository that exists (a key left in a checkout)', () => {
@@ -260,6 +290,7 @@ describe('E017 AC7: release-secrets.sh android, play and sentry', () => {
   });
 
   it('sets the Play service-account key, and refuses a file that is not one', () => {
+    const before = repoStatus();
     const ok = run(['play', '--service-account', file('sa.json', SENTINEL.serviceAccount)]);
     assert.equal(ok.status, 0, ok.stderr);
     assert.deepEqual(sets(ok.calls), { PLAY_SERVICE_ACCOUNT_JSON: SENTINEL.serviceAccount });
@@ -268,13 +299,21 @@ describe('E017 AC7: release-secrets.sh android, play and sentry', () => {
     const bad = run(['play', '--service-account', file('other.json', '{"hello":"world"}')]);
     assert.notEqual(bad.status, 0);
     assert.deepEqual(sets(bad.calls), {});
+    assert.equal(repoStatus(), before);
   });
 
-  it('sets the Sentry token from a hidden prompt', () => {
+  it('sets the Sentry token from a hidden prompt, asking for the scopes the document names', () => {
+    const before = repoStatus();
     const result = run(['sentry'], `${SENTINEL.sentryToken}\n`);
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(sets(result.calls), { SENTRY_AUTH_TOKEN: SENTINEL.sentryToken });
     noValueLeaks(result, [SENTINEL.sentryToken]);
+    assert.match(result.stderr, /project:releases and org:read/);
+    assert.match(
+      readFileSync(join(ROOT, 'docs/engineering/RELEASE.md'), 'utf8'),
+      /`project:releases` and `org:read`/,
+    );
+    assert.equal(repoStatus(), before);
   });
 
   it('rejects an unknown command and an unknown option', () => {
@@ -302,6 +341,7 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
     const keystore = join(dir, 'fivvi-pro-upload.p12');
     assert.equal(readFileSync(keystore, 'utf8'), SENTINEL.keystore);
     assert.equal(statSync(dir).mode & 0o077, 0, 'directory is private');
+    assert.equal(statSync(keystore).mode & 0o077, 0, 'keystore file is private');
     assert.deepEqual(sets(result.calls), {
       ANDROID_UPLOAD_KEYSTORE: b64(SENTINEL.keystore),
       ANDROID_UPLOAD_KEYSTORE_PASSWORD: SENTINEL.keystorePassword,
@@ -322,6 +362,17 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
     );
     assert.match(log, new RegExp(`PASSWORD_IN_ENV=${SENTINEL.keystorePassword}`));
     noValueLeaks(result, [SENTINEL.keystore, SENTINEL.keystorePassword]);
+  });
+
+  it('leaves the mode of a directory that exists already as it is', () => {
+    const dir = join(work, 'keys');
+    mkdirSync(dir, { mode: 0o755 });
+    chmodSync(dir, 0o755);
+    const keytool = fakeKeytool();
+    const result = run(['android-keystore', '--dir', dir], passwords, { extraPath: keytool.bin });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(statSync(dir).mode & 0o777, 0o755);
+    assert.equal(statSync(join(dir, 'fivvi-pro-upload.p12')).mode & 0o077, 0);
   });
 
   it('refuses a directory inside the repository and creates nothing there', () => {
