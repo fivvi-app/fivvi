@@ -85,11 +85,7 @@ export function createAuth({
         runInBackground,
         reportError: (error) => {
           logFailure(error);
-          try {
-            reportError?.(error);
-          } catch {
-            // Reporting must never turn into a second failure.
-          }
+          reportError?.(error);
         },
       }),
     ],

@@ -40,7 +40,10 @@ export interface SignInWithCodeOptions {
    * never rejects. Tests keep the promise to wait for the email.
    */
   runInBackground: (task: Promise<void>) => void;
-  /** Gets the failures of that work. Never put the address, code or link in what is logged. */
+  /**
+   * Gets the failures of that work. Never put the address, code or link in what is logged. If it
+   * throws, that is swallowed: the task handed to `runInBackground` never rejects.
+   */
   reportError: (error: unknown) => void;
 }
 
@@ -60,9 +63,11 @@ const REQUESTED = { status: true } as const;
  * with their own token; here one request creates one `auth_verifications` row whose link
  * token and code are stored only as keyed hashes, and using either consumes it.
  *
- * - `POST /sign-in/code/request` `{ email, locale? }`: an existing account gets one EM-08
- *   email in the page's language. Every other address gets the same answer and no email.
- * - `POST /sign-in/code/verify` `{ email, code }`: the right code signs this browser in.
+ * - `POST /sign-in/code/request` `{ email, locale? }`: an existing account, or an address on the
+ *   sign-up allowlist, gets one EM-08 email: in the account's stored language, else in the
+ *   page's (ADR-019). Every other address gets the same answer and no email.
+ * - `POST /sign-in/code/verify` `{ email, code }`: the right code signs this browser in. For an
+ *   allowlisted address without an account, the account is created first.
  */
 export function signInWithCode({
   db,
@@ -139,7 +144,13 @@ export function signInWithCode({
                 to: { email },
                 locale: emailLocale,
               });
-            })().catch(reportError),
+            })().catch((error: unknown) => {
+              try {
+                reportError(error);
+              } catch {
+                // Reporting must never turn into a second failure: the task never rejects.
+              }
+            }),
           );
           return ctx.json(REQUESTED);
         },

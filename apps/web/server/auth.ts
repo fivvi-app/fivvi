@@ -1,7 +1,7 @@
 import { type Auth, createAuth, parseSignUpAllowlist, type SignUpAllowlist } from '@fivvi/auth';
 import { createEnvironmentSendEmail } from '@fivvi/email';
-import { createErrorReporter } from '@fivvi/observability';
 import { database } from './database';
+import { errorReporter } from './error-reporter';
 
 export interface AuthConfig {
   secret: string;
@@ -25,7 +25,7 @@ export function readAuthConfig(env: Readonly<Record<string, string | undefined>>
   if (secret.length < MIN_SECRET_LENGTH) {
     throw new Error(`BETTER_AUTH_SECRET must be at least ${MIN_SECRET_LENGTH} characters.`);
   }
-  const signUpAllowlist = parseSignUpAllowlist(env.SIGN_UP_ALLOWED_EMAILS);
+  const signUpAllowlist = checkSignUpAllowlist(env);
   const url = env.BETTER_AUTH_URL?.trim();
   if (!url) {
     if (env.NODE_ENV === 'production') {
@@ -37,11 +37,17 @@ export function readAuthConfig(env: Readonly<Record<string, string | undefined>>
   return { secret, baseURL: url.replace(/\/+$/, ''), signUpAllowlist };
 }
 
-let instance: Auth | undefined;
+/**
+ * Reads `SIGN_UP_ALLOWED_EMAILS` alone, so the server can fail at start-up on a malformed one
+ * (instrumentation.ts). The error names the entry's position, never the entry.
+ */
+export function checkSignUpAllowlist(
+  env: Readonly<Record<string, string | undefined>>,
+): SignUpAllowlist {
+  return parseSignUpAllowlist(env.SIGN_UP_ALLOWED_EMAILS);
+}
 
-// Failures of the work after a sign-in request's answer (a failed email) go to Sentry when
-// SENTRY_DSN is set (E009); the reporter scrubs addresses, codes and tokens.
-const errorReporter = createErrorReporter();
+let instance: Auth | undefined;
 
 /**
  * Sign-in for this process, created on first use, so `next build` runs without a database or a
@@ -53,6 +59,9 @@ export function auth(): Auth {
     db: database(),
     ...readAuthConfig(process.env),
     sendEmail: createEnvironmentSendEmail(),
+    // Failures of the work after a sign-in request's answer (a failed email) go to the shared
+    // reporter (Sentry when SENTRY_DSN is set, E009), whose scrubber masks email addresses and
+    // drops query strings, so a link's token never leaves.
     reportError: (error) => errorReporter.captureError(error),
   });
   return instance;

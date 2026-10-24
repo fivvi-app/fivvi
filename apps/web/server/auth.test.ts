@@ -10,7 +10,11 @@ describe('F001 sign-in configuration', () => {
         BETTER_AUTH_SECRET: secret,
         BETTER_AUTH_URL: 'https://pr-130.up.example.net/',
       }),
-    ).toMatchObject({ secret, baseURL: 'https://pr-130.up.example.net' });
+    ).toEqual({
+      secret,
+      baseURL: 'https://pr-130.up.example.net',
+      signUpAllowlist: expect.objectContaining({ allows: expect.any(Function) }),
+    });
   });
 
   describe('SIGN_UP_ALLOWED_EMAILS (AC9)', () => {

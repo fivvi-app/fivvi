@@ -1,9 +1,10 @@
-import { createAuth, parseSignUpAllowlist } from '@fivvi/auth';
+import { type CreateAuthOptions, createAuth, parseSignUpAllowlist } from '@fivvi/auth';
 import { authUsers, authVerifications, createDatabase, type DatabaseClient } from '@fivvi/database';
 import { seed } from '@fivvi/database/seed';
 import {
   createMemoryTransport,
   createSendEmail,
+  EmailSendError,
   type EmailTransport,
   type OutgoingEmail,
 } from '@fivvi/email';
@@ -37,6 +38,7 @@ describe('F001 sign in with the emailed code through the API', () => {
     baseURL: string = ORIGIN,
     clock?: Clock,
     emailTransport: EmailTransport = transport,
+    overrides: Partial<CreateAuthOptions> = {},
   ) {
     return createAuth({
       db: client.db,
@@ -50,6 +52,7 @@ describe('F001 sign in with the emailed code through the API', () => {
         transport: emailTransport,
         sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
       }),
+      ...overrides,
     });
   }
 
@@ -640,23 +643,72 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(transport.sent).toHaveLength(1);
     });
 
-    it('AC8: an email that fails to send still gets the same answer, and the failure is reported without the address', async () => {
-      const unknown = await seen(await requestCode('nobody@example.com', 'en'));
+    describe('AC8: a failure after the answer', () => {
+      const LOG_PREFIX = 'Sign-in request failed after its answer';
+      const SECRET_ADDRESS = 'owner@example.com';
 
-      const failing = authAt(ORIGIN, undefined, {
-        name: 'failing',
-        send: () => Promise.reject(new Error('Brevo is down')),
+      /** The log of `console.error`, which the tests keep out of the output. */
+      function spyOnLog() {
+        const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+        onTestFinished(() => log.mockRestore());
+        return log;
+      }
+
+      /** What a sign-in request for the account answers when nothing went wrong. */
+      const normalAnswer = async () => await seen(await requestCode('nobody@example.com', 'en'));
+
+      it('an email that fails to send still gets the same answer, and is logged and reported without the address', async () => {
+        const unknown = await normalAnswer();
+        const log = spyOnLog();
+        // The provider's own error quotes the recipient.
+        const failing = authAt(ORIGIN, undefined, {
+          name: 'failing',
+          send: () => Promise.reject(new Error(`Brevo rejected ${SECRET_ADDRESS}`)),
+        });
+
+        const known = await post(
+          '/sign-in/code/request',
+          { email: SECRET_ADDRESS },
+          { server: failing },
+        );
+        await settle();
+
+        expect(await seen(known)).toEqual(unknown);
+        // Only the name of the error and the message of the email error reach the log.
+        expect(log.mock.calls).toEqual([[`${LOG_PREFIX}: failing: send failed`]]);
+        expect(reportedErrors).toHaveLength(1);
+        expect(reportedErrors[0]).toBeInstanceOf(EmailSendError);
+        expect(String(reportedErrors[0])).not.toContain(SECRET_ADDRESS);
       });
-      const known = await post(
-        '/sign-in/code/request',
-        { email: 'owner@example.com' },
-        { server: failing },
-      );
-      await settle();
 
-      expect(await seen(known)).toEqual(unknown);
-      expect(reportedErrors).toHaveLength(1);
-      expect(String(reportedErrors[0])).not.toContain('owner@example.com');
+      it('any other failure is logged by its name alone, because it can quote the address', async () => {
+        const log = spyOnLog();
+        const server = authAt(ORIGIN, undefined, transport, {
+          sendEmail: () => Promise.reject(new TypeError(`duplicate key for ${SECRET_ADDRESS}`)),
+        });
+
+        const response = await post('/sign-in/code/request', { email: SECRET_ADDRESS }, { server });
+        await settle();
+
+        expect(response.status).toBe(200);
+        expect(log.mock.calls).toEqual([[`${LOG_PREFIX}: TypeError`]]);
+      });
+
+      it('a reporter that throws neither fails the work nor hides the log line', async () => {
+        const log = spyOnLog();
+        const server = authAt(ORIGIN, undefined, transport, {
+          sendEmail: () => Promise.reject(new Error('Brevo is down')),
+          reportError: () => {
+            throw new Error(`Sentry is down for ${SECRET_ADDRESS}`);
+          },
+        });
+
+        const response = await post('/sign-in/code/request', { email: SECRET_ADDRESS }, { server });
+
+        expect(response.status).toBe(200);
+        await expect(settle()).resolves.toBeUndefined();
+        expect(log.mock.calls).toEqual([[`${LOG_PREFIX}: Error`]]);
+      });
     });
   });
 
