@@ -30,13 +30,19 @@ describe('F001 sign in with the emailed code through the API', () => {
   const transport = createMemoryTransport();
 
   /** The server as apps/web wires it, with the email transport in memory. */
-  function authAt(baseURL: string = ORIGIN, clock?: Clock, log?: (line: string) => void) {
+  function authAt(
+    baseURL: string = ORIGIN,
+    clock?: Clock,
+    log?: (line: string) => void,
+    production?: boolean,
+  ) {
     return createAuth({
       db: client.db,
       secret: SECRET,
       baseURL,
       ...(clock ? { clock } : {}),
       ...(log ? { log } : {}),
+      ...(production === undefined ? {} : { production }),
       sendEmail: createSendEmail({
         transport,
         sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
@@ -622,10 +628,7 @@ describe('F001 sign in with the emailed code through the API', () => {
     it('AC10: the limit survives a new app instance (it is stored in Postgres)', async () => {
       const { clock } = startAt();
       for (let i = 0; i < 3; i++) {
-        await requestCode('owner@example.com', 'en', {
-          server: authAt(ORIGIN, clock),
-          headers: { 'x-real-ip': CLIENT_A },
-        });
+        await requestCode('owner@example.com', 'en', from(CLIENT_A, authAt(ORIGIN, clock)));
       }
       expect(transport.sent).toHaveLength(3);
 
@@ -634,10 +637,13 @@ describe('F001 sign in with the emailed code through the API', () => {
       await requestCode('owner@example.com', 'en', from(CLIENT_A, restarted));
       expect(transport.sent).toHaveLength(3);
 
-      for (let i = 0; i < 17; i++) {
+      // The per-IP half: 20 requests from one IP address, each through a new instance, then a
+      // 21st for an account whose address limit is untouched.
+      await addTrainerAccount();
+      for (let i = 0; i < 20; i++) {
         await requestCode(`nobody${i}@example.com`, 'en', from(CLIENT_B, authAt(ORIGIN, clock)));
       }
-      await requestCode('owner@example.com', 'en', from(CLIENT_B, authAt(ORIGIN, clock)));
+      await requestCode('trainer@example.com', 'en', from(CLIENT_B, authAt(ORIGIN, clock)));
       expect(transport.sent).toHaveLength(3);
     });
 
@@ -671,13 +677,28 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(transport.sent).toHaveLength(1);
     });
 
-    it('AC10: without a client IP header only the per-address limit applies', async () => {
+    it('AC10: outside production, without a client IP header only the per-address limit applies', async () => {
       const { server } = startAt();
       for (let i = 0; i < 25; i++) {
         await requestCode(`nobody${i}@example.com`, 'en', { server });
       }
       await requestCode('owner@example.com', 'en', { server });
 
+      expect(transport.sent).toHaveLength(1);
+    });
+
+    it('AC10: in production a request without the client IP header counts in one shared bucket', async () => {
+      freezeSystemTime(T0);
+      const server = authAt(ORIGIN, manualClock(T0), undefined, true);
+      await addTrainerAccount();
+
+      // No header at all: the shared "unknown IP" bucket, 20 requests an hour for everyone.
+      for (let i = 0; i < 20; i++) await requestCode(`nobody${i}@example.com`, 'en', { server });
+      await requestCode('trainer@example.com', 'en', { server });
+      expect(transport.sent).toEqual([]);
+
+      // A request that does carry an IP address has its own bucket.
+      await requestCode('trainer@example.com', 'en', from(CLIENT_A, server));
       expect(transport.sent).toHaveLength(1);
     });
 

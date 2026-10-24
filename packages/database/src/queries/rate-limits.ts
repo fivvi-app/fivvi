@@ -15,8 +15,8 @@ export interface RateLimitRule {
  * end of the window. The count goes up in one statement, so parallel requests are all counted
  * and a restart loses nothing.
  *
- * `now` is passed in (an injected clock), never read from the server. Expired rows of every
- * key are deleted on the way.
+ * `now` is passed in (an injected clock), never read from the server. Throws when the database
+ * returns no count: a limit must never let a request through because it could not count it.
  */
 export async function consumeRateLimit(
   db: DatabaseExecutor,
@@ -24,21 +24,29 @@ export async function consumeRateLimit(
   rule: RateLimitRule,
   now: Date,
 ): Promise<{ allowed: boolean }> {
-  const at = sql`${now.toISOString()}::timestamptz`;
-  const windowEnd = sql`${new Date(now.getTime() + rule.windowMinutes * 60_000).toISOString()}::timestamptz`;
-  const expired = sql`${authRateLimits.windowEndsAt} <= ${at}`;
+  const windowEndsAt = new Date(now.getTime() + rule.windowMinutes * 60_000);
+  const expired = lte(authRateLimits.windowEndsAt, now);
   const [row] = await db
     .insert(authRateLimits)
-    .values({ key, count: 1, windowEndsAt: sql`${windowEnd}` })
+    .values({ key, count: 1, windowEndsAt })
     .onConflictDoUpdate({
       target: authRateLimits.key,
       set: {
         count: sql`CASE WHEN ${expired} THEN 1 ELSE ${authRateLimits.count} + 1 END`,
-        windowEndsAt: sql`CASE WHEN ${expired} THEN ${windowEnd} ELSE ${authRateLimits.windowEndsAt} END`,
+        windowEndsAt: sql`CASE WHEN ${expired} THEN ${windowEndsAt} ELSE ${authRateLimits.windowEndsAt} END`,
         updatedAt: sql`now()`,
       },
     })
     .returning({ count: authRateLimits.count });
+  if (!row) throw new Error('Rate limit: the database returned no row, so nothing was counted.');
+  return { allowed: row.count <= rule.max };
+}
+
+/**
+ * Deletes the rows whose window has ended. A key that comes back reuses its row, so this only
+ * clears keys that never came back. It is one indexed range delete (`window_ends_at`), run once
+ * per request rather than once per counted key.
+ */
+export async function deleteExpiredRateLimits(db: DatabaseExecutor, now: Date): Promise<void> {
   await db.delete(authRateLimits).where(lte(authRateLimits.windowEndsAt, now));
-  return { allowed: (row?.count ?? 1) <= rule.max };
 }
