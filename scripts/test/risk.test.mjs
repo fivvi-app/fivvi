@@ -95,7 +95,7 @@ describe('risk of a pull request', () => {
       'packages/api/vitest.config.mts',
       'tsconfig.base.json',
       // The rest of what defines a check: a nested turbo.json overrides inputs, the shared vitest preset, the
-      // integration configs, the Playwright config, the NL/EN parity check, the native lint rules, every tsconfig.
+      // integration configs, the Playwright config, the CLIs that pick the checks, the native lint rules, every tsconfig.
       'packages/contract/turbo.json',
       'apps/web/vitest.integration.config.ts',
       'packages/testing/vitest.integration.config.ts',
@@ -124,6 +124,8 @@ describe('risk of a pull request', () => {
       'apps/ios/FivviProUITests/Support/TestPlanSkips.swift',
       'packages/contract/scripts/check.ts',
       'packages/design-tokens/src/check.ts',
+      'packages/design-tokens/src/cli.ts',
+      'packages/contract/scripts/pipeline.ts',
       'packages/ui/lint/no-raw-colours.ts',
       'packages/ui/lint/cli.ts',
       'apps/android/build.gradle.kts',
@@ -144,6 +146,14 @@ describe('risk of a pull request', () => {
       'pnpm-lock.yaml',
       'pnpm-workspace.yaml',
       '.npmrc',
+      // Native dependency manifests, at any depth (ADR-021): Gradle's version catalog and wrapper, Swift's lock file.
+      'apps/android/gradle/libs.versions.toml',
+      'libs.versions.toml',
+      'apps/android/gradle/wrapper/gradle-wrapper.properties',
+      'gradle-wrapper.properties',
+      'apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
+      'packages/contract/tools/swift-generator/Package.resolved',
+      'Package.resolved',
     ],
     infrastructure: ['Dockerfile', 'apps/cron/Dockerfile.cron', '.railway/railway.ts'],
   };
@@ -219,6 +229,18 @@ describe('risk of a pull request', () => {
         'packages/contract/src/check.ts',
         'packages/design-tokens/src/build.ts',
         'packages/design-tokens/scripts/check.ts',
+        'packages/design-tokens/src/cli.test.ts',
+        'packages/design-tokens/src/native.ts',
+        'packages/design-tokens/tokens/contrast-pairs.json',
+        'packages/contract/scripts/pipeline.test.ts',
+        'packages/contract/src/pipeline.ts',
+        'apps/android/gradle/libs.versions.toml.md',
+        'apps/android/gradle/libs.toml',
+        'apps/android/gradle/wrapper/gradle-wrapper.jar',
+        'apps/android/gradle.properties',
+        'apps/ios/Package.swift',
+        'apps/ios/Package.resolved.md',
+        'apps/ios/Package.resolvedx',
         'packages/ui/src/lint.ts',
         'packages/ui/linting/x.ts',
         'apps/android/build.gradle',
@@ -242,7 +264,7 @@ describe('risk of a pull request', () => {
     );
   });
 
-  it('GLOSSARY.md, packages/i18n/GLOSSARY.md and DESIGN.md are low with no reasons', () => {
+  it('ADR-021: GLOSSARY.md, packages/i18n/GLOSSARY.md and DESIGN.md are low with no reasons', () => {
     assert.deepEqual(pr(['GLOSSARY.md', 'packages/i18n/GLOSSARY.md', 'DESIGN.md']), {
       risk: 'low',
       reasons: [],
