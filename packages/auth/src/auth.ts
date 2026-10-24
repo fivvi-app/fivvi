@@ -1,8 +1,9 @@
 import type { Database } from '@fivvi/database';
 import { authIdentities, authSessions, authUsers, authVerifications } from '@fivvi/database';
-import type { SendEmail } from '@fivvi/email';
+import { EmailSendError, type SendEmail } from '@fivvi/email';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { closedSignUp, type SignUpAllowlist } from './allowlist.ts';
 import { type Clock, signInWithCode, systemClock } from './sign-in-plugin.ts';
 
 const DAY_SECONDS = 24 * 60 * 60;
@@ -16,6 +17,23 @@ export interface CreateAuthOptions {
   sendEmail: SendEmail;
   /** Where "now" comes from; the system clock when left out. Tests pass a manual one. */
   clock?: Clock;
+  /**
+   * Who may create an account by signing in for the first time: `parseSignUpAllowlist` of
+   * `SIGN_UP_ALLOWED_EMAILS`. Nobody when left out, so sign-up stays closed.
+   */
+  signUpAllowlist?: SignUpAllowlist;
+  /**
+   * Receives the failure of the work that follows a sign-in request's answer (a failed email, a
+   * database error), e.g. for Sentry. Called in addition to a safe log line. It must not put the
+   * address, a code or a link anywhere.
+   */
+  reportError?: (error: unknown) => void;
+  /**
+   * Holds that work, which runs after the answer so that the answer's timing is the same for
+   * every address (AC8). It never rejects. Left out, it simply runs on in this process, which
+   * is what a long-running Node server wants; tests pass a function that keeps the promise.
+   */
+  runInBackground?: (task: Promise<void>) => void;
 }
 
 /**
@@ -38,6 +56,9 @@ export function createAuth({
   baseURL,
   sendEmail,
   clock = systemClock,
+  signUpAllowlist = closedSignUp,
+  reportError,
+  runInBackground = () => {},
 }: CreateAuthOptions): Auth {
   const auth = betterAuth({
     appName: 'Fivvi',
@@ -54,7 +75,24 @@ export function createAuth({
         verification: authVerifications,
       },
     }),
-    plugins: [signInWithCode({ db, secret, sendEmail, clock })],
+    plugins: [
+      signInWithCode({
+        db,
+        secret,
+        sendEmail,
+        clock,
+        signUpAllowlist,
+        runInBackground,
+        reportError: (error) => {
+          logFailure(error);
+          try {
+            reportError?.(error);
+          } catch {
+            // Reporting must never turn into a second failure.
+          }
+        },
+      }),
+    ],
     user: {
       additionalFields: {
         // The language of the screen of the first sign-in (ADR-019).
@@ -85,4 +123,15 @@ export function createAuth({
     telemetry: { enabled: false },
   });
   return { handler: (request) => auth.handler(request) };
+}
+
+/**
+ * One log line for a failed sign-in request. The email's own error says only the provider, status
+ * and error code (`EmailSendError`); anything else is logged by name alone, because a database
+ * error can quote the address.
+ */
+function logFailure(error: unknown): void {
+  const what =
+    error instanceof EmailSendError ? error.message : error instanceof Error ? error.name : 'Error';
+  console.error(`Sign-in request failed after its answer: ${what}`);
 }

@@ -77,6 +77,11 @@ export default defineRailway((ctx) => {
       // environment that sent it (a preview's links open that preview). It follows the Railway
       // domain of `web`; set it explicitly when the custom domain fivvi.app is added.
       BETTER_AUTH_URL: 'https://${{RAILWAY_PUBLIC_DOMAIN}}',
+      // Who may create an account by signing in for the first time (PRODUCT.md §27): comma-
+      // separated exact addresses and @domain entries. Sign-up is closed until 2.0. Development
+      // (and so previews) allows the synthetic @example.com addresses; production's value, the
+      // pilot owner's real address, is set in the dashboard and never committed.
+      SIGN_UP_ALLOWED_EMAILS: production ? preserve() : '@example.com',
       // Product events (E009, packages/observability): the PostHog EU project key, set in the
       // dashboard for production only. Empty (development, previews) sends nothing.
       POSTHOG_KEY: preserve(),
