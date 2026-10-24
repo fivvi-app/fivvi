@@ -23,6 +23,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@fivvi/auth": "workspace:*",
+    "@fivvi/email": "workspace:*",
     "@fivvi/testing": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",

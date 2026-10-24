@@ -63,6 +63,10 @@
               {
                 "group": ["posthog-js", "posthog-js/**"],
                 "message": "Capture page views through @fivvi/observability/page-views, which is cookieless and sends the path only (E009)."
+              },
+              {
+                "group": ["better-auth", "better-auth/**", "@better-auth/**"],
+                "message": "Only packages/auth imports Better Auth; use its interface (ADR-007, F001)."
               }
             ]
           }
@@ -75,6 +79,34 @@
     {
       "includes": ["packages/observability/**"],
       "linter": { "rules": { "style": { "noRestrictedImports": "off" } } }
+    },
+    {
+      "includes": ["packages/auth/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@sentry/**"],
+                    "message": "Report errors through @fivvi/observability, which scrubs personal data (E009)."
+                  },
+                  {
+                    "group": ["posthog-node", "posthog-node/**"],
+                    "message": "Send product events with track() from @fivvi/observability, which only accepts catalog events (E009)."
+                  },
+                  {
+                    "group": ["posthog-js", "posthog-js/**"],
+                    "message": "Capture page views through @fivvi/observability/page-views, which is cookieless and sends the path only (E009)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "assist": {

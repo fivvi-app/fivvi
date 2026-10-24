@@ -1,6 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    // The sign-in tests import packages/email, which ships TSX source.
+    "jsx": "react-jsx",
     "types": ["node"]
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts", "vitest.integration.config.ts"]
