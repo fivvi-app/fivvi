@@ -13,10 +13,19 @@ export const SIGN_IN_EXPIRES_IN_MINUTES = 15;
 /** The path of the sign-in page's confirm step (TW-10), which the emailed link opens. */
 export const CONFIRM_PATH = '/login/confirm';
 
+/** The shape of the injected clock; `@fivvi/testing/clock` builds fixed and manual ones. */
+export interface Clock {
+  now(): Date;
+}
+
+export const systemClock: Clock = { now: () => new Date() };
+
 export interface SignInWithCodeOptions {
   /** `BETTER_AUTH_SECRET`: the key of the hashes. */
   secret: string;
   sendEmail: SendEmail;
+  /** Where "now" comes from: it sets and checks the expiry of a code. */
+  clock?: Clock;
 }
 
 /** `sign-in:<email>`: one verification per address, so a new request replaces the old one. */
@@ -37,7 +46,7 @@ const REQUESTED = { status: true } as const;
  *   email in the page's language. Every other address gets the same answer and no email.
  * - `POST /sign-in/code/verify` `{ email, code }`: the right code signs this browser in.
  */
-export function signInWithCode({ secret, sendEmail }: SignInWithCodeOptions) {
+export function signInWithCode({ secret, sendEmail, clock = systemClock }: SignInWithCodeOptions) {
   return {
     id: 'sign-in-with-code',
     schema: {
@@ -69,7 +78,7 @@ export function signInWithCode({ secret, sendEmail }: SignInWithCodeOptions) {
             identifier,
             value: hashSecretValue(secret, 'link-token', token),
             codeHash: hashSecretValue(secret, 'code', `${email}:${code}`),
-            expiresAt: new Date(Date.now() + SIGN_IN_EXPIRES_IN_MINUTES * 60_000),
+            expiresAt: new Date(clock.now().getTime() + SIGN_IN_EXPIRES_IN_MINUTES * 60_000),
           };
           await ctx.context.internalAdapter.createVerificationValue(row);
 
@@ -110,14 +119,20 @@ export function signInWithCode({ secret, sendEmail }: SignInWithCodeOptions) {
           if (
             !verification ||
             typeof stored !== 'string' ||
-            verification.expiresAt.getTime() <= Date.now() ||
+            verification.expiresAt.getTime() <= clock.now().getTime() ||
             !hashesEqual(hashSecretValue(secret, 'code', `${email}:${code}`), stored)
           ) {
             throw rejected();
           }
 
           // Single use: the first caller to consume it wins, also against a parallel request.
-          const consumed = await ctx.context.internalAdapter.consumeVerificationValue(identifier);
+          // It consumes the row that was checked, not "the verification of this address": a new
+          // request that landed in between has replaced it, and the old code must not use that
+          // one up. (Better Auth's own consume works by identifier and by the real clock.)
+          const consumed = await ctx.context.adapter.consumeOne({
+            model: 'verification',
+            where: [{ field: 'id', value: verification.id }],
+          });
           const found = await ctx.context.internalAdapter.findUserByEmail(email);
           if (!consumed || !found) throw rejected();
 

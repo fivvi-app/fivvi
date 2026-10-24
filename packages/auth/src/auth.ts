@@ -3,7 +3,7 @@ import { authIdentities, authSessions, authUsers, authVerifications } from '@fiv
 import type { SendEmail } from '@fivvi/email';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { signInWithCode } from './sign-in-plugin.ts';
+import { type Clock, signInWithCode } from './sign-in-plugin.ts';
 
 const DAY_SECONDS = 24 * 60 * 60;
 
@@ -14,6 +14,8 @@ export interface CreateAuthOptions {
   /** The public address of the app, e.g. `https://fivvi.app`. Links in emails point to it. */
   baseURL: string;
   sendEmail: SendEmail;
+  /** Where "now" comes from; the system clock when left out. Tests pass a manual one. */
+  clock?: Clock;
 }
 
 /**
@@ -30,7 +32,7 @@ export interface Auth {
  * `auth_verifications`), with sign-in by one emailed link and code (F001, ADR-007). Sign-up
  * is closed and there are no passwords.
  */
-export function createAuth({ db, secret, baseURL, sendEmail }: CreateAuthOptions): Auth {
+export function createAuth({ db, secret, baseURL, sendEmail, clock }: CreateAuthOptions): Auth {
   const auth = betterAuth({
     appName: 'Fivvi',
     baseURL,
@@ -46,7 +48,7 @@ export function createAuth({ db, secret, baseURL, sendEmail }: CreateAuthOptions
         verification: authVerifications,
       },
     }),
-    plugins: [signInWithCode({ secret, sendEmail })],
+    plugins: [signInWithCode({ secret, sendEmail, ...(clock ? { clock } : {}) })],
     user: {
       additionalFields: {
         // The language of the screen of the first sign-in (ADR-019).

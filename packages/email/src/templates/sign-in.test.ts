@@ -26,9 +26,33 @@ describe('F001 EM-08 sign-in email', () => {
       expect(email.text).toContain(copy.ignore);
       expect(email.html).toContain(`href="${props.url}"`);
       expect(email.text).toContain(props.url);
-      expect(email.text).toContain('15');
     },
   );
+
+  it.each([
+    ['nl-NL', 'De code en de inloglink werken 15 minuten.'],
+    ['en', 'The code and the sign-in link work for 15 minutes.'],
+  ] as const)('AC5: %s says how long the code and the link work', async (locale, line) => {
+    const email = await renderEmail(signInEmail, props, { locale });
+
+    expect(email.text).toContain(line);
+    expect(email.html).toContain(line);
+  });
+
+  it.each(locales)('%s: uses every email.signIn key, with its text rendered', async (locale) => {
+    const email = await renderEmail(signInEmail, props, { locale });
+    // The HTML escapes apostrophes; the text version and the HTML are looked at together.
+    const rendered = `${email.subject}\n${email.text}\n${email.html.replaceAll('&#x27;', "'")}`;
+    const keys = Object.entries(messages[locale].email.signIn);
+
+    expect(keys.length).toBeGreaterThan(0);
+    for (const [key, message] of keys) {
+      // The fixed text before the first placeholder or plural of the message.
+      const fixed = message.split('{')[0] ?? '';
+      expect(fixed.length, `${locale} email.signIn.${key} has fixed text`).toBeGreaterThan(5);
+      expect(rendered, `${locale} email.signIn.${key}`).toContain(fixed);
+    }
+  });
 
   it('AC1: the wording follows the glossary: inloglink and inloggen in Dutch, sign-in link in English', async () => {
     const nl = await renderEmail(signInEmail, props, { locale: 'nl-NL' });
