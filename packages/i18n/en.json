@@ -34,6 +34,15 @@
       "greetingWithoutName": "Hi,",
       "body": "This is a test message. If you can read this, emails from Fivvi are getting through.",
       "sentAt": "Sent on {date} at {time}."
+    },
+    "signIn": {
+      "subject": "Your sign-in code for Fivvi",
+      "preview": "Use code {code} to sign in to Fivvi.",
+      "intro": "Use this code to sign in to Fivvi:",
+      "linkIntro": "Or open the sign-in link and confirm it's you:",
+      "linkButton": "Sign in",
+      "validity": "The code and the sign-in link work for {minutes, plural, one {# minute} other {# minutes}}.",
+      "ignore": "Didn't ask for this? You can ignore this email."
     }
   }
 }

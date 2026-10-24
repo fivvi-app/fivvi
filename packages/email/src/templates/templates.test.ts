@@ -6,7 +6,7 @@ import { templates } from './index.ts';
 
 const all = templates as readonly EmailTemplate<unknown>[];
 
-/** Every `email.*` message of a locale, as dot-path keys. */
+/** Every `email.*` message of a locale that the hello template shows, as dot-path keys. */
 function emailMessages(locale: Locale): Map<string, string> {
   const flat = new Map<string, string>();
   const visit = (node: unknown, key: string) => {
@@ -117,6 +117,8 @@ describe('E006 hello template', () => {
       const withoutName = await renderEmail(helloEmail, { sentAt }, { locale });
       const html = withName.html + withoutName.html;
       for (const [key, message] of emailMessages(locale)) {
+        // Other templates have their own tests (sign-in.test.ts).
+        if (!key.startsWith('email.hello.') && !key.startsWith('email.layout.')) continue;
         const fixed = message.split(/\{[a-zA-Z]+\}/)[0] ?? '';
         expect(html, `${locale} ${key}`).toContain(fixed);
       }

@@ -18,7 +18,13 @@ export {
   type SendEmailOptions,
   type SendEmailResult,
 } from './send.ts';
-export { type HelloEmailProps, helloEmail, templates } from './templates/index.ts';
+export {
+  type HelloEmailProps,
+  helloEmail,
+  type SignInEmailProps,
+  signInEmail,
+  templates,
+} from './templates/index.ts';
 export {
   type EmailAddress,
   EmailSendError,
