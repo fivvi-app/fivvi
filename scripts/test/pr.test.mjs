@@ -150,7 +150,7 @@ describe('pr.sh merge', () => {
   it('E002 #119: adds the PR to the merge queue, once every condition holds, and says so', () => {
     const result = merge(github());
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /✓ low-risk/);
+    assert.match(result.stdout, /✓ not owner-only/);
     assert.ok(
       result.calls.some(
         (call) =>
@@ -195,11 +195,120 @@ describe('pr.sh merge', () => {
     assert.ok(!result.calls.some((call) => /compare/.test(call)), result.calls.join('\n'));
   });
 
-  it('E002 #119: refuses a high-risk PR and queues nothing: the owner adds it to the queue', () => {
-    const result = merge(github({ files: ['packages/database/migrations/0004.sql'] }));
+  it('E002 #119, ADR-021: refuses an owner-only PR and queues nothing: the owner adds it to the queue', () => {
+    const result = merge(github({ files: ['docs/legal/verwerkersovereenkomst.md'] }));
     assert.equal(result.status, 1);
-    assert.match(result.stdout, /✗ low-risk: high-risk/);
+    assert.match(result.stdout, /✗ not owner-only: owner-only: docs\/legal\//);
     assert.ok(!result.calls.some((call) => /^pr merge/.test(call)), result.calls.join('\n'));
+    assert.ok(
+      !result.calls.some((call) => new RegExp(ENQUEUE).test(call)),
+      result.calls.join('\n'),
+    );
+    assert.ok(result.bodies.every((body) => !body.includes('High-risk agent merge')));
+  });
+
+  it('ADR-021: refuses a PR whose ticket is labelled owner-only, also on safe paths', () => {
+    const result = merge([
+      {
+        match: '^issue view 57 ',
+        out: { number: 57, labels: [{ name: 'owner-only' }], parent: null },
+      },
+      ...github(),
+    ]);
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /✗ not owner-only: owner-only: #57 is labelled owner-only/);
+    assert.ok(
+      !result.calls.some((call) => new RegExp(ENQUEUE).test(call)),
+      result.calls.join('\n'),
+    );
+  });
+
+  describe('ADR-021: a high-risk PR', () => {
+    const MIGRATION = 'packages/database/migrations/0004.sql';
+    const REASON = `${MIGRATION}: tenant-data (/packages/database)`;
+    const BODY = `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${HEAD}\` ✅\n\n${NO_PREVIEW}`;
+
+    it('is queued by the agent, and recorded in the PR body with its head commit and reasons before it is queued', () => {
+      const result = merge(github({ files: [MIGRATION] }));
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(
+        result.stdout,
+        /✓ not owner-only: high-risk, agent-queueable: packages\/database/,
+      );
+      const record = `**High-risk agent merge:** \`${HEAD}\`: ${REASON}`;
+      assert.deepEqual(result.bodies, [
+        `${BODY}\n\n${record}`,
+        // The fake PR keeps its first body, so each edit shows only its own record added to it.
+        `${BODY}\n\n**Merge queue:** added to the merge queue on \`${HEAD}\``,
+      ]);
+      const recorded = result.calls.findIndex((call) => /^pr edit/.test(call));
+      const queued = result.calls.findIndex((call) => new RegExp(ENQUEUE).test(call));
+      assert.ok(recorded >= 0 && queued > recorded, result.calls.join('\n'));
+    });
+
+    it('lists every reason in the record, separated by semicolons', () => {
+      const result = merge(github({ files: ['apps/web/package.json', MIGRATION] }));
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(
+        result.bodies[0],
+        new RegExp(
+          `\\*\\*High-risk agent merge:\\*\\* \`${HEAD}\`: apps/web/package\\.json: dependencies \\(package\\.json\\); ${MIGRATION.replace(/\./g, '\\.')}: tenant-data \\(/packages/database\\)$`,
+        ),
+      );
+    });
+
+    it('is recorded also for the owner-merge label', () => {
+      const result = merge([
+        {
+          match: '^issue view 57 ',
+          out: { number: 57, labels: [{ name: 'owner-merge' }], parent: null },
+        },
+        ...github(),
+      ]);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(
+        result.bodies[0],
+        /\*\*High-risk agent merge:\*\* `c{40}`: #57 is labelled owner-merge$/,
+      );
+    });
+
+    it('is not queued when the record cannot be written', () => {
+      const result = merge([
+        { match: '^pr edit 60 ', out: 'nope', status: 1 },
+        ...github({ files: [MIGRATION] }),
+      ]);
+      assert.equal(result.status, 1);
+      assert.ok(
+        !result.calls.some((call) => new RegExp(ENQUEUE).test(call)),
+        result.calls.join('\n'),
+      );
+      assert.ok(!result.calls.some((call) => /^pr merge/.test(call)), result.calls.join('\n'));
+    });
+
+    it('still queues nothing, and records no merge, when another condition fails', () => {
+      const result = merge(github({ files: [MIGRATION], body: '' }));
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /✗ self-review clean/);
+      assert.ok(result.bodies.every((body) => !body.includes('High-risk agent merge')));
+      assert.ok(
+        !result.calls.some((call) => new RegExp(ENQUEUE).test(call)),
+        result.calls.join('\n'),
+      );
+    });
+
+    it('is recorded and squash-merged on a branch without a merge queue', () => {
+      const result = merge(
+        github({ files: [MIGRATION], queue: queueFacts({ state: 'MERGED', queueEnabled: false }) }),
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.bodies.length, 1);
+      assert.match(result.bodies[0], /\*\*High-risk agent merge:\*\*/);
+    });
+
+    it('a low-risk PR gets no such record', () => {
+      const result = merge(github());
+      assert.ok(result.bodies.every((body) => !body.includes('High-risk agent merge')));
+    });
   });
 
   it('E002 #119: squash-merges at once when the branch has no merge queue (not applied yet), and deletes the branch', () => {
@@ -292,11 +401,11 @@ describe('pr.sh merge', () => {
   });
 
   it('queues nothing and says why when a condition fails', () => {
-    const result = merge(github({ files: ['packages/database/migrations/0004.sql'], body: '' }));
+    const result = merge(github({ files: ['scripts/pr.sh'], body: '' }));
     assert.equal(result.status, 1);
-    assert.match(result.stdout, /✗ low-risk: high-risk: packages\/database\/migrations\/0004\.sql/);
+    assert.match(result.stdout, /✗ not owner-only: owner-only: scripts\/pr\.sh: guardrails/);
     assert.match(result.stdout, /✗ self-review clean: no self-review record/);
-    assert.match(result.stderr, /PR #60 stays for the owner: low-risk, self-review clean/);
+    assert.match(result.stderr, /PR #60 stays for the owner: not owner-only, self-review clean/);
     assert.ok(!result.calls.some((call) => /^pr merge|--method DELETE/.test(call)));
   });
 

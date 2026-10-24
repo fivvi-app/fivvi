@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Whether a PR is low or high risk (ADR-016). High when it changes, adds, deletes or renames a path in
-# scripts/high-risk-paths.txt, or when its issue or that issue's parent spec is labelled owner-merge. Agents merge only
-# low-risk PRs (scripts/pr.sh merge); high-risk PRs go to the owner. The decision is scripts/risk.jq.
+# How risky a PR is (ADR-016, ADR-021): low, high or owner. It is high or owner when it changes, adds, deletes or renames
+# a path in scripts/high-risk-paths.txt, or when its issue or that issue's parent spec is labelled owner-merge (high) or
+# owner-only (owner). High means only agent-queueable reasons (the groups that file declares with @agent-queue, and
+# owner-merge); owner means at least one owner-only reason. Agents add low and high PRs to the merge queue when the whole
+# merge gate holds (scripts/pr.sh merge); owner PRs go to the owner. The decision is scripts/risk.jq.
 #
-#   risk.sh <pr> [--json]     prints low or high with one reason per line; --json prints {risk, reasons}
+#   risk.sh <pr> [--json]     prints low, high or owner with one reason per line; --json prints {risk, reasons}
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 

@@ -16,6 +16,11 @@ const DISCLAIMER = readFileSync(join(SCRIPTS, '../.agents/skills/triage/SKILL.md
 const TRIAGE_NOTE = `${DISCLAIMER}\n\n## Triage Notes`;
 const comments = (...bodies) => bodies.map((body) => ({ body }));
 
+const daysAgo = (days) =>
+  new Date(Date.now() - days * 86400000).toISOString().replace(/\.\d+Z$/, 'Z');
+const agentMerge = (sha, reasons) =>
+  `Closes #50\n\n**High-risk agent merge:** \`${sha}\`: ${reasons}`;
+
 // What the merge queue query of scripts/pr.sh answers for PR <number> (see pr.test.mjs queueFacts).
 const queueRule = (number, { queued = false, removed = false, position = 1 } = {}) => ({
   match: `^api graphql -F owner=\\S+ -F name=\\S+ -F n=${number} [\\s\\S]*isInMergeQueue`,
@@ -123,42 +128,110 @@ describe('flow.sh next', () => {
             { number: 64, title: '[F031] Hotfix', isDraft: false, headRefOid: HEAD },
             { number: 65, title: '[F031] Queued by the agent', isDraft: false, headRefOid: HEAD },
             { number: 66, title: '[F031] Queued by the owner', isDraft: false, headRefOid: HEAD },
+            { number: 67, title: '[F031] Agent-queueable', isDraft: false, headRefOid: HEAD },
+            {
+              number: 68,
+              title: '[F031] Agent-queueable, refused',
+              isDraft: false,
+              headRefOid: HEAD,
+            },
           ],
         },
         queueRule(64, { removed: true }),
         queueRule(65, { queued: true }),
         queueRule(66, { queued: true, position: 2 }),
-        ...[60, 61, 63].map((number) => queueRule(number)),
+        ...[60, 61, 63, 67, 68].map((number) => queueRule(number)),
+        {
+          match: '^pr list .*--state merged',
+          out: [
+            {
+              number: 80,
+              title: '[F001] Verification rules',
+              body: agentMerge(
+                'd'.repeat(40),
+                'packages/database/migrations/0004.sql: tenant-data (/packages/database)',
+              ),
+              mergedAt: daysAgo(2),
+            },
+            {
+              number: 81,
+              title: '[F001] Too old',
+              body: agentMerge('d'.repeat(40), 'package.json: dependencies (package.json)'),
+              mergedAt: daysAgo(8),
+            },
+            { number: 82, title: '[F002] Low-risk', body: 'Closes #51', mergedAt: daysAgo(1) },
+            {
+              number: 83,
+              title: '[F001] Two reasons',
+              body: `${agentMerge('e'.repeat(40), 'package.json: dependencies (package.json); Dockerfile: infrastructure (Dockerfile*)')}\n\n**Merge queue:** added to the merge queue on \`${'e'.repeat(40)}\``,
+              mergedAt: daysAgo(0.5),
+            },
+          ],
+        },
         { match: '^api repos/[^ ]+/pulls/60/files', out: [{ filename: 'scripts/pr.sh' }] },
         { match: '^api repos/[^ ]+/pulls/6[13]/files', out: [{ filename: 'apps/web/page.tsx' }] },
+        {
+          match: '^api repos/[^ ]+/pulls/6[78]/files',
+          out: [{ filename: 'packages/database/migrations/0004.sql' }],
+        },
+        { match: '^pr view 67 .*--json body', out: { body: 'Closes #57' } },
+        { match: '^pr view 68 .*--json body', out: { body: refusal(HEAD) } },
         { match: '^pr view 61 .*--json body', out: { body: refusal('b'.repeat(40)) } },
         { match: '^pr view 63 .*--json body', out: { body: refusal(HEAD) } },
         {
-          match: '^pr view 6[013456] ',
+          match: '^pr view 6[01345678] ',
           out: { headRefName: 'docs/no-issue', closingIssuesReferences: [], changedFiles: 1 },
         },
       ]),
     });
 
-  it('lists what waits on the owner: specs to approve, high-risk, refused and queue-removed PRs, questions', () => {
+  it('lists what waits on the owner: specs to approve, owner-only, refused and queue-removed PRs, questions', () => {
     // #71 and #73 still need a spec written (needs-spec) and #74 is complete: none waits on approval.
     // #61 was refused on an older commit: the push made that stale, so it is the factory's to merge.
     // #65 and #66 are in the merge queue: they wait on GitHub, not on the owner. GitHub removed #64 from it.
     const result = next();
     assert.equal(result.status, 0, result.stderr);
-    const owner = result.stdout.slice(result.stdout.indexOf('== Waiting on the owner'));
+    const owner = result.stdout.slice(
+      result.stdout.indexOf('== Waiting on the owner'),
+      result.stdout.indexOf('== For the owner to read'),
+    );
     assert.equal(
       owner,
       [
         '== Waiting on the owner',
         'Approve spec #70 [F040] Waiting list (add spec-approved)',
-        'Merge PR #60 [F031] Hold a spot (high-risk: scripts/pr.sh: guardrails (/scripts))',
+        'Merge PR #60 [F031] Hold a spot (owner-only: scripts/pr.sh: guardrails (/scripts))',
         'Decide on PR #63 [F031] Release the hold (the merge gate refused it on ccccccc: self-review clean (no self-review record in the PR body); or fix it and push)',
         'Decide on PR #64 [F031] Hotfix (GitHub removed it from the merge queue: Merge group failed; or fix it and push)',
+        'Decide on PR #68 [F031] Agent-queueable, refused (the merge gate refused it on ccccccc: self-review clean (no self-review record in the PR body); or fix it and push)',
         'Answer #72 Which reminder time? (needs-info)',
         '',
       ].join('\n'),
     );
+  });
+
+  it('ADR-021: lists under "For the owner to read" the high-risk PRs agents merged in the last 7 days, newest first', () => {
+    const result = next();
+    assert.equal(result.status, 0, result.stderr);
+    const read = result.stdout.slice(result.stdout.indexOf('== For the owner to read'));
+    assert.equal(
+      read,
+      [
+        '== For the owner to read',
+        'PR #83 [F001] Two reasons (merged by an agent; high-risk: package.json: dependencies (package.json); Dockerfile: infrastructure (Dockerfile*))',
+        'PR #80 [F001] Verification rules (merged by an agent; high-risk: packages/database/migrations/0004.sql: tenant-data (/packages/database))',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('ADR-021: a high-risk PR an agent can merge does not wait on the owner, and one in the merge queue neither', () => {
+    const result = next();
+    const owner = result.stdout.slice(
+      result.stdout.indexOf('== Waiting on the owner'),
+      result.stdout.indexOf('== For the owner to read'),
+    );
+    assert.doesNotMatch(owner, /PR #(61|65|66|67)\b/);
   });
 
   it('lists an answered needs-info question as work for an agent, not for the owner', () => {
@@ -179,6 +252,7 @@ describe('flow.sh next', () => {
       'the open PRs': '^pr list .*--state open',
       "a PR's refusal": '^pr view 63 .*--json body',
       "a PR's merge queue state": '^api graphql -F owner=\\S+ -F name=\\S+ -F n=64 ',
+      'the merged PRs': '^pr list .*--state merged',
       'the needs-info questions': '^issue list .*--label needs-info',
       'the ready tickets': '^issue list .*--label ready-for-agent',
     };
@@ -216,7 +290,7 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
     rmSync(repo, { recursive: true, force: true });
   });
 
-  const run = (command, queue) =>
+  const run = (command, queue, file = 'apps/web/page.tsx') =>
     spawnSync(join(repo, 'scripts/flow.sh'), [command, '9999'], {
       encoding: 'utf8',
       env: gh.env([
@@ -251,7 +325,7 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
             },
           ],
         },
-        { match: '^api repos/[^ ]+/pulls/70/files', out: [{ filename: 'apps/web/page.tsx' }] },
+        { match: '^api repos/[^ ]+/pulls/70/files', out: [{ filename: file }] },
         { match: '^pr view 70 .*--json body', out: { body: 'Closes #9999' } },
         {
           match: '^pr view 70 ',
@@ -288,6 +362,27 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
     const result = run('status', {});
     assert.match(result.stdout, /^Phase: ready-to-merge$/m);
     assert.doesNotMatch(result.stdout, /merge queue \(/);
+  });
+
+  it('ADR-021: shows a high-risk PR an agent can merge as ready to merge, with its reasons', () => {
+    const result = run('status', {}, 'packages/database/migrations/0004.sql');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /^PR: #70 OPEN .* · high-risk · /m);
+    assert.match(
+      result.stdout,
+      /^ {2}high-risk: packages\/database\/migrations\/0004\.sql: tenant-data/m,
+    );
+    assert.match(result.stdout, /^Phase: ready-to-merge$/m);
+    assert.match(result.stdout, /^Next: High-risk \(.*\): scripts\/pr\.sh merge/m);
+  });
+
+  it('ADR-021: shows an owner-only PR as in review, for the owner', () => {
+    const result = run('status', {}, 'scripts/pr.sh');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /^PR: #70 OPEN .* · owner-only · /m);
+    assert.match(result.stdout, /^ {2}owner-only: scripts\/pr\.sh: guardrails/m);
+    assert.match(result.stdout, /^Phase: in-review$/m);
+    assert.match(result.stdout, /^Next: Owner-only \(/m);
   });
 
   it('finish waits while the PR is in the merge queue, and cleans nothing up', () => {
@@ -352,5 +447,107 @@ describe('flow.sh facts', () => {
     assert.equal(factsOf(comments(TRIAGE_NOTE)).answered, false);
     assert.equal(factsOf(comments(TRIAGE_NOTE, 'Two hours before.')).answered, true);
     assert.equal(factsOf(comments('Two hours before.', TRIAGE_NOTE)).answered, false);
+  });
+});
+
+describe('ADR-021 flow.sh start: no fixed limit on the tickets in progress', () => {
+  const gh = fakeGh();
+  let repo;
+  let elsewhere;
+  before(() => {
+    // A checkout with four tickets already in progress (worktrees) and a ready ticket #9998 without a branch.
+    repo = realpathSync(mkdtempSync(join(tmpdir(), 'flow-limit-')));
+    elsewhere = realpathSync(mkdtempSync(join(tmpdir(), 'flow-limit-wt-')));
+    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+    const git = (...args) =>
+      execFileSync(
+        'git',
+        ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
+        { encoding: 'utf8' },
+      );
+    git('init', '--quiet', '--initial-branch=main');
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'chore: base');
+    git('remote', 'add', 'origin', 'https://github.com/o/r.git');
+    for (const n of [1, 2, 3, 4])
+      git('worktree', 'add', '--quiet', '-b', `feature/${n}-a`, join(elsewhere, `${n}`));
+  });
+  after(() => {
+    gh.cleanup();
+    rmSync(repo, { recursive: true, force: true });
+    rmSync(elsewhere, { recursive: true, force: true });
+  });
+
+  // The claim fails on purpose: start stops there, so no worktree is created (that needs the network and pnpm).
+  const start = (limit, ...args) => {
+    const env = gh.env([
+      { match: '^api user', out: { login: 'thekeyvan' } },
+      {
+        match: '^issue view 9998 ',
+        out: {
+          number: 9998,
+          title: 'Another ticket',
+          state: 'OPEN',
+          labels: labels('ready-for-agent'),
+          assignees: [],
+          body: '## Acceptance criteria',
+          comments: [],
+          parent: null,
+          subIssues: { nodes: [] },
+          blockedBy: { nodes: [] },
+        },
+      },
+      { match: '^issue edit 9998 ', out: 'claim refused', status: 1 },
+    ]);
+    if (limit === undefined) delete env.FIVVI_MAX_TICKETS;
+    else env.FIVVI_MAX_TICKETS = limit;
+    const result = spawnSync(join(repo, 'scripts/flow.sh'), ['start', '9998', ...args], {
+      encoding: 'utf8',
+      env,
+    });
+    const claimed = gh.calls().some((call) => call.args.join(' ').startsWith('issue edit 9998'));
+    return { ...result, claimed };
+  };
+
+  it('starts a fifth ticket when no limit is set', () => {
+    const result = start(undefined);
+    assert.doesNotMatch(result.stderr, /in progress/);
+    assert.equal(result.claimed, true, 'it went on to claim the ticket');
+  });
+
+  it('refuses a ticket beyond FIVVI_MAX_TICKETS, before it claims anything', () => {
+    const result = start('4');
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /4 tickets are already in progress.*FIVVI_MAX_TICKETS.*--force/);
+    assert.equal(result.claimed, false);
+  });
+
+  it('starts a ticket while fewer than FIVVI_MAX_TICKETS are in progress', () => {
+    const result = start('5');
+    assert.doesNotMatch(result.stderr, /in progress/);
+    assert.equal(result.claimed, true);
+  });
+
+  it('--force overrides FIVVI_MAX_TICKETS', () => {
+    const result = start('1', '--force');
+    assert.doesNotMatch(result.stderr, /in progress/);
+    assert.equal(result.claimed, true);
+  });
+
+  it('is an error when FIVVI_MAX_TICKETS is not a positive integer', () => {
+    for (const value of ['', '0', '-1', '3.5', 'three', ' 3', '03']) {
+      const result = start(value);
+      assert.equal(result.status, 1, JSON.stringify(value));
+      assert.match(
+        result.stderr,
+        /FIVVI_MAX_TICKETS must be a positive integer/,
+        JSON.stringify(value),
+      );
+      assert.equal(result.claimed, false, JSON.stringify(value));
+    }
+  });
+
+  it('no longer says three', () => {
+    assert.doesNotMatch(readFileSync(join(SCRIPTS, 'flow.sh'), 'utf8'), /WIP_LIMIT|3 tickets are/);
   });
 });

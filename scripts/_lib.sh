@@ -20,8 +20,10 @@ HUMAN_LABEL="ready-for-human"
 SPEC_LABEL="spec"
 # The owner approved the spec: its tickets may be cut and built (ADR-016). A material change removes it.
 APPROVED_LABEL="spec-approved"
-# The PRs of this issue, or of every ticket of this spec, go to the owner to merge (ADR-016).
+# The PRs of this issue, or of every ticket of this spec, are high-risk: agents may queue them (ADR-016, ADR-021).
 OWNER_MERGE_LABEL="owner-merge"
+# Only the owner merges the PRs of this issue, or of every ticket of this spec (ADR-021).
+OWNER_ONLY_LABEL="owner-only"
 
 die() { echo "error: $*" >&2; exit 1; }
 

@@ -4,7 +4,9 @@
 #
 #   issue.sh show <n>                                        fields, parent, open blockers, sub-issues and body
 #   issue.sh create <spec|ticket|bug> --title <t> --body-file <f|-> [--parent <n>] [--blocked-by <n>]... [--label <l>]...
-#                                                            a ticket of a spec needs the spec approved (spec-approved)
+#                                                            a ticket of a spec needs the spec approved (spec-approved);
+#                                                            --label owner-only on a spec that touches legal or money
+#                                                            (owner-merge: high-risk, agents may queue its PRs)
 #   issue.sh update <n> [--title <t>] [--body-file <f|->] [--minor]
 #                                                            on an approved spec, removes spec-approved so the owner
 #                                                            approves again; --minor (a typo fix) keeps it

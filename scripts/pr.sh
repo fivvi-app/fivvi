@@ -30,9 +30,11 @@
 #                                                 health-checked; otherwise smoke fails with a hint
 #   pr.sh reviewed                                record in the PR body that both reviewers (standards and spec) found
 #                                                 nothing to fix on the PR's head commit; local HEAD must be that commit
-#   pr.sh merge                                   add a low-risk PR to the merge queue (ADR-018), which squash-merges it
-#                                                 after testing it on the latest main, only when every condition of the
-#                                                 merge gate holds (ADR-016); otherwise queue nothing, record the
+#   pr.sh merge                                   add a low-risk or high-risk (agent-queueable) PR to the merge queue
+#                                                 (ADR-018, ADR-021), which squash-merges it after testing it on the
+#                                                 latest main, only when every condition of the merge gate holds
+#                                                 (ADR-016); a high-risk PR is first recorded in the PR body with its
+#                                                 reasons; an owner-only PR is never queued; otherwise queue nothing, record the
 #                                                 refusal for the head commit in the PR body, print why and exit 1: the
 #                                                 PR stays for the owner. Never --auto or --admin; the queued commit is
 #                                                 recorded in the PR body
@@ -56,6 +58,8 @@ BRANCH="$(git branch --show-current)"
 SMOKE_MARK="Railway preview smoke check"
 REVIEW_MARK="Self-review"
 REFUSAL_MARK="Merge gate"
+# An agent queued a high-risk PR (ADR-021): the audit trail flow.sh next lists for the owner to read.
+HIGH_RISK_MARK="High-risk agent merge"
 QUEUE_MARK="Merge queue"
 NO_PREVIEW="no preview for this PR"
 # Railway: the project (named fivvi), the web service of its preview, and the only environments pr.sh smoke may touch,
@@ -358,7 +362,9 @@ record() {
     || die "could not read the body of PR #$pr; nothing recorded"
   # grep exits 1 when no line is left (the body was only the old record); that's fine, a failure (2) isn't.
   body="$(grep -v "^\*\*$mark:\*\*" <<<"$body")" || [ $? -eq 1 ] || die "could not update the body of PR #$pr"
-  gh pr edit "$pr" --repo "$REPO" --body "${body:+$body$'\n\n'}$line" >/dev/null
+  # Checked here: a caller that runs record under `||` has errexit off, and would print the line as recorded.
+  gh pr edit "$pr" --repo "$REPO" --body "${body:+$body$'\n\n'}$line" >/dev/null \
+    || die "could not update the body of PR #$pr; nothing recorded"
   echo "📝 $line"
 }
 
@@ -555,7 +561,7 @@ cmd_queue() {
     position: (if .queued then .position else null end), reason}'
 }
 
-# Adds a low-risk PR that passes the whole merge gate to the merge queue, which tests it on top of the latest main and
+# Adds a low-risk or high-risk (agent-queueable) PR that passes the whole merge gate to the merge queue, which tests it on top of the latest main and
 # squash-merges it (ADR-018). On a branch with a merge queue, `gh pr merge` always asks for auto-merge (whatever the
 # flags), which the repo doesn't allow and agents never use, so the PR is enqueued with GraphQL's enqueuePullRequest. A
 # branch without a queue is squash-merged with `gh pr merge`. Should auto-merge ever be on afterwards, turn it off again.
@@ -577,6 +583,12 @@ cmd_merge() {
     record "$pr" "$REFUSAL_MARK" "**$REFUSAL_MARK:** refused on \`$head\`: $(jq -r \
       '[.conditions[] | select(.ok | not) | "\(.name) (\(.detail))"] | join("; ")' <<<"$decision")"
     die "PR #$pr stays for the owner: $failed; nothing queued"
+  fi
+
+  # The owner reads afterwards what an agent merged and why it counted as high-risk (ADR-021): record it before queueing,
+  # and queue nothing when it can't be recorded (record dies).
+  if [ "$(jq -r .risk.risk <<<"$facts")" = high ]; then
+    record "$pr" "$HIGH_RISK_MARK" "**$HIGH_RISK_MARK:** \`$head\`: $(jq -r '.risk.reasons | join("; ")' <<<"$facts")"
   fi
 
   branch="$(jq -r .branch <<<"$facts")"

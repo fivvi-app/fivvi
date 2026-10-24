@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed |
+| **Status** | Proposed; the rule that agents add only low-risk PRs (context and decision 4) amended by [ADR-021](ADR-021-agents-queue-high-risk.md) |
 | **Date** | 2026-10-19; decision 4 amended 2026-10-21 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | Amends ADR-016 (decisions 2 and 3); WORKFLOW.md §3, §4, §7; ENVIRONMENTS.md §4; ADR-011; issue #119 (supersedes the idea of #113) |
@@ -39,6 +39,8 @@ Merges into `main` go through the merge queue (squash). Agents add low-risk PRs 
 AI still never approves a PR and never turns on auto-merge.
 
 > **Amended 21 October 2026:** decision 4 first ran `gh pr merge --squash --match-head-commit <head>` on the queue branch too. The first real run (PR #176) failed: gh asks for auto-merge there, which `allow_auto_merge: false` rejects. `pr.sh merge` now enqueues the PR with `enqueuePullRequest`, so `allow_auto_merge` stays `false` and no auto-merge request is ever made. The rest of this ADR stands.
+
+> **Amended by [ADR-021](ADR-021-agents-queue-high-risk.md) (24 October 2026):** until G2 `pr.sh merge` also adds a high-risk PR to the queue when it is not owner-only; the merge gate's first condition is "not owner-only", and an owner-only PR is still refused. `max_entries_to_build: 3` limits the checks running at once, not the tickets in progress (there is no fixed limit on those any more).
 
 ## Consequences
 

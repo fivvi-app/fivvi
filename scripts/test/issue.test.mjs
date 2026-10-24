@@ -127,6 +127,32 @@ describe('issue.sh', () => {
     });
   });
 
+  describe('create spec', () => {
+    const spec = (...extra) =>
+      issueSh(
+        [{ match: '^issue create ', out: 'https://github.com/example/fivvi/issues/90' }],
+        'create',
+        'spec',
+        '--title',
+        '[F050] Billing',
+        '--body-file',
+        '-',
+        ...extra,
+      );
+    const labelsOf = (args) => args.flatMap((arg, i) => (args[i - 1] === '--label' ? [arg] : []));
+
+    it('ADR-021: accepts --label owner-only, next to the spec label', () => {
+      const result = spec('--label', 'owner-only');
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(labelsOf(create(result.calls)), ['spec', 'owner-only']);
+    });
+
+    it('also accepts --label owner-merge', () => {
+      const result = spec('--label', 'owner-merge');
+      assert.deepEqual(labelsOf(create(result.calls)), ['spec', 'owner-merge']);
+    });
+  });
+
   describe('ready', () => {
     const item = (number, names, parent) => ({
       match: `^issue view ${number} `,
