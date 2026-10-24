@@ -18,8 +18,9 @@ const comments = (...bodies) => bodies.map((body) => ({ body }));
 
 const daysAgo = (days) =>
   new Date(Date.now() - days * 86400000).toISOString().replace(/\.\d+Z$/, 'Z');
-const agentMerge = (sha, reasons) =>
-  `Closes #50\n\n**High-risk agent merge:** \`${sha}\`: ${reasons}`;
+const agentMerge = (sha, reasons, queuedSha = sha) =>
+  `Closes #50\n\n**High-risk agent merge:** \`${sha}\`: ${reasons}` +
+  (queuedSha ? `\n\n**Merge queue:** added to the merge queue on \`${queuedSha}\`` : '');
 
 // What the merge queue query of scripts/pr.sh answers for PR <number> (see pr.test.mjs queueFacts).
 const queueRule = (number, { queued = false, removed = false, position = 1 } = {}) => ({
@@ -163,8 +164,29 @@ describe('flow.sh next', () => {
             {
               number: 83,
               title: '[F001] Two reasons',
-              body: `${agentMerge('e'.repeat(40), 'package.json: dependencies (package.json); Dockerfile: infrastructure (Dockerfile*)')}\n\n**Merge queue:** added to the merge queue on \`${'e'.repeat(40)}\``,
+              body: agentMerge(
+                'e'.repeat(40),
+                'package.json: dependencies (package.json); Dockerfile: infrastructure (Dockerfile*)',
+              ),
               mergedAt: daysAgo(0.5),
+            },
+            {
+              // The queue dropped the commit the agent queued; the owner merged a later one: not an agent merge.
+              number: 84,
+              title: '[F001] Owner merged after the queue',
+              body: agentMerge(
+                'f'.repeat(40),
+                'package.json: dependencies (package.json)',
+                'a'.repeat(40),
+              ),
+              mergedAt: daysAgo(0.2),
+            },
+            {
+              // The record was written, but nothing was queued on it.
+              number: 85,
+              title: '[F001] Recorded, never queued',
+              body: agentMerge('f'.repeat(40), 'package.json: dependencies (package.json)', null),
+              mergedAt: daysAgo(0.1),
             },
           ],
         },
@@ -210,7 +232,7 @@ describe('flow.sh next', () => {
     );
   });
 
-  it('ADR-021: lists under "For the owner to read" the high-risk PRs agents merged in the last 7 days, newest first', () => {
+  it('ADR-021: lists under "For the owner to read" the high-risk PRs agents merged in the last 7 days, newest first, when the queued commit is the recorded one', () => {
     const result = next();
     assert.equal(result.status, 0, result.stderr);
     const read = result.stdout.slice(result.stdout.indexOf('== For the owner to read'));
@@ -545,9 +567,5 @@ describe('ADR-021 flow.sh start: no fixed limit on the tickets in progress', () 
       );
       assert.equal(result.claimed, false, JSON.stringify(value));
     }
-  });
-
-  it('no longer says three', () => {
-    assert.doesNotMatch(readFileSync(join(SCRIPTS, 'flow.sh'), 'utf8'), /WIP_LIMIT|3 tickets are/);
   });
 });

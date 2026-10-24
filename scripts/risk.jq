@@ -34,17 +34,23 @@ def glob_regex:
 
 def labelled($l): (.labels | index($l)) != null;
 
+# A file can match rules of several groups (docs/decisions/ADR-007-authentication.md is auth and product-docs). Every
+# matching group counts, once each (its first pattern), so an agent-queueable rule never hides an owner-only one.
+def matching($file):
+  reduce (rules[] | select(.pattern | glob_regex as $re | $file | test($re; "i"))) as $r
+    ([]; if any(.[]; .group == $r.group) then . else . + [$r] end);
+
+# A reason for a label an issue or its spec carries: owner-merge is agent-queueable, owner-only is not.
+def label_reasons($subject):
+  (select(labelled("owner-merge")) | {text: "\($subject) is labelled owner-merge", owner: false}),
+  (select(labelled("owner-only")) | {text: "\($subject) is labelled owner-only", owner: true});
+
 # Each reason is {text, owner}: owner is true for an owner-only reason.
-rules as $patterns
-| queue_groups as $queue
+queue_groups as $queue
 | [.files[] as $file
-    | ($patterns | map(select(.pattern | glob_regex as $re | $file | test($re; "i"))) | first) as $rule
-    | select($rule != null)
+    | matching($file)[] | . as $rule
     | {text: "\($file): \($rule.group) (\($rule.pattern))", owner: ($queue | index($rule.group) | not)}]
   + [.issues[] | .number as $n
-      | (select(labelled("owner-merge")) | {text: "#\($n) is labelled owner-merge", owner: false}),
-        (select(labelled("owner-only")) | {text: "#\($n) is labelled owner-only", owner: true}),
-        (.parent // empty
-          | (select(labelled("owner-merge")) | {text: "spec #\(.number) of #\($n) is labelled owner-merge", owner: false}),
-            (select(labelled("owner-only")) | {text: "spec #\(.number) of #\($n) is labelled owner-only", owner: true}))]
+      | label_reasons("#\($n)"),
+        (.parent // empty | label_reasons("spec #\(.number) of #\($n)"))]
 | {risk: (if length == 0 then "low" elif any(.[]; .owner) then "owner" else "high" end), reasons: map(.text)}

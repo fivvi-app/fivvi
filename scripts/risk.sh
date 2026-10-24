@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# How risky a PR is (ADR-016, ADR-021): low, high or owner. It is high or owner when it changes, adds, deletes or renames
-# a path in scripts/high-risk-paths.txt, or when its issue or that issue's parent spec is labelled owner-merge (high) or
-# owner-only (owner). High means only agent-queueable reasons (the groups that file declares with @agent-queue, and
-# owner-merge); owner means at least one owner-only reason. Agents add low and high PRs to the merge queue when the whole
-# merge gate holds (scripts/pr.sh merge); owner PRs go to the owner. The decision is scripts/risk.jq.
+# How risky a PR is (ADR-016, ADR-021): low, high or owner. It is high or owner when it changes, adds, deletes or
+# renames a path in scripts/high-risk-paths.txt, or when its issue or that issue's parent spec is labelled owner-merge
+# (high) or owner-only (owner). High means only agent-queueable reasons (the groups that file declares with
+# @agent-queue, and owner-merge); owner means at least one owner-only reason. Agents add low and high PRs to the merge
+# queue when the whole merge gate holds (scripts/pr.sh merge); owner PRs go to the owner. The decision is
+# scripts/risk.jq.
 #
 #   risk.sh <pr> [--json]     prints low, high or owner with one reason per line; --json prints {risk, reasons}
 set -euo pipefail

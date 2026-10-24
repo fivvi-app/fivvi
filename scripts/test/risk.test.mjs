@@ -134,6 +134,36 @@ describe('risk of a pull request', () => {
     });
   });
 
+  // A path can match rules of several groups; the file is owner-only when any matching group is, so an agent-queueable
+  // rule (a name with "auth" or "note") never hides an owner-only one.
+  it('ADR-021: is owner when an owner-only path also matches an agent-queueable rule', () => {
+    const overlaps = {
+      'docs/decisions/ADR-007-authentication.md': ['auth', 'product-docs'],
+      '.github/instructions/auth.instructions.md': ['auth', 'guardrails'],
+      'scripts/auth-check.sh': ['auth', 'guardrails'],
+      'docs/legal/release-notes.md': ['health-notes', 'legal'],
+      '.agents/skills/notes/SKILL.md': ['health-notes', 'guardrails'],
+      'packages/database/src/billing.ts': ['tenant-data', 'billing'],
+    };
+    for (const [file, groups] of Object.entries(overlaps)) {
+      const result = pr([file]);
+      assert.equal(result.risk, 'owner', file);
+      assert.equal(result.reasons.length, groups.length, file);
+      for (const group of groups) {
+        assert.ok(
+          result.reasons.some((r) => r.startsWith(`${file}: ${group} (`)),
+          `${file}: ${group}`,
+        );
+      }
+    }
+  });
+
+  it('ADR-021: a path matching two rules of one group gives one reason', () => {
+    assert.deepEqual(pr(['packages/billing-payments/x.ts']).reasons, [
+      'packages/billing-payments/x.ts: billing (*billing*)',
+    ]);
+  });
+
   it('ADR-021: is high with only agent-queueable reasons, whatever their number', () => {
     const result = pr(['packages/database/migrations/0003.sql', 'package.json', 'Dockerfile']);
     assert.equal(result.risk, 'high');
@@ -308,6 +338,8 @@ describe('high-risk paths', () => {
       'infrastructure',
       'tenant-data',
     ]);
+    const ruled = new Set([...text.matchAll(/^([a-z][a-z-]*)\s+\S+\s*(#.*)?$/gm)].map((m) => m[1]));
+    for (const group of declared) assert.ok(ruled.has(group), `${group} has a path rule`);
   });
 
   it('ADR-021: a group is owner-only unless it is declared @agent-queue', () => {

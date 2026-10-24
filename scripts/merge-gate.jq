@@ -1,4 +1,5 @@
-# Whether an agent may merge a PR (ADR-016, decision 3; ADR-021), from the facts scripts/pr.sh merge collects. Pure: no I/O.
+# Whether an agent may merge a PR (ADR-016, decision 3; ADR-021), from the facts scripts/pr.sh merge collects.
+# Pure: no I/O.
 # Input:  {head, default_branch, pr: {number, state, draft, base, body}, risk: {risk: low|high|owner, reasons},
 #          required: [check name], checks: [statusCheckRollup entry], preview, queue_removed, threads}
 # preview: whether the head commit has a Railway preview, "yes", "no" or "pending" (pr.sh preview_of, the definition

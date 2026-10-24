@@ -33,7 +33,7 @@ We follow [Matt Pocock's skills](https://github.com/mattpocock/skills). The owne
 | 1. Align | `grill-with-docs` | | Shared understanding; `GLOSSARY.md` and ADR proposals updated | Owner answers |
 | 2. Spec | `to-spec` | `issue.sh create spec` | Spec issue `[F0xx] …`: ACs (NL/EN), Test plan, platforms, languages | Owner reviews on GitHub and approves with the `spec-approved` label |
 | 3. Tickets | `to-tickets` | `issue.sh create ticket --parent --blocked-by` | Tracer-bullet sub-issues with blocking edges, `ready-for-agent` | Agents, only for an approved spec |
-| 4. Build | `implement` (`tdd`) in a fresh mid-tier `builder` subagent, then `code-review` in a fresh high-tier `reviewer`, by `docs/agents/build.md` | `flow.sh start`, `check.sh` | One ticket per worktree, at most three in parallel, test-first, reviewed by the `reviewer` | Agents |
+| 4. Build | `implement` (`tdd`) in a fresh mid-tier `builder` subagent, then `code-review` in a fresh high-tier `reviewer`, by `docs/agents/build.md` | `flow.sh start`, `check.sh` | One ticket per worktree, no fixed limit in parallel (ADR-021), test-first, reviewed by the `reviewer` | Agents |
 | 5. Ship | `pr` | `pr.sh create`, `reviewed`, `ship` (`wait`, `smoke`, `ready`), `merge` | One draft → ready PR per ticket that `Closes #<n>`, CI green, self-review and preview smoke check recorded for the head commit, added to the merge queue, squash-merged by GitHub | Agents queue low-risk PRs, and until G2 high-risk ones that are not owner-only, through the merge gate; the owner queues owner-only ones (§4) |
 | 6. Clean up | | `flow.sh finish` | No worktree or branch left; the spec's next ready tickets | Agent |
 

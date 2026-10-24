@@ -34,9 +34,9 @@
 #                                                 (ADR-018, ADR-021), which squash-merges it after testing it on the
 #                                                 latest main, only when every condition of the merge gate holds
 #                                                 (ADR-016); a high-risk PR is first recorded in the PR body with its
-#                                                 reasons; an owner-only PR is never queued; otherwise queue nothing, record the
-#                                                 refusal for the head commit in the PR body, print why and exit 1: the
-#                                                 PR stays for the owner. Never --auto or --admin; the queued commit is
+#                                                 reasons; an owner-only PR is never queued; otherwise queue
+#                                                 nothing, record the refusal for the head commit in the PR body, print
+#                                                 why and exit 1: the PR stays for the owner. Never --auto or --admin; the queued commit is
 #                                                 recorded in the PR body
 #   pr.sh refusal <pr>                            the last refusal recorded in the PR body as {sha, reasons}, or null
 #   pr.sh queue <pr>                              the merge queue state as {state, position, reason}: state is "queued",
@@ -58,9 +58,6 @@ BRANCH="$(git branch --show-current)"
 SMOKE_MARK="Railway preview smoke check"
 REVIEW_MARK="Self-review"
 REFUSAL_MARK="Merge gate"
-# An agent queued a high-risk PR (ADR-021): the audit trail flow.sh next lists for the owner to read.
-HIGH_RISK_MARK="High-risk agent merge"
-QUEUE_MARK="Merge queue"
 NO_PREVIEW="no preview for this PR"
 # Railway: the project (named fivvi), the web service of its preview, and the only environments pr.sh smoke may touch,
 # `<project>-pr-<n>` (preview_env). Railway names the commit status of the web preview `<project> - <service>`.
@@ -561,8 +558,8 @@ cmd_queue() {
     position: (if .queued then .position else null end), reason}'
 }
 
-# Adds a low-risk or high-risk (agent-queueable) PR that passes the whole merge gate to the merge queue, which tests it on top of the latest main and
-# squash-merges it (ADR-018). On a branch with a merge queue, `gh pr merge` always asks for auto-merge (whatever the
+# Adds a low-risk or high-risk (agent-queueable) PR that passes the whole merge gate to the merge queue, which tests it
+# on top of the latest main and squash-merges it (ADR-018). On a branch with a merge queue, `gh pr merge` always asks for auto-merge (whatever the
 # flags), which the repo doesn't allow and agents never use, so the PR is enqueued with GraphQL's enqueuePullRequest. A
 # branch without a queue is squash-merged with `gh pr merge`. Should auto-merge ever be on afterwards, turn it off again.
 cmd_merge() {
@@ -585,8 +582,8 @@ cmd_merge() {
     die "PR #$pr stays for the owner: $failed; nothing queued"
   fi
 
-  # The owner reads afterwards what an agent merged and why it counted as high-risk (ADR-021): record it before queueing,
-  # and queue nothing when it can't be recorded (record dies).
+  # The owner reads afterwards what an agent merged and why it counted as high-risk (ADR-021): record it before
+  # queueing, and queue nothing when it can't be recorded (record dies).
   if [ "$(jq -r .risk.risk <<<"$facts")" = high ]; then
     record "$pr" "$HIGH_RISK_MARK" "**$HIGH_RISK_MARK:** \`$head\`: $(jq -r '.risk.reasons | join("; ")' <<<"$facts")"
   fi

@@ -23,9 +23,9 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [013](ADR-013-observability.md) | Observability: Sentry EU, uptime checks, PostHog EU cookieless | Accepted |
 | [014](ADR-014-testing.md) | Testing: Vitest, Playwright, XCTest, JUnit/Compose, Maestro | Accepted |
 | [015](ADR-015-ui-foundation.md) | UI foundation: shared design tokens, native UI per platform | Accepted |
-| [016](ADR-016-agent-merges.md) | Agents merge low-risk PRs: scripted risk, a merge gate and a ruleset on `main` | Proposed |
+| [016](ADR-016-agent-merges.md) | Agents merge low-risk PRs: scripted risk, a merge gate and a ruleset on `main`; amended by ADR-021 | Proposed |
 | [017](ADR-017-language-policy.md) | Language policy: interface language falls back to English; the workspace default only sets the communication language | Accepted (replaces ADR-008's locale-resolution rule) |
-| [018](ADR-018-merge-queue.md) | Merge queue: agents add low-risk PRs to the queue, the owner adds high-risk ones; amends ADR-016 | Proposed |
+| [018](ADR-018-merge-queue.md) | Merge queue: agents add low-risk PRs to the queue, the owner adds high-risk ones; amends ADR-016; amended by ADR-021 | Proposed |
 | [019](ADR-019-sign-in-communication-language.md) | Sign-in communication language: stored preference, otherwise the language of the screen that asked; amends ADR-017 | Proposed |
 | [020](ADR-020-payment-provider.md) | Payment provider and merchant model: Mollie Connect for Platforms, the gym as merchant on its own account | Accepted |
 | [021](ADR-021-agents-queue-high-risk.md) | Agents queue high-risk PRs before G2, except owner-only changes (guardrails, legal, money, product and decision docs); amends ADR-016 and ADR-018 | Proposed |

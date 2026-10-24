@@ -22,8 +22,10 @@ SPEC_LABEL="spec"
 APPROVED_LABEL="spec-approved"
 # The PRs of this issue, or of every ticket of this spec, are high-risk: agents may queue them (ADR-016, ADR-021).
 OWNER_MERGE_LABEL="owner-merge"
-# Only the owner merges the PRs of this issue, or of every ticket of this spec (ADR-021).
-OWNER_ONLY_LABEL="owner-only"
+# The records pr.sh merge writes in the body of a PR it queued: the audit trail flow.sh next lists for the owner to read
+# (ADR-021). A high-risk PR is first recorded under HIGH_RISK_MARK, then queued under QUEUE_MARK.
+HIGH_RISK_MARK="High-risk agent merge"
+QUEUE_MARK="Merge queue"
 
 die() { echo "error: $*" >&2; exit 1; }
 
