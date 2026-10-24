@@ -586,7 +586,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(transport.sent).toHaveLength(4);
 
       // Per IP address: 20 requests in an hour, whoever they are for (an unknown address counts
-      // too, so the limit can't tell who has an account). The 21st is answered the same way.
+      // too, so the limit can't tell who has an account). A later request is answered the same way.
       await expectIpBoundary((email) => requestCode(email, 'en', from(CLIENT_C, server)));
       const ipLimited = await requestCode('owner@example.com', 'en', from(CLIENT_C, server));
       expect(await outcome(ipLimited)).toEqual(first);
@@ -620,6 +620,21 @@ describe('F001 sign in with the emailed code through the API', () => {
       // Both addresses were counted, 4 requests each, and no IP address (no header, not required).
       const counts = (await client.db.select().from(authRateLimits)).map((row) => row.count);
       expect(counts).toEqual([4, 4]);
+    });
+
+    it('AC10: the counts of a window that has ended are cleared by the next request', async () => {
+      const { clock, server } = startAt();
+      await requestCode('nobody@example.com', 'en', { server });
+      expect(await client.db.select().from(authRateLimits)).toHaveLength(1);
+
+      // A request of another key, after the window: the old row is gone, not just ignored.
+      clock.advance({ minutes: 15 });
+      await requestCode('someone@example.com', 'en', { server });
+
+      const rows = await client.db.select().from(authRateLimits);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.count).toBe(1);
+      expect(rows[0]?.windowEndsAt.getTime()).toBe(clock.now().getTime() + 15 * 60_000);
     });
 
     it('AC10: addresses that differ in case or spaces share one limit', async () => {
@@ -728,6 +743,27 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(transport.sent).toHaveLength(2);
     });
 
+    it('AC10: the proxy is required by default when NODE_ENV is production, and not otherwise', async () => {
+      freezeSystemTime(T0);
+      const clock = manualClock(T0);
+
+      // The default is read when the server is created; the stub is gone before the requests
+      // (it would break the rendering of the email).
+      vi.stubEnv('NODE_ENV', 'production');
+      const behindProxy = authAt({ clock });
+      vi.stubEnv('NODE_ENV', 'test');
+      const local = authAt({ clock });
+      vi.unstubAllEnvs();
+
+      for (let i = 0; i < 25; i++)
+        await requestCode(`nobody${i}@example.com`, 'en', { server: local });
+      await requestCode('owner@example.com', 'en', { server: local });
+      expect(transport.sent).toHaveLength(1);
+
+      transport.clear();
+      await expectIpBoundary((email) => requestCode(email, 'en', { server: behindProxy }));
+    });
+
     it('AC10: an invalid client IP header is no client IP: no IP limit, or the shared bucket when required', async () => {
       freezeSystemTime(T0);
       const clock = manualClock(T0);
@@ -736,7 +772,7 @@ describe('F001 sign in with the emailed code through the API', () => {
         headers: { 'x-real-ip': 'not-an-ip, 203.0.113.7' },
       });
 
-      // Not required: like no header, so requests with different invalid values share nothing.
+      // Not required: like no header, so 25 requests with an invalid value are not limited.
       const open = authAt({ clock });
       for (let i = 0; i < 25; i++) await requestCode(`nobody${i}@example.com`, 'en', invalid(open));
       await requestCode('owner@example.com', 'en', invalid(open));

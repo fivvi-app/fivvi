@@ -3,7 +3,7 @@ import { authIdentities, authSessions, authUsers, authVerifications } from '@fiv
 import type { SendEmail } from '@fivvi/email';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { clientIpOptions, signInRateLimits } from './rate-limit.ts';
+import { clientIpOptions, defaultRequireClientIp, signInRateLimits } from './rate-limit.ts';
 import { type Clock, REQUEST_PATH, signInWithCode, systemClock } from './sign-in-plugin.ts';
 
 const DAY_SECONDS = 24 * 60 * 60;
@@ -24,8 +24,8 @@ export interface CreateAuthOptions {
   log?: (line: string) => void;
   /**
    * Whether a proxy always sets the client IP header, so a sign-in request without a usable one
-   * counts against one shared IP limit (AC10). `NODE_ENV=production` when left out: every
-   * Railway environment and e2e (`next start`), not only the production environment.
+   * counts against one shared IP limit (AC10). When left out: `defaultRequireClientIp()`
+   * (`ENVIRONMENTS.md §7`).
    */
   requireClientIp?: boolean;
 }
@@ -51,7 +51,7 @@ export function createAuth({
   sendEmail,
   clock = systemClock,
   log = (line) => console.warn(line),
-  requireClientIp = process.env.NODE_ENV === 'production',
+  requireClientIp = defaultRequireClientIp(),
 }: CreateAuthOptions): Auth {
   const auth = betterAuth({
     appName: 'Fivvi',

@@ -9,11 +9,11 @@ export interface RateLimitRule {
 }
 
 /**
- * Counts one request of `key` in its current fixed window and says whether it is within the
- * rule. The first request starts the window, which ends `windowMinutes` later; the next one
- * after that starts a new window. Requests over the limit are counted too but never move the
- * end of the window. The count goes up in one statement, so parallel requests are all counted
- * and a restart loses nothing.
+ * Counts one request of `key` in its current fixed window and says whether it is within
+ * the rule. The first request starts the window, which ends `windowMinutes` later; the next
+ * one after that starts a new window. Requests over the limit are counted too but never move
+ * the end of the window. The count goes up in one statement, so parallel requests are all
+ * counted and a restart loses nothing.
  *
  * `now` is passed in (an injected clock), never read from the server. Throws when the database
  * returns no count: a limit must never let a request through because it could not count it.

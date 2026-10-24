@@ -33,6 +33,8 @@ Not here yet (spec #128, later tickets): the confirm-link endpoint (#136), the s
 
 `auth_users` (an account), `auth_sessions` (a sign-in session), `auth_identities` and `auth_verifications`, in `packages/database/src/schema/auth.ts`. They have no `organization_id`: an account is global and shared by every workspace of its person. Better Auth's start-up schema check is off (`advanced.database.validateSchema`), because the tables lack columns it writes only for passwords, OAuth and images; the integration tests run against the real migrated tables.
 
+`auth_rate_limits` (the sign-in rate limits, `src/rate-limit.ts`) is not an auth model either: one row per limit key with a counter and the end of its window. It has no `organization_id` because it holds no business data, only keyed hashes of an email address or an IP address and counters, and is listed in `NON_BUSINESS_TABLES` (`packages/database/test/database.integration.test.ts`).
+
 ## Configuration
 
 `BETTER_AUTH_SECRET` (at least 32 characters, a secret per environment) and `BETTER_AUTH_URL` (the public address): [`ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). Emails go through `createEnvironmentSendEmail()` in `packages/email`: to the server log for `@example.com` outside production, otherwise Brevo.

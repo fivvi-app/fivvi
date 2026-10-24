@@ -24,9 +24,9 @@ export const CLIENT_IP_HEADER = 'x-real-ip';
 
 /**
  * The IP bucket of a request that carries no usable client IP address when `requireClientIp`
- * is set, because the proxy always sets the header. Such a request did not come through the proxy (or
- * forged the header), so all of them share one limit instead of none. Real addresses can't
- * collide with it.
+ * is set, because the proxy always sets the header. Such a request did not come through the
+ * proxy (or forged the header), so all of them share one limit instead of none. Real addresses
+ * can't collide with it.
  */
 const UNKNOWN_IP = 'unknown';
 
@@ -39,6 +39,14 @@ export const clientIpOptions = {
   ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
 } satisfies NonNullable<BetterAuthOptions['advanced']>;
 
+/**
+ * The default of `requireClientIp`: `NODE_ENV=production`. That is every Railway environment
+ * and e2e, not only the production environment (`ENVIRONMENTS.md §7`).
+ */
+export function defaultRequireClientIp(env: { NODE_ENV?: string } = process.env): boolean {
+  return env.NODE_ENV === 'production';
+}
+
 export interface SignInRateLimitOptions {
   db: Database;
   /** `BETTER_AUTH_SECRET`: the key of the hashes in the stored limit keys. */
@@ -48,9 +56,8 @@ export interface SignInRateLimitOptions {
   /** Gets one line per limited request. It never holds an email address or an IP address. */
   log: (line: string) => void;
   /**
-   * True when a proxy always sets the client IP header (every Railway environment, and e2e,
-   * where `next start` runs with `NODE_ENV=production`): a request without a usable one then
-   * counts against one shared bucket. Not "the production environment" (`ENVIRONMENTS.md §7`).
+   * True when a proxy always sets the client IP header: a request without a usable one then
+   * counts against one shared bucket. `ENVIRONMENTS.md §7` says where that holds.
    */
   requireClientIp: boolean;
 }
