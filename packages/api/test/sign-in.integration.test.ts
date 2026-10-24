@@ -3,12 +3,14 @@ import { authUsers, authVerifications, createDatabase, type DatabaseClient } fro
 import { seed } from '@fivvi/database/seed';
 import { createMemoryTransport, createSendEmail } from '@fivvi/email';
 import { messages } from '@fivvi/i18n';
-import { type Clock, manualClock } from '@fivvi/testing/clock';
+import { type Clock, freezeSystemTime, manualClock } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 
 const SECRET = 'test-secret-that-is-at-least-thirty-two-characters-long';
 const ORIGIN = 'http://localhost:3000';
+/** The fixed start of the clock tests (a Tuesday, 12:00 in Amsterdam). */
+const T0 = '2026-03-31T10:00:00Z';
 
 /** The part of the `pg` pool the interleaving test wraps. */
 interface PoolLike {
@@ -58,10 +60,10 @@ describe('F001 sign in with the emailed code through the API', () => {
   const enterCode = (email: string, code: string, server = auth()) =>
     post('/sign-in/code/verify', { email, code }, { server });
 
-  /** The 6-digit code and the sign-in link token in the one email that was sent. */
-  function readEmail() {
-    expect(transport.sent).toHaveLength(1);
-    const [email] = transport.sent;
+  /** The 6-digit code and the sign-in link token in the latest email, of `count` sent so far. */
+  function readEmail(count = 1) {
+    expect(transport.sent).toHaveLength(count);
+    const email = transport.sent.at(-1);
     if (!email) throw new Error('No email was sent.');
     const code = /\b(\d{6})\b/.exec(email.text)?.[1] ?? '';
     const link = email.links.find((href) => href.includes('/login/confirm')) ?? '';
@@ -197,22 +199,26 @@ describe('F001 sign in with the emailed code through the API', () => {
     });
 
     const response = await enterCode('owner@example.com', old);
-    vi.restoreAllMocks();
 
     expect(landed).toBeDefined();
     expect(response.status).toBe(401);
     expect(response.headers.getSetCookie()).toEqual([]);
     // The new email still works: the old code did not void it.
-    expect(transport.sent).toHaveLength(2);
-    const fresh = /\b(\d{6})\b/.exec(transport.sent[1]?.text ?? '')?.[1] ?? '';
+    const fresh = readEmail(2).code;
     expect((await enterCode('owner@example.com', fresh)).status).toBe(200);
   });
 
   describe('AC5: the code works for 15 minutes', () => {
-    // Near the real time, because Better Auth also tidies up expired rows by the real clock.
+    // Better Auth tidies up expired rows by the system clock, which it can't take as a clock, so
+    // that is frozen at the same instant as the injected one (TESTING.md §5.4).
+    function startAt() {
+      freezeSystemTime(T0);
+      const clock = manualClock(T0);
+      return { clock, server: authAt(ORIGIN, clock) };
+    }
+
     it('a code one second short of 15 minutes still signs in', async () => {
-      const clock = manualClock(new Date());
-      const server = authAt(ORIGIN, clock);
+      const { clock, server } = startAt();
       await post('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' }, { server });
       const { code } = readEmail();
 
@@ -222,8 +228,7 @@ describe('F001 sign in with the emailed code through the API', () => {
     });
 
     it('a code at 15 minutes is rejected like a wrong code, and sets no cookie', async () => {
-      const clock = manualClock(new Date());
-      const server = authAt(ORIGIN, clock);
+      const { clock, server } = startAt();
       await post('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' }, { server });
       const { code } = readEmail();
 
@@ -236,8 +241,7 @@ describe('F001 sign in with the emailed code through the API', () => {
     });
 
     it('the validity is counted from the request, not from the server start', async () => {
-      const clock = manualClock(new Date());
-      const server = authAt(ORIGIN, clock);
+      const { clock, server } = startAt();
       clock.advance({ minutes: 20 });
       await post('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' }, { server });
       const { code } = readEmail();

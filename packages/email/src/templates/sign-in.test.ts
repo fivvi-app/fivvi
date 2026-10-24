@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { renderEmail } from '../render.tsx';
 import { signInEmail } from './sign-in.tsx';
 
+const escapeRegExp = (text: string) => text.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const props = {
   code: '482915',
   url: 'https://fivvi.example.com/login/confirm?token=Zq3vB9xTj2LwK8mN',
@@ -47,14 +49,40 @@ describe('F001 EM-08 sign-in email', () => {
 
     expect(keys.length).toBeGreaterThan(0);
     for (const [key, message] of keys) {
-      // The fixed text before the first placeholder or plural of the message.
-      const fixed = message.split('{')[0] ?? '';
-      expect(fixed.length, `${locale} email.signIn.${key} has fixed text`).toBeGreaterThan(5);
-      expect(rendered, `${locale} email.signIn.${key}`).toContain(fixed);
+      // The fixed text around the placeholders and plurals: before the first `{` and after the
+      // last `}`; a message without any is fixed text as a whole. Both ends must be rendered, so
+      // a template that only keeps a prefix of a message does not pass.
+      const open = message.indexOf('{');
+      const fixed =
+        open === -1
+          ? [message]
+          : [message.slice(0, open), message.slice(message.lastIndexOf('}') + 1)];
+      const parts = fixed.filter((text) => text.trim().length > 1);
+      expect(parts.length, `${locale} email.signIn.${key} has fixed text`).toBeGreaterThan(0);
+      for (const part of parts) {
+        expect(rendered, `${locale} email.signIn.${key}: "${part}"`).toContain(part);
+      }
     }
   });
 
-  it('AC1: the wording follows the glossary: inloglink and inloggen in Dutch, sign-in link in English', async () => {
+  it.each(locales)('%s: the button says linkButton and opens the sign-in link', async (locale) => {
+    const email = await renderEmail(signInEmail, props, { locale });
+    const label = messages[locale].email.signIn.linkButton;
+    const anchor = new RegExp(
+      `<a [^>]*href="${escapeRegExp(props.url)}"[^>]*>([\\s\\S]*?)</a>`,
+      'g',
+    );
+    const texts = [...email.html.matchAll(anchor)].map((match) =>
+      (match[1] ?? '')
+        .replaceAll(/<!--[\s\S]*?-->/g, '')
+        .replaceAll(/<[^>]+>/g, '')
+        .trim(),
+    );
+
+    expect(texts).toContain(label);
+  });
+
+  it('AC1: the wording follows the glossary: inloglink in Dutch, sign-in link in English, no magic link or log in', async () => {
     const nl = await renderEmail(signInEmail, props, { locale: 'nl-NL' });
     const en = await renderEmail(signInEmail, props, { locale: 'en' });
 

@@ -25,7 +25,7 @@ export interface SignInWithCodeOptions {
   secret: string;
   sendEmail: SendEmail;
   /** Where "now" comes from: it sets and checks the expiry of a code. */
-  clock?: Clock;
+  clock: Clock;
 }
 
 /** `sign-in:<email>`: one verification per address, so a new request replaces the old one. */
@@ -46,7 +46,7 @@ const REQUESTED = { status: true } as const;
  *   email in the page's language. Every other address gets the same answer and no email.
  * - `POST /sign-in/code/verify` `{ email, code }`: the right code signs this browser in.
  */
-export function signInWithCode({ secret, sendEmail, clock = systemClock }: SignInWithCodeOptions) {
+export function signInWithCode({ secret, sendEmail, clock }: SignInWithCodeOptions) {
   return {
     id: 'sign-in-with-code',
     schema: {
@@ -129,6 +129,11 @@ export function signInWithCode({ secret, sendEmail, clock = systemClock }: SignI
           // It consumes the row that was checked, not "the verification of this address": a new
           // request that landed in between has replaced it, and the old code must not use that
           // one up. (Better Auth's own consume works by identifier and by the real clock.)
+          // This is the raw adapter, so it bypasses Better Auth's verification hooks, its consume
+          // lock and secondary storage. That is fine here: the plugin configures none of them
+          // and a single atomic `DELETE ... RETURNING` on the primary key is what makes the code
+          // single use. If `databaseHooks` or `secondaryStorage` are ever added for
+          // verifications, this path has to be wired in by hand.
           const consumed = await ctx.context.adapter.consumeOne({
             model: 'verification',
             where: [{ field: 'id', value: verification.id }],
