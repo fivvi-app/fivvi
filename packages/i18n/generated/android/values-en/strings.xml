@@ -22,7 +22,7 @@
     <string name="home_title">You\'re signed in</string>
     <string name="not_found_body">We can\'t find this page. Check the link and try again.</string>
     <string name="not_found_title">Page not found</string>
-    <string name="sign_in_change_email">Use a different email address</string>
+    <string name="sign_in_change_email">Change email address</string>
     <string name="sign_in_check_email_body">If %1$s is registered, you\'ll receive an email with a code and a sign-in link.</string>
     <string name="sign_in_check_email_title">Check your email</string>
     <string name="sign_in_code_help">Enter the code from the email.</string>

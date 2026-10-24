@@ -86,6 +86,7 @@ export function SignInForm({ locale }: { locale: Locale }) {
   }
 
   const errorMessage = error ? t(`errors.${error}`) : null;
+  const disabled = !ready || pending;
 
   return (
     <main className="flex min-h-dvh items-center justify-center p-4">
@@ -108,14 +109,10 @@ export function SignInForm({ locale }: { locale: Locale }) {
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? 'sign-in-error' : undefined}
               />
-              {errorMessage ? (
-                <p id="sign-in-error" role="alert" className="text-status-danger-fg">
-                  {errorMessage}
-                </p>
-              ) : null}
+              <FieldError message={errorMessage} />
             </CardContent>
             <CardFooter>
-              <Button type="submit" disabled={!ready || pending}>
+              <Button type="submit" disabled={disabled}>
                 {t('sendCode')}
               </Button>
             </CardFooter>
@@ -130,7 +127,9 @@ export function SignInForm({ locale }: { locale: Locale }) {
             </CardHeader>
             <CardContent className="grid gap-2">
               <Label htmlFor="code">{t('codeLabel')}</Label>
-              <CardDescription id="code-help">{t('codeHelp')}</CardDescription>
+              <p id="code-help" className="text-sm text-muted-foreground">
+                {t('codeHelp')}
+              </p>
               <Input
                 id="code"
                 name="code"
@@ -141,31 +140,17 @@ export function SignInForm({ locale }: { locale: Locale }) {
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? 'code-help sign-in-error' : 'code-help'}
               />
-              {errorMessage ? (
-                <p id="sign-in-error" role="alert" className="text-status-danger-fg">
-                  {errorMessage}
-                </p>
-              ) : null}
+              <FieldError message={errorMessage} />
               {resent ? <p role="status">{t('resent', { email })}</p> : null}
             </CardContent>
             <CardFooter className="flex-wrap gap-2">
-              <Button type="submit" disabled={!ready || pending}>
+              <Button type="submit" disabled={disabled}>
                 {t('submitCode')}
               </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={!ready || pending}
-                onClick={sendNewEmail}
-              >
+              <Button type="button" variant="ghost" disabled={disabled} onClick={sendNewEmail}>
                 {t('resend')}
               </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={!ready || pending}
-                onClick={changeEmail}
-              >
+              <Button type="button" variant="ghost" disabled={disabled} onClick={changeEmail}>
                 {t('changeEmail')}
               </Button>
             </CardFooter>
@@ -173,6 +158,16 @@ export function SignInForm({ locale }: { locale: Locale }) {
         )}
       </Card>
     </main>
+  );
+}
+
+/** The message under a field that was refused, announced when it appears. */
+function FieldError({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <p id="sign-in-error" role="alert" className="text-status-danger-fg">
+      {message}
+    </p>
   );
 }
 

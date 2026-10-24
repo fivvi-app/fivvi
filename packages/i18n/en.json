@@ -34,7 +34,7 @@
     "submitCode": "Sign in",
     "resend": "Resend code",
     "resent": "If {email} is registered, you'll receive a new email.",
-    "changeEmail": "Use a different email address",
+    "changeEmail": "Change email address",
     "errors": {
       "invalidEmail": "This email address doesn't look right. Check it and try again.",
       "invalidOrExpiredCode": "This code isn't right or has expired. Check the code in the email or request a new one.",

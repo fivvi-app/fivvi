@@ -372,13 +372,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Use a different email address"
+            "value" : "Change email address"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ander e-mailadres gebruiken"
+            "value" : "E-mailadres wijzigen"
           }
         }
       }

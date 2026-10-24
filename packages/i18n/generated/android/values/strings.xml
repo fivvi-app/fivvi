@@ -37,7 +37,7 @@
     <string name="not_found_body">We kunnen deze pagina niet vinden. Controleer de link en probeer het opnieuw.</string>
     <string name="not_found_title">Pagina niet gevonden</string>
     <!-- Button on the second step that goes back to the email field. -->
-    <string name="sign_in_change_email">Ander e-mailadres gebruiken</string>
+    <string name="sign_in_change_email">E-mailadres wijzigen</string>
     <!-- Under the heading of the second step. {email} is the address that was entered. Deliberately does not say whether an account exists (no account enumeration). -->
     <string name="sign_in_check_email_body">Als %1$s bij ons bekend is, ontvang je een e-mail met een code en een inloglink.</string>
     <!-- Heading of the second step of the sign-in page, shown after the email address was sent. Same wording whether or not the address has an account. -->

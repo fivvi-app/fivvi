@@ -34,3 +34,10 @@ export function signInCode(email: ReceivedEmail): string {
   if (!code) throw new Error('The email has no sign-in code.');
   return code;
 }
+
+/** The sign-in link of a sign-in email (EM-08): the confirm step of the sign-in page, with its token. */
+export function signInLink(email: ReceivedEmail): string {
+  const link = /\shref="([^"]*\/login\/confirm\?token=[^"]+)"/.exec(email.html)?.[1];
+  if (!link) throw new Error('The email has no sign-in link.');
+  return link.replaceAll('&amp;', '&');
+}
