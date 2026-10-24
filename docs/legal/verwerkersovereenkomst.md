@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Versie / Version** | 0.2 · 13 oktober 2026 / 13 October 2026 |
+| **Versie / Version** | 0.3 · 24 oktober 2026 / 24 October 2026 |
 | **Gebruik / Use** | Eerst met de pilotgym, vóór de import van echte gegevens (`ROADMAP.md §4.4`); later met elke workspace. / First with the pilot gym, before real data is imported; later with every workspace. |
 | **AVG / GDPR** | Art. 28(3)(a)–(h), 28(2), 28(4), 32–36 |
 
@@ -198,7 +198,7 @@ Verwerker geeft Verwerkingsverantwoordelijke de informatie en hulp die zij redel
 | T9 | **Scheiding van omgevingen:** preview- en testomgevingen bevatten nooit productiegegevens; AI-codeeragents hebben geen toegang tot productie of echte gegevens | Doorlopend |
 | T10 | **Beheer van provideraccounts:** meerfactorauthenticatie op alle hosting-, database-, e-mail- en monitoringaccounts; secrets alleen in de secret-opslag van de provider en nooit in de repository; secrets rouleren bij M9 | Gepland M1, M9 |
 | T11 | **Back-ups en herstel:** dagelijkse back-ups in de EU, 30 dagen bewaard; hersteltest vóór go-live; verwijderlog wordt na herstel opnieuw toegepast | Gepland M9 (E016) |
-| T12 | **Veilige ontwikkeling:** vóór de pull request beoordelen twee agents de wijziging lokaal (codeerstandaarden en specificatie); de eigenaar keurt elke merge van een wijziging met hoog risico goed (authenticatie, tenantgegevens, gezondheidsnotities, juridische zaken, geld, dependencies, de regels voor de agents); andere wijzigingen worden gemerged na de verplichte CI-checks en de twee reviews door agents; automatische tests en dependency-audits | Doorlopend |
+| T12 | **Veilige ontwikkeling:** vóór de pull request beoordelen twee agents de wijziging lokaal (codeerstandaarden en specificatie); de eigenaar keurt elke merge goed van een wijziging van de regels voor de agents, van juridische zaken of van geld; zolang er in productie geen echte persoonsgegevens worden verwerkt, worden andere wijzigingen, waaronder authenticatie, tenantgegevens, gezondheidsnotities en dependencies, gemerged na de verplichte CI-checks, de twee reviews door agents en een controle van de preview; zodra er in productie echte persoonsgegevens worden verwerkt, keurt de eigenaar ook elke merge van die wijzigingen met hoog risico goed; automatische tests en dependency-audits | Doorlopend |
 | T13 | **Beveiligingsreview** vóór go-live en vóór elke grote release | Gepland M9 |
 | T14 | **Incidentrespons:** runbook voor incidenten en datalekken; register van datalekken | Gepland M9 |
 | T15 | **Bewaartermijnen** worden automatisch uitgevoerd door een dagelijkse taak (`retention-policy.md`) | Gepland M4/M9 |
@@ -402,7 +402,7 @@ Processor gives Controller the information and help it reasonably needs for (GDP
 | T9 | **Separate environments:** preview and test environments never contain production data; AI coding agents have no access to production or real data | Ongoing |
 | T10 | **Provider account management:** multi-factor authentication on every hosting, database, email and monitoring account; secrets only in the provider's secret store and never in the repository; secrets rotated at M9 | Planned M1, M9 |
 | T11 | **Backups and restore:** daily backups in the EU, kept 30 days; restore test before go-live; the deletion log is re-applied after a restore | Planned M9 (E016) |
-| T12 | **Secure development:** before the pull request, two agents review the change locally (coding standards and specification); the owner approves every merge of a high-risk change (auth, tenant data, health notes, legal, money, dependencies, the agent rules); other changes merge after the required CI checks and the two agent reviews; automated tests and dependency audits | Ongoing |
+| T12 | **Secure development:** before the pull request, two agents review the change locally (coding standards and specification); the owner approves every merge of a change to the agent rules, legal matters or money; until real personal data is processed in production, other changes, including authentication, tenant data, health notes and dependencies, merge after the required CI checks, the two agent reviews and a check of the preview; from then on the owner approves every merge of those high-risk changes too; automated tests and dependency audits | Ongoing |
 | T13 | **Security review** before go-live and before every major release | Planned M9 |
 | T14 | **Incident response:** runbook for incidents and data breaches; data breach register | Planned M9 |
 | T15 | **Retention periods** are enforced automatically by a daily job (`retention-policy.md`) | Planned M4/M9 |

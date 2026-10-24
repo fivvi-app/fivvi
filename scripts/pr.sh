@@ -30,12 +30,14 @@
 #                                                 health-checked; otherwise smoke fails with a hint
 #   pr.sh reviewed                                record in the PR body that both reviewers (standards and spec) found
 #                                                 nothing to fix on the PR's head commit; local HEAD must be that commit
-#   pr.sh merge                                   add a low-risk PR to the merge queue (ADR-018), which squash-merges it
-#                                                 after testing it on the latest main, only when every condition of the
-#                                                 merge gate holds (ADR-016); otherwise queue nothing, record the
-#                                                 refusal for the head commit in the PR body, print why and exit 1: the
-#                                                 PR stays for the owner. Never --auto or --admin; the queued commit is
-#                                                 recorded in the PR body
+#   pr.sh merge                                   add a low-risk or high-risk (agent-queueable) PR to the merge queue
+#                                                 (ADR-018, ADR-021), which squash-merges it after testing it on the
+#                                                 latest main, only when every condition of the merge gate holds
+#                                                 (ADR-016); a high-risk PR is first recorded in the PR body with its
+#                                                 reasons; an owner-only PR is never queued; otherwise queue
+#                                                 nothing, record the refusal for the head commit in the PR body, print
+#                                                 why and exit 1: the PR stays for the owner. Never --auto or --admin;
+#                                                 the queued commit is recorded in the PR body
 #   pr.sh refusal <pr>                            the last refusal recorded in the PR body as {sha, reasons}, or null
 #   pr.sh queue <pr>                              the merge queue state as {state, position, reason}: state is "queued",
 #                                                 "removed" (GitHub took the PR out of the queue, reason says why, and no
@@ -51,12 +53,11 @@ REPO="$(repo_slug)"
 OWNER="${REPO%%/*}"
 NAME="${REPO#*/}"
 BRANCH="$(git branch --show-current)"
-# The records pr.sh writes in the PR body; scripts/merge-gate.jq gets them from here, and scripts/flow.sh reads refusals
-# with pr.sh refusal.
+# The records pr.sh writes in the PR body (read back by scripts/records.jq); scripts/merge-gate.jq gets the marks from
+# here, and scripts/flow.sh reads refusals with pr.sh refusal.
 SMOKE_MARK="Railway preview smoke check"
 REVIEW_MARK="Self-review"
 REFUSAL_MARK="Merge gate"
-QUEUE_MARK="Merge queue"
 NO_PREVIEW="no preview for this PR"
 # Railway: the project (named fivvi), the web service of its preview, and the only environments pr.sh smoke may touch,
 # `<project>-pr-<n>` (preview_env). Railway names the commit status of the web preview `<project> - <service>`.
@@ -358,7 +359,9 @@ record() {
     || die "could not read the body of PR #$pr; nothing recorded"
   # grep exits 1 when no line is left (the body was only the old record); that's fine, a failure (2) isn't.
   body="$(grep -v "^\*\*$mark:\*\*" <<<"$body")" || [ $? -eq 1 ] || die "could not update the body of PR #$pr"
-  gh pr edit "$pr" --repo "$REPO" --body "${body:+$body$'\n\n'}$line" >/dev/null
+  # Checked here: a caller that runs record under `||` has errexit off, and would print the line as recorded.
+  gh pr edit "$pr" --repo "$REPO" --body "${body:+$body$'\n\n'}$line" >/dev/null \
+    || die "could not update the body of PR #$pr; nothing recorded"
   echo "📝 $line"
 }
 
@@ -555,13 +558,14 @@ cmd_queue() {
     position: (if .queued then .position else null end), reason}'
 }
 
-# Adds a low-risk PR that passes the whole merge gate to the merge queue, which tests it on top of the latest main and
-# squash-merges it (ADR-018). On a branch with a merge queue, `gh pr merge` always asks for auto-merge (whatever the
-# flags), which the repo doesn't allow and agents never use, so the PR is enqueued with GraphQL's enqueuePullRequest. A
-# branch without a queue is squash-merged with `gh pr merge`. Should auto-merge ever be on afterwards, turn it off again.
+# Adds a low-risk or high-risk (agent-queueable) PR that passes the whole merge gate to the merge queue, which tests it
+# on top of the latest main and squash-merges it (ADR-018). On a branch with a merge queue, `gh pr merge` always asks
+# for auto-merge (whatever the flags), which the repo doesn't allow and agents never use, so the PR is enqueued with
+# GraphQL's enqueuePullRequest. A branch without a queue is squash-merged with `gh pr merge`. Should auto-merge ever be
+# on afterwards, turn it off again.
 cmd_merge() {
   [ $# -eq 0 ] || usage
-  local pr facts decision head branch issue out failed state attempt
+  local pr facts decision head branch issue out failed state attempt reasons
   pr="$(current_pr)"
   if ! facts="$(merge_facts "$pr")" || [ -z "$facts" ]; then
     die "could not read the facts of PR #$pr; nothing queued"
@@ -577,6 +581,14 @@ cmd_merge() {
     record "$pr" "$REFUSAL_MARK" "**$REFUSAL_MARK:** refused on \`$head\`: $(jq -r \
       '[.conditions[] | select(.ok | not) | "\(.name) (\(.detail))"] | join("; ")' <<<"$decision")"
     die "PR #$pr stays for the owner: $failed; nothing queued"
+  fi
+
+  # The owner reads afterwards what an agent merged and why it counted as high-risk (ADR-021): record it before
+  # queueing, and queue nothing when it can't be recorded (record dies).
+  if [ "$(jq -r .risk.risk <<<"$facts")" = high ]; then
+    reasons="$(jq -r '.risk.reasons | join("; ")' <<<"$facts")" \
+      || die "could not read the risk reasons of PR #$pr; nothing queued"
+    record "$pr" "$HIGH_RISK_MARK" "**$HIGH_RISK_MARK:** \`$head\`: $reasons"
   fi
 
   branch="$(jq -r .branch <<<"$facts")"
@@ -626,9 +638,10 @@ cmd_refusal() {
   { [ $# -eq 1 ] && [[ "$1" =~ ^[0-9]+$ ]]; } || usage
   local body
   body="$(gh pr view "$1" --repo "$REPO" --json body --jq .body)" || die "could not read the body of PR #$1"
-  jq -Rn --arg mark "**$REFUSAL_MARK:**" '[inputs | rtrimstr("\r") | select(startswith($mark))] | last
+  jq -n -L "$ROOT/scripts" --arg mark "$REFUSAL_MARK" --arg body "$body" 'include "records";
+    $body | record($mark)
     | if . == null then null
-      else (capture("refused on `(?<sha>[0-9a-f]{40})`: (?<reasons>.*)$") // {sha: null, reasons: .}) end' <<<"$body"
+      else (capture("refused on `(?<sha>[0-9a-f]{40})`: (?<reasons>.*)$") // {sha: null, reasons: .}) end'
 }
 
 case "${1:-}" in

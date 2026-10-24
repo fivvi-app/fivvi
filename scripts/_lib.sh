@@ -20,8 +20,12 @@ HUMAN_LABEL="ready-for-human"
 SPEC_LABEL="spec"
 # The owner approved the spec: its tickets may be cut and built (ADR-016). A material change removes it.
 APPROVED_LABEL="spec-approved"
-# The PRs of this issue, or of every ticket of this spec, go to the owner to merge (ADR-016).
+# The PRs of this issue, or of every ticket of this spec, are high-risk: agents may queue them (ADR-016, ADR-021).
 OWNER_MERGE_LABEL="owner-merge"
+# The records pr.sh merge writes in the body of a PR it queued. A high-risk PR is first recorded under HIGH_RISK_MARK
+# (flow.sh next lists those for the owner to read, ADR-021), then queued under QUEUE_MARK (only pr.sh reads that one).
+HIGH_RISK_MARK="High-risk agent merge"
+QUEUE_MARK="Merge queue"
 
 die() { echo "error: $*" >&2; exit 1; }
 

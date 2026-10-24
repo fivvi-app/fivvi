@@ -81,3 +81,23 @@ export interface CommunicationLanguageSources {
 export function resolveCommunicationLanguage(sources: CommunicationLanguageSources): Locale {
   return matchLocale(sources.recipientPreference) ?? sources.workspaceDefault;
 }
+
+/** What is known about the recipient of a sign-in email and the screen that asked for it. */
+export interface SignInCommunicationLanguageSources {
+  /** The account's stored personal preference (`preferredLocale`); none for a new account. */
+  recipientPreference?: string | null;
+  /** The interface language of the sign-in page that asked for the email (ADR-017). */
+  page: InterfaceLanguageSources;
+}
+
+/**
+ * The language of an email sent outside a workspace, today the sign-in email (ADR-019, which
+ * amends ADR-017's order): the recipient's stored preference → the interface language of the
+ * screen where the email was requested. The first sign-in stores that language on the new
+ * account. There is no workspace default here.
+ */
+export function resolveSignInCommunicationLanguage(
+  sources: SignInCommunicationLanguageSources,
+): Locale {
+  return matchLocale(sources.recipientPreference) ?? resolveInterfaceLanguage(sources.page);
+}

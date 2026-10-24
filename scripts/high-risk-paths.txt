@@ -1,5 +1,15 @@
-# High-risk paths (ADR-016). A PR that changes, adds, deletes or renames any of these goes to the owner to merge.
-# scripts/risk.sh reads this file; this file is itself high-risk (scripts/), so agents can't loosen it.
+# High-risk paths (ADR-016, ADR-021). A PR that changes, adds, deletes or renames any of these is high-risk.
+# scripts/risk.sh reads this file; this file is itself owner-only (scripts/), so agents can't loosen it.
+#
+# Who merges a high-risk PR depends on its group: a group declared on an `@agent-queue <group>` line is agent-queueable
+# (an agent adds the PR to the merge queue when the whole merge gate holds, and records it in the PR body); every other
+# group is owner-only, and so is any group added later. A declared group needs a path rule below, and a line in any
+# other shape is an error (fail closed). The `@agent-queue` lines end at Gate G2 (ROADMAP.md M4): remove them then.
+@agent-queue auth
+@agent-queue tenant-data
+@agent-queue health-notes
+@agent-queue dependencies
+@agent-queue infrastructure
 #
 # One rule per line: <group> <pattern>. Patterns are case-insensitive globs; `*` matches within one path segment. A
 # pattern that starts with `/` is anchored at the repo root, any other matches at every depth. A pattern also matches
@@ -13,8 +23,8 @@ billing               *billing*
 billing               *payment*
 product-docs          /docs/product
 product-docs          /docs/decisions
-guardrails            /AGENTS.md
-guardrails            /CLAUDE.md
+guardrails            AGENTS.md
+guardrails            CLAUDE.md
 guardrails            /CODING_STANDARDS.md
 guardrails            /.agents
 guardrails            /.claude
@@ -22,6 +32,19 @@ guardrails            /.codex
 guardrails            /.github
 guardrails            /.githooks
 guardrails            /scripts
+guardrails            /docs/agents
+guardrails            /docs/engineering/WORKFLOW.md
+# The files that define the checks: the root package.json holds their scripts and also matches the dependencies rule
+# below, so it is owner-only, while every other package.json stays a dependency change. A biome.json at any depth can
+# load the i18n lint rule, and a vitest config at any depth sets what the tests run.
+guardrails            /package.json
+guardrails            /turbo.json
+guardrails            biome.json
+guardrails            /.shellcheckrc
+guardrails            /packages/i18n/lint
+guardrails            /docs/engineering/TESTING.md
+guardrails            vitest.config.*
+guardrails            /tsconfig.base.json
 dependencies          package.json
 dependencies          /pnpm-lock.yaml
 dependencies          /pnpm-workspace.yaml
