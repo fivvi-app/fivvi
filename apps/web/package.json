@@ -16,8 +16,10 @@
   },
   "dependencies": {
     "@fivvi/api": "workspace:*",
+    "@fivvi/auth": "workspace:*",
     "@fivvi/contract": "workspace:*",
     "@fivvi/database": "workspace:*",
+    "@fivvi/email": "workspace:*",
     "@fivvi/i18n": "workspace:*",
     "@fivvi/observability": "workspace:*",
     "@fivvi/ui": "workspace:*",

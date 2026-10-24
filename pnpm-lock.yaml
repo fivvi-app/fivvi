@@ -329,12 +329,18 @@ importers:
       '@fivvi/api':
         specifier: workspace:*
         version: link:../../packages/api
+      '@fivvi/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@fivvi/contract':
         specifier: workspace:*
         version: link:../../packages/contract
       '@fivvi/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@fivvi/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@fivvi/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n

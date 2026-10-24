@@ -20,7 +20,9 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * because it changes when the own domain arrives (before M5, ADR-009).
  * Error messages never include the API key.
  */
-export function readEmailConfig(env: NodeJS.ProcessEnv = process.env): EmailConfig {
+export function readEmailConfig(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): EmailConfig {
   const brevoApiKey = env.BREVO_API_KEY?.trim();
   const address = env.EMAIL_FROM_ADDRESS?.trim();
   const name = env.EMAIL_FROM_NAME?.trim();

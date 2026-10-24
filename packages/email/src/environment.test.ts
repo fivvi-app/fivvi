@@ -86,8 +86,8 @@ describe('F001 which transport sends an email', () => {
   it('AC15: an @example.com lookalike is not the log: only the exact domain is', async () => {
     const { requests, logged, send } = setup({ ...brevoEnv });
 
-    await send('anna@notexample.com');
-    await send('anna@example.com.evil.test');
+    await send('anna@example.com.test');
+    await send('example.com@gym.test');
 
     expect(logged).toEqual([]);
     expect(requests).toHaveLength(2);

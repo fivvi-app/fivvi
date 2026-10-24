@@ -25,8 +25,10 @@ const nextConfig: NextConfig = {
   // Workspace packages ship TypeScript source.
   transpilePackages: [
     '@fivvi/api',
+    '@fivvi/auth',
     '@fivvi/contract',
     '@fivvi/database',
+    '@fivvi/email',
     '@fivvi/i18n',
     '@fivvi/observability',
     '@fivvi/ui',

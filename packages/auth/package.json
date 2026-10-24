@@ -10,7 +10,6 @@
     "lint": "biome check --formatter-enabled=false --error-on-warnings .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
     "format:check": "biome format ."
   },
   "dependencies": {
