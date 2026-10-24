@@ -23,7 +23,6 @@
 
 package app.fivvi.api.models
 
-import app.fivvi.api.models.Locale
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -34,7 +33,7 @@ import kotlinx.serialization.Contextual
  *
  * @param id The account ID.
  * @param email The address the account signs in with.
- * @param preferredLocale 
+ * @param preferredLocale The language stored on the account; null until one is stored.
  */
 @Serializable
 
@@ -48,11 +47,22 @@ data class MeResponse (
     @SerialName(value = "email")
     val email: kotlin.String,
 
+    /* The language stored on the account; null until one is stored. */
     @SerialName(value = "preferredLocale")
-    val preferredLocale: Locale
+    val preferredLocale: MeResponse.PreferredLocale?
 
 ) {
 
+    /**
+     * The language stored on the account; null until one is stored.
+     *
+     * Values: NL_NL,EN
+     */
+    @Serializable
+    enum class PreferredLocale(val value: kotlin.String) {
+        @SerialName(value = "nl-NL") NL_NL("nl-NL"),
+        @SerialName(value = "en") EN("en");
+    }
 
 }
 

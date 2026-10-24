@@ -1,5 +1,5 @@
 export { API_BASE_PATH, createApiHandler, createApp } from './app.ts';
-export { type ApiDependencies, NO_DEPENDENCIES, type SignedInAccount } from './dependencies.ts';
+export { type ApiDependencies, NO_DEPENDENCIES } from './dependencies.ts';
 export {
   INTERNAL_SERVER_ERROR,
   type ValidationError,
@@ -12,4 +12,4 @@ export {
   HealthResponseSchema,
 } from './routes/health.ts';
 export { HelloResponseSchema, LocaleSchema } from './routes/hello.ts';
-export { MeResponseSchema, UnauthorizedSchema } from './routes/me.ts';
+export { MeResponseSchema } from './routes/me.ts';

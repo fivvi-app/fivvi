@@ -1,5 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { createAuth } from '@fivvi/auth';
-import { authUsers, createDatabase, type DatabaseClient } from '@fivvi/database';
+import { authUsers, createDatabase, type Database, type DatabaseClient } from '@fivvi/database';
 import { seed } from '@fivvi/database/seed';
 import { createMemoryTransport, createSendEmail } from '@fivvi/email';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
@@ -16,15 +17,31 @@ const SECRET = 'test-secret-that-is-at-least-thirty-two-characters-long';
 const ORIGIN = 'http://localhost:3000';
 const StrictMeResponse = z.strictObject(MeResponseSchema.shape);
 
+/**
+ * The 200 response of GET /v1/me as the committed contract (packages/contract/openapi.json)
+ * describes it, the way a generated client reads it: a body the contract rejects breaks them.
+ */
+const contract = JSON.parse(
+  readFileSync(new URL('../../contract/openapi.json', import.meta.url), 'utf8'),
+);
+const ContractMeResponse = z.fromJSONSchema(
+  JSON.parse(
+    JSON.stringify({
+      $defs: contract.components.schemas,
+      $ref: contract.paths['/v1/me'].get.responses['200'].content['application/json'].schema.$ref,
+    }).replaceAll('#/components/schemas/', '#/$defs/'),
+  ),
+);
+
 describe('F001 GET /v1/me', () => {
   let database: TestDatabase;
   let client: DatabaseClient;
   const transport = createMemoryTransport();
 
   /** Sign-in as apps/web wires it: the real Better Auth on the test database. */
-  const auth = () =>
+  const auth = (db: Database) =>
     createAuth({
-      db: client.db,
+      db,
       secret: SECRET,
       baseURL: ORIGIN,
       sendEmail: createSendEmail({
@@ -34,8 +51,8 @@ describe('F001 GET /v1/me', () => {
     });
 
   /** The API as apps/web wires it: the signed-in account comes from the sign-in session. */
-  function api() {
-    const signIn = auth();
+  function api(db: Database) {
+    const signIn = auth(db);
     const dependencies: ApiDependencies = {
       ...NO_DEPENDENCIES,
       findSignedInAccount: (headers) => signIn.findAccount(headers),
@@ -44,8 +61,8 @@ describe('F001 GET /v1/me', () => {
   }
 
   /** Signs `email` in with the emailed code; returns the cookie header the browser would send. */
-  async function signIn(email: string): Promise<string> {
-    const server = auth();
+  async function signIn(db: Database, email: string): Promise<string> {
+    const server = auth(db);
     const post = (path: string, body: unknown) =>
       server.handler(
         new Request(`${ORIGIN}/api/auth${path}`, {
@@ -79,16 +96,18 @@ describe('F001 GET /v1/me', () => {
     transport.clear();
   });
 
-  it('AC14: 401 anonymous, 200 signed in, matches the schema', async () => {
-    const anonymous = await api().request('/v1/me');
+  it('AC14: 401 anonymous, 200 signed in, matches the schema and the contract', async () => {
+    const anonymous = await api(client.db).request('/v1/me');
     expect(anonymous.status).toBe(401);
     expect(await anonymous.json()).toEqual({ code: 'unauthorized' });
 
-    const cookie = await signIn('owner@example.com');
-    const signedIn = await api().request('/v1/me', { headers: { cookie } });
+    const cookie = await signIn(client.db, 'owner@example.com');
+    const signedIn = await api(client.db).request('/v1/me', { headers: { cookie } });
 
     expect(signedIn.status).toBe(200);
-    const body = StrictMeResponse.parse(await signedIn.json());
+    const json = await signedIn.json();
+    const body = StrictMeResponse.parse(json);
+    expect(ContractMeResponse.parse(json)).toEqual(body);
     // The seed holds the one account.
     const [row] = await client.db.select().from(authUsers);
     expect(body).toEqual({
@@ -98,21 +117,29 @@ describe('F001 GET /v1/me', () => {
     });
   });
 
-  it('AC14: an account without a stored language has none', async () => {
-    const cookie = await signIn('owner@example.com');
-    await client.db.update(authUsers).set({ preferredLocale: null });
+  it('AC14: an account without a stored language has none, and the contract allows it', async () => {
+    // Changing the account commits, so this test has a database of its own.
+    const own = await cloneTemplateDatabase();
+    const ownClient = createDatabase({ url: own.url, maxConnections: 4 });
     try {
-      const res = await api().request('/v1/me', { headers: { cookie } });
+      await seed(ownClient.db);
+      const cookie = await signIn(ownClient.db, 'owner@example.com');
+      await ownClient.db.update(authUsers).set({ preferredLocale: null });
+
+      const res = await api(ownClient.db).request('/v1/me', { headers: { cookie } });
 
       expect(res.status).toBe(200);
-      expect(StrictMeResponse.parse(await res.json()).preferredLocale).toBeNull();
+      const json = await res.json();
+      expect(StrictMeResponse.parse(json).preferredLocale).toBeNull();
+      expect(ContractMeResponse.parse(json)).toMatchObject({ preferredLocale: null });
     } finally {
-      await client.db.update(authUsers).set({ preferredLocale: 'nl-NL' });
+      await ownClient.close();
+      await own.drop();
     }
   });
 
   it('AC14: a cookie that is not a sign-in session is anonymous', async () => {
-    const res = await api().request('/v1/me', {
+    const res = await api(client.db).request('/v1/me', {
       headers: { cookie: 'better-auth.session_token=not-a-real-session' },
     });
 

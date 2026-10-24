@@ -1,19 +1,10 @@
-import type { SystemGreetingView } from '@fivvi/database';
-import type { Locale } from '@fivvi/i18n';
+import type { SignedInAccount, SystemGreetingView } from '@fivvi/database';
 import {
   createErrorReporter,
   createProductEvents,
   type ErrorReporter,
   type ProductEvents,
 } from '@fivvi/observability';
-
-/** The account behind a request's sign-in session (spec #128). */
-export interface SignedInAccount {
-  id: string;
-  email: string;
-  /** The language stored on the account (ADR-019); `null` until one is stored. */
-  preferredLocale: Locale | null;
-}
 
 /** What the API needs from the outside world. apps/web wires the real ones; tests pass fakes. */
 export interface ApiDependencies {

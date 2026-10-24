@@ -116,7 +116,11 @@ export interface components {
              * @description The address the account signs in with.
              */
             email: string;
-            preferredLocale: components["schemas"]["Locale"] & (string | null);
+            /**
+             * @description The language stored on the account; null until one is stored.
+             * @enum {string|null}
+             */
+            preferredLocale: "nl-NL" | "en" | null;
         };
         /** @description The request has no valid sign-in session. Contains no user-facing text. */
         Unauthorized: {

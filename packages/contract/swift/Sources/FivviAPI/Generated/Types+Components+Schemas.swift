@@ -189,34 +189,16 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/email`.
             public var email: Swift.String
+            /// The language stored on the account; null until one is stored.
+            ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/preferredLocale`.
-            public struct PreferredLocalePayload: Codable, Hashable, Sendable {
-                /// - Remark: Generated from `#/components/schemas/MeResponse/preferredLocale/value1`.
-                public var value1: Components.Schemas.Locale
-                /// The language stored on the account; null until one is stored.
-                ///
-                /// - Remark: Generated from `#/components/schemas/MeResponse/preferredLocale/value2`.
-                public var value2: Swift.String
-                /// Creates a new `PreferredLocalePayload`.
-                ///
-                /// - Parameters:
-                ///   - value1:
-                ///   - value2: The language stored on the account; null until one is stored.
-                public init(
-                    value1: Components.Schemas.Locale,
-                    value2: Swift.String
-                ) {
-                    self.value1 = value1
-                    self.value2 = value2
-                }
-                public init(from decoder: any Swift.Decoder) throws {
-                    self.value1 = try decoder.decodeFromSingleValueContainer()
-                    self.value2 = try decoder.decodeFromSingleValueContainer()
-                }
-                public func encode(to encoder: any Swift.Encoder) throws {
-                    try encoder.encodeToSingleValueContainer(self.value1)
-                }
+            @frozen public enum PreferredLocalePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case nlNL = "nl-NL"
+                case en = "en"
+                case _empty_ = ""
             }
+            /// The language stored on the account; null until one is stored.
+            ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/preferredLocale`.
             public var preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload?
             /// Creates a new `MeResponse`.
@@ -224,7 +206,7 @@ extension Components {
             /// - Parameters:
             ///   - id: The account ID.
             ///   - email: The address the account signs in with.
-            ///   - preferredLocale:
+            ///   - preferredLocale: The language stored on the account; null until one is stored.
             public init(
                 id: Swift.String,
                 email: Swift.String,

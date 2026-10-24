@@ -125,18 +125,16 @@
             "description": "The address the account signs in with."
           },
           "preferredLocale": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Locale"
-              },
-              {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "The language stored on the account; null until one is stored."
-              }
-            ]
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "nl-NL",
+              "en",
+              null
+            ],
+            "description": "The language stored on the account; null until one is stored."
           }
         },
         "required": [

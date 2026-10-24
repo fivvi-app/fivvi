@@ -1,7 +1,7 @@
-import type { Database } from '@fivvi/database';
+import type { Database, SignedInAccount } from '@fivvi/database';
 import { authIdentities, authSessions, authUsers, authVerifications } from '@fivvi/database';
 import type { SendEmail } from '@fivvi/email';
-import { isLocale, type Locale } from '@fivvi/i18n';
+import { isLocale } from '@fivvi/i18n';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { type Clock, signInWithCode, systemClock } from './sign-in-plugin.ts';
@@ -17,14 +17,6 @@ export interface CreateAuthOptions {
   sendEmail: SendEmail;
   /** Where "now" comes from; the system clock when left out. Tests pass a manual one. */
   clock?: Clock;
-}
-
-/** The signed-in account, as the rest of the code base sees it. */
-export interface SignedInAccount {
-  id: string;
-  email: string;
-  /** The language stored on the account (ADR-019); `null` until one is stored. */
-  preferredLocale: Locale | null;
 }
 
 /**
