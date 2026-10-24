@@ -24,7 +24,7 @@ A person signs in with only their email address. One request creates **one verif
 - **Cookie.** `HttpOnly`, `SameSite=Lax`, `Secure` unless the base URL is plain `http` (local); 30 days, renewed on use.
 - No passwords, no sign-up: an address without an account is answered like any other.
 
-Not here yet (spec #128, later tickets): the confirm-link endpoint, attempt and rate limits, the sign-up allowlist, `GET /api/v1/me`, the web pages and product events.
+Not here yet (spec #128, later tickets): the confirm-link endpoint, attempt and rate limits, the sign-up allowlist, `GET /api/v1/me`, the confirm step and product events. The code step of the sign-in page (`/login`, `apps/web/app/login`) calls the two endpoints above with `fetch` and words a failed code from the error code, never from the English message.
 
 ## Tables
 
