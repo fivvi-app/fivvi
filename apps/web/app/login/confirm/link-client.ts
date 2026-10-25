@@ -1,7 +1,8 @@
 import { type PostResult, postJson } from '../post-json';
+import type { SignInErrorKey } from '../sign-in-client';
 
 /** The `signIn.errors.*` catalog key that words a failed request, apart from a dead link. */
-export type LinkErrorKey = 'noConnection' | 'generic';
+export type LinkErrorKey = Extract<SignInErrorKey, 'noConnection' | 'generic'>;
 
 export type LinkResult<T> = ({ ok: true } & T) | { ok: false; error: 'linkInvalid' | LinkErrorKey };
 

@@ -153,6 +153,14 @@ describe('F001 sign in with the emailed code through the API', () => {
 
   const verifications = () => client.db.select().from(authVerifications);
 
+  /** What the server answers to `get-session` from a browser holding this `Set-Cookie` value. */
+  const sessionOf = async (setCookie: string | undefined) =>
+    await auth().handler(
+      new Request(`${ORIGIN}/api/auth/get-session`, {
+        headers: { cookie: (setCookie ?? '').split(';')[0] ?? '' },
+      }),
+    );
+
   /**
    * Runs `during` right after the verification was found and before it is consumed (Better Auth
    * then tidies up expired rows), to make another request land in between. Drizzle keeps its
@@ -282,11 +290,7 @@ describe('F001 sign in with the emailed code through the API', () => {
     expect(cookie).not.toMatch(/Secure/i);
 
     // The cookie is a sign-in session the server accepts.
-    const session = await auth().handler(
-      new Request(`${ORIGIN}/api/auth/get-session`, {
-        headers: { cookie: (cookie ?? '').split(';')[0] ?? '' },
-      }),
-    );
+    const session = await sessionOf(cookie);
     expect(session.status).toBe(200);
     expect(await session.json()).toMatchObject({ user: { email: 'owner@example.com' } });
   });
@@ -777,11 +781,7 @@ describe('F001 sign in with the emailed code through the API', () => {
           });
           // The browser is signed in as the new account.
           const cookie = response.headers.getSetCookie().find((c) => c.includes('session_token'));
-          const session = await auth().handler(
-            new Request(`${ORIGIN}/api/auth/get-session`, {
-              headers: { cookie: (cookie ?? '').split(';')[0] ?? '' },
-            }),
-          );
+          const session = await sessionOf(cookie);
           expect(await session.json()).toMatchObject({ user: { id: account?.id, email: address } });
         });
       });
@@ -1257,11 +1257,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(cookie).toMatch(/HttpOnly/i);
       expect(cookie).toMatch(/SameSite=Lax/i);
       expect(cookie).toMatch(/Max-Age=2592000/i);
-      const session = await auth().handler(
-        new Request(`${ORIGIN}/api/auth/get-session`, {
-          headers: { cookie: (cookie ?? '').split(';')[0] ?? '' },
-        }),
-      );
+      const session = await sessionOf(cookie);
       expect(await session.json()).toMatchObject({ user: { email: 'owner@example.com' } });
       expect(await verifications()).toEqual([]);
       // Used: neither the link nor the code works again.
@@ -1316,9 +1312,11 @@ describe('F001 sign in with the emailed code through the API', () => {
       const [row] = await verifications();
       if (!row) throw new Error('No verification.');
       const { id: _id, ...rest } = row;
-      await client.db
-        .insert(authVerifications)
-        .values({ ...rest, value: 'newer-token-hash', createdAt: new Date(Date.now() + 1000) });
+      await client.db.insert(authVerifications).values({
+        ...rest,
+        value: 'newer-token-hash',
+        createdAt: new Date(row.createdAt.getTime() + 1000),
+      });
 
       expect((await previewLink(first.token)).status).toBe(401);
       expect((await confirmLink(first.token)).status).toBe(401);
@@ -1414,20 +1412,23 @@ describe('F001 sign in with the emailed code through the API', () => {
     });
 
     it('AC7: every link failure answers the same, and like a link that never existed', async () => {
+      allowlist = parseSignUpAllowlist('pilot@gym.test');
       const { clock, server } = startAt();
       await addTrainerAccount();
-      await requestCode('trainer@example.com', 'en', { server });
+      // A request deletes the address's old row, so the expired and the used link each have an
+      // address no later request touches; the trainer asks twice: replaced, then killed.
+      await requestCode('pilot@gym.test', 'en', { server });
       const expired = readEmail().token;
       clock.advance({ minutes: 15 });
       await requestCode('owner@example.com', 'en', { server });
       const used = readEmail(2).token;
-      await confirmLink(used, server);
-      await requestCode('owner@example.com', 'en', { server });
+      expect((await confirmLink(used, server)).status).toBe(200);
+      await requestCode('trainer@example.com', 'en', { server });
       const replaced = readEmail(3).token;
-      await requestCode('owner@example.com', 'en', { server });
+      await requestCode('trainer@example.com', 'en', { server });
       const killed = readEmail(4);
       for (let i = 0; i < 5; i++) {
-        await enterCode('owner@example.com', wrongCodeFor(killed.code), server);
+        await enterCode('trainer@example.com', wrongCodeFor(killed.code), server);
       }
 
       const failures = [expired, used, replaced, killed.token, 'never-issued', ''];
@@ -1457,11 +1458,7 @@ describe('F001 sign in with the emailed code through the API', () => {
           preferredLocale: locale,
         });
         const cookie = sessionCookie(response);
-        const session = await auth().handler(
-          new Request(`${ORIGIN}/api/auth/get-session`, {
-            headers: { cookie: (cookie ?? '').split(';')[0] ?? '' },
-          }),
-        );
+        const session = await sessionOf(cookie);
         expect(await session.json()).toMatchObject({ user: { id: account?.id } });
       });
     });

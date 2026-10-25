@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { maskEmail } from './sign-in-plugin.ts';
+import { maskEmail } from './mask-email.ts';
 
 describe('F001 the masked address of the confirm step (TW-10)', () => {
   it('keeps the first character and the whole domain', () => {

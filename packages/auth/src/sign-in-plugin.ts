@@ -8,6 +8,7 @@ import { setSessionCookie } from 'better-auth/cookies';
 import { z } from 'zod';
 import type { SignUpAllowlist } from './allowlist.ts';
 import { hashesEqual, hashSecretValue } from './hash.ts';
+import { maskEmail } from './mask-email.ts';
 
 /** How long the emailed code and link work (AC5). */
 export const SIGN_IN_EXPIRES_IN_MINUTES = 15;
@@ -15,8 +16,8 @@ export const SIGN_IN_EXPIRES_IN_MINUTES = 15;
 /** The wrong codes after which a verification is dead, the right code included (AC6). */
 export const MAX_WRONG_CODES = 5;
 
-/** The path of the sign-in page's confirm step (TW-10), which the emailed link opens. */
-export const CONFIRM_PATH = '/login/confirm';
+/** The sign-in page's confirm step (TW-10), which the emailed link opens: a page, not an endpoint. */
+const CONFIRM_PAGE_PATH = '/login/confirm';
 
 /** The shape of the injected clock; `@fivvi/testing/clock` builds fixed and manual ones. */
 export interface Clock {
@@ -57,9 +58,9 @@ const IDENTIFIER_PREFIX = 'sign-in:';
 /** `sign-in:<email>`: one verification per address, so a new request replaces the old one. */
 const identifierFor = (email: string) => `${IDENTIFIER_PREFIX}${email}`;
 
-/** The paths (under `/api/auth`) of the confirm step: what the link is for, and the button. */
-export const PREVIEW_PATH = '/sign-in/link/preview';
-export const CONFIRM_LINK_PATH = '/sign-in/link/confirm';
+/** The endpoints (under `/api/auth`) of the confirm step: what the link is for, and the button. */
+const LINK_PREVIEW_ENDPOINT = '/sign-in/link/preview';
+const LINK_CONFIRM_ENDPOINT = '/sign-in/link/confirm';
 
 /** A link token is 32 random bytes in base64url (43 characters); anything longer is no token. */
 const MAX_TOKEN_LENGTH = 512;
@@ -67,17 +68,6 @@ const MAX_TOKEN_LENGTH = 512;
 /** The address from a verification's identifier, or `undefined` if it is not one of ours. */
 const emailOf = (identifier: string) =>
   identifier.startsWith(IDENTIFIER_PREFIX) ? identifier.slice(IDENTIFIER_PREFIX.length) : undefined;
-
-/**
- * `j***@example.com`: the first character of the part before the `@` and the whole domain, for
- * the confirm step, which must show which account the link signs in without giving the address
- * to whoever holds the link.
- */
-export function maskEmail(email: string): string {
-  const at = email.lastIndexOf('@');
-  const first = [...email.slice(0, at)][0] ?? '';
-  return `${first}***${email.slice(at)}`;
-}
 
 /**
  * The row of `auth_verifications` as the plugin reads it: Better Auth's types lack the plugin's
@@ -278,7 +268,7 @@ export function signInWithEmail({
               };
               await ctx.context.internalAdapter.createVerificationValue(row);
 
-              const url = new URL(CONFIRM_PATH, origin);
+              const url = new URL(CONFIRM_PAGE_PATH, origin);
               url.searchParams.set('token', token);
               await sendEmail({
                 template: signInEmail,
@@ -325,7 +315,7 @@ export function signInWithEmail({
       // is for. This consumes nothing, so an email scanner that opens the link does not use it up
       // (R1); only `confirmSignInLink`, the button's POST, does.
       previewSignInLink: createAuthEndpoint(
-        PREVIEW_PATH,
+        LINK_PREVIEW_ENDPOINT,
         { method: 'POST', body: z.object({ token: z.string().max(MAX_TOKEN_LENGTH) }) },
         async (ctx) => {
           const found = await findLinkVerification(ctx, ctx.body.token);
@@ -338,7 +328,7 @@ export function signInWithEmail({
       // the checked row, the injected clock, the wrong-code limit, the allowlist and the language
       // of the email for a new account), signing in the browser that sends it.
       confirmSignInLink: createAuthEndpoint(
-        CONFIRM_LINK_PATH,
+        LINK_CONFIRM_ENDPOINT,
         { method: 'POST', body: z.object({ token: z.string().max(MAX_TOKEN_LENGTH) }) },
         async (ctx) => {
           const found = await findLinkVerification(ctx, ctx.body.token);
