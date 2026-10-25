@@ -1,10 +1,10 @@
 import { createApiHandler } from '@fivvi/api';
 import { findSystemGreeting, pingDatabase } from '@fivvi/database';
-import { createProductEvents } from '@fivvi/observability';
 import { inProcessApiClient } from './api-client';
 import { auth } from './auth';
 import { database } from './database';
 import { errorReporter } from './error-reporter';
+import { productEvents } from './product-events';
 
 // packages/api with the real dependencies. Routes, validation and the contract live in
 // packages/api; this file only wires in the database and observability.
@@ -18,7 +18,7 @@ export const apiHandler = createApiHandler({
   findSignedInAccount: (headers) => auth().findAccount(headers),
   errorReporter,
   // Sends product events to PostHog, at POSTHOG_HOST, when POSTHOG_KEY is set (E009).
-  productEvents: createProductEvents({ errorReporter }),
+  productEvents,
 });
 
 /** The generated client for server components, calling `apiHandler` in this process (#94). */

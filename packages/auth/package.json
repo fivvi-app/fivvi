@@ -17,6 +17,7 @@
     "@fivvi/database": "workspace:*",
     "@fivvi/email": "workspace:*",
     "@fivvi/i18n": "workspace:*",
+    "@fivvi/observability": "workspace:*",
     "better-auth": "catalog:",
     "drizzle-orm": "catalog:",
     "zod": "catalog:"

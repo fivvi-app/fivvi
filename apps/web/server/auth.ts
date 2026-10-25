@@ -2,6 +2,7 @@ import { type Auth, createAuth, parseSignUpAllowlist, type SignUpAllowlist } fro
 import { createEnvironmentSendEmail } from '@fivvi/email';
 import { database } from './database';
 import { errorReporter } from './error-reporter';
+import { productEvents } from './product-events';
 
 export interface AuthConfig {
   secret: string;
@@ -53,6 +54,8 @@ export function auth(): Auth {
     // reporter (Sentry when SENTRY_DSN is set, E009), whose scrubber masks email addresses in
     // error messages and drops query strings from request and breadcrumb URLs.
     reportError: (error) => errorReporter.captureError(error),
+    // sign_in_requested and signed_in, without personal data (OBSERVABILITY.md §4.3).
+    productEvents,
   });
   return instance;
 }

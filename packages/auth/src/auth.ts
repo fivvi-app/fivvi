@@ -2,6 +2,7 @@ import type { Database, SignedInAccount } from '@fivvi/database';
 import { authIdentities, authSessions, authUsers, authVerifications } from '@fivvi/database';
 import { EmailSendError, type SendEmail } from '@fivvi/email';
 import { isLocale } from '@fivvi/i18n';
+import type { ProductEvents } from '@fivvi/observability';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { closedSignUp, type SignUpAllowlist } from './allowlist.ts';
@@ -47,6 +48,11 @@ export interface CreateAuthOptions {
    * is what a long-running Node server wants; tests pass a function that keeps the promise.
    */
   runInBackground?: (task: Promise<void>) => void;
+  /**
+   * Records the product events `sign_in_requested` and `signed_in` (OBSERVABILITY.md §4.3). The
+   * handler flushes them before it returns. Without it, nothing is recorded.
+   */
+  productEvents?: ProductEvents;
 }
 
 /**
@@ -79,6 +85,7 @@ export function createAuth({
   signUpAllowlist = closedSignUp,
   reportError,
   runInBackground = () => {},
+  productEvents,
 }: CreateAuthOptions): Auth {
   const auth = betterAuth({
     appName: 'Fivvi',
@@ -110,6 +117,7 @@ export function createAuth({
           logFailure(error);
           reportError?.(error);
         },
+        productEvents,
       }),
     ],
     // Better Auth's own limiter (production only) answers 429 and keeps its counts in memory.
@@ -147,7 +155,14 @@ export function createAuth({
     telemetry: { enabled: false },
   });
   return {
-    handler: (request) => auth.handler(request),
+    async handler(request) {
+      try {
+        return await auth.handler(request);
+      } finally {
+        // Sends what the sign-in recorded; never throws and waits at most a second.
+        await productEvents?.flush();
+      }
+    },
     async findAccount(headers) {
       const session = await auth.api.getSession({ headers });
       if (!session) return undefined;

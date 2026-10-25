@@ -34,7 +34,9 @@ A person signs in with only their email address. One request creates **one verif
 - **Client IP address.** From the `X-Real-IP` header only; IPv6 addresses count per /64 network. Why that header, what a missing or invalid one means (`requireClientIp`) and how tests set it: `ENVIRONMENTS.md §7`.
 - No passwords: an address that is neither an account nor allowed is answered like any other.
 
-Not here yet (spec #128, later tickets): the route guard and sign out (#137) and product events. The code step of the sign-in page (`/login`, `apps/web/app/login`) calls the two `code` endpoints above with `fetch`, and the confirm step (`/login/confirm`, `apps/web/app/login/confirm`) the two `link` endpoints; both word a failure from the error code, never from the English message.
+- **Product events (AC16).** `createAuth({ productEvents })` records `sign_in_requested` (every request that passes the rate limits, for every address alike, with a random ID and no properties) and `signed_in` (the internal user UUID, `method` `code` or `link`, `new_account`), and the handler flushes them before it returns. They carry no email address, code, link token, IP address or user agent: [`OBSERVABILITY.md §4.3`](../../docs/engineering/OBSERVABILITY.md#43-event-catalog). `apps/web/server/product-events.ts` is the one sender shared with the API.
+
+Not here yet (spec #128, later tickets): the route guard and sign out (#137). The code step of the sign-in page (`/login`, `apps/web/app/login`) calls the two `code` endpoints above with `fetch`, and the confirm step (`/login/confirm`, `apps/web/app/login/confirm`) the two `link` endpoints; both word a failure from the error code, never from the English message.
 
 ## Tables
 

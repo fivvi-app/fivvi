@@ -15,6 +15,11 @@ import {
   type OutgoingEmail,
 } from '@fivvi/email';
 import { messages } from '@fivvi/i18n';
+import {
+  createErrorReporter,
+  createProductEventCaptureTransport,
+  createProductEvents,
+} from '@fivvi/observability';
 import { type Clock, freezeSystemTime, manualClock } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, ne } from 'drizzle-orm';
@@ -1534,6 +1539,169 @@ describe('F001 sign in with the emailed code through the API', () => {
       // Presenting the stored hash instead of the token does not sign anyone in.
       expect((await confirmLink(row?.value ?? '')).status).toBe(401);
       expect((await confirmLink(token)).status).toBe(200);
+    });
+  });
+
+  describe('AC16: events carry no personal data', () => {
+    const IP = '203.0.113.7';
+    const USER_AGENT = 'SyntheticBrowser/9.9';
+    /** The server's view of the person: what a proxy and a browser add to every request. */
+    const CLIENT_HEADERS = { 'x-real-ip': IP, 'user-agent': USER_AGENT, 'accept-language': 'nl' };
+    const posthog = createProductEventCaptureTransport();
+    const productEvents = createProductEvents({
+      env: { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' },
+      transport: posthog,
+      errorReporter: createErrorReporter({ env: {} }),
+    });
+    const trackedOptions = (): PostOptions => ({
+      headers: CLIENT_HEADERS,
+      server: authAt({ overrides: { productEvents } }),
+    });
+    let options: PostOptions = {};
+    const accountOf = async (email: string) =>
+      (await client.db.select().from(authUsers).where(eq(authUsers.email, email)))[0];
+
+    beforeEach(() => {
+      posthog.events.length = 0;
+      options = trackedOptions();
+    });
+
+    /** Everything that left for PostHog, as one string to search. */
+    const sent = () => JSON.stringify(posthog.events);
+
+    /** The console lines of a sign-in, which no address, code, token or IP address may be in. */
+    function watchConsole() {
+      const lines: string[] = [];
+      for (const method of ['debug', 'error', 'info', 'log', 'warn'] as const) {
+        const spy = vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
+          lines.push(args.map(String).join(' '));
+        });
+        onTestFinished(() => spy.mockRestore());
+      }
+      return lines;
+    }
+
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+    function expectNoPersonalData(secrets: string[], ...texts: string[]) {
+      for (const text of texts) {
+        for (const secret of [...secrets, IP, USER_AGENT, 'owner', 'example.com']) {
+          expect(text).not.toContain(secret);
+        }
+      }
+    }
+
+    it('AC16: signing in with the code records sign_in_requested and signed_in without personal data', async () => {
+      const lines = watchConsole();
+      const account = await accountOf('owner@example.com');
+
+      await requestCode('owner@example.com', 'nl-NL', options);
+      const { code, token } = readEmail();
+      const response = await post(
+        '/sign-in/code/verify',
+        { email: 'owner@example.com', code },
+        options,
+      );
+
+      expect(response.status).toBe(200);
+      const [requested, signedIn, ...rest] = posthog.events;
+      expect(rest).toEqual([]);
+      expect(requested).toMatchObject({ event: 'sign_in_requested', properties: {} });
+      expect(signedIn).toMatchObject({
+        event: 'signed_in',
+        // After sign-in the internal account UUID is the pseudonymous ID (OBSERVABILITY.md §4.2).
+        distinct_id: account?.id,
+        properties: { method: 'code', new_account: false },
+      });
+      // Before sign-in there is no account ID: a random ID for this request, never stored.
+      expect(requested?.distinct_id).toMatch(UUID);
+      expect(requested?.distinct_id).not.toBe(account?.id);
+      expect(JSON.stringify(requested)).not.toContain(account?.id ?? '?');
+      expectNoPersonalData([code, token], sent(), ...lines);
+      expect(lines.join('\n')).not.toContain(code);
+    });
+
+    it('AC16: signing in with the link records the same events without personal data', async () => {
+      const lines = watchConsole();
+      const account = await accountOf('owner@example.com');
+
+      await requestCode('owner@example.com', 'en', options);
+      const { code, token } = readEmail();
+      // Opening the link uses nothing up, so it records nothing either.
+      await post('/sign-in/link/preview', { token }, options);
+      expect(posthog.events.map(({ event }) => event)).toEqual(['sign_in_requested']);
+      const response = await post('/sign-in/link/confirm', { token }, options);
+
+      expect(response.status).toBe(200);
+      expect(posthog.events.map(({ event }) => event)).toEqual(['sign_in_requested', 'signed_in']);
+      expect(posthog.events[1]).toMatchObject({
+        distinct_id: account?.id,
+        properties: { method: 'link', new_account: false },
+      });
+      expect(posthog.events[0]?.distinct_id).not.toBe(account?.id);
+      expectNoPersonalData([code, token], sent(), ...lines);
+    });
+
+    it('AC16: the first sign-in of an allowed address says it created the account, and nothing else', async () => {
+      allowlist = parseSignUpAllowlist('pilot@gym.test');
+      options = trackedOptions();
+      await requestCode('pilot@gym.test', 'en', options);
+      const { code } = readEmail();
+
+      await post('/sign-in/code/verify', { email: 'pilot@gym.test', code }, options);
+
+      const account = await accountOf('pilot@gym.test');
+      expect(posthog.events[1]).toMatchObject({
+        event: 'signed_in',
+        distinct_id: account?.id,
+        properties: { method: 'code', new_account: true },
+      });
+      expect(sent()).not.toContain('pilot');
+      expect(sent()).not.toContain('gym.test');
+    });
+
+    it('AC16: an unknown address records the same sign_in_requested, so the events tell nothing about accounts', async () => {
+      await requestCode('owner@example.com', 'en', options);
+      await requestCode('stranger@example.com', 'en', options);
+
+      const [known, unknown, ...rest] = posthog.events;
+      expect(rest).toEqual([]);
+      expect(known).toMatchObject({ event: 'sign_in_requested', properties: {} });
+      expect(unknown).toMatchObject({ event: 'sign_in_requested', properties: {} });
+      expectNoPersonalData([], sent());
+      expect(sent()).not.toContain('stranger');
+    });
+
+    it('AC16: a wrong code and an unknown link record no signed_in', async () => {
+      await requestCode('owner@example.com', 'en', options);
+      const { code, token } = readEmail();
+      await post(
+        '/sign-in/code/verify',
+        { email: 'owner@example.com', code: wrongCodeFor(code) },
+        options,
+      );
+      await post('/sign-in/link/confirm', { token: `${token}x` }, options);
+
+      expect(posthog.events.map(({ event }) => event)).toEqual(['sign_in_requested']);
+    });
+
+    it('AC16: a PostHog that fails never fails the sign-in', async () => {
+      const failing = createProductEvents({
+        env: { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' },
+        transport: { send: () => Promise.resolve({ statusCode: 500 }) },
+        errorReporter: createErrorReporter({ env: {} }),
+      });
+      const server = authAt({ overrides: { productEvents: failing } });
+
+      await requestCode('owner@example.com', 'en', { headers: CLIENT_HEADERS, server });
+      const { code } = readEmail();
+      const response = await post(
+        '/sign-in/code/verify',
+        { email: 'owner@example.com', code },
+        { headers: CLIENT_HEADERS, server },
+      );
+
+      expect(response.status).toBe(200);
     });
   });
 });
