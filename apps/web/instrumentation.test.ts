@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { register } from './instrumentation';
 
+// The start-up check may only use the light allowlist entry, not `@fivvi/auth` (#200; packages/auth/README.md).
+vi.mock('@fivvi/auth', () => {
+  throw new Error('the start-up check must not load the sign-in code (#200)');
+});
+
 const KEY = 'phc_example_project_key';
 const HOST = 'https://posthog.example.test';
 const FIX = 'Set POSTHOG_HOST to the PostHog host (ENVIRONMENTS.md §7).';
