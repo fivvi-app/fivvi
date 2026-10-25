@@ -51,10 +51,13 @@ describe('F001 AC9 sign-up allowlist', () => {
   );
 });
 
-describe('the light @fivvi/auth/allowlist entry (#200)', () => {
+describe('F001 AC9 the light @fivvi/auth/allowlist entry (#200)', () => {
   it('imports nothing at run time, so the start-up check never waits for Better Auth', () => {
     const source = readFileSync(new URL('./allowlist.ts', import.meta.url), 'utf8');
+    // Type-only imports and re-exports vanish at run time; everything else loads code.
+    const runtimeLoad =
+      /^\s*import\s+(?!type\b)|^\s*export\s+(?:\{[^}]*\}|\*(?:\s+as\s+\w+)?)\s*from\b|\bimport\s*\(|\brequire\s*\(/m;
 
-    expect(source).not.toMatch(/^\s*(import(?!\s+type\b)|export\s.*\sfrom\b)/m);
+    expect(source).not.toMatch(runtimeLoad);
   });
 });
