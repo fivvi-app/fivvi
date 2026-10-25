@@ -25,7 +25,7 @@ export interface Clock {
 
 export const systemClock: Clock = { now: () => new Date() };
 
-export interface SignInWithCodeOptions {
+export interface SignInWithEmailOptions {
   /** Counts wrong codes in one atomic statement, which Better Auth's adapter has no call for. */
   db: Database;
   /** `BETTER_AUTH_SECRET`: the key of the hashes. */
@@ -47,7 +47,7 @@ export interface SignInWithCodeOptions {
   reportError: (error: unknown) => void;
 }
 
-const PLUGIN_ID = 'sign-in-with-code';
+const PLUGIN_ID = 'sign-in-with-email';
 
 /** The path (under `/api/auth`) of the request endpoint, which the rate limits guard. */
 export const REQUEST_PATH = '/sign-in/code/request';
@@ -79,10 +79,13 @@ export function maskEmail(email: string): string {
   return `${first}***${email.slice(at)}`;
 }
 
-/** The row of `auth_verifications` as the plugin reads it (its fields are not in Better Auth's types). */
-type Verification = Awaited<
-  ReturnType<GenericEndpointContext['context']['internalAdapter']['findVerificationValue']>
->;
+/**
+ * The row of `auth_verifications` as the plugin reads it: Better Auth's types lack the plugin's
+ * own columns, which are optional here because they are read from untyped storage.
+ */
+type Verification = NonNullable<
+  Awaited<ReturnType<GenericEndpointContext['context']['internalAdapter']['findVerificationValue']>>
+> & { codeHash?: unknown; locale?: unknown; failedAttempts?: unknown };
 
 /** One answer for a wrong, expired, used or never issued code: no message says which. */
 const rejectedCode = () =>
@@ -115,8 +118,10 @@ export const REQUESTED = { status: true } as const;
  *   page's (ADR-019). Every other address gets the same answer and no email.
  * - `POST /sign-in/code/verify` `{ email, code }`: the right code signs this browser in. For an
  *   allowlisted address without an account, the account is created first.
+ * - `POST /sign-in/link/preview` `{ token }` (consumes nothing) and `POST /sign-in/link/confirm`
+ *   `{ token }` (the same rules and consume as the code): the confirm step of the emailed link.
  */
-export function signInWithCode({
+export function signInWithEmail({
   db,
   secret,
   sendEmail,
@@ -124,18 +129,22 @@ export function signInWithCode({
   signUpAllowlist,
   runInBackground,
   reportError,
-}: SignInWithCodeOptions) {
+}: SignInWithEmailOptions) {
   /**
    * The newest verification of `identifier` if it can still be used: not expired by the injected
    * clock and under the wrong-code limit. There is no unique index on the identifier (a request
    * replaces by delete and insert), so two parallel requests can leave two rows: the newest one
    * is the verification, for the code and for the link.
    */
-  async function findLiveVerification(ctx: GenericEndpointContext, identifier: string) {
-    const verification = await ctx.context.internalAdapter.findVerificationValue(identifier);
+  async function findLiveVerification(
+    ctx: GenericEndpointContext,
+    identifier: string,
+  ): Promise<Verification | null> {
+    const verification: Verification | null =
+      await ctx.context.internalAdapter.findVerificationValue(identifier);
     if (!verification) return null;
     if (verification.expiresAt.getTime() <= clock.now().getTime()) return null;
-    const { failedAttempts } = verification as { failedAttempts?: unknown };
+    const { failedAttempts } = verification;
     if (typeof failedAttempts === 'number' && failedAttempts >= MAX_WRONG_CODES) return null;
     return verification;
   }
@@ -159,7 +168,7 @@ export function signInWithCode({
    */
   async function signInWithVerification(
     ctx: GenericEndpointContext,
-    verification: NonNullable<Verification>,
+    verification: Verification,
     email: string,
     rejected: () => APIError,
   ) {
@@ -194,7 +203,7 @@ export function signInWithCode({
             emailVerified: true,
           })) ?? found.user);
     } else if (signUpAllowlist.allows(email)) {
-      const { locale } = verification as { locale?: unknown };
+      const { locale } = verification;
       user = await ctx.context.internalAdapter.createUser(
         {
           email,
@@ -299,7 +308,7 @@ export function signInWithCode({
           const { email, code } = ctx.body;
           const verification = await findLiveVerification(ctx, identifierFor(email));
           if (!verification) throw rejectedCode();
-          const stored = (verification as { codeHash?: unknown }).codeHash;
+          const stored = verification.codeHash;
           if (
             typeof stored !== 'string' ||
             !hashesEqual(hashSecretValue(secret, 'code', `${email}:${code}`), stored)

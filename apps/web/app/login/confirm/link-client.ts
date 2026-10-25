@@ -1,4 +1,6 @@
-/** The `signIn.*` catalog key that words a failed request, apart from a link that no longer works. */
+import { postJson } from '../post-json';
+
+/** The `signIn.errors.*` catalog key that words a failed request, apart from a dead link. */
 export type LinkErrorKey = 'noConnection' | 'generic';
 
 export type LinkResult<T> = ({ ok: true } & T) | { ok: false; error: 'linkInvalid' | LinkErrorKey };
@@ -33,22 +35,12 @@ async function post(
   token: string,
   fetchFn: typeof fetch,
 ): Promise<{ ok: true; body: unknown } | { ok: false; error: 'linkInvalid' | LinkErrorKey }> {
-  let response: Response;
-  try {
-    response = await fetchFn(`${BASE}${path}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ token }),
-    });
-  } catch {
-    return { ok: false, error: 'noConnection' };
-  }
-  const body: unknown = await response.json().catch(() => null);
-  if (response.ok) return { ok: true, body };
+  const result = await postJson(`${BASE}${path}`, { token }, fetchFn);
+  if (result.ok) return result;
+  if (result.reason === 'noConnection') return { ok: false, error: 'noConnection' };
   // The page words every failure itself, from the error code: the API's `message` is English and
   // never shown. One answer covers an expired, used and replaced link (AC7).
-  const code = (body as { code?: unknown } | null)?.code;
-  if (code === 'INVALID_OR_EXPIRED_LINK' || response.status === 400) {
+  if (result.code === 'INVALID_OR_EXPIRED_LINK' || result.status === 400) {
     return { ok: false, error: 'linkInvalid' };
   }
   return { ok: false, error: 'generic' };

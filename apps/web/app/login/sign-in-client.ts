@@ -1,4 +1,5 @@
 import type { Locale } from '@fivvi/i18n';
+import { postJson } from './post-json';
 
 /** The `signIn.errors.*` catalog key that words a failed request. */
 export type SignInErrorKey = 'invalidEmail' | 'invalidOrExpiredCode' | 'noConnection' | 'generic';
@@ -35,33 +36,21 @@ async function post(
   onInvalidInput: SignInErrorKey,
   fetchFn: typeof fetch,
 ): Promise<SignInResult> {
-  let response: Response;
-  try {
-    response = await fetchFn(`${BASE}${path}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-  } catch {
-    return { ok: false, error: 'noConnection' };
-  }
-  if (response.ok) return { ok: true };
-  return { ok: false, error: await errorKey(response, onInvalidInput) };
+  const result = await postJson(`${BASE}${path}`, body, fetchFn);
+  if (result.ok) return { ok: true };
+  if (result.reason === 'noConnection') return { ok: false, error: 'noConnection' };
+  return { ok: false, error: errorKey(result, onInvalidInput) };
 }
 
 /**
  * The page words every failure itself, from the error code: the API's `message` is English and
  * never shown. One key covers a wrong, expired, used and replaced code (AC7).
  */
-async function errorKey(
-  response: Response,
+function errorKey(
+  { status, code }: { status: number; code: unknown },
   onInvalidInput: SignInErrorKey,
-): Promise<SignInErrorKey> {
-  const code = await response
-    .json()
-    .then((body: { code?: unknown } | null) => body?.code)
-    .catch(() => undefined);
+): SignInErrorKey {
   if (code === 'INVALID_OR_EXPIRED_CODE') return 'invalidOrExpiredCode';
-  if (response.status === 400) return onInvalidInput;
+  if (status === 400) return onInvalidInput;
   return 'generic';
 }

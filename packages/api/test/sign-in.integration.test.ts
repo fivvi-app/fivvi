@@ -1497,6 +1497,31 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect((await confirmLink(readEmail().token)).status).toBe(200);
     });
 
+    it('R1: a cross-site form post to the confirm endpoint is refused and uses nothing up', async () => {
+      await requestCode('owner@example.com', 'en');
+      const { token } = readEmail();
+      const before = await verifications();
+
+      // A page on another site cannot sign a victim in as someone else (login CSRF): a plain
+      // form post is not JSON, which the endpoint does not take.
+      const response = await auth().handler(
+        new Request(`${ORIGIN}/api/auth/sign-in/link/confirm`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded',
+            origin: 'https://evil.example.org',
+          },
+          body: new URLSearchParams({ token }),
+        }),
+      );
+
+      expect(response.status).toBe(415);
+      expect(response.headers.getSetCookie()).toEqual([]);
+      expect(await verifications()).toEqual(before);
+      // The link still works for the person it belongs to.
+      expect((await confirmLink(token)).status).toBe(200);
+    });
+
     it('AC11: the link token is only looked up by its hash', async () => {
       await requestCode('owner@example.com', 'en');
       const { token } = readEmail();
