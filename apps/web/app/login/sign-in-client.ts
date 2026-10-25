@@ -1,5 +1,5 @@
 import type { Locale } from '@fivvi/i18n';
-import { postJson } from './post-json';
+import { type PostResult, postJson } from './post-json';
 
 /** The `signIn.errors.*` catalog key that words a failed request. */
 export type SignInErrorKey = 'invalidEmail' | 'invalidOrExpiredCode' | 'noConnection' | 'generic';
@@ -47,7 +47,7 @@ async function post(
  * never shown. One key covers a wrong, expired, used and replaced code (AC7).
  */
 function errorKey(
-  { status, code }: { status: number; code: unknown },
+  { status, code }: Extract<PostResult, { reason: 'response' }>,
   onInvalidInput: SignInErrorKey,
 ): SignInErrorKey {
   if (code === 'INVALID_OR_EXPIRED_CODE') return 'invalidOrExpiredCode';

@@ -1414,19 +1414,26 @@ describe('F001 sign in with the emailed code through the API', () => {
     });
 
     it('AC7: every link failure answers the same, and like a link that never existed', async () => {
-      await requestCode('owner@example.com', 'en');
-      const used = readEmail().token;
-      await confirmLink(used);
-      await requestCode('owner@example.com', 'en');
-      const replaced = readEmail(2).token;
-      await requestCode('owner@example.com', 'en');
-      const killed = readEmail(3);
-      for (let i = 0; i < 5; i++) await enterCode('owner@example.com', wrongCodeFor(killed.code));
+      const { clock, server } = startAt();
+      await addTrainerAccount();
+      await requestCode('trainer@example.com', 'en', { server });
+      const expired = readEmail().token;
+      clock.advance({ minutes: 15 });
+      await requestCode('owner@example.com', 'en', { server });
+      const used = readEmail(2).token;
+      await confirmLink(used, server);
+      await requestCode('owner@example.com', 'en', { server });
+      const replaced = readEmail(3).token;
+      await requestCode('owner@example.com', 'en', { server });
+      const killed = readEmail(4);
+      for (let i = 0; i < 5; i++) {
+        await enterCode('owner@example.com', wrongCodeFor(killed.code), server);
+      }
 
-      const failures = [used, replaced, killed.token, 'never-issued', ''];
+      const failures = [expired, used, replaced, killed.token, 'never-issued', ''];
       for (const route of [previewLink, confirmLink]) {
         const answers = await Promise.all(
-          failures.map(async (token) => await outcome(await route(token))),
+          failures.map(async (token) => await outcome(await route(token, server))),
         );
         for (const answer of answers) expect(answer).toEqual(answers[0]);
         expect(answers[0]).toMatchObject({ status: 401, body: LINK_ERROR, cookies: [] });
@@ -1497,7 +1504,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect((await confirmLink(readEmail().token)).status).toBe(200);
     });
 
-    it('R1: a cross-site form post to the confirm endpoint is refused and uses nothing up', async () => {
+    it('a cross-site form post to the confirm endpoint is refused and uses nothing up', async () => {
       await requestCode('owner@example.com', 'en');
       const { token } = readEmail();
       const before = await verifications();

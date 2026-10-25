@@ -599,8 +599,26 @@
         }
       }
     },
+    "signIn.linkInvalidBack" : {
+      "comment" : "Button on the confirm step for a link that no longer works. Goes back to the sign-in page, where a new email is requested.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to sign in"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terug naar inloggen"
+          }
+        }
+      }
+    },
     "signIn.linkInvalidBody" : {
-      "comment" : "Line under signIn.linkInvalidTitle, pointing to the button that requests a new email.",
+      "comment" : "Line under signIn.linkInvalidTitle, pointing to the button that goes back to the sign-in page.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -613,24 +631,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vraag een nieuwe e-mail aan om in te loggen."
-          }
-        }
-      }
-    },
-    "signIn.linkInvalidRequest" : {
-      "comment" : "Button on the confirm step for a link that no longer works. Goes to the sign-in page to request a new email.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Request a new email"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nieuwe e-mail aanvragen"
           }
         }
       }

@@ -109,7 +109,7 @@ export function ConfirmForm({ token }: { token: string }) {
             </CardHeader>
             <CardFooter>
               <Button asChild>
-                <Link href="/login">{t('linkInvalidRequest')}</Link>
+                <Link href="/login">{t('linkInvalidBack')}</Link>
               </Button>
             </CardFooter>
           </>

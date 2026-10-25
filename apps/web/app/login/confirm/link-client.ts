@@ -1,4 +1,4 @@
-import { postJson } from '../post-json';
+import { type PostResult, postJson } from '../post-json';
 
 /** The `signIn.errors.*` catalog key that words a failed request, apart from a dead link. */
 export type LinkErrorKey = 'noConnection' | 'generic';
@@ -34,7 +34,7 @@ async function post(
   path: string,
   token: string,
   fetchFn: typeof fetch,
-): Promise<{ ok: true; body: unknown } | { ok: false; error: 'linkInvalid' | LinkErrorKey }> {
+): Promise<Extract<PostResult, { ok: true }> | Extract<LinkResult<object>, { ok: false }>> {
   const result = await postJson(`${BASE}${path}`, { token }, fetchFn);
   if (result.ok) return result;
   if (result.reason === 'noConnection') return { ok: false, error: 'noConnection' };

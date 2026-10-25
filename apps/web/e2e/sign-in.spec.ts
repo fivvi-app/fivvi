@@ -248,6 +248,8 @@ test.describe('F001 sign in on TW-10', () => {
     ).toBeVisible();
     await expect(page.getByRole('button')).toHaveCount(1);
     expect(await page.content()).not.toContain(address);
+    // The address carries the token: it must not leave in a Referer header.
+    await expect(page.locator('meta[name="referrer"]')).toHaveAttribute('content', 'no-referrer');
     await expectNoAxeViolations(page, `the confirm step in ${appLocale}`);
     // Opening it (twice) signed nobody in and used nothing up.
     await page.reload();
@@ -328,8 +330,8 @@ test.describe('F001 sign in on TW-10', () => {
       ).toBeVisible();
     }
 
-    // The button goes to the sign-in page, where a new email is requested.
-    await second.getByRole('link', { name: copy.signIn.linkInvalidRequest }).click();
+    // The button goes back to the sign-in page, where a new email is requested.
+    await second.getByRole('link', { name: copy.signIn.linkInvalidBack }).click();
     await expect(second).toHaveURL(/\/login$/);
     await expect(second.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
   });
