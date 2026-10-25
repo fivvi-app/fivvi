@@ -12,10 +12,8 @@ describe('E018 API mount', () => {
 
       expect(res.status).toBe(500);
       expect(await res.text()).toBe(INTERNAL_SERVER_ERROR);
-      expect(log).toHaveBeenCalledWith(
-        'Unhandled API error:',
-        expect.objectContaining({ message: expect.stringContaining('DATABASE_URL is not set') }),
-      );
+      // The log names the error only: a database error can quote an address (Sentry has the cause).
+      expect(log).toHaveBeenCalledWith('Unhandled API error:', 'Error');
     } finally {
       vi.unstubAllEnvs();
       log.mockRestore();

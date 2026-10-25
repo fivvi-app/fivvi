@@ -20,8 +20,19 @@ import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.t
 const SECRET = 'test-secret-that-is-at-least-thirty-two-characters-long';
 const ORIGIN = 'http://localhost:3000';
 const T0 = '2026-03-31T10:00:00Z';
+const MINUTE_MS = 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const UNAUTHORIZED = { code: 'unauthorized' };
+
+/** A code that is not `code`, for a wrong attempt. */
+const wrongCodeFor = (code: string) => (code === '000000' ? '000001' : '000000');
+
+/** What an app or an attacker sees of an answer: status, body and every header (cookies too). */
+const answer = async (response: Response) => ({
+  status: response.status,
+  body: await response.text(),
+  headers: [...response.headers.entries()].sort(),
+});
 
 // The native sign-in routes of the contract (spec #168, AC3, AC4, AC16) against the real Better
 // Auth on a real Postgres, with the email in memory: the same verification, rules and sessions as
@@ -127,11 +138,21 @@ describe('F001N native sign-in through the API', () => {
       }),
     );
 
+  /** Asks the web's sign-in page for a code and waits for the email to be sent. */
+  async function webRequestSignIn(email = 'owner@example.com', locale: Locale = 'en') {
+    const response = await webPost('/sign-in/code/request', { email, locale });
+    await Promise.all(pending.splice(0));
+    return response;
+  }
+
+  /** The account of `email`, if it has one. */
+  const accountOf = async (email: string) =>
+    (await client.db.select().from(authUsers).where(eq(authUsers.email, email)))[0];
+
   /** Signs the web in with the code and returns the response of the code step. */
   async function webSignIn(email = 'owner@example.com'): Promise<Response> {
     transport.clear();
-    await webPost('/sign-in/code/request', { email, locale: 'en' });
-    await Promise.all(pending.splice(0));
+    await webRequestSignIn(email);
     const response = await webPost('/sign-in/code/verify', { email, code: codeOf() });
     expect(response.status).toBe(200);
     return response;
@@ -203,37 +224,6 @@ describe('F001N native sign-in through the API', () => {
     });
   });
 
-  it('AC2: an address without an account and a request over the limit get the same 202 and no email', async () => {
-    const known = await requestSignIn('owner@example.com');
-    expect(transport.sent).toHaveLength(1);
-    transport.clear();
-
-    const unknown = await requestSignIn('nobody@example.com');
-    expect(unknown.status).toBe(known.status);
-    expect(await unknown.text()).toBe(await known.text());
-    expect(transport.sent).toEqual([]);
-
-    // The limits of the web (3 requests per address in 15 minutes) count native requests too.
-    await requestSignIn('owner@example.com');
-    await requestSignIn('owner@example.com');
-    transport.clear();
-    const limited = await requestSignIn('owner@example.com');
-    expect(limited.status).toBe(202);
-    expect(await limited.text()).toBe('');
-    expect(transport.sent).toEqual([]);
-  });
-
-  it('AC2: the client IP the proxy sets counts for the IP limit', async () => {
-    for (let i = 0; i < 20; i++) {
-      await requestSignIn(`nobody${i}@example.com`, 'en', { 'x-real-ip': '203.0.113.7' });
-    }
-
-    const limited = await requestSignIn('owner@example.com', 'en', { 'x-real-ip': '203.0.113.7' });
-
-    expect(limited.status).toBe(202);
-    expect(transport.sent).toEqual([]);
-  });
-
   it('AC3: the token is a sign-in session of the account', async () => {
     const token = await signInWithToken();
 
@@ -246,102 +236,54 @@ describe('F001N native sign-in through the API', () => {
     expect(token).not.toContain(' ');
   });
 
-  it('AC6: every failure is the same neutral 401, and sets no cookie', async () => {
-    await requestSignIn('owner@example.com');
-    const code = codeOf();
-    const wrong = code === '000000' ? '000001' : '000000';
+  describe("AC7: allowlisted first sign-in creates the account with the app's language", () => {
+    describe.each(['nl-NL', 'en'] as const)('interface language %s', (locale) => {
+      it('the first sign-in of an allowed address creates the account in that language', async () => {
+        allowlist = parseSignUpAllowlist('newcomer@example.com');
+        await requestSignIn('newcomer@example.com', locale);
+        expect(await accountOf('newcomer@example.com')).toBeUndefined();
 
-    const failures = [
-      await exchange('owner@example.com', wrong),
-      // Never asked for a code.
-      await exchange('nobody@example.com', code),
-    ];
-    // Used: the second use of the right code.
-    expect((await exchange('owner@example.com', code)).status).toBe(200);
-    failures.push(await exchange('owner@example.com', code));
-    // Replaced: the code of an older email, after a newer request.
-    transport.clear();
-    await requestSignIn('owner@example.com');
-    const older = codeOf();
-    await requestSignIn('owner@example.com');
-    failures.push(await exchange('owner@example.com', older));
+        const response = await exchange('newcomer@example.com', codeOf());
 
-    for (const response of failures) {
+        expect(response.status).toBe(200);
+        const { token } = (await response.json()) as { token: string };
+        const account = await me(bearer(token));
+        expect(await account.json()).toMatchObject({
+          email: 'newcomer@example.com',
+          preferredLocale: locale,
+        });
+        expect(await accountOf('newcomer@example.com')).toMatchObject({
+          emailVerified: true,
+          preferredLocale: locale,
+        });
+      });
+
+      it('a later sign-in with the other language neither changes it nor the language of the email', async () => {
+        allowlist = parseSignUpAllowlist('newcomer@example.com');
+        await requestSignIn('newcomer@example.com', locale);
+        expect((await exchange('newcomer@example.com', codeOf())).status).toBe(200);
+        const other = locale === 'en' ? 'nl-NL' : 'en';
+        transport.clear();
+
+        await requestSignIn('newcomer@example.com', other);
+        expect((await exchange('newcomer@example.com', codeOf())).status).toBe(200);
+
+        // ADR-019: the stored language comes before the language of the screen.
+        expect(transport.sent[0]?.locale).toBe(locale);
+        expect(await accountOf('newcomer@example.com')).toMatchObject({ preferredLocale: locale });
+      });
+    });
+
+    it('the sign-in of an address without an account that is not allowed creates none', async () => {
+      allowlist = parseSignUpAllowlist('someone-else@example.com');
+      await requestSignIn('nobody@example.com', 'en');
+
+      // Not even a code that guesses right: there is no verification, so no account.
+      const response = await exchange('nobody@example.com', '123456');
+
       expect(response.status).toBe(401);
-      expect(await response.json()).toEqual(UNAUTHORIZED);
-      expect(response.headers.getSetCookie()).toEqual([]);
-    }
-  });
-
-  it('AC5: the code is the web verification: using the link makes the app code fail, and back', async () => {
-    await requestSignIn('owner@example.com');
-    const code = codeOf();
-    const confirm = await webPost('/sign-in/link/confirm', { token: linkTokenOf() });
-    expect(confirm.status).toBe(200);
-
-    expect((await exchange('owner@example.com', code)).status).toBe(401);
-
-    // And the other way round: the code in the app uses up the link.
-    transport.clear();
-    await requestSignIn('owner@example.com');
-    const second = codeOf();
-    const secondToken = linkTokenOf();
-    expect((await exchange('owner@example.com', second)).status).toBe(200);
-    const again = await webPost('/sign-in/link/confirm', { token: secondToken });
-    expect(again.status).toBe(401);
-  });
-
-  describe.each(['nl-NL', 'en'] as const)('AC7 in the interface language %s', (locale) => {
-    const accountOf = async (email: string) =>
-      (await client.db.select().from(authUsers).where(eq(authUsers.email, email)))[0];
-
-    it('the first sign-in of an allowed address creates the account in that language', async () => {
-      allowlist = parseSignUpAllowlist('newcomer@example.com');
-      await requestSignIn('newcomer@example.com', locale);
-      expect(await accountOf('newcomer@example.com')).toBeUndefined();
-
-      const response = await exchange('newcomer@example.com', codeOf());
-
-      expect(response.status).toBe(200);
-      const { token } = (await response.json()) as { token: string };
-      const account = await me(bearer(token));
-      expect(await account.json()).toMatchObject({
-        email: 'newcomer@example.com',
-        preferredLocale: locale,
-      });
-      expect(await accountOf('newcomer@example.com')).toMatchObject({
-        emailVerified: true,
-        preferredLocale: locale,
-      });
+      expect(await accountOf('nobody@example.com')).toBeUndefined();
     });
-
-    it('a later sign-in with the other language neither changes it nor the language of the email', async () => {
-      allowlist = parseSignUpAllowlist('newcomer@example.com');
-      await requestSignIn('newcomer@example.com', locale);
-      expect((await exchange('newcomer@example.com', codeOf())).status).toBe(200);
-      const other = locale === 'en' ? 'nl-NL' : 'en';
-      transport.clear();
-
-      await requestSignIn('newcomer@example.com', other);
-      expect((await exchange('newcomer@example.com', codeOf())).status).toBe(200);
-
-      // ADR-019: the stored language comes before the language of the screen.
-      expect(transport.sent[0]?.locale).toBe(locale);
-      expect(await accountOf('newcomer@example.com')).toMatchObject({ preferredLocale: locale });
-    });
-  });
-
-  it('AC7: the sign-in of an address without an account that is not allowed creates none', async () => {
-    allowlist = parseSignUpAllowlist('someone-else@example.com');
-    await requestSignIn('nobody@example.com', 'en');
-
-    // Not even a code that guesses right: there is no verification, so no account.
-    const response = await exchange('nobody@example.com', '123456');
-
-    expect(response.status).toBe(401);
-    expect(
-      await client.db.select().from(authUsers).where(eq(authUsers.email, 'nobody@example.com')),
-    ).toEqual([]);
   });
 
   describe('AC4: authenticated call with a bearer token', () => {
@@ -642,38 +584,39 @@ describe('F001N native sign-in through the API', () => {
     );
   });
 
-  describe('AC2: the same 202 for every address', () => {
-    const answer = async (response: Response) => ({
-      status: response.status,
-      body: await response.text(),
-      headers: [...response.headers.entries()].sort(),
-    });
-    const accountOf = async (email: string) =>
-      await client.db.select().from(authUsers).where(eq(authUsers.email, email));
+  describe('AC2: unknown address and rate limit get the same 202 and no email', () => {
+    it.each(['nl-NL', 'en'] as const)(
+      'an address with an account, an allowed one, one that is not allowed and one over the limit answer alike (%s)',
+      async (locale) => {
+        allowlist = parseSignUpAllowlist('newcomer@example.com');
+        const account = await answer(await requestSignIn('owner@example.com', locale));
+        const allowed = await answer(await requestSignIn('newcomer@example.com', locale));
+        expect(transport.sent).toHaveLength(2);
+        transport.clear();
 
-    it('an address with an account, an allowed one, one that is not allowed and one over the limit answer alike', async () => {
-      allowlist = parseSignUpAllowlist('newcomer@example.com');
-      const account = await answer(await requestSignIn('owner@example.com'));
-      const allowed = await answer(await requestSignIn('newcomer@example.com'));
-      expect(transport.sent).toHaveLength(2);
-      transport.clear();
+        const notAllowed = await answer(await requestSignIn('stranger@example.com', locale));
+        expect(transport.sent).toEqual([]);
+        // The web's limit is 3 requests per address in 15 minutes; the first one is above.
+        await requestSignIn('owner@example.com', locale);
+        await requestSignIn('owner@example.com', locale);
+        expect(transport.sent).toHaveLength(2);
+        transport.clear();
+        const overLimit = await answer(await requestSignIn('owner@example.com', locale));
+        expect(transport.sent).toEqual([]);
 
-      const notAllowed = await answer(await requestSignIn('stranger@example.com'));
-      for (let i = 0; i < 3; i++) await requestSignIn('limited@example.com');
-      transport.clear();
-      const overLimit = await answer(await requestSignIn('limited@example.com'));
-
-      expect(account.status).toBe(202);
-      expect(notAllowed).toEqual(account);
-      expect(allowed).toEqual(account);
-      expect(overLimit).toEqual(account);
-    });
+        expect(account.status).toBe(202);
+        expect(account.body).toBe('');
+        expect(notAllowed).toEqual(account);
+        expect(allowed).toEqual(account);
+        expect(overLimit).toEqual(account);
+      },
+    );
 
     it('creates no account and no verification for an address that is not allowed', async () => {
       await requestSignIn('stranger@example.com');
 
       expect(transport.sent).toEqual([]);
-      expect(await accountOf('stranger@example.com')).toEqual([]);
+      expect(await accountOf('stranger@example.com')).toBeUndefined();
       expect(await client.db.select().from(authVerifications)).toEqual([]);
     });
 
@@ -682,13 +625,14 @@ describe('F001N native sign-in through the API', () => {
       for (let i = 0; i < 3; i++) await requestSignIn('newcomer@example.com');
       transport.clear();
       const [before] = await client.db.select().from(authVerifications);
+      expect(before).toBeDefined();
 
       const limited = await requestSignIn('newcomer@example.com');
 
       expect(limited.status).toBe(202);
       expect(transport.sent).toEqual([]);
       // Requesting is not signing in: no account yet, and the limited request changed nothing.
-      expect(await accountOf('newcomer@example.com')).toEqual([]);
+      expect(await accountOf('newcomer@example.com')).toBeUndefined();
       const [after] = await client.db.select().from(authVerifications);
       expect(after?.id).toBe(before?.id);
     });
@@ -702,23 +646,45 @@ describe('F001N native sign-in through the API', () => {
       await requestSignIn('Owner@Example.com');
       expect(transport.sent).toEqual([]);
 
-      passTime(15 * 60 * 1000);
+      passTime(15 * MINUTE_MS);
       await requestSignIn('owner@example.com');
       expect(transport.sent).toHaveLength(1);
     });
+
+    it('the client IP the proxy sets counts for the IP limit', async () => {
+      for (let i = 0; i < 20; i++) {
+        await requestSignIn(`nobody${i}@example.com`, 'en', { 'x-real-ip': '203.0.113.7' });
+      }
+
+      const limited = await requestSignIn('owner@example.com', 'en', {
+        'x-real-ip': '203.0.113.7',
+      });
+
+      expect(limited.status).toBe(202);
+      expect(transport.sent).toEqual([]);
+    });
   });
 
-  describe('AC5: one single-use verification for the app and the web', () => {
-    const MINUTE_MS = 60 * 1000;
-    const wrongCodeFor = (code: string) => (code === '000000' ? '000001' : '000000');
-    /** Status, body and cookies of an answer: everything an app or an attacker sees. */
-    const outcome = async (response: Response) => ({
-      status: response.status,
-      body: await response.text(),
-      cookies: response.headers.getSetCookie(),
+  describe("AC5: native code is the web's single verification: link use, replacement, 15 minutes, 5 wrong codes, hashes", () => {
+    it('using the link makes the app code fail, and the code in the app uses up the link', async () => {
+      await requestSignIn('owner@example.com');
+      const code = codeOf();
+      const confirm = await webPost('/sign-in/link/confirm', { token: linkTokenOf() });
+      expect(confirm.status).toBe(200);
+
+      expect((await exchange('owner@example.com', code)).status).toBe(401);
+
+      // And the other way round: the code in the app uses up the link.
+      transport.clear();
+      await requestSignIn('owner@example.com');
+      const second = codeOf();
+      const secondToken = linkTokenOf();
+      expect((await exchange('owner@example.com', second)).status).toBe(200);
+      const again = await webPost('/sign-in/link/confirm', { token: secondToken });
+      expect(again.status).toBe(401);
     });
 
-    describe('expires after 15 minutes (injected clock)', () => {
+    describe('expires after 15 minutes (frozen system time, moved by the test)', () => {
       it('the code works one second short of 15 minutes', async () => {
         await requestSignIn('owner@example.com');
         const code = codeOf();
@@ -732,10 +698,10 @@ describe('F001N native sign-in through the API', () => {
         await requestSignIn('owner@example.com');
         const code = codeOf();
         const token = linkTokenOf();
-        const wrong = await outcome(await exchange('owner@example.com', wrongCodeFor(code)));
+        const wrong = await answer(await exchange('owner@example.com', wrongCodeFor(code)));
 
         passTime(15 * MINUTE_MS);
-        const expired = await outcome(await exchange('owner@example.com', code));
+        const expired = await answer(await exchange('owner@example.com', code));
 
         expect(expired.status).toBe(401);
         expect(expired).toEqual(wrong);
@@ -769,10 +735,10 @@ describe('F001N native sign-in through the API', () => {
         const code = codeOf();
         const token = linkTokenOf();
         const wrong = wrongCodeFor(code);
-        const single = await outcome(await exchange('owner@example.com', wrong));
+        const single = await answer(await exchange('owner@example.com', wrong));
         await wrongCodes(4, 'owner@example.com', wrong);
 
-        const killed = await outcome(await exchange('owner@example.com', code));
+        const killed = await answer(await exchange('owner@example.com', code));
 
         expect(killed.status).toBe(401);
         expect(killed).toEqual(single);
@@ -827,8 +793,7 @@ describe('F001N native sign-in through the API', () => {
         await requestSignIn('owner@example.com');
         const old = codeOf();
         transport.clear();
-        await webPost('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' });
-        await Promise.all(pending.splice(0));
+        await webRequestSignIn();
         const fresh = codeOf();
 
         expect((await exchange('owner@example.com', old)).status).toBe(401);
@@ -837,8 +802,7 @@ describe('F001N native sign-in through the API', () => {
 
       it('a newer request from the app: the code and link of the web request stop working', async () => {
         transport.clear();
-        await webPost('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' });
-        await Promise.all(pending.splice(0));
+        await webRequestSignIn();
         const webCode = codeOf();
         const webToken = linkTokenOf();
         transport.clear();
@@ -858,8 +822,7 @@ describe('F001N native sign-in through the API', () => {
 
       it('a code of the web signs the web in once, and then fails in the app', async () => {
         transport.clear();
-        await webPost('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' });
-        await Promise.all(pending.splice(0));
+        await webRequestSignIn();
         const code = codeOf();
 
         const web = await webPost('/sign-in/code/verify', { email: 'owner@example.com', code });
@@ -893,26 +856,22 @@ describe('F001N native sign-in through the API', () => {
       }
       expect(rows[0]?.value).toMatch(/^[0-9a-f]{64}$/);
       expect(rows[0]?.codeHash).toMatch(/^[0-9a-f]{64}$/);
-      // Presenting the stored hash is no sign-in, as a token or as a code.
+      // Presenting the stored hash as a link token is no sign-in.
       expect((await webPost('/sign-in/link/confirm', { token: rows[0]?.value })).status).toBe(401);
-      expect((await exchange('owner@example.com', code.replace(/\d/g, '0'))).status).toBe(401);
     });
   });
 
-  describe('AC6 (server): one identical 401 for every failure', () => {
-    it('wrong, used, replaced, expired and killed codes get the same status, body and headers', async () => {
-      const outcomes: { status: number; body: string; headers: [string, string][] }[] = [];
-      const record = async (response: Response) =>
-        outcomes.push({
-          status: response.status,
-          body: await response.text(),
-          headers: [...response.headers.entries()].sort(),
-        });
+  describe('AC6: every failure is one neutral 401', () => {
+    it('wrong, never asked, used, replaced, expired and killed codes get the same status, body and headers', async () => {
+      const answers: Awaited<ReturnType<typeof answer>>[] = [];
+      const record = async (response: Response) => answers.push(await answer(response));
 
       // Wrong.
       await requestSignIn('owner@example.com');
       const code = codeOf();
-      await record(await exchange('owner@example.com', code === '000000' ? '000001' : '000000'));
+      await record(await exchange('owner@example.com', wrongCodeFor(code)));
+      // Never asked: an address that requested no code.
+      await record(await exchange('nobody@example.com', code));
       // Used.
       expect((await exchange('owner@example.com', code)).status).toBe(200);
       await record(await exchange('owner@example.com', code));
@@ -923,32 +882,31 @@ describe('F001N native sign-in through the API', () => {
       await requestSignIn('owner@example.com');
       await record(await exchange('owner@example.com', replaced));
       // Expired. (3 requests per address in 15 minutes: the earlier ones are out of the window.)
-      passTime(16 * 60 * 1000);
+      passTime(16 * MINUTE_MS);
       transport.clear();
       await requestSignIn('owner@example.com');
       const expiring = codeOf();
-      passTime(31 * 60 * 1000);
+      passTime(31 * MINUTE_MS);
       await record(await exchange('owner@example.com', expiring));
       // Killed by 5 wrong codes.
-      passTime(47 * 60 * 1000);
+      passTime(47 * MINUTE_MS);
       transport.clear();
       await requestSignIn('owner@example.com');
       const killed = codeOf();
-      const wrong = killed === '000000' ? '000001' : '000000';
-      for (let i = 0; i < 5; i++) await exchange('owner@example.com', wrong);
+      for (let i = 0; i < 5; i++) await exchange('owner@example.com', wrongCodeFor(killed));
       await record(await exchange('owner@example.com', killed));
 
-      expect(outcomes).toHaveLength(5);
-      for (const outcome of outcomes) {
-        expect(outcome.status).toBe(401);
-        expect(JSON.parse(outcome.body)).toEqual(UNAUTHORIZED);
-        expect(outcome.headers.map(([name]) => name)).not.toContain('set-cookie');
+      expect(answers).toHaveLength(6);
+      for (const failure of answers) {
+        expect(failure.status).toBe(401);
+        expect(JSON.parse(failure.body)).toEqual(UNAUTHORIZED);
+        expect(failure.headers.map(([name]) => name)).not.toContain('set-cookie');
       }
-      for (const outcome of outcomes) expect(outcome).toEqual(outcomes[0]);
+      for (const failure of answers) expect(failure).toEqual(answers[0]);
     });
   });
 
-  describe('AC12 (server): nothing sensitive reaches logs or Sentry', () => {
+  describe('AC12: events carry no personal data; token and code not logged', () => {
     const EMAIL = 'owner@example.com';
     const LEAKS = ['debug', 'error', 'info', 'log', 'warn'] as const;
     const SENTRY = {
@@ -983,7 +941,7 @@ describe('F001N native sign-in through the API', () => {
       const linkToken = linkTokenOf() ?? '';
       // Wrong, repeated and rate-limited attempts, an authenticated call and a sign-out.
       for (let i = 0; i < 3; i++) await requestSignIn(EMAIL);
-      await exchange(EMAIL, code === '000000' ? '000001' : '000000');
+      await exchange(EMAIL, wrongCodeFor(code));
       await me(bearer(token));
       await signOut(bearer(token));
       await me(bearer(token));
@@ -996,7 +954,7 @@ describe('F001N native sign-in through the API', () => {
     });
 
     it('an error in a native route reaches Sentry without the Authorization header, token, code or address', async () => {
-      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const output = captureConsole();
       const transportOfSentry = createCaptureTransport();
       const errorReporter = createErrorReporter({ env: SENTRY, transport: transportOfSentry });
       const token = await signInWithToken(EMAIL);
@@ -1033,6 +991,12 @@ describe('F001N native sign-in through the API', () => {
       const sent = JSON.stringify(transportOfSentry.events);
       for (const secret of [EMAIL, token, '482915', 'Bearer ', 'a=b']) {
         expect(sent).not.toContain(secret);
+      }
+      // The server log of an unhandled error names the error, not what it quotes.
+      const logged = output();
+      expect(logged).toContain('Unhandled API error');
+      for (const secret of [EMAIL, 'example.com', token, '482915', 'Bearer ']) {
+        expect(logged).not.toContain(secret);
       }
       for (const event of transportOfSentry.events) {
         expect(

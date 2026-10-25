@@ -27,8 +27,10 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   });
   app.onError((error, c) => {
     if (error instanceof HTTPException) return error.getResponse();
-    // The same generic 500 as Hono's default: no stack trace, no internal message.
-    console.error('Unhandled API error:', error);
+    // The same generic 500 as Hono's default: no stack trace, no internal message. The log names
+    // the error and nothing else, because a database error can quote an address; Sentry has the
+    // scrubbed event.
+    console.error('Unhandled API error:', error instanceof Error ? error.name : 'Error');
     dependencies.errorReporter.captureError(error, { request: c.req.raw, route: c.req.routePath });
     return c.text(INTERNAL_SERVER_ERROR, 500);
   });
