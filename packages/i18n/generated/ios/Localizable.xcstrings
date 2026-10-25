@@ -313,6 +313,24 @@
         }
       }
     },
+    "home.signedInAs" : {
+      "comment" : "Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed in as %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingelogd als %1$@"
+          }
+        }
+      }
+    },
     "home.title" : {
       "comment" : "Heading of the signed-in home, a placeholder until workspaces arrive (F002).",
       "extractionState" : "manual",
@@ -397,6 +415,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Als %1$@ bij ons bekend is, ontvang je een e-mail met een code en een inloglink."
+          }
+        }
+      }
+    },
+    "signIn.checkEmailBodyApp" : {
+      "comment" : "Native apps only (TM-01): under the heading of the code step, instead of signIn.checkEmailBody. {email} is the address entered. Tells the person to enter the code in the app; it does not mention the sign-in link, because a link tapped on the phone signs in the phone's browser, not the app. Deliberately does not say whether an account exists (no account enumeration).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If %1$@ is registered, you'll receive an email with a code. Enter the code here."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als %1$@ bij ons bekend is, ontvang je een e-mail met een code. Vul de code hier in."
           }
         }
       }
@@ -703,6 +739,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Code versturen"
+          }
+        }
+      }
+    },
+    "signIn.signedOutNotice" : {
+      "comment" : "Native apps only: notice at the top of the sign-in screen (TM-01) when the app was signed out without the person asking: the server no longer accepts the stored sign-in, or the person signed out elsewhere. Not shown after the person taps sign out themselves (signOut.label).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've been signed out. Sign in again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent uitgelogd. Log opnieuw in."
           }
         }
       }
