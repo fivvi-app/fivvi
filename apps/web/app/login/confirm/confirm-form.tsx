@@ -10,13 +10,9 @@ import {
   CardTitle,
 } from '@fivvi/ui/components/card';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { confirmLink, type LinkErrorKey, previewLink } from './link-client';
-
-/** Where a signed-in browser goes until F002 adds workspaces (as for the code). */
-const SIGNED_IN_HOME = '/home';
 
 type State =
   | { step: 'checking' }
@@ -27,12 +23,12 @@ type State =
 /**
  * The confirm step of TW-10: which address the link signs in (masked), and one button. Checking
  * the link on load uses nothing up; the button does. A link that no longer works says so without
- * saying why (expired, used or replaced) and offers a new email.
+ * saying why (expired, used or replaced) and offers a new email. `returnPath` is the page sign-in
+ * ends at: a path of this site (`safeReturnPath`), never another address.
  */
-export function ConfirmForm({ token }: { token: string }) {
+export function ConfirmForm({ token, returnPath }: { token: string; returnPath: string }) {
   const t = useTranslations('signIn');
   const common = useTranslations('common');
-  const router = useRouter();
   const [state, setState] = useState<State>({ step: 'checking' });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<LinkErrorKey | null>(null);
@@ -62,7 +58,7 @@ export function ConfirmForm({ token }: { token: string }) {
     setPending(true);
     setError(null);
     const result = await confirmLink(token);
-    if (result.ok) return router.replace(SIGNED_IN_HOME);
+    if (result.ok) return window.location.replace(returnPath);
     setPending(false);
     if (result.error === 'linkInvalid') return setState({ step: 'invalid' });
     setError(result.error);
