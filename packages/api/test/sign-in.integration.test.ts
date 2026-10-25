@@ -857,6 +857,128 @@ describe('F001 sign in with the emailed code through the API', () => {
     });
   });
 
+  describe('AC12: sign-in session lasts 30 days and renews on use', () => {
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const atDays = (days: number, extra = 0) =>
+      vi.setSystemTime(new Date(Date.parse(T0) + days * DAY_MS + extra));
+
+    /** Signs `email` in with the code; returns the cookie a browser would send back. */
+    async function signInBrowser(email: string, count: number, server = auth()) {
+      await requestCode(email, 'en', { server });
+      const response = await enterCode(email, readEmail(count).code, server);
+      expect(response.status).toBe(200);
+      const cookie = response.headers.getSetCookie().find((c) => c.includes('session_token'));
+      return (cookie ?? '').split(';')[0] ?? '';
+    }
+
+    const who = async (cookie: string) =>
+      (await auth().findAccount(new Headers({ cookie })))?.email;
+
+    beforeEach(() => {
+      freezeSystemTime(T0);
+    });
+
+    it('AC12: a browser that is not used for 30 days is signed out', async () => {
+      const cookie = await signInBrowser('owner@example.com', 1);
+
+      atDays(30, 1000);
+      expect(await who(cookie)).toBeUndefined();
+    });
+
+    it('AC12: one second short of 30 days it is still signed in', async () => {
+      const cookie = await signInBrowser('owner@example.com', 1);
+
+      atDays(30, -1000);
+      expect(await who(cookie)).toBe('owner@example.com');
+    });
+
+    it('AC12: using the session renews it, so 30 days count from the last use', async () => {
+      const cookie = await signInBrowser('owner@example.com', 1);
+
+      // Used on day 20: another 30 days from then.
+      atDays(20);
+      expect(await who(cookie)).toBe('owner@example.com');
+
+      atDays(49, -1000);
+      expect(await who(cookie)).toBe('owner@example.com');
+    });
+
+    it('AC12: without use after that renewal, the session ends 30 days after it', async () => {
+      const cookie = await signInBrowser('owner@example.com', 1);
+      atDays(20);
+      expect(await who(cookie)).toBe('owner@example.com');
+
+      atDays(50, 1000);
+      expect(await who(cookie)).toBeUndefined();
+    });
+
+    it('AC12: a renewal gives the browser a new 30-day cookie, at most once a day', async () => {
+      const cookie = await signInBrowser('owner@example.com', 1);
+
+      // Within the first day nothing changes: no new cookie.
+      atDays(0, 12 * 60 * 60 * 1000);
+      expect((await auth().readSession(new Headers({ cookie }))).setCookies).toEqual([]);
+
+      // A day after sign-in the use renews the session and hands the browser its new cookie.
+      atDays(1, 1000);
+      const renewed = await auth().readSession(new Headers({ cookie }));
+      expect(renewed.account?.email).toBe('owner@example.com');
+      const [setCookie, ...others] = renewed.setCookies;
+      expect(others).toEqual([]);
+      expect(setCookie).toContain(cookie.split('=').slice(0, 1)[0]);
+      expect(setCookie).toMatch(/Max-Age=2592000/i);
+      expect(setCookie).toMatch(/HttpOnly/i);
+      expect(setCookie).toMatch(/SameSite=Lax/i);
+
+      // Used again the same day: renewed already.
+      atDays(1, 60 * 60 * 1000);
+      expect((await auth().readSession(new Headers({ cookie }))).setCookies).toEqual([]);
+    });
+
+    it('AC12: an anonymous request and a made-up cookie have no account', async () => {
+      expect((await auth().readSession(new Headers())).account).toBeUndefined();
+      expect(await who('better-auth.session_token=made-up.value')).toBeUndefined();
+    });
+
+    it('AC12: an expired session has no account and the browser is told to drop its cookie', async () => {
+      const cookie = await signInBrowser('owner@example.com', 1);
+
+      atDays(30, 1000);
+      const expired = await auth().readSession(new Headers({ cookie }));
+
+      expect(expired.account).toBeUndefined();
+      // Every cookie it sets is a clearing one; the session cookie is among them.
+      expect(expired.setCookies.length).toBeGreaterThan(0);
+      for (const setCookie of expired.setCookies) expect(setCookie).toMatch(/Max-Age=0/i);
+      const sessionCookie = `${cookie.split('=')[0]}=`;
+      const clearsSession = expired.setCookies.some((setCookie) =>
+        setCookie.startsWith(sessionCookie),
+      );
+      expect(clearsSession).toBe(true);
+    });
+
+    it('AC12: signing out ends only the session of this browser', async () => {
+      const here = await signInBrowser('owner@example.com', 1);
+      const elsewhere = await signInBrowser('owner@example.com', 2);
+
+      const response = await auth().handler(
+        new Request(`${ORIGIN}/api/auth/sign-out`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', origin: ORIGIN, cookie: here },
+          body: '{}',
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      // The browser is told to drop its cookie.
+      const cleared = response.headers.getSetCookie().find((c) => c.includes('session_token'));
+      expect(cleared).toMatch(/Max-Age=0/i);
+      // This browser is signed out, the other one is not.
+      expect(await who(here)).toBeUndefined();
+      expect(await who(elsewhere)).toBe('owner@example.com');
+    });
+  });
+
   it('AC11: only hashes are stored: no usable link token or code in auth_verifications', async () => {
     await requestCode('owner@example.com', 'en');
     const { code, token } = readEmail();

@@ -55,6 +55,13 @@ export interface CreateAuthOptions {
   productEvents?: ProductEvents;
 }
 
+/** What `Auth.readSession` found in a request. */
+export interface SessionRead {
+  account: SignedInAccount | undefined;
+  /** `Set-Cookie` header values for the response: the renewed sign-in session cookie. */
+  setCookies: string[];
+}
+
 /**
  * What the rest of the code base uses of Better Auth. Only this package imports it
  * (ADR-007), so a different library, or Better Auth's own API, never leaks out.
@@ -65,6 +72,14 @@ export interface Auth {
    * anonymous request, an unknown or expired session.
    */
   findAccount(headers: Headers): Promise<SignedInAccount | undefined>;
+  /**
+   * Like `findAccount`, and also the `Set-Cookie` headers the answer must pass on to the browser.
+   * Using a sign-in session renews it, at most once a day (AC12): the stored expiry moves forward
+   * and the browser gets a new 30-day cookie, which only the response to the browser can carry,
+   * so the route guard (apps/web `proxy.ts`) calls this. An expired or unknown session comes
+   * with the header that clears its cookie.
+   */
+  readSession(headers: Headers): Promise<SessionRead>;
   /** Serves Better Auth's endpoints under `/api/auth/*` (mounted by apps/web). */
   handler(request: Request): Promise<Response>;
 }
@@ -154,6 +169,19 @@ export function createAuth({
     // Nothing leaves the process: no usage reports.
     telemetry: { enabled: false },
   });
+  async function readSession(headers: Headers): Promise<SessionRead> {
+    const { headers: answer, response } = await auth.api.getSession({
+      headers,
+      returnHeaders: true,
+    });
+    const setCookies = answer.getSetCookie();
+    if (!response) return { account: undefined, setCookies };
+    const { id, email, preferredLocale } = response.user;
+    return {
+      account: { id, email, preferredLocale: isLocale(preferredLocale) ? preferredLocale : null },
+      setCookies,
+    };
+  }
   return {
     async handler(request) {
       try {
@@ -163,12 +191,8 @@ export function createAuth({
         await productEvents?.flush();
       }
     },
-    async findAccount(headers) {
-      const session = await auth.api.getSession({ headers });
-      if (!session) return undefined;
-      const { id, email, preferredLocale } = session.user;
-      return { id, email, preferredLocale: isLocale(preferredLocale) ? preferredLocale : null };
-    },
+    readSession,
+    findAccount: async (headers) => (await readSession(headers)).account,
   };
 }
 
