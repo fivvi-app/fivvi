@@ -32,6 +32,8 @@
     <string name="hello_title">Welkom bij Fivvi</string>
     <!-- Line under the heading of the placeholder signed-in home. -->
     <string name="home_description">Hier komt straks je werkruimte.</string>
+    <!-- Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner. -->
+    <string name="home_signed_in_as">Ingelogd als %1$s</string>
     <!-- Heading of the signed-in home, a placeholder until workspaces arrive (F002). -->
     <string name="home_title">Je bent ingelogd</string>
     <string name="not_found_body">We kunnen deze pagina niet vinden. Controleer de link en probeer het opnieuw.</string>
@@ -40,6 +42,8 @@
     <string name="sign_in_change_email">E-mailadres wijzigen</string>
     <!-- Under the heading of the second step. {email} is the address that was entered. Deliberately does not say whether an account exists (no account enumeration). -->
     <string name="sign_in_check_email_body">Als %1$s bij ons bekend is, ontvang je een e-mail met een code en een inloglink.</string>
+    <!-- Native apps only (TM-01): under the heading of the code step, instead of signIn.checkEmailBody. {email} is the address entered. Says the email has a code, without the sign-in link: a link tapped on the phone signs in the phone's browser, not the app. The instruction to enter the code comes from signIn.codeHelp. Deliberately does not say whether an account exists (no account enumeration). -->
+    <string name="sign_in_check_email_body_app">Als %1$s bij ons bekend is, ontvang je een e-mail met een code.</string>
     <!-- Heading of the second step of the sign-in page, shown after the email address was sent. Same wording whether or not the address has an account. -->
     <string name="sign_in_check_email_title">Check je e-mail</string>
     <!-- Helper text under the code field on the second step of the sign-in page. The field is described by it. -->
@@ -74,6 +78,8 @@
     <string name="sign_in_resent">Als %1$s bij ons bekend is, ontvang je een nieuwe e-mail.</string>
     <!-- Button under the email field of the sign-in page. Sends one email with a 6-digit code and a sign-in link. -->
     <string name="sign_in_send_code">Code versturen</string>
+    <!-- Native apps only: notice at the top of the sign-in screen (TM-01) when the app was signed out without the person asking: the server no longer accepts the stored sign-in, or the person signed out elsewhere. Not shown after the person signs out in the app. -->
+    <string name="sign_in_signed_out_notice">Je bent uitgelogd. Log opnieuw in.</string>
     <!-- Button that signs in with the code that was entered. -->
     <string name="sign_in_submit_code">Inloggen</string>
     <!-- Heading of the first step of the sign-in page (TW-10), where the email address is entered, and the browser tab title of the page. -->
