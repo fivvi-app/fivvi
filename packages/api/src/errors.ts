@@ -14,6 +14,12 @@ export const ValidationErrorSchema = z
     description: 'The request did not match the contract. Contains no user-facing text.',
   });
 
+/** The `400` a route with input documents. */
+export const validationErrorResponse = {
+  description: 'The request did not match the contract.',
+  content: { 'application/json': { schema: ValidationErrorSchema } },
+};
+
 export type ValidationError = z.infer<typeof ValidationErrorSchema>;
 
 export function toValidationError(error: z.ZodError): ValidationError {
@@ -39,3 +45,18 @@ export const internalServerErrorResponse = {
     'text/plain': { schema: z.string().openapi({ example: INTERNAL_SERVER_ERROR }) },
   },
 };
+
+export const UnauthorizedSchema = z
+  .object({ code: z.enum(['unauthorized']) })
+  .openapi('Unauthorized', {
+    description: 'The request has no valid sign-in session. Contains no user-facing text.',
+  });
+
+/** The `401` a route documents, with what makes it happen in `description`. */
+export const unauthorizedResponse = (description: string) => ({
+  description,
+  content: { 'application/json': { schema: UnauthorizedSchema } },
+});
+
+/** The body of every `401`: it never says whether a token, a code or an address was wrong. */
+export const UNAUTHORIZED = { code: 'unauthorized' } as const;
