@@ -45,3 +45,33 @@ export async function createAccount(email: string): Promise<void> {
     await client.close();
   }
 }
+
+/** The pool behind the Drizzle client, which the `Database` type doesn't show. */
+interface PoolLike {
+  query(text: string, values: unknown[]): Promise<{ rows: Array<{ expires_at: Date }> }>;
+}
+
+/**
+ * Sets when the sign-in sessions of the account `email` end, on the e2e app server's database, and
+ * returns the expiry each of them has afterwards. Used to age a session without waiting for days.
+ */
+export async function setSessionExpiry(email: string, expiresAt?: Date): Promise<Date[]> {
+  const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
+  try {
+    const pool = (client.db as unknown as { $client: PoolLike }).$client;
+    const owner = '(select id from auth_users where email = $1)';
+    if (expiresAt) {
+      await pool.query(`update auth_sessions set expires_at = $2 where user_id = ${owner}`, [
+        email,
+        expiresAt,
+      ]);
+    }
+    const { rows } = await pool.query(
+      `select expires_at from auth_sessions where user_id = ${owner}`,
+      [email],
+    );
+    return rows.map((row) => row.expires_at);
+  } finally {
+    await client.close();
+  }
+}

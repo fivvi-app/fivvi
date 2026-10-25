@@ -634,6 +634,42 @@
           }
         }
       }
+    },
+    "signOut.error" : {
+      "comment" : "Shown next to the sign-out button when signing out failed (no connection or a server error). The person is still signed in and can try again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signing out didn't work. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uitloggen is niet gelukt. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "signOut.label" : {
+      "comment" : "Button that signs out only the browser (or device) it is pressed on; other browsers stay signed in. On every signed-in page of the web app.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign out"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uitloggen"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

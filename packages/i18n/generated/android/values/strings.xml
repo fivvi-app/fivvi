@@ -66,4 +66,8 @@
     <string name="sign_in_submit_code">Inloggen</string>
     <!-- Heading of the first step of the sign-in page (TW-10), where the email address is entered, and the browser tab title of the page. -->
     <string name="sign_in_title">Inloggen</string>
+    <!-- Shown next to the sign-out button when signing out failed (no connection or a server error). The person is still signed in and can try again. -->
+    <string name="sign_out_error">Uitloggen is niet gelukt. Probeer het opnieuw.</string>
+    <!-- Button that signs out only the browser (or device) it is pressed on; other browsers stay signed in. On every signed-in page of the web app. -->
+    <string name="sign_out_label">Uitloggen</string>
 </resources>

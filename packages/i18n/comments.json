@@ -39,5 +39,7 @@
   "signIn.errors.noConnection": "Shown when the sign-in request could not reach the server.",
   "signIn.errors.generic": "Shown when sign-in failed for any other reason.",
   "home.title": "Heading of the signed-in home, a placeholder until workspaces arrive (F002).",
-  "home.description": "Line under the heading of the placeholder signed-in home."
+  "home.description": "Line under the heading of the placeholder signed-in home.",
+  "signOut.label": "Button that signs out only the browser (or device) it is pressed on; other browsers stay signed in. On every signed-in page of the web app.",
+  "signOut.error": "Shown next to the sign-out button when signing out failed (no connection or a server error). The person is still signed in and can try again."
 }

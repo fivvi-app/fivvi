@@ -9,12 +9,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * The signed-in home: a placeholder until F002 adds workspaces (docs/design/information-architecture.md,
- * the `/login` → home flow). The route guard that keeps anonymous visitors out is the next F001 ticket.
+ * the `/login` → home flow). The route guard (`proxy.ts`) keeps anonymous visitors out, and the
+ * layout of this group adds sign out.
  */
 export default async function HomePage() {
   const t = await getTranslations('home');
   return (
-    <main className="flex min-h-dvh items-center justify-center p-4">
+    <main className="flex flex-1 items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>

@@ -46,6 +46,10 @@
     "title": "You're signed in",
     "description": "Your workspace will appear here soon."
   },
+  "signOut": {
+    "label": "Sign out",
+    "error": "Signing out didn't work. Try again."
+  },
   "email": {
     "layout": {
       "footer": "This email was sent by Fivvi."

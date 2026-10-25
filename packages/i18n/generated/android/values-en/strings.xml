@@ -37,4 +37,6 @@
     <string name="sign_in_send_code">Send code</string>
     <string name="sign_in_submit_code">Sign in</string>
     <string name="sign_in_title">Sign in</string>
+    <string name="sign_out_error">Signing out didn\'t work. Try again.</string>
+    <string name="sign_out_label">Sign out</string>
 </resources>
