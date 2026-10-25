@@ -76,9 +76,9 @@ test.describe('F001 axe check waits for animations (#203)', () => {
         </body>
       </html>`);
 
-    await expect(expectNoAxeViolations(page, 'a page that keeps animating')).rejects.toThrow(
-      /did not settle.*p#restarting.*fade-in/,
-    );
+    await expect(
+      expectNoAxeViolations(page, 'a page that keeps animating', { settleTimeoutMs: 500 }),
+    ).rejects.toThrow(/did not settle within 500 ms.*p#restarting.*fade-in/);
   });
 
   test('AC2: the sign-in button is judged at full opacity, not while it fades in', async ({
@@ -95,7 +95,8 @@ test.describe('F001 axe check waits for animations (#203)', () => {
     await session.send('Animation.setPlaybackRate', { playbackRate: 0.05 });
 
     await page.goto('/login');
-    await expect(page.getByRole('button', { name: copy.signIn.sendCode })).toBeVisible();
+    // Enabled, not just visible: the server-rendered button is disabled and axe skips it.
+    await expect(page.getByRole('button', { name: copy.signIn.sendCode })).toBeEnabled();
 
     await expectNoAxeViolations(page, '/login while the button fades in');
   });
