@@ -7,7 +7,10 @@ import { createAuth } from '@fivvi/auth';
 
 const auth = createAuth({ db, secret, baseURL, sendEmail }); // apps/web/server/auth.ts
 auth.handler(request); // served under /api/auth/* by apps/web/app/api/auth/[...all]/route.ts
-await auth.findAccount(request.headers); // the signed-in account of the cookie, or undefined (GET /api/v1/me)
+await auth.findAccount(request.headers); // the signed-in account of the cookie or bearer token, or undefined (GET /api/v1/me)
+await auth.requestSignIn({ email, locale, headers }); // the apps' sign-in request (POST /api/v1/sign-in/request)
+await auth.exchangeSignInCode({ email, code, headers }); // the code for a bearer token, or undefined (POST /api/v1/sign-in/token)
+await auth.signOutBearer(request.headers); // ends the session of the bearer token (POST /api/v1/sign-out)
 ```
 
 `@fivvi/auth/allowlist` exports the allowlist (`parseSignUpAllowlist`, `closedSignUp`, `SignUpAllowlist`) and imports nothing: code that needs just the allowlist check (the start-up check in `apps/web/instrumentation.ts`) uses it instead of the main entry, which loads Better Auth, the database and the email templates. Keep `src/allowlist.ts` free of imports other than types (#200).
@@ -33,6 +36,14 @@ A person signs in with only their email address. One request creates **one verif
 - **Rate limits (AC10, `src/rate-limit.ts`).** A request is counted per email address (3 in 15 minutes) and per IP address (20 in an hour), whether or not the address has an account. Over a limit, the answer is the same `200 { status: true }`, no email is sent, nothing is replaced, and one line `Sign-in request rate-limited: address` (or `ip`) is logged, never with the address or the IP address. The counts are in `auth_rate_limits` (Postgres, so a restart or a deploy keeps them), keyed by a keyed hash of the address or IP address, in fixed windows that start at the first request. They run as a Better Auth `before` hook ahead of the endpoint. Better Auth's own limiter (production only, in memory, answers 429) is switched off for that path; it stays on for the code entry (3 tries in 10 seconds per IP address, per instance).
 - **Client IP address.** From the `X-Real-IP` header only; IPv6 addresses count per /64 network. Why that header, what a missing or invalid one means (`requireClientIp`) and how tests set it: `ENVIRONMENTS.md §7`.
 - No passwords: an address that is neither an account nor allowed is answered like any other.
+
+## Native apps: the bearer token (spec #168)
+
+The apps call contract routes in `packages/api` (`/v1/sign-in/request`, `/v1/sign-in/token`, `/v1/sign-out`), which call `requestSignIn`, `exchangeSignInCode` and `signOutBearer` here. They run the endpoints above through `auth.api`, so the verification, EM-08, allowlist, rate limits (the `X-Real-IP` of the request is passed on, nothing else of it) and background work are the web's.
+
+- **The token is a sign-in session.** It is the value of the session cookie that Better Auth's `bearer` plugin also hands out (the `set-auth-token` header of the code endpoint); `exchangeSignInCode` returns it and drops the cookie, so the token route sets none. Sending it as `Authorization: Bearer <token>` makes the plugin act as if the cookie were sent, so the session rules are the web's: 30 days after the last use, renewed on use, no refresh token. The plugin also accepts the token on Better Auth's own endpoints, which stay outside the contract.
+- **A bearer request is judged by its token alone** (`src/bearer.ts`). With an `Authorization` header, `findAccount` and `signOutBearer` ignore the request's cookies, so an invalid token is anonymous, never the cookie next to it. Without one, the cookie works as before.
+- **Sign out** ends the one session of the token. Other tokens and cookies of the account stay.
 
 Not here yet (spec #128, later tickets): the route guard and sign out (#137) and product events. The code step of the sign-in page (`/login`, `apps/web/app/login`) calls the two `code` endpoints above with `fetch`, and the confirm step (`/login/confirm`, `apps/web/app/login/confirm`) the two `link` endpoints; both word a failure from the error code, never from the English message.
 

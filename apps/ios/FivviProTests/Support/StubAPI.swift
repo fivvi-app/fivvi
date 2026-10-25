@@ -40,4 +40,18 @@ actor StubAPI: APIProtocol {
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
         fatalError("The hello screen doesn't call getMe")
     }
+
+    func requestSignIn(_ input: Operations.RequestSignIn.Input) async throws -> Operations.RequestSignIn.Output {
+        fatalError("The hello screen doesn't call requestSignIn")
+    }
+
+    func exchangeSignInCode(
+        _ input: Operations.ExchangeSignInCode.Input
+    ) async throws -> Operations.ExchangeSignInCode.Output {
+        fatalError("The hello screen doesn't call exchangeSignInCode")
+    }
+
+    func signOut(_ input: Operations.SignOut.Input) async throws -> Operations.SignOut.Output {
+        fatalError("The hello screen doesn't call signOut")
+    }
 }

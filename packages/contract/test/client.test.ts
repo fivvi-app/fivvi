@@ -91,3 +91,82 @@ describe('F001 TypeScript client: GET /v1/me', () => {
     expect(error).toEqual({ code: 'unauthorized' });
   });
 });
+
+describe('F001N TypeScript client: native sign-in', () => {
+  const account = {
+    id: '0197c0de-0000-7000-8000-000000000001',
+    email: 'owner@example.com',
+    preferredLocale: null,
+  } as const;
+
+  // A fake sign-in whose token is the only way in: the dependencies the routes call.
+  function signInClient() {
+    const requests: unknown[] = [];
+    const handle = createApiHandler({
+      ...NO_DEPENDENCIES,
+      requestSignIn: ({ email, locale }) => {
+        requests.push({ email, locale });
+        return Promise.resolve();
+      },
+      exchangeSignInCode: async ({ code }) => (code === '123456' ? 'token-1' : undefined),
+      findSignedInAccount: async (headers) =>
+        headers.get('authorization') === 'Bearer token-1' ? account : undefined,
+      signOutBearer: async (headers) => headers.get('authorization') === 'Bearer token-1',
+    });
+    const api = createApiClient({
+      baseUrl: 'http://localhost/api',
+      fetch: async (request) => await handle(request),
+    });
+    return { api, requests };
+  }
+
+  it('requests a sign-in email with the app language and gets an empty 202', async () => {
+    const { api, requests } = signInClient();
+
+    const { response, error } = await api.POST('/v1/sign-in/request', {
+      body: { email: 'owner@example.com', locale: 'nl-NL' },
+    });
+
+    expect(response.status).toBe(202);
+    expect(error).toBeUndefined();
+    expect(requests).toEqual([{ email: 'owner@example.com', locale: 'nl-NL' }]);
+  });
+
+  it('exchanges the code for a token, calls /v1/me with it, signs out', async () => {
+    const { api } = signInClient();
+
+    const exchanged = await api.POST('/v1/sign-in/token', {
+      body: { email: 'owner@example.com', code: '123456' },
+    });
+    expect(exchanged.data).toEqual({ token: 'token-1' });
+
+    const headers = { Authorization: `Bearer ${exchanged.data?.token}` };
+    expect((await api.GET('/v1/me', { headers })).data).toEqual(account);
+    expect((await api.POST('/v1/sign-out', { headers })).response.status).toBe(204);
+  });
+
+  it('returns the typed neutral 401 for a wrong code and a missing token', async () => {
+    const { api } = signInClient();
+
+    const wrong = await api.POST('/v1/sign-in/token', {
+      body: { email: 'owner@example.com', code: '654321' },
+    });
+    expect(wrong.response.status).toBe(401);
+    expect(wrong.error).toEqual({ code: 'unauthorized' });
+    expect((await api.POST('/v1/sign-out')).response.status).toBe(401);
+  });
+
+  it('returns the typed validation error for a code that is not 6 digits', async () => {
+    const { api } = signInClient();
+
+    const { error, response } = await api.POST('/v1/sign-in/token', {
+      body: { email: 'owner@example.com', code: '12345' },
+    });
+
+    expect(response.status).toBe(400);
+    expect(error).toEqual({
+      code: 'validation_failed',
+      issues: [{ path: 'code', code: 'invalid_format' }],
+    });
+  });
+});

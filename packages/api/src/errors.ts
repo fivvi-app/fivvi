@@ -39,3 +39,12 @@ export const internalServerErrorResponse = {
     'text/plain': { schema: z.string().openapi({ example: INTERNAL_SERVER_ERROR }) },
   },
 };
+
+export const UnauthorizedSchema = z
+  .object({ code: z.enum(['unauthorized']) })
+  .openapi('Unauthorized', {
+    description: 'The request has no valid sign-in session. Contains no user-facing text.',
+  });
+
+/** The body of every `401`: it never says whether a token, a code or an address was wrong. */
+export const UNAUTHORIZED = { code: 'unauthorized' } as const;

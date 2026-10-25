@@ -1,4 +1,5 @@
 import type { SignedInAccount, SystemGreetingView } from '@fivvi/database';
+import type { Locale } from '@fivvi/i18n';
 import {
   createErrorReporter,
   createProductEvents,
@@ -17,6 +18,20 @@ export interface ApiDependencies {
    * anonymous or the session is unknown or expired (F001). apps/web wires `@fivvi/auth`.
    */
   findSignedInAccount(headers: Headers): Promise<SignedInAccount | undefined>;
+  /**
+   * An app's request for a sign-in email (spec #168): the web's request, with its verification,
+   * email, allowlist and rate limits. The same outcome for every address. `headers` are the
+   * request's, for the client IP and language.
+   */
+  requestSignIn(input: { email: string; locale: Locale; headers: Headers }): Promise<void>;
+  /** Exchanges the emailed code for a bearer token; `undefined` for every failure. */
+  exchangeSignInCode(input: {
+    email: string;
+    code: string;
+    headers: Headers;
+  }): Promise<string | undefined>;
+  /** Ends the sign-in session of the request's bearer token; `false` without a valid one. */
+  signOutBearer(headers: Headers): Promise<boolean>;
   /** Reports unhandled route errors to Sentry (E009). Off without a DSN. */
   errorReporter: ErrorReporter;
   /** Sends product events to PostHog EU (E009); flushed after every request. Off without a key. */
@@ -34,6 +49,9 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   findSystemGreeting: () => Promise.reject(new Error('No database configured.')),
   // Nobody is signed in.
   findSignedInAccount: () => Promise.resolve(undefined),
+  requestSignIn: () => Promise.resolve(),
+  exchangeSignInCode: () => Promise.resolve(undefined),
+  signOutBearer: () => Promise.resolve(false),
   errorReporter,
   productEvents: createProductEvents({ env: {}, errorReporter }),
 };

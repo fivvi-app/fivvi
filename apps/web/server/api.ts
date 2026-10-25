@@ -14,8 +14,12 @@ import { errorReporter } from './error-reporter';
 export const apiHandler = createApiHandler({
   pingDatabase: () => pingDatabase(database()),
   findSystemGreeting: (slug) => findSystemGreeting(database(), slug),
-  // The account of the sign-in session cookie (F001).
+  // The account of the sign-in session cookie or bearer token (F001).
   findSignedInAccount: (headers) => auth().findAccount(headers),
+  // The native apps' sign-in routes, over the same sign-in as the web (spec #168).
+  requestSignIn: (input) => auth().requestSignIn(input),
+  exchangeSignInCode: (input) => auth().exchangeSignInCode(input),
+  signOutBearer: (headers) => auth().signOutBearer(headers),
   errorReporter,
   // Sends product events to PostHog, at POSTHOG_HOST, when POSTHOG_KEY is set (E009).
   productEvents: createProductEvents({ errorReporter }),

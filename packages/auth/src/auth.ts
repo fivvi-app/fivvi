@@ -1,10 +1,13 @@
 import type { Database, SignedInAccount } from '@fivvi/database';
 import { authIdentities, authSessions, authUsers, authVerifications } from '@fivvi/database';
 import { EmailSendError, type SendEmail } from '@fivvi/email';
-import { isLocale } from '@fivvi/i18n';
+import { isLocale, type Locale } from '@fivvi/i18n';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { APIError } from 'better-auth/api';
+import { bearer } from 'better-auth/plugins';
 import { closedSignUp, type SignUpAllowlist } from './allowlist.ts';
+import { bearerOnly, forwardedHeaders } from './bearer.ts';
 import { clientIpOptions, defaultRequireClientIp, signInRateLimits } from './rate-limit.ts';
 import { type Clock, REQUEST_PATH, signInWithEmail, systemClock } from './sign-in-plugin.ts';
 
@@ -56,9 +59,31 @@ export interface CreateAuthOptions {
 export interface Auth {
   /**
    * The account of the sign-in session in the request's cookie, or `undefined` for an
-   * anonymous request, an unknown or expired session.
+   * anonymous request, an unknown or expired session. A request with an `Authorization` header
+   * is a bearer request: only its token counts, never a cookie next to it (spec #168).
    */
   findAccount(headers: Headers): Promise<SignedInAccount | undefined>;
+  /**
+   * The sign-in request of an app (spec #168): the same request as the web's, with the same
+   * verification, email, allowlist and rate limits. It answers the same for every address, and
+   * the email follows after the answer.
+   */
+  requestSignIn(input: { email: string; locale: Locale; headers: Headers }): Promise<void>;
+  /**
+   * Exchanges the emailed code for a bearer token: a sign-in session of the account, which the
+   * web's cookie would hold too. `undefined` for every failure (wrong, used, replaced, expired
+   * or killed code), so nothing tells which. It sets no cookie.
+   */
+  exchangeSignInCode(input: {
+    email: string;
+    code: string;
+    headers: Headers;
+  }): Promise<string | undefined>;
+  /**
+   * Ends the sign-in session of the bearer token in the request, and only that one. `false`
+   * when there is no valid bearer token.
+   */
+  signOutBearer(headers: Headers): Promise<boolean>;
   /** Serves Better Auth's endpoints under `/api/auth/*` (mounted by apps/web). */
   handler(request: Request): Promise<Response>;
 }
@@ -96,6 +121,8 @@ export function createAuth({
       },
     }),
     plugins: [
+      // Lets an app send its sign-in session as `Authorization: Bearer` (spec #168).
+      bearer(),
       // First, so the limits hold before the endpoint does anything (AC10), including the
       // background work that follows its answer.
       signInRateLimits({ db, secret, clock, log, requireClientIp }),
@@ -148,8 +175,34 @@ export function createAuth({
   });
   return {
     handler: (request) => auth.handler(request),
+    async requestSignIn({ email, locale, headers }) {
+      await auth.api.requestSignInCode({
+        body: { email, locale },
+        headers: forwardedHeaders(headers),
+      });
+    },
+    async exchangeSignInCode({ email, code, headers }) {
+      try {
+        const { headers: answer } = await auth.api.verifySignInCode({
+          body: { email, code },
+          headers: forwardedHeaders(headers),
+          returnHeaders: true,
+        });
+        // The session cookie of the answer is dropped: the app holds the token.
+        return answer.get('set-auth-token') ?? undefined;
+      } catch (error) {
+        if (error instanceof APIError && error.statusCode === 401) return undefined;
+        throw error;
+      }
+    },
+    async signOutBearer(headers) {
+      const bearerHeaders = bearerOnly(headers);
+      if (!bearerHeaders || !(await auth.api.getSession({ headers: bearerHeaders }))) return false;
+      await auth.api.signOut({ headers: bearerHeaders });
+      return true;
+    },
     async findAccount(headers) {
-      const session = await auth.api.getSession({ headers });
+      const session = await auth.api.getSession({ headers: bearerOnly(headers) ?? headers });
       if (!session) return undefined;
       const { id, email, preferredLocale } = session.user;
       return { id, email, preferredLocale: isLocale(preferredLocale) ? preferredLocale : null };
