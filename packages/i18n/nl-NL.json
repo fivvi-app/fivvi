@@ -35,6 +35,12 @@
     "resend": "Code opnieuw versturen",
     "resent": "Als {email} bij ons bekend is, ontvang je een nieuwe e-mail.",
     "changeEmail": "E-mailadres wijzigen",
+    "confirmChecking": "Inloglink controleren…",
+    "confirmTitle": "Inloggen als {email}?",
+    "confirmSubmit": "Inloggen",
+    "linkInvalidTitle": "Deze inloglink werkt niet meer",
+    "linkInvalidBody": "Vraag een nieuwe e-mail aan om in te loggen.",
+    "linkInvalidRequest": "Nieuwe e-mail aanvragen",
     "errors": {
       "invalidEmail": "Dit e-mailadres klopt niet. Controleer het en probeer het opnieuw.",
       "invalidOrExpiredCode": "Deze code klopt niet of is verlopen. Controleer de code in de e-mail of vraag een nieuwe code aan.",

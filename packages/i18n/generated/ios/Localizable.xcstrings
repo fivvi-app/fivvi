@@ -455,6 +455,60 @@
         }
       }
     },
+    "signIn.confirmChecking" : {
+      "comment" : "Shown for a moment on the confirm step (TW-10) while the page checks the sign-in link from the email. Checking uses nothing up.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking the sign-in link…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inloglink controleren…"
+          }
+        }
+      }
+    },
+    "signIn.confirmSubmit" : {
+      "comment" : "The one button of the confirm step. Pressing it uses up the link and signs this browser in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inloggen"
+          }
+        }
+      }
+    },
+    "signIn.confirmTitle" : {
+      "comment" : "Heading of the confirm step, where the sign-in link from the email lands. {email} is the masked address the link signs in, e.g. j***@example.com.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in as %1$@?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inloggen als %1$@?"
+          }
+        }
+      }
+    },
     "signIn.emailLabel" : {
       "comment" : "Label of the email field on the sign-in page.",
       "extractionState" : "manual",
@@ -541,6 +595,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Geen verbinding. Controleer je internet en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "signIn.linkInvalidBody" : {
+      "comment" : "Line under signIn.linkInvalidTitle, pointing to the button that requests a new email.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request a new email to sign in."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vraag een nieuwe e-mail aan om in te loggen."
+          }
+        }
+      }
+    },
+    "signIn.linkInvalidRequest" : {
+      "comment" : "Button on the confirm step for a link that no longer works. Goes to the sign-in page to request a new email.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request a new email"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieuwe e-mail aanvragen"
+          }
+        }
+      }
+    },
+    "signIn.linkInvalidTitle" : {
+      "comment" : "Heading of the confirm step when the link no longer works. One message for an expired, used or replaced link: it never says which.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This sign-in link no longer works"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze inloglink werkt niet meer"
           }
         }
       }

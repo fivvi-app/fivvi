@@ -217,4 +217,120 @@ test.describe('F001 sign in on TW-10', () => {
     await waitForEmail(allowed);
     expect(await emailsTo(stranger)).toHaveLength(0);
   });
+
+  test('AC3: link opens the confirm step and signs in on confirm', async ({
+    page,
+    appLocale,
+    messages: copy,
+  }) => {
+    const address = newAddress('owner');
+    await createAccount(address);
+    await page.goto('/login');
+    await page.getByLabel(copy.signIn.emailLabel).fill(address);
+    await page.getByRole('button', { name: copy.signIn.sendCode }).click();
+    const link = signInLink(await waitForEmail(address));
+    const masked = `${address[0]}***@${address.split('@')[1]}`;
+    const signedInAs = async () => {
+      const session = await page.request.get('/api/auth/get-session');
+      return ((await session.json()) as { user: { email: string } } | null)?.user.email;
+    };
+
+    // An email scanner opens the link first: it gets the page and uses nothing up.
+    expect((await page.request.get(link)).ok()).toBe(true);
+    await page.goto(link);
+
+    // The confirm step shows the masked address and one button; the whole address is not on it.
+    await expect(
+      page.getByRole('heading', {
+        level: 1,
+        name: copy.signIn.confirmTitle.replace('{email}', masked),
+      }),
+    ).toBeVisible();
+    await expect(page.getByRole('button')).toHaveCount(1);
+    expect(await page.content()).not.toContain(address);
+    await expectNoAxeViolations(page, `the confirm step in ${appLocale}`);
+    // Opening it (twice) signed nobody in and used nothing up.
+    await page.reload();
+    await expect(page.getByRole('button', { name: copy.signIn.confirmSubmit })).toBeVisible();
+    expect(await signedInAs()).toBeUndefined();
+
+    await page.getByRole('button', { name: copy.signIn.confirmSubmit }).click();
+
+    // The browser that opened the link is signed in, as the account of the address.
+    await expect(page).toHaveURL(/\/home$/);
+    await expect(page.getByRole('heading', { level: 1, name: copy.home.title })).toBeVisible();
+    await expect(page).toHaveTitle(copy.home.title);
+    expect(await signedInAs()).toBe(address);
+    expect(await emailsTo(address)).toHaveLength(1);
+  });
+
+  test('AC9 (link): an allowed address without an account signs in with the link and gets its account in the page language', async ({
+    page,
+    appLocale,
+    messages: copy,
+  }) => {
+    const address = newAllowedAddress('pilot');
+    await page.goto('/login');
+    await page.getByLabel(copy.signIn.emailLabel).fill(address);
+    await page.getByRole('button', { name: copy.signIn.sendCode }).click();
+    const link = signInLink(await waitForEmail(address));
+
+    await page.goto(link);
+    await page.getByRole('button', { name: copy.signIn.confirmSubmit }).click();
+
+    await expect(page).toHaveURL(/\/home$/);
+    await expect(page).toHaveTitle(copy.home.title);
+    const me = await page.request.get('/api/v1/me');
+    expect(await me.json()).toMatchObject({ email: address, preferredLocale: appLocale });
+  });
+
+  test('AC7: a used link and a wrong code show the neutral messages', async ({
+    page,
+    appLocale,
+    messages: copy,
+  }) => {
+    const address = newAddress('owner');
+    await createAccount(address);
+    await page.goto('/login');
+    await page.getByLabel(copy.signIn.emailLabel).fill(address);
+    await page.getByRole('button', { name: copy.signIn.sendCode }).click();
+    const email = await waitForEmail(address);
+    const link = signInLink(email);
+
+    // A wrong code: the code is incorrect or has expired, nothing more.
+    await page
+      .getByLabel(copy.signIn.codeLabel)
+      .fill(signInCode(email) === '000000' ? '111111' : '000000');
+    await page.getByRole('button', { name: copy.signIn.submitCode }).click();
+    await expect(
+      page.getByRole('alert').filter({ hasText: copy.signIn.errors.invalidOrExpiredCode }),
+    ).toBeVisible();
+
+    // The link signs in once ...
+    await page.goto(link);
+    await page.getByRole('button', { name: copy.signIn.confirmSubmit }).click();
+    await expect(page).toHaveURL(/\/home$/);
+
+    // ... and when it is opened again (a second tab) it no longer works.
+    const second = await page.context().newPage();
+    await second.goto(link);
+    await expect(
+      second.getByRole('heading', { level: 1, name: copy.signIn.linkInvalidTitle }),
+    ).toBeVisible();
+    await expect(second.getByText(copy.signIn.linkInvalidBody)).toBeVisible();
+    await expectNoAxeViolations(second, `the used link in ${appLocale}`);
+
+    // A link that never existed, or has no token, looks exactly the same.
+    for (const path of ['/login/confirm?token=never-issued', '/login/confirm']) {
+      await second.goto(path);
+      await expect(
+        second.getByRole('heading', { level: 1, name: copy.signIn.linkInvalidTitle }),
+      ).toBeVisible();
+    }
+
+    // The button goes to the sign-in page, where a new email is requested.
+    await second.getByRole('link', { name: copy.signIn.linkInvalidRequest }).click();
+    await expect(second).toHaveURL(/\/login$/);
+    await expect(second.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
+  });
 });
