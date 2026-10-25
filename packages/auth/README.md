@@ -5,7 +5,7 @@ Sign-in for the web and, later, the native apps (ADR-007, F001): [Better Auth](h
 ```ts
 import { createAuth } from '@fivvi/auth';
 
-const auth = createAuth({ db, secret, baseURL, sendEmail }); // apps/web/server/auth.ts
+const auth = createAuth({ db, secret, baseURL, sendEmail, productEvents }); // apps/web/server/auth.ts
 auth.handler(request); // served under /api/auth/* by apps/web/app/api/auth/[...all]/route.ts
 await auth.findAccount(request.headers); // the signed-in account of the cookie, or undefined (GET /api/v1/me)
 ```

@@ -51,7 +51,7 @@ export interface SignInWithEmailOptions {
    * Records `sign_in_requested` and `signed_in` (OBSERVABILITY.md §4.3), without the address, the
    * code, the link, the IP address or, before sign-in, any account ID. Nothing when left out.
    */
-  productEvents?: ProductEvents | undefined;
+  productEvents?: ProductEvents;
 }
 
 const PLUGIN_ID = 'sign-in-with-email';

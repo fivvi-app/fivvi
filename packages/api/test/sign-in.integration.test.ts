@@ -1618,7 +1618,6 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(requested?.distinct_id).not.toBe(account?.id);
       expect(JSON.stringify(requested)).not.toContain(account?.id ?? '?');
       expectNoPersonalData([code, token], sent(), ...lines);
-      expect(lines.join('\n')).not.toContain(code);
     });
 
     it('AC16: signing in with the link records the same events without personal data', async () => {
@@ -1670,6 +1669,30 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(unknown).toMatchObject({ event: 'sign_in_requested', properties: {} });
       expectNoPersonalData([], sent());
       expect(sent()).not.toContain('stranger');
+    });
+
+    it('AC16: a rate-limited request records no sign_in_requested, over the address limit or the IP limit', async () => {
+      const from = (ip: string): PostOptions => ({
+        headers: { ...CLIENT_HEADERS, 'x-real-ip': ip },
+        server: options.server,
+      });
+
+      // Over the address limit (3 in 15 minutes), from three IP addresses.
+      for (const ip of ['203.0.113.10', '203.0.113.11', '203.0.113.12']) {
+        await requestCode('owner@example.com', 'en', from(ip));
+      }
+      expect(posthog.events).toHaveLength(3);
+      await requestCode('owner@example.com', 'en', from('203.0.113.13'));
+      expect(posthog.events).toHaveLength(3);
+
+      // Over the IP limit (20 in an hour): 20 requests, each for an address of its own.
+      posthog.events.length = 0;
+      for (let i = 0; i < 20; i++) {
+        await requestCode(`nobody${i}@example.com`, 'en', from('203.0.113.20'));
+      }
+      expect(posthog.events).toHaveLength(20);
+      await requestCode('nobody20@example.com', 'en', from('203.0.113.20'));
+      expect(posthog.events).toHaveLength(20);
     });
 
     it('AC16: a wrong code and an unknown link record no signed_in', async () => {
