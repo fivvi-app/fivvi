@@ -20,7 +20,7 @@ export const ADDRESS_LIMIT: RateLimitRule = { max: 3, windowMinutes: 15 };
 export const IP_LIMIT: RateLimitRule = { max: 20, windowMinutes: 60 };
 
 /**
- * Code exchanges of the apps (`POST /v1/sign-in/token`) per IP address: 30 in 15 minutes. The web's
+ * Code exchanges of the apps (`POST /v1/sign-in/token`) per IP address. The web's
  * code step has Better Auth's own per-IP limiter, which only the HTTP router runs; the apps call
  * the endpoint through `auth.api`, which skips it, so this is the app's per-IP limit. It is
  * above what typing a code wrong a few times needs, and an address already dies after 5 wrong
@@ -115,8 +115,7 @@ export function signInRateLimits({
   log,
   requireClientIp,
 }: SignInRateLimitOptions) {
-  const countAndCheck = (name: LimitName, value: string, rule: RateLimitRule, now: Date) =>
-    isOverLimit({ db, secret }, name, value, rule, now);
+  const store = { db, secret };
 
   return {
     id: 'sign-in-rate-limits',
@@ -130,12 +129,15 @@ export function signInRateLimits({
 
             const body = ctx.body as { email?: unknown } | undefined;
             const email = emailSchema.safeParse(body?.email);
-            if (email.success && (await countAndCheck('address', email.data, ADDRESS_LIMIT, now))) {
+            if (
+              email.success &&
+              (await isOverLimit(store, 'address', email.data, ADDRESS_LIMIT, now))
+            ) {
               limited.push('address');
             }
 
             const ip = clientIp(ctx.headers, requireClientIp);
-            if (ip && (await countAndCheck('ip', ip, IP_LIMIT, now))) limited.push('ip');
+            if (ip && (await isOverLimit(store, 'ip', ip, IP_LIMIT, now))) limited.push('ip');
 
             await deleteExpiredRateLimits(db, now);
             if (limited.length === 0) return;

@@ -3,10 +3,10 @@ import type { ApiDependencies } from '../dependencies.ts';
 import {
   internalServerErrorResponse,
   UNAUTHORIZED,
-  UnauthorizedSchema,
+  unauthorizedResponse,
   validationErrorResponse,
 } from '../errors.ts';
-import { LocaleSchema } from './hello.ts';
+import { LocaleSchema } from '../schemas.ts';
 
 // The sign-in routes of the native apps (spec #168, ADR-004, ADR-007). Each is a thin layer over
 // `packages/auth`, which runs the web's sign-in: the same verification, EM-08 email, allowlist
@@ -42,11 +42,6 @@ export const SignInTokenResponseSchema = z
     }),
   })
   .openapi('SignInTokenResponse');
-
-const unauthorized = (description: string) => ({
-  description,
-  content: { 'application/json': { schema: UnauthorizedSchema } },
-});
 
 const requestSignInRoute = createRoute({
   method: 'post',
@@ -87,7 +82,7 @@ const exchangeSignInCodeRoute = createRoute({
       content: { 'application/json': { schema: SignInTokenResponseSchema } },
     },
     400: validationErrorResponse,
-    401: unauthorized('The code is wrong, used, replaced or expired. Nothing says which.'),
+    401: unauthorizedResponse('The code is wrong, used, replaced or expired. Nothing says which.'),
     500: internalServerErrorResponse,
   },
 });
@@ -104,7 +99,7 @@ const signOutRoute = createRoute({
   security: [{ bearerAuth: [] }],
   responses: {
     204: { description: 'The sign-in session has ended. The body is empty.' },
-    401: unauthorized('No valid bearer token.'),
+    401: unauthorizedResponse('No valid bearer token.'),
     500: internalServerErrorResponse,
   },
 });

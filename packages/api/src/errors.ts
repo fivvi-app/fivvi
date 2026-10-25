@@ -52,5 +52,11 @@ export const UnauthorizedSchema = z
     description: 'The request has no valid sign-in session. Contains no user-facing text.',
   });
 
+/** The `401` a route documents, with what makes it happen in `description`. */
+export const unauthorizedResponse = (description: string) => ({
+  description,
+  content: { 'application/json': { schema: UnauthorizedSchema } },
+});
+
 /** The body of every `401`: it never says whether a token, a code or an address was wrong. */
 export const UNAUTHORIZED = { code: 'unauthorized' } as const;

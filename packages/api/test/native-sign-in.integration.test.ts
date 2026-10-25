@@ -82,6 +82,15 @@ describe('F001N native sign-in through the API', () => {
     return /\b(\d{6})\b/.exec(transport.sent.at(-1)?.text ?? '')?.[1] ?? '';
   };
 
+  /** The token of the link in the last email sent, as the confirm page would read it. */
+  const linkTokenOf = () => {
+    const link = transport.sent.at(-1)?.links.find((href) => href.includes('/login/confirm'));
+    return new URL(link ?? '', ORIGIN).searchParams.get('token');
+  };
+
+  /** Moves the frozen clock to `ms` after `T0`. */
+  const passTime = (ms: number) => vi.setSystemTime(new Date(new Date(T0).getTime() + ms));
+
   /** Signs `email` in through the native routes and returns the bearer token. */
   async function signInWithToken(email = 'owner@example.com'): Promise<string> {
     transport.clear();
@@ -165,6 +174,20 @@ describe('F001N native sign-in through the API', () => {
       expect(codeOf()).toMatch(/^\d{6}$/);
       expect(email?.links.some((href) => href.includes('/login/confirm?token='))).toBe(true);
     });
+
+    it('AC3: code for a token sets no cookie', async () => {
+      await requestSignIn('owner@example.com', locale);
+
+      const response = await exchange('owner@example.com', codeOf());
+
+      expect(response.status).toBe(200);
+      expect(response.headers.getSetCookie()).toEqual([]);
+      expect(response.headers.get('set-cookie')).toBeNull();
+      const body = (await response.json()) as { token: string };
+      expect(Object.keys(body)).toEqual(['token']);
+      expect(body.token).toEqual(expect.any(String));
+      expect(body.token.length).toBeGreaterThan(20);
+    });
   });
 
   it('AC2: an address without an account and a request over the limit get the same 202 and no email', async () => {
@@ -198,20 +221,6 @@ describe('F001N native sign-in through the API', () => {
     expect(transport.sent).toEqual([]);
   });
 
-  it('AC3: code for a token sets no cookie', async () => {
-    await requestSignIn('owner@example.com');
-
-    const response = await exchange('owner@example.com', codeOf());
-
-    expect(response.status).toBe(200);
-    expect(response.headers.getSetCookie()).toEqual([]);
-    expect(response.headers.get('set-cookie')).toBeNull();
-    const body = (await response.json()) as { token: string };
-    expect(Object.keys(body)).toEqual(['token']);
-    expect(body.token).toEqual(expect.any(String));
-    expect(body.token.length).toBeGreaterThan(20);
-  });
-
   it('AC3: the token is a sign-in session of the account', async () => {
     freezeSystemTime(T0);
     const token = await signInWithToken();
@@ -225,7 +234,7 @@ describe('F001N native sign-in through the API', () => {
     expect(token).not.toContain(' ');
   });
 
-  it('AC3: every failure is the same neutral 401, and sets no cookie', async () => {
+  it('AC6: every failure is the same neutral 401, and sets no cookie', async () => {
     await requestSignIn('owner@example.com');
     const code = codeOf();
     const wrong = code === '000000' ? '000001' : '000000';
@@ -252,19 +261,10 @@ describe('F001N native sign-in through the API', () => {
     }
   });
 
-  it('AC3: the code is the web verification: using the link makes the app code fail, and back', async () => {
-    const { auth } = api();
+  it('AC5: the code is the web verification: using the link makes the app code fail, and back', async () => {
     await requestSignIn('owner@example.com');
     const code = codeOf();
-    const link = transport.sent.at(-1)?.links.find((href) => href.includes('/login/confirm'));
-    const token = new URL(link ?? '', ORIGIN).searchParams.get('token');
-    const confirm = await auth.handler(
-      new Request(`${ORIGIN}/api/auth/sign-in/link/confirm`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', origin: ORIGIN },
-        body: JSON.stringify({ token }),
-      }),
-    );
+    const confirm = await webPost('/sign-in/link/confirm', { token: linkTokenOf() });
     expect(confirm.status).toBe(200);
 
     expect((await exchange('owner@example.com', code)).status).toBe(401);
@@ -273,21 +273,13 @@ describe('F001N native sign-in through the API', () => {
     transport.clear();
     await requestSignIn('owner@example.com');
     const second = codeOf();
-    const secondLink = transport.sent.at(-1)?.links.find((href) => href.includes('/login/confirm'));
+    const secondToken = linkTokenOf();
     expect((await exchange('owner@example.com', second)).status).toBe(200);
-    const again = await auth.handler(
-      new Request(`${ORIGIN}/api/auth/sign-in/link/confirm`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', origin: ORIGIN },
-        body: JSON.stringify({
-          token: new URL(secondLink ?? '', ORIGIN).searchParams.get('token'),
-        }),
-      }),
-    );
+    const again = await webPost('/sign-in/link/confirm', { token: secondToken });
     expect(again.status).toBe(401);
   });
 
-  it('AC3 (AC7): the first sign-in of an allowed address creates the account in the interface language', async () => {
+  it('AC7: the first sign-in of an allowed address creates the account in the interface language', async () => {
     allowlist = parseSignUpAllowlist('newcomer@example.com');
     await requestSignIn('newcomer@example.com', 'nl-NL');
 
@@ -389,7 +381,7 @@ describe('F001N native sign-in through the API', () => {
   it('AC8: the token lasts 30 days after its last use and each use renews it', async () => {
     freezeSystemTime(T0);
     const token = await signInWithToken();
-    const at = (days: number) => vi.setSystemTime(new Date(new Date(T0).getTime() + days * DAY_MS));
+    const at = (days: number) => passTime(days * DAY_MS);
 
     at(20);
     expect((await me(bearer(token))).status).toBe(200);
@@ -404,7 +396,7 @@ describe('F001N native sign-in through the API', () => {
     freezeSystemTime(T0);
     const token = await signInWithToken();
 
-    vi.setSystemTime(new Date(new Date(T0).getTime() + 31 * DAY_MS));
+    passTime(31 * DAY_MS);
 
     expect((await me(bearer(token))).status).toBe(401);
   });
@@ -464,10 +456,8 @@ describe('F001N native sign-in through the API', () => {
 
     it('the link step of the confirm page sets the cookie and nothing script can read', async () => {
       await requestSignIn('owner@example.com');
-      const link = transport.sent.at(-1)?.links.find((href) => href.includes('/login/confirm'));
-      const token = new URL(link ?? '', ORIGIN).searchParams.get('token');
 
-      const response = await webPost('/sign-in/link/confirm', { token });
+      const response = await webPost('/sign-in/link/confirm', { token: linkTokenOf() });
 
       expect(response.status).toBe(200);
       expect(response.headers.getSetCookie().join('; ')).toContain('HttpOnly');
@@ -507,7 +497,7 @@ describe('F001N native sign-in through the API', () => {
     });
   });
 
-  describe('AC10 (rate limit): the token route counts per client IP', () => {
+  describe('the token route counts per client IP', () => {
     const IP = { 'x-real-ip': '203.0.113.9' };
 
     it('answers the neutral 401 over the limit, even for the right code, and keeps the code', async () => {
@@ -537,7 +527,7 @@ describe('F001N native sign-in through the API', () => {
       await requestSignIn('owner@example.com');
       for (let i = 0; i < 30; i++) await exchange(`nobody${i}@example.com`, '000000', IP);
       // The code lasts 15 minutes, as long as the window: ask again once the window is over.
-      vi.setSystemTime(new Date(new Date(T0).getTime() + 16 * 60 * 1000));
+      passTime(16 * 60 * 1000);
       transport.clear();
       await requestSignIn('owner@example.com');
 

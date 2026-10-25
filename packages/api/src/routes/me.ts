@@ -3,7 +3,7 @@ import { locales } from '@fivvi/i18n';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import type { MiddlewareHandler } from 'hono';
 import type { ApiDependencies } from '../dependencies.ts';
-import { internalServerErrorResponse, UNAUTHORIZED, UnauthorizedSchema } from '../errors.ts';
+import { internalServerErrorResponse, UNAUTHORIZED, unauthorizedResponse } from '../errors.ts';
 
 /** The context of a route behind `resolveSignedInAccount`; no other route has an `account`. */
 export interface SignedInEnv {
@@ -54,10 +54,7 @@ const meRoute = createRoute({
       description: 'The account.',
       content: { 'application/json': { schema: MeResponseSchema } },
     },
-    401: {
-      description: 'No valid sign-in session or bearer token.',
-      content: { 'application/json': { schema: UnauthorizedSchema } },
-    },
+    401: unauthorizedResponse('No valid sign-in session or bearer token.'),
     500: internalServerErrorResponse,
   },
 });

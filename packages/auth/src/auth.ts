@@ -9,6 +9,7 @@ import { bearer } from 'better-auth/plugins';
 import { closedSignUp, type SignUpAllowlist } from './allowlist.ts';
 import { bearerOnly, withoutAuthorization, withoutAuthToken } from './bearer.ts';
 import {
+  CLIENT_IP_HEADER,
   clientIpOptions,
   defaultRequireClientIp,
   signInRateLimits,
@@ -265,7 +266,7 @@ function logFailure(error: unknown): void {
  */
 function forwardedHeaders(headers: Headers): Headers {
   const forwarded = new Headers();
-  for (const name of ['x-real-ip', 'user-agent', 'accept-language']) {
+  for (const name of [CLIENT_IP_HEADER, 'user-agent', 'accept-language']) {
     const value = headers.get(name);
     if (value !== null) forwarded.set(name, value);
   }

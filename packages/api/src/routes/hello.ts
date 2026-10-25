@@ -1,17 +1,9 @@
 import { HELLO_GREETING } from '@fivvi/database';
-import {
-  locales,
-  type MessageKey,
-  parseAcceptLanguage,
-  resolveInterfaceLanguage,
-} from '@fivvi/i18n';
+import { type MessageKey, parseAcceptLanguage, resolveInterfaceLanguage } from '@fivvi/i18n';
 import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
 import type { ApiDependencies } from '../dependencies.ts';
 import { internalServerErrorResponse, ValidationErrorSchema } from '../errors.ts';
-
-export const LocaleSchema = z.enum(locales).openapi('Locale', {
-  description: 'Catalog locale from packages/i18n: Dutch (nl-NL) or English (en).',
-});
+import { LocaleSchema } from '../schemas.ts';
 
 export const HelloResponseSchema = z
   .object({
