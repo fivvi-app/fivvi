@@ -36,14 +36,7 @@ export function SignOutButton() {
           {t('error')}
         </p>
       ) : null}
-      {/* No fade: it would run from the disabled look to the enabled one when the page hydrates. */}
-      <Button
-        type="button"
-        variant="ghost"
-        className="transition-none"
-        disabled={!ready || pending}
-        onClick={signOutHere}
-      >
+      <Button type="button" variant="ghost" disabled={!ready || pending} onClick={signOutHere}>
         {t('label')}
       </Button>
     </div>

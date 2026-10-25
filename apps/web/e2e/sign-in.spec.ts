@@ -389,7 +389,8 @@ test.describe('F001 sign in on TW-10', () => {
     await page.goto('/login');
     await page.getByLabel(copy.signIn.emailLabel).fill(address);
     await page.getByRole('button', { name: copy.signIn.sendCode }).click();
-    const link = signInLink(await waitForEmail(address));
+    // The link carries the page asked for before sign-in, as the sign-in page does (AC13).
+    const link = `${signInLink(await waitForEmail(address))}&returnTo=${encodeURIComponent(`/home?${REQUESTED_QUERY}`)}`;
     const masked = `${address[0]}***@${address.split('@')[1]}`;
     const signedInAs = async () => {
       const session = await page.request.get('/api/auth/get-session');
@@ -420,7 +421,7 @@ test.describe('F001 sign in on TW-10', () => {
     await page.getByRole('button', { name: copy.signIn.confirmSubmit }).click();
 
     // The browser that opened the link is signed in, as the account of the address.
-    await expect(page).toHaveURL(/\/home$/);
+    await expect(page).toHaveURL(new RegExp(`/home\\?${REQUESTED_QUERY}$`));
     await expect(page.getByRole('heading', { level: 1, name: copy.home.title })).toBeVisible();
     await expect(page).toHaveTitle(copy.home.title);
     expect(await signedInAs()).toBe(address);
@@ -436,7 +437,8 @@ test.describe('F001 sign in on TW-10', () => {
     await page.goto('/login');
     await page.getByLabel(copy.signIn.emailLabel).fill(address);
     await page.getByRole('button', { name: copy.signIn.sendCode }).click();
-    const link = signInLink(await waitForEmail(address));
+    // A return address on another site is ignored: sign-in ends at the signed-in home (AC13).
+    const link = `${signInLink(await waitForEmail(address))}&returnTo=${encodeURIComponent('https://evil.example/phish')}`;
 
     await page.goto(link);
     await page.getByRole('button', { name: copy.signIn.confirmSubmit }).click();
