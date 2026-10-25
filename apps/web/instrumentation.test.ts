@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { register } from './instrumentation';
 
+// The sign-in code (Better Auth, the database, the email templates) takes seconds to load on a
+// busy runner (#200). Make loading it slower than the test timeout: the start-up check must not
+// wait for it, so it may only use the light allowlist entry.
+vi.mock('@fivvi/auth', async () => {
+  await new Promise((resolve) => setTimeout(resolve, 60_000));
+  return {};
+});
+
 const KEY = 'phc_example_project_key';
 const HOST = 'https://posthog.example.test';
 const FIX = 'Set POSTHOG_HOST to the PostHog host (ENVIRONMENTS.md §7).';

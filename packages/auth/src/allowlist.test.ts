@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parseSignUpAllowlist } from './allowlist.ts';
 
@@ -48,4 +49,12 @@ describe('F001 AC9 sign-up allowlist', () => {
       expect(message).not.toContain(entry);
     },
   );
+});
+
+describe('the light @fivvi/auth/allowlist entry (#200)', () => {
+  it('imports nothing at run time, so the start-up check never waits for Better Auth', () => {
+    const source = readFileSync(new URL('./allowlist.ts', import.meta.url), 'utf8');
+
+    expect(source).not.toMatch(/^\s*(import(?!\s+type\b)|export\s.*\sfrom\b)/m);
+  });
 });
