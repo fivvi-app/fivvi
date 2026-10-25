@@ -1,13 +1,14 @@
 import { randomBytes, randomInt } from 'node:crypto';
 import { type Database, recordWrongSignInCode } from '@fivvi/database';
 import { type SendEmail, signInEmail } from '@fivvi/email';
-import { parseAcceptLanguage, resolveSignInCommunicationLanguage } from '@fivvi/i18n';
-import type { BetterAuthPlugin } from 'better-auth';
+import { isLocale, parseAcceptLanguage, resolveSignInCommunicationLanguage } from '@fivvi/i18n';
+import type { BetterAuthPlugin, GenericEndpointContext } from 'better-auth';
 import { APIError, createAuthEndpoint } from 'better-auth/api';
 import { setSessionCookie } from 'better-auth/cookies';
 import { z } from 'zod';
 import type { SignUpAllowlist } from './allowlist.ts';
 import { hashesEqual, hashSecretValue } from './hash.ts';
+import { maskEmail } from './mask-email.ts';
 
 /** How long the emailed code and link work (AC5). */
 export const SIGN_IN_EXPIRES_IN_MINUTES = 15;
@@ -15,8 +16,8 @@ export const SIGN_IN_EXPIRES_IN_MINUTES = 15;
 /** The wrong codes after which a verification is dead, the right code included (AC6). */
 export const MAX_WRONG_CODES = 5;
 
-/** The path of the sign-in page's confirm step (TW-10), which the emailed link opens. */
-export const CONFIRM_PATH = '/login/confirm';
+/** The sign-in page's confirm step (TW-10), which the emailed link opens: a page, not an endpoint. */
+const CONFIRM_PAGE_PATH = '/login/confirm';
 
 /** The shape of the injected clock; `@fivvi/testing/clock` builds fixed and manual ones. */
 export interface Clock {
@@ -25,7 +26,7 @@ export interface Clock {
 
 export const systemClock: Clock = { now: () => new Date() };
 
-export interface SignInWithCodeOptions {
+export interface SignInWithEmailOptions {
   /** Counts wrong codes in one atomic statement, which Better Auth's adapter has no call for. */
   db: Database;
   /** `BETTER_AUTH_SECRET`: the key of the hashes. */
@@ -47,13 +48,48 @@ export interface SignInWithCodeOptions {
   reportError: (error: unknown) => void;
 }
 
-const PLUGIN_ID = 'sign-in-with-code';
+const PLUGIN_ID = 'sign-in-with-email';
 
 /** The path (under `/api/auth`) of the request endpoint, which the rate limits guard. */
 export const REQUEST_PATH = '/sign-in/code/request';
 
+const IDENTIFIER_PREFIX = 'sign-in:';
+
 /** `sign-in:<email>`: one verification per address, so a new request replaces the old one. */
-const identifierFor = (email: string) => `sign-in:${email}`;
+const identifierFor = (email: string) => `${IDENTIFIER_PREFIX}${email}`;
+
+/** The endpoints (under `/api/auth`) of the confirm step: what the link is for, and the button. */
+const LINK_PREVIEW_ENDPOINT = '/sign-in/link/preview';
+const LINK_CONFIRM_ENDPOINT = '/sign-in/link/confirm';
+
+/** A link token is 32 random bytes in base64url (43 characters); anything longer is no token. */
+const MAX_TOKEN_LENGTH = 512;
+
+/** The address from a verification's identifier, or `undefined` if it is not one of ours. */
+const emailOf = (identifier: string) =>
+  identifier.startsWith(IDENTIFIER_PREFIX) ? identifier.slice(IDENTIFIER_PREFIX.length) : undefined;
+
+/**
+ * The row of `auth_verifications` as the plugin reads it: Better Auth's types lack the plugin's
+ * own columns, which are optional here because they are read from untyped storage.
+ */
+type Verification = NonNullable<
+  Awaited<ReturnType<GenericEndpointContext['context']['internalAdapter']['findVerificationValue']>>
+> & { codeHash?: unknown; locale?: unknown; failedAttempts?: unknown };
+
+/** One answer for a wrong, expired, used or never issued code: no message says which. */
+const rejectedCode = () =>
+  new APIError('UNAUTHORIZED', {
+    code: 'INVALID_OR_EXPIRED_CODE',
+    message: 'The code is incorrect or has expired.',
+  });
+
+/** The same for a link: expired, used, replaced or killed by wrong codes, nothing says which. */
+const rejectedLink = () =>
+  new APIError('UNAUTHORIZED', {
+    code: 'INVALID_OR_EXPIRED_LINK',
+    message: 'The link no longer works.',
+  });
 
 /** The address as every sign-in rule sees it: trimmed, lower case, a valid email. */
 export const emailSchema = z.string().trim().toLowerCase().pipe(z.email());
@@ -72,8 +108,10 @@ export const REQUESTED = { status: true } as const;
  *   page's (ADR-019). Every other address gets the same answer and no email.
  * - `POST /sign-in/code/verify` `{ email, code }`: the right code signs this browser in. For an
  *   allowlisted address without an account, the account is created first.
+ * - `POST /sign-in/link/preview` `{ token }` (consumes nothing) and `POST /sign-in/link/confirm`
+ *   `{ token }` (the same rules and consume as the code): the confirm step of the emailed link.
  */
-export function signInWithCode({
+export function signInWithEmail({
   db,
   secret,
   sendEmail,
@@ -81,7 +119,97 @@ export function signInWithCode({
   signUpAllowlist,
   runInBackground,
   reportError,
-}: SignInWithCodeOptions) {
+}: SignInWithEmailOptions) {
+  /**
+   * The newest verification of `identifier` if it can still be used: not expired by the injected
+   * clock and under the wrong-code limit. There is no unique index on the identifier (a request
+   * replaces by delete and insert), so two parallel requests can leave two rows: the newest one
+   * is the verification, for the code and for the link.
+   */
+  async function findLiveVerification(
+    ctx: GenericEndpointContext,
+    identifier: string,
+  ): Promise<Verification | null> {
+    const verification: Verification | null =
+      await ctx.context.internalAdapter.findVerificationValue(identifier);
+    if (!verification) return null;
+    if (verification.expiresAt.getTime() <= clock.now().getTime()) return null;
+    const { failedAttempts } = verification;
+    if (typeof failedAttempts === 'number' && failedAttempts >= MAX_WRONG_CODES) return null;
+    return verification;
+  }
+
+  /** The live verification a link token belongs to, found by the hash of the token, with its address. */
+  async function findLinkVerification(ctx: GenericEndpointContext, token: string) {
+    const row = await ctx.context.adapter.findOne<{ id: string; identifier: string }>({
+      model: 'verification',
+      where: [{ field: 'value', value: hashSecretValue(secret, 'link-token', token) }],
+    });
+    const email = row ? emailOf(row.identifier) : undefined;
+    if (!row || !email) return null;
+    // A replaced link is not the newest verification of its address any more.
+    const verification = await findLiveVerification(ctx, row.identifier);
+    return verification?.id === row.id ? { verification, email } : null;
+  }
+
+  /**
+   * Uses up the checked verification and signs this browser in, for the code and the link alike.
+   * `rejected` is the answer when it was already used or can not create the account.
+   */
+  async function signInWithVerification(
+    ctx: GenericEndpointContext,
+    verification: Verification,
+    email: string,
+    rejected: () => APIError,
+  ) {
+    // Single use: the first caller to consume it wins, also against a parallel request.
+    // It consumes the row that was checked, not "the verification of this address": a new
+    // request that landed in between has replaced it, and the old code or link must not use that
+    // one up. (Better Auth's own consume works by identifier and by the real clock.)
+    // This is the raw adapter, so it bypasses Better Auth's verification hooks, its consume
+    // lock and secondary storage. That is fine here: the plugin configures none of them
+    // and a single atomic `DELETE ... RETURNING` on the primary key is what makes the code
+    // single use. If `databaseHooks` or `secondaryStorage` are ever added for
+    // verifications, this path has to be wired in by hand.
+    const consumed = await ctx.context.adapter.consumeOne({
+      model: 'verification',
+      // Also not past the limit: the 5th wrong code may still be on its way to delete it.
+      where: [
+        { field: 'id', value: verification.id },
+        { field: 'failedAttempts', operator: 'lt', value: MAX_WRONG_CODES },
+      ],
+    });
+    if (!consumed) throw rejected();
+
+    // Holding the code or the link proves the address. The first sign-in of an allowed address
+    // creates its account (sign-up is closed otherwise) with the language of the page that asked
+    // for the email (ADR-019); every later one signs in to the same account.
+    const found = await ctx.context.internalAdapter.findUserByEmail(email);
+    let user: NonNullable<typeof found>['user'];
+    if (found) {
+      user = found.user.emailVerified
+        ? found.user
+        : ((await ctx.context.internalAdapter.updateUser(found.user.id, {
+            emailVerified: true,
+          })) ?? found.user);
+    } else if (signUpAllowlist.allows(email)) {
+      const { locale } = verification;
+      user = await ctx.context.internalAdapter.createUser(
+        {
+          email,
+          name: '',
+          emailVerified: true,
+          preferredLocale: isLocale(locale) ? locale : null,
+        },
+        { method: PLUGIN_ID },
+      );
+    } else {
+      throw rejected();
+    }
+    const session = await ctx.context.internalAdapter.createSession(user.id);
+    await setSessionCookie(ctx, { session, user });
+  }
+
   return {
     id: PLUGIN_ID,
     schema: {
@@ -140,7 +268,7 @@ export function signInWithCode({
               };
               await ctx.context.internalAdapter.createVerificationValue(row);
 
-              const url = new URL(CONFIRM_PATH, origin);
+              const url = new URL(CONFIRM_PAGE_PATH, origin);
               url.searchParams.set('token', token);
               await sendEmail({
                 template: signInEmail,
@@ -168,78 +296,44 @@ export function signInWithCode({
         },
         async (ctx) => {
           const { email, code } = ctx.body;
-          // One answer for a wrong, expired, used or never issued code: no message says which.
-          const rejected = () =>
-            new APIError('UNAUTHORIZED', {
-              code: 'INVALID_OR_EXPIRED_CODE',
-              message: 'The code is incorrect or has expired.',
-            });
-
-          const identifier = identifierFor(email);
-          const verification = await ctx.context.internalAdapter.findVerificationValue(identifier);
-          const { codeHash: stored, failedAttempts } = (verification ?? {}) as {
-            codeHash?: unknown;
-            failedAttempts?: unknown;
-          };
+          const verification = await findLiveVerification(ctx, identifierFor(email));
+          if (!verification) throw rejectedCode();
+          const stored = verification.codeHash;
           if (
-            !verification ||
             typeof stored !== 'string' ||
-            verification.expiresAt.getTime() <= clock.now().getTime() ||
-            (typeof failedAttempts === 'number' && failedAttempts >= MAX_WRONG_CODES)
+            !hashesEqual(hashSecretValue(secret, 'code', `${email}:${code}`), stored)
           ) {
-            throw rejected();
-          }
-          if (!hashesEqual(hashSecretValue(secret, 'code', `${email}:${code}`), stored)) {
             await recordWrongSignInCode(db, verification.id, MAX_WRONG_CODES);
-            throw rejected();
+            throw rejectedCode();
           }
+          await signInWithVerification(ctx, verification, email, rejectedCode);
+          return ctx.json(REQUESTED);
+        },
+      ),
 
-          // Single use: the first caller to consume it wins, also against a parallel request.
-          // It consumes the row that was checked, not "the verification of this address": a new
-          // request that landed in between has replaced it, and the old code must not use that
-          // one up. (Better Auth's own consume works by identifier and by the real clock.)
-          // This is the raw adapter, so it bypasses Better Auth's verification hooks, its consume
-          // lock and secondary storage. That is fine here: the plugin configures none of them
-          // and a single atomic `DELETE ... RETURNING` on the primary key is what makes the code
-          // single use. If `databaseHooks` or `secondaryStorage` are ever added for
-          // verifications, this path has to be wired in by hand.
-          const consumed = await ctx.context.adapter.consumeOne({
-            model: 'verification',
-            // Also not past the limit: the 5th wrong code may still be on its way to delete it.
-            where: [
-              { field: 'id', value: verification.id },
-              { field: 'failedAttempts', operator: 'lt', value: MAX_WRONG_CODES },
-            ],
-          });
-          if (!consumed) throw rejected();
+      // Opening the link in the email lands on the confirm step (TW-10), which asks what the link
+      // is for. This consumes nothing, so an email scanner that opens the link does not use it up
+      // (R1); only `confirmSignInLink`, the button's POST, does.
+      previewSignInLink: createAuthEndpoint(
+        LINK_PREVIEW_ENDPOINT,
+        { method: 'POST', body: z.object({ token: z.string().max(MAX_TOKEN_LENGTH) }) },
+        async (ctx) => {
+          const found = await findLinkVerification(ctx, ctx.body.token);
+          if (!found) throw rejectedLink();
+          return ctx.json({ email: maskEmail(found.email) });
+        },
+      ),
 
-          // Holding the code proves the address. The first sign-in of an allowed address creates
-          // its account (sign-up is closed otherwise) with the language of the page that asked
-          // for the email (ADR-019); every later one signs in to the same account.
-          const found = await ctx.context.internalAdapter.findUserByEmail(email);
-          let user: NonNullable<typeof found>['user'];
-          if (found) {
-            user = found.user.emailVerified
-              ? found.user
-              : ((await ctx.context.internalAdapter.updateUser(found.user.id, {
-                  emailVerified: true,
-                })) ?? found.user);
-          } else if (signUpAllowlist.allows(email)) {
-            const { locale } = verification as { locale?: unknown };
-            user = await ctx.context.internalAdapter.createUser(
-              {
-                email,
-                name: '',
-                emailVerified: true,
-                preferredLocale: typeof locale === 'string' ? locale : null,
-              },
-              { method: PLUGIN_ID },
-            );
-          } else {
-            throw rejected();
-          }
-          const session = await ctx.context.internalAdapter.createSession(user.id);
-          await setSessionCookie(ctx, { session, user });
+      // The confirm step's button: the same rules as entering the code (one atomic consume of
+      // the checked row, the injected clock, the wrong-code limit, the allowlist and the language
+      // of the email for a new account), signing in the browser that sends it.
+      confirmSignInLink: createAuthEndpoint(
+        LINK_CONFIRM_ENDPOINT,
+        { method: 'POST', body: z.object({ token: z.string().max(MAX_TOKEN_LENGTH) }) },
+        async (ctx) => {
+          const found = await findLinkVerification(ctx, ctx.body.token);
+          if (!found) throw rejectedLink();
+          await signInWithVerification(ctx, found.verification, found.email, rejectedLink);
           return ctx.json(REQUESTED);
         },
       ),

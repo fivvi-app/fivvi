@@ -6,7 +6,7 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { closedSignUp, type SignUpAllowlist } from './allowlist.ts';
 import { clientIpOptions, defaultRequireClientIp, signInRateLimits } from './rate-limit.ts';
-import { type Clock, REQUEST_PATH, signInWithCode, systemClock } from './sign-in-plugin.ts';
+import { type Clock, REQUEST_PATH, signInWithEmail, systemClock } from './sign-in-plugin.ts';
 
 const DAY_SECONDS = 24 * 60 * 60;
 
@@ -114,7 +114,7 @@ export function createAuth({
       // First, so the limits hold before the endpoint does anything (AC10), including the
       // background work that follows its answer.
       signInRateLimits({ db, secret, clock, log, requireClientIp }),
-      signInWithCode({
+      signInWithEmail({
         db,
         secret,
         sendEmail,

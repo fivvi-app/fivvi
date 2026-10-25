@@ -84,7 +84,7 @@ export const authVerifications = pgTable(
      * The language of the email that carries this link and code: the account's stored language,
      * else the sign-in page's (ADR-019). The first sign-in stores it on a new account.
      */
-    locale: text('locale'),
+    locale: text('locale').$type<Locale>(),
     /** Wrong codes entered for this verification; at `MAX_WRONG_CODES` it is dead, link and code (AC6). */
     failedAttempts: integer('failed_attempts').notNull().default(0),
     expiresAt: instant('expires_at').notNull(),
