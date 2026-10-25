@@ -852,7 +852,7 @@ describe('F001 sign in with the emailed code through the API', () => {
     });
   });
 
-  describe('AC12: the sign-in session lasts 30 days after its last use', () => {
+  describe('AC12: sign-in session lasts 30 days and renews on use', () => {
     const DAY_MS = 24 * 60 * 60 * 1000;
     const atDays = (days: number, extra = 0) =>
       vi.setSystemTime(new Date(Date.parse(T0) + days * DAY_MS + extra));
@@ -930,9 +930,23 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect((await auth().readSession(new Headers({ cookie }))).setCookies).toEqual([]);
     });
 
-    it('AC12: an anonymous request, a made-up cookie and an expired session have no account', async () => {
+    it('AC12: an anonymous request and a made-up cookie have no account', async () => {
       expect((await auth().readSession(new Headers())).account).toBeUndefined();
       expect(await who('better-auth.session_token=made-up.value')).toBeUndefined();
+    });
+
+    it('AC12: an expired session has no account and the browser is told to drop its cookie', async () => {
+      const cookie = await signInBrowser('owner@example.com', 1);
+
+      atDays(30, 1000);
+      const expired = await auth().readSession(new Headers({ cookie }));
+
+      expect(expired.account).toBeUndefined();
+      // Every cookie it sets is a clearing one; the session cookie is among them.
+      expect(expired.setCookies.length).toBeGreaterThan(0);
+      for (const setCookie of expired.setCookies) expect(setCookie).toMatch(/Max-Age=0/i);
+      const clearing = expired.setCookies.find((c) => c.startsWith(`${cookie.split('=')[0]}=`));
+      expect(clearing).toMatch(/Max-Age=0/i);
     });
 
     it('AC12: signing out ends only the session of this browser', async () => {

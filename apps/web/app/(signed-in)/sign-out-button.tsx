@@ -3,6 +3,7 @@
 import { Button } from '@fivvi/ui/components/button';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { SIGN_IN_PAGE } from '../../server/return-path';
 import { signOut } from './sign-out-client';
 
 /**
@@ -19,7 +20,7 @@ export function SignOutButton() {
     setFailed(false);
     const { ok } = await signOut();
     // A full page load, so nothing the router kept from the signed-in pages is shown again.
-    if (ok) return window.location.replace('/login');
+    if (ok) return window.location.replace(SIGN_IN_PAGE);
     setPending(false);
     setFailed(true);
   }

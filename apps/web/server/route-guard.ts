@@ -1,6 +1,6 @@
 import type { SessionRead } from '@fivvi/auth';
 import { type NextRequest, NextResponse } from 'next/server';
-import { loginPath } from '../app/login/return-path';
+import { loginPath, SIGN_IN_PAGE } from './return-path';
 
 /**
  * Pages and routes that need no sign-in (AC13): the sign-in page with its confirm step, the hello
@@ -9,7 +9,7 @@ import { loginPath } from '../app/login/return-path';
  * public booking pages. Everything else is a trainer-web page that needs sign-in, so a new page
  * is guarded until it is listed here.
  */
-const PUBLIC_PREFIXES = ['/login', '/book', '/api'];
+const PUBLIC_PREFIXES = [SIGN_IN_PAGE, '/book', '/api'];
 
 /** Whether `pathname` is open to anyone. Whole path segments only: `/booking` is not `/book`. */
 export function isPublicPath(pathname: string): boolean {

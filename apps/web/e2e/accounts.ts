@@ -51,27 +51,37 @@ interface PoolLike {
   query(text: string, values: unknown[]): Promise<{ rows: Array<{ expires_at: Date }> }>;
 }
 
-/**
- * Sets when the sign-in sessions of the account `email` end, on the e2e app server's database, and
- * returns the expiry each of them has afterwards. Used to age a session without waiting for days.
- */
-export async function setSessionExpiry(email: string, expiresAt?: Date): Promise<Date[]> {
+const SESSION_OWNER = '(select id from auth_users where email = $1)';
+
+async function withPool<T>(run: (pool: PoolLike) => Promise<T>): Promise<T> {
   const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
   try {
-    const pool = (client.db as unknown as { $client: PoolLike }).$client;
-    const owner = '(select id from auth_users where email = $1)';
-    if (expiresAt) {
-      await pool.query(`update auth_sessions set expires_at = $2 where user_id = ${owner}`, [
-        email,
-        expiresAt,
-      ]);
-    }
-    const { rows } = await pool.query(
-      `select expires_at from auth_sessions where user_id = ${owner}`,
-      [email],
-    );
-    return rows.map((row) => row.expires_at);
+    return await run((client.db as unknown as { $client: PoolLike }).$client);
   } finally {
     await client.close();
   }
+}
+
+/**
+ * Sets when the sign-in sessions of the account `email` end, on the e2e app server's database.
+ * Used to age a session without waiting for days.
+ */
+export async function setSessionExpiry(email: string, expiresAt: Date): Promise<void> {
+  await withPool((pool) =>
+    pool.query(`update auth_sessions set expires_at = $2 where user_id = ${SESSION_OWNER}`, [
+      email,
+      expiresAt,
+    ]),
+  );
+}
+
+/** When each sign-in session of the account `email` ends, on the e2e app server's database. */
+export function sessionExpiries(email: string): Promise<Date[]> {
+  return withPool(async (pool) => {
+    const { rows } = await pool.query(
+      `select expires_at from auth_sessions where user_id = ${SESSION_OWNER}`,
+      [email],
+    );
+    return rows.map((row) => row.expires_at);
+  });
 }

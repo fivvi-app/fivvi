@@ -5,6 +5,7 @@ import {
   createAccount,
   newAddress,
   newAllowedAddress,
+  sessionExpiries,
   setSessionExpiry,
 } from './accounts';
 import { emailsTo, signInCode, signInLink, waitForEmail, waitForEmails } from './brevo';
@@ -107,23 +108,14 @@ test.describe('F001 sign in on TW-10', () => {
     // The API says 401 for itself, rather than redirecting.
     expect((await request.get('/api/v1/me', { maxRedirects: 0 })).status()).toBe(401);
 
-    // A return address on another site is ignored: after sign-in the person is at the signed-in home.
-    for (const foreign of [
-      'https://evil.example/home',
-      '//evil.example/home',
-      '/\\evil.example',
-      'javascript:alert(1)',
-    ]) {
-      const address = newAddress('owner');
-      await createAccount(address);
-      // A new visitor each time: no cookies, and an IP address of its own (entering a code is limited per IP address).
-      await page.context().clearCookies();
-      await page.context().setExtraHTTPHeaders(clientIpHeaders());
-      await page.goto(`/login?returnTo=${encodeURIComponent(foreign)}`);
-      await signInWithCode(page, copy, address);
-      await expect(page).toHaveURL(`${baseURL}/home`);
-      await expect(page.getByRole('heading', { level: 1, name: copy.home.title })).toBeVisible();
-    }
+    // A return address on another site is ignored: after sign-in the person is at the signed-in
+    // home. One case is enough here; the unit tests cover the rules for the others.
+    const address = newAddress('owner');
+    await createAccount(address);
+    await page.goto(`/login?returnTo=${encodeURIComponent('https://evil.example/home')}`);
+    await signInWithCode(page, copy, address);
+    await expect(page).toHaveURL(`${baseURL}/home`);
+    await expect(page.getByRole('heading', { level: 1, name: copy.home.title })).toBeVisible();
   });
 
   test('AC12: sign out signs this browser out', async ({
@@ -179,6 +171,29 @@ test.describe('F001 sign in on TW-10', () => {
     }
   });
 
+  test('AC12: when sign out fails the person sees why and is still signed in', async ({
+    page,
+    baseURL,
+    messages: copy,
+  }) => {
+    const address = newAddress('owner');
+    await createAccount(address);
+    await page.goto('/login');
+    await signInWithCode(page, copy, address);
+    await expect(page).toHaveURL(`${baseURL}/home`);
+    await page.route('**/api/auth/sign-out', (route) => route.fulfill({ status: 500 }));
+    const signOutButton = page.getByRole('button', { name: copy.signOut.label });
+
+    await signOutButton.click();
+
+    // The error is shown, the button works again and nothing signed the person out.
+    await expect(page.getByRole('alert').filter({ hasText: copy.signOut.error })).toBeVisible();
+    await expect(signOutButton).toBeEnabled();
+    await expect(page).toHaveURL(`${baseURL}/home`);
+    expect((await page.request.get('/api/v1/me')).status()).toBe(200);
+    await expectNoAxeViolations(page, 'the signed-in home after a failed sign out');
+  });
+
   test('AC12: using a signed-in page renews the session and the browser gets its new cookie', async ({
     page,
     baseURL,
@@ -205,7 +220,7 @@ test.describe('F001 sign in on TW-10', () => {
     expect(renewed).toMatch(/HttpOnly/i);
     expect(renewed).toMatch(/SameSite=Lax/i);
     // And the stored session ends 30 days from this use.
-    const [expiry] = await setSessionExpiry(address);
+    const [expiry] = await sessionExpiries(address);
     expect(Math.abs((expiry?.getTime() ?? 0) - (Date.now() + 30 * day))).toBeLessThan(120_000);
     await expect(page.getByRole('heading', { level: 1, name: copy.home.title })).toBeVisible();
   });

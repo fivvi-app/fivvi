@@ -4,7 +4,8 @@ export const SIGNED_IN_HOME = '/home';
 /** The query parameter of `/login` that holds the page the person asked for before sign-in. */
 export const RETURN_PATH_PARAM = 'returnTo';
 
-const SIGN_IN_PAGE = '/login';
+/** The sign-in page. */
+export const SIGN_IN_PAGE = '/login';
 const MAX_LENGTH = 2048;
 /** A base that is not this site: a parsed path that keeps it is a path of this site. */
 const OTHER_SITE = 'https://other-site.invalid';
