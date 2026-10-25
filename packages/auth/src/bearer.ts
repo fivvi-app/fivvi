@@ -10,23 +10,27 @@ export function bearerOnly(headers: Headers): Headers | undefined {
   return only;
 }
 
-/**
- * What an app's sign-in routes pass on to Better Auth: the proxy's client IP address (rate
- * limits, the session's address), the user agent and the language. Nothing else, so a cookie
- * or token in the request can't change what the call does.
- */
-export function forwardedHeaders(headers: Headers): Headers {
-  const forwarded = new Headers();
-  for (const name of ['x-real-ip', 'user-agent', 'accept-language']) {
-    const value = headers.get(name);
-    if (value !== null) forwarded.set(name, value);
-  }
-  return forwarded;
-}
-
 /** The headers without `Authorization`, for a request that only a cookie may sign in (web pages). */
 export function withoutAuthorization(headers: Headers): Headers {
   const cookies = new Headers(headers);
   cookies.delete('authorization');
   return cookies;
+}
+
+/**
+ * Better Auth's `bearer` plugin copies the session cookie of every sign-in response into a
+ * `set-auth-token` header (and lists it in `Access-Control-Expose-Headers`), which page script
+ * could read. The web keeps its session in the HttpOnly cookie alone (spec #168), so the
+ * response of `handler` loses both. Apps get their token from `exchangeSignInCode`, which calls
+ * the endpoint directly and never goes through here.
+ */
+export function withoutAuthToken(response: Response): Response {
+  response.headers.delete('set-auth-token');
+  const exposed = (response.headers.get('access-control-expose-headers') ?? '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter((name) => name !== '' && name.toLowerCase() !== 'set-auth-token');
+  if (exposed.length > 0) response.headers.set('access-control-expose-headers', exposed.join(', '));
+  else response.headers.delete('access-control-expose-headers');
+  return response;
 }

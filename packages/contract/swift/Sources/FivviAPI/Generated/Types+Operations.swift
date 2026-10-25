@@ -416,7 +416,7 @@ public enum Operations {
     }
     /// The signed-in account
     ///
-    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie.
+    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie.
     ///
     /// - Remark: HTTP `GET /v1/me`.
     /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.

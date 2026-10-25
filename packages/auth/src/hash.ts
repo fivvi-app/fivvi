@@ -8,7 +8,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
  */
 export function hashSecretValue(
   secret: string,
-  purpose: 'link-token' | 'code' | 'rate-limit-address' | 'rate-limit-ip',
+  purpose: 'link-token' | 'code' | 'rate-limit-address' | 'rate-limit-ip' | 'rate-limit-token-ip',
   value: string,
 ) {
   return createHmac('sha256', secret).update(`${purpose}:${value}`).digest('hex');

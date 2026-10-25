@@ -14,6 +14,12 @@ export const ValidationErrorSchema = z
     description: 'The request did not match the contract. Contains no user-facing text.',
   });
 
+/** The `400` a route with input documents. */
+export const validationErrorResponse = {
+  description: 'The request did not match the contract.',
+  content: { 'application/json': { schema: ValidationErrorSchema } },
+};
+
 export type ValidationError = z.infer<typeof ValidationErrorSchema>;
 
 export function toValidationError(error: z.ZodError): ValidationError {

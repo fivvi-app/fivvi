@@ -74,7 +74,8 @@ describe('F001N native sign-in through the API', () => {
     return response;
   }
 
-  const exchange = (email: string, code: string) => post('/v1/sign-in/token', { email, code });
+  const exchange = (email: string, code: string, headers: Record<string, string> = {}) =>
+    post('/v1/sign-in/token', { email, code }, headers);
 
   const codeOf = (count = 1) => {
     expect(transport.sent).toHaveLength(count);
@@ -96,22 +97,29 @@ describe('F001N native sign-in through the API', () => {
   const signOut = (headers: Record<string, string>) =>
     api().app.request('/v1/sign-out', { method: 'POST', headers });
 
+  /** A request of the web's sign-in page to Better Auth's endpoints, as `fetch` in a browser sends it. */
+  const webPost = (path: string, body: unknown) =>
+    api().auth.handler(
+      new Request(`${ORIGIN}/api/auth${path}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: ORIGIN },
+        body: JSON.stringify(body),
+      }),
+    );
+
+  /** Signs the web in with the code and returns the response of the code step. */
+  async function webSignIn(email = 'owner@example.com'): Promise<Response> {
+    transport.clear();
+    await webPost('/sign-in/code/request', { email, locale: 'en' });
+    await Promise.all(pending.splice(0));
+    const response = await webPost('/sign-in/code/verify', { email, code: codeOf() });
+    expect(response.status).toBe(200);
+    return response;
+  }
+
   /** Signs the web in with the code and returns the cookie header the browser would send. */
   async function webCookie(email = 'owner@example.com'): Promise<string> {
-    const { auth } = api();
-    const web = (path: string, body: unknown) =>
-      auth.handler(
-        new Request(`${ORIGIN}/api/auth${path}`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', origin: ORIGIN },
-          body: JSON.stringify(body),
-        }),
-      );
-    transport.clear();
-    await web('/sign-in/code/request', { email, locale: 'en' });
-    await Promise.all(pending.splice(0));
-    const response = await web('/sign-in/code/verify', { email, code: codeOf() });
-    expect(response.status).toBe(200);
+    const response = await webSignIn(email);
     return response.headers
       .getSetCookie()
       .map((cookie) => cookie.split(';')[0])
@@ -139,12 +147,9 @@ describe('F001N native sign-in through the API', () => {
     await client.db.delete(authUsers).where(ne(authUsers.email, 'owner@example.com'));
   });
 
-  describe.each([
-    ['nl-NL', 'Je inlogcode voor Fivvi'],
-    ['en', 'Your sign-in code for Fivvi'],
-  ] as const)('app language %s', (locale, subject) => {
+  describe.each(['nl-NL', 'en'] as const)('interface language %s', (locale) => {
     it('AC1: a request is a 202 without a body and sends one email with link and code', async () => {
-      // A new account has no stored language yet, so the app's language decides (ADR-019).
+      // A new account has no stored language yet, so the interface language decides (ADR-019).
       allowlist = parseSignUpAllowlist('newcomer@example.com');
 
       const response = await requestSignIn('newcomer@example.com', locale);
@@ -155,7 +160,7 @@ describe('F001N native sign-in through the API', () => {
       const [email] = transport.sent;
       expect(email?.to.email).toBe('newcomer@example.com');
       expect(email?.locale).toBe(locale);
-      expect(email?.subject).toBe(subject);
+      expect(email?.subject).toBe(messages[locale].email.signIn.subject);
       expect(email?.text).toContain(messages[locale].email.signIn.intro);
       expect(codeOf()).toMatch(/^\d{6}$/);
       expect(email?.links.some((href) => href.includes('/login/confirm?token='))).toBe(true);
@@ -208,6 +213,7 @@ describe('F001N native sign-in through the API', () => {
   });
 
   it('AC3: the token is a sign-in session of the account', async () => {
+    freezeSystemTime(T0);
     const token = await signInWithToken();
 
     const [session] = await client.db
@@ -215,10 +221,7 @@ describe('F001N native sign-in through the API', () => {
       .from(authSessions)
       .innerJoin(authUsers, eq(authUsers.id, authSessions.userId));
     expect(session?.email).toBe('owner@example.com');
-    // 30 days from now (the clock of this test is the real one: a few seconds of slack).
-    expect(Math.abs((session?.expiresAt.getTime() ?? 0) - (Date.now() + 30 * DAY_MS))).toBeLessThan(
-      60_000,
-    );
+    expect(session?.expiresAt).toEqual(new Date(new Date(T0).getTime() + 30 * DAY_MS));
     expect(token).not.toContain(' ');
   });
 
@@ -284,7 +287,7 @@ describe('F001N native sign-in through the API', () => {
     expect(again.status).toBe(401);
   });
 
-  it('AC3 (AC7): the first sign-in of an allowed address creates the account in the app language', async () => {
+  it('AC3 (AC7): the first sign-in of an allowed address creates the account in the interface language', async () => {
     allowlist = parseSignUpAllowlist('newcomer@example.com');
     await requestSignIn('newcomer@example.com', 'nl-NL');
 
@@ -373,8 +376,11 @@ describe('F001N native sign-in through the API', () => {
     });
 
     it('answers 401 for an expired sign-in session', async () => {
+      freezeSystemTime(T0);
       const token = await signInWithToken();
-      await client.db.update(authSessions).set({ expiresAt: new Date(Date.now() - 1000) });
+      await client.db
+        .update(authSessions)
+        .set({ expiresAt: new Date(new Date(T0).getTime() - 1000) });
 
       expect((await me(bearer(token))).status).toBe(401);
     });
@@ -438,6 +444,104 @@ describe('F001N native sign-in through the API', () => {
       }
       // The browser's session was not ended by any of them.
       expect((await me({ cookie })).status).toBe(200);
+    });
+  });
+
+  // The web keeps cookies only (spec #168, Out of Scope): the session of a browser must stay
+  // out of reach of page script (HttpOnly), and no credential that script can read may work
+  // as a bearer token.
+  describe('the web gets no bearer token', () => {
+    const exposes = (response: Response) =>
+      (response.headers.get('access-control-expose-headers') ?? '').toLowerCase();
+
+    it('the code step of the sign-in page sets the cookie and nothing script can read', async () => {
+      const response = await webSignIn();
+
+      expect(response.headers.getSetCookie().join('; ')).toContain('HttpOnly');
+      expect(response.headers.get('set-auth-token')).toBeNull();
+      expect(exposes(response)).not.toContain('set-auth-token');
+    });
+
+    it('the link step of the confirm page sets the cookie and nothing script can read', async () => {
+      await requestSignIn('owner@example.com');
+      const link = transport.sent.at(-1)?.links.find((href) => href.includes('/login/confirm'));
+      const token = new URL(link ?? '', ORIGIN).searchParams.get('token');
+
+      const response = await webPost('/sign-in/link/confirm', { token });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.getSetCookie().join('; ')).toContain('HttpOnly');
+      expect(response.headers.get('set-auth-token')).toBeNull();
+      expect(exposes(response)).not.toContain('set-auth-token');
+    });
+
+    it('the session token that get-session and list-sessions show to script is no bearer token', async () => {
+      const cookie = await webCookie();
+      const read = (path: string) =>
+        api().auth.handler(new Request(`${ORIGIN}/api/auth${path}`, { headers: { cookie } }));
+      const shown = [
+        ((await (await read('/get-session')).json()) as { session: { token: string } }).session
+          .token,
+        ((await (await read('/list-sessions')).json()) as { token: string }[])[0]?.token ?? '',
+      ];
+      const [stored] = await client.db.select().from(authSessions);
+
+      for (const token of [...shown, stored?.token ?? '']) {
+        expect(token.length).toBeGreaterThan(10);
+        const response = await me(bearer(token));
+        expect(response.status).toBe(401);
+        expect(await response.json()).toEqual(UNAUTHORIZED);
+        expect((await signOut(bearer(token))).status).toBe(401);
+      }
+      expect((await me({ cookie })).status).toBe(200);
+    });
+
+    it('the bearer token is the browser session cookie value, so a stolen cookie is the same credential either way', async () => {
+      // The token is the signed value of the session cookie, which is all a thief of the cookie
+      // has too: the cookie works as a cookie as well, so a bearer request gives no more power.
+      // The HttpOnly cookie is what keeps it out of page script.
+      const cookie = await webCookie();
+      const value = decodeURIComponent(cookie.split('=').slice(1).join('='));
+
+      expect((await me(bearer(value))).status).toBe(200);
+    });
+  });
+
+  describe('AC10 (rate limit): the token route counts per client IP', () => {
+    const IP = { 'x-real-ip': '203.0.113.9' };
+
+    it('answers the neutral 401 over the limit, even for the right code, and keeps the code', async () => {
+      freezeSystemTime(T0);
+      await requestSignIn('owner@example.com');
+      const code = codeOf();
+      for (let i = 0; i < 30; i++) {
+        expect((await exchange(`nobody${i}@example.com`, '000000', IP)).status).toBe(401);
+      }
+
+      const limited = await exchange('owner@example.com', code, IP);
+
+      expect(limited.status).toBe(401);
+      expect(await limited.json()).toEqual(UNAUTHORIZED);
+      expect(limited.headers.getSetCookie()).toEqual([]);
+      // The limited attempt did not count as a wrong code (5 of them kill the verification).
+      const [verification] = await client.db.select().from(authVerifications);
+      expect(verification?.failedAttempts).toBe(0);
+      // Another network is not limited.
+      expect(
+        (await exchange('owner@example.com', code, { 'x-real-ip': '203.0.113.10' })).status,
+      ).toBe(200);
+    });
+
+    it('starts again after the window', async () => {
+      freezeSystemTime(T0);
+      await requestSignIn('owner@example.com');
+      for (let i = 0; i < 30; i++) await exchange(`nobody${i}@example.com`, '000000', IP);
+      // The code lasts 15 minutes, as long as the window: ask again once the window is over.
+      vi.setSystemTime(new Date(new Date(T0).getTime() + 16 * 60 * 1000));
+      transport.clear();
+      await requestSignIn('owner@example.com');
+
+      expect((await exchange('owner@example.com', codeOf(), IP)).status).toBe(200);
     });
   });
 

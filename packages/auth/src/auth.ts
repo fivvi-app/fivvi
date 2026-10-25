@@ -7,8 +7,13 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError } from 'better-auth/api';
 import { bearer } from 'better-auth/plugins';
 import { closedSignUp, type SignUpAllowlist } from './allowlist.ts';
-import { bearerOnly, forwardedHeaders, withoutAuthorization } from './bearer.ts';
-import { clientIpOptions, defaultRequireClientIp, signInRateLimits } from './rate-limit.ts';
+import { bearerOnly, withoutAuthorization, withoutAuthToken } from './bearer.ts';
+import {
+  clientIpOptions,
+  defaultRequireClientIp,
+  signInRateLimits,
+  signInTokenRateLimit,
+} from './rate-limit.ts';
 import { type Clock, REQUEST_PATH, signInWithEmail, systemClock } from './sign-in-plugin.ts';
 
 const DAY_SECONDS = 24 * 60 * 60;
@@ -79,7 +84,7 @@ export interface Auth {
   /**
    * Exchanges the emailed code for a bearer token: a sign-in session of the account, which the
    * web's cookie would hold too. `undefined` for every failure (wrong, used, replaced, expired
-   * or killed code), so nothing tells which. It sets no cookie.
+   * or killed code, or a client IP over its limit), so nothing tells which. It sets no cookie.
    */
   exchangeSignInCode(input: {
     email: string;
@@ -137,8 +142,10 @@ export function createAuth({
       },
     }),
     plugins: [
-      // Lets an app send its sign-in session as `Authorization: Bearer` (spec #168).
-      bearer(),
+      // Lets an app send its sign-in session as `Authorization: Bearer` (spec #168). Only the
+      // signed value counts, which the browser's cookie holds too: the raw `session.token` that
+      // `get-session` and `list-sessions` show to page script is no credential.
+      bearer({ requireSignature: true }),
       // First, so the limits hold before the endpoint does anything (AC10), including the
       // background work that follows its answer.
       signInRateLimits({ db, secret, clock, log, requireClientIp }),
@@ -189,6 +196,7 @@ export function createAuth({
     // Nothing leaves the process: no usage reports.
     telemetry: { enabled: false },
   });
+  const tokenIpLimited = signInTokenRateLimit({ db, secret, clock, log, requireClientIp });
   async function sessionOf(headers: Headers): Promise<SessionRead> {
     const { headers: answer, response } = await auth.api.getSession({
       headers,
@@ -203,7 +211,7 @@ export function createAuth({
     };
   }
   return {
-    handler: (request) => auth.handler(request),
+    handler: async (request) => withoutAuthToken(await auth.handler(request)),
     async requestSignIn({ email, locale, headers }) {
       await auth.api.requestSignInCode({
         body: { email, locale },
@@ -211,6 +219,8 @@ export function createAuth({
       });
     },
     async exchangeSignInCode({ email, code, headers }) {
+      // The web's per-IP limiter is the HTTP router's, which `auth.api` skips.
+      if (await tokenIpLimited(headers)) return undefined;
       try {
         const { headers: answer } = await auth.api.verifySignInCode({
           body: { email, code },
@@ -246,4 +256,18 @@ function logFailure(error: unknown): void {
   const what =
     error instanceof EmailSendError ? error.message : error instanceof Error ? error.name : 'Error';
   console.error(`Sign-in request failed after its answer: ${what}`);
+}
+
+/**
+ * What an app's sign-in routes pass on to Better Auth: the proxy's client IP address (rate
+ * limits, the session's address), the user agent and the language. Nothing else, so a cookie
+ * or token in the request can't change what the call does.
+ */
+function forwardedHeaders(headers: Headers): Headers {
+  const forwarded = new Headers();
+  for (const name of ['x-real-ip', 'user-agent', 'accept-language']) {
+    const value = headers.get(name);
+    if (value !== null) forwarded.set(name, value);
+  }
+  return forwarded;
 }

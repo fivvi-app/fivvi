@@ -46,7 +46,7 @@ const meRoute = createRoute({
   summary: 'The signed-in account',
   description:
     'The account of the sign-in session in the request. The web sends the sign-in session ' +
-    'cookie, the apps `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). ' +
+    'cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). ' +
     'A request with an `Authorization` header is judged by that token alone, never by a cookie.',
   security: [{ cookieAuth: [] }, { bearerAuth: [] }],
   responses: {

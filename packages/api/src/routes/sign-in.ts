@@ -4,7 +4,7 @@ import {
   internalServerErrorResponse,
   UNAUTHORIZED,
   UnauthorizedSchema,
-  ValidationErrorSchema,
+  validationErrorResponse,
 } from '../errors.ts';
 import { LocaleSchema } from './hello.ts';
 
@@ -48,11 +48,6 @@ const unauthorized = (description: string) => ({
   content: { 'application/json': { schema: UnauthorizedSchema } },
 });
 
-const validationError = {
-  description: 'The request did not match the contract.',
-  content: { 'application/json': { schema: ValidationErrorSchema } },
-};
-
 const requestSignInRoute = createRoute({
   method: 'post',
   path: '/v1/sign-in/request',
@@ -68,7 +63,7 @@ const requestSignInRoute = createRoute({
   },
   responses: {
     202: { description: 'Accepted. The body is empty.' },
-    400: validationError,
+    400: validationErrorResponse,
     500: internalServerErrorResponse,
   },
 });
@@ -91,7 +86,7 @@ const exchangeSignInCodeRoute = createRoute({
       description: 'The bearer token.',
       content: { 'application/json': { schema: SignInTokenResponseSchema } },
     },
-    400: validationError,
+    400: validationErrorResponse,
     401: unauthorized('The code is wrong, used, replaced or expired. Nothing says which.'),
     500: internalServerErrorResponse,
   },

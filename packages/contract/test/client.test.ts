@@ -120,7 +120,7 @@ describe('F001N TypeScript client: native sign-in', () => {
     return { api, requests };
   }
 
-  it('requests a sign-in email with the app language and gets an empty 202', async () => {
+  it('requests a sign-in email with the interface language and gets an empty 202', async () => {
     const { api, requests } = signInClient();
 
     const { response, error } = await api.POST('/v1/sign-in/request', {
