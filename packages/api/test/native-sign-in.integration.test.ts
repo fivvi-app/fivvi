@@ -8,8 +8,9 @@ import {
   type DatabaseClient,
 } from '@fivvi/database';
 import { seed } from '@fivvi/database/seed';
-import { createMemoryTransport, createSendEmail } from '@fivvi/email';
+import { createMemoryTransport, createSendEmail, type SendEmail } from '@fivvi/email';
 import { type Locale, messages } from '@fivvi/i18n';
+import { createCaptureTransport, createErrorReporter } from '@fivvi/observability';
 import { freezeSystemTime } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, ne } from 'drizzle-orm';
@@ -34,17 +35,26 @@ describe('F001N native sign-in through the API', () => {
   let allowlist = parseSignUpAllowlist(undefined);
 
   /** The API as apps/web wires it: every sign-in dependency is `packages/auth`'s. */
-  function api() {
+  function api(
+    overrides: {
+      sendEmail?: SendEmail;
+      reportError?: (error: unknown) => void;
+      dependencies?: Partial<ApiDependencies>;
+    } = {},
+  ) {
     const auth = createAuth({
       db: client.db,
       secret: SECRET,
       baseURL: ORIGIN,
       signUpAllowlist: allowlist,
       runInBackground: (task) => pending.push(task),
-      sendEmail: createSendEmail({
-        transport,
-        sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
-      }),
+      sendEmail:
+        overrides.sendEmail ??
+        createSendEmail({
+          transport,
+          sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
+        }),
+      ...(overrides.reportError && { reportError: overrides.reportError }),
     });
     const dependencies: ApiDependencies = {
       ...NO_DEPENDENCIES,
@@ -52,6 +62,7 @@ describe('F001N native sign-in through the API', () => {
       requestSignIn: (input) => auth.requestSignIn(input),
       exchangeSignInCode: (input) => auth.exchangeSignInCode(input),
       signOutBearer: (headers) => auth.signOutBearer(headers),
+      ...overrides.dependencies,
     };
     return { app: createApp(dependencies), auth };
   }
@@ -280,19 +291,57 @@ describe('F001N native sign-in through the API', () => {
     expect(again.status).toBe(401);
   });
 
-  it('AC7: the first sign-in of an allowed address creates the account in the interface language', async () => {
-    allowlist = parseSignUpAllowlist('newcomer@example.com');
-    await requestSignIn('newcomer@example.com', 'nl-NL');
+  describe.each(['nl-NL', 'en'] as const)('AC7 in the interface language %s', (locale) => {
+    const accountOf = async (email: string) =>
+      (await client.db.select().from(authUsers).where(eq(authUsers.email, email)))[0];
 
-    const response = await exchange('newcomer@example.com', codeOf());
+    it('the first sign-in of an allowed address creates the account in that language', async () => {
+      allowlist = parseSignUpAllowlist('newcomer@example.com');
+      await requestSignIn('newcomer@example.com', locale);
+      expect(await accountOf('newcomer@example.com')).toBeUndefined();
 
-    expect(response.status).toBe(200);
-    const { token } = (await response.json()) as { token: string };
-    const account = await me(bearer(token));
-    expect(await account.json()).toMatchObject({
-      email: 'newcomer@example.com',
-      preferredLocale: 'nl-NL',
+      const response = await exchange('newcomer@example.com', codeOf());
+
+      expect(response.status).toBe(200);
+      const { token } = (await response.json()) as { token: string };
+      const account = await me(bearer(token));
+      expect(await account.json()).toMatchObject({
+        email: 'newcomer@example.com',
+        preferredLocale: locale,
+      });
+      expect(await accountOf('newcomer@example.com')).toMatchObject({
+        emailVerified: true,
+        preferredLocale: locale,
+      });
     });
+
+    it('a later sign-in with the other language neither changes it nor the language of the email', async () => {
+      allowlist = parseSignUpAllowlist('newcomer@example.com');
+      await requestSignIn('newcomer@example.com', locale);
+      expect((await exchange('newcomer@example.com', codeOf())).status).toBe(200);
+      const other = locale === 'en' ? 'nl-NL' : 'en';
+      transport.clear();
+
+      await requestSignIn('newcomer@example.com', other);
+      expect((await exchange('newcomer@example.com', codeOf())).status).toBe(200);
+
+      // ADR-019: the stored language comes before the language of the screen.
+      expect(transport.sent[0]?.locale).toBe(locale);
+      expect(await accountOf('newcomer@example.com')).toMatchObject({ preferredLocale: locale });
+    });
+  });
+
+  it('AC7: the sign-in of an address without an account that is not allowed creates none', async () => {
+    allowlist = parseSignUpAllowlist('someone-else@example.com');
+    await requestSignIn('nobody@example.com', 'en');
+
+    // Not even a code that guesses right: there is no verification, so no account.
+    const response = await exchange('nobody@example.com', '123456');
+
+    expect(response.status).toBe(401);
+    expect(
+      await client.db.select().from(authUsers).where(eq(authUsers.email, 'nobody@example.com')),
+    ).toEqual([]);
   });
 
   describe('AC4: authenticated call with a bearer token', () => {
@@ -591,5 +640,432 @@ describe('F001N native sign-in through the API', () => {
         expect(await response.json()).toEqual(expected);
       },
     );
+  });
+
+  describe('AC2: the same 202 for every address', () => {
+    const answer = async (response: Response) => ({
+      status: response.status,
+      body: await response.text(),
+      headers: [...response.headers.entries()].sort(),
+    });
+    const accountOf = async (email: string) =>
+      await client.db.select().from(authUsers).where(eq(authUsers.email, email));
+
+    it('an address with an account, an allowed one, one that is not allowed and one over the limit answer alike', async () => {
+      allowlist = parseSignUpAllowlist('newcomer@example.com');
+      const account = await answer(await requestSignIn('owner@example.com'));
+      const allowed = await answer(await requestSignIn('newcomer@example.com'));
+      expect(transport.sent).toHaveLength(2);
+      transport.clear();
+
+      const notAllowed = await answer(await requestSignIn('stranger@example.com'));
+      for (let i = 0; i < 3; i++) await requestSignIn('limited@example.com');
+      transport.clear();
+      const overLimit = await answer(await requestSignIn('limited@example.com'));
+
+      expect(account.status).toBe(202);
+      expect(notAllowed).toEqual(account);
+      expect(allowed).toEqual(account);
+      expect(overLimit).toEqual(account);
+    });
+
+    it('creates no account and no verification for an address that is not allowed', async () => {
+      await requestSignIn('stranger@example.com');
+
+      expect(transport.sent).toEqual([]);
+      expect(await accountOf('stranger@example.com')).toEqual([]);
+      expect(await client.db.select().from(authVerifications)).toEqual([]);
+    });
+
+    it('a request over the limit sends nothing and creates no account, also for an allowed address', async () => {
+      allowlist = parseSignUpAllowlist('newcomer@example.com');
+      for (let i = 0; i < 3; i++) await requestSignIn('newcomer@example.com');
+      transport.clear();
+      const [before] = await client.db.select().from(authVerifications);
+
+      const limited = await requestSignIn('newcomer@example.com');
+
+      expect(limited.status).toBe(202);
+      expect(transport.sent).toEqual([]);
+      // Requesting is not signing in: no account yet, and the limited request changed nothing.
+      expect(await accountOf('newcomer@example.com')).toEqual([]);
+      const [after] = await client.db.select().from(authVerifications);
+      expect(after?.id).toBe(before?.id);
+    });
+
+    it('the address limit counts the address without regard to case, and ends after 15 minutes', async () => {
+      await requestSignIn('owner@example.com');
+      await requestSignIn('OWNER@example.com');
+      await requestSignIn('owner@example.com');
+      transport.clear();
+
+      await requestSignIn('Owner@Example.com');
+      expect(transport.sent).toEqual([]);
+
+      passTime(15 * 60 * 1000);
+      await requestSignIn('owner@example.com');
+      expect(transport.sent).toHaveLength(1);
+    });
+  });
+
+  describe('AC5: one single-use verification for the app and the web', () => {
+    const MINUTE_MS = 60 * 1000;
+    const wrongCodeFor = (code: string) => (code === '000000' ? '000001' : '000000');
+    /** Status, body and cookies of an answer: everything an app or an attacker sees. */
+    const outcome = async (response: Response) => ({
+      status: response.status,
+      body: await response.text(),
+      cookies: response.headers.getSetCookie(),
+    });
+
+    describe('expires after 15 minutes (injected clock)', () => {
+      it('the code works one second short of 15 minutes', async () => {
+        await requestSignIn('owner@example.com');
+        const code = codeOf();
+
+        passTime(15 * MINUTE_MS - 1000);
+
+        expect((await exchange('owner@example.com', code)).status).toBe(200);
+      });
+
+      it('the code at 15 minutes is the same 401 as a wrong code, and the link is dead too', async () => {
+        await requestSignIn('owner@example.com');
+        const code = codeOf();
+        const token = linkTokenOf();
+        const wrong = await outcome(await exchange('owner@example.com', wrongCodeFor(code)));
+
+        passTime(15 * MINUTE_MS);
+        const expired = await outcome(await exchange('owner@example.com', code));
+
+        expect(expired.status).toBe(401);
+        expect(expired).toEqual(wrong);
+        expect((await webPost('/sign-in/link/confirm', { token })).status).toBe(401);
+      });
+
+      it('a new request after the expiry starts a new 15 minutes', async () => {
+        await requestSignIn('owner@example.com');
+        const old = codeOf();
+        passTime(20 * MINUTE_MS);
+        transport.clear();
+
+        await requestSignIn('owner@example.com');
+        const fresh = codeOf();
+        passTime(34 * MINUTE_MS);
+
+        expect((await exchange('owner@example.com', old)).status).toBe(401);
+        expect((await exchange('owner@example.com', fresh)).status).toBe(200);
+      });
+    });
+
+    describe('5 wrong codes kill it', () => {
+      const wrongCodes = async (count: number, email: string, wrong: string) => {
+        for (let i = 0; i < count; i++) {
+          expect((await exchange(email, wrong)).status).toBe(401);
+        }
+      };
+
+      it('the right code after 5 wrong ones is the same 401, and the link is dead too', async () => {
+        await requestSignIn('owner@example.com');
+        const code = codeOf();
+        const token = linkTokenOf();
+        const wrong = wrongCodeFor(code);
+        const single = await outcome(await exchange('owner@example.com', wrong));
+        await wrongCodes(4, 'owner@example.com', wrong);
+
+        const killed = await outcome(await exchange('owner@example.com', code));
+
+        expect(killed.status).toBe(401);
+        expect(killed).toEqual(single);
+        expect((await webPost('/sign-in/link/confirm', { token })).status).toBe(401);
+        expect(await client.db.select().from(authSessions)).toEqual([]);
+      });
+
+      it('4 wrong ones do not: the right code still gives a token', async () => {
+        await requestSignIn('owner@example.com');
+        const code = codeOf();
+        await wrongCodes(4, 'owner@example.com', wrongCodeFor(code));
+
+        expect((await exchange('owner@example.com', code)).status).toBe(200);
+      });
+
+      it('wrong codes of the web count too, and a new email starts again', async () => {
+        await requestSignIn('owner@example.com');
+        const code = codeOf();
+        for (let i = 0; i < 5; i++) {
+          const response = await webPost('/sign-in/code/verify', {
+            email: 'owner@example.com',
+            code: wrongCodeFor(code),
+          });
+          expect(response.status).toBe(401);
+        }
+        expect((await exchange('owner@example.com', code)).status).toBe(401);
+
+        transport.clear();
+        await requestSignIn('owner@example.com');
+        expect((await exchange('owner@example.com', codeOf())).status).toBe(200);
+      });
+    });
+
+    describe('a newer request replaces it', () => {
+      it('a newer request from the app: the old code and the old link stop working', async () => {
+        await requestSignIn('owner@example.com');
+        const old = codeOf();
+        const oldToken = linkTokenOf();
+        transport.clear();
+        await requestSignIn('owner@example.com');
+        const fresh = codeOf();
+        const freshToken = linkTokenOf();
+
+        expect((await exchange('owner@example.com', old)).status).toBe(401);
+        expect((await webPost('/sign-in/link/confirm', { token: oldToken })).status).toBe(401);
+        // The old attempts did not use up the new verification.
+        expect((await exchange('owner@example.com', fresh)).status).toBe(200);
+        expect(freshToken).not.toBe(oldToken);
+      });
+
+      it('a newer request from the web: the code of the app fails, the new code works in the app', async () => {
+        await requestSignIn('owner@example.com');
+        const old = codeOf();
+        transport.clear();
+        await webPost('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' });
+        await Promise.all(pending.splice(0));
+        const fresh = codeOf();
+
+        expect((await exchange('owner@example.com', old)).status).toBe(401);
+        expect((await exchange('owner@example.com', fresh)).status).toBe(200);
+      });
+
+      it('a newer request from the app: the code and link of the web request stop working', async () => {
+        transport.clear();
+        await webPost('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' });
+        await Promise.all(pending.splice(0));
+        const webCode = codeOf();
+        const webToken = linkTokenOf();
+        transport.clear();
+        await requestSignIn('owner@example.com');
+        const fresh = codeOf();
+
+        const byCode = await webPost('/sign-in/code/verify', {
+          email: 'owner@example.com',
+          code: webCode,
+        });
+        const byLink = await webPost('/sign-in/link/confirm', { token: webToken });
+
+        expect(byCode.status).toBe(401);
+        expect(byLink.status).toBe(401);
+        expect((await exchange('owner@example.com', fresh)).status).toBe(200);
+      });
+
+      it('a code of the web signs the web in once, and then fails in the app', async () => {
+        transport.clear();
+        await webPost('/sign-in/code/request', { email: 'owner@example.com', locale: 'en' });
+        await Promise.all(pending.splice(0));
+        const code = codeOf();
+
+        const web = await webPost('/sign-in/code/verify', { email: 'owner@example.com', code });
+
+        expect(web.status).toBe(200);
+        expect((await exchange('owner@example.com', code)).status).toBe(401);
+      });
+    });
+
+    it('the address is matched without regard to case', async () => {
+      await requestSignIn('Owner@Example.com');
+
+      const response = await exchange('OWNER@example.com', codeOf());
+
+      expect(response.status).toBe(200);
+    });
+
+    it('a request of the app stores only hashes: no usable link token or code', async () => {
+      await requestSignIn('owner@example.com');
+      const code = codeOf();
+      const token = linkTokenOf() ?? '';
+      expect(token).not.toBe('');
+
+      const rows = await client.db.select().from(authVerifications);
+
+      expect(rows).toHaveLength(1);
+      for (const [column, value] of Object.entries(rows[0] ?? {})) {
+        const text = String(value);
+        expect(text, `${column} holds the code`).not.toContain(code);
+        expect(text, `${column} holds the link token`).not.toContain(token);
+      }
+      expect(rows[0]?.value).toMatch(/^[0-9a-f]{64}$/);
+      expect(rows[0]?.codeHash).toMatch(/^[0-9a-f]{64}$/);
+      // Presenting the stored hash is no sign-in, as a token or as a code.
+      expect((await webPost('/sign-in/link/confirm', { token: rows[0]?.value })).status).toBe(401);
+      expect((await exchange('owner@example.com', code.replace(/\d/g, '0'))).status).toBe(401);
+    });
+  });
+
+  describe('AC6 (server): one identical 401 for every failure', () => {
+    it('wrong, used, replaced, expired and killed codes get the same status, body and headers', async () => {
+      const outcomes: { status: number; body: string; headers: [string, string][] }[] = [];
+      const record = async (response: Response) =>
+        outcomes.push({
+          status: response.status,
+          body: await response.text(),
+          headers: [...response.headers.entries()].sort(),
+        });
+
+      // Wrong.
+      await requestSignIn('owner@example.com');
+      const code = codeOf();
+      await record(await exchange('owner@example.com', code === '000000' ? '000001' : '000000'));
+      // Used.
+      expect((await exchange('owner@example.com', code)).status).toBe(200);
+      await record(await exchange('owner@example.com', code));
+      // Replaced.
+      transport.clear();
+      await requestSignIn('owner@example.com');
+      const replaced = codeOf();
+      await requestSignIn('owner@example.com');
+      await record(await exchange('owner@example.com', replaced));
+      // Expired. (3 requests per address in 15 minutes: the earlier ones are out of the window.)
+      passTime(16 * 60 * 1000);
+      transport.clear();
+      await requestSignIn('owner@example.com');
+      const expiring = codeOf();
+      passTime(31 * 60 * 1000);
+      await record(await exchange('owner@example.com', expiring));
+      // Killed by 5 wrong codes.
+      passTime(47 * 60 * 1000);
+      transport.clear();
+      await requestSignIn('owner@example.com');
+      const killed = codeOf();
+      const wrong = killed === '000000' ? '000001' : '000000';
+      for (let i = 0; i < 5; i++) await exchange('owner@example.com', wrong);
+      await record(await exchange('owner@example.com', killed));
+
+      expect(outcomes).toHaveLength(5);
+      for (const outcome of outcomes) {
+        expect(outcome.status).toBe(401);
+        expect(JSON.parse(outcome.body)).toEqual(UNAUTHORIZED);
+        expect(outcome.headers.map(([name]) => name)).not.toContain('set-cookie');
+      }
+      for (const outcome of outcomes) expect(outcome).toEqual(outcomes[0]);
+    });
+  });
+
+  describe('AC12 (server): nothing sensitive reaches logs or Sentry', () => {
+    const EMAIL = 'owner@example.com';
+    const LEAKS = ['debug', 'error', 'info', 'log', 'warn'] as const;
+    const SENTRY = {
+      SENTRY_DSN: 'https://public@o0.ingest.de.sentry.io/1',
+      RAILWAY_ENVIRONMENT_NAME: 'production',
+    };
+
+    function captureConsole() {
+      const spies = LEAKS.map((level) => vi.spyOn(console, level).mockImplementation(() => {}));
+      return () =>
+        spies
+          .flatMap((spy) => spy.mock.calls)
+          .map((args) => args.map(String).join(' '))
+          .join('\n');
+    }
+
+    it('a sign-in through the native routes, with failures and a limit, logs no address, code or token', async () => {
+      const output = captureConsole();
+      const failing = api({
+        // The provider's error quotes the recipient, as Brevo's would.
+        sendEmail: () => Promise.reject(new Error(`Brevo rejected ${EMAIL}`)),
+      });
+      await failing.app.request('/v1/sign-in/request', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: EMAIL, locale: 'en' }),
+      });
+      await Promise.all(pending.splice(0));
+
+      const token = await signInWithToken(EMAIL);
+      const code = codeOf();
+      const linkToken = linkTokenOf() ?? '';
+      // Wrong, repeated and rate-limited attempts, an authenticated call and a sign-out.
+      for (let i = 0; i < 3; i++) await requestSignIn(EMAIL);
+      await exchange(EMAIL, code === '000000' ? '000001' : '000000');
+      await me(bearer(token));
+      await signOut(bearer(token));
+      await me(bearer(token));
+
+      const logged = output();
+      for (const secret of [EMAIL, 'example.com', code, linkToken, token]) {
+        expect(secret).not.toBe('');
+        expect(logged).not.toContain(secret);
+      }
+    });
+
+    it('an error in a native route reaches Sentry without the Authorization header, token, code or address', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const transportOfSentry = createCaptureTransport();
+      const errorReporter = createErrorReporter({ env: SENTRY, transport: transportOfSentry });
+      const token = await signInWithToken(EMAIL);
+      const failing = (dependencies: Partial<ApiDependencies>) =>
+        api({ dependencies: { errorReporter, ...dependencies } }).app;
+      const boom = () => Promise.reject(new Error(`Database failed for ${EMAIL}`));
+      const json = (body: unknown) => ({
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...bearer(token), cookie: 'a=b' },
+        body: JSON.stringify(body),
+      });
+
+      const responses = [
+        await failing({ exchangeSignInCode: boom }).request(
+          '/v1/sign-in/token',
+          json({ email: EMAIL, code: '482915' }),
+        ),
+        await failing({ requestSignIn: boom }).request(
+          '/v1/sign-in/request',
+          json({ email: EMAIL, locale: 'en' }),
+        ),
+        await failing({ signOutBearer: boom }).request('/v1/sign-out', json({})),
+        await failing({ findSignedInAccount: boom }).request('/v1/me', {
+          headers: { ...bearer(token), cookie: 'a=b' },
+        }),
+      ];
+      await errorReporter.flush();
+
+      for (const response of responses) {
+        expect(response.status).toBe(500);
+        expect(await response.text()).toBe('Internal Server Error');
+      }
+      expect(transportOfSentry.events).toHaveLength(4);
+      const sent = JSON.stringify(transportOfSentry.events);
+      for (const secret of [EMAIL, token, '482915', 'Bearer ', 'a=b']) {
+        expect(sent).not.toContain(secret);
+      }
+      for (const event of transportOfSentry.events) {
+        expect(
+          Object.keys((event as { request?: { headers?: object } }).request?.headers ?? {}),
+        ).not.toContain('authorization');
+      }
+    });
+
+    it('a failed sign-in email reported through the shared reporter has the address masked', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const transportOfSentry = createCaptureTransport();
+      const errorReporter = createErrorReporter({ env: SENTRY, transport: transportOfSentry });
+      const server = api({
+        sendEmail: () => Promise.reject(new Error(`Brevo rejected ${EMAIL}`)),
+        // As apps/web wires it.
+        reportError: (error) => errorReporter.captureError(error),
+      });
+
+      const response = await server.app.request('/v1/sign-in/request', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: EMAIL, locale: 'nl-NL' }),
+      });
+      await Promise.all(pending.splice(0));
+      await errorReporter.flush();
+
+      expect(response.status).toBe(202);
+      expect(transportOfSentry.events).toHaveLength(1);
+      expect(JSON.stringify(transportOfSentry.events)).not.toContain(EMAIL);
+    });
+
+    // `sign_in_requested` and `signed_in` are recorded by #138 (PR #208), which is not on main
+    // yet: this branch has an empty product event catalog. Their assertions for native
+    // sign-ins land with that change.
   });
 });
