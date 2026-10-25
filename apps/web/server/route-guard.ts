@@ -1,13 +1,14 @@
 import type { SessionRead } from '@fivvi/auth';
 import { type NextRequest, NextResponse } from 'next/server';
-import { loginPath, SIGN_IN_PAGE } from './return-path';
+import { loginPath, SIGN_IN_PAGE } from '../lib/return-path';
 
 /**
  * Pages and routes that need no sign-in (AC13): the sign-in page with its confirm step, the hello
  * page, the API (every route there decides for itself: the health check and the hello route are
  * open, `/api/v1/me` answers 401 and Better Auth's own endpoints are how people sign in) and the
  * public booking pages. Everything else is a trainer-web page that needs sign-in, so a new page
- * is guarded until it is listed here.
+ * is guarded until it is listed here. Keep this list in step with the `(signed-in)` route group
+ * (`app/(signed-in)/layout.tsx`), which holds the pages that need sign-in and show *Sign out*.
  */
 const PUBLIC_PREFIXES = [SIGN_IN_PAGE, '/book', '/api'];
 

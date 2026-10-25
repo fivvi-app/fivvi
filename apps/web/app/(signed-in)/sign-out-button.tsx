@@ -2,8 +2,8 @@
 
 import { Button } from '@fivvi/ui/components/button';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
-import { SIGN_IN_PAGE } from '../../server/return-path';
+import { useEffect, useState } from 'react';
+import { SIGN_IN_PAGE } from '../../lib/return-path';
 import { signOut } from './sign-out-client';
 
 /**
@@ -14,6 +14,10 @@ export function SignOutButton() {
   const t = useTranslations('signOut');
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
+  // The button waits for the page to hydrate: a click before that would be lost.
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => setReady(true), []);
 
   async function signOutHere() {
     setPending(true);
@@ -32,7 +36,14 @@ export function SignOutButton() {
           {t('error')}
         </p>
       ) : null}
-      <Button type="button" variant="ghost" disabled={pending} onClick={signOutHere}>
+      {/* No fade: it would run from the disabled look to the enabled one when the page hydrates. */}
+      <Button
+        type="button"
+        variant="ghost"
+        className="transition-none"
+        disabled={!ready || pending}
+        onClick={signOutHere}
+      >
         {t('label')}
       </Button>
     </div>

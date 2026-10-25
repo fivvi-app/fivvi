@@ -945,8 +945,11 @@ describe('F001 sign in with the emailed code through the API', () => {
       // Every cookie it sets is a clearing one; the session cookie is among them.
       expect(expired.setCookies.length).toBeGreaterThan(0);
       for (const setCookie of expired.setCookies) expect(setCookie).toMatch(/Max-Age=0/i);
-      const clearing = expired.setCookies.find((c) => c.startsWith(`${cookie.split('=')[0]}=`));
-      expect(clearing).toMatch(/Max-Age=0/i);
+      const sessionCookie = `${cookie.split('=')[0]}=`;
+      const clearsSession = expired.setCookies.some((setCookie) =>
+        setCookie.startsWith(sessionCookie),
+      );
+      expect(clearsSession).toBe(true);
     });
 
     it('AC12: signing out ends only the session of this browser', async () => {

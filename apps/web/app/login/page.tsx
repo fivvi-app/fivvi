@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { currentLocale } from '../../i18n/current-locale';
-import { RETURN_PATH_PARAM, SIGNED_IN_HOME, safeReturnPath } from '../../server/return-path';
+import { RETURN_PATH_PARAM, SIGNED_IN_HOME, safeReturnPath } from '../../lib/return-path';
 import { SignInForm } from './sign-in-form';
 
 export async function generateMetadata(): Promise<Metadata> {
