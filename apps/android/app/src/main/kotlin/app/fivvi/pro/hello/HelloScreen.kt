@@ -25,7 +25,7 @@ import app.fivvi.designtokens.body
 import app.fivvi.designtokens.title1
 import app.fivvi.pro.R
 
-/** Test tags, shared with the iOS accessibility identifiers and e2e/maestro/hello.yaml. */
+/** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
 object HelloTags {
     const val GREETING = "hello.greeting"
     const val LOADING = "hello.loading"
