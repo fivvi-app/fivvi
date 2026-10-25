@@ -17,6 +17,9 @@ export function withoutAuthorization(headers: Headers): Headers {
   return cookies;
 }
 
+/** The header the `bearer` plugin copies the session token of a sign-in response into. */
+export const AUTH_TOKEN_HEADER = 'set-auth-token';
+
 /**
  * Better Auth's `bearer` plugin copies the session cookie of every sign-in response into a
  * `set-auth-token` header (and lists it in `Access-Control-Expose-Headers`), which page script
@@ -25,11 +28,11 @@ export function withoutAuthorization(headers: Headers): Headers {
  * the endpoint directly and never goes through here.
  */
 export function withoutAuthToken(response: Response): Response {
-  response.headers.delete('set-auth-token');
+  response.headers.delete(AUTH_TOKEN_HEADER);
   const exposed = (response.headers.get('access-control-expose-headers') ?? '')
     .split(',')
     .map((name) => name.trim())
-    .filter((name) => name !== '' && name.toLowerCase() !== 'set-auth-token');
+    .filter((name) => name !== '' && name.toLowerCase() !== AUTH_TOKEN_HEADER);
   if (exposed.length > 0) response.headers.set('access-control-expose-headers', exposed.join(', '));
   else response.headers.delete('access-control-expose-headers');
   return response;

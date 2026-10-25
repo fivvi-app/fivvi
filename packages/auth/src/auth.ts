@@ -7,7 +7,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError } from 'better-auth/api';
 import { bearer } from 'better-auth/plugins';
 import { closedSignUp, type SignUpAllowlist } from './allowlist.ts';
-import { bearerOnly, withoutAuthorization, withoutAuthToken } from './bearer.ts';
+import { AUTH_TOKEN_HEADER, bearerOnly, withoutAuthorization, withoutAuthToken } from './bearer.ts';
 import {
   CLIENT_IP_HEADER,
   clientIpOptions,
@@ -229,7 +229,7 @@ export function createAuth({
           returnHeaders: true,
         });
         // The session cookie of the answer is dropped: the app holds the token.
-        return answer.get('set-auth-token') ?? undefined;
+        return answer.get(AUTH_TOKEN_HEADER) ?? undefined;
       } catch (error) {
         if (error instanceof APIError && error.statusCode === 401) return undefined;
         throw error;

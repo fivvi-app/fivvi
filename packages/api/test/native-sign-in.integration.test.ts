@@ -9,7 +9,7 @@ import {
 } from '@fivvi/database';
 import { seed } from '@fivvi/database/seed';
 import { createMemoryTransport, createSendEmail } from '@fivvi/email';
-import { messages } from '@fivvi/i18n';
+import { type Locale, messages } from '@fivvi/i18n';
 import { freezeSystemTime } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, ne } from 'drizzle-orm';
@@ -66,7 +66,7 @@ describe('F001N native sign-in through the API', () => {
   /** Asks for a sign-in email through the contract route and waits for it to be sent. */
   async function requestSignIn(
     email: string,
-    locale: 'nl-NL' | 'en' = 'en',
+    locale: Locale = 'en',
     headers: Record<string, string> = {},
   ) {
     const response = await post('/v1/sign-in/request', { email, locale }, headers);
@@ -191,6 +191,7 @@ describe('F001N native sign-in through the API', () => {
   });
 
   it('AC2: an address without an account and a request over the limit get the same 202 and no email', async () => {
+    freezeSystemTime(T0);
     const known = await requestSignIn('owner@example.com');
     expect(transport.sent).toHaveLength(1);
     transport.clear();
@@ -211,6 +212,7 @@ describe('F001N native sign-in through the API', () => {
   });
 
   it('AC2: the client IP the proxy sets counts for the IP limit', async () => {
+    freezeSystemTime(T0);
     for (let i = 0; i < 20; i++) {
       await requestSignIn(`nobody${i}@example.com`, 'en', { 'x-real-ip': '203.0.113.7' });
     }
@@ -575,12 +577,24 @@ describe('F001N native sign-in through the API', () => {
       const response = await exchange('owner@example.com', code);
 
       expect(response.status).toBe(400);
-      expect(await response.json()).toMatchObject({ code: 'validation_failed' });
+      expect(await response.json()).toEqual(validation('code', 'invalid_format'));
     });
 
-    it('POST /v1/sign-in/token without an address or with a malformed one is a 400', async () => {
-      expect((await post('/v1/sign-in/token', { code: '123456' })).status).toBe(400);
-      expect((await exchange('not-an-email', '123456')).status).toBe(400);
-    });
+    it.each([
+      ['no address', { code: '123456' }, validation('email', 'invalid_type')],
+      [
+        'not an address',
+        { email: 'not-an-email', code: '123456' },
+        validation('email', 'invalid_format'),
+      ],
+    ])(
+      'POST /v1/sign-in/token with %s is a 400 with the validation error',
+      async (_name, body, expected) => {
+        const response = await post('/v1/sign-in/token', body);
+
+        expect(response.status).toBe(400);
+        expect(await response.json()).toEqual(expected);
+      },
+    );
   });
 });
