@@ -51,13 +51,38 @@ describe('F001 AC9 sign-up allowlist', () => {
   );
 });
 
-describe('F001 AC9 the light @fivvi/auth/allowlist entry (#200)', () => {
+// Type-only imports and re-exports vanish at run time; everything else loads code.
+const loadsCode = (source: string): boolean => {
+  const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  return /^\s*import\b(?!\s+type\b)|^\s*export\s*(?:\{[^}]*\}|\*(?:\s+as\s+\w+)?)\s*from\b|\bimport\s*\(|\brequire\s*\(/m.test(
+    code,
+  );
+};
+
+describe('F001 AC9 sign-up allowlist without the sign-in code (#200)', () => {
   it('imports nothing at run time, so the start-up check never waits for Better Auth', () => {
     const source = readFileSync(new URL('./allowlist.ts', import.meta.url), 'utf8');
-    // Type-only imports and re-exports vanish at run time; everything else loads code.
-    const runtimeLoad =
-      /^\s*import\s+(?!type\b)|^\s*export\s+(?:\{[^}]*\}|\*(?:\s+as\s+\w+)?)\s*from\b|\bimport\s*\(|\brequire\s*\(/m;
 
-    expect(source).not.toMatch(runtimeLoad);
+    expect(loadsCode(source)).toBe(false);
+  });
+
+  it.each([
+    "import { x } from './x';",
+    "import './x';",
+    "import'./x';",
+    "import{x}from'./x';",
+    "const x = await import('./x');",
+    "const x = require('./x');",
+    "export { x } from './x';",
+  ])('the guard sees the run-time load %j', (line) => {
+    expect(loadsCode(line)).toBe(true);
+  });
+
+  it.each([
+    "import type { X } from './x';",
+    "// import('./x') in a comment\nexport const a = 1;",
+    '/* require("./x") */\nexport const a = 1;',
+  ])('the guard ignores type imports and comments %j', (source) => {
+    expect(loadsCode(source)).toBe(false);
   });
 });

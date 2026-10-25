@@ -10,7 +10,7 @@ auth.handler(request); // served under /api/auth/* by apps/web/app/api/auth/[...
 await auth.findAccount(request.headers); // the signed-in account of the cookie, or undefined (GET /api/v1/me)
 ```
 
-`@fivvi/auth/allowlist` exports only `parseSignUpAllowlist`, which imports nothing: code that needs just the allowlist check (the start-up check in `apps/web/instrumentation.ts`) uses it instead of the main entry, which loads Better Auth, the database and the email templates. Keep `src/allowlist.ts` free of imports other than types (#200).
+`@fivvi/auth/allowlist` exports the allowlist (`parseSignUpAllowlist`, `closedSignUp`, `SignUpAllowlist`) and imports nothing: code that needs just the allowlist check (the start-up check in `apps/web/instrumentation.ts`) uses it instead of the main entry, which loads Better Auth, the database and the email templates. Keep `src/allowlist.ts` free of imports other than types (#200).
 
 ## How sign-in works
 

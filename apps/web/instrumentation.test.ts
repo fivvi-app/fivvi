@@ -1,9 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { register } from './instrumentation';
 
-// The sign-in code (Better Auth, the database, the email templates) takes seconds to load on a
-// busy runner (#200). The start-up check must not wait for it, so it may only use the light
-// allowlist entry: loading `@fivvi/auth` fails the test at once, with this message.
+// The start-up check may only use the light allowlist entry, not `@fivvi/auth` (#200; packages/auth/README.md).
 vi.mock('@fivvi/auth', () => {
   throw new Error('the start-up check must not load the sign-in code (#200)');
 });
