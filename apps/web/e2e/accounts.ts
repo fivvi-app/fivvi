@@ -19,7 +19,7 @@ export function newAllowedAddress(label: string): string {
 
 /**
  * A new documentation-range IPv6 address (RFC 3849, `2001:db8::/32`), for the client IP headers of
- * a spec. Better Auth groups IPv6 addresses by /64, so the random part is the first 32 bits of the
+ * a spec. The rate limits group IPv6 addresses by /64, so the random part is the first 32 bits of the
  * network prefix.
  */
 export function newIpAddress(): string {
@@ -27,15 +27,13 @@ export function newIpAddress(): string {
 }
 
 /**
- * The client IP headers of one spec's visitor: a new address, sent as both `x-forwarded-for` and
- * `x-real-ip`. Which one Better Auth reads depends on #134 (rate limits): today it takes
- * `x-forwarded-for`; once #134 trusts `X-Real-IP`, a request without it (with `NODE_ENV=production`,
- * the standalone server) falls into one shared "unknown IP" bucket. `x-forwarded-for` can go once
- * #134 is on main.
+ * The client IP header of one spec's visitor: a new address in `x-real-ip`, the only header the
+ * sign-in rate limits read (#134, `ENVIRONMENTS.md §7`). Without a valid one, the standalone
+ * server (`NODE_ENV=production`) counts a request in one shared "unknown IP" bucket, which the
+ * specs would exhaust together.
  */
 export function clientIpHeaders(): Record<string, string> {
-  const ipAddress = newIpAddress();
-  return { 'x-forwarded-for': ipAddress, 'x-real-ip': ipAddress };
+  return { 'x-real-ip': newIpAddress() };
 }
 
 /** Creates the account `email` on the e2e app server's database; the sign-in page has no sign-up. */

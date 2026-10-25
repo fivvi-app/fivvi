@@ -6,9 +6,10 @@ import { expect, expectNoAxeViolations, test } from './fixtures';
 // the catalogs. The emails go to the fake Brevo server (e2e/fake-brevo.ts), which the specs read
 // the code from; every spec has an address of its own.
 test.describe('F001 sign in on TW-10', () => {
-  // Better Auth limits sign-in requests per IP address, and every browser here comes from the same
-  // one. An address of its own gives each spec its own limit, like separate visitors (the headers
-  // and why there are two: `clientIpHeaders` in accounts.ts).
+  // Sign-in requests are limited per IP address (20 an hour) and per email address (3 in 15
+  // minutes), and every browser here comes from the same IP address. An `x-real-ip` of its own
+  // gives each spec its own limit, like separate visitors (`clientIpHeaders` in accounts.ts); each
+  // spec also uses a new email address.
   test.beforeEach(async ({ context }) => {
     await context.setExtraHTTPHeaders(clientIpHeaders());
   });
@@ -175,6 +176,8 @@ test.describe('F001 sign in on TW-10', () => {
     await page.getByRole('button', { name: copy.signIn.submitCode }).click();
 
     await expect(page).toHaveURL(/\/home$/);
+    // Wait for the page itself: the closing axe check needs its <title>, which streams in after the URL changes.
+    await expect(page).toHaveTitle(copy.home.title);
     const session = await page.request.get('/api/auth/get-session');
     expect(((await session.json()) as { user: { email: string } }).user.email).toBe(address);
     expect(await emailsTo(address)).toHaveLength(1);
