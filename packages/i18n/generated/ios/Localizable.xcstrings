@@ -420,19 +420,19 @@
       }
     },
     "signIn.checkEmailBodyApp" : {
-      "comment" : "Native apps only (TM-01): under the heading of the code step, instead of signIn.checkEmailBody. {email} is the address entered. Tells the person to enter the code in the app; it does not mention the sign-in link, because a link tapped on the phone signs in the phone's browser, not the app. Deliberately does not say whether an account exists (no account enumeration).",
+      "comment" : "Native apps only (TM-01): under the heading of the code step, instead of signIn.checkEmailBody. {email} is the address entered. Says the email has a code, without the sign-in link: a link tapped on the phone signs in the phone's browser, not the app. The instruction to enter the code comes from signIn.codeHelp. Deliberately does not say whether an account exists (no account enumeration).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "If %1$@ is registered, you'll receive an email with a code. Enter the code here."
+            "value" : "If %1$@ is registered, you'll receive an email with a code."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Als %1$@ bij ons bekend is, ontvang je een e-mail met een code. Vul de code hier in."
+            "value" : "Als %1$@ bij ons bekend is, ontvang je een e-mail met een code."
           }
         }
       }
@@ -744,7 +744,7 @@
       }
     },
     "signIn.signedOutNotice" : {
-      "comment" : "Native apps only: notice at the top of the sign-in screen (TM-01) when the app was signed out without the person asking: the server no longer accepts the stored sign-in, or the person signed out elsewhere. Not shown after the person taps sign out themselves (signOut.label).",
+      "comment" : "Native apps only: notice at the top of the sign-in screen (TM-01) when the app was signed out without the person asking: the server no longer accepts the stored sign-in, or the person signed out elsewhere. Not shown after the person signs out in the app.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

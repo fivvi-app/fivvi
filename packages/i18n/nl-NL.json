@@ -29,7 +29,7 @@
     "sendCode": "Code versturen",
     "checkEmailTitle": "Check je e-mail",
     "checkEmailBody": "Als {email} bij ons bekend is, ontvang je een e-mail met een code en een inloglink.",
-    "checkEmailBodyApp": "Als {email} bij ons bekend is, ontvang je een e-mail met een code. Vul de code hier in.",
+    "checkEmailBodyApp": "Als {email} bij ons bekend is, ontvang je een e-mail met een code.",
     "codeLabel": "Code",
     "codeHelp": "Vul de code uit de e-mail in.",
     "submitCode": "Inloggen",

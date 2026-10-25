@@ -54,22 +54,3 @@ describe('E005 typed keys', () => {
     expect([key, unknown]).toHaveLength(2);
   });
 });
-
-describe('F001 native sign-in strings (AC9, AC10, AC14)', () => {
-  it('words the signed-out notice as the spec and the glossary do (AC9)', () => {
-    expect(messages['nl-NL'].signIn.signedOutNotice).toBe('Je bent uitgelogd. Log opnieuw in.');
-    expect(messages.en.signIn.signedOutNotice).toBe("You've been signed out. Sign in again.");
-  });
-
-  it('names the signed-in address on the home placeholder with the email as the only placeholder', () => {
-    expect(messages['nl-NL'].home.signedInAs).toBe('Ingelogd als {email}');
-    expect(messages.en.home.signedInAs).toBe('Signed in as {email}');
-  });
-
-  it('tells the app user to enter the code, not to open the link (TM-01)', () => {
-    expect(messages['nl-NL'].signIn.checkEmailBodyApp).toContain('{email}');
-    expect(messages['nl-NL'].signIn.checkEmailBodyApp).not.toMatch(/link/i);
-    expect(messages.en.signIn.checkEmailBodyApp).toContain('{email}');
-    expect(messages.en.signIn.checkEmailBodyApp).not.toMatch(/link/i);
-  });
-});

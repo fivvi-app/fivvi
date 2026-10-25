@@ -25,7 +25,7 @@
     <string name="not_found_title">Page not found</string>
     <string name="sign_in_change_email">Change email address</string>
     <string name="sign_in_check_email_body">If %1$s is registered, you\'ll receive an email with a code and a sign-in link.</string>
-    <string name="sign_in_check_email_body_app">If %1$s is registered, you\'ll receive an email with a code. Enter the code here.</string>
+    <string name="sign_in_check_email_body_app">If %1$s is registered, you\'ll receive an email with a code.</string>
     <string name="sign_in_check_email_title">Check your email</string>
     <string name="sign_in_code_help">Enter the code from the email.</string>
     <string name="sign_in_code_label">Code</string>
