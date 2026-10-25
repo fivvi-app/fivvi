@@ -7,7 +7,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError } from 'better-auth/api';
 import { bearer } from 'better-auth/plugins';
 import { closedSignUp, type SignUpAllowlist } from './allowlist.ts';
-import { bearerOnly, forwardedHeaders } from './bearer.ts';
+import { bearerOnly, forwardedHeaders, withoutAuthorization } from './bearer.ts';
 import { clientIpOptions, defaultRequireClientIp, signInRateLimits } from './rate-limit.ts';
 import { type Clock, REQUEST_PATH, signInWithEmail, systemClock } from './sign-in-plugin.ts';
 
@@ -52,6 +52,13 @@ export interface CreateAuthOptions {
   runInBackground?: (task: Promise<void>) => void;
 }
 
+/** What `Auth.readSession` found in a request. */
+export interface SessionRead {
+  account: SignedInAccount | undefined;
+  /** `Set-Cookie` header values for the response: the renewed sign-in session cookie. */
+  setCookies: string[];
+}
+
 /**
  * What the rest of the code base uses of Better Auth. Only this package imports it
  * (ADR-007), so a different library, or Better Auth's own API, never leaks out.
@@ -84,6 +91,15 @@ export interface Auth {
    * when there is no valid bearer token.
    */
   signOutBearer(headers: Headers): Promise<boolean>;
+  /**
+   * Like `findAccount`, and also the `Set-Cookie` headers the answer must pass on to the browser.
+   * Using a sign-in session renews it, at most once a day (AC12): the stored expiry moves forward
+   * and the browser gets a new 30-day cookie, which only the response to the browser can carry,
+   * so the route guard (apps/web `proxy.ts`) calls this. Only cookies count here, never an
+   * `Authorization` header. An expired or unknown session comes
+   * with the header that clears its cookie.
+   */
+  readSession(headers: Headers): Promise<SessionRead>;
   /** Serves Better Auth's endpoints under `/api/auth/*` (mounted by apps/web). */
   handler(request: Request): Promise<Response>;
 }
@@ -173,6 +189,19 @@ export function createAuth({
     // Nothing leaves the process: no usage reports.
     telemetry: { enabled: false },
   });
+  async function sessionOf(headers: Headers): Promise<SessionRead> {
+    const { headers: answer, response } = await auth.api.getSession({
+      headers,
+      returnHeaders: true,
+    });
+    const setCookies = answer.getSetCookie();
+    if (!response) return { account: undefined, setCookies };
+    const { id, email, preferredLocale } = response.user;
+    return {
+      account: { id, email, preferredLocale: isLocale(preferredLocale) ? preferredLocale : null },
+      setCookies,
+    };
+  }
   return {
     handler: (request) => auth.handler(request),
     async requestSignIn({ email, locale, headers }) {
@@ -201,12 +230,10 @@ export function createAuth({
       await auth.api.signOut({ headers: bearerHeaders });
       return true;
     },
-    async findAccount(headers) {
-      const session = await auth.api.getSession({ headers: bearerOnly(headers) ?? headers });
-      if (!session) return undefined;
-      const { id, email, preferredLocale } = session.user;
-      return { id, email, preferredLocale: isLocale(preferredLocale) ? preferredLocale : null };
-    },
+    // Cookies only: a page request never signs in with a token.
+    readSession: (headers) => sessionOf(withoutAuthorization(headers)),
+    // A request with an `Authorization` header is judged by its token alone, never a cookie.
+    findAccount: async (headers) => (await sessionOf(bearerOnly(headers) ?? headers)).account,
   };
 }
 

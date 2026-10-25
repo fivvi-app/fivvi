@@ -52,6 +52,10 @@
     "title": "Je bent ingelogd",
     "description": "Hier komt straks je werkruimte."
   },
+  "signOut": {
+    "label": "Uitloggen",
+    "error": "Uitloggen is niet gelukt. Probeer het opnieuw."
+  },
   "email": {
     "layout": {
       "footer": "Deze e-mail is verstuurd door Fivvi."

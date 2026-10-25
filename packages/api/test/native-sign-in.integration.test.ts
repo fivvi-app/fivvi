@@ -361,6 +361,17 @@ describe('F001N native sign-in through the API', () => {
       expect(response.status).toBe(200);
     });
 
+    it('the web route guard reads cookies only: a bearer token alone is no session there', async () => {
+      const token = await signInWithToken();
+      const cookie = await webCookie();
+      const { auth } = api();
+
+      expect((await auth.readSession(new Headers(bearer(token)))).account).toBeUndefined();
+      expect(
+        (await auth.readSession(new Headers({ ...bearer('not-a-real-token'), cookie }))).account,
+      ).toMatchObject({ email: 'owner@example.com' });
+    });
+
     it('answers 401 for an expired sign-in session', async () => {
       const token = await signInWithToken();
       await client.db.update(authSessions).set({ expiresAt: new Date(Date.now() - 1000) });

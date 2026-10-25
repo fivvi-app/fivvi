@@ -23,3 +23,10 @@ export function forwardedHeaders(headers: Headers): Headers {
   }
   return forwarded;
 }
+
+/** The headers without `Authorization`, for a request that only a cookie may sign in (web pages). */
+export function withoutAuthorization(headers: Headers): Headers {
+  const cookies = new Headers(headers);
+  cookies.delete('authorization');
+  return cookies;
+}

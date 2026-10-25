@@ -12,22 +12,19 @@ import {
 } from '@fivvi/ui/components/card';
 import { Input } from '@fivvi/ui/components/input';
 import { Label } from '@fivvi/ui/components/label';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { requestCode, type SignInErrorKey, verifyCode } from './sign-in-client';
-
-/** Where a signed-in browser goes until F002 adds workspaces. */
-const SIGNED_IN_HOME = '/home';
 
 /**
  * TW-10: the email step, then the code step on the same screen. `locale` is the language of the
  * page, which the email is written in unless the account stores another (ADR-019). What each
  * request answers is the same for every address, so nothing here reveals who has an account.
+ * `returnPath` is the page sign-in ends at: a path of this site (`safeReturnPath`), never another
+ * address.
  */
-export function SignInForm({ locale }: { locale: Locale }) {
+export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath: string }) {
   const t = useTranslations('signIn');
-  const router = useRouter();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<SignInErrorKey | null>(null);
@@ -74,7 +71,9 @@ export function SignInForm({ locale }: { locale: Locale }) {
     setError(null);
     setResent(false);
     const result = await verifyCode(email, field(event.currentTarget, 'code'));
-    if (result.ok) return router.replace(SIGNED_IN_HOME);
+    // A full page load, so the page is asked for with the new cookie and nothing the router kept
+    // from before sign-in (a redirect to this page) is reused.
+    if (result.ok) return window.location.replace(returnPath);
     setPending(false);
     setError(result.error);
   }
