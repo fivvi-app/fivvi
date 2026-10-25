@@ -10,6 +10,8 @@ auth.handler(request); // served under /api/auth/* by apps/web/app/api/auth/[...
 await auth.findAccount(request.headers); // the signed-in account of the cookie, or undefined (GET /api/v1/me)
 ```
 
+`@fivvi/auth/allowlist` exports the allowlist (`parseSignUpAllowlist`, `closedSignUp`, `SignUpAllowlist`) and imports nothing: code that needs just the allowlist check (the start-up check in `apps/web/instrumentation.ts`) uses it instead of the main entry, which loads Better Auth, the database and the email templates. Keep `src/allowlist.ts` free of imports other than types (#200).
+
 ## How sign-in works
 
 A person signs in with only their email address. One request creates **one verification** that holds both the link token and the 6-digit code of the one EM-08 email (`packages/email`). Better Auth's own magic-link and email-OTP plugins each send their own email with their own token, so `src/sign-in-plugin.ts` is a small custom plugin instead:
