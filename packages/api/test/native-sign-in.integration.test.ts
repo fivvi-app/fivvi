@@ -78,12 +78,15 @@ describe('F001N native sign-in through the API', () => {
     return { app: createApp(dependencies), auth };
   }
 
+  /** A JSON POST, as an app sends it. */
+  const jsonPost = (body: unknown, headers: Record<string, string> = {}) => ({
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...headers },
+    body: JSON.stringify(body),
+  });
+
   const post = (path: string, body: unknown, headers: Record<string, string> = {}) =>
-    api().app.request(path, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', ...headers },
-      body: JSON.stringify(body),
-    });
+    api().app.request(path, jsonPost(body, headers));
 
   /** Asks for a sign-in email through the contract route and waits for it to be sent. */
   async function requestSignIn(
@@ -148,6 +151,17 @@ describe('F001N native sign-in through the API', () => {
   /** The account of `email`, if it has one. */
   const accountOf = async (email: string) =>
     (await client.db.select().from(authUsers).where(eq(authUsers.email, email)))[0];
+
+  /** `count` wrong attempts at the code step, from the app or from the web: each is a 401. */
+  async function wrongCodes(count: number, email: string, wrong: string, from = 'app') {
+    for (let i = 0; i < count; i++) {
+      const response =
+        from === 'web'
+          ? await webPost('/sign-in/code/verify', { email, code: wrong })
+          : await exchange(email, wrong);
+      expect(response.status).toBe(401);
+    }
+  }
 
   /** Signs the web in with the code and returns the response of the code step. */
   async function webSignIn(email = 'owner@example.com'): Promise<Response> {
@@ -293,10 +307,7 @@ describe('F001N native sign-in through the API', () => {
       const response = await me(bearer(token));
 
       expect(response.status).toBe(200);
-      const [row] = await client.db
-        .select()
-        .from(authUsers)
-        .where(eq(authUsers.email, 'owner@example.com'));
+      const row = await accountOf('owner@example.com');
       expect(await response.json()).toEqual({
         id: row?.id,
         email: 'owner@example.com',
@@ -369,28 +380,30 @@ describe('F001N native sign-in through the API', () => {
     });
   });
 
-  it('AC8: the token lasts 30 days after its last use and each use renews it', async () => {
-    const token = await signInWithToken();
-    const at = (days: number) => passTime(days * DAY_MS);
+  describe('AC8: bearer sign-in session lasts 30 days and renews on use', () => {
+    it('the token lasts 30 days after its last use and each use renews it', async () => {
+      const token = await signInWithToken();
+      const at = (days: number) => passTime(days * DAY_MS);
 
-    at(20);
-    expect((await me(bearer(token))).status).toBe(200);
-    // 20 + 29 days: more than 30 days after the sign-in, 29 after the last use.
-    at(49);
-    expect((await me(bearer(token))).status).toBe(200);
-    at(49 + 31);
-    expect((await me(bearer(token))).status).toBe(401);
+      at(20);
+      expect((await me(bearer(token))).status).toBe(200);
+      // 20 + 29 days: more than 30 days after the sign-in, 29 after the last use.
+      at(49);
+      expect((await me(bearer(token))).status).toBe(200);
+      at(49 + 31);
+      expect((await me(bearer(token))).status).toBe(401);
+    });
+
+    it('a token that is not used for 30 days no longer works', async () => {
+      const token = await signInWithToken();
+
+      passTime(31 * DAY_MS);
+
+      expect((await me(bearer(token))).status).toBe(401);
+    });
   });
 
-  it('AC8: a token that is not used for 30 days no longer works', async () => {
-    const token = await signInWithToken();
-
-    passTime(31 * DAY_MS);
-
-    expect((await me(bearer(token))).status).toBe(401);
-  });
-
-  describe('AC10: sign out ends this sign-in session only', () => {
+  describe('AC10: sign-out ends this sign-in session only', () => {
     it('answers 204 and the token is a 401 afterwards', async () => {
       const token = await signInWithToken();
 
@@ -520,7 +533,7 @@ describe('F001N native sign-in through the API', () => {
       await requestSignIn('owner@example.com');
       for (let i = 0; i < 30; i++) await exchange(`nobody${i}@example.com`, '000000', IP);
       // The code lasts 15 minutes, as long as the window: ask again once the window is over.
-      passTime(16 * 60 * 1000);
+      passTime(16 * MINUTE_MS);
       transport.clear();
       await requestSignIn('owner@example.com');
 
@@ -724,12 +737,6 @@ describe('F001N native sign-in through the API', () => {
     });
 
     describe('5 wrong codes kill it', () => {
-      const wrongCodes = async (count: number, email: string, wrong: string) => {
-        for (let i = 0; i < count; i++) {
-          expect((await exchange(email, wrong)).status).toBe(401);
-        }
-      };
-
       it('the right code after 5 wrong ones is the same 401, and the link is dead too', async () => {
         await requestSignIn('owner@example.com');
         const code = codeOf();
@@ -757,13 +764,7 @@ describe('F001N native sign-in through the API', () => {
       it('wrong codes of the web count too, and a new email starts again', async () => {
         await requestSignIn('owner@example.com');
         const code = codeOf();
-        for (let i = 0; i < 5; i++) {
-          const response = await webPost('/sign-in/code/verify', {
-            email: 'owner@example.com',
-            code: wrongCodeFor(code),
-          });
-          expect(response.status).toBe(401);
-        }
+        await wrongCodes(5, 'owner@example.com', wrongCodeFor(code), 'web');
         expect((await exchange('owner@example.com', code)).status).toBe(401);
 
         transport.clear();
@@ -893,7 +894,7 @@ describe('F001N native sign-in through the API', () => {
       transport.clear();
       await requestSignIn('owner@example.com');
       const killed = codeOf();
-      for (let i = 0; i < 5; i++) await exchange('owner@example.com', wrongCodeFor(killed));
+      await wrongCodes(5, 'owner@example.com', wrongCodeFor(killed));
       await record(await exchange('owner@example.com', killed));
 
       expect(answers).toHaveLength(6);
@@ -908,14 +909,16 @@ describe('F001N native sign-in through the API', () => {
 
   describe('AC12: events carry no personal data; token and code not logged', () => {
     const EMAIL = 'owner@example.com';
-    const LEAKS = ['debug', 'error', 'info', 'log', 'warn'] as const;
+    const CONSOLE_LEVELS = ['debug', 'error', 'info', 'log', 'warn'] as const;
     const SENTRY = {
       SENTRY_DSN: 'https://public@o0.ingest.de.sentry.io/1',
       RAILWAY_ENVIRONMENT_NAME: 'production',
     };
 
     function captureConsole() {
-      const spies = LEAKS.map((level) => vi.spyOn(console, level).mockImplementation(() => {}));
+      const spies = CONSOLE_LEVELS.map((level) =>
+        vi.spyOn(console, level).mockImplementation(() => {}),
+      );
       return () =>
         spies
           .flatMap((spy) => spy.mock.calls)
@@ -929,11 +932,7 @@ describe('F001N native sign-in through the API', () => {
         // The provider's error quotes the recipient, as Brevo's would.
         sendEmail: () => Promise.reject(new Error(`Brevo rejected ${EMAIL}`)),
       });
-      await failing.app.request('/v1/sign-in/request', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: EMAIL, locale: 'en' }),
-      });
+      await failing.app.request('/v1/sign-in/request', jsonPost({ email: EMAIL, locale: 'en' }));
       await Promise.all(pending.splice(0));
 
       const token = await signInWithToken(EMAIL);
@@ -961,11 +960,7 @@ describe('F001N native sign-in through the API', () => {
       const failing = (dependencies: Partial<ApiDependencies>) =>
         api({ dependencies: { errorReporter, ...dependencies } }).app;
       const boom = () => Promise.reject(new Error(`Database failed for ${EMAIL}`));
-      const json = (body: unknown) => ({
-        method: 'POST',
-        headers: { 'content-type': 'application/json', ...bearer(token), cookie: 'a=b' },
-        body: JSON.stringify(body),
-      });
+      const json = (body: unknown) => jsonPost(body, { ...bearer(token), cookie: 'a=b' });
 
       const responses = [
         await failing({ exchangeSignInCode: boom }).request(
@@ -992,16 +987,12 @@ describe('F001N native sign-in through the API', () => {
       for (const secret of [EMAIL, token, '482915', 'Bearer ', 'a=b']) {
         expect(sent).not.toContain(secret);
       }
+      expect(sent.toLowerCase()).not.toContain('authorization');
       // The server log of an unhandled error names the error, not what it quotes.
       const logged = output();
       expect(logged).toContain('Unhandled API error');
       for (const secret of [EMAIL, 'example.com', token, '482915', 'Bearer ']) {
         expect(logged).not.toContain(secret);
-      }
-      for (const event of transportOfSentry.events) {
-        expect(
-          Object.keys((event as { request?: { headers?: object } }).request?.headers ?? {}),
-        ).not.toContain('authorization');
       }
     });
 
@@ -1015,11 +1006,10 @@ describe('F001N native sign-in through the API', () => {
         reportError: (error) => errorReporter.captureError(error),
       });
 
-      const response = await server.app.request('/v1/sign-in/request', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: EMAIL, locale: 'nl-NL' }),
-      });
+      const response = await server.app.request(
+        '/v1/sign-in/request',
+        jsonPost({ email: EMAIL, locale: 'nl-NL' }),
+      );
       await Promise.all(pending.splice(0));
       await errorReporter.flush();
 
