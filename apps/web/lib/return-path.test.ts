@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loginPath, SIGNED_IN_HOME, safeReturnPath } from './return-path';
+import { loginPath, returnPathFrom, SIGNED_IN_HOME, safeReturnPath } from './return-path';
 
 describe('F001 AC13 return path', () => {
   describe('keeps a path of this site', () => {
@@ -82,5 +82,18 @@ describe('F001 AC13 return path', () => {
 
   it('the signed-in home is a path of this site', () => {
     expect(safeReturnPath(SIGNED_IN_HOME)).toBe(SIGNED_IN_HOME);
+  });
+
+  describe('the return path of a sign-in page query', () => {
+    it.each([
+      [{ returnTo: '/w/pilot-gym/calendar?view=week' }, '/w/pilot-gym/calendar?view=week'],
+      [{ returnTo: 'https://evil.example/home' }, SIGNED_IN_HOME],
+      [{ returnTo: ['/home', '/other'] }, SIGNED_IN_HOME],
+      [{ returnTo: '/login' }, SIGNED_IN_HOME],
+      [{ token: 'abc' }, SIGNED_IN_HOME],
+      [{}, SIGNED_IN_HOME],
+    ])('%j goes to %s', (query, expected) => {
+      expect(returnPathFrom(query)).toBe(expected);
+    });
   });
 });

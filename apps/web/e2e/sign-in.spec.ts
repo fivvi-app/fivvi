@@ -389,7 +389,8 @@ test.describe('F001 sign in on TW-10', () => {
     await page.goto('/login');
     await page.getByLabel(copy.signIn.emailLabel).fill(address);
     await page.getByRole('button', { name: copy.signIn.sendCode }).click();
-    // The link carries the page asked for before sign-in, as the sign-in page does (AC13).
+    // The emailed link has no `returnTo` yet, so the test appends one, as a link made for a page
+    // asked for before sign-in would carry (AC13).
     const link = `${signInLink(await waitForEmail(address))}&returnTo=${encodeURIComponent(`/home?${REQUESTED_QUERY}`)}`;
     const masked = `${address[0]}***@${address.split('@')[1]}`;
     const signedInAs = async () => {

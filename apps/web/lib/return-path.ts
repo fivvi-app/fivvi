@@ -1,7 +1,7 @@
 /** Where a browser goes after sign-in when no page asked for it, until F002 adds workspaces. */
 export const SIGNED_IN_HOME = '/home';
 
-/** The query parameter of `/login` that holds the page the person asked for before sign-in. */
+/** The query parameter of `/login` and `/login/confirm`: the page the person asked for before sign-in. */
 export const RETURN_PATH_PARAM = 'returnTo';
 
 /** The sign-in page. */
@@ -15,12 +15,12 @@ const OTHER_SITE = 'https://other-site.invalid';
 const CONTROL_CHARACTER = /[\u0000-\u001f\u007f]/;
 
 /**
- * The page to return to after sign-in, from the `returnTo` parameter of `/login`, or `undefined`
- * when there is none worth keeping (AC13). Only a path of this site is kept: it starts with one
- * `/`, has no backslash or control character (browsers read `\` as `/`), and still parses to this
- * site. Anything else, such as an address on another site, is ignored, so the person goes to the
- * signed-in home and sign-in can't be used to send people to a phishing site. The sign-in page
- * itself is no place to return to.
+ * The page to return to after sign-in, from the `returnTo` parameter of `/login` and
+ * `/login/confirm`, or `undefined` when there is none worth keeping (AC13). Only a path of this
+ * site is kept: it starts with one `/`, has no backslash or control character (browsers read `\`
+ * as `/`), and still parses to this site. Anything else, such as an address on another site, is
+ * ignored, so the person goes to the signed-in home and sign-in can't be used to send people to a
+ * phishing site. The sign-in page itself is no place to return to.
  */
 export function safeReturnPath(value: unknown): string | undefined {
   if (typeof value !== 'string' || value.length === 0 || value.length > MAX_LENGTH)
@@ -35,6 +35,14 @@ export function safeReturnPath(value: unknown): string | undefined {
   // Dot segments can leave `//` in front (`/.//host`), which is another site again.
   if (url.pathname.startsWith('//')) return undefined;
   return `${url.pathname}${url.search}`;
+}
+
+/**
+ * Where sign-in ends for the query of `/login` or `/login/confirm`: the `returnTo` page when it
+ * is a path of this site, otherwise the signed-in home (AC13).
+ */
+export function returnPathFrom(query: Record<string, string | string[] | undefined>): string {
+  return safeReturnPath(query[RETURN_PATH_PARAM]) ?? SIGNED_IN_HOME;
 }
 
 /**

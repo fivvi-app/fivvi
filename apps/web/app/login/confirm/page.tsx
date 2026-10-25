@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { RETURN_PATH_PARAM, SIGNED_IN_HOME, safeReturnPath } from '../../../lib/return-path';
+import { returnPathFrom } from '../../../lib/return-path';
 import { ConfirmForm } from './confirm-form';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -15,13 +15,9 @@ export async function generateMetadata(): Promise<Metadata> {
  * before the person does. A `returnTo` on the link is kept as on `/login`: only a path of this
  * site, anything else ends at the signed-in home (AC13).
  */
-export default async function ConfirmPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ token?: string | string[]; [RETURN_PATH_PARAM]?: string | string[] }>;
-}) {
+export default async function ConfirmPage({ searchParams }: PageProps<'/login/confirm'>) {
   const query = await searchParams;
   const { token } = query;
-  const returnPath = safeReturnPath(query[RETURN_PATH_PARAM]) ?? SIGNED_IN_HOME;
+  const returnPath = returnPathFrom(query);
   return <ConfirmForm token={typeof token === 'string' ? token : ''} returnPath={returnPath} />;
 }
