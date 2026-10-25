@@ -46,6 +46,12 @@
     <string name="sign_in_code_help">Vul de code uit de e-mail in.</string>
     <!-- Label of the field for the 6-digit code from the email (one-time-code autofill on phones). The word alone; the sentence is signIn.codeHelp. -->
     <string name="sign_in_code_label">Code</string>
+    <!-- Shown for a moment on the confirm step (TW-10) while the page checks the sign-in link from the email. Checking uses nothing up. -->
+    <string name="sign_in_confirm_checking">Inloglink controleren…</string>
+    <!-- The one button of the confirm step. Pressing it uses up the link and signs this browser in. -->
+    <string name="sign_in_confirm_submit">Inloggen</string>
+    <!-- Heading of the confirm step, where the sign-in link from the email lands. {email} is the masked address the link signs in, e.g. j***@example.com. -->
+    <string name="sign_in_confirm_title">Inloggen als %1$s?</string>
     <!-- Label of the email field on the sign-in page. -->
     <string name="sign_in_email_label">E-mailadres</string>
     <!-- Shown when sign-in failed for any other reason. -->
@@ -56,6 +62,12 @@
     <string name="sign_in_errors_invalid_or_expired_code">Deze code klopt niet of is verlopen. Controleer de code in de e-mail of vraag een nieuwe code aan.</string>
     <!-- Shown when the sign-in request could not reach the server. -->
     <string name="sign_in_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <!-- Button on the confirm step for a link that no longer works. Goes back to the sign-in page, where a new email is requested. -->
+    <string name="sign_in_link_invalid_back">Terug naar inloggen</string>
+    <!-- Line under signIn.linkInvalidTitle, pointing to the button that goes back to the sign-in page. -->
+    <string name="sign_in_link_invalid_body">Vraag een nieuwe e-mail aan om in te loggen.</string>
+    <!-- Heading of the confirm step when the link no longer works. One message for an expired, used or replaced link: it never says which. -->
+    <string name="sign_in_link_invalid_title">Deze inloglink werkt niet meer</string>
     <!-- Button on the second step that sends a new email. The new code replaces the old one. -->
     <string name="sign_in_resend">Code opnieuw versturen</string>
     <!-- Confirmation after a new email was requested. {email} is the address entered. Does not say whether an account exists. -->

@@ -153,6 +153,14 @@ describe('F001 sign in with the emailed code through the API', () => {
 
   const verifications = () => client.db.select().from(authVerifications);
 
+  /** What the server answers to `get-session` from a browser holding this `Set-Cookie` value. */
+  const sessionOf = async (setCookie: string | undefined) =>
+    await auth().handler(
+      new Request(`${ORIGIN}/api/auth/get-session`, {
+        headers: { cookie: (setCookie ?? '').split(';')[0] ?? '' },
+      }),
+    );
+
   /**
    * Runs `during` right after the verification was found and before it is consumed (Better Auth
    * then tidies up expired rows), to make another request land in between. Drizzle keeps its
@@ -282,11 +290,7 @@ describe('F001 sign in with the emailed code through the API', () => {
     expect(cookie).not.toMatch(/Secure/i);
 
     // The cookie is a sign-in session the server accepts.
-    const session = await auth().handler(
-      new Request(`${ORIGIN}/api/auth/get-session`, {
-        headers: { cookie: (cookie ?? '').split(';')[0] ?? '' },
-      }),
-    );
+    const session = await sessionOf(cookie);
     expect(session.status).toBe(200);
     expect(await session.json()).toMatchObject({ user: { email: 'owner@example.com' } });
   });
@@ -777,11 +781,7 @@ describe('F001 sign in with the emailed code through the API', () => {
           });
           // The browser is signed in as the new account.
           const cookie = response.headers.getSetCookie().find((c) => c.includes('session_token'));
-          const session = await auth().handler(
-            new Request(`${ORIGIN}/api/auth/get-session`, {
-              headers: { cookie: (cookie ?? '').split(';')[0] ?? '' },
-            }),
-          );
+          const session = await sessionOf(cookie);
           expect(await session.json()).toMatchObject({ user: { id: account?.id, email: address } });
         });
       });
@@ -1186,6 +1186,354 @@ describe('F001 sign in with the emailed code through the API', () => {
           i === 0 ? 200 : 401,
         );
       }
+    });
+  });
+
+  describe('the sign-in link: the confirm step of TW-10', () => {
+    const LINK_ERROR = { code: 'INVALID_OR_EXPIRED_LINK' };
+    const previewLink = (token: string, server = auth()) =>
+      post('/sign-in/link/preview', { token }, { server });
+    const confirmLink = (token: string, server = auth()) =>
+      post('/sign-in/link/confirm', { token }, { server });
+    const sessionCookie = (response: Response) =>
+      response.headers.getSetCookie().find((c) => c.includes('session_token'));
+    const accountOf = async (email: string) =>
+      (await client.db.select().from(authUsers).where(eq(authUsers.email, email)))[0];
+
+    function startAt() {
+      freezeSystemTime(T0);
+      const clock = manualClock(T0);
+      return { clock, server: authAt({ clock }) };
+    }
+
+    it('AC3: opening the link consumes nothing', async () => {
+      allowlist = parseSignUpAllowlist('pilot@gym.test');
+      await requestCode('pilot@gym.test', 'en');
+      const { token } = readEmail();
+      const before = await verifications();
+
+      // A scanner (or the person) opens the link as often as it likes: the page asks what the
+      // link is for, which uses nothing up, signs nobody in and creates no account.
+      for (let i = 0; i < 3; i++) {
+        const response = await previewLink(token);
+        expect(response.status).toBe(200);
+        expect(response.headers.getSetCookie()).toEqual([]);
+      }
+
+      expect(await verifications()).toEqual(before);
+      expect(await accountOf('pilot@gym.test')).toBeUndefined();
+      // The link still works afterwards.
+      expect((await confirmLink(token)).status).toBe(200);
+      expect(await accountOf('pilot@gym.test')).toBeDefined();
+    });
+
+    it('AC3: opening the link leaves the code working', async () => {
+      await requestCode('owner@example.com', 'en');
+      const { token, code } = readEmail();
+
+      await previewLink(token);
+
+      expect((await enterCode('owner@example.com', code)).status).toBe(200);
+    });
+
+    it('AC3: the confirm step shows the masked address, never the whole address', async () => {
+      await requestCode('owner@example.com', 'en');
+      const { token } = readEmail();
+
+      const response = await previewLink(token);
+
+      expect(await response.json()).toEqual({ email: 'o***@example.com' });
+    });
+
+    it('AC3: the button signs in the browser that sends it and uses the verification up', async () => {
+      await requestCode('owner@example.com', 'en');
+      const { token, code } = readEmail();
+
+      const response = await confirmLink(token);
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ status: true });
+      const cookie = sessionCookie(response);
+      expect(cookie).toMatch(/HttpOnly/i);
+      expect(cookie).toMatch(/SameSite=Lax/i);
+      expect(cookie).toMatch(/Max-Age=2592000/i);
+      const session = await sessionOf(cookie);
+      expect(await session.json()).toMatchObject({ user: { email: 'owner@example.com' } });
+      expect(await verifications()).toEqual([]);
+      // Used: neither the link nor the code works again.
+      expect((await confirmLink(token)).status).toBe(401);
+      expect((await previewLink(token)).status).toBe(401);
+      expect((await enterCode('owner@example.com', code)).status).toBe(401);
+    });
+
+    it('AC4: after the code was used, the link fails', async () => {
+      await requestCode('owner@example.com', 'en');
+      const { token, code } = readEmail();
+      expect((await enterCode('owner@example.com', code)).status).toBe(200);
+
+      const preview = await previewLink(token);
+      const confirm = await confirmLink(token);
+
+      expect(preview.status).toBe(401);
+      expect(confirm.status).toBe(401);
+      expect(await confirm.json()).toMatchObject(LINK_ERROR);
+      expect(sessionCookie(confirm)).toBeUndefined();
+    });
+
+    it('AC4: a link works once, even when the button is pressed twice at the same time', async () => {
+      await requestCode('owner@example.com', 'en');
+      const { token } = readEmail();
+
+      const responses = await Promise.all([confirmLink(token), confirmLink(token)]);
+
+      expect(responses.map((r) => r.status).sort()).toEqual([200, 401]);
+      expect(await client.db.$count(authUsers, eq(authUsers.email, 'owner@example.com'))).toBe(1);
+    });
+
+    it('AC4: a new request replaces the link of the first email', async () => {
+      await requestCode('owner@example.com', 'en');
+      const first = readEmail();
+      await requestCode('owner@example.com', 'en');
+      const second = readEmail(2);
+
+      expect((await previewLink(first.token)).status).toBe(401);
+      const stale = await confirmLink(first.token);
+      expect(stale.status).toBe(401);
+      expect(sessionCookie(stale)).toBeUndefined();
+      // The newest link is untouched by the old one's failure.
+      expect((await confirmLink(second.token)).status).toBe(200);
+    });
+
+    it('AC4: when a race left two verifications for one address, only the newest link works', async () => {
+      await requestCode('owner@example.com', 'en');
+      const first = readEmail();
+      // A second verification that landed next to the first (two parallel requests, no unique
+      // index on the identifier): the newest wins, for the link as for the code.
+      const [row] = await verifications();
+      if (!row) throw new Error('No verification.');
+      const { id: _id, ...rest } = row;
+      await client.db.insert(authVerifications).values({
+        ...rest,
+        value: 'newer-token-hash',
+        createdAt: new Date(row.createdAt.getTime() + 1000),
+      });
+
+      expect((await previewLink(first.token)).status).toBe(401);
+      expect((await confirmLink(first.token)).status).toBe(401);
+    });
+
+    it('AC4: a new request that lands while the link is checked cannot be used up by the old link', async () => {
+      await requestCode('owner@example.com', 'en');
+      const old = readEmail();
+      const interleaving = interleave(() => requestCode('owner@example.com', 'en'));
+
+      const response = await confirmLink(old.token);
+
+      expect(interleaving.landed()).toBeDefined();
+      expect(response.status).toBe(401);
+      expect(sessionCookie(response)).toBeUndefined();
+      // The new email still works: the old link did not use it up.
+      expect((await confirmLink(readEmail(2).token)).status).toBe(200);
+    });
+
+    describe('AC5: the link expires after 15 minutes', () => {
+      it('a link one second short of 15 minutes still signs in', async () => {
+        const { clock, server } = startAt();
+        await requestCode('owner@example.com', 'en', { server });
+        const { token } = readEmail();
+
+        clock.advance({ minutes: 14, seconds: 59 });
+
+        expect((await previewLink(token, server)).status).toBe(200);
+        expect((await confirmLink(token, server)).status).toBe(200);
+      });
+
+      it('a link at 15 minutes is refused like any other, and sets no cookie', async () => {
+        const { clock, server } = startAt();
+        await requestCode('owner@example.com', 'en', { server });
+        const { token } = readEmail();
+
+        clock.advance({ minutes: 15 });
+        const preview = await previewLink(token, server);
+        const confirm = await confirmLink(token, server);
+
+        expect(preview.status).toBe(401);
+        expect(confirm.status).toBe(401);
+        expect(await confirm.json()).toMatchObject(LINK_ERROR);
+        expect(sessionCookie(confirm)).toBeUndefined();
+      });
+    });
+
+    describe('AC6: 5 wrong codes kill the link too', () => {
+      it('after 5 wrong codes the link fails, and a new email works again', async () => {
+        await requestCode('owner@example.com', 'en');
+        const { token, code } = readEmail();
+        for (let i = 0; i < 5; i++) await enterCode('owner@example.com', wrongCodeFor(code));
+
+        expect((await previewLink(token)).status).toBe(401);
+        const confirm = await confirmLink(token);
+        expect(confirm.status).toBe(401);
+        expect(sessionCookie(confirm)).toBeUndefined();
+
+        await requestCode('owner@example.com', 'en');
+        expect((await confirmLink(readEmail(2).token)).status).toBe(200);
+      });
+
+      it('4 wrong codes do not: the link still signs in', async () => {
+        await requestCode('owner@example.com', 'en');
+        const { token, code } = readEmail();
+        for (let i = 0; i < 4; i++) await enterCode('owner@example.com', wrongCodeFor(code));
+
+        expect((await confirmLink(token)).status).toBe(200);
+      });
+
+      it('a verification at the limit is dead even before it is deleted', async () => {
+        await requestCode('owner@example.com', 'en');
+        const { token } = readEmail();
+        await client.db.update(authVerifications).set({ failedAttempts: 5 });
+
+        expect((await previewLink(token)).status).toBe(401);
+        expect((await confirmLink(token)).status).toBe(401);
+        expect(await verifications()).toHaveLength(1);
+      });
+
+      it('the link signs in nobody when the 5th wrong code lands while it is checked', async () => {
+        await requestCode('owner@example.com', 'en');
+        const { token, code } = readEmail();
+        await client.db.update(authVerifications).set({ failedAttempts: 4 });
+        const interleaving = interleave(() => enterCode('owner@example.com', wrongCodeFor(code)));
+
+        const response = await confirmLink(token);
+
+        expect(interleaving.landed()).toBeDefined();
+        expect(response.status).toBe(401);
+        expect(sessionCookie(response)).toBeUndefined();
+      });
+    });
+
+    it('AC7: every link failure answers the same, and like a link that never existed', async () => {
+      allowlist = parseSignUpAllowlist('pilot@gym.test');
+      const { clock, server } = startAt();
+      await addTrainerAccount();
+      // A request deletes the address's old row, so the expired and the used link each have an
+      // address no later request touches; the trainer asks twice: replaced, then killed.
+      await requestCode('pilot@gym.test', 'en', { server });
+      const expired = readEmail().token;
+      clock.advance({ minutes: 15 });
+      await requestCode('owner@example.com', 'en', { server });
+      const used = readEmail(2).token;
+      expect((await confirmLink(used, server)).status).toBe(200);
+      await requestCode('trainer@example.com', 'en', { server });
+      const replaced = readEmail(3).token;
+      await requestCode('trainer@example.com', 'en', { server });
+      const killed = readEmail(4);
+      for (let i = 0; i < 5; i++) {
+        await enterCode('trainer@example.com', wrongCodeFor(killed.code), server);
+      }
+
+      const failures = [expired, used, replaced, killed.token, 'never-issued', ''];
+      for (const route of [previewLink, confirmLink]) {
+        const answers = await Promise.all(
+          failures.map(async (token) => await outcome(await route(token, server))),
+        );
+        for (const answer of answers) expect(answer).toEqual(answers[0]);
+        expect(answers[0]).toMatchObject({ status: 401, body: LINK_ERROR, cookies: [] });
+      }
+    });
+
+    describe.each(['nl-NL', 'en'] as const)('AC9 (link) page language %s', (locale) => {
+      it('AC9: allowlisted first sign-in with the link creates the account with the verification language', async () => {
+        allowlist = parseSignUpAllowlist('@trainers.test');
+        await requestCode('new@trainers.test', locale);
+        const { token } = readEmail();
+        expect(await accountOf('new@trainers.test')).toBeUndefined();
+
+        const response = await confirmLink(token);
+
+        expect(response.status).toBe(200);
+        const account = await accountOf('new@trainers.test');
+        expect(account).toMatchObject({
+          email: 'new@trainers.test',
+          emailVerified: true,
+          preferredLocale: locale,
+        });
+        const cookie = sessionCookie(response);
+        const session = await sessionOf(cookie);
+        expect(await session.json()).toMatchObject({ user: { id: account?.id } });
+      });
+    });
+
+    it('AC9: an address no longer on the allowlist gets no account from the link', async () => {
+      allowlist = parseSignUpAllowlist('pilot@gym.test');
+      await requestCode('pilot@gym.test', 'en');
+      const { token } = readEmail();
+
+      allowlist = parseSignUpAllowlist(undefined);
+      const response = await confirmLink(token);
+
+      expect(response.status).toBe(401);
+      expect(await response.json()).toMatchObject(LINK_ERROR);
+      expect(sessionCookie(response)).toBeUndefined();
+      expect(await accountOf('pilot@gym.test')).toBeUndefined();
+    });
+
+    it('AC9: a second sign-in with the link signs in to the same account and keeps its language', async () => {
+      allowlist = parseSignUpAllowlist('pilot@gym.test');
+      await requestCode('pilot@gym.test', 'en');
+      await confirmLink(readEmail().token);
+      const created = await accountOf('pilot@gym.test');
+
+      await requestCode('pilot@gym.test', 'nl-NL');
+      const { email, token } = readEmail(2);
+      expect(email.locale).toBe('en');
+      expect((await confirmLink(token)).status).toBe(200);
+
+      expect(await client.db.$count(authUsers, eq(authUsers.email, 'pilot@gym.test'))).toBe(1);
+      expect(await accountOf('pilot@gym.test')).toMatchObject({
+        id: created?.id,
+        preferredLocale: 'en',
+      });
+    });
+
+    it('AC9: an address that is already an account does not need to be on the list', async () => {
+      await requestCode('owner@example.com', 'en');
+
+      expect((await confirmLink(readEmail().token)).status).toBe(200);
+    });
+
+    it('a cross-site form post to the confirm endpoint is refused and uses nothing up', async () => {
+      await requestCode('owner@example.com', 'en');
+      const { token } = readEmail();
+      const before = await verifications();
+
+      // A page on another site cannot sign a victim in as someone else (login CSRF): a plain
+      // form post is not JSON, which the endpoint does not take.
+      const response = await auth().handler(
+        new Request(`${ORIGIN}/api/auth/sign-in/link/confirm`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded',
+            origin: 'https://evil.example.org',
+          },
+          body: new URLSearchParams({ token }),
+        }),
+      );
+
+      expect(response.status).toBe(415);
+      expect(response.headers.getSetCookie()).toEqual([]);
+      expect(await verifications()).toEqual(before);
+      // The link still works for the person it belongs to.
+      expect((await confirmLink(token)).status).toBe(200);
+    });
+
+    it('AC11: the link token is only looked up by its hash', async () => {
+      await requestCode('owner@example.com', 'en');
+      const { token } = readEmail();
+      const [row] = await verifications();
+
+      // Presenting the stored hash instead of the token does not sign anyone in.
+      expect((await confirmLink(row?.value ?? '')).status).toBe(401);
+      expect((await confirmLink(token)).status).toBe(200);
     });
   });
 });
