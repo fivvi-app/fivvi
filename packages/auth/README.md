@@ -32,7 +32,7 @@ A person signs in with only their email address. One request creates **one verif
 - **Client IP address.** From the `X-Real-IP` header only; IPv6 addresses count per /64 network. Why that header, what a missing or invalid one means (`requireClientIp`) and how tests set it: `ENVIRONMENTS.md §7`.
 - No passwords: an address that is neither an account nor allowed is answered like any other.
 
-Not here yet (spec #128, later tickets): the confirm-link endpoint (#136; it creates the account the same way), the web pages and product events.
+Not here yet (spec #128, later tickets): the confirm-link endpoint (#136; it creates the account the same way), the confirm step, the route guard and sign out (#137) and product events. The code step of the sign-in page (`/login`, `apps/web/app/login`) calls the two endpoints above with `fetch` and words a failed code from the error code, never from the English message.
 
 ## Tables
 
