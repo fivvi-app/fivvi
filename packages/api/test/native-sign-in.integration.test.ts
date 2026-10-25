@@ -147,6 +147,8 @@ describe('F001N native sign-in through the API', () => {
   });
 
   beforeEach(async () => {
+    // Every test runs at T0, so no result depends on the real clock; `passTime` moves it.
+    freezeSystemTime(T0);
     transport.clear();
     pending.length = 0;
     allowlist = parseSignUpAllowlist(undefined);
@@ -191,7 +193,6 @@ describe('F001N native sign-in through the API', () => {
   });
 
   it('AC2: an address without an account and a request over the limit get the same 202 and no email', async () => {
-    freezeSystemTime(T0);
     const known = await requestSignIn('owner@example.com');
     expect(transport.sent).toHaveLength(1);
     transport.clear();
@@ -212,7 +213,6 @@ describe('F001N native sign-in through the API', () => {
   });
 
   it('AC2: the client IP the proxy sets counts for the IP limit', async () => {
-    freezeSystemTime(T0);
     for (let i = 0; i < 20; i++) {
       await requestSignIn(`nobody${i}@example.com`, 'en', { 'x-real-ip': '203.0.113.7' });
     }
@@ -224,7 +224,6 @@ describe('F001N native sign-in through the API', () => {
   });
 
   it('AC3: the token is a sign-in session of the account', async () => {
-    freezeSystemTime(T0);
     const token = await signInWithToken();
 
     const [session] = await client.db
@@ -370,7 +369,6 @@ describe('F001N native sign-in through the API', () => {
     });
 
     it('answers 401 for an expired sign-in session', async () => {
-      freezeSystemTime(T0);
       const token = await signInWithToken();
       await client.db
         .update(authSessions)
@@ -381,7 +379,6 @@ describe('F001N native sign-in through the API', () => {
   });
 
   it('AC8: the token lasts 30 days after its last use and each use renews it', async () => {
-    freezeSystemTime(T0);
     const token = await signInWithToken();
     const at = (days: number) => passTime(days * DAY_MS);
 
@@ -395,7 +392,6 @@ describe('F001N native sign-in through the API', () => {
   });
 
   it('AC8: a token that is not used for 30 days no longer works', async () => {
-    freezeSystemTime(T0);
     const token = await signInWithToken();
 
     passTime(31 * DAY_MS);
@@ -430,7 +426,13 @@ describe('F001N native sign-in through the API', () => {
     it('needs a valid bearer token: none, an unknown one or a cookie alone get 401', async () => {
       const cookie = await webCookie();
 
-      const attempts: Record<string, string>[] = [{}, bearer('not-a-real-token'), { cookie }];
+      // An unknown bearer next to a valid cookie must not fall back to the cookie either.
+      const attempts: Record<string, string>[] = [
+        {},
+        bearer('not-a-real-token'),
+        { cookie },
+        { cookie, ...bearer('not-a-real-token') },
+      ];
       for (const headers of attempts) {
         const response = await signOut(headers);
         expect(response.status).toBe(401);
@@ -503,7 +505,6 @@ describe('F001N native sign-in through the API', () => {
     const IP = { 'x-real-ip': '203.0.113.9' };
 
     it('answers the neutral 401 over the limit, even for the right code, and keeps the code', async () => {
-      freezeSystemTime(T0);
       await requestSignIn('owner@example.com');
       const code = codeOf();
       for (let i = 0; i < 30; i++) {
@@ -525,7 +526,6 @@ describe('F001N native sign-in through the API', () => {
     });
 
     it('starts again after the window', async () => {
-      freezeSystemTime(T0);
       await requestSignIn('owner@example.com');
       for (let i = 0; i < 30; i++) await exchange(`nobody${i}@example.com`, '000000', IP);
       // The code lasts 15 minutes, as long as the window: ask again once the window is over.
@@ -567,18 +567,7 @@ describe('F001N native sign-in through the API', () => {
       },
     );
 
-    it.each([
-      ['five digits', '12345'],
-      ['seven digits', '1234567'],
-      ['letters', 'abcdef'],
-      ['spaces', '123 456'],
-      ['an empty code', ''],
-    ])('POST /v1/sign-in/token with %s is a 400 with the validation error', async (_name, code) => {
-      const response = await exchange('owner@example.com', code);
-
-      expect(response.status).toBe(400);
-      expect(await response.json()).toEqual(validation('code', 'invalid_format'));
-    });
+    const withCode = (code: string) => ({ email: 'owner@example.com', code });
 
     it.each([
       ['no address', { code: '123456' }, validation('email', 'invalid_type')],
@@ -587,6 +576,12 @@ describe('F001N native sign-in through the API', () => {
         { email: 'not-an-email', code: '123456' },
         validation('email', 'invalid_format'),
       ],
+      ['no code', { email: 'owner@example.com' }, validation('code', 'invalid_type')],
+      ['five digits', withCode('12345'), validation('code', 'invalid_format')],
+      ['seven digits', withCode('1234567'), validation('code', 'invalid_format')],
+      ['letters', withCode('abcdef'), validation('code', 'invalid_format')],
+      ['spaces', withCode('123 456'), validation('code', 'invalid_format')],
+      ['an empty code', withCode(''), validation('code', 'invalid_format')],
     ])(
       'POST /v1/sign-in/token with %s is a 400 with the validation error',
       async (_name, body, expected) => {

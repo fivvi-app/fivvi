@@ -1020,7 +1020,7 @@ public enum Operations {
                     self.body = body
                 }
             }
-            /// The code is wrong, used, replaced or expired. Nothing says which.
+            /// The code was not accepted. Nothing says why: it can be wrong, used, replaced, expired or out of attempts, or this network asked too often.
             ///
             /// - Remark: Generated from `#/paths//v1/sign-in/token/post(exchangeSignInCode)/responses/401`.
             ///

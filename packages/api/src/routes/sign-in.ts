@@ -82,7 +82,10 @@ const exchangeSignInCodeRoute = createRoute({
       content: { 'application/json': { schema: SignInTokenResponseSchema } },
     },
     400: validationErrorResponse,
-    401: unauthorizedResponse('The code is wrong, used, replaced or expired. Nothing says which.'),
+    401: unauthorizedResponse(
+      'The code was not accepted. Nothing says why: it can be wrong, used, replaced, expired or ' +
+        'out of attempts, or this network asked too often.',
+    ),
     500: internalServerErrorResponse,
   },
 });

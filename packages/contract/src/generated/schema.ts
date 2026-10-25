@@ -396,7 +396,7 @@ export interface operations {
                     "application/json": components["schemas"]["ValidationError"];
                 };
             };
-            /** @description The code is wrong, used, replaced or expired. Nothing says which. */
+            /** @description The code was not accepted. Nothing says why: it can be wrong, used, replaced, expired or out of attempts, or this network asked too often. */
             401: {
                 headers: {
                     [name: string]: unknown;

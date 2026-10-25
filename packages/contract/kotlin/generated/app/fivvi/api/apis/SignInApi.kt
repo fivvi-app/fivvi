@@ -21,7 +21,7 @@ interface SignInApi {
      * Responses:
      *  - 200: The bearer token.
      *  - 400: The request did not match the contract.
-     *  - 401: The code is wrong, used, replaced or expired. Nothing says which.
+     *  - 401: The code was not accepted. Nothing says why: it can be wrong, used, replaced, expired or out of attempts, or this network asked too often.
      *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
      *
      * @param signInTokenRequest 
