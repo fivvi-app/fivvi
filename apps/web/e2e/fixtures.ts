@@ -20,56 +20,99 @@ interface E2EFixtures {
 /** WCAG 2.2 A and AA, the level the product commits to. */
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];
 
-/** How often an animation may start between settling and the end of the axe run before the run is repeated. */
+/**
+ * The most axe runs one check makes. A run is repeated while it found violations and a CSS
+ * transition or animation started during it; the last run's result counts.
+ */
 const MAX_SETTLE_ATTEMPTS = 3;
 
 /**
- * Waits until every CSS transition and animation on the page has finished, and returns how many
- * have started on it since the first call. Axe reads the colours the page shows at that moment,
- * and a control fading in (a button leaving its disabled state) shows a blend that fails
- * contrast (#203). Looping animations never finish and are left alone.
+ * How long the page may keep running animations before the check fails. Real time: Chromium
+ * slows the fade down to 3 s in the test that sets the playback rate to a twentieth.
+ */
+const SETTLE_TIMEOUT_MS = 5_000;
+
+/** `window` with the counter `settleAnimations` keeps of the CSS transitions and animations that start. */
+type E2EWindow = Window & { __e2eAnimationStarts?: number };
+
+/**
+ * Waits until every running CSS transition and animation that has an end has finished, checking
+ * on every animation frame, and returns how many CSS transitions and animations have started on
+ * the page since the first call. Axe reads the colours the page shows at that moment, and a
+ * control fading in (a button leaving its disabled state) shows a blend that fails contrast
+ * (#203). Looping and paused animations never finish and are left alone. Animations still running
+ * after SETTLE_TIMEOUT_MS (one that restarts all the time) fail the check, named.
  */
 async function settleAnimations(page: Page): Promise<number> {
-  return await page.evaluate(async () => {
-    const counter = window as unknown as { __e2eAnimationStarts?: number };
-    if (counter.__e2eAnimationStarts === undefined) {
-      counter.__e2eAnimationStarts = 0;
+  const { started, unsettled } = await page.evaluate(async (timeoutMs) => {
+    const win = window as E2EWindow;
+    if (win.__e2eAnimationStarts === undefined) {
+      win.__e2eAnimationStarts = 0;
       const count = () => {
-        counter.__e2eAnimationStarts = (counter.__e2eAnimationStarts ?? 0) + 1;
+        win.__e2eAnimationStarts = (win.__e2eAnimationStarts ?? 0) + 1;
       };
       document.addEventListener('transitionrun', count, true);
       document.addEventListener('animationstart', count, true);
     }
-    const finishing = () =>
+    // `running` also covers an animation whose start is still pending; a paused one reads `paused`.
+    const runningFinite = () =>
       document
         .getAnimations()
         .filter(
           (animation) =>
-            (animation.playState === 'running' || animation.pending) &&
+            animation.playState === 'running' &&
             animation.effect?.getComputedTiming().endTime !== Infinity,
         );
-    for (let pending = finishing(); pending.length > 0; pending = finishing()) {
-      // A cancelled animation rejects `finished`; either way it is done.
-      await Promise.allSettled(pending.map((animation) => animation.finished));
+    const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    const describe = (animation: Animation) => {
+      const target =
+        animation.effect instanceof KeyframeEffect ? animation.effect.target : undefined;
+      const element = target
+        ? `${target.tagName.toLowerCase()}${target.id ? `#${target.id}` : ''}`
+        : 'no element';
+      const name =
+        animation instanceof CSSAnimation
+          ? `animation "${animation.animationName}"`
+          : animation instanceof CSSTransition
+            ? `transition "${animation.transitionProperty}"`
+            : 'Web Animation';
+      return `${element} ${name}`;
+    };
+    const deadline = performance.now() + timeoutMs;
+    let running = runningFinite();
+    while (running.length > 0 && performance.now() < deadline) {
+      await nextFrame();
+      running = runningFinite();
     }
-    return counter.__e2eAnimationStarts;
-  });
+    return { started: win.__e2eAnimationStarts, unsettled: running.map(describe) };
+  }, SETTLE_TIMEOUT_MS);
+  if (unsettled.length > 0) {
+    throw new Error(
+      `The page did not settle within ${SETTLE_TIMEOUT_MS} ms, so axe cannot judge it; still running: ${unsettled.join(', ')}.`,
+    );
+  }
+  return started;
 }
 
 async function startedAnimations(page: Page): Promise<number> {
-  return await page.evaluate(
-    () => (window as unknown as { __e2eAnimationStarts?: number }).__e2eAnimationStarts ?? 0,
-  );
+  return await page.evaluate(() => (window as E2EWindow).__e2eAnimationStarts ?? 0);
+}
+
+interface AxeViolationSummary {
+  id: string;
+  impact: string | null | undefined;
+  help: string;
+  targets: string[];
 }
 
 /**
  * Fails when axe finds accessibility violations on the page. Every test gets this on its
  * final page automatically; call it yourself for states in between (an open dialog, the
- * page before a language switch). It waits for running transitions and animations first, and
+ * page before a language switch). It waits for running CSS transitions and animations first, and
  * repeats the run when one started while axe was looking, so a fade never counts as a violation.
  */
 export async function expectNoAxeViolations(page: Page, state = 'the page'): Promise<void> {
-  let found: unknown[] = [];
+  let found: AxeViolationSummary[] = [];
   for (let attempt = 1; attempt <= MAX_SETTLE_ATTEMPTS; attempt++) {
     const startsBefore = await settleAnimations(page);
     const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
