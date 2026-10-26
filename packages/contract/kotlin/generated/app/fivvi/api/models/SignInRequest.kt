@@ -30,10 +30,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * 
+ * Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.
  *
  * @param email The address the account signs in with.
- * @param locale The interface language the app resolved; the email follows ADR-019.
+ * @param locale 
  */
 @Serializable
 
@@ -43,7 +43,6 @@ data class SignInRequest (
     @SerialName(value = "email")
     val email: kotlin.String,
 
-    /* The interface language the app resolved; the email follows ADR-019. */
     @Contextual @SerialName(value = "locale")
     val locale: Locale
 

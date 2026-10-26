@@ -181,20 +181,14 @@
             "description": "The address the account signs in with."
           },
           "locale": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Locale"
-              },
-              {
-                "description": "The interface language the app resolved; the email follows ADR-019."
-              }
-            ]
+            "$ref": "#/components/schemas/Locale"
           }
         },
         "required": [
           "email",
           "locale"
-        ]
+        ],
+        "description": "Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019."
       },
       "SignInTokenResponse": {
         "type": "object",

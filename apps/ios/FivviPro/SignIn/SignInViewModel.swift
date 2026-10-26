@@ -199,10 +199,7 @@ final class SignInViewModel {
     /// Asks the API for the sign-in email, in the app's language.
     private func sendSignInEmail(to address: String) async -> Result<Void, Failure> {
         do {
-            // The contract wraps the locale in an `allOf` (a $ref plus its description), which the generator turns into a
-            // payload with the locale as `value1`; `value2` is the description's empty object and is not sent.
-            let locale = Components.Schemas.SignInRequest.LocalePayload(value1: catalog.locale, value2: try .init())
-            switch try await api.requestSignIn(body: .json(.init(email: address, locale: locale))) {
+            switch try await api.requestSignIn(body: .json(.init(email: address, locale: catalog.locale))) {
             case .accepted: return .success(())
             case .badRequest: return .failure(.invalidEmail)
             case .internalServerError, .undocumented: return .failure(.generic)

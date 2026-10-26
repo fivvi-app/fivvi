@@ -14,14 +14,18 @@ import { LocaleSchema } from '../schemas.ts';
 
 const EmailSchema = z.email().openapi({ description: 'The address the account signs in with.' });
 
+// `locale` stays a bare `LocaleSchema`: a description on the property makes zod-openapi emit
+// `allOf: [{ $ref }, { description }]`, which swift-openapi-generator turns into a payload struct
+// (#223). Its description lives on the object instead.
 const SignInRequestSchema = z
   .object({
     email: EmailSchema,
-    locale: LocaleSchema.openapi({
-      description: 'The interface language the app resolved; the email follows ADR-019.',
-    }),
+    locale: LocaleSchema,
   })
-  .openapi('SignInRequest');
+  .openapi('SignInRequest', {
+    description:
+      'Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.',
+  });
 
 const SignInTokenRequestSchema = z
   .object({
