@@ -12,7 +12,7 @@ final class SessionTests: XCTestCase {
         XCTAssertEqual(session.state, .signedOut(afterRejection: false))
     }
 
-    func test_F001N_AC4_storedTokenOpensHome() {
+    func test_F001N_AC8_storedTokenOpensHome() {
         let session = Session(store: InMemorySessionStore(token: "stored"))
 
         XCTAssertEqual(session.state, .signedIn)

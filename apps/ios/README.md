@@ -19,7 +19,7 @@ scripts/ios-device.sh nl        # the Debug app on your iPhone, in Dutch (A real
 | `FivviProTests/` | Unit tests (XCTest), hosted in the app |
 | `FivviProUITests/` | UI tests (XCUITest) |
 | `FivviPro.xctestplan` | Two configurations, `nl` (region NL) and `en` (region GB), time zone Europe/Amsterdam. Text-dependent tests run in both, the locale-independent UI tests in `nl` only ([Tests](#tests); `TESTING.md §7.2`) |
-| `Config/` | Per-configuration settings: `Debug.xcconfig` / `Release.xcconfig`, their Info.plist files and `FivviPro.entitlements` (the app's own Keychain access group, which the token store needs; an unsigned simulator build has no Keychain access without it) |
+| `Config/` | Per-configuration settings: `Debug.xcconfig` / `Release.xcconfig`, their Info.plist files and `Simulator.entitlements` (the app's own Keychain access group, which the token store needs). It is linked into simulator builds only (`OTHER_LDFLAGS[sdk=iphonesimulator*]`, as a Mach-O section), because an unsigned simulator build has no Keychain access without it; device builds are signed and take their entitlements from the signature. Debug sets `ENABLE_DEBUG_DYLIB = NO` so the section is in the executable; SwiftUI previews then run without the debug dylib (the older, slower path) |
 | `lint/fixtures/` | Files that must fail SwiftLint, one per custom rule (not in any target) |
 | `.build/` | Build output, resolved packages and SwiftLint (git-ignored) |
 

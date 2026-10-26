@@ -28,7 +28,7 @@ final class SignInUITests: XCTestCase {
 
     /// The whole chain: the email step, the code step (the sixth digit submits), the token in the Keychain and
     /// `GET /api/v1/me` with it.
-    func test_F001N_AC3_emailThenCodeShowsTheSignedInHome() throws {
+    func test_F001N_AC3_sixthDigitSubmits() throws {
         let catalog = TestCatalog.configured
         let server = try StubServer(.greeting(key: "hello.title"))
         let screen = SignInScreen.launch(against: server)
@@ -98,7 +98,7 @@ final class SignInUITests: XCTestCase {
         XCTAssertEqual(server.requests(to: "/api/v1/me").count, 2)
     }
 
-    func test_F001N_AC9_aRejectedTokenShowsTheSignedOutNotice() throws {
+    func test_F001N_AC9_signedOutNotice() throws {
         let catalog = TestCatalog.configured
         let server = try StubServer(.greeting(key: "hello.title"))
 

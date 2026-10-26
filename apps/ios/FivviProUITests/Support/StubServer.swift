@@ -125,7 +125,7 @@ private final class Responder: @unchecked Sendable {
             if let end = buffer.range(of: Data("\r\n\r\n".utf8)) {
                 let head = String(bytes: buffer[..<end.lowerBound], encoding: .utf8) ?? ""
                 let body = buffer[end.upperBound...]
-                if body.count >= Self.contentLength(of: head) {
+                if body.count >= (Int(Self.header("content-length", in: head) ?? "") ?? 0) {
                     self.handle(connection, head: head, body: Data(body))
                     return
                 }
@@ -136,16 +136,6 @@ private final class Responder: @unchecked Sendable {
                 self.receive(connection, buffer: buffer)
             }
         }
-    }
-
-    private static func contentLength(of head: String) -> Int {
-        for line in head.split(separator: "\r\n").dropFirst() {
-            let parts = line.split(separator: ":", maxSplits: 1)
-            if parts.count == 2, parts[0].lowercased() == "content-length" {
-                return Int(parts[1].trimmingCharacters(in: .whitespaces)) ?? 0
-            }
-        }
-        return 0
     }
 
     private static func header(_ name: String, in head: String) -> String? {
