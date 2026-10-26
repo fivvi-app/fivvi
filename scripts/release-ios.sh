@@ -8,7 +8,8 @@
 #   release-ios.sh archive   archives the Release configuration with the build number of the run (RELEASE_BUILD_NUMBER),
 #                            signed with that identity and profile, and checks the version the archive carries
 #   release-ios.sh symbols   uploads the dSYMs of the archive to the Sentry `ios` project with sentry-cli, under the release
-#                            name the app sends: <bundle ID>@<version>+<build>
+#                            name the app sends: <bundle ID>@<version>+<build>. SENTRY_AUTH_TOKEN is an organisation auth
+#                            token (it carries the organisation and the region; the commands pass no --org or --url)
 #   release-ios.sh upload    exports the archive and uploads it to App Store Connect with the API key, where it becomes
 #                            available to the internal TestFlight testers
 #   release-ios.sh cleanup   deletes the temporary keychain, the profile, the certificate and the API key file. Run it with
@@ -78,6 +79,8 @@ signing() {
   ! profile_value ProvisionedDevices.0 >/dev/null \
     || die "the provisioning profile is a development or ad hoc profile: the App Store needs an App Store profile (RELEASE.md §8)"
 
+  # The state first, then the copy: whatever fails from here on, `cleanup` knows which profile to delete.
+  printf 'PROFILE_UUID=%q\n' "$uuid" | private_file "$STATE"
   mkdir -p "$PROFILES_DIR"
   cp "$WORK/profile.mobileprovision" "$PROFILES_DIR/$uuid.mobileprovision"
 
@@ -136,9 +139,11 @@ archive() {
   load_state
   rm -rf "$ARCHIVE"
   # Debug signing (Local.xcconfig, the team in the project) is not touched: the signing settings are given here, for this
-  # archive only. Release.xcconfig has the production address, the Sentry DSN and the shared version.
+  # archive only. Release.xcconfig has the production address, the Sentry DSN and the shared version. The packages are the
+  # ones of the committed Package.resolved: a release never resolves a newer version.
   xcodebuild archive -project "$PROJECT" -scheme "$SCHEME" -configuration Release -destination generic/platform=iOS \
     -archivePath "$ARCHIVE" -clonedSourcePackagesDirPath "$ROOT/apps/ios/.build/SourcePackages" \
+    -onlyUsePackageVersionsFromResolvedFile \
     CURRENT_PROJECT_VERSION="$number" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" \
     DEVELOPMENT_TEAM="$TEAM_ID" PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" \
     || die "xcodebuild archive failed"

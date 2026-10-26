@@ -305,16 +305,16 @@ describe('E017 AC7: release-secrets.sh android, play and sentry', () => {
     assert.equal(repoStatus(), before);
   });
 
-  it('sets the Sentry token from a hidden prompt, asking for the scopes the document names', () => {
+  it('sets the Sentry token from a hidden prompt, asking for the organisation auth token the document names', () => {
     const before = repoStatus();
     const result = run(['sentry'], `${SENTINEL.sentryValue}\n`);
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(sets(result.calls), { SENTRY_AUTH_TOKEN: SENTINEL.sentryValue });
     noValueLeaks(result, [SENTINEL.sentryValue]);
-    assert.match(result.stderr, /project:releases and org:read/);
+    assert.match(result.stderr, /organisation auth token \(org:ci: releases and debug files\)/);
     assert.match(
       readFileSync(join(ROOT, 'docs/engineering/RELEASE.md'), 'utf8'),
-      /`project:releases` and `org:read`/,
+      /organisation auth token \(`org:ci`: releases and debug files\)/,
     );
     assert.equal(repoStatus(), before);
   });

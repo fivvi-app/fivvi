@@ -121,7 +121,7 @@ describe('E017 AC4: the build number', () => {
     }
   });
 
-  it('E017 AC4: both platforms take the number of the same run: it comes from the run, not from the platform', () => {
+  it('E017 AC4: the same run always gets the same number: it comes from the run, nothing else', () => {
     const first = buildNumber({}).stdout;
     const second = buildNumber({}).stdout;
     assert.equal(first, second);
@@ -345,6 +345,7 @@ describe('E017 AC1: signing, archive and export with xcodebuild', () => {
       '-scheme FivviPro',
       '-configuration Release',
       '-destination generic/platform=iOS',
+      '-onlyUsePackageVersionsFromResolvedFile',
       `-archivePath ${archivePath()}`,
       'CURRENT_PROJECT_VERSION=107',
       'CODE_SIGN_STYLE=Manual',
@@ -441,6 +442,16 @@ describe('E017 AC1: signing, archive and export with xcodebuild', () => {
     assert.equal(run(RELEASE_IOS, ['cleanup'], iosEnv()).status, 0);
     assert.throws(() => readFileSync(keyPath), /ENOENT/);
     assert.throws(() => readFileSync(keychain()), /ENOENT/);
+  });
+
+  it('E017 AC1: the profile is gone after cleanup even when signing failed after it was copied', () => {
+    const profile = join(work, 'profiles', `${PROFILE_FIELDS.UUID}.mobileprovision`);
+    // The import of the certificate fails: the profile is already where Xcode finds it, and `signing` never finished.
+    const [signing] = lane(['signing'], iosEnv({ FAKE_FAIL: 'security-import' }));
+    assert.notEqual(signing.status, 0);
+    assert.ok(readFileSync(profile, 'utf8'), 'the profile was copied before the failure');
+    assert.equal(run(RELEASE_IOS, ['cleanup'], iosEnv()).status, 0);
+    assert.throws(() => readFileSync(profile), /ENOENT/);
   });
 
   it('E017 AC1: cleanup works when nothing was set up', () => {
@@ -618,7 +629,11 @@ describe('E017 AC1: the iOS job of the release workflow', () => {
   });
 
   it('E017 AC1: uses no fastlane, no Ruby and no other signing service', () => {
-    assert.ok(!/fastlane|bundler|bundle exec|ruby|setup-ruby|match\b|gem install/i.test(workflow));
+    assert.ok(
+      !/fastlane|bundler|bundle exec|ruby|setup-ruby|\bmatch (appstore|adhoc|development|nuke)|gem install/i.test(
+        workflow,
+      ),
+    );
     for (const script of ['release.sh', 'release-ios.sh']) {
       const text = readFileSync(join(ROOT, 'scripts', script), 'utf8').replace(/^#.*$/gm, '');
       assert.ok(!/fastlane|bundle exec|ruby|gem install/i.test(text), script);
@@ -644,14 +659,28 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     assert.match(jobs().prepare, /scripts\/release\.sh guard/);
   });
 
-  it('E017 AC3: no upload when a native suite fails: the release job needs the test job, and only cleanup runs after a failure', () => {
-    const { prepare, 'ios-tests': tests, ios } = jobs();
+  it('E017 AC3: no upload when a native suite fails: the release job needs the test job of both platforms, and only cleanup runs after a failure', () => {
+    const { prepare, 'ios-tests': tests, 'android-tests': androidTests, ios } = jobs();
     assert.match(tests, /^ {4}needs: prepare$/m);
     assert.match(tests, /run: scripts\/release\.sh tests ios/);
-    assert.match(ios, /^ {4}needs: \[prepare, ios-tests\]$/m);
-    assert.ok(!/ios-release-test-results/.test(ios));
-    // Nothing that runs after a failure uploads: `always()`, `failure()` and `cancelled()` appear only on cleanup and on
-    // the upload of the test report.
+    // The native suites of both platforms run first (spec #169, AC3): the secret job waits for the iOS and the Android
+    // tests, so a failing Android suite uploads no iOS build either. #191's Android job needs both as well.
+    assert.match(androidTests, /^ {4}needs: prepare$/m);
+    assert.match(androidTests, /^ {4}runs-on: ubuntu-\d+\.\d+$/m);
+    assert.match(androidTests, /run: scripts\/release\.sh tests android/);
+    assert.ok(!/inputs\.ios/.test(androidTests), 'the Android suites run for every release run');
+    assert.match(ios, /^ {4}needs: \[prepare, ios-tests, android-tests\]$/m);
+    assert.ok(!/ios-release-test-results|android-release-test-results/.test(ios));
+    // The Android suites need the emulator set up the way ci.yml does it.
+    for (const command of [
+      'scripts/android.sh setup',
+      'scripts/android.sh emulator',
+      'scripts/android.sh stop',
+    ])
+      assert.ok(androidTests.includes(command), command);
+    assert.match(androidTests, /actions\/setup-java@/);
+    // Nothing that runs after a failure uploads: `always()`, `failure()` and `cancelled()` appear only on cleanup, on
+    // stopping the emulator and on the upload of the test reports.
     const afterFailure = (text) =>
       steps(text).filter((step) => /if: .*(always|failure|cancelled)\(\)/.test(step.text));
     assert.deepEqual(
@@ -662,8 +691,13 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
       afterFailure(tests).map((step) => step.name),
       ['Upload test results'],
     );
+    assert.deepEqual(
+      afterFailure(androidTests).map((step) => step.name),
+      ['Stop the emulator', 'Upload test results'],
+    );
     assert.ok(!/(always|failure|cancelled)\(\)/.test(prepare));
-    for (const job of [prepare, tests, ios]) assert.ok(!/continue-on-error/.test(job));
+    for (const job of [prepare, tests, androidTests, ios])
+      assert.ok(!/continue-on-error/.test(job));
     assert.ok(
       !/^ {4}if: .*(always|failure|cancelled)\(\)/m.test(ios),
       'the release job has no always() condition',
@@ -739,8 +773,8 @@ describe('E017 AC6: the release name the app sends', () => {
 
 describe('E017 AC7: secrets stay in the release job', () => {
   it('E017 AC7: only the release job reads secrets, each in the step that needs it, none in a command line', () => {
-    const { prepare, 'ios-tests': tests, ios } = jobs();
-    assert.ok(!prepare.includes('secrets.') && !tests.includes('secrets.'));
+    const { prepare, 'ios-tests': tests, 'android-tests': androidTests, ios } = jobs();
+    for (const job of [prepare, tests, androidTests]) assert.ok(!job.includes('secrets.'));
     assert.match(ios, /^ {4}environment: release$/m);
     const readers = steps(ios).filter((step) => step.text.includes('secrets.'));
     assert.deepEqual(
@@ -785,7 +819,8 @@ describe('E017 AC7: secrets stay in the release job', () => {
   });
 
   it("E017 AC7: pull-request workflows can't reach the secrets or the environment", () => {
-    const others = ['ci.yml'];
+    const others = readdirSync(WORKFLOWS).filter((f) => /\.ya?ml$/.test(f) && f !== 'release.yml');
+    assert.ok(others.includes('ci.yml'));
     for (const file of others) {
       const text = readFileSync(join(WORKFLOWS, file), 'utf8');
       assert.ok(!/environment: *release/.test(text), file);

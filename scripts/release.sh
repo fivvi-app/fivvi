@@ -18,7 +18,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 usage() { usage_of "$0"; }
 
 # Added to the run number. Above every build uploaded by hand before the first run, so the first run's number is higher
-# than any of them; never lower it, and raise it only when a build uploaded by hand has a higher number (RELEASE.md §6).
+# than any of them; never lower it, and raise it when a build uploaded by hand has a higher number, or when the workflow
+# file is renamed or replaced, which restarts the run number at 1 (RELEASE.md §6).
 BUILD_NUMBER_OFFSET=100
 RELEASE_REF=refs/heads/main
 
