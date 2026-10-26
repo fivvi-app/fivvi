@@ -1,8 +1,5 @@
 package app.fivvi.pro
 
-import android.content.res.Configuration
-import android.os.LocaleList
-import androidx.annotation.StringRes
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import app.fivvi.api.apis.HelloApi
@@ -31,12 +28,16 @@ class AppRule : ExternalResource() {
         signInApi: SignInApi = FakeSignInApi(),
         meApi: MeApi = FakeMeApi().apply { answerAccount() },
         session: Session = Session(InMemorySessionStore("token-1")),
+        signOutApi: (String) -> SignInApi = { signInApi },
     ) {
         app.dependencies = object : AppDependencies {
             override val helloApi = api
             override val signInApi = signInApi
             override val meApi = meApi
             override val session = session
+
+            override fun signOutApi(token: String) = signOutApi(token)
+
             override val languageSettings = object : LanguageSettings {
                 override val perAppLanguages = perApp.map(Locale::forLanguageTag)
                 override val deviceLanguages = device.map(Locale::forLanguageTag)
@@ -45,14 +46,14 @@ class AppRule : ExternalResource() {
         scenario = ActivityScenario.launch(MainActivity::class.java)
     }
 
-    /** The generated catalog's text for [id] in [language], with [formatArgs]: what the screen should show. */
-    fun string(language: AppLanguage, @StringRes id: Int, vararg formatArgs: Any): String {
-        val configuration = Configuration(app.resources.configuration).apply { setLocales(LocaleList(language.locale)) }
-        return app.createConfigurationContext(configuration).getString(id, *formatArgs)
+    /** Closes the activity, as when the person leaves the app; [launch] starts it again. */
+    fun close() {
+        scenario?.close()
+        scenario = null
     }
 
     override fun after() {
-        scenario?.close()
+        close()
         app.dependencies = DefaultAppDependencies(app)
     }
 }

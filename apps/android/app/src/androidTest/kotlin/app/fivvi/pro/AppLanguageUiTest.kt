@@ -31,7 +31,7 @@ class AppLanguageUiTest(
 
         app.launch(api, device = device, perApp = perApp)
 
-        compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(app.string(expected, R.string.hello_title))
+        compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(localizedString(expected, R.string.hello_title))
         assertEquals(listOf(expected.apiLocale), api.requestedLocales)
     }
 

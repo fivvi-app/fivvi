@@ -67,4 +67,85 @@ class SessionTest {
         assertEquals(true, first < second)
         assertEquals(true, second < session.state.value.generation)
     }
+
+    @Test
+    fun F001N_AC9_aRejectedTokenSignsOutWithTheNotice() {
+        val session = Session(InMemorySessionStore("old"))
+
+        session.expire("old")
+
+        assertEquals(true, session.state.value.afterRejection)
+    }
+
+    @Test
+    fun F001N_AC9_aNewSignInHasNoNotice() {
+        val session = Session(InMemorySessionStore("old"))
+        session.expire("old")
+
+        session.signIn("new")
+
+        assertEquals(false, session.state.value.afterRejection)
+    }
+
+    @Test
+    fun F001N_AC10_detachingTheTokenDeletesItButTheScreenStaysUntilSignedOut() {
+        val store = InMemorySessionStore("tok")
+        val session = Session(store)
+        val generation = session.state.value.generation
+
+        val detached = session.detachToken()
+
+        assertEquals("tok", detached)
+        assertNull(store.read())
+        assertNull(session.token())
+        assertEquals(AuthState(signedIn = true, generation = generation), session.state.value)
+    }
+
+    @Test
+    fun F001N_AC10_detachingWithoutATokenGivesNone() {
+        assertNull(Session(InMemorySessionStore()).detachToken())
+    }
+
+    @Test
+    fun F001N_AC10_signedOutShowsSignInWithoutNotice() {
+        val session = Session(InMemorySessionStore("tok"))
+        session.detachToken()
+
+        session.signedOut()
+
+        assertEquals(false, session.state.value.signedIn)
+        assertEquals(false, session.state.value.afterRejection)
+    }
+
+    @Test
+    fun F001N_AC10_signedOutAfterARefusedSignOutShowsTheNotice() {
+        val session = Session(InMemorySessionStore("tok"))
+        session.detachToken()
+
+        session.signedOut(afterRejection = true)
+
+        assertEquals(true, session.state.value.afterRejection)
+    }
+
+    @Test
+    fun F001N_AC10_signedOutKeepsTheNoticeOfARejectedToken() {
+        val session = Session(InMemorySessionStore("tok"))
+        session.expire("tok")
+        val state = session.state.value
+
+        session.signedOut()
+
+        assertEquals(state, session.state.value)
+    }
+
+    @Test
+    fun F001N_AC9_aLateAnswerForADetachedTokenChangesNothing() {
+        val session = Session(InMemorySessionStore("old"))
+        session.detachToken()
+        val state = session.state.value
+
+        session.expire("old")
+
+        assertEquals(state, session.state.value)
+    }
 }

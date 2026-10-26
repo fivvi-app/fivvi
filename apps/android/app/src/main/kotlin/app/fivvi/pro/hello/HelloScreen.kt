@@ -2,11 +2,7 @@ package app.fivvi.pro.hello
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -33,16 +29,12 @@ object HelloTags {
     const val RETRY = "hello.retry"
 }
 
+/** The hello block: the greeting, or the loading indicator, or the error with its retry. The home gives it its scroll. */
 @Composable
-fun HelloScreen(state: HelloState, onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    // Scrolls, so text at the largest font scale wraps instead of being cut off.
+fun HelloContent(state: HelloState, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(Spacing.space6),
-        verticalArrangement = Arrangement.spacedBy(Spacing.space4, Alignment.CenterVertically),
+        modifier = modifier.padding(Spacing.space6),
+        verticalArrangement = Arrangement.spacedBy(Spacing.space4),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         when (state) {

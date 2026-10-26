@@ -19,6 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.pro.hello.HelloViewModel
 import app.fivvi.pro.home.HomeScreen
 import app.fivvi.pro.home.HomeViewModel
+import app.fivvi.pro.signin.SignInActions
 import app.fivvi.pro.signin.SignInScreen
 import app.fivvi.pro.signin.SignInViewModel
 import app.fivvi.pro.theme.FivviTheme
@@ -48,7 +49,7 @@ class MainActivity : ComponentActivity() {
                     if (auth.signedIn) {
                         Home(dependencies, key = "${auth.generation}")
                     } else {
-                        SignIn(dependencies, key = "${auth.generation}")
+                        SignIn(dependencies, key = "${auth.generation}", showsSignedOutNotice = auth.afterRejection)
                     }
                 }
             }
@@ -57,18 +58,21 @@ class MainActivity : ComponentActivity() {
 
     // The view models belong to one sign-in (the key holds its generation), so the next one starts fresh.
     @Composable
-    private fun SignIn(dependencies: AppDependencies, key: String) {
+    private fun SignIn(dependencies: AppDependencies, key: String, showsSignedOutNotice: Boolean) {
         val viewModel = viewModel(key = "signIn-$key-${language.tag}") {
             SignInViewModel(dependencies.signInApi, dependencies.session, language.apiLocale)
         }
         val state by viewModel.state.collectAsStateWithLifecycle()
-        SignInScreen(
-            state,
+        val actions = SignInActions(
             onEmailChange = viewModel::onEmailChange,
             onSendCode = viewModel::sendCode,
             onCodeChange = viewModel::onCodeChange,
             onSubmitCode = viewModel::submitCode,
+            onResend = viewModel::resendCode,
+            onChangeEmail = viewModel::changeEmail,
+            onRetry = viewModel::retry,
         )
+        SignInScreen(state, actions, showsSignedOutNotice = showsSignedOutNotice)
     }
 
     @Composable
@@ -76,9 +80,19 @@ class MainActivity : ComponentActivity() {
         val hello = viewModel(key = "hello-$key-${language.tag}") {
             HelloViewModel(dependencies.helloApi, language.apiLocale)
         }
-        val me = viewModel(key = "home-$key") { HomeViewModel(dependencies.meApi) }
+        val me = viewModel(key = "home-$key") {
+            HomeViewModel(dependencies.meApi, dependencies.session, dependencies::signOutApi)
+        }
         val helloState by hello.state.collectAsStateWithLifecycle()
         val meState by me.state.collectAsStateWithLifecycle()
-        HomeScreen(helloState, meState, onRetryHello = hello::retry, onRetryMe = me::retry)
+        val signingOut by me.signingOut.collectAsStateWithLifecycle()
+        HomeScreen(
+            helloState,
+            meState,
+            signingOut,
+            onRetryHello = hello::retry,
+            onRetryMe = me::retry,
+            onSignOut = me::signOut,
+        )
     }
 }
