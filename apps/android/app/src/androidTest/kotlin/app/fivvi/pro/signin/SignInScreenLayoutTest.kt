@@ -1,15 +1,8 @@
 package app.fivvi.pro.signin
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.DeviceConfigurationOverride
-import androidx.compose.ui.test.FontScale
-import androidx.compose.ui.test.Locales
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertTextContains
@@ -17,8 +10,6 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.then
-import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.unit.dp
 import app.fivvi.pro.AppLanguage
 import app.fivvi.pro.R
@@ -26,7 +17,7 @@ import app.fivvi.pro.appLanguageParameters
 import app.fivvi.pro.assertButtonFits
 import app.fivvi.pro.assertWraps
 import app.fivvi.pro.localizedString
-import app.fivvi.pro.theme.FivviTheme
+import app.fivvi.pro.showAtLargestFontScale
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,18 +32,10 @@ class SignInScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
 
     private val noActions = SignInActions({}, {}, {}, {}, {}, {}, {})
 
-    private fun show(state: SignInState, showsSignedOutNotice: Boolean = false) = compose.setContent {
-        DeviceConfigurationOverride(
-            DeviceConfigurationOverride.FontScale(2f) then
-                DeviceConfigurationOverride.Locales(LocaleList(language.tag)),
-        ) {
-            FivviTheme {
-                Box(Modifier.width(320.dp).height(640.dp)) {
-                    SignInScreen(state, noActions, showsSignedOutNotice = showsSignedOutNotice)
-                }
-            }
+    private fun show(state: SignInState, showsSignedOutNotice: Boolean = false) =
+        compose.showAtLargestFontScale(language, height = 640.dp) {
+            SignInScreen(state, noActions, showsSignedOutNotice = showsSignedOutNotice)
         }
-    }
 
     private fun string(id: Int, vararg args: Any) = localizedString(language, id, *args)
 

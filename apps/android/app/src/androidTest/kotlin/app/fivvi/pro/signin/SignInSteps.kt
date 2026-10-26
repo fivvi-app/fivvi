@@ -4,7 +4,6 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performSemanticsAction
@@ -13,6 +12,7 @@ import app.fivvi.pro.AppLanguage
 import app.fivvi.pro.AppRule
 import app.fivvi.pro.R
 import app.fivvi.pro.home.HomeTags
+import app.fivvi.pro.waitUntilTagExists
 import org.junit.Assert.assertEquals
 
 /** What a person does on TM-01 in a launched app, shared by the sign-in UI tests. */
@@ -42,15 +42,12 @@ class SignInSteps(
 
     /** The sign-in finishes off the main thread (the token is stored), so wait for the home. */
     fun assertSignedInAs(address: String = ADDRESS) {
-        compose.waitUntil(TIMEOUT_MILLIS) {
-            compose.onAllNodes(hasTestTag(HomeTags.SIGNED_IN_AS)).fetchSemanticsNodes().isNotEmpty()
-        }
+        compose.waitUntilTagExists(HomeTags.SIGNED_IN_AS)
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)
             .assertTextEquals(app.string(language, R.string.home_signed_in_as, address))
     }
 
     companion object {
         const val ADDRESS = "owner@example.com"
-        const val TIMEOUT_MILLIS = 5_000L
     }
 }

@@ -180,7 +180,7 @@ class SignInViewModelTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
     }
 
     @Test
-    fun F001N_AC6_refusedCodeShowsTheMessageAndClearsTheField() {
+    fun F001N_AC6_wrongCodeShowsNeutralMessage() {
         api.answerAccepted()
         api.answerCodeRefused()
         val viewModel = viewModel()
@@ -190,6 +190,65 @@ class SignInViewModelTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
 
         assertEquals(SignInState.CodeEntry(EMAIL, "", SignInError.InvalidCode), viewModel.state.value)
         assertEquals(null, store.read())
+    }
+
+    @Test
+    fun F001N_AC1_typingTheAddressKeepsTheErrorAndRetryUntilTheNextAttempt() {
+        api.requestAnswers += { throw IOException("offline") }
+        api.answerAccepted()
+        val viewModel = viewModel()
+        viewModel.requestCode()
+
+        viewModel.onEmailChange("other@example.com")
+
+        assertEquals(SignInState.EmailEntry("other@example.com", SignInError.NoConnection), viewModel.state.value)
+        viewModel.retry()
+        assertEquals(listOf("owner@example.com", "other@example.com"), api.requests.map { it.email })
+        assertEquals(SignInState.CodeEntry("other@example.com"), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC6_typingTheCodeKeepsTheErrorUntilTheNextAttempt() {
+        api.answerAccepted()
+        api.answerCodeRefused()
+        val viewModel = viewModel()
+        viewModel.requestCode()
+        viewModel.onCodeChange("123456")
+
+        viewModel.onCodeChange("1")
+
+        assertEquals(SignInState.CodeEntry(EMAIL, "1", SignInError.InvalidCode), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC3_typingTheCodeKeepsTheLostConnectionAndRetryUntilTheNextAttempt() {
+        api.answerAccepted()
+        api.tokenAnswers += { throw IOException("offline") }
+        api.answerToken()
+        val viewModel = viewModel()
+        viewModel.requestCode()
+        viewModel.onCodeChange("123456")
+
+        viewModel.onCodeChange("12345")
+
+        assertEquals(SignInState.CodeEntry(EMAIL, "12345", SignInError.NoConnection), viewModel.state.value)
+        viewModel.onCodeChange("123456")
+        assertEquals(listOf("123456", "123456"), api.exchanges.map { it.code })
+    }
+
+    @Test
+    fun F001N_AC3_onlyAsciiDigitsAreAccepted() {
+        api.answerAccepted()
+        val viewModel = viewModel()
+        viewModel.requestCode()
+
+        // Arabic-Indic and fullwidth digits are digits to Unicode, but the API takes 0 to 9 only.
+        viewModel.onCodeChange("\u0661\u0662\u0663\u0664\u0665\u0666")
+        assertEquals(SignInState.CodeEntry(EMAIL), viewModel.state.value)
+        viewModel.onCodeChange("1\uFF12\u0663 4")
+
+        assertEquals(SignInState.CodeEntry(EMAIL, "14"), viewModel.state.value)
+        assertEquals(emptyList<SignInTokenRequest>(), api.exchanges)
     }
 
     @Test

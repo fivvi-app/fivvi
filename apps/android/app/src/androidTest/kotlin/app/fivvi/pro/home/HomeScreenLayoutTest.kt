@@ -1,22 +1,16 @@
 package app.fivvi.pro.home
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.DeviceConfigurationOverride
-import androidx.compose.ui.test.FontScale
-import androidx.compose.ui.test.Locales
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.then
-import androidx.compose.ui.text.intl.LocaleList
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.fivvi.pro.AppLanguage
 import app.fivvi.pro.R
@@ -24,8 +18,9 @@ import app.fivvi.pro.appLanguageParameters
 import app.fivvi.pro.assertButtonFits
 import app.fivvi.pro.assertWraps
 import app.fivvi.pro.hello.HelloState
+import app.fivvi.pro.hello.HelloTags
 import app.fivvi.pro.localizedString
-import app.fivvi.pro.theme.FivviTheme
+import app.fivvi.pro.showAtLargestFontScale
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,25 +32,17 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
     @get:Rule
     val compose = createComposeRule()
 
-    private fun show(me: MeState, signingOut: Boolean = false) = compose.setContent {
-        DeviceConfigurationOverride(
-            DeviceConfigurationOverride.FontScale(2f) then
-                DeviceConfigurationOverride.Locales(LocaleList(language.tag)),
-        ) {
-            FivviTheme {
-                Box(Modifier.width(320.dp).height(640.dp)) {
-                    HomeScreen(
-                        HelloState.Loaded(R.string.hello_title),
-                        me,
-                        signingOut,
-                        onRetryHello = {},
-                        onRetryMe = {},
-                        onSignOut = {},
-                    )
-                }
-            }
+    private fun show(me: MeState, signingOut: Boolean = false, width: Dp = 320.dp, height: Dp = 640.dp) =
+        compose.showAtLargestFontScale(language, width, height) {
+            HomeScreen(
+                HelloState.Loaded(R.string.hello_title),
+                me,
+                signingOut,
+                onRetryHello = {},
+                onRetryMe = {},
+                onSignOut = {},
+            )
         }
-    }
 
     @Test
     fun F001N_AC15_fontScale200Wraps() {
@@ -71,6 +58,18 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
 
         compose.assertWraps(HomeTags.ERROR, wraps = true)
         compose.assertButtonFits(HomeTags.RETRY)
+        compose.assertButtonFits(HomeTags.SIGN_OUT)
+    }
+
+    @Test
+    fun F001N_AC15_smallScreenScrollsAsOneToReachEverything() {
+        // Landscape on a small phone at 200%: the hello block and the account block don't fit together. The hello block
+        // keeps its height (it is not squeezed by the account block) and the screen scrolls to the sign-out button.
+        show(MeState.Loaded("a.long.address.for.a.trainer@example.com"), width = 568.dp, height = 320.dp)
+
+        compose.assertWraps(HelloTags.GREETING)
+        compose.onNodeWithTag(HelloTags.GREETING).assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.SIGN_OUT).performScrollTo().assertIsDisplayed()
         compose.assertButtonFits(HomeTags.SIGN_OUT)
     }
 

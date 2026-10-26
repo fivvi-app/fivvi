@@ -36,12 +36,18 @@ object HelloTags {
 @Composable
 fun HelloScreen(state: HelloState, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     // Scrolls, so text at the largest font scale wraps instead of being cut off.
+    HelloContent(
+        state,
+        onRetry,
+        modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()),
+    )
+}
+
+/** The hello block without a scroll or window insets of its own, for a screen that scrolls as one (the home). */
+@Composable
+fun HelloContent(state: HelloState, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(Spacing.space6),
+        modifier = modifier.padding(Spacing.space6),
         verticalArrangement = Arrangement.spacedBy(Spacing.space4, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

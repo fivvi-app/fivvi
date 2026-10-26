@@ -25,7 +25,7 @@ import org.junit.runners.Parameterized
 // Synthetic values only (AGENTS.md, D8). The same ones as the iOS test (ObservabilitySignInTests).
 private const val ADDRESS = "owner@example.com"
 private const val CODE = "493817"
-private const val TOKEN = "bearer-token-0a1b2c3d4e5f"
+private const val TOKEN = "fake-bearer-token-for-tests"
 private const val URL = "https://app.example.com/api/v1/sign-in/token"
 private const val DSN = "https://public@o0.ingest.de.sentry.io/1"
 

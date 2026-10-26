@@ -1,27 +1,15 @@
 package app.fivvi.pro.hello
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.width
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.test.DeviceConfigurationOverride
-import androidx.compose.ui.test.FontScale
-import androidx.compose.ui.test.Locales
-import androidx.compose.ui.test.SemanticsNodeInteraction
-import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.then
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.unit.dp
 import app.fivvi.pro.AppLanguage
 import app.fivvi.pro.R
 import app.fivvi.pro.appLanguageParameters
-import app.fivvi.pro.theme.FivviTheme
-import org.junit.Assert.assertFalse
+import app.fivvi.pro.assertButtonFits
+import app.fivvi.pro.assertNotCutOff
+import app.fivvi.pro.showAtLargestFontScale
+import app.fivvi.pro.textLayout
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -34,29 +22,7 @@ class HelloScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private v
     @get:Rule
     val compose = createComposeRule()
 
-    private fun show(state: HelloState) = compose.setContent {
-        DeviceConfigurationOverride(
-            DeviceConfigurationOverride.FontScale(2f) then
-                DeviceConfigurationOverride.Locales(LocaleList(language.tag)),
-        ) {
-            FivviTheme {
-                Box(Modifier.width(320.dp)) { HelloScreen(state, onRetry = {}) }
-            }
-        }
-    }
-
-    private fun SemanticsNodeInteraction.textLayout(): TextLayoutResult {
-        val layouts = mutableListOf<TextLayoutResult>()
-        fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action!!.invoke(layouts)
-        return layouts.single()
-    }
-
-    // Every line shown in full. (didOverflowWidth isn't used: centred text in a wrap-content button reports it while
-    // the text fits.)
-    private fun TextLayoutResult.assertNotCutOff(what: String) {
-        assertFalse("$what: lines cut off", multiParagraph.didExceedMaxLines)
-        assertFalse("$what: height cut off", didOverflowHeight)
-    }
+    private fun show(state: HelloState) = compose.showAtLargestFontScale(language) { HelloScreen(state, onRetry = {}) }
 
     @Test
     fun E008_AC7_fontScale200Wraps() {
@@ -84,15 +50,7 @@ class HelloScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private v
         val error = compose.onNodeWithTag(HelloTags.ERROR).textLayout()
         assertTrue("the error wraps", error.lineCount > 1)
         error.assertNotCutOff("the error")
-        val label = compose.onNode(hasAnyAncestor(hasTestTag(HelloTags.RETRY)), useUnmergedTree = true)
-        label.textLayout().assertNotCutOff("the button text")
-        val labelBounds = label.getUnclippedBoundsInRoot()
-        val buttonBounds = compose.onNodeWithTag(HelloTags.RETRY).getUnclippedBoundsInRoot()
-        assertTrue(
-            "the button text $labelBounds stays inside the button $buttonBounds",
-            labelBounds.left >= buttonBounds.left && labelBounds.right <= buttonBounds.right &&
-                labelBounds.top >= buttonBounds.top && labelBounds.bottom <= buttonBounds.bottom,
-        )
+        compose.assertButtonFits(HelloTags.RETRY)
     }
 
     @Test

@@ -2,6 +2,7 @@ package app.fivvi.pro.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -27,7 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.pro.R
-import app.fivvi.pro.hello.HelloScreen
+import app.fivvi.pro.hello.HelloContent
 import app.fivvi.pro.hello.HelloState
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
@@ -54,10 +55,17 @@ fun HomeScreen(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize().safeDrawingPadding()) {
-        HelloScreen(hello, onRetryHello, Modifier.weight(1f))
+    // One scroll for the whole screen, so the account block can't squeeze the hello block at the largest font scale. The
+    // spacers share what is left when both fit (the hello block centred above the account block) and give way when not.
+    Column(
+        modifier = modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Spacer(Modifier.weight(1f))
+        HelloContent(hello, onRetryHello)
+        Spacer(Modifier.weight(1f))
         Column(
-            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(Spacing.space6),
+            modifier = Modifier.fillMaxWidth().padding(Spacing.space6),
             verticalArrangement = Arrangement.spacedBy(Spacing.space4),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

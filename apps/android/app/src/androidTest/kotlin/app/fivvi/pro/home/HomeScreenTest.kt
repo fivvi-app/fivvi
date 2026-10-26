@@ -3,7 +3,6 @@ package app.fivvi.pro.home
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -19,6 +18,7 @@ import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.hello.HelloTags
 import app.fivvi.pro.signin.FakeSignInApi
 import app.fivvi.pro.signin.SignInTags
+import app.fivvi.pro.waitUntilTagExists
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -55,9 +55,7 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
     private fun string(id: Int, vararg args: Any) = app.string(language, id, *args)
 
     // The sign-out ends off the main thread (the token is deleted), so wait for TM-01.
-    private fun waitForSignIn() = compose.waitUntil(TIMEOUT_MILLIS) {
-        compose.onAllNodes(hasTestTag(SignInTags.EMAIL)).fetchSemanticsNodes().isNotEmpty()
-    }
+    private fun waitForSignIn() = compose.waitUntilTagExists(SignInTags.EMAIL)
 
     @Test
     fun F001N_AC4_storedTokenOpensHomeWithTheAccountsAddress() {
@@ -178,7 +176,7 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
     }
 
     @Test
-    fun F001N_AC10_signingOutIsShownAndAnnounced() {
+    fun F001N_AC10_signingOutIsShownAndLabelled() {
         me.answerAccount()
         val answer = CompletableDeferred<Response<Unit>>()
         signIn.signOutAnswers += { answer.await() }
@@ -193,8 +191,6 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
     }
 
     companion object {
-        private const val TIMEOUT_MILLIS = 5_000L
-
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
         fun languages() = appLanguageParameters()

@@ -67,8 +67,9 @@ class SignInViewModel(
     val state: StateFlow<SignInState> = _state.asStateFlow()
     private var failedAttempt: Attempt? = null
 
+    /** Takes what the address field holds now. The last error (and its retry) stays until the next attempt. */
     fun onEmailChange(email: String) {
-        (_state.value as? SignInState.EmailEntry)?.let { _state.value = SignInState.EmailEntry(email) }
+        (_state.value as? SignInState.EmailEntry)?.let { _state.value = it.copy(email = email) }
     }
 
     fun sendCode() {
@@ -121,11 +122,14 @@ class SignInViewModel(
         }
     }
 
-    /** Takes digits only, at most six; the sixth digit sends the code without another tap. */
+    /**
+     * Takes the digits 0 to 9 only (not other scripts' digits, which the API refuses), at most six; the sixth digit sends
+     * the code without another tap. The last error (and its retry) and the resent notice stay until the next attempt.
+     */
     fun onCodeChange(input: String) {
         val current = _state.value as? SignInState.CodeEntry ?: return
-        val code = input.filter(Char::isDigit).take(CODE_LENGTH)
-        _state.value = SignInState.CodeEntry(current.email, code, resent = current.resent)
+        val code = input.filter { it in '0'..'9' }.take(CODE_LENGTH)
+        _state.value = current.copy(code = code)
         if (code.length == CODE_LENGTH) submitCode()
     }
 
