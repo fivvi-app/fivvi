@@ -63,7 +63,6 @@ jobs:
   ios-tests:
     name: iOS tests
     needs: prepare
-    if: inputs.ios
     # The native suite on this commit in nl and en (TESTING.md §7), as `pnpm test:ios` runs it. No secret here, and no
     # approval needed: the owner is asked to approve only a run whose tests passed. The image and Xcode are pinned, like in
     # ci.yml.

@@ -669,6 +669,13 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     assert.match(androidTests, /^ {4}runs-on: ubuntu-\d+\.\d+$/m);
     assert.match(androidTests, /run: scripts\/release\.sh tests android/);
     assert.ok(!/inputs\.ios/.test(androidTests), 'the Android suites run for every release run');
+    // Both native suites always run: neither test job carries an `if:` on an input, so a later job that needs them is
+    // never skipped because a platform was left out of the run.
+    for (const [name, job] of [
+      ['ios-tests', tests],
+      ['android-tests', androidTests],
+    ])
+      assert.ok(!/^ {4}if:.*\binputs\./m.test(job), `${name} must not be gated on an input`);
     assert.match(ios, /^ {4}needs: \[prepare, ios-tests, android-tests\]$/m);
     assert.ok(!/ios-release-test-results|android-release-test-results/.test(ios));
     // The Android suites need the emulator set up the way ci.yml does it.
