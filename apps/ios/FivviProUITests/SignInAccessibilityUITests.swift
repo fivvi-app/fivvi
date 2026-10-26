@@ -8,7 +8,7 @@ final class SignInAccessibilityUITests: SignInUITestCase {
     func test_F001N_AC15_largestTextSizeWraps() throws {
         let server = try StubServer(.greeting(key: "hello.title"))
         let screen = SignInScreen.launch(
-            against: server, session: .rejectedToken, textSize: "UICTContentSizeCategoryAccessibilityXXXL"
+            against: server, session: .rejectedToken, textSize: AppLaunch.largestTextSize
         )
         XCTAssertTrue(screen.notice.waitUntilExists(timeout: timeout))
         try assertReadable(screen, [screen.title, screen.notice, screen.email, screen.sendCode])

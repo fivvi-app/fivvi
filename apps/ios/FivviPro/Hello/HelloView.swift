@@ -1,8 +1,8 @@
 import SwiftUI
 import FivviDesignTokens
 
-/// The hello block: a spinner while loading, the greeting as the heading, or an error with "Try again". It scrolls
-/// with the screen that shows it (`HomeView`), so what sits next to it can't squeeze it at the largest text size.
+/// The hello block: a spinner while loading, the greeting as the heading, or an error with "Try again". It doesn't
+/// scroll itself: the screen around it does, so what sits next to it can't squeeze it at the largest text size.
 /// Colours and text styles come from the design tokens: adaptive colours for light and dark mode, Dynamic Type styles.
 struct HelloView: View {
     let model: HelloViewModel

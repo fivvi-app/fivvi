@@ -2,7 +2,7 @@ import SwiftUI
 import FivviAPI
 import FivviDesignTokens
 
-/// The signed-in home, a placeholder until the tab bar arrives: the hello screen, plus the address of the account that
+/// The signed-in home, a placeholder until the tab bar arrives: the hello block, plus the address of the account that
 /// is signed in, from `GET /api/v1/me`.
 struct HomeView: View {
     @State private var hello: HelloViewModel
@@ -45,6 +45,8 @@ struct HomeView: View {
         }
         .padding(Tokens.Spacing.gutter)
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("home.account")
     }
 
     @ViewBuilder private var signOut: some View {

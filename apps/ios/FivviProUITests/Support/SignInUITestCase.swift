@@ -22,10 +22,22 @@ class SignInUITestCase: XCTestCase {
 
     /// No text is clipped or cut off, and every element fits the window's width. A text field keeps what is typed on
     /// one line and scrolls it, so the audit's "may be clipped" for a field whose value is typed text (not empty, not
-    /// its placeholder) is not counted; an empty field showing its placeholder is audited.
-    func assertReadable(_ screen: SignInScreen, _ elements: [XCUIElement]) throws {
+    /// its placeholder) is not counted; an empty field showing its placeholder is audited. With `wholeInWindow`, every
+    /// element also lies inside the window vertically (a screen that scrolls has to bring it into view first).
+    func assertReadable(_ screen: SignInScreen, _ elements: [XCUIElement], wholeInWindow: Bool = false) throws {
         // The message and the keyboard shift the layout for a moment; audit the settled screen.
         for element in elements { screen.settle(element) }
+        let window = screen.app.windows.firstMatch.frame
+        for element in elements {
+            XCTAssertTrue(element.exists, "\(element.identifier) is not on screen")
+            XCTAssertGreaterThanOrEqual(element.frame.minX, window.minX, element.identifier)
+            XCTAssertLessThanOrEqual(element.frame.maxX, window.maxX, element.identifier)
+            guard wholeInWindow else { continue }
+            XCTAssertGreaterThanOrEqual(element.frame.minY, window.minY, "\(element.identifier) starts above")
+            XCTAssertLessThanOrEqual(element.frame.maxY, window.maxY, "\(element.identifier) ends below")
+            XCTAssertTrue(element.isHittable, "\(element.identifier) can't be reached")
+        }
+        // The audit may scroll the screen, so it comes after the frames are read.
         try screen.app.performAccessibilityAudit(for: [.textClipped, .dynamicType, .hitRegion]) { issue in
             if issue.auditType == .textClipped, let field = issue.element, field.elementType == .textField,
                let typed = field.value as? String, !typed.isEmpty, typed != field.placeholderValue {
@@ -33,12 +45,6 @@ class SignInUITestCase: XCTestCase {
             }
             XCTFail("\(issue.auditType) on \(issue.element?.identifier ?? "-"): \(issue.detailedDescription)")
             return true
-        }
-        let window = screen.app.windows.firstMatch.frame
-        for element in elements {
-            XCTAssertTrue(element.exists, "\(element.identifier) is not on screen")
-            XCTAssertGreaterThanOrEqual(element.frame.minX, window.minX, element.identifier)
-            XCTAssertLessThanOrEqual(element.frame.maxX, window.maxX, element.identifier)
         }
     }
 }

@@ -16,12 +16,15 @@ enum AppLaunch {
         case asLeft
     }
 
+    /// The largest Dynamic Type size, as a `UIContentSizeCategory` raw value for `textSize`.
+    static let largestTextSize = "UICTContentSizeCategoryAccessibilityXXXL"
+
     /// Launches the app against `server`.
     /// - Parameters:
     ///   - deviceLanguages: the device's preferred languages; the test-plan configuration's language when nil.
     ///   - perAppLanguage: the per-app language from iOS Settings, which UI tests can't set there, so the Debug app
     ///     takes it as a launch argument (`LanguageSources.uiTestPerAppLanguageKey` in the app).
-    ///   - textSize: a `UIContentSizeCategory` raw value, e.g. `UICTContentSizeCategoryAccessibilityXXXL`.
+    ///   - textSize: a `UIContentSizeCategory` raw value, e.g. `largestTextSize`.
     ///   - appearance: "light" or "dark", which the Debug app takes as a launch argument
     ///     (`LaunchAppearance.uiTestAppearanceKey` in the app); the simulator's own appearance when nil.
     static func launch(

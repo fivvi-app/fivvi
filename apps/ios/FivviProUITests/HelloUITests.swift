@@ -153,7 +153,7 @@ final class HelloUITests: XCTestCase {
     func test_E008_AC7_largestTextSizeWraps() throws {
         let server = try StubServer(.status(503))
 
-        let screen = HelloScreen.launch(against: server, textSize: "UICTContentSizeCategoryAccessibilityXXXL")
+        let screen = HelloScreen.launch(against: server, textSize: AppLaunch.largestTextSize)
 
         XCTAssertTrue(screen.error.waitUntilExists(timeout: timeout))
         try assertReadable(screen, [screen.error, screen.retry])
