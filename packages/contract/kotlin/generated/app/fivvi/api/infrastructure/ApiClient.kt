@@ -1,5 +1,7 @@
 package app.fivvi.api.infrastructure
 
+import app.fivvi.api.auth.ApiKeyAuth
+import app.fivvi.api.auth.HttpBearerAuth
 
 import okhttp3.Call
 import okhttp3.Interceptor
@@ -57,6 +59,43 @@ class ApiClient(
 
     init {
         normalizeBaseUrl()
+    }
+
+    constructor(
+        baseUrl: String = defaultBasePath,
+        okHttpClientBuilder: OkHttpClient.Builder? = null,
+        
+        authNames: Array<String>
+    ) : this(baseUrl, okHttpClientBuilder) {
+        authNames.forEach { authName ->
+            val auth: Interceptor? = when (authName) { 
+                "cookieAuth" -> ApiKeyAuth("cookie", "better-auth.session_token")
+                
+                "bearerAuth" -> HttpBearerAuth("bearer")
+                
+                else -> throw RuntimeException("auth name $authName not found in available auth names")
+            }
+            if (auth != null) {
+                addAuthorization(authName, auth)
+            }
+        }
+    }
+
+    constructor(
+        baseUrl: String = defaultBasePath,
+        okHttpClientBuilder: OkHttpClient.Builder? = null,
+        
+        authName: String,
+        bearerToken: String
+    ) : this(baseUrl, okHttpClientBuilder, arrayOf(authName)) {
+        setBearerToken(bearerToken)
+    }
+
+    fun setBearerToken(bearerToken: String): ApiClient {
+        apiAuthorizations.values.runOnFirst<Interceptor, HttpBearerAuth> {
+            this.bearerToken = bearerToken
+        }
+        return this
     }
 
     /**

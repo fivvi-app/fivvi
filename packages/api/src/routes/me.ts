@@ -3,7 +3,7 @@ import { locales } from '@fivvi/i18n';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import type { MiddlewareHandler } from 'hono';
 import type { ApiDependencies } from '../dependencies.ts';
-import { internalServerErrorResponse } from '../errors.ts';
+import { internalServerErrorResponse, UNAUTHORIZED, unauthorizedResponse } from '../errors.ts';
 
 /** The context of a route behind `resolveSignedInAccount`; no other route has an `account`. */
 export interface SignedInEnv {
@@ -20,15 +20,11 @@ export const MeResponseSchema = z
   })
   .openapi('MeResponse', { description: 'The signed-in account.' });
 
-const UnauthorizedSchema = z.object({ code: z.enum(['unauthorized']) }).openapi('Unauthorized', {
-  description: 'The request has no valid sign-in session. Contains no user-facing text.',
-});
-
-const UNAUTHORIZED = { code: 'unauthorized' } as const;
-
 /**
- * Resolves the signed-in account from the sign-in session cookie and answers `401` when there
- * is none. A route behind it reads the account from `c.get('account')`.
+ * Resolves the signed-in account from the request's bearer token or, without an `Authorization`
+ * header, its sign-in session cookie, and answers `401` when there is none. An invalid bearer
+ * token is a `401` whatever cookie comes with it: `findSignedInAccount` judges a bearer request
+ * by its token alone. A route behind it reads the account from `c.get('account')`.
  */
 export function resolveSignedInAccount(
   dependencies: ApiDependencies,
@@ -50,16 +46,15 @@ const meRoute = createRoute({
   summary: 'The signed-in account',
   description:
     'The account of the sign-in session in the request. The web sends the sign-in session ' +
-    'cookie; there is no other way to sign in yet.',
+    'cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). ' +
+    'A request with an `Authorization` header is judged by that token alone, never by a cookie.',
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
   responses: {
     200: {
       description: 'The account.',
       content: { 'application/json': { schema: MeResponseSchema } },
     },
-    401: {
-      description: 'No valid sign-in session.',
-      content: { 'application/json': { schema: UnauthorizedSchema } },
-    },
+    401: unauthorizedResponse('No valid sign-in session or bearer token.'),
     500: internalServerErrorResponse,
   },
 });

@@ -416,7 +416,7 @@ public enum Operations {
     }
     /// The signed-in account
     ///
-    /// The account of the sign-in session in the request. The web sends the sign-in session cookie; there is no other way to sign in yet.
+    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie.
     ///
     /// - Remark: HTTP `GET /v1/me`.
     /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
@@ -523,7 +523,7 @@ public enum Operations {
                     self.body = body
                 }
             }
-            /// No valid sign-in session.
+            /// No valid sign-in session or bearer token.
             ///
             /// - Remark: Generated from `#/paths//v1/me/get(getMe)/responses/401`.
             ///
@@ -585,6 +585,707 @@ public enum Operations {
             /// - Throws: An error if `self` is not `.internalServerError`.
             /// - SeeAlso: `.internalServerError`.
             public var internalServerError: Operations.GetMe.Output.InternalServerError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case plainText
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "text/plain":
+                    self = .plainText
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .plainText:
+                    return "text/plain"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .plainText
+                ]
+            }
+        }
+    }
+    /// Ask for a sign-in email
+    ///
+    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+    ///
+    /// - Remark: HTTP `POST /v1/sign-in/request`.
+    /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)`.
+    public enum RequestSignIn {
+        public static let id: Swift.String = "requestSignIn"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/sign-in/request/POST/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.RequestSignIn.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.RequestSignIn.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.RequestSignIn.Input.Headers
+            /// - Remark: Generated from `#/paths/v1/sign-in/request/POST/requestBody`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/sign-in/request/POST/requestBody/content/application\/json`.
+                case json(Components.Schemas.SignInRequest)
+            }
+            public var body: Operations.RequestSignIn.Input.Body
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - headers:
+            ///   - body:
+            public init(
+                headers: Operations.RequestSignIn.Input.Headers = .init(),
+                body: Operations.RequestSignIn.Input.Body
+            ) {
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Accepted: Sendable, Hashable {
+                /// Creates a new `Accepted`.
+                public init() {}
+            }
+            /// Accepted. The body is empty.
+            ///
+            /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)/responses/202`.
+            ///
+            /// HTTP response code: `202 accepted`.
+            case accepted(Operations.RequestSignIn.Output.Accepted)
+            /// Accepted. The body is empty.
+            ///
+            /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)/responses/202`.
+            ///
+            /// HTTP response code: `202 accepted`.
+            public static var accepted: Self {
+                .accepted(.init())
+            }
+            /// The associated value of the enum case if `self` is `.accepted`.
+            ///
+            /// - Throws: An error if `self` is not `.accepted`.
+            /// - SeeAlso: `.accepted`.
+            public var accepted: Operations.RequestSignIn.Output.Accepted {
+                get throws {
+                    switch self {
+                    case let .accepted(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "accepted",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/sign-in/request/POST/responses/400/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/sign-in/request/POST/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ValidationError)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.ValidationError {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RequestSignIn.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RequestSignIn.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// The request did not match the contract.
+            ///
+            /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.RequestSignIn.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Operations.RequestSignIn.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct InternalServerError: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/sign-in/request/POST/responses/500/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/sign-in/request/POST/responses/500/content/text\/plain`.
+                    case plainText(OpenAPIRuntime.HTTPBody)
+                    /// The associated value of the enum case if `self` is `.plainText`.
+                    ///
+                    /// - Throws: An error if `self` is not `.plainText`.
+                    /// - SeeAlso: `.plainText`.
+                    public var plainText: OpenAPIRuntime.HTTPBody {
+                        get throws {
+                            switch self {
+                            case let .plainText(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RequestSignIn.Output.InternalServerError.Body
+                /// Creates a new `InternalServerError`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RequestSignIn.Output.InternalServerError.Body) {
+                    self.body = body
+                }
+            }
+            /// Unexpected server error, reported to error tracking. Contains no error details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Operations.RequestSignIn.Output.InternalServerError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Operations.RequestSignIn.Output.InternalServerError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case plainText
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "text/plain":
+                    self = .plainText
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .plainText:
+                    return "text/plain"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .plainText
+                ]
+            }
+        }
+    }
+    /// Exchange the emailed code for a bearer token
+    ///
+    /// Uses up the verification of the email (the web’s link and code are the same one), creates the account at the first sign-in of an allowed address, and returns a bearer token. It sets no cookie. Every failure gets the same 401.
+    ///
+    /// - Remark: HTTP `POST /v1/sign-in/token`.
+    /// - Remark: Generated from `#/paths//v1/sign-in/token/post(exchangeSignInCode)`.
+    public enum ExchangeSignInCode {
+        public static let id: Swift.String = "exchangeSignInCode"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/sign-in/token/POST/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ExchangeSignInCode.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ExchangeSignInCode.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.ExchangeSignInCode.Input.Headers
+            /// - Remark: Generated from `#/paths/v1/sign-in/token/POST/requestBody`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/sign-in/token/POST/requestBody/content/application\/json`.
+                case json(Components.Schemas.SignInTokenRequest)
+            }
+            public var body: Operations.ExchangeSignInCode.Input.Body
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - headers:
+            ///   - body:
+            public init(
+                headers: Operations.ExchangeSignInCode.Input.Headers = .init(),
+                body: Operations.ExchangeSignInCode.Input.Body
+            ) {
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/sign-in/token/POST/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/sign-in/token/POST/responses/200/content/application\/json`.
+                    case json(Components.Schemas.SignInTokenResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.SignInTokenResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.ExchangeSignInCode.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.ExchangeSignInCode.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The bearer token.
+            ///
+            /// - Remark: Generated from `#/paths//v1/sign-in/token/post(exchangeSignInCode)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.ExchangeSignInCode.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.ExchangeSignInCode.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/sign-in/token/POST/responses/400/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/sign-in/token/POST/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ValidationError)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.ValidationError {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.ExchangeSignInCode.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.ExchangeSignInCode.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// The request did not match the contract.
+            ///
+            /// - Remark: Generated from `#/paths//v1/sign-in/token/post(exchangeSignInCode)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.ExchangeSignInCode.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Operations.ExchangeSignInCode.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/sign-in/token/POST/responses/401/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/sign-in/token/POST/responses/401/content/application\/json`.
+                    case json(Components.Schemas.Unauthorized)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Unauthorized {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.ExchangeSignInCode.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.ExchangeSignInCode.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// The code was not accepted. Nothing says why: it can be wrong, used, replaced, expired or out of attempts, or this network asked too often.
+            ///
+            /// - Remark: Generated from `#/paths//v1/sign-in/token/post(exchangeSignInCode)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.ExchangeSignInCode.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Operations.ExchangeSignInCode.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct InternalServerError: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/sign-in/token/POST/responses/500/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/sign-in/token/POST/responses/500/content/text\/plain`.
+                    case plainText(OpenAPIRuntime.HTTPBody)
+                    /// The associated value of the enum case if `self` is `.plainText`.
+                    ///
+                    /// - Throws: An error if `self` is not `.plainText`.
+                    /// - SeeAlso: `.plainText`.
+                    public var plainText: OpenAPIRuntime.HTTPBody {
+                        get throws {
+                            switch self {
+                            case let .plainText(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.ExchangeSignInCode.Output.InternalServerError.Body
+                /// Creates a new `InternalServerError`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.ExchangeSignInCode.Output.InternalServerError.Body) {
+                    self.body = body
+                }
+            }
+            /// Unexpected server error, reported to error tracking. Contains no error details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/sign-in/token/post(exchangeSignInCode)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Operations.ExchangeSignInCode.Output.InternalServerError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Operations.ExchangeSignInCode.Output.InternalServerError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case plainText
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "text/plain":
+                    self = .plainText
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .plainText:
+                    return "text/plain"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .plainText
+                ]
+            }
+        }
+    }
+    /// Sign out
+    ///
+    /// Ends the sign-in session of the bearer token in the request, and only that one. Other phones and browsers of the account stay signed in.
+    ///
+    /// - Remark: HTTP `POST /v1/sign-out`.
+    /// - Remark: Generated from `#/paths//v1/sign-out/post(signOut)`.
+    public enum SignOut {
+        public static let id: Swift.String = "signOut"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/sign-out/POST/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.SignOut.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.SignOut.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.SignOut.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - headers:
+            public init(headers: Operations.SignOut.Input.Headers = .init()) {
+                self.headers = headers
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct NoContent: Sendable, Hashable {
+                /// Creates a new `NoContent`.
+                public init() {}
+            }
+            /// The sign-in session has ended. The body is empty.
+            ///
+            /// - Remark: Generated from `#/paths//v1/sign-out/post(signOut)/responses/204`.
+            ///
+            /// HTTP response code: `204 noContent`.
+            case noContent(Operations.SignOut.Output.NoContent)
+            /// The sign-in session has ended. The body is empty.
+            ///
+            /// - Remark: Generated from `#/paths//v1/sign-out/post(signOut)/responses/204`.
+            ///
+            /// HTTP response code: `204 noContent`.
+            public static var noContent: Self {
+                .noContent(.init())
+            }
+            /// The associated value of the enum case if `self` is `.noContent`.
+            ///
+            /// - Throws: An error if `self` is not `.noContent`.
+            /// - SeeAlso: `.noContent`.
+            public var noContent: Operations.SignOut.Output.NoContent {
+                get throws {
+                    switch self {
+                    case let .noContent(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "noContent",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/sign-out/POST/responses/401/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/sign-out/POST/responses/401/content/application\/json`.
+                    case json(Components.Schemas.Unauthorized)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Unauthorized {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.SignOut.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.SignOut.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// No valid bearer token.
+            ///
+            /// - Remark: Generated from `#/paths//v1/sign-out/post(signOut)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.SignOut.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Operations.SignOut.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct InternalServerError: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/sign-out/POST/responses/500/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/sign-out/POST/responses/500/content/text\/plain`.
+                    case plainText(OpenAPIRuntime.HTTPBody)
+                    /// The associated value of the enum case if `self` is `.plainText`.
+                    ///
+                    /// - Throws: An error if `self` is not `.plainText`.
+                    /// - SeeAlso: `.plainText`.
+                    public var plainText: OpenAPIRuntime.HTTPBody {
+                        get throws {
+                            switch self {
+                            case let .plainText(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.SignOut.Output.InternalServerError.Body
+                /// Creates a new `InternalServerError`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.SignOut.Output.InternalServerError.Body) {
+                    self.body = body
+                }
+            }
+            /// Unexpected server error, reported to error tracking. Contains no error details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/sign-out/post(signOut)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Operations.SignOut.Output.InternalServerError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Operations.SignOut.Output.InternalServerError {
                 get throws {
                     switch self {
                     case let .internalServerError(response):

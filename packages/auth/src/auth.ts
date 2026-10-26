@@ -1,12 +1,21 @@
 import type { Database, SignedInAccount } from '@fivvi/database';
 import { authIdentities, authSessions, authUsers, authVerifications } from '@fivvi/database';
 import { EmailSendError, type SendEmail } from '@fivvi/email';
-import { isLocale } from '@fivvi/i18n';
+import { isLocale, type Locale } from '@fivvi/i18n';
 import type { ProductEvents } from '@fivvi/observability';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { APIError } from 'better-auth/api';
+import { bearer } from 'better-auth/plugins';
 import { closedSignUp, type SignUpAllowlist } from './allowlist.ts';
-import { clientIpOptions, defaultRequireClientIp, signInRateLimits } from './rate-limit.ts';
+import { AUTH_TOKEN_HEADER, bearerOnly, withoutAuthorization, withoutAuthToken } from './bearer.ts';
+import {
+  CLIENT_IP_HEADER,
+  clientIpOptions,
+  defaultRequireClientIp,
+  signInRateLimits,
+  signInTokenRateLimit,
+} from './rate-limit.ts';
 import { type Clock, REQUEST_PATH, signInWithEmail, systemClock } from './sign-in-plugin.ts';
 
 const DAY_SECONDS = 24 * 60 * 60;
@@ -69,14 +78,37 @@ export interface SessionRead {
 export interface Auth {
   /**
    * The account of the sign-in session in the request's cookie, or `undefined` for an
-   * anonymous request, an unknown or expired session.
+   * anonymous request, an unknown or expired session. A request with an `Authorization` header
+   * is a bearer request: only its token counts, never a cookie next to it (spec #168).
    */
   findAccount(headers: Headers): Promise<SignedInAccount | undefined>;
+  /**
+   * The sign-in request of an app (spec #168): the same request as the web's, with the same
+   * verification, email, allowlist and rate limits. It answers the same for every address, and
+   * the email follows after the answer.
+   */
+  requestSignIn(input: { email: string; locale: Locale; headers: Headers }): Promise<void>;
+  /**
+   * Exchanges the emailed code for a bearer token: a sign-in session of the account, which the
+   * web's cookie would hold too. `undefined` for every failure (wrong, used, replaced, expired
+   * or killed code, or a client IP over its limit), so nothing tells which. It sets no cookie.
+   */
+  exchangeSignInCode(input: {
+    email: string;
+    code: string;
+    headers: Headers;
+  }): Promise<string | undefined>;
+  /**
+   * Ends the sign-in session of the bearer token in the request, and only that one. `false`
+   * when there is no valid bearer token.
+   */
+  signOutBearer(headers: Headers): Promise<boolean>;
   /**
    * Like `findAccount`, and also the `Set-Cookie` headers the answer must pass on to the browser.
    * Using a sign-in session renews it, at most once a day (AC12): the stored expiry moves forward
    * and the browser gets a new 30-day cookie, which only the response to the browser can carry,
-   * so the route guard (apps/web `proxy.ts`) calls this. An expired or unknown session comes
+   * so the route guard (apps/web `proxy.ts`) calls this. Only cookies count here, never an
+   * `Authorization` header. An expired or unknown session comes
    * with the header that clears its cookie.
    */
   readSession(headers: Headers): Promise<SessionRead>;
@@ -118,6 +150,10 @@ export function createAuth({
       },
     }),
     plugins: [
+      // Lets an app send its sign-in session as `Authorization: Bearer` (spec #168). Only the
+      // signed value counts, which the browser's cookie holds too: the raw `session.token` that
+      // `get-session` and `list-sessions` show to page script is no credential.
+      bearer({ requireSignature: true }),
       // First, so the limits hold before the endpoint does anything (AC10), including the
       // background work that follows its answer.
       signInRateLimits({ db, secret, clock, log, requireClientIp }),
@@ -169,7 +205,8 @@ export function createAuth({
     // Nothing leaves the process: no usage reports.
     telemetry: { enabled: false },
   });
-  async function readSession(headers: Headers): Promise<SessionRead> {
+  const tokenIpLimited = signInTokenRateLimit({ db, secret, clock, log, requireClientIp });
+  async function sessionOf(headers: Headers): Promise<SessionRead> {
     const { headers: answer, response } = await auth.api.getSession({
       headers,
       returnHeaders: true,
@@ -185,14 +222,44 @@ export function createAuth({
   return {
     async handler(request) {
       try {
-        return await auth.handler(request);
+        return withoutAuthToken(await auth.handler(request));
       } finally {
         // Sends what the sign-in recorded; never throws and waits at most a second.
         await productEvents?.flush();
       }
     },
-    readSession,
-    findAccount: async (headers) => (await readSession(headers)).account,
+    async requestSignIn({ email, locale, headers }) {
+      await auth.api.requestSignInCode({
+        body: { email, locale },
+        headers: forwardedHeaders(headers),
+      });
+    },
+    async exchangeSignInCode({ email, code, headers }) {
+      // The web's per-IP limiter is the HTTP router's, which `auth.api` skips.
+      if (await tokenIpLimited(headers)) return undefined;
+      try {
+        const { headers: answer } = await auth.api.verifySignInCode({
+          body: { email, code },
+          headers: forwardedHeaders(headers),
+          returnHeaders: true,
+        });
+        // The session cookie of the answer is dropped: the app holds the token.
+        return answer.get(AUTH_TOKEN_HEADER) ?? undefined;
+      } catch (error) {
+        if (error instanceof APIError && error.statusCode === 401) return undefined;
+        throw error;
+      }
+    },
+    async signOutBearer(headers) {
+      const bearerHeaders = bearerOnly(headers);
+      if (!bearerHeaders || !(await auth.api.getSession({ headers: bearerHeaders }))) return false;
+      await auth.api.signOut({ headers: bearerHeaders });
+      return true;
+    },
+    // Cookies only: a page request never signs in with a token.
+    readSession: (headers) => sessionOf(withoutAuthorization(headers)),
+    // A request with an `Authorization` header is judged by its token alone, never a cookie.
+    findAccount: async (headers) => (await sessionOf(bearerOnly(headers) ?? headers)).account,
   };
 }
 
@@ -205,4 +272,18 @@ function logFailure(error: unknown): void {
   const what =
     error instanceof EmailSendError ? error.message : error instanceof Error ? error.name : 'Error';
   console.error(`Sign-in request failed after its answer: ${what}`);
+}
+
+/**
+ * What an app's sign-in routes pass on to Better Auth: the proxy's client IP address (rate
+ * limits, the session's address), the user agent and the language. Nothing else, so a cookie
+ * or token in the request can't change what the call does.
+ */
+function forwardedHeaders(headers: Headers): Headers {
+  const forwarded = new Headers();
+  for (const name of [CLIENT_IP_HEADER, 'user-agent', 'accept-language']) {
+    const value = headers.get(name);
+    if (value !== null) forwarded.set(name, value);
+  }
+  return forwarded;
 }

@@ -10,6 +10,19 @@
     }
   ],
   "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "better-auth.session_token",
+        "description": "The sign-in session cookie of the web (`__Secure-` prefixed over https). Set by the web’s own sign-in, not by this contract."
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "The token of `POST /v1/sign-in/token`: a sign-in session. Ended by `POST /v1/sign-out`."
+      }
+    },
     "schemas": {
       "HealthResponse": {
         "type": "object",
@@ -158,6 +171,61 @@
           "code"
         ],
         "description": "The request has no valid sign-in session. Contains no user-facing text."
+      },
+      "SignInRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "The address the account signs in with."
+          },
+          "locale": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Locale"
+              },
+              {
+                "description": "The interface language the app resolved; the email follows ADR-019."
+              }
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "locale"
+        ]
+      },
+      "SignInTokenResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The bearer token: a sign-in session, valid 30 days after its last use and renewed on use. Send it as `Authorization: Bearer <token>`."
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "SignInTokenRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "The address the account signs in with."
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "description": "The 6-digit code in the email."
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ]
       }
     },
     "parameters": {}
@@ -256,7 +324,15 @@
           "me"
         ],
         "summary": "The signed-in account",
-        "description": "The account of the sign-in session in the request. The web sends the sign-in session cookie; there is no other way to sign in yet.",
+        "description": "The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "The account.",
@@ -269,7 +345,157 @@
             }
           },
           "401": {
-            "description": "No valid sign-in session.",
+            "description": "No valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sign-in/request": {
+      "post": {
+        "operationId": "requestSignIn",
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Ask for a sign-in email",
+        "description": "Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted. The body is empty."
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sign-in/token": {
+      "post": {
+        "operationId": "exchangeSignInCode",
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Exchange the emailed code for a bearer token",
+        "description": "Uses up the verification of the email (the web’s link and code are the same one), creates the account at the first sign-in of an allowed address, and returns a bearer token. It sets no cookie. Every failure gets the same 401.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The code was not accepted. Nothing says why: it can be wrong, used, replaced, expired or out of attempts, or this network asked too often.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sign-out": {
+      "post": {
+        "operationId": "signOut",
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Sign out",
+        "description": "Ends the sign-in session of the bearer token in the request, and only that one. Other phones and browsers of the account stay signed in.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The sign-in session has ended. The body is empty."
+          },
+          "401": {
+            "description": "No valid bearer token.",
             "content": {
               "application/json": {
                 "schema": {

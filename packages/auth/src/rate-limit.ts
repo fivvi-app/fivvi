@@ -19,6 +19,15 @@ export const ADDRESS_LIMIT: RateLimitRule = { max: 3, windowMinutes: 15 };
 /** Sign-in requests per IP address: 20 in an hour (AC10). */
 export const IP_LIMIT: RateLimitRule = { max: 20, windowMinutes: 60 };
 
+/**
+ * Code exchanges of the apps (`POST /v1/sign-in/token`) per IP address. The web's
+ * code step has Better Auth's own per-IP limiter, which only the HTTP router runs; the apps call
+ * the endpoint through `auth.api`, which skips it, so this is the app's per-IP limit. It is
+ * above what typing a code wrong a few times needs, and an address already dies after 5 wrong
+ * codes (AC6); it stops one network from guessing at many addresses.
+ */
+export const TOKEN_IP_LIMIT: RateLimitRule = { max: 30, windowMinutes: 15 };
+
 /** Where the client's IP address comes from, and why only this header: `ENVIRONMENTS.md §7`. */
 export const CLIENT_IP_HEADER = 'x-real-ip';
 
@@ -62,7 +71,20 @@ export interface SignInRateLimitOptions {
   requireClientIp: boolean;
 }
 
-type LimitName = 'address' | 'ip';
+type LimitName = 'address' | 'ip' | 'token-ip';
+
+/** Counts the request under `<name>:<keyed hash of value>`; true when it is over the rule. */
+async function isOverLimit(
+  { db, secret }: Pick<SignInRateLimitOptions, 'db' | 'secret'>,
+  name: LimitName,
+  value: string,
+  rule: RateLimitRule,
+  now: Date,
+) {
+  const key = `${name}:${hashSecretValue(secret, `rate-limit-${name}`, value)}`;
+  const { allowed } = await consumeRateLimit(db, key, rule, now);
+  return !allowed;
+}
 
 /**
  * The IP address to count a request under, or `null` for no per-IP limit. A missing or invalid
@@ -93,12 +115,7 @@ export function signInRateLimits({
   log,
   requireClientIp,
 }: SignInRateLimitOptions) {
-  /** Counts the request under `<name>:<keyed hash of value>`; true when it is over the rule. */
-  async function countAndCheck(name: LimitName, value: string, rule: RateLimitRule, now: Date) {
-    const key = `${name}:${hashSecretValue(secret, `rate-limit-${name}`, value)}`;
-    const { allowed } = await consumeRateLimit(db, key, rule, now);
-    return !allowed;
-  }
+  const store = { db, secret };
 
   return {
     id: 'sign-in-rate-limits',
@@ -112,12 +129,15 @@ export function signInRateLimits({
 
             const body = ctx.body as { email?: unknown } | undefined;
             const email = emailSchema.safeParse(body?.email);
-            if (email.success && (await countAndCheck('address', email.data, ADDRESS_LIMIT, now))) {
+            if (
+              email.success &&
+              (await isOverLimit(store, 'address', email.data, ADDRESS_LIMIT, now))
+            ) {
               limited.push('address');
             }
 
             const ip = clientIp(ctx.headers, requireClientIp);
-            if (ip && (await countAndCheck('ip', ip, IP_LIMIT, now))) limited.push('ip');
+            if (ip && (await isOverLimit(store, 'ip', ip, IP_LIMIT, now))) limited.push('ip');
 
             await deleteExpiredRateLimits(db, now);
             if (limited.length === 0) return;
@@ -128,4 +148,28 @@ export function signInRateLimits({
       ],
     },
   } satisfies BetterAuthPlugin;
+}
+
+/**
+ * The IP limit of the apps' code exchange (`TOKEN_IP_LIMIT`): counts one attempt and answers
+ * whether the client IP address is over it. It counts before the code is looked at, so a
+ * limited attempt never uses up or counts against a verification. Same IP rules as the request
+ * limits (`clientIp`).
+ */
+export function signInTokenRateLimit({
+  db,
+  secret,
+  clock,
+  log,
+  requireClientIp,
+}: SignInRateLimitOptions): (headers: Headers) => Promise<boolean> {
+  return async (headers) => {
+    const now = clock.now();
+    const ip = clientIp(headers, requireClientIp);
+    const limited =
+      ip !== null && (await isOverLimit({ db, secret }, 'token-ip', ip, TOKEN_IP_LIMIT, now));
+    await deleteExpiredRateLimits(db, now);
+    if (limited) log('Sign-in token exchange rate-limited: ip');
+    return limited;
+  };
 }

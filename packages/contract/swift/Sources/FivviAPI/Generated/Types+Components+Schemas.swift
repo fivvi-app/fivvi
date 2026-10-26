@@ -243,5 +243,102 @@ extension Components {
                 case code
             }
         }
+        /// - Remark: Generated from `#/components/schemas/SignInRequest`.
+        public struct SignInRequest: Codable, Hashable, Sendable {
+            /// The address the account signs in with.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SignInRequest/email`.
+            public var email: Swift.String
+            /// - Remark: Generated from `#/components/schemas/SignInRequest/locale`.
+            public struct LocalePayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/SignInRequest/locale/value1`.
+                public var value1: Components.Schemas.Locale
+                /// The interface language the app resolved; the email follows ADR-019.
+                ///
+                /// - Remark: Generated from `#/components/schemas/SignInRequest/locale/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `LocalePayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The interface language the app resolved; the email follows ADR-019.
+                public init(
+                    value1: Components.Schemas.Locale,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try decoder.decodeFromSingleValueContainer()
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try encoder.encodeToSingleValueContainer(self.value1)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/SignInRequest/locale`.
+            public var locale: Components.Schemas.SignInRequest.LocalePayload
+            /// Creates a new `SignInRequest`.
+            ///
+            /// - Parameters:
+            ///   - email: The address the account signs in with.
+            ///   - locale:
+            public init(
+                email: Swift.String,
+                locale: Components.Schemas.SignInRequest.LocalePayload
+            ) {
+                self.email = email
+                self.locale = locale
+            }
+            public enum CodingKeys: String, CodingKey {
+                case email
+                case locale
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/SignInTokenResponse`.
+        public struct SignInTokenResponse: Codable, Hashable, Sendable {
+            /// The bearer token: a sign-in session, valid 30 days after its last use and renewed on use. Send it as `Authorization: Bearer <token>`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SignInTokenResponse/token`.
+            public var token: Swift.String
+            /// Creates a new `SignInTokenResponse`.
+            ///
+            /// - Parameters:
+            ///   - token: The bearer token: a sign-in session, valid 30 days after its last use and renewed on use. Send it as `Authorization: Bearer <token>`.
+            public init(token: Swift.String) {
+                self.token = token
+            }
+            public enum CodingKeys: String, CodingKey {
+                case token
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/SignInTokenRequest`.
+        public struct SignInTokenRequest: Codable, Hashable, Sendable {
+            /// The address the account signs in with.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SignInTokenRequest/email`.
+            public var email: Swift.String
+            /// The 6-digit code in the email.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SignInTokenRequest/code`.
+            public var code: Swift.String
+            /// Creates a new `SignInTokenRequest`.
+            ///
+            /// - Parameters:
+            ///   - email: The address the account signs in with.
+            ///   - code: The 6-digit code in the email.
+            public init(
+                email: Swift.String,
+                code: Swift.String
+            ) {
+                self.email = email
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case email
+                case code
+            }
+        }
     }
 }
