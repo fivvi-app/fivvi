@@ -2844,6 +2844,18 @@ describe('Maestro flows', () => {
     assert.equal(output.code, '482915');
   });
 
+  it('F001: newest-code.js ignores digits in the link, also with the returnTo page of #207', () => {
+    const text =
+      'Your sign-in code\n\n482915\n\nThe code works for 15 minutes. Or open https://fivvi.example.com/login/confirm?token=t123456&returnTo=%2Fclients%2F123456\n';
+    const { output, thrown } = runHelper('newest-code.js', {
+      emails: [email(text)],
+      output: { emailsBefore: 0 },
+    });
+
+    assert.equal(thrown, undefined);
+    assert.equal(output.code, '482915');
+  });
+
   it('F001: newest-code.js never takes a code of an older email, nor digits inside a longer line', () => {
     const older = runHelper('newest-code.js', {
       emails: [email(signInText('111111'))],
