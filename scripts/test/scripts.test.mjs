@@ -1164,7 +1164,7 @@ exit 0`,
 echo "maestro $*" >>"${state}/calls.log"
 # A flow run reads the sign-in emails from the fake Brevo server (e2e/maestro/shared): record that it answered.
 case " $* " in *" test "*)
-  node -e "fetch('http://localhost:5999/emails?to=owner@example.com').then((r) => r.json()).then((emails) => process.exit(Array.isArray(emails) ? 0 : 1), () => process.exit(1))" \
+  node -e "fetch('http://localhost:' + (Number(process.env.E2E_PORT) + 2000) + '/emails?to=owner@example.com').then((r) => r.json()).then((emails) => process.exit(Array.isArray(emails) ? 0 : 1), () => process.exit(1))" \
     && touch "${state}/brevo-answered"
   ${outcome} ;; esac`,
     );
@@ -2684,23 +2684,17 @@ describe('Maestro flows', () => {
       /- extendedWaitUntil:\n\s+visible:\n\s+id: signIn\\\.email\n\s+timeout: (\d+)\n/,
     );
     const typed = at(/- inputText: \$\{EMAIL\}\n/, wait);
-    const counted = at(/- runScript:\n\s+file: emails-before\.js\n/, wait);
+    const counted = at(/- runScript:\n\s+file: start-wait\.js\n/, wait);
     const sent = at(/- tapOn:\n\s+id: signIn\\\.send\n/, Math.max(typed, counted));
     const codeStep = at(/- extendedWaitUntil:\n\s+visible:\n\s+id: signIn\\\.code\n/, sent);
     const read = at(/- runScript:\n\s+file: newest-code\.js\n/, codeStep);
     at(/- inputText: \$\{output\.code\}\n/, read);
     at(/- extendedWaitUntil:\n\s+visible:\n\s+id: home\\\.signedInAs\n/, read);
-    for (const script of ['emails-before.js', 'newest-code.js']) {
-      const source = readFileSync(join(flows, 'shared', script), 'utf8');
-      assert.match(source, /http\.get\(/, script);
-      assert.match(source, /BREVO_URL/, script);
-      assert.match(source, /\/emails\?to=/, script);
-    }
     assert.doesNotMatch(subFlow, /^\s+BREVO_URL:/m, 'maestro.sh passes the server address');
   });
 
   // Maestro scripts can't sleep (no host access, no setTimeout), so the flow does the waiting: it asks newest-code.js
-  // again and again, pausing between the asks, until a code is there or the 20 s emails-before.js set run out, and
+  // again and again, pausing between the asks, until a code is there or the 20 s start-wait.js set run out, and
   // fails when no code came. The time bounds the loop, not the turns: a turn takes 0.5 s on Android, over 2 s on iOS.
   it('F001: the shared sub-flow waits at most 20 s for the email, then fails', () => {
     const subFlow = readFileSync(join(flows, 'shared/sign-in.yaml'), 'utf8');
@@ -2714,10 +2708,10 @@ describe('Maestro flows', () => {
       Number(times) * Number(pause) >= 20000,
       'the turn count is a backstop, not the bound',
     );
-    const { output, thrown } = runHelper('emails-before.js');
+    const now = Date.UTC(2026, 9, 26, 12, 0, 0);
+    const { output, thrown } = runHelper('start-wait.js', { now });
     assert.equal(thrown, undefined);
-    const wait = output.deadline - Date.now();
-    assert.ok(wait > 19000 && wait <= 20000, `emails-before.js sets the deadline ${wait} ms ahead`);
+    assert.equal(output.deadline, now + 20000, 'start-wait.js sets the deadline 20 s ahead');
     // Never an element the apps have: the pause must run out its timeout, whatever is on screen.
     const name = pauseId.replaceAll('\\', '');
     for (const dir of ['apps/ios', 'apps/android']) {
@@ -2742,7 +2736,15 @@ describe('Maestro flows', () => {
   });
 
   // The helpers run in Maestro's JavaScript (GraalJS) with http, json, output and the flow's env as globals.
-  const runHelper = (name, { emails = [], output = {}, to = 'owner@example.com' } = {}) => {
+  const runHelper = (
+    name,
+    {
+      emails = [],
+      output = {},
+      to = 'owner@example.com',
+      now = Date.UTC(2026, 9, 26, 12, 0, 0),
+    } = {},
+  ) => {
     const source = readFileSync(join(flows, 'shared', name), 'utf8');
     const urls = [];
     const http = {
@@ -2751,10 +2753,12 @@ describe('Maestro flows', () => {
         return { body: JSON.stringify(emails) };
       },
     };
-    const run = new Function('http', 'json', 'output', 'BREVO_URL', 'EMAIL', source);
+    // A fixed clock (TESTING.md §3): the helper only reads Date.now().
+    const clock = { now: () => now };
+    const run = new Function('http', 'json', 'output', 'BREVO_URL', 'EMAIL', 'Date', source);
     const thrown = (() => {
       try {
-        run(http, JSON.parse, output, 'http://localhost:5999', to);
+        run(http, JSON.parse, output, 'http://localhost:5999', to, clock);
       } catch (error) {
         return error;
       }
@@ -2765,8 +2769,8 @@ describe('Maestro flows', () => {
   const signInText = (code) =>
     `Your sign-in code\n\n${code}\n\nThe code works for 15 minutes. Or open https://fivvi.example.com/login/confirm?token=t123456\n`;
 
-  it('F001: emails-before.js counts the emails the fake Brevo server holds for the address', () => {
-    const { urls, output, thrown } = runHelper('emails-before.js', {
+  it('F001: start-wait.js counts the emails the fake Brevo server holds for the address', () => {
+    const { urls, output, thrown } = runHelper('start-wait.js', {
       emails: [email(signInText('111111')), email(signInText('222222'))],
       to: 'o+x@example.com',
     });

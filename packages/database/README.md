@@ -44,6 +44,7 @@ Entry points: `@fivvi/database` (client, schema, queries, `pingDatabase`, `HELLO
 | `db:generate` | root or package | Write a new SQL migration from the schema diff (`pnpm db:generate --name <what>`) |
 | `db:migrate` | root or package | Apply pending migrations to `DATABASE_URL` |
 | `db:seed` | root or package | Insert demo data into `DATABASE_URL` (idempotent; never in production) |
+| `db:reset-rate-limits` | root or package | Delete every sign-in rate limit counter (F001) so a Maestro run isn't limited by an earlier one; refuses any `DATABASE_URL` that is not a local Postgres |
 | `db:check` | package | Check the migration history for conflicts (`drizzle-kit check`) |
 | `test` | turbo | Unit tests, no database. Includes the schema ↔ migrations drift check |
 | `test:integration` | turbo | Migrations, seed, queries and schema conventions against real Postgres (below) |

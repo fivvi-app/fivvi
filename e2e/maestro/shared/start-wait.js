@@ -1,4 +1,4 @@
-// F001 sign-in sub-flow: counts the emails the fake Brevo server (apps/web/e2e/fake-brevo.ts) holds for EMAIL, before
+// F001 sign-in sub-flow, the start of the wait for the email: counts the emails the fake Brevo server (apps/web/e2e/fake-brevo.ts) holds for EMAIL, before
 // the sign-in email is asked for, so newest-code.js waits for a newer one and never types the code of an older one, and
 // sets the time (20 s from now) the flow waits for it until: the flow's loop counts time, not turns, because a turn takes
 // 0.5 s on Android and over 2 s on iOS.
