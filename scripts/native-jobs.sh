@@ -7,8 +7,9 @@
 #       $GITHUB_OUTPUT), with the reason on stderr. A job runs when its project exists and a path it depends on
 #       changed, on a push to main too: main then writes the caches (Gradle, the AVD snapshot, DerivedData) that every PR
 #       and every merge group reads (a merge group's own caches are read by nobody else), so a push to main is not
-#       skipped (E002 #242). A path ending in .md (a README under apps/ios) never counts: documentation can't break a
-#       native build. A change that touches no such path (docs, ci.yml, _lib.sh) runs neither.
+#       skipped (E002 #242). A path ending in .md (the READMEs under apps/ios and apps/android) never counts: documentation
+#       can't break a native build, because no native build or test reads a Markdown file (the README-vs-ID checks run
+#       on Linux in scripts/test/app-ids.test.mjs, which also fails when a native source reads one). A change that touches no such path (docs, ci.yml, _lib.sh) runs neither.
 #       --event workflow_dispatch and --run-native (the PR's run-native label) run both, whatever changed.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"

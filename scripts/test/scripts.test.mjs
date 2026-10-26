@@ -1134,7 +1134,6 @@ esac`;
     for (const path of [
       'apps/ios/lint',
       'apps/ios/Config',
-      'apps/ios/README.md',
       'apps/Version.xcconfig',
       'apps/ios/FivviPro.xctestplan',
       'apps/ios/FivviProUITests',
@@ -1215,7 +1214,10 @@ case "$*" in
     [ "$FAKE_XCTESTRUN" = none ] || touch .build/DerivedData/Build/Products/FivviPro.xctestrun
     [ "$FAKE_XCTESTRUN" != two ] || touch .build/DerivedData/Build/Products/Other.xctestrun
     printf 'Build Timing Summary\\n\\nSwiftCompile (1 task) | 1.000 seconds\\n\\n** TEST BUILD SUCCEEDED **\\n' ;;
-  test-without-building\\ *) ${outcome} ;;
+  test-without-building\\ *)
+    # FAKE_FAIL_CONFIGURATION=<locale>: only the run of that test-plan configuration fails.
+    case "$*" in *"-only-test-configuration $FAKE_FAIL_CONFIGURATION"*) [ -z "$FAKE_FAIL_CONFIGURATION" ] || exit 1 ;; esac
+    ${outcome} ;;
 esac
 exit 0`,
     );
@@ -1641,11 +1643,15 @@ esac`,
 
       const run = await fake.run('scripts/test-ios.sh', [], {
         IOS_UI_LOCALES: 'nl',
-        FAKE_RESULT: 'fail',
+        FAKE_FAIL_CONFIGURATION: 'en',
       });
 
       assert.equal(run.status, 1, run.output);
-      assert.equal(tests(fake).length, 2, 'the en run still happens after the nl run failed');
+      assert.deepEqual(
+        tests(fake).map((test) => test.config),
+        ['nl', 'en'],
+        'the nl run passed, the en run failed',
+      );
     });
 
     it('with IOS_PARALLEL=1 the en run on the second simulator skips the UI tests', async () => {
@@ -1668,19 +1674,27 @@ esac`,
       );
     });
 
-    for (const value of ['', 'de', 'nl de', 'fr']) {
+    it('an empty IOS_UI_LOCALES is the default: nl and en in one run', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', [], { IOS_UI_LOCALES: '' });
+
+      assert.equal(run.status, 0, run.output);
+      assert.deepEqual(
+        tests(fake).map((test) => [test.config, test.skipsUI]),
+        [['all', false]],
+      );
+    });
+
+    for (const value of [' ', 'de', 'nl de', 'fr']) {
       it(`refuses IOS_UI_LOCALES='${value}' before building`, async () => {
         const fake = checkout();
 
         const run = await fake.run('scripts/test-ios.sh', [], { IOS_UI_LOCALES: value });
 
-        if (value === '') {
-          // Empty is "not set": the default of both languages.
-          assert.equal(run.status, 0, run.output);
-          return;
-        }
         assert.equal(run.status, 1, run.output);
         assert.match(run.output, /IOS_UI_LOCALES/);
+        if (value === ' ') assert.match(run.output, /IOS_UI_LOCALES is empty/);
         assert.deepEqual(tests(fake), []);
         assert.equal(
           fake.log('xcodebuild').filter((line) => /^build-for-testing /.test(line)).length,
@@ -2021,24 +2035,13 @@ esac`,
     assert.match(run.output, /E017 AC1: .* must set ITSAppUsesNonExemptEncryption to NO/);
   });
 
-  it('E017 AC8: bundle and application ID match the recorded final ID: pnpm test:ios fails when the README does not record the bundle ID', async () => {
+  it('E017 AC8: pnpm test:ios does not read the README (the bundle ID is checked by scripts/test/app-ids.test.mjs)', async () => {
     const fake = checkout();
-    const readme = join(fake.repo, 'apps/ios/README.md');
-    writeFileSync(
-      readme,
-      readFileSync(readme, 'utf8').replace(
-        'bundle ID `app.fivvi.pro` (final',
-        'bundle ID `app.fivvi.pro` (provisional',
-      ),
-    );
+    assert.ok(!existsSync(join(fake.repo, 'apps/ios/README.md')));
 
     const run = await fake.run('scripts/test-ios.sh');
 
-    assert.equal(run.status, 1, run.output);
-    assert.match(
-      run.output,
-      /E017 AC8: bundle ID 'app\.fivvi\.pro' is not the final ID the README records/,
-    );
+    assert.equal(run.status, 0, run.output);
   });
 
   it('E017 AC4: both platforms read the same version: pnpm test:ios fails when the app resolves another one', async () => {
