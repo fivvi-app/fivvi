@@ -221,7 +221,7 @@ class SignInViewModelTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
     }
 
     @Test
-    fun F001N_AC3_typingTheCodeKeepsTheLostConnectionAndRetryUntilTheNextAttempt() {
+    fun F001N_AC3_typingTheCodeKeepsTheLostConnectionUntilTheNextAttempt() {
         api.answerAccepted()
         api.tokenAnswers += { throw IOException("offline") }
         api.answerToken()

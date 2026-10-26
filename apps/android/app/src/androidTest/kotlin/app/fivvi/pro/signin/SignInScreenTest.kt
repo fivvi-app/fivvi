@@ -16,6 +16,7 @@ import app.fivvi.pro.auth.InMemorySessionStore
 import app.fivvi.pro.auth.Session
 import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.home.FakeMeApi
+import app.fivvi.pro.localizedString
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -35,7 +36,7 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
     private val signIn = FakeSignInApi()
     private val me = FakeMeApi()
     private val store = InMemorySessionStore()
-    private val steps = SignInSteps(compose, app, signIn, language)
+    private val steps = SignInSteps(compose, signIn, language)
 
     private fun requestTheCode() = steps.requestTheCode()
 
@@ -63,7 +64,7 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
     fun F001N_AC13_noNoticeWithoutARejectedToken() {
         launch()
 
-        compose.onNodeWithTag(SignInTags.TITLE).assertTextEquals(app.string(language, R.string.sign_in_title))
+        compose.onNodeWithTag(SignInTags.TITLE).assertTextEquals(localizedString(language, R.string.sign_in_title))
         compose.onNodeWithTag(SignInTags.NOTICE).assertDoesNotExist()
     }
 
@@ -75,7 +76,7 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
         requestTheCode()
 
         assertEquals(listOf(SignInRequest(ADDRESS, language.apiLocale)), signIn.requests)
-        compose.onNodeWithText(app.string(language, R.string.sign_in_check_email_body_app, ADDRESS))
+        compose.onNodeWithText(localizedString(language, R.string.sign_in_check_email_body_app, ADDRESS))
             .assertIsDisplayed()
         assertEquals(0, me.calls)
     }
@@ -137,7 +138,7 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
         compose.onNodeWithTag(SignInTags.CODE).performTextInput("123456")
 
         compose.onNodeWithTag(SignInTags.ERROR)
-            .assertTextEquals(app.string(language, R.string.sign_in_errors_invalid_or_expired_code))
+            .assertTextEquals(localizedString(language, R.string.sign_in_errors_invalid_or_expired_code))
         compose.onNodeWithTag(SignInTags.CODE).assertIsDisplayed()
         assertEquals(0, me.calls)
     }
@@ -146,7 +147,7 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
     fun F001N_AC1_theScreenIsInTheAppLanguage() {
         launch()
 
-        compose.onNodeWithTag(SignInTags.SEND).assertTextEquals(app.string(language, R.string.sign_in_send_code))
+        compose.onNodeWithTag(SignInTags.SEND).assertTextEquals(localizedString(language, R.string.sign_in_send_code))
     }
 
     companion object {

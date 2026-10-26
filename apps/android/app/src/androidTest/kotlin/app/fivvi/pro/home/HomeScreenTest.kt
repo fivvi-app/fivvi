@@ -16,6 +16,7 @@ import app.fivvi.pro.auth.InMemorySessionStore
 import app.fivvi.pro.auth.Session
 import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.hello.HelloTags
+import app.fivvi.pro.localizedString
 import app.fivvi.pro.signin.FakeSignInApi
 import app.fivvi.pro.signin.SignInTags
 import app.fivvi.pro.waitUntilTagExists
@@ -52,7 +53,7 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         session = Session(store),
     )
 
-    private fun string(id: Int, vararg args: Any) = app.string(language, id, *args)
+    private fun string(id: Int, vararg args: Any) = localizedString(language, id, *args)
 
     // The sign-out ends off the main thread (the token is deleted), so wait for TM-01.
     private fun waitForSignIn() = compose.waitUntilTagExists(SignInTags.EMAIL)
@@ -62,9 +63,9 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         me.answerAccount("owner@example.com")
         launch()
 
-        compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(app.string(language, R.string.hello_title))
+        compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(localizedString(language, R.string.hello_title))
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)
-            .assertTextEquals(app.string(language, R.string.home_signed_in_as, "owner@example.com"))
+            .assertTextEquals(localizedString(language, R.string.home_signed_in_as, "owner@example.com"))
         assertEquals(1, me.calls)
     }
 
@@ -74,11 +75,12 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         me.answerAccount("owner@example.com")
         launch()
 
-        compose.onNodeWithTag(HomeTags.ERROR).assertTextEquals(app.string(language, R.string.sign_in_errors_generic))
+        compose.onNodeWithTag(HomeTags.ERROR)
+            .assertTextEquals(localizedString(language, R.string.sign_in_errors_generic))
         compose.onNodeWithTag(HomeTags.RETRY).performClick()
 
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)
-            .assertTextEquals(app.string(language, R.string.home_signed_in_as, "owner@example.com"))
+            .assertTextEquals(localizedString(language, R.string.home_signed_in_as, "owner@example.com"))
     }
 
     @Test

@@ -82,25 +82,23 @@ fun ComposeTestRule.assertWraps(tag: String, wraps: Boolean = false) {
     layout.assertNotCutOff(tag)
 }
 
-// Waits until the node with [tag] stays where it is, which the soft keyboard's inset animation otherwise changes
-// between two measurements.
+// Waits until the node with [tag] has not moved for STABLE_MILLIS of test-clock time, which the soft keyboard's inset
+// animation otherwise changes between two measurements. Fails when it never settles.
 private fun ComposeTestRule.awaitStablePosition(tag: String) {
     waitForIdle()
     var last = onNode(hasTestTag(tag)).getUnclippedBoundsInRoot()
-    var still = 0
-    repeat(STABLE_POLLS) {
-        Thread.sleep(STABLE_POLL_MILLIS)
-        waitForIdle()
+    var since = mainClock.currentTime
+    waitUntil(UI_TIMEOUT_MILLIS) {
         val now = onNode(hasTestTag(tag)).getUnclippedBoundsInRoot()
-        still = if (now == last) still + 1 else 0
-        if (still == STABLE_READS) return
-        last = now
+        if (now != last) {
+            last = now
+            since = mainClock.currentTime
+        }
+        mainClock.currentTime - since >= STABLE_MILLIS
     }
 }
 
-private const val STABLE_POLLS = 40
-private const val STABLE_READS = 3
-private const val STABLE_POLL_MILLIS = 50L
+private const val STABLE_MILLIS = 150L
 
 /** The button with [tag]: its label is shown in full, inside the button, and the touch target is at least 48 dp. */
 fun ComposeTestRule.assertButtonFits(tag: String) {

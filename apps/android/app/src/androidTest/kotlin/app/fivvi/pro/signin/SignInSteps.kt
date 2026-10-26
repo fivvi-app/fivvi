@@ -9,16 +9,15 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import app.fivvi.pro.AppLanguage
-import app.fivvi.pro.AppRule
 import app.fivvi.pro.R
 import app.fivvi.pro.home.HomeTags
+import app.fivvi.pro.localizedString
 import app.fivvi.pro.waitUntilTagExists
 import org.junit.Assert.assertEquals
 
 /** What a person does on TM-01 in a launched app, shared by the sign-in UI tests. */
 class SignInSteps(
     private val compose: ComposeTestRule,
-    private val app: AppRule,
     private val signIn: FakeSignInApi,
     private val language: AppLanguage,
 ) {
@@ -44,7 +43,7 @@ class SignInSteps(
     fun assertSignedInAs(address: String = ADDRESS) {
         compose.waitUntilTagExists(HomeTags.SIGNED_IN_AS)
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)
-            .assertTextEquals(app.string(language, R.string.home_signed_in_as, address))
+            .assertTextEquals(localizedString(language, R.string.home_signed_in_as, address))
     }
 
     companion object {

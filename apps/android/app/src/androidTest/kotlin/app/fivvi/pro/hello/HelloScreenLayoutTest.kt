@@ -22,7 +22,7 @@ class HelloScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private v
     @get:Rule
     val compose = createComposeRule()
 
-    private fun show(state: HelloState) = compose.showAtLargestFontScale(language) { HelloScreen(state, onRetry = {}) }
+    private fun show(state: HelloState) = compose.showAtLargestFontScale(language) { HelloContent(state, onRetry = {}) }
 
     @Test
     fun E008_AC7_fontScale200Wraps() {

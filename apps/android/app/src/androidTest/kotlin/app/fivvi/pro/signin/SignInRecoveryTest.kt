@@ -24,6 +24,7 @@ import app.fivvi.pro.auth.InMemorySessionStore
 import app.fivvi.pro.auth.Session
 import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.home.FakeMeApi
+import app.fivvi.pro.localizedString
 import app.fivvi.pro.signin.SignInSteps.Companion.ADDRESS
 import java.io.IOException
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -47,7 +48,7 @@ class SignInRecoveryTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
     private val signIn = FakeSignInApi()
     private val me = FakeMeApi()
     private val store = InMemorySessionStore()
-    private val steps = SignInSteps(compose, app, signIn, language)
+    private val steps = SignInSteps(compose, signIn, language)
 
     private fun launch() = app.launch(
         FakeHelloApi().apply { answerGreeting() },
@@ -57,7 +58,7 @@ class SignInRecoveryTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
         session = Session(store),
     )
 
-    private fun string(id: Int, vararg args: Any) = app.string(language, id, *args)
+    private fun string(id: Int, vararg args: Any) = localizedString(language, id, *args)
 
     private fun liveRegion() = SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite)
 

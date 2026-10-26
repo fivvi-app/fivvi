@@ -12,6 +12,7 @@ import app.fivvi.pro.R
 import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.home.FakeMeApi
 import app.fivvi.pro.home.HomeTags
+import app.fivvi.pro.localizedString
 import app.fivvi.pro.signin.FakeSignInApi
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -59,7 +60,7 @@ class SessionRestartTest {
         launch()
 
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)
-            .assertTextEquals(app.string(AppLanguage.ENGLISH, R.string.home_signed_in_as, "owner@example.com"))
+            .assertTextEquals(localizedString(AppLanguage.ENGLISH, R.string.home_signed_in_as, "owner@example.com"))
         assertEquals(0, signIn.requests.size)
         assertEquals("token-1", KeystoreSessionStore(context).read())
     }

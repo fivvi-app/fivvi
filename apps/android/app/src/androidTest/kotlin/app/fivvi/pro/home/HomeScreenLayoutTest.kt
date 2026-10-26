@@ -32,8 +32,8 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
     @get:Rule
     val compose = createComposeRule()
 
-    private fun show(me: MeState, signingOut: Boolean = false, width: Dp = 320.dp, height: Dp = 640.dp) =
-        compose.showAtLargestFontScale(language, width, height) {
+    private fun show(me: MeState, signingOut: Boolean = false, height: Dp = 640.dp) =
+        compose.showAtLargestFontScale(language, height = height) {
             HomeScreen(
                 HelloState.Loaded(R.string.hello_title),
                 me,
@@ -63,9 +63,9 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
 
     @Test
     fun F001N_AC15_smallScreenScrollsAsOneToReachEverything() {
-        // Landscape on a small phone at 200%: the hello block and the account block don't fit together. The hello block
-        // keeps its height (it is not squeezed by the account block) and the screen scrolls to the sign-out button.
-        show(MeState.Loaded("a.long.address.for.a.trainer@example.com"), width = 568.dp, height = 320.dp)
+        // A 320 dp high screen at 200%: the hello block and the account block don't fit together. The hello block keeps
+        // its height (it is not squeezed by the account block) and the screen scrolls to the sign-out button.
+        show(MeState.Loaded("a.long.address.for.a.trainer@example.com"), height = 320.dp)
 
         compose.assertWraps(HelloTags.GREETING)
         compose.onNodeWithTag(HelloTags.GREETING).assertIsDisplayed()

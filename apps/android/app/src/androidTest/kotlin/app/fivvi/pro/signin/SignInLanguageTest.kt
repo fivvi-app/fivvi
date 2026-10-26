@@ -10,6 +10,7 @@ import app.fivvi.pro.R
 import app.fivvi.pro.auth.InMemorySessionStore
 import app.fivvi.pro.auth.Session
 import app.fivvi.pro.hello.FakeHelloApi
+import app.fivvi.pro.localizedString
 import app.fivvi.pro.signin.SignInSteps.Companion.ADDRESS
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -36,33 +37,33 @@ class SignInLanguageTest {
 
     private fun requestTheCode(language: AppLanguage) {
         signIn.answerAccepted()
-        SignInSteps(compose, app, signIn, language).requestTheCode()
+        SignInSteps(compose, signIn, language).requestTheCode()
     }
 
     @Test
     fun F001N_AC14_unsupportedDeviceLanguageRequestsEnglish() {
         launch(device = listOf("de-DE"))
         compose.onNodeWithTag(SignInTags.SEND)
-            .assertTextEquals(app.string(AppLanguage.ENGLISH, R.string.sign_in_send_code))
+            .assertTextEquals(localizedString(AppLanguage.ENGLISH, R.string.sign_in_send_code))
 
         requestTheCode(AppLanguage.ENGLISH)
 
         assertEquals(AppLanguage.ENGLISH.apiLocale, signIn.requests.single().locale)
         compose.onNodeWithTag(SignInTags.CHECK_EMAIL)
-            .assertTextEquals(app.string(AppLanguage.ENGLISH, R.string.sign_in_check_email_body_app, ADDRESS))
+            .assertTextEquals(localizedString(AppLanguage.ENGLISH, R.string.sign_in_check_email_body_app, ADDRESS))
     }
 
     @Test
     fun F001N_AC14_perAppLanguageWins() {
         launch(device = listOf("de-DE"), perApp = listOf("nl"))
         compose.onNodeWithTag(SignInTags.SEND)
-            .assertTextEquals(app.string(AppLanguage.DUTCH, R.string.sign_in_send_code))
+            .assertTextEquals(localizedString(AppLanguage.DUTCH, R.string.sign_in_send_code))
 
         requestTheCode(AppLanguage.DUTCH)
 
         assertEquals(AppLanguage.DUTCH.apiLocale, signIn.requests.single().locale)
         compose.onNodeWithTag(SignInTags.CHECK_EMAIL)
-            .assertTextEquals(app.string(AppLanguage.DUTCH, R.string.sign_in_check_email_body_app, ADDRESS))
+            .assertTextEquals(localizedString(AppLanguage.DUTCH, R.string.sign_in_check_email_body_app, ADDRESS))
     }
 
     @Test
@@ -71,10 +72,10 @@ class SignInLanguageTest {
         requestTheCode(AppLanguage.DUTCH)
         signIn.answerAccepted()
 
-        SignInSteps(compose, app, signIn, AppLanguage.DUTCH).press(SignInTags.RESEND)
+        SignInSteps(compose, signIn, AppLanguage.DUTCH).press(SignInTags.RESEND)
 
         assertEquals(List(2) { AppLanguage.DUTCH.apiLocale }, signIn.requests.map { it.locale })
         compose.onNodeWithTag(SignInTags.RESENT)
-            .assertTextEquals(app.string(AppLanguage.DUTCH, R.string.sign_in_resent, ADDRESS))
+            .assertTextEquals(localizedString(AppLanguage.DUTCH, R.string.sign_in_resent, ADDRESS))
     }
 }

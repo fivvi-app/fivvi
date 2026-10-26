@@ -1,6 +1,5 @@
 package app.fivvi.pro
 
-import androidx.annotation.StringRes
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import app.fivvi.api.apis.HelloApi
@@ -46,10 +45,6 @@ class AppRule : ExternalResource() {
         }
         scenario = ActivityScenario.launch(MainActivity::class.java)
     }
-
-    /** The generated catalog's text for [id] in [language], with [formatArgs]: what the screen should show. */
-    fun string(language: AppLanguage, @StringRes id: Int, vararg formatArgs: Any): String =
-        localizedString(language, id, *formatArgs)
 
     /** Closes the activity, as when the person leaves the app; [launch] starts it again. */
     fun close() {
