@@ -10,7 +10,7 @@ import { z } from 'zod';
 import type { SignUpAllowlist } from './allowlist.ts';
 import { hashesEqual, hashSecretValue } from './hash.ts';
 import { maskEmail } from './mask-email.ts';
-import { RETURN_PATH_PARAM, safeReturnPath } from './return-path.ts';
+import { MAX_RETURN_PATH_LENGTH, RETURN_PATH_PARAM, safeReturnPath } from './return-path.ts';
 
 /** How long the emailed code and link work (AC5). */
 export const SIGN_IN_EXPIRES_IN_MINUTES = 15;
@@ -18,8 +18,8 @@ export const SIGN_IN_EXPIRES_IN_MINUTES = 15;
 /** The wrong codes after which a verification is dead, the right code included (AC6). */
 export const MAX_WRONG_CODES = 5;
 
-/** More than the longest path `safeReturnPath` keeps: a longer one is dropped there, not refused. */
-const MAX_RETURN_TO_LENGTH = 4096;
+/** Twice the longest path `safeReturnPath` keeps: one in between is dropped there, not refused. */
+const MAX_RETURN_TO_LENGTH = 2 * MAX_RETURN_PATH_LENGTH;
 
 /** The sign-in page's confirm step (TW-10), which the emailed link opens: a page, not an endpoint. */
 const CONFIRM_PAGE_PATH = '/login/confirm';

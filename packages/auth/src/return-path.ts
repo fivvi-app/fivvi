@@ -6,7 +6,8 @@ export const RETURN_PATH_PARAM = 'returnTo';
 
 /** The sign-in page. */
 export const SIGN_IN_PAGE = '/login';
-const MAX_LENGTH = 2048;
+/** The longest return path kept; a longer one is ignored. */
+export const MAX_RETURN_PATH_LENGTH = 2048;
 /** A base that is not this site: a parsed path that keeps it is a path of this site. */
 const OTHER_SITE = 'https://other-site.invalid';
 // Control characters: browsers drop tabs and line breaks inside a URL, so `/<tab>/evil.example`
@@ -23,7 +24,7 @@ const CONTROL_CHARACTER = /[\u0000-\u001f\u007f]/;
  * phishing site. The sign-in page itself is no place to return to.
  */
 export function safeReturnPath(value: unknown): string | undefined {
-  if (typeof value !== 'string' || value.length === 0 || value.length > MAX_LENGTH)
+  if (typeof value !== 'string' || value.length === 0 || value.length > MAX_RETURN_PATH_LENGTH)
     return undefined;
   if (!value.startsWith('/') || value.startsWith('//')) return undefined;
   if (value.includes('\\') || CONTROL_CHARACTER.test(value)) return undefined;

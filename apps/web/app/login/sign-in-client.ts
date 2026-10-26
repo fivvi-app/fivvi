@@ -18,8 +18,7 @@ const BASE = '/api/auth/sign-in/code';
 export function requestCode(
   email: string,
   locale: Locale,
-  returnTo: string | undefined,
-  fetchFn: typeof fetch = fetch,
+  { returnTo, fetchFn = fetch }: { returnTo?: string; fetchFn?: typeof fetch } = {},
 ): Promise<SignInResult> {
   return post(
     '/request',

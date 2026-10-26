@@ -13,7 +13,7 @@ await auth.exchangeSignInCode({ email, code, headers }); // the code for a beare
 await auth.signOutBearer(request.headers); // ends the session of the bearer token (POST /api/v1/sign-out)
 ```
 
-`@fivvi/auth/return-path` exports the return-path rule (`safeReturnPath`, `returnPathFrom`, `loginPath`) and imports nothing; it is shared by the web's pages and route guard and by the plugin that builds the link. `@fivvi/auth/allowlist` exports the allowlist (`parseSignUpAllowlist`, `closedSignUp`, `SignUpAllowlist`) and imports nothing: code that needs just the allowlist check (the start-up check in `apps/web/instrumentation.ts`) uses it instead of the main entry, which loads Better Auth, the database and the email templates. Keep `src/allowlist.ts` free of imports other than types (#200).
+`@fivvi/auth/return-path` exports the return-path rule (`safeReturnPath`, `returnPathFrom`, `loginPath`, `MAX_RETURN_PATH_LENGTH`, `SIGNED_IN_HOME`, `RETURN_PATH_PARAM`, `SIGN_IN_PAGE`) and imports nothing (`src/return-path.test.ts` checks it, as for the allowlist); it is shared by the web's pages and route guard and by the plugin that builds the link. `@fivvi/auth/allowlist` exports the allowlist (`parseSignUpAllowlist`, `closedSignUp`, `SignUpAllowlist`) and imports nothing: code that needs just the allowlist check (the start-up check in `apps/web/instrumentation.ts`) uses it instead of the main entry, which loads Better Auth, the database and the email templates. Keep `src/allowlist.ts` free of imports other than types (#200).
 
 ## How sign-in works
 

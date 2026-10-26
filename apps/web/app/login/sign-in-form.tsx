@@ -48,7 +48,7 @@ export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath?
     setEmail(entered);
     setPending(true);
     setError(null);
-    const result = await requestCode(entered, locale, returnPath);
+    const result = await requestCode(entered, locale, { returnTo: returnPath });
     setPending(false);
     if (!result.ok) return setError(result.error);
     setStep('code');
@@ -58,7 +58,7 @@ export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath?
     setPending(true);
     setError(null);
     setResent(false);
-    const result = await requestCode(email, locale, returnPath);
+    const result = await requestCode(email, locale, { returnTo: returnPath });
     setPending(false);
     if (!result.ok) return setError(result.error);
     // The new code replaces the old one, so the old entry is of no use.
