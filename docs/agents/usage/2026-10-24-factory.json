@@ -1,0 +1,2237 @@
+{
+  "version": 1,
+  "label": "2026-10-24-factory",
+  "since": "2026-10-24",
+  "until": "2026-10-26T15:00:00Z",
+  "generatedAt": "2026-10-26T15:06:05.417Z",
+  "sessions": [
+    {
+      "id": "e085e406-48ef-4dee-826a-b9ba96cf2281",
+      "start": "2026-10-24T14:13:42.462Z",
+      "end": "2026-10-24T14:16:55.884Z",
+      "calls": 6,
+      "avgContext": 107418.16666666667,
+      "peakContext": 110199,
+      "compactions": 0,
+      "tokens": {
+        "sonnet": {
+          "calls": 5,
+          "input": 10,
+          "cacheRead": 424767,
+          "cacheWrite": 109533,
+          "output": 706
+        },
+        "opus": {
+          "calls": 1,
+          "input": 2,
+          "cacheRead": 0,
+          "cacheWrite": 110197,
+          "output": 133
+        }
+      },
+      "cost": {
+        "sonnet": 182933,
+        "opus": 138413
+      },
+      "subagents": 0,
+      "tickets": [],
+      "costPerTicket": {}
+    },
+    {
+      "id": "45a27317-e894-4537-9708-c9b0a6ac100e",
+      "start": "2026-10-24T14:17:15.925Z",
+      "end": "2026-10-24T14:17:21.269Z",
+      "calls": 1,
+      "avgContext": 98554,
+      "peakContext": 98554,
+      "compactions": 0,
+      "tokens": {
+        "opus": {
+          "calls": 1,
+          "input": 2,
+          "cacheRead": 0,
+          "cacheWrite": 98552,
+          "output": 2
+        }
+      },
+      "cost": {
+        "opus": 123202
+      },
+      "subagents": 0,
+      "tickets": [],
+      "costPerTicket": {}
+    },
+    {
+      "id": "37d54299-80c8-47a2-9196-ded503e35eb2",
+      "start": "2026-10-24T14:18:06.081Z",
+      "end": "2026-10-26T14:58:34.220Z",
+      "calls": 1083,
+      "avgContext": 459319.94182825484,
+      "peakContext": 965530,
+      "compactions": 1,
+      "tokens": {
+        "opus": {
+          "calls": 1083,
+          "input": 2768,
+          "cacheRead": 494963036,
+          "cacheWrite": 2477693,
+          "output": 511485
+        }
+      },
+      "cost": {
+        "opus": 55153613
+      },
+      "subagents": 449,
+      "tickets": [
+        "#194",
+        "#208",
+        "#222",
+        "chore/188-release-builds-version-build-number-prod",
+        "chore/189-release-environment-secret-setup-scripts",
+        "chore/adr-021-more-guardrails",
+        "chore/agents-queue-high-risk",
+        "docs/testing-rate-limit-note-after-134",
+        "feature/130-sign-in-with-the-emailed-code-through-th",
+        "feature/131-sign-in-with-the-code-on-the-tw-10-sign",
+        "feature/132-verification-rules-single-use-replacemen",
+        "feature/133-closed-sign-up-allowlist-neutral-answer",
+        "feature/134-rate-limits-on-sign-in-requests",
+        "feature/135-get-api-v1-me-in-the-contract",
+        "feature/136-sign-in-with-the-link-through-the-confir",
+        "feature/137-route-guard-return-path-30-day-sign-in-s",
+        "feature/138-sign-in-product-events",
+        "feature/138-sign-in-product-events-without-personal",
+        "feature/207-should-the-emailed-sign-in-link-return-t",
+        "feature/209-native-sign-in-spike-api-contract-routes",
+        "feature/210-native-sign-in-strings-nl-en",
+        "feature/211-native-sign-in-spike-ios-minimal-tm-01-k",
+        "feature/212-native-sign-in-spike-android-minimal-tm",
+        "feature/213-native-sign-in-the-web-s-rules-through-t",
+        "feature/214-native-sign-in-ios-tm-01-complete",
+        "feature/215-native-sign-in-android-tm-01-complete",
+        "feature/216-native-sign-in-shared-maestro-flow",
+        "feature/220-native-sign-in-product-events-for-the-na",
+        "fix/200-flaky-instrumentation-allowlist-test-tim",
+        "fix/203-flaky-axe-flags-the-sign-in-button-durin",
+        "fix/223-contract-plain-locale-type-for-the-sign",
+        "fix/224-ios-ad-hoc-signing-for-simulator-test-bu",
+        "fix/228-fake-secrets-in-tests-obviously-fake-val",
+        "fix/233-ios-home-may-squeeze-the-hello-block-at",
+        "fix/236-next-dev-writes-apps-web-agents-md-and-c"
+      ],
+      "costPerTicket": {
+        "opus": 1575818
+      }
+    },
+    {
+      "id": "81fa98c3-7f6f-4706-8560-d25fc77ed6db",
+      "start": "2026-10-26T14:12:50.888Z",
+      "end": "2026-10-26T14:56:49.275Z",
+      "calls": 60,
+      "avgContext": 190082.11666666667,
+      "peakContext": 261797,
+      "compactions": 0,
+      "tokens": {
+        "opus": {
+          "calls": 60,
+          "input": 120,
+          "cacheRead": 11198082,
+          "cacheWrite": 206725,
+          "output": 70872
+        }
+      },
+      "cost": {
+        "opus": 1732694
+      },
+      "subagents": 1,
+      "tickets": [
+        "chore/agent-usage-cost"
+      ],
+      "costPerTicket": {
+        "opus": 1732694
+      }
+    }
+  ],
+  "tickets": [
+    {
+      "branch": null,
+      "issue": 194,
+      "area": null,
+      "size": null,
+      "group": "unknown",
+      "agents": {
+        "builder": 1
+      },
+      "calls": 10,
+      "tokens": {
+        "sonnet": {
+          "calls": 10,
+          "input": 20,
+          "cacheRead": 939673,
+          "cacheWrite": 69149,
+          "output": 6138
+        }
+      },
+      "cost": {
+        "sonnet": 211114
+      },
+      "agentSeconds": 500,
+      "toolSeconds": {
+        "check": 179,
+        "native": 0,
+        "wait": 0,
+        "other": 282
+      },
+      "checkRuns": 1,
+      "reviews": 0,
+      "firstReviewClean": null,
+      "reachedClean": null,
+      "findingsPerReview": null,
+      "pr": null,
+      "ciFailures": null,
+      "queueRemovals": null,
+      "ownerComments": null,
+      "followUpFixes": null,
+      "reverted": null
+    },
+    {
+      "branch": null,
+      "issue": 208,
+      "area": null,
+      "size": null,
+      "group": "unknown",
+      "agents": {
+        "builder": 1,
+        "reviewer": 2
+      },
+      "calls": 22,
+      "tokens": {
+        "sonnet": {
+          "calls": 7,
+          "input": 14,
+          "cacheRead": 528807,
+          "cacheWrite": 46917,
+          "output": 2511
+        },
+        "opus": {
+          "calls": 15,
+          "input": 30,
+          "cacheRead": 1223921,
+          "cacheWrite": 167501,
+          "output": 11926
+        }
+      },
+      "cost": {
+        "sonnet": 124096,
+        "opus": 391428
+      },
+      "agentSeconds": 412,
+      "toolSeconds": {
+        "check": 55,
+        "native": 0,
+        "wait": 1,
+        "other": 368
+      },
+      "checkRuns": 2,
+      "reviews": 2,
+      "firstReviewClean": true,
+      "reachedClean": true,
+      "findingsPerReview": 1.5,
+      "pr": null,
+      "ciFailures": null,
+      "queueRemovals": null,
+      "ownerComments": null,
+      "followUpFixes": null,
+      "reverted": null
+    },
+    {
+      "branch": null,
+      "issue": 222,
+      "area": null,
+      "size": null,
+      "group": "unknown",
+      "agents": {
+        "reviewer": 1
+      },
+      "calls": 9,
+      "tokens": {
+        "opus": {
+          "calls": 9,
+          "input": 18,
+          "cacheRead": 783031,
+          "cacheWrite": 112632,
+          "output": 7883
+        }
+      },
+      "cost": {
+        "opus": 258526
+      },
+      "agentSeconds": 191,
+      "toolSeconds": {
+        "check": 0,
+        "native": 4,
+        "wait": 0,
+        "other": 171
+      },
+      "checkRuns": 0,
+      "reviews": 1,
+      "firstReviewClean": true,
+      "reachedClean": true,
+      "findingsPerReview": 3,
+      "pr": null,
+      "ciFailures": null,
+      "queueRemovals": null,
+      "ownerComments": null,
+      "followUpFixes": null,
+      "reverted": null
+    },
+    {
+      "branch": "chore/188-release-builds-version-build-number-prod",
+      "issue": 188,
+      "area": "native",
+      "size": "L",
+      "group": "native-L",
+      "agents": {
+        "builder": 3,
+        "reviewer": 3,
+        "review-axis": 6
+      },
+      "calls": 263,
+      "tokens": {
+        "sonnet": {
+          "calls": 143,
+          "input": 288,
+          "cacheRead": 22465774,
+          "cacheWrite": 633920,
+          "output": 103032
+        },
+        "opus": {
+          "calls": 120,
+          "input": 240,
+          "cacheRead": 13036047,
+          "cacheWrite": 993559,
+          "output": 83533
+        }
+      },
+      "cost": {
+        "sonnet": 3554425,
+        "opus": 2963458
+      },
+      "agentSeconds": 4637,
+      "toolSeconds": {
+        "check": 624,
+        "native": 1718,
+        "wait": 45,
+        "other": 1919
+      },
+      "checkRuns": 15,
+      "reviews": 3,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 2,
+      "pr": {
+        "number": 197,
+        "state": "MERGED",
+        "createdAt": "2026-10-24T18:21:46Z",
+        "mergedAt": "2026-10-25T18:28:01Z",
+        "additions": 939,
+        "deletions": 51
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "chore/189-release-environment-secret-setup-scripts",
+      "issue": 189,
+      "area": "native",
+      "size": "L",
+      "group": "native-L",
+      "agents": {
+        "builder": 6,
+        "reviewer": 10,
+        "review-axis": 17,
+        "mechanic": 3
+      },
+      "calls": 454,
+      "tokens": {
+        "sonnet": {
+          "calls": 140,
+          "input": 280,
+          "cacheRead": 16270268,
+          "cacheWrite": 693654,
+          "output": 102451
+        },
+        "opus": {
+          "calls": 276,
+          "input": 554,
+          "cacheRead": 26100631,
+          "cacheWrite": 2250429,
+          "output": 205469
+        },
+        "haiku": {
+          "calls": 38,
+          "input": 80,
+          "cacheRead": 3764233,
+          "cacheWrite": 239586,
+          "output": 27388
+        }
+      },
+      "cost": {
+        "sonnet": 3006629,
+        "opus": 6450998,
+        "haiku": 812926
+      },
+      "agentSeconds": 8467,
+      "toolSeconds": {
+        "check": 2644,
+        "native": 0,
+        "wait": 416,
+        "other": 4995
+      },
+      "checkRuns": 52,
+      "reviews": 10,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 2.6,
+      "pr": {
+        "number": 194,
+        "state": "OPEN",
+        "createdAt": "2026-10-24T17:41:01Z",
+        "mergedAt": null,
+        "additions": 1287,
+        "deletions": 10
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": null,
+      "reverted": null
+    },
+    {
+      "branch": "chore/adr-021-more-guardrails",
+      "issue": null,
+      "area": "tooling",
+      "size": "M",
+      "group": "tooling-M",
+      "agents": {
+        "review-axis": 6,
+        "builder": 4,
+        "reviewer": 4
+      },
+      "calls": 204,
+      "tokens": {
+        "opus": {
+          "calls": 136,
+          "input": 272,
+          "cacheRead": 13787280,
+          "cacheWrite": 780289,
+          "output": 90395
+        },
+        "sonnet": {
+          "calls": 68,
+          "input": 136,
+          "cacheRead": 6953786,
+          "cacheWrite": 300665,
+          "output": 33927
+        }
+      },
+      "cost": {
+        "opus": 2806336,
+        "sonnet": 1240981
+      },
+      "agentSeconds": 2150,
+      "toolSeconds": {
+        "check": 587,
+        "native": 31,
+        "wait": 0,
+        "other": 1977
+      },
+      "checkRuns": 15,
+      "reviews": 4,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 1.75,
+      "pr": {
+        "number": 198,
+        "state": "MERGED",
+        "createdAt": "2026-10-24T19:29:11Z",
+        "mergedAt": "2026-10-26T13:49:05Z",
+        "additions": 227,
+        "deletions": 17
+      },
+      "ciFailures": 0,
+      "queueRemovals": 1,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "chore/agent-usage-cost",
+      "issue": null,
+      "area": null,
+      "size": null,
+      "group": "unknown",
+      "agents": {
+        "builder": 1
+      },
+      "calls": 43,
+      "tokens": {
+        "sonnet": {
+          "calls": 43,
+          "input": 86,
+          "cacheRead": 6560039,
+          "cacheWrite": 166166,
+          "output": 67418
+        }
+      },
+      "cost": {
+        "sonnet": 1200887
+      },
+      "agentSeconds": 1043,
+      "toolSeconds": {
+        "check": 182,
+        "native": 0,
+        "wait": 123,
+        "other": 296
+      },
+      "checkRuns": 3,
+      "reviews": 0,
+      "firstReviewClean": null,
+      "reachedClean": null,
+      "findingsPerReview": null,
+      "pr": null,
+      "ciFailures": null,
+      "queueRemovals": null,
+      "ownerComments": null,
+      "followUpFixes": null,
+      "reverted": null
+    },
+    {
+      "branch": "chore/agents-queue-high-risk",
+      "issue": null,
+      "area": "tooling",
+      "size": "L",
+      "group": "tooling-L",
+      "agents": {
+        "builder": 5,
+        "review-axis": 8,
+        "reviewer": 4
+      },
+      "calls": 418,
+      "tokens": {
+        "sonnet": {
+          "calls": 211,
+          "input": 422,
+          "cacheRead": 33429695,
+          "cacheWrite": 655587,
+          "output": 136757
+        },
+        "opus": {
+          "calls": 207,
+          "input": 414,
+          "cacheRead": 23196000,
+          "cacheWrite": 1489838,
+          "output": 143853
+        }
+      },
+      "cost": {
+        "sonnet": 4846660,
+        "opus": 4901577
+      },
+      "agentSeconds": 5225,
+      "toolSeconds": {
+        "check": 813,
+        "native": 3,
+        "wait": 277,
+        "other": 5039
+      },
+      "checkRuns": 24,
+      "reviews": 4,
+      "firstReviewClean": false,
+      "reachedClean": false,
+      "findingsPerReview": 4,
+      "pr": {
+        "number": 195,
+        "state": "MERGED",
+        "createdAt": "2026-10-24T18:14:53Z",
+        "mergedAt": "2026-10-24T18:42:03Z",
+        "additions": 1290,
+        "deletions": 232
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "docs/testing-rate-limit-note-after-134",
+      "issue": null,
+      "area": "docs",
+      "size": "S",
+      "group": "docs-S",
+      "agents": {
+        "reviewer": 1,
+        "mechanic": 1
+      },
+      "calls": 18,
+      "tokens": {
+        "opus": {
+          "calls": 8,
+          "input": 16,
+          "cacheRead": 660398,
+          "cacheWrite": 58541,
+          "output": 4114
+        },
+        "haiku": {
+          "calls": 10,
+          "input": 20,
+          "cacheRead": 794408,
+          "cacheWrite": 97862,
+          "output": 5405
+        }
+      },
+      "cost": {
+        "opus": 159802,
+        "haiku": 228813
+      },
+      "agentSeconds": 174,
+      "toolSeconds": {
+        "check": 53,
+        "native": 0,
+        "wait": 0,
+        "other": 55
+      },
+      "checkRuns": 2,
+      "reviews": 1,
+      "firstReviewClean": true,
+      "reachedClean": true,
+      "findingsPerReview": 0,
+      "pr": {
+        "number": 202,
+        "state": "MERGED",
+        "createdAt": "2026-10-25T18:56:14Z",
+        "mergedAt": "2026-10-26T13:49:04Z",
+        "additions": 1,
+        "deletions": 1
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "feature/130-sign-in-with-the-emailed-code-through-th",
+      "issue": 130,
+      "area": "app",
+      "size": "L",
+      "group": "app-L",
+      "agents": {
+        "builder": 4,
+        "reviewer": 4,
+        "review-axis": 8,
+        "mechanic": 1
+      },
+      "calls": 306,
+      "tokens": {
+        "sonnet": {
+          "calls": 173,
+          "input": 346,
+          "cacheRead": 34423463,
+          "cacheWrite": 636059,
+          "output": 111644
+        },
+        "opus": {
+          "calls": 129,
+          "input": 258,
+          "cacheRead": 12930025,
+          "cacheWrite": 1302496,
+          "output": 79803
+        },
+        "haiku": {
+          "calls": 4,
+          "input": 8,
+          "cacheRead": 246243,
+          "cacheWrite": 89778,
+          "output": 4546
+        }
+      },
+      "cost": {
+        "sonnet": 4795986,
+        "opus": 3320396,
+        "haiku": 159585
+      },
+      "agentSeconds": 2723,
+      "toolSeconds": {
+        "check": 492,
+        "native": 0,
+        "wait": 27,
+        "other": 1716
+      },
+      "checkRuns": 14,
+      "reviews": 4,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 1.25,
+      "pr": {
+        "number": 184,
+        "state": "MERGED",
+        "createdAt": "2026-10-24T15:02:05Z",
+        "mergedAt": "2026-10-24T15:22:39Z",
+        "additions": 2408,
+        "deletions": 23
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "feature/131-sign-in-with-the-code-on-the-tw-10-sign",
+      "issue": 131,
+      "area": "app",
+      "size": "L",
+      "group": "app-L",
+      "agents": {
+        "review-axis": 10,
+        "builder": 6,
+        "reviewer": 6
+      },
+      "calls": 342,
+      "tokens": {
+        "opus": {
+          "calls": 202,
+          "input": 404,
+          "cacheRead": 20706139,
+          "cacheWrite": 1322901,
+          "output": 124383
+        },
+        "sonnet": {
+          "calls": 140,
+          "input": 282,
+          "cacheRead": 16241551,
+          "cacheWrite": 795408,
+          "output": 80077
+        }
+      },
+      "cost": {
+        "opus": 4346559,
+        "sonnet": 3019082
+      },
+      "agentSeconds": 5444,
+      "toolSeconds": {
+        "check": 530,
+        "native": 0,
+        "wait": 8,
+        "other": 2268
+      },
+      "checkRuns": 25,
+      "reviews": 6,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 1.1666666666666667,
+      "pr": {
+        "number": 187,
+        "state": "MERGED",
+        "createdAt": "2026-10-24T16:34:46Z",
+        "mergedAt": "2026-10-25T19:22:26Z",
+        "additions": 1200,
+        "deletions": 5
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 1,
+      "reverted": false
+    },
+    {
+      "branch": "feature/132-verification-rules-single-use-replacemen",
+      "issue": 132,
+      "area": "app",
+      "size": "L",
+      "group": "app-L",
+      "agents": {
+        "review-axis": 4,
+        "reviewer": 3,
+        "builder": 3
+      },
+      "calls": 119,
+      "tokens": {
+        "opus": {
+          "calls": 68,
+          "input": 136,
+          "cacheRead": 6515744,
+          "cacheWrite": 642093,
+          "output": 52681
+        },
+        "sonnet": {
+          "calls": 51,
+          "input": 102,
+          "cacheRead": 5245518,
+          "cacheWrite": 325303,
+          "output": 32785
+        }
+      },
+      "cost": {
+        "opus": 1717732,
+        "sonnet": 1095208
+      },
+      "agentSeconds": 3510,
+      "toolSeconds": {
+        "check": 232,
+        "native": 0,
+        "wait": 0,
+        "other": 707
+      },
+      "checkRuns": 8,
+      "reviews": 3,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 1,
+      "pr": {
+        "number": 185,
+        "state": "MERGED",
+        "createdAt": "2026-10-24T16:25:03Z",
+        "mergedAt": "2026-10-24T16:38:37Z",
+        "additions": 750,
+        "deletions": 43
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "feature/133-closed-sign-up-allowlist-neutral-answer",
+      "issue": 133,
+      "area": "app",
+      "size": "L",
+      "group": "app-L",
+      "agents": {
+        "review-axis": 8,
+        "builder": 4,
+        "reviewer": 4
+      },
+      "calls": 264,
+      "tokens": {
+        "opus": {
+          "calls": 158,
+          "input": 316,
+          "cacheRead": 15972676,
+          "cacheWrite": 1108150,
+          "output": 95688
+        },
+        "sonnet": {
+          "calls": 106,
+          "input": 212,
+          "cacheRead": 13623159,
+          "cacheWrite": 463274,
+          "output": 74196
+        }
+      },
+      "cost": {
+        "opus": 3461211,
+        "sonnet": 2312600
+      },
+      "agentSeconds": 2356,
+      "toolSeconds": {
+        "check": 534,
+        "native": 0,
+        "wait": 9,
+        "other": 1643
+      },
+      "checkRuns": 20,
+      "reviews": 4,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 2.5,
+      "pr": {
+        "number": 193,
+        "state": "MERGED",
+        "createdAt": "2026-10-24T17:17:18Z",
+        "mergedAt": "2026-10-24T19:12:51Z",
+        "additions": 1252,
+        "deletions": 88
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "feature/134-rate-limits-on-sign-in-requests",
+      "issue": 134,
+      "area": "app",
+      "size": "L",
+      "group": "app-L",
+      "agents": {
+        "review-axis": 12,
+        "builder": 6,
+        "reviewer": 6
+      },
+      "calls": 332,
+      "tokens": {
+        "opus": {
+          "calls": 184,
+          "input": 368,
+          "cacheRead": 17526121,
+          "cacheWrite": 1706621,
+          "output": 120167
+        },
+        "sonnet": {
+          "calls": 148,
+          "input": 296,
+          "cacheRead": 18058423,
+          "cacheWrite": 621628,
+          "output": 101234
+        }
+      },
+      "cost": {
+        "opus": 4487091,
+        "sonnet": 3089343
+      },
+      "agentSeconds": 3193,
+      "toolSeconds": {
+        "check": 760,
+        "native": 0,
+        "wait": 0,
+        "other": 2151
+      },
+      "checkRuns": 19,
+      "reviews": 6,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 1.5,
+      "pr": {
+        "number": 196,
+        "state": "MERGED",
+        "createdAt": "2026-10-24T18:17:01Z",
+        "mergedAt": "2026-10-25T18:42:57Z",
+        "additions": 1151,
+        "deletions": 28
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "feature/135-get-api-v1-me-in-the-contract",
+      "issue": 135,
+      "area": "native",
+      "size": "L",
+      "group": "native-L",
+      "agents": {
+        "builder": 4,
+        "review-axis": 10,
+        "reviewer": 5,
+        "mechanic": 3
+      },
+      "calls": 281,
+      "tokens": {
+        "sonnet": {
+          "calls": 100,
+          "input": 202,
+          "cacheRead": 10532803,
+          "cacheWrite": 512569,
+          "output": 50566
+        },
+        "opus": {
+          "calls": 155,
+          "input": 310,
+          "cacheRead": 14533207,
+          "cacheWrite": 1328389,
+          "output": 92761
+        },
+        "haiku": {
+          "calls": 26,
+          "input": 52,
+          "cacheRead": 2036924,
+          "cacheWrite": 289532,
+          "output": 13410
+        }
+      },
+      "cost": {
+        "sonnet": 1947024,
+        "opus": 3577922,
+        "haiku": 632709
+      },
+      "agentSeconds": 9352,
+      "toolSeconds": {
+        "check": 476,
+        "native": 267,
+        "wait": 57,
+        "other": 2062
+      },
+      "checkRuns": 13,
+      "reviews": 5,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 1.4,
+      "pr": {
+        "number": 186,
+        "state": "MERGED",
+        "createdAt": "2026-10-24T16:32:56Z",
+        "mergedAt": "2026-10-24T18:56:23Z",
+        "additions": 1040,
+        "deletions": 5
+      },
+      "ciFailures": 1,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "feature/136-sign-in-with-the-link-through-the-confir",
+      "issue": 136,
+      "area": "app",
+      "size": "L",
+      "group": "app-L",
+      "agents": {
+        "review-axis": 8,
+        "builder": 4,
+        "reviewer": 4
+      },
+      "calls": 282,
+      "tokens": {
+        "opus": {
+          "calls": 167,
+          "input": 334,
+          "cacheRead": 17837420,
+          "cacheWrite": 1284706,
+          "output": 102729
+        },
+        "sonnet": {
+          "calls": 115,
+          "input": 230,
+          "cacheRead": 14207938,
+          "cacheWrite": 432413,
+          "output": 72399
+        }
+      },
+      "cost": {
+        "opus": 3903604,
+        "sonnet": 2323535
+      },
+      "agentSeconds": 2658,
+      "toolSeconds": {
+        "check": 589,
+        "native": 0,
+        "wait": 1,
+        "other": 1895
+      },
+      "checkRuns": 22,
+      "reviews": 4,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 1.25,
+      "pr": {
+        "number": 204,
+        "state": "MERGED",
+        "createdAt": "2026-10-25T20:12:00Z",
+        "mergedAt": "2026-10-25T20:52:17Z",
+        "additions": 1154,
+        "deletions": 114
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "feature/137-route-guard-return-path-30-day-sign-in-s",
+      "issue": 137,
+      "area": "app",
+      "size": "L",
+      "group": "app-L",
+      "agents": {
+        "builder": 5,
+        "review-axis": 10,
+        "reviewer": 5
+      },
+      "calls": 319,
+      "tokens": {
+        "sonnet": {
+          "calls": 146,
+          "input": 292,
+          "cacheRead": 18710578,
+          "cacheWrite": 577582,
+          "output": 93628
+        },
+        "opus": {
+          "calls": 173,
+          "input": 346,
+          "cacheRead": 16944446,
+          "cacheWrite": 1280127,
+          "output": 117975
+        }
+      },
+      "cost": {
+        "sonnet": 3061467,
+        "opus": 3884824
+      },
+      "agentSeconds": 3635,
+      "toolSeconds": {
+        "check": 572,
+        "native": 0,
+        "wait": 7,
+        "other": 2671
+      },
+      "checkRuns": 24,
+      "reviews": 5,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 2,
+      "pr": {
+        "number": 205,
+        "state": "MERGED",
+        "createdAt": "2026-10-25T20:14:09Z",
+        "mergedAt": "2026-10-25T21:41:48Z",
+        "additions": 944,
+        "deletions": 46
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "feature/138-sign-in-product-events",
+      "issue": 138,
+      "area": "app",
+      "size": "M",
+      "group": "app-M",
+      "agents": {
+        "review-axis": 1
+      },
+      "calls": 11,
+      "tokens": {
+        "opus": {
+          "calls": 11,
+          "input": 22,
+          "cacheRead": 1021403,
+          "cacheWrite": 70750,
+          "output": 5672
+        }
+      },
+      "cost": {
+        "opus": 218960
+      },
+      "agentSeconds": 95,
+      "toolSeconds": {
+        "check": 0,
+        "native": 0,
+        "wait": 0,
+        "other": 39
+      },
+      "checkRuns": 0,
+      "reviews": 0,
+      "firstReviewClean": null,
+      "reachedClean": null,
+      "findingsPerReview": null,
+      "pr": {
+        "number": 229,
+        "state": "MERGED",
+        "createdAt": "2026-10-26T08:04:02Z",
+        "mergedAt": "2026-10-26T08:13:56Z",
+        "additions": 359,
+        "deletions": 18
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "feature/138-sign-in-product-events-without-personal",
+      "issue": 138,
+      "area": "app",
+      "size": "M",
+      "group": "app-M",
+      "agents": {
+        "builder": 6,
+        "review-axis": 12,
+        "reviewer": 6
+      },
+      "calls": 272,
+      "tokens": {
+        "sonnet": {
+          "calls": 101,
+          "input": 202,
+          "cacheRead": 10826933,
+          "cacheWrite": 668216,
+          "output": 50641
+        },
+        "opus": {
+          "calls": 171,
+          "input": 342,
+          "cacheRead": 16252299,
+          "cacheWrite": 1384639,
+          "output": 100389
+        }
+      },
+      "cost": {
+        "sonnet": 2171370,
+        "opus": 3858316
+      },
+      "agentSeconds": 2275,
+      "toolSeconds": {
+        "check": 445,
+        "native": 0,
+        "wait": 0,
+        "other": 1786
+      },
+      "checkRuns": 15,
+      "reviews": 6,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 1.5,
+      "pr": {
+        "number": 208,
+        "state": "CLOSED",
+        "createdAt": "2026-10-25T21:14:45Z",
+        "mergedAt": null,
+        "additions": 359,
+        "deletions": 18
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 1,
+      "followUpFixes": null,
+      "reverted": null
+    },
+    {
+      "branch": "feature/207-should-the-emailed-sign-in-link-return-t",
+      "issue": 207,
+      "area": "app",
+      "size": "M",
+      "group": "app-M",
+      "agents": {
+        "review-axis": 6,
+        "builder": 3,
+        "reviewer": 3
+      },
+      "calls": 203,
+      "tokens": {
+        "opus": {
+          "calls": 118,
+          "input": 236,
+          "cacheRead": 11881505,
+          "cacheWrite": 832595,
+          "output": 73726
+        },
+        "sonnet": {
+          "calls": 85,
+          "input": 170,
+          "cacheRead": 10273894,
+          "cacheWrite": 420126,
+          "output": 45494
+        }
+      },
+      "cost": {
+        "opus": 2597760,
+        "sonnet": 1780187
+      },
+      "agentSeconds": 2999,
+      "toolSeconds": {
+        "check": 1235,
+        "native": 0,
+        "wait": 54,
+        "other": 1540
+      },
+      "checkRuns": 11,
+      "reviews": 3,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 2.3333333333333335,
+      "pr": {
+        "number": 237,
+        "state": "OPEN",
+        "createdAt": "2026-10-26T14:36:52Z",
+        "mergedAt": null,
+        "additions": 385,
+        "deletions": 54
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": null,
+      "reverted": null
+    },
+    {
+      "branch": "feature/209-native-sign-in-spike-api-contract-routes",
+      "issue": 209,
+      "area": "native",
+      "size": "L",
+      "group": "native-L",
+      "agents": {
+        "review-axis": 10,
+        "reviewer": 5,
+        "builder": 5
+      },
+      "calls": 362,
+      "tokens": {
+        "opus": {
+          "calls": 206,
+          "input": 412,
+          "cacheRead": 21495723,
+          "cacheWrite": 1726988,
+          "output": 123955
+        },
+        "sonnet": {
+          "calls": 156,
+          "input": 314,
+          "cacheRead": 20297567,
+          "cacheWrite": 663132,
+          "output": 98480
+        }
+      },
+      "cost": {
+        "opus": 4928494,
+        "sonnet": 3351386
+      },
+      "agentSeconds": 4061,
+      "toolSeconds": {
+        "check": 969,
+        "native": 691,
+        "wait": 61,
+        "other": 2353
+      },
+      "checkRuns": 16,
+      "reviews": 5,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 2.4,
+      "pr": {
+        "number": 219,
+        "state": "MERGED",
+        "createdAt": "2026-10-25T22:38:00Z",
+        "mergedAt": "2026-10-25T23:10:53Z",
+        "additions": 3103,
+        "deletions": 56
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 1,
+      "reverted": false
+    },
+    {
+      "branch": "feature/210-native-sign-in-strings-nl-en",
+      "issue": 210,
+      "area": "app",
+      "size": "S",
+      "group": "app-S",
+      "agents": {
+        "review-axis": 6,
+        "mechanic": 1,
+        "reviewer": 3,
+        "builder": 2
+      },
+      "calls": 112,
+      "tokens": {
+        "opus": {
+          "calls": 83,
+          "input": 166,
+          "cacheRead": 7348836,
+          "cacheWrite": 734857,
+          "output": 54255
+        },
+        "haiku": {
+          "calls": 8,
+          "input": 16,
+          "cacheRead": 621414,
+          "cacheWrite": 97946,
+          "output": 5489
+        },
+        "sonnet": {
+          "calls": 21,
+          "input": 42,
+          "cacheRead": 1953113,
+          "cacheWrite": 170629,
+          "output": 10920
+        }
+      },
+      "cost": {
+        "opus": 1924896,
+        "haiku": 212035,
+        "sonnet": 463240
+      },
+      "agentSeconds": 911,
+      "toolSeconds": {
+        "check": 155,
+        "native": 0,
+        "wait": 0,
+        "other": 832
+      },
+      "checkRuns": 7,
+      "reviews": 3,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 1.3333333333333333,
+      "pr": {
+        "number": 218,
+        "state": "MERGED",
+        "createdAt": "2026-10-25T21:39:33Z",
+        "mergedAt": "2026-10-25T22:25:09Z",
+        "additions": 72,
+        "deletions": 0
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "feature/211-native-sign-in-spike-ios-minimal-tm-01-k",
+      "issue": 211,
+      "area": "native",
+      "size": "L",
+      "group": "native-L",
+      "agents": {
+        "review-axis": 4,
+        "builder": 2,
+        "reviewer": 2
+      },
+      "calls": 199,
+      "tokens": {
+        "opus": {
+          "calls": 71,
+          "input": 142,
+          "cacheRead": 6935681,
+          "cacheWrite": 728408,
+          "output": 50612
+        },
+        "sonnet": {
+          "calls": 128,
+          "input": 256,
+          "cacheRead": 26272253,
+          "cacheWrite": 1676267,
+          "output": 110235
+        }
+      },
+      "cost": {
+        "opus": 1857280,
+        "sonnet": 5273990
+      },
+      "agentSeconds": 6309,
+      "toolSeconds": {
+        "check": 438,
+        "native": 1261,
+        "wait": 1047,
+        "other": 3067
+      },
+      "checkRuns": 6,
+      "reviews": 2,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 0.5,
+      "pr": {
+        "number": 225,
+        "state": "MERGED",
+        "createdAt": "2026-10-26T01:00:07Z",
+        "mergedAt": "2026-10-26T01:35:46Z",
+        "additions": 1650,
+        "deletions": 61
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 1,
+      "reverted": false
+    },
+    {
+      "branch": "feature/212-native-sign-in-spike-android-minimal-tm",
+      "issue": 212,
+      "area": "native",
+      "size": "L",
+      "group": "native-L",
+      "agents": {
+        "review-axis": 8,
+        "builder": 3,
+        "mechanic": 2,
+        "reviewer": 4
+      },
+      "calls": 330,
+      "tokens": {
+        "sonnet": {
+          "calls": 160,
+          "input": 324,
+          "cacheRead": 23764276,
+          "cacheWrite": 1086936,
+          "output": 124844
+        },
+        "opus": {
+          "calls": 133,
+          "input": 266,
+          "cacheRead": 14050411,
+          "cacheWrite": 1265294,
+          "output": 104335
+        },
+        "haiku": {
+          "calls": 37,
+          "input": 74,
+          "cacheRead": 3941719,
+          "cacheWrite": 253590,
+          "output": 31445
+        }
+      },
+      "cost": {
+        "sonnet": 4359642,
+        "opus": 3508600,
+        "haiku": 868458
+      },
+      "agentSeconds": 6892,
+      "toolSeconds": {
+        "check": 951,
+        "native": 1126,
+        "wait": 1143,
+        "other": 2446
+      },
+      "checkRuns": 17,
+      "reviews": 4,
+      "firstReviewClean": false,
+      "reachedClean": false,
+      "findingsPerReview": 2,
+      "pr": {
+        "number": 222,
+        "state": "MERGED",
+        "createdAt": "2026-10-26T00:11:13Z",
+        "mergedAt": "2026-10-26T10:20:22Z",
+        "additions": 1981,
+        "deletions": 45
+      },
+      "ciFailures": 1,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "feature/213-native-sign-in-the-web-s-rules-through-t",
+      "issue": 213,
+      "area": "app",
+      "size": "L",
+      "group": "app-L",
+      "agents": {
+        "reviewer": 3,
+        "builder": 3,
+        "review-axis": 6
+      },
+      "calls": 185,
+      "tokens": {
+        "opus": {
+          "calls": 112,
+          "input": 224,
+          "cacheRead": 10996314,
+          "cacheWrite": 996094,
+          "output": 80560
+        },
+        "sonnet": {
+          "calls": 73,
+          "input": 146,
+          "cacheRead": 8373347,
+          "cacheWrite": 332255,
+          "output": 50120
+        }
+      },
+      "cost": {
+        "opus": 2747773,
+        "sonnet": 1503399
+      },
+      "agentSeconds": 1769,
+      "toolSeconds": {
+        "check": 414,
+        "native": 0,
+        "wait": 0,
+        "other": 1315
+      },
+      "checkRuns": 7,
+      "reviews": 3,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 2.6666666666666665,
+      "pr": {
+        "number": 221,
+        "state": "MERGED",
+        "createdAt": "2026-10-25T23:44:22Z",
+        "mergedAt": "2026-10-25T23:55:08Z",
+        "additions": 559,
+        "deletions": 121
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "feature/214-native-sign-in-ios-tm-01-complete",
+      "issue": 214,
+      "area": "native",
+      "size": "L",
+      "group": "native-L",
+      "agents": {
+        "builder": 3,
+        "review-axis": 4,
+        "reviewer": 3
+      },
+      "calls": 285,
+      "tokens": {
+        "sonnet": {
+          "calls": 181,
+          "input": 362,
+          "cacheRead": 32632084,
+          "cacheWrite": 3753016,
+          "output": 144440
+        },
+        "opus": {
+          "calls": 104,
+          "input": 208,
+          "cacheRead": 10641677,
+          "cacheWrite": 1046123,
+          "output": 75376
+        }
+      },
+      "cost": {
+        "sonnet": 8677040,
+        "opus": 2748909
+      },
+      "agentSeconds": 12794,
+      "toolSeconds": {
+        "check": 330,
+        "native": 3532,
+        "wait": 4107,
+        "other": 3674
+      },
+      "checkRuns": 7,
+      "reviews": 3,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 2.3333333333333335,
+      "pr": {
+        "number": 226,
+        "state": "MERGED",
+        "createdAt": "2026-10-26T05:12:19Z",
+        "mergedAt": "2026-10-26T05:59:05Z",
+        "additions": 1539,
+        "deletions": 130
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "feature/215-native-sign-in-android-tm-01-complete",
+      "issue": 215,
+      "area": "native",
+      "size": "L",
+      "group": "native-L",
+      "agents": {
+        "review-axis": 6,
+        "builder": 3,
+        "reviewer": 3
+      },
+      "calls": 302,
+      "tokens": {
+        "opus": {
+          "calls": 128,
+          "input": 256,
+          "cacheRead": 13902708,
+          "cacheWrite": 1228207,
+          "output": 93045
+        },
+        "sonnet": {
+          "calls": 174,
+          "input": 348,
+          "cacheRead": 30623707,
+          "cacheWrite": 1201504,
+          "output": 161162
+        }
+      },
+      "cost": {
+        "opus": 3391011,
+        "sonnet": 5370409
+      },
+      "agentSeconds": 5820,
+      "toolSeconds": {
+        "check": 618,
+        "native": 2506,
+        "wait": 46,
+        "other": 1677
+      },
+      "checkRuns": 9,
+      "reviews": 3,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 2.3333333333333335,
+      "pr": {
+        "number": 234,
+        "state": "MERGED",
+        "createdAt": "2026-10-26T12:01:35Z",
+        "mergedAt": "2026-10-26T12:30:49Z",
+        "additions": 2198,
+        "deletions": 244
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 1,
+      "reverted": false
+    },
+    {
+      "branch": "feature/216-native-sign-in-shared-maestro-flow",
+      "issue": 216,
+      "area": null,
+      "size": null,
+      "group": "unknown",
+      "agents": {
+        "builder": 3,
+        "review-axis": 4,
+        "reviewer": 2
+      },
+      "calls": 424,
+      "tokens": {
+        "sonnet": {
+          "calls": 320,
+          "input": 640,
+          "cacheRead": 53977588,
+          "cacheWrite": 1206773,
+          "output": 143774
+        },
+        "opus": {
+          "calls": 104,
+          "input": 208,
+          "cacheRead": 11443099,
+          "cacheWrite": 666110,
+          "output": 64413
+        }
+      },
+      "cost": {
+        "sonnet": 7625735,
+        "opus": 2299220
+      },
+      "agentSeconds": 7705,
+      "toolSeconds": {
+        "check": 756,
+        "native": 5180,
+        "wait": 443,
+        "other": 904
+      },
+      "checkRuns": 11,
+      "reviews": 2,
+      "firstReviewClean": false,
+      "reachedClean": false,
+      "findingsPerReview": 2,
+      "pr": null,
+      "ciFailures": null,
+      "queueRemovals": null,
+      "ownerComments": null,
+      "followUpFixes": null,
+      "reverted": null
+    },
+    {
+      "branch": "feature/220-native-sign-in-product-events-for-the-na",
+      "issue": 220,
+      "area": "app",
+      "size": "M",
+      "group": "app-M",
+      "agents": {
+        "reviewer": 2,
+        "review-axis": 4,
+        "builder": 2
+      },
+      "calls": 150,
+      "tokens": {
+        "opus": {
+          "calls": 90,
+          "input": 180,
+          "cacheRead": 9286534,
+          "cacheWrite": 573479,
+          "output": 62039
+        },
+        "sonnet": {
+          "calls": 60,
+          "input": 120,
+          "cacheRead": 6730632,
+          "cacheWrite": 230852,
+          "output": 38733
+        }
+      },
+      "cost": {
+        "opus": 1955877,
+        "sonnet": 1155413
+      },
+      "agentSeconds": 1499,
+      "toolSeconds": {
+        "check": 165,
+        "native": 0,
+        "wait": 3,
+        "other": 1085
+      },
+      "checkRuns": 4,
+      "reviews": 2,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 1,
+      "pr": {
+        "number": 231,
+        "state": "MERGED",
+        "createdAt": "2026-10-26T08:46:49Z",
+        "mergedAt": "2026-10-26T09:13:44Z",
+        "additions": 259,
+        "deletions": 10
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "fix/200-flaky-instrumentation-allowlist-test-tim",
+      "issue": 200,
+      "area": "app",
+      "size": "S",
+      "group": "app-S",
+      "agents": {
+        "review-axis": 6,
+        "builder": 3,
+        "reviewer": 3
+      },
+      "calls": 86,
+      "tokens": {
+        "opus": {
+          "calls": 60,
+          "input": 120,
+          "cacheRead": 4897966,
+          "cacheWrite": 651000,
+          "output": 48679
+        },
+        "sonnet": {
+          "calls": 26,
+          "input": 52,
+          "cacheRead": 2102824,
+          "cacheWrite": 243197,
+          "output": 13959
+        }
+      },
+      "cost": {
+        "opus": 1547062,
+        "sonnet": 584126
+      },
+      "agentSeconds": 963,
+      "toolSeconds": {
+        "check": 104,
+        "native": 0,
+        "wait": 1,
+        "other": 698
+      },
+      "checkRuns": 6,
+      "reviews": 3,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 1.3333333333333333,
+      "pr": {
+        "number": 201,
+        "state": "MERGED",
+        "createdAt": "2026-10-25T18:33:02Z",
+        "mergedAt": "2026-10-25T18:42:56Z",
+        "additions": 49,
+        "deletions": 3
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "fix/203-flaky-axe-flags-the-sign-in-button-durin",
+      "issue": 203,
+      "area": "app",
+      "size": "M",
+      "group": "app-M",
+      "agents": {
+        "review-axis": 6,
+        "reviewer": 3,
+        "builder": 3
+      },
+      "calls": 120,
+      "tokens": {
+        "opus": {
+          "calls": 69,
+          "input": 138,
+          "cacheRead": 6079839,
+          "cacheWrite": 768273,
+          "output": 66873
+        },
+        "sonnet": {
+          "calls": 51,
+          "input": 102,
+          "cacheRead": 5093000,
+          "cacheWrite": 285835,
+          "output": 32873
+        }
+      },
+      "cost": {
+        "opus": 1902828,
+        "sonnet": 1031061
+      },
+      "agentSeconds": 1996,
+      "toolSeconds": {
+        "check": 139,
+        "native": 0,
+        "wait": 106,
+        "other": 1464
+      },
+      "checkRuns": 8,
+      "reviews": 3,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 2,
+      "pr": {
+        "number": 206,
+        "state": "MERGED",
+        "createdAt": "2026-10-25T20:31:36Z",
+        "mergedAt": "2026-10-25T20:40:43Z",
+        "additions": 239,
+        "deletions": 9
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "fix/223-contract-plain-locale-type-for-the-sign",
+      "issue": 223,
+      "area": "native",
+      "size": "M",
+      "group": "native-M",
+      "agents": {
+        "builder": 1,
+        "reviewer": 1,
+        "review-axis": 2
+      },
+      "calls": 56,
+      "tokens": {
+        "sonnet": {
+          "calls": 27,
+          "input": 54,
+          "cacheRead": 2625640,
+          "cacheWrite": 190286,
+          "output": 11906
+        },
+        "opus": {
+          "calls": 29,
+          "input": 58,
+          "cacheRead": 2449762,
+          "cacheWrite": 308729,
+          "output": 17708
+        }
+      },
+      "cost": {
+        "sonnet": 560006,
+        "opus": 719485
+      },
+      "agentSeconds": 1523,
+      "toolSeconds": {
+        "check": 195,
+        "native": 952,
+        "wait": 0,
+        "other": 395
+      },
+      "checkRuns": 2,
+      "reviews": 1,
+      "firstReviewClean": true,
+      "reachedClean": true,
+      "findingsPerReview": 0,
+      "pr": {
+        "number": 232,
+        "state": "MERGED",
+        "createdAt": "2026-10-26T10:49:23Z",
+        "mergedAt": "2026-10-26T11:37:47Z",
+        "additions": 154,
+        "deletions": 53
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "fix/224-ios-ad-hoc-signing-for-simulator-test-bu",
+      "issue": 224,
+      "area": "native",
+      "size": "S",
+      "group": "native-S",
+      "agents": {
+        "builder": 3,
+        "reviewer": 3,
+        "review-axis": 4
+      },
+      "calls": 115,
+      "tokens": {
+        "sonnet": {
+          "calls": 53,
+          "input": 106,
+          "cacheRead": 4773246,
+          "cacheWrite": 596074,
+          "output": 23793
+        },
+        "opus": {
+          "calls": 62,
+          "input": 124,
+          "cacheRead": 5466526,
+          "cacheWrite": 700284,
+          "output": 48159
+        }
+      },
+      "cost": {
+        "sonnet": 1341488,
+        "opus": 1662927
+      },
+      "agentSeconds": 3822,
+      "toolSeconds": {
+        "check": 863,
+        "native": 1726,
+        "wait": 304,
+        "other": 693
+      },
+      "checkRuns": 6,
+      "reviews": 3,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 2,
+      "pr": {
+        "number": 227,
+        "state": "OPEN",
+        "createdAt": "2026-10-26T05:46:03Z",
+        "mergedAt": null,
+        "additions": 57,
+        "deletions": 17
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": null,
+      "reverted": null
+    },
+    {
+      "branch": "fix/228-fake-secrets-in-tests-obviously-fake-val",
+      "issue": 228,
+      "area": "native",
+      "size": "L",
+      "group": "native-L",
+      "agents": {
+        "reviewer": 3,
+        "review-axis": 6,
+        "builder": 3
+      },
+      "calls": 183,
+      "tokens": {
+        "opus": {
+          "calls": 106,
+          "input": 212,
+          "cacheRead": 10222598,
+          "cacheWrite": 913860,
+          "output": 87788
+        },
+        "sonnet": {
+          "calls": 77,
+          "input": 154,
+          "cacheRead": 9222798,
+          "cacheWrite": 516313,
+          "output": 77380
+        }
+      },
+      "cost": {
+        "opus": 2603737,
+        "sonnet": 1954725
+      },
+      "agentSeconds": 3407,
+      "toolSeconds": {
+        "check": 638,
+        "native": 585,
+        "wait": 1,
+        "other": 1540
+      },
+      "checkRuns": 22,
+      "reviews": 3,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 2,
+      "pr": {
+        "number": 230,
+        "state": "MERGED",
+        "createdAt": "2026-10-26T08:32:37Z",
+        "mergedAt": "2026-10-26T10:29:52Z",
+        "additions": 951,
+        "deletions": 11
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "fix/233-ios-home-may-squeeze-the-hello-block-at",
+      "issue": 233,
+      "area": "native",
+      "size": "M",
+      "group": "native-M",
+      "agents": {
+        "reviewer": 2,
+        "review-axis": 4,
+        "builder": 2
+      },
+      "calls": 127,
+      "tokens": {
+        "opus": {
+          "calls": 52,
+          "input": 104,
+          "cacheRead": 4559953,
+          "cacheWrite": 687180,
+          "output": 41418
+        },
+        "sonnet": {
+          "calls": 75,
+          "input": 150,
+          "cacheRead": 9325970,
+          "cacheWrite": 619796,
+          "output": 49441
+        }
+      },
+      "cost": {
+        "opus": 1522164,
+        "sonnet": 1954697
+      },
+      "agentSeconds": 3978,
+      "toolSeconds": {
+        "check": 283,
+        "native": 2353,
+        "wait": 76,
+        "other": 1236
+      },
+      "checkRuns": 4,
+      "reviews": 2,
+      "firstReviewClean": false,
+      "reachedClean": true,
+      "findingsPerReview": 2.5,
+      "pr": {
+        "number": 235,
+        "state": "MERGED",
+        "createdAt": "2026-10-26T12:49:11Z",
+        "mergedAt": "2026-10-26T13:43:18Z",
+        "additions": 117,
+        "deletions": 34
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": 0,
+      "reverted": false
+    },
+    {
+      "branch": "fix/236-next-dev-writes-apps-web-agents-md-and-c",
+      "issue": 236,
+      "area": "app",
+      "size": "S",
+      "group": "app-S",
+      "agents": {
+        "review-axis": 2,
+        "reviewer": 1,
+        "builder": 1
+      },
+      "calls": 60,
+      "tokens": {
+        "opus": {
+          "calls": 43,
+          "input": 86,
+          "cacheRead": 4217523,
+          "cacheWrite": 210687,
+          "output": 24427
+        },
+        "sonnet": {
+          "calls": 17,
+          "input": 34,
+          "cacheRead": 1518396,
+          "cacheWrite": 132515,
+          "output": 6916
+        }
+      },
+      "cost": {
+        "opus": 807332,
+        "sonnet": 352097
+      },
+      "agentSeconds": 1262,
+      "toolSeconds": {
+        "check": 556,
+        "native": 7,
+        "wait": 261,
+        "other": 366
+      },
+      "checkRuns": 4,
+      "reviews": 1,
+      "firstReviewClean": true,
+      "reachedClean": true,
+      "findingsPerReview": 0,
+      "pr": {
+        "number": 238,
+        "state": "OPEN",
+        "createdAt": "2026-10-26T14:43:52Z",
+        "mergedAt": null,
+        "additions": 14,
+        "deletions": 0
+      },
+      "ciFailures": 0,
+      "queueRemovals": 0,
+      "ownerComments": 0,
+      "followUpFixes": null,
+      "reverted": null
+    }
+  ],
+  "agents": {
+    "byRole": {
+      "builder": {
+        "count": 108,
+        "medianFirstContext": 72648,
+        "medianPeakContext": 122894
+      },
+      "mechanic": {
+        "count": 11,
+        "medianFirstContext": 72346,
+        "medianPeakContext": 97864
+      },
+      "review-axis": {
+        "count": 216,
+        "medianFirstContext": 77134,
+        "medianPeakContext": 116622
+      },
+      "reviewer": {
+        "count": 115,
+        "medianFirstContext": 72464,
+        "medianPeakContext": 117721
+      }
+    }
+  }
+}
