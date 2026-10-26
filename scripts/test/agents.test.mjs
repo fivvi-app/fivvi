@@ -193,15 +193,28 @@ describe('agents.sh', () => {
       failsWith(new RegExp(`${name}\\.md: no claude-tools`));
     }
     fresh();
-    replaceIn(repo, '.agents/agents/builder.md', `claude-tools: ${CLAUDE_TOOLS.builder}`, 'claude-tools: ');
+    replaceIn(
+      repo,
+      '.agents/agents/builder.md',
+      `claude-tools: ${CLAUDE_TOOLS.builder}`,
+      'claude-tools: ',
+    );
     failsWith(/builder\.md: no claude-tools/);
   });
 
   it('renders claude-tools only into the Claude Code definition', () => {
     fresh();
-    replaceIn(repo, '.agents/agents/reviewer.md', 'claude-tools: Bash, Read, Glob, Grep, WebFetch', 'claude-tools: Read, Grep');
+    replaceIn(
+      repo,
+      '.agents/agents/reviewer.md',
+      'claude-tools: Bash, Read, Glob, Grep, WebFetch',
+      'claude-tools: Read, Grep',
+    );
     sync();
-    assert.match(read(repo, '.claude/agents/reviewer.md'), /^model: opus\ntools: Read, Grep\n---$/m);
+    assert.match(
+      read(repo, '.claude/agents/reviewer.md'),
+      /^model: opus\ntools: Read, Grep\n---$/m,
+    );
     assert.doesNotMatch(read(repo, '.github/agents/reviewer.agent.md'), /Read, Grep|claude-tools/);
     assert.doesNotMatch(read(repo, '.codex/agents/reviewer.toml'), /Read, Grep|claude-tools/);
     assert.equal(agents('check').status, 0);
