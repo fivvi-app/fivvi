@@ -488,6 +488,23 @@ describe('iOS local Swift packages (apps/ios)', () => {
   });
 });
 
+describe('iOS simulator signing (apps/ios/Config)', () => {
+  it('#224: Debug and Release both include Simulator.xcconfig, which signs simulator builds ad hoc with the entitlements', () => {
+    const config = join(SCRIPTS, '../apps/ios/Config');
+    for (const name of ['Debug', 'Release']) {
+      const xcconfig = readFileSync(join(config, `${name}.xcconfig`), 'utf8');
+      assert.match(xcconfig, /^#include "Simulator\.xcconfig"$/m, `${name}.xcconfig`);
+    }
+    const simulator = readFileSync(join(config, 'Simulator.xcconfig'), 'utf8');
+    assert.match(simulator, /^CODE_SIGN_IDENTITY\[sdk=iphonesimulator\*\] = -$/m);
+    assert.match(
+      simulator,
+      /^CODE_SIGN_ENTITLEMENTS\[sdk=iphonesimulator\*\] = Config\/Simulator\.entitlements$/m,
+    );
+    assert.ok(existsSync(join(config, 'Simulator.entitlements')));
+  });
+});
+
 describe('usage', () => {
   it('prints the commands of every script, never its code', () => {
     for (const script of [
@@ -1313,10 +1330,22 @@ esac`,
         .filter((line) => line.startsWith('build-for-testing '));
       assert.match(build, /-showBuildTimingSummary/);
       assert.match(build, /-derivedDataPath \.build\/DerivedData/);
-      // #224: the simulator build is signed ad hoc by the xcconfigs, which a command-line CODE_SIGNING_ALLOWED=NO overrides.
-      assert.doesNotMatch(build, /CODE_SIGN/, 'signing comes from apps/ios/Config');
       assert.equal(fake.simulators().length, 2, 'no second simulator');
       assert.match(run.output, /Build Timing Summary/);
+    });
+
+    it('#224: pnpm test:ios leaves signing to the xcconfigs, so the simulator build keeps its ad hoc signature', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh');
+
+      assert.equal(run.status, 0, run.output);
+      const [build] = fake
+        .log('xcodebuild')
+        .filter((line) => line.startsWith('build-for-testing '));
+      // A command-line CODE_SIGNING_ALLOWED=NO overrides apps/ios/Config/Simulator.xcconfig and leaves the Keychain
+      // without its entitlement (-34018).
+      assert.doesNotMatch(build, /CODE_SIGN/, 'signing comes from apps/ios/Config');
     });
 
     it('keeps one result bundle with both locales and prints the steps with their durations', async () => {
@@ -2058,6 +2087,18 @@ esac`,
       assert.ok(!fake.log('calls').some(isFlow), fake.log('calls').join('\n'));
     });
   }
+
+  it('#224: maestro.sh ios leaves signing to the xcconfigs, so the simulator build keeps its ad hoc signature', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/maestro.sh', ['ios']);
+
+    assert.equal(run.status, 0, run.output);
+    const [build] = fake.log('xcodebuild').filter((line) => line.startsWith('build '));
+    assert.ok(build, fake.log('xcodebuild').join('\n'));
+    // A command-line CODE_SIGNING_ALLOWED=NO overrides apps/ios/Config/Simulator.xcconfig (Keychain -34018).
+    assert.doesNotMatch(build, /CODE_SIGN/, 'signing comes from apps/ios/Config');
+  });
 
   it('#89: maestro.sh android waits for Android to deliver its broadcasts after each language change, before the flow', async () => {
     const fake = checkout();
