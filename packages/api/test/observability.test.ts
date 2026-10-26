@@ -6,7 +6,7 @@ import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.t
 // Synthetic personal data only.
 const EMAIL = 'anna.devries@example.com';
 const CLIENT_ID = '3f2e1d0c-9b8a-4765-8432-10fedcba9876';
-const SHA = '0123456789abcdef0123456789abcdef01234567';
+const SHA = '1111111111111111111111111111111111111111';
 const WITH_DSN = {
   SENTRY_DSN: 'https://public@o0.ingest.de.sentry.io/1',
   RAILWAY_ENVIRONMENT_NAME: 'production',

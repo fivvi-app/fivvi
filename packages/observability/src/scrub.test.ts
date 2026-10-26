@@ -31,12 +31,12 @@ const PERSONAL = [
 function eventWithPersonalData(): ErrorEvent {
   return {
     type: undefined,
-    event_id: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+    event_id: '11111111111111111111111111111111',
     timestamp: 1_760_000_000,
     level: 'error',
     platform: 'node',
     environment: 'production',
-    release: '0123456789abcdef0123456789abcdef01234567',
+    release: '1111111111111111111111111111111111111111',
     transaction: `POST ${ROUTE}`,
     message: `Could not invite ${EMAIL}`,
     exception: {
@@ -108,12 +108,12 @@ describe('E009 scrubber', () => {
     for (const value of PERSONAL) expect(sent).not.toContain(value);
     expect(scrubbed).toEqual({
       type: undefined,
-      event_id: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+      event_id: '11111111111111111111111111111111',
       timestamp: 1_760_000_000,
       level: 'error',
       platform: 'node',
       environment: 'production',
-      release: '0123456789abcdef0123456789abcdef01234567',
+      release: '1111111111111111111111111111111111111111',
       transaction: `POST ${ROUTE}`,
       message: 'Could not invite [email]',
       exception: {

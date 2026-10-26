@@ -3,7 +3,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { publishSourceMaps, type SentryCli } from './source-maps.ts';
 
-const SHA = '0123456789abcdef0123456789abcdef01234567';
+const SHA = '1111111111111111111111111111111111111111';
 const TOKEN = 'sntrys_test-token';
 
 // A Next.js build output, as `next build` leaves it (output: 'standalone').
