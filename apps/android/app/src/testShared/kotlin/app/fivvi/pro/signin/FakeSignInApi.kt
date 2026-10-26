@@ -11,8 +11,11 @@ import retrofit2.Response
 class FakeSignInApi : SignInApi {
     val requestAnswers = ArrayDeque<suspend () -> Response<Unit>>()
     val tokenAnswers = ArrayDeque<suspend () -> Response<SignInTokenResponse>>()
+    val signOutAnswers = ArrayDeque<suspend () -> Response<Unit>>()
     val requests = mutableListOf<SignInRequest>()
     val exchanges = mutableListOf<SignInTokenRequest>()
+    var signOuts = 0
+        private set
 
     override suspend fun requestSignIn(signInRequest: SignInRequest): Response<Unit> {
         requests += signInRequest
@@ -24,11 +27,19 @@ class FakeSignInApi : SignInApi {
         return tokenAnswers.removeFirst()()
     }
 
-    override suspend fun signOut(): Response<Unit> = error("sign-out is not part of the spike")
+    override suspend fun signOut(): Response<Unit> {
+        signOuts++
+        return signOutAnswers.removeFirst()()
+    }
 
     /** The neutral answer of `POST /v1/sign-in/request`. */
     fun answerAccepted() {
         requestAnswers += { Response.success(202, Unit) }
+    }
+
+    /** The answer of `POST /v1/sign-out`: the sign-in session ended. */
+    fun answerSignedOut() {
+        signOutAnswers += { Response.success(204, Unit) }
     }
 
     fun answerToken(token: String = "token-1") {

@@ -3,12 +3,22 @@ package app.fivvi.pro.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.fivvi.api.apis.MeApi
+import app.fivvi.api.apis.SignInApi
+import app.fivvi.pro.auth.Session
 import java.io.IOException
+import java.net.HttpURLConnection.HTTP_UNAUTHORIZED
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerializationException
 
 sealed interface MeState {
@@ -21,11 +31,26 @@ sealed interface MeState {
 
 /**
  * Loads the signed-in account through the generated client (`GET /api/v1/me`, with the token the auth layer adds).
- * When the API no longer accepts the token (401) the auth layer signs the app out, and this screen goes away.
+ * When the API no longer accepts the token (401) the auth layer signs the app out, and this screen goes away. It also
+ * signs the person out on request ([signOut], F001 AC10).
+ *
+ * [signOutApi] is the generated client for one sign-out request that carries the token it is given. [signOutTimeout] is
+ * how long a sign-out waits for the API before it goes on without an answer: the clock is the one of the coroutine
+ * dispatcher, so tests set it with virtual time. Storing and deleting the token is file I/O, so it runs on [io].
  */
-class HomeViewModel(private val api: MeApi) : ViewModel() {
+class HomeViewModel(
+    private val api: MeApi,
+    private val session: Session,
+    private val signOutApi: (token: String) -> SignInApi,
+    private val io: CoroutineDispatcher = Dispatchers.IO,
+    private val signOutTimeout: Duration = SIGN_OUT_TIMEOUT,
+) : ViewModel() {
     private val _state = MutableStateFlow<MeState>(MeState.Loading)
     val state: StateFlow<MeState> = _state.asStateFlow()
+    private val _signingOut = MutableStateFlow(false)
+
+    /** A sign-out is under way: the home shows it and ignores another tap. */
+    val signingOut: StateFlow<Boolean> = _signingOut.asStateFlow()
     private var loading: Job? = null
 
     init {
@@ -33,6 +58,24 @@ class HomeViewModel(private val api: MeApi) : ViewModel() {
     }
 
     fun retry() = load()
+
+    /**
+     * Ends this phone's sign-in session. The token is deleted first, so a phone that is switched off or an app that is
+     * killed meanwhile opens signed out; the request goes out with a copy of it, through the generated client. Then the
+     * sign-in screen is shown, whatever the answer and also without a connection (the server's session ends by itself
+     * after 30 days without use). A connection that hangs is not waited for longer than the timeout; the request goes
+     * on in the background. A 401 that arrives within the wait shows the notice of a refused token.
+     */
+    fun signOut() {
+        if (_signingOut.value) return
+        _signingOut.value = true
+        viewModelScope.launch {
+            val token = withContext(io) { session.detachToken() }
+            val refused = token != null && requestSignOut(token)
+            _signingOut.value = false
+            session.signedOut(afterRejection = refused)
+        }
+    }
 
     private fun load() {
         loading?.cancel()
@@ -50,5 +93,24 @@ class HomeViewModel(private val api: MeApi) : ViewModel() {
         }
         val account = response.body()?.takeIf { response.isSuccessful }
         return account?.let { MeState.Loaded(it.email) } ?: MeState.Failed
+    }
+
+    // Whether the API refused [token]; false when it said anything else, did not answer or the wait ran out. The request
+    // is its own coroutine, so giving up on the wait doesn't cancel it.
+    private suspend fun requestSignOut(token: String): Boolean {
+        val request = viewModelScope.async(io) {
+            try {
+                signOutApi(token).signOut().code() == HTTP_UNAUTHORIZED
+            } catch (_: IOException) {
+                false
+            } catch (_: SerializationException) {
+                false
+            }
+        }
+        return withTimeoutOrNull(signOutTimeout) { request.await() } ?: false
+    }
+
+    private companion object {
+        val SIGN_OUT_TIMEOUT = 10.seconds
     }
 }

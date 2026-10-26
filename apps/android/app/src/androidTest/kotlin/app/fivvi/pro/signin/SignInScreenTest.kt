@@ -1,14 +1,10 @@
 package app.fivvi.pro.signin
 
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import app.fivvi.api.models.SignInRequest
 import app.fivvi.api.models.SignInTokenRequest
@@ -20,7 +16,6 @@ import app.fivvi.pro.auth.InMemorySessionStore
 import app.fivvi.pro.auth.Session
 import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.home.FakeMeApi
-import app.fivvi.pro.home.HomeTags
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -40,6 +35,11 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
     private val signIn = FakeSignInApi()
     private val me = FakeMeApi()
     private val store = InMemorySessionStore()
+    private val steps = SignInSteps(compose, app, signIn, language)
+
+    private fun requestTheCode() = steps.requestTheCode()
+
+    private fun assertSignedInAs(address: String) = steps.assertSignedInAs(address)
 
     private fun launch() = app.launch(
         hello,
@@ -59,23 +59,12 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
         assertEquals(0, hello.requestedLocales.size)
     }
 
-    // The email step through to the code step.
-    // Typing opens the soft keyboard, whose inset animation moves the centred form: a tap at SEND's old position can
-    // miss it. Invoking the button's click action has no position to miss, and still needs the button enabled.
-    private fun requestTheCode() {
-        compose.onNodeWithTag(SignInTags.EMAIL).performTextInput(ADDRESS)
-        compose.onNodeWithTag(SignInTags.SEND).assertIsEnabled().performSemanticsAction(SemanticsActions.OnClick)
-        assertEquals(1, signIn.requests.size)
-        compose.onNodeWithTag(SignInTags.CODE).assertIsDisplayed()
-    }
+    @Test
+    fun F001N_AC13_noNoticeWithoutARejectedToken() {
+        launch()
 
-    // The sign-in finishes off the main thread (the token is stored), so wait for the home.
-    private fun assertSignedInAs(address: String) {
-        compose.waitUntil(TIMEOUT_MILLIS) {
-            compose.onAllNodes(hasTestTag(HomeTags.SIGNED_IN_AS)).fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)
-            .assertTextEquals(app.string(language, R.string.home_signed_in_as, address))
+        compose.onNodeWithTag(SignInTags.TITLE).assertTextEquals(app.string(language, R.string.sign_in_title))
+        compose.onNodeWithTag(SignInTags.NOTICE).assertDoesNotExist()
     }
 
     @Test
@@ -161,8 +150,7 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
     }
 
     companion object {
-        private const val ADDRESS = "owner@example.com"
-        private const val TIMEOUT_MILLIS = 5_000L
+        private const val ADDRESS = SignInSteps.ADDRESS
 
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")

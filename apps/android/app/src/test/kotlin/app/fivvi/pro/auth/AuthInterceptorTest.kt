@@ -60,6 +60,27 @@ class AuthInterceptorTest {
     }
 
     @Test
+    fun F001N_AC9_aLateAnswerForAnOldTokenKeepsTheNewSignIn() {
+        val store = InMemorySessionStore("old")
+        val session = Session(store)
+        // The old token's request is still on its way when the person signs in again; then its 401 arrives.
+        val client = OkHttpClient.Builder()
+            .addInterceptor(AuthInterceptor(session))
+            .addInterceptor { chain ->
+                session.signIn("new")
+                network.status = 401
+                network.intercept(chain)
+            }
+            .build()
+
+        client.newCall(Request.Builder().url(URL).build()).execute().close()
+
+        assertEquals("Bearer old", sent.single().header("Authorization"))
+        assertEquals("new", store.read())
+        assertEquals(true, session.state.value.signedIn)
+    }
+
+    @Test
     fun F001N_AC4_otherAnswersKeepTheToken() {
         val store = InMemorySessionStore("tok-1")
         network.status = 500

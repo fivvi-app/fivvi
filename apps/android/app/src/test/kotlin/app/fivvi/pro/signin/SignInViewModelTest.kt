@@ -256,6 +256,206 @@ class SignInViewModelTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
         assertEquals(emptyList<SignInTokenRequest>(), api.exchanges)
     }
 
+    // Asks for the first email, so the code step is open.
+    private fun SignInViewModel.reachTheCodeStep() {
+        api.answerAccepted()
+        requestCode()
+    }
+
+    @Test
+    fun F001N_AC6_resendRequestsNewEmail() {
+        val viewModel = viewModel()
+        viewModel.reachTheCodeStep()
+        api.answerAccepted()
+
+        viewModel.resendCode()
+
+        assertEquals(List(2) { SignInRequest(EMAIL, language.apiLocale) }, api.requests)
+        assertEquals(SignInState.CodeEntry(EMAIL, resent = true), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC6_resendingUntilTheApiAnswers() {
+        val viewModel = viewModel()
+        viewModel.reachTheCodeStep()
+        viewModel.onCodeChange("123")
+        val answer = CompletableDeferred<Response<Unit>>()
+        api.requestAnswers += { answer.await() }
+
+        viewModel.resendCode()
+        assertEquals(SignInState.Resending(EMAIL, "123"), viewModel.state.value)
+
+        answer.complete(Response.success(202, Unit))
+        assertEquals(SignInState.CodeEntry(EMAIL, resent = true), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC6_resendAfterAWrongCodeLeavesTheFieldReady() {
+        val viewModel = viewModel()
+        viewModel.reachTheCodeStep()
+        api.answerCodeRefused()
+        viewModel.onCodeChange("123456")
+        api.answerAccepted()
+
+        viewModel.resendCode()
+
+        assertEquals(SignInState.CodeEntry(EMAIL, "", null, resent = true), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC6_resendFailureShowsTheMessageAndStaysOnTheCodeStep() {
+        val viewModel = viewModel()
+        viewModel.reachTheCodeStep()
+        viewModel.onCodeChange("123")
+        api.requestAnswers += { Response.error(500, "{}".toResponseBody()) }
+
+        viewModel.resendCode()
+
+        assertEquals(SignInState.CodeEntry(EMAIL, "123", SignInError.Generic), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC6_resendNoticeGoesWithTheNextAttempt() {
+        val viewModel = viewModel()
+        viewModel.reachTheCodeStep()
+        api.answerAccepted()
+        viewModel.resendCode()
+        api.answerCodeRefused()
+
+        viewModel.onCodeChange("123456")
+
+        assertEquals(SignInState.CodeEntry(EMAIL, "", SignInError.InvalidCode), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC6_resendNoticeStaysWhileTheCodeIsTyped() {
+        val viewModel = viewModel()
+        viewModel.reachTheCodeStep()
+        api.answerAccepted()
+        viewModel.resendCode()
+
+        viewModel.onCodeChange("12")
+
+        assertEquals(SignInState.CodeEntry(EMAIL, "12", resent = true), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC6_resendOnlyFromTheCodeStep() {
+        val viewModel = viewModel()
+
+        viewModel.resendCode()
+
+        assertEquals(emptyList<SignInRequest>(), api.requests)
+    }
+
+    @Test
+    fun F001N_AC1_changeAddressKeepsTheAddress() {
+        val viewModel = viewModel()
+        viewModel.reachTheCodeStep()
+        viewModel.onCodeChange("123")
+
+        viewModel.changeEmail()
+
+        assertEquals(SignInState.EmailEntry(EMAIL), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC1_changeAddressThenARequestForTheNewAddress() {
+        val viewModel = viewModel()
+        viewModel.reachTheCodeStep()
+        viewModel.changeEmail()
+        api.answerAccepted()
+
+        viewModel.onEmailChange("other@example.com")
+        viewModel.sendCode()
+
+        assertEquals(listOf(EMAIL, "other@example.com"), api.requests.map { it.email })
+        assertEquals(SignInState.CodeEntry("other@example.com"), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC1_changeAddressOnlyFromTheCodeStep() {
+        val viewModel = viewModel()
+        viewModel.onEmailChange("typed@example.com")
+
+        viewModel.changeEmail()
+
+        assertEquals(SignInState.EmailEntry("typed@example.com"), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC1_lostConnectionOffersRetryOnTheEmailStep() {
+        api.requestAnswers += { throw IOException("offline") }
+        api.answerAccepted()
+        val viewModel = viewModel()
+        viewModel.requestCode()
+        assertEquals(SignInState.EmailEntry(EMAIL, SignInError.NoConnection), viewModel.state.value)
+
+        viewModel.retry()
+
+        assertEquals(2, api.requests.size)
+        assertEquals(SignInState.CodeEntry(EMAIL), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC1_lostConnectionOffersRetryOnTheCodeStep() {
+        val viewModel = viewModel()
+        viewModel.reachTheCodeStep()
+        api.tokenAnswers += { throw IOException("offline") }
+        api.answerToken("token-3")
+        viewModel.onCodeChange("123456")
+        assertEquals(SignInState.CodeEntry(EMAIL, "123456", SignInError.NoConnection), viewModel.state.value)
+
+        viewModel.retry()
+
+        assertEquals(listOf("123456", "123456"), api.exchanges.map { it.code })
+        assertEquals("token-3", store.read())
+    }
+
+    @Test
+    fun F001N_AC1_lostConnectionOnAResendRetriesTheResend() {
+        val viewModel = viewModel()
+        viewModel.reachTheCodeStep()
+        viewModel.onCodeChange("123")
+        api.requestAnswers += { throw IOException("offline") }
+        api.answerAccepted()
+        viewModel.resendCode()
+        assertEquals(SignInState.CodeEntry(EMAIL, "123", SignInError.NoConnection), viewModel.state.value)
+
+        viewModel.retry()
+
+        assertEquals(3, api.requests.size)
+        assertEquals(emptyList<SignInTokenRequest>(), api.exchanges)
+        assertEquals(SignInState.CodeEntry(EMAIL, resent = true), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC1_otherFailuresOfferNoRetry() {
+        api.requestAnswers += { Response.error(500, "{}".toResponseBody()) }
+        val viewModel = viewModel()
+        viewModel.requestCode()
+
+        viewModel.retry()
+
+        assertEquals(1, api.requests.size)
+        assertEquals(SignInState.EmailEntry(EMAIL, SignInError.Generic), viewModel.state.value)
+    }
+
+    @Test
+    fun F001N_AC1_changeAddressForgetsTheLostConnection() {
+        val viewModel = viewModel()
+        viewModel.reachTheCodeStep()
+        viewModel.onCodeChange("123")
+        api.requestAnswers += { throw IOException("offline") }
+        viewModel.resendCode()
+        viewModel.changeEmail()
+
+        viewModel.retry()
+
+        assertEquals(2, api.requests.size)
+        assertEquals(SignInState.EmailEntry(EMAIL), viewModel.state.value)
+    }
+
     companion object {
         private const val EMAIL = "owner@example.com"
 

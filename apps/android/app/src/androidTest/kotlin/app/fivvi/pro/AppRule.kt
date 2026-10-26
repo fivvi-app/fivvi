@@ -31,12 +31,16 @@ class AppRule : ExternalResource() {
         signInApi: SignInApi = FakeSignInApi(),
         meApi: MeApi = FakeMeApi().apply { answerAccount() },
         session: Session = Session(InMemorySessionStore("token-1")),
+        signOutApi: (String) -> SignInApi = { signInApi },
     ) {
         app.dependencies = object : AppDependencies {
             override val helloApi = api
             override val signInApi = signInApi
             override val meApi = meApi
             override val session = session
+
+            override fun signOutApi(token: String) = signOutApi(token)
+
             override val languageSettings = object : LanguageSettings {
                 override val perAppLanguages = perApp.map(Locale::forLanguageTag)
                 override val deviceLanguages = device.map(Locale::forLanguageTag)
@@ -51,8 +55,14 @@ class AppRule : ExternalResource() {
         return app.createConfigurationContext(configuration).getString(id, *formatArgs)
     }
 
-    override fun after() {
+    /** Closes the activity, as when the person leaves the app; [launch] starts it again. */
+    fun close() {
         scenario?.close()
+        scenario = null
+    }
+
+    override fun after() {
+        close()
         app.dependencies = DefaultAppDependencies(app)
     }
 }

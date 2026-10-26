@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
@@ -11,13 +12,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import app.fivvi.designtokens.Spacing
@@ -32,15 +36,22 @@ object HomeTags {
     const val LOADING = "home.loading"
     const val ERROR = "home.error"
     const val RETRY = "home.retry"
+    const val SIGN_OUT = "home.signOut"
+    const val SIGNING_OUT = "home.signingOut"
 }
 
-/** The signed-in home (a placeholder): the hello screen and the address of the signed-in account. */
+/**
+ * The signed-in home (a placeholder): the hello screen, the address of the signed-in account and the sign-out button,
+ * which a progress indicator replaces while [signingOut].
+ */
 @Composable
 fun HomeScreen(
     hello: HelloState,
     me: MeState,
+    signingOut: Boolean,
     onRetryHello: () -> Unit,
     onRetryMe: () -> Unit,
+    onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize().safeDrawingPadding()) {
@@ -79,6 +90,27 @@ fun HomeScreen(
                     }
                 }
             }
+            SignOut(signingOut, onSignOut)
+        }
+    }
+}
+
+@Composable
+private fun SignOut(signingOut: Boolean, onSignOut: () -> Unit) {
+    if (signingOut) {
+        val label = stringResource(R.string.common_loading)
+        CircularProgressIndicator(
+            Modifier.testTag(HomeTags.SIGNING_OUT).semantics {
+                contentDescription = label
+                liveRegion = LiveRegionMode.Polite
+            },
+        )
+    } else {
+        OutlinedButton(
+            onClick = onSignOut,
+            modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.space12).testTag(HomeTags.SIGN_OUT),
+        ) {
+            Text(stringResource(R.string.sign_out_label), textAlign = TextAlign.Center)
         }
     }
 }
