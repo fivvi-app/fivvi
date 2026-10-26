@@ -48,4 +48,4 @@ Some TLS-inspecting proxies (e.g. Zscaler) break Java downloads. The scripts han
 
 ## Releasing
 
-Builds for testers go through Play internal testing; how a run is started and approved, how testers are added and what to do when an upload is rejected is in [`docs/engineering/RELEASE.md`](../../docs/engineering/RELEASE.md).
+Builds for testers go through Play internal testing; how a run is started and approved, how testers are added and what to do when an upload is rejected is in [`docs/engineering/RELEASE.md`](../../docs/engineering/RELEASE.md). The Android job of the release workflow (`scripts/release-android.sh`) builds the signed App Bundle with `./gradlew :app:bundleRelease -Pfivvi.buildNumber=<n>`; the release build is signed only when the environment names the upload keystore (`ANDROID_UPLOAD_KEYSTORE_FILE`, `ANDROID_UPLOAD_KEYSTORE_PASSWORD`, `ANDROID_UPLOAD_KEY_ALIAS`, `ANDROID_UPLOAD_KEY_PASSWORD`), otherwise the bundle is unsigned, and `pnpm test:android` checks the signing with a throwaway key.

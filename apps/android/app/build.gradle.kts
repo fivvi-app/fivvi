@@ -23,6 +23,16 @@ val buildNumber = buildNumberText.toIntOrNull()?.takeIf { it in 1..2_100_000_000
 val debugApiBaseUrl = providers.gradleProperty("fivvi.apiBaseUrl").get()
 val releaseApiBaseUrl = providers.gradleProperty("fivvi.releaseApiBaseUrl").getOrElse("")
 
+// Release signing (E017 #191). The release lane (scripts/release-android.sh) names the upload keystore and its secrets in the
+// environment of the build, never on a command line or in a file of the repo: ANDROID_UPLOAD_KEYSTORE_FILE (a path),
+// ANDROID_UPLOAD_KEYSTORE_PASSWORD, ANDROID_UPLOAD_KEY_ALIAS and ANDROID_UPLOAD_KEY_PASSWORD. Without a keystore the release
+// bundle is left unsigned (debug builds, CI); a keystore without all three others stops the build.
+val uploadKeystoreFile = providers.environmentVariable("ANDROID_UPLOAD_KEYSTORE_FILE").orNull
+fun uploadSecret(name: String): String {
+    val value = providers.environmentVariable(name).orNull?.takeIf { it.isNotEmpty() }
+    return value ?: error("ANDROID_UPLOAD_KEYSTORE_FILE is set, so $name must be set too (scripts/release-android.sh)")
+}
+
 // Sentry DSN per build type (E009, OBSERVABILITY.md §1 "Android"), from gradle.properties or -P. Empty means no crash
 // reporting: the SDK isn't even started.
 val debugSentryDsn = providers.gradleProperty("fivvi.sentryDsn").getOrElse("")
@@ -42,6 +52,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (uploadKeystoreFile != null) {
+            create("upload") {
+                storeFile = file(uploadKeystoreFile)
+                storePassword = uploadSecret("ANDROID_UPLOAD_KEYSTORE_PASSWORD")
+                keyAlias = uploadSecret("ANDROID_UPLOAD_KEY_ALIAS")
+                keyPassword = uploadSecret("ANDROID_UPLOAD_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             buildConfigField("String", "API_BASE_URL", "\"$debugApiBaseUrl\"")
@@ -49,6 +70,7 @@ android {
             buildConfigField("String", "SENTRY_ENVIRONMENT", "\"development\"")
         }
         release {
+            signingConfigs.findByName("upload")?.let { signingConfig = it }
             buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
             buildConfigField("String", "SENTRY_DSN", "\"$releaseSentryDsn\"")
             buildConfigField("String", "SENTRY_ENVIRONMENT", "\"production\"")
