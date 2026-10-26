@@ -10,11 +10,18 @@ import {
 import { seed } from '@fivvi/database/seed';
 import { createMemoryTransport, createSendEmail, type SendEmail } from '@fivvi/email';
 import { type Locale, messages } from '@fivvi/i18n';
-import { createCaptureTransport, createErrorReporter } from '@fivvi/observability';
+import {
+  createCaptureTransport,
+  createErrorReporter,
+  createProductEventCaptureTransport,
+  createProductEvents,
+  type ProductEvents,
+  type ProductEventTransport,
+} from '@fivvi/observability';
 import { freezeSystemTime } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, ne } from 'drizzle-orm';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
 
 const SECRET = 'test-secret-that-is-at-least-thirty-two-characters-long';
@@ -50,6 +57,8 @@ describe('F001N native sign-in through the API', () => {
     overrides: {
       sendEmail?: SendEmail;
       reportError?: (error: unknown) => void;
+      /** The one sender of product events, shared by sign-in and the API as in apps/web. */
+      productEvents?: ProductEvents;
       dependencies?: Partial<ApiDependencies>;
     } = {},
   ) {
@@ -66,9 +75,11 @@ describe('F001N native sign-in through the API', () => {
           sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
         }),
       ...(overrides.reportError && { reportError: overrides.reportError }),
+      ...(overrides.productEvents && { productEvents: overrides.productEvents }),
     });
     const dependencies: ApiDependencies = {
       ...NO_DEPENDENCIES,
+      ...(overrides.productEvents && { productEvents: overrides.productEvents }),
       findSignedInAccount: (headers) => auth.findAccount(headers),
       requestSignIn: (input) => auth.requestSignIn(input),
       exchangeSignInCode: (input) => auth.exchangeSignInCode(input),
@@ -1018,8 +1029,250 @@ describe('F001N native sign-in through the API', () => {
       expect(JSON.stringify(transportOfSentry.events)).not.toContain(EMAIL);
     });
 
-    // `sign_in_requested` and `signed_in` are recorded by #138 (PR #208), which is not on main
-    // yet: this branch has an empty product event catalog. Their assertions for native
-    // sign-ins land with that change.
+    describe('product events', () => {
+      const IP = '203.0.113.7';
+      const USER_AGENT = 'SyntheticApp/9.9 (Fake OS)';
+      /** What a proxy and an app add to every request: none of it may reach an event. */
+      const CLIENT = { 'x-real-ip': IP, 'user-agent': USER_AGENT, 'accept-language': 'nl' };
+      const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+      const POSTHOG = { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' };
+
+      const posthog = createProductEventCaptureTransport();
+      const senderOf = (sender: ProductEventTransport) =>
+        createProductEvents({
+          env: POSTHOG,
+          transport: sender,
+          errorReporter: createErrorReporter({ env: {} }),
+        });
+      const productEvents = senderOf(posthog);
+      /** The API as apps/web wires it: one sender for sign-in and for the API's flush. */
+      const tracked = () => api({ productEvents });
+
+      beforeEach(() => {
+        posthog.events.length = 0;
+      });
+
+      /** Everything that left for PostHog, as one string to search. */
+      const sent = () => JSON.stringify(posthog.events);
+      const names = () => posthog.events.map(({ event }) => event);
+
+      /** The console lines of the requests, which no address, code, token or IP may be in. */
+      function watchConsole() {
+        const lines: string[] = [];
+        for (const level of CONSOLE_LEVELS) {
+          const spy = vi.spyOn(console, level).mockImplementation((...args: unknown[]) => {
+            lines.push(args.map(String).join(' '));
+          });
+          onTestFinished(() => spy.mockRestore());
+        }
+        return lines;
+      }
+
+      /** An app's request for a sign-in email, through `server`, with the proxy's headers. */
+      async function request(server: ReturnType<typeof api>, email: string, locale: Locale = 'en') {
+        const response = await server.app.request(
+          '/v1/sign-in/request',
+          jsonPost({ email, locale }, CLIENT),
+        );
+        await Promise.all(pending.splice(0));
+        return response;
+      }
+
+      const exchangeThrough = (server: ReturnType<typeof api>, email: string, code: string) =>
+        server.app.request('/v1/sign-in/token', jsonPost({ email, code }, CLIENT));
+
+      function expectNoPersonalData(secrets: string[], ...texts: string[]) {
+        for (const text of texts) {
+          for (const secret of [...secrets, IP, USER_AGENT, 'owner', 'example.com']) {
+            expect(secret).not.toBe('');
+            expect(text).not.toContain(secret);
+          }
+        }
+      }
+
+      it('a request records one sign_in_requested with no properties and a random ID, the same for every address', async () => {
+        allowlist = parseSignUpAllowlist('newcomer@example.com');
+        const account = await accountOf(EMAIL);
+        const server = tracked();
+
+        // An account, an allowed address, one that is not allowed, and the account again.
+        for (const email of [EMAIL, 'newcomer@example.com', 'stranger@example.com', EMAIL]) {
+          expect((await request(server, email)).status).toBe(202);
+        }
+
+        expect(posthog.events).toHaveLength(4);
+        for (const event of posthog.events) {
+          expect(event).toMatchObject({ event: 'sign_in_requested', properties: {} });
+          expect(event.distinct_id).toMatch(UUID);
+          expect(event.distinct_id).not.toBe(account?.id);
+        }
+        // A fresh ID for each request, so it is no hash of the address: the same address twice
+        // is two different IDs, and nothing links the events to a person.
+        expect(new Set(posthog.events.map(({ distinct_id }) => distinct_id)).size).toBe(4);
+        expectNoPersonalData([], sent());
+        expect(sent()).not.toContain('newcomer');
+        expect(sent()).not.toContain('stranger');
+      });
+
+      it('a code exchange records signed_in with the method and the pseudonymous user ID', async () => {
+        const lines = watchConsole();
+        const account = await accountOf(EMAIL);
+        const server = tracked();
+        await request(server, EMAIL, 'nl-NL');
+        const code = codeOf();
+        const linkToken = linkTokenOf() ?? '';
+
+        const response = await exchangeThrough(server, EMAIL, code);
+
+        expect(response.status).toBe(200);
+        const { token } = (await response.json()) as { token: string };
+        const [requested, signedIn, ...rest] = posthog.events;
+        expect(rest).toEqual([]);
+        expect(requested).toMatchObject({ event: 'sign_in_requested', properties: {} });
+        expect(signedIn).toMatchObject({
+          event: 'signed_in',
+          distinct_id: account?.id,
+          properties: { method: 'code', new_account: false },
+        });
+        expect(requested?.distinct_id).not.toBe(account?.id);
+        expect(JSON.stringify(requested)).not.toContain(account?.id ?? '?');
+        expectNoPersonalData([code, linkToken, token], sent(), ...lines);
+      });
+
+      it('the first sign-in of an allowed address says it created the account, and nothing else', async () => {
+        allowlist = parseSignUpAllowlist('pilot@gym.test');
+        const server = tracked();
+        await request(server, 'pilot@gym.test');
+
+        expect((await exchangeThrough(server, 'pilot@gym.test', codeOf())).status).toBe(200);
+
+        const account = await accountOf('pilot@gym.test');
+        expect(posthog.events[1]).toMatchObject({
+          event: 'signed_in',
+          distinct_id: account?.id,
+          properties: { method: 'code', new_account: true },
+        });
+        expect(sent()).not.toContain('pilot');
+        expect(sent()).not.toContain('gym.test');
+      });
+
+      it('a wrong, used, replaced, expired or killed code and a token route over its IP limit record no signed_in', async () => {
+        const server = tracked();
+        // Wrong, then right (which uses it up), then used.
+        await request(server, EMAIL);
+        const code = codeOf();
+        expect((await exchangeThrough(server, EMAIL, wrongCodeFor(code))).status).toBe(401);
+        expect((await exchangeThrough(server, 'nobody@example.com', code)).status).toBe(401);
+        expect(names()).toEqual(['sign_in_requested']);
+        expect((await exchangeThrough(server, EMAIL, code)).status).toBe(200);
+        expect(names()).toEqual(['sign_in_requested', 'signed_in']);
+        posthog.events.length = 0;
+        expect((await exchangeThrough(server, EMAIL, code)).status).toBe(401);
+
+        // Replaced by a newer request.
+        transport.clear();
+        await request(server, EMAIL);
+        const replaced = codeOf();
+        await request(server, EMAIL);
+        expect((await exchangeThrough(server, EMAIL, replaced)).status).toBe(401);
+        // Expired.
+        passTime(16 * MINUTE_MS);
+        transport.clear();
+        await request(server, EMAIL);
+        const expiring = codeOf();
+        passTime(31 * MINUTE_MS);
+        expect((await exchangeThrough(server, EMAIL, expiring)).status).toBe(401);
+        // Killed by 5 wrong codes, then the right one.
+        passTime(47 * MINUTE_MS);
+        transport.clear();
+        await request(server, EMAIL);
+        const killed = codeOf();
+        for (let i = 0; i < 5; i++) {
+          expect((await exchangeThrough(server, EMAIL, wrongCodeFor(killed))).status).toBe(401);
+        }
+        expect((await exchangeThrough(server, EMAIL, killed)).status).toBe(401);
+        expect(names().filter((name) => name === 'signed_in')).toEqual([]);
+
+        // Over the token route's IP limit, the right code gets the neutral 401 and no event.
+        passTime(100 * MINUTE_MS);
+        transport.clear();
+        await request(server, EMAIL);
+        const limited = codeOf();
+        for (let i = 0; i < 30; i++)
+          await exchangeThrough(server, `nobody${i}@example.com`, '000000');
+        posthog.events.length = 0;
+        expect((await exchangeThrough(server, EMAIL, limited)).status).toBe(401);
+        expect(posthog.events).toEqual([]);
+        expectNoPersonalData([limited], sent());
+      });
+
+      it('a request over the address limit or the IP limit records no sign_in_requested', async () => {
+        const server = tracked();
+        for (let i = 0; i < 3; i++) await request(server, EMAIL);
+        expect(posthog.events).toHaveLength(3);
+        await request(server, EMAIL);
+        expect(posthog.events).toHaveLength(3);
+
+        posthog.events.length = 0;
+        const other = '203.0.113.20';
+        for (let i = 0; i < 20; i++) {
+          await server.app.request(
+            '/v1/sign-in/request',
+            jsonPost({ email: `nobody${i}@example.com`, locale: 'en' }, { 'x-real-ip': other }),
+          );
+        }
+        expect(posthog.events).toHaveLength(20);
+        await server.app.request(
+          '/v1/sign-in/request',
+          jsonPost({ email: 'nobody20@example.com', locale: 'en' }, { 'x-real-ip': other }),
+        );
+        expect(posthog.events).toHaveLength(20);
+      });
+
+      it("the events leave through the API's flush after each request, not through Better Auth's handler", async () => {
+        const server = tracked();
+        const flush = vi.spyOn(productEvents, 'flush');
+        const handler = vi.spyOn(server.auth, 'handler');
+        onTestFinished(() => {
+          flush.mockRestore();
+          handler.mockRestore();
+        });
+
+        await request(server, EMAIL);
+        expect(flush).toHaveBeenCalledTimes(1);
+        expect(names()).toEqual(['sign_in_requested']);
+
+        expect((await exchangeThrough(server, EMAIL, codeOf())).status).toBe(200);
+        expect(flush).toHaveBeenCalledTimes(2);
+        expect(names()).toEqual(['sign_in_requested', 'signed_in']);
+
+        // Better Auth's HTTP handler is the web's; the native routes never touch it.
+        expect(handler).not.toHaveBeenCalled();
+      });
+
+      it('a PostHog that answers an error or throws changes none of the native answers', async () => {
+        const healthy = tracked();
+        const throwing = senderOf({ send: () => Promise.reject(new Error('PostHog is down')) });
+        const failing = [senderOf({ send: () => Promise.resolve({ statusCode: 500 }) }), throwing];
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        const requestAnswer = await answer(await request(healthy, EMAIL));
+        transport.clear();
+        const wrongAnswer = await answer(await exchangeThrough(healthy, EMAIL, '000000'));
+
+        for (const productEvents of failing) {
+          const server = api({ productEvents });
+          transport.clear();
+          expect(await answer(await request(server, EMAIL))).toEqual(requestAnswer);
+          const code = codeOf();
+          expect(await answer(await exchangeThrough(server, EMAIL, '000000'))).toEqual(wrongAnswer);
+          const response = await exchangeThrough(server, EMAIL, code);
+          expect(response.status).toBe(200);
+          const { token } = (await response.json()) as { token: string };
+          expect((await me(bearer(token))).status).toBe(200);
+        }
+      });
+    });
   });
 });
