@@ -78,10 +78,22 @@ export const branchOfDir = (dir) => {
   return { branch: `${m[1]}/${m[2]}`, issue: issue ? Number(issue[1]) : null };
 };
 
-const CHECK = /scripts\/check\.sh/;
+const issueOfBranch = (branch) => {
+  const m = /^(?:feature|fix|chore|docs)\/(\d+)-/.exec(branch);
+  return m ? Number(m[1]) : null;
+};
+
+// A command runs a script when the script is the first word of a command of the line (after `;`, `&&`, `|`, `do`, ...),
+// maybe behind `bash`, `time` or variable assignments; `cat scripts/check.sh` or `git log --until=x` only name one.
+const START = String.raw`(?:^|[;&|(\n]|\bdo\b|\bthen\b)\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*(?:(?:time|rtk)\s+)?`;
+const CHECK = new RegExp(
+  String.raw`${START}(?:(?:bash|sh|zsh)\s+)?[^\s;&|()]*scripts/check\.sh(?![\w.-])`,
+);
 const NATIVE =
   /pnpm test:(ios|android)|scripts\/(test-ios|android|maestro)\.sh|\bmaestro\b|xcodebuild|gradlew/;
-const WAIT = /gh run watch|gh pr checks|pr\.sh (wait|ship)|\b(until|sleep)\s/;
+const WAIT = new RegExp(
+  String.raw`gh run watch|gh pr checks|pr\.sh (wait|ship)|${START}(until|sleep)\s`,
+);
 export const classifyCommand = (command) => {
   if (typeof command !== 'string') return 'other';
   if (CHECK.test(command)) return 'check';
@@ -90,16 +102,19 @@ export const classifyCommand = (command) => {
   return 'other';
 };
 
+// A line states a finding when it opens with the label (behind a list marker, bold, backticks or brackets):
+// `- should-fix: a.ts:3 ...`, `**must-fix** ...`. "No must-fix or should-fix", "- must-fix: none" state none.
+const FINDING =
+  /^\s*(?:(?:[-*+]|\d+[.)])\s+)?[*_`[(]*\s*(?:must-fix|should-fix)\b(?!\W*(?:none|nothing|0)\b)/i;
+
 // The verdict a reviewer ends with, `not clean on <sha>` or `clean on <sha>`, and how many of the other lines of the
-// text name a must-fix or should-fix finding.
+// text state a must-fix or should-fix finding.
 export const parseVerdict = (text) => {
   const matches = [...text.matchAll(/\b(not clean|clean) on ([0-9a-f]{7,40})\b/gi)];
   const last = matches.at(-1);
   const lines = text.split('\n');
   const verdictLine = last ? lines.findLastIndex((line) => line.includes(last[0])) : -1;
-  const findings = lines.filter(
-    (line, i) => i !== verdictLine && /must-fix|should-fix/.test(line),
-  ).length;
+  const findings = lines.filter((line, i) => i !== verdictLine && FINDING.test(line)).length;
   if (!last) return { verdict: null, sha: null, findings };
   return {
     verdict: last[1].toLowerCase() === 'clean' ? 'clean' : 'not-clean',
@@ -248,7 +263,7 @@ const projectFolders = (projects, rootPath) => {
   const prefix = rootPath.replace(/[/.]/g, '-');
   if (!existsSync(projects)) return [];
   return readdirSync(projects)
-    .filter((name) => name === prefix || name.startsWith(`${prefix}-`))
+    .filter((name) => name === prefix || name.startsWith(`${prefix}--worktrees-`))
     .map((name) => join(projects, name));
 };
 
@@ -294,7 +309,10 @@ const readSessions = (folders, since, until) => {
 
 // ---------- tickets
 
-const groupAgents = (sessions) => {
+// An agent without a worktree is put on a ticket by the first `#n` of its description. A number can be an issue or a PR
+// (the PR of issue 138 may be #208), so GitHub says which: a PR is the ticket of its head branch, an issue the ticket
+// of the worktree branch with that issue, or its own. Without GitHub the agent is left out rather than guessed.
+const groupAgents = (sessions, github) => {
   const known = new Map();
   for (const { agents } of sessions) {
     for (const agent of agents) {
@@ -313,9 +331,17 @@ const groupAgents = (sessions) => {
       let issue = agent.issue ?? null;
       if (!agent.worktree) {
         const n = /#(\d+)/.exec(agent.description);
-        if (n) {
-          issue = Number(n[1]);
-          branch = known.get(issue) ?? null;
+        const context = n ? github() : null;
+        if (n && context) {
+          const number = Number(n[1]);
+          const pr = context.all.find((p) => p.number === number);
+          if (pr) {
+            branch = pr.headRefName;
+            issue = issueOfBranch(branch);
+          } else {
+            issue = number;
+            branch = known.get(issue) ?? null;
+          }
         }
       }
       if (!branch && issue === null) {
@@ -474,6 +500,8 @@ const enrich = (ticket, tool) => {
       'list',
       '--branch',
       ticket.branch,
+      '--limit',
+      '1000',
       '--json',
       'conclusion,event',
     ]);
@@ -530,8 +558,8 @@ export const buildSnapshot = ({ since, until, label, projects, rootPath }) => {
   const from = since ? Date.parse(since) : null;
   const to = until ? Date.parse(until) : null;
   const sessions = readSessions(projectFolders(projects, rootPath), from, to);
-  const grouped = groupAgents(sessions);
   const tool = makeGh();
+  const grouped = groupAgents(sessions, tool.init);
   const tickets = [...grouped.entries()]
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([, t]) => {

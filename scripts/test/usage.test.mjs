@@ -106,6 +106,49 @@ describe('pure helpers', () => {
     assert.equal(classifyCommand(undefined), 'other');
   });
 
+  it('classifies only the shell keywords until and sleep as waiting, not a flag of that name', () => {
+    for (const command of [
+      'git log --until=2026-10-24',
+      'gh run list --until 5',
+      'node scripts/usage.mjs snapshot --since 1 --until 2',
+      'cat sleep.txt',
+    ]) {
+      assert.equal(classifyCommand(command), 'other', command);
+    }
+    for (const command of [
+      'cd w && sleep 5',
+      'sleep 5',
+      'cd w; until x; do :; done',
+      'x | sleep 1',
+    ]) {
+      assert.equal(classifyCommand(command), 'wait', command);
+    }
+  });
+
+  it('classifies a command as a check only when it runs scripts/check.sh, not when it reads it', () => {
+    for (const command of [
+      'cd w && scripts/check.sh',
+      'cd w && scripts/check.sh --fast 2>&1 | tail -20',
+      './scripts/check.sh',
+      '/r/.worktrees/x/scripts/check.sh',
+      'cd w && bash scripts/check.sh',
+      'CI=1 scripts/check.sh',
+      'cd w && time scripts/check.sh --fast',
+    ]) {
+      assert.equal(classifyCommand(command), 'check', command);
+    }
+    for (const command of [
+      'cat scripts/check.sh',
+      'cd w && grep -n fast scripts/check.sh',
+      'sed -n 1,20p scripts/check.sh',
+      'git diff main -- scripts/check.sh',
+      'git commit -m "docs: scripts/check.sh prints a summary"',
+      'bash -n scripts/check.sh',
+    ]) {
+      assert.equal(classifyCommand(command), 'other', command);
+    }
+  });
+
   it('parses the verdict of a reviewer and counts its findings', () => {
     const text = [
       'Head abc1234.',
@@ -121,6 +164,24 @@ describe('pure helpers', () => {
       findings: 0,
     });
     assert.deepEqual(parseVerdict('nothing to see'), { verdict: null, sha: null, findings: 0 });
+  });
+
+  it('counts a line only when it states a finding, not when it says there are none', () => {
+    const text = [
+      '- **Standards axis:** no must-fix or should-fix.',
+      'No must-fix or should-fix findings.',
+      'Findings (none must-fix or should-fix):',
+      '- no must-fix or should-fix findings',
+      '- must-fix: none',
+      '- **must-fix** `a.ts:3`: one',
+      '- should-fix, b.ts:9: two',
+      '1. `should-fix` c.ts:1: three',
+      '  - [should-fix] d.ts:2: four',
+      'should-fix: e.ts:5: five',
+      '**should-fix (standards):** f.ts:6: six',
+      'Verdict: not clean on abc1234 (one must-fix, five should-fix)',
+    ].join('\n');
+    assert.deepEqual(parseVerdict(text), { verdict: 'not-clean', sha: 'abc1234', findings: 6 });
   });
 
   it('sizes a PR from additions and deletions without the lockfile and generated code', () => {
@@ -302,6 +363,10 @@ describe('usage.mjs', () => {
       const other = join(dir, `${PROJECT_DIR}x`);
       mkdirSync(other);
       writeFileSync(join(other, 'o.jsonl'), jsonl([call(0, { id: 'c' })]));
+      // a sibling repository whose name starts like this one (fivvi-site next to fivvi)
+      const sibling = join(dir, `${PROJECT_DIR}-site`);
+      mkdirSync(sibling);
+      writeFileSync(join(sibling, 'sib.jsonl'), jsonl([call(0, { id: 'd' })]));
       const ids = snapshot(dir)
         .data.sessions.map((s) => s.id)
         .sort();
@@ -371,44 +436,83 @@ describe('usage.mjs', () => {
       });
     });
 
-    it('falls back to the first #n of the description, and leaves an agent with neither out of the tickets', () => {
-      const lonely = (name, description) => ({
-        name,
-        meta: meta('mechanic', description),
-        records: [call(0, { id: `${name}1`, i: 1, o: 1 })],
-      });
+    // gh as far as the `#n` fallback needs it: the owner and the PRs of the repo.
+    const prs = (list) => [
+      { match: 'repo view', out: { owner: { login: 'owner' } } },
+      {
+        match: 'pr list --state all --limit',
+        out: list.map(([number, headRefName]) => ({
+          number,
+          headRefName,
+          title: '',
+          body: '',
+          createdAt: '2026-10-24T00:00:00Z',
+        })),
+      },
+      { match: '.', out: '', status: 1 },
+    ];
+    const lonely = (name, description) => ({
+      name,
+      meta: meta('mechanic', description),
+      records: [call(0, { id: `${name}1`, i: 1, o: 1 })],
+    });
+
+    it('puts an agent that names a PR as #n on the ticket of the head branch of that PR', () => {
+      // 208 is the PR of issue 138: counting it as an issue would make a second ticket of the same work
       const { data } = snapshot(
         projects(
           mainWith([
-            lonely('b1', 'Wait for the checks of #42 and #43'),
+            lonely('b1', 'Wait for the checks of #208 and #43'),
             lonely('b2', 'Tidy up'),
+            builder('a1', 'feature-138-x'),
+          ]),
+        ),
+        [],
+        prs([[208, 'feature/138-x']]),
+      );
+      assert.deepEqual(
+        data.tickets.map((t) => [t.branch, t.issue, t.agents]),
+        [['feature/138-x', 138, { builder: 1, mechanic: 1 }]],
+      );
+      assert.equal(data.agents.byRole.mechanic.count, 2);
+    });
+
+    it('takes a #n that is no PR for an issue: the branch of a worktree with that issue, else a ticket of its own', () => {
+      const { data } = snapshot(
+        projects(
+          mainWith([
+            lonely('b1', 'Fix #42'),
+            lonely('b2', 'Fix #99'),
+            builder('a1', 'feature-42-x'),
+          ]),
+        ),
+        [],
+        prs([[208, 'feature/138-x']]),
+      );
+      assert.deepEqual(
+        data.tickets.map((t) => [t.branch, t.issue, t.agents]),
+        [
+          [null, 99, { mechanic: 1 }],
+          ['feature/42-x', 42, { builder: 1, mechanic: 1 }],
+        ],
+      );
+    });
+
+    it('drops the #n fallback when gh is missing: a number could be a PR, and guessing double counts a ticket', () => {
+      const { data } = snapshot(
+        projects(
+          mainWith([
+            lonely('b1', 'Fix #42'),
+            lonely('b2', 'Fix #99'),
             builder('a1', 'feature-42-x'),
           ]),
         ),
       );
       assert.deepEqual(
         data.tickets.map((t) => [t.branch, t.agents]),
-        [['feature/42-x', { builder: 1, mechanic: 1 }]],
+        [['feature/42-x', { builder: 1 }]],
       );
       assert.equal(data.agents.byRole.mechanic.count, 2);
-    });
-
-    it('keeps a ticket known only by #n when no worktree has that issue', () => {
-      const { data } = snapshot(
-        projects(
-          mainWith([
-            {
-              name: 'b1',
-              meta: meta('mechanic', 'Fix #99'),
-              records: [call(0, { id: 'x', i: 1 })],
-            },
-          ]),
-        ),
-      );
-      assert.deepEqual(
-        data.tickets.map((t) => [t.branch, t.issue]),
-        [[null, 99]],
-      );
     });
 
     it('counts a general-purpose agent whose description says axis as a review-axis', () => {
@@ -740,6 +844,13 @@ describe('usage.mjs', () => {
       assert.equal(ticket.reverted, true);
     });
 
+    it('asks for the runs of a branch with a limit above the default of gh, so none are cut off', () => {
+      snapshot(projects(agentOf()), [], prRules());
+      const list = gh.calls().find((c) => c.args[0] === 'run' && c.args[1] === 'list');
+      const limit = list.args[list.args.indexOf('--limit') + 1];
+      assert.ok(Number(limit) >= 200, `--limit ${limit}`);
+    });
+
     it('writes null for the GitHub fields and warns when gh fails, and still writes the snapshot', () => {
       const done = snapshot(projects(agentOf()));
       const [ticket] = done.data.tickets;
@@ -951,7 +1062,7 @@ describe('usage.mjs', () => {
 
   it('has the snapshot of the baseline run in docs/agents/usage', () => {
     const file = join(import.meta.dirname, '../../docs/agents/usage/2026-10-24-factory.json');
-    if (!existsSync(file)) return;
+    assert.ok(existsSync(file), `${file} is committed`);
     const data = JSON.parse(readFileSync(file, 'utf8'));
     assert.equal(data.version, 1);
     assert.ok(Array.isArray(data.tickets));
