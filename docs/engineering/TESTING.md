@@ -89,7 +89,7 @@ These are the bugs that hurt most (`ROADMAP.md §13`: R2, R3, R4). They get dedi
 - **Every test creates its own workspace.** Tests never depend on each other's data or on order, and they can run in parallel. This also exercises tenant scoping by default.
 - **Seed data is for local development and the e2e baseline only.** Tests don't modify shared seed data.
 - **No real personal data**, ever. Use obviously fake names and `@example.com` addresses.
-- **Secrets in tests are obviously fake**: low-entropy and self-describing (`fake-link-token-for-tests`, `fake-api-key-for-tests-only`), never a realistic random-looking token or key and never one assembled from parts. A realistic fixture trips the secret scanner (GitGuardian) and hides a real key pasted into a test. `scripts/check.sh` runs `scripts/secrets-in-tests.mjs`, which fails on one; its header says what it looks for, and a fixture that has to stay realistic goes in `scripts/secrets-allowlist.txt` with a reason.
+- **Secrets in tests are obviously fake**: low-entropy and self-describing (`fake-link-token-for-tests`, `fake-api-key-for-tests-only`), never a realistic random-looking token or key and never one assembled from parts. Only a test whose fixture has to match a scanner's pattern (a scanner's own tests, or a key header the script under test checks) may split the prefix that pattern matches; the rest stays obviously fake. A realistic fixture trips the secret scanner (GitGuardian) and hides a real key pasted into a test. `scripts/check.sh` runs `scripts/secrets-in-tests.mjs`, which fails on one; its header says what it looks for, and a fixture that has to stay realistic goes in `scripts/secrets-allowlist.txt` with a reason.
 
 ### 5.3 Database
 
@@ -144,7 +144,7 @@ The reviewer checks this table against the code.
 | **PR touching the Android app or its inputs (Linux, required when triggered)** | `Android`: `pnpm test:android`, then `pnpm test:maestro` (§7.1). Path-filtered; the paths are in `WORKFLOW.md §7` |
 | **PR touching the iOS app or its inputs (macOS, required when triggered)** | `iOS`: `pnpm test:ios` (§7.1). Path-filtered to save macOS minutes (ROADMAP §12); the paths are in `WORKFLOW.md §7` |
 | **PR touching mobile apps, contract or strings** | Maestro flows on the platforms affected. If CI minutes run short, Maestro runs locally and nightly instead; the PR description must say it ran |
-| **Before a TestFlight / Play internal build** | Full suite on both platforms, both locales |
+| **Before a TestFlight / Play internal build** | Full suite on both platforms, both locales; the release run does it first and uploads nothing when a suite fails ([`RELEASE.md`](RELEASE.md)) |
 
 **Budget:** keep the required Linux checks under ~10 minutes. If they get slower, speed them up (parallelise, move logic tests down a layer), don't drop them.
 
