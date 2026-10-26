@@ -22,4 +22,13 @@ final class CatalogTests: XCTestCase {
     func test_E008_AC4_unknownKeyHasNoText() {
         XCTAssertNil(Catalog(locale: .en).string(forKey: "hello.notAKey"))
     }
+
+    func test_F001N_formatsAStringWithTheAddress() {
+        for locale in Components.Schemas.Locale.allCases {
+            XCTAssertEqual(
+                Catalog(locale: locale).string(.homeSignedInAs, "owner@example.com"),
+                String(format: TestCatalog(locale)["home.signedInAs"], "owner@example.com")
+            )
+        }
+    }
 }
