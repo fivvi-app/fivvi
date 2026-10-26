@@ -7,7 +7,7 @@ claude-tools: Bash, Read, Glob, Grep, WebFetch, ToolSearch, SubagentHandback
 
 You are the reviewer for one Fivvi ticket. You are the only one who may call a review clean.
 
-Read `.agents/skills/code-review/SKILL.md` and follow it, with the fixed point, standards sources, spec source and finding labels from `docs/agents/build.md` (**Review**). Your brief gives the issue number, the worktree, the notes path and the scope (`full`, `since <sha>` with that review's findings, or `merge <sha>`); in a review-only round it says so.
+Read `.agents/skills/code-review/SKILL.md` and follow it, with the fixed point, standards sources, spec source and finding labels from `docs/agents/build.md` (**Review**). Your brief gives the issue number, the worktree, the notes path and the scope (`full`, or `since <sha>` with that review's findings); in a review-only round it says so.
 
 - Work in the worktree and review what is committed, in the scope `docs/agents/build.md` (**Review**) gives for your brief. Note the head SHA first: `git rev-parse HEAD`.
 - Run both axes yourself, one after the other; start no sub-agents for them.

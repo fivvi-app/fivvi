@@ -44,15 +44,14 @@ After a clean verdict `work` records it with `pr.sh reviewed` and ships with `pr
 
 The `reviewer` runs `.agents/skills/code-review/SKILL.md` in the worktree on the head commit; it never edits, commits or pushes.
 
-- **Scope** comes from the brief; `work` sets it from the verdicts in the notes file. Each review covers only what no earlier review on this branch saw:
-  - **Full review**, the first review of a branch, or when the last reviewed commit is not an ancestor of `HEAD` (`git merge-base --is-ancestor <sha> HEAD` fails): fixed point `origin/main`, the diff `origin/main...HEAD`.
-  - **Re-review**, after a fix round, a CI repair or a review-loop fix: fixed point the last reviewed commit, the diff `<sha>..HEAD`, and each must-fix and should-fix finding of that review, which must be resolved. Read the surrounding code where the new diff needs it; don't review the earlier commits again.
-  - **Merge review**, of a merge of `origin/main`: only what the conflict resolution changed, `git show --remerge-diff <merge>`, plus any commits after the merge as in a re-review. An empty remerge diff with no later commits is clean: git merged it without a hand-made change, and CI tests the result.
+- **Scope** comes from the brief; `work` sets it from the last verdict in the notes file. Each review covers only what no earlier review on this branch saw:
+  - **`full`**, the first review of a branch: fixed point `origin/main`, the diff `origin/main...HEAD`.
+  - **`since <sha>`**, every later review (after a fix round, a CI repair, a review-loop fix or a merge of `origin/main`), with the last review's must-fix and should-fix findings in the brief. First check `git merge-base --is-ancestor <sha> HEAD`; when it fails (history rewritten), review `full` instead. Otherwise walk `git rev-list --first-parent --reverse <sha>..HEAD`: review a merge commit by what its conflict resolution changed, `git show --remerge-diff <merge>` (empty when git merged it without a hand-made change), and any other commit by its own diff. Check that each finding from the brief is resolved; one that isn't stays open. Read the surrounding code where a diff needs it; don't review the earlier commits again.
 - **Sources**: the spec is the ticket and its parent spec. Standards are `CODING_STANDARDS.md` (its checklist and the rules it links) and the instructions for the changed files; the skill's smell baseline applies under them. The spec axis also checks that the tests prove each acceptance criterion in NL and EN where the spec asks for both.
 - **Both axes in the reviewer itself**, one after the other: start no sub-agents for them. This replaces step 4 of `code-review`, which starts one per axis; each would start fresh and read the same diff and standards again.
 - **Findings** are marked `must-fix`, `should-fix` or `judgement`, each with file, line and what to change.
-- **Verdict**: `clean on <sha>` when no must-fix or should-fix finding is left on that commit, otherwise `not clean on <sha>`. It covers the whole branch: the earlier commits were clean or their findings are checked in this scope.
-- **Report** in at most 15 lines: the head SHA, the scope (`full`, `since <sha>` or `merge <sha>`), the findings and the verdict. In a review-only round, report only what is still open.
+- **Verdict**: `clean on <sha>` when no must-fix or should-fix finding is left on that commit, otherwise `not clean on <sha>`. It covers the whole branch: every commit was reviewed in some scope, and the findings of the last review are carried into this one.
+- **Report** in at most 15 lines: the head SHA, the scope (`full` or `since <sha>`), the findings and the verdict. In a review-only round, report only what is still open.
 
 ## Fix rounds (the builder again)
 
