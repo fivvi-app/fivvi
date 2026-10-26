@@ -1198,7 +1198,8 @@ case "$*" in
     [ "$FAKE_EXPORT" != hang ] || exec perl -e 'open my $f, ">", shift; close $f; sleep 30' "${state}/running"
     [ "$FAKE_EXPORT" != fail ] || exit 70 ;;
   *-showBuildSettings*)
-    # FAKE_VERSION: the version the project resolves instead of the one of apps/Version.xcconfig. A build setting passed
+    # FAKE_BUNDLE_ID: the bundle ID the project resolves instead of app.fivvi.pro. FAKE_VERSION: the version the
+    # project resolves instead of the one of apps/Version.xcconfig. A build setting passed
     # on the command line (CURRENT_PROJECT_VERSION=42) is echoed first, as Xcode does ("Build settings from command
     # line:"), and overrides the file's in the target's block, unless FAKE_IGNORE_OVERRIDE is set (the target then
     # resolves the default and only the echo says 42).
@@ -1207,7 +1208,7 @@ case "$*" in
     case "$*" in *\\ CURRENT_PROJECT_VERSION=*)
       echoed="Build settings from command line:\\n    CURRENT_PROJECT_VERSION = $(sed -E 's/.* CURRENT_PROJECT_VERSION=([^ ]*).*/\\1/' <<<"$*")\\n\\n"
       [ -n "$FAKE_IGNORE_OVERRIDE" ] || number="$(sed -E 's/.* CURRENT_PROJECT_VERSION=([^ ]*).*/\\1/' <<<"$*")" ;; esac
-    printf '%bBuild settings for action build and target FivviPro:\\n    FIVVI_API_BASE_URL = %s\\n    INFOPLIST_FILE = Info.plist\\n    FIVVI_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    FIVVI_SENTRY_ENVIRONMENT = production\\n    MARKETING_VERSION = %s\\n    CURRENT_PROJECT_VERSION = %s\\n    PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.pro\\n' "$echoed" "\${FAKE_BASE_URL-https://example.test/api}" "\${FAKE_VERSION:-$(sed -nE 's/^MARKETING_VERSION = //p' ${repo}/apps/Version.xcconfig)}" "$number" ;;
+    printf '%bBuild settings for action build and target FivviPro:\\n    FIVVI_API_BASE_URL = %s\\n    INFOPLIST_FILE = Info.plist\\n    FIVVI_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    FIVVI_SENTRY_ENVIRONMENT = production\\n    MARKETING_VERSION = %s\\n    CURRENT_PROJECT_VERSION = %s\\n    PRODUCT_BUNDLE_IDENTIFIER = %s\\n' "$echoed" "\${FAKE_BASE_URL-https://example.test/api}" "\${FAKE_VERSION:-$(sed -nE 's/^MARKETING_VERSION = //p' ${repo}/apps/Version.xcconfig)}" "$number" "\${FAKE_BUNDLE_ID:-app.fivvi.pro}" ;;
   build-for-testing\\ *) [ "$FAKE_BUILD" != fail ] || { echo 'error: build failed (fake)'; exit 1; }
     mkdir -p .build/DerivedData/Build/Products
     # FAKE_XCTESTRUN: none (the build leaves no .xctestrun) or two (it leaves two).
@@ -2042,6 +2043,18 @@ esac`,
     const run = await fake.run('scripts/test-ios.sh');
 
     assert.equal(run.status, 0, run.output);
+  });
+
+  it('E017 AC8: pnpm test:ios fails when the app resolves a bundle ID other than app.fivvi.pro', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/test-ios.sh', [], { FAKE_BUNDLE_ID: 'app.other' });
+
+    assert.equal(run.status, 1, run.output);
+    assert.match(
+      run.output,
+      /E017 AC8: bundle ID 'app\.other' is not the final ID 'app\.fivvi\.pro'/,
+    );
   });
 
   it('E017 AC4: both platforms read the same version: pnpm test:ios fails when the app resolves another one', async () => {

@@ -51,12 +51,13 @@ describe('E017 AC8: the project uses the final ID its README records', () => {
   });
 
   it('iOS: no xcconfig overrides the bundle ID of the project', () => {
-    const configs = readdirSync(join(ROOT, 'apps/ios/Config')).filter((file) =>
-      file.endsWith('.xcconfig'),
-    );
+    const configs = readdirSync(join(ROOT, 'apps/ios/Config'))
+      .filter((file) => file.endsWith('.xcconfig'))
+      .map((file) => `apps/ios/Config/${file}`);
     assert.ok(configs.length > 0);
-    for (const file of configs) {
-      assert.doesNotMatch(read(`apps/ios/Config/${file}`), /PRODUCT_BUNDLE_IDENTIFIER/, file);
+    // Debug.xcconfig and Release.xcconfig #include apps/Version.xcconfig, so it is part of what they resolve.
+    for (const file of [...configs, 'apps/Version.xcconfig']) {
+      assert.doesNotMatch(read(file), /PRODUCT_BUNDLE_IDENTIFIER/, file);
     }
   });
 

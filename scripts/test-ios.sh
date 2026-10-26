@@ -114,20 +114,24 @@ shared_setting() {
   sed -nE "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*([^[:space:]]+)[[:space:]]*\$/\1/p" "$ROOT/apps/Version.xcconfig"
 }
 
-# E017 AC4: a configuration resolves the version of apps/Version.xcconfig (the one Android reads), the default
-# build number 1. (The bundle ID the README records as final is checked by scripts/test/app-ids.test.mjs, so a README
-# edit is not a native change.)
+# E017 AC4 and AC8: a configuration resolves the version of apps/Version.xcconfig (the one Android reads), the default
+# build number 1 and the final bundle ID, app.fivvi.pro, a literal here as in Android's BuildInfoTest. (That the README
+# records the same ID is checked by scripts/test/app-ids.test.mjs, so a README edit is not a native change.)
+FINAL_BUNDLE_ID=app.fivvi.pro
 version_and_identifier() {
-  local settings=$1 shared default version number rc=0
+  local settings=$1 shared default version number id rc=0
   shared="$(shared_setting MARKETING_VERSION)"
   default="$(shared_setting CURRENT_PROJECT_VERSION)"
   version="$(setting_of MARKETING_VERSION "$settings")"
   number="$(setting_of CURRENT_PROJECT_VERSION "$settings")"
+  id="$(setting_of PRODUCT_BUNDLE_IDENTIFIER "$settings")"
   [[ "$shared" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "apps/Version.xcconfig: MARKETING_VERSION is not <major>.<minor>.<patch>: '$shared'"; rc=1; }
   [ "$version" = "$shared" ] \
     || { echo "E017 AC4: the app's version is '$version', not '$shared' of apps/Version.xcconfig, which Android reads"; rc=1; }
   [ "$default" = 1 ] && [ "$number" = "$default" ] \
     || { echo "E017 AC4: the default build number is '$number' ('$default' in apps/Version.xcconfig), not 1"; rc=1; }
+  [ "$id" = "$FINAL_BUNDLE_ID" ] \
+    || { echo "E017 AC8: bundle ID '$id' is not the final ID '$FINAL_BUNDLE_ID'"; rc=1; }
   return "$rc"
 }
 
