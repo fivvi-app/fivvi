@@ -41,7 +41,8 @@ final class SignInRecoveryUITests: SignInUITestCase {
 
         XCTAssertTrue(screen.error.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.error.label, catalog["signIn.errors.invalidOrExpiredCode"])
-        XCTAssertTrue(screen.error.isHittable || screen.error.exists, "VoiceOver can reach the message")
+        XCTAssertFalse(screen.error.frame.isEmpty, "VoiceOver can reach the message")
+        XCTAssertTrue(screen.app.windows.firstMatch.frame.contains(screen.error.frame), "the message is on screen")
         XCTAssertEqual(screen.code.label, catalog["signIn.codeLabel"], "the field keeps its label")
         XCTAssertFalse(screen.loading.exists)
     }

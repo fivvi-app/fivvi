@@ -4,7 +4,7 @@ import XCTest
 @MainActor
 final class SignInAccessibilityUITests: SignInUITestCase {
     /// At the largest text size every text wraps: no clipped text, nothing wider than the window, on the email step,
-    /// the code step with its messages, and the signed-in home.
+    /// the lost-connection message with its retry button, the code step with its messages, and the signed-in home.
     func test_F001N_AC15_largestTextSizeWraps() throws {
         let server = try StubServer(.greeting(key: "hello.title"))
         let screen = SignInScreen.launch(
@@ -13,7 +13,15 @@ final class SignInAccessibilityUITests: SignInUITestCase {
         XCTAssertTrue(screen.notice.waitUntilExists(timeout: timeout))
         try assertReadable(screen, [screen.title, screen.notice, screen.email, screen.sendCode])
 
-        screen.requestCode(for: server.signIn.email)
+        server.setOffline(true)
+        screen.type(server.signIn.email, into: screen.email)
+        screen.sendCode.tap()
+        XCTAssertTrue(screen.error.waitUntilExists(timeout: timeout))
+        try assertReadable(screen, [screen.error, screen.retry])
+        server.setOffline(false)
+        screen.tap(screen.retry)
+        XCTAssertTrue(screen.code.waitUntilExists(timeout: timeout))
+
         screen.type("000000", into: screen.code)
         XCTAssertTrue(screen.error.waitUntilExists(timeout: timeout))
         screen.tap(screen.resend)
@@ -39,7 +47,14 @@ final class SignInAccessibilityUITests: SignInUITestCase {
         try assertTouchTarget(screen.email, on: screen)
         try assertTouchTarget(screen.sendCode, on: screen)
 
-        screen.requestCode(for: server.signIn.email)
+        server.setOffline(true)
+        screen.type(server.signIn.email, into: screen.email)
+        screen.sendCode.tap()
+        XCTAssertTrue(screen.error.waitUntilExists(timeout: timeout))
+        try assertTouchTarget(screen.retry, on: screen)
+        server.setOffline(false)
+        screen.tap(screen.retry)
+        XCTAssertTrue(screen.code.waitUntilExists(timeout: timeout))
         screen.type("000", into: screen.code)
         try assertTouchTarget(screen.code, on: screen)
         for button in [screen.submit, screen.resend, screen.changeEmail] {

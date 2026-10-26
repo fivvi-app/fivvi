@@ -46,10 +46,10 @@ struct SignInScreen {
 
     /// Gets from TM-01 to the code step: types the address and asks for the code.
     func requestCode(for address: String, timeout: TimeInterval = 10) {
-        _ = email.waitUntilExists(timeout: timeout)
+        XCTAssertTrue(email.waitUntilExists(timeout: timeout), "TM-01 shows the email field")
         type(address, into: email)
         sendCode.tap()
-        _ = code.waitUntilExists(timeout: timeout)
+        XCTAssertTrue(code.waitUntilExists(timeout: timeout), "the code step opens")
     }
 
     /// Taps `element` once it has stopped moving (the keyboard and the messages shift the layout for a moment), after
@@ -57,11 +57,12 @@ struct SignInScreen {
     /// buttons below it.
     func tap(_ element: XCUIElement, scrollingUpTo attempts: Int = 6) {
         var previous: CGRect?
-        Polling.until(timeout: 3, interval: 0.2) {
+        let settled = Polling.until(timeout: 3, interval: 0.2) {
             let frame = element.frame
             defer { previous = frame }
             return frame == previous
         }
+        XCTAssertTrue(settled, "\(element.identifier) keeps moving")
         var left = attempts
         while !element.isHittable, left > 0 {
             // Drag above the keyboard: a swipe on the whole window may start on a key.

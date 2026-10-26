@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 import FivviAPI
 
@@ -19,18 +20,22 @@ final class AccountViewModel {
     private(set) var isSigningOut = false
     private let api: any APIProtocol
     private let store: any SessionStore
+    private let clock: any Clock<Duration>
     private let signOutTimeout: Duration
-    private let onSignedOut: () -> Void
+    private let onSignedOut: (_ afterRejection: Bool) -> Void
 
-    /// `signOutTimeout` is how long a sign-out waits for the API before it goes on without an answer.
+    /// `signOutTimeout` is how long a sign-out waits for the API, on `clock`, before it goes on without an answer.
+    /// `onSignedOut` says whether the API refused the token of the sign-out call.
     init(
         api: any APIProtocol,
         store: any SessionStore,
+        clock: any Clock<Duration> = ContinuousClock(),
         signOutTimeout: Duration = .seconds(10),
-        onSignedOut: @escaping () -> Void
+        onSignedOut: @escaping (_ afterRejection: Bool) -> Void
     ) {
         self.api = api
         self.store = store
+        self.clock = clock
         self.signOutTimeout = signOutTimeout
         self.onSignedOut = onSignedOut
     }
@@ -45,25 +50,69 @@ final class AccountViewModel {
         }
     }
 
-    /// Ends this phone's sign-in session through the generated client, which sends the token, then deletes the token
-    /// and hands over to the sign-in screen. Whatever the answer, and without a connection, the token is deleted: the
-    /// person asked to be signed out, and the server's session then ends by itself after 30 days without use. A
-    /// connection that hangs is not waited for longer than `signOutTimeout`; the request goes on in the background.
+    /// Ends this phone's sign-in session. The token is deleted first, so a phone that is switched off or an app that
+    /// is killed meanwhile opens signed out; the request goes out with a snapshot of it, through the generated client.
+    /// Then the sign-in screen is shown, whatever the answer and also without a connection (the server's session ends
+    /// by itself after 30 days without use). A connection that hangs is not waited for longer than `signOutTimeout`;
+    /// the request goes on in the background. A `401` that arrives within the wait shows the notice of a refused token.
     func signOut() async {
         guard !isSigningOut else { return }
         isSigningOut = true
-        let api = api
-        // Not a child of the group below, so winning the race with the timer doesn't cancel the request.
-        let request = Task { _ = try? await api.signOut() }
-        let timeout = signOutTimeout
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await request.value }
-            group.addTask { try? await Task.sleep(for: timeout) }
-            await group.next()
-            group.cancelAll()
-        }
+        let token = store.token
         store.deleteToken()
+        var rejected = false
+        if let token { rejected = await sendSignOut(with: token) }
         isSigningOut = false
-        onSignedOut()
+        onSignedOut(rejected)
+    }
+
+    /// Whether the API refused `token`, or false when it said anything else, did not answer or the wait ran out.
+    private func sendSignOut(with token: String) async -> Bool {
+        let api = api
+        let clock = clock
+        let timeout = signOutTimeout
+        return await withCheckedContinuation { continuation in
+            let race = Race(continuation)
+            // Neither task is a child of the other, so the first to finish cancels the other and the wait ends there.
+            Task {
+                let output = await AuthMiddleware.$requestToken.withValue(token) { try? await api.signOut() }
+                if case .unauthorized = output { race.finish(true) } else { race.finish(false) }
+            }
+            race.setTimer(Task {
+                guard (try? await clock.sleep(for: timeout)) != nil else { return }
+                race.finish(false)
+            })
+        }
+    }
+}
+
+/// Resumes its continuation with the first answer only and cancels the timer; the request, if it lost, goes on.
+private final class Race: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Bool, Never>?
+    private var timer: Task<Void, Never>?
+    private var finished = false
+
+    init(_ continuation: CheckedContinuation<Bool, Never>) {
+        self.continuation = continuation
+    }
+
+    func finish(_ rejected: Bool) {
+        let (continuation, timer) = lock.withLock {
+            finished = true
+            defer { self.continuation = nil }
+            return (self.continuation, self.timer)
+        }
+        timer?.cancel()
+        continuation?.resume(returning: rejected)
+    }
+
+    /// Hands over the timer; if the race is already over it is cancelled at once.
+    func setTimer(_ timer: Task<Void, Never>) {
+        let over = lock.withLock {
+            self.timer = timer
+            return finished
+        }
+        if over { timer.cancel() }
     }
 }

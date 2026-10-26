@@ -5,17 +5,23 @@ import XCTest
 /// The signed-in home's account line: `GET /api/v1/me` through the generated client's `APIProtocol`.
 @MainActor
 final class AccountViewModelTests: XCTestCase {
-    /// How often the app was told the person signed out.
+    /// How often the app was told the person signed out, and whether the API had refused the token each time.
     private final class SignedOut: @unchecked Sendable {
-        private(set) var count = 0
-        func bump() { count += 1 }
+        private(set) var rejections: [Bool] = []
+        var count: Int { rejections.count }
+        func record(afterRejection: Bool) { rejections.append(afterRejection) }
     }
+
+    private let clock = ManualClock()
 
     private func model(
         _ api: StubAPI, store: InMemorySessionStore = InMemorySessionStore(token: "stored-token"),
-        signedOut: SignedOut = SignedOut(), signOutTimeout: Duration = .seconds(10)
+        signedOut: SignedOut = SignedOut()
     ) -> AccountViewModel {
-        AccountViewModel(api: api, store: store, signOutTimeout: signOutTimeout, onSignedOut: { signedOut.bump() })
+        AccountViewModel(
+            api: api, store: store, clock: clock, signOutTimeout: .seconds(10),
+            onSignedOut: { signedOut.record(afterRejection: $0) }
+        )
     }
 
     func test_F001N_AC4_homeCallsMeAndShowsTheAddress() async {
@@ -89,33 +95,87 @@ final class AccountViewModelTests: XCTestCase {
         }
     }
 
-    func test_F001N_AC10_signOutDoesNotWaitForAHangingConnection() async {
+    func test_F001N_AC10_signOutRefusedByTheApiShowsTheNotice() async {
+        let api = StubAPI()
+        await api.answerSignOut(with: .unauthorized)
+        let signedOut = SignedOut()
+
+        await model(api, signedOut: signedOut).signOut()
+
+        XCTAssertEqual(signedOut.rejections, [true])
+    }
+
+    func test_F001N_AC10_aSignOutThatAnswersInTimeStopsTheTimer() async {
+        let api = StubAPI()
+        let signedOut = SignedOut()
+
+        await model(api, signedOut: signedOut).signOut()
+
+        XCTAssertEqual(signedOut.rejections, [false])
+        XCTAssertEqual(clock.sleeping, 0, "the timer is cancelled")
+    }
+
+    func test_F001N_AC10_signOutWithoutATokenSkipsTheRequest() async {
+        let api = StubAPI()
+        let signedOut = SignedOut()
+
+        await model(api, store: InMemorySessionStore(), signedOut: signedOut).signOut()
+
+        let calls = await api.signOutCalls
+        XCTAssertEqual(calls, 0)
+        XCTAssertEqual(signedOut.rejections, [false])
+    }
+
+    /// The connection hangs: the token is gone at once (an app killed meanwhile reopens signed out), and the cap ends
+    /// the wait while the request is still waiting for its answer.
+    func test_F001N_AC10_signOutDeletesTheTokenAtOnceAndDoesNotWaitForAHangingConnection() async {
         let api = StubAPI()
         await api.answerSignOut(with: .hang)
         let store = InMemorySessionStore(token: "stored-token")
         let signedOut = SignedOut()
-        let model = model(api, store: store, signedOut: signedOut, signOutTimeout: .milliseconds(50))
+        let model = model(api, store: store, signedOut: signedOut)
 
-        await model.signOut()
+        let signingOut = Task { await model.signOut() }
+        await api.untilSignOutHangs()
+        await clock.untilSleeping()
 
-        XCTAssertNil(store.token)
-        XCTAssertEqual(signedOut.count, 1)
+        XCTAssertNil(store.token, "deleted before the wait")
+        XCTAssertEqual(signedOut.count, 0, "the wait is not over")
+        XCTAssertTrue(model.isSigningOut)
+
+        clock.advance(by: .seconds(9))
+        XCTAssertEqual(signedOut.count, 0, "9 s is within the cap")
+
+        clock.advance(by: .seconds(1))
+        await signingOut.value
+
+        XCTAssertEqual(signedOut.rejections, [false])
+        XCTAssertFalse(model.isSigningOut)
+        let hanging = await api.hangingSignOuts
+        XCTAssertEqual(hanging, 1, "the request is still waiting for its answer")
+        await api.releaseHangingSignOuts()
     }
 
     func test_F001N_AC10_aSecondTapWhileSigningOutIsIgnored() async {
         let api = StubAPI()
         await api.answerSignOut(with: .hang)
         let signedOut = SignedOut()
-        let model = model(api, signedOut: signedOut, signOutTimeout: .milliseconds(200))
+        let model = model(api, signedOut: signedOut)
 
-        async let first: Void = model.signOut()
-        await Task.yield()
+        let first = Task { await model.signOut() }
+        await api.untilSignOutHangs()
+        await clock.untilSleeping()
         XCTAssertTrue(model.isSigningOut)
+
         await model.signOut()
-        await first
 
         let calls = await api.signOutCalls
         XCTAssertEqual(calls, 1)
+        XCTAssertEqual(signedOut.count, 0, "the second tap does not end the first sign-out")
+
+        await api.releaseHangingSignOuts()
+        await first.value
+
         XCTAssertEqual(signedOut.count, 1)
     }
 }

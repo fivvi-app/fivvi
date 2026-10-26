@@ -41,7 +41,7 @@ actor StubAPI: APIProtocol {
         case unauthorized
         case status(Int)
         case offline
-        /// No answer for two seconds, as a connection that hangs.
+        /// No answer until the test calls `releaseHangingSignOuts()`, as a connection that hangs.
         case hang
     }
 
@@ -56,6 +56,11 @@ actor StubAPI: APIProtocol {
     private(set) var exchanges: [Components.Schemas.SignInTokenRequest] = []
     private(set) var meCalls = 0
     private(set) var signOutCalls = 0
+    private var hanging: [CheckedContinuation<Void, Never>] = []
+    private var hangWatchers: [CheckedContinuation<Void, Never>] = []
+
+    /// How many `signOut` calls are waiting for `releaseHangingSignOuts()`.
+    var hangingSignOuts: Int { hanging.count }
 
     init(_ answer: Answer = .offline) {
         self.answer = answer
@@ -71,6 +76,19 @@ actor StubAPI: APIProtocol {
 
     func answerSignOut(with answer: SignOutAnswer) {
         signOutAnswer = answer
+    }
+
+    /// Returns once a `signOut` call hangs.
+    func untilSignOutHangs() async {
+        guard hanging.isEmpty else { return }
+        await withCheckedContinuation { hangWatchers.append($0) }
+    }
+
+    /// Lets every hanging `signOut` answer `204`.
+    func releaseHangingSignOuts() {
+        let waiting = hanging
+        hanging = []
+        waiting.forEach { $0.resume() }
     }
 
     func answerMe(with answer: MeAnswer) {
@@ -155,7 +173,12 @@ actor StubAPI: APIProtocol {
         case .offline:
             throw URLError(.notConnectedToInternet)
         case .hang:
-            try await Task.sleep(for: .seconds(2))
+            await withCheckedContinuation { continuation in
+                hanging.append(continuation)
+                let watchers = hangWatchers
+                hangWatchers = []
+                watchers.forEach { $0.resume() }
+            }
             return .noContent(.init())
         }
     }

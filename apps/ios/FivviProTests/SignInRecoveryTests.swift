@@ -169,13 +169,13 @@ final class SignInRecoveryTests: SignInModelTestCase {
 
     func test_F001N_AC6_errorIsAnnounced() async {
         let api = StubAPI()
-        await api.answerSignIn(with: .badRequest)
+        await api.answerExchange(with: .unauthorized)
         let announcements = Announcements()
-        let model = model(api, announcements: announcements)
-        model.email = "owner@example.com"
+        let model = await modelOnCodeStep(api, announcements: announcements)
 
-        await model.requestCode()
+        model.enterCode("000000")
+        await model.submitCode()
 
-        XCTAssertEqual(announcements.texts.last, TestCatalog(language)["signIn.errors.invalidEmail"])
+        XCTAssertEqual(announcements.texts.last, TestCatalog(language)["signIn.errors.invalidOrExpiredCode"])
     }
 }

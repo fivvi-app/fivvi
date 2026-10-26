@@ -34,6 +34,14 @@ final class SessionTests: XCTestCase {
         XCTAssertEqual(session.state, .signedOut(afterRejection: false))
     }
 
+    func test_F001N_AC10_signedOutAfterARefusedSignOutShowsTheNotice() {
+        let session = Session(store: InMemorySessionStore(token: "stored"))
+
+        session.signedOut(afterRejection: true)
+
+        XCTAssertEqual(session.state, .signedOut(afterRejection: true))
+    }
+
     func test_F001N_AC10_signedOutKeepsTheNoticeOfARejectedToken() {
         let session = Session(store: InMemorySessionStore(token: "stored"))
         session.tokenRejected()
@@ -55,7 +63,9 @@ final class SessionTests: XCTestCase {
             transport: transport,
             middlewares: [middleware]
         )
-        let account = AccountViewModel(api: client, store: store, onSignedOut: { session.signedOut() })
+        let account = AccountViewModel(
+            api: client, store: store, onSignedOut: { session.signedOut(afterRejection: $0) }
+        )
         XCTAssertEqual(session.state, .signedIn)
 
         await account.load()
@@ -77,7 +87,9 @@ final class SessionTests: XCTestCase {
             transport: transport,
             middlewares: [middleware]
         )
-        let account = AccountViewModel(api: client, store: store, onSignedOut: { session.signedOut() })
+        let account = AccountViewModel(
+            api: client, store: store, onSignedOut: { session.signedOut(afterRejection: $0) }
+        )
 
         await account.signOut()
 
@@ -89,7 +101,8 @@ final class SessionTests: XCTestCase {
         XCTAssertEqual(session.state, .signedOut(afterRejection: false))
     }
 
-    /// The token was already refused: the 401 shows the notice, and signing out does not take it away.
+    /// The token was already refused: the 401 to the sign-out call itself shows the notice (the sign-out call is the
+    /// view model's business, the middleware leaves its 401 alone), and signing out does not take it away.
     func test_F001N_AC10_signOutWithARefusedTokenKeepsTheNotice() async throws {
         let store = InMemorySessionStore(token: "expired")
         let session = Session(store: store)
@@ -100,7 +113,9 @@ final class SessionTests: XCTestCase {
             transport: transport,
             middlewares: [middleware]
         )
-        let account = AccountViewModel(api: client, store: store, onSignedOut: { session.signedOut() })
+        let account = AccountViewModel(
+            api: client, store: store, onSignedOut: { session.signedOut(afterRejection: $0) }
+        )
 
         await account.signOut()
 

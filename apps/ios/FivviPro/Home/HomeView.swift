@@ -9,8 +9,11 @@ struct HomeView: View {
     @State private var account: AccountViewModel
     private let catalog: Catalog
 
-    /// `onSignedOut` runs after the person signed out and the token is gone.
-    init(api: any APIProtocol, store: any SessionStore, catalog: Catalog, onSignedOut: @escaping () -> Void) {
+    /// `onSignedOut` runs after the person signed out and the token is gone; its argument says whether the API
+    /// refused the token of the sign-out call.
+    init(
+        api: any APIProtocol, store: any SessionStore, catalog: Catalog, onSignedOut: @escaping (Bool) -> Void
+    ) {
         _hello = State(initialValue: HelloViewModel(api: api, catalog: catalog))
         _account = State(initialValue: AccountViewModel(api: api, store: store, onSignedOut: onSignedOut))
         self.catalog = catalog
