@@ -2,6 +2,7 @@ import { randomBytes, randomInt } from 'node:crypto';
 import { type Database, recordWrongSignInCode } from '@fivvi/database';
 import { type SendEmail, signInEmail } from '@fivvi/email';
 import { isLocale, parseAcceptLanguage, resolveSignInCommunicationLanguage } from '@fivvi/i18n';
+import { anonymousDistinctId, type ProductEvents } from '@fivvi/observability';
 import type { BetterAuthPlugin, GenericEndpointContext } from 'better-auth';
 import { APIError, createAuthEndpoint } from 'better-auth/api';
 import { setSessionCookie } from 'better-auth/cookies';
@@ -46,6 +47,11 @@ export interface SignInWithEmailOptions {
    * throws, that is swallowed: the task handed to `runInBackground` never rejects.
    */
   reportError: (error: unknown) => void;
+  /**
+   * Records `sign_in_requested` and `signed_in` (OBSERVABILITY.md §4.3), without the address, the
+   * code, the link, the IP address or, before sign-in, any account ID. Nothing when left out.
+   */
+  productEvents?: ProductEvents;
 }
 
 const PLUGIN_ID = 'sign-in-with-email';
@@ -119,6 +125,7 @@ export function signInWithEmail({
   signUpAllowlist,
   runInBackground,
   reportError,
+  productEvents,
 }: SignInWithEmailOptions) {
   /**
    * The newest verification of `identifier` if it can still be used: not expired by the injected
@@ -160,6 +167,7 @@ export function signInWithEmail({
     ctx: GenericEndpointContext,
     verification: Verification,
     email: string,
+    method: 'code' | 'link',
     rejected: () => APIError,
   ) {
     // Single use: the first caller to consume it wins, also against a parallel request.
@@ -186,6 +194,7 @@ export function signInWithEmail({
     // for the email (ADR-019); every later one signs in to the same account.
     const found = await ctx.context.internalAdapter.findUserByEmail(email);
     let user: NonNullable<typeof found>['user'];
+    let newAccount = false;
     if (found) {
       user = found.user.emailVerified
         ? found.user
@@ -193,6 +202,7 @@ export function signInWithEmail({
             emailVerified: true,
           })) ?? found.user);
     } else if (signUpAllowlist.allows(email)) {
+      newAccount = true;
       const { locale } = verification;
       user = await ctx.context.internalAdapter.createUser(
         {
@@ -208,6 +218,12 @@ export function signInWithEmail({
     }
     const session = await ctx.context.internalAdapter.createSession(user.id);
     await setSessionCookie(ctx, { session, user });
+    // The account's own UUID is the pseudonymous ID of the event; nothing else about the person.
+    productEvents?.track({
+      event: 'signed_in',
+      distinctId: user.id,
+      properties: { method, new_account: newAccount },
+    });
   }
 
   return {
@@ -233,6 +249,13 @@ export function signInWithEmail({
         },
         (ctx) => {
           const { email, locale } = ctx.body;
+          // For every address alike, before the account is looked up. No account ID exists yet:
+          // the event gets a random ID for this request.
+          productEvents?.track({
+            event: 'sign_in_requested',
+            distinctId: anonymousDistinctId(),
+            properties: {},
+          });
           const acceptLanguage = ctx.headers?.get('accept-language');
           const origin = new URL(ctx.context.baseURL).origin;
 
@@ -306,7 +329,7 @@ export function signInWithEmail({
             await recordWrongSignInCode(db, verification.id, MAX_WRONG_CODES);
             throw rejectedCode();
           }
-          await signInWithVerification(ctx, verification, email, rejectedCode);
+          await signInWithVerification(ctx, verification, email, 'code', rejectedCode);
           return ctx.json(REQUESTED);
         },
       ),
@@ -333,7 +356,7 @@ export function signInWithEmail({
         async (ctx) => {
           const found = await findLinkVerification(ctx, ctx.body.token);
           if (!found) throw rejectedLink();
-          await signInWithVerification(ctx, found.verification, found.email, rejectedLink);
+          await signInWithVerification(ctx, found.verification, found.email, 'link', rejectedLink);
           return ctx.json(REQUESTED);
         },
       ),
