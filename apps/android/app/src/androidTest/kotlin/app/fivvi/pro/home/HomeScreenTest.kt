@@ -2,7 +2,6 @@ package app.fivvi.pro.home
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -43,9 +42,7 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         me.answerAccount("owner@example.com")
         launch()
 
-        awaitTag(HelloTags.GREETING)
         compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(app.string(language, R.string.hello_title))
-        awaitTag(HomeTags.SIGNED_IN_AS)
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)
             .assertTextEquals(app.string(language, R.string.home_signed_in_as, "owner@example.com"))
         assertEquals(1, me.calls)
@@ -57,11 +54,9 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         me.answerAccount("owner@example.com")
         launch()
 
-        awaitTag(HomeTags.ERROR)
         compose.onNodeWithTag(HomeTags.ERROR).assertTextEquals(app.string(language, R.string.sign_in_errors_generic))
         compose.onNodeWithTag(HomeTags.RETRY).performClick()
 
-        awaitTag(HomeTags.SIGNED_IN_AS)
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)
             .assertTextEquals(app.string(language, R.string.home_signed_in_as, "owner@example.com"))
     }
@@ -72,7 +67,6 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         me.answerAccount()
         val session = Session(store)
         app.launch(hello, device = listOf(language.tag), meApi = me, session = session)
-        awaitTag(HomeTags.SIGNED_IN_AS)
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS).assertIsDisplayed()
 
         session.expire("token-1")
@@ -81,16 +75,7 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         assertNull(store.read())
     }
 
-    // The greeting and the account come from the fake network on background threads: wait for each before asserting.
-    private fun awaitTag(tag: String) {
-        compose.waitUntil(TIMEOUT_MILLIS) {
-            compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()
-        }
-    }
-
     companion object {
-        private const val TIMEOUT_MILLIS = 5_000L
-
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
         fun languages() = appLanguageParameters()
