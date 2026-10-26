@@ -21,6 +21,8 @@ struct SignInScreen {
     var loading: XCUIElement { app.activityIndicators["signIn.loading"] }
     /// On the signed-in home: the account line, and the hello greeting the home keeps.
     var signedInAs: XCUIElement { app.staticTexts["home.signedInAs"] }
+    /// The block holding the account line and Sign out.
+    var account: XCUIElement { app.otherElements["home.account"] }
     var greeting: XCUIElement { app.staticTexts["hello.greeting"] }
     var signOut: XCUIElement { app.buttons["home.signOut"] }
 
@@ -86,14 +88,25 @@ struct SignInScreen {
     /// buttons below it.
     func tap(_ element: XCUIElement, scrollingUpTo attempts: Int = 6) {
         settle(element)
+        scrollUp(until: { element.isHittable }, attempts: attempts)
+        element.tap()
+    }
+
+    /// Drags the screen up until `isDone`, at most `attempts` times. The drag stays above the keyboard: a swipe on the
+    /// whole window may start on a key.
+    func scrollUp(until isDone: () -> Bool, attempts: Int) {
         var left = attempts
-        while !element.isHittable, left > 0 {
-            // Drag above the keyboard: a swipe on the whole window may start on a key.
+        while !isDone(), left > 0 {
             let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45))
             let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1))
             start.press(forDuration: 0.05, thenDragTo: end)
             left -= 1
         }
-        element.tap()
+    }
+
+    /// Scrolls the screen up until `element` is whole inside the window and can be hit.
+    func scrollIntoView(_ element: XCUIElement, attempts: Int = 8) {
+        let window = app.windows.firstMatch.frame
+        scrollUp(until: { window.contains(element.frame) && element.isHittable }, attempts: attempts)
     }
 }

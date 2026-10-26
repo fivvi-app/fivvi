@@ -15,7 +15,7 @@ scripts/ios-device.sh nl        # the Debug app on your iPhone, in Dutch (A real
 | Path | What |
 |---|---|
 | `FivviPro.xcodeproj` | Xcode project with folder-synchronized groups: a file added to one of the folders below is in its target, no project generator. Shared scheme `FivviPro` |
-| `FivviPro/` | The app target. `App/` (entry point, root view, configuration), `Hello/` (the screen and its view model), `Home/` (the signed-in home: *Hello* plus the account's address), `Session/` (token store, auth layer on the client), `SignIn/` (TM-01), `Language/` (interface language), `Observability/` (crash and error reporting), `Strings/` (catalog lookup), `Theme/` (styles built from the design tokens) |
+| `FivviPro/` | The app target. `App/` (entry point, root view, configuration), `Hello/` (the hello block and its view model), `Home/` (the signed-in home: *Hello* plus the account's address), `Session/` (token store, auth layer on the client), `SignIn/` (TM-01), `Language/` (interface language), `Observability/` (crash and error reporting), `Strings/` (catalog lookup), `Theme/` (styles built from the design tokens) |
 | `FivviProTests/` | Unit tests (XCTest), hosted in the app |
 | `FivviProUITests/` | UI tests (XCUITest) |
 | `FivviPro.xctestplan` | Two configurations, `nl` (region NL) and `en` (region GB), time zone Europe/Amsterdam. Text-dependent tests run in both, the locale-independent UI tests in `nl` only ([Tests](#tests); `TESTING.md §7.2`) |
@@ -29,11 +29,12 @@ scripts/ios-device.sh nl        # the Debug app on your iPhone, in Dutch (A real
 
 ## A screen
 
-`Hello/` is the pattern for every screen:
+`Hello/` is the pattern for a block of a screen:
 
 - A view model (`@Observable`, `@MainActor`) with a few states (`loading`, `loaded(greeting:)`, `failed`). It depends on the generated client's `APIProtocol`, which is the test seam: tests pass a stub, the app passes `Client` with `URLSessionTransport`. No hand-written wrapper.
 - The view switches on the state and reads every text from `Catalog`, by `StringKey` or by a key the API sent. A key that isn't in the catalog is a failure, never a raw key on screen.
-- Text uses Dynamic Type styles and wraps (`fixedSize(horizontal: false, vertical: true)` inside a `ScrollView`); buttons keep a 44 pt touch target; the screen's title has the header trait.
+- Text uses Dynamic Type styles and wraps (`fixedSize(horizontal: false, vertical: true)`, in a block inside a screen that scrolls); buttons keep a 44 pt touch target; the screen's title has the header trait.
+- A screen is one scroll: nothing is pinned outside it, so at the largest text size on a short screen (landscape) one block can't squeeze another. The signed-in home puts the hello block and the account block in one `ScrollView` with spacers; `HomeSmallScreenUITests` checks it in portrait and landscape, on the smallest supported iPhone with `IOS_SIMULATOR="iPhone SE (3rd generation)" pnpm test:ios`.
 - Colours, text styles and spacing come from the design tokens ([Theme](#theme)).
 - Accessibility identifiers name the elements for tests, with the same values as the Android test tags so one Maestro flow drives both apps: `hello.greeting`, `hello.loading`, `hello.error`, `hello.retry`.
 
