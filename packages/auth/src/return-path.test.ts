@@ -1,5 +1,21 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { loginPath, returnPathFrom, SIGNED_IN_HOME, safeReturnPath } from './return-path';
+import { loadsCode } from '../test/loads-code.ts';
+import {
+  loginPath,
+  MAX_RETURN_PATH_LENGTH,
+  returnPathFrom,
+  SIGNED_IN_HOME,
+  safeReturnPath,
+} from './return-path.ts';
+
+describe('F001 AC13 return path module', () => {
+  it('imports nothing at run time, so the proxy, the pages and the plugin share it without loading Better Auth', () => {
+    const source = readFileSync(new URL('./return-path.ts', import.meta.url), 'utf8');
+
+    expect(loadsCode(source)).toBe(false);
+  });
+});
 
 describe('F001 AC13 return path', () => {
   describe('keeps a path of this site', () => {
@@ -34,6 +50,13 @@ describe('F001 AC13 return path', () => {
       ['a path past the length limit', `/${'a'.repeat(3000)}`],
     ])('%s', (_, value) => {
       expect(safeReturnPath(value)).toBeUndefined();
+    });
+
+    it('a path one past the length limit, but not one at it', () => {
+      const atLimit = `/${'a'.repeat(MAX_RETURN_PATH_LENGTH - 1)}`;
+
+      expect(safeReturnPath(atLimit)).toBe(atLimit);
+      expect(safeReturnPath(`${atLimit}a`)).toBeUndefined();
     });
 
     it('a missing value', () => {

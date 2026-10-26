@@ -463,7 +463,9 @@ test.describe('F001 sign in on TW-10', () => {
     // Without a page asked for, the link is the plain one (#207).
     expect(new URL(link).searchParams.has('returnTo')).toBe(false);
 
-    await page.goto(link);
+    // A return address on another site added to the real link by hand is ignored too: the confirm
+    // step reads it with the same rule, so sign-in ends at the signed-in home (AC13).
+    await page.goto(`${link}&returnTo=${encodeURIComponent('https://evil.example/phish')}`);
     await page.getByRole('button', { name: copy.signIn.confirmSubmit }).click();
 
     await expect(page).toHaveURL(/\/home$/);

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { loadsCode } from '../test/loads-code.ts';
 import { parseSignUpAllowlist } from './allowlist.ts';
 
 describe('F001 AC9 sign-up allowlist', () => {
@@ -50,14 +51,6 @@ describe('F001 AC9 sign-up allowlist', () => {
     },
   );
 });
-
-// Type-only imports and re-exports vanish at run time; everything else loads code.
-const loadsCode = (source: string): boolean => {
-  const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-  return /^\s*import\b(?!\s+type\b)|^\s*export\s*(?:\{[^}]*\}|\*(?:\s+as\s+\w+)?)\s*from\b|\bimport\s*\(|\brequire\s*\(/m.test(
-    code,
-  );
-};
 
 describe('F001 AC9 sign-up allowlist without the sign-in code (#200)', () => {
   it('imports nothing at run time, so the start-up check never waits for Better Auth', () => {
