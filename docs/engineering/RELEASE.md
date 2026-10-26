@@ -2,7 +2,7 @@
 
 How a build of **Fivvi Pro** (`apps/ios`, `apps/android`, app ID `app.fivvi.pro`) gets to testers, what the owner does and approves, and what the stores require before a public release (E017, [spec #169](https://github.com/fivvi-app/fivvi/issues/169)). Native apps have no over-the-air updates ([`ROADMAP.md`](../product/ROADMAP.md) R15): every fix for a tester is a new build, so building and shipping one is a single, repeatable step.
 
-Status: the `release` environment, the secret scripts and this document are in place ([#189](https://github.com/fivvi-app/fivvi/issues/189)). The two release lanes (iOS to TestFlight, [#190](https://github.com/fivvi-app/fivvi/issues/190); Android to Play internal testing, [#191](https://github.com/fivvi-app/fivvi/issues/191)) and the release builds with their version and build number ([#188](https://github.com/fivvi-app/fivvi/issues/188)) come with their own tickets of #169; the sections below that depend on them say so. Where this document and the spec differ, the spec issue wins until the lanes are built; then fix this document.
+Status: the `release` environment, the secret scripts and this document are in place ([#189](https://github.com/fivvi-app/fivvi/issues/189)). The two release lanes (iOS to TestFlight, [#190](https://github.com/fivvi-app/fivvi/issues/190); Android to Play internal testing, [#191](https://github.com/fivvi-app/fivvi/issues/191)) come with their own tickets of #169; the sections below that depend on them say so. Where this document and the spec differ, the spec issue wins until the lanes are built; then fix this document.
 
 ## 1. Who does what
 
@@ -28,7 +28,7 @@ The order matters; the checklist in §8 has the account steps with what each unl
    | `release-secrets.sh android` | The same four | A keystore you already have (`--keystore`) |
    | `release-secrets.sh play` | `PLAY_SERVICE_ACCOUNT_JSON` | The service-account key file (`--service-account`) |
    | `release-secrets.sh sentry` | `SENTRY_AUTH_TOKEN` | A hidden prompt; a token with only the scopes `project:releases` and `org:read` |
-   | `release-secrets.sh list` | none | Prints which of the twelve are set, by name |
+   | `release-secrets.sh list` | none | Prints which of the release secrets above are set, by name |
 
 3. **Back up the upload keystore** and its password in your password manager. Play App Signing holds the app signing key; the upload key can be reset through Google if it is lost, but that takes time and a support request.
 
@@ -44,7 +44,7 @@ The lanes ([#190](https://github.com/fivvi-app/fivvi/issues/190) for iOS, [#191]
 4. The run builds the Release configuration against the production address ([`ENVIRONMENTS.md`](ENVIRONMENTS.md#1-environments)), signs it, gives it the build number of the run, uploads it (TestFlight or the Play internal testing track) and uploads the crash symbols to Sentry.
 5. Testers get it from the TestFlight app or the Play Store's internal-test link, usually within minutes (TestFlight first processes the build; App Store Connect emails you when it is done).
 
-**Version and build number** (planned: the committed version and the build-number setting come with [#188](https://github.com/fivvi-app/fivvi/issues/188), the run-number scheme with the lanes [#190](https://github.com/fivvi-app/fivvi/issues/190) and [#191](https://github.com/fivvi-app/fivvi/issues/191); until they are built, a Release build keeps build number 1). Both apps will read the version (`0.1.0` for now) from one committed source. The build number will be the run number plus a fixed offset, higher than any earlier run (a re-run of a failed run gets a new one) and the same on both platforms for one run, so a bug report says the same number on iPhone and Android. Debug builds and CI test builds keep build number 1.
+**Version and build number.** The committed version (`0.1.0` for now) and the build-number setting are in place ([#188](https://github.com/fivvi-app/fivvi/issues/188)); only the run-number scheme is planned, with the lanes [#190](https://github.com/fivvi-app/fivvi/issues/190) and [#191](https://github.com/fivvi-app/fivvi/issues/191). Until the lanes are built, a Release build keeps build number 1. Both apps read the version from one committed source. The build number will be the run number plus a fixed offset, higher than any earlier run (a re-run of a failed run gets a new one) and the same on both platforms for one run, so a bug report says the same number on iPhone and Android. Debug builds and CI test builds keep build number 1.
 
 ## 4. Adding testers (the owner)
 
@@ -68,7 +68,7 @@ Look at the error in the run's log first, then at App Store Connect (*TestFlight
 | App Store Connect: *bundle version already used* or Play: *version code already used* | A build number that isn't higher than an earlier upload | Start a new run: every run gets a higher number. If a build was uploaded by hand with a higher number, the offset in the lane has to be raised (a PR) |
 | Authentication or `401` from the App Store Connect or Play API | A wrong or revoked API key, or a role that is too small (the App Store Connect key needs *App Manager*; the Play service account needs release rights for this app) | Fix it in the console and run the matching `release-secrets.sh` command again |
 | Play: *you must upload the first bundle manually* | Google's API can't create an app's first release | Upload the bundle of a run by hand once (§8 Google) |
-| Apple holds the build for export compliance | `ITSAppUsesNonExemptEncryption` is missing | The Release `Info.plist` will set it to `NO` (the app only uses HTTPS), with a test that checks it; both come with [#188](https://github.com/fivvi-app/fivvi/issues/188). Until then Apple asks the export-compliance question per build in App Store Connect; once the key and test exist, a hold means a change removed it: restore it |
+| Apple holds the build for export compliance | `ITSAppUsesNonExemptEncryption` is missing A change removed the `ITSAppUsesNonExemptEncryption` key from `apps/ios/Config/Info.plist`; restore it (`pnpm test:ios` flags it) |
 | Beta App Review or Play review rejects the build | Missing privacy policy, demo account or declarations (§9) | Deliver the missing item, answer the reviewer, upload a new build if the app has to change |
 | Crashes show unsymbolicated in Sentry | The symbol upload failed or the release name differs | Check the run's Sentry step and the `SENTRY_AUTH_TOKEN` scopes |
 
@@ -113,7 +113,7 @@ Only the owner does these. Agents never do them or ask for the secrets. Each ste
 
 | | Step | Unlocks |
 |---|---|---|
-| ☐ | `scripts/github-settings.sh apply` (or ask an agent to run it) | The `release` environment with your approval and `main`-only deployments |
+| ☐ | `scripts/github-settings.sh apply` | The `release` environment with your approval and `main`-only deployments |
 | ☐ | Create a Sentry auth token for symbol uploads (scopes `project:releases` and `org:read` only), run `scripts/release-secrets.sh sentry` | Symbolicated crashes from tester builds |
 
 ## 9. Store requirements for the public release
