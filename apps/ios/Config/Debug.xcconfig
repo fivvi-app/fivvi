@@ -1,12 +1,6 @@
 // Debug: the local dev server (`pnpm dev`, port 3000), which the iOS simulator reaches as localhost. Plain HTTP is
 // allowed only in this configuration (Info-Debug.plist). `//` starts a comment in an xcconfig, hence `$()`.
-// The token store needs Keychain access, which a simulator build gets from its entitlements. A build without signing
-// (CODE_SIGNING_ALLOWED=NO, as `pnpm test:ios` and CI build) embeds none, and the Keychain answers errSecMissingEntitlement
-// (-34018), so the simulator build carries the access group in its own Mach-O section, which is where Xcode puts a
-// simulator build's entitlements. A device build is signed and gets its Keychain access group from its signature.
-OTHER_LDFLAGS[sdk=iphonesimulator*] = $(inherited) -Wl,-sectcreate,__TEXT,__entitlements,$(SRCROOT)/Config/Simulator.entitlements
-// The Mach-O section above has to be in the executable, not in a debug dylib the executable loads.
-ENABLE_DEBUG_DYLIB = NO
+#include "Simulator.xcconfig"
 INFOPLIST_FILE = Config/Info-Debug.plist
 FIVVI_API_BASE_URL = http:/$()/localhost:3000/api
 
