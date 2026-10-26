@@ -2,7 +2,7 @@
 
 How a build of **Fivvi Pro** (`apps/ios`, `apps/android`, app ID `app.fivvi.pro`) gets to testers, what the owner does and approves, and what the stores require before a public release (E017, [spec #169](https://github.com/fivvi-app/fivvi/issues/169)). Native apps have no over-the-air updates ([`ROADMAP.md`](../product/ROADMAP.md) R15): every fix for a tester is a new build, so building and shipping one is a single, repeatable step.
 
-Status: the `release` environment, the secret scripts and this document are in place ([#189](https://github.com/fivvi-app/fivvi/issues/189)). The two release lanes (iOS to TestFlight, [#190](https://github.com/fivvi-app/fivvi/issues/190); Android to Play internal testing, [#191](https://github.com/fivvi-app/fivvi/issues/191)) come with their own tickets of [#169](https://github.com/fivvi-app/fivvi/issues/169); the sections below that depend on them say so. Where this document and the spec differ, the spec issue wins until the lanes are built; then fix this document.
+Status: the `release` environment, the secret scripts and this document are in place ([#189](https://github.com/fivvi-app/fivvi/issues/189)), and so is the iOS lane to TestFlight ([#190](https://github.com/fivvi-app/fivvi/issues/190), `.github/workflows/release.yml`). It has not run for real yet: the first approved run is the owner check ([#192](https://github.com/fivvi-app/fivvi/issues/192)). The Android lane to Play internal testing ([#191](https://github.com/fivvi-app/fivvi/issues/191)) joins the same workflow with its own ticket; the sections below that depend on it say so. Where this document and the spec differ, the spec issue wins until the lanes are built; then fix this document.
 
 ## 1. Who does what
 
@@ -27,7 +27,7 @@ The order matters; the checklist in §8 has the account steps with what each unl
    | `release-secrets.sh android-keystore` | `ANDROID_UPLOAD_KEYSTORE` (base64), `ANDROID_UPLOAD_KEYSTORE_PASSWORD`, `ANDROID_UPLOAD_KEY_ALIAS`, `ANDROID_UPLOAD_KEY_PASSWORD` | Makes the upload keystore (needs `keytool`, part of the JDK from `scripts/bootstrap.sh --api`) in `~/fivvi-release-keys/` unless `--dir` says otherwise, outside the repo; you choose its password at a hidden prompt |
    | `release-secrets.sh android` | The same four | A keystore you already have (`--keystore`) |
    | `release-secrets.sh play` | `PLAY_SERVICE_ACCOUNT_JSON` | The service-account key file (`--service-account`) |
-   | `release-secrets.sh sentry` | `SENTRY_AUTH_TOKEN` | A hidden prompt; a token with only the scopes `project:releases` and `org:read` |
+   | `release-secrets.sh sentry` | `SENTRY_AUTH_TOKEN` | A hidden prompt; an organisation auth token (`org:ci`: releases and debug files), like the one of the web source-map upload |
    | `release-secrets.sh list` | none | Prints which of the release secrets above are set, by name |
 
 3. **Back up the upload keystore** and its password in your password manager. Play App Signing holds the app signing key; the upload key can be reset through Google if it is lost, but that takes time and a support request.
@@ -36,15 +36,15 @@ Renew by running the same command again; it replaces the value. The Apple Distri
 
 ## 3. Starting a release run
 
-The lanes ([#190](https://github.com/fivvi-app/fivvi/issues/190) for iOS, [#191](https://github.com/fivvi-app/fivvi/issues/191) for Android) are GitHub Actions workflows started by hand (`workflow_dispatch`) from `main`; a platform can be released alone.
+The lanes are one GitHub Actions workflow, **Release** (`.github/workflows/release.yml`), started by hand (`workflow_dispatch`) from `main`. The iOS lane ([#190](https://github.com/fivvi-app/fivvi/issues/190)) is in it; the Android lane ([#191](https://github.com/fivvi-app/fivvi/issues/191)) joins it, and a platform can be released alone (the workflow's inputs).
 
-1. Start the workflow for the platform from the Actions tab, or with `gh workflow run <workflow> --ref main` (the workflow names are set by the lane tickets [#190](https://github.com/fivvi-app/fivvi/issues/190) and [#191](https://github.com/fivvi-app/fivvi/issues/191)). An agent may do this too.
-2. The run first checks that it is on `main`, then runs the native suites in both locales (`pnpm test:ios` on macOS, `pnpm test:android` and `pnpm test:maestro` on Linux), as [`TESTING.md §7`](TESTING.md#7-where-tests-run) requires. When a suite fails, nothing is uploaded.
-3. **You approve.** The job waits in the `release` environment. GitHub emails you and shows *Review deployments*; check that the commit is the one you mean to ship, then approve. Nothing signs or uploads before that.
-4. The run builds the Release configuration against the production address ([`ENVIRONMENTS.md`](ENVIRONMENTS.md#1-environments)), signs it, gives it the build number of the run, uploads it (TestFlight or the Play internal testing track) and uploads the crash symbols to Sentry.
-5. Testers get it from the TestFlight app or the Play Store's internal-test link, usually within minutes (TestFlight first processes the build; App Store Connect emails you when it is done).
+1. Start it from the Actions tab (*Release › Run workflow*, branch `main`), or with `gh workflow run release.yml --ref main`. An agent may do this too. A run started from any other branch, or by anything but a person, stops in its first step with nothing built or uploaded, and the `release` environment doesn't deploy from another branch either.
+2. **Prepare** gives the run its build number (below). The native suites of both platforms then run on that commit, in Dutch and in English ([`TESTING.md §7`](TESTING.md#7-where-tests-run)), without any secret: **iOS tests** (`pnpm test:ios`, a macOS runner) and **Android tests** (`pnpm test:android` and `pnpm test:maestro`, a Linux runner with the emulator). The release jobs need both, so when either suite fails the run stops there: no release job starts, and nothing is signed or uploaded, for either platform.
+3. **You approve.** When the tests have passed, the **iOS release** job waits in the `release` environment. GitHub emails you and shows *Review deployments*; check that the commit is the one you mean to ship and that the build number is the one you expect (it is in the run's summary), then approve. Nothing signs or uploads before that, and no secret is readable before it.
+4. The job then installs the Apple Distribution certificate into a keychain made for this run and the App Store profile where Xcode finds it, archives the Release configuration (the production address, the shared version, the run's build number) with `xcodebuild`, uploads the dSYMs to the Sentry `ios` project under the release name the app sends (`app.fivvi.pro@<version>+<build>`), and exports and uploads the build to App Store Connect with the API key. The keychain and the key files are deleted at the end, whatever failed. No fastlane and no Ruby: `scripts/release-ios.sh` runs `xcodebuild`, `security` and `sentry-cli` (the version pinned in `pnpm-lock.yaml`).
+5. Testers get it from the TestFlight app, usually within minutes: App Store Connect first processes the build and emails you when it is done. The build is then available to the internal testers with no further step.
 
-**Version and build number.** The committed version (`0.1.0` for now) and the build-number setting are in place ([#188](https://github.com/fivvi-app/fivvi/issues/188)); only the run-number scheme is planned, with the lanes [#190](https://github.com/fivvi-app/fivvi/issues/190) and [#191](https://github.com/fivvi-app/fivvi/issues/191). Until the lanes are built, a Release build keeps build number 1. Both apps read the version from one committed source. The build number will be the run number plus a fixed offset, higher than any earlier run (a re-run of a failed run gets a new one) and the same on both platforms for one run, so a bug report says the same number on iPhone and Android. Debug builds and CI test builds keep build number 1.
+**Version and build number.** Both apps read the version from one committed file, `apps/Version.xcconfig` (`0.1.0` for now). The build number is the number of the run (`github.run_number`) plus a fixed offset (100, in `scripts/release.sh`, above any build uploaded by hand), computed once by **Prepare** and used by every platform of the run, so a bug report says the same number on iPhone and Android. Every run's number is higher than any earlier run's. A re-run of a run (*Re-run jobs*) is refused, because it keeps the run number and could repeat a number that was already uploaded: start a new run instead, which takes the next number (§5, §6). Debug builds and CI test builds keep build number 1.
 
 ## 4. Adding testers (the owner)
 
@@ -65,12 +65,17 @@ Look at the error in the run's log first, then at App Store Connect (*TestFlight
 | Symptom | Cause | What to do |
 |---|---|---|
 | The lane fails at signing | Certificate or profile expired, or the profile doesn't match the bundle ID | Renew in Apple's developer site and run `release-secrets.sh ios` again; re-run the lane |
-| App Store Connect: *bundle version already used* or Play: *version code already used* | A build number that isn't higher than an earlier upload | Start a new run: every run gets a higher number. If a build was uploaded by hand with a higher number, the offset in the lane has to be raised (a PR) |
+| App Store Connect: *bundle version already used* or Play: *version code already used* | A build number that isn't higher than an earlier upload | Start a new run: every run gets a higher number (a re-run of a run is refused for this reason). If a build was uploaded by hand with a higher number, the offset in `scripts/release.sh` has to be raised (a PR). Renaming or replacing `release.yml` restarts the run number at 1, so raise the offset in the same PR |
+| The run stops in its first step: *a release run starts from main* or *attempt 2 of the run* | The run was started from another branch, or is a re-run | Start a new run from `main` |
+| The run stops after the tests, before *iOS release* | A native suite failed (the run says which) | Fix it on `main` and start a new run; the test results of the iOS suite are an artifact of the run |
+| *The provisioning profile is for … not for …* or *a development or ad hoc profile* | The profile in `IOS_PROVISIONING_PROFILE` is not an App Store profile for `app.fivvi.pro` | Create the right one in Apple's developer site and run `release-secrets.sh ios` again |
+| Signing fails with *no identity* or the import fails | The certificate is not an Apple Distribution certificate, or its password is wrong | Export the certificate again as a `.p12` and run `release-secrets.sh ios` again |
+| The export fails with an account, login or *no accounts* error | `xcodebuild -exportArchive` could not sign or fetch what it needs with the API key alone | Add `-allowProvisioningUpdates` to the export in `scripts/release-ios.sh` (a PR). It lets Xcode create or update profiles with the API key, so the key then needs the *Admin* role; the lane leaves it out so *App Manager* is enough |
 | Authentication or `401` from the App Store Connect or Play API | A wrong or revoked API key, or a role that is too small (the App Store Connect key needs *App Manager*; the Play service account needs release rights for this app) | Fix it in the console and run the matching `release-secrets.sh` command again |
 | Play: *you must upload the first bundle manually* | Google's API can't create an app's first release | Upload the bundle of a run by hand once (§8 Google) |
 | Apple holds the build for export compliance | The `ITSAppUsesNonExemptEncryption` key is missing from `apps/ios/Config/Info.plist` (a change removed it) | Restore it (`pnpm test:ios` flags it) |
 | Beta App Review or Play review rejects the build | Missing privacy policy, demo account or declarations (§9) | Deliver the missing item, answer the reviewer, upload a new build if the app has to change |
-| Crashes show unsymbolicated in Sentry | The symbol upload failed or the release name differs | Check the run's Sentry step and the `SENTRY_AUTH_TOKEN` scopes |
+| Crashes show unsymbolicated in Sentry | The symbol upload failed or the release name differs | Check the run's Sentry step (a `403` means the token lacks a scope: use an organisation auth token, which carries `org:ci`: releases and debug files; a project or user token fails here) |
 
 A rejected or broken upload never changes what testers already have. Never reuse a build number by hand to "replace" a build.
 
@@ -114,7 +119,7 @@ Only the owner does these. Agents never do them or ask for the secrets. Each ste
 | | Step | Unlocks |
 |---|---|---|
 | ☐ | `scripts/github-settings.sh apply` | The `release` environment with your approval and `main`-only deployments |
-| ☐ | Create a Sentry auth token for symbol uploads (scopes `project:releases` and `org:read` only), run `scripts/release-secrets.sh sentry` | Symbolicated crashes from tester builds |
+| ☐ | Create a Sentry organisation auth token for symbol uploads (`org:ci`: releases and debug files; it carries the organisation and the region, which `sentry-cli` needs here), run `scripts/release-secrets.sh sentry` | Symbolicated crashes from tester builds |
 
 ## 9. Store requirements for the public release
 

@@ -143,4 +143,4 @@ SwiftLint is pinned by version and SHA-256 in `scripts/_ios.sh` and downloaded t
 
 ## Releasing
 
-Builds for testers go through TestFlight; how a run is started and approved, how testers are added and what to do when an upload is rejected is in [`docs/engineering/RELEASE.md`](../../docs/engineering/RELEASE.md).
+Builds for testers go through TestFlight: the **Release** workflow (`.github/workflows/release.yml`, `scripts/release-ios.sh`) runs the tests in both locales, then archives and signs the Release configuration with the run's build number (`xcodebuild CURRENT_PROJECT_VERSION=<n>`; Debug and CI keep 1), uploads it to App Store Connect and the dSYMs to Sentry; debug signing (`Local.xcconfig`) is untouched. How a run is started and approved, how testers are added and what to do when an upload is rejected is in [`docs/engineering/RELEASE.md`](../../docs/engineering/RELEASE.md).

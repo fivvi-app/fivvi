@@ -13,7 +13,8 @@
 #                                                             outside the repo), then set its secrets
 #   release-secrets.sh android [--keystore F]                 the secrets of an upload keystore you already have
 #   release-secrets.sh play [--service-account F]             the Google Play service-account JSON key
-#   release-secrets.sh sentry                                 the Sentry auth token (releases and artifacts only)
+#   release-secrets.sh sentry                                 the Sentry organisation auth token (org:ci: releases and
+#                                                             debug files)
 #
 # A file you don't give as an option is asked for (its path is not secret). Run scripts/github-settings.sh apply first, so
 # the environment exists.
@@ -35,7 +36,7 @@ ANDROID_UPLOAD_KEYSTORE_PASSWORD android Keystore password
 ANDROID_UPLOAD_KEY_ALIAS android Alias of the upload key
 ANDROID_UPLOAD_KEY_PASSWORD android Password of the upload key
 PLAY_SERVICE_ACCOUNT_JSON play Google Play service-account key (JSON)
-SENTRY_AUTH_TOKEN sentry Sentry auth token for symbol uploads"
+SENTRY_AUTH_TOKEN sentry Sentry organisation auth token for symbol uploads"
 # GitHub allows 48 KB per secret.
 MAX_SECRET_BYTES=49152
 
@@ -212,7 +213,7 @@ do_play() {
 }
 
 do_sentry() {
-  ask_secret "Sentry auth token (scopes: project:releases and org:read only)"
+  ask_secret "Sentry organisation auth token (org:ci: releases and debug files)"
   store_value SENTRY_AUTH_TOKEN
 }
 
