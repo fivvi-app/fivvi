@@ -16,6 +16,7 @@ import {
 } from '@fivvi/email';
 import { messages } from '@fivvi/i18n';
 import {
+  createCaptureTransport,
   createErrorReporter,
   createProductEventCaptureTransport,
   createProductEvents,
@@ -368,6 +369,14 @@ describe('F001 sign in with the emailed code through the API', () => {
         errorReporter: createErrorReporter({ env: {} }),
       });
       const log = (line: string) => lines.push(line);
+      const sentry = createCaptureTransport();
+      const errorReporter = createErrorReporter({
+        env: {
+          SENTRY_DSN: 'https://public@o0.ingest.de.sentry.io/1',
+          RAILWAY_ENVIRONMENT_NAME: 'production',
+        },
+        transport: sentry,
+      });
       // The failure of the send is logged to `console.error`.
       const errorLog = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
         lines.push(args.map(String).join(' '));
@@ -382,6 +391,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       // The provider's own error may quote the link it was asked to send.
       const failing = authAt({
         log,
+        overrides: { reportError: (error) => errorReporter.captureError(error) },
         emailTransport: {
           name: 'failing',
           send: (email) =>
@@ -392,12 +402,13 @@ describe('F001 sign in with the emailed code through the API', () => {
 
       expect(transport.sent).toHaveLength(1);
       expect(posthog.events.map(({ event }) => event)).toContain('sign_in_requested');
-      expect(reportedErrors).toHaveLength(1);
+      await errorReporter.flush();
       expect(lines.length).toBeGreaterThan(0);
       expect(JSON.stringify([lines, posthog.events])).not.toContain('pilot-gym');
-      // The error reaches the reporter as it is: the reporter's scrubber masks the link
-      // (packages/observability); what the sign-in code itself reports names no page.
-      expect(String(reportedErrors[0])).not.toContain('pilot-gym');
+      // The provider's error, with the link in its cause, reaches the reporter; what leaves
+      // the process (the scrubbed event, the cause included) names no part of the page.
+      expect(sentry.events).toHaveLength(1);
+      expect(JSON.stringify(sentry.events)).not.toContain('pilot-gym');
     });
 
     it('the link of a request for a page signs in once, like any link', async () => {

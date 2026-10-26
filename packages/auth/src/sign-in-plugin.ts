@@ -18,7 +18,7 @@ export const SIGN_IN_EXPIRES_IN_MINUTES = 15;
 /** The wrong codes after which a verification is dead, the right code included (AC6). */
 export const MAX_WRONG_CODES = 5;
 
-/** Twice the longest path `safeReturnPath` keeps: one in between is dropped there, not refused. */
+/** Twice the longest path `safeReturnPath` keeps: longer than `MAX_RETURN_PATH_LENGTH` and up to this: dropped; longer: 400. */
 const MAX_RETURN_TO_LENGTH = 2 * MAX_RETURN_PATH_LENGTH;
 
 /** The sign-in page's confirm step (TW-10), which the emailed link opens: a page, not an endpoint. */
