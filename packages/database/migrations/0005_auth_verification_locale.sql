@@ -1,0 +1,2 @@
+ALTER TABLE "auth_verifications" ADD COLUMN "locale" text;--> statement-breakpoint
+ALTER TABLE "auth_verifications" ADD CONSTRAINT "auth_verifications_locale_supported" CHECK ("auth_verifications"."locale" IS NULL OR "auth_verifications"."locale" IN ('nl-NL', 'en'));

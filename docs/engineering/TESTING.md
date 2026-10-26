@@ -89,6 +89,7 @@ These are the bugs that hurt most (`ROADMAP.md §13`: R2, R3, R4). They get dedi
 - **Every test creates its own workspace.** Tests never depend on each other's data or on order, and they can run in parallel. This also exercises tenant scoping by default.
 - **Seed data is for local development and the e2e baseline only.** Tests don't modify shared seed data.
 - **No real personal data**, ever. Use obviously fake names and `@example.com` addresses.
+- **Secrets in tests are obviously fake**: low-entropy and self-describing (`fake-link-token-for-tests`, `fake-api-key-for-tests-only`), never a realistic random-looking token or key and never one assembled from parts. A realistic fixture trips the secret scanner (GitGuardian) and hides a real key pasted into a test. `scripts/check.sh` runs `scripts/secrets-in-tests.mjs`, which fails on one; its header says what it looks for, and a fixture that has to stay realistic goes in `scripts/secrets-allowlist.txt` with a reason.
 
 ### 5.3 Database
 
@@ -174,6 +175,8 @@ pnpm test:integration
 Inside a package, `pnpm exec vitest` watches unit tests, `pnpm exec vitest --config vitest.integration.config.ts` integration tests, and in `apps/web`, `pnpm exec playwright test --ui` debugs e2e specs (after `pnpm build` and `pnpm db:up`). Playwright writes `playwright-report/` and `test-results/` (git-ignored); CI uploads them when `E2E (Linux)` fails.
 
 **Writing a Playwright spec:** import `test` and `expect` from `apps/web/e2e/fixtures.ts`. Each spec runs once per locale project (`nl-NL`, `en`); the browser language is set to the project's locale. The `messages` fixture is that locale's catalog, `otherLocale` the other one, for switching. Every test ends with an automatic axe check (WCAG 2.2 A and AA) on the page it left open; call `expectNoAxeViolations(page, 'the open dialog')` for states in between.
+
+**Sign-in specs and the rate limits (F001 AC10, from #134):** sign-in requests are limited per IP address and per email address, so a spec that signs in uses its own `x-real-ip` and its own email address, never one shared with another spec, locale or retry. Which header, the limits and why: [ENVIRONMENTS.md §7](ENVIRONMENTS.md#7-variables) and the [auth README](../../packages/auth/README.md) (both once #134 lands).
 
 ### 7.2 Native tests (E008)
 

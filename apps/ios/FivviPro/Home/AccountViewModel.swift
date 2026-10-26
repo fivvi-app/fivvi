@@ -1,0 +1,117 @@
+import Foundation
+import Observation
+import FivviAPI
+
+/// The signed-in account shown on the home: asks `GET /api/v1/me` through the generated client, which sends the bearer
+/// token (`AuthMiddleware`). A `401` is the middleware's business: it signs the app out. It also signs the person out
+/// on request (`signOut()`, F001 AC10).
+@MainActor
+@Observable
+final class AccountViewModel {
+    enum State: Equatable {
+        case loading
+        case loaded(email: String)
+        /// The API couldn't be reached or didn't answer with the account.
+        case failed
+    }
+
+    private(set) var state = State.loading
+    /// A sign-out is under way: the home shows it and ignores another tap.
+    private(set) var isSigningOut = false
+    private let api: any APIProtocol
+    private let store: any SessionStore
+    private let clock: any Clock<Duration>
+    private let signOutTimeout: Duration
+    private let onSignedOut: (_ afterRejection: Bool) -> Void
+
+    /// `signOutTimeout` is how long a sign-out waits for the API, on `clock`, before it goes on without an answer.
+    /// `onSignedOut` says whether the API refused the token of the sign-out call.
+    init(
+        api: any APIProtocol,
+        store: any SessionStore,
+        clock: any Clock<Duration> = ContinuousClock(),
+        signOutTimeout: Duration = .seconds(10),
+        onSignedOut: @escaping (_ afterRejection: Bool) -> Void
+    ) {
+        self.api = api
+        self.store = store
+        self.clock = clock
+        self.signOutTimeout = signOutTimeout
+        self.onSignedOut = onSignedOut
+    }
+
+    func load() async {
+        state = .loading
+        do {
+            let account = try await api.getMe().ok.body.json
+            state = .loaded(email: account.email)
+        } catch {
+            state = .failed
+        }
+    }
+
+    /// Ends this phone's sign-in session. The token is deleted first, so a phone that is switched off or an app that
+    /// is killed meanwhile opens signed out; the request goes out with a snapshot of it, through the generated client.
+    /// Then the sign-in screen is shown, whatever the answer and also without a connection (the server's session ends
+    /// by itself after 30 days without use). A connection that hangs is not waited for longer than `signOutTimeout`;
+    /// the request goes on in the background. A `401` that arrives within the wait shows the notice of a refused token.
+    func signOut() async {
+        guard !isSigningOut else { return }
+        isSigningOut = true
+        let token = store.token
+        store.deleteToken()
+        var rejected = false
+        if let token { rejected = await sendSignOut(with: token) }
+        isSigningOut = false
+        onSignedOut(rejected)
+    }
+
+    /// Whether the API refused `token`, or false when it said anything else, did not answer or the wait ran out.
+    private func sendSignOut(with token: String) async -> Bool {
+        let api = api
+        let clock = clock
+        let timeout = signOutTimeout
+        return await withCheckedContinuation { continuation in
+            let race = Race(continuation)
+            // Neither task is a child of the other: the first to finish ends the wait. An answer cancels the timer;
+            // a timer that wins leaves the request running.
+            Task {
+                let output = await AuthMiddleware.$requestToken.withValue(token) { try? await api.signOut() }
+                if case .unauthorized = output { race.finish(true) } else { race.finish(false) }
+            }
+            race.setTimer(Task {
+                guard (try? await clock.sleep(for: timeout)) != nil else { return }
+                race.finish(false)
+            })
+        }
+    }
+}
+
+/// Resumes its continuation with the first answer only and cancels the timer; the request, if it lost, goes on.
+private final class Race: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Bool, Never>?
+    private var timer: Task<Void, Never>?
+
+    init(_ continuation: CheckedContinuation<Bool, Never>) {
+        self.continuation = continuation
+    }
+
+    func finish(_ rejected: Bool) {
+        let (continuation, timer) = lock.withLock {
+            defer { self.continuation = nil }
+            return (self.continuation, self.timer)
+        }
+        timer?.cancel()
+        continuation?.resume(returning: rejected)
+    }
+
+    /// Hands over the timer; if the race is already over it is cancelled at once.
+    func setTimer(_ timer: Task<Void, Never>) {
+        let over = lock.withLock {
+            self.timer = timer
+            return continuation == nil
+        }
+        if over { timer.cancel() }
+    }
+}

@@ -31,12 +31,12 @@ const PERSONAL = [
 function eventWithPersonalData(): ErrorEvent {
   return {
     type: undefined,
-    event_id: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+    event_id: '11111111111111111111111111111111',
     timestamp: 1_760_000_000,
     level: 'error',
     platform: 'node',
     environment: 'production',
-    release: '0123456789abcdef0123456789abcdef01234567',
+    release: '1111111111111111111111111111111111111111',
     transaction: `POST ${ROUTE}`,
     message: `Could not invite ${EMAIL}`,
     exception: {
@@ -108,12 +108,12 @@ describe('E009 scrubber', () => {
     for (const value of PERSONAL) expect(sent).not.toContain(value);
     expect(scrubbed).toEqual({
       type: undefined,
-      event_id: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+      event_id: '11111111111111111111111111111111',
       timestamp: 1_760_000_000,
       level: 'error',
       platform: 'node',
       environment: 'production',
-      release: '0123456789abcdef0123456789abcdef01234567',
+      release: '1111111111111111111111111111111111111111',
       transaction: `POST ${ROUTE}`,
       message: 'Could not invite [email]',
       exception: {
@@ -181,6 +181,77 @@ describe('E009 scrubber', () => {
       level: 'info',
       timestamp: 1_759_999_999,
       data: { method: 'POST', url: 'https://api.brevo.com/v3/smtp/email', status_code: 201 },
+    });
+  });
+
+  describe('F001 AC16: sign-in secrets', () => {
+    const SIGN_IN_EMAIL = 'owner@example.com';
+    const CODE = '493027';
+    const LINK_TOKEN = 'fake-link-token-for-scrub-tests';
+    const SECRETS = [SIGN_IN_EMAIL, 'owner', CODE, LINK_TOKEN];
+
+    function signInEvent(): ErrorEvent {
+      return {
+        type: undefined,
+        level: 'error',
+        message: `Sign-in failed for ${SIGN_IN_EMAIL}`,
+        exception: {
+          values: [
+            {
+              type: 'TypeError',
+              value: `fetch failed: https://fivvi.app/login/confirm?token=${LINK_TOKEN}&code=${CODE} for ${SIGN_IN_EMAIL}`,
+            },
+          ],
+        },
+        request: {
+          method: 'POST',
+          url: `https://fivvi.app/api/auth/sign-in/link/confirm?token=${LINK_TOKEN}`,
+          query_string: `token=${LINK_TOKEN}`,
+          data: { email: SIGN_IN_EMAIL, code: CODE, token: LINK_TOKEN },
+          headers: {
+            'content-type': 'application/json',
+            referer: `https://fivvi.app/login/confirm?token=${LINK_TOKEN}`,
+          },
+        },
+        user: { email: SIGN_IN_EMAIL },
+        extra: { email: SIGN_IN_EMAIL, code: CODE, token: LINK_TOKEN },
+        breadcrumbs: [
+          {
+            category: 'fetch',
+            message: `POST /api/auth/sign-in/code/verify {"email":"${SIGN_IN_EMAIL}","code":"${CODE}"}`,
+            data: {
+              method: 'POST',
+              url: `/api/auth/sign-in/code/verify?code=${CODE}`,
+              status_code: 401,
+              request_body: { email: SIGN_IN_EMAIL, code: CODE },
+            },
+          },
+          { category: 'navigation', data: { to: `/login/confirm?token=${LINK_TOKEN}` } },
+        ],
+      };
+    }
+
+    it('AC16: removes an email address, a code and a link token from an event', () => {
+      const scrubbed = scrubEvent(signInEvent());
+
+      const sent = JSON.stringify(scrubbed);
+      for (const secret of SECRETS) expect(sent).not.toContain(secret);
+      expect(scrubbed.message).toBe('Sign-in failed for [email]');
+      expect(scrubbed.exception?.values?.[0]?.value).toBe(
+        'fetch failed: https://fivvi.app/login/confirm?token=[redacted]&code=[redacted] for [email]',
+      );
+      expect(scrubbed.request).toEqual({
+        method: 'POST',
+        url: 'https://fivvi.app/api/auth/sign-in/link/confirm',
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+
+    it('AC16: removes them from breadcrumbs', () => {
+      for (const breadcrumb of signInEvent().breadcrumbs ?? []) {
+        const sent = JSON.stringify(scrubBreadcrumb(breadcrumb));
+        for (const secret of SECRETS) expect(sent).not.toContain(secret);
+      }
     });
   });
 });

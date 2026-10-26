@@ -222,7 +222,7 @@ final class ObservabilityTests: XCTestCase {
         var sent: [[String: Any]?] = []
     }
 
-    private static func withoutTimestamp(_ breadcrumb: [String: Any]) -> NSDictionary {
+    static func withoutTimestamp(_ breadcrumb: [String: Any]) -> NSDictionary {
         breadcrumb.filter { $0.key != "timestamp" } as NSDictionary
     }
 

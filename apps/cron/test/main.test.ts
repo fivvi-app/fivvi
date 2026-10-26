@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { startFakeSentry } from './fake-sentry.ts';
 import { runMain, SPAWN_TEST_TIMEOUT_MS } from './run-main.ts';
 
-const SHA = '0123456789abcdef0123456789abcdef01234567';
+const SHA = '1111111111111111111111111111111111111111';
 
 describe('E003 cron entrypoint', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => {
   it('exits 1 with a clear message when DATABASE_URL is missing', async () => {

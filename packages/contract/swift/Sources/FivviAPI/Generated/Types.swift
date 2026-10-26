@@ -25,6 +25,34 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/hello`.
     /// - Remark: Generated from `#/paths//v1/hello/get(getHello)`.
     func getHello(_ input: Operations.GetHello.Input) async throws -> Operations.GetHello.Output
+    /// The signed-in account
+    ///
+    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie.
+    ///
+    /// - Remark: HTTP `GET /v1/me`.
+    /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
+    func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output
+    /// Ask for a sign-in email
+    ///
+    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+    ///
+    /// - Remark: HTTP `POST /v1/sign-in/request`.
+    /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)`.
+    func requestSignIn(_ input: Operations.RequestSignIn.Input) async throws -> Operations.RequestSignIn.Output
+    /// Exchange the emailed code for a bearer token
+    ///
+    /// Uses up the verification of the email (the web’s link and code are the same one), creates the account at the first sign-in of an allowed address, and returns a bearer token. It sets no cookie. Every failure gets the same 401.
+    ///
+    /// - Remark: HTTP `POST /v1/sign-in/token`.
+    /// - Remark: Generated from `#/paths//v1/sign-in/token/post(exchangeSignInCode)`.
+    func exchangeSignInCode(_ input: Operations.ExchangeSignInCode.Input) async throws -> Operations.ExchangeSignInCode.Output
+    /// Sign out
+    ///
+    /// Ends the sign-in session of the bearer token in the request, and only that one. Other phones and browsers of the account stay signed in.
+    ///
+    /// - Remark: HTTP `POST /v1/sign-out`.
+    /// - Remark: Generated from `#/paths//v1/sign-out/post(signOut)`.
+    func signOut(_ input: Operations.SignOut.Input) async throws -> Operations.SignOut.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -52,6 +80,54 @@ extension APIProtocol {
             query: query,
             headers: headers
         ))
+    }
+    /// The signed-in account
+    ///
+    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie.
+    ///
+    /// - Remark: HTTP `GET /v1/me`.
+    /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
+    public func getMe(headers: Operations.GetMe.Input.Headers = .init()) async throws -> Operations.GetMe.Output {
+        try await getMe(Operations.GetMe.Input(headers: headers))
+    }
+    /// Ask for a sign-in email
+    ///
+    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+    ///
+    /// - Remark: HTTP `POST /v1/sign-in/request`.
+    /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)`.
+    public func requestSignIn(
+        headers: Operations.RequestSignIn.Input.Headers = .init(),
+        body: Operations.RequestSignIn.Input.Body
+    ) async throws -> Operations.RequestSignIn.Output {
+        try await requestSignIn(Operations.RequestSignIn.Input(
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Exchange the emailed code for a bearer token
+    ///
+    /// Uses up the verification of the email (the web’s link and code are the same one), creates the account at the first sign-in of an allowed address, and returns a bearer token. It sets no cookie. Every failure gets the same 401.
+    ///
+    /// - Remark: HTTP `POST /v1/sign-in/token`.
+    /// - Remark: Generated from `#/paths//v1/sign-in/token/post(exchangeSignInCode)`.
+    public func exchangeSignInCode(
+        headers: Operations.ExchangeSignInCode.Input.Headers = .init(),
+        body: Operations.ExchangeSignInCode.Input.Body
+    ) async throws -> Operations.ExchangeSignInCode.Output {
+        try await exchangeSignInCode(Operations.ExchangeSignInCode.Input(
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Sign out
+    ///
+    /// Ends the sign-in session of the bearer token in the request, and only that one. Other phones and browsers of the account stay signed in.
+    ///
+    /// - Remark: HTTP `POST /v1/sign-out`.
+    /// - Remark: Generated from `#/paths//v1/sign-out/post(signOut)`.
+    public func signOut(headers: Operations.SignOut.Input.Headers = .init()) async throws -> Operations.SignOut.Output {
+        try await signOut(Operations.SignOut.Input(headers: headers))
     }
 }
 

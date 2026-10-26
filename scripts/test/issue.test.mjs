@@ -127,6 +127,109 @@ describe('issue.sh', () => {
     });
   });
 
+  describe('create spec', () => {
+    const spec = (...extra) =>
+      issueSh(
+        [{ match: '^issue create ', out: 'https://github.com/example/fivvi/issues/90' }],
+        'create',
+        'spec',
+        '--title',
+        '[F050] Billing',
+        '--body-file',
+        '-',
+        ...extra,
+      );
+    const labelsOf = (args) => args.flatMap((arg, i) => (args[i - 1] === '--label' ? [arg] : []));
+
+    it('ADR-021: accepts --label owner-only, next to the spec label', () => {
+      const result = spec('--label', 'owner-only');
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(labelsOf(create(result.calls)), ['spec', 'owner-only']);
+    });
+
+    it('also accepts --label owner-merge', () => {
+      const result = spec('--label', 'owner-merge');
+      assert.deepEqual(labelsOf(create(result.calls)), ['spec', 'owner-merge']);
+    });
+  });
+
+  describe('label', () => {
+    const rules = [viewOf(50, ['spec', 'owner-only']), { match: '^issue edit ', out: '' }];
+
+    it('adds and removes ordinary labels', () => {
+      const result = issueSh(rules, 'label', '50', '--add', 'needs-info', '--remove', 'spec');
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(edit(result.calls).slice(-4), [
+        '--add-label',
+        'needs-info',
+        '--remove-label',
+        'spec',
+      ]);
+    });
+
+    // ADR-021 decision 2: only the owner removes owner-only (or owner-merge); an agent doing it would lower the risk
+    // of its own PR.
+    it('ADR-021: refuses to remove owner-only or owner-merge, whatever the case, and changes nothing', () => {
+      for (const label of ['owner-only', 'owner-merge', 'Owner-Only', 'OWNER-MERGE']) {
+        const result = issueSh(rules, 'label', '50', '--add', 'needs-info', '--remove', label);
+        assert.equal(result.status, 1, label);
+        assert.match(result.stderr, /only the owner removes owner-only and owner-merge/, label);
+        assert.equal(edit(result.calls), undefined, label);
+      }
+    });
+
+    // gh splits label flags on commas and reads CSV quotes, so these all remove owner-only.
+    it('ADR-021: refuses owner-only or owner-merge inside a comma list, quoted or spaced, and changes nothing', () => {
+      const values = [
+        'bug,owner-only',
+        'owner-only,bug',
+        'bug, owner-only',
+        ' owner-only ',
+        'bug,Owner-Merge',
+        '"owner-only"',
+        '"bug","owner-only"',
+        'bug,"owner-merge"',
+        'bug,\tOWNER-ONLY\t,spec',
+      ];
+      for (const value of values) {
+        const result = issueSh(rules, 'label', '50', '--remove', value);
+        assert.equal(result.status, 1, value);
+        assert.match(result.stderr, /only the owner removes owner-only and owner-merge/, value);
+        assert.equal(edit(result.calls), undefined, value);
+      }
+    });
+
+    it('ADR-021: refuses when a later --remove carries the label', () => {
+      const result = issueSh(
+        rules,
+        'label',
+        '50',
+        '--remove',
+        'bug',
+        '--remove',
+        'spec,owner-only',
+      );
+      assert.equal(result.status, 1);
+      assert.equal(edit(result.calls), undefined);
+    });
+
+    it('removes a comma list of ordinary labels, and names that only contain the protected ones', () => {
+      for (const value of ['bug,spec', '"bug", "spec"', 'owner-only-not,my-owner-merge']) {
+        const result = issueSh(rules, 'label', '50', '--remove', value);
+        assert.equal(result.status, 0, `${value}: ${result.stderr}`);
+        assert.ok(edit(result.calls).includes(value), value);
+      }
+    });
+
+    it('ADR-021: still adds owner-only and owner-merge', () => {
+      for (const label of ['owner-only', 'owner-merge']) {
+        const result = issueSh(rules, 'label', '50', '--add', label);
+        assert.equal(result.status, 0, result.stderr);
+        assert.ok(edit(result.calls).includes(label), label);
+      }
+    });
+  });
+
   describe('ready', () => {
     const item = (number, names, parent) => ({
       match: `^issue view ${number} `,

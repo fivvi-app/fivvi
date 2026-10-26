@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./allowlist": "./src/allowlist.ts"
   },
   "scripts": {
     "lint": "biome check --formatter-enabled=false --error-on-warnings .",
@@ -16,6 +17,7 @@
     "@fivvi/database": "workspace:*",
     "@fivvi/email": "workspace:*",
     "@fivvi/i18n": "workspace:*",
+    "@fivvi/observability": "workspace:*",
     "better-auth": "catalog:",
     "drizzle-orm": "catalog:",
     "zod": "catalog:"

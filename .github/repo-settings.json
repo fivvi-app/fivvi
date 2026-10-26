@@ -14,7 +14,12 @@
     {
       "name": "owner-merge",
       "color": "b60205",
-      "description": "The owner merges the PRs of this issue, or of every ticket of this spec"
+      "description": "High-risk work: the PRs of this issue, or of every ticket of this spec, are recorded as high-risk (agents may queue them)"
+    },
+    {
+      "name": "owner-only",
+      "color": "5319e7",
+      "description": "Only the owner merges the PRs of this issue, or of every ticket of this spec (legal, money, the agents' own rules)"
     },
     {
       "name": "run-native",

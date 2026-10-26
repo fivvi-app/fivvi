@@ -115,13 +115,14 @@ describe('github-settings.sh apply', () => {
     assert.deepEqual(JSON.parse(repo.input), SETTINGS.merge);
   });
 
-  it('creates or updates the spec-approved, owner-merge and run-native labels', () => {
+  it('creates or updates the spec-approved, owner-merge, owner-only and run-native labels', () => {
     const labels = apply([]).filter((call) => call.args[0] === 'label');
     assert.deepEqual(
       labels.map((call) => [call.args[2], call.args.includes('--force')]),
       [
         ['spec-approved', true],
         ['owner-merge', true],
+        ['owner-only', true],
         ['run-native', true],
       ],
     );

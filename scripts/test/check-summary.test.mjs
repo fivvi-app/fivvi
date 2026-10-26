@@ -347,6 +347,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     for (const other of ['skills', 'agents', 'emails', 'secrets']) {
       write(join(repo(), 'scripts', `${other}.sh`), '#!/usr/bin/env bash\nexit 0\n', 0o755);
     }
+    write(join(repo(), 'scripts/secrets-in-tests.mjs'), 'process.exit(0);\n');
     write(join(repo(), '.githooks/pre-push'), '#!/usr/bin/env bash\nexit 0\n', 0o755);
     write(join(repo(), 'packages/database/.env'), 'DATABASE_URL=postgres://test\n');
     execFileSync('git', ['init', '--quiet', '--initial-branch=main', repo()], { env: gitEnv() });

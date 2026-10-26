@@ -24,7 +24,7 @@ const pem = (kind = '') =>
   `${dashes}BEGIN ${kind}PRIVATE KEY${dashes}\nMIGTAgEAsentinel\n${dashes}END ${kind}PRIVATE KEY${dashes}\n`;
 const awsKey = `AK${'IA'}${'0123456789ABCDEF'}`;
 const githubToken = `gh${'p'}_${'a1B2c3D4e5F6'.repeat(3)}`;
-const slackToken = `xo${'xb'}-123456789012-abcdefghijkl`;
+const slackToken = `xo${'xb'}-fake-slack-token-for-tests`;
 const sentryOrgToken = `sntry${'s'}_${'a1b2c3d4'.repeat(5)}`;
 const sentryUserToken = `sntry${'u'}_${'0123456789abcdef'.repeat(4)}`;
 

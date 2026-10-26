@@ -1,14 +1,18 @@
-# Whether an agent may merge a PR (ADR-016, decision 3), from the facts scripts/pr.sh merge collects. Pure: no I/O.
-# Input:  {head, default_branch, pr: {number, state, draft, base, body}, risk: {risk, reasons},
+# Whether an agent may merge a PR (ADR-016, decision 3; ADR-021), from the facts scripts/pr.sh merge collects.
+# Pure: no I/O.
+# Input:  {head, default_branch, pr: {number, state, draft, base, body}, risk: {risk: low|high|owner, reasons},
 #          required: [check name], checks: [statusCheckRollup entry], preview, queue_removed, threads}
 # preview: whether the head commit has a Railway preview, "yes", "no" or "pending" (pr.sh preview_of, the definition
 # pr.sh smoke uses too; the checks can't tell: Railway's status is green also when it skipped the deploy).
 # queue_removed: whether the merge queue removed the head commit (pr.sh queue_state); only the owner queues it again.
 # $review_mark, $smoke_mark: the marks of the records pr.sh writes in the PR body (`**<mark>:** …`).
 # $no_preview: what pr.sh smoke records when there is no preview.
+# The first condition is "not owner-only": low and high pass, owner (and an unknown risk) fails (ADR-021).
 # There is no "up to date with main" condition: the merge queue tests every PR on top of the latest main (ADR-018).
 # Output: {merge, conditions: [{name, ok, detail}]}; merge only when every condition holds. A missing fact fails:
 # a head that isn't a full commit SHA, no required checks, an unknown preview, or a record that names no commit.
+
+include "records" {search: "./"};
 
 def short: .[:7];
 def is_sha: type == "string" and test("^[0-9a-f]{40}$");
@@ -21,11 +25,6 @@ def results:
     result: (if .__typename == "StatusContext" then .state
              elif .status != "COMPLETED" then "PENDING"
              else .conclusion end)}];
-
-# The last line of the PR body that records <mark> (`**<mark>:** …`, written by pr.sh), or null.
-def record($mark):
-  [.pr.body | split("\n")[] | rtrimstr("\r") | select(startswith("**\($mark):**"))] | last // null;
-def record_sha: if . == null then null else (capture("`(?<sha>[0-9a-f]{40})`").sha // null) end;
 
 def checks_on_head:
   .head as $head
@@ -56,13 +55,15 @@ def on_head($what; $line):
 
 . as $f
 | [
-    {name: "low-risk", ok: (.risk.risk == "low"),
-     detail: (if .risk.risk == "low" then "no high-risk path or owner-merge label"
-              else "high-risk: \(.risk.reasons | join("; "))" end)},
+    {name: "not owner-only", ok: (.risk.risk | IN("low", "high")),
+     detail: (if .risk.risk == "low" then "no high-risk path or label"
+              elif .risk.risk == "high" then "high-risk, agent-queueable: \(.risk.reasons | join("; "))"
+              elif .risk.risk == "owner" then "owner-only: \(.risk.reasons | join("; "))"
+              else "the risk is unknown: the owner decides" end)},
     checks_passed,
-    {name: "self-review clean"} + on_head("self-review"; $f | record($review_mark)),
+    {name: "self-review clean"} + on_head("self-review"; $f.pr.body | record($review_mark)),
     {name: "preview smoke-checked"} + (
-      ($f | record($smoke_mark)) as $line
+      ($f.pr.body | record($smoke_mark)) as $line
       | if $f.preview | IN("yes", "no", "pending") | not then {ok: false, detail: "whether the PR has a preview is unknown"}
         elif $f.preview == "pending" then {ok: false, detail: "the preview of \($f.head | short) is still deploying"}
         else on_head("smoke check"; $line) end

@@ -1,6 +1,7 @@
 // E017 AC7: the owner's secret-setup script (scripts/release-secrets.sh), run against a fake gh and synthetic files. Every
-// value is a made-up sentinel the tests can look for anywhere it must not appear; the ones a scanner could take for real secrets
-// are built from parts, so no secret scanner takes them for real ones.
+// value is a made-up sentinel the tests can look for anywhere it must not appear: low-entropy and self-describing, as
+// docs/engineering/TESTING.md asks. The ones shaped like what scripts/secrets.sh finds (a PEM header, a Sentry token) are
+// built from parts, so this file does not trip that check, and none is random-looking (scripts/secrets-in-tests.mjs).
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
@@ -23,12 +24,12 @@ const ROOT = join(import.meta.dirname, '../..');
 const SCRIPT = join(ROOT, 'scripts/release-secrets.sh');
 
 const SENTINEL = {
-  certificate: 'P12-BYTES-sentinel-7f3a\u0001\u0002binary',
+  certificate: 'synthetic-certificate-bytes\u0001\u0002binary',
   certificateAnswer: ['cert', 'answer', 'sentinel', '91c4'].join('-'),
   profile: 'PROFILE-BYTES-sentinel-2b8d',
   apiKey: [
     '-----BEGIN ',
-    'PRIVATE KEY-----\nMIGTAgEAsentinel5e17\n-----END PRIVATE KEY-----\n',
+    'PRIVATE KEY-----\nfake-key-body-for-tests\n-----END PRIVATE KEY-----\n',
   ].join(''),
   keyId: 'KEYID-sentinel-X1',
   issuerId: 'ISSUER-sentinel-00aa-bb',

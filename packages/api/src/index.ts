@@ -11,4 +11,7 @@ export {
   type HealthResponse,
   HealthResponseSchema,
 } from './routes/health.ts';
-export { HelloResponseSchema, LocaleSchema } from './routes/hello.ts';
+export { HelloResponseSchema } from './routes/hello.ts';
+export { MeResponseSchema } from './routes/me.ts';
+export { SignInTokenResponseSchema } from './routes/sign-in.ts';
+export { LocaleSchema } from './schemas.ts';

@@ -177,5 +177,142 @@ extension Components {
                 case issues
             }
         }
+        /// The signed-in account.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MeResponse`.
+        public struct MeResponse: Codable, Hashable, Sendable {
+            /// The account ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeResponse/id`.
+            public var id: Swift.String
+            /// The address the account signs in with.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeResponse/email`.
+            public var email: Swift.String
+            /// The language stored on the account; null until one is stored.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeResponse/preferredLocale`.
+            @frozen public enum PreferredLocalePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case nlNL = "nl-NL"
+                case en = "en"
+                case _empty_ = ""
+            }
+            /// The language stored on the account; null until one is stored.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeResponse/preferredLocale`.
+            public var preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload?
+            /// Creates a new `MeResponse`.
+            ///
+            /// - Parameters:
+            ///   - id: The account ID.
+            ///   - email: The address the account signs in with.
+            ///   - preferredLocale: The language stored on the account; null until one is stored.
+            public init(
+                id: Swift.String,
+                email: Swift.String,
+                preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload? = nil
+            ) {
+                self.id = id
+                self.email = email
+                self.preferredLocale = preferredLocale
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case email
+                case preferredLocale
+            }
+        }
+        /// The request has no valid sign-in session. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Unauthorized`.
+        public struct Unauthorized: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/Unauthorized/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case unauthorized = "unauthorized"
+            }
+            /// - Remark: Generated from `#/components/schemas/Unauthorized/code`.
+            public var code: Components.Schemas.Unauthorized.CodePayload
+            /// Creates a new `Unauthorized`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.Unauthorized.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
+        /// Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SignInRequest`.
+        public struct SignInRequest: Codable, Hashable, Sendable {
+            /// The address the account signs in with.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SignInRequest/email`.
+            public var email: Swift.String
+            /// - Remark: Generated from `#/components/schemas/SignInRequest/locale`.
+            public var locale: Components.Schemas.Locale
+            /// Creates a new `SignInRequest`.
+            ///
+            /// - Parameters:
+            ///   - email: The address the account signs in with.
+            ///   - locale:
+            public init(
+                email: Swift.String,
+                locale: Components.Schemas.Locale
+            ) {
+                self.email = email
+                self.locale = locale
+            }
+            public enum CodingKeys: String, CodingKey {
+                case email
+                case locale
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/SignInTokenResponse`.
+        public struct SignInTokenResponse: Codable, Hashable, Sendable {
+            /// The bearer token: a sign-in session, valid 30 days after its last use and renewed on use. Send it as `Authorization: Bearer <token>`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SignInTokenResponse/token`.
+            public var token: Swift.String
+            /// Creates a new `SignInTokenResponse`.
+            ///
+            /// - Parameters:
+            ///   - token: The bearer token: a sign-in session, valid 30 days after its last use and renewed on use. Send it as `Authorization: Bearer <token>`.
+            public init(token: Swift.String) {
+                self.token = token
+            }
+            public enum CodingKeys: String, CodingKey {
+                case token
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/SignInTokenRequest`.
+        public struct SignInTokenRequest: Codable, Hashable, Sendable {
+            /// The address the account signs in with.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SignInTokenRequest/email`.
+            public var email: Swift.String
+            /// The 6-digit code in the email.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SignInTokenRequest/code`.
+            public var code: Swift.String
+            /// Creates a new `SignInTokenRequest`.
+            ///
+            /// - Parameters:
+            ///   - email: The address the account signs in with.
+            ///   - code: The 6-digit code in the email.
+            public init(
+                email: Swift.String,
+                code: Swift.String
+            ) {
+                self.email = email
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case email
+                case code
+            }
+        }
     }
 }
