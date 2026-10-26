@@ -41,7 +41,7 @@ final class ObservabilitySignInTests: XCTestCase {
 
     private static let address = "owner@example.com"
     private static let code = "493817"
-    private static let token = "bearer-token-0a1b2c3d4e5f"
+    private static let token = "fake-bearer-token-for-tests"
 
     /// What Sentry would hold after a refused code: the request with its headers, the taps and calls before it, and
     /// everything an SDK or an app could attach, with the email field, the code and the token in each.

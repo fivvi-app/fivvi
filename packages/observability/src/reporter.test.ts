@@ -3,7 +3,7 @@ import { createCaptureTransport } from './capture.ts';
 import { createErrorReporter } from './reporter.ts';
 
 const DSN = 'https://public@o0.ingest.de.sentry.io/1';
-const SHA = '0123456789abcdef0123456789abcdef01234567';
+const SHA = '1111111111111111111111111111111111111111';
 const ENV = { SENTRY_DSN: DSN, RAILWAY_ENVIRONMENT_NAME: 'pr-43', RAILWAY_GIT_COMMIT_SHA: SHA };
 
 describe('E009 error reporter', () => {
