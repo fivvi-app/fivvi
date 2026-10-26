@@ -38,6 +38,13 @@ const EXPECTED = {
   },
 };
 
+// The tools each agent may use in Claude Code (`claude-tools` in its source, `tools:` in the generated definition).
+const CLAUDE_TOOLS = {
+  builder: 'Bash, Read, Edit, Write, Glob, Grep, Monitor, TaskStop, WebFetch, WebSearch',
+  reviewer: 'Bash, Read, Glob, Grep, WebFetch',
+  mechanic: 'Bash, Read, Edit, Write, Glob, Grep, Monitor',
+};
+
 const read = (root, path) => readFileSync(join(root, path), 'utf8');
 const write = (root, path, text) => writeFileSync(join(root, path), text);
 const replaceIn = (root, path, from, to) => {
@@ -57,6 +64,18 @@ describe('agent definitions in the repo', () => {
       const [model, effort] = EXPECTED[name].codex;
       assert.match(codex, new RegExp(`^model = "${model}"$`, 'm'), `codex ${name}`);
       assert.match(codex, new RegExp(`^model_reasoning_effort = "${effort}"$`, 'm'), name);
+    }
+  });
+
+  it('limits each Claude Code agent to its tools, right after the model', () => {
+    for (const name of NAMES) {
+      const claude = read(REPO, `.claude/agents/${name}.md`);
+      assert.ok(
+        claude.includes(`\nmodel: ${EXPECTED[name].claude}\ntools: ${CLAUDE_TOOLS[name]}\n---\n`),
+        name,
+      );
+      assert.doesNotMatch(read(REPO, `.github/agents/${name}.agent.md`), /^tools:/m, name);
+      assert.doesNotMatch(read(REPO, `.codex/agents/${name}.toml`), /tools/, name);
     }
   });
 
@@ -165,6 +184,27 @@ describe('agents.sh', () => {
     fresh();
     replaceIn(repo, '.agents/agents/reviewer.md', 'tier: high', 'tier: mid');
     failsWith(/reviewer\.md: tier is mid, it must be high/);
+  });
+
+  it('fails when an agent has no claude-tools, so it would inherit every tool', () => {
+    for (const name of NAMES) {
+      fresh();
+      replaceIn(repo, `.agents/agents/${name}.md`, `claude-tools: ${CLAUDE_TOOLS[name]}\n`, '');
+      failsWith(new RegExp(`${name}\\.md: no claude-tools`));
+    }
+    fresh();
+    replaceIn(repo, '.agents/agents/builder.md', `claude-tools: ${CLAUDE_TOOLS.builder}`, 'claude-tools: ');
+    failsWith(/builder\.md: no claude-tools/);
+  });
+
+  it('renders claude-tools only into the Claude Code definition', () => {
+    fresh();
+    replaceIn(repo, '.agents/agents/reviewer.md', 'claude-tools: Bash, Read, Glob, Grep, WebFetch', 'claude-tools: Read, Grep');
+    sync();
+    assert.match(read(repo, '.claude/agents/reviewer.md'), /^model: opus\ntools: Read, Grep\n---$/m);
+    assert.doesNotMatch(read(repo, '.github/agents/reviewer.agent.md'), /Read, Grep|claude-tools/);
+    assert.doesNotMatch(read(repo, '.codex/agents/reviewer.toml'), /Read, Grep|claude-tools/);
+    assert.equal(agents('check').status, 0);
   });
 
   it('fails when a tier is unknown', () => {
