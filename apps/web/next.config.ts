@@ -7,6 +7,10 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  // `next dev` writes apps/web/AGENTS.md and CLAUDE.md (the Next.js agent rules) when it detects an
+  // AI coding agent. They are untracked, block `scripts/pr.sh create`, and would add a second
+  // agent-rules file next to the repo's AGENTS.md. The repo's own rules are the only ones (#236).
+  agentRules: false,
   // Source maps and debug IDs for Sentry. scripts/publish-source-maps.ts uploads the maps and
   // deletes them from the build output, so they are never served (E009).
   productionBrowserSourceMaps: true,
