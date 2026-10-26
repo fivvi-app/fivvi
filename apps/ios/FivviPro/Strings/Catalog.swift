@@ -41,6 +41,12 @@ struct Catalog: Sendable {
         }
         return text
     }
+
+    /// The text for a key whose message has placeholders (`%1$@`, in the order of the message's sorted names), filled
+    /// with `arguments`.
+    func string(_ key: StringKey, _ arguments: any CVarArg...) -> String {
+        String(format: self[key], locale: formattingLocale, arguments: arguments)
+    }
 }
 
 /// The i18n keys the app uses directly (packages/i18n/{nl-NL,en}.json).
@@ -48,6 +54,20 @@ enum StringKey: String {
     case commonLoading = "common.loading"
     case commonRetry = "common.retry"
     case helloError = "hello.error"
+    case homeSignedInAs = "home.signedInAs"
+    case signInTitle = "signIn.title"
+    case signInEmailLabel = "signIn.emailLabel"
+    case signInSendCode = "signIn.sendCode"
+    case signInCheckEmailTitle = "signIn.checkEmailTitle"
+    case signInCheckEmailBodyApp = "signIn.checkEmailBodyApp"
+    case signInCodeLabel = "signIn.codeLabel"
+    case signInCodeHelp = "signIn.codeHelp"
+    case signInSubmitCode = "signIn.submitCode"
+    case signInSignedOutNotice = "signIn.signedOutNotice"
+    case signInErrorsInvalidEmail = "signIn.errors.invalidEmail"
+    case signInErrorsInvalidOrExpiredCode = "signIn.errors.invalidOrExpiredCode"
+    case signInErrorsNoConnection = "signIn.errors.noConnection"
+    case signInErrorsGeneric = "signIn.errors.generic"
 }
 
 extension Components.Schemas.Locale {
