@@ -205,6 +205,6 @@ class SessionStoreTest {
     }
 
     private companion object {
-        const val TOKEN = "Zk3-sample-session-token-0123456789"
+        const val TOKEN = "fake-session-token-for-tests"
     }
 }
