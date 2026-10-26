@@ -73,7 +73,8 @@ final class AccountViewModel {
         let timeout = signOutTimeout
         return await withCheckedContinuation { continuation in
             let race = Race(continuation)
-            // Neither task is a child of the other, so the first to finish cancels the other and the wait ends there.
+            // Neither task is a child of the other: the first to finish ends the wait. An answer cancels the timer;
+            // a timer that wins leaves the request running.
             Task {
                 let output = await AuthMiddleware.$requestToken.withValue(token) { try? await api.signOut() }
                 if case .unauthorized = output { race.finish(true) } else { race.finish(false) }
@@ -91,7 +92,6 @@ private final class Race: @unchecked Sendable {
     private let lock = NSLock()
     private var continuation: CheckedContinuation<Bool, Never>?
     private var timer: Task<Void, Never>?
-    private var finished = false
 
     init(_ continuation: CheckedContinuation<Bool, Never>) {
         self.continuation = continuation
@@ -99,7 +99,6 @@ private final class Race: @unchecked Sendable {
 
     func finish(_ rejected: Bool) {
         let (continuation, timer) = lock.withLock {
-            finished = true
             defer { self.continuation = nil }
             return (self.continuation, self.timer)
         }
@@ -111,7 +110,7 @@ private final class Race: @unchecked Sendable {
     func setTimer(_ timer: Task<Void, Never>) {
         let over = lock.withLock {
             self.timer = timer
-            return finished
+            return continuation == nil
         }
         if over { timer.cancel() }
     }

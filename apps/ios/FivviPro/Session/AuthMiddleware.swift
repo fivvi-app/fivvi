@@ -23,15 +23,12 @@ struct AuthMiddleware: ClientMiddleware {
         operationID: String,
         next: @Sendable (HTTPRequest, HTTPBody?, URL) async throws -> (HTTPResponse, HTTPBody?)
     ) async throws -> (HTTPResponse, HTTPBody?) {
-        if let requestToken = Self.requestToken {
-            var request = request
-            request.headerFields[.authorization] = "Bearer \(requestToken)"
-            return try await next(request, body, baseURL)
-        }
-        guard let token = store.token else { return try await next(request, body, baseURL) }
+        let usesSignOutToken = Self.requestToken != nil
+        guard let token = Self.requestToken ?? store.token else { return try await next(request, body, baseURL) }
         var request = request
         request.headerFields[.authorization] = "Bearer \(token)"
         let (response, responseBody) = try await next(request, body, baseURL)
+        if usesSignOutToken { return (response, responseBody) }
         // Only if the token is still the one that was sent: a late answer for an old token must not sign out a
         // sign-in that happened in the meantime.
         // The compare and the delete are two Keychain calls, not one atomic step; a sign-in landing between them is

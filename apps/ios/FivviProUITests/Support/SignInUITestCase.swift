@@ -21,10 +21,16 @@ class SignInUITestCase: XCTestCase {
     }
 
     /// No text is clipped or cut off, and every element fits the window's width. A text field keeps what is typed on
-    /// one line and scrolls it, so the audit's "may be clipped" for a field that holds text is not counted.
+    /// one line and scrolls it, so the audit's "may be clipped" for a field whose value is typed text (not empty, not
+    /// its placeholder) is not counted; an empty field showing its placeholder is audited.
     func assertReadable(_ screen: SignInScreen, _ elements: [XCUIElement]) throws {
+        // The message and the keyboard shift the layout for a moment; audit the settled screen.
+        for element in elements { screen.settle(element) }
         try screen.app.performAccessibilityAudit(for: [.textClipped, .dynamicType, .hitRegion]) { issue in
-            if issue.auditType == .textClipped, issue.element?.elementType == .textField { return true }
+            if issue.auditType == .textClipped, let field = issue.element, field.elementType == .textField,
+               let typed = field.value as? String, !typed.isEmpty, typed != field.placeholderValue {
+                return true
+            }
             XCTFail("\(issue.auditType) on \(issue.element?.identifier ?? "-"): \(issue.detailedDescription)")
             return true
         }

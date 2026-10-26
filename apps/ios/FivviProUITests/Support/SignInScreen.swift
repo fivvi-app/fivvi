@@ -52,10 +52,8 @@ struct SignInScreen {
         XCTAssertTrue(code.waitUntilExists(timeout: timeout), "the code step opens")
     }
 
-    /// Taps `element` once it has stopped moving (the keyboard and the messages shift the layout for a moment), after
-    /// scrolling the screen up until it can be hit: at the largest text size the keyboard of the code field covers the
-    /// buttons below it.
-    func tap(_ element: XCUIElement, scrollingUpTo attempts: Int = 6) {
+    /// Waits until `element` has stopped moving: its frame is the same at two checks in a row.
+    func settle(_ element: XCUIElement) {
         var previous: CGRect?
         let settled = Polling.until(timeout: 3, interval: 0.2) {
             let frame = element.frame
@@ -63,6 +61,31 @@ struct SignInScreen {
             return frame == previous
         }
         XCTAssertTrue(settled, "\(element.identifier) keeps moving")
+    }
+
+    /// Types `address`, asks for the code with the connection down, waits for the lost-connection message and settles
+    /// it; then `afterOffline` runs (the audits), the connection comes back and the retry opens the code step.
+    func requestCodeOfflineThenRetry(
+        for address: String, on server: StubServer, timeout: TimeInterval = 10,
+        whileOffline afterOffline: () throws -> Void
+    ) rethrows {
+        server.setOffline(true)
+        type(address, into: email)
+        tap(sendCode)
+        XCTAssertTrue(error.waitUntilExists(timeout: timeout), "the lost-connection message shows")
+        settle(error)
+        settle(retry)
+        try afterOffline()
+        server.setOffline(false)
+        tap(retry)
+        XCTAssertTrue(code.waitUntilExists(timeout: timeout), "the retry opens the code step")
+    }
+
+    /// Taps `element` once it has stopped moving (the keyboard and the messages shift the layout for a moment), after
+    /// scrolling the screen up until it can be hit: at the largest text size the keyboard of the code field covers the
+    /// buttons below it.
+    func tap(_ element: XCUIElement, scrollingUpTo attempts: Int = 6) {
+        settle(element)
         var left = attempts
         while !element.isHittable, left > 0 {
             // Drag above the keyboard: a swipe on the whole window may start on a key.

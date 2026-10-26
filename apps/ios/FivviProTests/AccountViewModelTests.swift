@@ -107,12 +107,20 @@ final class AccountViewModelTests: XCTestCase {
 
     func test_F001N_AC10_aSignOutThatAnswersInTimeStopsTheTimer() async {
         let api = StubAPI()
+        await api.answerSignOut(with: .hang)
         let signedOut = SignedOut()
+        let model = model(api, signedOut: signedOut)
 
-        await model(api, signedOut: signedOut).signOut()
+        let signingOut = Task { await model.signOut() }
+        await api.untilSignOutHangs()
+        await clock.untilSleeping()
+        XCTAssertEqual(clock.sleeping, 1, "the timer is waiting")
+
+        await api.releaseHangingSignOuts()
+        await signingOut.value
 
         XCTAssertEqual(signedOut.rejections, [false])
-        XCTAssertEqual(clock.sleeping, 0, "the timer is cancelled")
+        XCTAssertEqual(clock.sleeping, 0, "the answer cancelled the timer")
     }
 
     func test_F001N_AC10_signOutWithoutATokenSkipsTheRequest() async {
@@ -144,9 +152,11 @@ final class AccountViewModelTests: XCTestCase {
         XCTAssertTrue(model.isSigningOut)
 
         clock.advance(by: .seconds(9))
-        XCTAssertEqual(signedOut.count, 0, "9 s is within the cap")
+        XCTAssertEqual(clock.sleeping, 1, "the timer is still waiting: 9 s is within the cap")
+        XCTAssertEqual(signedOut.count, 0)
 
         clock.advance(by: .seconds(1))
+        XCTAssertEqual(clock.sleeping, 0, "the timer has run out: the cap is 10 s")
         await signingOut.value
 
         XCTAssertEqual(signedOut.rejections, [false])

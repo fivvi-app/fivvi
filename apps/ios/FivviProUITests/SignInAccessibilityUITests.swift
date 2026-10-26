@@ -13,14 +13,9 @@ final class SignInAccessibilityUITests: SignInUITestCase {
         XCTAssertTrue(screen.notice.waitUntilExists(timeout: timeout))
         try assertReadable(screen, [screen.title, screen.notice, screen.email, screen.sendCode])
 
-        server.setOffline(true)
-        screen.type(server.signIn.email, into: screen.email)
-        screen.sendCode.tap()
-        XCTAssertTrue(screen.error.waitUntilExists(timeout: timeout))
-        try assertReadable(screen, [screen.error, screen.retry])
-        server.setOffline(false)
-        screen.tap(screen.retry)
-        XCTAssertTrue(screen.code.waitUntilExists(timeout: timeout))
+        try screen.requestCodeOfflineThenRetry(for: server.signIn.email, on: server) {
+            try assertReadable(screen, [screen.error, screen.retry])
+        }
 
         screen.type("000000", into: screen.code)
         XCTAssertTrue(screen.error.waitUntilExists(timeout: timeout))
@@ -47,14 +42,9 @@ final class SignInAccessibilityUITests: SignInUITestCase {
         try assertTouchTarget(screen.email, on: screen)
         try assertTouchTarget(screen.sendCode, on: screen)
 
-        server.setOffline(true)
-        screen.type(server.signIn.email, into: screen.email)
-        screen.sendCode.tap()
-        XCTAssertTrue(screen.error.waitUntilExists(timeout: timeout))
-        try assertTouchTarget(screen.retry, on: screen)
-        server.setOffline(false)
-        screen.tap(screen.retry)
-        XCTAssertTrue(screen.code.waitUntilExists(timeout: timeout))
+        try screen.requestCodeOfflineThenRetry(for: server.signIn.email, on: server) {
+            try assertTouchTarget(screen.retry, on: screen)
+        }
         screen.type("000", into: screen.code)
         try assertTouchTarget(screen.code, on: screen)
         for button in [screen.submit, screen.resend, screen.changeEmail] {
@@ -77,7 +67,7 @@ final class SignInAccessibilityUITests: SignInUITestCase {
         XCTAssertTrue(try screen.title.hasTrait(.header))
         server.holdSignInRequests(true)
         screen.type(server.signIn.email, into: screen.email)
-        screen.sendCode.tap()
+        screen.tap(screen.sendCode)
 
         XCTAssertTrue(screen.loading.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.loading.label, catalog["common.loading"])
