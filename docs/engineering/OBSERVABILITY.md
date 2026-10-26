@@ -144,12 +144,12 @@ How to add an event:
 
 ### 4.3 Event catalog
 
-The live events are the two of sign-in (F001, spec [#128](https://github.com/fivvi-app/fivvi/issues/128)). `packages/auth` records them (the sign-in endpoints are Better Auth's, mounted at `/api/auth`, not API routes) and flushes them before its handler returns, like the API (§4.1). Neither carries the email address, a code, a link token, the IP address or the user agent, and `sign_in_requested` carries no account ID (AC16):
+The live events are the two of sign-in (F001, spec [#128](https://github.com/fivvi-app/fivvi/issues/128)). `packages/auth` records them. On the web the sign-in endpoints are Better Auth's, mounted at `/api/auth`, not API routes, and its handler flushes the events before it returns. The native routes `/v1/sign-in/request` and `/v1/sign-in/token` are API routes that run the same endpoints through `auth.api`, so they record the same events, and the API flushes the shared sender after every request (§4.1). Neither carries the email address, a code, a link token, the IP address or the user agent, and `sign_in_requested` carries no account ID (AC16):
 
 | Event | Status | Feature | `distinct_id` | Properties | Measures |
 |---|---|---|---|---|---|
 | `sign_in_requested` | Live | F001 Authentication | A random ID for the request (`anonymousDistinctId()`), never stored: there is no account ID before sign-in | None | Sign-in requests, to compare with `signed_in` and see sign-in problems (emails that never lead to a sign-in). Recorded for every address alike, whether or not it has an account, so the event never tells who has one; a request the rate limits (AC10) refuse is not recorded |
-| `signed_in` | Live | F001 Authentication | The internal user UUID | `method`: `code` or `link`; `new_account`: `true` when this first sign-in of an allowed address created the account | Sign-ins by code and by link; new accounts. Recorded when the code is entered or the link is confirmed (not when the link is opened), after the session cookie is set |
+| `signed_in` | Live | F001 Authentication | The internal user UUID | `method`: `code` or `link`; `new_account`: `true` when this first sign-in of an allowed address created the account | Sign-ins by code and by link; new accounts. Recorded when the code is entered or the link is confirmed (not when the link is opened), after the session is created |
 
 The other MVP features add their events when they are built; their specs define the properties. The planned events serve the pilot metrics in `ROADMAP.md §8` and give Release 3.2 business analytics its history (`ROADMAP.md §10`):
 
