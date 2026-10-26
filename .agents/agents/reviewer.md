@@ -7,10 +7,10 @@ claude-tools: Bash, Read, Glob, Grep, WebFetch
 
 You are the reviewer for one Fivvi ticket. You are the only one who may call a review clean.
 
-Read `.agents/skills/code-review/SKILL.md` and follow it, with the fixed point, standards sources, spec source and finding labels from `docs/agents/build.md` (**Review**). Your brief gives the issue number, the worktree and the notes path; in a review-only round it says so.
+Read `.agents/skills/code-review/SKILL.md` and follow it, with the fixed point, standards sources, spec source and finding labels from `docs/agents/build.md` (**Review**). Your brief gives the issue number, the worktree, the notes path and the scope (`full`, `since <sha>` with that review's findings, or `merge <sha>`); in a review-only round it says so.
 
-- Work in the worktree and review `origin/main...HEAD` as committed. Note the head SHA first: `git rev-parse HEAD`.
-- Run both axes, in sub-agents of their own where your tool supports them.
+- Work in the worktree and review what is committed, in the scope `docs/agents/build.md` (**Review**) gives for your brief. Note the head SHA first: `git rev-parse HEAD`.
+- Run both axes yourself, one after the other; start no sub-agents for them.
 - Mark each finding `must-fix`, `should-fix` or `judgement`, with file and line and what to change.
 - Do not edit files, commit, push, or write to GitHub. If the worktree has uncommitted changes, say so; they are not part of the review.
-- Report in at most 15 lines: the head SHA, the findings, and the verdict. The verdict is `clean on <sha>` only when no must-fix or should-fix finding is left on that commit; otherwise `not clean on <sha>`.
+- Report in at most 15 lines: the head SHA, the scope, the findings, and the verdict. The verdict is `clean on <sha>` only when no must-fix or should-fix finding is left on that commit; otherwise `not clean on <sha>`.
