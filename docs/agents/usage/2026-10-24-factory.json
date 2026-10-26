@@ -3,7 +3,7 @@
   "label": "2026-10-24-factory",
   "since": "2026-10-24",
   "until": "2026-10-26T14:12:00Z",
-  "generatedAt": "2026-10-26T15:22:54.329Z",
+  "generatedAt": "2026-10-26T15:42:31.242Z",
   "sessions": [
     {
       "id": "e085e406-48ef-4dee-826a-b9ba96cf2281",
@@ -64,27 +64,26 @@
     {
       "id": "37d54299-80c8-47a2-9196-ded503e35eb2",
       "start": "2026-10-24T14:18:06.081Z",
-      "end": "2026-10-26T15:19:47.699Z",
-      "calls": 1104,
-      "avgContext": 462120.9882246377,
+      "end": "2026-10-26T14:09:12.561Z",
+      "calls": 1000,
+      "avgContext": 451163.771,
       "peakContext": 965530,
       "compactions": 1,
       "tokens": {
         "opus": {
-          "calls": 1104,
-          "input": 2818,
-          "cacheRead": 507682949,
-          "cacheWrite": 2495804,
-          "output": 518851
+          "calls": 1000,
+          "input": 2560,
+          "cacheRead": 448768576,
+          "cacheWrite": 2392635,
+          "output": 478500
         }
       },
       "cost": {
-        "opus": 56485123
+        "opus": 50262711
       },
-      "subagents": 457,
+      "subagents": 423,
       "tickets": [
         "chore/188-release-builds-version-build-number-prod",
-        "chore/189-release-environment",
         "chore/189-release-environment-secret-setup-scripts",
         "chore/adr-021-more-guardrails",
         "chore/agents-queue-high-risk",
@@ -114,11 +113,10 @@
         "fix/223-contract-plain-locale-type-for-the-sign",
         "fix/224-ios-ad-hoc-signing-for-simulator-test-bu",
         "fix/228-fake-secrets-in-tests-obviously-fake-val",
-        "fix/233-ios-home-may-squeeze-the-hello-block-at",
-        "fix/236-next-dev-writes-apps-web-agents-md-and-c"
+        "fix/233-ios-home-may-squeeze-the-hello-block-at"
       ],
       "costPerTicket": {
-        "opus": 1711670
+        "opus": 1621378
       }
     }
   ],
@@ -166,7 +164,7 @@
       "reviews": 3,
       "firstReviewClean": false,
       "reachedClean": true,
-      "findingsPerReview": 1.3333333333333333,
+      "findingsPerReview": 0.6666666666666666,
       "pr": {
         "number": 197,
         "state": "MERGED",
@@ -182,57 +180,6 @@
       "reverted": false
     },
     {
-      "branch": "chore/189-release-environment",
-      "issue": 189,
-      "area": null,
-      "size": null,
-      "group": "unknown",
-      "agents": {
-        "Explore": 2,
-        "reviewer": 1,
-        "mechanic": 1
-      },
-      "calls": 22,
-      "tokens": {
-        "opus": {
-          "calls": 13,
-          "input": 26,
-          "cacheRead": 788870,
-          "cacheWrite": 222874,
-          "output": 7743
-        },
-        "haiku": {
-          "calls": 9,
-          "input": 18,
-          "cacheRead": 735401,
-          "cacheWrite": 102141,
-          "output": 7551
-        }
-      },
-      "cost": {
-        "opus": 396221,
-        "haiku": 238989
-      },
-      "agentSeconds": 290,
-      "toolSeconds": {
-        "check": 157,
-        "native": 12,
-        "wait": 0,
-        "other": 70
-      },
-      "checkRuns": 1,
-      "reviews": 1,
-      "firstReviewClean": false,
-      "reachedClean": false,
-      "findingsPerReview": 0,
-      "pr": null,
-      "ciFailures": null,
-      "queueRemovals": null,
-      "ownerComments": null,
-      "followUpFixes": null,
-      "reverted": null
-    },
-    {
       "branch": "chore/189-release-environment-secret-setup-scripts",
       "issue": 189,
       "area": "native",
@@ -240,11 +187,10 @@
       "group": "native-L",
       "agents": {
         "builder": 7,
-        "reviewer": 11,
-        "review-axis": 19,
-        "mechanic": 3
+        "reviewer": 6,
+        "review-axis": 12
       },
-      "calls": 503,
+      "calls": 364,
       "tokens": {
         "sonnet": {
           "calls": 150,
@@ -254,40 +200,32 @@
           "output": 108589
         },
         "opus": {
-          "calls": 315,
-          "input": 632,
-          "cacheRead": 29989966,
-          "cacheWrite": 2648741,
-          "output": 233268
-        },
-        "haiku": {
-          "calls": 38,
-          "input": 80,
-          "cacheRead": 3764233,
-          "cacheWrite": 239586,
-          "output": 27388
+          "calls": 214,
+          "input": 428,
+          "cacheRead": 21025154,
+          "cacheWrite": 1609716,
+          "output": 160485
         }
       },
       "cost": {
         "sonnet": 3217743,
-        "opus": 7476895,
-        "haiku": 812926
+        "opus": 4917513
       },
-      "agentSeconds": 9346,
+      "agentSeconds": 6758,
       "toolSeconds": {
-        "check": 2432,
+        "check": 2018,
         "native": 0,
-        "wait": 416,
-        "other": 6236
+        "wait": 414,
+        "other": 4177
       },
-      "checkRuns": 25,
-      "reviews": 11,
+      "checkRuns": 23,
+      "reviews": 6,
       "firstReviewClean": false,
       "reachedClean": false,
-      "findingsPerReview": 2.090909090909091,
+      "findingsPerReview": 2.6666666666666665,
       "pr": {
         "number": 194,
-        "state": "OPEN",
+        "state": "CLOSED",
         "createdAt": "2026-10-24T17:41:01Z",
         "mergedAt": null,
         "additions": 1287,
@@ -295,7 +233,7 @@
       },
       "ciFailures": 1,
       "queueRemovals": 0,
-      "ownerComments": 0,
+      "ownerComments": 1,
       "followUpFixes": null,
       "reverted": null
     },
@@ -342,7 +280,7 @@
       "reviews": 4,
       "firstReviewClean": false,
       "reachedClean": true,
-      "findingsPerReview": 1.25,
+      "findingsPerReview": 1,
       "pr": {
         "number": 198,
         "state": "MERGED",
@@ -515,12 +453,12 @@
       },
       "agentSeconds": 2723,
       "toolSeconds": {
-        "check": 150,
+        "check": 486,
         "native": 0,
         "wait": 21,
-        "other": 2064
+        "other": 1728
       },
-      "checkRuns": 6,
+      "checkRuns": 9,
       "reviews": 4,
       "firstReviewClean": false,
       "reachedClean": true,
@@ -582,7 +520,7 @@
       "reviews": 6,
       "firstReviewClean": false,
       "reachedClean": true,
-      "findingsPerReview": 0.6666666666666666,
+      "findingsPerReview": 0.3333333333333333,
       "pr": {
         "number": 187,
         "state": "MERGED",
@@ -756,7 +694,7 @@
       "reviews": 6,
       "firstReviewClean": false,
       "reachedClean": true,
-      "findingsPerReview": 1,
+      "findingsPerReview": 0.5,
       "pr": {
         "number": 196,
         "state": "MERGED",
@@ -823,7 +761,7 @@
       "reviews": 5,
       "firstReviewClean": false,
       "reachedClean": true,
-      "findingsPerReview": 0.6,
+      "findingsPerReview": 0.2,
       "pr": {
         "number": 186,
         "state": "MERGED",
@@ -872,12 +810,12 @@
       },
       "agentSeconds": 2658,
       "toolSeconds": {
-        "check": 528,
+        "check": 585,
         "native": 0,
         "wait": 0,
-        "other": 1957
+        "other": 1900
       },
-      "checkRuns": 13,
+      "checkRuns": 16,
       "reviews": 4,
       "firstReviewClean": false,
       "reachedClean": true,
@@ -1067,43 +1005,43 @@
       "size": "M",
       "group": "app-M",
       "agents": {
-        "review-axis": 6,
-        "builder": 3,
-        "reviewer": 3
+        "review-axis": 2,
+        "builder": 1,
+        "reviewer": 1
       },
-      "calls": 203,
+      "calls": 89,
       "tokens": {
         "opus": {
-          "calls": 118,
-          "input": 236,
-          "cacheRead": 11881505,
-          "cacheWrite": 832595,
-          "output": 73726
+          "calls": 49,
+          "input": 98,
+          "cacheRead": 5291646,
+          "cacheWrite": 253696,
+          "output": 32640
         },
         "sonnet": {
-          "calls": 85,
-          "input": 170,
-          "cacheRead": 10273894,
-          "cacheWrite": 420126,
-          "output": 45494
+          "calls": 40,
+          "input": 80,
+          "cacheRead": 5297566,
+          "cacheWrite": 259263,
+          "output": 24483
         }
       },
       "cost": {
-        "opus": 2597760,
-        "sonnet": 1780187
+        "opus": 1009583,
+        "sonnet": 976330
       },
-      "agentSeconds": 2999,
+      "agentSeconds": 1715,
       "toolSeconds": {
-        "check": 1228,
+        "check": 821,
         "native": 0,
         "wait": 54,
-        "other": 1547
+        "other": 642
       },
-      "checkRuns": 10,
-      "reviews": 3,
+      "checkRuns": 4,
+      "reviews": 1,
       "firstReviewClean": false,
-      "reachedClean": true,
-      "findingsPerReview": 1,
+      "reachedClean": false,
+      "findingsPerReview": 2,
       "pr": {
         "number": 237,
         "state": "MERGED",
@@ -1152,12 +1090,12 @@
       },
       "agentSeconds": 4061,
       "toolSeconds": {
-        "check": 465,
-        "native": 960,
+        "check": 961,
+        "native": 692,
         "wait": 61,
-        "other": 2588
+        "other": 2360
       },
-      "checkRuns": 7,
+      "checkRuns": 11,
       "reviews": 5,
       "firstReviewClean": false,
       "reachedClean": true,
@@ -1286,7 +1224,7 @@
       "reviews": 2,
       "firstReviewClean": false,
       "reachedClean": true,
-      "findingsPerReview": 0.5,
+      "findingsPerReview": 0,
       "pr": {
         "number": 225,
         "state": "MERGED",
@@ -1549,18 +1487,18 @@
       "size": null,
       "group": "unknown",
       "agents": {
-        "builder": 4,
+        "builder": 2,
         "review-axis": 4,
         "reviewer": 2
       },
-      "calls": 438,
+      "calls": 306,
       "tokens": {
         "sonnet": {
-          "calls": 334,
-          "input": 668,
-          "cacheRead": 55094081,
-          "cacheWrite": 1299542,
-          "output": 147680
+          "calls": 202,
+          "input": 404,
+          "cacheRead": 37183962,
+          "cacheWrite": 903098,
+          "output": 113443
         },
         "opus": {
           "calls": 104,
@@ -1571,21 +1509,21 @@
         }
       },
       "cost": {
-        "sonnet": 7872904,
+        "sonnet": 5414888,
         "opus": 2299220
       },
-      "agentSeconds": 7943,
+      "agentSeconds": 6077,
       "toolSeconds": {
-        "check": 750,
-        "native": 5386,
-        "wait": 443,
-        "other": 914
+        "check": 415,
+        "native": 4226,
+        "wait": 410,
+        "other": 883
       },
-      "checkRuns": 8,
+      "checkRuns": 6,
       "reviews": 2,
       "firstReviewClean": false,
       "reachedClean": false,
-      "findingsPerReview": 2.5,
+      "findingsPerReview": 2,
       "pr": null,
       "ciFailures": null,
       "queueRemovals": null,
@@ -1627,16 +1565,16 @@
       },
       "agentSeconds": 1499,
       "toolSeconds": {
-        "check": 55,
+        "check": 163,
         "native": 0,
-        "wait": 110,
+        "wait": 3,
         "other": 1087
       },
-      "checkRuns": 1,
+      "checkRuns": 2,
       "reviews": 2,
       "firstReviewClean": false,
       "reachedClean": true,
-      "findingsPerReview": 0.5,
+      "findingsPerReview": 0,
       "pr": {
         "number": 231,
         "state": "MERGED",
@@ -1998,92 +1936,29 @@
       "ownerComments": 0,
       "followUpFixes": 0,
       "reverted": false
-    },
-    {
-      "branch": "fix/236-next-dev-writes-apps-web-agents-md-and-c",
-      "issue": 236,
-      "area": "app",
-      "size": "S",
-      "group": "app-S",
-      "agents": {
-        "review-axis": 2,
-        "reviewer": 1,
-        "builder": 1
-      },
-      "calls": 60,
-      "tokens": {
-        "opus": {
-          "calls": 43,
-          "input": 86,
-          "cacheRead": 4217523,
-          "cacheWrite": 210687,
-          "output": 24427
-        },
-        "sonnet": {
-          "calls": 17,
-          "input": 34,
-          "cacheRead": 1518396,
-          "cacheWrite": 132515,
-          "output": 6916
-        }
-      },
-      "cost": {
-        "opus": 807332,
-        "sonnet": 352097
-      },
-      "agentSeconds": 1262,
-      "toolSeconds": {
-        "check": 547,
-        "native": 7,
-        "wait": 261,
-        "other": 375
-      },
-      "checkRuns": 2,
-      "reviews": 1,
-      "firstReviewClean": true,
-      "reachedClean": true,
-      "findingsPerReview": 0,
-      "pr": {
-        "number": 238,
-        "state": "MERGED",
-        "createdAt": "2026-10-26T14:43:52Z",
-        "mergedAt": "2026-10-26T15:18:25Z",
-        "additions": 14,
-        "deletions": 0
-      },
-      "ciFailures": 0,
-      "queueRemovals": 0,
-      "ownerComments": 0,
-      "followUpFixes": 0,
-      "reverted": false
     }
   ],
   "agents": {
     "byRole": {
-      "Explore": {
-        "count": 2,
-        "medianFirstContext": 57552,
-        "medianPeakContext": 79439.5
-      },
       "builder": {
-        "count": 108,
-        "medianFirstContext": 72643.5,
-        "medianPeakContext": 122473.5
+        "count": 103,
+        "medianFirstContext": 72597,
+        "medianPeakContext": 122813
       },
       "mechanic": {
-        "count": 12,
-        "medianFirstContext": 72305.5,
+        "count": 8,
+        "medianFirstContext": 72231.5,
         "medianPeakContext": 97906
       },
       "review-axis": {
-        "count": 218,
-        "medianFirstContext": 77134,
-        "medianPeakContext": 116663
+        "count": 204,
+        "medianFirstContext": 77137.5,
+        "medianPeakContext": 117550.5
       },
       "reviewer": {
-        "count": 117,
-        "medianFirstContext": 72464,
-        "medianPeakContext": 117721
+        "count": 108,
+        "medianFirstContext": 72459,
+        "medianPeakContext": 118189.5
       }
     }
   }

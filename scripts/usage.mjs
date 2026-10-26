@@ -3,7 +3,8 @@
 // an earlier one: tokens and price-weighted cost per model, agent and tool time, and quality, per ticket.
 //
 //   node scripts/usage.mjs snapshot [--since D] [--until D] [--label L] [--out F] [--projects DIR] [--root DIR]
-//       write the aggregates of the sessions that started between D and D (ISO dates or timestamps) as JSON, by default
+//       write the aggregates of the sessions that started between D and D (ISO dates or timestamps) as JSON, counting
+//       in them only the main-conversation calls and the subagents inside that window, by default
 //       to docs/agents/usage/<label>.json (label defaults to the since date). Needs gh for the GitHub fields; without
 //       it they are null and a warning goes to stderr. --projects is the folder of Claude Code's projects (default
 //       $CLAUDE_CONFIG_DIR/projects or ~/.claude/projects), --root the repo whose sessions to read (default: this repo)
@@ -84,8 +85,10 @@ const issueOfBranch = (branch) => {
 };
 
 // A command runs a script when the script is the first word of a command of the line (after `;`, `&&`, `|`, `do`, ...),
-// maybe behind `bash`, `time` or variable assignments; `cat scripts/check.sh` or `git log --until=x` only name one.
-const START = String.raw`(?:^|[;&|(\n]|\bdo\b|\bthen\b)\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*(?:(?:time|rtk)\s+)?`;
+// maybe behind `bash` and wrappers (variable assignments, `time`, `nohup`, `env`, `timeout <n>`, `rtk`, `rtk proxy`);
+// `cat scripts/check.sh` or `git log --until=x` only name one.
+const WRAPPER = String.raw`(?:[A-Za-z_][A-Za-z0-9_]*=\S*|time|nohup|rtk(?:\s+proxy)?|env(?:\s+-\S+)*|timeout\s+(?:-\S+\s+(?:\d\S*\s+)?)*\d\S*)`;
+const START = String.raw`(?:^|[;&|(\n]|\bdo\b|\bthen\b|\bwhile\b)\s*(?:${WRAPPER}\s+)*`;
 const CHECK = new RegExp(
   String.raw`${START}(?:(?:bash|sh|zsh)\s+)?[^\s;&|()]*scripts/check\.sh(?![\w.-])`,
 );
@@ -104,8 +107,12 @@ export const classifyCommand = (command) => {
 
 // A line states a finding when it opens with the label (behind a list marker, bold, backticks or brackets):
 // `- should-fix: a.ts:3 ...`, `**must-fix** ...`. "No must-fix or should-fix", "- must-fix: none" state none.
-const FINDING =
-  /^\s*(?:(?:[-*+]|\d+[.)])\s+)?[*_`[(]*\s*(?:must-fix|should-fix)\b(?!\W*(?:none|nothing|0)\b)/i;
+const LABEL = String.raw`(?:must-fix|should-fix)(?:\s*(?:,|/|&|and|or)\s*(?:must-fix|should-fix))*`;
+// A label followed by nothing, `none`, `nothing`, `n/a` or `0` (`- must-fix: —`) states no finding.
+const FINDING = new RegExp(
+  String.raw`^\s*(?:(?:[-*+]|\d+[.)])\s+)?[*_\`[(]*\s*${LABEL}\b(?!\s*(?:,|/|&|and|or)\s*(?:must|should)-fix)(?!\W*(?:$|(?:none|nothing|n/a|0)\b))`,
+  'i',
+);
 
 // The verdict a reviewer ends with, `not clean on <sha>` or `clean on <sha>`, and how many of the other lines of the
 // text state a must-fix or should-fix finding.
@@ -267,6 +274,12 @@ const projectFolders = (projects, rootPath) => {
     .map((name) => join(projects, name));
 };
 
+// A record with no usable timestamp stays: only a time outside the window drops a record.
+const inWindow = (time, since, until) =>
+  Number.isNaN(time) || ((since === null || time >= since) && (until === null || time <= until));
+
+// The window selects the sessions that start in it, and inside a session only what happens in it: the calls of the
+// main conversation and the subagents that start in it. A subagent that starts in the window is kept whole.
 const readSessions = (folders, since, until) => {
   const sessions = [];
   for (const folder of folders) {
@@ -280,7 +293,7 @@ const readSessions = (folders, since, until) => {
         (until !== null && first > until)
       )
         continue;
-      const main = analyze(records);
+      const main = analyze(records.filter((r) => inWindow(Date.parse(r.timestamp), since, until)));
       const agents = [];
       const dir = join(folder, id, 'subagents');
       if (existsSync(dir)) {
@@ -298,7 +311,12 @@ const readSessions = (folders, since, until) => {
           const description = typeof meta.description === 'string' ? meta.description : '';
           let role = meta.agentType ?? 'unknown';
           if (role === 'general-purpose' && /axis/i.test(description)) role = 'review-axis';
-          agents.push({ role, description, ...analyze(readJsonl(join(dir, file))) });
+          const agentRecords = readJsonl(join(dir, file));
+          const agentStart = agentRecords
+            .map((r) => Date.parse(r.timestamp))
+            .find((t) => !Number.isNaN(t));
+          if (agentStart === undefined || !inWindow(agentStart, since, until)) continue;
+          agents.push({ role, description, ...analyze(agentRecords) });
         }
       }
       sessions.push({ id, main, agents });

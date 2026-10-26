@@ -120,6 +120,8 @@ describe('pure helpers', () => {
       'sleep 5',
       'cd w; until x; do :; done',
       'x | sleep 1',
+      'while sleep 5; do :; done',
+      'cd w && while sleep 5; do gh pr checks 1; done',
     ]) {
       assert.equal(classifyCommand(command), 'wait', command);
     }
@@ -134,6 +136,12 @@ describe('pure helpers', () => {
       'cd w && bash scripts/check.sh',
       'CI=1 scripts/check.sh',
       'cd w && time scripts/check.sh --fast',
+      'cd w && timeout 900 scripts/check.sh',
+      'cd w && timeout -k 5 900 scripts/check.sh --fast',
+      'env CI=1 scripts/check.sh',
+      'cd w && nohup scripts/check.sh > out.log 2>&1 &',
+      'rtk proxy scripts/check.sh --fast',
+      'cd w && rtk proxy bash scripts/check.sh',
     ]) {
       assert.equal(classifyCommand(command), 'check', command);
     }
@@ -173,6 +181,11 @@ describe('pure helpers', () => {
       'Findings (none must-fix or should-fix):',
       '- no must-fix or should-fix findings',
       '- must-fix: none',
+      '- Must-fix and should-fix: none',
+      '- must-fix: n/a',
+      '- should-fix: —',
+      '- should-fix: - ',
+      '- should-fix: 0',
       '- **must-fix** `a.ts:3`: one',
       '- should-fix, b.ts:9: two',
       '1. `should-fix` c.ts:1: three',
@@ -353,6 +366,40 @@ describe('usage.mjs', () => {
       assert.equal(data.since, '2026-10-24');
       assert.equal(data.until, '2026-10-26T15:00:00Z');
       assert.equal(data.version, 1);
+    });
+
+    it('leaves out what happened after --until in a session that kept running, and keeps an agent whole', () => {
+      const stamp = (record, iso) => ({ ...record, timestamp: iso });
+      const inside = (id) => stamp(call(0, { id, i: 10 }), '2026-10-26T14:00:00Z');
+      const outside = (id) => stamp(call(0, { id, i: 1000 }), '2026-10-26T16:00:00Z');
+      const agent = (name, records) => ({ name, meta: meta('builder'), records });
+      const dir = projects([
+        {
+          id: 's1',
+          records: [
+            stamp(call(0, { id: 'first', i: 10 }), '2026-10-25T08:00:00Z'),
+            inside('m2'),
+            outside('m3'),
+            stamp(compaction(0), '2026-10-26T16:30:00Z'),
+          ],
+          agents: [
+            agent('a1', [
+              stamp(call(0, { id: 'x1', i: 7 }), '2026-10-26T14:10:00Z'),
+              stamp(call(0, { id: 'x2', i: 9 }), '2026-10-26T15:30:00Z'),
+            ]),
+            agent('a2', [stamp(call(0, { id: 'y1', i: 7 }), '2026-10-26T15:00:00Z')]),
+            agent('a0', [stamp(call(0, { id: 'z1', i: 7 }), '2026-10-23T22:00:00Z')]),
+          ],
+        },
+      ]);
+      const { data } = snapshot(dir, ['--until', '2026-10-26T14:12:00Z']);
+      const [session] = data.sessions;
+      assert.equal(session.calls, 2);
+      assert.equal(session.tokens.opus.input, 20);
+      assert.equal(session.compactions, 0);
+      assert.equal(session.subagents, 1);
+      assert.equal(data.agents.byRole.builder.count, 1);
+      assert.equal(data.agents.byRole.builder.medianPeakContext, 9);
     });
 
     it('reads the folders of the repo and of its worktrees, and no others', () => {
