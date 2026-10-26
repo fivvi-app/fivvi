@@ -1,5 +1,6 @@
 'use client';
 
+import { SIGNED_IN_HOME } from '@fivvi/auth/return-path';
 import type { Locale } from '@fivvi/i18n';
 import { Button } from '@fivvi/ui/components/button';
 import {
@@ -20,10 +21,11 @@ import { requestCode, type SignInErrorKey, verifyCode } from './sign-in-client';
  * TW-10: the email step, then the code step on the same screen. `locale` is the language of the
  * page, which the email is written in unless the account stores another (ADR-019). What each
  * request answers is the same for every address, so nothing here reveals who has an account.
- * `returnPath` is the page sign-in ends at: a path of this site (`safeReturnPath`), never another
- * address.
+ * `returnPath` is the page asked for before sign-in: a path of this site (`safeReturnPath`), never
+ * another address, or `undefined` when none was. Signing in with the code ends there (else at the
+ * signed-in home), and it goes with the email request, so the emailed link ends there too (#207).
  */
-export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath: string }) {
+export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath?: string }) {
   const t = useTranslations('signIn');
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
@@ -46,7 +48,7 @@ export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath:
     setEmail(entered);
     setPending(true);
     setError(null);
-    const result = await requestCode(entered, locale);
+    const result = await requestCode(entered, locale, returnPath);
     setPending(false);
     if (!result.ok) return setError(result.error);
     setStep('code');
@@ -56,7 +58,7 @@ export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath:
     setPending(true);
     setError(null);
     setResent(false);
-    const result = await requestCode(email, locale);
+    const result = await requestCode(email, locale, returnPath);
     setPending(false);
     if (!result.ok) return setError(result.error);
     // The new code replaces the old one, so the old entry is of no use.
@@ -73,7 +75,7 @@ export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath:
     const result = await verifyCode(email, field(event.currentTarget, 'code'));
     // A full page load, so the page is asked for with the new cookie and nothing the router kept
     // from before sign-in (a redirect to this page) is reused.
-    if (result.ok) return window.location.replace(returnPath);
+    if (result.ok) return window.location.replace(returnPath ?? SIGNED_IN_HOME);
     setPending(false);
     setError(result.error);
   }

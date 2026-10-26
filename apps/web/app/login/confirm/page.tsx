@@ -1,6 +1,6 @@
+import { returnPathFrom } from '@fivvi/auth/return-path';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { returnPathFrom } from '../../../lib/return-path';
 import { ConfirmForm } from './confirm-form';
 
 export async function generateMetadata(): Promise<Metadata> {

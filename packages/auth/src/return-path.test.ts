@@ -46,6 +46,36 @@ describe('F001 AC13 return path', () => {
     });
   });
 
+  describe('ignores encoded forms of an address on another site (the emailed link, #207)', () => {
+    it.each([
+      ['an encoded absolute address', 'https%3A%2F%2Fevil.example%2Fhome'],
+      ['an encoded protocol-relative address', '%2F%2Fevil.example%2Fhome'],
+      ['an encoded first slash', '%2Fhome'],
+      ['an encoded backslash address', '%5C%5Cevil.example'],
+      ['a double-encoded address', '%252F%252Fevil.example'],
+      ['a scheme in capitals', 'HTTPS://evil.example/home'],
+      ['a scheme with leading space', ' https://evil.example/home'],
+      ['a leading space before a protocol-relative address', ' //evil.example/home'],
+      ['a null byte before the host', '/\u0000/evil.example'],
+      ['a mixed slash and backslash', '/\\/evil.example'],
+    ])('%s', (_, value) => {
+      expect(safeReturnPath(value)).toBeUndefined();
+    });
+
+    // Percent-encoded slashes and backslashes after the first `/` stay encoded inside one path
+    // segment of this site: a browser never decodes them into another host.
+    it.each([
+      '/%2F/evil.example',
+      '/%5Cevil.example',
+      '/%2Fevil.example',
+      '/home?next=https://evil.example',
+    ])('keeps %s as a path of this site, never another host', (value) => {
+      const kept = safeReturnPath(value);
+      expect(kept).toBe(value);
+      expect(new URL(kept ?? '', 'https://fivvi.example').origin).toBe('https://fivvi.example');
+    });
+  });
+
   describe('does not return to the sign-in page itself', () => {
     it.each(['/login', '/login/confirm?token=abc', '/login?returnTo=%2Fhome'])('%s', (value) => {
       expect(safeReturnPath(value)).toBeUndefined();

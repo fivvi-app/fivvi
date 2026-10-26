@@ -81,7 +81,7 @@ The scrubber (`scrubEvent`, `scrubBreadcrumb`) is a pure allowlist: whatever isn
 
 | Part of an event | Kept | Dropped |
 |---|---|---|
-| Error message (`exception.value`, `message`) | The text, with email addresses masked as `[email]` and the value of a `token` or `code` query parameter (a sign-in link token or code in a quoted URL) masked as `[redacted]` | Email addresses, link tokens and codes in a URL |
+| Error message (`exception.value`, `message`) | The text, with email addresses masked as `[email]` and the value of a `token`, `code` or `returnTo` query parameter (a sign-in link token or code, or the page asked for before sign-in, in a quoted URL) masked as `[redacted]` | Email addresses, link tokens and codes in a URL |
 | Stack frames | File, function, line, column, source lines | Local variables (`vars`) |
 | Request | HTTP method; URL without query string and fragment, emails masked; headers `accept`, `accept-language`, `content-length`, `content-type` | Body (a sign-in request's email address and code), cookies, query string (a sign-in link's token), `Authorization` and every other header (also `x-forwarded-for`), environment (`REMOTE_ADDR`) |
 | User | `id` (internal user UUID) and `organization_id` (workspace UUID), only when they are UUIDs | Email, name, username, IP address, location |
