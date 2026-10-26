@@ -77,9 +77,9 @@ android {
     testOptions {
         animationsDisabled = true
         unitTests.all { test ->
-            // BuildInfoTest compares the build with a run's -Pfivvi.buildNumber, and reads these files.
+            // BuildInfoTest compares the build with a run's -Pfivvi.buildNumber, and reads this file.
             providers.gradleProperty("fivvi.buildNumber").orNull?.let { test.systemProperty("fivvi.buildNumber", it) }
-            test.inputs.files("../README.md", "../../Version.xcconfig")
+            test.inputs.files("../../Version.xcconfig")
         }
     }
 }

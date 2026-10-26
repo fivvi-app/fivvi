@@ -66,8 +66,8 @@ final class AppConfigurationTests: XCTestCase {
         XCTAssertNotNil(version.wholeMatch(of: /\d+\.\d+\.\d+/), "\(version) is not <major>.<minor>.<patch>")
     }
 
-    /// The bundle ID is final once the first build is uploaded (README.md, "Identifiers"; `pnpm test:ios` checks that
-    /// the README records the same ID).
+    /// The bundle ID is final once the first build is uploaded (README.md, "Identifiers"; scripts/test/app-ids.test.mjs
+    /// checks that the README records the same ID).
     func test_E017_AC8_bundleIDIsTheFinalID() {
         XCTAssertEqual(Bundle.main.bundleIdentifier, "app.fivvi.pro")
     }

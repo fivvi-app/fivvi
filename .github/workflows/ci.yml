@@ -13,6 +13,9 @@ name: CI
 
 on:
   pull_request:
+  # The native jobs still run on a push to main when native paths changed (scripts/native-jobs.sh): main's caches
+  # (Gradle, the AVD snapshot, DerivedData) are written only by these runs, and a PR and a merge group read only main's
+  # and their own (E002 #242).
   push:
     branches: [main]
   merge_group:
@@ -288,13 +291,20 @@ jobs:
     # without an artifact upload and download. nl and en run in one test-without-building run on one simulator (scripts/test-ios.sh),
     # so the simulator is prepared and the app installed once: two simulators on the 3-core runner were slower (cold
     # run: 743 s in parallel).
-    runs-on: macos-26
+    #
+    # The image (E002 #242): macos-15, not macos-26, whose runners queued about 10 minutes in two runs. The app needs
+    # no Xcode 26: Swift 6.0 mode, swift-tools-version 6.0 packages, project format 77 and iOS 17 as the deployment
+    # target all build with Xcode 16. macos-15 has Xcode 16.0 to 16.4 and 26.0.1 to 26.3 (not 26.5 or 26.6, which only
+    # macos-26 has), so this takes 26.3, the newest, to stay on the Xcode 26 line of local runs (iOS 26.2 simulator
+    # instead of 26.5). If the job fails here but not on macos-26, or its queue isn't shorter, go back to macos-26 and
+    # Xcode_26.6.
+    runs-on: macos-15
     timeout-minutes: 30
     permissions:
       contents: read
       actions: read # scripts/step-timings.sh reads this run's step durations
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -320,8 +330,12 @@ jobs:
             ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-
 
       # The same steps as `pnpm test:ios` (apps/ios/README.md#tests): SwiftLint, one build-for-testing, then the nl and
-      # en tests without building again. Prints the build timing summary and the slowest tests.
-      - name: SwiftLint, build and tests (nl and en)
+      # en tests without building again. Prints the build timing summary and the slowest tests. A pull request runs the
+      # UI tests in nl only (the unit tests in nl and en: IOS_UI_LOCALES, scripts/test-ios.sh); the merge queue
+      # (merge_group) and a manual run run everything in nl and en, so a language-only break shows there (TESTING.md).
+      - name: SwiftLint, build and tests
+        env:
+          IOS_UI_LOCALES: ${{ github.event_name == 'pull_request' && 'nl' || 'nl en' }}
         run: scripts/test-ios.sh
 
       # Only on failure: artifact storage counts against the free quota.

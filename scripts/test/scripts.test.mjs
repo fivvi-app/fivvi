@@ -192,6 +192,43 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     assert.equal(jobs.android, 'false');
   });
 
+  it('E002 #242: Markdown files under the native paths run neither native job, code files still do', () => {
+    const docs = [
+      'apps/ios/README.md',
+      'apps/android/README.md',
+      'apps/ios/FivviPro/Hello/NOTES.md',
+      'e2e/maestro/README.md',
+      'packages/contract/README.md',
+      'packages/design-tokens/FivviDesignTokens/README.md',
+    ];
+    for (const args of [
+      [],
+      ['--event', 'pull_request'],
+      ['--event', 'push'],
+      ['--event', 'merge_group'],
+    ]) {
+      const jobs = nativeJobs(docs, args);
+      assert.equal(jobs.ios, 'false', args.join(' '));
+      assert.equal(jobs.android, 'false', args.join(' '));
+      assert.match(jobs.log, /no relevant changes/);
+    }
+    // A README next to a code change doesn't hide the code change, and the code decides which job runs.
+    const swift = nativeJobs(['apps/ios/README.md', 'apps/ios/FivviPro/App.swift']);
+    assert.equal(swift.ios, 'true');
+    assert.equal(swift.android, 'false');
+    const kotlin = nativeJobs(['apps/android/README.md', 'apps/android/app/build.gradle.kts']);
+    assert.equal(kotlin.ios, 'false');
+    assert.equal(kotlin.android, 'true');
+  });
+
+  it('E002 #242: run-native and workflow_dispatch still run both jobs for a README-only change', () => {
+    for (const args of [['--event', 'workflow_dispatch'], ['--run-native']]) {
+      const jobs = nativeJobs(['apps/ios/README.md', 'apps/android/README.md'], args);
+      assert.equal(jobs.ios, 'true', args.join(' '));
+      assert.equal(jobs.android, 'true', args.join(' '));
+    }
+  });
+
   it('E002 #91: a push to main runs a native job only when its own paths changed, so main warms the caches', () => {
     const ios = nativeJobs(['apps/ios/FivviPro/App.swift'], ['--event', 'push']);
     assert.equal(ios.ios, 'true');
@@ -370,6 +407,21 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     });
   });
 
+  it('E002 #242: a README-only change to a native app runs neither native job in a PR or a push', () => {
+    // The workflow's own Filter paths step, not only native-jobs.sh
+    for (const event of ['pull_request', 'push', 'merge_group']) {
+      assert.deepEqual(
+        detectChanges({ event, changed: ['apps/ios/README.md', 'apps/android/README.md'] }),
+        { ios: 'false', android: 'false' },
+        event,
+      );
+    }
+    assert.deepEqual(
+      detectChanges({ event: 'pull_request', changed: ['apps/ios/FivviPro/App.swift'] }),
+      { ios: 'true', android: 'false' },
+    );
+  });
+
   it('E002 #91: ci.yml passes the event and the run-native label to scripts/native-jobs.sh', () => {
     assert.deepEqual(detectChanges({ event: 'pull_request' }), { ios: 'false', android: 'false' });
     assert.deepEqual(detectChanges({ event: 'pull_request', label: true }), {
@@ -443,6 +495,27 @@ describe('E002 #91 the native jobs in ci.yml', () => {
   it('runs the iOS tests through scripts/test-ios.sh and uploads the result bundles on failure', () => {
     assert.match(ios, /run: scripts\/test-ios\.sh/);
     assert.match(ios, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/TestResults-\*\.xcresult/);
+  });
+
+  it('E002 #242: the iOS job runs on macos-15 with an Xcode that image has, and says why in a comment', () => {
+    assert.match(ios, /^ {4}runs-on: macos-15$/m);
+    assert.match(ios, /\n {4}# [^\n]*macos-15[^\n]*\n(?: {4}#[^\n]*\n)* {4}runs-on: macos-15/);
+    // The Xcode must be one the image installs (macos-15: 16.x and 26.0.1 to 26.3).
+    assert.match(
+      ios,
+      /DEVELOPER_DIR: \/Applications\/Xcode_(?:26\.(?:0\.1|1\.1|2|3)|16\.[0-4])\.app\/Contents\/Developer/,
+    );
+  });
+
+  it('E002 #242: on a pull request the iOS UI tests run in nl only; the merge queue and a manual run run nl and en', () => {
+    const step = ios.slice(
+      ios.indexOf('run: scripts/test-ios.sh') - 300,
+      ios.indexOf('run: scripts/test-ios.sh'),
+    );
+    const value = step.match(/^ +IOS_UI_LOCALES: \$\{\{ (.+) \}\}$/m)?.[1];
+    assert.equal(value, "github.event_name == 'pull_request' && 'nl' || 'nl en'");
+    // Nothing else in the workflow sets it: merge_group and workflow_dispatch get the script's default (both).
+    assert.equal(ci.match(/^ +IOS_UI_LOCALES:/gm).length, 1);
   });
 
   it('caches the AVD with its snapshot, boots with snapshots on and stops the emulator before the cache is saved', () => {
@@ -1074,7 +1147,6 @@ esac`;
     for (const path of [
       'apps/ios/lint',
       'apps/ios/Config',
-      'apps/ios/README.md',
       'apps/Version.xcconfig',
       'apps/ios/FivviPro.xctestplan',
       'apps/ios/FivviProUITests',
@@ -1142,7 +1214,8 @@ case "$*" in
     [ "$FAKE_EXPORT" != hang ] || exec perl -e 'open my $f, ">", shift; close $f; sleep 30' "${state}/running"
     [ "$FAKE_EXPORT" != fail ] || exit 70 ;;
   *-showBuildSettings*)
-    # FAKE_VERSION: the version the project resolves instead of the one of apps/Version.xcconfig. A build setting passed
+    # FAKE_BUNDLE_ID: the bundle ID the project resolves instead of app.fivvi.pro. FAKE_VERSION: the version the
+    # project resolves instead of the one of apps/Version.xcconfig. A build setting passed
     # on the command line (CURRENT_PROJECT_VERSION=42) is echoed first, as Xcode does ("Build settings from command
     # line:"), and overrides the file's in the target's block, unless FAKE_IGNORE_OVERRIDE is set (the target then
     # resolves the default and only the echo says 42).
@@ -1151,14 +1224,17 @@ case "$*" in
     case "$*" in *\\ CURRENT_PROJECT_VERSION=*)
       echoed="Build settings from command line:\\n    CURRENT_PROJECT_VERSION = $(sed -E 's/.* CURRENT_PROJECT_VERSION=([^ ]*).*/\\1/' <<<"$*")\\n\\n"
       [ -n "$FAKE_IGNORE_OVERRIDE" ] || number="$(sed -E 's/.* CURRENT_PROJECT_VERSION=([^ ]*).*/\\1/' <<<"$*")" ;; esac
-    printf '%bBuild settings for action build and target FivviPro:\\n    FIVVI_API_BASE_URL = %s\\n    INFOPLIST_FILE = Info.plist\\n    FIVVI_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    FIVVI_SENTRY_ENVIRONMENT = production\\n    MARKETING_VERSION = %s\\n    CURRENT_PROJECT_VERSION = %s\\n    PRODUCT_BUNDLE_IDENTIFIER = app.fivvi.pro\\n' "$echoed" "\${FAKE_BASE_URL-https://example.test/api}" "\${FAKE_VERSION:-$(sed -nE 's/^MARKETING_VERSION = //p' ${repo}/apps/Version.xcconfig)}" "$number" ;;
+    printf '%bBuild settings for action build and target FivviPro:\\n    FIVVI_API_BASE_URL = %s\\n    INFOPLIST_FILE = Info.plist\\n    FIVVI_SENTRY_DSN = https://public@o0.ingest.de.sentry.io/1\\n    FIVVI_SENTRY_ENVIRONMENT = production\\n    MARKETING_VERSION = %s\\n    CURRENT_PROJECT_VERSION = %s\\n    PRODUCT_BUNDLE_IDENTIFIER = %s\\n' "$echoed" "\${FAKE_BASE_URL-https://example.test/api}" "\${FAKE_VERSION:-$(sed -nE 's/^MARKETING_VERSION = //p' ${repo}/apps/Version.xcconfig)}" "$number" "\${FAKE_BUNDLE_ID:-app.fivvi.pro}" ;;
   build-for-testing\\ *) [ "$FAKE_BUILD" != fail ] || { echo 'error: build failed (fake)'; exit 1; }
     mkdir -p .build/DerivedData/Build/Products
     # FAKE_XCTESTRUN: none (the build leaves no .xctestrun) or two (it leaves two).
     [ "$FAKE_XCTESTRUN" = none ] || touch .build/DerivedData/Build/Products/FivviPro.xctestrun
     [ "$FAKE_XCTESTRUN" != two ] || touch .build/DerivedData/Build/Products/Other.xctestrun
     printf 'Build Timing Summary\\n\\nSwiftCompile (1 task) | 1.000 seconds\\n\\n** TEST BUILD SUCCEEDED **\\n' ;;
-  test-without-building\\ *) ${outcome} ;;
+  test-without-building\\ *)
+    # FAKE_FAIL_CONFIGURATION=<locale>: only the run of that test-plan configuration fails.
+    case "$*" in *"-only-test-configuration $FAKE_FAIL_CONFIGURATION"*) [ -z "$FAKE_FAIL_CONFIGURATION" ] || exit 1 ;; esac
+    ${outcome} ;;
 esac
 exit 0`,
     );
@@ -1513,6 +1589,145 @@ esac`,
     });
   });
 
+  describe('E002 #242 IOS_UI_LOCALES: the UI tests in fewer languages than the unit tests', () => {
+    const tests = (fake) =>
+      fake
+        .log('xcodebuild')
+        .filter((line) => line.startsWith('test-without-building '))
+        .map((line) => ({
+          config: line.match(/-only-test-configuration (\S+)/)?.[1] ?? 'all',
+          skipsUI: / -skip-testing:FivviProUITests(\s|$)/.test(line),
+          bundle: line.match(/-resultBundlePath (\S+)/)?.[1],
+        }));
+
+    it('without it (pnpm test:ios locally), the unit and UI tests run in nl and en in one run, skipping nothing', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh');
+
+      assert.equal(run.status, 0, run.output);
+      assert.deepEqual(tests(fake), [
+        { config: 'all', skipsUI: false, bundle: '.build/TestResults-nl-en.xcresult' },
+      ]);
+      assert.match(run.output, /Unit and UI tests in nl and en \(simulator/);
+    });
+
+    it('IOS_UI_LOCALES="nl en" is the same as not setting it', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', [], { IOS_UI_LOCALES: 'nl en' });
+
+      assert.equal(run.status, 0, run.output);
+      assert.deepEqual(
+        tests(fake).map((test) => [test.config, test.skipsUI]),
+        [['all', false]],
+      );
+    });
+
+    it('IOS_UI_LOCALES=nl runs everything in nl and only the unit tests in en, on one simulator, after one build', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', [], { IOS_UI_LOCALES: 'nl' });
+
+      assert.equal(run.status, 0, run.output);
+      assert.deepEqual(tests(fake), [
+        { config: 'nl', skipsUI: false, bundle: '.build/TestResults-nl.xcresult' },
+        { config: 'en', skipsUI: true, bundle: '.build/TestResults-en.xcresult' },
+      ]);
+      const commands = fake.log('xcodebuild').filter((line) => /^build-for-testing /.test(line));
+      assert.equal(commands.length, 1, 'built once');
+      assert.deepEqual(
+        fake
+          .log('xcodebuild')
+          .filter((line) => line.startsWith('test-without-building '))
+          .map((line) => testedOn([line])),
+        ['IPHONE-18', 'IPHONE-18'],
+      );
+      assert.equal(fake.simulators().length, 2, 'no second simulator');
+      assert.match(run.output, /Unit tests in nl and en, UI tests in nl only \(simulator/);
+    });
+
+    it('IOS_UI_LOCALES=en runs the UI tests in en only, the unit tests in both', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', [], { IOS_UI_LOCALES: 'en' });
+
+      assert.equal(run.status, 0, run.output);
+      assert.deepEqual(
+        tests(fake).map((test) => [test.config, test.skipsUI]),
+        [
+          ['nl', true],
+          ['en', false],
+        ],
+      );
+    });
+
+    it('fails when the unit tests of the other language fail, after both runs', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', [], {
+        IOS_UI_LOCALES: 'nl',
+        FAKE_FAIL_CONFIGURATION: 'en',
+      });
+
+      assert.equal(run.status, 1, run.output);
+      assert.deepEqual(
+        tests(fake).map((test) => test.config),
+        ['nl', 'en'],
+        'the nl run passed, the en run failed',
+      );
+    });
+
+    it('with IOS_PARALLEL=1 the en run on the second simulator skips the UI tests', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', [], {
+        IOS_UI_LOCALES: 'nl',
+        IOS_PARALLEL: '1',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.deepEqual(
+        tests(fake)
+          .map((test) => [test.config, test.skipsUI])
+          .sort(),
+        [
+          ['en', true],
+          ['nl', false],
+        ],
+      );
+    });
+
+    it('an empty IOS_UI_LOCALES is the default: nl and en in one run', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', [], { IOS_UI_LOCALES: '' });
+
+      assert.equal(run.status, 0, run.output);
+      assert.deepEqual(
+        tests(fake).map((test) => [test.config, test.skipsUI]),
+        [['all', false]],
+      );
+    });
+
+    for (const value of [' ', 'de', 'nl de', 'fr']) {
+      it(`refuses IOS_UI_LOCALES='${value}' before building`, async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/test-ios.sh', [], { IOS_UI_LOCALES: value });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /IOS_UI_LOCALES/);
+        if (value === ' ') assert.match(run.output, /IOS_UI_LOCALES is empty/);
+        assert.deepEqual(tests(fake), []);
+        assert.equal(
+          fake.log('xcodebuild').filter((line) => /^build-for-testing /.test(line)).length,
+          0,
+        );
+      });
+    }
+  });
+
   describe('E002 #105 faster iOS tests without losing coverage', () => {
     const commands = (fake) =>
       fake
@@ -1844,23 +2059,24 @@ esac`,
     assert.match(run.output, /E017 AC1: .* must set ITSAppUsesNonExemptEncryption to NO/);
   });
 
-  it('E017 AC8: bundle and application ID match the recorded final ID: pnpm test:ios fails when the README does not record the bundle ID', async () => {
+  it('E017 AC8: pnpm test:ios does not read the README (the bundle ID is checked by scripts/test/app-ids.test.mjs)', async () => {
     const fake = checkout();
-    const readme = join(fake.repo, 'apps/ios/README.md');
-    writeFileSync(
-      readme,
-      readFileSync(readme, 'utf8').replace(
-        'bundle ID `app.fivvi.pro` (final',
-        'bundle ID `app.fivvi.pro` (provisional',
-      ),
-    );
+    assert.ok(!existsSync(join(fake.repo, 'apps/ios/README.md')));
 
     const run = await fake.run('scripts/test-ios.sh');
+
+    assert.equal(run.status, 0, run.output);
+  });
+
+  it('E017 AC8: pnpm test:ios fails when the app resolves a bundle ID other than app.fivvi.pro', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/test-ios.sh', [], { FAKE_BUNDLE_ID: 'app.other' });
 
     assert.equal(run.status, 1, run.output);
     assert.match(
       run.output,
-      /E017 AC8: bundle ID 'app\.fivvi\.pro' is not the final ID the README records/,
+      /E017 AC8: bundle ID 'app\.other' is not the final ID 'app\.fivvi\.pro'/,
     );
   });
 

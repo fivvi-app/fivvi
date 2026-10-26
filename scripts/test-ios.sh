@@ -13,12 +13,27 @@
 #                 IOS_PARALLEL=1 runs one run per locale at the same time on two. Prints the durations of its steps, the
 #                 build timing summary and the slowest tests per locale (also in the job summary on CI). Shuts down the
 #                 simulators it booted when it ends, unless KEEP_DEVICE=1
+#
+#   IOS_UI_LOCALES  the locales whose UI tests run, default "nl en" (what `pnpm test:ios` does). The unit tests always run
+#                   in both. CI sets "nl" on a pull request only, so a PR's run skips the en UI tests (a language-only
+#                   break of a UI test then shows in the merge queue, which runs both); with it, the nl run is everything
+#                   in nl and a second run is the unit tests in en, one result bundle per locale (E002 #242)
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
 [ $# -eq 0 ] || usage_of "$0"
 
 need_cmd jq
+LOCALES="nl en"
+# The locales whose UI tests run (an empty value is the default: both).
+UI_LOCALES="${IOS_UI_LOCALES:-$LOCALES}"
+[ -n "$(tr -d ' ' <<<"$UI_LOCALES")" ] || die "IOS_UI_LOCALES is empty; use $LOCALES (or one of them)"
+for locale in $UI_LOCALES; do
+  [[ " $LOCALES " == *" $locale "* ]] || die "IOS_UI_LOCALES: '$locale' is not one of: $LOCALES"
+done
+in_ui_locales() { [[ " $UI_LOCALES " == *" $1 "* ]]; }
+all_ui=true
+for locale in $LOCALES; do in_ui_locales "$locale" || all_ui=false; done
 use_xcode || die "Xcode not found — run scripts/bootstrap.sh --mobile"
 install_swiftlint || die "could not install SwiftLint — run scripts/bootstrap.sh --mobile"
 cd "$IOS_DIR"
@@ -100,23 +115,23 @@ shared_setting() {
 }
 
 # E017 AC4 and AC8: a configuration resolves the version of apps/Version.xcconfig (the one Android reads), the default
-# build number 1 and the bundle ID that apps/ios/README.md records as final.
+# build number 1 and the final bundle ID, app.fivvi.pro, a literal here as in Android's BuildInfoTest. (That the README
+# records the same ID is checked by scripts/test/app-ids.test.mjs, so a README edit is not a native change.)
+FINAL_BUNDLE_ID=app.fivvi.pro
 version_and_identifier() {
-  local settings=$1 shared default recorded id version number rc=0
+  local settings=$1 shared default version number id rc=0
   shared="$(shared_setting MARKETING_VERSION)"
   default="$(shared_setting CURRENT_PROJECT_VERSION)"
   version="$(setting_of MARKETING_VERSION "$settings")"
   number="$(setting_of CURRENT_PROJECT_VERSION "$settings")"
   id="$(setting_of PRODUCT_BUNDLE_IDENTIFIER "$settings")"
-  # shellcheck disable=SC2016 # the backticks are the README's Markdown, not a command substitution
-  recorded="$(sed -nE 's/.*bundle ID `([^`]+)` \(final.*/\1/p' README.md)"
   [[ "$shared" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "apps/Version.xcconfig: MARKETING_VERSION is not <major>.<minor>.<patch>: '$shared'"; rc=1; }
   [ "$version" = "$shared" ] \
     || { echo "E017 AC4: the app's version is '$version', not '$shared' of apps/Version.xcconfig, which Android reads"; rc=1; }
   [ "$default" = 1 ] && [ "$number" = "$default" ] \
     || { echo "E017 AC4: the default build number is '$number' ('$default' in apps/Version.xcconfig), not 1"; rc=1; }
-  [ -n "$recorded" ] && [ "$id" = "$recorded" ] \
-    || { echo "E017 AC8: bundle ID '$id' is not the final ID the README records: '$recorded'"; rc=1; }
+  [ "$id" = "$FINAL_BUNDLE_ID" ] \
+    || { echo "E017 AC8: bundle ID '$id' is not the final ID '$FINAL_BUNDLE_ID'"; rc=1; }
   return "$rc"
 }
 
@@ -279,7 +294,6 @@ swift_packages
 step "Xcode's string catalog sync leaves the generated catalogs unchanged"
 catalog_sync
 
-LOCALES="nl en"
 BUILD_ARGS=(-project FivviPro.xcodeproj -scheme FivviPro -testPlan FivviPro
   -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData)
 
@@ -305,12 +319,14 @@ build_for_testing() {
 
 # Runs the test plan on simulator $1 without building, both configurations (nl and en) in one run: the simulator is
 # prepared and the app installed once, and the one result bundle has each locale's results. With a locale in $2, runs
-# only that locale's configuration, into a bundle of its own.
+# only that locale's configuration, into a bundle of its own, and without the UI tests when the locale isn't one of
+# IOS_UI_LOCALES.
 RESULTS=.build/TestResults-nl-en.xcresult
 run_tests() {
   local only=() bundle=$RESULTS
   if [ -n "${2:-}" ]; then
     only=(-only-test-configuration "$2")
+    in_ui_locales "$2" || only+=(-skip-testing:FivviProUITests)
     bundle=".build/TestResults-$2.xcresult"
   fi
   xcodebuild test-without-building -xctestrun "$XCTESTRUN" -destination "id=$1" ${only[@]+"${only[@]}"} \
@@ -359,16 +375,25 @@ step "Build for testing (simulator $udid)"
 build_for_testing "$udid"
 await_boots || die "a simulator did not boot"
 tests=0
+# One bundle per locale when the locales run at the same time or with different tests.
+per_locale=$parallel
+$all_ui || per_locale=true
 if $parallel; then
-  step "Unit and UI tests in nl and en at the same time (simulators $udid and $extra)"
+  $all_ui || ui_note=", UI tests in ${UI_LOCALES// / and } only"
+  step "Unit and UI tests in nl and en at the same time${ui_note:-} (simulators $udid and $extra)"
   test_locales_in_parallel "$udid" "$extra" || tests=1
-else
+elif $all_ui; then
   step "Unit and UI tests in nl and en (simulator $udid)"
   run_tests "$udid" || tests=1
+else
+  # The UI tests of the other locale are skipped: one run per locale, one after the other (a failing run doesn't stop
+  # the next), each with its own result bundle.
+  step "Unit tests in nl and en, UI tests in ${UI_LOCALES// / and } only (simulator $udid)"
+  for locale in $LOCALES; do run_tests "$udid" "$locale" || tests=1; done
 fi
 for locale in $LOCALES; do
   bundle="$RESULTS"
-  ! $parallel || bundle=".build/TestResults-$locale.xcresult"
+  ! $per_locale || bundle=".build/TestResults-$locale.xcresult"
   rows="$(slowest_tests "$bundle" 10 "$locale")"
   [ -z "$rows" ] || {
     echo "Slowest tests in $locale (seconds):"

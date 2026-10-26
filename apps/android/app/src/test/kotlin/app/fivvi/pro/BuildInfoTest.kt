@@ -37,11 +37,9 @@ class BuildInfoTest {
     }
 
     @Test
-    fun E017_AC8_applicationIdMatchesTheRecordedFinalId() {
-        val recorded = Regex("""application ID `([^`]+)` \(final""").find(File("../README.md").readText())
-            ?.groupValues?.get(1)
-
-        assertEquals("app.fivvi.pro", recorded)
-        assertEquals(recorded, BuildConfig.APPLICATION_ID)
+    fun E017_AC8_applicationIdIsTheFinalId() {
+        // Final once the first build is uploaded to Google Play. That the README records the same ID is checked by
+        // scripts/test/app-ids.test.mjs, not here: a README edit is not an Android change.
+        assertEquals("app.fivvi.pro", BuildConfig.APPLICATION_ID)
     }
 }
