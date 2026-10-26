@@ -156,6 +156,10 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'e2e/maestro/hello.yaml',
       'e2e/maestro/sign-in.yaml',
       'e2e/maestro/shared/sign-in.yaml',
+      'e2e/maestro/shared/newest-code.js',
+      // What the sign-in flow reads its code from: the fake Brevo server and the email whose code it parses (EM-08).
+      'apps/web/e2e/fake-brevo.ts',
+      'packages/email/src/templates/sign-in.tsx',
       'scripts/android.sh',
       'scripts/_android.sh',
       'scripts/maestro.sh',
@@ -167,6 +171,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'packages/design-tokens/generated/web/tokens.css',
       'packages/design-tokens/FivviDesignTokens/Sources/FivviDesignTokens/Generated/Colors.swift',
       'packages/i18n/generated/ios/Localizable.xcstrings',
+      'apps/web/e2e/brevo.ts',
+      'packages/email/src/templates/hello.tsx',
     ]) {
       assert.ok(!runs('android', path), path);
     }
@@ -1156,7 +1162,11 @@ exit 0`,
       join(home, '.maestro/bin/maestro'),
       `echo "$*" >>"${state}/maestro.log"
 echo "maestro $*" >>"${state}/calls.log"
-case " $* " in *" test "*) ${outcome} ;; esac`,
+# A flow run reads the sign-in emails from the fake Brevo server (e2e/maestro/shared): record that it answered.
+case " $* " in *" test "*)
+  node -e "fetch('http://localhost:5999/emails?to=owner@example.com').then((r) => r.json()).then((emails) => process.exit(Array.isArray(emails) ? 0 : 1), () => process.exit(1))" \
+    && touch "${state}/brevo-answered"
+  ${outcome} ;; esac`,
     );
     script(
       join(sdk, 'platform-tools/adb'),
@@ -1223,6 +1233,7 @@ esac`,
             .filter(Boolean)
         : [];
     const webEnv = () => JSON.parse(readFileSync(join(state, 'web-env.json'), 'utf8'));
+    const brevoAnswered = () => existsSync(join(state, 'brevo-answered'));
     const simulators = () =>
       readdirSync(join(state, 'devices')).map((udid) =>
         JSON.parse(readFileSync(join(state, 'devices', udid), 'utf8')),
@@ -1237,7 +1248,7 @@ esac`,
       execFileSync('git', ['-C', repo, 'worktree', 'add', '--quiet', '-b', branch, path]);
       return path;
     };
-    return { repo, run, log, webEnv, simulators, simulator, emulator, worktree };
+    return { repo, run, log, webEnv, brevoAnswered, simulators, simulator, emulator, worktree };
   };
 
   const endings = [
@@ -2144,9 +2155,11 @@ esac`,
       assert.ok(env.BETTER_AUTH_SECRET?.length >= 32, 'a secret of at least 32 characters');
       assert.equal(env.BETTER_AUTH_URL, 'http://127.0.0.1:3999');
       assert.match(env.SIGN_UP_ALLOWED_EMAILS, /@example\.com/);
-      // Outside production, mail to @example.com (the seeded owner@example.com) is logged, never sent: only as the
-      // production environment does the server send every address through Brevo, here the fake one.
-      assert.equal(env.RAILWAY_ENVIRONMENT_NAME, 'production');
+      // Outside production, mail to @example.com (the seeded owner@example.com) is logged, never sent, unless this
+      // opt-in sends it through Brevo, here the fake one. The server is not the production environment: it would
+      // tag Sentry and PostHog "production" and drop invalid product events instead of throwing.
+      assert.equal(env.EMAIL_SEND_EXAMPLE_DOMAIN, '1');
+      assert.equal(env.RAILWAY_ENVIRONMENT_NAME, undefined);
     });
 
     it(`F001: ${name} clears the sign-in rate limits before the flows of each locale`, async () => {
@@ -2159,7 +2172,7 @@ esac`,
         .log('calls')
         .map((call) => {
           if (isFlow(call)) return `flow ${call.match(new RegExp(`${prefix}-(\\S+)\\.xml`))[1]}`;
-          if (/^pnpm .*auth_rate_limits/.test(call)) return 'clear';
+          if (call === 'pnpm db:reset-rate-limits') return 'clear';
           return '';
         })
         .filter(Boolean);
@@ -2183,6 +2196,11 @@ esac`,
         );
 
         assert.equal(run.status, status, run.output);
+        // It answered while the flows ran (a server that never started would pass the next line too).
+        assert.ok(
+          fake.brevoAnswered(),
+          'the fake Brevo server answered GET /emails during the run',
+        );
         await assert.rejects(fetch('http://localhost:5999/'), 'nothing answers on its port');
       });
     }
@@ -2672,7 +2690,6 @@ describe('Maestro flows', () => {
     const read = at(/- runScript:\n\s+file: newest-code\.js\n/, codeStep);
     at(/- inputText: \$\{output\.code\}\n/, read);
     at(/- extendedWaitUntil:\n\s+visible:\n\s+id: home\\\.signedInAs\n/, read);
-    assert.ok(!/optional:\s*true/.test(subFlow));
     for (const script of ['emails-before.js', 'newest-code.js']) {
       const source = readFileSync(join(flows, 'shared', script), 'utf8');
       assert.match(source, /http\.get\(/, script);
@@ -2680,6 +2697,120 @@ describe('Maestro flows', () => {
       assert.match(source, /\/emails\?to=/, script);
     }
     assert.doesNotMatch(subFlow, /^\s+BREVO_URL:/m, 'maestro.sh passes the server address');
+  });
+
+  // Maestro scripts can't sleep (no host access, no setTimeout), so the flow does the waiting: it asks newest-code.js
+  // again and again, pausing between the asks, until a code is there or the 20 s emails-before.js set run out, and
+  // fails when no code came. The time bounds the loop, not the turns: a turn takes 0.5 s on Android, over 2 s on iOS.
+  it('F001: the shared sub-flow waits at most 20 s for the email, then fails', () => {
+    const subFlow = readFileSync(join(flows, 'shared/sign-in.yaml'), 'utf8');
+    const loop = subFlow.match(
+      /- repeat:\n\s+times: (\d+)\n\s+while:\n\s+true: \$\{!output\.code && Date\.now\(\) < output\.deadline\}\n\s+commands:\n\s+- extendedWaitUntil:\n\s+visible:\n\s+id: (\S+)\n\s+optional: true\n\s+timeout: (\d+)\n\s+- runScript:\n\s+file: newest-code\.js\n/,
+    );
+    assert.ok(loop, subFlow);
+    const [, times, pauseId, pause] = loop;
+    assert.ok(Number(pause) <= 1000, `pause ${pause} ms`);
+    assert.ok(
+      Number(times) * Number(pause) >= 20000,
+      'the turn count is a backstop, not the bound',
+    );
+    const { output, thrown } = runHelper('emails-before.js');
+    assert.equal(thrown, undefined);
+    const wait = output.deadline - Date.now();
+    assert.ok(wait > 19000 && wait <= 20000, `emails-before.js sets the deadline ${wait} ms ahead`);
+    // Never an element the apps have: the pause must run out its timeout, whatever is on screen.
+    const name = pauseId.replaceAll('\\', '');
+    for (const dir of ['apps/ios', 'apps/android']) {
+      const found = spawnSync('grep', [
+        '-rlF',
+        '--include=*.swift',
+        '--include=*.kt',
+        '--',
+        name,
+        join(SCRIPTS, '..', dir),
+      ]);
+      assert.equal(found.status, 1, `${name} is in ${dir}`);
+    }
+    const first = subFlow.search(/- runScript:\n\s+file: newest-code\.js\n/);
+    assert.ok(first >= 0 && first < loop.index, 'asked once before the loop');
+    assert.match(
+      subFlow.slice(loop.index + loop[0].length),
+      /^\s*- assertTrue: \$\{output\.code\.length == 6\}\n/,
+      'no code after the loop fails the flow',
+    );
+    assert.equal(subFlow.match(/optional:\s*true/g).length, 1, 'only the pause is optional');
+  });
+
+  // The helpers run in Maestro's JavaScript (GraalJS) with http, json, output and the flow's env as globals.
+  const runHelper = (name, { emails = [], output = {}, to = 'owner@example.com' } = {}) => {
+    const source = readFileSync(join(flows, 'shared', name), 'utf8');
+    const urls = [];
+    const http = {
+      get: (url) => {
+        urls.push(url);
+        return { body: JSON.stringify(emails) };
+      },
+    };
+    const run = new Function('http', 'json', 'output', 'BREVO_URL', 'EMAIL', source);
+    const thrown = (() => {
+      try {
+        run(http, JSON.parse, output, 'http://localhost:5999', to);
+      } catch (error) {
+        return error;
+      }
+    })();
+    return { urls, output, thrown };
+  };
+  const email = (text) => ({ to: 'owner@example.com', subject: 'Your code', text, html: '' });
+  const signInText = (code) =>
+    `Your sign-in code\n\n${code}\n\nThe code works for 15 minutes. Or open https://fivvi.example.com/login/confirm?token=t123456\n`;
+
+  it('F001: emails-before.js counts the emails the fake Brevo server holds for the address', () => {
+    const { urls, output, thrown } = runHelper('emails-before.js', {
+      emails: [email(signInText('111111')), email(signInText('222222'))],
+      to: 'o+x@example.com',
+    });
+
+    assert.equal(thrown, undefined);
+    assert.deepEqual(urls, ['http://localhost:5999/emails?to=o%2Bx%40example.com']);
+    assert.equal(output.emailsBefore, 2);
+  });
+
+  it('F001: newest-code.js asks once and sets no code while no newer email has arrived', () => {
+    const { urls, output, thrown } = runHelper('newest-code.js', {
+      emails: [email(signInText('111111'))],
+      output: { emailsBefore: 1, code: 'stale' },
+    });
+
+    assert.equal(thrown, undefined);
+    assert.equal(urls.length, 1);
+    assert.equal(output.code, '', 'a code of an earlier try is cleared too');
+  });
+
+  it('F001: newest-code.js takes the code of the newest email, the line that holds nothing else', () => {
+    const { output, thrown } = runHelper('newest-code.js', {
+      emails: [email(signInText('111111')), email(signInText('482915'))],
+      output: { emailsBefore: 1 },
+    });
+
+    assert.equal(thrown, undefined);
+    assert.equal(output.code, '482915');
+  });
+
+  it('F001: newest-code.js never takes a code of an older email, nor digits inside a longer line', () => {
+    const older = runHelper('newest-code.js', {
+      emails: [email(signInText('111111'))],
+      output: { emailsBefore: 1 },
+    });
+    assert.equal(older.output.code, '');
+
+    for (const text of ['Order 123456 is ready\n', '1234567\n', '12345\n', '']) {
+      const { thrown } = runHelper('newest-code.js', {
+        emails: [email(text)],
+        output: { emailsBefore: 0 },
+      });
+      assert.match(thrown?.message ?? '', /has no sign-in code/, JSON.stringify(text));
+    }
   });
 });
 

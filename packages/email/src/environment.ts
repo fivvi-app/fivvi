@@ -15,6 +15,15 @@ export function isProductionEnvironment(env: Env = process.env): boolean {
   return env.RAILWAY_ENVIRONMENT_NAME?.trim() === 'production';
 }
 
+/**
+ * `EMAIL_SEND_EXAMPLE_DOMAIN=1`: outside production, `@example.com` mail goes through Brevo like
+ * any other address. Set only by the Maestro run (`scripts/maestro.sh`), whose Brevo is a fake
+ * server it reads the sign-in codes from. Only the value `1` turns it on.
+ */
+function sendsExampleDomain(env: Env): boolean {
+  return env.EMAIL_SEND_EXAMPLE_DOMAIN?.trim() === '1';
+}
+
 /** Only the reserved example domain itself, never a lookalike such as `notexample.com`. */
 function isExampleAddress(address: string): boolean {
   return address.trim().toLowerCase().endsWith('@example.com');
@@ -38,7 +47,8 @@ export interface EnvironmentSendEmailOptions {
  * - **Production** always sends through Brevo, whatever the address, and never logs an email.
  * - **Outside production**, mail to an `@example.com` address is written to the server log,
  *   code and link included, so agents can sign in on a preview without an inbox. Mail to any
- *   other address goes through Brevo.
+ *   other address goes through Brevo. `EMAIL_SEND_EXAMPLE_DOMAIN=1` sends `@example.com`
+ *   mail through Brevo too, for e2e runs with a fake Brevo server.
  *
  * Brevo is configured by `BREVO_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` and, for e2e
  * runs with a fake Brevo server, `BREVO_API_URL`. Outside production they may be missing
@@ -47,6 +57,7 @@ export interface EnvironmentSendEmailOptions {
 export function createEnvironmentSendEmail(options: EnvironmentSendEmailOptions = {}): SendEmail {
   const { env = process.env, fetch: fetchFn, log } = options;
   const production = isProductionEnvironment(env);
+  const logExampleMail = !production && !sendsExampleDomain(env);
 
   const config = production ? readEmailConfig(env) : tryReadEmailConfig(env);
   const logTransport = createLogTransport(log);
@@ -63,7 +74,7 @@ export function createEnvironmentSendEmail(options: EnvironmentSendEmailOptions 
   const transport: EmailTransport = {
     name: 'environment',
     send(email) {
-      if (!production && isExampleAddress(email.to.email)) return logTransport.send(email);
+      if (logExampleMail && isExampleAddress(email.to.email)) return logTransport.send(email);
       brevoTransport ??= brevo();
       return brevoTransport.send(email);
     },

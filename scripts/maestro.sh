@@ -65,13 +65,12 @@ start_stack() {
   (cd apps/web && PORT="$BREVO_PORT" exec node e2e/fake-brevo.ts) >"$REPORTS/brevo.log" 2>&1 &
   BREVO_PID=$!
   wait_for "http://localhost:$BREVO_PORT/" "the fake Brevo server" "brevo.log"
-  # Every value is synthetic: the fake Brevo server accepts any key. RAILWAY_ENVIRONMENT_NAME=production only for this
-  # server (the seed above ran without it): outside production, mail to an @example.com address, the seeded
-  # owner@example.com, is written to the log and never sent (packages/email), while the flows read it from the fake
-  # Brevo server. Production sends every address through Brevo, whose address is the fake one here.
+  # Every value is synthetic: the fake Brevo server accepts any key. EMAIL_SEND_EXAMPLE_DOMAIN=1 sends @example.com mail,
+  # the seeded owner@example.com, through Brevo (here the fake server) instead of writing it to the log (packages/email);
+  # the server isn't the production environment, which would also tag Sentry and PostHog as production.
   local auth_url="http://127.0.0.1:$PORT"
   (cd apps/web && PORT="$PORT" HOSTNAME=127.0.0.1 \
-    RAILWAY_ENVIRONMENT_NAME=production \
+    EMAIL_SEND_EXAMPLE_DOMAIN=1 \
     BETTER_AUTH_SECRET=maestro-secret-that-is-at-least-thirty-two-characters-long \
     BETTER_AUTH_URL="$auth_url" \
     BREVO_API_URL="http://localhost:$BREVO_PORT/v3/smtp/email" BREVO_API_KEY=maestro-synthetic-brevo-key \
@@ -102,10 +101,10 @@ stop_stack() {
 }
 
 # The sign-in rate limits (F001) count in the database: 3 emails per address in 15 minutes, and one shared bucket for
-# the requests without a client IP address (the app's, here). Clear them, so a flow isn't limited by an earlier run.
+# the requests without a client IP address (the app's, here). Clear them, so a flow isn't limited by an earlier run. The
+# script refuses a database that isn't on localhost (TESTING.md §5.3).
 clear_rate_limits() {
-  pnpm --filter @fivvi/database exec node --env-file=.env -e 'const pg = require("pg"); (async () => { const client = new pg.Client({ connectionString: process.env.DATABASE_URL }); await client.connect(); await client.query("delete from auth_rate_limits"); await client.end(); })().catch((error) => { console.error(error.message); process.exit(1); });' \
-    || die "clearing the sign-in rate limits failed"
+  pnpm db:reset-rate-limits >/dev/null || die "clearing the sign-in rate limits failed"
 }
 
 # The app's first screen asks GET /api/v1/hello?locale=<its language>. Ask it once per locale before the first flow,

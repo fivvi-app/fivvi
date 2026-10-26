@@ -442,7 +442,7 @@ jobs:
         timeout-minutes: 20
         run: pnpm test:android
 
-      - name: Maestro hello flow (nl-NL and en)
+      - name: Maestro flows (sign-in, anonymous and hello; nl-NL and en)
         timeout-minutes: 15
         run: pnpm test:maestro
 

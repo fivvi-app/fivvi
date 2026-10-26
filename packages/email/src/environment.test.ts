@@ -83,6 +83,58 @@ describe('F001 which transport sends an email', () => {
     for (const spy of consoleOutput) expect(spy).not.toHaveBeenCalled();
   });
 
+  it('F001: EMAIL_SEND_EXAMPLE_DOMAIN=1 sends @example.com mail through Brevo outside production, never to the log', async () => {
+    const { requests, logged, send } = setup({
+      ...brevoEnv,
+      BREVO_API_URL: 'http://localhost:4010/v3/smtp/email',
+      EMAIL_SEND_EXAMPLE_DOMAIN: '1',
+    });
+
+    await send('owner@example.com');
+
+    expect(logged).toEqual([]);
+    expect(requests.map((r) => r.url)).toEqual(['http://localhost:4010/v3/smtp/email']);
+  });
+
+  it.each([
+    ['unset', {}],
+    ['0', { EMAIL_SEND_EXAMPLE_DOMAIN: '0' }],
+    ['empty', { EMAIL_SEND_EXAMPLE_DOMAIN: '' }],
+    ['true', { EMAIL_SEND_EXAMPLE_DOMAIN: 'true' }],
+  ])(
+    'F001: EMAIL_SEND_EXAMPLE_DOMAIN %s leaves @example.com mail in the log',
+    async (_name, extra) => {
+      const { requests, logged, send } = setup({ ...brevoEnv, ...extra });
+
+      await send('owner@example.com');
+
+      expect(requests).toEqual([]);
+      expect(logged).toHaveLength(1);
+    },
+  );
+
+  it('F001: EMAIL_SEND_EXAMPLE_DOMAIN=1 without Brevo settings fails when an @example.com email is sent', async () => {
+    const { logged, send } = setup({ EMAIL_SEND_EXAMPLE_DOMAIN: '1' });
+
+    await expect(send('owner@example.com')).rejects.toMatchObject({
+      cause: expect.objectContaining({ message: expect.stringMatching(/BREVO_API_KEY/) }),
+    });
+    expect(logged).toEqual([]);
+  });
+
+  it('F001: production is unchanged by EMAIL_SEND_EXAMPLE_DOMAIN: it sends through Brevo and logs nothing', async () => {
+    const { requests, logged, send } = setup({
+      ...brevoEnv,
+      RAILWAY_ENVIRONMENT_NAME: 'production',
+      EMAIL_SEND_EXAMPLE_DOMAIN: '1',
+    });
+
+    await send('owner@example.com');
+
+    expect(requests).toHaveLength(1);
+    expect(logged).toEqual([]);
+  });
+
   it('AC15: an @example.com lookalike is not the log: only the exact domain is', async () => {
     const { requests, logged, send } = setup({ ...brevoEnv });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { identifier, serverUrl } from './database-server.ts';
+import { identifier, localServerUrl, serverUrl } from './database-server.ts';
 
 describe('E010 test database server', () => {
   it.each([
@@ -24,6 +24,16 @@ describe('E010 test database server', () => {
     'postgres://u:secret@example.com/db',
   ])('refuses a server that is not on localhost: %s', (url) => {
     expect(() => serverUrl({ TEST_DATABASE_URL: url })).toThrow('only run against a Postgres');
+  });
+
+  it('localServerUrl words the refusal for the script that asks, without the URL', () => {
+    const url = 'postgres://u:secret@db.railway.internal:5432/railway';
+    expect(() => localServerUrl(url, 'DATABASE_URL', 'Deleting only runs against')).toThrow(
+      /^Deleting only runs against a Postgres server on localhost\.$/,
+    );
+    expect(() => localServerUrl('nope secret', 'DATABASE_URL', 'x')).toThrow(
+      /^DATABASE_URL is not a valid URL\.$/,
+    );
   });
 
   it('explains how to configure a missing server', () => {

@@ -11,6 +11,7 @@ import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  authRateLimits,
   authUsers,
   createDatabase,
   type DatabaseClient,
@@ -22,6 +23,7 @@ import {
 } from '../src/index.ts';
 import { migrationsFolder, runMigrations } from '../src/migrate.ts';
 import { release } from '../src/release.ts';
+import { resetRateLimits } from '../src/reset-rate-limits.ts';
 import { seed } from '../src/seed.ts';
 
 /**
@@ -189,6 +191,24 @@ describe('E004 database', () => {
 
         expect(await tx.$count(systemGreetings)).toBe(1);
         expect(await findSystemGreeting(tx, 'hello')).toEqual(HELLO_GREETING);
+      });
+    });
+  });
+
+  describe('F001 clearing the sign-in rate limits', () => {
+    it('deletes every counter, expired or not, and nothing else', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        const future = new Date(Date.now() + 15 * 60_000);
+        await tx.insert(authRateLimits).values([
+          { key: 'email:a', count: 3, windowEndsAt: future },
+          { key: 'ip:unknown', count: 20, windowEndsAt: new Date(0) },
+        ]);
+
+        await resetRateLimits(tx);
+
+        expect(await tx.$count(authRateLimits)).toBe(0);
+        expect(await tx.$count(authUsers)).toBe(1);
       });
     });
   });

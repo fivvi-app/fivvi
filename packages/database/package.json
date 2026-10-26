@@ -13,6 +13,7 @@
     "db:check": "drizzle-kit check",
     "db:migrate": "node --env-file-if-exists=.env src/scripts/migrate.ts",
     "db:seed": "node --env-file-if-exists=.env src/scripts/seed.ts",
+    "db:reset-rate-limits": "node --env-file-if-exists=.env src/scripts/reset-rate-limits.ts",
     "lint": "biome check --formatter-enabled=false --error-on-warnings .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
