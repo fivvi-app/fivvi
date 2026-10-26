@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The Maestro flows in e2e/maestro against the local stack, once per catalog locale (E008, TESTING.md §7.2).
 #
-#   maestro.sh android   start Postgres (migrated and seeded) and the web server on E2E_PORT, install the debug app on
+#   maestro.sh android   start Postgres (migrated and seeded), the fake Brevo server (the one of the web e2e, on E2E_PORT +
+#                        2000) and the web server on E2E_PORT, install the debug app on
 #                        the emulator (booted for the run when none is connected), then run every flow with the
 #                        emulator's language set to nl-NL and to en, each once Android has settled after the change
 #                        (pnpm test:maestro; CI job Android)
@@ -9,6 +10,11 @@
 #                        (IOS_SIMULATOR="iPhone 17" picks one by name): builds the Debug app for it against the web
 #                        server, then runs every flow with the simulator's language set to nl-NL and to en (local only,
 #                        to save macOS CI minutes)
+#
+# The app starts on its sign-in (F001), so the flows sign in as the seeded owner@example.com: the web server sends its
+# emails to the fake Brevo server, and the flows read the newest sign-in code from it (`GET /emails?to=`), so no real
+# inbox is involved. Before each locale's flows the sign-in rate limits are cleared (3 emails per address in 15 minutes
+# would stop the second run).
 #
 # Before the first flow, the web server has answered GET /api/v1/hello, the app's first request, in both locales.
 # When it ends, also on failure or Ctrl-C, it stops the emulator or simulator it booted and its Gradle daemons;
@@ -24,6 +30,8 @@ LOCALES="nl-NL en"
 PORT="${E2E_PORT:-$(e2e_port "$ROOT")}"
 REPORTS="$ROOT/e2e/maestro/build"
 SERVER_PID=""
+BREVO_PID=""
+BREVO_PORT=$((PORT + 2000))
 DEVICE_LOCALE=""
 export MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
 
@@ -34,6 +42,17 @@ catalog() {
     "$ROOT/packages/i18n/$1.json" "$2"
 }
 
+# The values every flow gets (--env; a flow's own env default would win over them, so the flows have none): the texts the
+# screens show in locale $1, and where the flows read the sign-in emails (the host: Maestro runs there on both platforms).
+FLOW_ENV=()
+set_flow_env() {
+  FLOW_ENV=(
+    --env "SIGN_IN_SEND_CODE=$(catalog "$1" signIn.sendCode)"
+    --env "HELLO_TITLE=$(catalog "$1" hello.title)"
+    --env "BREVO_URL=http://localhost:$BREVO_PORT"
+  )
+}
+
 start_stack() {
   docker info >/dev/null 2>&1 || die "Docker is not running — start it (Postgres for the local stack)"
   [ -f packages/database/.env ] || cp packages/database/.env.example packages/database/.env
@@ -42,15 +61,51 @@ start_stack() {
   pnpm db:seed >/dev/null
   pnpm turbo run build --filter=@fivvi/web --output-logs=errors-only
   mkdir -p "$REPORTS"
-  (cd apps/web && PORT="$PORT" HOSTNAME=127.0.0.1 exec node --env-file=../../packages/database/.env \
-    .next/standalone/apps/web/server.js) >"$REPORTS/web.log" 2>&1 &
+  # The fake Brevo server of the web e2e (apps/web/e2e/fake-brevo.ts): it keeps the emails the web server sends.
+  (cd apps/web && PORT="$BREVO_PORT" exec node e2e/fake-brevo.ts) >"$REPORTS/brevo.log" 2>&1 &
+  BREVO_PID=$!
+  wait_for "http://localhost:$BREVO_PORT/" "the fake Brevo server" "brevo.log"
+  # Every value is synthetic: the fake Brevo server accepts any key. RAILWAY_ENVIRONMENT_NAME=production only for this
+  # server (the seed above ran without it): outside production, mail to an @example.com address, the seeded
+  # owner@example.com, is written to the log and never sent (packages/email), while the flows read it from the fake
+  # Brevo server. Production sends every address through Brevo, whose address is the fake one here.
+  local auth_url="http://127.0.0.1:$PORT"
+  (cd apps/web && PORT="$PORT" HOSTNAME=127.0.0.1 \
+    RAILWAY_ENVIRONMENT_NAME=production \
+    BETTER_AUTH_SECRET=maestro-secret-that-is-at-least-thirty-two-characters-long \
+    BETTER_AUTH_URL="$auth_url" \
+    BREVO_API_URL="http://localhost:$BREVO_PORT/v3/smtp/email" BREVO_API_KEY=maestro-synthetic-brevo-key \
+    EMAIL_FROM_ADDRESS=noreply@fivvi.maestro.test EMAIL_FROM_NAME=Fivvi \
+    SIGN_UP_ALLOWED_EMAILS=@example.com \
+    exec node --env-file=../../packages/database/.env .next/standalone/apps/web/server.js) >"$REPORTS/web.log" 2>&1 &
   SERVER_PID=$!
+  wait_for "http://127.0.0.1:$PORT/api/v1/health" "the web server on port $PORT" "web.log"
+  warm_up_hello
+}
+
+# Waits up to 60 s for GET $1 to answer; $2 names what it is, $3 is its log in e2e/maestro/build.
+wait_for() {
   local waited=0
-  until curl -fsS "http://127.0.0.1:$PORT/api/v1/health" >/dev/null 2>&1; do
-    [ "$waited" -lt 60 ] || die "the web server didn't start on port $PORT (log: e2e/maestro/build/web.log)"
+  until curl -fsS "$1" >/dev/null 2>&1; do
+    [ "$waited" -lt 60 ] || die "$2 didn't start (log: e2e/maestro/build/$3)"
     sleep 1; waited=$((waited + 1))
   done
-  warm_up_hello
+}
+
+# Stops the web server and the fake Brevo server, and waits until they are gone.
+stop_stack() {
+  local pid
+  for pid in "$SERVER_PID" "$BREVO_PID"; do
+    [ -z "$pid" ] || kill "$pid" 2>/dev/null || true
+    [ -z "$pid" ] || wait "$pid" 2>/dev/null || true
+  done
+}
+
+# The sign-in rate limits (F001) count in the database: 3 emails per address in 15 minutes, and one shared bucket for
+# the requests without a client IP address (the app's, here). Clear them, so a flow isn't limited by an earlier run.
+clear_rate_limits() {
+  pnpm --filter @fivvi/database exec node --env-file=.env -e 'const pg = require("pg"); (async () => { const client = new pg.Client({ connectionString: process.env.DATABASE_URL }); await client.connect(); await client.query("delete from auth_rate_limits"); await client.end(); })().catch((error) => { console.error(error.message); process.exit(1); });' \
+    || die "clearing the sign-in rate limits failed"
 }
 
 # The app's first screen asks GET /api/v1/hello?locale=<its language>. Ask it once per locale before the first flow,
@@ -99,7 +154,7 @@ stopped_or_failed() {
 }
 
 cleanup() {
-  [ -z "$SERVER_PID" ] || kill "$SERVER_PID" 2>/dev/null || true
+  stop_stack
   if [ "$EMULATOR_STARTED" = false ]; then
     # In this order: Android writes settings to disk a moment later, and the framework restart would lose the write.
     [ -z "$DEVICE_LOCALE" ] || set_device_locale "$DEVICE_LOCALE" || true
@@ -128,7 +183,9 @@ cmd_android() {
     echo "Maestro on Android in $locale"
     set_device_locale "$locale"
     settle_device
-    maestro test "$ROOT/e2e/maestro" --env "SIGN_IN_SEND_CODE=$(catalog "$locale" signIn.sendCode)" \
+    clear_rate_limits
+    set_flow_env "$locale"
+    maestro test "$ROOT/e2e/maestro" "${FLOW_ENV[@]}" \
       --format junit --output "$REPORTS/android-$locale.xml" --test-output-dir "$REPORTS/android-$locale" \
       || stopped_or_failed "$locale"
   done
@@ -152,7 +209,7 @@ restart_simulator() {
 }
 
 cleanup_ios() {
-  [ -z "$SERVER_PID" ] || kill "$SERVER_PID" 2>/dev/null || true
+  stop_stack
   if [ -n "$SIMULATOR_SETTINGS" ] && [ -f "$SIMULATOR_SETTINGS" ]; then
     xcrun simctl spawn "$SIMULATOR" defaults import -g "$SIMULATOR_SETTINGS" || true
     rm -f "$SIMULATOR_SETTINGS"
@@ -193,7 +250,9 @@ cmd_ios() {
   for locale in $LOCALES; do
     echo "Maestro on iOS in $locale"
     set_simulator_locale "$locale"
-    maestro --device "$SIMULATOR" test "$ROOT/e2e/maestro" --env "SIGN_IN_SEND_CODE=$(catalog "$locale" signIn.sendCode)" \
+    clear_rate_limits
+    set_flow_env "$locale"
+    maestro --device "$SIMULATOR" test "$ROOT/e2e/maestro" "${FLOW_ENV[@]}" \
       --format junit --output "$REPORTS/ios-$locale.xml" --test-output-dir "$REPORTS/ios-$locale" \
       || stopped_or_failed "$locale"
   done

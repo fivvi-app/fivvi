@@ -1,0 +1,47 @@
+# F001 native sign-in (spec #168), against the local stack: AC1 and AC3 (the code from the email signs in), AC8 (the app
+# stays signed in after it is closed and opened again) and AC10 (sign out goes back to TM-01), in the device language.
+# The sign-in itself is shared/sign-in.yaml, which the hello flow uses too. Elements are found by id: the Android testTag
+# and the iOS accessibilityIdentifier, the same on both apps.
+# SIGN_IN_SEND_CODE and BREVO_URL, set by scripts/maestro.sh: signIn.sendCode from packages/i18n in the device language,
+# and the fake Brevo server the code is read from. SIGN_IN_SEND_CODE has no default here: a flow's own env default would
+# win over the value maestro.sh passes.
+appId: ${APP_ID}
+name: AC1_AC3_AC8_AC10 sign in, stay signed in and sign out
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # The account the seed creates (packages/database).
+  EMAIL: owner@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+- assertVisible:
+    id: home\.signedInAs
+    text: .*${EMAIL}.*
+# AC8: closed and opened again without clearing its state, the app opens on the signed-in home, not on TM-01.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: home\.signedInAs
+    timeout: 20000
+- assertNotVisible:
+    id: signIn\.email
+# AC10: sign out shows TM-01 again, in the device language.
+- tapOn:
+    id: home\.signOut
+- extendedWaitUntil:
+    visible:
+      id: signIn\.email
+    timeout: 20000
+- assertVisible:
+    id: signIn\.send
+# Its own step: on Android the button's text is a child node of the one with the id.
+- assertVisible:
+    text: ${SIGN_IN_SEND_CODE}
+- assertNotVisible:
+    id: home\.signedInAs
+- assertNotVisible:
+    id: signIn\.notice

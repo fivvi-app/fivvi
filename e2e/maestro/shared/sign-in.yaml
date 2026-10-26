@@ -1,0 +1,35 @@
+# Sub-flow: sign in on TM-01 with the emailed code, as the seeded account EMAIL (F001, AC1 and AC3). It starts on the
+# email step (the app was launched signed out) and ends on the signed-in home. The code comes from the fake Brevo server
+# that scripts/maestro.sh starts (BREVO_URL), never from a real inbox. Elements are found by id: the Android testTag and
+# the iOS accessibilityIdentifier, the same on both apps.
+appId: ${APP_ID}
+---
+- extendedWaitUntil:
+    visible:
+      id: signIn\.email
+    timeout: 20000
+- runScript:
+    file: emails-before.js
+- tapOn:
+    id: signIn\.email
+- inputText: ${EMAIL}
+- tapOn:
+    id: signIn\.send
+# AC1: the code step shows the address the email went to.
+- extendedWaitUntil:
+    visible:
+      id: signIn\.code
+    timeout: 20000
+- assertVisible:
+    id: signIn\.checkEmail
+    text: .*${EMAIL}.*
+- runScript:
+    file: newest-code.js
+# AC3: the sixth digit signs in, without an extra tap.
+- tapOn:
+    id: signIn\.code
+- inputText: ${output.code}
+- extendedWaitUntil:
+    visible:
+      id: home\.signedInAs
+    timeout: 20000

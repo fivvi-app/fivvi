@@ -153,6 +153,9 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'packages/i18n/generated/android/values/strings.xml',
       'packages/design-tokens/kotlin/generated/app/fivvi/designtokens/Colors.kt',
       'e2e/maestro/anonymous.yaml',
+      'e2e/maestro/hello.yaml',
+      'e2e/maestro/sign-in.yaml',
+      'e2e/maestro/shared/sign-in.yaml',
       'scripts/android.sh',
       'scripts/_android.sh',
       'scripts/maestro.sh',
@@ -1051,14 +1054,17 @@ esac`;
       'packages/i18n/nl-NL.json',
       'packages/i18n/en.json',
       'packages/i18n/generated/ios',
+      // The fake Brevo server (F001, #131), which maestro.sh runs as it is.
+      'apps/web/e2e/fake-brevo.ts',
     ]) {
       cpSync(join(SCRIPTS, '..', path), join(repo, path), { recursive: true });
     }
-    // The web server maestro.sh starts: it runs until it's stopped.
+    // The web server maestro.sh starts: it runs until it's stopped, and records its environment.
     mkdirSync(join(repo, 'apps/web/.next/standalone/apps/web'), { recursive: true });
     writeFileSync(
       join(repo, 'apps/web/.next/standalone/apps/web/server.js'),
-      'setInterval(() => {}, 1000);\n',
+      `require('node:fs').writeFileSync('${state}/web-env.json', JSON.stringify(process.env));
+setInterval(() => {}, 1000);\n`,
     );
     mkdirSync(join(repo, 'packages/database'));
     writeFileSync(join(repo, 'packages/database/.env'), '');
@@ -1137,7 +1143,8 @@ exit 0`,
 if [ "$FAKE_PLIST_FORM" = other ]; then sed 1d "\${@: -1}"; else cat "\${@: -1}"; fi`,
     );
     script(join(bin, 'java'), 'echo "openjdk version \\"21\\"" >&2');
-    for (const tool of ['sleep', 'docker', 'pnpm']) script(join(bin, tool), 'exit 0');
+    for (const tool of ['sleep', 'docker']) script(join(bin, tool), 'exit 0');
+    script(join(bin, 'pnpm'), `echo "pnpm $*" >>"${state}/calls.log"\nexit 0`);
     // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_HELLO=fail: GET /api/v1/hello fails.
     script(
       join(bin, 'curl'),
@@ -1215,6 +1222,7 @@ esac`,
             .split('\n')
             .filter(Boolean)
         : [];
+    const webEnv = () => JSON.parse(readFileSync(join(state, 'web-env.json'), 'utf8'));
     const simulators = () =>
       readdirSync(join(state, 'devices')).map((udid) =>
         JSON.parse(readFileSync(join(state, 'devices', udid), 'utf8')),
@@ -1229,7 +1237,7 @@ esac`,
       execFileSync('git', ['-C', repo, 'worktree', 'add', '--quiet', '-b', branch, path]);
       return path;
     };
-    return { repo, run, log, simulators, simulator, emulator, worktree };
+    return { repo, run, log, webEnv, simulators, simulator, emulator, worktree };
   };
 
   const endings = [
@@ -2080,6 +2088,106 @@ esac`,
     });
   }
 
+  for (const [name, args, prefix] of [
+    ['maestro.sh android', ['android'], 'android'],
+    ['maestro.sh ios', ['ios'], 'ios'],
+  ]) {
+    // E008: the hello flow's title, next to F001's sign-in button text; no flow has a default for either.
+    it(`E008: ${name} passes each flow the hello title in the device language`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args);
+
+      assert.equal(run.status, 0, run.output);
+      for (const locale of ['nl-NL', 'en']) {
+        const title = JSON.parse(
+          readFileSync(join(SCRIPTS, '../packages/i18n', `${locale}.json`), 'utf8'),
+        ).hello.title;
+        const flow = fake.log('maestro').find((call) => call.includes(`${prefix}-${locale}.xml`));
+        assert.ok(flow?.includes(`--env HELLO_TITLE=${title} `), `${locale}: ${flow}`);
+        assert.ok(
+          flow?.includes('--env SIGN_IN_SEND_CODE='),
+          `${locale}: the sign-in button text too: ${flow}`,
+        );
+      }
+    });
+
+    // F001 (#216): the flows sign in with a code read from the fake Brevo server on the host, no real inbox.
+    it(`F001: ${name} gives each flow the address of the fake Brevo server`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args);
+
+      assert.equal(run.status, 0, run.output);
+      for (const flow of fake.log('maestro').filter((call) => / test /.test(` ${call} `))) {
+        assert.ok(flow.includes('--env BREVO_URL=http://localhost:5999 '), flow);
+      }
+    });
+
+    it(`F001: ${name} starts the fake Brevo server before the web server and points the web server at it`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args);
+
+      assert.equal(run.status, 0, run.output);
+      const calls = fake.log('calls');
+      const brevo = calls.indexOf('curl -fsS http://localhost:5999/');
+      const health = calls.findIndex((call) =>
+        call.includes('http://127.0.0.1:3999/api/v1/health'),
+      );
+      assert.ok(brevo >= 0, `the fake Brevo server is waited for:\n${calls.join('\n')}`);
+      assert.ok(brevo < health, `before the web server's health check:\n${calls.join('\n')}`);
+      const env = fake.webEnv();
+      // The same variables as the web e2e's servers (playwright.config.ts); every value synthetic.
+      assert.equal(env.BREVO_API_URL, 'http://localhost:5999/v3/smtp/email');
+      assert.ok(env.BREVO_API_KEY && env.EMAIL_FROM_ADDRESS && env.EMAIL_FROM_NAME);
+      assert.ok(env.BETTER_AUTH_SECRET?.length >= 32, 'a secret of at least 32 characters');
+      assert.equal(env.BETTER_AUTH_URL, 'http://127.0.0.1:3999');
+      assert.match(env.SIGN_UP_ALLOWED_EMAILS, /@example\.com/);
+      // Outside production, mail to @example.com (the seeded owner@example.com) is logged, never sent: only as the
+      // production environment does the server send every address through Brevo, here the fake one.
+      assert.equal(env.RAILWAY_ENVIRONMENT_NAME, 'production');
+    });
+
+    it(`F001: ${name} clears the sign-in rate limits before the flows of each locale`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args);
+
+      assert.equal(run.status, 0, run.output);
+      const steps = fake
+        .log('calls')
+        .map((call) => {
+          if (isFlow(call)) return `flow ${call.match(new RegExp(`${prefix}-(\\S+)\\.xml`))[1]}`;
+          if (/^pnpm .*auth_rate_limits/.test(call)) return 'clear';
+          return '';
+        })
+        .filter(Boolean);
+      assert.deepEqual(steps, ['clear', 'flow nl-NL', 'clear', 'flow en']);
+    });
+  }
+
+  for (const [name, args] of [
+    ['maestro.sh android', ['android']],
+    ['maestro.sh ios', ['ios']],
+  ]) {
+    for (const [ending, result, status] of endings) {
+      it(`F001: ${name} stops the fake Brevo server when it ${ending}`, async () => {
+        const fake = checkout({ emulatorRunning: true, simulatorBooted: true });
+
+        const run = await fake.run(
+          'scripts/maestro.sh',
+          args,
+          { FAKE_RESULT: result },
+          { interrupt: result === 'hang' },
+        );
+
+        assert.equal(run.status, status, run.output);
+        await assert.rejects(fetch('http://localhost:5999/'), 'nothing answers on its port');
+      });
+    }
+  }
+
   it('#89: maestro.sh android waits for Android to deliver its broadcasts after each language change, before the flow', async () => {
     const fake = checkout();
 
@@ -2458,6 +2566,120 @@ describe('Maestro flows', () => {
   it('F001: the anonymous flow has no default for the text maestro.sh passes', () => {
     const header = readFileSync(join(flows, 'anonymous.yaml'), 'utf8').split(/^---$/m)[0];
     assert.doesNotMatch(header, /^\s+SIGN_IN_SEND_CODE:/m);
+  });
+
+  const parts = (file) => readFileSync(join(flows, file), 'utf8').split(/^---$/m);
+
+  // #89 and F001 (#216): the E008 hello screen sits behind sign-in, so the hello flow signs in first. It still fails
+  // when the greeting doesn't appear within 20 s, and then checks its text.
+  it('#89: hello signs in through the shared sub-flow, waits at most 20 s for the greeting and requires it', () => {
+    const steps = parts('hello.yaml')[1];
+    assert.match(steps, /^\s*- launchApp:\n\s+clearState: true\n/);
+    const signIn = steps.match(/- runFlow:\n\s+file: shared\/sign-in\.yaml\n/);
+    assert.ok(signIn, steps);
+    assert.doesNotMatch(steps, /optional:\s*true/);
+    const wait = steps.match(
+      /- extendedWaitUntil:\n\s+visible:\n\s+id: hello\\\.greeting\n\s+timeout: (\d+)\n/,
+    );
+    assert.ok(wait, steps);
+    assert.ok(signIn.index < wait.index, 'the greeting is awaited after signing in');
+    assert.ok(Number(wait[1]) <= 20000, `timeout ${wait[1]} ms`);
+    assert.match(
+      steps.slice(wait.index),
+      /- assertVisible:\n\s+id: hello\\\.greeting\n\s+text: \$\{HELLO_TITLE\}\n/,
+    );
+  });
+
+  // The flow's own `env:` default would win over --env, so the flow has none: maestro.sh must pass the title.
+  it('E008: the hello flow has no default for the title maestro.sh passes', () => {
+    assert.doesNotMatch(parts('hello.yaml')[0], /^\s+HELLO_TITLE:/m);
+  });
+
+  it('F001: the sign-in flow signs in, stays signed in after a relaunch (AC8) and signs out (AC10)', () => {
+    const steps = parts('sign-in.yaml')[1];
+    assert.doesNotMatch(steps, /optional:\s*true/);
+    const at = (pattern, from = 0) => {
+      const found = steps.slice(from).match(pattern);
+      assert.ok(found, `${pattern} after ${from}:\n${steps}`);
+      return from + found.index;
+    };
+    const cleared = at(/- launchApp:\n\s+clearState: true\n/);
+    const signedIn = at(/- runFlow:\n\s+file: shared\/sign-in\.yaml\n/, cleared);
+    const home = at(
+      /- assertVisible:\n\s+id: home\\\.signedInAs\n\s+text: \.\*\$\{EMAIL\}\.\*\n/,
+      signedIn,
+    );
+    // AC8: the app is closed and opened again without clearing its state, and opens on the home.
+    const stopped = at(/- stopApp\n/, home);
+    const relaunched = at(/- launchApp\n/, stopped);
+    const stillHome = at(
+      /- extendedWaitUntil:\n\s+visible:\n\s+id: home\\\.signedInAs\n\s+timeout: (\d+)\n/,
+      relaunched,
+    );
+    const noEmailStep = at(/- assertNotVisible:\n\s+id: signIn\\\.email\n/, stillHome);
+    // AC10: sign out goes back to TM-01.
+    const tapped = at(/- tapOn:\n\s+id: home\\\.signOut\n/, noEmailStep);
+    const back = at(
+      /- extendedWaitUntil:\n\s+visible:\n\s+id: signIn\\\.email\n\s+timeout: (\d+)\n/,
+      tapped,
+    );
+    at(/- assertVisible:\n\s+text: \$\{SIGN_IN_SEND_CODE\}\n/, back);
+    at(/- assertNotVisible:\n\s+id: home\\\.signedInAs\n/, back);
+    for (const [, timeout] of steps.matchAll(/timeout: (\d+)/g)) {
+      assert.ok(Number(timeout) <= 20000, `timeout ${timeout} ms`);
+    }
+  });
+
+  it('F001: the sign-in flow has no default for the text maestro.sh passes', () => {
+    assert.doesNotMatch(parts('sign-in.yaml')[0], /^\s+SIGN_IN_SEND_CODE:/m);
+  });
+
+  // One YAML for both platforms: nothing in the flows asks which one runs.
+  it('F001: no flow branches on the platform', () => {
+    const files = [
+      ...readdirSync(flows).filter((file) => /\.ya?ml$/.test(file)),
+      ...readdirSync(join(flows, 'shared')).map((file) => join('shared', file)),
+    ];
+    assert.ok(files.includes('sign-in.yaml') && files.includes(join('shared', 'sign-in.yaml')));
+    for (const file of files) {
+      assert.doesNotMatch(readFileSync(join(flows, file), 'utf8'), /\bplatform:/, file);
+    }
+  });
+
+  // The sub-flow is not a flow of its own: config.yaml runs only the files of this folder, not its subfolders.
+  it('F001: the shared sub-flow is not run as a flow of its own', () => {
+    assert.match(readFileSync(join(flows, 'config.yaml'), 'utf8'), /flows:\n\s+- "\*"\n/);
+    assert.ok(!existsSync(join(flows, 'sign-in-shared.yaml')));
+    assert.ok(existsSync(join(flows, 'shared/sign-in.yaml')));
+  });
+
+  // F001 AC1, AC3: the sub-flow types the address, asks for the email, reads the code of the newest email to that
+  // address from the fake Brevo server (counting the emails first, so an older one is never taken) and types it.
+  it('F001: the shared sub-flow reads the newest code for the address from the fake Brevo server', () => {
+    const subFlow = readFileSync(join(flows, 'shared/sign-in.yaml'), 'utf8');
+    const at = (pattern, from = 0) => {
+      const found = subFlow.slice(from).match(pattern);
+      assert.ok(found, `${pattern} after ${from}:\n${subFlow}`);
+      return from + found.index;
+    };
+    const wait = at(
+      /- extendedWaitUntil:\n\s+visible:\n\s+id: signIn\\\.email\n\s+timeout: (\d+)\n/,
+    );
+    const typed = at(/- inputText: \$\{EMAIL\}\n/, wait);
+    const counted = at(/- runScript:\n\s+file: emails-before\.js\n/, wait);
+    const sent = at(/- tapOn:\n\s+id: signIn\\\.send\n/, Math.max(typed, counted));
+    const codeStep = at(/- extendedWaitUntil:\n\s+visible:\n\s+id: signIn\\\.code\n/, sent);
+    const read = at(/- runScript:\n\s+file: newest-code\.js\n/, codeStep);
+    at(/- inputText: \$\{output\.code\}\n/, read);
+    at(/- extendedWaitUntil:\n\s+visible:\n\s+id: home\\\.signedInAs\n/, read);
+    assert.ok(!/optional:\s*true/.test(subFlow));
+    for (const script of ['emails-before.js', 'newest-code.js']) {
+      const source = readFileSync(join(flows, 'shared', script), 'utf8');
+      assert.match(source, /http\.get\(/, script);
+      assert.match(source, /BREVO_URL/, script);
+      assert.match(source, /\/emails\?to=/, script);
+    }
+    assert.doesNotMatch(subFlow, /^\s+BREVO_URL:/m, 'maestro.sh passes the server address');
   });
 });
 
