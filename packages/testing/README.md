@@ -7,7 +7,7 @@ Shared test setup (ADR-014, `docs/engineering/TESTING.md`). Test-only: add it as
 | `@fivvi/testing/vitest` | `unitConfig()` and `integrationConfig()`, the Vitest presets every package uses |
 | `@fivvi/testing/database` | `cloneTemplateDatabase()`, `createTestDatabase()`, `withRollback()` for integration tests |
 | `@fivvi/testing/database/setup` | `setupTemplateDatabase(migrate)` for a Vitest global setup |
-| `@fivvi/testing/database/server` | `serverUrl()`, `databaseUrl(name)`, `identifier(name)`, `onServer(...)` on the local test server, for setups outside Vitest (the web e2e server) |
+| `@fivvi/testing/database/server` | `serverUrl()`, `localServerUrl(url, variable, refusal)`, `databaseUrl(name)`, `identifier(name)`, `onServer(...)` on the local test server, for setups outside Vitest (the web e2e server); `localServerUrl` returns `url` only when its host is local and otherwise throws `refusal` without the URL, for every script that deletes data |
 | `@fivvi/testing/clock` | `fixedClock`, `manualClock`, `freezeSystemTime`, `zonedTime`, `wallTime`, `dstTransitions` |
 
 Factories (`createWorkspace()`, …) will live here once the first business tables exist (`TESTING.md §5.2`).

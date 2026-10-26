@@ -39,6 +39,7 @@
     "db:generate": "pnpm --filter @fivvi/database db:generate",
     "db:migrate": "pnpm --filter @fivvi/database db:migrate",
     "db:seed": "pnpm --filter @fivvi/database db:seed",
+    "db:reset-rate-limits": "pnpm --filter @fivvi/database db:reset-rate-limits",
     "email:preview": "pnpm --filter @fivvi/email preview",
     "email:send-test": "pnpm --filter @fivvi/email send:test"
   },

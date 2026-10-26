@@ -1,0 +1,25 @@
+# E008 hello screen (spec #34), against the local stack, behind the sign-in of F001: the flow signs in as the seeded
+# account through the shared sub-flow, and the signed-in home shows the hello screen. Elements are found by id: the
+# Android testTag and the iOS accessibilityIdentifier, the same on both apps (hello.greeting, hello.loading, hello.error,
+# hello.retry).
+# HELLO_TITLE, set by scripts/maestro.sh: hello.title from packages/i18n in the device language. It has no default here:
+# a flow's own env default would win over the value maestro.sh passes.
+appId: ${APP_ID}
+name: AC1_AC2 greeting from the database
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # The account the seed creates (packages/database).
+  EMAIL: owner@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: hello\.greeting
+    timeout: 20000
+- assertVisible:
+    id: hello\.greeting
+    text: ${HELLO_TITLE}

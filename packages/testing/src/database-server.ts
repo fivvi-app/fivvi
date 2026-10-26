@@ -26,15 +26,23 @@ export function serverUrl(env: NodeJS.ProcessEnv = process.env): string {
       'Set TEST_DATABASE_URL to a local Postgres, e.g. the one from `pnpm db:up` (see docs/engineering/TESTING.md §7.1).',
     );
   }
+  return localServerUrl(url, 'TEST_DATABASE_URL', 'Integration tests only run against');
+}
+
+/**
+ * `url` when its host is local (`localhost`, `127.0.0.1`, `[::1]`), otherwise it throws with
+ * `refusal` followed by " a Postgres server on localhost." Never echoes the URL, which holds
+ * the password. For every script that deletes data, so none can touch a Railway database.
+ */
+export function localServerUrl(url: string, variable: string, refusal: string): string {
   let hostname: string;
   try {
     hostname = new URL(url).hostname;
   } catch {
-    // Never echo the URL: it contains the password.
-    throw new Error('TEST_DATABASE_URL is not a valid URL.');
+    throw new Error(`${variable} is not a valid URL.`);
   }
   if (!LOCAL_HOSTS.has(hostname)) {
-    throw new Error('Integration tests only run against a Postgres server on localhost.');
+    throw new Error(`${refusal} a Postgres server on localhost.`);
   }
   return url;
 }
