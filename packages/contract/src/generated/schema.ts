@@ -187,13 +187,14 @@ export interface components {
             /** @enum {string} */
             code: "unauthorized";
         };
+        /** @description Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019. */
         SignInRequest: {
             /**
              * Format: email
              * @description The address the account signs in with.
              */
             email: string;
-            locale: components["schemas"]["Locale"] & unknown;
+            locale: components["schemas"]["Locale"];
         };
         SignInTokenResponse: {
             /** @description The bearer token: a sign-in session, valid 30 days after its last use and renewed on use. Send it as `Authorization: Bearer <token>`. */

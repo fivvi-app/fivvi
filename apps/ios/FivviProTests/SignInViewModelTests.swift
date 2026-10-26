@@ -17,7 +17,7 @@ final class SignInViewModelTests: SignInModelTestCase {
 
         let requests = await api.signInRequests
         XCTAssertEqual(requests.map(\.email), ["owner@example.com"], "the address, trimmed")
-        XCTAssertEqual(requests.map(\.locale.value1), [language])
+        XCTAssertEqual(requests.map(\.locale), [language])
         XCTAssertEqual(model.state, .enteringCode)
         XCTAssertNil(model.failure)
     }

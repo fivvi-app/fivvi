@@ -19,7 +19,7 @@ final class SignInRecoveryTests: SignInModelTestCase {
         XCTAssertEqual(
             requests.map(\.email), ["owner@example.com", "owner@example.com"], "a second request, same address"
         )
-        XCTAssertEqual(requests.map(\.locale.value1), [language, language])
+        XCTAssertEqual(requests.map(\.locale), [language, language])
         XCTAssertEqual(model.state, .enteringCode, "the code field is ready for the new code")
         XCTAssertEqual(model.code, "", "the old digits are cleared")
         XCTAssertNil(model.failure)
