@@ -35,7 +35,18 @@ actor StubAPI: APIProtocol {
         case offline
     }
 
+    /// What `signOut` answers.
+    enum SignOutAnswer: Sendable {
+        case noContent
+        case unauthorized
+        case status(Int)
+        case offline
+        /// No answer until the test calls `releaseHangingSignOuts()`, as a connection that hangs.
+        case hang
+    }
+
     private var answer: Answer
+    private var signOutAnswer = SignOutAnswer.noContent
     private var signInAnswer = SignInAnswer.accepted
     private var exchangeAnswer = ExchangeAnswer.unauthorized
     private var meAnswer = MeAnswer.unauthorized
@@ -44,6 +55,12 @@ actor StubAPI: APIProtocol {
     private(set) var signInRequests: [Components.Schemas.SignInRequest] = []
     private(set) var exchanges: [Components.Schemas.SignInTokenRequest] = []
     private(set) var meCalls = 0
+    private(set) var signOutCalls = 0
+    private var hanging: [CheckedContinuation<Void, Never>] = []
+    private var hangWatchers: [CheckedContinuation<Void, Never>] = []
+
+    /// How many `signOut` calls are waiting for `releaseHangingSignOuts()`.
+    var hangingSignOuts: Int { hanging.count }
 
     init(_ answer: Answer = .offline) {
         self.answer = answer
@@ -55,6 +72,23 @@ actor StubAPI: APIProtocol {
 
     func answerExchange(with answer: ExchangeAnswer) {
         exchangeAnswer = answer
+    }
+
+    func answerSignOut(with answer: SignOutAnswer) {
+        signOutAnswer = answer
+    }
+
+    /// Returns once a `signOut` call hangs.
+    func untilSignOutHangs() async {
+        guard hanging.isEmpty else { return }
+        await withCheckedContinuation { hangWatchers.append($0) }
+    }
+
+    /// Lets every hanging `signOut` answer `204`.
+    func releaseHangingSignOuts() {
+        let waiting = hanging
+        hanging = []
+        waiting.forEach { $0.resume() }
     }
 
     func answerMe(with answer: MeAnswer) {
@@ -128,6 +162,24 @@ actor StubAPI: APIProtocol {
     }
 
     func signOut(_ input: Operations.SignOut.Input) async throws -> Operations.SignOut.Output {
-        fatalError("The hello screen doesn't call signOut")
+        signOutCalls += 1
+        switch signOutAnswer {
+        case .noContent:
+            return .noContent(.init())
+        case .unauthorized:
+            return .unauthorized(.init(body: .json(.init(code: .unauthorized))))
+        case let .status(code):
+            return .undocumented(statusCode: code, .init())
+        case .offline:
+            throw URLError(.notConnectedToInternet)
+        case .hang:
+            await withCheckedContinuation { continuation in
+                hanging.append(continuation)
+                let watchers = hangWatchers
+                hangWatchers = []
+                watchers.forEach { $0.resume() }
+            }
+            return .noContent(.init())
+        }
     }
 }

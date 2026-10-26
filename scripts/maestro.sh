@@ -128,7 +128,7 @@ cmd_android() {
     echo "Maestro on Android in $locale"
     set_device_locale "$locale"
     settle_device
-    maestro test "$ROOT/e2e/maestro" --env "HELLO_TITLE=$(catalog "$locale" hello.title)" \
+    maestro test "$ROOT/e2e/maestro" --env "SIGN_IN_SEND_CODE=$(catalog "$locale" signIn.sendCode)" \
       --format junit --output "$REPORTS/android-$locale.xml" --test-output-dir "$REPORTS/android-$locale" \
       || stopped_or_failed "$locale"
   done
@@ -193,7 +193,7 @@ cmd_ios() {
   for locale in $LOCALES; do
     echo "Maestro on iOS in $locale"
     set_simulator_locale "$locale"
-    maestro --device "$SIMULATOR" test "$ROOT/e2e/maestro" --env "HELLO_TITLE=$(catalog "$locale" hello.title)" \
+    maestro --device "$SIMULATOR" test "$ROOT/e2e/maestro" --env "SIGN_IN_SEND_CODE=$(catalog "$locale" signIn.sendCode)" \
       --format junit --output "$REPORTS/ios-$locale.xml" --test-output-dir "$REPORTS/ios-$locale" \
       || stopped_or_failed "$locale"
   done

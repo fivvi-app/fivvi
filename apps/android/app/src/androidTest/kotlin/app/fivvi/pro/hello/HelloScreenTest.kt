@@ -13,6 +13,7 @@ import app.fivvi.pro.AppLanguage
 import app.fivvi.pro.AppRule
 import app.fivvi.pro.R
 import app.fivvi.pro.appLanguageParameters
+import app.fivvi.pro.localizedString
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
@@ -39,7 +40,7 @@ class HelloScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
         api.answerGreeting()
         launch()
 
-        compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(app.string(language, R.string.hello_title))
+        compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(localizedString(language, R.string.hello_title))
         assertEquals(listOf(language.apiLocale), api.requestedLocales)
     }
 
@@ -49,12 +50,12 @@ class HelloScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
         api.answerGreeting()
         launch()
 
-        compose.onNodeWithTag(HelloTags.ERROR).assertTextEquals(app.string(language, R.string.hello_error))
+        compose.onNodeWithTag(HelloTags.ERROR).assertTextEquals(localizedString(language, R.string.hello_error))
         compose.onNodeWithTag(HelloTags.RETRY)
-            .assertTextEquals(app.string(language, R.string.common_retry))
+            .assertTextEquals(localizedString(language, R.string.common_retry))
             .assertHasClickAction()
             .performClick()
-        compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(app.string(language, R.string.hello_title))
+        compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(localizedString(language, R.string.hello_title))
     }
 
     @Test
@@ -64,7 +65,7 @@ class HelloScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
         launch()
 
         compose.onNodeWithTag(HelloTags.LOADING)
-            .assertContentDescriptionEquals(app.string(language, R.string.common_loading))
+            .assertContentDescriptionEquals(localizedString(language, R.string.common_loading))
     }
 
     @Test

@@ -37,27 +37,37 @@ struct SignInView: View {
                 }
                 step
                 if let message = model.failureText {
-                    Text(message)
-                        .font(.system(Tokens.TextStyle.body))
-                        .foregroundStyle(Tokens.Colors.statusDangerFg)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(Tokens.Spacing.space3)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            Tokens.Colors.bgSurface,
-                            in: RoundedRectangle(cornerRadius: Tokens.Radius.md, style: .continuous)
-                        )
-                        .accessibilityIdentifier("signIn.error")
+                    messageCard(
+                        message, foreground: Tokens.Colors.statusDangerFg, background: Tokens.Colors.bgSurface,
+                        id: "signIn.error"
+                    )
+                    if model.canRetry {
+                        Button {
+                            Task { await model.retry() }
+                        } label: {
+                            Text(model.catalog[.commonRetry])
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .buttonStyle(.secondaryAction)
+                        .accessibilityIdentifier("signIn.retry")
+                    }
                 }
             }
             .padding(Tokens.Spacing.gutter)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        // The number pad has no key that hides it: dragging the form does (and shows the buttons under it).
+        .scrollDismissesKeyboard(.immediately)
         .foregroundStyle(Tokens.Colors.textPrimary)
         .background(Tokens.Colors.bgCanvas)
         .environment(\.locale, model.catalog.formattingLocale)
         .onChange(of: model.state) { _, state in
-            if state == .enteringCode { focus = .code }
+            switch state {
+            case .enteringCode: focus = .code
+            case .enteringEmail: focus = .email
+            case .sendingCode, .checkingCode, .resendingCode: break
+            }
         }
         .onChange(of: model.code) {
             if model.isCodeComplete { Task { await model.submitCode() } }
@@ -68,7 +78,7 @@ struct SignInView: View {
         switch model.state {
         case .enteringEmail, .sendingCode:
             emailStep
-        case .enteringCode, .checkingCode:
+        case .enteringCode, .checkingCode, .resendingCode:
             codeStep
         }
     }
@@ -82,6 +92,7 @@ struct SignInView: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.go)
+                .accessibilityLabel(model.catalog[.signInEmailLabel])
                 .focused($focus, equals: .email)
                 .textFieldFrame()
                 .disabled(model.state == .sendingCode)
@@ -118,29 +129,71 @@ struct SignInView: View {
                 .keyboardType(.numberPad)
                 .textContentType(.oneTimeCode)
                 .autocorrectionDisabled()
+                .accessibilityLabel(model.catalog[.signInCodeLabel])
                 .focused($focus, equals: .code)
                 .textFieldFrame()
-                .disabled(model.state == .checkingCode)
+                .disabled(model.state == .checkingCode || model.state == .resendingCode)
                 .accessibilityIdentifier("signIn.code")
             Text(model.catalog[.signInCodeHelp])
                 .font(.system(Tokens.TextStyle.footnote))
                 .foregroundStyle(Tokens.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-            if model.state == .checkingCode {
+            if let resent = model.resentText {
+                messageCard(
+                    resent, foreground: Tokens.Colors.statusSuccessFg, background: Tokens.Colors.statusSuccessBg,
+                    id: "signIn.resent"
+                )
+            }
+            if model.state == .checkingCode || model.state == .resendingCode {
                 loading
             } else {
-                Button {
-                    Task { await model.submitCode() }
-                } label: {
-                    Text(model.catalog[.signInSubmitCode])
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .buttonStyle(.primaryAction)
-                .disabled(!model.isCodeComplete)
-                .accessibilityIdentifier("signIn.submit")
+                codeActions
             }
         }
+    }
+
+    /// Check the code, ask for a new email, or go back to change the address.
+    @ViewBuilder private var codeActions: some View {
+        Button {
+            Task { await model.submitCode() }
+        } label: {
+            Text(model.catalog[.signInSubmitCode])
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .buttonStyle(.primaryAction)
+        .disabled(!model.isCodeComplete)
+        .accessibilityIdentifier("signIn.submit")
+        Button {
+            Task { await model.resendCode() }
+        } label: {
+            Text(model.catalog[.signInResend])
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .buttonStyle(.secondaryAction)
+        .accessibilityIdentifier("signIn.resend")
+        Button {
+            model.changeEmail()
+        } label: {
+            Text(model.catalog[.signInChangeEmail])
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .buttonStyle(.secondaryAction)
+        .accessibilityIdentifier("signIn.changeEmail")
+    }
+
+    /// A message under the form: a rounded surface that wraps its text.
+    private func messageCard(_ text: String, foreground: Color, background: Color, id: String) -> some View {
+        Text(text)
+            .font(.system(Tokens.TextStyle.body))
+            .foregroundStyle(foreground)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(Tokens.Spacing.space3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(background, in: RoundedRectangle(cornerRadius: Tokens.Radius.md, style: .continuous))
+            .accessibilityIdentifier(id)
     }
 
     private func fieldLabel(_ key: StringKey) -> some View {

@@ -10,7 +10,7 @@ const IP = '203.0.113.7';
 const COOKIE = 'session=test-cookie-value';
 const TOKEN = 'Bearer test-token';
 const CLIENT_ID = '3f2e1d0c-9b8a-4765-8432-10fedcba9876';
-const SHA = '0123456789abcdef0123456789abcdef01234567';
+const SHA = '1111111111111111111111111111111111111111';
 const DSN = 'https://public@o0.ingest.de.sentry.io/1';
 const PERSONAL = ['anna', 'devries', IP, COOKIE, 'test-cookie', 'test-token', 'Mozilla'];
 

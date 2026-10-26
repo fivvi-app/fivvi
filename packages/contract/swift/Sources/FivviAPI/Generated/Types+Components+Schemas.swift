@@ -243,6 +243,8 @@ extension Components {
                 case code
             }
         }
+        /// Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.
+        ///
         /// - Remark: Generated from `#/components/schemas/SignInRequest`.
         public struct SignInRequest: Codable, Hashable, Sendable {
             /// The address the account signs in with.
@@ -250,35 +252,7 @@ extension Components {
             /// - Remark: Generated from `#/components/schemas/SignInRequest/email`.
             public var email: Swift.String
             /// - Remark: Generated from `#/components/schemas/SignInRequest/locale`.
-            public struct LocalePayload: Codable, Hashable, Sendable {
-                /// - Remark: Generated from `#/components/schemas/SignInRequest/locale/value1`.
-                public var value1: Components.Schemas.Locale
-                /// The interface language the app resolved; the email follows ADR-019.
-                ///
-                /// - Remark: Generated from `#/components/schemas/SignInRequest/locale/value2`.
-                public var value2: OpenAPIRuntime.OpenAPIValueContainer
-                /// Creates a new `LocalePayload`.
-                ///
-                /// - Parameters:
-                ///   - value1:
-                ///   - value2: The interface language the app resolved; the email follows ADR-019.
-                public init(
-                    value1: Components.Schemas.Locale,
-                    value2: OpenAPIRuntime.OpenAPIValueContainer
-                ) {
-                    self.value1 = value1
-                    self.value2 = value2
-                }
-                public init(from decoder: any Swift.Decoder) throws {
-                    self.value1 = try decoder.decodeFromSingleValueContainer()
-                    self.value2 = try .init(from: decoder)
-                }
-                public func encode(to encoder: any Swift.Encoder) throws {
-                    try encoder.encodeToSingleValueContainer(self.value1)
-                }
-            }
-            /// - Remark: Generated from `#/components/schemas/SignInRequest/locale`.
-            public var locale: Components.Schemas.SignInRequest.LocalePayload
+            public var locale: Components.Schemas.Locale
             /// Creates a new `SignInRequest`.
             ///
             /// - Parameters:
@@ -286,7 +260,7 @@ extension Components {
             ///   - locale:
             public init(
                 email: Swift.String,
-                locale: Components.Schemas.SignInRequest.LocalePayload
+                locale: Components.Schemas.Locale
             ) {
                 self.email = email
                 self.locale = locale

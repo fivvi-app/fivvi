@@ -152,7 +152,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'packages/contract/kotlin/generated/app/fivvi/api/apis/HelloApi.kt',
       'packages/i18n/generated/android/values/strings.xml',
       'packages/design-tokens/kotlin/generated/app/fivvi/designtokens/Colors.kt',
-      'e2e/maestro/hello.yaml',
+      'e2e/maestro/anonymous.yaml',
       'scripts/android.sh',
       'scripts/_android.sh',
       'scripts/maestro.sh',
@@ -2100,6 +2100,29 @@ esac`,
     assert.doesNotMatch(build, /CODE_SIGN/, 'signing comes from apps/ios/Config');
   });
 
+  for (const [name, args, prefix] of [
+    ['maestro.sh android', ['android'], 'android'],
+    ['maestro.sh ios', ['ios'], 'ios'],
+  ]) {
+    it(`F001: ${name} passes each flow the sign-in button text in the device language`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args);
+
+      assert.equal(run.status, 0, run.output);
+      for (const [locale, file] of [
+        ['nl-NL', 'nl-NL'],
+        ['en', 'en'],
+      ]) {
+        const text = JSON.parse(
+          readFileSync(join(SCRIPTS, '../packages/i18n', `${file}.json`), 'utf8'),
+        ).signIn.sendCode;
+        const flow = fake.log('maestro').find((call) => call.includes(`${prefix}-${locale}.xml`));
+        assert.ok(flow?.includes(`--env SIGN_IN_SEND_CODE=${text} `), `${locale}: ${flow}`);
+      }
+    });
+  }
+
   it('#89: maestro.sh android waits for Android to deliver its broadcasts after each language change, before the flow', async () => {
     const fake = checkout();
 
@@ -2458,20 +2481,26 @@ describe('Maestro flows', () => {
     }
   });
 
-  // #89: the flake is fixed in maestro.sh, not by waiting longer or asserting less: the hello flow still fails when the
-  // greeting doesn't appear within 20 s, and then checks its text.
-  it('#89: hello waits at most 20 s for the greeting and requires it', () => {
-    const steps = readFileSync(join(flows, 'hello.yaml'), 'utf8').split(/^---$/m)[1];
+  // #89: the flake is fixed in maestro.sh, not by waiting longer or asserting less: the flow still fails when the screen
+  // doesn't appear within 20 s, and then checks its text. F001 (#212): the anonymous app opens on TM-01 (AC13).
+  it('#89: the anonymous flow waits at most 20 s for the email step and requires its text', () => {
+    const steps = readFileSync(join(flows, 'anonymous.yaml'), 'utf8').split(/^---$/m)[1];
     assert.doesNotMatch(steps, /optional:\s*true/);
     const wait = steps.match(
-      /- extendedWaitUntil:\n\s+visible:\n\s+id: hello\\\.greeting\n\s+timeout: (\d+)\n/,
+      /- extendedWaitUntil:\n\s+visible:\n\s+id: signIn\\\.email\n\s+timeout: (\d+)\n/,
     );
     assert.ok(wait, steps);
     assert.ok(Number(wait[1]) <= 20000, `timeout ${wait[1]} ms`);
     assert.match(
       steps.slice(wait.index),
-      /- assertVisible:\n\s+id: hello\\\.greeting\n\s+text: \$\{HELLO_TITLE\}\n/,
+      /- assertVisible:\n\s+id: signIn\\\.send\n(?:#.*\n)*- assertVisible:\n\s+text: \$\{SIGN_IN_SEND_CODE\}\n/,
     );
+  });
+
+  // The flow's own `env:` default would win over --env, so the flow has none: maestro.sh must pass the text.
+  it('F001: the anonymous flow has no default for the text maestro.sh passes', () => {
+    const header = readFileSync(join(flows, 'anonymous.yaml'), 'utf8').split(/^---$/m)[0];
+    assert.doesNotMatch(header, /^\s+SIGN_IN_SEND_CODE:/m);
   });
 });
 

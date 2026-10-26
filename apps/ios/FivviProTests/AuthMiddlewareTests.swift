@@ -99,4 +99,31 @@ final class AuthMiddlewareTests: XCTestCase {
         XCTAssertEqual(store.token, "new-token")
         XCTAssertEqual(calls.value, 0)
     }
+
+    /// A sign-out deletes the stored token before its request goes out; the request carries the token it was given.
+    func test_F001N_AC10_sendsTheTokenOfARequestScopedOverrideWhenTheStoreIsEmpty() async throws {
+        let transport = StubTransport(status: .noContent)
+        let client = client(store: InMemorySessionStore(), transport: transport)
+
+        _ = try await AuthMiddleware.$requestToken.withValue("snapshot") { try await client.signOut() }
+
+        let request = try XCTUnwrap(transport.requests.first)
+        XCTAssertEqual(request.headerFields[.authorization], "Bearer snapshot")
+        let next = StubTransport(status: .ok, json: account)
+        _ = try await self.client(store: InMemorySessionStore(), transport: next).getMe()
+        XCTAssertNil(try XCTUnwrap(next.requests.first).headerFields[.authorization], "the override is scoped")
+    }
+
+    /// The 401 of a request with its own token is its caller's to handle: the store holds a newer sign-in or none.
+    func test_F001N_AC10_aRefusedOverrideTokenIsLeftToTheCaller() async throws {
+        let store = InMemorySessionStore(token: "new-sign-in")
+        let transport = StubTransport(status: .unauthorized, json: #"{"code":"unauthorized"}"#)
+        let calls = Calls()
+        let client = client(store: store, transport: transport, calls: calls)
+
+        _ = try await AuthMiddleware.$requestToken.withValue("snapshot") { try await client.signOut() }
+
+        XCTAssertEqual(store.token, "new-sign-in")
+        XCTAssertEqual(calls.value, 0)
+    }
 }

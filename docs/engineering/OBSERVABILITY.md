@@ -81,9 +81,9 @@ The scrubber (`scrubEvent`, `scrubBreadcrumb`) is a pure allowlist: whatever isn
 
 | Part of an event | Kept | Dropped |
 |---|---|---|
-| Error message (`exception.value`, `message`) | The text, with email addresses masked as `[email]` | Email addresses |
+| Error message (`exception.value`, `message`) | The text, with email addresses masked as `[email]` and the value of a `token` or `code` query parameter (a sign-in link token or code in a quoted URL) masked as `[redacted]` | Email addresses, link tokens and codes in a URL |
 | Stack frames | File, function, line, column, source lines | Local variables (`vars`) |
-| Request | HTTP method; URL without query string and fragment, emails masked; headers `accept`, `accept-language`, `content-length`, `content-type` | Body, cookies, query string, `Authorization` and every other header (also `x-forwarded-for`), environment (`REMOTE_ADDR`) |
+| Request | HTTP method; URL without query string and fragment, emails masked; headers `accept`, `accept-language`, `content-length`, `content-type` | Body (a sign-in request's email address and code), cookies, query string (a sign-in link's token), `Authorization` and every other header (also `x-forwarded-for`), environment (`REMOTE_ADDR`) |
 | User | `id` (internal user UUID) and `organization_id` (workspace UUID), only when they are UUIDs | Email, name, username, IP address, location |
 | Tags | `route` (a route template) | Everything else |
 | Contexts | `app`, `cloud_resource`, `culture`, `device`, `os`, `runtime`, `trace`; `response.status_code` | Everything else, including custom contexts |
@@ -120,7 +120,7 @@ Server code sends product events to **PostHog EU** (EU Cloud, Frankfurt), at the
 
 ### 4.1 How it is set up
 
-- **One entry point.** `packages/observability` owns every PostHog call on the server. The API gets `createProductEvents({ errorReporter })` as the `productEvents` dependency (`apps/web/app/api/[[...route]]/route.ts`); a route calls `dependencies.productEvents.track(event)` after the action succeeded. Apps and other packages never import `posthog-node`: the same Biome `noRestrictedImports` rule as for Sentry fails lint when they do.
+- **One entry point.** `packages/observability` owns every PostHog call on the server. `apps/web/server/product-events.ts` is the one place that creates the sender, `createProductEvents({ errorReporter })`, and it has two users: the API, which gets it as the `productEvents` dependency (a route calls `dependencies.productEvents.track(event)` after the action succeeded), and sign-in, which gets it as `createAuth({ productEvents })` (`packages/auth`). Apps and other packages never import `posthog-node`: the same Biome `noRestrictedImports` rule as for Sentry fails lint when they do.
 - **Production only, off without a key.** Without `POSTHOG_KEY` (development, previews, local, tests, CI), `track()` still checks the event but sends nothing and makes no network call ([ENVIRONMENTS.md §7](ENVIRONMENTS.md#7-variables)).
 - **The host comes from `POSTHOG_HOST`** ([ENVIRONMENTS.md §7](ENVIRONMENTS.md#7-variables)). There is no host in code and no default to fall back on. A key without `POSTHOG_HOST`, or a host that isn't an `https://` URL, is a configuration error: `createProductEvents()` logs it and reports it to Sentry (`PostHogConfigError`) once, when it reads the config, and then sends nothing, like without a key.
 - **Flushed per request, never failing it.** Each event is sent straight away, and the API waits for it after every request (`flush()`, at most 1 s). A failed or slow PostHog never fails or blocks the request: `flush()` never throws.
@@ -144,7 +144,14 @@ How to add an event:
 
 ### 4.3 Event catalog
 
-No event is live yet. The MVP features add theirs when they are built; their specs define the properties. The planned events serve the pilot metrics in `ROADMAP.md §8` and give Release 3.2 business analytics its history (`ROADMAP.md §10`):
+The live events are the two of sign-in (F001, spec [#128](https://github.com/fivvi-app/fivvi/issues/128)). `packages/auth` records them. On the web the sign-in endpoints are Better Auth's, mounted at `/api/auth`, not API routes, and its handler flushes the events before it returns. The native routes `/v1/sign-in/request` and `/v1/sign-in/token` are API routes that run the same endpoints through `auth.api`, so they record the same events, and the API flushes the shared sender after every request (§4.1). Neither carries the email address, a code, a link token, the IP address or the user agent, and `sign_in_requested` carries no account ID (AC16):
+
+| Event | Status | Feature | `distinct_id` | Properties | Measures |
+|---|---|---|---|---|---|
+| `sign_in_requested` | Live | F001 Authentication | A random ID for the request (`anonymousDistinctId()`), never stored: there is no account ID before sign-in | None | Sign-in requests, to compare with `signed_in` and see sign-in problems (emails that never lead to a sign-in). Recorded for every address alike, whether or not it has an account, so the event never tells who has one; a request the rate limits (AC10) refuse is not recorded |
+| `signed_in` | Live | F001 Authentication | The internal user UUID | `method`: `code` or `link`; `new_account`: `true` when this first sign-in of an allowed address created the account | Sign-ins by code and by link; new accounts. Recorded when the code is entered or the link is confirmed (not when the link is opened), after the session is created |
+
+The other MVP features add their events when they are built; their specs define the properties. The planned events serve the pilot metrics in `ROADMAP.md §8` and give Release 3.2 business analytics its history (`ROADMAP.md §10`):
 
 | Event | Status | Feature | Measures |
 |---|---|---|---|
@@ -158,6 +165,7 @@ No event is live yet. The MVP features add theirs when they are built; their spe
 
 - `packages/observability/src/track.test.ts` uses its own test catalog. It checks that a catalog event leaves for the `POSTHOG_HOST` with exactly its properties (`createProductEventCaptureTransport()` keeps the events PostHog would receive, decoded from the SDK's gzipped batch); that unknown events, extra properties, free text and a non-UUID `distinct_id` are rejected at runtime; that an unknown event, an extra property and a value outside an enum are compile-time errors (`@ts-expect-error`, so typecheck fails if one compiles), while free text in a UUID property or `distinct_id` is only caught at runtime; that production drops them with a Sentry warning; that nothing is sent without a key; and that a key without a valid `POSTHOG_HOST` sends nothing and reports a configuration error. `config.test.ts` checks the host rules for both product events and page views, and that no `posthog.com` address is left in `packages/observability` or `apps/web`.
 - `packages/api/test/product-events.test.ts` checks that the API flushes after every request.
+- `packages/api/test/sign-in.integration.test.ts` → `AC16: events carry no personal data` signs in with the code and with the link through `createAuth({ productEvents })` and a PostHog capture transport. It sends a synthetic IP address and user agent with every request and checks that exactly `sign_in_requested` and `signed_in` arrive, that nothing in what would leave for PostHog or in the console holds the address, its local part, the code, the link token, the IP address or the user agent, that the request event has a random ID instead of the account's, that an unknown address records the same event as an account, that a wrong code or an unknown link records no `signed_in`, and that a failing PostHog never fails the sign-in. `packages/observability/src/scrub.test.ts` → `AC16` feeds a Sentry event holding an email address, a code and a link token (in the message, the error text, the request URL, query string and body, headers, `extra`, the user and breadcrumbs) through the scrubber and checks that none remains.
 
 ## 5. Page views
 
