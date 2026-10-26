@@ -1,0 +1,163 @@
+# The release lanes of E017 (docs/engineering/RELEASE.md): started by hand on main, approved by the owner in the GitHub
+# environment `release`, which holds every signing key and API key. Nothing else reaches those secrets: pull-request
+# workflows, forks and this workflow's own test jobs can't read them, and no job here runs on pull_request_target.
+#
+# Shape of a run: `prepare` (refuses anything but a first attempt on main, fixes the build number every platform of the
+# run shares), then per platform a test job without secrets (both locales; nothing after it starts when it fails), then
+# the job in the `release` environment, which waits for the owner's approval and only then signs, uploads and sends the
+# crash symbols to Sentry. A platform can be released alone. Every step is a command of scripts/release*.sh (tested in
+# scripts/test/release.test.mjs); the Android job (#191) joins them in this file, with the same `prepare` and test steps.
+#
+# A secret is passed to the one step that needs it, as an environment variable of that step, and no step prints one.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      ios:
+        description: 'Release the iOS app to TestFlight'
+        type: boolean
+        default: true
+
+# One run at a time, and a run that is running or approved is never cancelled. (GitHub keeps one pending run per group: a
+# third run started while one runs and one waits replaces the waiting one.)
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TZ: UTC
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      build-number: ${{ steps.number.outputs.build-number }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Refuses a ref other than main and a re-run. The environment `release` only deploys from main as well (its
+      # deployment branch policy, .github/environments/release.json), which holds even for a workflow file changed on a
+      # branch.
+      - name: Refuse a run outside main
+        run: scripts/release.sh guard
+
+      # The run number plus a fixed offset: the same number for every platform of this run, higher than any earlier run.
+      - id: number
+        name: Build number
+        run: |
+          number="$(scripts/release.sh build-number)"
+          echo "build-number=$number" >>"$GITHUB_OUTPUT"
+          echo "Build number $number" >>"$GITHUB_STEP_SUMMARY"
+
+  ios-tests:
+    name: iOS tests
+    needs: prepare
+    if: inputs.ios
+    # The native suite on this commit in nl and en (TESTING.md §7), as `pnpm test:ios` runs it. No secret here, and no
+    # approval needed: the owner is asked to approve only a run whose tests passed. The image and Xcode are pinned, like in
+    # ci.yml.
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Refuse a run outside main
+        run: scripts/release.sh guard
+
+      - name: SwiftLint, build and tests (nl and en)
+        run: scripts/release.sh tests ios
+
+      # Only on failure: artifact storage counts against the free quota.
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-release-test-results
+          path: |
+            apps/ios/.build/TestResults-*.xcresult
+            apps/ios/.build/build-for-testing.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+  ios:
+    name: iOS release
+    needs: [prepare, ios-tests]
+    if: inputs.ios
+    # Waits here for the owner's approval; nothing below runs, and no secret is readable, before it. Only the jobs of this
+    # environment read secrets.
+    environment: release
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      RELEASE_BUILD_NUMBER: ${{ needs.prepare.outputs.build-number }}
+      # The sentry-cli that pnpm-lock.yaml pins (@sentry/cli, a dependency of @fivvi/observability).
+      SENTRY_CLI: ${{ github.workspace }}/packages/observability/node_modules/.bin/sentry-cli
+    steps:
+      # First, before any step that reads a secret.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Refuse a run outside main
+        run: scripts/release.sh guard
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      # Only the package that carries the pinned sentry-cli, and its own dependencies; no secret in this step's environment.
+      - name: Install the pinned sentry-cli
+        run: |
+          pnpm install --frozen-lockfile --filter @fivvi/observability...
+          "$SENTRY_CLI" --version
+
+      # The certificate goes into a keychain made for this run, the profile where Xcode finds it.
+      - name: Install the signing certificate and profile
+        env:
+          IOS_DISTRIBUTION_CERTIFICATE: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE }}
+          IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+        run: scripts/release-ios.sh signing
+
+      - name: Archive the Release build
+        run: scripts/release-ios.sh archive
+
+      # Before the upload: a build that testers can install always has its symbols in Sentry.
+      - name: Upload the dSYMs to Sentry
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: scripts/release-ios.sh symbols
+
+      - name: Export and upload to App Store Connect
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: scripts/release-ios.sh upload
+
+      # Whatever failed: the keychain, the profile and the key file don't outlive the run.
+      - name: Delete the keychain and the key files
+        if: always()
+        run: scripts/release-ios.sh cleanup
