@@ -1,5 +1,5 @@
 // @fivvi/testing is test-only, but this script runs only in local development (the Maestro run), and reusing its
-// local-host check makes every script that deletes data refuse a Railway database the same way. Accepted in review.
+// local-host check makes every script that deletes data refuse a Railway database the same way.
 import { localServerUrl } from '@fivvi/testing/database/server';
 import type { DatabaseExecutor } from './client.ts';
 import { authRateLimits } from './schema/index.ts';

@@ -19,7 +19,7 @@ usage() { usage_of "$0"; }
 # Maestro flows in e2e/maestro, which read their sign-in code from the fake Brevo server (apps/web/e2e/fake-brevo.ts)
 # out of the sign-in email (EM-08, packages/email/src/templates/sign-in.tsx).
 IOS_PATHS='^(apps/ios|packages/contract|packages/i18n/generated/ios|packages/design-tokens/FivviDesignTokens)/|^apps/Version\.xcconfig$|^scripts/(test-ios|_ios)\.sh$'
-ANDROID_PATHS='^(apps/android|packages/contract|packages/i18n/generated/android|packages/design-tokens/kotlin|e2e/maestro)/|^apps/Version\.xcconfig$|^apps/web/e2e/fake-brevo\.ts$|^packages/email/src/templates/sign-in\.tsx$|^scripts/(android|_android|maestro)\.sh$'
+ANDROID_PATHS='^(apps/android|packages/contract|packages/i18n/generated/android|packages/design-tokens/kotlin|e2e/maestro)/|^apps/Version\.xcconfig$|^apps/web/e2e/fake-brevo\.ts$|^packages/email/src/templates/sign-in\.tsx$|^packages/email/src/environment\.ts$|^packages/database/src/(scripts/)?reset-rate-limits\.ts$|^scripts/(android|_android|maestro)\.sh$'
 
 EVENT=""
 FORCE=false

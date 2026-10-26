@@ -160,6 +160,10 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       // What the sign-in flow reads its code from: the fake Brevo server and the email whose code it parses (EM-08).
       'apps/web/e2e/fake-brevo.ts',
       'packages/email/src/templates/sign-in.tsx',
+      // The Maestro sign-in flow clears the rate limits (db:reset-rate-limits) and reads its environment (EM-08).
+      'packages/email/src/environment.ts',
+      'packages/database/src/reset-rate-limits.ts',
+      'packages/database/src/scripts/reset-rate-limits.ts',
       'scripts/android.sh',
       'scripts/_android.sh',
       'scripts/maestro.sh',

@@ -199,7 +199,7 @@ describe('E004 database', () => {
     it('deletes every counter, expired or not, and nothing else', async () => {
       await withRollback(db, async (tx) => {
         await seed(tx);
-        const future = new Date(Date.now() + 15 * 60_000);
+        const future = new Date('2100-01-01T00:00:00Z');
         await tx.insert(authRateLimits).values([
           { key: 'email:a', count: 3, windowEndsAt: future },
           { key: 'ip:unknown', count: 20, windowEndsAt: new Date(0) },
