@@ -1,5 +1,6 @@
 package app.fivvi.pro.auth
 
+import java.net.HttpURLConnection.HTTP_UNAUTHORIZED
 import okhttp3.Interceptor
 import okhttp3.Response
 
@@ -12,11 +13,7 @@ class AuthInterceptor(private val session: Session) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val token = session.token() ?: return chain.proceed(chain.request())
         val response = chain.proceed(chain.request().newBuilder().header("Authorization", "Bearer $token").build())
-        if (response.code == UNAUTHORIZED) session.expire(token)
+        if (response.code == HTTP_UNAUTHORIZED) session.expire(token)
         return response
-    }
-
-    private companion object {
-        const val UNAUTHORIZED = 401
     }
 }

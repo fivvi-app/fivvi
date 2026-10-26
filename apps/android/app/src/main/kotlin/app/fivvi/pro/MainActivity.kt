@@ -73,7 +73,9 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun Home(dependencies: AppDependencies, key: String) {
-        val hello = viewModel(key = language.tag) { HelloViewModel(dependencies.helloApi, language.apiLocale) }
+        val hello = viewModel(key = "hello-$key-${language.tag}") {
+            HelloViewModel(dependencies.helloApi, language.apiLocale)
+        }
         val me = viewModel(key = "home-$key") { HomeViewModel(dependencies.meApi) }
         val helloState by hello.state.collectAsStateWithLifecycle()
         val meState by me.state.collectAsStateWithLifecycle()

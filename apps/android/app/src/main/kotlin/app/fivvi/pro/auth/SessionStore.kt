@@ -6,7 +6,6 @@ import android.security.keystore.KeyProperties
 import android.util.AtomicFile
 import java.io.File
 import java.io.IOException
-import java.security.GeneralSecurityException
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -18,6 +17,7 @@ interface SessionStore {
     /** The stored token, or null when there is none or it can't be read. */
     fun read(): String?
 
+    /** @throws IOException when the token can't be stored. */
     fun save(token: String)
 
     fun delete()
@@ -27,8 +27,11 @@ interface SessionStore {
  * The token encrypted with an AES-GCM key from the Android Keystore, in a file in the app's private storage.
  * [DIRECTORY] is excluded from Auto Backup and device-to-device transfer (`res/xml/backup_rules.xml` and
  * `data_extraction_rules.xml`), and the key never leaves the device, so a copied file couldn't be read anyway. Never
- * `SharedPreferences` and never plain text. A file that can't be decrypted (the key is gone, the file is damaged) is
- * deleted and read as no token: the person signs in again.
+ * `SharedPreferences` and never plain text.
+ *
+ * A file or key that can't be used (the key is gone or broken, the file is empty or damaged) is dropped, file and key
+ * entry both: the token reads as none, the person signs in again, and the next save makes a new key. Crypto and file
+ * I/O block, so callers other than the start-up read keep them off the main thread.
  */
 class KeystoreSessionStore(context: Context) : SessionStore {
     private val file = AtomicFile(File(File(context.filesDir, DIRECTORY), FILE_NAME))
@@ -42,18 +45,26 @@ class KeystoreSessionStore(context: Context) : SessionStore {
         }
         return try {
             decrypt(bytes)
-        } catch (_: GeneralSecurityException) {
-            file.delete()
-            null
-        } catch (_: IllegalArgumentException) {
-            file.delete()
+        } catch (_: Exception) {
+            reset()
             null
         }
     }
 
     @Synchronized
     override fun save(token: String) {
-        val encrypted = encrypt(token.toByteArray(Charsets.UTF_8))
+        val plain = token.toByteArray(Charsets.UTF_8)
+        val encrypted = try {
+            encrypt(plain)
+        } catch (_: Exception) {
+            // The key entry is unusable: replace it once, then give up.
+            reset()
+            try {
+                encrypt(plain)
+            } catch (error: Exception) {
+                throw IOException("The session could not be encrypted", error)
+            }
+        }
         file.baseFile.parentFile?.mkdirs()
         val stream = file.startWrite()
         try {
@@ -68,6 +79,16 @@ class KeystoreSessionStore(context: Context) : SessionStore {
     @Synchronized
     override fun delete() = file.delete()
 
+    // Drops the file and the key entry, so that the next save makes a new key. Best effort: there's nothing else to do.
+    private fun reset() {
+        file.delete()
+        try {
+            keyStore().deleteEntry(KEY_ALIAS)
+        } catch (_: Exception) {
+            // The entry stays; the next save fails with an IOException and the sign-in shows an error.
+        }
+    }
+
     // The stored bytes: the IV's length, the IV, then the ciphertext with its GCM tag.
     private fun encrypt(plain: ByteArray): ByteArray {
         val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, key()) }
@@ -76,6 +97,7 @@ class KeystoreSessionStore(context: Context) : SessionStore {
     }
 
     private fun decrypt(stored: ByteArray): String {
+        require(stored.isNotEmpty()) { "not a stored token" }
         val ivSize = stored.first().toInt()
         require(ivSize > 0 && stored.size > 1 + ivSize) { "not a stored token" }
         val cipher = Cipher.getInstance(TRANSFORMATION).apply {
@@ -84,9 +106,10 @@ class KeystoreSessionStore(context: Context) : SessionStore {
         return String(cipher.doFinal(stored, 1 + ivSize, stored.size - 1 - ivSize), Charsets.UTF_8)
     }
 
+    private fun keyStore(): KeyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
+
     private fun key(): SecretKey {
-        val keyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
-        (keyStore.getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
+        (keyStore().getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
         val spec = KeyGenParameterSpec.Builder(
             KEY_ALIAS,
             KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,

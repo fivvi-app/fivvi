@@ -1,9 +1,13 @@
 package app.fivvi.pro.auth
 
 import android.content.Context
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
 import androidx.test.core.app.ApplicationProvider
 import java.io.File
+import java.io.IOException
 import java.security.KeyStore
+import javax.crypto.KeyGenerator
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -11,6 +15,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Before
 import org.junit.Test
 
 // The Keystore-backed store on a device or emulator (AC11).
@@ -19,8 +25,27 @@ class SessionStoreTest {
     private val store = KeystoreSessionStore(context)
     private val file = File(File(context.filesDir, KeystoreSessionStore.DIRECTORY), KeystoreSessionStore.FILE_NAME)
 
+    @Before
+    fun setUp() {
+        store.delete()
+        keyStore().deleteEntry(KeystoreSessionStore.KEY_ALIAS)
+    }
+
     @After
     fun tearDown() = store.delete()
+
+    private fun keyStore() = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+
+    // A key entry the store can't use for AES-GCM: same alias, but an HMAC key that may only sign.
+    private fun breakTheKeyEntry() {
+        val spec = KeyGenParameterSpec.Builder(
+            KeystoreSessionStore.KEY_ALIAS,
+            KeyProperties.PURPOSE_SIGN,
+        ).build()
+        KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_HMAC_SHA256, "AndroidKeyStore")
+            .apply { init(spec) }
+            .generateKey()
+    }
 
     @Test
     fun F001N_AC11_tokenEncryptedWithKeystoreKey() {
@@ -107,6 +132,66 @@ class SessionStoreTest {
         file.writeBytes(byteArrayOf(12, 1, 2))
 
         assertNull(store.read())
+        assertFalse(file.exists())
+    }
+
+    @Test
+    fun F001N_AC11_anEmptyFileReadsAsNoTokenAndIsDeleted() {
+        // An interrupted write can leave nothing behind; reading it must not crash the app at launch.
+        file.parentFile?.mkdirs()
+        file.writeBytes(ByteArray(0))
+
+        assertNull(store.read())
+        assertFalse(file.exists())
+    }
+
+    @Test
+    fun F001N_AC11_aFailedReadDropsTheKeyAndTheNextSaveGetsANewOne() {
+        store.save(TOKEN)
+        file.writeBytes(ByteArray(48) { it.toByte() })
+
+        assertNull(store.read())
+        assertFalse(keyStore().containsAlias(KeystoreSessionStore.KEY_ALIAS))
+
+        store.save(TOKEN)
+        assertEquals(TOKEN, store.read())
+    }
+
+    @Test
+    fun F001N_AC11_aBrokenKeyEntryIsReplacedOnTheNextSave() {
+        store.save(TOKEN)
+        breakTheKeyEntry()
+
+        assertNull(store.read())
+        assertFalse(file.exists())
+
+        store.save(TOKEN)
+        assertEquals(TOKEN, KeystoreSessionStore(context).read())
+    }
+
+    @Test
+    fun F001N_AC11_savingOverABrokenKeyEntryWithoutReadingFirstStillWorks() {
+        breakTheKeyEntry()
+
+        store.save(TOKEN)
+
+        assertEquals(TOKEN, store.read())
+    }
+
+    @Test
+    fun F001N_AC11_aSaveThatCannotBeWrittenFailsWithAnIoException() {
+        // The directory's place is taken by a file, so nothing can be written under it.
+        val directory = file.parentFile!!
+        directory.deleteRecursively()
+        directory.writeText("in the way")
+        try {
+            store.save(TOKEN)
+            fail("expected an IOException")
+        } catch (_: IOException) {
+            // The caller (the sign-in) shows an error instead of crashing.
+        } finally {
+            directory.delete()
+        }
     }
 
     @Test

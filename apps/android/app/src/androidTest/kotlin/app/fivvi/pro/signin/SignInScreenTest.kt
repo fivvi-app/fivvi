@@ -2,8 +2,10 @@ package app.fivvi.pro.signin
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import app.fivvi.api.models.SignInRequest
@@ -55,28 +57,80 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
         assertEquals(0, hello.requestedLocales.size)
     }
 
+    // The email step through to the code step.
+    private fun requestTheCode() {
+        compose.onNodeWithTag(SignInTags.EMAIL).performTextInput(ADDRESS)
+        compose.onNodeWithTag(SignInTags.SEND).performClick()
+        compose.onNodeWithTag(SignInTags.CODE).assertIsDisplayed()
+    }
+
+    // The sign-in finishes off the main thread (the token is stored), so wait for the home.
+    private fun assertSignedInAs(address: String) {
+        compose.waitUntil(TIMEOUT_MILLIS) {
+            compose.onAllNodes(hasTestTag(HomeTags.SIGNED_IN_AS)).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)
+            .assertTextEquals(app.string(language, R.string.home_signed_in_as, address))
+    }
+
     @Test
-    fun F001N_AC1_AC3_AC4_emailThenCodeThenHome() {
+    fun F001N_AC1_emailRequestsTheCodeAndTheCodeStepShowsTheAddress() {
         signIn.answerAccepted()
-        signIn.answerToken("token-1")
-        me.answerAccount("owner@example.com")
         launch()
 
-        compose.onNodeWithTag(SignInTags.EMAIL).performTextInput("owner@example.com")
-        compose.onNodeWithTag(SignInTags.SEND).performClick()
+        requestTheCode()
 
-        compose.onNodeWithTag(SignInTags.CODE).assertIsDisplayed()
-        assertEquals(listOf(SignInRequest("owner@example.com", language.apiLocale)), signIn.requests)
+        assertEquals(listOf(SignInRequest(ADDRESS, language.apiLocale)), signIn.requests)
+        compose.onNodeWithText(app.string(language, R.string.sign_in_check_email_body_app, ADDRESS))
+            .assertIsDisplayed()
         assertEquals(0, me.calls)
+    }
 
-        // The sixth digit sends the code without another tap.
-        compose.onNodeWithTag(SignInTags.CODE).performTextInput("123456")
+    @Test
+    fun F001N_AC3_sixthDigitSubmits() {
+        signIn.answerAccepted()
+        signIn.answerToken("token-1")
+        me.answerAccount(ADDRESS)
+        launch()
+        requestTheCode()
 
-        compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)
-            .assertTextEquals(app.string(language, R.string.home_signed_in_as, "owner@example.com"))
-        assertEquals(listOf(SignInTokenRequest("owner@example.com", "123456")), signIn.exchanges)
+        // Five digits wait; the sixth sends the code without another tap.
+        compose.onNodeWithTag(SignInTags.CODE).performTextInput("12345")
+        assertEquals(0, signIn.exchanges.size)
+        compose.onNodeWithTag(SignInTags.CODE).performTextInput("6")
+
+        assertSignedInAs(ADDRESS)
+        assertEquals(listOf(SignInTokenRequest(ADDRESS, "123456")), signIn.exchanges)
         assertEquals("token-1", store.read())
         assertEquals(1, me.calls)
+    }
+
+    @Test
+    fun F001N_AC3_pastedCodeSubmits() {
+        signIn.answerAccepted()
+        signIn.answerToken("token-1")
+        me.answerAccount(ADDRESS)
+        launch()
+        requestTheCode()
+
+        // Pasted whole, as the mail shows it, with a space in the middle.
+        compose.onNodeWithTag(SignInTags.CODE).performTextInput("123 456")
+
+        assertSignedInAs(ADDRESS)
+        assertEquals(listOf(SignInTokenRequest(ADDRESS, "123456")), signIn.exchanges)
+    }
+
+    @Test
+    fun F001N_AC4_signedInAddressComesFromTheMeEndpoint() {
+        signIn.answerAccepted()
+        signIn.answerToken("token-1")
+        me.answerAccount("someone.else@example.com")
+        launch()
+        requestTheCode()
+
+        compose.onNodeWithTag(SignInTags.CODE).performTextInput("123456")
+
+        assertSignedInAs("someone.else@example.com")
     }
 
     @Test
@@ -84,8 +138,7 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
         signIn.answerAccepted()
         signIn.answerCodeRefused()
         launch()
-        compose.onNodeWithTag(SignInTags.EMAIL).performTextInput("owner@example.com")
-        compose.onNodeWithTag(SignInTags.SEND).performClick()
+        requestTheCode()
 
         compose.onNodeWithTag(SignInTags.CODE).performTextInput("123456")
 
@@ -103,6 +156,9 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
     }
 
     companion object {
+        private const val ADDRESS = "owner@example.com"
+        private const val TIMEOUT_MILLIS = 5_000L
+
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
         fun languages() = appLanguageParameters()

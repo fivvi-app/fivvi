@@ -1,34 +1,20 @@
 package app.fivvi.pro.auth
 
-import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class AuthInterceptorTest {
-    private val sent = mutableListOf<Request>()
-    private var status = 200
+    private val network = FakeNetwork()
+    private val sent get() = network.sent
 
-    // The OkHttp client with the interceptor, over a network that records the request and answers with [status].
+    // The OkHttp client with the interceptor, over a network that records the request and answers with its status.
     private fun client(session: Session) = OkHttpClient.Builder()
         .addInterceptor(AuthInterceptor(session))
-        .addInterceptor(
-            Interceptor { chain ->
-                sent += chain.request()
-                Response.Builder()
-                    .request(chain.request())
-                    .protocol(Protocol.HTTP_1_1)
-                    .code(status)
-                    .message("")
-                    .body("{}".toResponseBody())
-                    .build()
-            },
-        )
+        .addInterceptor(network)
         .build()
 
     private fun get(session: Session): Response = client(session).newCall(Request.Builder().url(URL).build()).execute()
@@ -51,7 +37,7 @@ class AuthInterceptorTest {
     fun F001N_AC9_unauthorizedWithTokenSignsOut() {
         val store = InMemorySessionStore("tok-1")
         val session = Session(store)
-        status = 401
+        network.status = 401
 
         val response = get(session)
 
@@ -66,7 +52,7 @@ class AuthInterceptorTest {
     fun F001N_AC6_unauthorizedWithoutTokenIsNotASignOut() {
         // A refused code answers 401 to a request that carries no token: the person is signed out already.
         val session = Session(InMemorySessionStore())
-        status = 401
+        network.status = 401
 
         get(session).close()
 
@@ -76,7 +62,7 @@ class AuthInterceptorTest {
     @Test
     fun F001N_AC4_otherAnswersKeepTheToken() {
         val store = InMemorySessionStore("tok-1")
-        status = 500
+        network.status = 500
 
         get(Session(store)).close()
 

@@ -6,6 +6,7 @@ import app.fivvi.pro.AppLanguage
 import app.fivvi.pro.appLanguageParameters
 import app.fivvi.pro.auth.InMemorySessionStore
 import app.fivvi.pro.auth.Session
+import app.fivvi.pro.auth.SessionStore
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -29,13 +30,16 @@ class SignInViewModelTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
     private val store = InMemorySessionStore()
     private val session = Session(store)
 
+    private val dispatcher = UnconfinedTestDispatcher()
+
     @Before
-    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
+    fun setUp() = Dispatchers.setMain(dispatcher)
 
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = SignInViewModel(api, session, language.apiLocale)
+    private fun viewModel(session: Session = this.session) =
+        SignInViewModel(api, session, language.apiLocale, dispatcher)
 
     private fun SignInViewModel.requestCode(email: String = EMAIL) {
         onEmailChange(email)
@@ -123,7 +127,7 @@ class SignInViewModelTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
     }
 
     @Test
-    fun F001N_AC3_sixthDigitSubmitsAndStoresTheToken() {
+    fun F001N_AC3_codeStoresTokenAndShowsHome() {
         api.answerAccepted()
         api.answerToken("token-1")
         val viewModel = viewModel()
@@ -217,6 +221,27 @@ class SignInViewModelTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
 
         assertEquals(2, api.exchanges.size)
         assertEquals(true, session.state.value.signedIn)
+    }
+
+    @Test
+    fun F001N_AC11_aStoreThatFailsShowsTheGenericErrorAndStaysSignedOut() {
+        val failing = object : SessionStore {
+            override fun read(): String? = null
+
+            override fun save(token: String) = throw IOException("disk full")
+
+            override fun delete() = Unit
+        }
+        val failingSession = Session(failing)
+        api.answerAccepted()
+        api.answerToken("token-1")
+        val viewModel = viewModel(failingSession)
+        viewModel.requestCode()
+
+        viewModel.onCodeChange("123456")
+
+        assertEquals(SignInState.CodeEntry(EMAIL, "123456", SignInError.Generic), viewModel.state.value)
+        assertEquals(false, failingSession.state.value.signedIn)
     }
 
     @Test

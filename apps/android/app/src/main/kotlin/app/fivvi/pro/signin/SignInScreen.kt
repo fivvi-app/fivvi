@@ -181,5 +181,3 @@ private val SignInError.message: Int
         SignInError.NoConnection -> R.string.sign_in_errors_no_connection
         SignInError.Generic -> R.string.sign_in_errors_generic
     }
-
-private const val CODE_LENGTH = 6
