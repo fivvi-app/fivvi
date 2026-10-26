@@ -2,8 +2,8 @@
   "version": 1,
   "label": "2026-10-24-factory",
   "since": "2026-10-24",
-  "until": "2026-10-26T15:00:00Z",
-  "generatedAt": "2026-10-26T15:06:05.417Z",
+  "until": "2026-10-26T14:12:00Z",
+  "generatedAt": "2026-10-26T15:09:44.228Z",
   "sessions": [
     {
       "id": "e085e406-48ef-4dee-826a-b9ba96cf2281",
@@ -64,22 +64,22 @@
     {
       "id": "37d54299-80c8-47a2-9196-ded503e35eb2",
       "start": "2026-10-24T14:18:06.081Z",
-      "end": "2026-10-26T14:58:34.220Z",
-      "calls": 1083,
-      "avgContext": 459319.94182825484,
+      "end": "2026-10-26T15:05:14.418Z",
+      "calls": 1087,
+      "avgContext": 459837.51885924564,
       "peakContext": 965530,
       "compactions": 1,
       "tokens": {
         "opus": {
-          "calls": 1083,
-          "input": 2768,
-          "cacheRead": 494963036,
-          "cacheWrite": 2477693,
-          "output": 511485
+          "calls": 1087,
+          "input": 2778,
+          "cacheRead": 497359783,
+          "cacheWrite": 2480822,
+          "output": 512336
         }
       },
       "cost": {
-        "opus": 55153613
+        "opus": 55401464
       },
       "subagents": 449,
       "tickets": [
@@ -120,35 +120,7 @@
         "fix/236-next-dev-writes-apps-web-agents-md-and-c"
       ],
       "costPerTicket": {
-        "opus": 1575818
-      }
-    },
-    {
-      "id": "81fa98c3-7f6f-4706-8560-d25fc77ed6db",
-      "start": "2026-10-26T14:12:50.888Z",
-      "end": "2026-10-26T14:56:49.275Z",
-      "calls": 60,
-      "avgContext": 190082.11666666667,
-      "peakContext": 261797,
-      "compactions": 0,
-      "tokens": {
-        "opus": {
-          "calls": 60,
-          "input": 120,
-          "cacheRead": 11198082,
-          "cacheWrite": 206725,
-          "output": 70872
-        }
-      },
-      "cost": {
-        "opus": 1732694
-      },
-      "subagents": 1,
-      "tickets": [
-        "chore/agent-usage-cost"
-      ],
-      "costPerTicket": {
-        "opus": 1732694
+        "opus": 1582899
       }
     }
   ],
@@ -467,47 +439,6 @@
       "ownerComments": 0,
       "followUpFixes": 0,
       "reverted": false
-    },
-    {
-      "branch": "chore/agent-usage-cost",
-      "issue": null,
-      "area": null,
-      "size": null,
-      "group": "unknown",
-      "agents": {
-        "builder": 1
-      },
-      "calls": 43,
-      "tokens": {
-        "sonnet": {
-          "calls": 43,
-          "input": 86,
-          "cacheRead": 6560039,
-          "cacheWrite": 166166,
-          "output": 67418
-        }
-      },
-      "cost": {
-        "sonnet": 1200887
-      },
-      "agentSeconds": 1043,
-      "toolSeconds": {
-        "check": 182,
-        "native": 0,
-        "wait": 123,
-        "other": 296
-      },
-      "checkRuns": 3,
-      "reviews": 0,
-      "firstReviewClean": null,
-      "reachedClean": null,
-      "findingsPerReview": null,
-      "pr": null,
-      "ciFailures": null,
-      "queueRemovals": null,
-      "ownerComments": null,
-      "followUpFixes": null,
-      "reverted": null
     },
     {
       "branch": "chore/agents-queue-high-risk",
@@ -2213,9 +2144,9 @@
   "agents": {
     "byRole": {
       "builder": {
-        "count": 108,
-        "medianFirstContext": 72648,
-        "medianPeakContext": 122894
+        "count": 107,
+        "medianFirstContext": 72646,
+        "medianPeakContext": 122813
       },
       "mechanic": {
         "count": 11,
