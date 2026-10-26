@@ -4,7 +4,8 @@
 // real credential at worst. A fixture is obviously fake instead: low-entropy and self-describing, such as
 // `fake-link-token-for-tests`, never random-looking and never assembled from parts.
 //
-//   node scripts/secrets-in-tests.mjs         scan the tracked test files (scripts/check.sh runs it)
+//   node scripts/secrets-in-tests.mjs [dir]   scan the test files git knows of, new ones too, in dir (default: this
+//                                             checkout); scripts/check.sh runs it
 //
 // Scanned: the tracked code files (TypeScript, JavaScript, Swift, Kotlin, JSON, YAML) of a test path: `*.test.*`,
 // `*.spec.*`, `test/`, `tests/`, `e2e/`, `packages/testing`, `apps/ios/*Tests*`, and `apps/android/app/src/{test,
@@ -29,7 +30,10 @@
 // UUID, a token that repeats one short unit (`0123456789abcdef` twice), and a token of digits only. Entropy of a short
 // token is capped by its length (log2 of it), so the threshold sits near the middle of what random 20-character strings
 // score: a 20-23 character random token can slip through, the 32 and 43 character ones of real keys and link tokens
-// cannot (random 32-character base64 scores 4.2 to 4.9, hex 3.3 to 3.9).
+// cannot (random 32-character base64 scores 4.2 to 4.9, hex 3.3 to 3.9). A second known gap: `/` cuts a token, so a
+// standard-base64 key (`openssl rand -base64 32`, 43 characters) that has a `/` in a bad place falls into pieces under 20
+// characters and slips through (about 3.6% of them); counting `/` as part of a token would flag about 40 paths and URLs
+// of this repository. The base64url alphabet (`-` and `_`, as link tokens use) has no such gap.
 //
 // A known-safe realistic shape that has to stay goes in scripts/secrets-allowlist.txt with a reason.
 import { execFileSync } from 'node:child_process';
@@ -40,10 +44,10 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ALLOWLIST = join(ROOT, 'scripts/secrets-allowlist.txt');
 
-export const MIN_LITERAL_LENGTH = 20;
-export const HEX_ENTROPY = 3.0;
-export const TEXT_ENTROPY = 3.7;
-export const READABLE_SHARE = 0.75;
+const MIN_LITERAL_LENGTH = 20;
+const HEX_ENTROPY = 3.0;
+const TEXT_ENTROPY = 3.7;
+const READABLE_SHARE = 0.75;
 const SHORT_PART = 4;
 const SLUG_PART = 10;
 const SLUG_MEAN = 7;
@@ -132,15 +136,60 @@ const tokens = (text) =>
 const randomToken = (text) => tokens(text).find(({ token }) => looksRandom(token));
 
 // The lexer: the string literals of a file with the line each starts on. Comments are skipped; an interpolation is
-// replaced by a space, as an escape such as \n is. It knows enough of each language to find literals, nothing more.
+// replaced by a space, as an escape such as \n is. It knows enough of each language to find literals, nothing more. What
+// differs per language is a property of its row, not a test of which language it is:
+//   quotes          the characters that open a literal
+//   lineComment     what starts a comment to the end of the line (`#` only after whitespace or at the start)
+//   blockComment    whether `/* */` is a comment
+//   triple          whether a tripled quote opens a multi-line literal
+//   rawTriple       whether that literal takes no escapes (Kotlin `"""`; Swift's `"""` does take them)
+//   hashRaw         whether `#"..."#` is a raw literal, closing on a quote and as many hashes (Swift)
+//   parenInterpolation  whether `\(` starts an interpolation (Swift)
+//   dollarQuotes    the quotes whose literals take `${...}` (a JS template, every Kotlin literal)
 const LANGUAGES = {
-  js: { quotes: `'"\``, line: '//', block: true, triple: false },
-  swift: { quotes: '"', line: '//', block: true, triple: true },
-  kotlin: { quotes: '"', line: '//', block: true, triple: true },
-  data: { quotes: `'"`, line: '#', block: false, triple: false },
+  js: {
+    quotes: `'"\``,
+    lineComment: '//',
+    blockComment: true,
+    triple: false,
+    rawTriple: false,
+    hashRaw: false,
+    parenInterpolation: false,
+    dollarQuotes: '`',
+  },
+  swift: {
+    quotes: '"',
+    lineComment: '//',
+    blockComment: true,
+    triple: true,
+    rawTriple: false,
+    hashRaw: true,
+    parenInterpolation: true,
+    dollarQuotes: '',
+  },
+  kotlin: {
+    quotes: '"',
+    lineComment: '//',
+    blockComment: true,
+    triple: true,
+    rawTriple: true,
+    hashRaw: false,
+    parenInterpolation: false,
+    dollarQuotes: '"',
+  },
+  data: {
+    quotes: `'"`,
+    lineComment: '#',
+    blockComment: false,
+    triple: false,
+    rawTriple: false,
+    hashRaw: false,
+    parenInterpolation: false,
+    dollarQuotes: '',
+  },
 };
 const languageOf = (path) => {
-  if (/\.(swift)$/.test(path)) return LANGUAGES.swift;
+  if (/\.swift$/.test(path)) return LANGUAGES.swift;
   if (/\.(kt|kts|java)$/.test(path)) return LANGUAGES.kotlin;
   if (/\.ya?ml$/.test(path)) return LANGUAGES.data;
   return LANGUAGES.js;
@@ -158,71 +207,101 @@ const skipInterpolation = (text, from, open, close) => {
   return index;
 };
 
-/** The string literals of source text: `{ value, start, end, line }`. `value` is the text without quotes. */
+/** True at a comment that runs to the end of the line. */
+const startsLineComment = (language, text, index) =>
+  language.lineComment === '#'
+    ? text[index] === '#' && (index === 0 || /\s/.test(text[index - 1]))
+    : text.startsWith(language.lineComment, index);
+
+/** How a literal opens at `index`: `{ delimiter, opening, multiline, raw }`, or undefined when none does. */
+const opening = (language, text, index) => {
+  const char = text[index];
+  if (language.hashRaw && char === '#') {
+    const hashes = /^#+/.exec(text.slice(index))[0];
+    if (text[index + hashes.length] !== '"') return undefined;
+    const triple = text.startsWith('"""', index + hashes.length);
+    const quotes = triple ? '"""' : '"';
+    return {
+      delimiter: quotes + hashes,
+      opening: hashes.length + quotes.length,
+      multiline: triple,
+      raw: true,
+      dollar: false,
+    };
+  }
+  if (!language.quotes.includes(char)) return undefined;
+  const triple = language.triple && text.startsWith(char.repeat(3), index);
+  const delimiter = triple ? char.repeat(3) : char;
+  return {
+    delimiter,
+    opening: delimiter.length,
+    multiline: triple || char === '`',
+    raw: triple && language.rawTriple,
+    dollar: language.dollarQuotes.includes(char),
+  };
+};
+
+/**
+ * The string literals of source text: `{ value, start, end, line }`. `value` is the text without quotes. A literal that
+ * never closes is not one: the scan resumes just after its opening quote, so what follows is still read.
+ */
 export const literals = (text, path = 'file.ts') => {
   const language = languageOf(path);
   const found = [];
   const lineAt = (offset) => text.slice(0, offset).split('\n').length;
   let index = 0;
   while (index < text.length) {
-    const char = text[index];
-    const next = text[index + 1];
-    if (
-      language.line === '#'
-        ? char === '#' && (index === 0 || /\s/.test(text[index - 1]))
-        : text.startsWith(language.line, index)
-    ) {
+    if (startsLineComment(language, text, index)) {
       while (index < text.length && text[index] !== '\n') index++;
       continue;
     }
-    if (language.block && char === '/' && next === '*') {
+    if (language.blockComment && text.startsWith('/*', index)) {
       const end = text.indexOf('*/', index + 2);
       index = end === -1 ? text.length : end + 2;
       continue;
     }
-    if (!language.quotes.includes(char)) {
+    const open = opening(language, text, index);
+    if (!open) {
       index++;
       continue;
     }
-    const triple = language.triple && text.startsWith(char.repeat(3), index);
-    const delimiter = triple ? char.repeat(3) : char;
-    const multiline = triple || char === '`';
     const start = index;
-    index += delimiter.length;
+    let cursor = index + open.opening;
     let value = '';
     let closed = false;
-    while (index < text.length) {
-      const here = text[index];
-      if (text.startsWith(delimiter, index)) {
+    while (cursor < text.length) {
+      const here = text[cursor];
+      if (text.startsWith(open.delimiter, cursor)) {
         closed = true;
-        index += delimiter.length;
+        cursor += open.delimiter.length;
         break;
       }
-      if (here === '\n' && !multiline) break;
-      if (here === '\\') {
-        const escaped = text[index + 1] ?? '';
-        if (escaped === '(' && language !== LANGUAGES.js && language !== LANGUAGES.data) {
-          index = skipInterpolation(text, index + 2, '(', ')');
+      if (here === '\n' && !open.multiline) break;
+      if (here === '\\' && !open.raw) {
+        const escaped = text[cursor + 1] ?? '';
+        if (escaped === '(' && language.parenInterpolation) {
+          cursor = skipInterpolation(text, cursor + 2, '(', ')');
           value += ' ';
           continue;
         }
         value += /[ntr0]/.test(escaped) ? ' ' : escaped;
-        index += 2;
+        cursor += 2;
         continue;
       }
-      if (
-        here === '$' &&
-        text[index + 1] === '{' &&
-        (char === '`' || language === LANGUAGES.kotlin)
-      ) {
-        index = skipInterpolation(text, index + 2, '{', '}');
+      if (here === '$' && text[cursor + 1] === '{' && open.dollar) {
+        cursor = skipInterpolation(text, cursor + 2, '{', '}');
         value += ' ';
         continue;
       }
       value += here;
-      index++;
+      cursor++;
     }
-    if (closed) found.push({ value, start, end: index, line: lineAt(start) });
+    if (closed) {
+      found.push({ value, start, end: cursor, line: lineAt(start) });
+      index = cursor;
+    } else {
+      index = start + 1;
+    }
   }
   return found;
 };
@@ -332,7 +411,7 @@ export const check = (path, text, allowlist = []) => {
   return scan(path, scrubbed);
 };
 
-export const trackedTestFiles = (cwd = ROOT) =>
+const trackedTestFiles = (cwd = ROOT) =>
   execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], {
     cwd,
     encoding: 'utf8',
