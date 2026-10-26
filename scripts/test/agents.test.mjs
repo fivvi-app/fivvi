@@ -40,7 +40,8 @@ const EXPECTED = {
 
 // The tools each agent may use in Claude Code (`claude-tools` in its source, `tools:` in the generated definition).
 const CLAUDE_TOOLS = {
-  builder: 'Bash, Read, Edit, Write, Glob, Grep, Monitor, TaskStop, WebFetch, WebSearch, ToolSearch, SubagentHandback',
+  builder:
+    'Bash, Read, Edit, Write, Glob, Grep, Monitor, TaskStop, WebFetch, WebSearch, ToolSearch, SubagentHandback',
   reviewer: 'Bash, Read, Glob, Grep, WebFetch, ToolSearch, SubagentHandback',
   mechanic: 'Bash, Read, Edit, Write, Glob, Grep, Monitor, ToolSearch, SubagentHandback',
 };
