@@ -1,15 +1,11 @@
+import UIKit
 import XCTest
 
-/// TM-01 and the way into the signed-in home, against the stub server (F001, spec #168). All of them run in nl and en:
-/// the copy comes from the catalog of the configuration's language.
+/// TM-01 and the way into the signed-in home, against the stub server (F001, spec #168): the email and code steps
+/// (typed and pasted), a wrong code, a restart that keeps the sign-in and the signed-out notice. All of them run in nl
+/// and en: the copy comes from the catalog of the configuration's language.
 @MainActor
-final class SignInUITests: XCTestCase {
-    private let timeout: TimeInterval = 10
-
-    override func setUpWithError() throws {
-        continueAfterFailure = false
-    }
-
+final class SignInUITests: SignInUITestCase {
     func test_F001N_AC13_launchesOnSignIn() throws {
         let catalog = TestCatalog.configured
         let server = try StubServer(.greeting(key: "hello.title"))
@@ -56,6 +52,27 @@ final class SignInUITests: XCTestCase {
         )
         let accountRequests = server.requests(to: "/api/v1/me")
         XCTAssertEqual(accountRequests.map(\.authorization), ["Bearer \(server.signIn.token)"])
+    }
+
+    /// A 6-digit code on the pasteboard, pasted with the system's edit menu, is checked as soon as it is in, with no
+    /// tap on the button. (Mail's one-time-code suggestion above the keyboard inserts the code the same way.)
+    func test_F001N_AC3_pastedCodeSubmits() throws {
+        let server = try StubServer(.greeting(key: "hello.title"))
+        let screen = SignInScreen.launch(against: server)
+        screen.requestCode(for: server.signIn.email)
+        XCTAssertTrue(screen.code.exists)
+        UIPasteboard.general.string = server.signIn.code
+
+        screen.code.press(forDuration: 1.2)
+        let paste = screen.app.menuItems.matching(NSPredicate(format: "label IN %@", ["Paste", "Plak"])).firstMatch
+        XCTAssertTrue(paste.waitUntilExists(timeout: timeout), "the edit menu offers Paste")
+        paste.tap()
+
+        XCTAssertTrue(screen.signedInAs.waitUntilExists(timeout: timeout))
+        XCTAssertEqual(
+            server.requests(to: "/api/v1/sign-in/token").map(\.body),
+            [["email": server.signIn.email, "code": server.signIn.code]]
+        )
     }
 
     func test_F001N_AC6_wrongCodeShowsTheNeutralMessageAndAllowsAnotherTry() throws {
@@ -109,16 +126,5 @@ final class SignInUITests: XCTestCase {
         XCTAssertTrue(screen.email.exists)
         XCTAssertFalse(screen.signedInAs.exists)
         XCTAssertEqual(server.requests(to: "/api/v1/me").map(\.authorization), ["Bearer token-the-server-rejects"])
-    }
-
-    /// `element` is at least the minimum touch target, compared in the screen's device pixels (`TouchTarget`).
-    private func assertTouchTarget(_ element: XCUIElement, on screen: SignInScreen) throws {
-        let size = element.frame.size
-        let scale = try screen.app.screenshotBitmap().scale
-        XCTAssertTrue(
-            TouchTarget.isMet(by: size, scale: scale),
-            "\(element.identifier) is \(size.width) × \(size.height) pt at \(scale)x, "
-                + "below the \(TouchTarget.minimum) pt touch target"
-        )
     }
 }

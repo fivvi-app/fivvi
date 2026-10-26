@@ -3,8 +3,9 @@ import Network
 
 /// A tiny HTTP server in the UI-test runner that stands in for the API. The app reaches it on the simulator's
 /// loopback interface (the Debug build allows plain HTTP), so UI tests can assert what the app requested. It answers
-/// the hello route as the test says (`Answer`) and the sign-in routes and `GET /api/v1/me` like the API does for one
-/// account (`SignIn`).
+/// the hello route as the test says (`Answer`) and the sign-in routes, `POST /api/v1/sign-out` and `GET /api/v1/me`
+/// like the API does for one account (`SignIn`). A test can also cut the connection (`setOffline`) or hold the
+/// sign-in email request to keep the loading state on screen (`holdSignInRequests`).
 final class StubServer: Sendable {
     enum Answer: Sendable {
         /// `200` with this greeting key.
@@ -77,6 +78,18 @@ final class StubServer: Sendable {
     /// The requests so far to `path` (e.g. "/api/v1/me").
     func requests(to path: String) -> [Request] { requests.filter { $0.path == path } }
 
+    /// While offline, every request is cut off without an answer, as a lost connection would (it is still recorded in
+    /// `requests`).
+    func setOffline(_ offline: Bool) {
+        responder.setOffline(offline)
+    }
+
+    /// While true, `POST /api/v1/sign-in/request` gets no answer, so the loading state stays on screen. Setting it to
+    /// false answers the requests held.
+    func holdSignInRequests(_ hold: Bool) {
+        responder.holdSignInRequests(hold)
+    }
+
     /// Answers from now on, and answers the requests on hold (unless the new answer is `.hold` too).
     func answer(with answer: Answer) {
         responder.answer(with: answer)
@@ -90,6 +103,9 @@ private final class Responder: @unchecked Sendable {
     private var currentAnswer: StubServer.Answer
     private var received: [StubServer.Request] = []
     private var held: [(connection: NWConnection, locale: String?)] = []
+    private var offline = false
+    private var holdsSignIn = false
+    private var heldSignIn: [NWConnection] = []
 
     init(_ answer: StubServer.Answer, signIn: StubServer.SignIn) {
         currentAnswer = answer
@@ -100,6 +116,19 @@ private final class Responder: @unchecked Sendable {
 
     var requestedLocales: [String?] {
         lock.withLock { received.filter { $0.path == "/api/v1/hello" }.map(\.locale) }
+    }
+
+    func setOffline(_ value: Bool) {
+        lock.withLock { offline = value }
+    }
+
+    func holdSignInRequests(_ hold: Bool) {
+        let waiting: [NWConnection] = lock.withLock {
+            holdsSignIn = hold
+            defer { if !hold { heldSignIn = [] } }
+            return hold ? [] : heldSignIn
+        }
+        waiting.forEach { send($0, status: 202, json: nil) }
     }
 
     func answer(with answer: StubServer.Answer) {
@@ -158,13 +187,20 @@ private final class Responder: @unchecked Sendable {
         let json = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any] ?? [:]
         let authorization = Self.header("authorization", in: head)
         let stringFields = json.compactMapValues { $0 as? String }
-        let answer = lock.withLock {
+        let (answer, isOffline, holdsSignInRequest) = lock.withLock {
             received.append(.init(
                 method: method, path: path, locale: locale, authorization: authorization, body: stringFields
             ))
             if path == "/api/v1/hello", case .hold = currentAnswer { held.append((connection, locale)) }
-            return currentAnswer
+            let holdsSignInRequest = path == "/api/v1/sign-in/request" && holdsSignIn
+            if holdsSignInRequest { heldSignIn.append(connection) }
+            return (currentAnswer, offline, holdsSignInRequest)
         }
+        if isOffline {
+            connection.cancel()
+            return
+        }
+        if holdsSignInRequest { return }
         switch (method, path) {
         case ("GET", "/api/v1/hello"):
             respond(connection, locale: locale, with: answer)
@@ -172,20 +208,23 @@ private final class Responder: @unchecked Sendable {
             send(connection, status: 202, json: nil)
         case ("POST", "/api/v1/sign-in/token"):
             let works = stringFields["email"] == signIn.email && stringFields["code"] == signIn.code
-            let json = works ? ["token": signIn.token] : ["code": "unauthorized"]
-            send(connection, status: works ? 200 : 401, json: json)
+            send(connection, status: works ? 200 : 401, json: works ? ["token": signIn.token] : Self.unauthorized)
+        case ("POST", "/api/v1/sign-out"):
+            let works = authorization == "Bearer \(signIn.token)"
+            send(connection, status: works ? 204 : 401, json: works ? nil : Self.unauthorized)
         case ("GET", "/api/v1/me"):
-            if authorization == "Bearer \(signIn.token)" {
-                let account: [String: Any] = [
-                    "id": "2f6a1f0e-0000-4000-8000-000000000001", "email": signIn.email, "preferredLocale": NSNull()
-                ]
-                send(connection, status: 200, json: account)
-            } else {
-                send(connection, status: 401, json: ["code": "unauthorized"])
-            }
+            let works = authorization == "Bearer \(signIn.token)"
+            send(connection, status: works ? 200 : 401, json: works ? account : Self.unauthorized)
         default:
             send(connection, status: 404, json: nil)
         }
+    }
+
+    private static var unauthorized: [String: Any] { ["code": "unauthorized"] }
+
+    /// `GET /api/v1/me`'s answer for the one account.
+    private var account: [String: Any] {
+        ["id": "2f6a1f0e-0000-4000-8000-000000000001", "email": signIn.email, "preferredLocale": NSNull()]
     }
 
     private func respond(_ connection: NWConnection, locale: String?, with answer: StubServer.Answer) {

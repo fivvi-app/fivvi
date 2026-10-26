@@ -5,26 +5,7 @@ import XCTest
 
 /// TM-01's states against a stub of the generated client's `APIProtocol`. The test plan runs every test in nl and en.
 @MainActor
-final class SignInViewModelTests: XCTestCase {
-    /// The app's interface language in this test-plan configuration.
-    private let language = InterfaceLanguage.resolve(.system())
-    private lazy var catalog = Catalog(locale: language)
-
-    private final class SignedIn: @unchecked Sendable {
-        private(set) var count = 0
-        func bump() { count += 1 }
-    }
-
-    private func model(
-        _ api: StubAPI, store: InMemorySessionStore = InMemorySessionStore(), signedIn: SignedIn = SignedIn(),
-        afterRejection: Bool = false
-    ) -> SignInViewModel {
-        SignInViewModel(
-            api: api, store: store, catalog: catalog, showsSignedOutNotice: afterRejection,
-            onSignedIn: { signedIn.bump() }
-        )
-    }
-
+final class SignInViewModelTests: SignInModelTestCase {
     func test_F001N_AC1_requestSendsAppLanguage() async {
         XCTAssertEqual(language, TestCatalog.configuredLocale, "the test plan's language reaches the app")
         let api = StubAPI()
@@ -104,6 +85,9 @@ final class SignInViewModelTests: XCTestCase {
 
         model.enterCode("١٢٣٤٥٦")
         XCTAssertEqual(model.code, "", "only the digits 0 to 9, which the API accepts")
+
+        model.enterCode("123 456")
+        XCTAssertEqual(model.code, "123456", "a code pasted with a space or a dash keeps its digits")
     }
 
     func test_F001N_AC3_incompleteCodeIsNotSent() async {
