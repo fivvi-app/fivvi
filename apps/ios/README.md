@@ -34,6 +34,7 @@ scripts/ios-device.sh nl        # the Debug app on your iPhone, in Dutch (A real
 - A view model (`@Observable`, `@MainActor`) with a few states (`loading`, `loaded(greeting:)`, `failed`). It depends on the generated client's `APIProtocol`, which is the test seam: tests pass a stub, the app passes `Client` with `URLSessionTransport`. No hand-written wrapper.
 - The view switches on the state and reads every text from `Catalog`, by `StringKey` or by a key the API sent. A key that isn't in the catalog is a failure, never a raw key on screen.
 - Text uses Dynamic Type styles and wraps (`fixedSize(horizontal: false, vertical: true)` inside a `ScrollView`); buttons keep a 44 pt touch target; the screen's title has the header trait.
+- A screen is one scroll: nothing is pinned outside it, so at the largest text size on a short screen (landscape) one block can't squeeze another. The signed-in home puts the hello block and the account block in one `ScrollView` with spacers (`HomeSmallScreenUITests`).
 - Colours, text styles and spacing come from the design tokens ([Theme](#theme)).
 - Accessibility identifiers name the elements for tests, with the same values as the Android test tags so one Maestro flow drives both apps: `hello.greeting`, `hello.loading`, `hello.error`, `hello.retry`.
 

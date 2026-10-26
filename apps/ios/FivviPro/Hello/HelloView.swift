@@ -1,23 +1,19 @@
 import SwiftUI
 import FivviDesignTokens
 
-/// The hello screen: a spinner while loading, the greeting as the heading, or an error with "Try again".
+/// The hello block: a spinner while loading, the greeting as the heading, or an error with "Try again". It scrolls
+/// with the screen that shows it (`HomeView`), so what sits next to it can't squeeze it at the largest text size.
 /// Colours and text styles come from the design tokens: adaptive colours for light and dark mode, Dynamic Type styles.
 struct HelloView: View {
     let model: HelloViewModel
 
     var body: some View {
-        GeometryReader { proxy in
-            ScrollView {
-                content
-                    .padding(Tokens.Spacing.gutter)
-                    .frame(maxWidth: .infinity, minHeight: proxy.size.height)
-            }
-        }
-        .foregroundStyle(Tokens.Colors.textPrimary)
-        .background(Tokens.Colors.bgCanvas)
-        .environment(\.locale, model.catalog.formattingLocale)
-        .task { await model.load() }
+        content
+            .padding(Tokens.Spacing.gutter)
+            .frame(maxWidth: .infinity)
+            .foregroundStyle(Tokens.Colors.textPrimary)
+            .environment(\.locale, model.catalog.formattingLocale)
+            .task { await model.load() }
     }
 
     @ViewBuilder private var content: some View {

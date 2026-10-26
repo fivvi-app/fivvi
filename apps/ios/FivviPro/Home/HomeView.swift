@@ -19,10 +19,23 @@ struct HomeView: View {
         self.catalog = catalog
     }
 
+    /// One scroll for the whole screen, so the account block can't squeeze the hello block at the largest text size
+    /// (#233). The spacers share what is left when both fit (the hello block centred above the account block) and give
+    /// way when not.
     var body: some View {
-        HelloView(model: hello)
-            .safeAreaInset(edge: .bottom, spacing: 0) { accountLine }
-            .task { await account.load() }
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    HelloView(model: hello)
+                    Spacer(minLength: 0)
+                    accountLine
+                }
+                .frame(minHeight: proxy.size.height)
+            }
+        }
+        .background(Tokens.Colors.bgCanvas)
+        .task { await account.load() }
     }
 
     private var accountLine: some View {
@@ -32,7 +45,6 @@ struct HomeView: View {
         }
         .padding(Tokens.Spacing.gutter)
         .frame(maxWidth: .infinity)
-        .background(Tokens.Colors.bgCanvas)
     }
 
     @ViewBuilder private var signOut: some View {
