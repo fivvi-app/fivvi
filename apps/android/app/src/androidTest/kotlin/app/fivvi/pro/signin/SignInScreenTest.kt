@@ -57,10 +57,14 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
         assertEquals(0, hello.requestedLocales.size)
     }
 
-    // The email step through to the code step.
+    // The email step through to the code step. Sending the address finishes off the main thread (the request goes
+    // through the fake network on a background thread), so the code step can appear later: wait for it first.
     private fun requestTheCode() {
         compose.onNodeWithTag(SignInTags.EMAIL).performTextInput(ADDRESS)
         compose.onNodeWithTag(SignInTags.SEND).performClick()
+        compose.waitUntil(TIMEOUT_MILLIS) {
+            compose.onAllNodes(hasTestTag(SignInTags.CODE)).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithTag(SignInTags.CODE).assertIsDisplayed()
     }
 
@@ -142,6 +146,10 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
 
         compose.onNodeWithTag(SignInTags.CODE).performTextInput("123456")
 
+        // The refused code is answered off the main thread, so the message can appear later: wait for it first.
+        compose.waitUntil(TIMEOUT_MILLIS) {
+            compose.onAllNodes(hasTestTag(SignInTags.ERROR)).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithTag(SignInTags.ERROR)
             .assertTextEquals(app.string(language, R.string.sign_in_errors_invalid_or_expired_code))
         compose.onNodeWithTag(SignInTags.CODE).assertIsDisplayed()
