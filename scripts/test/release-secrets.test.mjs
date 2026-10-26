@@ -1,7 +1,7 @@
 // E017 AC7: the owner's secret-setup script (scripts/release-secrets.sh), run against a fake gh and synthetic files. Every
 // value is a made-up sentinel the tests can look for anywhere it must not appear: low-entropy and self-describing, as
-// docs/engineering/TESTING.md asks. The ones shaped like what scripts/secrets.sh finds (a PEM header, a Sentry token) are
-// built from parts, so this file does not trip that check, and none is random-looking (scripts/secrets-in-tests.mjs).
+// docs/engineering/TESTING.md asks, none random-looking (scripts/secrets-in-tests.mjs). Only the prefixes scripts/secrets.sh
+// matches (a PEM header, a Sentry token) are split, so this file does not trip that check; the rest is plain.
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
@@ -25,7 +25,7 @@ const SCRIPT = join(ROOT, 'scripts/release-secrets.sh');
 
 const SENTINEL = {
   certificate: 'synthetic-certificate-bytes\u0001\u0002binary',
-  certificateAnswer: ['cert', 'answer', 'sentinel', '91c4'].join('-'),
+  certificateAnswer: 'cert-answer-sentinel-91c4',
   profile: 'PROFILE-BYTES-sentinel-2b8d',
   apiKey: [
     '-----BEGIN ',
@@ -34,14 +34,14 @@ const SENTINEL = {
   keyId: 'KEYID-sentinel-X1',
   issuerId: 'ISSUER-sentinel-00aa-bb',
   keystore: 'KEYSTORE-BYTES-sentinel-c0de',
-  keystoreAnswer: ['store', 'answer', 'sentinel', '4d2e'].join('-'),
+  keystoreAnswer: 'store-answer-sentinel-4d2e',
   alias: 'alias-sentinel-upload',
-  keyAnswer: ['key', 'answer', 'sentinel', '8a8a'].join('-'),
+  keyAnswer: 'key-answer-sentinel-8a8a',
   serviceAccount: JSON.stringify({
     type: 'service_account',
     private_key: 'PLAY-KEY-sentinel-6b6b',
   }),
-  sentryValue: `sntry${'s'}_${['value', 'sentinel', '3c3c', 'f00d'].join('-')}`,
+  sentryValue: `sntry${'s'}_value-sentinel-3c3c-f00d`,
 };
 const b64 = (text) => Buffer.from(text, 'utf8').toString('base64');
 

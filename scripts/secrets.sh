@@ -4,12 +4,13 @@
 #   secrets.sh files     no file named *.p12, *.pfx, *.p8, *.jks, *.keystore or *.mobileprovision, and no private-key
 #                        block (PEM), AWS access key ID, GitHub, Slack or Sentry token inside a file
 #
+# Its sibling, scripts/secrets-in-tests.mjs, keeps realistic-looking fixtures out of test files.
 # Findings name the file and line, never the value. A file that has to stay is listed with a reason in
-# scripts/secret-allowlist.txt (it lifts both checks for that path).
+# scripts/secret-files-allowlist.txt (it lifts both checks for that path).
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
-ALLOWLIST="$ROOT/scripts/secret-allowlist.txt"
+ALLOWLIST="$ROOT/scripts/secret-files-allowlist.txt"
 KEY_FILE_NAME_RE='\.(p12|pfx|p8|jks|keystore|mobileprovision)$'
 # One pattern per kind of key material; each is written so that it does not match its own source text.
 KINDS=("PEM private key" "AWS access key ID" "GitHub token" "Slack token" "Sentry auth token")
@@ -35,7 +36,7 @@ load_allowlist() {
     [ "$reason" != "$line" ] || reason=""
     glob="$(echo "$glob" | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')"
     if [ -z "$(echo "$reason" | tr -d '[:space:]')" ]; then
-      echo "scripts/secret-allowlist.txt:$n: entry without a reason (glob | why it is not a secret)" >&2
+      echo "scripts/secret-files-allowlist.txt:$n: entry without a reason (glob | why it is not a secret)" >&2
       allowlist_problems=1
     else
       ALLOWED+=("$glob")
@@ -94,7 +95,7 @@ files() {
       rc=1
     done <"$HITS"
   done
-  [ "$rc" = 0 ] || echo "  fix: keep keys, certificates and tokens out of the repo (docs/engineering/RELEASE.md); scripts/secret-allowlist.txt lists the files that are fine, each with a reason" >&2
+  [ "$rc" = 0 ] || echo "  fix: keep keys, certificates and tokens out of the repo (docs/engineering/RELEASE.md); scripts/secret-files-allowlist.txt lists the files that are fine, each with a reason" >&2
   return "$rc"
 }
 

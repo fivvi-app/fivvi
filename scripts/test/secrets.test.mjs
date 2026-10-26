@@ -1,5 +1,6 @@
 // E017 AC7: no key material in the repo. scripts/secrets.sh files refuses key files by name and private keys and
-// well-known tokens by content, in tracked and new files. Every fixture is built from parts, so this file passes the check.
+// well-known tokens by content, in tracked and new files. Every fixture body is obviously fake (TESTING.md §5.2); only
+// the prefix a detector matches is split, so this file passes the check.
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
@@ -21,12 +22,12 @@ const ROOT = join(SCRIPTS, '..');
 
 const dashes = '-----';
 const pem = (kind = '') =>
-  `${dashes}BEGIN ${kind}PRIVATE KEY${dashes}\nMIGTAgEAsentinel\n${dashes}END ${kind}PRIVATE KEY${dashes}\n`;
-const awsKey = `AK${'IA'}${'0123456789ABCDEF'}`;
-const githubToken = `gh${'p'}_${'a1B2c3D4e5F6'.repeat(3)}`;
+  `${dashes}BEGIN ${kind}PRIVATE KEY${dashes}\nfake-key-body-for-tests\n${dashes}END ${kind}PRIVATE KEY${dashes}\n`;
+const awsKey = `AK${'IA'}FAKEKEYFORTESTS0`;
+const githubToken = `gh${'p'}_FakeGithubTokenForTestsOnly000000000`;
 const slackToken = `xo${'xb'}-fake-slack-token-for-tests`;
-const sentryOrgToken = `sntry${'s'}_${'a1b2c3d4'.repeat(5)}`;
-const sentryUserToken = `sntry${'u'}_${'0123456789abcdef'.repeat(4)}`;
+const sentryOrgToken = `sntry${'s'}_fake-sentry-org-token-for-tests`;
+const sentryUserToken = `sntry${'u'}_fake-sentry-user-token-for-tests`;
 
 const makeRepo = () => {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), 'secrets-')));
@@ -80,7 +81,7 @@ describe('E017 AC7 secrets.sh files', () => {
       const result = repo.run();
       assert.equal(result.status, 1, output(result));
       assert.match(output(result), /config\/notes\.txt:2.*private key/i);
-      assert.ok(!output(result).includes('MIGTAgEAsentinel'));
+      assert.ok(!output(result).includes('fake-key-body-for-tests'));
     });
   }
 
@@ -174,7 +175,7 @@ describe('E017 AC7 secrets.sh files', () => {
     repo.write('fixtures/key.txt', pem());
     assert.equal(repo.run().status, 1);
     writeFileSync(
-      join(repo.dir, 'scripts/secret-allowlist.txt'),
+      join(repo.dir, 'scripts/secret-files-allowlist.txt'),
       'fixtures/*.p12 | synthetic empty file for a parser test\n',
       { flag: 'a' },
     );
@@ -183,7 +184,7 @@ describe('E017 AC7 secrets.sh files', () => {
     assert.match(output(partial), /fixtures\/key\.txt:1/);
     assert.doesNotMatch(output(partial), /dummy\.p12/);
     writeFileSync(
-      join(repo.dir, 'scripts/secret-allowlist.txt'),
+      join(repo.dir, 'scripts/secret-files-allowlist.txt'),
       'fixtures/key.txt | a made-up key for the parser test\n',
       { flag: 'a' },
     );
@@ -199,7 +200,7 @@ describe('E017 AC7 secrets.sh files', () => {
     assert.match(output(result), /^docs\/we:ird\.txt:2: .*private key/im);
     assert.match(output(result), /^docs\/ok:name\.p12: key or certificate file/m);
     writeFileSync(
-      join(repo.dir, 'scripts/secret-allowlist.txt'),
+      join(repo.dir, 'scripts/secret-files-allowlist.txt'),
       'docs/we:ird.txt | a made-up key for the parser test\ndocs/ok:name.p12 | empty file for a parser test\n',
       { flag: 'a' },
     );
@@ -217,12 +218,12 @@ describe('E017 AC7 secrets.sh files', () => {
 
   it('fails on an allowlist entry without a reason', () => {
     repo.write('fixtures/dummy.p12', 'x');
-    writeFileSync(join(repo.dir, 'scripts/secret-allowlist.txt'), 'fixtures/*.p12\n', {
+    writeFileSync(join(repo.dir, 'scripts/secret-files-allowlist.txt'), 'fixtures/*.p12\n', {
       flag: 'a',
     });
     const result = repo.run();
     assert.equal(result.status, 1);
-    assert.match(output(result), /secret-allowlist\.txt.*reason/);
+    assert.match(output(result), /secret-files-allowlist\.txt.*reason/);
   });
 
   it('prints its usage and fails for an unknown command', () => {
