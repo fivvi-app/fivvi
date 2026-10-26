@@ -1313,6 +1313,8 @@ esac`,
         .filter((line) => line.startsWith('build-for-testing '));
       assert.match(build, /-showBuildTimingSummary/);
       assert.match(build, /-derivedDataPath \.build\/DerivedData/);
+      // #224: the simulator build is signed ad hoc by the xcconfigs, which a command-line CODE_SIGNING_ALLOWED=NO overrides.
+      assert.doesNotMatch(build, /CODE_SIGN/, 'signing comes from apps/ios/Config');
       assert.equal(fake.simulators().length, 2, 'no second simulator');
       assert.match(run.output, /Build Timing Summary/);
     });

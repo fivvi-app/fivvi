@@ -1,0 +1,7 @@
+// Simulator builds are signed ad hoc, with the app's entitlements. The token store needs Keychain access, and the
+// simulator gives it only to a signed app that has the keychain-access-groups entitlement: an unsigned build answers
+// errSecMissingEntitlement (-34018). Ad hoc needs no account or team, so it works for Xcode, `pnpm test:ios` and CI
+// alike; build commands must not turn signing off (CODE_SIGNING_ALLOWED=NO). Device builds are not touched: they are
+// signed with the team's identity and take their entitlements from its provisioning profile.
+CODE_SIGN_IDENTITY[sdk=iphonesimulator*] = -
+CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*] = Config/Simulator.entitlements

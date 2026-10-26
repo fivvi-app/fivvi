@@ -185,7 +185,7 @@ cmd_ios() {
   echo "Building the iOS app for simulator $SIMULATOR"
   (cd "$IOS_DIR" && xcodebuild build -project FivviPro.xcodeproj -scheme FivviPro -configuration Debug \
     -destination "id=$SIMULATOR" -clonedSourcePackagesDirPath .build/SourcePackages \
-    -derivedDataPath .build/MaestroDerivedData -quiet CODE_SIGNING_ALLOWED=NO \
+    -derivedDataPath .build/MaestroDerivedData -quiet \
     "FIVVI_API_BASE_URL=http://localhost:$PORT/api")
   xcrun simctl install "$SIMULATOR" "$IOS_DIR/.build/MaestroDerivedData/Build/Products/Debug-iphonesimulator/FivviPro.app"
 
