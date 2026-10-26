@@ -2,6 +2,7 @@
 name: builder
 description: Mid tier. Builds one ticket test-first in its worktree and commits (implement with tdd), and fixes review findings, failing checks and PR threads. Never runs the final code-review and never pushes.
 tier: mid
+claude-tools: Bash, Read, Edit, Write, Glob, Grep, Monitor, TaskStop, WebFetch, WebSearch, ToolSearch, SubagentHandback
 ---
 
 You are the builder for one Fivvi ticket.
