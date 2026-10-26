@@ -50,9 +50,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Also catches URL-encoded addresses (`%40`) in paths.
 const EMAIL = /[^\s@/?#&=:;,<>()"'[\]]+(?:@|%40)[^\s@/?#&=:;,<>()"'[\]]+\.[a-z]{2,}/gi;
 
-/** Replaces every email address in `text`; the rest of the message stays readable. */
-function maskEmails(text: string): string {
-  return text.replace(EMAIL, '[email]');
+// The value of a `token=` or `code=` query parameter: the sign-in link token and code (F001).
+const SECRET_PARAMETER = /([?&;](?:token|code)=)[^\s&#"'<>)]+/gi;
+
+/**
+ * Replaces every email address in `text`, and the value of a `token` or `code` query parameter
+ * (a quoted URL in an error message); the rest of the message stays readable.
+ */
+function maskSecrets(text: string): string {
+  return text.replace(EMAIL, '[email]').replace(SECRET_PARAMETER, '$1[redacted]');
 }
 
 export function scrubEvent<T extends Event>(event: T): T {
@@ -163,11 +169,11 @@ function scrubContexts(contexts: NonNullable<Event['contexts']>): Event['context
 /** Drops the query string and fragment, and masks emails in the path. */
 function scrubUrl(url: string): string {
   const end = url.search(/[?#]/);
-  return maskEmails(end === -1 ? url : url.slice(0, end));
+  return maskSecrets(end === -1 ? url : url.slice(0, end));
 }
 
 function maybeMask(text: string | undefined): string | undefined {
-  return text === undefined ? undefined : maskEmails(text);
+  return text === undefined ? undefined : maskSecrets(text);
 }
 
 function pick<T>(record: Record<string, T>, keys: ReadonlySet<string>): Record<string, T> {

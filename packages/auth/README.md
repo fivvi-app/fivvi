@@ -5,7 +5,7 @@ Sign-in for the web and, later, the native apps (ADR-007, F001): [Better Auth](h
 ```ts
 import { createAuth } from '@fivvi/auth';
 
-const auth = createAuth({ db, secret, baseURL, sendEmail }); // apps/web/server/auth.ts
+const auth = createAuth({ db, secret, baseURL, sendEmail, productEvents }); // apps/web/server/auth.ts
 auth.handler(request); // served under /api/auth/* by apps/web/app/api/auth/[...all]/route.ts
 await auth.findAccount(request.headers); // the signed-in account of the cookie or bearer token, or undefined (GET /api/v1/me)
 await auth.requestSignIn({ email, locale, headers }); // the apps' sign-in request (POST /api/v1/sign-in/request)
@@ -39,6 +39,8 @@ A person signs in with only their email address. One request creates **one verif
 - **Route guard and return path (AC13, `apps/web/proxy.ts`, `server/route-guard.ts`).** Every path needs a valid sign-in session unless it is public: `/` (the hello page), `/login` and below, `/book` and below (the public booking pages), `/api` and below (each API route decides for itself). A new page is therefore guarded until it is listed. An anonymous visitor goes to `/login?returnTo=<path and query>`; after sign-in the page goes to that path. The confirm step (`/login/confirm`) reads `returnTo` the same way, but the email link does not carry it yet (the code-request body of `POST /api/auth/sign-in/code/request` and the link built in `src/sign-in-plugin.ts` would have to carry `returnTo`; whether they should is an open owner question), so a link opened from the email ends at `/home`. Only a path of this site is kept (`lib/return-path.ts`: one leading `/`, no `//`, backslash or control character, still on this site after parsing, not the sign-in page itself); anything else is ignored and sign-in ends at `/home`.
 - No passwords: an address that is neither an account nor allowed is answered like any other.
 
+- **Product events (AC16).** `createAuth({ productEvents })` records `sign_in_requested` (every request that passes the rate limits, for every address alike, with a random ID and no properties) and `signed_in` (the internal user UUID, `method` `code` or `link`, `new_account`), and the handler flushes them before it returns. They carry no email address, code, link token, IP address or user agent: [`OBSERVABILITY.md §4.3`](../../docs/engineering/OBSERVABILITY.md#43-event-catalog). `apps/web/server/product-events.ts` is the one sender shared with the API. The native sign-in routes run the same endpoints through `auth.api`, so they record the same events; the API flushes the shared sender after every request.
+
 ## Native apps: the bearer token (spec #168)
 
 The apps call contract routes in `packages/api` (`/v1/sign-in/request`, `/v1/sign-in/token`, `/v1/sign-out`), which call `requestSignIn`, `exchangeSignInCode` and `signOutBearer` here. They run the endpoints above through `auth.api`, so the verification, EM-08, allowlist, request rate limits (the `X-Real-IP` of the request is passed on, nothing else of it) and background work are the web's. Better Auth's per-IP limiter on `/sign-in/*` runs in its HTTP router only, so `auth.api` skips it: `exchangeSignInCode` has its own per-IP limit (`TOKEN_IP_LIMIT` in `rate-limit.ts`, per `X-Real-IP`, in `auth_rate_limits` like the others, before the code is looked at). Over it, the answer is the same `undefined` (the neutral 401), the verification is left alone and `Sign-in token exchange rate-limited: ip` is logged.
@@ -48,7 +50,7 @@ The apps call contract routes in `packages/api` (`/v1/sign-in/request`, `/v1/sig
 - **A bearer request is judged by its token alone** (`src/bearer.ts`). With an `Authorization` header, `findAccount` and `signOutBearer` ignore the request's cookies, so an invalid token is anonymous, never the cookie next to it. Without one, the cookie works as before. `readSession` (the web's route guard) is the other way round: cookies only, it drops `Authorization`.
 - **Sign out** ends the one session of the token. Other tokens and cookies of the account stay.
 
-Not here yet (spec #128, later tickets): product events. The code step of the sign-in page (`/login`, `apps/web/app/login`) calls the two `code` endpoints above with `fetch`, and the confirm step (`/login/confirm`, `apps/web/app/login/confirm`) the two `link` endpoints; both word a failure from the error code, never from the English message.
+The code step of the sign-in page (`/login`, `apps/web/app/login`) calls the two `code` endpoints above with `fetch`, and the confirm step (`/login/confirm`, `apps/web/app/login/confirm`) the two `link` endpoints; both word a failure from the error code, never from the English message.
 
 ## Tables
 
