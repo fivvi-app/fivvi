@@ -8,7 +8,9 @@ describe('F001 sign-in client of TW-10', () => {
   it('posts the address and the page language to request an email', async () => {
     const fetchFn = reply(200, { status: true });
 
-    expect(await requestCode('owner@example.com', 'nl-NL', fetchFn)).toEqual({ ok: true });
+    expect(await requestCode('owner@example.com', 'nl-NL', { fetchFn })).toEqual({
+      ok: true,
+    });
 
     const [url, init] = fetchFn.mock.calls[0] ?? [];
     expect(url).toBe('/api/auth/sign-in/code/request');
@@ -17,6 +19,31 @@ describe('F001 sign-in client of TW-10', () => {
       email: 'owner@example.com',
       locale: 'nl-NL',
     });
+  });
+
+  it('sends the page asked for before sign-in with the request, for the link in the email (#207)', async () => {
+    const fetchFn = reply(200, { status: true });
+
+    await requestCode('owner@example.com', 'en', {
+      returnTo: '/w/pilot-gym/calendar?view=week',
+      fetchFn,
+    });
+
+    const [, init] = fetchFn.mock.calls[0] ?? [];
+    expect(JSON.parse(String(init?.body))).toEqual({
+      email: 'owner@example.com',
+      locale: 'en',
+      returnTo: '/w/pilot-gym/calendar?view=week',
+    });
+  });
+
+  it('sends no returnTo when no page was asked for', async () => {
+    const fetchFn = reply(200, { status: true });
+
+    await requestCode('owner@example.com', 'en', { fetchFn });
+
+    const [, init] = fetchFn.mock.calls[0] ?? [];
+    expect(JSON.parse(String(init?.body))).toEqual({ email: 'owner@example.com', locale: 'en' });
   });
 
   it('posts the address and the code to sign in', async () => {
@@ -44,7 +71,10 @@ describe('F001 sign-in client of TW-10', () => {
   it('says the address is wrong when the API rejects it as invalid', async () => {
     const fetchFn = reply(400, { code: 'VALIDATION_ERROR', message: 'Invalid email' });
 
-    expect(await requestCode('nope', 'en', fetchFn)).toEqual({ ok: false, error: 'invalidEmail' });
+    expect(await requestCode('nope', 'en', { fetchFn })).toEqual({
+      ok: false,
+      error: 'invalidEmail',
+    });
   });
 
   it('treats a malformed code like a wrong code', async () => {
@@ -57,7 +87,7 @@ describe('F001 sign-in client of TW-10', () => {
   });
 
   it('answers with the generic error for any other failure', async () => {
-    expect(await requestCode('owner@example.com', 'en', reply(500, 'oops'))).toEqual({
+    expect(await requestCode('owner@example.com', 'en', { fetchFn: reply(500, 'oops') })).toEqual({
       ok: false,
       error: 'generic',
     });
@@ -70,7 +100,7 @@ describe('F001 sign-in client of TW-10', () => {
   it('reports no connection when the request cannot reach the server', async () => {
     const fetchFn = vi.fn<typeof fetch>(() => Promise.reject(new TypeError('Failed to fetch')));
 
-    expect(await requestCode('owner@example.com', 'en', fetchFn)).toEqual({
+    expect(await requestCode('owner@example.com', 'en', { fetchFn })).toEqual({
       ok: false,
       error: 'noConnection',
     });

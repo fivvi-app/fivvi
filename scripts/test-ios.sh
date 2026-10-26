@@ -291,7 +291,7 @@ XCTESTRUN=""
 build_for_testing() {
   local log=.build/build-for-testing.log timing found
   rm -f "$PRODUCTS"/*.xctestrun
-  if ! xcodebuild build-for-testing "${BUILD_ARGS[@]}" -destination "id=$1" -showBuildTimingSummary CODE_SIGNING_ALLOWED=NO >"$log" 2>&1; then
+  if ! xcodebuild build-for-testing "${BUILD_ARGS[@]}" -destination "id=$1" -showBuildTimingSummary >"$log" 2>&1; then
     tail -n 300 "$log"
     return 1
   fi

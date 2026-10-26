@@ -11,14 +11,21 @@ const BASE = '/api/auth/sign-in/code';
 /**
  * Asks for the sign-in email (EM-08). The answer is the same for every address, so an `ok` says
  * nothing about whether the address has an account. `locale` is the language of the page the
- * email is written in unless the account stores another one (ADR-019).
+ * email is written in unless the account stores another one (ADR-019). `returnTo` is the page
+ * asked for before sign-in (`safeReturnPath`), which the server puts on the link in the email so
+ * the link ends there too (#207); left out when no page was asked for.
  */
 export function requestCode(
   email: string,
   locale: Locale,
-  fetchFn: typeof fetch = fetch,
+  { returnTo, fetchFn = fetch }: { returnTo?: string; fetchFn?: typeof fetch } = {},
 ): Promise<SignInResult> {
-  return post('/request', { email, locale }, 'invalidEmail', fetchFn);
+  return post(
+    '/request',
+    { email, locale, ...(returnTo ? { returnTo } : {}) },
+    'invalidEmail',
+    fetchFn,
+  );
 }
 
 /** Signs this browser in with the code from the email; the API sets the sign-in session cookie. */

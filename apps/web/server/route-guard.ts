@@ -1,6 +1,6 @@
 import type { SessionRead } from '@fivvi/auth';
+import { loginPath, SIGN_IN_PAGE } from '@fivvi/auth/return-path';
 import { type NextRequest, NextResponse } from 'next/server';
-import { loginPath, SIGN_IN_PAGE } from '../lib/return-path';
 
 /**
  * Pages and routes that need no sign-in (AC13): the sign-in page with its confirm step, the hello

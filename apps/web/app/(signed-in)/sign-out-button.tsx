@@ -1,9 +1,9 @@
 'use client';
 
+import { SIGN_IN_PAGE } from '@fivvi/auth/return-path';
 import { Button } from '@fivvi/ui/components/button';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import { SIGN_IN_PAGE } from '../../lib/return-path';
 import { signOut } from './sign-out-client';
 
 /**

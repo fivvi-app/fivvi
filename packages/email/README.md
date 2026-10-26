@@ -75,6 +75,8 @@ Transports implement `EmailTransport` (`send(email) → { messageId }`, one atte
 
 `createEnvironmentSendEmail()` is the `sendEmail` the server uses (F001): **production** always sends through Brevo and never logs an email; **outside production**, mail to an `@example.com` address is written to the server log instead (the whole text, so the sign-in code and link can be read from it), and all other mail goes through Brevo (`EMAIL_SEND_EXAMPLE_DOMAIN=1` sends `@example.com` mail through Brevo too). "Production" is the Railway environment named `production` (`RAILWAY_ENVIRONMENT_NAME`). Outside production the Brevo variables may be missing while only `@example.com` mail is sent.
 
+The log transport is the one known place where a sign-in link is printed as it is, with the page asked for (`returnTo`, #207) next to the token and code (F001 AC15). That is acceptable because it never runs in production and only for `@example.com` addresses; everywhere else the page asked for is not logged (`packages/auth/README.md`).
+
 - **Local:** put the three variables in `packages/email/.env` (git-ignored; every worktree needs its own). The `send:test` script loads it.
 - **Preview and production:** Railway variables on `web`, declared in `.railway/railway.ts` (`preserve()` for the key and address, so the file holds no value) and listed in [`docs/engineering/ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). The owner sets the values: the real key only in `production`, a separate test key in `development` (every preview copies it). Never commit a key; rotate it in Brevo if it leaks.
 - The sender comes from config, not code, because it changes when the own domain arrives (before M5).
