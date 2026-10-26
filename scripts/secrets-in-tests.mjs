@@ -25,17 +25,30 @@
 //
 // and it is not readable: fewer than READABLE_SHARE (75%) of its characters sit in words of three or more letters (a
 // `camelCase` identifier, a test name, `fake-link-token-for-tests`; parts of up to four characters between `-` and `_`
-// are tags and not counted). Left alone because they are identifiers, not
-// secrets: a slug or constant name of four or more short parts (`NEXT_PUBLIC_POSTHOG_KEY`, `feature-57-hold-a-spot`), a
-// UUID, a token that repeats one short unit (`0123456789abcdef` twice), and a token of digits only. Entropy of a short
-// token is capped by its length (log2 of it), so the threshold sits near the middle of what random 20-character strings
-// score: a 20-23 character random token can slip through, the 32 and 43 character ones of real keys and link tokens
-// cannot (random 32-character base64 scores 4.2 to 4.9, hex 3.3 to 3.9). A second known gap: `/` cuts a token, so a
-// standard-base64 key (`openssl rand -base64 32`, 43 characters) that has a `/` in a bad place falls into pieces under 20
-// characters and slips through (about 3.6% of them); counting `/` as part of a token would flag about 40 paths and URLs
-// of this repository. The base64url alphabet (`-` and `_`, as link tokens use) has no such gap.
+// are tags and not counted). Left alone because they are identifiers, not secrets: a slug or constant name of four or
+// more short parts, each all lowercase or all capitals (`NEXT_PUBLIC_POSTHOG_KEY`, `feature-57-hold-a-spot`), a UUID, a
+// token that repeats one short unit (`0123456789abcdef` twice), and a token of digits only. Entropy of a short token is
+// capped by its length (log2 of it), so the threshold sits near the middle of what random 20-character strings score: a
+// 20-23 character random token can slip through.
 //
-// A known-safe realistic shape that has to stay goes in scripts/secrets-allowlist.txt with a reason.
+// What slips through, measured on 200,000 seeded random strings each (a guard is a net, not a proof):
+//   base64url (`-` and `_`, as link tokens use)   32 characters 0.8%, 43 characters 0.2%: by chance the token reads as
+//                                                 words (runs of three letters of one case)
+//   hex                                           32 characters 0.01%, 64 characters 0%
+//   standard base64 (`+` and `/`)                 32 characters 14%, 43 characters 3.8% (`openssl rand -base64 32`):
+//                                                 `/` cuts a token, so one with a `/` in a bad place falls into pieces
+//                                                 under 20 characters; counting `/` as part of a token would flag about
+//                                                 40 paths and URLs of this repository
+//
+// Known gaps of the lexer, taken on purpose to keep it small:
+//   - a quote that never closes on its line (in a regex such as /["']/) opens no literal: the scan resumes just after
+//     it, so the rest of the line is read again and a later quote of the same line may pair up (`/"/; k = '<token>'`
+//     is found); the price is that a backtick in such a regex can pair with the next line's template and hide it
+//   - a lone backtick in a regex pairs with the next template literal and hides what is in it
+//   - a literal inside `${...}` or `\(...)` of another literal is skipped (8 literals in this repository)
+//
+// A known-safe realistic shape that has to stay goes in scripts/secrets-allowlist.txt with a reason; its header says
+// how.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -59,7 +72,7 @@ const TEST_PATH = [
   /^apps\/ios\/[^/]*Tests[^/]*\//,
   /^apps\/android\/app\/src\/(test|androidTest|testShared)\//,
 ];
-const CODE_EXTENSION = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|swift|kt|kts|java|json|ya?ml)$/;
+const CODE_EXTENSION = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|swift|kt|kts|json|ya?ml)$/;
 const LOCKFILE =
   /(^|\/)(pnpm-lock\.yaml|package-lock\.json|yarn\.lock|Package\.resolved|gradle\.lockfile)$/;
 
@@ -98,12 +111,16 @@ const readableShare = (token) => {
   return length === 0 ? 0 : letters / length;
 };
 
-/** True when a token is a slug or a constant name: four or more parts, each short (`NEXT_PUBLIC_POSTHOG_KEY`, `feature-57-hold-a-spot`). */
+/**
+ * True when a token is a slug or a constant name: four or more short parts, each all lowercase or all capitals (digits
+ * go with either): `NEXT_PUBLIC_POSTHOG_KEY`, `feature-57-hold-a-spot`. A random token cut by `-` and `_` has mixed-case
+ * parts and is no slug.
+ */
 const isSlug = (token) => {
   const parts = token.split(/[-_]/);
   return (
     parts.length >= 4 &&
-    parts.every((part) => part.length <= SLUG_PART) &&
+    parts.every((part) => part.length <= SLUG_PART && /^(?:[a-z0-9]+|[A-Z0-9]+)$/.test(part)) &&
     token.length / parts.length <= SLUG_MEAN
   );
 };
@@ -190,7 +207,7 @@ const LANGUAGES = {
 };
 const languageOf = (path) => {
   if (/\.swift$/.test(path)) return LANGUAGES.swift;
-  if (/\.(kt|kts|java)$/.test(path)) return LANGUAGES.kotlin;
+  if (/\.kts?$/.test(path)) return LANGUAGES.kotlin;
   if (/\.ya?ml$/.test(path)) return LANGUAGES.data;
   return LANGUAGES.js;
 };
@@ -213,7 +230,11 @@ const startsLineComment = (language, text, index) =>
     ? text[index] === '#' && (index === 0 || /\s/.test(text[index - 1]))
     : text.startsWith(language.lineComment, index);
 
-/** How a literal opens at `index`: `{ delimiter, opening, multiline, raw }`, or undefined when none does. */
+/**
+ * How a literal opens at `index`: `{ delimiter, opening, multiline, raw, dollar }`, or undefined when none does.
+ * `delimiter` closes it, `opening` is the length of what opens it, `multiline` whether it may span lines, `raw` whether
+ * it takes no escapes and `dollar` whether it takes `${...}`.
+ */
 const opening = (language, text, index) => {
   const char = text[index];
   if (language.hashRaw && char === '#') {

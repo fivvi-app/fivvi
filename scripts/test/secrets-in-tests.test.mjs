@@ -134,9 +134,22 @@ describe('E002 #228 secrets-in-tests.mjs: the token test', () => {
       'UICTContentSizeCategoryAccessibilityXXXL',
       '3f2e1d0c-9b8a-4765-8432-10fedcba9876',
       '20261026123456789012',
+      'SIGN_IN_SEND_CODE_PENDING_STATE',
+      'sign-in-send-code-pending-state',
+      'feature-57-hold-a-spot-for-me',
     ]) {
       assert.ok(!looksRandom(name), name);
     }
+  });
+
+  it('AC1: flags a random token cut into short parts by `-` or `_`, which is no slug', () => {
+    const part = (seed) => random(6, BASE64URL.replace(/[-_]/g, ''), seed);
+    const parts = [30, 31, 32, 33, 34, 35].map(part);
+    assert.ok(looksRandom(parts.join('-')));
+    assert.ok(looksRandom(parts.join('_')));
+    assert.ok(
+      looksRandom(`${parts[0]}-${parts[1]}_${parts[2]}-${parts[3]}_${parts[4]}-${parts[5]}`),
+    );
   });
 
   it('AC1: knows its gap: a standard base64 key cut by `/` into pieces under 20 characters slips through', () => {
@@ -169,6 +182,7 @@ describe('E002 #228 secrets-in-tests.mjs: what a literal may hold', () => {
       "const sentence = 'The trainer opens the schedule and sees every class of the coming week, sorted by time.';",
     );
     clean(
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: fixture source text
       'const sentence = `Could not invite ${EMAIL} to the workspace because the address was refused by the server`;',
     );
     clean("const token = 'fake-link-token-for-tests';");
@@ -203,6 +217,7 @@ describe('E002 #228 secrets-in-tests.mjs: what a literal may hold', () => {
   });
 
   it('AC1: reads a token behind an interpolation as text around it', () => {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: fixture source text
     clean('const text = `${prefix}-fake-link-token-for-tests-${suffix}`;');
     assert.deepEqual(lines('a.test.ts', `const text = \`\${prefix}${linkToken}\`;`), [1]);
   });
@@ -219,6 +234,7 @@ describe('E002 #228 secrets-in-tests.mjs: what a literal may hold', () => {
       [],
     );
     assert.deepEqual(
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: fixture source text
       scan('Test.kt', 'val text = "Sign-in failed for ${address} and $other for good"'),
       [],
     );
@@ -426,9 +442,9 @@ describe('E002 #228 secrets-in-tests.mjs on a checkout', () => {
   });
 
   it('AC2: fails on an allowlist entry without a reason', () => {
-    const dir = makeRepo({ 'scripts/secrets-allowlist.txt': 'a.test.ts: some-value\n' });
-    const lines = run(dir, 'a.test.ts: some-value\n');
-    assert.match(lines[0], /reason/);
+    const dir = makeRepo({ 'a.test.ts': "const token = 'fake-link-token-for-tests';\n" });
+    const output = run(dir, 'a.test.ts: some-value\n');
+    assert.match(output[0], /reason/);
   });
 
   it('AC3, AC5: is clean on this repository, and scripts/check.sh runs it', () => {
