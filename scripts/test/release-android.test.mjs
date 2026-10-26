@@ -240,7 +240,8 @@ describe('E017 AC2: the upload key and the release App Bundle', () => {
     assert.deepEqual(statuses(results), [0, 0], output(results));
     const build = calls().find((c) => c.startsWith('gradlew '));
     assert.ok(build, 'gradlew ran');
-    for (const part of [':app:bundleRelease', '-Pfivvi.buildNumber=107']) {
+    // No daemon stays behind with the passwords in its environment.
+    for (const part of ['--no-daemon', ':app:bundleRelease', '-Pfivvi.buildNumber=107']) {
       assert.ok(build.includes(part), `missing: ${part}\n${build}`);
     }
     assert.ok(
@@ -617,6 +618,38 @@ describe('E017 AC2: publishes the bundle to the Play internal testing track', ()
     }
   });
 
+  it('E017 AC2: a 403 on the upload points at missing rights or an unfinished app setup, not at the first release', async () => {
+    const play = await fakePlay({
+      upload: () => ({
+        status: 403,
+        body: { error: { message: 'The caller does not have permission' } },
+      }),
+    });
+    try {
+      const result = await publish(play);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /403/);
+      assert.match(result.stderr, /rights/i);
+      assert.doesNotMatch(result.stderr, /by hand|first release/i);
+      assert.deepEqual(play.steps(), ['token', 'insert', 'upload', 'delete']);
+    } finally {
+      await play.close();
+    }
+  });
+
+  it('E017 AC2: stops when Play opens no edit, and calls nothing on an edit that does not exist', async () => {
+    const play = await fakePlay({ insert: () => ({ status: 200, body: {} }) });
+    try {
+      const result = await publish(play);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /no edit/i);
+      assert.deepEqual(play.steps(), ['token', 'insert']);
+      assert.ok(!play.requests.some((r) => r.path.includes('undefined')));
+    } finally {
+      await play.close();
+    }
+  });
+
   it('E017 AC2: does not release a bundle whose version code is not the build number of the run; the edit is discarded', async () => {
     const play = await fakePlay({ upload: () => ({ status: 200, body: { versionCode: 106 } }) });
     try {
@@ -797,13 +830,13 @@ describe('E017 AC2: the Android job of the release workflow', () => {
     assert.match(publish.text, /run: scripts\/release-android\.sh publish/);
   });
 
-  it('E017 AC2: runs the steps in order: signing, bundle, artifact, mapping, publish; the keystore is removed whatever failed', () => {
+  it('E017 AC2: runs the steps in order: sdk, signing, bundle, artifact, mapping, publish; the keystore is removed whatever failed', () => {
     const all = steps(jobs().android);
     const names = all.map((step) => step.name);
     const order = [
       'Refuse a run outside main',
-      'Install the upload keystore',
       'Install the Android SDK packages',
+      'Install the upload keystore',
       'Build the signed App Bundle',
       'Upload the App Bundle',
       'Upload the R8 mapping to Sentry',

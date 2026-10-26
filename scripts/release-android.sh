@@ -18,8 +18,7 @@
 #                                auth token (it carries the organisation and the region; the commands pass no --org or --url)
 #   release-android.sh publish   publishes the bundle of this run to the Play internal testing track
 #                                (scripts/play-publish.mjs)
-#   release-android.sh cleanup   deletes the keystore and the state. Run it with `if: always()`, so they are gone whatever
-#                                failed
+#   release-android.sh cleanup   deletes the upload keystore. Run it with `if: always()`, so it is gone whatever failed
 #
 # A secret comes in through the environment of the step that needs it (ANDROID_UPLOAD_KEYSTORE,
 # ANDROID_UPLOAD_KEYSTORE_PASSWORD, ANDROID_UPLOAD_KEY_ALIAS, ANDROID_UPLOAD_KEY_PASSWORD, PLAY_SERVICE_ACCOUNT_JSON,
@@ -124,7 +123,7 @@ bundle() {
   # Nothing of an earlier build may pass for this one: not its bundle, not its mapping.
   rm -rf "$BUNDLE_DIR" "$BUILT_BUNDLE" "$MAPPING_DIR"
   # The release signing configuration (app/build.gradle.kts) reads the keystore path and the passwords from these.
-  (cd "$ANDROID_DIR" && ANDROID_UPLOAD_KEYSTORE_FILE="$KEYSTORE" ./gradlew --console=plain :app:bundleRelease \
+  (cd "$ANDROID_DIR" && ANDROID_UPLOAD_KEYSTORE_FILE="$KEYSTORE" ./gradlew --no-daemon --console=plain :app:bundleRelease \
     "-Pfivvi.buildNumber=$number") || die "the Gradle release build failed"
   [ -f "$BUILT_BUNDLE" ] || die "the build made no App Bundle: $BUILT_BUNDLE"
   file="$(bundle_file)"

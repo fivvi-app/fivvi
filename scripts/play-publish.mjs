@@ -127,6 +127,7 @@ const publish = async () => {
 
   const app = `${API_BASE}/androidpublisher/v3/applications/${applicationId}`;
   const { id: edit } = await call('open an edit', 'POST', `${app}/edits`, { token });
+  if (!edit) throw new Error('open an edit: Google sent no edit ID');
   try {
     const uploaded = await call(
       'upload the bundle',
@@ -139,9 +140,12 @@ const publish = async () => {
         timeout: 600_000,
       },
     ).catch((error) => {
-      if (/HTTP (404|403)/.test(error.message)) {
+      if (/HTTP 404/.test(error.message)) {
         error.message +=
           " (Google's API can't create the first release of an app: upload the first App Bundle by hand in Play Console, RELEASE.md §8)";
+      } else if (/HTTP 403/.test(error.message)) {
+        error.message +=
+          ' (the service account probably lacks release rights for this app, or the app setup in Play Console is not complete: RELEASE.md §6)';
       }
       throw error;
     });

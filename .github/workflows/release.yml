@@ -322,6 +322,9 @@ jobs:
           pnpm install --frozen-lockfile --filter @fivvi/observability...
           "$SENTRY_CLI" --version
 
+      - name: Install the Android SDK packages
+        run: scripts/release-android.sh sdk
+
       # The keystore goes to a private file outside the repo; the last step of the job deletes it.
       - name: Install the upload keystore
         env:
@@ -330,9 +333,6 @@ jobs:
           ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
           ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
         run: scripts/release-android.sh signing
-
-      - name: Install the Android SDK packages
-        run: scripts/release-android.sh sdk
 
       - name: Build the signed App Bundle
         env:
