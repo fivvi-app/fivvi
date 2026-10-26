@@ -2,9 +2,9 @@
 // Keep realistic secrets out of tests (E002 #228). A token or key in a test file is a secret scanner's false positive at
 // best (GitGuardian's Generic High Entropy Secret, #187, #194, #208, where only the owner can clear the incident) and a
 // real credential at worst. A fixture is obviously fake instead: low-entropy and self-describing, such as
-// `fake-link-token-for-tests`, never random-looking and never assembled from parts (a secret scanner's own tests may split
-// the prefix it matches, e.g. `gh${'p'}_`; the rest of the value stays obviously fake). Its sibling, scripts/secrets.sh
-// files, refuses real key material in any file.
+// `fake-link-token-for-tests`, never random-looking and never assembled from parts (a test whose fixture has to match a
+// scanner's pattern (a scanner's own tests, or a key header the script under test checks) may split the prefix it matches;
+// the rest stays obviously fake). Its sibling, scripts/secrets.sh files, refuses real key material in any file.
 //
 //   node scripts/secrets-in-tests.mjs [dir]   scan the test files git knows of, new ones too, in dir (default: this
 //                                             checkout); scripts/check.sh runs it

@@ -1,7 +1,8 @@
 // E017 AC7: the owner's secret-setup script (scripts/release-secrets.sh), run against a fake gh and synthetic files. Every
 // value is a made-up sentinel the tests can look for anywhere it must not appear: low-entropy and self-describing, as
-// docs/engineering/TESTING.md asks, none random-looking (scripts/secrets-in-tests.mjs). Only the prefixes scripts/secrets.sh
-// matches (a PEM header, a Sentry token) are split, so this file does not trip that check; the rest is plain.
+// docs/engineering/TESTING.md asks, none random-looking (scripts/secrets-in-tests.mjs). Only the PEM header is split, because
+// scripts/release-secrets.sh greps for `BEGIN PRIVATE KEY` and scripts/secrets.sh matches it, so this file does not trip
+// that check; the rest is plain.
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
@@ -41,7 +42,7 @@ const SENTINEL = {
     type: 'service_account',
     private_key: 'PLAY-KEY-sentinel-6b6b',
   }),
-  sentryValue: `sntry${'s'}_value-sentinel-3c3c-f00d`,
+  sentryValue: 'sentry-value-sentinel-3c3c-f00d',
 };
 const b64 = (text) => Buffer.from(text, 'utf8').toString('base64');
 

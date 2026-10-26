@@ -1,6 +1,6 @@
 // E017 AC7: no key material in the repo. scripts/secrets.sh files refuses key files by name and private keys and
 // well-known tokens by content, in tracked and new files. Every fixture body is obviously fake (TESTING.md §5.2); only
-// the prefix a detector matches is split, so this file passes the check.
+// the PEM markers (BEGIN and END) and the token prefixes a detector matches are split, so this file passes the check.
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {

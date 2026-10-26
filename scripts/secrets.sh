@@ -6,7 +6,7 @@
 #
 # Its sibling, scripts/secrets-in-tests.mjs, keeps realistic-looking fixtures out of test files.
 # Findings name the file and line, never the value. A file that has to stay is listed with a reason in
-# scripts/secret-files-allowlist.txt (it lifts both checks for that path).
+# scripts/secret-files-allowlist.txt (it lifts the name and content checks for that path).
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
