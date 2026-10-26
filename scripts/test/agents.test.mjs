@@ -40,9 +40,9 @@ const EXPECTED = {
 
 // The tools each agent may use in Claude Code (`claude-tools` in its source, `tools:` in the generated definition).
 const CLAUDE_TOOLS = {
-  builder: 'Bash, Read, Edit, Write, Glob, Grep, Monitor, TaskStop, WebFetch, WebSearch',
-  reviewer: 'Bash, Read, Glob, Grep, WebFetch',
-  mechanic: 'Bash, Read, Edit, Write, Glob, Grep, Monitor',
+  builder: 'Bash, Read, Edit, Write, Glob, Grep, Monitor, TaskStop, WebFetch, WebSearch, ToolSearch, SubagentHandback',
+  reviewer: 'Bash, Read, Glob, Grep, WebFetch, ToolSearch, SubagentHandback',
+  mechanic: 'Bash, Read, Edit, Write, Glob, Grep, Monitor, ToolSearch, SubagentHandback',
 };
 
 const read = (root, path) => readFileSync(join(root, path), 'utf8');
@@ -207,7 +207,7 @@ describe('agents.sh', () => {
     replaceIn(
       repo,
       '.agents/agents/reviewer.md',
-      'claude-tools: Bash, Read, Glob, Grep, WebFetch',
+      `claude-tools: ${CLAUDE_TOOLS.reviewer}`,
       'claude-tools: Read, Grep',
     );
     sync();
