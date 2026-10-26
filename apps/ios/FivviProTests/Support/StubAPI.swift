@@ -35,7 +35,18 @@ actor StubAPI: APIProtocol {
         case offline
     }
 
+    /// What `signOut` answers.
+    enum SignOutAnswer: Sendable {
+        case noContent
+        case unauthorized
+        case status(Int)
+        case offline
+        /// No answer for two seconds, as a connection that hangs.
+        case hang
+    }
+
     private var answer: Answer
+    private var signOutAnswer = SignOutAnswer.noContent
     private var signInAnswer = SignInAnswer.accepted
     private var exchangeAnswer = ExchangeAnswer.unauthorized
     private var meAnswer = MeAnswer.unauthorized
@@ -44,6 +55,7 @@ actor StubAPI: APIProtocol {
     private(set) var signInRequests: [Components.Schemas.SignInRequest] = []
     private(set) var exchanges: [Components.Schemas.SignInTokenRequest] = []
     private(set) var meCalls = 0
+    private(set) var signOutCalls = 0
 
     init(_ answer: Answer = .offline) {
         self.answer = answer
@@ -55,6 +67,10 @@ actor StubAPI: APIProtocol {
 
     func answerExchange(with answer: ExchangeAnswer) {
         exchangeAnswer = answer
+    }
+
+    func answerSignOut(with answer: SignOutAnswer) {
+        signOutAnswer = answer
     }
 
     func answerMe(with answer: MeAnswer) {
@@ -128,6 +144,19 @@ actor StubAPI: APIProtocol {
     }
 
     func signOut(_ input: Operations.SignOut.Input) async throws -> Operations.SignOut.Output {
-        fatalError("The hello screen doesn't call signOut")
+        signOutCalls += 1
+        switch signOutAnswer {
+        case .noContent:
+            return .noContent(.init())
+        case .unauthorized:
+            return .unauthorized(.init(body: .json(.init(code: .unauthorized))))
+        case let .status(code):
+            return .undocumented(statusCode: code, .init())
+        case .offline:
+            throw URLError(.notConnectedToInternet)
+        case .hang:
+            try await Task.sleep(for: .seconds(2))
+            return .noContent(.init())
+        }
     }
 }

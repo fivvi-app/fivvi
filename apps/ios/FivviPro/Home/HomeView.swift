@@ -9,9 +9,10 @@ struct HomeView: View {
     @State private var account: AccountViewModel
     private let catalog: Catalog
 
-    init(api: any APIProtocol, catalog: Catalog) {
+    /// `onSignedOut` runs after the person signed out and the token is gone.
+    init(api: any APIProtocol, store: any SessionStore, catalog: Catalog, onSignedOut: @escaping () -> Void) {
         _hello = State(initialValue: HelloViewModel(api: api, catalog: catalog))
-        _account = State(initialValue: AccountViewModel(api: api))
+        _account = State(initialValue: AccountViewModel(api: api, store: store, onSignedOut: onSignedOut))
         self.catalog = catalog
     }
 
@@ -21,7 +22,36 @@ struct HomeView: View {
             .task { await account.load() }
     }
 
-    @ViewBuilder private var accountLine: some View {
+    private var accountLine: some View {
+        VStack(spacing: Tokens.Spacing.space4) {
+            accountState
+            signOut
+        }
+        .padding(Tokens.Spacing.gutter)
+        .frame(maxWidth: .infinity)
+        .background(Tokens.Colors.bgCanvas)
+    }
+
+    @ViewBuilder private var signOut: some View {
+        if account.isSigningOut {
+            ProgressView()
+                .tint(Tokens.Colors.textSecondary)
+                .accessibilityLabel(catalog[.commonLoading])
+                .accessibilityIdentifier("home.signingOut")
+        } else {
+            Button {
+                Task { await account.signOut() }
+            } label: {
+                Text(catalog[.signOutLabel])
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .buttonStyle(.secondaryAction)
+            .accessibilityIdentifier("home.signOut")
+        }
+    }
+
+    @ViewBuilder private var accountState: some View {
         Group {
             switch account.state {
             case .loading:
@@ -48,8 +78,5 @@ struct HomeView: View {
                 .accessibilityIdentifier("home.retry")
             }
         }
-        .padding(Tokens.Spacing.gutter)
-        .frame(maxWidth: .infinity)
-        .background(Tokens.Colors.bgCanvas)
     }
 }

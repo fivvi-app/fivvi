@@ -14,7 +14,7 @@ struct RootView: View {
         case let .signedOut(afterRejection):
             SignInView(api: api, store: store, catalog: catalog, afterRejection: afterRejection) { session.signedIn() }
         case .signedIn:
-            HomeView(api: api, catalog: catalog)
+            HomeView(api: api, store: store, catalog: catalog) { session.signedOut() }
         }
     }
 }

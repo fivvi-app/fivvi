@@ -1,0 +1,32 @@
+import XCTest
+
+/// What the sign-in UI tests share: the wait for an element and the checks of a screen's layout.
+@MainActor
+class SignInUITestCase: XCTestCase {
+    let timeout: TimeInterval = 10
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+    }
+
+    /// `element` is at least the minimum touch target, compared in the screen's device pixels (`TouchTarget`).
+    func assertTouchTarget(_ element: XCUIElement, on screen: SignInScreen) throws {
+        let size = element.frame.size
+        let scale = try screen.app.screenshotBitmap().scale
+        XCTAssertTrue(
+            TouchTarget.isMet(by: size, scale: scale),
+            "\(element.identifier) is \(size.width) × \(size.height) pt at \(scale)x, "
+                + "below the \(TouchTarget.minimum) pt touch target"
+        )
+    }
+
+    /// No text is clipped or cut off, and every element fits the window's width.
+    func assertReadable(_ screen: SignInScreen, _ elements: [XCUIElement]) throws {
+        try screen.app.performAccessibilityAudit(for: [.textClipped, .dynamicType, .hitRegion])
+        let window = screen.app.windows.firstMatch.frame
+        for element in elements where element.exists {
+            XCTAssertGreaterThanOrEqual(element.frame.minX, window.minX, element.identifier)
+            XCTAssertLessThanOrEqual(element.frame.maxX, window.maxX, element.identifier)
+        }
+    }
+}

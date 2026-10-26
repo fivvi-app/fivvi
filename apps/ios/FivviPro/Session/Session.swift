@@ -25,6 +25,13 @@ final class Session {
         state = .signedIn
     }
 
+    /// The person signed out: the token is gone, show the sign-in screen without a notice. Does nothing when the app is
+    /// already signed out, e.g. because the API rejected the token in the same moment (then the notice stays).
+    func signedOut() {
+        guard state == .signedIn else { return }
+        state = .signedOut(afterRejection: false)
+    }
+
     /// The API no longer accepts the token (expired, or the sign-in session ended elsewhere): the token is gone,
     /// show the sign-in screen with the notice.
     func tokenRejected() {
