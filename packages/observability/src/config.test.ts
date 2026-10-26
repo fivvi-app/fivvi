@@ -15,7 +15,7 @@ import {
 import { createErrorReporter } from './reporter.ts';
 
 const DSN = 'https://public@o0.ingest.de.sentry.io/1';
-const SHA = '0123456789abcdef0123456789abcdef01234567';
+const SHA = '1111111111111111111111111111111111111111';
 // A synthetic host: whatever POSTHOG_HOST says is used, not a built-in address.
 const HOST = 'https://posthog.example.test';
 
