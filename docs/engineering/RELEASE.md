@@ -2,7 +2,7 @@
 
 How a build of **Fivvi Pro** (`apps/ios`, `apps/android`, app ID `app.fivvi.pro`) gets to testers, what the owner does and approves, and what the stores require before a public release (E017, [spec #169](https://github.com/fivvi-app/fivvi/issues/169)). Native apps have no over-the-air updates ([`ROADMAP.md`](../product/ROADMAP.md) R15): every fix for a tester is a new build, so building and shipping one is a single, repeatable step.
 
-Status: the `release` environment, the secret scripts and this document are in place ([#189](https://github.com/fivvi-app/fivvi/issues/189)). The two release lanes (iOS to TestFlight, [#190](https://github.com/fivvi-app/fivvi/issues/190); Android to Play internal testing, [#191](https://github.com/fivvi-app/fivvi/issues/191)) come with their own tickets of #169; the sections below that depend on them say so. Where this document and the spec differ, the spec issue wins until the lanes are built; then fix this document.
+Status: the `release` environment, the secret scripts and this document are in place ([#189](https://github.com/fivvi-app/fivvi/issues/189)). The two release lanes (iOS to TestFlight, [#190](https://github.com/fivvi-app/fivvi/issues/190); Android to Play internal testing, [#191](https://github.com/fivvi-app/fivvi/issues/191)) come with their own tickets of [#169](https://github.com/fivvi-app/fivvi/issues/169); the sections below that depend on them say so. Where this document and the spec differ, the spec issue wins until the lanes are built; then fix this document.
 
 ## 1. Who does what
 
@@ -68,7 +68,7 @@ Look at the error in the run's log first, then at App Store Connect (*TestFlight
 | App Store Connect: *bundle version already used* or Play: *version code already used* | A build number that isn't higher than an earlier upload | Start a new run: every run gets a higher number. If a build was uploaded by hand with a higher number, the offset in the lane has to be raised (a PR) |
 | Authentication or `401` from the App Store Connect or Play API | A wrong or revoked API key, or a role that is too small (the App Store Connect key needs *App Manager*; the Play service account needs release rights for this app) | Fix it in the console and run the matching `release-secrets.sh` command again |
 | Play: *you must upload the first bundle manually* | Google's API can't create an app's first release | Upload the bundle of a run by hand once (§8 Google) |
-| Apple holds the build for export compliance | `ITSAppUsesNonExemptEncryption` is missing A change removed the `ITSAppUsesNonExemptEncryption` key from `apps/ios/Config/Info.plist`; restore it (`pnpm test:ios` flags it) |
+| Apple holds the build for export compliance | The `ITSAppUsesNonExemptEncryption` key is missing from `apps/ios/Config/Info.plist` (a change removed it) | Restore it (`pnpm test:ios` flags it) |
 | Beta App Review or Play review rejects the build | Missing privacy policy, demo account or declarations (§9) | Deliver the missing item, answer the reviewer, upload a new build if the app has to change |
 | Crashes show unsymbolicated in Sentry | The symbol upload failed or the release name differs | Check the run's Sentry step and the `SENTRY_AUTH_TOKEN` scopes |
 
@@ -78,7 +78,7 @@ A rejected or broken upload never changes what testers already have. Never reuse
 
 | Step | Cost | Who decides |
 |---|---|---|
-| Apple Developer Program (company membership) | Owner-reported as paid, unverified ([spec #169](https://github.com/fivvi-app/fivvi/issues/169)); the membership check in §8 confirms it and renewal depends on it | Owner |
+| Apple Developer Program (company membership) | Verified in [#148](https://github.com/fivvi-app/fivvi/issues/148) (organization membership, active); renewal depends on it | Owner |
 | **Google Play Console enrollment** | **One-off US$25**, only if no verified account exists yet (the cost is stated in [spec #169](https://github.com/fivvi-app/fivvi/issues/169); [`ROADMAP.md §12`](../product/ROADMAP.md) has the distribution cost lines) | **Owner approves the spend before anything is enrolled** |
 | GitHub Actions on the public repo (macOS included), TestFlight, Play internal testing, Sentry free plan | Free | |
 
@@ -90,9 +90,9 @@ Only the owner does these. Agents never do them or ask for the secrets. Each ste
 
 | | Step | Unlocks |
 |---|---|---|
-| ☐ | Confirm the company Apple Developer Program membership is active and paid up, and that you are its Account Holder or Admin | Everything on iOS; an expired membership blocks every release |
-| ☐ | Register the bundle ID `app.fivvi.pro` and create the app in App Store Connect: name *Fivvi Pro* (check that it is free), primary language Dutch, an SKU ([#148](https://github.com/fivvi-app/fivvi/issues/148)) | The identifier can't change after the first upload; the store name |
-| ☐ | Accept any pending agreements in App Store Connect (the free-apps agreement is enough) | Uploads and TestFlight |
+| ☑ | Confirm the company Apple Developer Program membership is active and paid up, and that you are its Account Holder or Admin (#148) | Everything on iOS; an expired membership blocks every release |
+| ☑ | Register the bundle ID `app.fivvi.pro` and create the app in App Store Connect: name *Fivvi Pro* (check that it is free), primary language Dutch, an SKU ([#148](https://github.com/fivvi-app/fivvi/issues/148)) | The identifier can't change after the first upload; the store name |
+| ☑ | Accept any pending agreements in App Store Connect (the free-apps agreement is enough) (#148) | Uploads and TestFlight |
 | ☐ | Create the Apple Distribution certificate and the App Store provisioning profile for the bundle ID | Signing in the iOS lane |
 | ☐ | Create an App Store Connect API key with the *App Manager* role (not *Admin*) | The upload from the lane |
 | ☐ | Run `scripts/release-secrets.sh ios` | The iOS lane can sign and upload |
