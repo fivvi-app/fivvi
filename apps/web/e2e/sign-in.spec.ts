@@ -386,12 +386,13 @@ test.describe('F001 sign in on TW-10', () => {
   }) => {
     const address = newAddress('owner');
     await createAccount(address);
-    await page.goto('/login');
+    // The sign-in page remembers the page asked for and sends it with the email request, so the
+    // emailed link carries it (#207), as the code step ends there.
+    await page.goto(`/login?returnTo=${encodeURIComponent(`/home?${REQUESTED_QUERY}`)}`);
     await page.getByLabel(copy.signIn.emailLabel).fill(address);
     await page.getByRole('button', { name: copy.signIn.sendCode }).click();
-    // The emailed link has no `returnTo` yet, so the test appends one, as a link made for a page
-    // asked for before sign-in would carry (AC13).
-    const link = `${signInLink(await waitForEmail(address))}&returnTo=${encodeURIComponent(`/home?${REQUESTED_QUERY}`)}`;
+    const link = signInLink(await waitForEmail(address));
+    expect(new URL(link).searchParams.get('returnTo')).toBe(`/home?${REQUESTED_QUERY}`);
     const masked = `${address[0]}***@${address.split('@')[1]}`;
     const signedInAs = async () => {
       const session = await page.request.get('/api/auth/get-session');
@@ -429,6 +430,26 @@ test.describe('F001 sign in on TW-10', () => {
     expect(await emailsTo(address)).toHaveLength(1);
   });
 
+  test('AC3 (#207): a return address on another site never reaches the link, which ends at the signed-in home', async ({
+    page,
+    messages: copy,
+  }) => {
+    const address = newAddress('owner');
+    await createAccount(address);
+    await page.goto(`/login?returnTo=${encodeURIComponent('https://evil.example/phish')}`);
+    await page.getByLabel(copy.signIn.emailLabel).fill(address);
+    await page.getByRole('button', { name: copy.signIn.sendCode }).click();
+    const link = signInLink(await waitForEmail(address));
+    expect(new URL(link).searchParams.has('returnTo')).toBe(false);
+    expect(link).not.toContain('evil.example');
+
+    await page.goto(link);
+    await page.getByRole('button', { name: copy.signIn.confirmSubmit }).click();
+
+    await expect(page).toHaveURL(/\/home$/);
+    await expect(page.getByRole('heading', { level: 1, name: copy.home.title })).toBeVisible();
+  });
+
   test('AC9 (link): an allowed address without an account signs in with the link and gets its account in the page language', async ({
     page,
     appLocale,
@@ -438,10 +459,13 @@ test.describe('F001 sign in on TW-10', () => {
     await page.goto('/login');
     await page.getByLabel(copy.signIn.emailLabel).fill(address);
     await page.getByRole('button', { name: copy.signIn.sendCode }).click();
-    // A return address on another site is ignored: sign-in ends at the signed-in home (AC13).
-    const link = `${signInLink(await waitForEmail(address))}&returnTo=${encodeURIComponent('https://evil.example/phish')}`;
+    const link = signInLink(await waitForEmail(address));
+    // Without a page asked for, the link is the plain one (#207).
+    expect(new URL(link).searchParams.has('returnTo')).toBe(false);
 
-    await page.goto(link);
+    // A return address on another site added to the real link by hand is ignored too: the confirm
+    // step reads it with the same rule, so sign-in ends at the signed-in home (AC13).
+    await page.goto(`${link}&returnTo=${encodeURIComponent('https://evil.example/phish')}`);
     await page.getByRole('button', { name: copy.signIn.confirmSubmit }).click();
 
     await expect(page).toHaveURL(/\/home$/);

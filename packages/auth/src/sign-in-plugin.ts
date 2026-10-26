@@ -10,12 +10,16 @@ import { z } from 'zod';
 import type { SignUpAllowlist } from './allowlist.ts';
 import { hashesEqual, hashSecretValue } from './hash.ts';
 import { maskEmail } from './mask-email.ts';
+import { MAX_RETURN_PATH_LENGTH, RETURN_PATH_PARAM, safeReturnPath } from './return-path.ts';
 
 /** How long the emailed code and link work (AC5). */
 export const SIGN_IN_EXPIRES_IN_MINUTES = 15;
 
 /** The wrong codes after which a verification is dead, the right code included (AC6). */
 export const MAX_WRONG_CODES = 5;
+
+/** Twice the longest path `safeReturnPath` keeps: longer than `MAX_RETURN_PATH_LENGTH` and up to this: dropped; longer: 400. */
+const MAX_RETURN_TO_LENGTH = 2 * MAX_RETURN_PATH_LENGTH;
 
 /** The sign-in page's confirm step (TW-10), which the emailed link opens: a page, not an endpoint. */
 const CONFIRM_PAGE_PATH = '/login/confirm';
@@ -109,9 +113,11 @@ export const REQUESTED = { status: true } as const;
  * with their own token; here one request creates one `auth_verifications` row whose link
  * token and code are stored only as keyed hashes, and using either consumes it.
  *
- * - `POST /sign-in/code/request` `{ email, locale? }`: an existing account, or an address on the
- *   sign-up allowlist, gets one EM-08 email: in the account's stored language, else in the
- *   page's (ADR-019). Every other address gets the same answer and no email.
+ * - `POST /sign-in/code/request` `{ email, locale?, returnTo? }`: an existing account, or an
+ *   address on the sign-up allowlist, gets one EM-08 email: in the account's stored language, else
+ *   in the page's (ADR-019). Every other address gets the same answer and no email. A `returnTo`
+ *   that is a path of this site (`safeReturnPath`) goes on the link, so the link ends on that
+ *   page (#207); anything else is dropped.
  * - `POST /sign-in/code/verify` `{ email, code }`: the right code signs this browser in. For an
  *   allowlisted address without an account, the account is created first.
  * - `POST /sign-in/link/preview` `{ token }` (consumes nothing) and `POST /sign-in/link/confirm`
@@ -245,10 +251,16 @@ export function signInWithEmail({
         REQUEST_PATH,
         {
           method: 'POST',
-          body: z.object({ email: emailSchema, locale: z.string().max(35).optional() }),
+          body: z.object({
+            email: emailSchema,
+            locale: z.string().max(35).optional(),
+            // The page asked for before sign-in (web only: the apps' route has no such field).
+            // It is checked, not trusted: see `safeReturnPath`.
+            returnTo: z.string().max(MAX_RETURN_TO_LENGTH).optional(),
+          }),
         },
         (ctx) => {
-          const { email, locale } = ctx.body;
+          const { email, locale, returnTo } = ctx.body;
           // For every address alike, before the account is looked up. No account ID exists yet:
           // the event gets a random ID for this request.
           productEvents?.track({
@@ -293,6 +305,11 @@ export function signInWithEmail({
 
               const url = new URL(CONFIRM_PAGE_PATH, origin);
               url.searchParams.set('token', token);
+              // Only a path of this site, checked here as the page checks it: the link is the
+              // only place it goes (not stored, logged or sent anywhere else), and is the one
+              // thing a forged request could have steered to another site.
+              const returnPath = safeReturnPath(returnTo);
+              if (returnPath) url.searchParams.set(RETURN_PATH_PARAM, returnPath);
               await sendEmail({
                 template: signInEmail,
                 props: { code, url: url.toString(), expiresInMinutes: SIGN_IN_EXPIRES_IN_MINUTES },

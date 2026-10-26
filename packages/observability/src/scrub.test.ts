@@ -247,6 +247,28 @@ describe('E009 scrubber', () => {
       });
     });
 
+    it("#207: removes the page asked for before sign-in (the link's returnTo) from an error message", () => {
+      const event: ErrorEvent = {
+        type: undefined,
+        level: 'error',
+        exception: {
+          values: [
+            {
+              type: 'TypeError',
+              value: `fetch failed: https://fivvi.app/login/confirm?token=${LINK_TOKEN}&returnTo=%2Fclients%2F4242%3Ftab%3Dnotes`,
+            },
+          ],
+        },
+      };
+
+      const scrubbed = scrubEvent(event);
+
+      expect(scrubbed.exception?.values?.[0]?.value).toBe(
+        'fetch failed: https://fivvi.app/login/confirm?token=[redacted]&returnTo=[redacted]',
+      );
+      expect(JSON.stringify(scrubbed)).not.toContain('4242');
+    });
+
     it('AC16: removes them from breadcrumbs', () => {
       for (const breadcrumb of signInEvent().breadcrumbs ?? []) {
         const sent = JSON.stringify(scrubBreadcrumb(breadcrumb));

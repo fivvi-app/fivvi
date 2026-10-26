@@ -50,12 +50,13 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Also catches URL-encoded addresses (`%40`) in paths.
 const EMAIL = /[^\s@/?#&=:;,<>()"'[\]]+(?:@|%40)[^\s@/?#&=:;,<>()"'[\]]+\.[a-z]{2,}/gi;
 
-// The value of a `token=` or `code=` query parameter: the sign-in link token and code (F001).
-const SECRET_PARAMETER = /([?&;](?:token|code)=)[^\s&#"'<>)]+/gi;
+// The value of a `token=`, `code=` or `returnTo=` query parameter: the sign-in link token and code,
+// and the page asked for before sign-in, which the link carries and which can name a client (F001).
+const SECRET_PARAMETER = /([?&;](?:token|code|returnTo)=)[^\s&#"'<>)]+/gi;
 
 /**
- * Replaces every email address in `text`, and the value of a `token` or `code` query parameter
- * (a quoted URL in an error message); the rest of the message stays readable.
+ * Replaces every email address in `text`, and the value of a `token`, `code` or `returnTo` query
+ * parameter (a quoted URL in an error message); the rest of the message stays readable.
  */
 function maskSecrets(text: string): string {
   return text.replace(EMAIL, '[email]').replace(SECRET_PARAMETER, '$1[redacted]');

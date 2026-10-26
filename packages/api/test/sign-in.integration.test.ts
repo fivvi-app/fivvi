@@ -16,6 +16,7 @@ import {
 } from '@fivvi/email';
 import { messages } from '@fivvi/i18n';
 import {
+  createCaptureTransport,
   createErrorReporter,
   createProductEventCaptureTransport,
   createProductEvents,
@@ -24,6 +25,7 @@ import { type Clock, freezeSystemTime, manualClock } from '@fivvi/testing/clock'
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, ne } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
+import { createApp, NO_DEPENDENCIES } from '../src/index.ts';
 
 const SECRET = 'test-secret-that-is-at-least-thirty-two-characters-long';
 const ORIGIN = 'http://localhost:3000';
@@ -108,8 +110,16 @@ describe('F001 sign in with the emailed code through the API', () => {
   }
 
   /** Asks for a code and waits for the email to be sent, which happens after the answer. */
-  async function requestCode(email: string, locale?: string, options: PostOptions = {}) {
-    const response = await post('/sign-in/code/request', { email, locale }, options);
+  async function requestCode(
+    email: string,
+    locale?: string,
+    { returnTo, ...options }: PostOptions & { returnTo?: string } = {},
+  ) {
+    const response = await post(
+      '/sign-in/code/request',
+      { email, locale, ...(returnTo === undefined ? {} : { returnTo }) },
+      options,
+    );
     await settle();
     return response;
   }
@@ -277,6 +287,165 @@ describe('F001 sign in with the emailed code through the API', () => {
   it('AC1: the address is matched without regard to case and spaces', async () => {
     await requestCode(' Owner@Example.com ', 'en');
     expect(readEmail().email.to.email).toBe('owner@example.com');
+  });
+
+  describe('#207: the emailed link carries the page the person asked for', () => {
+    it.each([
+      ['a page', '/w/pilot-gym/calendar'],
+      ['a page with a query string', '/home?from=bookmark&view=week'],
+    ])('puts %s on the link and nowhere else in the email', async (_, returnTo) => {
+      await requestCode('owner@example.com', 'en', { returnTo });
+
+      const { email, link, token } = readEmail();
+      expect(new URL(link).pathname).toBe('/login/confirm');
+      expect(new URL(link).searchParams.get('returnTo')).toBe(returnTo);
+      expect(token).toMatch(/^[\w-]{20,}$/);
+      // The text of the email says nothing of the page, only the link carries it.
+      expect(email.text.replace(link, '')).not.toContain(returnTo);
+    });
+
+    it.each([
+      ['an absolute address', 'https://evil.example/phish'],
+      ['a protocol-relative address', '//evil.example/phish'],
+      ['a protocol-relative address with a backslash', '/\\evil.example/phish'],
+      ['an encoded absolute address', 'https%3A%2F%2Fevil.example%2Fphish'],
+      ['an encoded protocol-relative address', '%2F%2Fevil.example%2Fphish'],
+      ['a scheme that runs script', 'javascript:alert(1)'],
+      ['dot segments to another site', '/.//evil.example'],
+      ['a tab that browsers drop', '/\t/evil.example'],
+      ['the sign-in page itself', '/login/confirm?token=abc'],
+      ['something that is not an address', 'home'],
+      ['nothing', ''],
+    ])('drops %s: the link carries no returnTo', async (_, returnTo) => {
+      await requestCode('owner@example.com', 'en', { returnTo });
+
+      expect(readEmail().link).toMatch(
+        /^http:\/\/localhost:3000\/login\/confirm\?token=[\w-]{20,}$/,
+      );
+    });
+
+    it('a returnTo that is not text is a bad request, not a link', async () => {
+      const response = await post('/sign-in/code/request', {
+        email: 'owner@example.com',
+        returnTo: { path: '/home' },
+      });
+
+      expect(response.status).toBe(400);
+      await settle();
+      expect(transport.sent).toHaveLength(0);
+    });
+
+    it('without a returnTo the link is unchanged', async () => {
+      await requestCode('owner@example.com', 'en');
+
+      expect(readEmail().link).toMatch(
+        /^http:\/\/localhost:3000\/login\/confirm\?token=[\w-]{20,}$/,
+      );
+    });
+
+    it('answers like any other request, for an unknown address too, and sends nothing for it', async () => {
+      const known = await requestCode('owner@example.com', 'en', { returnTo: '/home' });
+      const unknown = await requestCode('stranger@example.com', 'en', { returnTo: '/home' });
+
+      expect(await outcome(unknown)).toEqual(await outcome(known));
+      expect(transport.sent).toHaveLength(1);
+    });
+
+    it('is kept nowhere but on the link: the verification row has no column for it', async () => {
+      await requestCode('owner@example.com', 'en', { returnTo: '/w/pilot-gym/calendar' });
+
+      const rows = await verifications();
+      expect(rows).toHaveLength(1);
+      expect(JSON.stringify(rows)).not.toContain('pilot-gym');
+      expect(Object.keys(rows[0] ?? {}).join()).not.toMatch(/return/i);
+    });
+
+    it('is not logged and not reported, also when the email fails to send', async () => {
+      const lines: string[] = [];
+      const posthog = createProductEventCaptureTransport();
+      const productEvents = createProductEvents({
+        env: { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' },
+        transport: posthog,
+        errorReporter: createErrorReporter({ env: {} }),
+      });
+      const log = (line: string) => lines.push(line);
+      const sentry = createCaptureTransport();
+      const errorReporter = createErrorReporter({
+        env: {
+          SENTRY_DSN: 'https://public@o0.ingest.de.sentry.io/1',
+          RAILWAY_ENVIRONMENT_NAME: 'production',
+        },
+        transport: sentry,
+      });
+      // The failure of the send is logged to `console.error`.
+      const errorLog = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+        lines.push(args.map(String).join(' '));
+      });
+      onTestFinished(() => errorLog.mockRestore());
+      const returnTo = '/w/pilot-gym/calendar';
+
+      await requestCode('owner@example.com', 'en', {
+        server: authAt({ log, overrides: { productEvents } }),
+        returnTo,
+      });
+      // The provider's own error may quote the link it was asked to send.
+      const failing = authAt({
+        log,
+        overrides: { reportError: (error) => errorReporter.captureError(error) },
+        emailTransport: {
+          name: 'failing',
+          send: (email) =>
+            Promise.reject(new Error(`Brevo rejected ${email.text} for ${email.to.email}`)),
+        },
+      });
+      await requestCode('owner@example.com', 'en', { server: failing, returnTo });
+
+      expect(transport.sent).toHaveLength(1);
+      expect(posthog.events.map(({ event }) => event)).toContain('sign_in_requested');
+      await errorReporter.flush();
+      expect(lines.length).toBeGreaterThan(0);
+      expect(JSON.stringify([lines, posthog.events])).not.toContain('pilot-gym');
+      // The provider's error, with the link in its cause, reaches the reporter; what leaves
+      // the process (the scrubbed event, the cause included) names no part of the page.
+      expect(sentry.events).toHaveLength(1);
+      expect(JSON.stringify(sentry.events)).not.toContain('pilot-gym');
+    });
+
+    it('the link of a request for a page signs in once, like any link', async () => {
+      await requestCode('owner@example.com', 'en', { returnTo: '/w/pilot-gym/calendar' });
+      const { link, token } = readEmail();
+      expect(new URL(link).searchParams.get('returnTo')).toBe('/w/pilot-gym/calendar');
+
+      const first = await post('/sign-in/link/confirm', { token });
+      const second = await post('/sign-in/link/confirm', { token });
+
+      expect(first.status).toBe(200);
+      expect(second.status).toBe(401);
+    });
+
+    it("the apps' route ignores a returnTo field: its link stays plain", async () => {
+      const server = auth();
+      const app = createApp({
+        ...NO_DEPENDENCIES,
+        requestSignIn: (input) => server.requestSignIn(input),
+      });
+
+      const response = await app.request('/v1/sign-in/request', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          email: 'owner@example.com',
+          locale: 'en',
+          returnTo: '/w/pilot-gym/calendar',
+        }),
+      });
+      await settle();
+
+      expect(response.status).toBe(202);
+      expect(readEmail().link).toMatch(
+        /^http:\/\/localhost:3000\/login\/confirm\?token=[\w-]{20,}$/,
+      );
+    });
   });
 
   it('AC2: entering the code from the email signs this browser in', async () => {
