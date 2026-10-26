@@ -1,8 +1,8 @@
 // E017 AC7: the owner's secret-setup script (scripts/release-secrets.sh), run against a fake gh and synthetic files. Every
 // value is a made-up sentinel the tests can look for anywhere it must not appear: low-entropy and self-describing, as
-// docs/engineering/TESTING.md asks, none random-looking (scripts/secrets-in-tests.mjs). Only the PEM header is split, because
-// scripts/release-secrets.sh greps for `BEGIN PRIVATE KEY`. The header is split because scripts/secrets.sh would otherwise
-// match it, and the rest of the fixture is plain.
+// docs/engineering/TESTING.md asks, none random-looking (scripts/secrets-in-tests.mjs). The fixture has a PEM header because
+// scripts/release-secrets.sh greps for `BEGIN PRIVATE KEY`. Only that header is split, because scripts/secrets.sh would
+// otherwise match it; the rest is plain.
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {

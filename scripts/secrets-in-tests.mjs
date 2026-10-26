@@ -4,7 +4,7 @@
 // real credential at worst. A fixture is obviously fake instead: low-entropy and self-describing, such as
 // `fake-link-token-for-tests`, never random-looking and never assembled from parts. Only a test whose fixture has to match
 // a scanner's pattern (a scanner's own tests, or a key header the script under test checks) may split the prefix that
-// pattern matches; the rest stays obviously fake. Its sibling, scripts/secrets.sh files, refuses real key material in any file.
+// pattern matches; the rest stays obviously fake. Its sibling, `scripts/secrets.sh files`, refuses real key material in any file.
 //
 //   node scripts/secrets-in-tests.mjs [dir]   scan the test files git knows of, new ones too, in dir (default: this
 //                                             checkout); scripts/check.sh runs it
