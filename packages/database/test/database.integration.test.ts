@@ -476,6 +476,55 @@ describe('E004 database', () => {
       });
     });
 
+    it('AC20: a business table with a client column needs the client policy', async () => {
+      await withRollback(db, async (tx) => {
+        // The real schema: `clients` itself (its client column is `id`) has it.
+        expect(await findTenancyViolations(tx, RULES)).toEqual([]);
+        await tx.execute(sql`drop policy clients_client on clients`);
+        expect(await findTenancyViolations(tx, RULES)).toEqual([
+          expect.stringMatching(/^clients: missing the client policy for fivvi_app/),
+        ]);
+      });
+    });
+
+    it.each(CLIENT_POLICIES)(
+      'AC20: a table with a client_id column and $name',
+      async ({ policy, violation }) => {
+        await withRollback(db, async (tx) => {
+          await createBusinessTable(tx, 'booking');
+          await tx.execute(sql`alter table booking add column client_id uuid not null`);
+          await tx.execute(
+            sql`alter table booking add constraint booking_client_fk
+                foreign key (organization_id, client_id) references clients (organization_id, id)`,
+          );
+          await tx.execute(
+            sql.raw(policy.replaceAll('<table>', 'booking').replaceAll('<column>', 'client_id')),
+          );
+
+          const violations = await findTenancyViolations(tx, RULES);
+
+          expect(violations).toEqual(
+            violation ? expect.arrayContaining([expect.stringMatching(violation)]) : [],
+          );
+        });
+      },
+    );
+
+    it('AC20: a client column is found by its foreign key to clients, whatever its name', async () => {
+      await withRollback(db, async (tx) => {
+        await createBusinessTable(tx, 'invoice');
+        await tx.execute(sql`alter table invoice add column billed_to uuid not null`);
+        await tx.execute(
+          sql`alter table invoice add constraint invoice_billed_to_fk
+              foreign key (organization_id, billed_to) references clients (organization_id, id)`,
+        );
+
+        expect(await findTenancyViolations(tx, RULES)).toEqual([
+          expect.stringMatching(/^invoice: missing the client policy for fivvi_app/),
+        ]);
+      });
+    });
+
     it('AC2: a view or SECURITY DEFINER function outside public is checked too', async () => {
       await withRollback(db, async (tx) => {
         await createBusinessTable(tx, 'parent');
@@ -591,6 +640,47 @@ const PROBE_DEFECTS: { name: string; options: ProbeOptions; message: RegExp }[] 
     message: /unreviewed permissive policy probe_extra/,
   },
 ];
+
+const CLIENT_SCOPE = 'app_client_id() IS NULL OR <column> = app_client_id()';
+
+/** The client policy variants (AC20) a table with a client column may have, and what is wrong. */
+const CLIENT_POLICIES = [
+  {
+    name: 'no client policy',
+    policy: 'select 1',
+    violation: /^booking: missing the client policy for fivvi_app/,
+  },
+  {
+    name: 'the standard client policy',
+    policy: `create policy <table>_client on <table> as restrictive to fivvi_app using (${CLIENT_SCOPE}) with check (${CLIENT_SCOPE})`,
+    violation: null,
+  },
+  {
+    name: 'a client policy that is permissive (it would widen access)',
+    policy: `create policy <table>_client on <table> as permissive to fivvi_app using (${CLIENT_SCOPE}) with check (${CLIENT_SCOPE})`,
+    violation: /^booking: missing the client policy for fivvi_app/,
+  },
+  {
+    name: 'a client policy without WITH CHECK',
+    policy: `create policy <table>_client on <table> as restrictive to fivvi_app using (${CLIENT_SCOPE})`,
+    violation: /^booking: missing the client policy for fivvi_app/,
+  },
+  {
+    name: 'a client policy for select only',
+    policy: `create policy <table>_client on <table> as restrictive for select to fivvi_app using (${CLIENT_SCOPE})`,
+    violation: /^booking: missing the client policy for fivvi_app/,
+  },
+  {
+    name: 'a client policy on another column',
+    policy: `create policy <table>_client on <table> as restrictive to fivvi_app using (app_client_id() IS NULL OR id = app_client_id()) with check (app_client_id() IS NULL OR id = app_client_id())`,
+    violation: /^booking: missing the client policy for fivvi_app/,
+  },
+  {
+    name: 'a client policy that lets any client context through',
+    policy: `create policy <table>_client on <table> as restrictive to fivvi_app using (true) with check (true)`,
+    violation: /^booking: missing the client policy for fivvi_app/,
+  },
+] as const;
 
 /** Creates a business table in the current transaction, with the defects asked for. */
 async function createBusinessTable(

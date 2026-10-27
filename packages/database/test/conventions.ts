@@ -62,6 +62,13 @@ function normalise(expression: string | null): string {
     .trim();
 }
 
+/** The table of clients, and the column of it that names a client. */
+export const CLIENT_TABLE = 'clients';
+
+function isClientExpression(expression: string | null, column: string): boolean {
+  return normalise(expression) === `(app_client_id() IS NULL) OR (${column} = app_client_id())`;
+}
+
 function isWorkspaceExpression(expression: string | null, column: string): boolean {
   return normalise(expression) === `${column} = ANY (app_workspace_ids())`;
 }
@@ -75,6 +82,10 @@ function isWorkspaceExpression(expression: string | null, column: string): boole
  * business table with a non-null `organization_id` referencing `organizations`, RLS enabled and
  * forced, the standard workspace policy for the app role covering all four commands, and an
  * index that starts with `organization_id`.
+ *
+ * AC20: a business table with a client column (`client_id`, a foreign key to `clients`, or `id`
+ * of `clients` itself) also has the client policy for the app role: restrictive, covering all
+ * commands, USING and WITH CHECK, so a client route sees and writes only its own client's rows.
  *
  * AC2: foreign keys between business tables include `organization_id` on both sides; a view on
  * a business table is `security_invoker`; a `SECURITY DEFINER` function is on the reviewed list.
@@ -144,6 +155,19 @@ export async function findTenancyViolations(
         join pg_attribute a on a.attrelid = t.oid and a.attnum = i.indkey[0]
         where n.nspname = 'public' and i.indisvalid and i.indpred is null and i.indexprs is null`,
   );
+  const clientIdColumns = new Set(
+    (
+      await rows<{ table_name: string }>(
+        db,
+        sql`select c.relname as table_name
+            from pg_attribute a
+            join pg_class c on c.oid = a.attrelid
+            join pg_namespace n on n.oid = c.relnamespace
+            where n.nspname = 'public' and a.attname = 'client_id' and not a.attisdropped
+              and a.attnum > 0`,
+      )
+    ).map((row) => row.table_name),
+  );
   const policies = await rows<PolicyRow>(
     db,
     sql`select tablename as table_name, policyname as name, permissive, roles::text[] as roles,
@@ -211,6 +235,33 @@ export async function findTenancyViolations(
       violations.push(
         `${table.name}: missing the workspace policy for ${APP_ROLE} (${scopeColumn} in the context's workspaces, USING and WITH CHECK) on ${detail}`,
       );
+    }
+
+    // A table with a client column narrows the workspace policy to the context's client (Q2).
+    const clientColumns = new Set<string>();
+    if (table.name === CLIENT_TABLE) clientColumns.add('id');
+    if (clientIdColumns.has(table.name)) clientColumns.add('client_id');
+    for (const fk of foreignKeys) {
+      if (fk.source !== table.name || fk.target !== CLIENT_TABLE) continue;
+      fk.target_columns.forEach((target, position) => {
+        const source = fk.source_columns[position];
+        if (target === 'id' && source) clientColumns.add(source);
+      });
+    }
+    for (const column of clientColumns) {
+      const hasClientPolicy = own.some(
+        (policy) =>
+          policy.permissive === 'RESTRICTIVE' &&
+          forAppRole(policy) &&
+          policy.cmd === 'ALL' &&
+          isClientExpression(policy.qual, column) &&
+          isClientExpression(policy.with_check, column),
+      );
+      if (!hasClientPolicy) {
+        violations.push(
+          `${table.name}: missing the client policy for ${APP_ROLE} (${column} is the context's client when it names one, USING and WITH CHECK, restrictive, all commands)`,
+        );
+      }
     }
 
     // Any other permissive policy widens access, so each one must have been reviewed.
