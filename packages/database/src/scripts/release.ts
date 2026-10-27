@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 import { createDatabaseFromEnv } from '../client.ts';
+import { readAppRolePassword } from '../env.ts';
 import { release } from '../release.ts';
 import { isProductionEnvironment } from '../seed.ts';
 
@@ -8,7 +9,11 @@ const { values } = parseArgs({ options: { seed: { type: 'boolean', default: fals
 
 const { db, close } = createDatabaseFromEnv();
 try {
-  await release(db, { seed: values.seed, production: isProductionEnvironment() });
+  await release(db, {
+    seed: values.seed,
+    production: isProductionEnvironment(),
+    appRolePassword: readAppRolePassword(),
+  });
 } finally {
   await close();
 }

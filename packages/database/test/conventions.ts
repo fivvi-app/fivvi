@@ -349,3 +349,32 @@ export async function findTenancyViolations(
 
   return violations;
 }
+
+/**
+ * Every table the RLS suite must cover: the workspace table and each business table, that is
+ * every table in `public` that is not on the non-business allow-list.
+ */
+export async function listIsolatedTables(
+  db: DatabaseExecutor,
+  rules: Pick<TenancyRules, 'nonBusinessTables'>,
+): Promise<string[]> {
+  const tables = await rows<{ name: string }>(
+    db,
+    sql`select tablename as name from pg_tables where schemaname = 'public' order by tablename`,
+  );
+  return tables.map((table) => table.name).filter((name) => !(name in rules.nonBusinessTables));
+}
+
+/**
+ * AC15: one line for each table of the RLS suite (`listIsolatedTables`) that has no isolation
+ * factory, naming the table. The suite fails on any.
+ */
+export async function findTablesWithoutIsolationFactory(
+  db: DatabaseExecutor,
+  rules: Pick<TenancyRules, 'nonBusinessTables'>,
+  factories: Readonly<Record<string, unknown>>,
+): Promise<string[]> {
+  return (await listIsolatedTables(db, rules))
+    .filter((name) => !(name in factories))
+    .map((name) => `${name}: no isolation factory (add it to isolationFactories)`);
+}

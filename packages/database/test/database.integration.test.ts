@@ -25,36 +25,8 @@ import { migrationsFolder, runMigrations } from '../src/migrate.ts';
 import { release } from '../src/release.ts';
 import { resetRateLimits } from '../src/reset-rate-limits.ts';
 import { seed } from '../src/seed.ts';
-import { findTenancyViolations, type TenancyRules } from './conventions.ts';
-
-/**
- * Tables that are not business data and therefore have no `organization_id`, each with the
- * reason. Adding a table here needs a reason in the PR (AGENTS.md, ADR-006).
- */
-const NON_BUSINESS_TABLES: Record<string, string> = {
-  system_greetings: 'System data read by every workspace and the public hello slice (M1).',
-  // Sign-in tables (F001): an account is global and shared by every workspace of its person.
-  auth_identities: 'Sign-in identity of a global account (F001, ADR-007).',
-  auth_rate_limits: 'Sign-in rate limit counters, keyed by hashes, not by workspace (F001).',
-  auth_sessions: 'Sign-in session of a global account (F001, ADR-007).',
-  auth_users: 'The global account of a person, shared by every workspace (F001, ADR-007).',
-  auth_verifications: 'Emailed sign-in link and code of a global account (F001).',
-};
-
-/** Reviewed `SECURITY DEFINER` functions in `public`. None yet: every function runs as its caller. */
-const DEFINER_FUNCTIONS: string[] = [];
-
-/** Permissive policies a business table may have next to the standard one (reviewed). */
-const EXTRA_POLICIES: Record<string, string[]> = {
-  clients: ['clients_own_account'],
-  team_members: ['team_members_own_account'],
-};
-
-const RULES: TenancyRules = {
-  nonBusinessTables: NON_BUSINESS_TABLES,
-  definerFunctions: DEFINER_FUNCTIONS,
-  extraPolicies: EXTRA_POLICIES,
-};
+import { findTenancyViolations } from './conventions.ts';
+import { NON_BUSINESS_TABLES, RULES } from './tenancy-rules.ts';
 
 interface Journal {
   entries: { tag: string }[];
@@ -158,7 +130,18 @@ describe('E003 release step', () => {
       await release(client.db, { seed: true }, (message) => logs.push(message));
 
       expect(await findSystemGreeting(client.db, 'hello')).toEqual(HELLO_GREETING);
-      expect(logs).toEqual(['Migrations applied.', 'Migrations applied.', 'Seed data inserted.']);
+      // Each run migrates and reports the app role; the second also seeds. No password is set
+      // here, so the role is left as it is (E011).
+      const roleLog = expect.stringMatching(
+        /^App role fivvi_app: APP_DATABASE_PASSWORD is not set/,
+      );
+      expect(logs).toEqual([
+        'Migrations applied.',
+        roleLog,
+        'Migrations applied.',
+        roleLog,
+        'Seed data inserted.',
+      ]);
     });
   });
 

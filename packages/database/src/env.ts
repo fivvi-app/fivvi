@@ -29,3 +29,14 @@ export function readDatabaseConfig(env: NodeJS.ProcessEnv = process.env): Databa
   }
   return { url };
 }
+
+/** The variable that holds the app role's password in each environment (E011, `.railway/railway.ts`). */
+export const APP_ROLE_PASSWORD_VARIABLE = 'APP_DATABASE_PASSWORD';
+
+/**
+ * The app role's password, or `undefined` when the environment has none yet (unset or blank).
+ * The release step then leaves the role as it is. Never log the value.
+ */
+export function readAppRolePassword(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  return env[APP_ROLE_PASSWORD_VARIABLE]?.trim() || undefined;
+}
