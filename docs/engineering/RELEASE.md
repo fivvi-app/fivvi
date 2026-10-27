@@ -107,12 +107,12 @@ Only the owner does these. Agents never do them or ask for the secrets. Each ste
 
 | | Step | Unlocks |
 |---|---|---|
-| ☐ | Confirm whether a Google Play Console developer account exists and is verified. If not, enroll: **US$25 once, your approval as spend**. An organization account needs a D-U-N-S number; a personal account adds Play's closed-test rule before the public release (§9) | Everything on Android |
-| ☐ | Create the app in Play Console: name *Fivvi Pro* (check that it is free), default language Dutch, free, an app, not a game ([#149](https://github.com/fivvi-app/fivvi/issues/149)) | The application ID and the store name |
+| ☑ | Confirm whether a Google Play Console developer account exists and is verified. If not, enroll: **US$25 once, your approval as spend**. An organization account needs a D-U-N-S number; a personal account adds Play's closed-test rule before the public release (§9) (#149) | Everything on Android |
+| ☑ | Create the app in Play Console: name *Fivvi Pro* (check that it is free), default language Dutch, free, an app, not a game ([#149](https://github.com/fivvi-app/fivvi/issues/149)) | The application ID and the store name |
 | ☐ | Run `scripts/release-secrets.sh android-keystore`; back up the keystore and its password; enroll in Play App Signing | The upload key the lane signs with |
 | ☐ | Upload the first App Bundle by hand in Play Console. Google's API can't create an app's first release; the Android lane makes that bundle as a run artifact, and it holds no secret | Every later release through the API |
 | ☐ | Create a Google Cloud service account, grant it release rights for this app in Play Console, download its JSON key, run `scripts/release-secrets.sh play` | The lane can publish to the internal testing track |
-| ☐ | Create the internal testers list (email addresses) in Play Console | Installing from the internal-test link (§4) |
+| ☑ | Create the internal testers list (email addresses) in Play Console | Installing from the internal-test link (§4) |
 
 **GitHub and Sentry**
 
