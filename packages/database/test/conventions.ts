@@ -42,7 +42,7 @@ interface PolicyRow {
 
 /** Schemas that hold user objects: not the system catalogs, TOAST or per-session temp schemas. */
 const USER_SCHEMA = sql`n.nspname not in ('pg_catalog', 'information_schema')
-          and n.nspname not like 'pg\_toast%' and n.nspname not like 'pg\_temp%'`;
+          and n.nspname !~ '^pg_(toast|temp)'`;
 
 /** `name` in `public`, `schema.name` anywhere else. */
 function qualified(schema: string, name: string): string {
