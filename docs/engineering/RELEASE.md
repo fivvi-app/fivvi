@@ -97,7 +97,7 @@ A rejected or broken upload never changes what testers already have. Never reuse
 | Step | Cost | Who decides |
 |---|---|---|
 | Apple Developer Program (company membership) | Verified in [#148](https://github.com/fivvi-app/fivvi/issues/148) (organization membership, active); renewal depends on it | Owner |
-| **Google Play Console enrollment** | **One-off US$25**, only if no verified account exists yet (the cost is stated in [spec #169](https://github.com/fivvi-app/fivvi/issues/169); [`ROADMAP.md §12`](../product/ROADMAP.md) has the distribution cost lines) | **Owner approves the spend before anything is enrolled** |
+| **Google Play Console enrollment** | Enrolled in October 2026 for the one-off US$25, which is paid ([#149](https://github.com/fivvi-app/fivvi/issues/149)); nothing more is due ([`ROADMAP.md §12`](../product/ROADMAP.md) has the distribution cost lines) | Owner |
 | GitHub Actions on the public repo (macOS included), TestFlight, Play internal testing, Sentry free plan | Free | |
 
 ## 8. Owner checklist
@@ -120,12 +120,12 @@ Only the owner does these. Agents never do them or ask for the secrets. Each ste
 
 | | Step | Unlocks |
 |---|---|---|
-| ☐ | Confirm whether a Google Play Console developer account exists and is verified. If not, enroll: **US$25 once, your approval as spend**. An organization account needs a D-U-N-S number; a personal account adds Play's closed-test rule before the public release (§9) | Everything on Android |
-| ☐ | Create the app in Play Console: name *Fivvi Pro* (check that it is free), default language Dutch, free, an app, not a game ([#149](https://github.com/fivvi-app/fivvi/issues/149)) | The application ID and the store name |
+| ☑ | Confirm whether a Google Play Console developer account exists and is verified. If not, enroll: **US$25 once, your approval as spend**. An organization account needs a D-U-N-S number; a personal account adds Play's closed-test rule before the public release (§9) (#149) | Everything on Android |
+| ☑ | Create the app in Play Console: name *Fivvi Pro* (check that it is free), default language Dutch, free, an app, not a game ([#149](https://github.com/fivvi-app/fivvi/issues/149)) | The application ID and the store name |
 | ☐ | Run `scripts/release-secrets.sh android-keystore`; back up the keystore and its password; enroll in Play App Signing | The upload key the lane signs with |
 | ☐ | Upload the first App Bundle by hand in Play Console. Google's API can't create an app's first release. Start the **Release** workflow with *Publish the Android bundle* switched off, approve it, download the **android-app-bundle** artifact (signed with the upload key; it holds no secret) and upload it to the internal testing track. **Roll that first release out to internal testing** (*Review release*, then *Start rollout*); do not leave it as a draft. Only a rolled-out release takes the app out of draft state, and until then Play accepts nothing but draft releases from the API (§6, the *draft state* row), while the lane sends a completed release | Every later release through the API |
 | ☐ | Create a Google Cloud service account, grant it release rights for this app in Play Console, download its JSON key, run `scripts/release-secrets.sh play` | The lane can publish to the internal testing track |
-| ☐ | Create the internal testers list (email addresses) in Play Console | Installing from the internal-test link (§4) |
+| ☑ | Create the internal testers list (email addresses) in Play Console (#149) | Installing from the internal-test link (§4) |
 
 **GitHub and Sentry**
 
