@@ -8,7 +8,7 @@ import {
   type TestDatabase,
   withRollback,
 } from '../src/database.ts';
-import { databaseUrl } from '../src/database-server.ts';
+import { appRoleUrl, databaseUrl } from '../src/database-server.ts';
 
 interface Connected {
   database: TestDatabase;
@@ -135,5 +135,41 @@ describe('E010 withRollback', () => {
     expect(inside).toBe('org-a');
     const after = (await clone.db.execute<{ value: string | null }>(setting)).rows[0]?.value;
     expect(after ?? '').toBe('');
+  });
+});
+
+describe('E011 test roles', () => {
+  it('AC18: the setup creates the app role once per server, so every clone shares it', async () => {
+    const clone = await cloneTemplateDatabase();
+    const app = new pg.Client({ connectionString: appRoleUrl(clone.name) });
+    try {
+      await app.connect();
+      const { rows } = await app.query(
+        'select current_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb from pg_roles where rolname = current_user',
+      );
+      expect(rows).toEqual([
+        {
+          name: 'fivvi_app',
+          rolsuper: false,
+          rolbypassrls: false,
+          rolcreaterole: false,
+          rolcreatedb: false,
+        },
+      ]);
+    } finally {
+      await app.end();
+      await clone.drop();
+    }
+  });
+
+  it('AC18: the app role is a different role from the one that created the template', async () => {
+    const clone = await cloneTemplateDatabase();
+    try {
+      expect(clone.appUrl).toBe(appRoleUrl(clone.name));
+      expect(new URL(clone.appUrl).username).toBe('fivvi_app');
+      expect(new URL(clone.url).username).not.toBe('fivvi_app');
+    } finally {
+      await clone.drop();
+    }
   });
 });
