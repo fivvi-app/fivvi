@@ -1,4 +1,4 @@
-export { readTenantContext, type StoredContext } from './context.ts';
+export { readTenantContext, type StoredContext, selectEverythingInScope } from './context.ts';
 export {
   addClient,
   addTeamRole,

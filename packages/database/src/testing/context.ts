@@ -25,3 +25,19 @@ export async function readTenantContext(scope: TenantScope): Promise<StoredConte
     clientId: (row?.client as string | null) ?? null,
   };
 }
+
+/**
+ * Every row of a table, read through the scope's transaction with no workspace filter, the way a
+ * repository that forgot its filter would. RLS is then the only barrier: the self-test of the
+ * isolation suite uses it to show the suite notices when a table has no policy (E011, AC16).
+ * Tests only.
+ */
+export async function selectEverythingInScope(
+  scope: TenantScope,
+  table: string,
+): Promise<Record<string, unknown>[]> {
+  const { rows } = await executorOf(scope).execute(
+    sql`select to_jsonb(t) as row from ${sql.identifier(table)} t`,
+  );
+  return (rows as { row: Record<string, unknown> }[]).map((entry) => entry.row);
+}
