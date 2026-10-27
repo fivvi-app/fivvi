@@ -84,7 +84,7 @@ A rejected or broken upload never changes what testers already have. Never reuse
 | Step | Cost | Who decides |
 |---|---|---|
 | Apple Developer Program (company membership) | Verified in [#148](https://github.com/fivvi-app/fivvi/issues/148) (organization membership, active); renewal depends on it | Owner |
-| **Google Play Console enrollment** | **None**: the organisation account is verified, so no enrollment is needed ([#149](https://github.com/fivvi-app/fivvi/issues/149); [`ROADMAP.md §12`](../product/ROADMAP.md) has the distribution cost lines) | **Owner approves the spend before anything is enrolled** |
+| **Google Play Console enrollment** | Enrolled in October 2026 for the one-off US$25, which is paid ([#149](https://github.com/fivvi-app/fivvi/issues/149)); nothing more is due ([`ROADMAP.md §12`](../product/ROADMAP.md) has the distribution cost lines) | Owner |
 | GitHub Actions on the public repo (macOS included), TestFlight, Play internal testing, Sentry free plan | Free | |
 
 ## 8. Owner checklist
@@ -112,7 +112,7 @@ Only the owner does these. Agents never do them or ask for the secrets. Each ste
 | ☐ | Run `scripts/release-secrets.sh android-keystore`; back up the keystore and its password; enroll in Play App Signing | The upload key the lane signs with |
 | ☐ | Upload the first App Bundle by hand in Play Console. Google's API can't create an app's first release; the Android lane makes that bundle as a run artifact, and it holds no secret | Every later release through the API |
 | ☐ | Create a Google Cloud service account, grant it release rights for this app in Play Console, download its JSON key, run `scripts/release-secrets.sh play` | The lane can publish to the internal testing track |
-| ☑ | Create the internal testers list (email addresses) in Play Console | Installing from the internal-test link (§4) |
+| ☑ | Create the internal testers list (email addresses) in Play Console (#149) | Installing from the internal-test link (§4) |
 
 **GitHub and Sentry**
 
