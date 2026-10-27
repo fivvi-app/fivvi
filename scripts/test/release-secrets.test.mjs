@@ -60,21 +60,58 @@ const file = (name, content) => {
   return path;
 };
 
-// A keytool that writes a fixed synthetic keystore and records how it was called.
-const fakeKeytool = () => {
-  const bin = join(work, 'bin');
-  execFileSync('mkdir', ['-p', bin]);
+// A keytool that writes a fixed synthetic keystore and records how it was called. `-help` is the check that it runs
+// (like the real one it exits 0 and says nothing); it is not logged. With `works: false` it is macOS's stub: it fails
+// with the message of /usr/bin/keytool when there is no system JDK. `name` tells the logs of two keytools apart.
+const fakeKeytool = ({ dirName = 'bin', works = true, name = 'keytool' } = {}) => {
+  const bin = join(work, dirName);
+  mkdirSync(bin, { recursive: true });
   const log = join(work, 'keytool.log');
   writeFileSync(
     join(bin, 'keytool'),
-    `#!/usr/bin/env bash
+    works
+      ? `#!/usr/bin/env bash
+[ "$1" = -help ] && exit 0
 printf '%s\\n' "$*" >> "${log}"
 printf 'PASSWORD_IN_ENV=%s\\n' "$FIVVI_KEYSTORE_PASSWORD" >> "${log}"
+printf 'RAN_BY=%s\\n' "${name}" >> "${log}"
 while [ $# -gt 0 ]; do [ "$1" = -keystore ] && printf '%s' '${SENTINEL.keystore}' > "$2"; shift; done
+`
+      : `#!/usr/bin/env bash
+echo "The operation couldn't be completed. Unable to locate a Java Runtime." >&2
+exit 1
 `,
   );
   chmodSync(join(bin, 'keytool'), 0o755);
   return { bin, log };
+};
+
+// A Homebrew stand-in: `brew --prefix openjdk@21` prints `prefix`, and every call is logged.
+const fakeBrew = (prefix) => {
+  const bin = join(work, 'brew-bin');
+  mkdirSync(bin, { recursive: true });
+  const log = join(work, 'brew.log');
+  writeFileSync(
+    join(bin, 'brew'),
+    `#!/usr/bin/env bash
+printf '%s\\n' "$*" >> "${log}"
+[ "$1 $2" = "--prefix openjdk@21" ] && [ -n "${prefix}" ] && echo "${prefix}" && exit 0
+exit 1
+`,
+  );
+  chmodSync(join(bin, 'brew'), 0o755);
+  return { bin, log };
+};
+
+// A Homebrew OpenJDK prefix whose bin/ holds a java and a keytool: working by default, or both
+// failing with `works: false`.
+const fakeBrewJdk = ({ works = true } = {}) => {
+  const prefix = join(work, 'brew-jdk');
+  mkdirSync(join(prefix, 'bin'), { recursive: true });
+  writeFileSync(join(prefix, 'bin', 'java'), `#!/usr/bin/env bash\nexit ${works ? 0 : 1}\n`);
+  chmodSync(join(prefix, 'bin', 'java'), 0o755);
+  const keytool = fakeKeytool({ dirName: 'brew-jdk/bin', name: 'brew', works });
+  return { prefix, keytool };
 };
 
 const run = (args, stdin = '', { rules = [], extraPath = '' } = {}) => {
@@ -406,6 +443,65 @@ describe('E017 AC7: release-secrets.sh android-keystore', () => {
     });
     assert.notEqual(mismatch.status, 0);
     assert.ok(!existsSync(other));
+  });
+});
+
+describe('#247: release-secrets.sh android-keystore finds a keytool that runs', () => {
+  const answers = `${SENTINEL.keystoreAnswer}\n${SENTINEL.keystoreAnswer}\n`;
+  const keystoreIn = (dir) => join(dir, 'fivvi-pro-upload.p12');
+
+  it("uses Homebrew's openjdk@21 when the keytool on PATH is a stub that can't run", () => {
+    const stub = fakeKeytool({ dirName: 'stub-bin', works: false });
+    const jdk = fakeBrewJdk();
+    const brew = fakeBrew(jdk.prefix);
+    const dir = join(work, 'keys');
+    const result = run(['android-keystore', '--dir', dir], answers, {
+      extraPath: `${brew.bin}:${stub.bin}`,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(readFileSync(keystoreIn(dir), 'utf8'), SENTINEL.keystore);
+    assert.match(readFileSync(jdk.keytool.log, 'utf8'), /RAN_BY=brew/);
+    assert.match(readFileSync(brew.log, 'utf8'), /--prefix openjdk@21/);
+    assert.equal(sets(result.calls).ANDROID_UPLOAD_KEYSTORE, b64(SENTINEL.keystore));
+  });
+
+  it('stops before asking for a password, and names scripts/bootstrap.sh --mobile, when no Java runs', () => {
+    const stub = fakeKeytool({ dirName: 'stub-bin', works: false });
+    const brew = fakeBrew('');
+    const dir = join(work, 'keys');
+    const result = run(['android-keystore', '--dir', dir], answers, {
+      extraPath: `${brew.bin}:${stub.bin}`,
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /scripts\/bootstrap\.sh --mobile/);
+    assert.doesNotMatch(result.stderr, /password/i, 'no prompt was shown');
+    assert.ok(!existsSync(dir));
+    assert.deepEqual(sets(result.calls), {});
+  });
+
+  it('stops the same way when Homebrew has an openjdk@21 that does not run', () => {
+    const stub = fakeKeytool({ dirName: 'stub-bin', works: false });
+    const jdk = fakeBrewJdk({ works: false });
+    const brew = fakeBrew(jdk.prefix);
+    const result = run(['android-keystore', '--dir', join(work, 'keys')], answers, {
+      extraPath: `${brew.bin}:${stub.bin}`,
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /scripts\/bootstrap\.sh --mobile/);
+    assert.doesNotMatch(result.stderr, /password/i, 'no prompt was shown');
+    assert.deepEqual(sets(result.calls), {});
+  });
+
+  it('uses a keytool on PATH that works as it is, without asking Homebrew', () => {
+    const keytool = fakeKeytool();
+    const brew = fakeBrew('');
+    const dir = join(work, 'keys');
+    const result = run(['android-keystore', '--dir', dir], answers, {
+      extraPath: `${brew.bin}:${keytool.bin}`,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(readFileSync(keytool.log, 'utf8'), /RAN_BY=keytool/);
+    assert.ok(!existsSync(brew.log), 'brew was not called');
   });
 });
 
