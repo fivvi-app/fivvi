@@ -31,6 +31,7 @@ const T0 = '2026-03-31T10:00:00Z';
 const MINUTE_MS = 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const UNAUTHORIZED = { code: 'unauthorized' };
+const NOT_SIGNED_IN = { code: 'not_signed_in' };
 
 /** A code that is not `code`, for a wrong attempt. */
 const wrongCodeFor = (code: string) => (code === '000000' ? '000001' : '000000');
@@ -353,7 +354,7 @@ describe('F001N native sign-in through the API', () => {
       for (const header of headers) {
         const response = await me(header);
         expect(response.status, JSON.stringify(header)).toBe(401);
-        expect(await response.json()).toEqual(UNAUTHORIZED);
+        expect(await response.json()).toEqual(NOT_SIGNED_IN);
       }
     });
 
@@ -366,7 +367,7 @@ describe('F001N native sign-in through the API', () => {
       for (const authorization of ['Bearer not-a-real-token', 'Bearer', 'Basic abc']) {
         const withBoth = await me({ cookie, authorization });
         expect(withBoth.status, authorization).toBe(401);
-        expect(await withBoth.json()).toEqual(UNAUTHORIZED);
+        expect(await withBoth.json()).toEqual(NOT_SIGNED_IN);
       }
     });
 
@@ -510,7 +511,7 @@ describe('F001N native sign-in through the API', () => {
         expect(token.length).toBeGreaterThan(10);
         const response = await me(bearer(token));
         expect(response.status).toBe(401);
-        expect(await response.json()).toEqual(UNAUTHORIZED);
+        expect(await response.json()).toEqual(NOT_SIGNED_IN);
         expect((await signOut(bearer(token))).status).toBe(401);
       }
       expect((await me({ cookie })).status).toBe(200);

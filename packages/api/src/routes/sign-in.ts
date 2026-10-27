@@ -1,4 +1,5 @@
-import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
+import { type OpenAPIHono, z } from '@hono/zod-openapi';
+import { defineRoute } from '../access.ts';
 import type { ApiDependencies } from '../dependencies.ts';
 import {
   internalServerErrorResponse,
@@ -47,69 +48,81 @@ export const SignInTokenResponseSchema = z
   })
   .openapi('SignInTokenResponse');
 
-const requestSignInRoute = createRoute({
-  method: 'post',
-  path: '/v1/sign-in/request',
-  operationId: 'requestSignIn',
-  tags: ['sign-in'],
-  summary: 'Ask for a sign-in email',
-  description:
-    'Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed ' +
-    'address. The answer is the same for every address and for a request over the rate limits, ' +
-    'so it never says who has an account.',
-  request: {
-    body: { required: true, content: { 'application/json': { schema: SignInRequestSchema } } },
-  },
-  responses: {
-    202: { description: 'Accepted. The body is empty.' },
-    400: validationErrorResponse,
-    500: internalServerErrorResponse,
-  },
-});
-
-const exchangeSignInCodeRoute = createRoute({
-  method: 'post',
-  path: '/v1/sign-in/token',
-  operationId: 'exchangeSignInCode',
-  tags: ['sign-in'],
-  summary: 'Exchange the emailed code for a bearer token',
-  description:
-    'Uses up the verification of the email (the web’s link and code are the same one), creates ' +
-    'the account at the first sign-in of an allowed address, and returns a bearer token. ' +
-    'It sets no cookie. Every failure gets the same 401.',
-  request: {
-    body: { required: true, content: { 'application/json': { schema: SignInTokenRequestSchema } } },
-  },
-  responses: {
-    200: {
-      description: 'The bearer token.',
-      content: { 'application/json': { schema: SignInTokenResponseSchema } },
+const requestSignInRoute = defineRoute(
+  {
+    method: 'post',
+    path: '/v1/sign-in/request',
+    operationId: 'requestSignIn',
+    tags: ['sign-in'],
+    summary: 'Ask for a sign-in email',
+    description:
+      'Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed ' +
+      'address. The answer is the same for every address and for a request over the rate limits, ' +
+      'so it never says who has an account.',
+    request: {
+      body: { required: true, content: { 'application/json': { schema: SignInRequestSchema } } },
     },
-    400: validationErrorResponse,
-    401: unauthorizedResponse(
-      'The code was not accepted. Nothing says why: it can be wrong, used, replaced, expired or ' +
-        'out of attempts, or this network asked too often.',
-    ),
-    500: internalServerErrorResponse,
+    responses: {
+      202: { description: 'Accepted. The body is empty.' },
+      400: validationErrorResponse,
+      500: internalServerErrorResponse,
+    },
   },
-});
+  { type: 'public' },
+);
 
-const signOutRoute = createRoute({
-  method: 'post',
-  path: '/v1/sign-out',
-  operationId: 'signOut',
-  tags: ['sign-in'],
-  summary: 'Sign out',
-  description:
-    'Ends the sign-in session of the bearer token in the request, and only that one. ' +
-    'Other phones and browsers of the account stay signed in.',
-  security: [{ bearerAuth: [] }],
-  responses: {
-    204: { description: 'The sign-in session has ended. The body is empty.' },
-    401: unauthorizedResponse('No valid bearer token.'),
-    500: internalServerErrorResponse,
+const exchangeSignInCodeRoute = defineRoute(
+  {
+    method: 'post',
+    path: '/v1/sign-in/token',
+    operationId: 'exchangeSignInCode',
+    tags: ['sign-in'],
+    summary: 'Exchange the emailed code for a bearer token',
+    description:
+      'Uses up the verification of the email (the web’s link and code are the same one), creates ' +
+      'the account at the first sign-in of an allowed address, and returns a bearer token. ' +
+      'It sets no cookie. Every failure gets the same 401.',
+    request: {
+      body: {
+        required: true,
+        content: { 'application/json': { schema: SignInTokenRequestSchema } },
+      },
+    },
+    responses: {
+      200: {
+        description: 'The bearer token.',
+        content: { 'application/json': { schema: SignInTokenResponseSchema } },
+      },
+      400: validationErrorResponse,
+      401: unauthorizedResponse(
+        'The code was not accepted. Nothing says why: it can be wrong, used, replaced, expired or ' +
+          'out of attempts, or this network asked too often.',
+      ),
+      500: internalServerErrorResponse,
+    },
   },
-});
+  { type: 'public' },
+);
+
+const signOutRoute = defineRoute(
+  {
+    method: 'post',
+    path: '/v1/sign-out',
+    operationId: 'signOut',
+    tags: ['sign-in'],
+    summary: 'Sign out',
+    description:
+      'Ends the sign-in session of the bearer token in the request, and only that one. ' +
+      'Other phones and browsers of the account stay signed in.',
+    security: [{ bearerAuth: [] }],
+    responses: {
+      204: { description: 'The sign-in session has ended. The body is empty.' },
+      401: unauthorizedResponse('No valid bearer token.'),
+      500: internalServerErrorResponse,
+    },
+  },
+  { type: 'public' },
+);
 
 export function registerSignIn(app: OpenAPIHono, dependencies: ApiDependencies) {
   app.openapi(requestSignInRoute, async (c) => {

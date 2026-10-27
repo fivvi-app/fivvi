@@ -214,13 +214,14 @@ private final class Responder: @unchecked Sendable {
             send(connection, status: works ? 204 : 401, json: works ? nil : Self.unauthorized)
         case ("GET", "/api/v1/me"):
             let works = authorization == "Bearer \(signIn.token)"
-            send(connection, status: works ? 200 : 401, json: works ? account : Self.unauthorized)
+            send(connection, status: works ? 200 : 401, json: works ? account : Self.notSignedIn)
         default:
             send(connection, status: 404, json: nil)
         }
     }
 
     private static var unauthorized: [String: Any] { ["code": "unauthorized"] }
+    private static var notSignedIn: [String: Any] { ["code": "not_signed_in"] }
 
     /// `GET /api/v1/me`'s answer for the one account.
     private var account: [String: Any] {

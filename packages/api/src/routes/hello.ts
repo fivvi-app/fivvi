@@ -1,6 +1,7 @@
 import { HELLO_GREETING } from '@fivvi/database';
 import { type MessageKey, parseAcceptLanguage, resolveInterfaceLanguage } from '@fivvi/i18n';
-import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
+import { type OpenAPIHono, z } from '@hono/zod-openapi';
+import { defineRoute } from '../access.ts';
 import type { ApiDependencies } from '../dependencies.ts';
 import { internalServerErrorResponse, ValidationErrorSchema } from '../errors.ts';
 import { LocaleSchema } from '../schemas.ts';
@@ -16,30 +17,33 @@ export const HelloResponseSchema = z
   })
   .openapi('HelloResponse');
 
-const helloRoute = createRoute({
-  method: 'get',
-  path: '/v1/hello',
-  operationId: 'getHello',
-  tags: ['hello'],
-  summary: 'Greeting for the walking skeleton',
-  description:
-    'The `hello` greeting from the database. Without `locale`, the locale is the first ' +
-    'supported language in the Accept-Language header, otherwise en.',
-  request: {
-    query: z.object({ locale: LocaleSchema.optional() }),
-  },
-  responses: {
-    200: {
-      description: 'The greeting key and the locale to render it in.',
-      content: { 'application/json': { schema: HelloResponseSchema } },
+const helloRoute = defineRoute(
+  {
+    method: 'get',
+    path: '/v1/hello',
+    operationId: 'getHello',
+    tags: ['hello'],
+    summary: 'Greeting for the walking skeleton',
+    description:
+      'The `hello` greeting from the database. Without `locale`, the locale is the first ' +
+      'supported language in the Accept-Language header, otherwise en.',
+    request: {
+      query: z.object({ locale: LocaleSchema.optional() }),
     },
-    400: {
-      description: 'Invalid query parameters.',
-      content: { 'application/json': { schema: ValidationErrorSchema } },
+    responses: {
+      200: {
+        description: 'The greeting key and the locale to render it in.',
+        content: { 'application/json': { schema: HelloResponseSchema } },
+      },
+      400: {
+        description: 'Invalid query parameters.',
+        content: { 'application/json': { schema: ValidationErrorSchema } },
+      },
+      500: internalServerErrorResponse,
     },
-    500: internalServerErrorResponse,
   },
-});
+  { type: 'public' },
+);
 
 export function registerHello(app: OpenAPIHono, dependencies: ApiDependencies) {
   app.openapi(helloRoute, async (c) => {

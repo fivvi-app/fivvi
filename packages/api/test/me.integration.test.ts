@@ -103,7 +103,7 @@ describe('F001 GET /v1/me', () => {
   it('AC14: 401 anonymous, 200 signed in, matches the schema', async () => {
     const anonymous = await api(client.db).request('/v1/me');
     expect(anonymous.status).toBe(401);
-    expect(await anonymous.json()).toEqual({ code: 'unauthorized' });
+    expect(await anonymous.json()).toEqual({ code: 'not_signed_in' });
 
     const cookie = await signIn(client.db, 'owner@example.com');
     const signedIn = await api(client.db).request('/v1/me', { headers: { cookie } });
@@ -148,7 +148,7 @@ describe('F001 GET /v1/me', () => {
     });
 
     expect(res.status).toBe(401);
-    expect(await res.json()).toEqual({ code: 'unauthorized' });
+    expect(await res.json()).toEqual({ code: 'not_signed_in' });
   });
 
   it('AC14: without sign-in wired in, nobody is signed in', async () => {

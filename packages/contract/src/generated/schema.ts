@@ -128,6 +128,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description The request has no valid sign-in session. Contains no user-facing text. */
+        NotSignedIn: {
+            /** @enum {string} */
+            code: "not_signed_in";
+        };
+        /** @description The workspace or record does not exist or is out of the caller’s reach; the answer is the same for both. Contains no user-facing text. */
+        NotFound: {
+            /** @enum {string} */
+            code: "not_found";
+        };
+        /** @description The caller has a place in the workspace, but not the access this route needs. Contains no user-facing text. */
+        Forbidden: {
+            /** @enum {string} */
+            code: "forbidden";
+        };
         /** @description Liveness of the API and its dependencies. Contains no error details. */
         HealthResponse: {
             status: components["schemas"]["HealthCheckStatus"];
@@ -182,11 +197,6 @@ export interface components {
              */
             preferredLocale: "nl-NL" | "en" | null;
         };
-        /** @description The request has no valid sign-in session. Contains no user-facing text. */
-        Unauthorized: {
-            /** @enum {string} */
-            code: "unauthorized";
-        };
         /** @description Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019. */
         SignInRequest: {
             /**
@@ -199,6 +209,11 @@ export interface components {
         SignInTokenResponse: {
             /** @description The bearer token: a sign-in session, valid 30 days after its last use and renewed on use. Send it as `Authorization: Bearer <token>`. */
             token: string;
+        };
+        /** @description The request has no valid sign-in session. Contains no user-facing text. */
+        Unauthorized: {
+            /** @enum {string} */
+            code: "unauthorized";
         };
         SignInTokenRequest: {
             /**
@@ -306,13 +321,13 @@ export interface operations {
                     "application/json": components["schemas"]["MeResponse"];
                 };
             };
-            /** @description No valid sign-in session or bearer token. */
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Unauthorized"];
+                    "application/json": components["schemas"]["NotSignedIn"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

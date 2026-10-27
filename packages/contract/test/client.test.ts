@@ -88,7 +88,7 @@ describe('F001 TypeScript client: GET /v1/me', () => {
 
     expect(response.status).toBe(401);
     expect(data).toBeUndefined();
-    expect(error).toEqual({ code: 'unauthorized' });
+    expect(error).toEqual({ code: 'not_signed_in' });
   });
 });
 

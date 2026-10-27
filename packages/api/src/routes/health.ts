@@ -1,4 +1,5 @@
-import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
+import { type OpenAPIHono, z } from '@hono/zod-openapi';
+import { defineRoute } from '../access.ts';
 import type { ApiDependencies } from '../dependencies.ts';
 
 /** A ping slower than this counts as a failure, so the health check itself never hangs. */
@@ -19,26 +20,29 @@ export const HealthResponseSchema = z
 
 export type HealthResponse = z.infer<typeof HealthResponseSchema>;
 
-const healthRoute = createRoute({
-  method: 'get',
-  path: '/v1/health',
-  operationId: 'getHealth',
-  tags: ['health'],
-  summary: 'Health check',
-  description:
-    'Pings the database. Railway uses it as the deploy health check, so a deployment that ' +
-    "can't reach Postgres never receives traffic.",
-  responses: {
-    200: {
-      description: 'The API and all its dependencies are healthy.',
-      content: { 'application/json': { schema: HealthResponseSchema } },
-    },
-    503: {
-      description: 'A dependency is unavailable.',
-      content: { 'application/json': { schema: HealthResponseSchema } },
+const healthRoute = defineRoute(
+  {
+    method: 'get',
+    path: '/v1/health',
+    operationId: 'getHealth',
+    tags: ['health'],
+    summary: 'Health check',
+    description:
+      'Pings the database. Railway uses it as the deploy health check, so a deployment that ' +
+      "can't reach Postgres never receives traffic.",
+    responses: {
+      200: {
+        description: 'The API and all its dependencies are healthy.',
+        content: { 'application/json': { schema: HealthResponseSchema } },
+      },
+      503: {
+        description: 'A dependency is unavailable.',
+        content: { 'application/json': { schema: HealthResponseSchema } },
+      },
     },
   },
-});
+  { type: 'public' },
+);
 
 async function withTimeout(check: () => Promise<void>, timeoutMs: number): Promise<void> {
   let timer: NodeJS.Timeout | undefined;
