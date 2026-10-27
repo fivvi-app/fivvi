@@ -30,6 +30,7 @@ struct HelloView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("hello.greeting")
+                .testFlightCrashTrigger()
         case .failed:
             VStack(spacing: Tokens.Spacing.space6) {
                 Text(model.catalog[.helloError])
