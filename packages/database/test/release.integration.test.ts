@@ -240,6 +240,48 @@ describe('E011 app role in the release step', () => {
       }
     });
 
+    it('refuses to finish while a membership granted by another role remains, naming no role', async () => {
+      const database = await createTestDatabase();
+      const client = createDatabase({ url: database.url, maxConnections: 1 });
+      try {
+        await withRollback(client.db, async (tx) => {
+          await tx.execute(sql`create role fivvi_probe_parent nologin`);
+          await tx.execute(sql`create role fivvi_probe_grantor nologin`);
+          await tx.execute(sql`create role ${sql.identifier(probe)} nologin`);
+          await tx.execute(sql`grant fivvi_probe_parent to fivvi_probe_grantor with admin option`);
+          // From PG16 a revoke only removes the grants of the current grantor.
+          await tx.execute(
+            sql`grant fivvi_probe_parent to ${sql.identifier(probe)} granted by fivvi_probe_grantor`,
+          );
+
+          const error = await ensureAppRole(tx, { role: probe }).catch((caught: unknown) => caught);
+
+          expect(error).toBeInstanceOf(Error);
+          expect((error as Error).message).toMatch(/still a member of another role/);
+          expect((error as Error).message).not.toContain('fivvi_probe_parent');
+          expect((error as Error).message).not.toContain('fivvi_probe_grantor');
+        });
+      } finally {
+        await client.close();
+        await database.drop();
+      }
+    });
+
+    it('reports a failure that is not a Postgres error without its code', async () => {
+      const failing = {
+        execute: () => Promise.reject(Object.assign(new Error('socket closed'), { code: 'EPIPE' })),
+      } as unknown as DatabaseExecutor;
+
+      const error = await ensureAppRole(failing, { role: probe }).catch(
+        (caught: unknown) => caught,
+      );
+
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toMatch(/could not be set up/);
+      expect((error as Error).message).not.toContain('EPIPE');
+      expect((error as Error).message).not.toContain('SQLSTATE');
+    });
+
     it('logs in with the password once it is set, and sends no cleartext password to the server', async () => {
       const password = 'fake\'login"password;for-tests-0123';
       const role = 'fivvi_probe_login';
@@ -330,6 +372,14 @@ describe('E011 app role in the release step', () => {
         expect(error).toBeInstanceOf(Error);
         expect((error as Error).message).toMatch(/at least 16 characters/);
         expect((error as Error).message).not.toContain('fake-short');
+        const nonAscii = 'fake-password-with-\u00e9-0123456';
+        const refused = await ensureAppRole(client.db, { role: probe, password: nonAscii }).catch(
+          (caught: unknown) => caught,
+        );
+        expect(refused).toBeInstanceOf(Error);
+        expect((refused as Error).message).toMatch(/printable ASCII/);
+        expect((refused as Error).message).not.toContain(nonAscii);
+        expect((refused as Error).message).not.toContain('\u00e9');
       } finally {
         await client.close();
         await database.drop();

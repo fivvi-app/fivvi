@@ -77,8 +77,9 @@ const SCRAM_ITERATIONS = 4096;
  * A SCRAM-SHA-256 verifier for a password (RFC 5802, the form Postgres stores:
  * `SCRAM-SHA-256$<iterations>:<salt>$<StoredKey>:<ServerKey>`). Postgres accepts it in place of a
  * password and keeps it as it is, so the cleartext never reaches a statement, the server log or a
- * query error. Computed over the UTF-8 bytes of the password, which is what Postgres computes for
- * an ASCII password and what the Node driver sends for any.
+ * query error. Computed over the bytes of the password as given, which is what Postgres computes
+ * for an ASCII password; the Node driver normalises any other password (SASLprep) before it
+ * derives its keys, so `ensureAppRole` accepts printable ASCII only.
  */
 export function scramSha256Verifier(
   password: string,
@@ -92,14 +93,20 @@ export function scramSha256Verifier(
   return `SCRAM-SHA-256$${iterations}:${salt.toString('base64')}$${storedKey.toString('base64')}:${serverKey.toString('base64')}`;
 }
 
-/** The SQLSTATE of a failed query, however Drizzle wrapped it. */
-function sqlState(error: unknown): string {
+/**
+ * The SQLSTATE of a failed query, however Drizzle wrapped it. Only a Postgres error counts (the
+ * driver's `DatabaseError` carries a `severity`): a Node error such as `EPIPE` has a five-letter
+ * `code` too, which is not a SQLSTATE.
+ */
+function sqlState(error: unknown): string | undefined {
   for (let current = error, depth = 0; current && depth < 5; depth += 1) {
-    const code = (current as { code?: unknown }).code;
-    if (typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) return code;
+    const { code, severity } = current as { code?: unknown; severity?: unknown };
+    if (typeof severity === 'string' && typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) {
+      return code;
+    }
     current = (current as { cause?: unknown }).cause;
   }
-  return 'unknown';
+  return undefined;
 }
 
 /**
@@ -111,7 +118,12 @@ async function roleStatement(db: DatabaseExecutor, statement: ReturnType<typeof 
   try {
     return await db.execute(statement);
   } catch (error) {
-    throw new Error(`The app role could not be set up (SQLSTATE ${sqlState(error)}).`);
+    const state = sqlState(error);
+    throw new Error(
+      state
+        ? `The app role could not be set up (SQLSTATE ${state}).`
+        : 'The app role could not be set up (not a database error).',
+    );
   }
 }
 
@@ -127,14 +139,21 @@ async function roleStatement(db: DatabaseExecutor, statement: ReturnType<typeof 
  *   preview deploys before the owner has set the secret.
  *
  * Needs the privileged role (`CREATEROLE` or superuser). The password reaches Postgres only as a
- * SCRAM-SHA-256 verifier, and no error contains the password: a short password is refused
- * without it, a failed statement is reported by SQLSTATE only.
+ * SCRAM-SHA-256 verifier, and no error contains the password: a short or non-ASCII password is
+ * refused without it, a failed statement is reported by SQLSTATE only. The password is printable
+ * ASCII, because the Node driver runs SASLprep on a password before it logs in, so a verifier of
+ * the raw bytes of any other password would never match.
  */
 export async function ensureAppRole(
   db: DatabaseExecutor,
   options: AppRoleOptions = {},
 ): Promise<AppRoleState> {
   const { password, role = APP_ROLE } = options;
+  if (password !== undefined && !/^[\x20-\x7e]*$/.test(password)) {
+    throw new Error(
+      'The app role password may only contain printable ASCII (the value is not shown).',
+    );
+  }
   if (password !== undefined && password.length < MINIMUM_PASSWORD_LENGTH) {
     throw new Error(
       `The app role password must be at least ${MINIMUM_PASSWORD_LENGTH} characters (the value is not shown).`,
@@ -156,6 +175,16 @@ export async function ensureAppRole(
   );
   for (const membership of memberships.rows) {
     await roleStatement(db, sql`revoke ${sql.identifier(String(membership.parent))} from ${name}`);
+  }
+  // From PG16 a revoke only removes the grants of the current grantor; another grantor's stays.
+  const remaining = await roleStatement(
+    db,
+    sql`select 1 from pg_auth_members m join pg_roles c on c.oid = m.member where c.rolname = ${role}`,
+  );
+  if (remaining.rows.length) {
+    throw new Error(
+      'The app role is still a member of another role after the revoke (granted by another role); remove that membership first.',
+    );
   }
   if (password === undefined) {
     const [current] = (
