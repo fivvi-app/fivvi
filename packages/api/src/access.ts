@@ -185,6 +185,9 @@ function describeAccess(access: Access) {
   return { type: access.type };
 }
 
+/** Where every workspace route lives: the workspace is the first thing its path names. */
+const WORKSPACE_PATH = '/v1/workspaces/{workspaceId}';
+
 /**
  * `createRoute` with the route's access. Installs the access middleware ahead of the request
  * validators, writes `x-access` on the operation and documents the refusals the access can give
@@ -195,9 +198,9 @@ export function defineRoute<R extends RouteConfig, A extends Access>(route: R, a
   if (access.type === 'workspace' && access.roles.length === 0 && access.client === 'none') {
     throw new Error(`${route.operationId ?? route.path}: no team role and no client may call it.`);
   }
-  if (access.type === 'workspace' && !route.path.includes('{workspaceId}')) {
+  if (access.type === 'workspace' && !route.path.startsWith(WORKSPACE_PATH)) {
     throw new Error(
-      `${route.operationId ?? route.path}: a workspace route names {workspaceId} in its path.`,
+      `${route.operationId ?? route.path}: a workspace route's path starts with ${WORKSPACE_PATH}.`,
     );
   }
   const owned = Object.keys(refusalsOf(access)).filter((status) => status in route.responses);

@@ -52,6 +52,10 @@ const NOT_FOUND = { code: 'not_found' };
 const FORBIDDEN = { code: 'forbidden' };
 const NO_SUCH_WORKSPACE = '0197c0de-0000-7000-8000-0000000000ff';
 
+// Requests the validated probe route (`PUT /probe/validated`) rejects: a body without the
+// required name, and a query that is no page number. The other routes ignore them.
+const INVALID_REQUESTS = [{}, { query: '?page=abc', body: { unexpected: true } }] as const;
+
 describe('E011 the caller’s place in the workspace', () => {
   let world: World;
   let s: Scenario;
@@ -81,6 +85,8 @@ describe('E011 the caller’s place in the workspace', () => {
       ['GET', '/probe/clients'],
       ['GET', `/probe/clients/${s.clients.ofClient}`],
       ['POST', '/probe/clients'],
+      ['PUT', '/probe/validated'],
+      ['GET', '/probe/clients/not-an-id'],
       ['GET', '/probe/own'],
       ['GET', `/probe/own/clients/${s.clients.ofClient}`],
     ] as const;
@@ -90,7 +96,7 @@ describe('E011 the caller’s place in the workspace', () => {
         method,
       });
       // Whatever the body or query: never a validation error.
-      for (const init of [{}, { query: '?page=abc', body: { unexpected: true } }]) {
+      for (const init of INVALID_REQUESTS) {
         const response = await world.request(s.outsider, inWorkspace(s.a, route), {
           method,
           ...init,
@@ -182,11 +188,20 @@ describe('E011 the caller’s place in the workspace', () => {
       ['a team member without a client relationship on a client route', 'trainerA', '/probe/own'],
       ['an owner without a client relationship on a client route', 'ownerA', '/probe/own'],
       ['Sam, a trainer of A, on an owner-only route', 'sam', '/probe/owner'],
+      [
+        'a client on a route with a body and a query to validate',
+        'clientAccount',
+        '/probe/validated',
+      ],
+      ['a client on a route with an id to validate', 'clientAccount', '/probe/clients/not-an-id'],
     ] as const)('gets 403, whatever the request: %s', async (_name, who, route) => {
       world.observed.length = 0;
 
-      for (const init of [{}, { query: '?page=abc', body: { unexpected: true } }]) {
-        const response = await world.request(s[who], inWorkspace(s.a, route), init);
+      for (const init of INVALID_REQUESTS) {
+        const response = await world.request(s[who], inWorkspace(s.a, route), {
+          method: route === '/probe/validated' ? 'PUT' : 'GET',
+          ...init,
+        });
 
         expect(response.status).toBe(403);
         expect(await response.json()).toEqual(FORBIDDEN);
@@ -218,10 +233,18 @@ describe('E011 the caller’s place in the workspace', () => {
       expect(ownerBInA.status).toBe(404);
     });
 
-    it('validates only after the access: a caller who may call it gets 400 for a bad id', async () => {
-      const response = await world.request(s.ownerA, inWorkspace(s.a, '/probe/clients/not-an-id'));
+    it('validates only after the access: a caller who may call it gets 400 for a bad id, body or query', async () => {
+      const badId = await world.request(s.ownerA, inWorkspace(s.a, '/probe/clients/not-an-id'));
+      const validated = (init: { query?: string; body?: unknown }) =>
+        world.request(s.ownerA, inWorkspace(s.a, '/probe/validated'), { method: 'PUT', ...init });
 
-      expect(response.status).toBe(400);
+      expect(badId.status).toBe(400);
+      expect((await validated({ query: '?page=1', body: {} })).status).toBe(400);
+      expect((await validated({ query: '?page=abc', body: { name: 'x' } })).status).toBe(400);
+      expect((await validated({ body: { name: 'x' } })).status).toBe(400);
+      const valid = await validated({ query: '?page=2', body: { name: 'x' } });
+      expect(valid.status).toBe(200);
+      expect(await valid.json()).toEqual({ page: '2', name: 'x' });
     });
 
     it('another workspace’s record is 404, as if it did not exist', async () => {

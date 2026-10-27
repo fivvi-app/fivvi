@@ -338,6 +338,26 @@ describe('E011 the tenant scope of a request transaction', () => {
     });
   });
 
+  describe('the repositories do not take a raw executor', () => {
+    // The `@ts-expect-error` lines are the test: `pnpm typecheck` fails when one of them
+    // type-checks. At run time the call must fail too.
+    it('a database, or a hand-built object, is no tenant scope', async () => {
+      const id = records.clientB;
+      const handBuilt = {
+        context: { accountId: people.ownerA.id, workspaceIds: [b] },
+      };
+
+      // @ts-expect-error a raw executor is not a TenantScope
+      await expect(async () => listClients(app.db)).rejects.toThrow('Not a tenant scope');
+      // @ts-expect-error a raw executor is not a TenantScope
+      await expect(async () => findClient(app.db, id)).rejects.toThrow('Not a tenant scope');
+      // @ts-expect-error a raw executor is not a TenantScope
+      await expect(async () => listMyWorkspaces(app.db)).rejects.toThrow('Not a tenant scope');
+      // @ts-expect-error a hand-built object is not a TenantScope
+      await expect(async () => listClients(handBuilt)).rejects.toThrow('Not a tenant scope');
+    });
+  });
+
   describe('an account scope', () => {
     const workspacesOf = async (
       accountId: string,

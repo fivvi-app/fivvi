@@ -74,6 +74,25 @@ export function registerProbeRoutes(app: OpenAPIHono): void {
     async (c) => c.json({ client: await createClient(c.get('scope'), {}) }, 200),
   );
 
+  // A route with a required body and a typed query: validation must run after the access.
+  workspaces.openapi(
+    defineRoute(
+      {
+        ...workspace('/probe/validated', 'probeValidated'),
+        method: 'put',
+        request: {
+          query: z.object({ page: z.string().regex(/^\d+$/) }),
+          body: {
+            required: true,
+            content: { 'application/json': { schema: z.object({ name: z.string().min(1) }) } },
+          },
+        },
+      },
+      team,
+    ),
+    (c) => c.json({ page: c.req.valid('query').page, name: c.req.valid('json').name }, 200),
+  );
+
   // Writes, then answers 404: a failed request must not keep the write.
   workspaces.openapi(
     defineRoute(

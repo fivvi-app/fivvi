@@ -237,14 +237,18 @@ describe('E011 route access', () => {
     });
   });
 
-  it('refuses a workspace route without {workspaceId} in its path', () => {
+  it.each([
+    ['without {workspaceId}', '/v1/elsewhere'],
+    ['with {workspaceId} somewhere else than right after /v1/workspaces/', '/v1/x/{workspaceId}/y'],
+    ['with a different parameter name', '/v1/workspaces/{id}/y'],
+  ])('refuses a workspace route %s in its path', (_name, path) => {
     expect(() =>
-      defineRoute(probeRoute('/v1/elsewhere', 'elsewhere'), {
+      defineRoute(probeRoute(path, 'elsewhere'), {
         type: 'workspace',
         roles: ['owner'],
         client: 'none',
       }),
-    ).toThrow(/workspaceId/);
+    ).toThrow(/\/v1\/workspaces\/\{workspaceId\}/);
   });
 
   it('fails closed (500) when the app was not built by createApp', async () => {

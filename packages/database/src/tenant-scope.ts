@@ -30,11 +30,18 @@ export interface TenantContext {
   readonly accountId: string;
   /** The workspaces this transaction may touch. One for a workspace route, the account's own for an account route. */
   readonly workspaceIds: readonly string[];
-  /** The account's team role in the workspace (workspace route), if it has one. */
+  /**
+   * The account's team role in the workspace (workspace route), if it has one. Like `clientId`,
+   * it describes the caller's place, not the hat worn for this request: an account can have
+   * both. Handlers and repositories branch on `actingAs` for which one applies.
+   */
   readonly teamRole?: TeamRole;
-  /** The account's client id in the workspace (workspace route), if it has one. */
+  /** The account's client id in the workspace (workspace route), if it has one. See `teamRole`. */
   readonly clientId?: string;
-  /** Workspace route only. As a client the database context names `clientId` too (Q2). */
+  /**
+   * Workspace route only: the hat worn for this request. The one to branch on, not `teamRole` or
+   * `clientId`. As a client the database context names `clientId` too (Q2).
+   */
   readonly actingAs?: ActingAs;
 }
 
