@@ -1,4 +1,4 @@
-import type { SignedInAccount, SystemGreetingView } from '@fivvi/database';
+import type { SignedInAccount, SystemGreetingView, TenantScopes } from '@fivvi/database';
 import type { Locale } from '@fivvi/i18n';
 import {
   createErrorReporter,
@@ -32,6 +32,11 @@ export interface ApiDependencies {
   }): Promise<string | undefined>;
   /** Ends the sign-in session of the request's bearer token; `false` without a valid one. */
   signOutBearer(headers: Headers): Promise<boolean>;
+  /**
+   * Opens the request transaction with its tenant scope (E011): the only way a route reaches
+   * business data. apps/web wires it over the app's database connection.
+   */
+  tenantScopes: TenantScopes;
   /** Reports unhandled route errors to Sentry (E009). Off without a DSN. */
   errorReporter: ErrorReporter;
   /** Sends product events to PostHog EU (E009); flushed after every request. Off without a key. */
@@ -52,6 +57,10 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   requestSignIn: () => Promise.resolve(),
   exchangeSignInCode: () => Promise.resolve(undefined),
   signOutBearer: () => Promise.resolve(false),
+  tenantScopes: {
+    inAccountScope: () => Promise.reject(new Error('No database configured.')),
+    inWorkspaceScope: () => Promise.reject(new Error('No database configured.')),
+  },
   errorReporter,
   productEvents: createProductEvents({ env: {}, errorReporter }),
 };

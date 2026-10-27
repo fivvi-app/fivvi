@@ -1,6 +1,13 @@
-import type { SignedInAccount } from '@fivvi/database';
+import type {
+  Place,
+  SignedInAccount,
+  TenantScope,
+  TenantScopes,
+  WorkspaceScope,
+} from '@fivvi/database';
 import { type OpenAPIHono, z } from '@hono/zod-openapi';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { admission } from '../src/access.ts';
 import {
   type ApiDependencies,
   buildOpenApiDocument,
@@ -48,9 +55,41 @@ function probeApp(dependencies: ApiDependencies): OpenAPIHono {
   return app;
 }
 
+/**
+ * Tenant scopes without a database, for the order of checks: the account has `place` in every
+ * workspace (none: no place). `ended` records how each request transaction ended.
+ */
+function fakeTenantScopes(place?: Place) {
+  const ended: ('committed' | 'rolled back')[] = [];
+  const settle = async <T>(run: () => Promise<T>): Promise<T> => {
+    try {
+      const value = await run();
+      ended.push('committed');
+      return value;
+    } catch (error) {
+      ended.push('rolled back');
+      throw error;
+    }
+  };
+  const tenantScopes: TenantScopes = {
+    inAccountScope: (_input, run) => settle(() => run({ context: {} } as unknown as TenantScope)),
+    inWorkspaceScope: async (input, run) => {
+      if (!place?.teamRole && !place?.clientId) return { status: 'no-place' };
+      const actingAs = input.admit(place);
+      if (!actingAs) return { status: 'refused' };
+      return {
+        status: 'entered',
+        value: await settle(() => run({ context: {}, actingAs } as unknown as WorkspaceScope)),
+      };
+    },
+  };
+  return { tenantScopes, ended };
+}
+
 const signedIn: ApiDependencies = {
   ...NO_DEPENDENCIES,
   findSignedInAccount: () => Promise.resolve(ACCOUNT),
+  tenantScopes: fakeTenantScopes().tenantScopes,
 };
 
 const call = (app: OpenAPIHono, path: string, body: string) =>
@@ -98,17 +137,114 @@ describe('E011 route access', () => {
     });
   });
 
-  it('refuses a signed-in caller of a workspace route until a workspace context is set (#254)', async () => {
-    const app = probeApp(signedIn);
+  describe('the order of checks on a workspace route (owner only)', () => {
+    const path = '/v1/workspaces/0197c0de-0000-7000-8000-0000000000a1/probe';
+    const appFor = (place?: Place) =>
+      probeApp({
+        ...NO_DEPENDENCIES,
+        findSignedInAccount: () => Promise.resolve(ACCOUNT),
+        tenantScopes: fakeTenantScopes(place).tenantScopes,
+      });
 
-    const response = await call(
-      app,
-      '/v1/workspaces/0197c0de-0000-7000-8000-0000000000a1/probe',
-      '{"name":""}',
-    );
+    it('AC8: no place answers 404, whatever the body', async () => {
+      for (const body of ['{"name":""}', 'not json', '{"name":"x"}']) {
+        const response = await call(appFor(undefined), path, body);
 
-    expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ code: 'not_found' });
+        expect(response.status).toBe(404);
+        expect(await response.json()).toEqual({ code: 'not_found' });
+      }
+    });
+
+    it.each([
+      ['a trainer', { teamRole: 'trainer' as const }],
+      ['a client', { clientId: '0197c0de-0000-7000-8000-0000000000c1' }],
+    ])('AC10: %s on an owner-only route gets 403, whatever the body', async (_who, place) => {
+      for (const body of ['{"name":""}', 'not json', '{"name":"x"}']) {
+        const response = await call(appFor(place), path, body);
+
+        expect(response.status).toBe(403);
+        expect(await response.json()).toEqual({ code: 'forbidden' });
+      }
+    });
+
+    it('runs validation and then the handler only for an owner', async () => {
+      const owner = appFor({ teamRole: 'owner' });
+
+      expect((await call(owner, path, '{"name":""}')).status).toBe(400);
+      expect((await call(owner, path, '{"name":"x"}')).status).toBe(200);
+    });
+  });
+
+  describe('the request transaction ends with the request', () => {
+    const path = '/v1/workspaces/0197c0de-0000-7000-8000-0000000000a1/probe';
+
+    it('commits on success and rolls back on a failed request or an error', async () => {
+      const { tenantScopes, ended } = fakeTenantScopes({ teamRole: 'owner' });
+      const app = probeApp({ ...signedIn, tenantScopes });
+
+      await call(app, path, '{"name":"x"}'); // 200
+      await call(app, path, '{"name":""}'); // 400
+      await call(app, '/v1/probe/account', '{"name":"x"}'); // 200
+      await call(app, '/v1/probe/account', '{"name":""}'); // 400
+
+      expect(ended).toEqual(['committed', 'rolled back', 'committed', 'rolled back']);
+    });
+
+    it('rolls back when the handler throws', async () => {
+      const { tenantScopes, ended } = fakeTenantScopes({ teamRole: 'owner' });
+      const app = probeApp({ ...signedIn, tenantScopes });
+      app.openapi(
+        defineRoute(
+          {
+            method: 'get',
+            path: '/v1/workspaces/{workspaceId}/boom',
+            operationId: 'boom',
+            responses: { 200: { description: 'It ran.' } },
+          },
+          { type: 'workspace', roles: ['owner'], client: 'none' },
+        ),
+        () => {
+          throw new Error('boom');
+        },
+      );
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const response = await app.request(
+        '/v1/workspaces/0197c0de-0000-7000-8000-0000000000a1/boom',
+      );
+
+      expect(response.status).toBe(500);
+      expect(ended).toEqual(['rolled back']);
+      log.mockRestore();
+    });
+  });
+
+  describe('admission: who runs as what', () => {
+    const route = { type: 'workspace', roles: ['trainer'], client: 'own-records' } as const;
+
+    it('a listed team role runs as a team member, even for a client of the same workspace', () => {
+      expect(admission(route, { teamRole: 'trainer', clientId: 'c1' })).toBe('team');
+    });
+
+    it('a client runs as a client only where the route allows clients', () => {
+      expect(admission(route, { clientId: 'c1' })).toBe('client');
+      expect(admission({ ...route, client: 'none' }, { clientId: 'c1' })).toBeUndefined();
+    });
+
+    it('a team role the route does not list is not admitted, but a client side still is', () => {
+      expect(admission(route, { teamRole: 'owner' })).toBeUndefined();
+      expect(admission(route, { teamRole: 'owner', clientId: 'c1' })).toBe('client');
+    });
+  });
+
+  it('refuses a workspace route without {workspaceId} in its path', () => {
+    expect(() =>
+      defineRoute(probeRoute('/v1/elsewhere', 'elsewhere'), {
+        type: 'workspace',
+        roles: ['owner'],
+        client: 'none',
+      }),
+    ).toThrow(/workspaceId/);
   });
 
   it('fails closed (500) when the app was not built by createApp', async () => {
