@@ -1,6 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { createAuth } from '@fivvi/auth';
-import { authUsers, createDatabase, type Database, type DatabaseClient } from '@fivvi/database';
+import {
+  authUsers,
+  createDatabase,
+  createTenantScopes,
+  type Database,
+  type DatabaseClient,
+} from '@fivvi/database';
 import { seed } from '@fivvi/database/seed';
 import { createMemoryTransport, createSendEmail } from '@fivvi/email';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
@@ -59,6 +65,7 @@ describe('F001 GET /v1/me', () => {
     const dependencies: ApiDependencies = {
       ...NO_DEPENDENCIES,
       findSignedInAccount: (headers) => signIn.findAccount(headers),
+      tenantScopes: createTenantScopes(() => db),
     };
     return createApp(dependencies);
   }

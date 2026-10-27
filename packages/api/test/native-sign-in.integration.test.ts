@@ -5,6 +5,7 @@ import {
   authUsers,
   authVerifications,
   createDatabase,
+  createTenantScopes,
   type DatabaseClient,
 } from '@fivvi/database';
 import { seed } from '@fivvi/database/seed';
@@ -83,6 +84,7 @@ describe('F001N native sign-in through the API', () => {
       ...NO_DEPENDENCIES,
       ...(overrides.productEvents && { productEvents: overrides.productEvents }),
       findSignedInAccount: (headers) => auth.findAccount(headers),
+      tenantScopes: createTenantScopes(() => client.db),
       requestSignIn: (input) => auth.requestSignIn(input),
       exchangeSignInCode: (input) => auth.exchangeSignInCode(input),
       signOutBearer: (headers) => auth.signOutBearer(headers),

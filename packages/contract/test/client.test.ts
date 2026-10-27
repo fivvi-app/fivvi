@@ -9,6 +9,12 @@ import { createApiClient } from '../src/index.ts';
 
 const HELLO_GREETING_KEY = 'hello.title';
 
+// No database here: the request transaction of an account route hands the route a stand-in scope.
+const tenantScopes: ApiDependencies['tenantScopes'] = {
+  inAccountScope: (_input, run) => run({ context: {} } as never),
+  inWorkspaceScope: () => Promise.resolve({ status: 'no-place' }),
+};
+
 // The generated TypeScript client talks to the real API handler, in-process (no network),
 // with a fake greeting reader instead of Postgres.
 function client(
@@ -26,7 +32,11 @@ function client(
 
 // The same, signed in as a fake account (or nobody).
 function meClient(account: Awaited<ReturnType<ApiDependencies['findSignedInAccount']>>) {
-  const handle = createApiHandler({ ...NO_DEPENDENCIES, findSignedInAccount: async () => account });
+  const handle = createApiHandler({
+    ...NO_DEPENDENCIES,
+    tenantScopes,
+    findSignedInAccount: async () => account,
+  });
   return createApiClient({
     baseUrl: 'http://localhost/api',
     fetch: async (request) => await handle(request),
@@ -104,6 +114,7 @@ describe('F001N TypeScript client: native sign-in', () => {
     const requests: unknown[] = [];
     const handle = createApiHandler({
       ...NO_DEPENDENCIES,
+      tenantScopes,
       requestSignIn: ({ email, locale }) => {
         requests.push({ email, locale });
         return Promise.resolve();
