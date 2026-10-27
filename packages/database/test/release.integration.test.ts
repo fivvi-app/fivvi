@@ -1,6 +1,7 @@
 import { createTestDatabase, withRollback } from '@fivvi/testing/database';
 import { APP_ROLE_TEST_PASSWORD, appRoleUrl } from '@fivvi/testing/database/server';
 import { sql } from 'drizzle-orm';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import pg from 'pg';
 import { describe, expect, it } from 'vitest';
 import { APP_TABLE_PRIVILEGES, ensureAppRole } from '../src/app-role.ts';
@@ -204,6 +205,109 @@ describe('E011 app role in the release step', () => {
             login: true,
             passwordSet: false,
           });
+        });
+      } finally {
+        await client.close();
+        await database.drop();
+      }
+    });
+
+    it('revokes every role membership the role has, so it cannot inherit a privileged role', async () => {
+      const database = await createTestDatabase();
+      const client = createDatabase({ url: database.url, maxConnections: 1 });
+      try {
+        await withRollback(client.db, async (tx) => {
+          await tx.execute(sql`create role fivvi_probe_parent nologin createrole`);
+          await tx.execute(sql`create role ${sql.identifier(probe)} nologin inherit`);
+          await tx.execute(sql`grant fivvi_probe_parent to ${sql.identifier(probe)}`);
+          const memberships = () =>
+            rows<{ parent: string }>(
+              tx,
+              sql`select p.rolname as parent from pg_auth_members m
+                  join pg_roles p on p.oid = m.roleid
+                  join pg_roles c on c.oid = m.member
+                  where c.rolname = ${probe}`,
+            );
+          expect(await memberships()).toEqual([{ parent: 'fivvi_probe_parent' }]);
+
+          await ensureAppRole(tx, { role: probe });
+
+          expect(await memberships()).toEqual([]);
+        });
+      } finally {
+        await client.close();
+        await database.drop();
+      }
+    });
+
+    it('logs in with the password once it is set, and sends no cleartext password to the server', async () => {
+      const password = 'fake\'login"password;for-tests-0123';
+      const role = 'fivvi_probe_login';
+      const database = await createTestDatabase();
+      const client = createDatabase({ url: database.url, maxConnections: 1 });
+      const dialect = new PgDialect();
+      const sent: string[] = [];
+      try {
+        // Roles belong to the server and a login needs a committed role: drop it afterwards.
+        const recording = Object.create(client.db) as typeof client.db;
+        recording.execute = ((query: ReturnType<typeof sql>) => {
+          const compiled = dialect.sqlToQuery(query);
+          sent.push(compiled.sql, ...compiled.params.map(String));
+          return client.db.execute(query);
+        }) as typeof client.db.execute;
+        await ensureAppRole(recording, { role, password });
+
+        const login = new URL(database.url);
+        login.username = role;
+        login.password = password;
+        const app = new pg.Client({ connectionString: login.toString() });
+        await app.connect();
+        try {
+          const { rows: current } = await app.query('select current_user as name');
+          expect(current).toEqual([{ name: role }]);
+        } finally {
+          await app.end();
+        }
+        const wrong = new URL(login);
+        wrong.password = 'fake-wrong-password-for-tests';
+        const refused = new pg.Client({ connectionString: wrong.toString() });
+        await expect(refused.connect()).rejects.toThrow(/password authentication failed/);
+        await refused.end().catch(() => {});
+        expect(sent.join('\n')).not.toContain(password);
+      } finally {
+        await client.db.execute(sql`drop role if exists ${sql.identifier(role)}`);
+        await client.close();
+        await database.drop();
+      }
+    });
+
+    it('a failing password statement throws an error with the SQLSTATE only', async () => {
+      const password = 'fake-failing-password-for-tests';
+      const database = await createTestDatabase();
+      const client = createDatabase({ url: database.url, maxConnections: 1 });
+      const dialect = new PgDialect();
+      try {
+        await withRollback(client.db, async (tx) => {
+          // The password statement fails for real: the role is gone when it runs.
+          const failing = Object.create(tx) as typeof tx;
+          failing.execute = (async (query: ReturnType<typeof sql>) => {
+            if (/password/.test(dialect.sqlToQuery(query).sql)) {
+              await tx.execute(sql`drop role ${sql.identifier(probe)}`);
+            }
+            return tx.execute(query);
+          }) as typeof tx.execute;
+
+          const error = await ensureAppRole(failing, { role: probe, password }).catch(
+            (caught: unknown) => caught,
+          );
+
+          expect(error).toBeInstanceOf(Error);
+          const { message, cause } = error as Error;
+          expect(message).toMatch(/SQLSTATE 42704/);
+          expect(message).not.toContain(password);
+          expect(message).not.toContain('SCRAM-SHA-256');
+          expect(message).not.toContain('alter role');
+          expect(cause).toBeUndefined();
         });
       } finally {
         await client.close();

@@ -1,3 +1,4 @@
+import { createHash, createHmac, pbkdf2Sync, randomBytes } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from './client.ts';
 import { APP_ROLE } from './schema/tenant-policies.ts';
@@ -70,19 +71,64 @@ export interface AppRoleState {
 
 const MINIMUM_PASSWORD_LENGTH = 16;
 const SAFE_ATTRIBUTES = 'NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT';
+const SCRAM_ITERATIONS = 4096;
+
+/**
+ * A SCRAM-SHA-256 verifier for a password (RFC 5802, the form Postgres stores:
+ * `SCRAM-SHA-256$<iterations>:<salt>$<StoredKey>:<ServerKey>`). Postgres accepts it in place of a
+ * password and keeps it as it is, so the cleartext never reaches a statement, the server log or a
+ * query error. Computed over the UTF-8 bytes of the password, which is what Postgres computes for
+ * an ASCII password and what the Node driver sends for any.
+ */
+export function scramSha256Verifier(
+  password: string,
+  salt: Buffer = randomBytes(16),
+  iterations: number = SCRAM_ITERATIONS,
+): string {
+  const hmac = (key: Buffer, message: string) => createHmac('sha256', key).update(message).digest();
+  const saltedPassword = pbkdf2Sync(password, salt, iterations, 32, 'sha256');
+  const storedKey = createHash('sha256').update(hmac(saltedPassword, 'Client Key')).digest();
+  const serverKey = hmac(saltedPassword, 'Server Key');
+  return `SCRAM-SHA-256$${iterations}:${salt.toString('base64')}$${storedKey.toString('base64')}:${serverKey.toString('base64')}`;
+}
+
+/** The SQLSTATE of a failed query, however Drizzle wrapped it. */
+function sqlState(error: unknown): string {
+  for (let current = error, depth = 0; current && depth < 5; depth += 1) {
+    const code = (current as { code?: unknown }).code;
+    if (typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) return code;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return 'unknown';
+}
+
+/**
+ * Runs a statement on the role. A failure is rethrown with only the SQLSTATE: Drizzle's error
+ * carries the query and its parameters, and a statement that sets the password must never put
+ * them (or the driver's message) in a deploy log.
+ */
+async function roleStatement(db: DatabaseExecutor, statement: ReturnType<typeof sql>) {
+  try {
+    return await db.execute(statement);
+  } catch (error) {
+    throw new Error(`The app role could not be set up (SQLSTATE ${sqlState(error)}).`);
+  }
+}
 
 /**
  * Creates or updates the app role, idempotently (ADR-006, AC18). The role never gets a
  * privilege beyond the ones the app needs: no superuser, no `BYPASSRLS`, no database or role
- * creation, no replication, and it inherits nothing.
+ * creation, no replication, it inherits nothing, and it is a member of no other role.
  *
  * - With a `password`: the role can log in and has that password.
  * - Without one (the secret is not set in this environment yet): a missing role is created
- *   without a login, and an existing one is left exactly as it is. The release step still
- *   succeeds, so a preview deploys before the owner has set the secret.
+ *   without a login, and an existing one keeps its login and password. Either way the role ends
+ *   with the safe attributes above and no memberships. The release step still succeeds, so a
+ *   preview deploys before the owner has set the secret.
  *
- * Needs the privileged role (`CREATEROLE` or superuser). The error for a short password never
- * contains the password.
+ * Needs the privileged role (`CREATEROLE` or superuser). The password reaches Postgres only as a
+ * SCRAM-SHA-256 verifier, and no error contains the password: a short password is refused
+ * without it, a failed statement is reported by SQLSTATE only.
  */
 export async function ensureAppRole(
   db: DatabaseExecutor,
@@ -95,24 +141,30 @@ export async function ensureAppRole(
     );
   }
   const name = sql.identifier(role);
-  const exists = (await db.execute(sql`select 1 from pg_roles where rolname = ${role}`)).rows
+  const exists = (await roleStatement(db, sql`select 1 from pg_roles where rolname = ${role}`)).rows
     .length;
 
-  if (!exists) await db.execute(sql`create role ${name} nologin`);
+  if (!exists) await roleStatement(db, sql`create role ${name} nologin`);
   // Whatever the role was before, it ends without any privilege beyond logging in.
-  await db.execute(sql`alter role ${name} ${sql.raw(SAFE_ATTRIBUTES)}`);
+  await roleStatement(db, sql`alter role ${name} ${sql.raw(SAFE_ATTRIBUTES)}`);
+  const memberships = await roleStatement(
+    db,
+    sql`select p.rolname as parent from pg_auth_members m
+        join pg_roles p on p.oid = m.roleid
+        join pg_roles c on c.oid = m.member
+        where c.rolname = ${role}`,
+  );
+  for (const membership of memberships.rows) {
+    await roleStatement(db, sql`revoke ${sql.identifier(String(membership.parent))} from ${name}`);
+  }
   if (password === undefined) {
     const [current] = (
-      await db.execute(sql`select rolcanlogin from pg_roles where rolname = ${role}`)
+      await roleStatement(db, sql`select rolcanlogin from pg_roles where rolname = ${role}`)
     ).rows;
     return { login: current?.rolcanlogin === true, passwordSet: false };
   }
-  // DDL takes no parameters: let Postgres quote the password as a literal.
-  const [statement] = (
-    await db.execute(
-      sql`select format('alter role %I with login password %L', ${role}::text, ${password}::text) as statement`,
-    )
-  ).rows;
-  await db.execute(sql.raw(String(statement?.statement)));
+  // DDL takes no parameters: the verifier is base64 text, so quoting it is all it needs.
+  const verifier = scramSha256Verifier(password).replaceAll("'", "''");
+  await roleStatement(db, sql`alter role ${name} with login password ${sql.raw(`'${verifier}'`)}`);
   return { login: true, passwordSet: true };
 }

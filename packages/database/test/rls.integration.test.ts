@@ -109,6 +109,19 @@ async function seedScenario(admin: DatabaseExecutor): Promise<Scenario> {
   };
 }
 
+/**
+ * The rows of the one account (Sam) that is a trainer in A and B and a client in A, per table:
+ * what Sam may read through the own-account policies. Tables not listed hold none of Sam's rows.
+ */
+function samRows(scenario: Scenario, table: string): { a: string[]; b: string[] } {
+  const { sam } = scenario;
+  const byTable: Record<string, { a: string[]; b: string[] }> = {
+    team_members: { a: [sam.teamRoleInA], b: [sam.teamRoleInB] },
+    clients: { a: [sam.clientInA], b: [] },
+  };
+  return byTable[table] ?? { a: [], b: [] };
+}
+
 /** A snapshot of every table, read as the privileged role, to prove nothing changed. */
 async function snapshot(admin: DatabaseExecutor): Promise<Record<string, string>> {
   const result: Record<string, string> = {};
@@ -316,12 +329,7 @@ describe('E011 RLS as the app role', () => {
         for (const [table, factory] of Object.entries(isolationFactories)) {
           const found = await visible(tx, table, factory);
           const inA = found.filter((row) => row.scope === scenario.a).map((row) => row.id);
-          const expectedInA =
-            table === 'team_members'
-              ? [scenario.sam.teamRoleInA]
-              : table === 'clients'
-                ? [scenario.sam.clientInA]
-                : [];
+          const expectedInA = samRows(scenario, table).a;
           // Sam's own rows in A and nothing else of A: not the other trainers or clients.
           expect(inA, `${table} rows of A`).toEqual(expectedInA);
           expect(
@@ -361,13 +369,8 @@ describe('E011 RLS as the app role', () => {
         await setContext(tx, { accountId: scenario.sam.accountId });
         for (const [table, factory] of Object.entries(isolationFactories)) {
           const found = (await visible(tx, table, factory)).map((row) => row.id);
-          const own =
-            table === 'team_members'
-              ? [scenario.sam.teamRoleInA, scenario.sam.teamRoleInB]
-              : table === 'clients'
-                ? [scenario.sam.clientInA]
-                : [];
-          expect(found, table).toEqual([...own].sort());
+          const own = samRows(scenario, table);
+          expect(found, table).toEqual([...own.a, ...own.b].sort());
         }
       });
     });
