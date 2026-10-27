@@ -499,12 +499,12 @@ public enum Operations {
                 /// - Remark: Generated from `#/paths/v1/me/GET/responses/401/content`.
                 @frozen public enum Body: Sendable, Hashable {
                     /// - Remark: Generated from `#/paths/v1/me/GET/responses/401/content/application\/json`.
-                    case json(Components.Schemas.Unauthorized)
+                    case json(Components.Schemas.NotSignedIn)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
                     /// - Throws: An error if `self` is not `.json`.
                     /// - SeeAlso: `.json`.
-                    public var json: Components.Schemas.Unauthorized {
+                    public var json: Components.Schemas.NotSignedIn {
                         get throws {
                             switch self {
                             case let .json(body):
@@ -523,7 +523,7 @@ public enum Operations {
                     self.body = body
                 }
             }
-            /// No valid sign-in session or bearer token.
+            /// Nobody is signed in: no valid sign-in session or bearer token.
             ///
             /// - Remark: Generated from `#/paths//v1/me/get(getMe)/responses/401`.
             ///

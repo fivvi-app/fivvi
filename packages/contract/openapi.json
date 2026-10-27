@@ -24,6 +24,51 @@
       }
     },
     "schemas": {
+      "NotSignedIn": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "not_signed_in"
+            ]
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "The request has no valid sign-in session. Contains no user-facing text."
+      },
+      "NotFound": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "not_found"
+            ]
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "The workspace or record does not exist or is out of the caller’s reach; the answer is the same for both. Contains no user-facing text."
+      },
+      "Forbidden": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "forbidden"
+            ]
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "The caller has a place in the workspace, but not the access this route needs. Contains no user-facing text."
+      },
       "HealthResponse": {
         "type": "object",
         "properties": {
@@ -157,21 +202,6 @@
         ],
         "description": "The signed-in account."
       },
-      "Unauthorized": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "enum": [
-              "unauthorized"
-            ]
-          }
-        },
-        "required": [
-          "code"
-        ],
-        "description": "The request has no valid sign-in session. Contains no user-facing text."
-      },
       "SignInRequest": {
         "type": "object",
         "properties": {
@@ -201,6 +231,21 @@
         "required": [
           "token"
         ]
+      },
+      "Unauthorized": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "unauthorized"
+            ]
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "The request has no valid sign-in session. Contains no user-facing text."
       },
       "SignInTokenRequest": {
         "type": "object",
@@ -233,6 +278,9 @@
         ],
         "summary": "Health check",
         "description": "Pings the database. Railway uses it as the deploy health check, so a deployment that can't reach Postgres never receives traffic.",
+        "x-access": {
+          "type": "public"
+        },
         "responses": {
           "200": {
             "description": "The API and all its dependencies are healthy.",
@@ -265,6 +313,9 @@
         ],
         "summary": "Greeting for the walking skeleton",
         "description": "The `hello` greeting from the database. Without `locale`, the locale is the first supported language in the Accept-Language header, otherwise en.",
+        "x-access": {
+          "type": "public"
+        },
         "parameters": [
           {
             "schema": {
@@ -327,6 +378,9 @@
             "bearerAuth": []
           }
         ],
+        "x-access": {
+          "type": "account"
+        },
         "responses": {
           "200": {
             "description": "The account.",
@@ -339,11 +393,11 @@
             }
           },
           "401": {
-            "description": "No valid sign-in session or bearer token.",
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Unauthorized"
+                  "$ref": "#/components/schemas/NotSignedIn"
                 }
               }
             }
@@ -370,6 +424,9 @@
         ],
         "summary": "Ask for a sign-in email",
         "description": "Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.",
+        "x-access": {
+          "type": "public"
+        },
         "requestBody": {
           "required": true,
           "content": {
@@ -416,6 +473,9 @@
         ],
         "summary": "Exchange the emailed code for a bearer token",
         "description": "Uses up the verification of the email (the web’s link and code are the same one), creates the account at the first sign-in of an allowed address, and returns a bearer token. It sets no cookie. Every failure gets the same 401.",
+        "x-access": {
+          "type": "public"
+        },
         "requestBody": {
           "required": true,
           "content": {
@@ -484,6 +544,9 @@
             "bearerAuth": []
           }
         ],
+        "x-access": {
+          "type": "public"
+        },
         "responses": {
           "204": {
             "description": "The sign-in session has ended. The body is empty."

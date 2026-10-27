@@ -121,7 +121,7 @@ actor StubAPI: APIProtocol {
         case let .account(email):
             return .ok(.init(body: .json(.init(id: "2f6a1f0e-0000-4000-8000-000000000001", email: email))))
         case .unauthorized:
-            return .unauthorized(.init(body: .json(.init(code: .unauthorized))))
+            return .unauthorized(.init(body: .json(.init(code: .notSignedIn))))
         case let .status(code):
             return .undocumented(statusCode: code, .init())
         case .offline:

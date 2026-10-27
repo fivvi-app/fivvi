@@ -12,6 +12,69 @@ public import struct Foundation.Date
 extension Components {
     /// Types generated from the `#/components/schemas` section of the OpenAPI document.
     public enum Schemas {
+        /// The request has no valid sign-in session. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/NotSignedIn`.
+        public struct NotSignedIn: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/NotSignedIn/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case notSignedIn = "not_signed_in"
+            }
+            /// - Remark: Generated from `#/components/schemas/NotSignedIn/code`.
+            public var code: Components.Schemas.NotSignedIn.CodePayload
+            /// Creates a new `NotSignedIn`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.NotSignedIn.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
+        /// The workspace or record does not exist or is out of the caller’s reach; the answer is the same for both. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/NotFound`.
+        public struct NotFound: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/NotFound/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case notFound = "not_found"
+            }
+            /// - Remark: Generated from `#/components/schemas/NotFound/code`.
+            public var code: Components.Schemas.NotFound.CodePayload
+            /// Creates a new `NotFound`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.NotFound.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
+        /// The caller has a place in the workspace, but not the access this route needs. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Forbidden`.
+        public struct Forbidden: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/Forbidden/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case forbidden = "forbidden"
+            }
+            /// - Remark: Generated from `#/components/schemas/Forbidden/code`.
+            public var code: Components.Schemas.Forbidden.CodePayload
+            /// Creates a new `Forbidden`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.Forbidden.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
         /// Liveness of the API and its dependencies. Contains no error details.
         ///
         /// - Remark: Generated from `#/components/schemas/HealthResponse`.
@@ -222,27 +285,6 @@ extension Components {
                 case preferredLocale
             }
         }
-        /// The request has no valid sign-in session. Contains no user-facing text.
-        ///
-        /// - Remark: Generated from `#/components/schemas/Unauthorized`.
-        public struct Unauthorized: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/Unauthorized/code`.
-            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
-                case unauthorized = "unauthorized"
-            }
-            /// - Remark: Generated from `#/components/schemas/Unauthorized/code`.
-            public var code: Components.Schemas.Unauthorized.CodePayload
-            /// Creates a new `Unauthorized`.
-            ///
-            /// - Parameters:
-            ///   - code:
-            public init(code: Components.Schemas.Unauthorized.CodePayload) {
-                self.code = code
-            }
-            public enum CodingKeys: String, CodingKey {
-                case code
-            }
-        }
         /// Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.
         ///
         /// - Remark: Generated from `#/components/schemas/SignInRequest`.
@@ -285,6 +327,27 @@ extension Components {
             }
             public enum CodingKeys: String, CodingKey {
                 case token
+            }
+        }
+        /// The request has no valid sign-in session. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Unauthorized`.
+        public struct Unauthorized: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/Unauthorized/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case unauthorized = "unauthorized"
+            }
+            /// - Remark: Generated from `#/components/schemas/Unauthorized/code`.
+            public var code: Components.Schemas.Unauthorized.CodePayload
+            /// Creates a new `Unauthorized`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.Unauthorized.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
             }
         }
         /// - Remark: Generated from `#/components/schemas/SignInTokenRequest`.

@@ -18,6 +18,20 @@ packages/api (zod routes)
 - **An API change regenerates everything in the same PR.** `pnpm check` fails otherwise.
 - Contract paths don't include the `/api` mount prefix. It is the server URL (`servers[0].url`), so the API can move to its own host later without changing the contract.
 
+## Access: `x-access`
+
+Every operation declares who may call it in an `x-access` extension (E011). The routes are defined with `defineRoute(route, access)` (`packages/api/src/access.ts`); the same declaration installs the access middleware, ahead of request validation, and writes `x-access`, so enforcement and contract can't drift. The generators ignore `x-` extensions.
+
+| `x-access` | Who | Refusals documented on the operation |
+|---|---|---|
+| `{ "type": "public" }` | Anyone. Each one is on the allow-list in `packages/api/test/isolation/public-routes.ts` with a one-line reason | none |
+| `{ "type": "account" }` | Any signed-in account | `401` |
+| `{ "type": "workspace", "roles": [...], "client": "none" \| "own-records" }` | A team role of the workspace in the path, or a client of it for their own records | `401`, `404`, `403` |
+
+Refusals are machine-readable bodies without text: `NotSignedIn` (`401`, `not_signed_in`), `NotFound` (`404`, `not_found`) and `Forbidden` (`403`, `forbidden`). The order of checks is anonymous (`401`), no place in the workspace (`404`), a place without the access (`403`), and only then validation (`400`).
+
+`packages/api/test/isolation/coverage.test.ts` fails, naming the operation, for an operation without `x-access`, a public one that isn't on the allow-list, and an allow-list entry for an operation that no longer exists.
+
 ## Regenerate
 
 ```bash

@@ -56,7 +56,7 @@ final class SessionTests: XCTestCase {
     func test_F001N_AC9_unauthorizedDeletesTokenAndShowsNotice() async throws {
         let store = InMemorySessionStore(token: "expired")
         let session = Session(store: store)
-        let transport = StubTransport(status: .unauthorized, json: #"{"code":"unauthorized"}"#)
+        let transport = StubTransport(status: .unauthorized, json: #"{"code":"not_signed_in"}"#)
         let middleware = AuthMiddleware(store: store) { await session.tokenRejected() }
         let client = Client(
             serverURL: try XCTUnwrap(URL(string: "https://example.com/api")),

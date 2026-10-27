@@ -1,8 +1,15 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { provideDependencies } from './access.ts';
 import { type ApiDependencies, NO_DEPENDENCIES } from './dependencies.ts';
-import { INTERNAL_SERVER_ERROR, toValidationError } from './errors.ts';
+import {
+  ForbiddenSchema,
+  INTERNAL_SERVER_ERROR,
+  NotFoundSchema,
+  NotSignedInSchema,
+  toValidationError,
+} from './errors.ts';
 import { registerHealth } from './routes/health.ts';
 import { registerHello } from './routes/hello.ts';
 import { registerMe } from './routes/me.ts';
@@ -20,6 +27,8 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
       return undefined;
     },
   });
+  // Where the access middleware of every route finds the sign-in lookup (access.ts).
+  app.use(provideDependencies(dependencies));
   // After the response is ready, so a route's product events leave before the request ends.
   app.use(async (_c, next) => {
     await next();
@@ -49,9 +58,14 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
     description:
       'The token of `POST /v1/sign-in/token`: a sign-in session. Ended by `POST /v1/sign-out`.',
   });
+  // The refusals of the access a route declares (access.ts) are in the contract, whether or not a
+  // route of the moment can give each of them.
+  app.openAPIRegistry.register('NotSignedIn', NotSignedInSchema);
+  app.openAPIRegistry.register('NotFound', NotFoundSchema);
+  app.openAPIRegistry.register('Forbidden', ForbiddenSchema);
   registerHealth(app, dependencies);
   registerHello(app, dependencies);
-  registerMe(app, dependencies);
+  registerMe(app);
   registerSignIn(app, dependencies);
   return app;
 }
