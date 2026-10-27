@@ -1,8 +1,31 @@
 import { addClient } from '@fivvi/database/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createWorld, seedScenario, type World } from './harness.ts';
+import { ISOLATION_CASES } from './isolation-cases.ts';
+import { runIsolationSuite } from './suite.ts';
 
 type Scenario = Awaited<ReturnType<typeof seedScenario>>;
+
+describe('E011 isolation suite', () => {
+  let world: World;
+
+  beforeAll(async () => {
+    world = await createWorld();
+  });
+
+  afterAll(async () => {
+    await world?.close();
+  });
+
+  it('AC11: every workspace route, every actor: right status, no A data, A unchanged', async () => {
+    const result = await runIsolationSuite(world, ISOLATION_CASES);
+
+    expect(result.failures).toEqual([]);
+    // It must not pass by looking at nothing: every case was called, with a call per actor.
+    expect(result.operations.toSorted()).toEqual(Object.keys(ISOLATION_CASES).toSorted());
+    expect(result.calls).toBeGreaterThan(Object.keys(ISOLATION_CASES).length * 8);
+  });
+});
 
 describe('E011 account routes', () => {
   let world: World;

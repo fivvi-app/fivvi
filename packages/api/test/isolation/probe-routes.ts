@@ -93,18 +93,6 @@ export function registerProbeRoutes(app: OpenAPIHono): void {
     (c) => c.json({ page: c.req.valid('query').page, name: c.req.valid('json').name }, 200),
   );
 
-  // Writes, then answers 404: a failed request must not keep the write.
-  workspaces.openapi(
-    defineRoute(
-      { ...workspace('/probe/clients-then-not-found', 'probeCreateThenNotFound'), method: 'post' },
-      team,
-    ),
-    async (c) => {
-      await createClient(c.get('scope'), {});
-      return c.json(NOT_FOUND, 404);
-    },
-  );
-
   workspaces.openapi(defineRoute(workspace('/probe/own', 'probeOwn'), ownRecords), async (c) =>
     c.json(await describeScope(c.get('scope')), 200),
   );
@@ -153,4 +141,24 @@ export function registerProbeRoutes(app: OpenAPIHono): void {
     async (c) => c.json(await places(c.get('scope')), 200),
   );
   app.route('/', accounts);
+}
+
+/**
+ * Writes, then answers 404: a failed request must not keep the write. Not one of the probe
+ * routes of the isolation suite: its answer is not the one its access derives, so only the test
+ * of the rollback registers it.
+ */
+export function registerRollbackProbe(app: OpenAPIHono): void {
+  const workspaces = new OpenAPIHono<WorkspaceEnv>({ defaultHook: hook as never });
+  workspaces.openapi(
+    defineRoute(
+      { ...workspace('/probe/clients-then-not-found', 'probeCreateThenNotFound'), method: 'post' },
+      team,
+    ),
+    async (c) => {
+      await createClient(c.get('scope'), {});
+      return c.json(NOT_FOUND, 404);
+    },
+  );
+  app.route('/', workspaces);
 }
