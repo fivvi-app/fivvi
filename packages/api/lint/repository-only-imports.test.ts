@@ -105,6 +105,11 @@ const FORBIDDEN: Record<string, string> = {
 const ALLOWED = [
   "import type { SignedInAccount, TenantScopes } from '@fivvi/database';",
   "import { HELLO_GREETING, listMyWorkspaces, createClient } from '@fivvi/database';",
+  // What the packages/api/src of PR #264 imports from the package (startup.ts, access.ts,
+  // dependencies.ts, routes/hello.ts): a variable name and a type, neither opens a connection.
+  "import { APP_DATABASE_URL_VARIABLE, type ConnectionRoleReport } from '@fivvi/database';",
+  "import type { SignedInAccount, SystemGreetingView } from '@fivvi/database';",
+  "import { HELLO_GREETING } from '@fivvi/database';",
   "import { type ClientView, findClient } from '@fivvi/database';",
   "export { listClients } from '@fivvi/database';",
   "import { clientsOf } from '@fivvi/other';",
@@ -199,6 +204,11 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     deleteExpiredRateLimits: 'query of the rate limits, which have no tenant',
     recordWrongSignInCode: 'query of the sign-in verifications, which have no tenant',
     pingDatabase: 'runs SELECT 1 on the executor it is given; reads no data',
+    // PR #264 exports APP_DATABASE_URL_VARIABLE (a variable name) and ConnectionRoleReport (a type),
+    // and its packages/api/src/startup.ts imports both; neither opens a connection, so the rule does
+    // not forbid them (the ALLOWED fixtures above prove it). Whichever of #258 and #264 lands second
+    // adds both names here: adding them before the package exports them fails the "no longer
+    // exports" check below.
     // The tenant scope: the one way to the repositories.
     createTenantScopes: 'builds the scopes around an executor it is given; opens no connection',
     // Constants and types.
@@ -231,7 +241,15 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
   // have no runtime key, and a type of a handle is as good as the handle).
   async function exportedNames(): Promise<{ runtime: string[]; types: string[] }> {
     const index = await readFile(path.join(repoRoot, 'packages/database/src/index.ts'), 'utf8');
-    const types = [...index.matchAll(/\btype (\w+)/g)].map((m) => m[1] ?? '');
+    const inline = [...index.matchAll(/\btype (\w+)/g)].map((m) => m[1] ?? '');
+    // `export type { A, B } from …` blocks name their types without a `type` keyword before each.
+    const blocks = [...index.matchAll(/\bexport type \{([^}]*)\}/g)].flatMap((m) =>
+      (m[1] ?? '')
+        .split(',')
+        .map((item) => (item.split(/\bas\b/).pop() ?? '').trim())
+        .filter(Boolean),
+    );
+    const types = [...inline, ...blocks];
     return { runtime: Object.keys(database), types };
   }
 

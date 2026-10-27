@@ -24,9 +24,11 @@ pattern database_module() { r".@fivvi/database." }
 // types a connection: createDatabase, createDatabaseFromEnv and, from the app-role work (PR #264),
 // createAppDatabaseFromEnv, openPrivilegedDatabase and its allow-list, inspectConnectionRole and the
 // config readers. Database, DatabaseClient and DatabaseExecutor type a handle. The names of #264 are here
-// before it merges, so the rule holds whichever PR lands first.
+// before it merges, so the rule holds whichever PR lands first. APP_DATABASE_URL_VARIABLE (a variable
+// name) and ConnectionRoleReport (a type) are not here: they open no connection, and the startup check
+// of packages/api/src in #264 imports them.
 pattern table_or_handle() {
-  r"(?:authUsers|authSessions|authIdentities|authVerifications|authRateLimits|organizations|systemGreetings|teamMembers|clients|businessTable|teamRole|APP_ROLE|createDatabase|createDatabaseFromEnv|createAppDatabaseFromEnv|openPrivilegedDatabase|PRIVILEGED_ALLOW_LIST|PRIVILEGED_USES|PrivilegedOptions|PrivilegedReason|inspectConnectionRole|ConnectionRoleReport|readDatabaseConfig|APP_DATABASE_URL_VARIABLE|DatabaseConfig|Database|DatabaseClient|DatabaseExecutor)"
+  r"(?:authUsers|authSessions|authIdentities|authVerifications|authRateLimits|organizations|systemGreetings|teamMembers|clients|businessTable|teamRole|APP_ROLE|createDatabase|createDatabaseFromEnv|createAppDatabaseFromEnv|openPrivilegedDatabase|PRIVILEGED_ALLOW_LIST|PRIVILEGED_USES|PrivilegedOptions|PrivilegedReason|inspectConnectionRole|readDatabaseConfig|DatabaseConfig|Database|DatabaseClient|DatabaseExecutor)"
 }
 
 // A module that gives a handle, a query builder or a test helper, or a path into the source of the
