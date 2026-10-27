@@ -84,7 +84,7 @@ A rejected or broken upload never changes what testers already have. Never reuse
 | Step | Cost | Who decides |
 |---|---|---|
 | Apple Developer Program (company membership) | Verified in [#148](https://github.com/fivvi-app/fivvi/issues/148) (organization membership, active); renewal depends on it | Owner |
-| **Google Play Console enrollment** | **One-off US$25**, only if no verified account exists yet (the cost is stated in [spec #169](https://github.com/fivvi-app/fivvi/issues/169); [`ROADMAP.md §12`](../product/ROADMAP.md) has the distribution cost lines) | **Owner approves the spend before anything is enrolled** |
+| **Google Play Console enrollment** | **None**: the organisation account is verified, so no enrollment is needed ([#149](https://github.com/fivvi-app/fivvi/issues/149); [`ROADMAP.md §12`](../product/ROADMAP.md) has the distribution cost lines) | **Owner approves the spend before anything is enrolled** |
 | GitHub Actions on the public repo (macOS included), TestFlight, Play internal testing, Sentry free plan | Free | |
 
 ## 8. Owner checklist
