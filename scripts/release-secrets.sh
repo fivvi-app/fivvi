@@ -178,6 +178,8 @@ do_android() {
   store_keystore "$keystore" "$alias" "$store_password" "$VALUE"
 }
 
+keytool_ok() { command -v keytool >/dev/null && keytool -help >/dev/null 2>&1; }
+
 do_android_keystore() {
   OPT_dir="$HOME/fivvi-release-keys"
   parse_options "dir" "$@"
@@ -185,8 +187,8 @@ do_android_keystore() {
   keystore="$(absolute "$OPT_dir")/fivvi-pro-upload.p12"
   die_if_in_repo "$keystore"
   [ ! -e "$keystore" ] || die "$keystore exists already: use 'android --keystore' for it, or move it away"
-  command -v keytool >/dev/null || use_brew_java || true
-  need_cmd keytool
+  # macOS ships a keytool stub that fails without a system JDK, so `command -v` proves nothing: run it.
+  keytool_ok || { use_brew_java && keytool_ok; } || die "no working keytool (Java) found — run scripts/bootstrap.sh"
   echo "Choose a password for the new upload keystore. Keep it in your password manager with the backup of the file." >&2
   ask_secret "New keystore password (also the key password)"
   password="$VALUE"
