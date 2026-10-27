@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp, NO_DEPENDENCIES } from '../../src/index.ts';
 import { clientsOf, createWorld, seedScenario, type World } from './harness.ts';
+import { registerRollbackProbe } from './probe-routes.ts';
 
 type Operation = { operationId: string; 'x-access'?: { type: string } };
 const contract: { paths: Record<string, Record<string, Operation>> } = JSON.parse(
@@ -69,6 +70,7 @@ describe('E011 the caller’s place in the workspace', () => {
 
   beforeAll(async () => {
     world = await createWorld();
+    registerRollbackProbe(world.api);
     s = await seedScenario(world);
   });
 
