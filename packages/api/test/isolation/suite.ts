@@ -81,23 +81,34 @@ async function businessTables(world: World): Promise<string[]> {
   return ['organizations', ...(rows as { table_name: string }[]).map((row) => row.table_name)];
 }
 
-type Ledger = Map<string, TokenOwner & { clientIds: Set<string> }>;
+/**
+ * Whose a token is. One owner, except for the tokens of an account that has a place in several
+ * workspaces (Sam): its id appears in the rows of each, and each is an owner of it.
+ */
+type Ledger = Map<string, (TokenOwner & { clientIds: Set<string> })[]>;
 
 /**
  * The ids and markers of every record of every workspace, and whose they are: a row's uuids,
  * and the markers in its text (a name, a note's body), belong to its workspace, and to its
  * client where it has a `client_id` (or is a client). Markers of accounts (email, name) belong
- * to wherever the account id appears.
+ * to wherever the account id appears. A record shared by two workspaces is an error in the
+ * scenario; only an account may appear in several.
  */
 function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
   const ledger: Ledger = new Map();
+  const accountIds = new Set(scenario.accounts.map((account) => account.id));
   const claim = (token: string, workspaceId: string, clientId: string | undefined) => {
-    const entry = ledger.get(token) ?? { workspaceId, clientIds: new Set<string>() };
-    if (entry.workspaceId !== workspaceId) {
-      throw new Error(`${token} appears in two workspaces: the scenario shares a record.`);
+    const owners = ledger.get(token) ?? [];
+    let entry = owners.find((owner) => owner.workspaceId === workspaceId);
+    if (!entry) {
+      if (owners.length > 0 && !accountIds.has(token)) {
+        throw new Error(`${token} appears in two workspaces: the scenario shares a record.`);
+      }
+      entry = { workspaceId, clientIds: new Set<string>() };
+      owners.push(entry);
     }
     if (clientId) entry.clientIds.add(clientId);
-    ledger.set(token, entry);
+    ledger.set(token, owners);
   };
   for (const { table, workspaceId, row } of rows) {
     claim(workspaceId, workspaceId, undefined);
@@ -112,10 +123,10 @@ function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
     }
   }
   for (const account of scenario.accounts) {
-    const entry = ledger.get(account.id);
-    if (!entry) continue;
-    ledger.set(account.email, entry);
-    ledger.set(account.marker, entry);
+    const owners = ledger.get(account.id);
+    if (!owners) continue;
+    ledger.set(account.email, owners);
+    ledger.set(account.marker, owners);
   }
   return ledger;
 }
@@ -142,6 +153,22 @@ interface PlannedCall {
   /** The seeded records to name in the path: `[workspace, client]`. */
   records: [workspaceId: string, clientId: string] | undefined;
   kind: RecordKind;
+}
+
+/**
+ * Sam (trainer in A, owner of B, client of A): in A with another client's record, with his own
+ * client's and with B's; in B with another client's and with A's; in C, where he has no place.
+ */
+function samCalls(s: Scenario): PlannedCall[] {
+  const { sam } = s.actors;
+  return [
+    { actor: sam, workspaceId: s.a, records: [s.a, s.clients.a.other], kind: 'other-client' },
+    { actor: sam, workspaceId: s.a, records: [s.a, s.clients.a.sam], kind: 'own' },
+    { actor: sam, workspaceId: s.a, records: [s.b, s.clients.b.other], kind: 'foreign-workspace' },
+    { actor: sam, workspaceId: s.b, records: [s.b, s.clients.b.other], kind: 'other-client' },
+    { actor: sam, workspaceId: s.b, records: [s.a, s.clients.a.other], kind: 'foreign-workspace' },
+    { actor: sam, workspaceId: s.c, records: [s.c, s.clients.c.other], kind: 'other-client' },
+  ];
 }
 
 /** The calls made to a workspace route: who, in whose path, naming whose records. */
@@ -186,6 +213,8 @@ function planWorkspaceCalls(s: Scenario, hasRecords: boolean): PlannedCall[] {
         kind: 'foreign-workspace',
       }),
     ),
+    // Sam, in each of his workspaces and in C, with its own records and the others'.
+    ...samCalls(s),
     {
       actor: actors.ownerB,
       workspaceId: s.b,
@@ -223,13 +252,21 @@ function planAccountCalls(s: Scenario): PlannedCall[] {
   }));
 }
 
+export interface SuiteOptions {
+  /** Seeded already, for a run that changed the standard actors first (a team role that ended). */
+  scenario?: Scenario;
+  /** Make only the calls of the actors this accepts (every record is still seeded and watched). */
+  only?: (actor: Actor) => boolean;
+}
+
 export async function runIsolationSuite(
   world: World,
   cases: Readonly<Record<string, IsolationCase>>,
+  options: SuiteOptions = {},
 ): Promise<SuiteResult> {
   const failures: string[] = [];
   const result: SuiteResult = { failures, calls: 0, operations: [] };
-  const scenario = await seedActors(world);
+  const scenario = options.scenario ?? (await seedActors(world));
   const tables = await businessTables(world);
   const document = buildOpenApiDocument(world.api) as unknown as ContractDocument;
   const operations = describeOperations(document).filter(
@@ -248,11 +285,12 @@ export async function runIsolationSuite(
 
     // The route's records in A and B, for every client of each.
     const seeded = new Map<string, Record<string, string>>();
-    for (const [workspaceId, clients] of [
-      [scenario.a, scenario.clients.a],
-      [scenario.b, scenario.clients.b],
+    for (const [workspaceId, clientIds] of [
+      [scenario.a, Object.values(scenario.clients.a)],
+      [scenario.b, Object.values(scenario.clients.b)],
+      [scenario.c, Object.values(scenario.clients.c)],
     ] as const) {
-      for (const clientId of [clients.own, clients.other]) {
+      for (const clientId of clientIds) {
         seeded.set(
           `${workspaceId} ${clientId}`,
           (await isolationCase.seed?.(world.admin.db, { workspaceId, clientId })) ?? {},
@@ -284,7 +322,7 @@ export async function runIsolationSuite(
       access.type === 'account'
         ? planAccountCalls(scenario)
         : planWorkspaceCalls(scenario, hasRecords);
-    for (const planned of plan) {
+    for (const planned of plan.filter(({ actor }) => options.only?.(actor) ?? true)) {
       const values = planned.records ? (seeded.get(planned.records.join(' ')) ?? {}) : {};
       const path = operation.path
         .replaceAll('{workspaceId}', planned.workspaceId)
@@ -335,10 +373,12 @@ export async function runIsolationSuite(
 
       // 2. Nothing of a record the actor may not see.
       const leaked = [...ledger].filter(
-        ([token, owner]) => text.includes(token) && !mayShow(facts, token, owner),
+        ([token, owners]) =>
+          text.includes(token) && !owners.some((owner) => mayShow(facts, token, owner)),
       );
       if (leaked.length > 0) {
-        const [token, owner] = leaked[0] as [string, TokenOwner];
+        const [token, owners] = leaked[0] as [string, TokenOwner[]];
+        const owner = owners[0] as TokenOwner;
         const whose = scenario.labels[owner.workspaceId] ?? 'another workspace';
         failures.push(
           `${label}: the response holds ${leaked.length} id or marker the actor may not see, for example ${token} of ${whose}${owner.clientIds.size > 0 ? ' (a client’s record)' : ''}.`,
@@ -360,7 +400,8 @@ export async function runIsolationSuite(
       if (response.status >= 200 && response.status < 300) {
         const seededTokens = [...new Set([...seeded.values()].flatMap((v) => Object.values(v)))]
           .map((token): [string, TokenOwner] | undefined => {
-            const owner = ledger.get(token);
+            const owners = ledger.get(token);
+            const owner = owners?.find((o) => mayShow(facts, token, o)) ?? owners?.[0];
             return owner ? [token, owner] : undefined;
           })
           .filter((entry) => entry !== undefined);
@@ -373,7 +414,8 @@ export async function runIsolationSuite(
         );
         if (missing.length > 0) {
           const token = missing[0] as string;
-          const whose = scenario.labels[ledger.get(token)?.workspaceId ?? ''] ?? 'the workspace';
+          const whose =
+            scenario.labels[ledger.get(token)?.[0]?.workspaceId ?? ''] ?? 'the workspace';
           failures.push(
             `${label}: the response lacks ${missing.length} record the actor may see, for example ${token} of ${whose}.`,
           );
