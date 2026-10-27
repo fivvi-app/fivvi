@@ -110,6 +110,31 @@ function sqlState(error: unknown): string | undefined {
 }
 
 /**
+ * The advisory lock that serialises changes to the app role on one server. `ALTER ROLE` on one
+ * role from two sessions at once fails with "tuple concurrently updated", and a CI run does that:
+ * parallel test workers release databases while other packages' global setups prepare the test
+ * roles. Every writer takes this lock first, inside the transaction that changes the role.
+ *
+ * `@fivvi/testing` cannot import this package (this one depends on it for its tests), so
+ * `ensureTestRoles` keeps the same number in `ROLE_LOCK`; `app-role.test.ts` asserts they match.
+ */
+export const APP_ROLE_LOCK_KEY = 7_011_253;
+
+/** An error that is safe to show: it holds no statement, parameter or password. */
+class AppRoleError extends Error {}
+
+/** The error as it may leave this module: ours as it is, anything else by SQLSTATE only. */
+function safeError(error: unknown): Error {
+  if (error instanceof AppRoleError) return error;
+  const state = sqlState(error);
+  return new AppRoleError(
+    state
+      ? `The app role could not be set up (SQLSTATE ${state}).`
+      : 'The app role could not be set up (not a database error).',
+  );
+}
+
+/**
  * Runs a statement on the role. A failure is rethrown with only the SQLSTATE: Drizzle's error
  * carries the query and its parameters, and a statement that sets the password must never put
  * them (or the driver's message) in a deploy log.
@@ -118,12 +143,7 @@ async function roleStatement(db: DatabaseExecutor, statement: ReturnType<typeof 
   try {
     return await db.execute(statement);
   } catch (error) {
-    const state = sqlState(error);
-    throw new Error(
-      state
-        ? `The app role could not be set up (SQLSTATE ${state}).`
-        : 'The app role could not be set up (not a database error).',
-    );
+    throw safeError(error);
   }
 }
 
@@ -159,41 +179,57 @@ export async function ensureAppRole(
       `The app role password must be at least ${MINIMUM_PASSWORD_LENGTH} characters (the value is not shown).`,
     );
   }
-  const name = sql.identifier(role);
-  const exists = (await roleStatement(db, sql`select 1 from pg_roles where rolname = ${role}`)).rows
-    .length;
+  try {
+    // One transaction, after the lock: concurrent callers (and `ensureTestRoles`) take turns. Given
+    // a transaction already, Drizzle nests it as a savepoint; the lock is taken first either way
+    // and held until the outermost transaction ends.
+    return await db.transaction(async (tx) => {
+      await roleStatement(tx, sql`select pg_advisory_xact_lock(${APP_ROLE_LOCK_KEY})`);
+      const name = sql.identifier(role);
+      const exists = (await roleStatement(tx, sql`select 1 from pg_roles where rolname = ${role}`))
+        .rows.length;
 
-  if (!exists) await roleStatement(db, sql`create role ${name} nologin`);
-  // Whatever the role was before, it ends without any privilege beyond logging in.
-  await roleStatement(db, sql`alter role ${name} ${sql.raw(SAFE_ATTRIBUTES)}`);
-  const memberships = await roleStatement(
-    db,
-    sql`select p.rolname as parent from pg_auth_members m
-        join pg_roles p on p.oid = m.roleid
-        join pg_roles c on c.oid = m.member
-        where c.rolname = ${role}`,
-  );
-  for (const membership of memberships.rows) {
-    await roleStatement(db, sql`revoke ${sql.identifier(String(membership.parent))} from ${name}`);
+      if (!exists) await roleStatement(tx, sql`create role ${name} nologin`);
+      // Whatever the role was before, it ends without any privilege beyond logging in.
+      await roleStatement(tx, sql`alter role ${name} ${sql.raw(SAFE_ATTRIBUTES)}`);
+      const memberships = await roleStatement(
+        tx,
+        sql`select p.rolname as parent from pg_auth_members m
+          join pg_roles p on p.oid = m.roleid
+          join pg_roles c on c.oid = m.member
+          where c.rolname = ${role}`,
+      );
+      for (const membership of memberships.rows) {
+        await roleStatement(
+          tx,
+          sql`revoke ${sql.identifier(String(membership.parent))} from ${name}`,
+        );
+      }
+      // From PG16 a revoke only removes the grants of the current grantor; another grantor's stays.
+      const remaining = await roleStatement(
+        tx,
+        sql`select 1 from pg_auth_members m join pg_roles c on c.oid = m.member where c.rolname = ${role}`,
+      );
+      if (remaining.rows.length) {
+        throw new AppRoleError(
+          'The app role is still a member of another role after the revoke (granted by another role); remove that membership first.',
+        );
+      }
+      if (password === undefined) {
+        const [current] = (
+          await roleStatement(tx, sql`select rolcanlogin from pg_roles where rolname = ${role}`)
+        ).rows;
+        return { login: current?.rolcanlogin === true, passwordSet: false };
+      }
+      // DDL takes no parameters: the verifier is base64 text, so quoting it is all it needs.
+      const verifier = scramSha256Verifier(password).replaceAll("'", "''");
+      await roleStatement(
+        tx,
+        sql`alter role ${name} with login password ${sql.raw(`'${verifier}'`)}`,
+      );
+      return { login: true, passwordSet: true };
+    });
+  } catch (error) {
+    throw safeError(error);
   }
-  // From PG16 a revoke only removes the grants of the current grantor; another grantor's stays.
-  const remaining = await roleStatement(
-    db,
-    sql`select 1 from pg_auth_members m join pg_roles c on c.oid = m.member where c.rolname = ${role}`,
-  );
-  if (remaining.rows.length) {
-    throw new Error(
-      'The app role is still a member of another role after the revoke (granted by another role); remove that membership first.',
-    );
-  }
-  if (password === undefined) {
-    const [current] = (
-      await roleStatement(db, sql`select rolcanlogin from pg_roles where rolname = ${role}`)
-    ).rows;
-    return { login: current?.rolcanlogin === true, passwordSet: false };
-  }
-  // DDL takes no parameters: the verifier is base64 text, so quoting it is all it needs.
-  const verifier = scramSha256Verifier(password).replaceAll("'", "''");
-  await roleStatement(db, sql`alter role ${name} with login password ${sql.raw(`'${verifier}'`)}`);
-  return { login: true, passwordSet: true };
 }
