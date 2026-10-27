@@ -25,20 +25,36 @@ import { migrationsFolder, runMigrations } from '../src/migrate.ts';
 import { release } from '../src/release.ts';
 import { resetRateLimits } from '../src/reset-rate-limits.ts';
 import { seed } from '../src/seed.ts';
+import { findTenancyViolations, type TenancyRules } from './conventions.ts';
 
 /**
- * Tables that are not business data and therefore have no `organization_id`.
- * Adding a table here needs a reason in the PR (AGENTS.md, ADR-006).
+ * Tables that are not business data and therefore have no `organization_id`, each with the
+ * reason. Adding a table here needs a reason in the PR (AGENTS.md, ADR-006).
  */
-const NON_BUSINESS_TABLES = [
-  'system_greetings',
+const NON_BUSINESS_TABLES: Record<string, string> = {
+  system_greetings: 'System data read by every workspace and the public hello slice (M1).',
   // Sign-in tables (F001): an account is global and shared by every workspace of its person.
-  'auth_identities',
-  'auth_rate_limits',
-  'auth_sessions',
-  'auth_users',
-  'auth_verifications',
-];
+  auth_identities: 'Sign-in identity of a global account (F001, ADR-007).',
+  auth_rate_limits: 'Sign-in rate limit counters, keyed by hashes, not by workspace (F001).',
+  auth_sessions: 'Sign-in session of a global account (F001, ADR-007).',
+  auth_users: 'The global account of a person, shared by every workspace (F001, ADR-007).',
+  auth_verifications: 'Emailed sign-in link and code of a global account (F001).',
+};
+
+/** Reviewed `SECURITY DEFINER` functions in `public`. None yet: every function runs as its caller. */
+const DEFINER_FUNCTIONS: string[] = [];
+
+/** Permissive policies a business table may have next to the standard one (reviewed). */
+const EXTRA_POLICIES: Record<string, string[]> = {
+  clients: ['clients_own_account'],
+  team_members: ['team_members_own_account'],
+};
+
+const RULES: TenancyRules = {
+  nonBusinessTables: NON_BUSINESS_TABLES,
+  definerFunctions: DEFINER_FUNCTIONS,
+  extraPolicies: EXTRA_POLICIES,
+};
 
 interface Journal {
   entries: { tag: string }[];
@@ -339,21 +355,155 @@ describe('E004 database', () => {
       }
     });
 
-    it('puts organization_id on every business table', async () => {
-      const tables = await publicTables(db);
-      const withOrganization = await rows<{ table_name: string }>(
-        db,
-        sql`select table_name from information_schema.columns
-            where table_schema = 'public' and column_name = 'organization_id'`,
-      );
-      const scoped = new Set(withOrganization.map((row) => row.table_name));
+    it('AC1: every business table has organization_id, forced RLS, the workspace policy and an index', async () => {
+      await withRollback(db, async (tx) => {
+        expect(await findTenancyViolations(tx, RULES)).toEqual([]);
 
-      // The allow-list must only name tables that exist.
-      expect(tables).toEqual(expect.arrayContaining(NON_BUSINESS_TABLES));
-      const unscoped = tables.filter(
-        (table) => !scoped.has(table) && !NON_BUSINESS_TABLES.includes(table),
-      );
-      expect(unscoped).toEqual([]);
+        // The allow-list and the business tables together are all of `public`.
+        const tables = await publicTables(tx);
+        expect(tables).toEqual(
+          expect.arrayContaining([...Object.keys(NON_BUSINESS_TABLES), 'organizations']),
+        );
+        for (const reason of Object.values(NON_BUSINESS_TABLES)) {
+          expect(reason.length).toBeGreaterThan(10);
+        }
+        // The first business tables are protected, not on the allow-list.
+        expect(tables).toEqual(expect.arrayContaining(['team_members', 'clients']));
+        expect(Object.keys(NON_BUSINESS_TABLES)).not.toContain('team_members');
+        expect(Object.keys(NON_BUSINESS_TABLES)).not.toContain('clients');
+      });
+    });
+
+    it('AC1: accepts a table that has all of it', async () => {
+      await withRollback(db, async (tx) => {
+        await createBusinessTable(tx, 'probe');
+        expect(await findTenancyViolations(tx, RULES)).toEqual([]);
+      });
+    });
+
+    it.each(PROBE_DEFECTS)(
+      'AC1: fails for a table with $name, naming the table',
+      async (defect) => {
+        await withRollback(db, async (tx) => {
+          await createBusinessTable(tx, 'probe', defect.options);
+
+          const violations = await findTenancyViolations(tx, RULES);
+
+          expect(violations).toEqual(
+            expect.arrayContaining([expect.stringMatching(defect.message)]),
+          );
+          for (const violation of violations) expect(violation).toMatch(/^probe: /);
+        });
+      },
+    );
+
+    it('AC1: fails for a table that is neither business, workspace nor allow-listed', async () => {
+      await withRollback(db, async (tx) => {
+        await tx.execute(sql`create table stray (id uuid primary key default gen_random_uuid())`);
+
+        const violations = await findTenancyViolations(tx, RULES);
+
+        expect(violations).toEqual(
+          expect.arrayContaining([expect.stringMatching(/^stray: missing organization_id column/)]),
+        );
+      });
+    });
+
+    it('AC1: fails when the workspace table is not filtered on id', async () => {
+      await withRollback(db, async (tx) => {
+        await tx.execute(sql`drop policy organizations_workspace on organizations`);
+        await tx.execute(
+          sql`create policy organizations_workspace on organizations to fivvi_app
+              using (true) with check (true)`,
+        );
+
+        expect(await findTenancyViolations(tx, RULES)).toEqual(
+          expect.arrayContaining([
+            expect.stringMatching(/^organizations: missing the workspace policy/),
+          ]),
+        );
+      });
+    });
+
+    it('AC2: foreign keys between business tables include organization_id; no definer views or functions', async () => {
+      await withRollback(db, async (tx) => {
+        // The real schema: composite foreign keys, no views, no definer functions.
+        expect(await findTenancyViolations(tx, RULES)).toEqual([]);
+
+        // A foreign key on the id alone could point into another workspace.
+        await createBusinessTable(tx, 'parent');
+        await createBusinessTable(tx, 'child');
+        await tx.execute(sql`alter table child add column parent_id uuid not null`);
+        await tx.execute(
+          sql`alter table child add constraint child_parent_fk foreign key (parent_id) references parent (id)`,
+        );
+        expect(await findTenancyViolations(tx, RULES)).toEqual([
+          expect.stringMatching(
+            /^child: foreign key child_parent_fk to parent must include organization_id/,
+          ),
+        ]);
+
+        // The composite foreign key is fine.
+        await tx.execute(sql`alter table child drop constraint child_parent_fk`);
+        await tx.execute(
+          sql`alter table child add constraint child_parent_fk
+              foreign key (organization_id, parent_id) references parent (organization_id, id)`,
+        );
+        expect(await findTenancyViolations(tx, RULES)).toEqual([]);
+
+        // A view runs with its owner's rights unless it is security_invoker.
+        await tx.execute(sql`create view parent_view as select id from parent`);
+        expect(await findTenancyViolations(tx, RULES)).toEqual([
+          expect.stringMatching(/^parent_view: view on parent is not security_invoker/),
+        ]);
+        await tx.execute(sql`drop view parent_view`);
+        await tx.execute(
+          sql`create view parent_view with (security_invoker = true) as select id from parent`,
+        );
+        expect(await findTenancyViolations(tx, RULES)).toEqual([]);
+
+        // A security definer function bypasses RLS for its caller.
+        await tx.execute(
+          sql`create function peek() returns bigint language sql security definer
+              as 'select count(*) from parent'`,
+        );
+        expect(await findTenancyViolations(tx, RULES)).toEqual([
+          expect.stringMatching(/^peek: SECURITY DEFINER function is not on the reviewed list/),
+        ]);
+        expect(await findTenancyViolations(tx, { ...RULES, definerFunctions: ['peek'] })).toEqual(
+          [],
+        );
+      });
+    });
+
+    it('AC2: a view or SECURITY DEFINER function outside public is checked too', async () => {
+      await withRollback(db, async (tx) => {
+        await createBusinessTable(tx, 'parent');
+        await tx.execute(sql`create schema reporting`);
+
+        await tx.execute(sql`create view reporting.parent_view as select id from parent`);
+        expect(await findTenancyViolations(tx, RULES)).toEqual([
+          expect.stringMatching(/^reporting\.parent_view: view on parent is not security_invoker/),
+        ]);
+        await tx.execute(sql`drop view reporting.parent_view`);
+        await tx.execute(
+          sql`create view reporting.parent_view with (security_invoker = true) as select id from parent`,
+        );
+        expect(await findTenancyViolations(tx, RULES)).toEqual([]);
+
+        await tx.execute(
+          sql`create function reporting.peek() returns bigint language sql security definer
+              as 'select count(*) from parent'`,
+        );
+        expect(await findTenancyViolations(tx, RULES)).toEqual([
+          expect.stringMatching(
+            /^reporting\.peek: SECURITY DEFINER function is not on the reviewed list/,
+          ),
+        ]);
+        expect(
+          await findTenancyViolations(tx, { ...RULES, definerFunctions: ['reporting.peek'] }),
+        ).toEqual([]);
+      });
     });
   });
 });
@@ -366,4 +516,127 @@ async function publicTables(db: DatabaseExecutor): Promise<string[]> {
         order by table_name`,
   );
   return tables.map((row) => row.table_name);
+}
+
+interface ProbeOptions {
+  /** `none`: no column; `nullable`; `plain`: not null but no foreign key. */
+  column?: 'none' | 'nullable' | 'plain' | 'ok';
+  index?: boolean;
+  rls?: 'off' | 'enabled' | 'forced';
+  policy?: 'standard' | 'none' | 'read-only' | 'no-check' | 'other-column' | 'other-role' | 'open';
+  /** An extra permissive policy that nobody reviewed. */
+  extra?: boolean;
+}
+
+const PROBE_DEFECTS: { name: string; options: ProbeOptions; message: RegExp }[] = [
+  {
+    name: 'no organization_id',
+    options: { column: 'none', policy: 'none' },
+    message: /missing organization_id column/,
+  },
+  {
+    name: 'a nullable organization_id',
+    options: { column: 'nullable' },
+    message: /organization_id must be a non-null uuid/,
+  },
+  {
+    name: 'an organization_id without a foreign key',
+    options: { column: 'plain' },
+    message: /organization_id does not reference organizations/,
+  },
+  {
+    name: 'no index on organization_id',
+    options: { index: false },
+    message: /missing an index that starts with organization_id/,
+  },
+  {
+    name: 'RLS off',
+    options: { rls: 'off', policy: 'standard' },
+    message: /row-level security is not enabled/,
+  },
+  {
+    name: 'RLS not forced',
+    options: { rls: 'enabled' },
+    message: /row-level security is not forced/,
+  },
+  {
+    name: 'no policy',
+    options: { policy: 'none' },
+    message: /missing the workspace policy for fivvi_app .* on SELECT, UPDATE, DELETE, INSERT/,
+  },
+  {
+    name: 'a read-only policy',
+    options: { policy: 'read-only' },
+    message: /missing the workspace policy for fivvi_app .* on UPDATE, DELETE, INSERT/,
+  },
+  {
+    name: 'a policy without WITH CHECK',
+    options: { policy: 'no-check' },
+    message: /missing the workspace policy for fivvi_app .* on INSERT, UPDATE/,
+  },
+  {
+    name: 'a policy on another column',
+    options: { policy: 'other-column' },
+    message: /missing the workspace policy/,
+  },
+  {
+    name: 'a policy for another role',
+    options: { policy: 'other-role' },
+    message: /missing the workspace policy/,
+  },
+  { name: 'an open policy', options: { policy: 'open' }, message: /missing the workspace policy/ },
+  {
+    name: 'an unreviewed extra policy',
+    options: { extra: true },
+    message: /unreviewed permissive policy probe_extra/,
+  },
+];
+
+/** Creates a business table in the current transaction, with the defects asked for. */
+async function createBusinessTable(
+  tx: DatabaseExecutor,
+  name: string,
+  options: ProbeOptions = {},
+): Promise<void> {
+  const {
+    column = 'ok',
+    index = true,
+    rls = 'forced',
+    policy = 'standard',
+    extra = false,
+  } = options;
+  const organizationColumn = {
+    none: '',
+    nullable: ', organization_id uuid references organizations (id)',
+    plain: ', organization_id uuid not null',
+    ok: ', organization_id uuid not null references organizations (id)',
+  }[column];
+  const run = (statement: string) => tx.execute(sql.raw(statement));
+
+  await run(
+    `create table ${name} (id uuid primary key default gen_random_uuid()${organizationColumn}${
+      column === 'none' ? '' : `, unique (organization_id, id)`
+    })`,
+  );
+  if (index && column !== 'none') await run(`create index on ${name} (organization_id)`);
+  if (!index && column !== 'none') {
+    // The unique constraint also starts with organization_id: drop it so the index is truly missing.
+    await run(`alter table ${name} drop constraint ${name}_organization_id_id_key`);
+  }
+  if (rls !== 'off') await run(`alter table ${name} enable row level security`);
+  if (rls === 'forced') await run(`alter table ${name} force row level security`);
+
+  const scope = 'organization_id = any (app_workspace_ids())';
+  const policies = {
+    standard: `create policy ${name}_workspace on ${name} to fivvi_app using (${scope}) with check (${scope})`,
+    'read-only': `create policy ${name}_workspace on ${name} for select to fivvi_app using (${scope})`,
+    'no-check': `create policy ${name}_workspace on ${name} to fivvi_app using (${scope})`,
+    'other-column': `create policy ${name}_workspace on ${name} to fivvi_app using (id = any (app_workspace_ids())) with check (id = any (app_workspace_ids()))`,
+    'other-role': `create policy ${name}_workspace on ${name} to public using (${scope}) with check (${scope})`,
+    open: `create policy ${name}_workspace on ${name} to fivvi_app using (true) with check (true)`,
+    none: null,
+  }[policy];
+  if (policies) await run(policies);
+  if (extra)
+    await run(`create policy ${name}_extra on ${name} for select to fivvi_app using (true)`);
 }
