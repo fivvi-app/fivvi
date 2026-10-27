@@ -72,6 +72,8 @@ function withoutComments(content: string): string {
 }
 
 const VARIABLE = /(?<![A-Za-z0-9_])DATABASE_URL(?![A-Za-z0-9_])/;
+/** The name of the constant that holds the variable: reading through it is reading the variable. */
+const VARIABLE_CONSTANT = /(?<![A-Za-z0-9_$])PRIVILEGED_DATABASE_URL_VARIABLE(?![A-Za-z0-9_$])/;
 const CALL = /(?<![A-Za-z0-9_$])openPrivilegedDatabase\s*\(\s*(?:(['"])([^'"]*)\1)?/g;
 
 /**
@@ -90,6 +92,9 @@ function privilegedViolations(
     const code = withoutComments(content);
     if (!READERS.has(path) && VARIABLE.test(code)) {
       violations.push(`${path}: reads DATABASE_URL, the privileged connection`);
+    }
+    if (!READERS.has(path) && VARIABLE_CONSTANT.test(code)) {
+      violations.push(`${path}: uses PRIVILEGED_DATABASE_URL_VARIABLE, the privileged connection`);
     }
     if (DEFINITIONS.has(path)) continue;
     for (const [, , reason] of code.matchAll(CALL)) {
@@ -165,6 +170,20 @@ describe('E011 privileged database path', () => {
           ),
         ]),
       ).toEqual(['apps/web/server/database.ts: reads DATABASE_URL, the privileged connection']);
+    });
+
+    it('fails for reading the privileged variable through its constant', () => {
+      expect(
+        check([
+          file('apps/job/main.ts', "openPrivilegedDatabase('release')"),
+          file(
+            'apps/web/server/database.ts',
+            'createDatabase(readDatabaseConfig(process.env, PRIVILEGED_DATABASE_URL_VARIABLE))',
+          ),
+        ]),
+      ).toEqual([
+        'apps/web/server/database.ts: uses PRIVILEGED_DATABASE_URL_VARIABLE, the privileged connection',
+      ]);
     });
 
     it('does not mistake APP_DATABASE_URL, TEST_DATABASE_URL or a comment for a use', () => {
