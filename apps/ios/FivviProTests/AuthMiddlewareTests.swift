@@ -52,7 +52,7 @@ final class AuthMiddlewareTests: XCTestCase {
 
     func test_F001N_AC9_unauthorizedDeletesTokenAndSignsOut() async throws {
         let store = InMemorySessionStore(token: "expired")
-        let transport = StubTransport(status: .unauthorized, json: #"{"code":"unauthorized"}"#)
+        let transport = StubTransport(status: .unauthorized, json: #"{"code":"not_signed_in"}"#)
         let calls = Calls()
         let client = client(store: store, transport: transport, calls: calls)
 
@@ -89,7 +89,7 @@ final class AuthMiddlewareTests: XCTestCase {
 
     func test_F001N_AC9_aLateAnswerForAnOldTokenKeepsTheNewSignIn() async throws {
         let store = InMemorySessionStore(token: "old-token")
-        let transport = StubTransport(status: .unauthorized, json: #"{"code":"unauthorized"}"#)
+        let transport = StubTransport(status: .unauthorized, json: #"{"code":"not_signed_in"}"#)
         transport.onRequest { try? store.save(token: "new-token") }
         let calls = Calls()
         let client = client(store: store, transport: transport, calls: calls)

@@ -1,6 +1,6 @@
 import type { SignedInAccount } from '@fivvi/database';
 import { createRoute, type RouteConfig } from '@hono/zod-openapi';
-import type { Context, MiddlewareHandler } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 import type { ApiDependencies } from './dependencies.ts';
 import {
   ForbiddenSchema,
@@ -46,23 +46,22 @@ export interface AccessEnv {
 }
 
 /** Puts the dependencies where the access middleware of every route can read them. */
-export function provideDependencies(dependencies: ApiDependencies): MiddlewareHandler {
+export function provideDependencies(dependencies: ApiDependencies): MiddlewareHandler<AccessEnv> {
   return async (c, next) => {
-    (c as unknown as Context<AccessEnv>).set('dependencies', dependencies);
+    c.set('dependencies', dependencies);
     await next();
   };
 }
 
-function accessMiddleware(access: Access): MiddlewareHandler {
+function accessMiddleware(access: Access): MiddlewareHandler<AccessEnv> {
   return async (c, next) => {
     if (access.type === 'public') return next();
-    const context = c as unknown as Context<AccessEnv>;
-    const dependencies = context.get('dependencies');
+    const dependencies = c.get('dependencies');
     // Not built by createApp: fail closed with a 500 rather than let the route run unchecked.
     if (!dependencies) throw new Error('Route access needs the dependencies createApp provides.');
     const account = await dependencies.findSignedInAccount(c.req.raw.headers);
     if (!account) return c.json(NOT_SIGNED_IN, 401);
-    context.set('account', account);
+    c.set('account', account);
     if (access.type === 'workspace') {
       // The workspace context (the caller's place in the workspace, 404 or 403 from it) is #254.
       // Until it lands no caller has a place anywhere, so a workspace route fails closed.
@@ -115,11 +114,18 @@ function describeAccess(access: Access) {
 /**
  * `createRoute` with the route's access. Installs the access middleware ahead of the request
  * validators, writes `x-access` on the operation and documents the refusals the access can give
- * (`401`, `404`, `403`) unless the route's own `responses` already say otherwise.
+ * (`401`, `404`, `403`). A route can't declare its own response for a status that refusal owns: the
+ * middleware would still send the refusal, so the contract would lie. It throws instead.
  */
 export function defineRoute<R extends RouteConfig, A extends Access>(route: R, access: A) {
   if (access.type === 'workspace' && access.roles.length === 0 && access.client === 'none') {
     throw new Error(`${route.operationId ?? route.path}: no team role and no client may call it.`);
+  }
+  const owned = Object.keys(refusalsOf(access)).filter((status) => status in route.responses);
+  if (owned.length > 0) {
+    throw new Error(
+      `${route.operationId ?? route.path}: the ${access.type} access answers ${owned.join(', ')} itself; a route can't declare its own response for it.`,
+    );
   }
   const middleware = [route.middleware ?? []].flat();
   const defined = createRoute({

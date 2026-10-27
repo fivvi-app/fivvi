@@ -57,7 +57,7 @@ const call = (app: OpenAPIHono, path: string, body: string) =>
   app.request(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
 
 describe('E011 route access', () => {
-  describe('AC7: the access check runs before request validation', () => {
+  describe('AC10: the access check runs before request validation', () => {
     it.each([
       ['an account route', '/v1/probe/account'],
       ['a workspace route', '/v1/workspaces/0197c0de-0000-7000-8000-0000000000a1/probe'],
@@ -132,6 +132,37 @@ describe('E011 route access', () => {
         client: 'none',
       }),
     ).toThrow(/none/);
+  });
+
+  describe('a route may not declare a response the access refusal owns', () => {
+    const withResponses = (responses: Record<number, { description: string }>) => ({
+      ...probeRoute('/v1/workspaces/{workspaceId}/own', 'own'),
+      responses: { 200: { description: 'It ran.' }, ...responses },
+    });
+    const own = { description: 'Its own.' };
+
+    it.each([401, 403, 404])('refuses a workspace route that declares its own %i', (status) => {
+      expect(() =>
+        defineRoute(withResponses({ [status]: own }), {
+          type: 'workspace',
+          roles: ['owner'],
+          client: 'none',
+        }),
+      ).toThrow(new RegExp(`own.*${status}`));
+    });
+
+    it('refuses an account route that declares its own 401', () => {
+      expect(() => defineRoute(withResponses({ 401: own }), { type: 'account' })).toThrow(
+        /own.*401/,
+      );
+    });
+
+    it('lets an account route declare 403 and 404, and a public route declare 401', () => {
+      expect(() =>
+        defineRoute(withResponses({ 403: own, 404: own }), { type: 'account' }),
+      ).not.toThrow();
+      expect(() => defineRoute(withResponses({ 401: own }), { type: 'public' })).not.toThrow();
+    });
   });
 
   describe('x-access in the document', () => {
