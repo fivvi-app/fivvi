@@ -6,7 +6,7 @@
 #   android.sh test       ktlint with the literal-text, colour and Sentry checks, the release API address (HTTPS, not a
 #                         placeholder; the check must also reject an empty, plain-HTTP and .invalid one) and Sentry DSN
 #                         (EU region), build, unit tests (nl-NL and en; BuildInfoTest once more with build number 42),
-#                         and the Compose UI tests on an emulator, booted for the run when none is connected
+#                         the release App Bundle signed with a throwaway upload key (E017), and the Compose UI tests on an emulator, booted for the run when none is connected
 #                         (pnpm test:android)
 #   android.sh emulator   boot the emulator headless and leave it running, so test and maestro.sh reuse it. With
 #                         AVD_SNAPSHOT=1 (CI) it boots from a saved snapshot, or cold when there is none or it
@@ -121,6 +121,38 @@ release_url_check_rejects_bad_addresses() {
   done
 }
 
+# E017 AC2: the release lane signs the App Bundle with the upload key it names in the environment
+# (ANDROID_UPLOAD_KEYSTORE_FILE and its passwords); a keystore without its passwords stops the build with the name of the
+# missing variable. Runs on a throwaway keystore with an obviously fake password, made here and deleted again.
+release_bundle_signing() {
+  local dir="$1" keystore="$1/upload.jks" out bundle="$ANDROID_DIR/app/build/outputs/bundle/release/app-release.aab"
+  FIVVI_FAKE_PASSWORD=fake-password-for-tests keytool -genkeypair -keystore "$keystore" -storetype PKCS12 \
+    -alias fake-upload -keyalg RSA -keysize 2048 -validity 2 -dname "CN=Fivvi test only" \
+    -storepass:env FIVVI_FAKE_PASSWORD -keypass:env FIVVI_FAKE_PASSWORD >/dev/null 2>&1 \
+    || { echo "could not make the throwaway keystore" >&2; return 1; }
+  if out="$(ANDROID_UPLOAD_KEYSTORE_FILE="$keystore" gradle --quiet :app:bundleRelease 2>&1)"; then
+    echo "a release build with a keystore and no passwords was accepted" >&2
+    return 1
+  fi
+  grep -q "ANDROID_UPLOAD_KEYSTORE_PASSWORD" <<<"$out" \
+    || { echo "the build failed for a keystore without passwords, but not naming ANDROID_UPLOAD_KEYSTORE_PASSWORD:"$'\n'"$out" >&2; return 1; }
+  rm -f "$bundle"
+  ANDROID_UPLOAD_KEYSTORE_FILE="$keystore" ANDROID_UPLOAD_KEYSTORE_PASSWORD=fake-password-for-tests \
+    ANDROID_UPLOAD_KEY_ALIAS=fake-upload ANDROID_UPLOAD_KEY_PASSWORD=fake-password-for-tests \
+    gradle :app:bundleRelease -Pfivvi.buildNumber=43 || return 1
+  out="$(jarsigner -verify "$bundle" 2>&1 || true)"
+  grep -q "jar verified" <<<"$out" || { echo "the release bundle is not signed with the upload key: $out" >&2; return 1; }
+  rm -f "$bundle"
+}
+
+release_bundle_is_signed_with_the_upload_key() {
+  local dir rc=0
+  dir="$(mktemp -d)"
+  release_bundle_signing "$dir" || rc=$?
+  rm -rf "$dir"
+  [ "$rc" = 0 ] || die "the release signing check failed"
+}
+
 cmd_test() {
   [ $# -eq 0 ] || usage
   android_env
@@ -129,6 +161,7 @@ cmd_test() {
   release_url_check_rejects_bad_addresses
   # E017 AC4: a build number passed from outside (-Pfivvi.buildNumber, as a release run does) becomes the versionCode.
   gradle testDebugUnitTest --tests app.fivvi.pro.BuildInfoTest -Pfivvi.buildNumber=42
+  release_bundle_is_signed_with_the_upload_key
   start_emulator
   gradle connectedDebugAndroidTest
 }

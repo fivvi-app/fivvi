@@ -1184,7 +1184,22 @@ setInterval(() => {}, 1000);\n`,
 case "$*" in
   *checkReleaseApiBaseUrl*-Pfivvi.releaseApiBaseUrl=*) [ "$FAKE_URL_CHECK" = accept ] || { echo 'Set fivvi.releaseApiBaseUrl (fake)'; exit 1; } ;;
   *connectedDebugAndroidTest*) ${outcome} ;;
+  *bundleRelease*)
+    # E017 #191: a release bundle is built with a keystore only when its passwords come with it.
+    if [ -n "$ANDROID_UPLOAD_KEYSTORE_FILE" ] && [ "$FAKE_SIGNING" != accept ] && [ -z "$ANDROID_UPLOAD_KEY_PASSWORD" ]; then
+      echo 'ANDROID_UPLOAD_KEYSTORE_FILE is set, so ANDROID_UPLOAD_KEYSTORE_PASSWORD must be set too (fake)'; exit 1
+    fi ;;
 esac`,
+    );
+    // E017 #191: the throwaway upload keystore of pnpm test:android, and the check of the bundle's signature.
+    script(
+      join(bin, 'keytool'),
+      `echo "keytool $*" >>"${state}/keytool.log"
+while [ $# -gt 0 ]; do [ "$1" != -keystore ] || : >"$2"; shift; done`,
+    );
+    script(
+      join(bin, 'jarsigner'),
+      `if [ -n "$FAKE_UNSIGNED" ]; then echo 'jar is unsigned.'; else echo 'jar verified.'; fi`,
     );
     execFileSync('git', ['-C', repo, 'add', '.']);
     execFileSync('git', [
@@ -2151,6 +2166,37 @@ esac`,
             line.includes('-Pfivvi.buildNumber=42'),
         ),
     );
+  });
+
+  it('E017 AC2: pnpm test:android builds the release bundle with a throwaway upload key and checks its signature', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/android.sh', ['test']);
+
+    assert.equal(run.status, 0, run.output);
+    const builds = fake.log('gradle').filter((line) => line.includes(':app:bundleRelease'));
+    assert.equal(builds.length, 2, 'once without the passwords (refused), once with them');
+    assert.ok(builds[1].includes('-Pfivvi.buildNumber=43'));
+    assert.ok(fake.log('keytool').some((line) => line.includes('-keystore ')));
+    assert.ok(!fake.log('keytool').some((line) => line.includes('fake-password-for-tests')));
+  });
+
+  it('E017 AC2: pnpm test:android fails when the release build accepts a keystore without its passwords', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/android.sh', ['test'], { FAKE_SIGNING: 'accept' });
+
+    assert.equal(run.status, 1, run.output);
+    assert.match(run.output, /keystore and no passwords was accepted/);
+  });
+
+  it('E017 AC2: pnpm test:android fails when the release bundle is not signed with the upload key', async () => {
+    const fake = checkout();
+
+    const run = await fake.run('scripts/android.sh', ['test'], { FAKE_UNSIGNED: '1' });
+
+    assert.equal(run.status, 1, run.output);
+    assert.match(run.output, /not signed with the upload key/);
   });
 
   it('E017 AC5: Release base URL is HTTPS and not .invalid: pnpm test:android fails when checkReleaseApiBaseUrl accepts a bad address', async () => {

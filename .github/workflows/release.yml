@@ -7,8 +7,8 @@
 # locales), then the job in the `release` environment, which waits for the owner's approval and only then signs, uploads
 # and sends the crash symbols to Sentry. Every release job needs both test jobs, so when either platform's suite fails
 # nothing is uploaded for any platform. A platform can be released alone (the inputs); the suites of both always run.
-# Every step is a command of scripts/release*.sh (tested in scripts/test/release.test.mjs); the Android job (#191) joins
-# them in this file, with `needs: [prepare, ios-tests, android-tests]`.
+# Every step is a command of scripts/release*.sh (tested in scripts/test/release.test.mjs and release-android.test.mjs).
+# The `ios` and `android` jobs each wait for the owner's approval of the environment and run side by side.
 
 # A secret is passed to the one step that needs it, as an environment variable of that step, and no step prints one.
 
@@ -19,6 +19,14 @@ on:
     inputs:
       ios:
         description: 'Release the iOS app to TestFlight'
+        type: boolean
+        default: true
+      android:
+        description: 'Release the Android app (build the signed App Bundle, send the R8 mapping to Sentry)'
+        type: boolean
+        default: true
+      publish-android:
+        description: 'Publish the Android bundle to Play internal testing (off: only keep it as an artifact of the run, for the first upload by hand)'
         type: boolean
         default: true
 
@@ -269,3 +277,95 @@ jobs:
       - name: Delete the keychain and the key files
         if: always()
         run: scripts/release-ios.sh cleanup
+
+  android:
+    name: Android release
+    needs: [prepare, ios-tests, android-tests]
+    if: inputs.android
+    # Waits here for the owner's approval; nothing below runs, and no secret is readable, before it. The same suites as
+    # the iOS job wait for: they ran once, in the test jobs.
+    environment: release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RELEASE_BUILD_NUMBER: ${{ needs.prepare.outputs.build-number }}
+      # The sentry-cli that pnpm-lock.yaml pins (@sentry/cli, a dependency of @fivvi/observability).
+      SENTRY_CLI: ${{ github.workspace }}/packages/observability/node_modules/.bin/sentry-cli
+    steps:
+      # First, before any step that reads a secret.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Refuse a run outside main
+        run: scripts/release.sh guard
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Reads the Gradle cache of main and never writes one: this job holds the signing key.
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: true
+
+      # Only the package that carries the pinned sentry-cli, and its own dependencies; no secret in this step's environment.
+      - name: Install the pinned sentry-cli
+        run: |
+          pnpm install --frozen-lockfile --filter @fivvi/observability...
+          "$SENTRY_CLI" --version
+
+      - name: Install the Android SDK packages
+        run: scripts/release-android.sh sdk
+
+      # The keystore goes to a private file outside the repo; the last step of the job deletes it.
+      - name: Install the upload keystore
+        env:
+          ANDROID_UPLOAD_KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE }}
+          ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: scripts/release-android.sh signing
+
+      - name: Build the signed App Bundle
+        env:
+          ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: scripts/release-android.sh bundle
+
+      # The signed bundle alone (its folder holds nothing else): a certificate, no secret. It is what the owner uploads by
+      # hand the first time, which Google's API can't do. A public repo's artifacts are readable by anyone, so it is kept
+      # for a short time.
+      - name: Upload the App Bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-app-bundle
+          path: ${{ runner.temp }}/fivvi-release-android/bundle/*.aab
+          retention-days: 14
+          if-no-files-found: error
+
+      # Before the publish: a build that testers can install always has its mapping in Sentry. Skipped, with a line saying
+      # so, while the release build is not minified.
+      - name: Upload the R8 mapping to Sentry
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: scripts/release-android.sh symbols
+
+      - name: Publish to Play internal testing
+        if: inputs.publish-android
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: scripts/release-android.sh publish
+
+      # Whatever failed: the keystore doesn't outlive the run.
+      - name: Delete the keystore
+        if: always()
+        run: scripts/release-android.sh cleanup
