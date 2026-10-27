@@ -19,6 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.pro.hello.HelloViewModel
 import app.fivvi.pro.home.HomeScreen
 import app.fivvi.pro.home.HomeViewModel
+import app.fivvi.pro.observability.Observability
 import app.fivvi.pro.signin.SignInActions
 import app.fivvi.pro.signin.SignInScreen
 import app.fivvi.pro.signin.SignInViewModel
@@ -81,7 +82,12 @@ class MainActivity : ComponentActivity() {
             HelloViewModel(dependencies.helloApi, language.apiLocale)
         }
         val me = viewModel(key = "home-$key") {
-            HomeViewModel(dependencies.meApi, dependencies.session, dependencies::signOutApi)
+            HomeViewModel(
+                dependencies.meApi,
+                dependencies.session,
+                dependencies::signOutApi,
+                onAccount = Observability::setUser,
+            )
         }
         val helloState by hello.state.collectAsStateWithLifecycle()
         val meState by me.state.collectAsStateWithLifecycle()

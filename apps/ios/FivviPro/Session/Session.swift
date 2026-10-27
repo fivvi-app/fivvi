@@ -12,11 +12,14 @@ final class Session {
 
     private(set) var state: State
     private let store: any SessionStore
+    private let onSignedOut: () -> Void
 
     /// The app opens signed in when the store holds a token, otherwise signed out; it makes no authenticated call to
-    /// find out (AC13).
-    init(store: any SessionStore) {
+    /// find out (AC13). `onSignedOut` runs on every sign-out, whether the person signed out or the API rejected the
+    /// token; the app clears the error-reporting user with it (AC3, #266).
+    init(store: any SessionStore, onSignedOut: @escaping () -> Void = {}) {
         self.store = store
+        self.onSignedOut = onSignedOut
         state = store.token == nil ? .signedOut(afterRejection: false) : .signedIn
     }
 
@@ -32,11 +35,13 @@ final class Session {
     func signedOut(afterRejection: Bool = false) {
         guard state == .signedIn else { return }
         state = .signedOut(afterRejection: afterRejection)
+        onSignedOut()
     }
 
     /// The API no longer accepts the token (expired, or the sign-in session ended elsewhere): the token is gone,
     /// show the sign-in screen with the notice.
     func tokenRejected() {
         state = .signedOut(afterRejection: true)
+        onSignedOut()
     }
 }

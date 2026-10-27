@@ -64,7 +64,7 @@ final class SessionTests: XCTestCase {
             middlewares: [middleware]
         )
         let account = AccountViewModel(
-            api: client, store: store, onSignedOut: { session.signedOut(afterRejection: $0) }
+            api: client, store: store, onAccount: { _ in }, onSignedOut: { session.signedOut(afterRejection: $0) }
         )
         XCTAssertEqual(session.state, .signedIn)
 
@@ -88,7 +88,7 @@ final class SessionTests: XCTestCase {
             middlewares: [middleware]
         )
         let account = AccountViewModel(
-            api: client, store: store, onSignedOut: { session.signedOut(afterRejection: $0) }
+            api: client, store: store, onAccount: { _ in }, onSignedOut: { session.signedOut(afterRejection: $0) }
         )
 
         await account.signOut()
@@ -114,12 +114,47 @@ final class SessionTests: XCTestCase {
             middlewares: [middleware]
         )
         let account = AccountViewModel(
-            api: client, store: store, onSignedOut: { session.signedOut(afterRejection: $0) }
+            api: client, store: store, onAccount: { _ in }, onSignedOut: { session.signedOut(afterRejection: $0) }
         )
 
         await account.signOut()
 
         XCTAssertNil(store.token)
         XCTAssertEqual(session.state, .signedOut(afterRejection: true))
+    }
+
+    // MARK: Error-reporting user (AC3, #266)
+
+    /// How often the app was told to clear the error-reporting user.
+    private final class Clears {
+        var count = 0
+    }
+
+    func test_F001N_AC3_aRejectedTokenClearsTheReportingUser() {
+        let clears = Clears()
+        let session = Session(store: InMemorySessionStore(token: "stored"), onSignedOut: { clears.count += 1 })
+
+        session.tokenRejected()
+
+        XCTAssertEqual(clears.count, 1)
+    }
+
+    func test_F001N_AC3_signingOutClearsTheReportingUserOnce() {
+        let clears = Clears()
+        let session = Session(store: InMemorySessionStore(token: "stored"), onSignedOut: { clears.count += 1 })
+
+        session.signedOut()
+        session.signedOut()
+
+        XCTAssertEqual(clears.count, 1)
+    }
+
+    func test_F001N_AC3_signingInKeepsTheReportingUser() {
+        let clears = Clears()
+        let session = Session(store: InMemorySessionStore(), onSignedOut: { clears.count += 1 })
+
+        session.signedIn()
+
+        XCTAssertEqual(clears.count, 0)
     }
 }

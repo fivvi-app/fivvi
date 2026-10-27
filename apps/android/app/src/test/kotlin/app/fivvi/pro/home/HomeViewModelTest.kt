@@ -1,10 +1,12 @@
 package app.fivvi.pro.home
 
+import app.fivvi.api.models.MeResponse
 import app.fivvi.pro.auth.AuthState
 import app.fivvi.pro.auth.InMemorySessionStore
 import app.fivvi.pro.auth.Session
 import app.fivvi.pro.signin.FakeSignInApi
 import java.io.IOException
+import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -21,12 +23,15 @@ import org.junit.Before
 import org.junit.Test
 import retrofit2.Response
 
+// Synthetic ID (AGENTS.md, D8).
+private val ACCOUNT_ID = UUID.fromString("0b9c4f2e-5d6a-4c1b-9e8f-1a2b3c4d5e6f")
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
     private val api = FakeMeApi()
     private val signInApi = FakeSignInApi()
     private val store = InMemorySessionStore("tok-1")
-    private val session = Session(store)
+    private val session = Session(store, onSignedOut = { clears++ })
 
     // The clock of the sign-out's wait: the test dispatcher's virtual time.
     private val scheduler = TestCoroutineScheduler()
@@ -34,6 +39,10 @@ class HomeViewModelTest {
 
     // The token each sign-out call was made with.
     private val signOutTokens = mutableListOf<String>()
+
+    // The account IDs the screen passed on for error reporting, and the sign-outs the session reported.
+    private val identified = mutableListOf<String>()
+    private var clears = 0
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -48,6 +57,7 @@ class HomeViewModelTest {
             signOutTokens += token
             signInApi
         },
+        onAccount = { identified += it },
         io = dispatcher,
     )
 
@@ -59,6 +69,41 @@ class HomeViewModelTest {
 
         assertEquals(MeState.Loaded("owner@example.com"), viewModel.state.value)
         assertEquals(1, api.calls)
+    }
+
+    @Test
+    fun F001N_AC2_passesTheAccountIdOnOnceTheApiHasAnswered() {
+        val answer = CompletableDeferred<Response<app.fivvi.api.models.MeResponse>>()
+        api.answers += { answer.await() }
+        viewModel()
+        assertEquals(emptyList<String>(), identified)
+
+        answer.complete(Response.success(MeResponse(ACCOUNT_ID, "owner@example.com", MeResponse.PreferredLocale.NL_NL)))
+
+        assertEquals(listOf(ACCOUNT_ID.toString()), identified)
+    }
+
+    @Test
+    fun F001N_AC2_passesNothingOnWhenTheApiDoesNotAnswerWithTheAccount() {
+        api.answers += { throw IOException("offline") }
+        api.answers += { Response.error(401, "{}".toResponseBody()) }
+        val viewModel = viewModel()
+
+        viewModel.retry()
+
+        assertEquals(emptyList<String>(), identified)
+    }
+
+    @Test
+    fun F001N_AC3_signingOutClearsTheReportingUser() {
+        api.answerAccount(id = ACCOUNT_ID)
+        signInApi.answerSignedOut()
+        val viewModel = viewModel()
+        assertEquals(0, clears)
+
+        viewModel.signOut()
+
+        assertEquals(1, clears)
     }
 
     @Test
@@ -221,7 +266,7 @@ class HomeViewModelTest {
     fun F001N_AC10_signOutWithoutATokenSkipsTheRequest() {
         val empty = Session(InMemorySessionStore())
         api.answerAccount()
-        val viewModel = HomeViewModel(api, empty, { signInApi }, dispatcher)
+        val viewModel = HomeViewModel(api, empty, { signInApi }, { identified += it }, dispatcher)
 
         viewModel.signOut()
 

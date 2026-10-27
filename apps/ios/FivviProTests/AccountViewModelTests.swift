@@ -12,7 +12,14 @@ final class AccountViewModelTests: XCTestCase {
         func record(afterRejection: Bool) { rejections.append(afterRejection) }
     }
 
+    /// The account IDs the home passed on for error reporting.
+    private final class Identified: @unchecked Sendable {
+        private(set) var ids: [String] = []
+        func record(_ id: String) { ids.append(id) }
+    }
+
     private let clock = ManualClock()
+    private let identified = Identified()
 
     private func model(
         _ api: StubAPI, store: InMemorySessionStore = InMemorySessionStore(token: "stored-token"),
@@ -20,8 +27,33 @@ final class AccountViewModelTests: XCTestCase {
     ) -> AccountViewModel {
         AccountViewModel(
             api: api, store: store, clock: clock, signOutTimeout: .seconds(10),
+            onAccount: { [identified] in identified.record($0) },
             onSignedOut: { signedOut.record(afterRejection: $0) }
         )
+    }
+
+    // MARK: Error-reporting user (AC2, #266)
+
+    func test_F001N_AC2_passesTheAccountIdOnOnceTheApiHasAnswered() async {
+        let api = StubAPI()
+        await api.answerMe(with: .account(email: "owner@example.com", id: "0b9c4f2e-5d6a-4c1b-9e8f-1a2b3c4d5e6f"))
+        let model = model(api)
+        XCTAssertEqual(identified.ids, [])
+
+        await model.load()
+
+        XCTAssertEqual(identified.ids, ["0b9c4f2e-5d6a-4c1b-9e8f-1a2b3c4d5e6f"])
+    }
+
+    func test_F001N_AC2_passesNothingOnWhenTheApiDoesNotAnswerWithTheAccount() async {
+        let api = StubAPI()
+        for answer in [StubAPI.MeAnswer.offline, .unauthorized, .status(503)] {
+            await api.answerMe(with: answer)
+
+            await model(api).load()
+        }
+
+        XCTAssertEqual(identified.ids, [])
     }
 
     func test_F001N_AC4_homeCallsMeAndShowsTheAddress() async {

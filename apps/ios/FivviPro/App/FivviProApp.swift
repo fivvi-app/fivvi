@@ -15,7 +15,7 @@ struct FivviProApp: App {
         let store = KeychainSessionStore()
         store.clearLeftoverTokenAtFirstLaunch()
         UITestSession.apply(to: store)
-        let session = Session(store: store)
+        let session = Session(store: store, onSignedOut: ErrorReporting.clearUser)
         let auth = AuthMiddleware(store: store) { await session.tokenRejected() }
         api = Client(serverURL: AppConfiguration.apiBaseURL(), transport: URLSessionTransport(), middlewares: [auth])
         catalog = Catalog(locale: InterfaceLanguage.resolve(.forLaunch()))

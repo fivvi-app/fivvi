@@ -49,6 +49,21 @@ enum ErrorReporting {
         SentrySDK.capture(error: error)
     }
 
+    /// Sets the signed-in account's ID (the UUID `GET /api/v1/me` answers with) as the user of later events and
+    /// sessions. Never an email address or a name; the scrubber drops anything but a UUID. Does nothing while
+    /// reporting is off.
+    static func setUser(_ accountId: String) {
+        guard SentrySDK.isEnabled else { return }
+        SentrySDK.setUser(User(userId: accountId))
+    }
+
+    /// Signed out: later events carry the install's ID again (the SDK sets it when no user is set), not the previous
+    /// account's. Does nothing while reporting is off.
+    static func clearUser() {
+        guard SentrySDK.isEnabled else { return }
+        SentrySDK.setUser(nil)
+    }
+
     /// Crashes, errors and release health (crash-free sessions) only: no tracing, profiling, session replay,
     /// screenshots, logs or captured HTTP failures, and every event and breadcrumb passes the scrubber.
     static func options(for configuration: Configuration) -> Options {

@@ -110,6 +110,40 @@ final class ObservabilityTests: XCTestCase {
         XCTAssertNil(try XCTUnwrap(ErrorReporting.beforeSend(event)).user)
     }
 
+    // MARK: Error-reporting user (F001 AC2 to AC4, #266)
+
+    func test_F001N_AC2_laterEventsCarryTheAccountId() throws {
+        let sent = try Self.reportRecordingWhatWouldBeSent(URLError(.badServerResponse)) {
+            ErrorReporting.setUser(Synthetic.userID)
+        }
+
+        let user = try XCTUnwrap(sent["user"] as? [String: Any])
+        XCTAssertEqual(user["id"] as? String, Synthetic.userID)
+        XCTAssertEqual(Set(user.keys), ["id"], "no email, name, username or IP address")
+    }
+
+    func test_F001N_AC3_clearingTheUserDropsTheAccountId() throws {
+        let sent = try Self.reportRecordingWhatWouldBeSent(URLError(.badServerResponse)) {
+            ErrorReporting.setUser(Synthetic.userID)
+            ErrorReporting.clearUser()
+        }
+
+        // The SDK puts the install's ID back when no user is set; it is never the previous account's.
+        XCTAssertFalse(try Synthetic.json(sent).contains(Synthetic.userID))
+        let user = sent["user"] as? [String: Any]
+        XCTAssertNotEqual(user?["id"] as? String, Synthetic.userID)
+        XCTAssertNotNil(user?["id"] as? String, "the install's ID is back")
+    }
+
+    func test_F001N_AC4_settingAndClearingDoNothingWhileReportingIsOff() {
+        SentrySDK.close()
+
+        ErrorReporting.setUser(Synthetic.userID)
+        ErrorReporting.clearUser()
+
+        XCTAssertFalse(SentrySDK.isEnabled)
+    }
+
     func test_E009_AC8_masksEmailAddressesInTheURLPath() throws {
         let event = Synthetic.event()
         event.request?.url = "/api/v1/invitations/femke%40example.com"
@@ -196,7 +230,10 @@ final class ObservabilityTests: XCTestCase {
     /// Reports `error` through `ErrorReporting.capture` with the app's options, and returns what `beforeSend` lets
     /// through instead of sending it. Nothing leaves the machine: `beforeSend` drops the event after recording it,
     /// sessions and the crash handler are off, and the DSN points at a closed local port.
-    private static func reportRecordingWhatWouldBeSent(_ error: Error) throws -> [String: Any] {
+    /// `whileRunning` runs once the SDK has started, before the error is reported.
+    private static func reportRecordingWhatWouldBeSent(
+        _ error: Error, whileRunning: () -> Void = {}
+    ) throws -> [String: Any] {
         let configuration = ErrorReporting.Configuration(info: Synthetic.info(dsn: "http://public@127.0.0.1:9/1"))
         let options = ErrorReporting.options(for: try XCTUnwrap(configuration))
         let scrub = try XCTUnwrap(options.beforeSend)
@@ -211,6 +248,7 @@ final class ObservabilityTests: XCTestCase {
         SentrySDK.close()
         SentrySDK.start(options: options)
         defer { SentrySDK.close() }
+        whileRunning()
 
         ErrorReporting.capture(error)
 

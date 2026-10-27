@@ -27,9 +27,12 @@ actor StubAPI: APIProtocol {
         case offline
     }
 
+    /// The ID `getMe` answers with unless a test gives another (synthetic).
+    static let accountID = "2f6a1f0e-0000-4000-8000-000000000001"
+
     /// What `getMe` answers.
     enum MeAnswer: Sendable {
-        case account(email: String)
+        case account(email: String, id: String = StubAPI.accountID)
         case unauthorized
         case status(Int)
         case offline
@@ -118,8 +121,8 @@ actor StubAPI: APIProtocol {
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
         meCalls += 1
         switch meAnswer {
-        case let .account(email):
-            return .ok(.init(body: .json(.init(id: "2f6a1f0e-0000-4000-8000-000000000001", email: email))))
+        case let .account(email, id):
+            return .ok(.init(body: .json(.init(id: id, email: email))))
         case .unauthorized:
             return .unauthorized(.init(body: .json(.init(code: .notSignedIn))))
         case let .status(code):
