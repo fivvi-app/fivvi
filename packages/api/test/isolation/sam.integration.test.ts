@@ -366,10 +366,10 @@ describe('AC12: after Sam’s trainer role in A ends', () => {
     // The places of his account: a client of A, a team member only where the route asks for it.
     const places = await world.request(sam().account, '/v1/probe/places');
     expect(
-      ((await places.json()) as { places: { workspaceId: string }[] }).places.map(
-        (place) => place.workspaceId,
-      ),
-    ).toEqual(expect.arrayContaining([a]));
+      ((await places.json()) as { places: { workspaceId: string }[] }).places
+        .map((place) => place.workspaceId)
+        .toSorted(),
+    ).toEqual([a, ended.b].toSorted());
     const team = await world.request(sam().account, '/v1/probe/team-places');
     expect(
       ((await team.json()) as { places: { workspaceId: string }[] }).places.map(

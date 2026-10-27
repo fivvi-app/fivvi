@@ -322,7 +322,14 @@ export async function runIsolationSuite(
       access.type === 'account'
         ? planAccountCalls(scenario)
         : planWorkspaceCalls(scenario, hasRecords);
-    for (const planned of plan.filter(({ actor }) => options.only?.(actor) ?? true)) {
+    const calls = plan.filter(({ actor }) => options.only?.(actor) ?? true);
+    // A filter that lets no call through would leave the operation untested and the run green.
+    if (options.only && calls.length === 0) {
+      failures.push(
+        `${operation.name}: no call left for the actors \`only\` accepts, so nothing of it was tested.`,
+      );
+    }
+    for (const planned of calls) {
       const values = planned.records ? (seeded.get(planned.records.join(' ')) ?? {}) : {};
       const path = operation.path
         .replaceAll('{workspaceId}', planned.workspaceId)
