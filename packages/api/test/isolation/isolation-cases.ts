@@ -19,7 +19,9 @@ export interface IsolationCase {
    * The values are also what a successful `GET` must show: a route with path parameters must
    * show the record its path names; one without must show every value the caller may see (a
    * listing shows each client's records; a route about the caller's workspaces shows the
-   * workspace id). Return ids, or text holding a unique marker, so the suite can find them.
+   * workspace id). Return ids or markers of `uniqueMarker`, so the suite can find them. The suite
+   * reports a value it doesn't know, and a `GET` of a workspace whose seed returns none. Only
+   * an account route (`getMe`, which reads `auth_*`) may go without.
    */
   seed?(
     db: DatabaseExecutor,
@@ -46,13 +48,13 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   getMe: {},
 
   // The probe routes of the test app (`probe-routes.ts`), one per kind of access.
-  probeOwner: {},
-  probeTeam: {},
+  probeOwner: { seed: theWorkspace },
+  probeTeam: { seed: theWorkspace },
   probeListClients: { seed: theClient },
   probeFindClient: { seed: theClient, params: { clientId: 'client' } },
   probeCreateClient: {},
   probeValidated: { query: '?page=1', body: { name: 'Bram' } },
-  probeOwn: {},
+  probeOwn: { seed: theWorkspace },
   probeOwnListClients: { seed: theClient },
   probeOwnFindClient: { seed: theClient, params: { clientId: 'client' } },
   probePlaces: { seed: theWorkspace },

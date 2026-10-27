@@ -1,5 +1,5 @@
 import { APP_ROLE, createClient } from '@fivvi/database';
-import { selectEverythingInScope } from '@fivvi/database/testing';
+import { selectEverythingInScope, uniqueMarker } from '@fivvi/database/testing';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -32,23 +32,29 @@ const team = { type: 'workspace', roles: ['owner', 'trainer'], client: 'none' } 
 
 /**
  * Creates a note of the workspace in a probe table, through the privileged connection. Returns
- * its id for the suite to look for in a listing, unless `reportId` is false.
+ * the marker in its body for the suite to look for in a listing.
  */
 const seedNote =
-  (table: string, reportId = true): IsolationCase['seed'] =>
+  (table: string): IsolationCase['seed'] =>
   async (db, { workspaceId }) => {
-    const { rows } = await db.execute(
-      sql`insert into ${sql.identifier(table)} (organization_id, body)
-          values (${workspaceId}, ${`note-${crypto.randomUUID()}`}) returning id`,
+    const note = uniqueMarker('note');
+    await db.execute(
+      sql`insert into ${sql.identifier(table)} (organization_id, body) values (${workspaceId}, ${note})`,
     );
-    const note: Record<string, string> = reportId ? { note: (rows[0] as { id: string }).id } : {};
-    return note;
+    return { note };
   };
 
+/** The workspace the seed was called for, which a created client and a client row both show. */
+const seedWorkspace: IsolationCase['seed'] = (_db, { workspaceId }) =>
+  Promise.resolve({ workspace: workspaceId });
+
 const SELF_TEST_CASES: Record<string, IsolationCase> = {
-  probeLeakyClients: {},
-  probeLeakyBodies: { seed: seedNote(PROTECTED, false) },
-  probeWritingGet: {},
+  probeLeakyClients: { seed: seedWorkspace },
+  probeLeakyBodies: { seed: seedNote(PROTECTED) },
+  probeWritingGet: { seed: seedWorkspace },
+  // The same too-strict table, read by cases that seed nothing, or something no row holds.
+  probeUnseeded: {},
+  probeUnknownSeed: { seed: () => Promise.resolve({ note: 'note-0badc0de' }) },
   [`probeNotes_${PROTECTED}`]: { seed: seedNote(PROTECTED) },
   [`probeNotes_${UNPROTECTED}`]: { seed: seedNote(UNPROTECTED) },
   [`probeNotes_${STRICT}`]: { seed: seedNote(STRICT) },
@@ -108,6 +114,12 @@ function registerLeakyRoutes(world: World) {
   app.openapi(defineRoute(route('/probe/writing-get', 'probeWritingGet'), team), async (c) =>
     c.json({ client: await createClient(c.get('scope'), {}) }, 200),
   );
+  // Reads the too-strict table, listed by a case whose seed returns nothing to look for.
+  for (const operationId of ['probeUnseeded', 'probeUnknownSeed']) {
+    app.openapi(defineRoute(route(`/probe/${operationId}`, operationId), team), async (c) =>
+      c.json({ notes: await selectEverythingInScope(c.get('scope'), STRICT) }, 200),
+    );
+  }
   // Reads every row of a probe table through the request's scope, with no workspace filter: a
   // forgotten filter. With the policy, RLS stops it; without, it leaks.
   for (const table of [PROTECTED, UNPROTECTED, STRICT]) {
@@ -174,6 +186,21 @@ describe('E011 the suite can fail', () => {
         expect.stringMatching(/as B’s trainer in B: the response lacks .* of B\b/),
       ]),
     );
+    // ...for a case that seeds nothing over the same too-strict policy: no listing could tell,
+    // so the suite reports the case, not a response...
+    expect(failuresOf('probeUnseeded')).toEqual([]);
+    expect(result.failures).toContain(
+      'probeUnseeded: a read of a workspace whose seed returns no record the suite can look for, so a policy that is too strict would pass; seed an id or a marker.',
+    );
+    // ...for a seed that returns something no stored row holds...
+    expect(result.failures.filter((f) => f.startsWith('probeUnknownSeed: '))).toEqual([
+      expect.stringMatching(
+        /^probeUnknownSeed: its seed returns note-0badc0de, which is no id or marker/,
+      ),
+      expect.stringMatching(
+        /^probeUnknownSeed: a read of a workspace whose seed returns no record/,
+      ),
+    ]);
     // ...and for nothing else: the same route over a table with the policy is clean, and so is
     // every other route of the suite.
     expect(failuresOf(`probeNotes_${PROTECTED}`)).toEqual([]);
@@ -183,6 +210,8 @@ describe('E011 the suite can fail', () => {
         !failure.startsWith('probeLeakyBodies as ') &&
         !failure.startsWith(`probeNotes_${STRICT} as `) &&
         !failure.startsWith('probeWritingGet as ') &&
+        !failure.startsWith('probeUnseeded: ') &&
+        !failure.startsWith('probeUnknownSeed: ') &&
         !failure.startsWith(`probeNotes_${UNPROTECTED} as `),
     );
     expect(others).toEqual([]);

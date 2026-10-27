@@ -57,4 +57,6 @@ the factories in `@fivvi/database/testing`, so every record carries a unique id 
 for. What `seed` returns is also what a successful `GET` must show: a route with path parameters must
 show the record its path names, one without (a listing) every returned value the caller may see, so
 give a listing a seed that returns the ids it lists. A text column that holds a `uniqueMarker`
-(`label-1a2b3c4d`) is found by it too. A new business table also adds its entry to `isolationFactories` in the same package.
+(`label-1a2b3c4d`) is found by it too: return the marker. The suite reports a seed value it can't
+find as an id or marker in a stored row, and a `GET` of a workspace whose seed returns nothing it can
+look for (a too-strict policy would pass). Only an account route like `getMe` may go without a seed. A new business table also adds its entry to `isolationFactories` in the same package.

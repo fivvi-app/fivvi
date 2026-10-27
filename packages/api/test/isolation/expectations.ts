@@ -165,3 +165,15 @@ export function mayShow(facts: CallFacts, token: string, owner: TokenOwner): boo
 function isOwnOrWorkspace(token: string, owner: TokenOwner, place: Place | undefined): boolean {
   return token === owner.workspaceId || (!!place?.clientId && owner.clientIds.has(place.clientId));
 }
+
+/**
+ * A marker as `uniqueMarker` of the factories makes it: a lower-case label, a dash and exactly
+ * 8 lower-case hex digits (`note-1a2b3c4d`, `a-owner-1a2b3c4d`). It stands alone in a text:
+ * not the tail of a longer word, and not followed by more of one (a uuid is not a marker).
+ */
+const MARKER = /(?<![\w-])[a-z][a-z0-9]*(?:-[a-z0-9]+)*-[0-9a-f]{8}(?![\w-])/g;
+
+/** Every marker in a text, in order. */
+export function markersIn(text: string): string[] {
+  return text.match(MARKER) ?? [];
+}

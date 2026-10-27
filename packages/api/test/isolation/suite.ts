@@ -5,6 +5,7 @@ import { type ContractDocument, describeOperations } from './coverage.ts';
 import {
   type CallFacts,
   expectedCall,
+  markersIn,
   mayChangeRow,
   mayShow,
   mustShow,
@@ -49,8 +50,6 @@ interface StoredRow {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-/** A marker as `uniqueMarker` of the factories makes it: `<label>-<8 hex digits>`, in any text. */
-const MARKER = /\b[a-z][a-z0-9]*(?:-[a-z0-9]+)*-[0-9a-f]{8}\b/g;
 
 /** The client a row belongs to: its `client_id`, or its own id for a client. */
 function clientOf(table: string, row: Record<string, unknown>): string | undefined {
@@ -108,7 +107,7 @@ function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
       if (UUID.test(value)) {
         if (value !== workspaceId) claim(value, workspaceId, clientId);
       } else {
-        for (const [marker] of value.matchAll(MARKER)) claim(marker, workspaceId, clientId);
+        for (const marker of markersIn(value)) claim(marker, workspaceId, clientId);
       }
     }
   }
@@ -259,6 +258,26 @@ export async function runIsolationSuite(
           (await isolationCase.seed?.(world.admin.db, { workspaceId, clientId })) ?? {},
         );
       }
+    }
+
+    // A seed that answers with a value the suite can't look for would switch the check of 4 off
+    // without a word: report it. Account routes (`getMe` reads `auth_*`, which holds no workspace
+    // data) may seed nothing; a GET of a workspace must seed something it can show.
+    const seedValues = [...new Set([...seeded.values()].flatMap((v) => Object.values(v)))];
+    const known = buildLedger(await readRows(world, tables), scenario);
+    for (const value of seedValues.filter((v) => !known.has(v))) {
+      failures.push(
+        `${operation.name}: its seed returns ${value}, which is no id or marker of a stored record; return the id of a row it made, or a \`uniqueMarker\` in one.`,
+      );
+    }
+    if (
+      access.type === 'workspace' &&
+      operation.method.toUpperCase() === 'GET' &&
+      !seedValues.some((v) => known.has(v))
+    ) {
+      failures.push(
+        `${operation.name}: a read of a workspace whose seed returns no record the suite can look for, so a policy that is too strict would pass; seed an id or a marker.`,
+      );
     }
 
     const plan =

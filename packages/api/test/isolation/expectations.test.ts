@@ -1,7 +1,9 @@
+import { uniqueMarker } from '@fivvi/database/testing';
 import { describe, expect, it } from 'vitest';
 import {
   type CallFacts,
   expectedCall,
+  markersIn,
   mayChangeRow,
   mayShow,
   mustShow,
@@ -169,13 +171,12 @@ describe('what a successful read must show', () => {
     expect(mustShow(facts, seeded, ['a-c2'])).toEqual(['a-c2']);
   });
 
-  it('a write, a refused call and a route with nothing seeded must show nothing', () => {
+  it('a write and a refused call must show nothing', () => {
     const owner = { places: { a: { teamRole: 'owner' as const } } };
 
     expect(mustShow(call(team, { ...owner, method: 'POST' }), seeded, [])).toEqual([]);
     expect(mustShow(call(team, { places: { a: { clientId: 'c1' } } }), seeded, [])).toEqual([]);
     expect(mustShow(call(team, { places: {} }), seeded, [])).toEqual([]);
-    expect(mustShow(call(team, owner), [], [])).toEqual([]);
   });
 
   it('an account route’s listing holds what the caller may see in each workspace', () => {
@@ -243,5 +244,30 @@ describe('what a response may show', () => {
     expect(mayShow(any, 'b-other', token('b', 'c2'))).toBe(false);
     expect(mayShow(teamOnly, 'b-own', token('b', 'c1'))).toBe(false);
     expect(mayShow(any, 'c-row', token('c'))).toBe(false);
+  });
+});
+
+describe('the markers in a text', () => {
+  it('finds what uniqueMarker makes, in a name, an email and a sentence', () => {
+    const [a, b, c] = [uniqueMarker('note'), uniqueMarker('a-owner'), uniqueMarker('account')];
+
+    expect(markersIn(a)).toEqual([a]);
+    expect(markersIn(`${c}@example.com`)).toEqual([c]);
+    expect(markersIn('a-owner-deadbeef')).toEqual(['a-owner-deadbeef']);
+    expect(markersIn(`Remind ${b}, then ${a}.`)).toEqual([b, a]);
+  });
+
+  it('finds nothing in text that only looks a little like one', () => {
+    expect(markersIn('release-notes')).toEqual([]);
+    // Not 8 hex digits, or more than 8, or upper case, or no label.
+    expect(markersIn('note-1a2b3c4')).toEqual([]);
+    expect(markersIn('note-1a2b3c4d5')).toEqual([]);
+    expect(markersIn('note-1A2B3C4D')).toEqual([]);
+    expect(markersIn('1a2b3c4d')).toEqual([]);
+    expect(markersIn('-1a2b3c4d')).toEqual([]);
+    // The tail of a longer word, or of a uuid's segments.
+    expect(markersIn('xnote-1a2b3c4d_y')).toEqual([]);
+    expect(markersIn('0197c0de-1234-7000-8000-000000000001')).toEqual([]);
+    expect(markersIn('word-seven-segments-aaaa')).toEqual([]);
   });
 });
