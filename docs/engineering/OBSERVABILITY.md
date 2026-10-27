@@ -112,7 +112,7 @@ UUIDs, route templates, HTTP methods and status codes stay, so an error can stil
   3. Crash it: `kill -SEGV <pid>`. Start it again with `xcrun simctl launch`; it sends the crash.
   4. In Sentry: the crash is in the `ios` project with environment `development` and release `app.fivvi.pro@<version>+<build>`, its user is only an ID, there is no IP address, and Release Health shows a crashed session.
   5. Remove the DSN from `Local.xcconfig`. Record the result in the PR.
-  A TestFlight build can't be crashed this way (no debugger, no signals from outside): hold the greeting on the signed-in home for 5 seconds; the app crashes on purpose, and the next start sends it (`TestFlightCrash`, `apps/ios/README.md` "Crash reporting"). The trigger exists only in a Release build with a TestFlight receipt; `TestFlightCrashTests` covers it with an injected receipt and crash handler.
+  A TestFlight build can't be crashed this way: it has a hidden trigger that only it arms, described in [`apps/ios/README.md`](../../apps/ios/README.md#crash-reporting) (`TestFlightCrashTests` covers it).
 - Test data is synthetic: fake names and `@example.com` addresses.
 
 ## 4. Product events
