@@ -65,6 +65,40 @@ const FORBIDDEN: Record<string, string> = {
   'the seed entry': "import { seed } from '@fivvi/database/seed';",
   'the migrate entry': "import { runMigrations } from '@fivvi/database/migrate';",
   'the testing entry': "import { addClient } from '@fivvi/database/testing';",
+  // The handles and the privileged connection that PR #264 adds to @fivvi/database.
+  createAppDatabaseFromEnv: "import { createAppDatabaseFromEnv } from '@fivvi/database';",
+  openPrivilegedDatabase: "import { openPrivilegedDatabase } from '@fivvi/database';",
+  inspectConnectionRole: "import { inspectConnectionRole } from '@fivvi/database';",
+  readDatabaseConfig: "import { readDatabaseConfig } from '@fivvi/database';",
+  // A dynamic import or a require gets the same rule as a static import.
+  'a dynamic import of pg': "export const load = () => import('pg');",
+  'a dynamic import of drizzle-orm': "export const load = () => import('drizzle-orm');",
+  'a dynamic import of a drizzle-orm subpath':
+    "export const load = () => import('drizzle-orm/node-postgres');",
+  'a dynamic import of the seed entry': "export const load = () => import('@fivvi/database/seed');",
+  'a dynamic import of the migrate entry':
+    "export const load = () => import('@fivvi/database/migrate');",
+  'a dynamic import of the testing entry':
+    "export const load = () => import('@fivvi/database/testing');",
+  'a require of pg': "export const pg = require('pg');",
+  'a require of a drizzle-orm subpath': "export const orm = require('drizzle-orm/node-postgres');",
+  'a require of the seed entry': "export const seed = require('@fivvi/database/seed');",
+  // A path into the source of the database package is the package without its exports.
+  'a relative import of a schema file':
+    "import { clients } from '../../database/src/schema/tenancy.ts';",
+  'a relative import of the index': "import { createClient } from '../../database/src/index.ts';",
+  'a relative import of the client':
+    "import { createDatabase } from '../../database/src/client.ts';",
+  'a relative re-export': "export { clients } from '../../database/src/schema/tenancy.ts';",
+  'a relative dynamic import': "export const load = () => import('../../database/src/index.ts');",
+  'a relative require': "export const db = require('../../database/src/index.ts');",
+  'a package path into the source':
+    "import { clients } from '@fivvi/database/src/schema/tenancy.ts';",
+  // Test helpers (the database server, factories) are for tests.
+  'the testing package': "import { createTemplateDatabase } from '@fivvi/testing/database';",
+  'a testing subpath': "import { startDatabaseServer } from '@fivvi/testing/database/server';",
+  'a dynamic import of the testing package':
+    "export const load = () => import('@fivvi/testing/clock');",
 };
 
 // What packages/api/src does today: types and the repository layer by name.
@@ -76,6 +110,10 @@ const ALLOWED = [
   "import { clientsOf } from '@fivvi/other';",
   "import { clients } from './clients.ts';",
   "import { pgx } from 'pgx';",
+  "import { sibling } from './database-src.ts';",
+  "import { rows } from '../database/source.ts';",
+  "export const load = () => import('./clients.ts');",
+  "import { testing } from '@fivvi/testing-tools';",
 ];
 
 let dir: string;
@@ -146,32 +184,100 @@ describe('E011 repository-only imports in packages/api/src', () => {
   });
 });
 
-describe('E011 the list of tables and handles stays complete', () => {
-  it('names every table that @fivvi/database exports, and nothing else but the handles', async () => {
+describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
+  // What a route may import from @fivvi/database, each with why it cannot reach a table or open a
+  // connection. Everything else the package exports must be named in table_or_handle() of the rule.
+  const ALLOWED_EXPORTS: Record<string, string> = {
+    // Repositories: every query takes a tenant scope or runs on system data.
+    createClient: 'repository of clients, takes a workspace scope',
+    findClient: 'repository of clients, takes a workspace scope',
+    listClients: 'repository of clients, takes a workspace scope',
+    listMyWorkspaces: 'repository of places, takes the account scope',
+    findSystemGreeting: 'query of the system data, which has no tenant',
+    consumeRateLimit:
+      'query of the rate limits, which have no tenant; takes the executor it is given',
+    deleteExpiredRateLimits: 'query of the rate limits, which have no tenant',
+    recordWrongSignInCode: 'query of the sign-in verifications, which have no tenant',
+    pingDatabase: 'runs SELECT 1 on the executor it is given; reads no data',
+    // The tenant scope: the one way to the repositories.
+    createTenantScopes: 'builds the scopes around an executor it is given; opens no connection',
+    // Constants and types.
+    HELLO_GREETING: 'a constant of the system data',
+    RateLimitRule: 'type',
+    SystemGreetingView: 'type',
+    ClientView: 'type',
+    WorkspacePlace: 'type',
+    AccountScopeInput: 'type of the tenant scope',
+    ActingAs: 'type of the tenant scope',
+    Place: 'type of the tenant scope',
+    TeamRole: 'type of the tenant scope',
+    TenantContext: 'type of the tenant scope',
+    TenantScope: 'type of the tenant scope',
+    TenantScopes: 'type of the tenant scope',
+    WorkspaceEntry: 'type of the tenant scope',
+    WorkspaceScope: 'type of the tenant scope',
+    WorkspaceScopeInput: 'type of the tenant scope',
+  };
+
+  let forbidden: string[];
+  beforeAll(async () => {
     const grit = await readFile(pluginPath, 'utf8');
     const list = /pattern table_or_handle\(\) \{\s*r"\(\?:([^)]+)\)"/.exec(grit)?.[1];
     expect(list, 'table_or_handle() in repository-only-imports.grit').toBeDefined();
-    const named = (list ?? '').split('|');
+    forbidden = (list ?? '').split('|');
+  });
 
+  // The names the package exports: its runtime keys, and the type names its index declares (types
+  // have no runtime key, and a type of a handle is as good as the handle).
+  async function exportedNames(): Promise<{ runtime: string[]; types: string[] }> {
+    const index = await readFile(path.join(repoRoot, 'packages/database/src/index.ts'), 'utf8');
+    const types = [...index.matchAll(/\btype (\w+)/g)].map((m) => m[1] ?? '');
+    return { runtime: Object.keys(database), types };
+  }
+
+  it('classifies every runtime export and type of the package', async () => {
+    const { runtime, types } = await exportedNames();
+    expect(runtime).not.toHaveLength(0);
+    const unclassified = [...runtime, ...types].filter(
+      (name) => !forbidden.includes(name) && !(name in ALLOWED_EXPORTS),
+    );
+    // A new export is a new way into the data until someone says which it is: name it in
+    // table_or_handle() of the rule (a table, a handle, anything that opens a connection or
+    // builds a query) or in ALLOWED_EXPORTS above with the reason a route may use it.
+    expect(
+      unclassified,
+      'exports of @fivvi/database that are neither forbidden nor allowed',
+    ).toEqual([]);
+  });
+
+  it('forbids every table', () => {
     const tables = Object.entries(database)
       .filter(([, value]) => is(value, PgTable))
       .map(([name]) => name);
-    // A table the rule does not name could be imported into a route (add it to table_or_handle()).
-    expect(
-      tables.filter((name) => !named.includes(name)),
-      'tables missing from the rule',
-    ).toEqual([]);
     expect(tables).not.toHaveLength(0);
+    expect(tables.filter((name) => !forbidden.includes(name))).toEqual([]);
+  });
 
-    // The rest of the list are the raw handles, which must still exist under that name.
-    const clientSource = await readFile(
-      path.join(repoRoot, 'packages/database/src/client.ts'),
-      'utf8',
-    );
-    for (const name of named.filter((n) => !tables.includes(n))) {
-      expect(clientSource, `${name} in packages/database/src/client.ts`).toMatch(
-        new RegExp(`export (?:function|type|interface) ${name}\\b`),
-      );
+  it('keeps the allowed list free of forbidden names and of names the package no longer exports', async () => {
+    const { runtime, types } = await exportedNames();
+    const exported = [...runtime, ...types];
+    expect(Object.keys(ALLOWED_EXPORTS).filter((name) => forbidden.includes(name))).toEqual([]);
+    expect(Object.keys(ALLOWED_EXPORTS).filter((name) => !exported.includes(name))).toEqual([]);
+  });
+
+  it('still forbids the connection handles, those of PR #264 included, whichever merges first', () => {
+    for (const name of [
+      'createDatabase',
+      'createDatabaseFromEnv',
+      'createAppDatabaseFromEnv',
+      'openPrivilegedDatabase',
+      'inspectConnectionRole',
+      'readDatabaseConfig',
+      'Database',
+      'DatabaseClient',
+      'DatabaseExecutor',
+    ]) {
+      expect(forbidden, name).toContain(name);
     }
   });
 });

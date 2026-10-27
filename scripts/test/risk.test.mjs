@@ -59,6 +59,8 @@ describe('risk of a pull request', () => {
       // isolation suite and the test database's role setup.
       'packages/api/src/access.ts',
       'packages/api/src/startup.ts',
+      'apps/web/server/database.ts',
+      'apps/web/server/startup.ts',
       'packages/api/test/isolation/suite.ts',
       'packages/api/test/isolation/routes.integration.test.ts',
       'packages/testing/src/database-server.ts',
@@ -217,6 +219,9 @@ describe('risk of a pull request', () => {
         'packages/testing/src/database.ts',
         // E011's paths are the named files and folder only (AC19): a neighbour of them stays low.
         'packages/api/src/accessibility.ts',
+        'apps/web/server/startup.test.ts',
+        'apps/web/server/databases.ts',
+        'packages/api/server/database.ts',
         'packages/api/src/routes/me.ts',
         'packages/api/test/isolations/x.ts',
         'packages/api/test/access.test.ts',
