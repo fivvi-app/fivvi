@@ -11,6 +11,15 @@ const SETTINGS = JSON.parse(readFileSync(join(ROOT, '.github/repo-settings.json'
 const RELEASE = JSON.parse(readFileSync(join(ROOT, '.github/environments/release.json'), 'utf8'));
 
 describe('the versioned GitHub settings', () => {
+  it('keep every label description within the 100 characters GitHub accepts', () => {
+    for (const label of SETTINGS.labels) {
+      assert.ok(
+        label.description.length <= 100,
+        `${label.name}: ${label.description.length} characters`,
+      );
+    }
+  });
+
   it('require exactly the five CI jobs of WORKFLOW.md §7 as checks on main', () => {
     const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
     const jobs = [...ci.matchAll(/^ {4}name: (.+)$/gm)].map((match) => match[1]);
