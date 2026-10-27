@@ -217,3 +217,29 @@ describe('E011 the suite can fail', () => {
     expect(others).toEqual([]);
   });
 });
+
+describe('E011 the suite cannot go quiet', () => {
+  let world: World;
+
+  beforeAll(async () => {
+    world = await createWorld();
+  });
+
+  afterAll(async () => {
+    await world?.close();
+  });
+
+  it('AC16: a filter that lets no call through for an operation is a failure, not a green run', async () => {
+    const result = await runIsolationSuite(world, ISOLATION_CASES, { only: () => false });
+
+    expect(result.calls).toBe(0);
+    const silent = result.failures.filter((failure) => failure.includes('no call left'));
+    expect(silent.length).toBe(result.operations.length);
+    expect(silent).toContain(
+      'getMe: no call left for the actors `only` accepts, so nothing of it was tested.',
+    );
+    expect(result.operations.every((name) => silent.some((f) => f.startsWith(`${name}: `)))).toBe(
+      true,
+    );
+  });
+});

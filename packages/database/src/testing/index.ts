@@ -4,6 +4,7 @@ export {
   addTeamRole,
   createAccount,
   createWorkspace,
+  endTeamRole,
   uniqueMarker,
 } from './factories.ts';
 export { type IsolationFactory, isolationFactories } from './isolation-factories.ts';
