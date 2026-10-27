@@ -51,8 +51,13 @@ export function setupTemplateDatabase(migrate: (url: string) => Promise<void>) {
   };
 }
 
-/** Serialises role changes: several packages' global setups may run against one server at once. */
-const ROLE_LOCK = 7_011_253;
+/**
+ * Serialises role changes: several packages' global setups, and `ensureAppRole` (the release step
+ * under test), may change the roles of one server at once. It is the key of `APP_ROLE_LOCK_KEY` in
+ * `@fivvi/database` (that package depends on this one, so it cannot be imported here); a test in
+ * the database package asserts they are equal.
+ */
+export const ROLE_LOCK = 7_011_253;
 
 /**
  * Makes sure the two roles of E011 exist on the test server, idempotently (`TESTING.md §5.3`):
