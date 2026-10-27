@@ -54,4 +54,7 @@ createSession: { body: { startsAt: '2030-01-01T10:00:00Z' } },       // a valid 
 `seed` runs through the privileged connection for every client of workspaces A and B, so a route
 about a client's records is called with the caller's own and with another client's. Make its rows with
 the factories in `@fivvi/database/testing`, so every record carries a unique id the suite can search
-for. A new business table also adds its entry to `isolationFactories` in the same package.
+for. What `seed` returns is also what a successful `GET` must show: a route with path parameters must
+show the record its path names, one without (a listing) every returned value the caller may see, so
+give a listing a seed that returns the ids it lists. A text column that holds a `uniqueMarker`
+(`label-1a2b3c4d`) is found by it too. A new business table also adds its entry to `isolationFactories` in the same package.

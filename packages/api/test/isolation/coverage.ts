@@ -39,18 +39,10 @@ export function describeOperations(
 export function listOperations(
   document: ContractDocument,
 ): { name: string; accessType: string | undefined }[] {
-  const operations: { name: string; accessType: string | undefined }[] = [];
-  for (const [path, item] of Object.entries(document.paths ?? {})) {
-    for (const method of METHODS) {
-      const operation = item?.[method];
-      if (!operation) continue;
-      operations.push({
-        name: operation.operationId ?? `${method.toUpperCase()} ${path}`,
-        accessType: operation['x-access']?.type,
-      });
-    }
-  }
-  return operations;
+  return describeOperations(document).map(({ name, access }) => ({
+    name,
+    accessType: access?.type,
+  }));
 }
 
 /** One sentence per problem, each naming the operation. Empty when the contract is covered. */

@@ -5,10 +5,12 @@ import { type ContractDocument, describeOperations } from './coverage.ts';
 import {
   type CallFacts,
   expectedCall,
-  mayChangeWorkspaces,
+  mayChangeRow,
   mayShow,
+  mustShow,
   REFUSAL_BODIES,
   type RecordKind,
+  type RowGroup,
   type TokenOwner,
   type XAccess,
 } from './expectations.ts';
@@ -23,7 +25,10 @@ import type { IsolationCase } from './isolation-cases.ts';
 //   1. the status is the one `expectations.ts` derives from the route's access and the actor's place;
 //   2. a refusal is exactly its machine-readable body, and no response holds a record the actor may
 //      not see (an id or a marker of the other workspace, or of another client);
-//   3. no row of any workspace changed, except those a successful write may change.
+//   3. no row changed, except those a successful write may change (a team member's: the
+//      workspace's; a client's: its own client's);
+//   4. a successful read holds the records the case seeded that the actor may see, so a policy
+//      or a query that is too strict, and returns nothing, fails too.
 //
 // What it knows about the data it reads from Postgres through the privileged connection, never
 // from the API under test.
@@ -44,6 +49,14 @@ interface StoredRow {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** A marker as `uniqueMarker` of the factories makes it: `<label>-<8 hex digits>`, in any text. */
+const MARKER = /\b[a-z][a-z0-9]*(?:-[a-z0-9]+)*-[0-9a-f]{8}\b/g;
+
+/** The client a row belongs to: its `client_id`, or its own id for a client. */
+function clientOf(table: string, row: Record<string, unknown>): string | undefined {
+  if (typeof row.client_id === 'string') return row.client_id;
+  return table === 'clients' ? String(row.id) : undefined;
+}
 
 /** Every row of every table that holds a workspace's data, read as the privileged role. */
 async function readRows(world: World, tables: readonly string[]): Promise<StoredRow[]> {
@@ -72,9 +85,10 @@ async function businessTables(world: World): Promise<string[]> {
 type Ledger = Map<string, TokenOwner & { clientIds: Set<string> }>;
 
 /**
- * The ids and markers of every record of every workspace, and whose they are: a row's uuids
- * belong to its workspace, and to its client where it has a `client_id` (or is a client).
- * Markers of accounts (email, name) belong to wherever the account id appears.
+ * The ids and markers of every record of every workspace, and whose they are: a row's uuids,
+ * and the markers in its text (a name, a note's body), belong to its workspace, and to its
+ * client where it has a `client_id` (or is a client). Markers of accounts (email, name) belong
+ * to wherever the account id appears.
  */
 function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
   const ledger: Ledger = new Map();
@@ -88,11 +102,13 @@ function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
   };
   for (const { table, workspaceId, row } of rows) {
     claim(workspaceId, workspaceId, undefined);
-    const clientId =
-      typeof row.client_id === 'string' ? row.client_id : table === 'clients' ? String(row.id) : '';
+    const clientId = clientOf(table, row);
     for (const value of Object.values(row)) {
-      if (typeof value === 'string' && UUID.test(value) && value !== workspaceId) {
-        claim(value, workspaceId, clientId || undefined);
+      if (typeof value !== 'string') continue;
+      if (UUID.test(value)) {
+        if (value !== workspaceId) claim(value, workspaceId, clientId);
+      } else {
+        for (const [marker] of value.matchAll(MARKER)) claim(marker, workspaceId, clientId);
       }
     }
   }
@@ -105,16 +121,19 @@ function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
   return ledger;
 }
 
-/** A's rows (or B's), as one string, to compare before and after a call. */
-function snapshots(rows: StoredRow[]): Map<string, string> {
-  const byWorkspace = new Map<string, string[]>();
+/** The rows of each group (a workspace, and a client of it), as one string, to compare before and after a call. */
+function snapshots(rows: StoredRow[]): Map<string, { group: RowGroup; text: string }> {
+  const groups = new Map<string, { group: RowGroup; lines: string[] }>();
   for (const { table, workspaceId, row } of rows) {
-    byWorkspace.set(workspaceId, [
-      ...(byWorkspace.get(workspaceId) ?? []),
-      `${table} ${JSON.stringify(row)}`,
-    ]);
+    const clientId = clientOf(table, row);
+    const key = `${workspaceId} ${clientId ?? ''}`;
+    const entry = groups.get(key) ?? { group: { workspaceId, clientId }, lines: [] };
+    entry.lines.push(`${table} ${JSON.stringify(row)}`);
+    groups.set(key, entry);
   }
-  return new Map([...byWorkspace].map(([id, lines]) => [id, lines.sort().join('\n')]));
+  return new Map(
+    [...groups].map(([key, { group, lines }]) => [key, { group, text: lines.sort().join('\n') }]),
+  );
 }
 
 interface PlannedCall {
@@ -308,12 +327,36 @@ export async function runIsolationSuite(
       }
 
       // 3. Nothing changed that the call may not change.
-      const mayChange = new Set(mayChangeWorkspaces(facts));
-      for (const workspaceId of new Set([...before.keys(), ...after.keys()])) {
-        if (mayChange.has(workspaceId)) continue;
-        if (before.get(workspaceId) !== after.get(workspaceId)) {
+      for (const key of new Set([...before.keys(), ...after.keys()])) {
+        const group = (before.get(key) ?? after.get(key))?.group as RowGroup;
+        if (mayChangeRow(facts, group)) continue;
+        if (before.get(key)?.text !== after.get(key)?.text) {
           failures.push(
-            `${label}: rows of ${scenario.labels[workspaceId] ?? workspaceId} changed, and this call may not change them.`,
+            `${label}: rows of ${scenario.labels[group.workspaceId] ?? group.workspaceId} changed${group.clientId ? ' (of one client)' : ''}, and this call may not change them.`,
+          );
+        }
+      }
+
+      // 4. A successful read holds what the case seeded and the actor may see.
+      if (response.status >= 200 && response.status < 300) {
+        const seededTokens = [...new Set([...seeded.values()].flatMap((v) => Object.values(v)))]
+          .map((token): [string, TokenOwner] | undefined => {
+            const owner = ledger.get(token);
+            return owner ? [token, owner] : undefined;
+          })
+          .filter((entry) => entry !== undefined);
+        const named = Object.values(isolationCase.params ?? {}).flatMap((name) => {
+          const value = values[name];
+          return value ? [value] : [];
+        });
+        const missing = mustShow(facts, seededTokens, named).filter(
+          (token) => !text.includes(token),
+        );
+        if (missing.length > 0) {
+          const token = missing[0] as string;
+          const whose = scenario.labels[ledger.get(token)?.workspaceId ?? ''] ?? 'the workspace';
+          failures.push(
+            `${label}: the response lacks ${missing.length} record the actor may see, for example ${token} of ${whose}.`,
           );
         }
       }

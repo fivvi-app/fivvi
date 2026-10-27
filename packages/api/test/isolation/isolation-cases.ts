@@ -15,6 +15,11 @@ export interface IsolationCase {
    * connection (use the factories of `@fivvi/database/testing`). The suite calls it for every
    * client of workspaces A and B, so a client route has its own records and another client's.
    * Returns the values the path needs, by name. Leave it out for a route that names no record.
+   *
+   * The values are also what a successful `GET` must show: a route with path parameters must
+   * show the record its path names; one without must show every value the caller may see (a
+   * listing shows each client's records; a route about the caller's workspaces shows the
+   * workspace id). Return ids, or text holding a unique marker, so the suite can find them.
    */
   seed?(
     db: DatabaseExecutor,
@@ -32,6 +37,10 @@ export interface IsolationCase {
 const theClient: IsolationCase['seed'] = (_db, { clientId }) =>
   Promise.resolve({ client: clientId });
 
+/** The workspace the seed was called for: what a route about the caller's workspaces names. */
+const theWorkspace: IsolationCase['seed'] = (_db, { workspaceId }) =>
+  Promise.resolve({ workspace: workspaceId });
+
 export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // Account routes.
   getMe: {},
@@ -39,13 +48,13 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // The probe routes of the test app (`probe-routes.ts`), one per kind of access.
   probeOwner: {},
   probeTeam: {},
-  probeListClients: {},
+  probeListClients: { seed: theClient },
   probeFindClient: { seed: theClient, params: { clientId: 'client' } },
   probeCreateClient: {},
   probeValidated: { query: '?page=1', body: { name: 'Bram' } },
   probeOwn: {},
-  probeOwnListClients: {},
+  probeOwnListClients: { seed: theClient },
   probeOwnFindClient: { seed: theClient, params: { clientId: 'client' } },
-  probePlaces: {},
-  probeTeamPlaces: {},
+  probePlaces: { seed: theWorkspace },
+  probeTeamPlaces: { seed: theWorkspace },
 };

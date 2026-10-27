@@ -76,16 +76,58 @@ export function expectedCall(facts: CallFacts): ExpectedCall {
 
 const READS = ['GET', 'HEAD', 'OPTIONS'];
 
+/** A group of rows: of a workspace, and of one client where the table has a client column. */
+export interface RowGroup {
+  workspaceId: string;
+  /** The client the row belongs to; undefined for the workspace's and its team's rows. */
+  clientId: string | undefined;
+}
+
 /**
- * The workspaces whose rows the call may change: none for a refused call or a read; for a
- * successful write the workspace of the path, or, for an account route, the caller's own.
+ * Whether a successful write may change rows of this group. Nothing changes on a refused call or
+ * a read. A team member may change any row of the workspace of the path, a client only the rows
+ * of its own client. An account route follows the same `workspaces` rule as `mayShow`: the
+ * caller's rows where it has the asked relationship.
  */
-export function mayChangeWorkspaces(facts: CallFacts): string[] {
+export function mayChangeRow(facts: CallFacts, group: RowGroup): boolean {
+  const expected = expectedCall(facts);
+  if (expected.status !== 'success') return false;
+  if (READS.includes(facts.method.toUpperCase())) return false;
+  const { access } = facts;
+  if (access.type === 'workspace') {
+    if (group.workspaceId !== facts.workspaceId) return false;
+    if (expected.hat === 'team') return true;
+    return clientRowOf(facts.places[group.workspaceId], group);
+  }
+  if (access.type === 'account') {
+    const place = facts.places[group.workspaceId];
+    if (!place) return false;
+    const mode = access.workspaces ?? 'any';
+    if (mode !== 'client' && place.teamRole) return true;
+    return mode !== 'team' && clientRowOf(place, group);
+  }
+  return false;
+}
+
+function clientRowOf(place: Place | undefined, group: RowGroup): boolean {
+  return !!place?.clientId && group.clientId === place.clientId;
+}
+
+/**
+ * The tokens a successful read must hold, from the records the case seeded (each with its
+ * owner) and the ones the path names. A route that names a record must show it; one that names
+ * none must show every seeded record the caller may see, so a policy or query that is too
+ * strict, and returns nothing, fails. Only `GET` reads: a write answers with what it likes.
+ */
+export function mustShow(
+  facts: CallFacts,
+  seeded: readonly (readonly [token: string, owner: TokenOwner])[],
+  named: readonly string[],
+): string[] {
   if (expectedCall(facts).status !== 'success') return [];
-  if (READS.includes(facts.method.toUpperCase())) return [];
-  if (facts.access.type === 'workspace') return [facts.workspaceId];
-  if (facts.access.type === 'account') return Object.keys(facts.places);
-  return [];
+  if (facts.method.toUpperCase() !== 'GET') return [];
+  if (named.length > 0) return [...named];
+  return seeded.filter(([token, owner]) => mayShow(facts, token, owner)).map(([token]) => token);
 }
 
 /** Who a token (an id or a marker of a record) belongs to. */
