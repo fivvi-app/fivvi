@@ -16,3 +16,4 @@ export { HelloResponseSchema } from './routes/hello.ts';
 export { MeResponseSchema } from './routes/me.ts';
 export { SignInTokenResponseSchema } from './routes/sign-in.ts';
 export { LocaleSchema } from './schemas.ts';
+export { type StartupChecks, StartupError, verifyStartup } from './startup.ts';

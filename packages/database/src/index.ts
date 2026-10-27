@@ -1,11 +1,27 @@
 export {
+  createAppDatabaseFromEnv,
   createDatabase,
-  createDatabaseFromEnv,
   type Database,
   type DatabaseClient,
   type DatabaseExecutor,
 } from './client.ts';
-export { type DatabaseConfig, readDatabaseConfig } from './env.ts';
+export {
+  APP_DATABASE_URL_VARIABLE,
+  type DatabaseConfig,
+  PRIVILEGED_DATABASE_URL_VARIABLE,
+  readDatabaseConfig,
+} from './env.ts';
+export {
+  openPrivilegedDatabase,
+  PRIVILEGED_ALLOW_LIST,
+  PRIVILEGED_USES,
+  type PrivilegedOptions,
+  type PrivilegedReason,
+} from './privileged.ts';
+export {
+  type ConnectionRoleReport,
+  inspectConnectionRole,
+} from './queries/connection-role.ts';
 export { pingDatabase } from './queries/health.ts';
 export {
   consumeRateLimit,

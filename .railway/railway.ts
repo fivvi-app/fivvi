@@ -60,7 +60,19 @@ export default defineRailway((ctx) => {
     // Idle previews sleep after 10 minutes and wake on the next request (ADR-011 cond. 1).
     ...(production ? {} : { deploy: { sleepApplication: true } }),
     env: {
+      // The privileged connection: only the pre-deploy release step uses it (migrations, the app
+      // role, the seed). The running web never reads it (E011, packages/database/src/privileged.ts).
       DATABASE_URL: db.env.DATABASE_URL,
+      // The password of the database role `fivvi_app`, set by the owner: a distinct generated
+      // value per environment, in letters and digits only (it goes into the URL below). The
+      // release step gives the role this password; previews take `development`'s, never
+      // production's (E011, ENVIRONMENTS.md §7). Unset: the role cannot log in and the web
+      // refuses to start, so the previous deployment keeps serving.
+      APP_DATABASE_PASSWORD: preserve(),
+      // What the web runtime connects with: the app role on this environment's own Postgres,
+      // over the private network. RLS applies to it, so workspaces stay apart in the database.
+      APP_DATABASE_URL:
+        'postgresql://fivvi_app:${{APP_DATABASE_PASSWORD}}@${{postgres.RAILWAY_PRIVATE_DOMAIN}}:${{postgres.PGPORT}}/${{postgres.PGDATABASE}}',
       // Railway injects PORT=8080 otherwise. The Railway domain targets 3000 (EXPOSE in the
       // Dockerfile), so pin it: a mismatch passes the health check but answers 502 publicly.
       PORT: '3000',

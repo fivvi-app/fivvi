@@ -1,7 +1,7 @@
 import { drizzle, type NodePgDatabase, type NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import pg from 'pg';
-import { type DatabaseConfig, readDatabaseConfig } from './env.ts';
+import { APP_DATABASE_URL_VARIABLE, type DatabaseConfig, readDatabaseConfig } from './env.ts';
 import * as schema from './schema/index.ts';
 
 export type Database = NodePgDatabase<typeof schema>;
@@ -35,6 +35,17 @@ export function createDatabase(config: DatabaseConfig): DatabaseClient {
   return { db, close: () => pool.end() };
 }
 
-export function createDatabaseFromEnv(env: NodeJS.ProcessEnv = process.env): DatabaseClient {
-  return createDatabase(readDatabaseConfig(env));
+/**
+ * The database as the app role `fivvi_app`, from `APP_DATABASE_URL` (E011): what the web runtime
+ * uses, so RLS alone keeps workspaces apart. Never falls back to `DATABASE_URL`; the privileged
+ * connection only comes from `openPrivilegedDatabase`.
+ */
+export function createAppDatabaseFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+  options: { maxConnections?: number } = {},
+): DatabaseClient {
+  return createDatabase({
+    ...readDatabaseConfig(env, APP_DATABASE_URL_VARIABLE),
+    maxConnections: options.maxConnections,
+  });
 }
