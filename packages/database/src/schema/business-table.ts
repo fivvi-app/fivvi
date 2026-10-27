@@ -1,7 +1,6 @@
 import type { BuildExtraConfigColumns } from 'drizzle-orm';
 import {
   type AnyPgColumn,
-  index,
   type PgColumnBuilderBase,
   type PgTableExtraConfigValue,
   pgTable,
@@ -30,10 +29,11 @@ export interface BusinessTableOptions<Column extends string> {
  * this helper and nothing else gives it `organization_id`, so each one gets, in one place:
  *
  * - `id`, a uuid primary key, and `organization_id`, a non-null reference to `organizations`;
- * - an index that starts with `organization_id`;
- * - `unique (organization_id, id)`, so other business tables can point at a row with a composite
- *   foreign key `(organization_id, <x>_id) -> (organization_id, id)`: a row of workspace A can
- *   then never point at a row of workspace B (AC2, `foreignKey()` from `drizzle-orm/pg-core`);
+ * - `unique (organization_id, id)`: its index starts with `organization_id` (what the conventions
+ *   check wants; a second index on the column alone would duplicate it), and other business tables
+ *   can point at a row with a composite foreign key `(organization_id, <x>_id) -> (organization_id,
+ *   id)`, so a row of workspace A can never point at a row of workspace B (AC2, `foreignKey()`
+ *   from `drizzle-orm/pg-core`);
  * - RLS enabled, and the standard workspace policy for the app role (`tenant-policies.ts`), plus
  *   the client and own-account variants when the options ask for them.
  *
@@ -65,7 +65,6 @@ export function businessTable<
       const column = (key: string) =>
         (self as unknown as Record<string, AnyPgColumn>)[key] as AnyPgColumn;
       return [
-        index(`${name}_organization_id_idx`).on(self.organizationId),
         unique(`${name}_organization_id_id_unique`).on(self.organizationId, self.id),
         workspacePolicy(name, self.organizationId),
         ...(options.clientColumn ? [clientPolicy(name, column(options.clientColumn))] : []),

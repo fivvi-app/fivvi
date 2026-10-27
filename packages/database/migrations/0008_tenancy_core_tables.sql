@@ -33,9 +33,7 @@ ALTER TABLE "clients" ADD CONSTRAINT "clients_organization_id_organizations_id_f
 ALTER TABLE "clients" ADD CONSTRAINT "clients_account_id_auth_users_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."auth_users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "team_members" ADD CONSTRAINT "team_members_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "team_members" ADD CONSTRAINT "team_members_account_id_auth_users_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."auth_users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "clients_organization_id_idx" ON "clients" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "clients_account_id_idx" ON "clients" USING btree ("account_id");--> statement-breakpoint
-CREATE INDEX "team_members_organization_id_idx" ON "team_members" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "team_members_account_id_idx" ON "team_members" USING btree ("account_id");--> statement-breakpoint
 CREATE POLICY "organizations_workspace" ON "organizations" AS PERMISSIVE FOR ALL TO "fivvi_app" USING ("organizations"."id" = ANY (app_workspace_ids())) WITH CHECK ("organizations"."id" = ANY (app_workspace_ids()));--> statement-breakpoint
 CREATE POLICY "clients_workspace" ON "clients" AS PERMISSIVE FOR ALL TO "fivvi_app" USING ("clients"."organization_id" = ANY (app_workspace_ids())) WITH CHECK ("clients"."organization_id" = ANY (app_workspace_ids()));--> statement-breakpoint

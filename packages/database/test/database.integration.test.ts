@@ -475,6 +475,36 @@ describe('E004 database', () => {
         );
       });
     });
+
+    it('AC2: a view or SECURITY DEFINER function outside public is checked too', async () => {
+      await withRollback(db, async (tx) => {
+        await createBusinessTable(tx, 'parent');
+        await tx.execute(sql`create schema reporting`);
+
+        await tx.execute(sql`create view reporting.parent_view as select id from parent`);
+        expect(await findTenancyViolations(tx, RULES)).toEqual([
+          expect.stringMatching(/^reporting\.parent_view: view on parent is not security_invoker/),
+        ]);
+        await tx.execute(sql`drop view reporting.parent_view`);
+        await tx.execute(
+          sql`create view reporting.parent_view with (security_invoker = true) as select id from parent`,
+        );
+        expect(await findTenancyViolations(tx, RULES)).toEqual([]);
+
+        await tx.execute(
+          sql`create function reporting.peek() returns bigint language sql security definer
+              as 'select count(*) from parent'`,
+        );
+        expect(await findTenancyViolations(tx, RULES)).toEqual([
+          expect.stringMatching(
+            /^reporting\.peek: SECURITY DEFINER function is not on the reviewed list/,
+          ),
+        ]);
+        expect(
+          await findTenancyViolations(tx, { ...RULES, definerFunctions: ['reporting.peek'] }),
+        ).toEqual([]);
+      });
+    });
   });
 });
 

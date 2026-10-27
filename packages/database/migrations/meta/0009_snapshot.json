@@ -1,6 +1,6 @@
 {
-  "id": "24a91aac-89a9-4b5e-bcce-cdefd96c9513",
-  "prevId": "af4c83a0-6487-44c7-801f-c7844bb6badf",
+  "id": "b237f0cb-3167-4bb7-9288-44da76c3ea1f",
+  "prevId": "5ac2eca1-d46e-4115-be4b-fae1f031ade8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -580,21 +580,6 @@
         }
       },
       "indexes": {
-        "clients_organization_id_idx": {
-          "name": "clients_organization_id_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "with": {},
-          "method": "btree",
-          "concurrently": false
-        },
         "clients_account_id_idx": {
           "name": "clients_account_id_idx",
           "columns": [
@@ -738,21 +723,6 @@
         }
       },
       "indexes": {
-        "team_members_organization_id_idx": {
-          "name": "team_members_organization_id_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "with": {},
-          "method": "btree",
-          "concurrently": false
-        },
         "team_members_account_id_idx": {
           "name": "team_members_account_id_idx",
           "columns": [

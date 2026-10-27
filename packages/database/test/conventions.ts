@@ -1,8 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../src/index.ts';
-
-/** The database role the app connects as (ADR-006); every standard policy is written for it. */
-export const APP_ROLE = 'fivvi_app';
+import { APP_ROLE } from '../src/schema/index.ts';
 
 /** The workspace table itself: the root of isolation, filtered on `id` instead of `organization_id`. */
 export const WORKSPACE_TABLE = 'organizations';
@@ -10,7 +8,7 @@ export const WORKSPACE_TABLE = 'organizations';
 export interface TenancyRules {
   /** Tables in `public` that hold no business data. Each needs a reason (the value). */
   nonBusinessTables: Record<string, string>;
-  /** `SECURITY DEFINER` functions that were reviewed, by name. */
+  /** `SECURITY DEFINER` functions that were reviewed, by name (`schema.name` outside `public`). */
   definerFunctions: string[];
   /** Extra permissive policies a business table may have next to the standard one, by table. */
   extraPolicies: Record<string, string[]>;
@@ -42,6 +40,15 @@ interface PolicyRow {
   with_check: string | null;
 }
 
+/** Schemas that hold user objects: not the system catalogs, TOAST or per-session temp schemas. */
+const USER_SCHEMA = sql`n.nspname not in ('pg_catalog', 'information_schema')
+          and n.nspname not like 'pg\_toast%' and n.nspname not like 'pg\_temp%'`;
+
+/** `name` in `public`, `schema.name` anywhere else. */
+function qualified(schema: string, name: string): string {
+  return schema === 'public' ? name : `${schema}.${name}`;
+}
+
 async function rows<T>(db: DatabaseExecutor, query: ReturnType<typeof sql>): Promise<T[]> {
   return (await db.execute(query)).rows as T[];
 }
@@ -71,6 +78,8 @@ function isWorkspaceExpression(expression: string | null, column: string): boole
  *
  * AC2: foreign keys between business tables include `organization_id` on both sides; a view on
  * a business table is `security_invoker`; a `SECURITY DEFINER` function is on the reviewed list.
+ * Views and functions are looked for in every schema except the system ones, and objects that
+ * belong to an extension are skipped.
  */
 export async function findTenancyViolations(
   db: DatabaseExecutor,
@@ -230,46 +239,60 @@ export async function findTenancyViolations(
   }
 
   const views = await rows<{
+    schema: string;
     name: string;
     kind: string;
     table_name: string;
     options: string[] | null;
   }>(
     db,
-    sql`select distinct v.relname as name, v.relkind::text as kind, t.relname as table_name,
-               v.reloptions::text[] as options
+    sql`select distinct n.nspname::text as schema, v.relname as name, v.relkind::text as kind,
+               t.relname as table_name, v.reloptions::text[] as options
         from pg_depend d
         join pg_rewrite r on d.classid = 'pg_rewrite'::regclass and r.oid = d.objid
         join pg_class v on v.oid = r.ev_class
         join pg_class t on d.refclassid = 'pg_class'::regclass and t.oid = d.refobjid
         join pg_namespace n on n.oid = v.relnamespace
-        where v.relkind in ('v', 'm') and v.oid <> t.oid and n.nspname = 'public'`,
+        join pg_namespace tn on tn.oid = t.relnamespace and tn.nspname = 'public'
+        where v.relkind in ('v', 'm') and v.oid <> t.oid
+          and ${USER_SCHEMA}
+          and not exists (
+            select 1 from pg_depend e
+            where e.classid = 'pg_class'::regclass and e.objid = v.oid and e.deptype = 'e'
+          )`,
   );
   for (const view of views) {
+    const label = qualified(view.schema, view.name);
     if (!businessNames.has(view.table_name) && view.table_name !== WORKSPACE_TABLE) continue;
     const invoker = (view.options ?? []).some((option) =>
       /^security_invoker=(true|on|yes|1)$/i.test(option),
     );
     if (view.kind === 'm') {
       violations.push(
-        `${view.name}: a materialized view on ${view.table_name} is not filtered per workspace`,
+        `${label}: a materialized view on ${view.table_name} is not filtered per workspace`,
       );
     } else if (!invoker) {
-      violations.push(`${view.name}: view on ${view.table_name} is not security_invoker`);
+      violations.push(`${label}: view on ${view.table_name} is not security_invoker`);
     }
   }
 
-  const definers = await rows<{ name: string }>(
+  const definers = await rows<{ schema: string; name: string }>(
     db,
-    sql`select p.proname as name
+    sql`select n.nspname::text as schema, p.proname as name
         from pg_proc p
         join pg_namespace n on n.oid = p.pronamespace
-        where n.nspname = 'public' and p.prosecdef
-        order by p.proname`,
+        where p.prosecdef
+          and ${USER_SCHEMA}
+          and not exists (
+            select 1 from pg_depend e
+            where e.classid = 'pg_proc'::regclass and e.objid = p.oid and e.deptype = 'e'
+          )
+        order by n.nspname, p.proname`,
   );
   for (const definer of definers) {
-    if (!rules.definerFunctions.includes(definer.name)) {
-      violations.push(`${definer.name}: SECURITY DEFINER function is not on the reviewed list`);
+    const label = qualified(definer.schema, definer.name);
+    if (!rules.definerFunctions.includes(label)) {
+      violations.push(`${label}: SECURITY DEFINER function is not on the reviewed list`);
     }
   }
 
