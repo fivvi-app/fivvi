@@ -9,7 +9,7 @@ const { db, close } = createDatabaseFromEnv(); // reads DATABASE_URL; one per pr
 const greeting = await findSystemGreeting(db, 'hello'); // { slug: 'hello', i18nKey: 'hello.title' }
 ```
 
-Entry points: `@fivvi/database` (client, schema, queries, `pingDatabase`, `HELLO_GREETING`), `@fivvi/database/migrate` (`runMigrations`), `@fivvi/database/seed` (`seed`). Server-side only.
+Entry points: `@fivvi/database` (client, schema, queries, `pingDatabase`, `HELLO_GREETING`), `@fivvi/database/migrate` (`runMigrations`), `@fivvi/database/seed` (`seed`), `@fivvi/database/testing` (factories and the isolation factory registry, tests only). Server-side only.
 
 ## Local setup
 
@@ -117,9 +117,18 @@ After `pnpm db:generate`, add `ALTER TABLE "bookings" FORCE ROW LEVEL SECURITY;`
 
 **The conventions check** (`test/conventions.ts`, run by the `AC1` and `AC2` tests in `database.integration.test.ts`) fails with every violation it finds, each naming the table and what is missing. Every table in `public` must be `organizations` (policy on `id`), on the non-business allow-list, or a business table with: a non-null `organization_id` referencing `organizations`, RLS enabled and forced, the standard workspace policy for `fivvi_app` covering select, insert, update and delete, no other permissive policy that is not reviewed, and an index that starts with `organization_id` (the `unique (organization_id, id)` that `businessTable` adds is one). Foreign keys between business tables include `organization_id` on both sides; a view on a business table is `security_invoker`; a `SECURITY DEFINER` function is on the reviewed list (`schema.name` outside `public`). Views and functions are checked in every schema except the system ones, and extension-owned objects are skipped.
 
-**The non-business allow-list** (`NON_BUSINESS_TABLES` in `test/database.integration.test.ts`) maps each table without `organization_id` to the reason. Today: `system_greetings` (system data for everyone) and the `auth_*` tables (an account is global and shared by every workspace of its person, F001). A new entry needs a reason in the PR. The reviewed `SECURITY DEFINER` functions (`DEFINER_FUNCTIONS`, none) and the extra permissive policies (`EXTRA_POLICIES`, the own-account read of `team_members` and `clients`) are next to it.
+**The non-business allow-list** (`NON_BUSINESS_TABLES` in `test/tenancy-rules.ts`) maps each table without `organization_id` to the reason. Today: `system_greetings` (system data for everyone) and the `auth_*` tables (an account is global and shared by every workspace of its person, F001). A new entry needs a reason in the PR. The reviewed `SECURITY DEFINER` functions (`DEFINER_FUNCTIONS`, none) and the extra permissive policies (`EXTRA_POLICIES`, the own-account read of `team_members` and `clients`) are next to it.
 
-**Roles.** Migration `0007` creates `fivvi_app` if it doesn't exist (no login, no privileges, not a superuser, no `BYPASSRLS`), so the policies can name it and every migrated database has it. Its password and table privileges come with the release step (E011).
+**The client policy** is required too (AC20): a business table with a client column (`client_id`, a foreign key to `clients`, or `id` of `clients`) needs the restrictive `<table>_client` policy for `fivvi_app`, covering all commands with `USING` and `WITH CHECK`, which `businessTable({ clientColumn })` gives it. The check fails without it, naming the table.
+
+**Roles (AC4, AC18).**
+
+- **`fivvi_app`**, the app role: logs in, no superuser, no `BYPASSRLS`, no `CREATEROLE`/`CREATEDB`, owns nothing, not a member of the privileged role, and only the table privileges in `APP_TABLE_PRIVILEGES` (`src/app-role.ts`): select, insert, update and delete (select only on system data), never `TRUNCATE` (it ignores RLS), `REFERENCES` or `TRIGGER`, and nothing on the migration history. A table missing from that list gets no privilege, and the release integration test fails until it is listed.
+- **The privileged role**, the user of `DATABASE_URL`: owns the tables, runs the migrations and the release step.
+- Migration `0007` creates `fivvi_app` without a login if it doesn't exist, so the policies can name it and every migrated database has it. `runMigrations` then resets its table privileges to the list (so the release step, `pnpm db:migrate` and the test template end with the same grants). The release step (`ensureAppRole`) finishes the role: with `APP_DATABASE_PASSWORD` set it gives the role a login and that password, idempotently; **without it** (a preview before the owner has set the secret) it still succeeds, leaves the login and password as they are and says so in the release log. The password needs 16 characters or more, printable ASCII only (the Node driver normalises any other password before it logs in, so a verifier of it would never match), and is never logged or put in a statement (the role gets a SCRAM-SHA-256 verifier). The step also strips the role's unsafe attributes and revokes every membership, and fails if a membership granted by another role remains. The web runtime keeps connecting with `DATABASE_URL` until the next ticket (#255).
+- **Tests** connect as `fivvi_app` through `TestDatabase.appUrl`; the test setup (`setupTemplateDatabase`) creates the role with a fake password once per server, before it migrates the template.
+
+**Factories** (`@fivvi/database/testing`, next to the schema because `@fivvi/testing` cannot import the database package): `createWorkspace()`, `createAccount()`, `addTeamRole()` and `addClient()` take an executor, create a valid record and carry a unique marker (`uniqueMarker()`) or, where a record has no text column yet, its own uuid. **`isolationFactories`** registers one factory per table (`organizations`, `team_members`, `clients`) that creates a valid row in a given workspace; the RLS suite (`test/rls.integration.test.ts`) runs every check over every table in `public` that is not on the allow-list, and fails naming the table when one has no factory (AC15). A new business table adds its factory in `src/testing/isolation-factories.ts` and its line in `APP_TABLE_PRIVILEGES`.
 
 ## Environments
 
@@ -129,6 +138,8 @@ Preview and production get `DATABASE_URL` from Railway (ADR-011, [`ENVIRONMENTS.
 node src/scripts/release.ts          # production: migrations only
 node src/scripts/release.ts --seed   # development and previews: migrations, then the seed
 ```
+
+Either way the step ends by creating or updating the app role `fivvi_app`: with `APP_DATABASE_PASSWORD` set in the environment it gets a login and that password; without it the role's login and password stay untouched, its attributes are reset to the safe set, every membership is revoked, and the log says so (`App role fivvi_app: APP_DATABASE_PASSWORD is not set …`). The owner sets the secret per environment (a distinct value for `development` and `production`; previews take `development`'s).
 
 ### System data vs. seed data (decided in E003)
 

@@ -47,6 +47,26 @@ export function localServerUrl(url: string, variable: string, refusal: string): 
   return url;
 }
 
+/** The database role the app connects as (E011). The release step finishes it in a real environment. */
+export const APP_ROLE_NAME = 'fivvi_app';
+
+/**
+ * The password of the app role on the test server: obviously fake, because the server is local
+ * and throw-away. The test setup gives the role this password and `appRoleUrl()` uses it.
+ */
+export const APP_ROLE_TEST_PASSWORD = 'fake-app-role-password-for-tests';
+
+/**
+ * The connection string for `name` on the test server as the app role: no superuser, no
+ * `BYPASSRLS`, no ownership (E011). Everything that proves RLS connects with this.
+ */
+export function appRoleUrl(name: string): string {
+  const url = new URL(databaseUrl(name));
+  url.username = APP_ROLE_NAME;
+  url.password = APP_ROLE_TEST_PASSWORD;
+  return url.toString();
+}
+
 /** A new id for one test run; every database the run creates starts with its prefix. */
 export function newRunId(): string {
   return randomBytes(4).toString('hex');

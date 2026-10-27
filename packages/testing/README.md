@@ -6,11 +6,11 @@ Shared test setup (ADR-014, `docs/engineering/TESTING.md`). Test-only: add it as
 |---|---|
 | `@fivvi/testing/vitest` | `unitConfig()` and `integrationConfig()`, the Vitest presets every package uses |
 | `@fivvi/testing/database` | `cloneTemplateDatabase()`, `createTestDatabase()`, `withRollback()` for integration tests |
-| `@fivvi/testing/database/setup` | `setupTemplateDatabase(migrate)` for a Vitest global setup |
-| `@fivvi/testing/database/server` | `serverUrl()`, `localServerUrl(url, variable, refusal)`, `databaseUrl(name)`, `identifier(name)`, `onServer(...)` on the local test server, for setups outside Vitest (the web e2e server); `localServerUrl` returns `url` only when its host is local and otherwise throws `refusal` without the URL, for every script that deletes data |
+| `@fivvi/testing/database/setup` | `setupTemplateDatabase(migrate)` for a Vitest global setup; it first makes sure the app role `fivvi_app` exists on the server with a login and a fake password (`ensureTestRoles()`, once per server, under an advisory lock), because roles belong to the server and a clone does not copy them |
+| `@fivvi/testing/database/server` | `serverUrl()`, `localServerUrl(url, variable, refusal)`, `databaseUrl(name)`, `appRoleUrl(name)` (the same database as the app role `fivvi_app`, the role RLS applies to; `TestDatabase.appUrl` has it for a clone), `identifier(name)`, `onServer(...)` on the local test server, for setups outside Vitest (the web e2e server); `localServerUrl` returns `url` only when its host is local and otherwise throws `refusal` without the URL, for every script that deletes data |
 | `@fivvi/testing/clock` | `fixedClock`, `manualClock`, `freezeSystemTime`, `zonedTime`, `wallTime`, `dstTransitions` |
 
-Factories (`createWorkspace()`, …) will live here once the first business tables exist (`TESTING.md §5.2`).
+Factories (`createWorkspace()`, `createAccount()`, `addTeamRole()`, `addClient()`) live next to the schema, in `@fivvi/database/testing`, because this package cannot import the database package (E011, `TESTING.md §5.2`).
 
 ## Vitest presets
 
