@@ -34,7 +34,7 @@ final class AccountViewModelTests: XCTestCase {
 
     // MARK: Error-reporting user (AC2, #266)
 
-    func test_F001N_AC2_passesTheAccountIdOnOnceTheApiHasAnswered() async {
+    func test_F001N_266_AC2_passesTheAccountIdOnOnceTheApiHasAnswered() async {
         let api = StubAPI()
         await api.answerMe(with: .account(email: "owner@example.com", id: "0b9c4f2e-5d6a-4c1b-9e8f-1a2b3c4d5e6f"))
         let model = model(api)
@@ -45,13 +45,42 @@ final class AccountViewModelTests: XCTestCase {
         XCTAssertEqual(identified.ids, ["0b9c4f2e-5d6a-4c1b-9e8f-1a2b3c4d5e6f"])
     }
 
-    func test_F001N_AC2_passesNothingOnWhenTheApiDoesNotAnswerWithTheAccount() async {
+    func test_F001N_266_AC2_passesNothingOnWhenTheApiDoesNotAnswerWithTheAccount() async {
         let api = StubAPI()
         for answer in [StubAPI.MeAnswer.offline, .unauthorized, .status(503)] {
             await api.answerMe(with: answer)
 
             await model(api).load()
         }
+
+        XCTAssertEqual(identified.ids, [])
+    }
+
+    func test_F001N_266_AC3_anAnswerAfterTheSignOutPassesNothingOn() async {
+        let api = StubAPI()
+        await api.answerMe(with: .hang)
+        let store = InMemorySessionStore(token: "stored-token")
+        let model = model(api, store: store)
+        let loading = Task { await model.load() }
+        await api.untilMeHangs()
+
+        await model.signOut()
+        await api.releaseHangingMes()
+        await loading.value
+
+        XCTAssertEqual(identified.ids, [])
+    }
+
+    func test_F001N_266_AC3_anAnswerToAScreenThatIsGonePassesNothingOn() async {
+        let api = StubAPI()
+        await api.answerMe(with: .hang)
+        let model = model(api)
+        let loading = Task { await model.load() }
+        await api.untilMeHangs()
+
+        loading.cancel()
+        await api.releaseHangingMes()
+        await loading.value
 
         XCTAssertEqual(identified.ids, [])
     }

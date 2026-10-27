@@ -151,7 +151,7 @@ class SessionTest {
 
     // F001 AC3 (#266): every way out of a sign-in tells the app to clear the error-reporting user, once.
     @Test
-    fun F001N_AC3_aRejectedTokenClearsTheReportingUser() {
+    fun F001N_266_AC3_aRejectedTokenClearsTheReportingUser() {
         var clears = 0
         val session = Session(InMemorySessionStore("old"), onSignedOut = { clears++ })
 
@@ -161,7 +161,7 @@ class SessionTest {
     }
 
     @Test
-    fun F001N_AC3_signingOutClearsTheReportingUserOnce() {
+    fun F001N_266_AC3_signingOutClearsTheReportingUserOnce() {
         var clears = 0
         val session = Session(InMemorySessionStore("old"), onSignedOut = { clears++ })
 
@@ -172,7 +172,7 @@ class SessionTest {
     }
 
     @Test
-    fun F001N_AC3_aLateAnswerToAnOldTokenKeepsTheReportingUser() {
+    fun F001N_266_AC3_aLateAnswerToAnOldTokenKeepsTheReportingUser() {
         var clears = 0
         val session = Session(InMemorySessionStore("old"), onSignedOut = { clears++ })
         session.signIn("new")

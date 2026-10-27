@@ -112,7 +112,7 @@ final class ObservabilityTests: XCTestCase {
 
     // MARK: Error-reporting user (F001 AC2 to AC4, #266)
 
-    func test_F001N_AC2_laterEventsCarryTheAccountId() throws {
+    func test_F001N_266_AC2_laterEventsCarryTheAccountId() throws {
         let sent = try Self.reportRecordingWhatWouldBeSent(URLError(.badServerResponse)) {
             ErrorReporting.setUser(Synthetic.userID)
         }
@@ -122,7 +122,7 @@ final class ObservabilityTests: XCTestCase {
         XCTAssertEqual(Set(user.keys), ["id"], "no email, name, username or IP address")
     }
 
-    func test_F001N_AC3_clearingTheUserDropsTheAccountId() throws {
+    func test_F001N_266_AC3_clearingTheUserDropsTheAccountId() throws {
         let sent = try Self.reportRecordingWhatWouldBeSent(URLError(.badServerResponse)) {
             ErrorReporting.setUser(Synthetic.userID)
             ErrorReporting.clearUser()
@@ -135,7 +135,7 @@ final class ObservabilityTests: XCTestCase {
         XCTAssertNotNil(user?["id"] as? String, "the install's ID is back")
     }
 
-    func test_F001N_AC4_settingAndClearingDoNothingWhileReportingIsOff() {
+    func test_F001N_266_AC4_settingAndClearingDoNothingWhileReportingIsOff() {
         SentrySDK.close()
 
         ErrorReporting.setUser(Synthetic.userID)

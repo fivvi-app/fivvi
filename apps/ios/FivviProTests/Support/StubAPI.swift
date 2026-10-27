@@ -36,6 +36,8 @@ actor StubAPI: APIProtocol {
         case unauthorized
         case status(Int)
         case offline
+        /// No answer until the test calls `releaseHangingMes()`, then the account of `StubAPI.accountID`.
+        case hang
     }
 
     /// What `signOut` answers.
@@ -61,6 +63,8 @@ actor StubAPI: APIProtocol {
     private(set) var signOutCalls = 0
     private var hanging: [CheckedContinuation<Void, Never>] = []
     private var hangWatchers: [CheckedContinuation<Void, Never>] = []
+    private var hangingMes: [CheckedContinuation<Void, Never>] = []
+    private var hangingMeWatchers: [CheckedContinuation<Void, Never>] = []
 
     /// How many `signOut` calls are waiting for `releaseHangingSignOuts()`.
     var hangingSignOuts: Int { hanging.count }
@@ -91,6 +95,19 @@ actor StubAPI: APIProtocol {
     func releaseHangingSignOuts() {
         let waiting = hanging
         hanging = []
+        waiting.forEach { $0.resume() }
+    }
+
+    /// Returns once a `getMe` call hangs.
+    func untilMeHangs() async {
+        guard hangingMes.isEmpty else { return }
+        await withCheckedContinuation { hangingMeWatchers.append($0) }
+    }
+
+    /// Lets every hanging `getMe` answer with the account.
+    func releaseHangingMes() {
+        let waiting = hangingMes
+        hangingMes = []
         waiting.forEach { $0.resume() }
     }
 
@@ -129,6 +146,14 @@ actor StubAPI: APIProtocol {
             return .undocumented(statusCode: code, .init())
         case .offline:
             throw URLError(.notConnectedToInternet)
+        case .hang:
+            await withCheckedContinuation { continuation in
+                hangingMes.append(continuation)
+                let watchers = hangingMeWatchers
+                hangingMeWatchers = []
+                watchers.forEach { $0.resume() }
+            }
+            return .ok(.init(body: .json(.init(id: Self.accountID, email: "owner@example.com"))))
         }
     }
 

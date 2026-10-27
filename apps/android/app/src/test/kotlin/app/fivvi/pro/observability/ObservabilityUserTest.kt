@@ -3,6 +3,7 @@ package app.fivvi.pro.observability
 import io.sentry.OptionsContainer
 import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroidOptions
+import io.sentry.protocol.User
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -44,7 +45,7 @@ class ObservabilityUserTest {
     }
 
     @Test
-    fun F001N_AC2_laterEventsCarryTheAccountId() {
+    fun F001N_266_AC2_laterEventsCarryTheAccountId() {
         assertTrue(start())
 
         Observability.setUser(ACCOUNT_ID)
@@ -58,7 +59,7 @@ class ObservabilityUserTest {
     }
 
     @Test
-    fun F001N_AC3_clearingTheUserDropsTheAccountId() {
+    fun F001N_266_AC3_clearingTheUserDropsTheAccountId() {
         assertTrue(start())
         Observability.setUser(ACCOUNT_ID)
 
@@ -70,18 +71,18 @@ class ObservabilityUserTest {
     }
 
     @Test
-    fun F001N_AC3_theInstallationIdIsBackAfterSigningOut() {
+    fun F001N_266_AC3_theInstallationIdIsBackAfterSigningOut() {
         assertTrue(start())
         Observability.setUser(ACCOUNT_ID)
         Observability.clearUser()
         // What the SDK's event processor does on a phone once no user is set.
-        Sentry.setUser(io.sentry.protocol.User().apply { id = INSTALLATION_ID })
+        Sentry.setUser(User().apply { id = INSTALLATION_ID })
 
         assertEquals(INSTALLATION_ID, capture())
     }
 
     @Test
-    fun F001N_AC4_settingAndClearingDoNothingWhileReportingIsOff() {
+    fun F001N_266_AC4_settingAndClearingDoNothingWhileReportingIsOff() {
         val started = Observability.start(config.copy(dsn = "")) { error("the SDK must not start") }
 
         Observability.setUser(ACCOUNT_ID)

@@ -72,8 +72,8 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun F001N_AC2_passesTheAccountIdOnOnceTheApiHasAnswered() {
-        val answer = CompletableDeferred<Response<app.fivvi.api.models.MeResponse>>()
+    fun F001N_266_AC2_passesTheAccountIdOnOnceTheApiHasAnswered() {
+        val answer = CompletableDeferred<Response<MeResponse>>()
         api.answers += { answer.await() }
         viewModel()
         assertEquals(emptyList<String>(), identified)
@@ -84,7 +84,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun F001N_AC2_passesNothingOnWhenTheApiDoesNotAnswerWithTheAccount() {
+    fun F001N_266_AC2_passesNothingOnWhenTheApiDoesNotAnswerWithTheAccount() {
         api.answers += { throw IOException("offline") }
         api.answers += { Response.error(401, "{}".toResponseBody()) }
         val viewModel = viewModel()
@@ -95,7 +95,33 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun F001N_AC3_signingOutClearsTheReportingUser() {
+    fun F001N_266_AC3_anAnswerAfterTheSignOutPassesNothingOn() {
+        val answer = CompletableDeferred<Response<MeResponse>>()
+        api.answers += { answer.await() }
+        signInApi.answerSignedOut()
+        val viewModel = viewModel()
+        viewModel.signOut()
+        assertEquals(1, clears)
+
+        answer.complete(Response.success(MeResponse(ACCOUNT_ID, "owner@example.com", MeResponse.PreferredLocale.NL_NL)))
+
+        assertEquals(emptyList<String>(), identified)
+    }
+
+    @Test
+    fun F001N_266_AC3_anAnswerAfterTheTokenWasRejectedPassesNothingOn() {
+        val answer = CompletableDeferred<Response<MeResponse>>()
+        api.answers += { answer.await() }
+        viewModel()
+        session.expire("tok-1")
+
+        answer.complete(Response.success(MeResponse(ACCOUNT_ID, "owner@example.com", MeResponse.PreferredLocale.NL_NL)))
+
+        assertEquals(emptyList<String>(), identified)
+    }
+
+    @Test
+    fun F001N_266_AC3_signingOutClearsTheReportingUser() {
         api.answerAccount(id = ACCOUNT_ID)
         signInApi.answerSignedOut()
         val viewModel = viewModel()
@@ -108,7 +134,7 @@ class HomeViewModelTest {
 
     @Test
     fun F001N_AC4_loadsUntilTheApiAnswers() {
-        val answer = CompletableDeferred<Response<app.fivvi.api.models.MeResponse>>()
+        val answer = CompletableDeferred<Response<MeResponse>>()
         api.answers += { answer.await() }
 
         val viewModel = viewModel()

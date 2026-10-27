@@ -130,7 +130,7 @@ final class SessionTests: XCTestCase {
         var count = 0
     }
 
-    func test_F001N_AC3_aRejectedTokenClearsTheReportingUser() {
+    func test_F001N_266_AC3_aRejectedTokenClearsTheReportingUser() {
         let clears = Clears()
         let session = Session(store: InMemorySessionStore(token: "stored"), onSignedOut: { clears.count += 1 })
 
@@ -139,7 +139,7 @@ final class SessionTests: XCTestCase {
         XCTAssertEqual(clears.count, 1)
     }
 
-    func test_F001N_AC3_signingOutClearsTheReportingUserOnce() {
+    func test_F001N_266_AC3_signingOutClearsTheReportingUserOnce() {
         let clears = Clears()
         let session = Session(store: InMemorySessionStore(token: "stored"), onSignedOut: { clears.count += 1 })
 
@@ -149,7 +149,7 @@ final class SessionTests: XCTestCase {
         XCTAssertEqual(clears.count, 1)
     }
 
-    func test_F001N_AC3_signingInKeepsTheReportingUser() {
+    func test_F001N_266_AC3_signingInKeepsTheReportingUser() {
         let clears = Clears()
         let session = Session(store: InMemorySessionStore(), onSignedOut: { clears.count += 1 })
 

@@ -170,7 +170,7 @@ class ObservabilityTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
     // F001 AC1 (#266): the user the SDK itself adds while nobody is signed in is the installation ID, with no dashes.
     @Test
-    fun F001N_AC1_keepsTheInstallationIdAsItIsWritten() {
+    fun F001N_266_AC1_keepsTheInstallationIdAsItIsWritten() {
         assertTrue(start())
         Sentry.setUser(personalUser(id = INSTALLATION_ID, workspaceId = WORKSPACE_ID))
 
@@ -183,7 +183,7 @@ class ObservabilityTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     }
 
     @Test
-    fun F001N_AC1_dropsAnIdThatIsNotAUuid() {
+    fun F001N_266_AC1_dropsAnIdThatIsNotAUuid() {
         assertTrue(start())
         listOf(
             INSTALLATION_ID.dropLast(1),
