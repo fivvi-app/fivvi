@@ -188,7 +188,7 @@ do_android_keystore() {
   die_if_in_repo "$keystore"
   [ ! -e "$keystore" ] || die "$keystore exists already: use 'android --keystore' for it, or move it away"
   # macOS ships a keytool stub that fails without a system JDK, so `command -v` proves nothing: run it.
-  keytool_ok || { use_brew_java && keytool_ok; } || die "no working keytool (Java) found — run scripts/bootstrap.sh"
+  keytool_ok || { use_brew_java && keytool_ok; } || die "no working keytool (Java) found — run scripts/bootstrap.sh --mobile"
   echo "Choose a password for the new upload keystore. Keep it in your password manager with the backup of the file." >&2
   ask_secret "New keystore password (also the key password)"
   password="$VALUE"

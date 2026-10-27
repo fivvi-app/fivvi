@@ -103,13 +103,14 @@ exit 1
   return { bin, log };
 };
 
-// A Homebrew OpenJDK prefix whose bin/ holds a working java and a working keytool.
-const fakeBrewJdk = () => {
+// A Homebrew OpenJDK prefix whose bin/ holds a java and a keytool: working by default, or both
+// failing with `works: false`.
+const fakeBrewJdk = ({ works = true } = {}) => {
   const prefix = join(work, 'brew-jdk');
   mkdirSync(join(prefix, 'bin'), { recursive: true });
-  writeFileSync(join(prefix, 'bin', 'java'), '#!/usr/bin/env bash\nexit 0\n');
+  writeFileSync(join(prefix, 'bin', 'java'), `#!/usr/bin/env bash\nexit ${works ? 0 : 1}\n`);
   chmodSync(join(prefix, 'bin', 'java'), 0o755);
-  const keytool = fakeKeytool({ dirName: 'brew-jdk/bin', name: 'brew' });
+  const keytool = fakeKeytool({ dirName: 'brew-jdk/bin', name: 'brew', works });
   return { prefix, keytool };
 };
 
@@ -464,7 +465,7 @@ describe('#247: release-secrets.sh android-keystore finds a keytool that runs', 
     assert.equal(sets(result.calls).ANDROID_UPLOAD_KEYSTORE, b64(SENTINEL.keystore));
   });
 
-  it('stops before asking for a password, and names scripts/bootstrap.sh, when no Java runs', () => {
+  it('stops before asking for a password, and names scripts/bootstrap.sh --mobile, when no Java runs', () => {
     const stub = fakeKeytool({ dirName: 'stub-bin', works: false });
     const brew = fakeBrew('');
     const dir = join(work, 'keys');
@@ -472,7 +473,7 @@ describe('#247: release-secrets.sh android-keystore finds a keytool that runs', 
       extraPath: `${brew.bin}:${stub.bin}`,
     });
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /scripts\/bootstrap\.sh/);
+    assert.match(result.stderr, /scripts\/bootstrap\.sh --mobile/);
     assert.doesNotMatch(result.stderr, /password/i, 'no prompt was shown');
     assert.ok(!existsSync(dir));
     assert.deepEqual(sets(result.calls), {});
@@ -480,18 +481,13 @@ describe('#247: release-secrets.sh android-keystore finds a keytool that runs', 
 
   it('stops the same way when Homebrew has an openjdk@21 that does not run', () => {
     const stub = fakeKeytool({ dirName: 'stub-bin', works: false });
-    const prefix = join(work, 'brew-jdk');
-    mkdirSync(join(prefix, 'bin'), { recursive: true });
-    for (const name of ['java', 'keytool']) {
-      writeFileSync(join(prefix, 'bin', name), '#!/usr/bin/env bash\nexit 1\n');
-      chmodSync(join(prefix, 'bin', name), 0o755);
-    }
-    const brew = fakeBrew(prefix);
+    const jdk = fakeBrewJdk({ works: false });
+    const brew = fakeBrew(jdk.prefix);
     const result = run(['android-keystore', '--dir', join(work, 'keys')], answers, {
       extraPath: `${brew.bin}:${stub.bin}`,
     });
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /scripts\/bootstrap\.sh/);
+    assert.match(result.stderr, /scripts\/bootstrap\.sh --mobile/);
     assert.doesNotMatch(result.stderr, /password/i, 'no prompt was shown');
     assert.deepEqual(sets(result.calls), {});
   });
