@@ -11,6 +11,13 @@ middleware and is written as `x-access` in the contract. A workspace route lives
 `/v1/workspaces/{workspaceId}/…`, reads and writes business data only through the repositories of
 `@fivvi/database`, and never touches a business table.
 
+A lint rule keeps it that way (E011): `pnpm lint` fails for code in `src/` that imports a table or a raw
+database handle (`createDatabase`, `Database`, `DatabaseExecutor`, …), a namespace import or `export *` of
+`@fivvi/database`, `drizzle-orm`, `pg`, or the `seed`, `migrate` and `testing` entries of `@fivvi/database`.
+It is the Biome plugin `lint/repository-only-imports.grit`, registered for `src/` in the root `biome.json`;
+the tests of this package may use tables, as they seed and read rows directly. A new table must be added to
+the plugin's list, or `test/repository-only-imports.test.ts` fails.
+
 ## The isolation suite (E011)
 
 `pnpm test` fails until every route is covered, and the suite proves that workspace A's data does not

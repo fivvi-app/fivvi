@@ -17,6 +17,14 @@
 
 auth                  *auth*
 tenant-data           /packages/database
+# E011's own code (spec #145): the access middleware and helper that put a request in its tenant scope, the startup
+# check that the API runs as the RLS-bound role (arrives with its PR), the isolation suite and the test database's
+# role setup. Changing one is changing how workspaces are kept apart.
+tenant-data           /packages/api/src/access.ts
+tenant-data           /packages/api/src/startup.ts
+tenant-data           /packages/api/test/isolation
+tenant-data           /packages/testing/src/database-server.ts
+tenant-data           /packages/testing/src/database-setup.ts
 health-notes          *note*
 legal                 /docs/legal
 billing               *billing*
@@ -41,13 +49,13 @@ guardrails            /docs/engineering/WORKFLOW.md
 # tsconfig, SwiftLint, .editorconfig (ktlint), Xcode test plans (they skip tests) and the global setup of a test
 # folder, and the Xcode scheme (it names the test plan). The anchored files and folders, which no other path matches,
 # are the shared vitest preset, the CLI and tools of i18n, the CLI of the design tokens and its contrast check
-# (contrast.ts holds the pass/fail), the lint folders (i18n, ui, Android, iOS), the drift checks (the contract's
+# (contrast.ts holds the pass/fail), the lint folders (i18n, ui, api, Android, iOS), the drift checks (the contract's
 # check.ts and the pipeline.ts that holds its drift comparison and the list it compares, the design tokens'
 # check.ts), the iOS test-skip file, the Android build files that wire the checks (the root and app
 # build.gradle.kts hold the lint and release checks, settings.gradle.kts picks the lint-rules folder),
 # e2e/maestro/config.yaml (which flows CI runs), .shellcheckrc and docs/engineering/TESTING.md. project.pbxproj also
 # carries every ordinary project change, so it stays low (ADR-021). Other source inside packages, test helpers
-# included, stays low and is covered by review.
+# included, stays low and is covered by review (the tenant-data rules above name E011's own files).
 guardrails            /package.json
 guardrails            turbo.json
 guardrails            biome.json
@@ -63,6 +71,7 @@ guardrails            /packages/design-tokens/src/check.ts
 guardrails            /packages/design-tokens/src/cli.ts
 guardrails            /packages/design-tokens/src/contrast.ts
 guardrails            /packages/ui/lint
+guardrails            /packages/api/lint
 guardrails            /apps/android/lint
 guardrails            /apps/android/build.gradle.kts
 guardrails            /apps/android/app/build.gradle.kts

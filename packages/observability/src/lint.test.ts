@@ -42,7 +42,9 @@ beforeAll(async () => {
         style: { noRestrictedImports: root.linter.rules.style.noRestrictedImports },
       },
     },
-    overrides: root.overrides,
+    // The overrides that set this rule; the ones that register a plugin (packages/api/src, E011) name
+    // files of the repo, which the fixtures don't have.
+    overrides: root.overrides.filter((override: { plugins?: string[] }) => !override.plugins),
   };
   await mkdir(path.join(packageRoot, 'test-results'), { recursive: true });
   dir = await mkdtemp(path.join(packageRoot, 'test-results', 'lint-'));
