@@ -23,13 +23,14 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [013](ADR-013-observability.md) | Observability: Sentry EU, uptime checks, PostHog EU cookieless | Accepted |
 | [014](ADR-014-testing.md) | Testing: Vitest, Playwright, XCTest, JUnit/Compose, Maestro | Accepted |
 | [015](ADR-015-ui-foundation.md) | UI foundation: shared design tokens, native UI per platform | Accepted |
-| [016](ADR-016-agent-merges.md) | Agents merge low-risk PRs: scripted risk, a merge gate and a ruleset on `main`; amended by ADR-021 | Proposed |
+| [016](ADR-016-agent-merges.md) | Agents merge low-risk PRs: scripted risk, a merge gate and a ruleset on `main`; amended by ADR-021 and ADR-023 | Proposed |
 | [017](ADR-017-language-policy.md) | Language policy: interface language falls back to English; the workspace default only sets the communication language | Accepted (replaces ADR-008's locale-resolution rule) |
-| [018](ADR-018-merge-queue.md) | Merge queue: agents add low-risk PRs to the queue, the owner adds high-risk ones (until G2 agents also add high-risk PRs that are not owner-only, ADR-021); amends ADR-016; amended by ADR-021 | Proposed |
+| [018](ADR-018-merge-queue.md) | Merge queue: agents add low-risk PRs to the queue, the owner adds high-risk ones (until pilot setup agents also add high-risk PRs that are not owner-only, ADR-021, ADR-023); amends ADR-016; amended by ADR-021 and ADR-023 | Proposed |
 | [019](ADR-019-sign-in-communication-language.md) | Sign-in communication language: stored preference, otherwise the language of the screen that asked; amends ADR-017 | Proposed |
 | [020](ADR-020-payment-provider.md) | Payment provider and merchant model: Mollie Connect for Platforms, the gym as merchant on its own account | Accepted |
-| [021](ADR-021-agents-queue-high-risk.md) | Agents queue high-risk PRs before G2, except owner-only changes (guardrails, legal, money, product and decision docs); amends ADR-016 and ADR-018 | Proposed |
+| [021](ADR-021-agents-queue-high-risk.md) | Agents queue high-risk PRs before G2, except owner-only changes (guardrails, legal, money, product and decision docs); amends ADR-016 and ADR-018; amended by ADR-023 (ends at pilot setup, not G2) | Proposed |
 | [022](ADR-022-workspaces-on-our-own-tables.md) | Workspaces and team roles run on our own tables and routes (E011), not on Better Auth's organization plugin; amends ADR-007 | Accepted |
+| [023](ADR-023-owner-out-of-the-per-pr-loop.md) | The owner out of the per-PR loop: status-only roadmap and registry edits, guardrails split into core and tooling (`@except`), payments in test mode, early tickets, split owner-only edits, a factory run lock, and the end of agent queueing at pilot setup instead of G2; amends ADR-016, ADR-018 and ADR-021 | Proposed |
 
 ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. ADR-011 was re-evaluated during the write-up and accepted in its new form (Railway) the same day. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
 

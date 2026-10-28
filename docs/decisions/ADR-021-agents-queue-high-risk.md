@@ -7,6 +7,8 @@
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | Amends ADR-016 (decision 1, the merge gate's "low-risk" condition, and the parallel limit of three) and ADR-018 (decision 4, "a high-risk PR is refused"); ROADMAP.md §4.3, M4 (Gate G2); WORKFLOW.md §7; `docs/legal/verwerkersovereenkomst.md` measure T12 |
 
+> **Amended by [ADR-023](ADR-023-owner-out-of-the-per-pr-loop.md) (2026-10-28, proposed):** the agent-queueable groups now also include `tooling` and `billing` (while payments run in the payment provider's test mode); `guardrails` is split into core (owner-only) and tooling; status-only edits of `ROADMAP.md` and `FEATURES.md` no longer count as `product-docs`; and decision 6 changes from "ends at G2" to "ends at pilot setup, before the first real personal data enters production" (decision 7 follows: measure T12, version 0.4). The decision text below is the original.
+
 ## Context
 
 ADR-016 lets agents merge low-risk PRs; ADR-018 sends them through the merge queue. Every high-risk PR still waits for the owner to add it to the queue. On 24 October 2026 that was every PR of the factory: the whole of F001 (Authentication, #128) is labelled `owner-merge`, and so are the next approved specs (#168 native sign-in, #169 app distribution, #170–#172 workspaces, membership and roles). So the factory stopped after every ticket, and tickets blocked by an unmerged one waited overnight. The owner asked for the factory to run on its own until the morning.

@@ -24,7 +24,7 @@ Each agent's `claude-tools` field is its tool allowlist in Claude Code (the gene
 
 A new commit makes an earlier verdict stale: any fix, CI repair or merge of `origin/main` is followed by a review on the new head commit before `pr.sh reviewed`, scoped to what changed since the last review (**Review**, Scope). A branch that is merely behind `origin/main` needs no merge: the merge queue tests the PR on the latest `main` ([ADR-018](../decisions/ADR-018-merge-queue.md)); merge `origin/main` only to resolve a real conflict.
 
-After a clean verdict `work` records it with `pr.sh reviewed` and ships with `pr.sh ship`, then `pr.sh merge` adds a low-risk PR, and until G2 a high-risk PR that is not owner-only, to the merge queue (GitHub squash-merges it when the checks pass on the latest `main`; the owner queues an owner-only PR, [ADR-021](../decisions/ADR-021-agents-queue-high-risk.md)); how, including the follow-up pushes, is in the `work` skill's **Ship** section. A PR the queue removes comes back as a fix round: the brief names the failing checks of its `merge_group` run, and the same rules apply.
+After a clean verdict `work` records it with `pr.sh reviewed` and ships with `pr.sh ship`, then `pr.sh merge` adds a low-risk PR, and until pilot setup a high-risk PR that is not owner-only, to the merge queue (GitHub squash-merges it when the checks pass on the latest `main`; the owner queues an owner-only PR, [ADR-021](../decisions/ADR-021-agents-queue-high-risk.md)); how, including the follow-up pushes, is in the `work` skill's **Ship** section. A PR the queue removes comes back as a fix round: the brief names the failing checks of its `merge_group` run, and the same rules apply.
 
 ## Build (the builder)
 
