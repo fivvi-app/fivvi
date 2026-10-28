@@ -19,8 +19,8 @@ auth                  *auth*
 tenant-data           /packages/database
 # E011's own code (spec #145): the access middleware and helper that put a request in its tenant scope, the startup
 # check that the API runs as the RLS-bound role, the web's database connection and start-up check (apps/web/server),
-# the isolation suite and the test database's role setup. The start-up files arrive with PR #264; the patterns match
-# by name before the files exist. Changing one is changing how workspaces are kept apart.
+# the isolation suite and the test database's role setup. The start-up files came with PR #264.
+# Changing one is changing how workspaces are kept apart.
 tenant-data           /packages/api/src/access.ts
 tenant-data           /packages/api/src/startup.ts
 tenant-data           /apps/web/server/database.ts

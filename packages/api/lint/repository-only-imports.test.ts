@@ -65,7 +65,7 @@ const FORBIDDEN: Record<string, string> = {
   'the seed entry': "import { seed } from '@fivvi/database/seed';",
   'the migrate entry': "import { runMigrations } from '@fivvi/database/migrate';",
   'the testing entry': "import { addClient } from '@fivvi/database/testing';",
-  // The handles and the privileged connection that PR #264 adds to @fivvi/database.
+  // The handles and the privileged connection of #264 in @fivvi/database.
   createAppDatabaseFromEnv: "import { createAppDatabaseFromEnv } from '@fivvi/database';",
   openPrivilegedDatabase: "import { openPrivilegedDatabase } from '@fivvi/database';",
   inspectConnectionRole: "import { inspectConnectionRole } from '@fivvi/database';",
@@ -105,8 +105,8 @@ const FORBIDDEN: Record<string, string> = {
 const ALLOWED = [
   "import type { SignedInAccount, TenantScopes } from '@fivvi/database';",
   "import { HELLO_GREETING, listMyWorkspaces, createClient } from '@fivvi/database';",
-  // What the packages/api/src of PR #264 imports from the package (startup.ts, access.ts,
-  // dependencies.ts, routes/hello.ts): a variable name and a type, neither opens a connection.
+  // What packages/api/src/startup.ts (#264) imports from the package: a variable name and a type,
+  // neither opens a connection.
   "import { APP_DATABASE_URL_VARIABLE, type ConnectionRoleReport } from '@fivvi/database';",
   "import type { SignedInAccount, SystemGreetingView } from '@fivvi/database';",
   "import { HELLO_GREETING } from '@fivvi/database';",
@@ -204,11 +204,12 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     deleteExpiredRateLimits: 'query of the rate limits, which have no tenant',
     recordWrongSignInCode: 'query of the sign-in verifications, which have no tenant',
     pingDatabase: 'runs SELECT 1 on the executor it is given; reads no data',
-    // PR #264 exports APP_DATABASE_URL_VARIABLE (a variable name) and ConnectionRoleReport (a type),
-    // and its packages/api/src/startup.ts imports both; neither opens a connection, so the rule does
-    // not forbid them (the ALLOWED fixtures above prove it). Whichever of #258 and #264 lands second
-    // adds both names here: adding them before the package exports them fails the "no longer
-    // exports" check below.
+    // From the app-role work (#264); packages/api/src/startup.ts imports both, and neither opens a
+    // connection (the ALLOWED fixtures above prove the rule lets them through).
+    APP_DATABASE_URL_VARIABLE:
+      'the name of the app connection variable, a string; the startup message names it, no connection',
+    ConnectionRoleReport:
+      'type of the report the startup check receives (a role name and sentences); no handle',
     // The tenant scope: the one way to the repositories.
     createTenantScopes: 'builds the scopes around an executor it is given; opens no connection',
     // Constants and types.
@@ -283,7 +284,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     expect(Object.keys(ALLOWED_EXPORTS).filter((name) => !exported.includes(name))).toEqual([]);
   });
 
-  it('still forbids the connection handles, those of PR #264 included, whichever merges first', () => {
+  it('still forbids the connection handles, those of the app-role work (#264) included', () => {
     for (const name of [
       'createDatabase',
       'createDatabaseFromEnv',

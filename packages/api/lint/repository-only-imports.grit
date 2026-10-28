@@ -21,12 +21,11 @@ pattern database_module() { r".@fivvi/database." }
 
 // Every table of @fivvi/database (the business tables, the organizations, the sign-in tables and the
 // system data) with the schema helpers (businessTable, teamRole, APP_ROLE), and everything that makes or
-// types a connection: createDatabase, createDatabaseFromEnv and, from the app-role work (PR #264),
+// types a connection: createDatabase, createDatabaseFromEnv and, from the app-role work (#264),
 // createAppDatabaseFromEnv, openPrivilegedDatabase and its allow-list, inspectConnectionRole and the
-// config readers. Database, DatabaseClient and DatabaseExecutor type a handle. The names of #264 are here
-// before it merges, so the rule holds whichever PR lands first. APP_DATABASE_URL_VARIABLE (a variable
-// name) and ConnectionRoleReport (a type) are not here: they open no connection, and the startup check
-// of packages/api/src in #264 imports them.
+// config readers. Database, DatabaseClient and DatabaseExecutor type a handle. APP_DATABASE_URL_VARIABLE
+// (a variable name) and ConnectionRoleReport (a type) are not here: they open no connection, and the
+// startup check of packages/api/src (startup.ts) imports them.
 pattern table_or_handle() {
   r"(?:authUsers|authSessions|authIdentities|authVerifications|authRateLimits|organizations|systemGreetings|teamMembers|clients|businessTable|teamRole|APP_ROLE|createDatabase|createDatabaseFromEnv|createAppDatabaseFromEnv|openPrivilegedDatabase|PRIVILEGED_ALLOW_LIST|PRIVILEGED_USES|PrivilegedOptions|PrivilegedReason|inspectConnectionRole|readDatabaseConfig|DatabaseConfig|Database|DatabaseClient|DatabaseExecutor)"
 }
