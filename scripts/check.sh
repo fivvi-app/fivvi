@@ -106,10 +106,10 @@ doc_links() {
 }
 
 # The paths this branch changed: its commits since the merge base with origin/main, and the working tree (staged,
-# unstaged and new files).
+# unstaged and new files). --no-renames: a moved file is listed at the path it left too, so the package it left counts.
 changed_paths() {
-  git diff --name-only "origin/$(default_branch)...HEAD"
-  git diff --name-only HEAD
+  git diff --no-renames --name-only "origin/$(default_branch)...HEAD"
+  git diff --no-renames --name-only HEAD
   git ls-files --others --exclude-standard
 }
 

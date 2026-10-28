@@ -332,6 +332,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     label = false,
     changed = ['docs/product/FEATURES.md'],
     earlier = [],
+    moves = [],
     noMergeBase = false,
   }) => {
     const lines = ci().split('\n');
@@ -379,8 +380,20 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         mkdirSync(join(repo, dir), { recursive: true });
         writeFileSync(join(repo, dir, 'package.json'), JSON.stringify(json));
       }
+      // `moves` are [from, to] pairs: the file sits at `from` in the base commit and the last commit moves it.
+      for (const [from] of moves) {
+        mkdirSync(join(repo, from, '..'), { recursive: true });
+        writeFileSync(
+          join(repo, from),
+          'a file that is moved without a change, so git sees a rename\n'.repeat(5),
+        );
+      }
       git('add', '.');
       git('commit', '--quiet', '-m', 'chore: base');
+      for (const [from, to] of moves) {
+        mkdirSync(join(repo, to, '..'), { recursive: true });
+        git('mv', from, to);
+      }
       if (earlier.length > 0) {
         for (const path of earlier) {
           mkdirSync(join(repo, path, '..'), { recursive: true });
@@ -457,6 +470,30 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       ['pnpm-lock.yaml'],
     ]) {
       assert.equal(e2e({ event: 'pull_request', changed }), 'true', changed.join());
+    }
+  });
+
+  it('#293: a file moved out of a package marks the package it left, not only the one it went to', () => {
+    // git diff --name-only follows renames and lists only the new path, which would leave the old package unchecked.
+    for (const event of ['pull_request', 'push', 'merge_group']) {
+      assert.equal(
+        e2e({
+          event,
+          changed: [],
+          moves: [['packages/database/src/schema.ts', 'packages/other/src/schema.ts']],
+        }),
+        'true',
+        `${event}: web depends on the database package the file left`,
+      );
+      assert.deepEqual(
+        detectChanges({
+          event,
+          changed: [],
+          moves: [['apps/ios/FivviPro/App.swift', 'docs/product/App.txt']],
+        }),
+        { ios: 'true', android: 'false' },
+        `${event}: iOS reads the file that left apps/ios`,
+      );
     }
   });
 

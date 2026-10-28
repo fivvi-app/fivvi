@@ -265,6 +265,44 @@ describe('#293 check.sh runs the checks a change can affect', () => {
     assert.match(result.turbo[0], /--filter=@fivvi\/ui\b/);
   });
 
+  // A file that exists on main and is moved by the branch: `git diff --name-only` with rename detection lists only the new
+  // path, so the package it left would not count as changed.
+  const withFileOnMain = (body) => {
+    const original = git('rev-parse', 'origin/main').trim();
+    write(join(repo(), 'packages/database/src/schema.ts'), 'a file that is moved\n'.repeat(20));
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'chore(E002): base file');
+    git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+    try {
+      mkdirSync(join(repo(), 'packages/ui/src'), { recursive: true });
+      git('mv', 'packages/database/src/schema.ts', 'packages/ui/src/schema.ts');
+      body();
+    } finally {
+      git('update-ref', 'refs/remotes/origin/main', original);
+    }
+  };
+
+  it('a file moved out of a package (committed) counts for the package it left', () => {
+    withFileOnMain(() => {
+      git('commit', '--quiet', '-m', 'refactor(E002): move');
+      const result = run([]);
+      assert.equal(result.status, 0, result.stdout);
+      assert.match(result.turbo[0], /--filter=@fivvi\/database\b/);
+      assert.match(result.turbo[0], /--filter=@fivvi\/ui\b/);
+      assert.ok(
+        result.turbo.some((c) => c.includes('test:e2e')),
+        'web depends on database: e2e runs',
+      );
+    });
+  });
+
+  it('a file moved out of a package (staged, not committed) counts for the package it left', () => {
+    withFileOnMain(() => {
+      const result = run([]);
+      assert.match(result.turbo[0], /--filter=@fivvi\/database\b/);
+    });
+  });
+
   it('AC13: every skip names its reason in the output', () => {
     const result = run(['scripts/new-tool.sh']);
     assert.match(result.stdout, /- integration tests: skipped \(not affected\)/);

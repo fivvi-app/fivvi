@@ -84,7 +84,7 @@ jobs:
           fi
 
           if [[ -n "$base" ]]; then
-            changed="$(git diff --name-only "$base" HEAD)"
+            changed="$(git diff --no-renames --name-only "$base" HEAD)"
           else
             echo 'No base commit to compare with; treating every path as changed.'
             changed="$(git ls-files)"
