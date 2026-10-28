@@ -26,7 +26,7 @@
 #   IOS_SIM_SETTLE  seconds the simulator of `test` is up before its first test, default 150, counted from the start of its
 #                   boot (the unpack of the bundle runs meanwhile). In the single job the simulator booted during the
 #                   build and was minutes old at the first test; booted right before it, the one UI test that rotates the
-#                   device failed in both jobs on CI (#293). 0 doesn't wait
+#                   device failed in both jobs on CI (#293). 0 doesn't wait, nor does a simulator that was already booted
 #   IOS_UI_LOCALES  the locales whose UI tests run, default "nl en" (what `pnpm test:ios` does). The unit tests always run
 #                   in both. CI does not set it any more (#293): its two `iOS tests` jobs run every test in both languages on
 #                   every push. With "nl", the nl run is everything in nl and a second run is the unit tests in en, one
@@ -463,6 +463,8 @@ if [ "$MODE" = test ]; then
   step "Wait for the simulator to settle"
   await_boots || die "a simulator did not boot"
   settle_left=$((${IOS_SIM_SETTLE:-150} - (SECONDS - booted_at)))
+  # A simulator that was already booted (a reused device, KEEP_DEVICE=1) has settled: BOOTED_SIMULATOR holds only the ones this run booted.
+  case " $BOOTED_SIMULATOR " in *" $udid "*) ;; *) settle_left=0 ;; esac
   if [ "$settle_left" -gt 0 ]; then
     echo "The simulator has been up for $((SECONDS - booted_at)) s; waiting $settle_left s more (IOS_SIM_SETTLE)"
     sleep "$settle_left"

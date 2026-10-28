@@ -1901,6 +1901,27 @@ esac`,
         assert.doesNotMatch(run.output, /more \(IOS_SIM_SETTLE\)/);
       });
 
+      it('test waits 150 s from the boot by default, as CI runs it without IOS_SIM_SETTLE (#293)', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], { IOS_SIM_SETTLE: undefined });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(run.output, /waiting 1(4\d|50) s more \(IOS_SIM_SETTLE\)/);
+      });
+
+      it('test does not wait for a simulator that was already booted before the run (#293)', async () => {
+        const fake = checkout({ simulatorBooted: true });
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], { IOS_SIM_SETTLE: '1000' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.doesNotMatch(run.output, /more \(IOS_SIM_SETTLE\)/);
+        assert.equal(fake.simulator('IPHONE-18').state, 'Booted', 'the reused simulator stays up');
+      });
+
       it('test fails when the tests of that language fail', async () => {
         const fake = checkout();
         assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
