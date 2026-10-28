@@ -16,7 +16,7 @@ class FakeMeApi : MeApi {
         return answers.removeFirst()()
     }
 
-    fun answerAccount(email: String = "owner@example.com") {
-        answers += { Response.success(MeResponse(UUID.randomUUID(), email, MeResponse.PreferredLocale.NL_NL)) }
+    fun answerAccount(email: String = "owner@example.com", id: UUID = UUID.randomUUID()) {
+        answers += { Response.success(MeResponse(id, email, MeResponse.PreferredLocale.NL_NL)) }
     }
 }
