@@ -85,6 +85,33 @@ describe('payment key guard', () => {
     );
   });
 
+  it('reads the list as risk.jq does: a trailing comment or leading spaces keep billing agent-queueable', () => {
+    for (const line of [
+      '@agent-queue billing   # note',
+      '  @agent-queue billing',
+      '\t@agent-queue\tbilling\t# note',
+      '@agent-queue billing#note',
+    ]) {
+      const result = run(LIVE_KEY, {
+        paths: list(`@agent-queue auth\n${line}\nbilling *billing*\nauth *auth*\n`),
+      });
+      assert.equal(result.status, 1, `${JSON.stringify(line)} let a live key through`);
+      assert.match(result.stderr, /line 2/);
+    }
+  });
+
+  it('refuses a live key when the list is malformed or declares billing without a path rule (fail closed)', () => {
+    for (const text of [
+      '@agent-queue billing\nbilling\n',
+      '@agent-queue billing\n',
+      '@agent-queue auth\nauth *auth*\nthis is not a rule\n',
+    ]) {
+      const result = run(LIVE_KEY, { paths: list(text) });
+      assert.equal(result.status, 1, `${JSON.stringify(text)} let a live key through`);
+      assert.ok(!result.stderr.includes(LIVE_KEY));
+    }
+  });
+
   it('does not take another group for billing', () => {
     assert.equal(
       run(LIVE_KEY, { paths: list('@agent-queue billing-extra\nbilling-extra x\n') }).status,

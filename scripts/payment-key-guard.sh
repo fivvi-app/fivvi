@@ -7,8 +7,11 @@
 #   payment-key-guard.sh < key     the key is read from stdin, never as an argument: it would show in the process list
 #
 # Mollie API keys start with `live_` or `test_`. A test key passes. A live key passes only when the `@agent-queue
-# billing` line is gone. Anything else is refused. The key is never printed. FIVVI_HIGH_RISK_PATHS names another list
-# (for the tests).
+# billing` line is gone (read as scripts/risk.jq reads it). Anything else is refused. The key is never printed.
+# FIVVI_HIGH_RISK_PATHS names another list (for the tests).
+#
+# This is a backstop. Gyms connect their own Mollie account by OAuth (ADR-020), so production may never hold a `live_`
+# key of ours; the real control is the pilot-setup checklist (ROADMAP.md §7): remove the line before payments go live.
 #
 # No setup of a payment secret exists yet (the pilot's Mollie account is connected at pilot setup, ROADMAP.md §7): the
 # setup that comes with M11 must pipe the key through this script before it stores it.
@@ -32,7 +35,13 @@ if [[ "$KEY" == test_* ]]; then
 fi
 
 [ -r "$LIST" ] || die "cannot read $LIST, so I cannot tell whether payments may go live: refused"
-LINE="$(grep -nE '^@agent-queue[[:space:]]+billing[[:space:]]*$' "$LIST" | head -n 1 | cut -d: -f1)" || true
+# The list is read by the parser risk.jq uses (scripts/high-risk-rules.jq), so a comment or spacing on the line, or a
+# list that parser rejects, cannot make the guard and the risk rules disagree. A list that does not parse is refused.
+need_cmd jq
+LINE="$(jq -n -r -L "$ROOT/scripts" --rawfile rules "$LIST" 'include "high-risk-rules";
+  queue_groups as $queue
+  | if ($queue | index("billing")) then [lines[] | select(.queue == "billing") | .line] | first else empty end')" \
+  || die "cannot parse $LIST, so I cannot tell whether payments may go live: refused"
 if [ -n "$LINE" ]; then
   die "this is a live payment-provider key, and payment code is still agent-queueable. First remove the line \`@agent-queue billing\` (line $LINE of scripts/high-risk-paths.txt) in a PR of its own, then set the key"
 fi

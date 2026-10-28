@@ -380,10 +380,12 @@ cmd_finish() {
 
 # The run lock (spec #292, scheduled runs). One line: the time it was taken or last refreshed (ISO-8601 UTC), who took it
 # and the run id that acquire printed (`<time> <user@host> pid <n> run <id>`); refresh and release must be given that id,
-# so a run never renews or frees the lock of another. Written to a
-# temporary file and linked into place, so a second run never sees a half-written lock and only one of two racing runs
-# wins. An expired lock is replaced by removing it first; two runs 3 hours past a crash racing for it is not a case worth
-# more than this.
+# so a run never renews or frees the lock of another. Written to a temporary file and linked into place (`ln` fails when
+# the lock exists), so a second run never sees a half-written lock and only one of two racing runs wins. An expired lock,
+# and the lock a refresh replaces, is first seized: renamed to a name of this run alone (only one run can win a rename),
+# and its line compared with the line that was read. A run that seized a different lock (another run was faster) puts it
+# back with `ln` and loses. Known limit (ADR-023): in the milliseconds between a wrong seize and the put-back a third run
+# could take the free lock; it needs three runs within a few milliseconds, 3 hours after a crash.
 LOCK_TTL=$((3 * 3600))
 lock_file() { echo "${FIVVI_RUN_LOCK:-$NOTES_DIR/factory.lock}"; }
 
@@ -396,15 +398,16 @@ lock_age_text() {
   fi
 }
 
-# Sets LOCK_STATE (free, live, expired), LOCK_AGE (seconds since taken or refreshed) and LOCK_RUN (the run id, empty when
-# the lock records none); dies on a lock it cannot read.
+# Sets LOCK_STATE (free, live, expired), LOCK_AGE (seconds since taken or refreshed), LOCK_LINE (the lock's line) and
+# LOCK_RUN (the run id, empty when the lock records none); dies on a lock it cannot read.
 lock_read() {
   local file started taken
   file="$(lock_file)"
-  LOCK_STATE=free LOCK_AGE=0 LOCK_RUN=
+  LOCK_STATE=free LOCK_AGE=0 LOCK_RUN='' LOCK_LINE=''
   [ -e "$file" ] || return 0
-  started="$(head -n 1 "$file" 2>/dev/null | cut -d' ' -f1)"
-  LOCK_RUN="$(head -n 1 "$file" 2>/dev/null | sed -n 's/.* run \([0-9a-f][0-9a-f]*\)$/\1/p')"
+  LOCK_LINE="$(head -n 1 "$file" 2>/dev/null)"
+  started="$(cut -d' ' -f1 <<<"$LOCK_LINE")"
+  LOCK_RUN="$(sed -n 's/.* run \([0-9a-f][0-9a-f]*\)$/\1/p' <<<"$LOCK_LINE")"
   taken="$(jq -rn --arg t "$started" '$t | fromdateiso8601' 2>/dev/null)" \
     || die "the run lock $file is unreadable: remove it by hand once no run is going"
   LOCK_AGE=$(($(now_epoch) - taken))
@@ -418,6 +421,20 @@ lock_require_own() {
   [ -e "$file" ] || die "no run lock is held ($file): nothing to $verb"
   [ -n "$LOCK_RUN" ] && [ "$LOCK_RUN" = "$run" ] \
     || die "the run lock is held by another run ($file; it records $([ -n "$LOCK_RUN" ] && echo "run $LOCK_RUN" || echo "no run id")): not touching it"
+}
+
+# Renames the lock to a name of this run alone and succeeds only when it is the lock whose line is $1. When it was
+# another lock (another run replaced it after it was read), puts that one back and fails. Leaves the seized file in
+# $LOCK_SEIZED for the caller to remove.
+lock_seize() {
+  local file expected="$1"
+  file="$(lock_file)"
+  LOCK_SEIZED="$file.seized.$$"
+  mv "$file" "$LOCK_SEIZED" 2>/dev/null || return 1
+  if [ "$(head -n 1 "$LOCK_SEIZED")" = "$expected" ]; then return 0; fi
+  ln "$LOCK_SEIZED" "$file" 2>/dev/null || true
+  rm -f "$LOCK_SEIZED"
+  return 1
 }
 
 cmd_lock() {
@@ -446,7 +463,11 @@ cmd_lock() {
       run="$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
       printf '%s %s@%s pid %s run %s\n' "$now" "${USER:-unknown}" "$(hostname -s 2>/dev/null || echo host)" "$$" "$run" >"$tmp"
       if [ "$LOCK_STATE" = expired ]; then
-        rm -f "$file"
+        if ! lock_seize "$LOCK_LINE"; then
+          rm -f "$tmp"
+          die "another factory run took the lock just now ($file). Report it and stop; claim nothing"
+        fi
+        rm -f "$LOCK_SEIZED"
         echo "run lock: the previous one expired ($(lock_age_text "$LOCK_AGE") old); taking over"
       fi
       if ! ln "$tmp" "$file" 2>/dev/null; then
@@ -461,8 +482,19 @@ cmd_lock() {
       lock_require_own "$file" "${2:-}" refresh
       now="$(jq -rn --argjson e "$(now_epoch)" '$e | todate')"
       tmp="$(mktemp "$file.XXXXXX")"
-      { printf '%s ' "$now"; head -n 1 "$file" | cut -d' ' -f2-; } >"$tmp"
-      mv -f "$tmp" "$file"
+      { printf '%s ' "$now"; cut -d' ' -f2- <<<"$LOCK_LINE"; } >"$tmp"
+      # Seize the lock that was read and link the new one in its place: if another run took the lock over in between,
+      # the refresh fails instead of overwriting theirs.
+      if ! lock_seize "$LOCK_LINE"; then
+        rm -f "$tmp"
+        die "the run lock was taken by another run just now ($file): stop, claim nothing, do not release"
+      fi
+      rm -f "$LOCK_SEIZED"
+      if ! ln "$tmp" "$file" 2>/dev/null; then
+        rm -f "$tmp"
+        die "the run lock was taken by another run just now ($file): stop, claim nothing, do not release"
+      fi
+      rm -f "$tmp"
       echo "run lock refreshed ($file)" ;;
     release)
       if [ -e "$file" ]; then

@@ -388,6 +388,17 @@ describe('flow phase of a spec', () => {
     assert.match(decision.next, /--blocked-by/);
   });
 
+  it('#292 AC10: once an approved, blocked spec has tickets, it is building and lists the ready ones', () => {
+    const blockers = [{ number: 49, title: '[F001] Sign in' }];
+    const decision = decide(spec({ blockers, children: [child(51), child(52)] }));
+    assert.equal(decision.phase, 'building');
+    assert.match(decision.next, /Ready now: #51 #52/);
+    const done = decide(spec({ blockers, children: [child(51, { state: 'CLOSED' })] }));
+    assert.equal(done.phase, 'complete');
+    const unapproved = decide(spec({ blockers, labels: ['spec'], children: [child(51)] }));
+    assert.equal(unapproved.phase, 'blocked', 'a spec whose approval was removed stays blocked');
+  });
+
   it('#292 AC10: a spec that is not approved, not described, or its own ticket stays blocked or waiting', () => {
     const blockers = [{ number: 49, title: '[F001] Sign in' }];
     assert.equal(decide(spec({ blockers, labels: ['spec'] })).phase, 'blocked');

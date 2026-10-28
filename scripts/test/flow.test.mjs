@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import {
   cpSync,
   existsSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -829,6 +830,65 @@ describe('#292 flow.sh lock: a run lock with a 3-hour expiry', () => {
       const result = lock('refresh', NOW, 'any-run');
       assert.equal(result.status, 1);
       assert.match(result.stderr, /another run|no run id/);
+    });
+  });
+
+  // Racing runs. The lock is replaced only by renaming the lock that was read, never by removing whatever is there, so of
+  // many runs taking over one expired lock exactly one wins, and a refresh and a takeover cannot both succeed.
+  describe('races on an expired lock', () => {
+    const lockAsync = (action, at, ...extra) =>
+      new Promise((resolve) => {
+        const child = spawn(join(SCRIPTS, 'flow.sh'), ['lock', action, ...extra], {
+          env: { ...process.env, FIVVI_NOW: at, FIVVI_RUN_LOCK: lockFile },
+        });
+        let stdout = '';
+        child.stdout.on('data', (chunk) => {
+          stdout += chunk;
+        });
+        child.on('close', (status) => resolve({ status, stdout }));
+      });
+    const idOf = (result) => /run id: (\S+)/.exec(result.stdout)?.[1];
+    const clean = () => {
+      for (const name of readdirSync(dir)) rmSync(join(dir, name), { force: true });
+    };
+
+    it('of many runs taking over an expired lock exactly one wins, and the lock is its own', async () => {
+      for (let round = 0; round < 5; round++) {
+        clean();
+        acquireId(secondsAgo(4 * HOUR));
+        const results = await Promise.all(
+          Array.from({ length: 8 }, () => lockAsync('acquire', NOW)),
+        );
+        const winners = results.filter((result) => result.status === 0);
+        assert.equal(winners.length, 1, `round ${round}: ${winners.length} runs took the lock`);
+        assert.match(readFileSync(lockFile, 'utf8'), new RegExp(`run ${idOf(winners[0])}\\n$`));
+        assert.deepEqual(
+          readdirSync(dir),
+          ['factory.lock'],
+          'no temporary or renamed file is left',
+        );
+      }
+    });
+
+    it('a refresh of an expired lock and runs taking it over cannot both succeed', async () => {
+      for (let round = 0; round < 8; round++) {
+        clean();
+        const mine = acquireId(secondsAgo(4 * HOUR));
+        const [refresh, ...takeovers] = await Promise.all([
+          lockAsync('refresh', NOW, mine),
+          ...Array.from({ length: 4 }, () => lockAsync('acquire', NOW)),
+        ]);
+        const winners = takeovers.filter((result) => result.status === 0);
+        const holder = readFileSync(lockFile, 'utf8').match(/run (\S+)\n$/)?.[1];
+        if (refresh.status === 0) {
+          assert.equal(winners.length, 0, `round ${round}: refreshed, yet a takeover won`);
+          assert.equal(holder, mine);
+        } else {
+          assert.equal(winners.length, 1, `round ${round}: refresh lost, so one takeover must win`);
+          assert.equal(holder, idOf(winners[0]));
+        }
+        assert.deepEqual(readdirSync(dir), ['factory.lock']);
+      }
     });
   });
 
