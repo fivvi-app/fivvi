@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # The Maestro flows in e2e/maestro against the local stack, once per catalog locale (E008, TESTING.md §7.2).
 #
-#   maestro.sh android   start Postgres (migrated and seeded), the fake Brevo server (the one of the web e2e, on E2E_PORT +
+#   maestro.sh android [--apk [<file>]]   start Postgres (migrated and seeded), the fake Brevo server (the one of the web e2e, on E2E_PORT +
 #                        2000) and the web server on E2E_PORT, install the debug app on
 #                        the emulator (booted for the run when none is connected), then run every flow with the
 #                        emulator's language set to nl-NL and to en, each once Android has settled after the change
-#                        (pnpm test:maestro; CI job Android)
+#                        (pnpm test:maestro; CI job Android Maestro). --apk installs the app built by
+#                        android.sh maestro-apk (default: apps/android/build/maestro/app-debug.apk, or <file>) instead of
+#                        building it with Gradle, so CI's Maestro job runs the APK of its build job (#293)
 #   maestro.sh ios       the same on the worktree's own simulator, or the newest iPhone in the main checkout
 #                        (IOS_SIMULATOR="iPhone 17" picks one by name): builds the Debug app for it against the web
 #                        server, then runs every flow with the simulator's language set to nl-NL and to en (local only,
@@ -163,7 +165,12 @@ cleanup() {
 }
 
 cmd_android() {
-  [ $# -eq 0 ] || usage
+  local apk=""
+  case "${1:-}" in
+    "") ;;
+    --apk) apk="${2:-$MAESTRO_APK}"; [ $# -le 2 ] || usage ;;
+    *) usage ;;
+  esac
   android_env
   command -v maestro >/dev/null || die "Maestro not found — run scripts/bootstrap.sh --mobile"
   cd "$ROOT"
@@ -175,7 +182,12 @@ cmd_android() {
   DEVICE_LOCALE="$(adb shell getprop persist.sys.locale | tr -d '\r')"
   [ -n "$DEVICE_LOCALE" ] || DEVICE_LOCALE="$(adb shell getprop ro.product.locale | tr -d '\r')"
   hide_error_dialogs
-  gradle installDebug "-Pfivvi.apiBaseUrl=http://10.0.2.2:$PORT/api/"
+  if [ -n "$apk" ]; then
+    [ -f "$apk" ] || die "no APK at $apk — run scripts/android.sh maestro-apk first"
+    adb install -r -t "$apk"
+  else
+    gradle installDebug "-Pfivvi.apiBaseUrl=http://10.0.2.2:$PORT/api/"
+  fi
 
   local locale failed=""
   for locale in $LOCALES; do

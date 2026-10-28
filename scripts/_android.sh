@@ -5,6 +5,11 @@
 ANDROID_DIR="$ROOT/apps/android"
 # Keep in step with compileSdk and buildToolsVersion in apps/android/app/build.gradle.kts.
 SDK_PACKAGES="platform-tools platforms;android-37.0 build-tools;37.0.0 emulator"
+# What a build alone needs (android.sh setup --build-only, CI's build job): the same without the emulator.
+BUILD_SDK_PACKAGES="${SDK_PACKAGES% emulator}"
+# The debug app the Maestro flows install: built by android.sh maestro-apk with the API address of the Maestro run's web
+# server, and installed by maestro.sh android --apk (#293). CI's build job uploads it, its Maestro job downloads it.
+MAESTRO_APK="${MAESTRO_APK:-$ANDROID_DIR/build/maestro/app-debug.apk}"
 # The emulator for the Compose UI tests and Maestro. Google APIs images allow `adb root`, which maestro.sh needs to
 # set the device language.
 AVD_NAME="fivvi"

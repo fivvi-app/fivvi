@@ -826,6 +826,21 @@ exit 0`
     ]);
   });
 
+  it('#293: --build-only installs the SDK build tools, with no emulator, system image, AVD or Maestro', () => {
+    const { env, installed } = fakeSdk();
+    const result = spawnSync(join(SCRIPTS, 'android.sh'), ['setup', '--build-only'], {
+      encoding: 'utf8',
+      env,
+    });
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(installed(), /platforms;android-37\.0/);
+    assert.match(installed(), /build-tools;37\.0\.0/);
+    assert.doesNotMatch(installed(), /system-images|emulator/);
+    assert.doesNotMatch(result.stdout, /Maestro|emulator '/);
+    assert.equal(spawnSync(join(SCRIPTS, 'android.sh'), ['setup', '--nope'], { env }).status, 1);
+  });
+
   it('installs cmdline-tools only when the SDK has none', () => {
     const present = fakeSdk();
     assert.equal(present.setup().status, 0);
@@ -1285,6 +1300,7 @@ case "$*" in
     if [ -n "$ANDROID_UPLOAD_KEYSTORE_FILE" ] && [ "$FAKE_SIGNING" != accept ] && [ -z "$ANDROID_UPLOAD_KEY_PASSWORD" ]; then
       echo 'ANDROID_UPLOAD_KEYSTORE_FILE is set, so ANDROID_UPLOAD_KEYSTORE_PASSWORD must be set too (fake)'; exit 1
     fi ;;
+  *assembleDebug*) mkdir -p app/build/outputs/apk/debug; echo "fake apk: $*" >app/build/outputs/apk/debug/app-debug.apk ;;
 esac`,
     );
     // E017 #191: the throwaway upload keystore of pnpm test:android, and the check of the bundle's signature.
@@ -2413,6 +2429,98 @@ esac`,
 
     assert.equal(run.status, 1, run.output);
     assert.match(run.output, /E017 AC4: CURRENT_PROJECT_VERSION=42 .* resolves to '1', not 42/);
+  });
+
+  describe('#293 AC16: android.sh build, maestro-apk and verify, and maestro.sh android --apk', () => {
+    const gradleTasks = (fake) => fake.log('gradle').join('\n');
+
+    it('build runs the static checks and the debug build, and starts no emulator and no test', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/android.sh', ['build']);
+
+      assert.equal(run.status, 0, run.output);
+      const tasks = gradleTasks(fake);
+      assert.match(tasks, /ktlintCheck/);
+      assert.match(tasks, /checkReleaseApiBaseUrl/);
+      assert.match(tasks, /assembleDebug/);
+      assert.doesNotMatch(tasks, /testDebugUnitTest|connectedDebugAndroidTest|bundleRelease/);
+      assert.equal(fake.emulator().booted, false);
+    });
+
+    it('verify runs the unit tests, the signed release bundle and the Compose UI tests, not the static checks', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/android.sh', ['verify']);
+
+      assert.equal(run.status, 0, run.output);
+      const tasks = gradleTasks(fake);
+      assert.match(tasks, /testDebugUnitTest/);
+      assert.match(tasks, /BuildInfoTest/);
+      assert.match(tasks, /:app:bundleRelease/);
+      assert.match(tasks, /connectedDebugAndroidTest/);
+      assert.doesNotMatch(tasks, /ktlintCheck|assembleDebug/);
+    });
+
+    it('test is build and verify: the same Gradle tasks as before the split', async () => {
+      const fake = checkout();
+      const split = checkout();
+
+      assert.equal((await fake.run('scripts/android.sh', ['test'])).status, 0);
+      assert.equal((await split.run('scripts/android.sh', ['build'])).status, 0);
+      assert.equal((await split.run('scripts/android.sh', ['verify'])).status, 0);
+
+      const words = (f) =>
+        new Set(
+          gradleTasks(f)
+            .split(/\s+/)
+            .filter((w) => /^[:A-Za-z]/.test(w)),
+        );
+      for (const word of words(fake))
+        assert.ok(words(split).has(word), `${word} runs in build or verify`);
+    });
+
+    it('maestro-apk builds the debug app for the API address of the Maestro run and copies it where --apk looks', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/android.sh', ['maestro-apk']);
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        gradleTasks(fake),
+        /assembleDebug -Pfivvi\.apiBaseUrl=http:\/\/10\.0\.2\.2:3999\/api\//,
+      );
+      const apk = join(fake.repo, 'apps/android/build/maestro/app-debug.apk');
+      assert.match(readFileSync(apk, 'utf8'), /fivvi\.apiBaseUrl=http:\/\/10\.0\.2\.2:3999\/api\//);
+    });
+
+    it('maestro.sh android --apk installs that APK and does not run Gradle', async () => {
+      const fake = checkout({ emulatorRunning: true });
+      assert.equal((await fake.run('scripts/android.sh', ['maestro-apk'])).status, 0);
+      const before = fake.log('gradle').length;
+
+      const run = await fake.run('scripts/maestro.sh', ['android', '--apk']);
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(fake.log('gradle').length, before, 'no Gradle run');
+      assert.ok(
+        fake.log('adb').some((line) => /^install -r -t \S+app-debug\.apk$/.test(line)),
+        fake.log('adb').join('\n'),
+      );
+    });
+
+    it('maestro.sh android --apk without the APK says how to build it', async () => {
+      const fake = checkout({ emulatorRunning: true });
+
+      const run = await fake.run('scripts/maestro.sh', [
+        'android',
+        '--apk',
+        '/nonexistent/app.apk',
+      ]);
+
+      assert.notEqual(run.status, 0);
+      assert.match(run.output, /no APK at \/nonexistent\/app\.apk/);
+    });
   });
 
   it('E017 AC4: pnpm test:android also runs BuildInfoTest with a build number passed from outside', async () => {
