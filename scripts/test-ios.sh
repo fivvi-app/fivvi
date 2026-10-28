@@ -9,7 +9,8 @@
 #                 catalog sync leaves the generated catalogs unchanged, then one build-for-testing and one run of the
 #                 unit and UI tests in nl and en without building again (one result bundle, both locales), on the newest
 #                 iPhone simulator, in a worktree its own copy (IOS_SIMULATOR="iPhone 17" picks one by name). Both
-#                 locales run on one simulator, also on CI (two simulators were slower on CI's 3-core runner);
+#                 locales run on one simulator here (two on one 3-core machine were slower; CI runs the two languages in two
+#                 jobs, each on its own runner and simulator, see `test-ios.sh test` below);
 #                 IOS_PARALLEL=1 runs one run per locale at the same time on two. Prints the durations of its steps, the
 #                 build timing summary and the slowest tests per locale (also in the job summary on CI); when tests fail, the names and
 #                 messages of the failed tests from the result bundle (#290). Shuts down the
@@ -23,9 +24,9 @@
 #                                `iOS tests` jobs run it in parallel, one per language, from the artifact of the build job
 #
 #   IOS_UI_LOCALES  the locales whose UI tests run, default "nl en" (what `pnpm test:ios` does). The unit tests always run
-#                   in both. CI sets "nl" on a pull request only, so a PR's run skips the en UI tests (a language-only
-#                   break of a UI test then shows in the merge queue, which runs both); with it, the nl run is everything
-#                   in nl and a second run is the unit tests in en, one result bundle per locale (E002 #242)
+#                   in both. CI does not set it any more (#293): its two `iOS tests` jobs run every test in both languages on
+#                   every push. With "nl", the nl run is everything in nl and a second run is the unit tests in en, one
+#                   result bundle per locale (E002 #242)
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
