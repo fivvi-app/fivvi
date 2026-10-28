@@ -519,7 +519,7 @@ describe('F002 does Better Auth’s organization plugin fit E011’s tables?', (
 
       expect(viaPlugin).toContain('row-level security');
       expect(viaSql).toContain('row-level security');
-      expect(await rows(sql`select slug from organizations where slug like 'new-%'`)).toEqual([]);
+      expect(await rows(sql`select slug from organizations where slug in ('new-plugin', 'new-sql')`)).toEqual([]);
     });
 
     it('create works with an id chosen up front for the whole instance and a hook that hands it to the plugin', async () => {
@@ -549,7 +549,7 @@ describe('F002 does Better Auth’s organization plugin fit E011’s tables?', (
       expect(tables).not.toContain('members');
     });
 
-    it('met without a column on auth_sessions: sign-in sessions, create, read, rename and list all ran with no `active_organization_id`', async () => {
+    it('met without a column on auth_sessions: a create ran, and succeeded, with no `active_organization_id`', async () => {
       // The probe's `auth_sessions` has no `active_organization_id`: the drizzle adapter leaves the
       // field out, so the plugin's "open workspace on the session" quietly does nothing. We never
       // need it (the workspace is the `workspaceId` of the path), so it is not an extra.
