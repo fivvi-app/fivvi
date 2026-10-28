@@ -135,6 +135,10 @@ actor StubAPI: APIProtocol {
         fatalError("The hello screen doesn't call getHealth")
     }
 
+    func createWorkspace(_ input: Operations.CreateWorkspace.Input) async throws -> Operations.CreateWorkspace.Output {
+        fatalError("The app doesn't call createWorkspace yet")
+    }
+
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
         meCalls += 1
         switch meAnswer {
