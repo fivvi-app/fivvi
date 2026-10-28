@@ -17,13 +17,16 @@ source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
 usage() { usage_of "$0"; }
 
-# Each native job: the app, its generated inputs (client, string catalogs, design tokens), the version both apps share
-# (apps/Version.xcconfig) and its own scripts. Shared
+# Each native job: the app, its generated inputs (the committed client, string catalogs, design tokens), the version both apps share
+# (apps/Version.xcconfig) and its own scripts. The client is the committed generated one, packages/contract/swift for iOS
+# and packages/contract/kotlin for Android, not every path under packages/contract/: a change to the API's TypeScript
+# side that leaves both clients as they are builds nothing new, and one that should have changed them fails the contract
+# drift check in Checks (Linux) (#293). Shared
 # files (.github/workflows/ci.yml, scripts/_lib.sh, this list) don't run them on their own. Android also runs the
 # Maestro flows in e2e/maestro, which read their sign-in code from the fake Brevo server (apps/web/e2e/fake-brevo.ts)
 # out of the sign-in email (EM-08, packages/email/src/templates/sign-in.tsx).
-IOS_PATHS='^(apps/ios|packages/contract|packages/i18n/generated/ios|packages/design-tokens/FivviDesignTokens)/|^apps/Version\.xcconfig$|^scripts/(test-ios|_ios)\.sh$'
-ANDROID_PATHS='^(apps/android|packages/contract|packages/i18n/generated/android|packages/design-tokens/kotlin|e2e/maestro)/|^apps/Version\.xcconfig$|^apps/web/e2e/fake-brevo\.ts$|^packages/email/src/templates/sign-in\.tsx$|^packages/email/src/environment\.ts$|^packages/database/src/(scripts/)?reset-rate-limits\.ts$|^scripts/(android|_android|maestro)\.sh$'
+IOS_PATHS='^(apps/ios|packages/contract/swift|packages/i18n/generated/ios|packages/design-tokens/FivviDesignTokens)/|^apps/Version\.xcconfig$|^scripts/(test-ios|_ios)\.sh$'
+ANDROID_PATHS='^(apps/android|packages/contract/kotlin|packages/i18n/generated/android|packages/design-tokens/kotlin|e2e/maestro)/|^apps/Version\.xcconfig$|^apps/web/e2e/fake-brevo\.ts$|^packages/email/src/templates/sign-in\.tsx$|^packages/email/src/environment\.ts$|^packages/database/src/(scripts/)?reset-rate-limits\.ts$|^scripts/(android|_android|maestro)\.sh$'
 
 EVENT=""
 FORCE=false

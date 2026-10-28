@@ -236,9 +236,32 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     const android = nativeJobs(['apps/android/app/build.gradle.kts'], ['--event', 'push']);
     assert.equal(android.ios, 'false');
     assert.equal(android.android, 'true');
-    const contract = nativeJobs(['packages/contract/openapi.json'], ['--event', 'push']);
-    assert.equal(contract.ios, 'true');
-    assert.equal(contract.android, 'true');
+    const swift = nativeJobs(['packages/contract/swift/Package.swift'], ['--event', 'push']);
+    assert.equal(swift.ios, 'true');
+    assert.equal(swift.android, 'false');
+  });
+
+  it('#293 AC9: a contract change that leaves the committed Swift and Kotlin clients alone runs neither native job', () => {
+    for (const path of [
+      'packages/contract/openapi.json',
+      'packages/contract/src/pipeline.ts',
+      'packages/contract/scripts/generate.ts',
+      'packages/contract/tools/swift-generator/Package.swift',
+      'packages/contract/config/openapi-generator.json',
+    ]) {
+      for (const args of [[], ['--event', 'pull_request'], ['--event', 'push'], ['--event', 'merge_group']]) {
+        const jobs = nativeJobs([path], args);
+        assert.equal(jobs.ios, 'false', `${path} ${args.join(' ')}`);
+        assert.equal(jobs.android, 'false', `${path} ${args.join(' ')}`);
+      }
+    }
+  });
+
+  it('#293 AC9: the committed Swift client starts iOS only, the committed Kotlin client Android only', () => {
+    const swift = nativeJobs(['packages/contract/swift/Sources/FivviAPI/Generated/Client.swift']);
+    assert.deepEqual([swift.ios, swift.android], ['true', 'false']);
+    const kotlin = nativeJobs(['packages/contract/kotlin/generated/app/fivvi/api/apis/HelloApi.kt']);
+    assert.deepEqual([kotlin.ios, kotlin.android], ['false', 'true']);
   });
 
   it('E002 #91: a push to main that touches no native path, or only ci.yml and _lib.sh, runs neither native job', () => {
