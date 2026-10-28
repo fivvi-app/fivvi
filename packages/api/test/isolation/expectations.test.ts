@@ -8,6 +8,7 @@ import {
   mayChangeRow,
   mayShow,
   mustShow,
+  splitAddedGroups,
   type XAccess,
 } from './expectations.ts';
 
@@ -112,6 +113,29 @@ describe('a route that creates the caller’s workspace (F002)', () => {
     expect(mayAddWorkspace(creates({ places: {} }))).toBe(true);
     expect(mayAddWorkspace(creates({ places: { a: { teamRole: 'owner' } } }))).toBe(false);
     expect(mayAddWorkspace(creates({ signedIn: false }))).toBe(false);
+  });
+
+  it('exempts exactly one added group: a workspace that had none, without a client', () => {
+    const before = [{ workspaceId: 'a' }, { workspaceId: 'a', clientId: 'c1' }];
+
+    expect(splitAddedGroups(before, [{ workspaceId: 'n' }])).toEqual({
+      workspaces: [{ workspaceId: 'n' }],
+      others: [],
+    });
+  });
+
+  it('does not exempt a group added in an existing workspace', () => {
+    const before = [{ workspaceId: 'a' }];
+
+    expect(
+      splitAddedGroups(before, [{ workspaceId: 'n' }, { workspaceId: 'a', clientId: 'c9' }]),
+    ).toEqual({
+      workspaces: [{ workspaceId: 'n' }],
+      others: [{ workspaceId: 'a', clientId: 'c9' }],
+    });
+    expect(splitAddedGroups(before, [{ workspaceId: 'n', clientId: 'c9' }]).others).toEqual([
+      { workspaceId: 'n', clientId: 'c9' },
+    ]);
   });
 
   it('is nothing special for any other route', () => {

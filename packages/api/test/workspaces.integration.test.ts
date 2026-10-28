@@ -131,13 +131,7 @@ describe('F002 POST /v1/workspaces', () => {
     expect(response.status).toBe(201);
     const body = (await response.json()) as WorkspaceBody;
     expect(ContractWorkspace.parse(body)).toEqual(body);
-    expect(body).toEqual({
-      id: expect.any(String),
-      name: "John's Gym",
-      slug: 'johns-gym',
-      defaultLocale: 'nl-NL',
-      timeZone: 'Europe/Amsterdam',
-    });
+    expect(body).toMatchObject({ id: expect.any(String), name: "John's Gym", slug: 'johns-gym' });
     const [workspace] = await admin.db
       .select()
       .from(organizations)
@@ -147,6 +141,19 @@ describe('F002 POST /v1/workspaces', () => {
       await admin.db.select().from(teamMembers).where(eq(teamMembers.accountId, sarah.id)),
     ).toEqual([expect.objectContaining({ organizationId: body.id, role: 'owner' })]);
     expect(await nameOf(sarah.id)).toBe('Sarah');
+  });
+
+  it('AC2: defaults nl-NL and Europe/Amsterdam', async () => {
+    const response = await create(await account(), { name: "John's Gym" });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as WorkspaceBody;
+    expect(body).toMatchObject({ defaultLocale: 'nl-NL', timeZone: 'Europe/Amsterdam' });
+    const [workspace] = await admin.db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, body.id));
+    expect(workspace).toMatchObject({ defaultLocale: 'nl-NL', timeZone: 'Europe/Amsterdam' });
   });
 
   it('AC1: a failure in the request leaves nothing behind: no workspace, no role, no name', async () => {
@@ -338,9 +345,12 @@ describe('F002 POST /v1/workspaces', () => {
 
   it('AC12: workspace_created carries the workspace ID and nothing personal', async () => {
     const lines: string[] = [];
-    const log = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+    const capture = (...args: unknown[]) => {
       lines.push(args.map(String).join(' '));
-    });
+    };
+    const logs = (['error', 'log', 'warn', 'info'] as const).map((level) =>
+      vi.spyOn(console, level).mockImplementation(capture),
+    );
     const posthog = createProductEventCaptureTransport();
     const productEvents = createProductEvents({
       env: { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' },
@@ -364,7 +374,7 @@ describe('F002 POST /v1/workspaces', () => {
     for (const personal of ['Secret Studio', 'secret-studio', 'Geheime', who.email]) {
       expect(sent).not.toContain(personal);
     }
-    log.mockRestore();
+    for (const log of logs) log.mockRestore();
   });
 
   it('records no event for a refusal or a validation error', async () => {

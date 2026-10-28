@@ -14,6 +14,7 @@ import {
   REFUSAL_BODIES,
   type RecordKind,
   type RowGroup,
+  splitAddedGroups,
   type TokenOwner,
   type XAccess,
 } from './expectations.ts';
@@ -399,18 +400,21 @@ export async function runIsolationSuite(
       // workspace may add one workspace that did not exist (its rows are a group of their own).
       const added = [...after.keys()].filter((key) => !before.has(key));
       const created = mayAddWorkspace(facts) && response.status >= 200 && response.status < 300;
-      if (created && added.length > 0) {
-        const [key, ...more] = added;
-        const group = after.get(key as string)?.group as RowGroup;
-        if (more.length > 0) {
-          failures.push(`${label}: it added ${added.length} workspaces; it may add one.`);
-        }
+      const split = splitAddedGroups(
+        [...before.values()].map(({ group }) => group),
+        added.map((key) => (after.get(key) as { group: RowGroup }).group),
+      );
+      const exempt = new Set(created ? split.workspaces.slice(0, 1) : []);
+      if (created && split.workspaces.length > 1) {
+        failures.push(`${label}: it added ${split.workspaces.length} workspaces; it may add one.`);
+      }
+      for (const group of exempt) {
         // From now on the caller is the Owner of the workspace it made, for the calls after this one.
         (planned.actor.places as Record<string, Place>)[group.workspaceId] = { teamRole: 'owner' };
       }
       for (const key of new Set([...before.keys(), ...after.keys()])) {
         const group = (before.get(key) ?? after.get(key))?.group as RowGroup;
-        if (!before.has(key) && created) continue;
+        if (exempt.has(group)) continue;
         if (mayChangeRow(facts, group)) continue;
         if (before.get(key)?.text !== after.get(key)?.text) {
           failures.push(

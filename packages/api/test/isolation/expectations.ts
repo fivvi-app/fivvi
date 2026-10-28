@@ -127,6 +127,21 @@ export function mayAddWorkspace(facts: CallFacts): boolean {
   return facts.createsWorkspace === true && expectedCall(facts).status === 'success';
 }
 
+/**
+ * Splits the groups a successful create added. The workspace it made is exempt: a group whose
+ * workspace had no group before the call, and which has no client. Every other added group (a
+ * client's group, or any group in a workspace that already existed) is in `others`, and the
+ * caller fails on it.
+ */
+export function splitAddedGroups<T extends { workspaceId: string; clientId?: string | undefined }>(
+  before: readonly { workspaceId: string }[],
+  added: readonly T[],
+): { workspaces: T[]; others: T[] } {
+  const known = new Set(before.map((group) => group.workspaceId));
+  const workspaces = added.filter((g) => !known.has(g.workspaceId) && g.clientId === undefined);
+  return { workspaces, others: added.filter((g) => !workspaces.includes(g)) };
+}
+
 function clientRowOf(place: Place | undefined, group: RowGroup): boolean {
   return !!place?.clientId && group.clientId === place.clientId;
 }
