@@ -101,6 +101,47 @@ test.describe('F001 axe check waits for animations (#203)', () => {
     await expectNoAxeViolations(page, '/login while the button fades in');
   });
 
+  // #287. Axe can read a control the moment its transition starts, before the frame that
+  // announces the transition (`transitionrun`) has come: the page was busy hydrating. The check
+  // must not trust "nothing started" then; it also looks at what is running when axe is done.
+  test('#287: reruns when a transition began during the run and its event has not come yet', async ({
+    page,
+  }) => {
+    // The page holds back `transitionrun`, as a frame that has not been drawn yet would, and
+    // starts a fade-in on the first style read after the check arms it (that is axe's, not the
+    // settle wait's). No frame passes before axe reads the start of the fade: about 1.4:1.
+    await page.setContent(`<!doctype html>
+      <html lang="en">
+        <head>
+          <title>Late fade</title>
+          <style>
+            button { color: #000; background: #fff; opacity: 0.05; transition: opacity 600ms linear; }
+            button.on { opacity: 1; }
+          </style>
+        </head>
+        <body>
+          <main><button type="button">Hydrated late</button></main>
+          <script>
+            document.addEventListener('transitionrun', (event) => event.stopImmediatePropagation(), true);
+            const read = window.getComputedStyle.bind(window);
+            let started = false;
+            window.getComputedStyle = (...args) => {
+              if (window.__armed && !started) {
+                started = true;
+                document.querySelector('button').classList.add('on');
+              }
+              return read(...args);
+            };
+          </script>
+        </body>
+      </html>`);
+    await page.evaluate(() => {
+      (window as Window & { __armed?: boolean }).__armed = true;
+    });
+
+    await expectNoAxeViolations(page, 'a fade whose event has not come');
+  });
+
   test('AC3: still fails on a real contrast problem, also while a fade is running', async ({
     page,
   }) => {

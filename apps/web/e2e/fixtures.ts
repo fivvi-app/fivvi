@@ -34,8 +34,11 @@ const MAX_AXE_RUNS = 3;
  */
 const SETTLE_TIMEOUT_MS = 5_000;
 
-/** `window` with the counter `waitForAnimationsToSettle` keeps of the CSS transitions and animations that start. */
-type E2EWindow = Window & { __e2eAnimationStarts?: number };
+/** `window` with what `waitForAnimationsToSettle` installs: a counter of the CSS transitions and animations that start, and the list of finite animations running now. */
+type E2EWindow = Window & {
+  __e2eAnimationStarts?: number;
+  __e2eRunningFinite?: () => Animation[];
+};
 
 /**
  * Waits until every running finite animation on the page has finished, checking on every
@@ -44,7 +47,7 @@ type E2EWindow = Window & { __e2eAnimationStarts?: number };
  * state) shows a blend that fails contrast (#203). Looping and paused animations never finish and
  * are left alone. Animations still running after `timeoutMs` (one that restarts all the time) fail
  * the check, named; the deadline holds even when no frames fire (a hidden page). It also starts
- * the counter `startedAnimations` reads, so call it before reading that.
+ * the counter `animationActivity` reads, so call it before reading that.
  */
 async function waitForAnimationsToSettle(page: Page, timeoutMs: number): Promise<void> {
   const unsettled = await page.evaluate(async (timeoutMs) => {
@@ -56,16 +59,19 @@ async function waitForAnimationsToSettle(page: Page, timeoutMs: number): Promise
       };
       document.addEventListener('transitionrun', count, true);
       document.addEventListener('animationstart', count, true);
+      // `running` also covers an animation whose start is still pending; a paused one reads
+      // `paused`. Asking for the animations also brings the page's styles up to date, so a
+      // transition that is due to start has started.
+      win.__e2eRunningFinite = () =>
+        document
+          .getAnimations()
+          .filter(
+            (animation) =>
+              animation.playState === 'running' &&
+              animation.effect?.getComputedTiming().endTime !== Infinity,
+          );
     }
-    // `running` also covers an animation whose start is still pending; a paused one reads `paused`.
-    const runningFinite = () =>
-      document
-        .getAnimations()
-        .filter(
-          (animation) =>
-            animation.playState === 'running' &&
-            animation.effect?.getComputedTiming().endTime !== Infinity,
-        );
+    const runningFinite = () => win.__e2eRunningFinite?.() ?? [];
     const deadline = performance.now() + timeoutMs;
     // Resolves on the next frame, or at the deadline when no frame comes.
     const nextFrameOrDeadline = () =>
@@ -101,9 +107,21 @@ async function waitForAnimationsToSettle(page: Page, timeoutMs: number): Promise
   }
 }
 
-/** How many CSS transitions and animations have started on the page since the first wait (Web Animations are not counted). */
-async function startedAnimations(page: Page): Promise<number> {
-  return await page.evaluate(() => (window as E2EWindow).__e2eAnimationStarts ?? 0);
+/**
+ * What changed on the page since the first wait: how many CSS transitions and animations have
+ * started (Web Animations are not counted), and how many finite animations run now. A transition
+ * announces itself with an event only on the next frame, and a busy page (hydrating, or axe itself)
+ * can hold that frame back for as long as axe reads the page (#287); the running ones are counted
+ * without waiting for the event.
+ */
+async function animationActivity(page: Page): Promise<{ started: number; running: number }> {
+  return await page.evaluate(() => {
+    const win = window as E2EWindow;
+    return {
+      started: win.__e2eAnimationStarts ?? 0,
+      running: win.__e2eRunningFinite?.().length ?? 0,
+    };
+  });
 }
 
 interface AxeViolationSummary {
@@ -118,7 +136,7 @@ interface AxeViolationSummary {
  * final page automatically; call it yourself for states in between (an open dialog, the
  * page before a language switch). It waits for running finite animations first (`settleTimeoutMs`
  * caps the wait), and repeats the run when a CSS transition or animation started while axe was
- * looking, so a fade never counts as a violation.
+ * looking or is still running when axe is done, so a fade never counts as a violation.
  */
 export async function expectNoAxeViolations(
   page: Page,
@@ -128,7 +146,7 @@ export async function expectNoAxeViolations(
   let found: AxeViolationSummary[] = [];
   for (let run = 1; run <= MAX_AXE_RUNS; run++) {
     await waitForAnimationsToSettle(page, settleTimeoutMs);
-    const startsBefore = await startedAnimations(page);
+    const before = await animationActivity(page);
     const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     found = violations.map(({ id, impact, help, nodes }) => ({
       id,
@@ -136,8 +154,11 @@ export async function expectNoAxeViolations(
       help,
       targets: nodes.map((node) => node.target.join(' ')),
     }));
-    // Trust the result unless something started animating while axe was reading the page.
-    if (found.length === 0 || (await startedAnimations(page)) === startsBefore) break;
+    // Trust the result unless something started animating while axe was reading the page, or is
+    // animating now (its start event may not have come yet).
+    if (found.length === 0) break;
+    const after = await animationActivity(page);
+    if (after.started === before.started && after.running === 0) break;
   }
   expect(found, `axe violations on ${state}`).toEqual([]);
 }
