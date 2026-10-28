@@ -19,7 +19,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, utimesSync, writeFileSyn
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// What the iOS build reads (the same list as the iOS paths of scripts/native-jobs.sh, without the scripts).
+// What the iOS build reads: the iOS paths of scripts/native-jobs.sh without the scripts (a test fails when they differ).
 export const SOURCE_PATHS = [
   'apps/ios',
   'apps/Version.xcconfig',

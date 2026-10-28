@@ -17,6 +17,8 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
+import { SOURCE_PATHS } from '../ios-mtimes.mjs';
+
 const SCRIPTS = join(import.meta.dirname, '..');
 const lib = (expression) =>
   execFileSync('bash', ['-c', `source "${SCRIPTS}/_lib.sh"; ${expression}`], {
@@ -133,6 +135,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'packages/design-tokens/FivviDesignTokens/Sources/FivviDesignTokens/Generated/Colors.swift',
       'scripts/test-ios.sh',
       'scripts/_ios.sh',
+      // It puts the modification times back before the build (#293 AC15), so a change to it changes the build.
+      'scripts/ios-mtimes.mjs',
     ]) {
       assert.ok(runs('ios', path), path);
     }
@@ -144,6 +148,17 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     ]) {
       assert.ok(!runs('ios', path), path);
     }
+  });
+
+  it('#293: the sources scripts/ios-mtimes.mjs records are the iOS inputs of native-jobs.sh, without the scripts', () => {
+    // One list kept in two places: this fails when they drift.
+    const script = readFileSync(join(SCRIPTS, 'native-jobs.sh'), 'utf8');
+    const iosPaths = script.match(/^IOS_PATHS='(.+)'$/m)[1];
+    const [directories] = iosPaths.match(/^\^\(([^)]+)\)\//).slice(1);
+    const files = [...iosPaths.matchAll(/\|\^([^|$]+)\$/g)]
+      .map((m) => m[1].replaceAll('\\', ''))
+      .filter((path) => !path.startsWith('scripts/'));
+    assert.deepEqual([...SOURCE_PATHS].sort(), [...directories.split('|'), ...files].sort());
   });
 
   it('E008 AC9: the Android job runs for the app and its generated inputs, including the Kotlin design tokens', () => {
@@ -663,6 +678,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean);
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub Actions expression, not a template
     const prefix = '${{ runner.os }}-${{ steps.xcode.outputs.version }}-';
     assert.deepEqual(restoreKeys, [
       `ios-build-${prefix}\${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-`,
