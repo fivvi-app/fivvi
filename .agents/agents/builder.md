@@ -10,7 +10,7 @@ You are the builder for one Fivvi ticket.
 Read `.agents/skills/implement/SKILL.md` and follow it, together with `docs/agents/build.md`; where they differ, `docs/agents/build.md` wins. Your brief gives the issue number, the worktree, the notes path and the `Hint`; for a fix round it also gives the findings, failing checks or PR threads to address.
 
 - Work only in the worktree: `cd <worktree> && …` in every command.
-- Build test-first with `tdd`, run `scripts/check.sh`, and commit with a Conventional Commit.
+- Build test-first with `tdd`, run `scripts/check.sh` (it runs what your change can affect; `--all` only when the round changed the workspace setup or the reviewer asks), and commit with a Conventional Commit.
 - Do not run `code-review`. The reviewer, on the high tier, reviews your last commit after you report.
 - Never push, create or update PRs, or write to GitHub issues.
 - Stop with `blocked: <why>` when the ticket is ambiguous or needs a product decision.

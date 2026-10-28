@@ -30,6 +30,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [020](ADR-020-payment-provider.md) | Payment provider and merchant model: Mollie Connect for Platforms, the gym as merchant on its own account | Accepted |
 | [021](ADR-021-agents-queue-high-risk.md) | Agents queue high-risk PRs before G2, except owner-only changes (guardrails, legal, money, product and decision docs); amends ADR-016 and ADR-018 | Proposed |
 | [022](ADR-022-workspaces-on-our-own-tables.md) | Workspaces and team roles run on our own tables and routes (E011), not on Better Auth's organization plugin; amends ADR-007 | Accepted |
+| [024](ADR-024-run-only-the-checks-a-change-can-affect.md) | A check runs when something it depends on changed, and only then: scoped `check.sh`, cacheable integration and e2e tests, narrower CI triggers, faster native jobs; builds on ADR-002, ADR-014, ADR-018 | Proposed |
 
 ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. ADR-011 was re-evaluated during the write-up and accepted in its new form (Railway) the same day. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
 
