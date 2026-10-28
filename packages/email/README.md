@@ -71,7 +71,7 @@ Transports implement `EmailTransport` (`send(email) → { messageId }`, one atte
 | `EMAIL_FROM_ADDRESS` | `noreply@fivvi.app` | Must be a verified sender in Brevo (Settings → Senders, domains & dedicated IPs) |
 | `EMAIL_FROM_NAME` | `Fivvi` | Display name of the sender |
 | `BREVO_API_URL` | `http://localhost:4010/v3/smtp/email` | Optional. Sends the requests here instead of to Brevo, for e2e runs against a fake Brevo server. Leave it unset everywhere else |
-| `EMAIL_SEND_EXAMPLE_DOMAIN` | `1` | Optional. Outside production, sends `@example.com` mail through Brevo (here `BREVO_API_URL`) instead of writing it to the log. Only the Maestro run (`scripts/maestro.sh`) and the web e2e run (`apps/web/playwright.config.ts`) set it: their fake Brevo server holds the sign-in codes. Leave it unset everywhere else; production ignores it |
+| `EMAIL_SEND_EXAMPLE_DOMAIN` | `1` | Optional. Outside production, sends `@example.com` mail through Brevo (here `BREVO_API_URL`) instead of writing it to the log. Only the Maestro run sets it (`scripts/maestro.sh`: its fake Brevo server holds the sign-in codes). Leave it unset everywhere else; production ignores it |
 
 `createEnvironmentSendEmail()` is the `sendEmail` the server uses (F001): **production** always sends through Brevo and never logs an email; **outside production**, mail to an `@example.com` address is written to the server log instead (the whole text, so the sign-in code and link can be read from it), and all other mail goes through Brevo (`EMAIL_SEND_EXAMPLE_DOMAIN=1` sends `@example.com` mail through Brevo too). "Production" is the Railway environment named `production` (`RAILWAY_ENVIRONMENT_NAME`). Outside production the Brevo variables may be missing while only `@example.com` mail is sent.
 

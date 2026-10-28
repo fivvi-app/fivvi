@@ -2,6 +2,7 @@ import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { authSessions, authUsers, createDatabase } from '@fivvi/database';
 import { databaseUrl } from '@fivvi/testing/database/server';
 import type { BrowserContext } from '@playwright/test';
+import { eq } from 'drizzle-orm';
 import {
   ALLOWED_SIGN_UP_DOMAIN,
   appServer,
@@ -63,7 +64,7 @@ export async function signInWithSession(context: BrowserContext, email: string):
   const token = randomBytes(24).toString('base64url');
   const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
   try {
-    const user = (await client.db.select().from(authUsers)).find((row) => row.email === email);
+    const user = (await client.db.select().from(authUsers).where(eq(authUsers.email, email)))[0];
     if (!user) throw new Error(`No account ${email} on the e2e database.`);
     await client.db
       .insert(authSessions)
