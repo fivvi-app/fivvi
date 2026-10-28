@@ -9,6 +9,7 @@
 #          forward (scripts/status-only.jq) has no product-docs reason; every other file decides as the rules say.
 # $rules: the text of scripts/high-risk-paths.txt
 # Output: {risk: "low"|"high"|"owner", reasons: [string]}; reasons lists every reason, owner-only ones included.
+#         With `--argjson detail true` it also has owner_reasons: just the owner-only ones (scripts/risk.sh --detail).
 
 include "status-only" {search: "./"};
 
@@ -84,3 +85,4 @@ queue_groups as $queue
       | label_reasons("#\($n)"),
         (.parent // empty | label_reasons("spec #\(.number) of #\($n)"))]
 | {risk: (if length == 0 then "low" elif any(.[]; .owner) then "owner" else "high" end), reasons: map(.text)}
+  + (if $ARGS.named.detail == true then {owner_reasons: [.[] | select(.owner) | .text]} else {} end)

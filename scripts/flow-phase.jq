@@ -61,6 +61,12 @@ def code_next($n):
     "abandoned": "The PR was closed without merging. Ask the user what to do."
   }[.phase];
 
+# An approved, described spec with no tickets yet. Its open blockers (another spec) do not hold the tickets back: they are
+# cut now, each with blocking edges of its own (#292, early tickets).
+def awaiting_tickets:
+  has("spec") and has("spec-approved") and (.children | length) == 0 and (has("ready-for-agent") | not)
+  and (has("needs-triage") | not) and .described;
+
 def ready_children:
   [.children[] | select(open and has("ready-for-agent") and (has("spec") | not)
     and (.assignees | length == 0) and (.blocked | not)) | .number];
@@ -99,7 +105,7 @@ def ticket_phase($n):
       and (($f | open) or any($f.branches[]; .local or .worktree != null) or any($f.branches[]; .pr.state == "OPEN"))
    then {phase: $code[0].phase, next: ($code[0] | code_next($n))}
    elif ($f | open | not) then {phase: "done", next: "Nothing to do."}
-   elif ($f.blockers | length) > 0 then
+   elif ($f.blockers | length) > 0 and ($f | awaiting_tickets | not) then
      {phase: "blocked", next: "Wait for \([$f.blockers[] | "#\(.number)"] | join(", ")) to be done."}
    elif ($f | has("spec")) or ($f.children | length) > 0 then
      if ($f.children | length) > 0 and ([$f.children[] | select(open)] | length) == 0 then
@@ -112,7 +118,10 @@ def ticket_phase($n):
      elif ($f.children | length) == 0 and ($f | has("ready-for-agent")) then
        $f | ticket_phase($n)
      elif ($f.children | length) == 0 then
-       {phase: "needs-tickets", next: "Split it with to-tickets: scripts/issue.sh create ticket --parent \($n) [--blocked-by <n>]..."}
+       {phase: "needs-tickets",
+        next: ("Split it with to-tickets: scripts/issue.sh create ticket --parent \($n) [--blocked-by <n>]..."
+               + (if ($f.blockers | length) == 0 then ""
+                  else ". It waits for \([$f.blockers[] | "#\(.number)"] | join(", ")), which does not hold its tickets back: give each ticket --blocked-by the tickets of \([$f.blockers[] | "#\(.number)"] | join(", ")) it needs, or by that spec itself when those tickets do not exist yet" end))}
      else
        ($f | ready_children) as $ready
        | {phase: "building",

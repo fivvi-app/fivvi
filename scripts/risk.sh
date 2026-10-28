@@ -6,7 +6,8 @@
 # queue when the whole merge gate holds (scripts/pr.sh merge); owner PRs go to the owner. The decision is
 # scripts/risk.jq.
 #
-#   risk.sh <pr> [--json]     prints low, high or owner with one reason per line; --json prints {risk, reasons}
+#   risk.sh <pr> [--json] [--detail]   prints low, high or owner with one reason per line; --json prints {risk,
+#                             reasons}; --detail (with --json) adds owner_reasons, the owner-only ones (pr.sh create)
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -60,10 +61,11 @@ risk_facts() {
     '{files: $files, issues: $issues, patches: $patches}'
 }
 
-pr="" json=false
+pr="" json=false detail=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --json) json=true ;;
+    --detail) detail=true ;;
     *) [ -z "$pr" ] || usage; pr="$1" ;;
   esac
   shift
@@ -71,6 +73,6 @@ done
 [[ "$pr" =~ ^[0-9]+$ ]] || usage
 
 facts="$(risk_facts "$pr")" || exit 1
-decision="$(jq -c --rawfile rules "$ROOT/scripts/high-risk-paths.txt" -f "$ROOT/scripts/risk.jq" <<<"$facts")" \
+decision="$(jq -c --argjson detail "$detail" --rawfile rules "$ROOT/scripts/high-risk-paths.txt" -f "$ROOT/scripts/risk.jq" <<<"$facts")" \
   || die "could not decide the risk of PR #$pr"
 if $json; then echo "$decision"; else jq -r '.risk, (.reasons[] | "  \(.)")' <<<"$decision"; fi

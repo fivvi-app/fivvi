@@ -14,6 +14,12 @@
 #   flow.sh finish <n>                      after its PR is merged (it says so when the PR is still in
 #                                           the merge queue, or GitHub removed it): remove worktree, branches and the
 #                                           worktree's iOS simulator, close the issue, report what the spec needs next
+#   flow.sh lock acquire|release|status     the run lock of the factory (work skill, Factory): one run at a time. A file
+#                                           under the main checkout's .work/ (outside git, shared by all worktrees;
+#                                           FIVVI_RUN_LOCK overrides the path), expiring after 3 hours so a crashed
+#                                           run does not stop the factory. acquire fails with the lock's age while a
+#                                           run holds it, and takes over an expired one; release frees it; status
+#                                           says free, live or expired
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -370,7 +376,79 @@ cmd_finish() {
   echo "Spec #$parent: $(jq -r .phase <<<"$(jq -f "$PHASE_JQ" <<<"$f")") — $(jq -r .next <<<"$(jq -f "$PHASE_JQ" <<<"$f")")"
 }
 
+# The run lock (spec #292, scheduled runs). One line: the time it was taken (ISO-8601 UTC), then who took it. Written to a
+# temporary file and linked into place, so a second run never sees a half-written lock and only one of two racing runs
+# wins. An expired lock is replaced by removing it first; two runs 3 hours past a crash racing for it is not a case worth
+# more than this.
+LOCK_TTL=$((3 * 3600))
+lock_file() { echo "${FIVVI_RUN_LOCK:-$NOTES_DIR/factory.lock}"; }
+
+# 12 seconds as 12s, 25 minutes as 25m, 2 hours 5 minutes as 2h05m.
+lock_age_text() {
+  local s="$1"
+  if [ "$s" -lt 60 ]; then echo "${s}s"
+  elif [ "$s" -lt 3600 ]; then echo "$((s / 60))m"
+  else printf '%dh%02dm\n' "$((s / 3600))" "$((s % 3600 / 60))"
+  fi
+}
+
+# Sets LOCK_STATE (free, live, expired) and LOCK_AGE (seconds); dies on a lock it cannot read.
+lock_read() {
+  local file started taken
+  file="$(lock_file)"
+  LOCK_STATE=free LOCK_AGE=0
+  [ -e "$file" ] || return 0
+  started="$(head -n 1 "$file" 2>/dev/null | cut -d' ' -f1)"
+  taken="$(jq -rn --arg t "$started" '$t | fromdateiso8601' 2>/dev/null)" \
+    || die "the run lock $file is unreadable: remove it by hand once no run is going"
+  LOCK_AGE=$(($(now_epoch) - taken))
+  [ "$LOCK_AGE" -ge 0 ] || LOCK_AGE=0
+  if [ "$LOCK_AGE" -gt "$LOCK_TTL" ]; then LOCK_STATE=expired; else LOCK_STATE=live; fi
+}
+
+cmd_lock() {
+  [ $# -eq 1 ] || usage
+  local file tmp now
+  file="$(lock_file)"
+  case "$1" in
+    status)
+      lock_read
+      case "$LOCK_STATE" in
+        free) echo "run lock: free" ;;
+        live) echo "run lock: live, taken $(lock_age_text "$LOCK_AGE") ago ($file)" ;;
+        expired) echo "run lock: expired, taken $(lock_age_text "$LOCK_AGE") ago ($file); the next run takes it over" ;;
+      esac ;;
+    acquire)
+      lock_read
+      [ "$LOCK_STATE" != live ] \
+        || die "another factory run is live: its lock was taken $(lock_age_text "$LOCK_AGE") ago and expires after 3h ($file). Report it and stop; claim nothing"
+      now="$(jq -rn --argjson e "$(now_epoch)" '$e | todate')"
+      mkdir -p "$(dirname "$file")"
+      tmp="$(mktemp "$file.XXXXXX")"
+      printf '%s %s@%s pid %s\n' "$now" "${USER:-unknown}" "$(hostname -s 2>/dev/null || echo host)" "$$" >"$tmp"
+      if [ "$LOCK_STATE" = expired ]; then
+        rm -f "$file"
+        echo "run lock: the previous one expired ($(lock_age_text "$LOCK_AGE") old); taking over"
+      fi
+      if ! ln "$tmp" "$file" 2>/dev/null; then
+        rm -f "$tmp"
+        die "another factory run took the lock just now ($file). Report it and stop; claim nothing"
+      fi
+      rm -f "$tmp"
+      echo "run lock acquired ($file)" ;;
+    release)
+      if [ -e "$file" ]; then
+        rm -f "$file"
+        echo "run lock released"
+      else
+        echo "no lock held"
+      fi ;;
+    *) usage ;;
+  esac
+}
+
 case "${1:-}" in
+  lock)   shift; cmd_lock "$@" ;;
   status) shift; cmd_status "$@" ;;
   facts)  shift; cmd_facts "$@" ;;
   next)   shift; cmd_next "$@" ;;

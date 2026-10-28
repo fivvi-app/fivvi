@@ -1,9 +1,17 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { after, before, describe, it } from 'node:test';
+import { after, before, beforeEach, describe, it } from 'node:test';
 import { fakeGh } from './fake-gh.mjs';
 
 const SCRIPTS = join(import.meta.dirname, '..');
@@ -664,5 +672,104 @@ describe('ADR-021 flow.sh start: no fixed limit on the tickets in progress', () 
       );
       assert.equal(result.claimed, false, JSON.stringify(value));
     }
+  });
+});
+
+// #292 AC13, AC14: one factory run at a time. The lock is a file outside git, shared by all worktrees
+// (FIVVI_RUN_LOCK points the tests at their own); it expires after 3 hours, so a crashed run does not stop the factory.
+describe('#292 flow.sh lock: a run lock with a 3-hour expiry', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'run-lock-'));
+  const lockFile = join(dir, 'factory.lock');
+  after(() => rmSync(dir, { recursive: true, force: true }));
+  beforeEach(() => rmSync(lockFile, { force: true }));
+
+  const lock = (action, at = NOW) =>
+    spawnSync(join(SCRIPTS, 'flow.sh'), ['lock', ...(action ? [action] : [])], {
+      encoding: 'utf8',
+      env: { ...process.env, FIVVI_NOW: at, FIVVI_RUN_LOCK: lockFile },
+    });
+  const HOUR = 3600;
+
+  it('acquires a free lock and records when', () => {
+    const result = lock('acquire');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /lock acquired/);
+    assert.ok(existsSync(lockFile));
+    assert.match(readFileSync(lockFile, 'utf8'), /^2026-10-20T12:00:00Z/);
+  });
+
+  it('AC13: a live lock stops a second run, which reports the lock age and claims nothing', () => {
+    assert.equal(lock('acquire', secondsAgo(25 * 60)).status, 0);
+    const before = readFileSync(lockFile, 'utf8');
+    const result = lock('acquire');
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /another factory run is live/);
+    assert.match(result.stderr, /25m/);
+    assert.equal(readFileSync(lockFile, 'utf8'), before, 'the live lock is not touched');
+  });
+
+  it('AC13: reports the age in hours past the first hour', () => {
+    assert.equal(lock('acquire', secondsAgo(2 * HOUR + 5 * 60)).status, 0);
+    assert.match(lock('acquire').stderr, /2h05m/);
+  });
+
+  it('AC13: takes over a lock older than 3 hours, and says so', () => {
+    assert.equal(lock('acquire', secondsAgo(3 * HOUR + 1)).status, 0);
+    const result = lock('acquire');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /expired/);
+    assert.match(readFileSync(lockFile, 'utf8'), /^2026-10-20T12:00:00Z/);
+  });
+
+  it('AC13: a lock of exactly 3 hours is still live, one second more is not', () => {
+    assert.equal(lock('acquire', secondsAgo(3 * HOUR)).status, 0);
+    assert.equal(lock('acquire').status, 1);
+    rmSync(lockFile);
+    assert.equal(lock('acquire', secondsAgo(3 * HOUR + 1)).status, 0);
+    assert.equal(lock('acquire').status, 0);
+  });
+
+  it('AC14: release frees the lock, so the next run acquires it', () => {
+    assert.equal(lock('acquire').status, 0);
+    const released = lock('release');
+    assert.equal(released.status, 0, released.stderr);
+    assert.equal(existsSync(lockFile), false);
+    assert.equal(lock('acquire').status, 0);
+  });
+
+  it('release of a lock that is not held is not an error', () => {
+    const result = lock('release');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /no lock/);
+  });
+
+  it('status says free, live with its age, or expired, and changes nothing', () => {
+    assert.match(lock('status').stdout, /free/);
+    assert.equal(lock('acquire', secondsAgo(90 * 60)).status, 0);
+    assert.match(lock('status').stdout, /live.*1h30m/);
+    assert.match(lock('status', daysAgo(-1)).stdout, /expired/);
+    assert.ok(existsSync(lockFile));
+  });
+
+  it('fails closed on a lock it cannot read, naming the file', () => {
+    writeFileSync(lockFile, 'garbage\n');
+    const result = lock('acquire');
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /unreadable/);
+    assert.match(result.stderr, /factory\.lock/);
+  });
+
+  it('needs a known action', () => {
+    assert.equal(lock('').status, 1);
+    assert.equal(lock('steal').status, 1);
+  });
+
+  it('keeps the lock outside git: by default under the main checkout .work/, which git ignores', () => {
+    const flow = readFileSync(join(SCRIPTS, 'flow.sh'), 'utf8');
+    assert.match(flow, /\$NOTES_DIR\/factory\.lock/);
+    const ignored = spawnSync('git', ['check-ignore', '-q', '.work/factory.lock'], {
+      cwd: join(SCRIPTS, '..'),
+    });
+    assert.equal(ignored.status, 0);
   });
 });

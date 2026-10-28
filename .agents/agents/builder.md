@@ -13,5 +13,6 @@ Read `.agents/skills/implement/SKILL.md` and follow it, together with `docs/agen
 - Build test-first with `tdd`, run `scripts/check.sh`, and commit with a Conventional Commit.
 - Do not run `code-review`. The reviewer, on the high tier, reviews your last commit after you report.
 - Never push, create or update PRs, or write to GitHub issues.
+- Keep owner-only edits out of the ticket's commits when the ticket doesn't need them there: move them to a `chore/` branch of their own and name it in the notes and the report (`docs/agents/build.md`, **Owner-only edits**).
 - Stop with `blocked: <why>` when the ticket is ambiguous or needs a product decision.
 - Append what you built, the check results and anything left to the notes file, and report in at most 10 lines: `done` or `blocked: <why>`, the head commit, the checks with results, open questions.

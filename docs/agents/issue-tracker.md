@@ -19,7 +19,7 @@ Specs and tickets for this repo are GitHub issues in `fivvi-app/fivvi`. Use `scr
 - **Comment**: `scripts/issue.sh comment <n> --body-file -`
 - **Apply / remove labels**: `scripts/issue.sh label <n> --add "..." --remove "..."`
 - **Link**: `scripts/issue.sh block <n> --by <m>`; a parent is set with `create --parent`.
-- **Frontier**: `scripts/issue.sh ready [--parent <spec>]` lists open, unassigned `ready-for-agent` tickets with no open blocker whose spec is approved.
+- **Frontier**: `scripts/issue.sh ready [--parent <spec>]` lists open, unassigned `ready-for-agent` tickets with no open blocker of their own whose spec is approved. Blockers of the spec itself don't count (**Fivvi rules for tickets**).
 - **Claim**: `scripts/issue.sh claim <n>` (`scripts/flow.sh start` does it).
 - **Close**: `scripts/issue.sh close <n> [--comment "..."] [--not-planned]`
 
@@ -54,6 +54,7 @@ A spec issue is the requirement of record for one feature (`F0xx`) or enabler (`
 - Vertical slices through DB → API (+ regenerated contract) → web → email, in NL and EN. Each ticket names the spec ACs it delivers (`Delivers: AC2, AC3`).
 - A mobile slice is two tickets, one for iOS and one for Android, with the same ACs (platform parity).
 - Contract first: a ticket that changes the API blocks the platform tickets that consume it.
+- **A spec that waits on another spec still gets its tickets, as soon as the owner approves it** (`flow.sh status` says `needs-tickets`, not `blocked`). The spec's own blockers do not hold its tickets back: `scripts/issue.sh ready` decides readiness per ticket, from the ticket's own open blockers. So each ticket gets blocking edges (`--blocked-by`) on the tickets of the other spec that it really needs; when those tickets don't exist yet, or the dependency can't be named, on the other spec itself (the ticket is then ready only once that whole spec is closed). A ticket that needs nothing from the other spec gets no edge to it and is ready at once.
 
 ## When a skill says "publish to the issue tracker"
 

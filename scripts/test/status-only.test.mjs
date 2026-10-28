@@ -81,6 +81,57 @@ describe('roadmap_status_only', () => {
     );
   });
 
+  // #292 round 2: the PR that does the work may name itself on the ticked item, as #262 and #282 did.
+  it('passes a tick that only appends a trailing issue or PR reference', () => {
+    for (const reference of [' (#262)', ' (#262, #282)', ' (#7, #262, #282)']) {
+      assert.equal(
+        roadmap(patchOf(around('-  - [ ] Set it up.', `+  - [x] Set it up.${reference}`))),
+        true,
+        reference,
+      );
+    }
+  });
+
+  it('fails when the tick appends anything but a trailing issue or PR reference', () => {
+    for (const appended of [
+      ' ✅ Set in both (#146).',
+      ' (#262) and more',
+      ' (#262,#282)',
+      ' (#262; #282)',
+      ' (#262, )',
+      ' (262)',
+      ' (#)',
+      '(#262)',
+      '  (#262)',
+      ' (#262) (#282)',
+      ' (see #262)',
+      ' (#262).',
+      ' (#262)\u00a0',
+      ' https://github.com/fivvi-app/fivvi/issues/262',
+    ]) {
+      assert.equal(
+        roadmap(patchOf(around('-  - [ ] Set it up.', `+  - [x] Set it up.${appended}`))),
+        false,
+        JSON.stringify(appended),
+      );
+    }
+  });
+
+  it('fails when the reference is inserted rather than appended, or the text changes too', () => {
+    assert.equal(
+      roadmap(patchOf(around('-  - [ ] Set it up.', '+  - [x] Set (#262) it up.'))),
+      false,
+    );
+    assert.equal(
+      roadmap(patchOf(around('-  - [ ] Set it up.', '+  - [x] Set it down. (#262)'))),
+      false,
+    );
+    assert.equal(
+      roadmap(patchOf(around('-  - [ ] Set it up.', '+  - [ ] Set it up. (#262)'))),
+      false,
+    );
+  });
+
   it('fails when a box is unticked', () => {
     assert.equal(roadmap(patchOf(around('-  - [x] One', '+  - [ ] One'))), false);
   });

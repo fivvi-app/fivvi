@@ -743,6 +743,32 @@ describe('risk.sh', () => {
     });
   });
 
+  // #292 AC12: pr.sh create names the owner-only reasons of a ticket PR, apart from the agent-queueable ones.
+  it('--detail adds the owner-only reasons, apart from the agent-queueable ones', () => {
+    const result = run(
+      github({
+        files: [
+          { filename: 'scripts/pr.sh' },
+          { filename: 'packages/database/migrations/0004.sql' },
+          { filename: 'AGENTS.md' },
+        ],
+        specLabels: ['spec', 'owner-merge'],
+      }),
+      '60',
+      '--json',
+      '--detail',
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout).owner_reasons, [
+      'AGENTS.md: guardrails (AGENTS.md)',
+      'scripts/pr.sh: guardrails (/scripts)',
+    ]);
+    const plain = JSON.parse(
+      run(github({ files: [{ filename: 'scripts/pr.sh' }] }), '60', '--json').stdout,
+    );
+    assert.equal('owner_reasons' in plain, false, 'without --detail the output is unchanged');
+  });
+
   it('prints low for a PR without high-risk paths or labels', () => {
     const result = run(github({ files: [{ filename: 'apps/web/page.tsx' }] }), '60');
     assert.equal(result.stdout, 'low\n');

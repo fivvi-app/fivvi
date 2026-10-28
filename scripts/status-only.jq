@@ -9,7 +9,8 @@
 # patch that changes nothing is not status-only either.
 #
 #   roadmap_status_only($patch)   every removed line has an added line that is the same checklist item with `[ ]`
-#                                 turned into `[x]`, and no other line changes.
+#                                 turned into `[x]` (and at most a trailing ` (#262)` or ` (#262, #282)` appended), and
+#                                 no other line changes.
 #   features_status_only($patch)  every changed line is a row of an existing ID in a feature table (9 cells) or an
 #                                 enabler table (5 cells); the ID is unchanged except for gaining a link to its spec
 #                                 issue; Status moves forward along the lifecycle; NL and EN only go from ⬜ to ✅;
@@ -64,9 +65,14 @@ def blocks:
 def changes:
   hunks | if . == null then null else blocks | if length == 0 then null else . end end;
 
+# The tick may also append a trailing issue or PR reference, as the PR that did the work names itself: ` (#262)` or
+# ` (#262, #282)`. Any other appended text is a change of the item.
 def tick($old; $new):
   ($old | [capture("^(?<pre>\\s*[-*] )\\[ \\](?<rest>.*)$")] | first) as $m
-  | $m != null and $new == "\($m.pre)[x]\($m.rest)";
+  | $m != null
+    and ("\($m.pre)[x]\($m.rest)" as $ticked
+         | ($new | startswith($ticked))
+           and ($new[$ticked | length:] | test("^( \\(#[0-9]+(, #[0-9]+)*\\))?$")));
 
 def roadmap_status_only($patch):
   ($patch | changes) as $blocks
