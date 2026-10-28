@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted |
+| **Status** | Accepted (2026-10-28) |
 | **Date** | 2026-10-28 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | Amends ADR-007 (the organization / member / invitation plugins for workspaces and roles; sign-in stays Better Auth); ADR-006 (tenant isolation); ADR-004 (API contract); F002 Workspaces (#170, ticket #276), F003, F004, F011; E011 (#145) |

@@ -21,7 +21,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 // This file is the evidence for ADR-022 (F002, spec #170, ticket #276) and pins better-auth's
 // behaviour on purpose: it records what the organization plugin of the pinned version does over our
 // tables, so the decision can be re-checked when the version changes. Nothing of the plugin is in
-// `src/`; once ADR-022 is accepted this file may be removed.
+// `src/`. The file stays once ADR-022 is accepted: it is the evidence for the decision.
 //
 // F002 (spec #170, first ticket, #276): does Better Auth's organization plugin (ADR-007) fit
 // E011's `organizations` and `team_members` tables? This file is the evidence for the four
