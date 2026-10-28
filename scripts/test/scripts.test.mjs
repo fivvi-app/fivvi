@@ -1131,8 +1131,15 @@ describe('E002 #91 android.sh avd-key', () => {
 // A fake `xcrun simctl` that keeps each simulator as a JSON file in <state>/devices and logs its arguments.
 const fakeSimctl = (
   state,
-) => `# xcresulttool prints the canned test results FAKE_XCRESULT names (nothing without it).
-if [ "$1" = xcresulttool ]; then [ -z "$FAKE_XCRESULT" ] || cat "$FAKE_XCRESULT"; exit 0; fi
+) => `# xcresulttool prints the canned test results of the bundle in --path: <FAKE_XCRESULT_DIR>/<bundle name>.json when
+# that exists, else the file FAKE_XCRESULT names (nothing without it).
+if [ "$1" = xcresulttool ]; then
+  bundle=; while [ $# -gt 0 ]; do [ "$1" != --path ] || bundle="$2"; shift; done
+  by_bundle="$FAKE_XCRESULT_DIR/$(basename "$bundle").json"
+  if [ -n "$FAKE_XCRESULT_DIR" ] && [ -f "$by_bundle" ]; then cat "$by_bundle"
+  elif [ -n "$FAKE_XCRESULT" ]; then cat "$FAKE_XCRESULT"; fi
+  exit 0
+fi
 [ "$1" = simctl ] || exit 1
 shift
 echo "$*" >>"${state}/xcrun.log"
@@ -2031,7 +2038,44 @@ esac`,
         /Failed tests:\n +HelloUITests\/test_signIn\(\): XCTAssertTrue failed the button was not found\n/,
       );
       assert.equal(run.output.match(/test_signIn/g).length, 1, 'once for the one bundle');
-      assert.match(readFileSync(summary, 'utf8'), /### Failed iOS tests[\s\S]*test_signIn/);
+      assert.match(readFileSync(summary, 'utf8'), /### Failed iOS tests\n[\s\S]*test_signIn/);
+    });
+
+    it('E002 #290: one result bundle per locale (IOS_UI_LOCALES=nl, as on a pull request): each locale prints its own failures, and the run exits 1', async () => {
+      const fake = checkout();
+      const dir = join(fake.repo, '..', 'bundles');
+      mkdirSync(dir, { recursive: true });
+      const failure = (id) =>
+        JSON.stringify({
+          testFailures: [{ testName: id, failureText: `${id} broke`, testIdentifierString: id }],
+        });
+      writeFileSync(
+        join(dir, 'TestResults-nl.xcresult.json'),
+        failure('HelloUITests/only_in_nl()'),
+      );
+      writeFileSync(join(dir, 'TestResults-en.xcresult.json'), failure('HelloTests/only_in_en()'));
+      const summary = join(fake.repo, '..', 'summary.md');
+
+      const run = await fake.run('scripts/test-ios.sh', [], {
+        IOS_UI_LOCALES: 'nl',
+        FAKE_RESULT: 'fail',
+        FAKE_XCRESULT_DIR: dir,
+        GITHUB_STEP_SUMMARY: summary,
+      });
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(
+        run.output,
+        /Failed tests in nl:\n +HelloUITests\/only_in_nl\(\): HelloUITests\/only_in_nl\(\) broke\n/,
+      );
+      assert.match(
+        run.output,
+        /Failed tests in en:\n +HelloTests\/only_in_en\(\): HelloTests\/only_in_en\(\) broke\n/,
+      );
+      assert.equal(run.output.match(/only_in_nl/g).length, 2, 'the nl failure once, not under en');
+      const markdown = readFileSync(summary, 'utf8');
+      assert.match(markdown, /### Failed iOS tests in nl[\s\S]*only_in_nl/);
+      assert.match(markdown, /### Failed iOS tests in en[\s\S]*only_in_en/);
     });
 
     it('E002 #290: a result bundle that cannot be read does not hide the failure or its exit code', async () => {

@@ -403,16 +403,22 @@ for locale in $LOCALES; do
   }
 done
 if [ "$tests" != 0 ]; then
-  # What failed, by name: `xcodebuild -quiet` only says TEST EXECUTE FAILED (#290). Once per result bundle.
-  $per_locale && bundles=".build/TestResults-nl.xcresult .build/TestResults-en.xcresult" || bundles=$RESULTS
-  for bundle in $bundles; do
-    rows="$(failed_tests "$bundle")"
+  # What failed, by name: `xcodebuild -quiet` only says TEST EXECUTE FAILED (#290). Once per result bundle, with the
+  # locale when there is a bundle per locale (as the slowest tests above).
+  report_failed() { # <bundle> [locale]
+    local rows
+    rows="$(failed_tests "$1")"
     [ -z "$rows" ] || {
-      echo "Failed tests:"
+      echo "Failed tests${2:+ in $2}:"
       echo "  ${rows//$'\n'/$'\n  '}"
-      summary "### Failed iOS tests" "" '```' "$rows" '```' ""
+      summary "### Failed iOS tests${2:+ in $2}" "" '```' "$rows" '```' ""
     }
-  done
+  }
+  if $per_locale; then
+    for locale in $LOCALES; do report_failed ".build/TestResults-$locale.xcresult" "$locale"; done
+  else
+    report_failed "$RESULTS"
+  fi
   exit 1
 fi
 echo "✓ iOS"
