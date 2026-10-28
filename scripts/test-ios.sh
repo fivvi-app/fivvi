@@ -23,6 +23,10 @@
 #                                for one language, unit and UI tests, without building, on its own simulator. CI's two
 #                                `iOS tests` jobs run it in parallel, one per language, from the artifact of the build job
 #
+#   IOS_SIM_SETTLE  seconds the simulator of `test` is up before its first test, default 150, counted from the start of its
+#                   boot (the unpack of the bundle runs meanwhile). In the single job the simulator booted during the
+#                   build and was minutes old at the first test; booted right before it, the one UI test that rotates the
+#                   device failed in both jobs on CI (#293). 0 doesn't wait
 #   IOS_UI_LOCALES  the locales whose UI tests run, default "nl en" (what `pnpm test:ios` does). The unit tests always run
 #                   in both. CI does not set it any more (#293): its two `iOS tests` jobs run every test in both languages on
 #                   every push. With "nl", the nl run is everything in nl and a second run is the unit tests in en, one
@@ -447,12 +451,22 @@ if [ "$MODE" = build ]; then
 fi
 
 if [ "$MODE" = test ]; then
-  # One language from the bundle of the build job, on a simulator of its own.
+  # One language from the bundle of the build job, on a simulator of its own. The simulator boots first and settles
+  # while the bundle is unpacked, as it did while the app built in the single job: a simulator that starts the first
+  # test right after its boot failed the one test that rotates the device in both jobs (#293).
+  step "Boot the simulator (simulator $udid)"
+  start_boot "$udid"
+  booted_at=$SECONDS
   step "Unpack the test bundle"
   unpack_bundle
   rm -rf ".build/TestResults-$ONLY_LOCALE.xcresult"
-  start_boot "$udid"
+  step "Wait for the simulator to settle"
   await_boots || die "a simulator did not boot"
+  settle_left=$((${IOS_SIM_SETTLE:-150} - (SECONDS - booted_at)))
+  if [ "$settle_left" -gt 0 ]; then
+    echo "The simulator has been up for $((SECONDS - booted_at)) s; waiting $settle_left s more (IOS_SIM_SETTLE)"
+    sleep "$settle_left"
+  fi
   step "Unit and UI tests in $ONLY_LOCALE (simulator $udid)"
   tests=0
   run_tests "$udid" "$ONLY_LOCALE" || tests=1

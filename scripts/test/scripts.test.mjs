@@ -1701,6 +1701,7 @@ esac`,
             JAVA_HOME: join(base, 'jdk'),
             EMULATOR_LOG: join(base, 'emulator.log'),
             E2E_PORT: '3999',
+            IOS_SIM_SETTLE: '0',
             ...extraEnv,
           },
         });
@@ -1874,6 +1875,31 @@ esac`,
           assert.ok(!tests[0].includes('-skip-testing'), 'the UI tests run too');
         });
       }
+
+      it('test boots the simulator before it unpacks the bundle and lets it settle before the first test (#293)', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], { IOS_SIM_SETTLE: '3' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(
+          run.output,
+          /▶ Boot the simulator[\s\S]*▶ Unpack the test bundle[\s\S]*▶ Wait for the simulator to settle[\s\S]*waiting \d+ s more[\s\S]*▶ Unit and UI tests in nl/,
+        );
+        const settled = run.output.match(/waiting (\d+) s more/)[1];
+        assert.ok(Number(settled) >= 1 && Number(settled) <= 3, `waited ${settled} s`);
+      });
+
+      it('test does not wait for a simulator that has been up as long as IOS_SIM_SETTLE says', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'en'], { IOS_SIM_SETTLE: '0' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.doesNotMatch(run.output, /more \(IOS_SIM_SETTLE\)/);
+      });
 
       it('test fails when the tests of that language fail', async () => {
         const fake = checkout();
