@@ -1,7 +1,18 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  type Stats,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   openPrivilegedDatabase,
   PRIVILEGED_ALLOW_LIST,
@@ -33,20 +44,36 @@ const SKIPPED_DIRECTORIES = new Set([
   'build',
   'coverage',
   'generated',
+  // Build output of the native apps (git-ignored): `pnpm test:ios` and `pnpm test:android` leave
+  // it behind, with broken symlinks in it (#285).
+  '.build',
+  '.gradle',
 ]);
 /** Test code and test setup connect to throw-away databases; they are not application code. */
 const TEST_DIRECTORIES = new Set(['test', 'tests', '__tests__', 'e2e', 'testing']);
 const SOURCE = /\.(ts|tsx|mts|mjs|js)$/;
 const NOT_APPLICATION_CODE = /\.(test|spec|config)\.[a-z]+$|(^|\/)global-setup\.ts$/;
 
-function sourceFiles(directory: string, found: SourceFile[] = []): SourceFile[] {
+/** The stat of an entry, or `undefined` when it cannot be read, such as a broken symlink. */
+function statOrUndefined(path: string): Stats | undefined {
+  try {
+    return statSync(path);
+  } catch {
+    return undefined;
+  }
+}
+
+function sourceFiles(directory: string, root = ROOT, found: SourceFile[] = []): SourceFile[] {
   for (const name of readdirSync(directory)) {
     const path = join(directory, name);
-    if (statSync(path).isDirectory()) {
-      if (!SKIPPED_DIRECTORIES.has(name) && !TEST_DIRECTORIES.has(name)) sourceFiles(path, found);
+    const stat = statOrUndefined(path);
+    if (stat === undefined) continue;
+    if (stat.isDirectory()) {
+      if (!SKIPPED_DIRECTORIES.has(name) && !TEST_DIRECTORIES.has(name))
+        sourceFiles(path, root, found);
     } else if (SOURCE.test(name) && !NOT_APPLICATION_CODE.test(name)) {
       found.push({
-        path: relative(ROOT, path).split(sep).join('/'),
+        path: relative(root, path).split(sep).join('/'),
         content: readFileSync(path, 'utf8'),
       });
     }
@@ -59,7 +86,7 @@ function applicationFiles(): SourceFile[] {
   return ['apps', 'packages'].flatMap((top) =>
     readdirSync(join(ROOT, top)).flatMap((name) => {
       const directory = join(ROOT, top, name);
-      return statSync(directory).isDirectory() && !TEST_DIRECTORIES.has(name)
+      return statOrUndefined(directory)?.isDirectory() && !TEST_DIRECTORIES.has(name)
         ? sourceFiles(directory)
         : [];
     }),
@@ -121,6 +148,42 @@ describe('E011 privileged database path', () => {
   it('AC17: privileged access only from the allow-list, with a reason', () => {
     const reasons = new Set(Object.keys(PRIVILEGED_USES));
     expect(privilegedViolations(applicationFiles(), PRIVILEGED_ALLOW_LIST, reasons)).toEqual([]);
+  });
+
+  describe('the walk', () => {
+    const roots: string[] = [];
+    afterEach(() => {
+      for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+    });
+
+    /** A throw-away tree like a worktree after `pnpm test:ios` and `pnpm test:android`. */
+    function tree(): string {
+      const root = mkdtempSync(join(tmpdir(), 'fivvi-walk-'));
+      roots.push(root);
+      const write = (path: string, content = 'export {};') => {
+        mkdirSync(join(root, path, '..'), { recursive: true });
+        writeFileSync(join(root, path), content);
+      };
+      write('apps/web/server/real.ts');
+      write('apps/ios/.build/checkouts/tool/Plugin.ts');
+      write('apps/android/.gradle/8.0/Cache.ts');
+      mkdirSync(join(root, 'apps/ios/.build/debug'), { recursive: true });
+      symlinkSync(join(root, 'does-not-exist'), join(root, 'apps/ios/.build/debug/latest'));
+      return root;
+    }
+
+    it('skips build output of the native apps', () => {
+      const root = tree();
+
+      expect(sourceFiles(root, root).map((file) => file.path)).toEqual(['apps/web/server/real.ts']);
+    });
+
+    it('does not throw on a broken symlink outside build output either', () => {
+      const root = tree();
+      symlinkSync(join(root, 'does-not-exist'), join(root, 'apps/web/server/broken'));
+
+      expect(sourceFiles(root, root).map((file) => file.path)).toEqual(['apps/web/server/real.ts']);
+    });
   });
 
   describe('the check itself', () => {
