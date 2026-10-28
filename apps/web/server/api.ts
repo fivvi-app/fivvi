@@ -1,5 +1,5 @@
 import { createApiHandler } from '@fivvi/api';
-import { findSystemGreeting, pingDatabase } from '@fivvi/database';
+import { createTenantScopes, findSystemGreeting, pingDatabase } from '@fivvi/database';
 import { inProcessApiClient } from './api-client';
 import { auth } from './auth';
 import { database } from './database';
@@ -20,6 +20,8 @@ export const apiHandler = createApiHandler({
   requestSignIn: (input) => auth().requestSignIn(input),
   exchangeSignInCode: (input) => auth().exchangeSignInCode(input),
   signOutBearer: (headers) => auth().signOutBearer(headers),
+  // The request transaction of workspace and account routes, with its tenant context (E011).
+  tenantScopes: createTenantScopes(database),
   errorReporter,
   // Sends product events to PostHog, at POSTHOG_HOST, when POSTHOG_KEY is set (E009).
   productEvents,

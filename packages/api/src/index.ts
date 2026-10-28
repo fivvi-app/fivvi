@@ -1,4 +1,10 @@
-export { type Access, defineRoute, type TeamRole } from './access.ts';
+export {
+  type Access,
+  type AccessEnv,
+  defineRoute,
+  type TeamRole,
+  type WorkspaceEnv,
+} from './access.ts';
 export { API_BASE_PATH, createApiHandler, createApp } from './app.ts';
 export { type ApiDependencies, NO_DEPENDENCIES } from './dependencies.ts';
 export {

@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { and, eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
 import { authUsers, clients, organizations, teamMembers } from '../schema/index.ts';
 
@@ -66,6 +67,27 @@ export async function addTeamRole(
       .returning({ id: teamMembers.id }),
     'team role',
   );
+}
+
+/**
+ * Ends the team role of an account in a workspace: the `team_members` row goes, and a client
+ * relationship of the same account in the same workspace stays (`PRODUCT.md §9`). For tests that
+ * need someone whose role ended; F003 owns the real flow.
+ */
+export async function endTeamRole(
+  db: Pick<DatabaseExecutor, 'delete'>,
+  options: { workspaceId: string; accountId: string },
+): Promise<void> {
+  const removed = await db
+    .delete(teamMembers)
+    .where(
+      and(
+        eq(teamMembers.organizationId, options.workspaceId),
+        eq(teamMembers.accountId, options.accountId),
+      ),
+    )
+    .returning({ id: teamMembers.id });
+  if (removed.length === 0) throw new Error('The account has no team role in the workspace.');
 }
 
 /** A client of a workspace, linked to an account or (a quick-added client) to none. */
