@@ -65,3 +65,5 @@ The code step of the sign-in page (`/login`, `apps/web/app/login`) calls the two
 ## Tests
 
 The tests drive the HTTP endpoints, not Better Auth's internals: `packages/api/test/sign-in.integration.test.ts` (real Postgres, in-memory email transport; `pnpm --filter @fivvi/api test:integration`). `src/hash.test.ts` covers the hashes.
+
+`test/organization-plugin.integration.test.ts` (`pnpm --filter @fivvi/auth test:integration`) is the proof behind [ADR-022](../../docs/decisions/ADR-022-workspaces-on-our-own-tables.md): it runs Better Auth's organization plugin over `organizations` and `team_members` as `fivvi_app` and shows which of the four conditions of ticket #276 it meets. The plugin is configured in that test only; it is not used for workspaces.

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted (2026-09-22) |
+| **Status** | Accepted (2026-09-22); the use of the organization / member / invitation plugins for workspaces and roles amended by [ADR-022](ADR-022-workspaces-on-our-own-tables.md) |
 | **Date** | 2026-09-22 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | PRODUCT.md §2.4, §9, §23, §26, §27, §49, §50; ROADMAP.md M2, M5, §13 (R1); ADR-003, ADR-008, ADR-009; F001, F003, F011, F030 |
