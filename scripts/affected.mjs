@@ -52,6 +52,12 @@ const MARKDOWN_READ_BY_TESTS = [
   /^scripts\//,
 ];
 
+// Root files that are the input of a package's tests: the package is affected when one changes, and so is everything that
+// depends on it. compose.yaml is the Postgres image the integration and e2e tests run against (CI's service containers
+// use the same one, which a root test checks): a new version must run them again, not reuse a cached result. It also
+// affects the root tests, which compare the two.
+const INPUT_OF_PACKAGE = new Map([['compose.yaml', '@fivvi/database']]);
+
 const isMarkdown = (path) => /\.md$/.test(path);
 
 /** The packages of the workspace at `root`: [{name, dir, scripts, dependencies}], from pnpm-workspace.yaml. */
@@ -168,6 +174,7 @@ export function plan({ paths, packages, force = false }) {
     const pkg = !isMarkdown(path) ? packageOf(path, packages) : undefined;
     if (pkg) touched.add(pkg.name);
     else root = true;
+    if (byName.has(INPUT_OF_PACKAGE.get(path))) touched.add(INPUT_OF_PACKAGE.get(path));
   }
   const docs = changed.length > 0 && !code;
   if (docs) reasons.push('Markdown only: only the hygiene checks (doc links) run, no test suite');

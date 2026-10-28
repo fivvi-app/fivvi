@@ -121,6 +121,19 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
     assert.equal(result.e2e, true);
   });
 
+  it('compose.yaml (the Postgres image) affects the database package, its dependents and e2e, and the root tests', () => {
+    const result = decide(['compose.yaml']);
+    assert.deepEqual(result.integration, [
+      '@fivvi/web',
+      '@fivvi/cron',
+      '@fivvi/api',
+      '@fivvi/database',
+    ]);
+    assert.equal(result.e2e, true);
+    assert.equal(result.root, true, 'the root tests compare the CI Postgres image with it');
+    assert.equal(result.all, false);
+  });
+
   it('dependents are followed through a chain: tokens -> ui -> web', () => {
     const result = decide(['packages/design-tokens/src/colours.ts']);
     assert.deepEqual(result.packages, ['@fivvi/web', '@fivvi/design-tokens', '@fivvi/ui']);

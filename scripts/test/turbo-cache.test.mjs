@@ -57,6 +57,8 @@ describe('#293 AC7 turbo caches the integration and e2e suites by their inputs',
         scripts: { typecheck: noop, ...scripts },
         dependencies: Object.fromEntries(deps.map((d) => [`@fx/${d}`, 'workspace:*'])),
       });
+    // The database image the suites run against: a new Postgres version must not reuse a cached result.
+    file('compose.yaml', 'services:\n  postgres:\n    image: postgres:18-alpine\n');
     file('packages/testing/package.json', pkg('testing', [], {}));
     file('packages/testing/src/helper.ts', 'export const a = 1;\n');
     file('packages/database/package.json', pkg('database', ['testing'], {}));
@@ -120,12 +122,13 @@ describe('#293 AC7 turbo caches the integration and e2e suites by their inputs',
     assert.equal(runs('api'), 1);
   });
 
-  it('a change to the package, to a package it depends on, to migrations or to the test helpers runs it again', () => {
+  it('a change to the package, to a package it depends on, to migrations, to the test helpers or to the Postgres image (compose.yaml) runs it again', () => {
     let expected = 1;
     for (const path of [
       'packages/api/src/a.ts',
       'packages/database/migrations/0001.sql',
       'packages/testing/src/helper.ts',
+      'compose.yaml',
     ]) {
       appendFileSync(join(dir, path), `\n-- changed ${path}\n`);
       turbo('test:integration');
@@ -145,6 +148,7 @@ describe('#293 AC7 turbo caches the integration and e2e suites by their inputs',
       ['apps/web/e2e/home.spec.ts', 2],
       ['packages/api/src/a.ts', 3],
       ['packages/database/migrations/0001.sql', 4],
+      ['compose.yaml', 5],
     ]) {
       appendFileSync(join(dir, path), `\n-- changed ${path}\n`);
       turbo('test:e2e');
