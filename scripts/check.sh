@@ -120,6 +120,11 @@ PLAN_ARGS=(--json)
 ! $ALL || PLAN_ARGS+=(--all)
 PLAN="$(changed_paths | sort -u | node "$ROOT/scripts/affected.mjs" "${PLAN_ARGS[@]}" 2>"$PLAN_REASONS")" \
   || { cat "$PLAN_REASONS"; echo "✗ scripts/affected.mjs failed"; exit 1; }
+# The plan must be what affected.mjs prints (all, root, docs, e2e flags; packages, integration lists): anything else, an
+# empty output or a script that changed shape, must stop the run and not quietly run only the hygiene checks.
+jq -e 'type == "object" and ([.all, .root, .docs, .e2e] | all(type == "boolean")) and ([.packages, .integration] | all(type == "array"))' \
+  <<<"$PLAN" >/dev/null 2>&1 \
+  || { cat "$PLAN_REASONS"; echo "✗ scripts/affected.mjs printed no valid plan: ${PLAN:-nothing}"; exit 1; }
 plan_flag() { jq -r ".$1" <<<"$PLAN"; }
 plan_names() { jq -r ".$1[]" <<<"$PLAN"; }
 plan_has() { jq -e --arg name "$2" ".$1 | index(\$name)" <<<"$PLAN" >/dev/null; }

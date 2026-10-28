@@ -309,6 +309,26 @@ describe('#293 check.sh runs the checks a change can affect', () => {
     assert.match(result.stdout, /- e2e tests: skipped \(not affected\): no web change/);
   });
 
+  it('fails loudly when the affected plan is empty, not JSON or lacks a field, instead of running only the hygiene checks', () => {
+    for (const [stub, what] of [
+      ['', 'prints nothing'],
+      ['console.log("not json");', 'prints text'],
+      ['console.log("{}");', 'prints an object without the plan'],
+      ['console.log(JSON.stringify({ all: false, root: false, packages: "ui" }));', 'a wrong type'],
+    ]) {
+      // Reads its input first, as the real one does: a script that exits early would fail check.sh's pipe, not its plan.
+      write(
+        join(repo(), 'scripts/affected.mjs'),
+        `import { readFileSync } from 'node:fs';\nreadFileSync(0);\n${stub}\n`,
+      );
+      const result = run(['packages/ui/src/button.ts']);
+      assert.notEqual(result.status, 0, `${what}: ${result.stdout}`);
+      assert.match(result.stdout, /✗ scripts\/affected\.mjs/, what);
+      assert.deepEqual(result.turbo, [], `${what}: nothing ran`);
+      assert.equal(result.summary, null, `${what}: no summary of a run that did not happen`);
+    }
+  });
+
   it('refuses an unknown option', () => {
     const result = run([], ['--nope']);
     assert.notEqual(result.status, 0);
