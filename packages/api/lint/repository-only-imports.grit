@@ -1,0 +1,73 @@
+// Biome plugin (E011, ADR-006, spec #145): the code of packages/api reaches business data only through
+// the repositories and the tenant scope of @fivvi/database, never through a table or a raw database
+// handle. Without a table or a handle a route cannot write a query that skips the tenant scope.
+//
+// Flags, in packages/api/src (biome.json registers it for that folder only, so the tests of the package,
+// which seed and read rows directly, are not affected):
+//   - a table of @fivvi/database, a raw database handle, or anything that opens a connection, named in an
+//     import or a re-export;
+//   - a namespace import, `export *`, `import()` or `require()` of @fivvi/database, which would hide the names;
+//   - the modules that give a handle or a query builder, in a static import, an `export ... from`, an
+//     `import()` or a `require()`: drizzle-orm, pg, @fivvi/database/seed, /migrate and /testing, a path into
+//     packages/database/src (relative or not: it is the package without its exports) and @fivvi/testing
+//     (the test helpers: a database server, factories).
+// Every export of @fivvi/database is either named below or in the allowed list of
+// lint/repository-only-imports.test.ts, which fails for an export in neither (a new table, handle or
+// connection opener has to be classified by whoever adds it). Tested by that file too.
+
+language js
+
+pattern database_module() { r".@fivvi/database." }
+
+// Every table of @fivvi/database (the business tables, the organizations, the sign-in tables and the
+// system data) with the schema helpers (businessTable, teamRole, APP_ROLE), and everything that makes or
+// types a connection: createDatabase, createDatabaseFromEnv and, from the app-role work (#264),
+// createAppDatabaseFromEnv, openPrivilegedDatabase and its allow-list, inspectConnectionRole and the
+// config readers. Database, DatabaseClient and DatabaseExecutor type a handle. APP_DATABASE_URL_VARIABLE
+// (a variable name) and ConnectionRoleReport (a type) are not here: they open no connection, and the
+// startup check of packages/api/src (startup.ts) imports them.
+pattern table_or_handle() {
+  r"(?:authUsers|authSessions|authIdentities|authVerifications|authRateLimits|organizations|systemGreetings|teamMembers|clients|businessTable|teamRole|APP_ROLE|createDatabase|createDatabaseFromEnv|createAppDatabaseFromEnv|openPrivilegedDatabase|PRIVILEGED_ALLOW_LIST|PRIVILEGED_USES|PrivilegedOptions|PrivilegedReason|inspectConnectionRole|readDatabaseConfig|DatabaseConfig|Database|DatabaseClient|DatabaseExecutor)"
+}
+
+// A module that gives a handle, a query builder or a test helper, or a path into the source of the
+// database package. Quotes are part of the source, so the pattern is anchored by them.
+pattern forbidden_module() {
+  or {
+    r".(?:drizzle-orm|pg|@fivvi/database/(?:seed|migrate|testing)|@fivvi/testing)(?:/.*)?.",
+    r".(?:.*/)?database/src(?:/.*)?."
+  }
+}
+
+or {
+  JsImportNamedClause(named_specifiers=$specifiers, source=$source) where {
+    $source <: database_module(),
+    $specifiers <: contains table_or_handle(),
+    register_diagnostic(span=$specifiers, message="A route reaches business data through a repository of @fivvi/database and its tenant scope, never through a table or a database handle (E011). Add a repository function to packages/database instead.")
+  },
+  JsExportNamedFromClause(specifiers=$specifiers, source=$source) where {
+    $source <: database_module(),
+    $specifiers <: contains table_or_handle(),
+    register_diagnostic(span=$specifiers, message="A route reaches business data through a repository of @fivvi/database and its tenant scope, never through a table or a database handle (E011). Add a repository function to packages/database instead.")
+  },
+  JsImportNamespaceClause(source=$source) where {
+    $source <: database_module(),
+    register_diagnostic(span=$source, message="Import the repositories of @fivvi/database by name: a namespace import would let a table or a database handle in unseen (E011).")
+  },
+  JsExportFromClause(source=$source) where {
+    $source <: database_module(),
+    register_diagnostic(span=$source, message="Re-export the repositories of @fivvi/database by name: `export *` would let a table or a database handle through (E011).")
+  },
+  `import($source)` where {
+    or { $source <: database_module(), $source <: forbidden_module() },
+    register_diagnostic(span=$source, message="Import the repositories of @fivvi/database statically and by name; packages/api has no database handle, query builder or test helper (E011).")
+  },
+  `require($source)` where {
+    or { $source <: database_module(), $source <: forbidden_module() },
+    register_diagnostic(span=$source, message="Import the repositories of @fivvi/database statically and by name; packages/api has no database handle, query builder or test helper (E011).")
+  },
+  JsModuleSource() as $source where {
+    $source <: forbidden_module(),
+    register_diagnostic(span=$source, message="packages/api has no database handle, query builder or test helper: business data goes through the repositories of @fivvi/database (E011).")
+  }
+}

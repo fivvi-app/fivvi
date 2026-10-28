@@ -77,6 +77,10 @@
   },
   "overrides": [
     {
+      "includes": ["packages/api/src/**"],
+      "plugins": ["packages/api/lint/repository-only-imports.grit"]
+    },
+    {
       "includes": ["packages/observability/**"],
       "linter": { "rules": { "style": { "noRestrictedImports": "off" } } }
     },

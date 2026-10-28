@@ -55,6 +55,16 @@ describe('risk of a pull request', () => {
     'tenant-data': [
       'packages/database/src/schema/organizations.ts',
       'packages/database/migrations/0003_rls.sql',
+      // E011 (spec #145, AC19): the access middleware and helper, the startup check of the app role, the
+      // isolation suite and the test database's role setup.
+      'packages/api/src/access.ts',
+      'packages/api/src/startup.ts',
+      'apps/web/server/database.ts',
+      'apps/web/server/startup.ts',
+      'packages/api/test/isolation/suite.ts',
+      'packages/api/test/isolation/routes.integration.test.ts',
+      'packages/testing/src/database-server.ts',
+      'packages/testing/src/database-setup.ts',
     ],
     'health-notes': ['packages/domain/src/notes/visibility.ts', 'apps/android/NoteScreen.kt'],
     legal: ['docs/legal/privacy-policy.nl.md'],
@@ -130,6 +140,8 @@ describe('risk of a pull request', () => {
       'packages/contract/scripts/pipeline.ts',
       'packages/ui/lint/no-raw-colours.ts',
       'packages/ui/lint/cli.ts',
+      // The import rule that keeps packages/api away from tables and database handles (E011, AC17).
+      'packages/api/lint/repository-only-imports.grit',
       'apps/android/build.gradle.kts',
       'apps/android/app/build.gradle.kts',
       'apps/android/settings.gradle.kts',
@@ -205,6 +217,16 @@ describe('risk of a pull request', () => {
         'apps/web/vitest.configuration.ts',
         'apps/web/src/vitest.ts',
         'packages/testing/src/database.ts',
+        // E011's paths are the named files and folder only (AC19): a neighbour of them stays low.
+        'packages/api/src/accessibility.ts',
+        'apps/web/server/startup.test.ts',
+        'apps/web/server/databases.ts',
+        'packages/api/server/database.ts',
+        'packages/api/src/routes/me.ts',
+        'packages/api/test/isolations/x.ts',
+        'packages/api/test/access.test.ts',
+        'apps/web/packages/api/src/access.ts',
+        'packages/testing/src/database-server.test.ts',
         'packages/testing/src/vitest.test.ts',
         'packages/i18n/src/locale.ts',
         'apps/web/src/cli.ts',

@@ -5,5 +5,11 @@
     "jsx": "react-jsx",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts", "vitest.integration.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "lint/**/*.ts",
+    "test/**/*.ts",
+    "vitest.config.ts",
+    "vitest.integration.config.ts"
+  ]
 }
