@@ -37,11 +37,14 @@ sealed interface MeState {
  * [signOutApi] is the generated client for one sign-out request that carries the token it is given. [signOutTimeout] is
  * how long a sign-out waits for the API before it goes on without an answer: the clock is the one of the coroutine
  * dispatcher, so tests set it with virtual time. Storing and deleting the token is file I/O, so it runs on [io].
+ * [onAccount] is told the account's ID (a UUID) once `GET /api/v1/me` has answered: the app sets it as the error-reporting
+ * user (F001 AC2, #266) unless the sign-in has ended meanwhile; [Session] clears it again on sign-out.
  */
 class HomeViewModel(
     private val api: MeApi,
     private val session: Session,
     private val signOutApi: (token: String) -> SignInApi,
+    private val onAccount: (id: String) -> Unit,
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val signOutTimeout: Duration = SIGN_OUT_TIMEOUT,
 ) : ViewModel() {
@@ -52,6 +55,9 @@ class HomeViewModel(
     /** A sign-out is under way: the home shows it and ignores another tap. */
     val signingOut: StateFlow<Boolean> = _signingOut.asStateFlow()
     private var loading: Job? = null
+
+    // The sign-in this screen belongs to (see MainActivity: one view model per generation).
+    private val generation = session.state.value.generation
 
     init {
         load()
@@ -92,8 +98,15 @@ class HomeViewModel(
             return MeState.Failed
         }
         val account = response.body()?.takeIf { response.isSuccessful }
-        return account?.let { MeState.Loaded(it.email) } ?: MeState.Failed
+        return account?.let {
+            if (stillSignedIn()) onAccount(it.id.toString())
+            MeState.Loaded(it.email)
+        } ?: MeState.Failed
     }
+
+    // An answer that arrives after the sign-out must not set the account that has just been cleared as the error-reporting
+    // user (#266): this view model outlives the sign-out in the activity's store.
+    private fun stillSignedIn(): Boolean = session.state.value.let { it.signedIn && it.generation == generation }
 
     // Whether the API refused [token]; false when it said anything else, did not answer or the wait ran out. The request
     // is its own coroutine, so giving up on the wait doesn't cancel it.

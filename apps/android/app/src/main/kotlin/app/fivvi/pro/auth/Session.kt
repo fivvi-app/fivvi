@@ -11,8 +11,12 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 data class AuthState(val signedIn: Boolean, val generation: Int, val afterRejection: Boolean = false)
 
-/** The app's sign-in session: the token in its [SessionStore] and what the screens observe of it. */
-class Session(private val store: SessionStore) {
+/**
+ * The app's sign-in session: the token in its [SessionStore] and what the screens observe of it. [onSignedOut] runs on
+ * every sign-out, whether the person signed out or the API rejected the token; the app clears the error-reporting user
+ * with it (F001 AC3, #266).
+ */
+class Session(private val store: SessionStore, private val onSignedOut: () -> Unit = {}) {
     private var token: String? = store.read()
     private val _state = MutableStateFlow(AuthState(signedIn = token != null, generation = 0))
     val state: StateFlow<AuthState> = _state.asStateFlow()
@@ -37,6 +41,7 @@ class Session(private val store: SessionStore) {
         store.delete()
         token = null
         publish(signedIn = false, afterRejection = true)
+        onSignedOut()
     }
 
     /**
@@ -61,6 +66,7 @@ class Session(private val store: SessionStore) {
     fun signedOut(afterRejection: Boolean = false) {
         if (!_state.value.signedIn) return
         publish(signedIn = false, afterRejection = afterRejection)
+        onSignedOut()
     }
 
     private fun publish(signedIn: Boolean, afterRejection: Boolean) {

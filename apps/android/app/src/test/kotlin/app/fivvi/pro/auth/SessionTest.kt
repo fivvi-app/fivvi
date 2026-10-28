@@ -148,4 +148,37 @@ class SessionTest {
 
         assertEquals(state, session.state.value)
     }
+
+    // F001 AC3 (#266): every way out of a sign-in tells the app to clear the error-reporting user, once.
+    @Test
+    fun F001N_266_AC3_aRejectedTokenClearsTheReportingUser() {
+        var clears = 0
+        val session = Session(InMemorySessionStore("old"), onSignedOut = { clears++ })
+
+        session.expire("old")
+
+        assertEquals(1, clears)
+    }
+
+    @Test
+    fun F001N_266_AC3_signingOutClearsTheReportingUserOnce() {
+        var clears = 0
+        val session = Session(InMemorySessionStore("old"), onSignedOut = { clears++ })
+
+        session.signedOut()
+        session.signedOut()
+
+        assertEquals(1, clears)
+    }
+
+    @Test
+    fun F001N_266_AC3_aLateAnswerToAnOldTokenKeepsTheReportingUser() {
+        var clears = 0
+        val session = Session(InMemorySessionStore("old"), onSignedOut = { clears++ })
+        session.signIn("new")
+
+        session.expire("old")
+
+        assertEquals(0, clears)
+    }
 }

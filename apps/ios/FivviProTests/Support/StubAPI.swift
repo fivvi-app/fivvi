@@ -27,12 +27,17 @@ actor StubAPI: APIProtocol {
         case offline
     }
 
+    /// The ID `getMe` answers with unless a test gives another (synthetic).
+    static let accountID = "2f6a1f0e-0000-4000-8000-000000000001"
+
     /// What `getMe` answers.
     enum MeAnswer: Sendable {
-        case account(email: String)
+        case account(email: String, id: String = StubAPI.accountID)
         case unauthorized
         case status(Int)
         case offline
+        /// No answer until the test calls `releaseHangingMes()`, then the account of `StubAPI.accountID`.
+        case hang
     }
 
     /// What `signOut` answers.
@@ -58,6 +63,8 @@ actor StubAPI: APIProtocol {
     private(set) var signOutCalls = 0
     private var hanging: [CheckedContinuation<Void, Never>] = []
     private var hangWatchers: [CheckedContinuation<Void, Never>] = []
+    private var hangingMes: [CheckedContinuation<Void, Never>] = []
+    private var hangingMeWatchers: [CheckedContinuation<Void, Never>] = []
 
     /// How many `signOut` calls are waiting for `releaseHangingSignOuts()`.
     var hangingSignOuts: Int { hanging.count }
@@ -91,6 +98,19 @@ actor StubAPI: APIProtocol {
         waiting.forEach { $0.resume() }
     }
 
+    /// Returns once a `getMe` call hangs.
+    func untilMeHangs() async {
+        guard hangingMes.isEmpty else { return }
+        await withCheckedContinuation { hangingMeWatchers.append($0) }
+    }
+
+    /// Lets every hanging `getMe` answer with the account.
+    func releaseHangingMes() {
+        let waiting = hangingMes
+        hangingMes = []
+        waiting.forEach { $0.resume() }
+    }
+
     func answerMe(with answer: MeAnswer) {
         meAnswer = answer
     }
@@ -118,14 +138,22 @@ actor StubAPI: APIProtocol {
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
         meCalls += 1
         switch meAnswer {
-        case let .account(email):
-            return .ok(.init(body: .json(.init(id: "2f6a1f0e-0000-4000-8000-000000000001", email: email))))
+        case let .account(email, id):
+            return .ok(.init(body: .json(.init(id: id, email: email))))
         case .unauthorized:
             return .unauthorized(.init(body: .json(.init(code: .notSignedIn))))
         case let .status(code):
             return .undocumented(statusCode: code, .init())
         case .offline:
             throw URLError(.notConnectedToInternet)
+        case .hang:
+            await withCheckedContinuation { continuation in
+                hangingMes.append(continuation)
+                let watchers = hangingMeWatchers
+                hangingMeWatchers = []
+                watchers.forEach { $0.resume() }
+            }
+            return .ok(.init(body: .json(.init(id: Self.accountID, email: "owner@example.com"))))
         }
     }
 

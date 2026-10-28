@@ -22,21 +22,26 @@ final class AccountViewModel {
     private let store: any SessionStore
     private let clock: any Clock<Duration>
     private let signOutTimeout: Duration
+    private let onAccount: (_ id: String) -> Void
     private let onSignedOut: (_ afterRejection: Bool) -> Void
 
     /// `signOutTimeout` is how long a sign-out waits for the API, on `clock`, before it goes on without an answer.
-    /// `onSignedOut` says whether the API refused the token of the sign-out call.
+    /// `onAccount` is told the account's ID (a UUID) once `GET /api/v1/me` has answered: the app sets it as the
+    /// error-reporting user (AC2, #266) unless the sign-in has ended meanwhile; `Session` clears it again on sign-out. `onSignedOut` says whether the API
+    /// refused the token of the sign-out call.
     init(
         api: any APIProtocol,
         store: any SessionStore,
         clock: any Clock<Duration> = ContinuousClock(),
         signOutTimeout: Duration = .seconds(10),
+        onAccount: @escaping (_ id: String) -> Void,
         onSignedOut: @escaping (_ afterRejection: Bool) -> Void
     ) {
         self.api = api
         self.store = store
         self.clock = clock
         self.signOutTimeout = signOutTimeout
+        self.onAccount = onAccount
         self.onSignedOut = onSignedOut
     }
 
@@ -45,6 +50,9 @@ final class AccountViewModel {
         do {
             let account = try await api.getMe().ok.body.json
             state = .loaded(email: account.email)
+            // An answer that arrives after the sign-out (the token is gone) or once the screen has gone (its task is
+            // cancelled) must not set the account that was just cleared as the error-reporting user (#266).
+            if !Task.isCancelled, store.token != nil { onAccount(account.id) }
         } catch {
             state = .failed
         }

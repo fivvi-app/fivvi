@@ -94,19 +94,85 @@ export function scramSha256Verifier(
 }
 
 /**
- * The SQLSTATE of a failed query, however Drizzle wrapped it. Only a Postgres error counts (the
- * driver's `DatabaseError` carries a `severity`): a Node error such as `EPIPE` has a five-letter
- * `code` too, which is not a SQLSTATE.
+ * The advisory lock that serialises changes to the app role among sessions of one database.
+ * `ALTER ROLE` on one role from two sessions at once fails with "tuple concurrently updated", and
+ * a CI run does that: parallel test workers release databases while other packages' global setups
+ * prepare the test roles. Every writer takes this lock first, inside the transaction that changes
+ * the role.
+ *
+ * An advisory lock belongs to the database it is taken in, while a role belongs to the server: a
+ * writer in another database of the same server does not wait for this lock (#274; a test server
+ * has one database per test file, plus the maintenance database of the test setup). Those races
+ * are caught by `isRoleRace` and retried, see `ensureAppRole`.
+ *
+ * `@fivvi/testing` cannot import this package (this one depends on it for its tests), so
+ * `ensureTestRoles` keeps the same number in `ROLE_LOCK`; `app-role.test.ts` asserts they match.
  */
-function sqlState(error: unknown): string | undefined {
+export const APP_ROLE_LOCK_KEY = 7_011_253;
+
+/** How often a change to the role is tried when it loses a race with a writer in another database. */
+export const ROLE_RACE_ATTEMPTS = 20;
+
+/**
+ * The first Postgres error in the chain of an error, however Drizzle wrapped it. Only the driver's
+ * `DatabaseError` counts (it carries a `severity`, and a SQLSTATE as its `code`): a Node error
+ * such as `EPIPE` has a five-letter `code` too, which is not a SQLSTATE.
+ */
+function postgresError(error: unknown): { code: string; message: string } | undefined {
   for (let current = error, depth = 0; current && depth < 5; depth += 1) {
-    const { code, severity } = current as { code?: unknown; severity?: unknown };
+    const { code, severity, message } = current as {
+      code?: unknown;
+      severity?: unknown;
+      message?: unknown;
+    };
     if (typeof severity === 'string' && typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) {
-      return code;
+      return { code, message: String(message) };
     }
     current = (current as { cause?: unknown }).cause;
   }
   return undefined;
+}
+
+/** The SQLSTATE of a failed query, if it is a Postgres error. */
+function sqlState(error: unknown): string | undefined {
+  return postgresError(error)?.code;
+}
+
+/**
+ * Whether a failed query lost a race on the server's role catalog with a session whose advisory
+ * lock it does not share (another database): "tuple concurrently updated" (XX000, two `ALTER ROLE`
+ * of one role) or a duplicate role (23505 on the name index, 42710) when both create it. The
+ * other session's change is committed a moment later, so trying again succeeds. Nothing else is
+ * retried.
+ */
+export function isRoleRace(error: unknown): boolean {
+  const failure = postgresError(error);
+  if (!failure) return false;
+  if (failure.code === '23505' || failure.code === '42710') return true;
+  return failure.code === 'XX000' && /tuple concurrently updated/.test(failure.message);
+}
+
+/** An error that is safe to show: it holds no statement, parameter or password. */
+class AppRoleError extends Error {
+  /** Whether the change lost a race with a writer in another database and may be tried again. */
+  readonly raced: boolean;
+
+  constructor(message: string, raced = false) {
+    super(message);
+    this.raced = raced;
+  }
+}
+
+/** The error as it may leave this module: ours as it is, anything else by SQLSTATE only. */
+function safeError(error: unknown): Error {
+  if (error instanceof AppRoleError) return error;
+  const state = sqlState(error);
+  return new AppRoleError(
+    state
+      ? `The app role could not be set up (SQLSTATE ${state}).`
+      : 'The app role could not be set up (not a database error).',
+    isRoleRace(error),
+  );
 }
 
 /**
@@ -118,12 +184,7 @@ async function roleStatement(db: DatabaseExecutor, statement: ReturnType<typeof 
   try {
     return await db.execute(statement);
   } catch (error) {
-    const state = sqlState(error);
-    throw new Error(
-      state
-        ? `The app role could not be set up (SQLSTATE ${state}).`
-        : 'The app role could not be set up (not a database error).',
-    );
+    throw safeError(error);
   }
 }
 
@@ -159,41 +220,78 @@ export async function ensureAppRole(
       `The app role password must be at least ${MINIMUM_PASSWORD_LENGTH} characters (the value is not shown).`,
     );
   }
-  const name = sql.identifier(role);
-  const exists = (await roleStatement(db, sql`select 1 from pg_roles where rolname = ${role}`)).rows
-    .length;
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await changeRole(db, role, password);
+    } catch (error) {
+      const failure = safeError(error);
+      if (!(failure instanceof AppRoleError && failure.raced) || attempt >= ROLE_RACE_ATTEMPTS) {
+        throw failure;
+      }
+      // Lost a race with a writer in another database; it commits in a moment. Jitter, so two
+      // losers do not meet again.
+      await new Promise((resolve) => setTimeout(resolve, attempt * 10 + Math.random() * 30));
+    }
+  }
+}
 
-  if (!exists) await roleStatement(db, sql`create role ${name} nologin`);
-  // Whatever the role was before, it ends without any privilege beyond logging in.
-  await roleStatement(db, sql`alter role ${name} ${sql.raw(SAFE_ATTRIBUTES)}`);
-  const memberships = await roleStatement(
-    db,
-    sql`select p.rolname as parent from pg_auth_members m
-        join pg_roles p on p.oid = m.roleid
-        join pg_roles c on c.oid = m.member
-        where c.rolname = ${role}`,
-  );
-  for (const membership of memberships.rows) {
-    await roleStatement(db, sql`revoke ${sql.identifier(String(membership.parent))} from ${name}`);
+/** One try at `ensureAppRole`: a transaction that changes the role, or fails with a safe error. */
+async function changeRole(
+  db: DatabaseExecutor,
+  role: string,
+  password: string | undefined,
+): Promise<AppRoleState> {
+  try {
+    // One transaction, after the lock: concurrent callers in this database (and `ensureTestRoles`
+    // when it shares the database) take turns. Given a transaction already, Drizzle nests it as a
+    // savepoint; the lock is taken first either way and held until the outermost transaction ends.
+    return await db.transaction(async (tx) => {
+      await roleStatement(tx, sql`select pg_advisory_xact_lock(${APP_ROLE_LOCK_KEY})`);
+      const name = sql.identifier(role);
+      const exists = (await roleStatement(tx, sql`select 1 from pg_roles where rolname = ${role}`))
+        .rows.length;
+
+      if (!exists) await roleStatement(tx, sql`create role ${name} nologin`);
+      // Whatever the role was before, it ends without any privilege beyond logging in.
+      await roleStatement(tx, sql`alter role ${name} ${sql.raw(SAFE_ATTRIBUTES)}`);
+      const memberships = await roleStatement(
+        tx,
+        sql`select p.rolname as parent from pg_auth_members m
+          join pg_roles p on p.oid = m.roleid
+          join pg_roles c on c.oid = m.member
+          where c.rolname = ${role}`,
+      );
+      for (const membership of memberships.rows) {
+        await roleStatement(
+          tx,
+          sql`revoke ${sql.identifier(String(membership.parent))} from ${name}`,
+        );
+      }
+      // From PG16 a revoke only removes the grants of the current grantor; another grantor's stays.
+      const remaining = await roleStatement(
+        tx,
+        sql`select 1 from pg_auth_members m join pg_roles c on c.oid = m.member where c.rolname = ${role}`,
+      );
+      if (remaining.rows.length) {
+        throw new AppRoleError(
+          'The app role is still a member of another role after the revoke (granted by another role); remove that membership first.',
+        );
+      }
+      if (password === undefined) {
+        const [current] = (
+          await roleStatement(tx, sql`select rolcanlogin from pg_roles where rolname = ${role}`)
+        ).rows;
+        return { login: current?.rolcanlogin === true, passwordSet: false };
+      }
+      // DDL takes no parameters: the verifier is base64 text, so quoting it is all it needs.
+      const verifier = scramSha256Verifier(password).replaceAll("'", "''");
+      await roleStatement(
+        tx,
+        sql`alter role ${name} with login password ${sql.raw(`'${verifier}'`)}`,
+      );
+      return { login: true, passwordSet: true };
+    });
+  } catch (error) {
+    throw safeError(error);
   }
-  // From PG16 a revoke only removes the grants of the current grantor; another grantor's stays.
-  const remaining = await roleStatement(
-    db,
-    sql`select 1 from pg_auth_members m join pg_roles c on c.oid = m.member where c.rolname = ${role}`,
-  );
-  if (remaining.rows.length) {
-    throw new Error(
-      'The app role is still a member of another role after the revoke (granted by another role); remove that membership first.',
-    );
-  }
-  if (password === undefined) {
-    const [current] = (
-      await roleStatement(db, sql`select rolcanlogin from pg_roles where rolname = ${role}`)
-    ).rows;
-    return { login: current?.rolcanlogin === true, passwordSet: false };
-  }
-  // DDL takes no parameters: the verifier is base64 text, so quoting it is all it needs.
-  const verifier = scramSha256Verifier(password).replaceAll("'", "''");
-  await roleStatement(db, sql`alter role ${name} with login password ${sql.raw(`'${verifier}'`)}`);
-  return { login: true, passwordSet: true };
 }

@@ -1,5 +1,7 @@
+import { randomBytes } from 'node:crypto';
 import { createTestDatabase, withRollback } from '@fivvi/testing/database';
 import { APP_ROLE_TEST_PASSWORD, appRoleUrl } from '@fivvi/testing/database/server';
+import { ensureTestRoles } from '@fivvi/testing/database/setup';
 import { sql } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import pg from 'pg';
@@ -19,6 +21,40 @@ async function withFreshDatabase(
     await client.close();
     await database.drop();
   }
+}
+
+/**
+ * What a settled call comes to as text: `fulfilled`, or `rejected: call <n> [<code>]: <message>`
+ * (the bracketed code only when the error has one). Safe to print: `ensureAppRole` throws errors
+ * of the SQLSTATE only, with no statement, parameter or password.
+ */
+function describeSettled(result: PromiseSettledResult<unknown>, index: number): string {
+  if (result.status === 'fulfilled') return 'fulfilled';
+  const error = result.reason as { code?: unknown; message?: unknown } | undefined;
+  const code = typeof error?.code === 'string' ? ` [${error.code}]` : '';
+  const message = error instanceof Error ? error.message : String(error);
+  return `rejected: call ${index}${code}: ${message}`;
+}
+
+type Query = ReturnType<typeof sql>;
+type Execute = (query: Query) => ReturnType<DatabaseExecutor['execute']>;
+
+/**
+ * `db` with every statement passed through `around`, also the ones run in a transaction or a
+ * savepoint that `db` opens: `ensureAppRole` runs its statements in a transaction of its own.
+ */
+function intercept<D extends DatabaseExecutor>(
+  db: D,
+  around: (query: Query, execute: () => ReturnType<Execute>) => unknown,
+): D {
+  const wrapped = Object.create(db) as D;
+  wrapped.execute = ((query: Query) =>
+    around(query, () => db.execute(query))) as unknown as D['execute'];
+  wrapped.transaction = ((run: (tx: D) => Promise<unknown>) =>
+    db.transaction((tx) =>
+      run(intercept(tx as unknown as D, around)),
+    )) as unknown as D['transaction'];
+  return wrapped;
 }
 
 async function rows<T>(db: DatabaseExecutor, query: ReturnType<typeof sql>): Promise<T[]> {
@@ -270,6 +306,7 @@ describe('E011 app role in the release step', () => {
     it('reports a failure that is not a Postgres error without its code', async () => {
       const failing = {
         execute: () => Promise.reject(Object.assign(new Error('socket closed'), { code: 'EPIPE' })),
+        transaction: (run: (tx: unknown) => Promise<unknown>) => run(failing),
       } as unknown as DatabaseExecutor;
 
       const error = await ensureAppRole(failing, { role: probe }).catch(
@@ -284,19 +321,18 @@ describe('E011 app role in the release step', () => {
 
     it('logs in with the password once it is set, and sends no cleartext password to the server', async () => {
       const password = 'fake\'login"password;for-tests-0123';
-      const role = 'fivvi_probe_login';
+      const role = `fivvi_probe_login_${randomBytes(4).toString('hex')}`;
       const database = await createTestDatabase();
       const client = createDatabase({ url: database.url, maxConnections: 1 });
       const dialect = new PgDialect();
       const sent: string[] = [];
       try {
         // Roles belong to the server and a login needs a committed role: drop it afterwards.
-        const recording = Object.create(client.db) as typeof client.db;
-        recording.execute = ((query: ReturnType<typeof sql>) => {
+        const recording = intercept(client.db, (query, execute) => {
           const compiled = dialect.sqlToQuery(query);
           sent.push(compiled.sql, ...compiled.params.map(String));
-          return client.db.execute(query);
-        }) as typeof client.db.execute;
+          return execute();
+        });
         await ensureAppRole(recording, { role, password });
 
         const login = new URL(database.url);
@@ -331,13 +367,12 @@ describe('E011 app role in the release step', () => {
       try {
         await withRollback(client.db, async (tx) => {
           // The password statement fails for real: the role is gone when it runs.
-          const failing = Object.create(tx) as typeof tx;
-          failing.execute = (async (query: ReturnType<typeof sql>) => {
+          const failing = intercept(tx, async (query, execute) => {
             if (/password/.test(dialect.sqlToQuery(query).sql)) {
               await tx.execute(sql`drop role ${sql.identifier(probe)}`);
             }
-            return tx.execute(query);
-          }) as typeof tx.execute;
+            return execute();
+          });
 
           const error = await ensureAppRole(failing, { role: probe, password }).catch(
             (caught: unknown) => caught,
@@ -354,6 +389,65 @@ describe('E011 app role in the release step', () => {
       } finally {
         await client.close();
         await database.drop();
+      }
+    });
+
+    it('serialises concurrent changes to the role, from the release step and the test setup', async () => {
+      // Two ALTER ROLE on one role at once fail with "tuple concurrently updated"; a CI run does
+      // that when parallel workers release databases while a package's global setup runs.
+      // Own name per run: runs on one server (worktrees share a container) must not drop it.
+      const role = `fivvi_probe_parallel_${randomBytes(4).toString('hex')}`;
+      const password = 'fake-parallel-password-for-tests';
+      const database = await createTestDatabase();
+      const first = createDatabase({ url: database.url, maxConnections: 1 });
+      const second = createDatabase({ url: database.url, maxConnections: 1 });
+      try {
+        for (let round = 0; round < 8; round += 1) {
+          await first.db.execute(sql`drop role if exists ${sql.identifier(role)}`);
+          const results = await Promise.allSettled([
+            ensureAppRole(first.db, { role, password }),
+            ensureAppRole(second.db, { role, password }),
+            ensureAppRole(first.db, { role }),
+            ensureAppRole(second.db, { role }),
+            ensureTestRoles(),
+            ensureTestRoles(),
+          ]);
+          // A rejection names its call and its reason, so a failure in CI can be diagnosed.
+          expect(results.map(describeSettled)).toEqual(Array(6).fill('fulfilled'));
+        }
+      } finally {
+        await first.db.execute(sql`drop role if exists ${sql.identifier(role)}`);
+        await Promise.all([first.close(), second.close()]);
+        await database.drop();
+      }
+    });
+
+    it('survives concurrent changes to the one app role from different databases of one server', async () => {
+      // A role belongs to the server, an advisory lock to the database it is taken in: the release
+      // step of one database and the test setup (on the maintenance database) do not wait for each
+      // other, both ALTER ROLE the same row of `pg_authid`, and one fails with "tuple concurrently
+      // updated" (#274). Other test files log in as this role, so its password stays the test one.
+      const password = APP_ROLE_TEST_PASSWORD;
+      const [one, two] = await Promise.all([createTestDatabase(), createTestDatabase()]);
+      const first = createDatabase({ url: one.url, maxConnections: 1 });
+      const second = createDatabase({ url: two.url, maxConnections: 1 });
+      try {
+        for (let round = 0; round < 40; round += 1) {
+          const results = await Promise.allSettled([
+            ensureAppRole(first.db, { password }),
+            ensureAppRole(second.db, { password }),
+            ensureAppRole(first.db),
+            ensureAppRole(second.db),
+            ensureTestRoles(),
+            ensureTestRoles(),
+          ]);
+          expect(results.map(describeSettled), `round ${round}`).toEqual(
+            Array(6).fill('fulfilled'),
+          );
+        }
+      } finally {
+        await Promise.all([first.close(), second.close()]);
+        await Promise.all([one.drop(), two.drop()]);
       }
     });
 

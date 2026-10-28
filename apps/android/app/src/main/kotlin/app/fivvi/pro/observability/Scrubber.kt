@@ -30,6 +30,9 @@ private const val ORGANIZATION_ID = "organization_id"
 
 private val UUID = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", RegexOption.IGNORE_CASE)
 
+// The SDK writes its installation ID as a UUID without dashes (`Installation`, `SentryUUID`: 32 hex characters).
+private val INSTALLATION_ID = Regex("^[0-9a-f]{32}$", RegexOption.IGNORE_CASE)
+
 // Also catches URL-encoded addresses (`%40`) in paths.
 private val EMAIL =
     Regex("""[^\s@/?#&=:;,<>()"'\[\]]+(?:@|%40)[^\s@/?#&=:;,<>()"'\[\]]+\.[a-z]{2,}""", RegexOption.IGNORE_CASE)
@@ -134,9 +137,13 @@ private fun scrubRequest(request: Request) = Request().apply {
         ?.takeUnless { it.isEmpty() }
 }
 
-/** Only the internal user UUID and the workspace UUID, the latter in the user's data as `organization_id`. */
+/**
+ * Only the user ID and the workspace UUID, the latter in the user's data as `organization_id`. The user ID is the
+ * account's UUID or, while nobody is signed in, the SDK's installation ID; the latter is kept exactly as the SDK wrote
+ * it (without dashes), so it still matches the session's distinct ID.
+ */
 private fun scrubUser(user: User): User? {
-    val id = user.id?.takeIf(UUID::matches)
+    val id = user.id?.takeIf { UUID.matches(it) || INSTALLATION_ID.matches(it) }
     val organizationId = user.data?.get(ORGANIZATION_ID)?.takeIf(UUID::matches)
     if (id == null && organizationId == null) return null
     return User().apply {

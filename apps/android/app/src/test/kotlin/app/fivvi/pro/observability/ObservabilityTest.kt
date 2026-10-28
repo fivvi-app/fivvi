@@ -39,6 +39,9 @@ private const val TOKEN = "Bearer test-token"
 private const val COOKIE = "session=test-cookie-value"
 private const val DEVICE_NAME = "Pixel van Femke"
 private const val USER_ID = "0b9c4f2e-5d6a-4c1b-9e8f-1a2b3c4d5e6f"
+
+// The SDK's installation ID: a UUID written as 32 hex characters, without dashes (Installation, SentryUUID).
+private const val INSTALLATION_ID = "0123456789abcdef0123456789abcdef"
 private const val WORKSPACE_ID = "7d3e2a1b-8c9d-4e0f-a1b2-c3d4e5f6a7b8"
 private const val CLIENT_ID = "3f2e1d0c-9b8a-4765-8432-10fedcba9876"
 private const val PATH = "/api/v1/clients/$CLIENT_ID/notes"
@@ -163,6 +166,39 @@ class ObservabilityTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         val event = sent().events.single()
         assertNull(event.user)
         assertEquals(inviteFailed("[email]"), event.exceptions!!.single().value)
+    }
+
+    // F001 AC1 (#266): the user the SDK itself adds while nobody is signed in is the installation ID, with no dashes.
+    @Test
+    fun F001N_266_AC1_keepsTheInstallationIdAsItIsWritten() {
+        assertTrue(start())
+        Sentry.setUser(personalUser(id = INSTALLATION_ID, workspaceId = WORKSPACE_ID))
+
+        Observability.captureError(IllegalStateException(inviteFailed(EMAIL)))
+
+        val event = sent().events.single()
+        assertEquals(INSTALLATION_ID, event.user?.id)
+        assertEquals(mapOf("organization_id" to WORKSPACE_ID), event.user?.data)
+        listOf(EMAIL, CLIENT_NAME, IP).forEach { assertFalse("'$it' was sent", sent().sent.contains(it)) }
+    }
+
+    @Test
+    fun F001N_266_AC1_dropsAnIdThatIsNotAUuid() {
+        assertTrue(start())
+        listOf(
+            INSTALLATION_ID.dropLast(1),
+            INSTALLATION_ID + "0",
+            INSTALLATION_ID.dropLast(1) + "g",
+            "$INSTALLATION_ID-",
+            CLIENT_NAME,
+            EMAIL,
+        ).forEach { id ->
+            Sentry.setUser(User().apply { this.id = id })
+
+            Observability.captureError(IllegalStateException(inviteFailed("[email]")))
+
+            assertNull(id, sent().events.last().user)
+        }
     }
 
     @Test

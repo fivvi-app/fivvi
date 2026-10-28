@@ -6,7 +6,7 @@ import { GET } from './route';
 // The greeting itself is read from Postgres in packages/api/test/hello.integration.test.ts.
 describe('E018 API mount', () => {
   it('serves GET /api/v1/hello from packages/api, reading the greeting from the database', async () => {
-    vi.stubEnv('DATABASE_URL', '');
+    vi.stubEnv('APP_DATABASE_URL', '');
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     const capture = vi.spyOn(errorReporter, 'captureError').mockImplementation(() => {});
     try {
@@ -18,7 +18,9 @@ describe('E018 API mount', () => {
       expect(log).toHaveBeenCalledWith('Unhandled API error:', 'Error');
       // The cause goes to the error reporter: the 500 came from the database read.
       expect(capture).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining('DATABASE_URL is not set') }),
+        expect.objectContaining({
+          message: expect.stringContaining('APP_DATABASE_URL is not set'),
+        }),
         expect.anything(),
       );
     } finally {
@@ -30,8 +32,8 @@ describe('E018 API mount', () => {
 });
 
 describe('E003 health check mount', () => {
-  it('reports the database as unavailable when DATABASE_URL is missing', async () => {
-    vi.stubEnv('DATABASE_URL', '');
+  it('reports the database as unavailable when APP_DATABASE_URL is missing', async () => {
+    vi.stubEnv('APP_DATABASE_URL', '');
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
       const res = await GET(new Request('http://localhost/api/v1/health'));
@@ -43,7 +45,7 @@ describe('E003 health check mount', () => {
       });
       expect(log).toHaveBeenCalledWith(
         'Health check: database unavailable:',
-        expect.stringContaining('DATABASE_URL is not set'),
+        expect.stringContaining('APP_DATABASE_URL is not set'),
       );
     } finally {
       vi.unstubAllEnvs();

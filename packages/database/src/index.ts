@@ -1,11 +1,24 @@
 export {
+  createAppDatabaseFromEnv,
   createDatabase,
-  createDatabaseFromEnv,
   type Database,
   type DatabaseClient,
   type DatabaseExecutor,
 } from './client.ts';
-export { type DatabaseConfig, readDatabaseConfig } from './env.ts';
+// `readDatabaseConfig` and the name of the privileged variable stay inside the package: exporting
+// them would let any code open the privileged connection past the allow-list (E011, AC17).
+export { APP_DATABASE_URL_VARIABLE, type DatabaseConfig } from './env.ts';
+export {
+  openPrivilegedDatabase,
+  PRIVILEGED_ALLOW_LIST,
+  PRIVILEGED_USES,
+  type PrivilegedOptions,
+  type PrivilegedReason,
+} from './privileged.ts';
+export {
+  type ConnectionRoleReport,
+  inspectConnectionRole,
+} from './queries/connection-role.ts';
 export { pingDatabase } from './queries/health.ts';
 export {
   consumeRateLimit,

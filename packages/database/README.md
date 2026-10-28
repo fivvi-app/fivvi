@@ -3,9 +3,9 @@
 PostgreSQL schema, versioned SQL migrations, seed data and the typed database client (ADR-005). Drizzle ORM on `node-postgres`.
 
 ```ts
-import { createDatabaseFromEnv, findSystemGreeting } from '@fivvi/database';
+import { createAppDatabaseFromEnv, findSystemGreeting } from '@fivvi/database';
 
-const { db, close } = createDatabaseFromEnv(); // reads DATABASE_URL; one per process
+const { db, close } = createAppDatabaseFromEnv(); // reads APP_DATABASE_URL (the app role); one per process
 const greeting = await findSystemGreeting(db, 'hello'); // { slug: 'hello', i18nKey: 'hello.title' }
 ```
 
@@ -25,9 +25,12 @@ Entry points: `@fivvi/database` (client, schema, queries, `pingDatabase`, `HELLO
 
    ```bash
    cp packages/database/.env.example packages/database/.env
+   cp apps/web/.env.example apps/web/.env
    ```
 
-3. Migrate and seed:
+   `DATABASE_URL` is the privileged user (it owns the tables); `APP_DATABASE_URL` and `APP_DATABASE_PASSWORD` are the app role `fivvi_app`, which the web server (`pnpm dev`) connects as. The first file holds all three, the second only `APP_DATABASE_URL` for `next dev`. A `.env` copied before E011 needs the two new lines from the example.
+
+3. Migrate (this also gives `fivvi_app` its login, with the password of `APP_DATABASE_PASSWORD`) and seed:
 
    ```bash
    pnpm db:migrate
@@ -42,9 +45,9 @@ Entry points: `@fivvi/database` (client, schema, queries, `pingDatabase`, `HELLO
 |---|---|---|
 | `db:up` / `db:down` | root | Start / stop local Postgres |
 | `db:generate` | root or package | Write a new SQL migration from the schema diff (`pnpm db:generate --name <what>`) |
-| `db:migrate` | root or package | Apply pending migrations to `DATABASE_URL` |
+| `db:migrate` | root or package | Apply pending migrations to `DATABASE_URL`, then give the app role `fivvi_app` its login with `APP_DATABASE_PASSWORD` (like the release step) |
 | `db:seed` | root or package | Insert demo data into `DATABASE_URL` (idempotent; never in production) |
-| `db:reset-rate-limits` | root or package | Delete every sign-in rate limit counter (F001) so a Maestro run isn't limited by an earlier one; refuses any `DATABASE_URL` that is not a local Postgres |
+| `db:reset-rate-limits` | root or package | Delete every sign-in rate limit counter (F001) so a Maestro run isn't limited by an earlier one; connects as the app role and refuses any `APP_DATABASE_URL` that is not a local Postgres |
 | `db:check` | package | Check the migration history for conflicts (`drizzle-kit check`) |
 | `test` | turbo | Unit tests, no database. Includes the schema ↔ migrations drift check |
 | `test:integration` | turbo | Migrations, seed, queries and schema conventions against real Postgres (below) |
@@ -126,15 +129,16 @@ After `pnpm db:generate`, add `ALTER TABLE "bookings" FORCE ROW LEVEL SECURITY;`
 **Roles (AC4, AC18).**
 
 - **`fivvi_app`**, the app role: logs in, no superuser, no `BYPASSRLS`, no `CREATEROLE`/`CREATEDB`, owns nothing, not a member of the privileged role, and only the table privileges in `APP_TABLE_PRIVILEGES` (`src/app-role.ts`): select, insert, update and delete (select only on system data), never `TRUNCATE` (it ignores RLS), `REFERENCES` or `TRIGGER`, and nothing on the migration history. A table missing from that list gets no privilege, and the release integration test fails until it is listed.
-- **The privileged role**, the user of `DATABASE_URL`: owns the tables, runs the migrations and the release step.
-- Migration `0007` creates `fivvi_app` without a login if it doesn't exist, so the policies can name it and every migrated database has it. `runMigrations` then resets its table privileges to the list (so the release step, `pnpm db:migrate` and the test template end with the same grants). The release step (`ensureAppRole`) finishes the role: with `APP_DATABASE_PASSWORD` set it gives the role a login and that password, idempotently; **without it** (a preview before the owner has set the secret) it still succeeds, leaves the login and password as they are and says so in the release log. The password needs 16 characters or more, printable ASCII only (the Node driver normalises any other password before it logs in, so a verifier of it would never match), and is never logged or put in a statement (the role gets a SCRAM-SHA-256 verifier). The step also strips the role's unsafe attributes and revokes every membership, and fails if a membership granted by another role remains. The web runtime keeps connecting with `DATABASE_URL` until the next ticket (#255).
+- **The privileged role**, the user of `DATABASE_URL`: owns the tables, runs the migrations and the release step. It is reached only through `openPrivilegedDatabase(reason)` (`src/privileged.ts`): the reason is one of a fixed list (`PRIVILEGED_USES`), is logged without the connection and without personal data, and the calling file is on the reviewed allow-list (`PRIVILEGED_ALLOW_LIST`: the release step, `db:migrate`/`db:seed`, the daily cron job). The unit test `AC17: privileged access only from the allow-list, with a reason` fails for a call from another file, for an unknown or non-literal reason, for an allow-list entry nobody uses any more, and for any other source file that mentions `DATABASE_URL` (tests and test setup are exempt). A new use is a change to that list, reviewed like the schema. `createAppDatabaseFromEnv()` is the app connection and never falls back to the privileged one.
+- Migration `0007` creates `fivvi_app` without a login if it doesn't exist, so the policies can name it and every migrated database has it. `runMigrations` then resets its table privileges to the list (so the release step, `pnpm db:migrate` and the test template end with the same grants). The release step (`ensureAppRole`) finishes the role: with `APP_DATABASE_PASSWORD` set it gives the role a login and that password, idempotently; **without it** (a preview before the owner has set the secret) it still succeeds, leaves the login and password as they are and says so in the release log. The password needs 16 characters or more, printable ASCII only (the Node driver normalises any other password before it logs in, so a verifier of it would never match), and is never logged or put in a statement (the role gets a SCRAM-SHA-256 verifier). The step also strips the role's unsafe attributes and revokes every membership, and fails if a membership granted by another role remains. The web runtime connects as this role through `APP_DATABASE_URL`, never with `DATABASE_URL` (see below).
+- **Start-up check (AC4).** `inspectConnectionRole(db)` reads what the connection's login role may do: superuser, `BYPASSRLS`, `CREATEROLE`/`CREATEDB`/replication, owning a table or view, membership of any role. The API refuses to start when anything is on the list (`verifyStartup` in `packages/api`, wired in `apps/web/instrumentation.ts`), says why and never prints the connection string. A role that cannot log in (the secret is not set yet) is a refusal too.
 - **Tests** connect as `fivvi_app` through `TestDatabase.appUrl`; the test setup (`setupTemplateDatabase`) creates the role with a fake password once per server, before it migrates the template.
 
 **Factories** (`@fivvi/database/testing`, next to the schema because `@fivvi/testing` cannot import the database package): `createWorkspace()`, `createAccount()`, `addTeamRole()` and `addClient()` take an executor, create a valid record and carry a unique marker (`uniqueMarker()`) or, where a record has no text column yet, its own uuid. **`isolationFactories`** registers one factory per table (`organizations`, `team_members`, `clients`) that creates a valid row in a given workspace; the RLS suite (`test/rls.integration.test.ts`) runs every check over every table in `public` that is not on the allow-list, and fails naming the table when one has no factory (AC15). A new business table adds its factory in `src/testing/isolation-factories.ts` and its line in `APP_TABLE_PRIVILEGES`.
 
 ## Environments
 
-Preview and production get `DATABASE_URL` from Railway (ADR-011, [`ENVIRONMENTS.md`](../../docs/engineering/ENVIRONMENTS.md)). On every deploy, Railway runs the release step before the new version gets traffic:
+Preview and production get `DATABASE_URL` (privileged) and `APP_DATABASE_URL` (the app role, built from the owner's `APP_DATABASE_PASSWORD`) from Railway (ADR-011, [`ENVIRONMENTS.md`](../../docs/engineering/ENVIRONMENTS.md)). On every deploy, Railway runs the release step before the new version gets traffic:
 
 ```bash
 node src/scripts/release.ts          # production: migrations only

@@ -20,11 +20,19 @@ export const onRequestError: Instrumentation.onRequestError =
 // that variable is checked here: the secret and BETTER_AUTH_URL are still read on the first
 // sign-in request (server/auth.ts), as before this check existed. It imports only the light
 // `@fivvi/auth/allowlist` entry, never the whole sign-in code (packages/auth/README.md, #200).
+// The API's database role is checked here too (E011, AC4): a connection that is a superuser, has
+// BYPASSRLS, owns a table or is a member of another role stops the server with the reason (never
+// the connection string), so a deploy with the wrong connection fails its health check. Not
+// while `next build` runs, which has no database.
 export async function register(): Promise<void> {
   checkPageViewsConfig(errorReporter);
   // Not in the edge runtime, which cannot load the sign-in code.
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { parseSignUpAllowlist } = await import('@fivvi/auth/allowlist');
     parseSignUpAllowlist(process.env.SIGN_UP_ALLOWED_EMAILS);
+    if (process.env.NEXT_PHASE !== 'phase-production-build') {
+      const { verifyApiStartup } = await import('./server/startup');
+      await verifyApiStartup();
+    }
   }
 }

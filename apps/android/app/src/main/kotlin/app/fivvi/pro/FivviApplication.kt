@@ -23,7 +23,10 @@ interface AppDependencies {
 }
 
 class DefaultAppDependencies(context: Context) : AppDependencies {
-    override val session: Session by lazy { Session(KeystoreSessionStore(context)) }
+    // Signing out, also after a rejected token, clears the error-reporting user (F001 AC3).
+    override val session: Session by lazy {
+        Session(KeystoreSessionStore(context), onSignedOut = Observability::clearUser)
+    }
 
     // One client for every call, with the auth layer, and nothing that logs.
     private val services: ApiServices by lazy { ApiServices(BuildConfig.API_BASE_URL, session) }
