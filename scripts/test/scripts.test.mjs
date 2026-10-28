@@ -1905,7 +1905,9 @@ esac`,
         const fake = checkout();
         assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
 
-        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], { IOS_SIM_SETTLE: undefined });
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], {
+          IOS_SIM_SETTLE: undefined,
+        });
 
         assert.equal(run.status, 0, run.output);
         assert.match(run.output, /waiting 1(4\d|50) s more \(IOS_SIM_SETTLE\)/);
@@ -1915,7 +1917,9 @@ esac`,
         const fake = checkout({ simulatorBooted: true });
         assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
 
-        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], { IOS_SIM_SETTLE: '1000' });
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], {
+          IOS_SIM_SETTLE: '1000',
+        });
 
         assert.equal(run.status, 0, run.output);
         assert.doesNotMatch(run.output, /more \(IOS_SIM_SETTLE\)/);
