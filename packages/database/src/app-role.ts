@@ -94,22 +94,6 @@ export function scramSha256Verifier(
 }
 
 /**
- * The SQLSTATE of a failed query, however Drizzle wrapped it. Only a Postgres error counts (the
- * driver's `DatabaseError` carries a `severity`): a Node error such as `EPIPE` has a five-letter
- * `code` too, which is not a SQLSTATE.
- */
-function sqlState(error: unknown): string | undefined {
-  for (let current = error, depth = 0; current && depth < 5; depth += 1) {
-    const { code, severity } = current as { code?: unknown; severity?: unknown };
-    if (typeof severity === 'string' && typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) {
-      return code;
-    }
-    current = (current as { cause?: unknown }).cause;
-  }
-  return undefined;
-}
-
-/**
  * The advisory lock that serialises changes to the app role among sessions of one database.
  * `ALTER ROLE` on one role from two sessions at once fails with "tuple concurrently updated", and
  * a CI run does that: parallel test workers release databases while other packages' global setups
@@ -127,9 +111,13 @@ function sqlState(error: unknown): string | undefined {
 export const APP_ROLE_LOCK_KEY = 7_011_253;
 
 /** How often a change to the role is tried when it loses a race with a writer in another database. */
-const ROLE_RACE_ATTEMPTS = 20;
+export const ROLE_RACE_ATTEMPTS = 20;
 
-/** The first Postgres error in the chain of an error (the driver's `DatabaseError`), if any. */
+/**
+ * The first Postgres error in the chain of an error, however Drizzle wrapped it. Only the driver's
+ * `DatabaseError` counts (it carries a `severity`, and a SQLSTATE as its `code`): a Node error
+ * such as `EPIPE` has a five-letter `code` too, which is not a SQLSTATE.
+ */
 function postgresError(error: unknown): { code: string; message: string } | undefined {
   for (let current = error, depth = 0; current && depth < 5; depth += 1) {
     const { code, severity, message } = current as {
@@ -143,6 +131,11 @@ function postgresError(error: unknown): { code: string; message: string } | unde
     current = (current as { cause?: unknown }).cause;
   }
   return undefined;
+}
+
+/** The SQLSTATE of a failed query, if it is a Postgres error. */
+function sqlState(error: unknown): string | undefined {
+  return postgresError(error)?.code;
 }
 
 /**

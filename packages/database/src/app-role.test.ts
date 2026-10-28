@@ -1,7 +1,8 @@
 import { isRoleRace as isTestRoleRace, ROLE_LOCK } from '@fivvi/testing/database/setup';
 import pg from 'pg';
-import { describe, expect, it } from 'vitest';
-import { APP_ROLE_LOCK_KEY, isRoleRace } from './app-role.ts';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { APP_ROLE_LOCK_KEY, ensureAppRole, isRoleRace, ROLE_RACE_ATTEMPTS } from './app-role.ts';
+import type { DatabaseExecutor } from './client.ts';
 
 describe('the lock that serialises changes to the app role', () => {
   it('is the same key in ensureAppRole and in the test setup (ensureTestRoles)', () => {
@@ -27,6 +28,16 @@ describe('the race with a change to the role in another database (#274)', () => 
     ['the same, wrapped by Drizzle', postgresError('XX000', 'tuple concurrently updated', true)],
     ['a duplicate role name index', postgresError('23505', 'duplicate key value violates unique')],
     ['a role that exists', postgresError('42710', 'role "fivvi_app" already exists')],
+    [
+      'a race under a wrapper that is no Postgres error',
+      Object.assign(
+        new Error('Failed query', { cause: postgresError('XX000', 'tuple concurrently updated') }),
+        {
+          severity: 'ERROR',
+          code: 'not-a-sqlstate',
+        },
+      ),
+    ],
   ];
   const others: [string, unknown][] = [
     ['another internal error', postgresError('XX000', 'cache lookup failed for role 1')],
@@ -44,5 +55,54 @@ describe('the race with a change to the role in another database (#274)', () => 
   it.each(others)('is not retried: %s', (_name, error) => {
     expect(isRoleRace(error)).toBe(false);
     expect(isTestRoleRace(error)).toBe(false);
+  });
+});
+
+describe('the retry of a change that lost the race', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** An executor whose every statement fails with `error`; `calls` counts the tries (statements). */
+  function failingWith(error: unknown) {
+    const calls = { count: 0 };
+    const db = {
+      execute: () => {
+        calls.count += 1;
+        return Promise.reject(error);
+      },
+      transaction: (run: (tx: unknown) => Promise<unknown>) => run(db),
+    } as unknown as DatabaseExecutor;
+    return { db, calls };
+  }
+
+  it('gives up after ROLE_RACE_ATTEMPTS tries with an error of the SQLSTATE only', async () => {
+    vi.useFakeTimers();
+    const { db, calls } = failingWith(
+      postgresError('XX000', 'tuple concurrently updated: ALTER ROLE secret-statement', true),
+    );
+
+    const outcome = ensureAppRole(db, { role: 'fivvi_probe_retry' }).catch(
+      (caught: unknown) => caught,
+    );
+    await vi.runAllTimersAsync();
+    const error = await outcome;
+
+    // The first statement of a try fails, so one statement is one try.
+    expect(calls.count).toBe(ROLE_RACE_ATTEMPTS);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe('The app role could not be set up (SQLSTATE XX000).');
+  });
+
+  it('tries a change that fails with anything else exactly once', async () => {
+    vi.useFakeTimers();
+    const { db, calls } = failingWith(postgresError('42501', 'permission denied to alter role'));
+
+    const error = await ensureAppRole(db, { role: 'fivvi_probe_retry' }).catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(calls.count).toBe(1);
+    expect((error as Error).message).toBe('The app role could not be set up (SQLSTATE 42501).');
   });
 });

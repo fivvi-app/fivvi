@@ -24,9 +24,9 @@ async function withFreshDatabase(
 }
 
 /**
- * What a settled call comes to as text: `fulfilled`, or `rejected: <label>: <reason>` with the
- * SQLSTATE and the message of the error. Safe to print: `ensureAppRole` throws SQLSTATE-only
- * errors, and a Postgres message never holds the statement or a password.
+ * What a settled call comes to as text: `fulfilled`, or `rejected: call <n> [<code>]: <message>`
+ * (the bracketed code only when the error has one). Safe to print: `ensureAppRole` throws errors
+ * of the SQLSTATE only, with no statement, parameter or password.
  */
 function describeSettled(result: PromiseSettledResult<unknown>, index: number): string {
   if (result.status === 'fulfilled') return 'fulfilled';
@@ -422,7 +422,7 @@ describe('E011 app role in the release step', () => {
       }
     });
 
-    it('serialises changes to the one app role from different databases of one server', async () => {
+    it('survives concurrent changes to the one app role from different databases of one server', async () => {
       // A role belongs to the server, an advisory lock to the database it is taken in: the release
       // step of one database and the test setup (on the maintenance database) do not wait for each
       // other, both ALTER ROLE the same row of `pg_authid`, and one fails with "tuple concurrently

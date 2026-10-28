@@ -70,7 +70,8 @@ const ROLE_RACE_ATTEMPTS = 20;
  * Whether a failed statement lost a race on the server's role catalog with a session that does
  * not share the advisory lock (it runs in another database): "tuple concurrently updated" (XX000,
  * two `ALTER ROLE` of one role) or a duplicate role (23505, 42710). The other change commits a
- * moment later, so trying again succeeds. The same rule as `isRoleRace` in `@fivvi/database`.
+ * moment later, so trying again succeeds. The same rule as `isRoleRace` in `@fivvi/database`, which
+ * cannot be imported here: keep the two in step (`app-role.test.ts` runs both on the same cases).
  */
 export function isRoleRace(error: unknown): boolean {
   for (let current = error, depth = 0; current && depth < 5; depth += 1) {
@@ -79,8 +80,8 @@ export function isRoleRace(error: unknown): boolean {
       message?: unknown;
       severity?: unknown;
     };
-    if (typeof severity === 'string') {
-      // A Postgres error (the driver's `DatabaseError` has a severity): decide on it.
+    if (typeof severity === 'string' && typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) {
+      // A Postgres error (the driver's `DatabaseError` has a severity and a SQLSTATE): decide on it.
       if (code === '23505' || code === '42710') return true;
       return code === 'XX000' && /tuple concurrently updated/.test(String(message));
     }
