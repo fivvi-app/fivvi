@@ -52,12 +52,42 @@ export function setupTemplateDatabase(migrate: (url: string) => Promise<void>) {
 }
 
 /**
- * Serialises role changes: several packages' global setups, and `ensureAppRole` (the release step
- * under test), may change the roles of one server at once. It is the key of `APP_ROLE_LOCK_KEY` in
+ * Serialises role changes among the sessions of one database: several packages' global setups
+ * (they all run on the maintenance database) and `ensureAppRole` (the release step under test)
+ * may change the roles of one server at once. It is the key of `APP_ROLE_LOCK_KEY` in
  * `@fivvi/database` (that package depends on this one, so it cannot be imported here); a test in
  * the database package asserts they are equal.
+ *
+ * An advisory lock belongs to its database, so it does not hold back a release step that runs in
+ * a test database (#274); `ensureTestRoles` retries that race (`isRoleRace`).
  */
 export const ROLE_LOCK = 7_011_253;
+
+/** How often `ensureTestRoles` tries when it loses a race with a writer in another database. */
+const ROLE_RACE_ATTEMPTS = 20;
+
+/**
+ * Whether a failed statement lost a race on the server's role catalog with a session that does
+ * not share the advisory lock (it runs in another database): "tuple concurrently updated" (XX000,
+ * two `ALTER ROLE` of one role) or a duplicate role (23505, 42710). The other change commits a
+ * moment later, so trying again succeeds. The same rule as `isRoleRace` in `@fivvi/database`.
+ */
+export function isRoleRace(error: unknown): boolean {
+  for (let current = error, depth = 0; current && depth < 5; depth += 1) {
+    const { code, message, severity } = current as {
+      code?: unknown;
+      message?: unknown;
+      severity?: unknown;
+    };
+    if (typeof severity === 'string') {
+      // A Postgres error (the driver's `DatabaseError` has a severity): decide on it.
+      if (code === '23505' || code === '42710') return true;
+      return code === 'XX000' && /tuple concurrently updated/.test(String(message));
+    }
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
+}
 
 /**
  * Makes sure the two roles of E011 exist on the test server, idempotently (`TESTING.md §5.3`):
@@ -69,22 +99,31 @@ export const ROLE_LOCK = 7_011_253;
  *   gives it the login. Its table privileges come from `runMigrations`, per database.
  *
  * Parallel global setups (one per package) may call this at the same moment, so it holds an
- * advisory lock for the length of one transaction.
+ * advisory lock for the length of one transaction. A release step in a test database has its own
+ * lock space and may change the role at the same moment; that race is retried.
  */
 export async function ensureTestRoles(): Promise<void> {
   const role = identifier(APP_ROLE_NAME);
   const password = APP_ROLE_TEST_PASSWORD.replaceAll("'", "''");
-  await onServer(
-    'BEGIN',
-    { text: 'select pg_advisory_xact_lock($1)', values: [ROLE_LOCK] },
-    `DO $$ BEGIN
-       IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${APP_ROLE_NAME}') THEN
-         CREATE ROLE ${role};
-       END IF;
-     END $$`,
-    `ALTER ROLE ${role} WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT PASSWORD '${password}'`,
-    'COMMIT',
-  );
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await onServer(
+        'BEGIN',
+        { text: 'select pg_advisory_xact_lock($1)', values: [ROLE_LOCK] },
+        `DO $$ BEGIN
+           IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${APP_ROLE_NAME}') THEN
+             CREATE ROLE ${role};
+           END IF;
+         END $$`,
+        `ALTER ROLE ${role} WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT PASSWORD '${password}'`,
+        'COMMIT',
+      );
+      return;
+    } catch (error) {
+      if (!isRoleRace(error) || attempt >= ROLE_RACE_ATTEMPTS) throw error;
+      await new Promise((resolve) => setTimeout(resolve, attempt * 10 + Math.random() * 30));
+    }
+  }
 }
 
 /** Drops the template and every database created in this run, even ones a test forgot. */

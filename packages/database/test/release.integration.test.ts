@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { createTestDatabase, withRollback } from '@fivvi/testing/database';
 import { APP_ROLE_TEST_PASSWORD, appRoleUrl } from '@fivvi/testing/database/server';
 import { ensureTestRoles } from '@fivvi/testing/database/setup';
@@ -20,6 +21,19 @@ async function withFreshDatabase(
     await client.close();
     await database.drop();
   }
+}
+
+/**
+ * What a settled call comes to as text: `fulfilled`, or `rejected: <label>: <reason>` with the
+ * SQLSTATE and the message of the error. Safe to print: `ensureAppRole` throws SQLSTATE-only
+ * errors, and a Postgres message never holds the statement or a password.
+ */
+function describeSettled(result: PromiseSettledResult<unknown>, index: number): string {
+  if (result.status === 'fulfilled') return 'fulfilled';
+  const error = result.reason as { code?: unknown; message?: unknown } | undefined;
+  const code = typeof error?.code === 'string' ? ` [${error.code}]` : '';
+  const message = error instanceof Error ? error.message : String(error);
+  return `rejected: call ${index}${code}: ${message}`;
 }
 
 type Query = ReturnType<typeof sql>;
@@ -307,7 +321,7 @@ describe('E011 app role in the release step', () => {
 
     it('logs in with the password once it is set, and sends no cleartext password to the server', async () => {
       const password = 'fake\'login"password;for-tests-0123';
-      const role = 'fivvi_probe_login';
+      const role = `fivvi_probe_login_${randomBytes(4).toString('hex')}`;
       const database = await createTestDatabase();
       const client = createDatabase({ url: database.url, maxConnections: 1 });
       const dialect = new PgDialect();
@@ -381,7 +395,8 @@ describe('E011 app role in the release step', () => {
     it('serialises concurrent changes to the role, from the release step and the test setup', async () => {
       // Two ALTER ROLE on one role at once fail with "tuple concurrently updated"; a CI run does
       // that when parallel workers release databases while a package's global setup runs.
-      const role = 'fivvi_probe_parallel';
+      // Own name per run: runs on one server (worktrees share a container) must not drop it.
+      const role = `fivvi_probe_parallel_${randomBytes(4).toString('hex')}`;
       const password = 'fake-parallel-password-for-tests';
       const database = await createTestDatabase();
       const first = createDatabase({ url: database.url, maxConnections: 1 });
@@ -397,12 +412,42 @@ describe('E011 app role in the release step', () => {
             ensureTestRoles(),
             ensureTestRoles(),
           ]);
-          expect(results.map((result) => result.status)).toEqual(Array(6).fill('fulfilled'));
+          // A rejection names its call and its reason, so a failure in CI can be diagnosed.
+          expect(results.map(describeSettled)).toEqual(Array(6).fill('fulfilled'));
         }
       } finally {
         await first.db.execute(sql`drop role if exists ${sql.identifier(role)}`);
         await Promise.all([first.close(), second.close()]);
         await database.drop();
+      }
+    });
+
+    it('serialises changes to the one app role from different databases of one server', async () => {
+      // A role belongs to the server, an advisory lock to the database it is taken in: the release
+      // step of one database and the test setup (on the maintenance database) do not wait for each
+      // other, both ALTER ROLE the same row of `pg_authid`, and one fails with "tuple concurrently
+      // updated" (#274). Other test files log in as this role, so its password stays the test one.
+      const password = APP_ROLE_TEST_PASSWORD;
+      const [one, two] = await Promise.all([createTestDatabase(), createTestDatabase()]);
+      const first = createDatabase({ url: one.url, maxConnections: 1 });
+      const second = createDatabase({ url: two.url, maxConnections: 1 });
+      try {
+        for (let round = 0; round < 40; round += 1) {
+          const results = await Promise.allSettled([
+            ensureAppRole(first.db, { password }),
+            ensureAppRole(second.db, { password }),
+            ensureAppRole(first.db),
+            ensureAppRole(second.db),
+            ensureTestRoles(),
+            ensureTestRoles(),
+          ]);
+          expect(results.map(describeSettled), `round ${round}`).toEqual(
+            Array(6).fill('fulfilled'),
+          );
+        }
+      } finally {
+        await Promise.all([first.close(), second.close()]);
+        await Promise.all([one.drop(), two.drop()]);
       }
     });
 
