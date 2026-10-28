@@ -2,21 +2,27 @@
 // local-host check makes every script that deletes data refuse a Railway database the same way.
 import { localServerUrl } from '@fivvi/testing/database/server';
 import type { DatabaseExecutor } from './client.ts';
+import { APP_DATABASE_URL_VARIABLE } from './env.ts';
 import { authRateLimits } from './schema/index.ts';
 
 /**
- * `DATABASE_URL`, only when it is a local Postgres (TESTING.md §5.3). Throws otherwise, before
- * anything connects, and never echoes the URL, which holds the password. Not
- * `TEST_DATABASE_URL`: this checks the database the script clears.
+ * `APP_DATABASE_URL`, only when it is a local Postgres (TESTING.md §5.3). Throws otherwise,
+ * before anything connects, and never echoes the URL, which holds the password. Not
+ * `TEST_DATABASE_URL`: this checks the database the script clears. The app role may delete the
+ * counters (`auth_rate_limits`), so the script has no use for the privileged connection (E011).
  */
 export function readLocalDatabaseUrl(env: NodeJS.ProcessEnv = process.env): string {
-  const url = env.DATABASE_URL?.trim();
+  const url = env[APP_DATABASE_URL_VARIABLE]?.trim();
   if (!url) {
     throw new Error(
-      'DATABASE_URL is not set. For local development, copy packages/database/.env.example to .env.',
+      `${APP_DATABASE_URL_VARIABLE} is not set. For local development, copy packages/database/.env.example to .env.`,
     );
   }
-  return localServerUrl(url, 'DATABASE_URL', 'Clearing the sign-in rate limits only runs against');
+  return localServerUrl(
+    url,
+    APP_DATABASE_URL_VARIABLE,
+    'Clearing the sign-in rate limits only runs against',
+  );
 }
 
 /**

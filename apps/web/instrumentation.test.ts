@@ -1,5 +1,14 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { register } from './instrumentation';
+import { verifyApiStartup } from './server/startup';
+
+// The database role check is proven in packages/api/test/startup.integration.test.ts; here it is
+// only wired in.
+vi.mock('./server/startup', () => ({ verifyApiStartup: vi.fn(() => Promise.resolve()) }));
+
+afterEach(() => {
+  vi.mocked(verifyApiStartup).mockClear();
+});
 
 // The start-up check may only use the light allowlist entry, not `@fivvi/auth` (#200; packages/auth/README.md).
 vi.mock('@fivvi/auth', () => {
@@ -68,5 +77,33 @@ describe('F001 sign-up allowlist at server start (AC9)', () => {
     vi.stubEnv('SIGN_UP_ALLOWED_EMAILS', value);
 
     await expect(register()).resolves.toBeUndefined();
+  });
+});
+
+describe('E011 database role at server start (AC4)', () => {
+  it('checks the API database role when the Node.js server starts', async () => {
+    vi.stubEnv('NEXT_RUNTIME', 'nodejs');
+
+    await register();
+
+    expect(verifyApiStartup).toHaveBeenCalledOnce();
+  });
+
+  it('stops the server when the check refuses the role', async () => {
+    vi.stubEnv('NEXT_RUNTIME', 'nodejs');
+    vi.mocked(verifyApiStartup).mockRejectedValueOnce(new Error('Refusing to start: a reason'));
+
+    await expect(register()).rejects.toThrow('Refusing to start: a reason');
+  });
+
+  it.each([
+    ['the edge runtime', { NEXT_RUNTIME: 'edge' }],
+    ['next build', { NEXT_RUNTIME: 'nodejs', NEXT_PHASE: 'phase-production-build' }],
+  ])('does not check it in %s, which has no database', async (_, env) => {
+    for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
+
+    await register();
+
+    expect(verifyApiStartup).not.toHaveBeenCalled();
   });
 });

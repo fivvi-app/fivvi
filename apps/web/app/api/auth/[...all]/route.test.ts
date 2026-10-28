@@ -11,7 +11,7 @@ describe('F001 /api/auth mount', () => {
   it('serves Better Auth under /api/auth', async () => {
     vi.stubEnv('BETTER_AUTH_SECRET', 'test-secret-that-is-at-least-thirty-two-characters-long');
     vi.stubEnv('BETTER_AUTH_URL', 'http://localhost:3000');
-    vi.stubEnv('DATABASE_URL', 'postgres://fivvi:fivvi@localhost:5432/fivvi_unused');
+    vi.stubEnv('APP_DATABASE_URL', 'postgres://fivvi:fivvi@localhost:5432/fivvi_unused');
 
     const res = await GET(new Request('http://localhost:3000/api/auth/ok'));
 

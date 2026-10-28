@@ -1,16 +1,17 @@
-import { createDatabaseFromEnv } from '@fivvi/database';
+import { openPrivilegedDatabase } from '@fivvi/database';
 import { createErrorReporter } from '@fivvi/observability';
 import { runDailyJobs } from './daily.ts';
 
 // Entrypoint of the Railway cron service (docs/engineering/ENVIRONMENTS.md). Railway starts
 // it on the schedule and expects it to exit: 0 on success, 1 on failure. It never prints
-// DATABASE_URL, which contains the password.
+// DATABASE_URL, which contains the password. The daily jobs reach every workspace, so they use
+// the privileged connection through its one path, on the allow-list with a reason (E011, AC17).
 const started = performance.now();
 // Reports a failure to Sentry when SENTRY_DSN is set (E009); off otherwise.
 const errorReporter = createErrorReporter();
 console.log('Daily cron started.');
 try {
-  const { db, close } = createDatabaseFromEnv();
+  const { db, close } = openPrivilegedDatabase('daily-cron');
   try {
     await runDailyJobs({ db, log: (message) => console.log(message) });
   } finally {
