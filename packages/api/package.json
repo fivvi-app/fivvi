@@ -16,6 +16,7 @@
   "dependencies": {
     "@hono/zod-openapi": "catalog:",
     "@fivvi/database": "workspace:*",
+    "@fivvi/domain": "workspace:*",
     "@fivvi/i18n": "workspace:*",
     "@fivvi/observability": "workspace:*",
     "hono": "catalog:",

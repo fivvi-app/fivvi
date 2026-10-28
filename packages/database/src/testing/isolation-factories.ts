@@ -1,6 +1,6 @@
 import type { DatabaseExecutor } from '../client.ts';
 import { organizations } from '../schema/index.ts';
-import { addClient, addTeamRole, createAccount } from './factories.ts';
+import { addClient, addTeamRole, createAccount, uniqueMarker } from './factories.ts';
 
 /**
  * Creates a valid row of one table in a given workspace (E011, AC15). The RLS suite runs every
@@ -24,9 +24,16 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
   organizations: {
     scopeColumn: 'id',
     create: async (db, workspaceId) => {
+      const marker = uniqueMarker('workspace');
       const [row] = await db
         .insert(organizations)
-        .values({ id: workspaceId })
+        .values({
+          id: workspaceId,
+          name: marker,
+          slug: marker,
+          defaultLocale: 'nl-NL',
+          timeZone: 'Europe/Amsterdam',
+        })
         .returning({ id: organizations.id });
       if (!row) throw new Error('workspace was not created.');
       return row;

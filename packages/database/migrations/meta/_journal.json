@@ -71,6 +71,13 @@
       "when": 1793125054349,
       "tag": "0009_tenancy_force_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793179995699,
+      "tag": "0010_workspace_details",
+      "breakpoints": true
     }
   ]
 }

@@ -265,6 +265,60 @@
           "email",
           "code"
         ]
+      },
+      "Workspace": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The workspace ID."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name shown in the product."
+          },
+          "slug": {
+            "type": "string",
+            "description": "The URL name, made from the name when the workspace is created and never changed by a rename. Lower case letters, digits and hyphens."
+          },
+          "defaultLocale": {
+            "$ref": "#/components/schemas/Locale"
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The IANA time zone dates and times are shown in, for example `Europe/Amsterdam`."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "defaultLocale",
+          "timeZone"
+        ],
+        "description": "A workspace: a gym or an independent trainer’s business."
+      },
+      "CreateWorkspaceRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "The name of the gym or business, as shown in the product."
+          },
+          "personName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "The creator’s own name, stored on the account. Leave it out when the account has one."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "description": "Creates a workspace for the caller, who becomes its Owner. Nothing else is asked: the default language, the time zone and the slug are the platform’s defaults."
       }
     },
     "parameters": {}
@@ -557,6 +611,91 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces": {
+      "post": {
+        "operationId": "createWorkspace",
+        "tags": [
+          "workspaces"
+        ],
+        "summary": "Create the caller’s workspace",
+        "description": "Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "account",
+          "workspaces": "team"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkspaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Workspace"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account may not create a workspace: it is not on the sign-up allowlist, or it already has a team role in a workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
                 }
               }
             }

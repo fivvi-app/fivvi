@@ -32,6 +32,7 @@ const nextConfig: NextConfig = {
     '@fivvi/auth',
     '@fivvi/contract',
     '@fivvi/database',
+    '@fivvi/domain',
     '@fivvi/email',
     '@fivvi/i18n',
     '@fivvi/observability',

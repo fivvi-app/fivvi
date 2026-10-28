@@ -34,8 +34,9 @@ const SECRET = 'test-secret-that-is-at-least-thirty-two-characters-long';
 const ORIGIN = 'http://localhost:3000';
 const NO_SUCH_WORKSPACE = '0197c0de-0000-7000-8000-0000000000ff';
 
-// `organizations` as F002 would extend it (spec #170: name, slug), declared here and added to the
-// cloned database below, so the probe changes nothing in packages/database.
+// `organizations` as the plugin knows it (name, slug), declared here: the table has more columns
+// since #277 (default_locale, time_zone), which the probe fills with defaults in the cloned database
+// below, so the probe changes nothing in packages/database.
 const instant = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' });
 const organizationsTable = pgTable('organizations', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -279,11 +280,13 @@ describe('F002 does Better Auth’s organization plugin fit E011’s tables?', (
     testDatabase = await cloneTemplateDatabase();
     admin = createDatabase({ url: testDatabase.url, maxConnections: 2 });
     app = createDatabase({ url: testDatabase.appUrl, maxConnections: 4 });
-    // F002 adds these two columns to `organizations` (spec #170); the probe adds them to the clone.
+    // `organizations` has the F002 columns (#277: name, slug, default_locale, time_zone). The plugin
+    // knows only the first two, so the probe gives the other two the defaults a new workspace has,
+    // in the clone only: nothing changes in packages/database.
     await admin.db.execute(
       sql`alter table organizations
-            add column name text not null default '',
-            add column slug text not null default gen_random_uuid()::text unique`,
+            alter column default_locale set default 'nl-NL',
+            alter column time_zone set default 'Europe/Amsterdam'`,
     );
   });
 

@@ -1,7 +1,7 @@
 import { createApiHandler } from '@fivvi/api';
 import { createTenantScopes, findSystemGreeting, pingDatabase } from '@fivvi/database';
 import { inProcessApiClient } from './api-client';
-import { auth } from './auth';
+import { auth, signUpAllowlist } from './auth';
 import { database } from './database';
 import { errorReporter } from './error-reporter';
 import { productEvents } from './product-events';
@@ -20,6 +20,8 @@ export const apiHandler = createApiHandler({
   requestSignIn: (input) => auth().requestSignIn(input),
   exchangeSignInCode: (input) => auth().exchangeSignInCode(input),
   signOutBearer: (headers) => auth().signOutBearer(headers),
+  // Who may create a workspace builds on who may sign up (F002): the allowlist sign-in parsed.
+  signUpAllowlist: { allows: (email) => signUpAllowlist().allows(email) },
   // The request transaction of workspace and account routes, with its tenant context (E011).
   tenantScopes: createTenantScopes(database),
   errorReporter,

@@ -7,7 +7,7 @@ import {
   type TestDatabase,
   withRollback,
 } from '@fivvi/testing/database';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -18,8 +18,10 @@ import {
   type DatabaseExecutor,
   findSystemGreeting,
   HELLO_GREETING,
+  organizations,
   pingDatabase,
   systemGreetings,
+  teamMembers,
 } from '../src/index.ts';
 import { migrationsFolder, runMigrations } from '../src/migrate.ts';
 import { release } from '../src/release.ts';
@@ -244,6 +246,54 @@ describe('E004 database', () => {
 
         await release(client.db, { seed: true }, () => {});
         expect(await client.db.$count(authUsers)).toBe(1);
+      });
+    });
+  });
+
+  describe('F002 seed workspace', () => {
+    it("AC13: creates John's Gym owned by owner@example.com, once", async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
+
+        expect(await tx.select().from(organizations)).toEqual([
+          expect.objectContaining({
+            name: "John's Gym",
+            slug: 'johns-gym',
+            defaultLocale: 'nl-NL',
+            timeZone: 'Europe/Amsterdam',
+          }),
+        ]);
+        const [owner] = await tx
+          .select({
+            role: teamMembers.role,
+            email: authUsers.email,
+            workspace: teamMembers.organizationId,
+          })
+          .from(teamMembers)
+          .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId));
+        const [gym] = await tx.select({ id: organizations.id }).from(organizations);
+        expect(await tx.$count(teamMembers)).toBe(1);
+        expect(owner).toEqual({ role: 'owner', email: 'owner@example.com', workspace: gym?.id });
+      });
+    });
+
+    it('AC13: creates no workspace in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true });
+
+        expect(await tx.$count(organizations)).toBe(0);
+        expect(await tx.$count(teamMembers)).toBe(0);
+      });
+    });
+
+    it('AC13: a deployed environment seeds the workspace only outside production', async () => {
+      await withFreshDatabase(async (client) => {
+        await release(client.db, { seed: true, production: true }, () => {});
+        expect(await client.db.$count(organizations)).toBe(0);
+
+        await release(client.db, { seed: true }, () => {});
+        expect(await client.db.$count(organizations)).toBe(1);
       });
     });
   });

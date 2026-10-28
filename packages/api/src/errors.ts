@@ -1,4 +1,5 @@
-import { z } from '@hono/zod-openapi';
+import { type Hook, z } from '@hono/zod-openapi';
+import type { Context, Env } from 'hono';
 
 export const ValidationErrorSchema = z
   .object({
@@ -88,3 +89,16 @@ export const NOT_SIGNED_IN = { code: 'not_signed_in' } as const;
 export const NOT_FOUND = { code: 'not_found' } as const;
 /** The body of the `403` for a caller whose place in the workspace lacks the route's access. */
 export const FORBIDDEN = { code: 'forbidden' } as const;
+
+/**
+ * The `defaultHook` of every router that validates input: a request that does not match the
+ * contract gets the `400` of `ValidationErrorSchema`. `createApp` sets it, and so does a router
+ * of its own (one with a typed context, like the routes behind an access).
+ */
+export function answerValidationFailure<E extends Env>(
+  result: Parameters<Hook<unknown, E, string, unknown>>[0],
+  c: Context<E>,
+) {
+  if (!result.success) return c.json(toValidationError(result.error), 400);
+  return undefined;
+}

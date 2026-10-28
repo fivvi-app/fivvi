@@ -377,5 +377,85 @@ extension Components {
                 case code
             }
         }
+        /// A workspace: a gym or an independent trainer’s business.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Workspace`.
+        public struct Workspace: Codable, Hashable, Sendable {
+            /// The workspace ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Workspace/id`.
+            public var id: Swift.String
+            /// The name shown in the product.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Workspace/name`.
+            public var name: Swift.String
+            /// The URL name, made from the name when the workspace is created and never changed by a rename. Lower case letters, digits and hyphens.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Workspace/slug`.
+            public var slug: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Workspace/defaultLocale`.
+            public var defaultLocale: Components.Schemas.Locale
+            /// The IANA time zone dates and times are shown in, for example `Europe/Amsterdam`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Workspace/timeZone`.
+            public var timeZone: Swift.String
+            /// Creates a new `Workspace`.
+            ///
+            /// - Parameters:
+            ///   - id: The workspace ID.
+            ///   - name: The name shown in the product.
+            ///   - slug: The URL name, made from the name when the workspace is created and never changed by a rename. Lower case letters, digits and hyphens.
+            ///   - defaultLocale:
+            ///   - timeZone: The IANA time zone dates and times are shown in, for example `Europe/Amsterdam`.
+            public init(
+                id: Swift.String,
+                name: Swift.String,
+                slug: Swift.String,
+                defaultLocale: Components.Schemas.Locale,
+                timeZone: Swift.String
+            ) {
+                self.id = id
+                self.name = name
+                self.slug = slug
+                self.defaultLocale = defaultLocale
+                self.timeZone = timeZone
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case slug
+                case defaultLocale
+                case timeZone
+            }
+        }
+        /// Creates a workspace for the caller, who becomes its Owner. Nothing else is asked: the default language, the time zone and the slug are the platform’s defaults.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CreateWorkspaceRequest`.
+        public struct CreateWorkspaceRequest: Codable, Hashable, Sendable {
+            /// The name of the gym or business, as shown in the product.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateWorkspaceRequest/name`.
+            public var name: Swift.String
+            /// The creator’s own name, stored on the account. Leave it out when the account has one.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateWorkspaceRequest/personName`.
+            public var personName: Swift.String?
+            /// Creates a new `CreateWorkspaceRequest`.
+            ///
+            /// - Parameters:
+            ///   - name: The name of the gym or business, as shown in the product.
+            ///   - personName: The creator’s own name, stored on the account. Leave it out when the account has one.
+            public init(
+                name: Swift.String,
+                personName: Swift.String? = nil
+            ) {
+                self.name = name
+                self.personName = personName
+            }
+            public enum CodingKeys: String, CodingKey {
+                case name
+                case personName
+            }
+        }
     }
 }

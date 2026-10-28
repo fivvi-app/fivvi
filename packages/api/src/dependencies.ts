@@ -1,4 +1,5 @@
 import type { SignedInAccount, SystemGreetingView, TenantScopes } from '@fivvi/database';
+import type { SignUpAllowlist } from '@fivvi/domain';
 import type { Locale } from '@fivvi/i18n';
 import {
   createErrorReporter,
@@ -33,6 +34,12 @@ export interface ApiDependencies {
   /** Ends the sign-in session of the request's bearer token; `false` without a valid one. */
   signOutBearer(headers: Headers): Promise<boolean>;
   /**
+   * Who may sign up (`SIGN_UP_ALLOWED_EMAILS`, F001): the rule for who may create a workspace
+   * builds on it (F002). apps/web passes the one `@fivvi/auth` parsed, so the two never read the
+   * variable twice.
+   */
+  signUpAllowlist: SignUpAllowlist;
+  /**
    * Opens the request transaction with its tenant scope (E011): the only way a route reaches
    * business data. apps/web wires it over the app's database connection.
    */
@@ -54,6 +61,8 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   findSystemGreeting: () => Promise.reject(new Error('No database configured.')),
   // Nobody is signed in.
   findSignedInAccount: () => Promise.resolve(undefined),
+  // Sign-up is closed: nobody may create a workspace.
+  signUpAllowlist: { allows: () => false },
   requestSignIn: () => Promise.resolve(),
   exchangeSignInCode: () => Promise.resolve(undefined),
   signOutBearer: () => Promise.resolve(false),

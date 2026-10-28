@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { cloneTemplateDatabase, type TestDatabase, withRollback } from '@fivvi/testing/database';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -18,7 +19,11 @@ async function account(tx: DatabaseExecutor, email: string): Promise<string> {
 }
 
 async function workspace(tx: DatabaseExecutor): Promise<string> {
-  const [row] = await tx.insert(organizations).values({}).returning({ id: organizations.id });
+  const marker = `workspace-${randomBytes(4).toString('hex')}`;
+  const [row] = await tx
+    .insert(organizations)
+    .values({ name: marker, slug: marker, defaultLocale: 'nl-NL', timeZone: 'Europe/Amsterdam' })
+    .returning({ id: organizations.id });
   if (!row) throw new Error('workspace not created');
   return row.id;
 }

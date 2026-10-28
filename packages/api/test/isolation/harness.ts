@@ -1,3 +1,4 @@
+import { parseSignUpAllowlist } from '@fivvi/auth';
 import {
   createDatabase,
   createTenantScopes,
@@ -79,6 +80,9 @@ export async function createWorld(): Promise<World> {
   const api = createApp({
     ...NO_DEPENDENCIES,
     tenantScopes,
+    // The test accounts are `<id>@example.com`: all of them may sign up, so the rule "no team role"
+    // is what refuses a route that creates a workspace, not the allowlist.
+    signUpAllowlist: parseSignUpAllowlist('@example.com'),
     findSignedInAccount: (headers) => {
       const id = headers.get('x-test-account');
       return Promise.resolve(id ? emails.get(id) : undefined);

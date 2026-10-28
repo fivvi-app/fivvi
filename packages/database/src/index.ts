@@ -29,6 +29,13 @@ export { findSystemGreeting, type SystemGreetingView } from './queries/system-gr
 export { recordWrongSignInCode } from './queries/verifications.ts';
 export { type ClientView, createClient, findClient, listClients } from './repositories/clients.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
+export {
+  claimWorkspaceCreation,
+  createWorkspaceWithOwner,
+  type NewWorkspace,
+  type WorkspaceCreationClaim,
+  type WorkspaceView,
+} from './repositories/workspaces.ts';
 export * from './schema/index.ts';
 export { HELLO_GREETING } from './system-data.ts';
 export {
