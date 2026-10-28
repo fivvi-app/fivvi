@@ -456,7 +456,8 @@ jobs:
     needs: [changes, ios-build, ios-tests]
     if: always() && needs.changes.outputs.ios == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    # Only reads the results of the jobs it needs; short, so the chain of a native check stays under the queue timeout.
+    timeout-minutes: 2
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -762,7 +763,8 @@ jobs:
     needs: [changes, android-build, android-tests, android-maestro]
     if: always() && needs.changes.outputs.android == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    # Only reads the results of the jobs it needs; short, so the chain of a native check stays under the queue timeout.
+    timeout-minutes: 2
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

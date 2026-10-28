@@ -92,15 +92,16 @@ describe('the versioned GitHub settings', () => {
     // Detect changes, and the queue should time out after both, so a hung job fails as itself.
     const timeout = (job) =>
       Number(ci.slice(ci.indexOf(`\n  ${job}:\n`)).match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
-    // iOS: the build, then the tests. Android: the tests next to the build, then Maestro after the build (#293).
+    // iOS: the build, then the tests, then the gate. Android: the tests next to the build, then Maestro after the build,
+    // then the gate (#293).
     const longestNative = Math.max(
-      timeout('ios-build') + timeout('ios-tests'),
-      timeout('android-tests'),
-      timeout('android-build') + timeout('android-maestro'),
+      timeout('ios-build') + timeout('ios-tests') + timeout('ios'),
+      timeout('android-tests') + timeout('android'),
+      timeout('android-build') + timeout('android-maestro') + timeout('android'),
     );
     assert.ok(
       queue.parameters.check_response_timeout_minutes > timeout('changes') + longestNative,
-      'the queue should time out after Detect changes plus the longest native job',
+      'the queue should time out after Detect changes plus the longest native chain, gate included',
     );
   });
 });
