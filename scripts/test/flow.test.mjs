@@ -683,12 +683,20 @@ describe('#292 flow.sh lock: a run lock with a 3-hour expiry', () => {
   after(() => rmSync(dir, { recursive: true, force: true }));
   beforeEach(() => rmSync(lockFile, { force: true }));
 
-  const lock = (action, at = NOW) =>
-    spawnSync(join(SCRIPTS, 'flow.sh'), ['lock', ...(action ? [action] : [])], {
+  const lock = (action, at = NOW, ...extra) =>
+    spawnSync(join(SCRIPTS, 'flow.sh'), ['lock', ...(action ? [action] : []), ...extra], {
       encoding: 'utf8',
       env: { ...process.env, FIVVI_NOW: at, FIVVI_RUN_LOCK: lockFile },
     });
   const HOUR = 3600;
+  // acquire prints the run's identity; refresh and release take it back.
+  const acquireId = (at = NOW) => {
+    const result = lock('acquire', at);
+    assert.equal(result.status, 0, result.stderr);
+    const id = /run id: (\S+)/.exec(result.stdout)?.[1];
+    assert.ok(id, `acquire prints the run id: ${result.stdout}`);
+    return id;
+  };
 
   it('acquires a free lock and records when', () => {
     const result = lock('acquire');
@@ -730,17 +738,98 @@ describe('#292 flow.sh lock: a run lock with a 3-hour expiry', () => {
   });
 
   it('AC14: release frees the lock, so the next run acquires it', () => {
-    assert.equal(lock('acquire').status, 0);
-    const released = lock('release');
+    const id = acquireId();
+    const released = lock('release', NOW, id);
     assert.equal(released.status, 0, released.stderr);
     assert.equal(existsSync(lockFile), false);
     assert.equal(lock('acquire').status, 0);
   });
 
   it('release of a lock that is not held is not an error', () => {
-    const result = lock('release');
+    const result = lock('release', NOW, 'any-run');
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /no lock/);
+  });
+
+  it('release of a lock another run holds fails and leaves it alone', () => {
+    acquireId();
+    const before = readFileSync(lockFile, 'utf8');
+    for (const args of [['other-run'], []]) {
+      const result = lock('release', NOW, ...args);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /another run/);
+    }
+    assert.equal(readFileSync(lockFile, 'utf8'), before);
+  });
+
+  it('each acquire records its own run id, with the owner and the time, on the lock line', () => {
+    const first = acquireId();
+    assert.match(
+      readFileSync(lockFile, 'utf8'),
+      new RegExp(`^2026-10-20T12:00:00Z .*run ${first}\\n$`),
+    );
+    rmSync(lockFile);
+    assert.notEqual(acquireId(), first);
+  });
+
+  describe('refresh: the 3 hours count from the last refresh', () => {
+    it('renews the time of the lock this run holds, keeping its identity and owner', () => {
+      const id = acquireId(secondsAgo(2 * HOUR + 50 * 60));
+      const [, ...rest] = readFileSync(lockFile, 'utf8').trim().split(' ');
+      const refreshed = lock('refresh', NOW, id);
+      assert.equal(refreshed.status, 0, refreshed.stderr);
+      assert.match(refreshed.stdout, /refreshed/);
+      assert.equal(readFileSync(lockFile, 'utf8'), `2026-10-20T12:00:00Z ${rest.join(' ')}\n`);
+    });
+
+    it('a run that refreshes every so often holds the lock past 3 hours', () => {
+      const id = acquireId(secondsAgo(5 * HOUR));
+      assert.equal(lock('refresh', secondsAgo(2 * HOUR), id).status, 0);
+      assert.equal(lock('refresh', secondsAgo(HOUR), id).status, 0);
+      assert.match(lock('status').stdout, /live.*1h00m/);
+      const second = lock('acquire');
+      assert.equal(second.status, 1);
+      assert.match(second.stderr, /another factory run is live/);
+    });
+
+    it('without a refresh the same run is taken over after 3 hours', () => {
+      acquireId(secondsAgo(5 * HOUR));
+      assert.equal(lock('acquire').status, 0);
+    });
+
+    it('fails when no lock is held', () => {
+      const result = lock('refresh', NOW, 'any-run');
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /no run lock/);
+      assert.equal(existsSync(lockFile), false, 'refresh never creates a lock');
+    });
+
+    it('fails on a lock another run holds, and leaves it unchanged', () => {
+      acquireId(secondsAgo(60));
+      const before = readFileSync(lockFile, 'utf8');
+      for (const args of [['other-run'], []]) {
+        const result = lock('refresh', NOW, ...args);
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, /another run/);
+      }
+      assert.equal(readFileSync(lockFile, 'utf8'), before);
+    });
+
+    it('fails on a lock that another run took over after this one expired', () => {
+      const mine = acquireId(secondsAgo(4 * HOUR));
+      const theirs = acquireId();
+      assert.notEqual(mine, theirs);
+      const result = lock('refresh', NOW, mine);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /another run/);
+    });
+
+    it('fails closed on a lock that records no run id', () => {
+      writeFileSync(lockFile, '2026-10-20T11:00:00Z someone@host pid 1\n');
+      const result = lock('refresh', NOW, 'any-run');
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /another run|no run id/);
+    });
   });
 
   it('status says free, live with its age, or expired, and changes nothing', () => {
