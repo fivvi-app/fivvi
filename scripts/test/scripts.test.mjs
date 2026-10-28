@@ -553,6 +553,64 @@ describe('E002 #91 the native jobs in ci.yml', () => {
   });
 });
 
+describe('E002 #290 upload-artifact skips hidden folders unless include-hidden-files is true', () => {
+  // actions/upload-artifact (v4 and later) drops every file under a folder that starts with a dot, so the iOS
+  // results in apps/ios/.build/ were never uploaded and the failing test could not be found.
+  const workflows = ['ci.yml', 'release.yml'].map((file) => [
+    file,
+    readFileSync(join(SCRIPTS, '../.github/workflows', file), 'utf8'),
+  ]);
+
+  // Every upload-artifact step: its workflow, its text and the paths it uploads (without a leading `!`).
+  const uploads = workflows.flatMap(([file, text]) =>
+    text
+      .split(/\n(?= {6}- )/)
+      .filter((step) => /uses: actions\/upload-artifact@/.test(step))
+      .map((step) => {
+        const list = step.match(/^ +path: \|\n((?: {12,}\S.*\n?)+)/m)?.[1];
+        const paths = (list ?? step.match(/^ +path: (.+)$/m)?.[1] ?? '')
+          .split('\n')
+          .map((line) => line.trim().replace(/^!/, ''))
+          .filter(Boolean);
+        return { file, step, name: step.match(/name: (.+)/)?.[1], paths };
+      }),
+  );
+  const hidden = (path) => path.split('/').some((part) => /^\.[^/]/.test(part) && part !== '..');
+
+  it('finds the upload steps of both workflows', () => {
+    assert.ok(uploads.length >= 6, `found ${uploads.length}`);
+    assert.ok(uploads.every((upload) => upload.paths.length > 0));
+  });
+
+  it('a path in a hidden folder is only uploaded with include-hidden-files: true', () => {
+    const missing = uploads
+      .filter((upload) => upload.paths.some(hidden))
+      .filter((upload) => !/^ +include-hidden-files: true$/m.test(upload.step))
+      .map((upload) => `${upload.file}: ${upload.name}`);
+    assert.deepEqual(missing, []);
+  });
+
+  it('the iOS result bundles and build log are uploaded from .build, in ci.yml and release.yml', () => {
+    const ios = uploads.filter((upload) =>
+      upload.paths.includes('apps/ios/.build/TestResults-*.xcresult'),
+    );
+    assert.deepEqual(ios.map((upload) => upload.file).sort(), ['ci.yml', 'release.yml']);
+    for (const upload of ios) {
+      assert.ok(upload.paths.includes('apps/ios/.build/build-for-testing.log'), upload.file);
+      assert.match(upload.step, /^ +include-hidden-files: true$/m, upload.file);
+    }
+  });
+
+  it('the rule sees a hidden folder, and not a plain one, a dot in a name or ..', () => {
+    assert.ok(hidden('apps/ios/.build/x'));
+    assert.ok(hidden('.gradle/reports'));
+    assert.ok(hidden('apps/web/.next/'));
+    assert.ok(!hidden('apps/android/app/build/reports/'));
+    assert.ok(!hidden('apps/android/build/emulator.log*'));
+    assert.ok(!hidden('../out/report.html'));
+  });
+});
+
 describe('iOS local Swift packages (apps/ios)', () => {
   it('E008 #57: every local package the Xcode project links has its own package identity', () => {
     // Xcode names a local package by its directory name, case-insensitively: two local packages whose
@@ -1073,8 +1131,15 @@ describe('E002 #91 android.sh avd-key', () => {
 // A fake `xcrun simctl` that keeps each simulator as a JSON file in <state>/devices and logs its arguments.
 const fakeSimctl = (
   state,
-) => `# xcresulttool prints the canned test results FAKE_XCRESULT names (nothing without it).
-if [ "$1" = xcresulttool ]; then [ -z "$FAKE_XCRESULT" ] || cat "$FAKE_XCRESULT"; exit 0; fi
+) => `# xcresulttool prints the canned test results of the bundle in --path: <FAKE_XCRESULT_DIR>/<bundle name>.json when
+# that exists, else the file FAKE_XCRESULT names (nothing without it).
+if [ "$1" = xcresulttool ]; then
+  bundle=; while [ $# -gt 0 ]; do [ "$1" != --path ] || bundle="$2"; shift; done
+  by_bundle="$FAKE_XCRESULT_DIR/$(basename "$bundle").json"
+  if [ -n "$FAKE_XCRESULT_DIR" ] && [ -f "$by_bundle" ]; then cat "$by_bundle"
+  elif [ -n "$FAKE_XCRESULT" ]; then cat "$FAKE_XCRESULT"; fi
+  exit 0
+fi
 [ "$1" = simctl ] || exit 1
 shift
 echo "$*" >>"${state}/xcrun.log"
@@ -1941,6 +2006,101 @@ esac`,
       const written = readFileSync(summary, 'utf8');
       assert.match(written, /### Slowest iOS tests in nl/);
       assert.match(written, /### Slowest iOS tests in en/);
+    });
+
+    it('E002 #290: a failing run prints the failing tests, with their messages, from the result bundle, and still exits 1', async () => {
+      const fake = checkout();
+      const result = join(fake.repo, '..', 'results.json');
+      writeFileSync(
+        result,
+        JSON.stringify({
+          testFailures: [
+            {
+              testName: 'test_signIn()',
+              targetName: 'FivviProUITests',
+              failureText: 'XCTAssertTrue failed\nthe button was not found',
+              testIdentifierString: 'HelloUITests/test_signIn()',
+            },
+          ],
+        }),
+      );
+      const summary = join(fake.repo, '..', 'summary.md');
+
+      const run = await fake.run('scripts/test-ios.sh', [], {
+        FAKE_RESULT: 'fail',
+        FAKE_XCRESULT: result,
+        GITHUB_STEP_SUMMARY: summary,
+      });
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(
+        run.output,
+        /Failed tests:\n +HelloUITests\/test_signIn\(\): XCTAssertTrue failed the button was not found\n/,
+      );
+      assert.equal(run.output.match(/test_signIn/g).length, 1, 'once for the one bundle');
+      assert.match(readFileSync(summary, 'utf8'), /### Failed iOS tests\n[\s\S]*test_signIn/);
+    });
+
+    it('E002 #290: one result bundle per locale (IOS_UI_LOCALES=nl, as on a pull request): each locale prints its own failures, and the run exits 1', async () => {
+      const fake = checkout();
+      const dir = join(fake.repo, '..', 'bundles');
+      mkdirSync(dir, { recursive: true });
+      const failure = (id) =>
+        JSON.stringify({
+          testFailures: [{ testName: id, failureText: `${id} broke`, testIdentifierString: id }],
+        });
+      writeFileSync(
+        join(dir, 'TestResults-nl.xcresult.json'),
+        failure('HelloUITests/only_in_nl()'),
+      );
+      writeFileSync(join(dir, 'TestResults-en.xcresult.json'), failure('HelloTests/only_in_en()'));
+      const summary = join(fake.repo, '..', 'summary.md');
+
+      const run = await fake.run('scripts/test-ios.sh', [], {
+        IOS_UI_LOCALES: 'nl',
+        FAKE_RESULT: 'fail',
+        FAKE_XCRESULT_DIR: dir,
+        GITHUB_STEP_SUMMARY: summary,
+      });
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(
+        run.output,
+        /Failed tests in nl:\n +HelloUITests\/only_in_nl\(\): HelloUITests\/only_in_nl\(\) broke\n/,
+      );
+      assert.match(
+        run.output,
+        /Failed tests in en:\n +HelloTests\/only_in_en\(\): HelloTests\/only_in_en\(\) broke\n/,
+      );
+      assert.equal(run.output.match(/only_in_nl/g).length, 2, 'the nl failure once, not under en');
+      const markdown = readFileSync(summary, 'utf8');
+      assert.match(markdown, /### Failed iOS tests in nl[\s\S]*only_in_nl/);
+      assert.match(markdown, /### Failed iOS tests in en[\s\S]*only_in_en/);
+    });
+
+    it('E002 #290: a result bundle that cannot be read does not hide the failure or its exit code', async () => {
+      const fake = checkout();
+      const result = join(fake.repo, '..', 'results.json');
+      writeFileSync(result, 'this is not JSON');
+
+      const run = await fake.run('scripts/test-ios.sh', [], {
+        FAKE_RESULT: 'fail',
+        FAKE_XCRESULT: result,
+      });
+
+      assert.equal(run.status, 1, run.output);
+      assert.doesNotMatch(run.output, /Failed tests:/);
+    });
+
+    it('E002 #290: a passing run prints no failed tests', async () => {
+      const fake = checkout();
+      const result = join(fake.repo, '..', 'results.json');
+      writeFileSync(result, JSON.stringify({ testFailures: [] }));
+
+      const run = await fake.run('scripts/test-ios.sh', [], { FAKE_XCRESULT: result });
+
+      assert.equal(run.status, 0, run.output);
+      assert.doesNotMatch(run.output, /Failed tests:/);
     });
 
     it('A: a bundle of one locale (IOS_PARALLEL=1) is reported for that locale', async () => {
