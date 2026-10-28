@@ -333,9 +333,10 @@ describe('F001N native sign-in through the API', () => {
 
       expect(response.status).toBe(200);
       const row = await accountOf('owner@example.com');
-      expect(await response.json()).toEqual({
+      expect(await response.json()).toMatchObject({
         id: row?.id,
         email: 'owner@example.com',
+        name: 'Owner',
         preferredLocale: 'nl-NL',
       });
     });

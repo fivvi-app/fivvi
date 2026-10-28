@@ -1,5 +1,4 @@
-import { formattingLocales, type Messages } from '@fivvi/i18n';
-import type { Page } from '@playwright/test';
+import { formattingLocales } from '@fivvi/i18n';
 import {
   clientIpHeaders,
   createAccount,
@@ -10,6 +9,7 @@ import {
 } from './accounts';
 import { emailsTo, signInCode, signInLink, waitForEmail, waitForEmails } from './brevo';
 import { expect, expectNoAxeViolations, test } from './fixtures';
+import { signInWithCode } from './sign-in-page';
 
 // F001, TW-10 `/login`: the email step, then the code step on the same screen. Copy comes from
 // the catalogs. The emails go to the fake Brevo server (e2e/fake-brevo.ts), which the specs read
@@ -69,8 +69,8 @@ test.describe('F001 sign in on TW-10', () => {
     // The page that was asked for, not just the signed-in home (a placeholder until F002 adds
     // workspaces): the same path and query string.
     await expect(page).toHaveURL(new RegExp(`/home\\?${REQUESTED_QUERY}$`));
-    await expect(page.getByRole('heading', { level: 1, name: copy.home.title })).toBeVisible();
-    await expect(page).toHaveTitle(copy.home.title);
+    await expect(page.getByRole('heading', { level: 1, name: copy.noAccess.title })).toBeVisible();
+    await expect(page).toHaveTitle(copy.noAccess.title);
 
     // The data path: the sign-in session cookie this browser holds belongs to the account.
     const session = await page.request.get('/api/auth/get-session');
@@ -115,7 +115,7 @@ test.describe('F001 sign in on TW-10', () => {
     await page.goto(`/login?returnTo=${encodeURIComponent('https://evil.example/home')}`);
     await signInWithCode(page, copy, address);
     await expect(page).toHaveURL(`${baseURL}/home`);
-    await expect(page.getByRole('heading', { level: 1, name: copy.home.title })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: copy.noAccess.title })).toBeVisible();
   });
 
   test('AC12: sign out signs this browser out', async ({
@@ -163,7 +163,7 @@ test.describe('F001 sign in on TW-10', () => {
       await otherPage.reload();
       await expect(otherPage).toHaveURL(`${baseURL}/home`);
       await expect(
-        otherPage.getByRole('heading', { level: 1, name: copy.home.title }),
+        otherPage.getByRole('heading', { level: 1, name: copy.noAccess.title }),
       ).toBeVisible();
       expect((await otherPage.request.get('/api/v1/me')).status()).toBe(200);
     } finally {
@@ -222,7 +222,7 @@ test.describe('F001 sign in on TW-10', () => {
     // And the stored session ends 30 days from this use.
     const [expiry] = await sessionExpiries(address);
     expect(Math.abs((expiry?.getTime() ?? 0) - (Date.now() + 30 * day))).toBeLessThan(120_000);
-    await expect(page.getByRole('heading', { level: 1, name: copy.home.title })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: copy.noAccess.title })).toBeVisible();
   });
 
   test('AC7 (code): a wrong code shows the neutral message and keeps the code step', async ({
@@ -252,7 +252,7 @@ test.describe('F001 sign in on TW-10', () => {
     await page.getByLabel(copy.signIn.codeLabel).fill(signInCode(email));
     await page.getByRole('button', { name: copy.signIn.submitCode }).click();
     await expect(page).toHaveURL(/\/home$/);
-    await expect(page).toHaveTitle(copy.home.title);
+    await expect(page).toHaveTitle(copy.noAccess.title);
   });
 
   test('AC4 (code): resending sends a new email whose code replaces the old one', async ({
@@ -293,7 +293,7 @@ test.describe('F001 sign in on TW-10', () => {
     await code.fill(signInCode(second));
     await page.getByRole('button', { name: copy.signIn.submitCode }).click();
     await expect(page).toHaveURL(/\/home$/);
-    await expect(page).toHaveTitle(copy.home.title);
+    await expect(page).toHaveTitle(copy.noAccess.title);
     expect(await emailsTo(address)).toHaveLength(2);
   });
 
@@ -336,9 +336,10 @@ test.describe('F001 sign in on TW-10', () => {
     await page.getByLabel(copy.signIn.codeLabel).fill(signInCode(email));
     await page.getByRole('button', { name: copy.signIn.submitCode }).click();
 
-    await expect(page).toHaveURL(/\/home$/);
+    // An allowed address without a workspace is sent on to the first-run screen (F002, TW-11).
+    await expect(page).toHaveURL(/\/welcome$/);
     // Wait for the page itself: the closing axe check needs its <title>, which streams in after the URL changes.
-    await expect(page).toHaveTitle(copy.home.title);
+    await expect(page).toHaveTitle(copy.welcome.title);
     const session = await page.request.get('/api/auth/get-session');
     expect(((await session.json()) as { user: { email: string } }).user.email).toBe(address);
     expect(await emailsTo(address)).toHaveLength(1);
@@ -424,8 +425,8 @@ test.describe('F001 sign in on TW-10', () => {
 
     // The browser that opened the link is signed in, as the account of the address.
     await expect(page).toHaveURL(new RegExp(`/home\\?${REQUESTED_QUERY}$`));
-    await expect(page.getByRole('heading', { level: 1, name: copy.home.title })).toBeVisible();
-    await expect(page).toHaveTitle(copy.home.title);
+    await expect(page.getByRole('heading', { level: 1, name: copy.noAccess.title })).toBeVisible();
+    await expect(page).toHaveTitle(copy.noAccess.title);
     expect(await signedInAs()).toBe(address);
     expect(await emailsTo(address)).toHaveLength(1);
   });
@@ -447,7 +448,7 @@ test.describe('F001 sign in on TW-10', () => {
     await page.getByRole('button', { name: copy.signIn.confirmSubmit }).click();
 
     await expect(page).toHaveURL(/\/home$/);
-    await expect(page.getByRole('heading', { level: 1, name: copy.home.title })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: copy.noAccess.title })).toBeVisible();
   });
 
   test('AC9 (link): an allowed address without an account signs in with the link and gets its account in the page language', async ({
@@ -468,8 +469,8 @@ test.describe('F001 sign in on TW-10', () => {
     await page.goto(`${link}&returnTo=${encodeURIComponent('https://evil.example/phish')}`);
     await page.getByRole('button', { name: copy.signIn.confirmSubmit }).click();
 
-    await expect(page).toHaveURL(/\/home$/);
-    await expect(page).toHaveTitle(copy.home.title);
+    await expect(page).toHaveURL(/\/welcome$/);
+    await expect(page).toHaveTitle(copy.welcome.title);
     const me = await page.request.get('/api/v1/me');
     expect(await me.json()).toMatchObject({ email: address, preferredLocale: appLocale });
   });
@@ -524,25 +525,3 @@ test.describe('F001 sign in on TW-10', () => {
     await expect(second.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
   });
 });
-
-/**
- * Signs in on the page: types the address, waits for the email on the fake Brevo server and enters
- * its code (the latest of `emailCount` sent to the address so far). The page must be on the
- * sign-in page already (`/login`, possibly with a return path).
- */
-async function signInWithCode(
-  page: Page,
-  copy: Messages,
-  address: string,
-  emailCount = 1,
-): Promise<void> {
-  await page.getByLabel(copy.signIn.emailLabel).fill(address);
-  await page.getByRole('button', { name: copy.signIn.sendCode }).click();
-  await expect(
-    page.getByRole('heading', { level: 1, name: copy.signIn.checkEmailTitle }),
-  ).toBeVisible();
-  const email = (await waitForEmails(address, emailCount)).at(-1);
-  if (!email) throw new Error('No email arrived.');
-  await page.getByLabel(copy.signIn.codeLabel).fill(signInCode(email));
-  await page.getByRole('button', { name: copy.signIn.submitCode }).click();
-}

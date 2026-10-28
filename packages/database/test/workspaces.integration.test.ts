@@ -9,10 +9,11 @@ import {
   createWorkspaceWithOwner,
   type DatabaseClient,
   listMyWorkspaces,
+  listTeamWorkspaces,
   organizations,
   teamMembers,
 } from '../src/index.ts';
-import { addTeamRole, createAccount, createWorkspace } from '../src/testing/index.ts';
+import { addClient, addTeamRole, createAccount, createWorkspace } from '../src/testing/index.ts';
 
 // The repository functions that create a workspace (F002, #277, ADR-022) as the app role: RLS
 // applies, so a create has to put the new workspace in the request's context before it inserts.
@@ -177,5 +178,41 @@ describe('F002 creating a workspace', () => {
 
     expect(results.filter((result) => result !== undefined)).toHaveLength(1);
     expect(await admin.db.$count(organizations, eq(organizations.slug, 'race'))).toBe(1);
+  });
+
+  it('AC11: lists the workspaces the account has a team role in, and no other', async () => {
+    const owned = await createWorkspace(admin.db);
+    const clientOf = await createWorkspace(admin.db);
+    const stranger = await createWorkspace(admin.db);
+    const account = await createAccount(admin.db, { label: 'lister' });
+    await addTeamRole(admin.db, { workspaceId: owned.id, accountId: account.id, role: 'owner' });
+    await addClient(admin.db, { workspaceId: clientOf.id, accountId: account.id });
+
+    const listed = await scopes().inAccountScope(
+      { accountId: account.id, workspaces: 'team' },
+      (scope) => listTeamWorkspaces(scope),
+    );
+    // Even a scope that holds a client's workspace lists team workspaces only.
+    const fromAny = await scopes().inAccountScope(
+      { accountId: account.id, workspaces: 'any' },
+      (scope) => listTeamWorkspaces(scope),
+    );
+
+    const [row] = await admin.db.select().from(organizations).where(eq(organizations.id, owned.id));
+    expect(listed).toEqual([{ id: owned.id, name: row?.name, slug: row?.slug }]);
+    expect(fromAny).toEqual(listed);
+    expect(JSON.stringify([listed, fromAny])).not.toContain(stranger.id);
+    expect(JSON.stringify([listed, fromAny])).not.toContain(clientOf.id);
+  });
+
+  it('AC11: an account without a team role has an empty list', async () => {
+    const account = await createAccount(admin.db, { label: 'nobody' });
+
+    const listed = await scopes().inAccountScope(
+      { accountId: account.id, workspaces: 'team' },
+      (scope) => listTeamWorkspaces(scope),
+    );
+
+    expect(listed).toEqual([]);
   });
 });

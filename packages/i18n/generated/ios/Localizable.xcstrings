@@ -349,6 +349,42 @@
         }
       }
     },
+    "noAccess.body" : {
+      "comment" : "Text of the no-access page (information-architecture §9.5, No permission). Native apps show it too, under the same conditions. The Dutch uses 'werkruimte' as the spec words it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You don't have access to a workspace yet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je hebt nog geen toegang tot een werkruimte."
+          }
+        }
+      }
+    },
+    "noAccess.title" : {
+      "comment" : "Heading of the no-access page: a signed-in person who is not in a workspace and may not create one (a client, or someone who was removed). The page has the sign-out button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No access yet"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog geen toegang"
+          }
+        }
+      }
+    },
     "notFound.body" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -829,6 +865,240 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uitloggen"
+          }
+        }
+      }
+    },
+    "welcome.description" : {
+      "comment" : "Line under the heading of TW-11.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One more step: tell us the name of your gym or business."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog één stap: vertel hoe je sportschool of bedrijf heet."
+          }
+        }
+      }
+    },
+    "welcome.errors.generic" : {
+      "comment" : "Shown on TW-11 when creating the workspace failed for any other reason. Nothing was created.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er ging iets mis. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "welcome.errors.noConnection" : {
+      "comment" : "Shown on TW-11 when the request to create the workspace could not reach the server. Nothing was created.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No connection. Check your internet and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen verbinding. Controleer je internet en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "welcome.errors.personNameRequired" : {
+      "comment" : "Under the name field on TW-11 when it is empty or only spaces.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your name."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul je naam in."
+          }
+        }
+      }
+    },
+    "welcome.errors.personNameTooLong" : {
+      "comment" : "Under the name field on TW-11 when the name is too long (the API refuses it: more than 80 characters).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your name is too long. Use a shorter one."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je naam is te lang. Gebruik een kortere naam."
+          }
+        }
+      }
+    },
+    "welcome.errors.workspaceNameRequired" : {
+      "comment" : "Under the workspace name field on TW-11 when it is empty or only spaces.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the name of your gym or business."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul de naam van je sportschool of bedrijf in."
+          }
+        }
+      }
+    },
+    "welcome.errors.workspaceNameTooLong" : {
+      "comment" : "Under the workspace name field on TW-11 when the name is too long (the API refuses it: more than 80 characters).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This name is too long. Use a shorter one."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze naam is te lang. Gebruik een kortere naam."
+          }
+        }
+      }
+    },
+    "welcome.personNameLabel" : {
+      "comment" : "Label of the field for the person's own name on TW-11. Shown only when the account has no name yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your name"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je naam"
+          }
+        }
+      }
+    },
+    "welcome.submit" : {
+      "comment" : "Submit button of TW-11. It creates the workspace and opens it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get started"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aan de slag"
+          }
+        }
+      }
+    },
+    "welcome.title" : {
+      "comment" : "Heading of TW-11, the first-run screen (`/welcome`) shown once to an operator-approved person who has no workspace yet. Fivvi is the product name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome to Fivvi"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welkom bij Fivvi"
+          }
+        }
+      }
+    },
+    "welcome.workspaceNameHint" : {
+      "comment" : "Hint under the workspace name field on TW-11: an example of a name. \"John's Gym\" is a name, the same in both languages.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For example John's Gym"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bijvoorbeeld John's Gym"
+          }
+        }
+      }
+    },
+    "welcome.workspaceNameLabel" : {
+      "comment" : "Label of the field for the name of the gym or business on TW-11. The workspace itself, worded as the person's own business (GLOSSARY §4.1: prefer this over the word werkruimte).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name of your gym or business"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naam van je sportschool of bedrijf"
+          }
+        }
+      }
+    },
+    "workspaceHome.description" : {
+      "comment" : "Line under the workspace name on the placeholder home of a workspace, until the owner dashboard and the trainer's day arrive.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The overview of your gym or business will appear here soon."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier komt binnenkort het overzicht van je sportschool of bedrijf."
           }
         }
       }

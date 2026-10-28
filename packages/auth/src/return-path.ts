@@ -1,4 +1,7 @@
-/** Where a browser goes after sign-in when no page asked for it, until F002 adds workspaces. */
+/**
+ * Where a browser goes after sign-in when no page asked for it: the signed-in home, which sends a
+ * person to their workspace, the first-run screen or the no-access page (F002).
+ */
 export const SIGNED_IN_HOME = '/home';
 
 /** The query parameter of `/login` and `/login/confirm`: the page the person asked for before sign-in. */

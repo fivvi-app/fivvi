@@ -4,16 +4,22 @@ import {
   INTERNAL_SERVER_ERROR,
   NO_DEPENDENCIES,
 } from '@fivvi/api';
+import { createTenantScopes } from '@fivvi/database';
 import { describe, expect, it, vi } from 'vitest';
 import { createApiClient } from '../src/index.ts';
 
 const HELLO_GREETING_KEY = 'hello.title';
 
-// No database here: the request transaction of an account route hands the route a stand-in scope.
-const tenantScopes: ApiDependencies['tenantScopes'] = {
-  inAccountScope: (_input, run) => run({ context: {} } as never),
-  inWorkspaceScope: () => Promise.resolve({ status: 'no-place' }),
-};
+// No database here: the request transaction of a route runs on a stand-in executor, on which the
+// account holds no workspace and no team role (settings are accepted, every query finds nothing).
+const noRows = { from: () => ({ where: () => Promise.resolve([]) }) };
+const tenantScopes: ApiDependencies['tenantScopes'] = createTenantScopes(
+  () =>
+    ({
+      transaction: (run: (tx: unknown) => unknown) =>
+        run({ execute: () => Promise.resolve(), select: () => noRows }),
+    }) as never,
+);
 
 // The generated TypeScript client talks to the real API handler, in-process (no network),
 // with a fake greeting reader instead of Postgres.
@@ -35,6 +41,8 @@ function meClient(account: Awaited<ReturnType<ApiDependencies['findSignedInAccou
   const handle = createApiHandler({
     ...NO_DEPENDENCIES,
     tenantScopes,
+    // Sign-up is open to this address, so an account without a team role may set one up.
+    signUpAllowlist: { allows: () => true },
     findSignedInAccount: async () => account,
   });
   return createApiClient({
@@ -83,14 +91,37 @@ describe('E018 TypeScript client', () => {
 
 describe('F001 TypeScript client: GET /v1/me', () => {
   it('calls GET /v1/me and returns the typed account, with a nullable language', async () => {
-    const account = { id: '0197c0de-0000-7000-8000-000000000001', email: 'owner@example.com' };
+    const account = {
+      id: '0197c0de-0000-7000-8000-000000000001',
+      email: 'owner@example.com',
+      name: 'Owner',
+    };
 
     const withLanguage = await meClient({ ...account, preferredLocale: 'nl-NL' }).GET('/v1/me');
     expect(withLanguage.response.status).toBe(200);
-    expect(withLanguage.data).toEqual({ ...account, preferredLocale: 'nl-NL' });
+    expect(withLanguage.data).toEqual({
+      ...account,
+      preferredLocale: 'nl-NL',
+      canCreateWorkspace: true,
+      workspaces: [],
+    });
 
     const withoutLanguage = await meClient({ ...account, preferredLocale: null }).GET('/v1/me');
     expect(withoutLanguage.data?.preferredLocale).toBeNull();
+  });
+
+  it('AC11: types the name as nullable, and whether the account may set up a workspace', async () => {
+    const account = {
+      id: '0197c0de-0000-7000-8000-000000000001',
+      email: 'owner@example.com',
+      preferredLocale: null,
+    } as const;
+
+    const { data } = await meClient({ ...account, name: '' }).GET('/v1/me');
+
+    expect(data?.name).toBeNull();
+    expect(data?.canCreateWorkspace).toBe(true);
+    expect(data?.workspaces).toEqual([]);
   });
 
   it('returns the typed 401 on GET /v1/me when nobody is signed in', async () => {
@@ -106,6 +137,7 @@ describe('F001N TypeScript client: native sign-in', () => {
   const account = {
     id: '0197c0de-0000-7000-8000-000000000001',
     email: 'owner@example.com',
+    name: 'Owner',
     preferredLocale: null,
   } as const;
 
@@ -152,7 +184,7 @@ describe('F001N TypeScript client: native sign-in', () => {
     expect(exchanged.data).toEqual({ token: 'token-1' });
 
     const headers = { Authorization: `Bearer ${exchanged.data?.token}` };
-    expect((await api.GET('/v1/me', { headers })).data).toEqual(account);
+    expect((await api.GET('/v1/me', { headers })).data).toMatchObject(account);
     expect((await api.POST('/v1/sign-out', { headers })).response.status).toBe(204);
   });
 

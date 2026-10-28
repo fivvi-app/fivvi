@@ -21,6 +21,7 @@
     "@biomejs/biome": "catalog:",
     "@hono/zod-openapi": "catalog:",
     "@fivvi/api": "workspace:*",
+    "@fivvi/database": "workspace:*",
     "@fivvi/testing": "workspace:*",
     "@fivvi/typescript-generator": "workspace:*",
     "@types/node": "catalog:",

@@ -119,5 +119,8 @@ export const authRateLimits = pgTable(
 
 export type AuthUser = typeof authUsers.$inferSelect;
 
-/** The account behind a request's sign-in session (spec #128). */
-export type SignedInAccount = Pick<AuthUser, 'id' | 'email' | 'preferredLocale'>;
+/**
+ * The account behind a request's sign-in session (spec #128). `name` is empty until the person
+ * gives one (F002, TW-11).
+ */
+export type SignedInAccount = Pick<AuthUser, 'id' | 'email' | 'name' | 'preferredLocale'>;

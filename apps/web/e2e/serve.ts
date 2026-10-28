@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createDatabase } from '@fivvi/database';
 import { runMigrations } from '@fivvi/database/migrate';
+import { seed } from '@fivvi/database/seed';
 import { appRoleUrl, databaseUrl, identifier, onServer } from '@fivvi/testing/database/server';
 import { ensureTestRoles } from '@fivvi/testing/database/setup';
 
@@ -9,7 +10,7 @@ import { ensureTestRoles } from '@fivvi/testing/database/setup';
 // migration applied, so the hello row is the migrated one (#94). The database is on the local test
 // server (TEST_DATABASE_URL, else DATABASE_URL; localhost only) and stays until the next run.
 // The server connects as the app role `fivvi_app`, like production (E011); only the migrations
-// here use the test server's own (privileged) user.
+// here and the seed use the test server's own (privileged) user.
 
 const name = process.env.E2E_DATABASE;
 if (!name) throw new Error('Set E2E_DATABASE to the name of the e2e database.');
@@ -23,6 +24,9 @@ const url = databaseUrl(name);
 const client = createDatabase({ url, maxConnections: 1 });
 try {
   await runMigrations(client.db);
+  // The account owner@example.com and the workspace John's Gym it owns (F001 AC15, F002 AC13): the
+  // data of a preview, so a spec can sign in as a person who has a workspace.
+  await seed(client.db);
 } finally {
   await client.close();
 }

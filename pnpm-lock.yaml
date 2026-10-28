@@ -501,6 +501,9 @@ importers:
       '@fivvi/api':
         specifier: workspace:*
         version: link:../api
+      '@fivvi/database':
+        specifier: workspace:*
+        version: link:../database
       '@fivvi/testing':
         specifier: workspace:*
         version: link:../testing

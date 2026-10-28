@@ -252,6 +252,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/email`.
             public var email: Swift.String
+            /// The person’s own name; null until one is given (TW-11 asks for it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeResponse/name`.
+            public var name: Swift.String?
             /// The language stored on the account; null until one is stored.
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/preferredLocale`.
@@ -264,25 +268,82 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/preferredLocale`.
             public var preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload?
+            /// Whether the account may set up a workspace: it is on the sign-up allowlist and has no team role in any workspace yet. The web and the apps show the first-run screen or the no-access page from this, never from rules of their own.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeResponse/canCreateWorkspace`.
+            public var canCreateWorkspace: Swift.Bool
+            /// The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeResponse/workspaces`.
+            public var workspaces: [Components.Schemas.MeWorkspace]
             /// Creates a new `MeResponse`.
             ///
             /// - Parameters:
             ///   - id: The account ID.
             ///   - email: The address the account signs in with.
+            ///   - name: The person’s own name; null until one is given (TW-11 asks for it).
             ///   - preferredLocale: The language stored on the account; null until one is stored.
+            ///   - canCreateWorkspace: Whether the account may set up a workspace: it is on the sign-up allowlist and has no team role in any workspace yet. The web and the apps show the first-run screen or the no-access page from this, never from rules of their own.
+            ///   - workspaces: The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed.
             public init(
                 id: Swift.String,
                 email: Swift.String,
-                preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload? = nil
+                name: Swift.String? = nil,
+                preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload? = nil,
+                canCreateWorkspace: Swift.Bool,
+                workspaces: [Components.Schemas.MeWorkspace]
             ) {
                 self.id = id
                 self.email = email
+                self.name = name
                 self.preferredLocale = preferredLocale
+                self.canCreateWorkspace = canCreateWorkspace
+                self.workspaces = workspaces
             }
             public enum CodingKeys: String, CodingKey {
                 case id
                 case email
+                case name
                 case preferredLocale
+                case canCreateWorkspace
+                case workspaces
+            }
+        }
+        /// A workspace the account has a team role in.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MeWorkspace`.
+        public struct MeWorkspace: Codable, Hashable, Sendable {
+            /// The workspace ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeWorkspace/id`.
+            public var id: Swift.String
+            /// The name shown in the product.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeWorkspace/name`.
+            public var name: Swift.String
+            /// The URL name: `/w/{slug}` on the web.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeWorkspace/slug`.
+            public var slug: Swift.String
+            /// Creates a new `MeWorkspace`.
+            ///
+            /// - Parameters:
+            ///   - id: The workspace ID.
+            ///   - name: The name shown in the product.
+            ///   - slug: The URL name: `/w/{slug}` on the web.
+            public init(
+                id: Swift.String,
+                name: Swift.String,
+                slug: Swift.String
+            ) {
+                self.id = id
+                self.name = name
+                self.slug = slug
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case slug
             }
         }
         /// Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.

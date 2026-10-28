@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Locale } from '@fivvi/i18n';
-import { eq, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { authUsers, organizations, teamMembers } from '../schema/index.ts';
 import { executorOf, setContext, type TenantScope } from '../tenant-scope.ts';
 
@@ -16,6 +16,13 @@ export interface WorkspaceView {
   readonly slug: string;
   readonly defaultLocale: Locale;
   readonly timeZone: string;
+}
+
+/** What a list of workspaces shows (the picker, the signed-in home): the name and the URL name. */
+export interface WorkspaceSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
 }
 
 export interface NewWorkspace {
@@ -98,4 +105,21 @@ export async function createWorkspaceWithOwner(
     await db.update(authUsers).set({ name: input.ownerName }).where(eq(authUsers.id, accountId));
   }
   return workspace;
+}
+
+/**
+ * The workspaces where the scope's account has a team role (Owner or Trainer), by name: the ones
+ * it goes to after sign-in. A workspace it is only a client of is not listed, whatever the scope
+ * holds, and neither is one outside the scope's context (RLS says the same).
+ */
+export function listTeamWorkspaces(scope: TenantScope): Promise<WorkspaceSummary[]> {
+  const db = executorOf(scope);
+  const { accountId, workspaceIds } = scope.context;
+  if (workspaceIds.length === 0) return Promise.resolve([]);
+  return db
+    .select({ id: organizations.id, name: organizations.name, slug: organizations.slug })
+    .from(organizations)
+    .innerJoin(teamMembers, eq(teamMembers.organizationId, organizations.id))
+    .where(and(eq(teamMembers.accountId, accountId), inArray(organizations.id, [...workspaceIds])))
+    .orderBy(asc(organizations.name), asc(organizations.slug));
 }

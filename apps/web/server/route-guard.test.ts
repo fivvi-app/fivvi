@@ -6,7 +6,7 @@ import { guardRequest, isPublicPath } from './route-guard';
 const ORIGIN = 'https://fivvi.app';
 const account = { id: '5a0d3d1e-0000-4000-8000-000000000001', email: 'owner@example.com' };
 const SIGNED_IN: SessionRead = {
-  account: { ...account, preferredLocale: 'nl-NL' },
+  account: { ...account, name: '', preferredLocale: 'nl-NL' },
   setCookies: [],
 };
 const ANONYMOUS: SessionRead = { account: undefined, setCookies: [] };
@@ -30,6 +30,9 @@ describe('F001 AC13 route guard', () => {
         '/login?returnTo=%2Fw%2Fpilot-gym%2Fcalendar%3Fview%3Dweek',
       ],
       ['/me/day', '/login?returnTo=%2Fme%2Fday'],
+      // F002 AC9: the first-run screen and the workspace home are guarded too.
+      ['/welcome', '/login?returnTo=%2Fwelcome'],
+      ['/w/johns-gym', '/login?returnTo=%2Fw%2Fjohns-gym'],
     ])('%s', async (path, login) => {
       const { answer } = guard(path, ANONYMOUS);
 
@@ -135,6 +138,8 @@ describe('F001 AC13 route guard', () => {
       ['/apiary', false],
       ['/home', false],
       ['/home/login', false],
+      ['/welcome', false],
+      ['/w/johns-gym', false],
       ['/w/book/x', false],
       ['//home', false],
       ['/%6Cogin', false],

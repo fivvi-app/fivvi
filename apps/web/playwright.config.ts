@@ -80,6 +80,9 @@ function standaloneServer(
       BREVO_API_KEY: 'e2e-synthetic-brevo-key',
       EMAIL_FROM_ADDRESS: 'noreply@fivvi.e2e.test',
       EMAIL_FROM_NAME: 'Fivvi',
+      // The seeded owner@example.com signs in like any address: its email goes to the fake Brevo
+      // server, where a spec reads the code (outside production it would go to the server log).
+      EMAIL_SEND_EXAMPLE_DOMAIN: '1',
       // Closed sign-up (F001): only this domain gets an account at its first sign-in.
       SIGN_UP_ALLOWED_EMAILS: `@${ALLOWED_SIGN_UP_DOMAIN}`,
     },

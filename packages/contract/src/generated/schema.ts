@@ -53,7 +53,7 @@ export interface paths {
         };
         /**
          * The signed-in account
-         * @description The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie.
+         * @description The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`).
          */
         get: operations["getMe"];
         put?: never;
@@ -211,11 +211,29 @@ export interface components {
              * @description The address the account signs in with.
              */
             email: string;
+            /** @description The person’s own name; null until one is given (TW-11 asks for it). */
+            name: string | null;
             /**
              * @description The language stored on the account; null until one is stored.
              * @enum {string|null}
              */
             preferredLocale: "nl-NL" | "en" | null;
+            /** @description Whether the account may set up a workspace: it is on the sign-up allowlist and has no team role in any workspace yet. The web and the apps show the first-run screen or the no-access page from this, never from rules of their own. */
+            canCreateWorkspace: boolean;
+            /** @description The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed. */
+            workspaces: components["schemas"]["MeWorkspace"][];
+        };
+        /** @description A workspace the account has a team role in. */
+        MeWorkspace: {
+            /**
+             * Format: uuid
+             * @description The workspace ID.
+             */
+            id: string;
+            /** @description The name shown in the product. */
+            name: string;
+            /** @description The URL name: `/w/{slug}` on the web. */
+            slug: string;
         };
         /** @description Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019. */
         SignInRequest: {

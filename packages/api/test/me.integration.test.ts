@@ -1,16 +1,19 @@
 import { readFileSync } from 'node:fs';
-import { createAuth } from '@fivvi/auth';
+import { createAuth, parseSignUpAllowlist } from '@fivvi/auth';
 import {
   authUsers,
   createDatabase,
   createTenantScopes,
   type Database,
   type DatabaseClient,
+  organizations,
 } from '@fivvi/database';
 import { seed } from '@fivvi/database/seed';
+import { addClient, addTeamRole, createWorkspace } from '@fivvi/database/testing';
 import { createMemoryTransport, createSendEmail } from '@fivvi/email';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { z } from '@hono/zod-openapi';
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   type ApiDependencies,
@@ -39,7 +42,7 @@ const ContractMeResponse = z.fromJSONSchema(
   ),
 );
 
-describe('F001 GET /v1/me', () => {
+describe('GET /v1/me', () => {
   let database: TestDatabase;
   let client: DatabaseClient;
   const transport = createMemoryTransport();
@@ -65,6 +68,8 @@ describe('F001 GET /v1/me', () => {
     const dependencies: ApiDependencies = {
       ...NO_DEPENDENCIES,
       findSignedInAccount: (headers) => signIn.findAccount(headers),
+      // The sign-up allowlist of this suite: `@allowed.test` addresses.
+      signUpAllowlist: parseSignUpAllowlist('@allowed.test'),
       tenantScopes: createTenantScopes(() => db),
     };
     return createApp(dependencies);
@@ -119,13 +124,82 @@ describe('F001 GET /v1/me', () => {
     const json = await signedIn.json();
     const body = StrictMeResponse.parse(json);
     expect(ContractMeResponse.parse(json)).toEqual(body);
-    // The seed holds the one account.
+    // The seed holds the one account, owner of John's Gym.
     const [row] = await client.db.select().from(authUsers);
+    const [gym] = await client.db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.slug, 'johns-gym'));
     expect(body).toEqual({
       id: row?.id,
       email: 'owner@example.com',
+      name: 'Owner',
       preferredLocale: 'nl-NL',
+      canCreateWorkspace: false,
+      workspaces: [{ id: gym?.id, name: "John's Gym", slug: 'johns-gym' }],
     });
+  });
+
+  /** An account of `address` (with `name`, '' when none) and the cookie of its sign-in. */
+  async function accountSignedIn(address: string, name = '') {
+    const [row] = await client.db
+      .insert(authUsers)
+      .values({ email: address, name, emailVerified: true })
+      .returning({ id: authUsers.id });
+    return { id: row?.id ?? '', cookie: await signIn(client.db, address) };
+  }
+
+  async function meOf(cookie: string) {
+    const res = await api(client.db).request('/v1/me', { headers: { cookie } });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    const body = StrictMeResponse.parse(json);
+    expect(ContractMeResponse.parse(json)).toEqual(body);
+    return body;
+  }
+
+  it('AC11: an allowlisted account without a workspace or a name may create one', async () => {
+    const { cookie } = await accountSignedIn('new-owner@allowed.test');
+
+    const me = await meOf(cookie);
+
+    expect(me).toMatchObject({ name: null, canCreateWorkspace: true, workspaces: [] });
+  });
+
+  it('AC11: an account that is not on the allowlist and has no team role may not create one', async () => {
+    const { cookie } = await accountSignedIn('client@gym.test', 'Cleo');
+
+    const me = await meOf(cookie);
+
+    expect(me).toMatchObject({ name: 'Cleo', canCreateWorkspace: false, workspaces: [] });
+  });
+
+  it('AC11: an allowlisted account with a team role may not create another, and lists its workspace', async () => {
+    const { id, cookie } = await accountSignedIn('second@allowed.test', 'Sam');
+    const workspace = await createWorkspace(client.db, { label: 'sam-gym' });
+    await addTeamRole(client.db, { workspaceId: workspace.id, accountId: id });
+
+    const me = await meOf(cookie);
+
+    expect(me.canCreateWorkspace).toBe(false);
+    expect(me.workspaces).toEqual([
+      { id: workspace.id, name: workspace.marker, slug: workspace.marker },
+    ]);
+  });
+
+  it('AC11: lists only the workspaces the account has a team role in', async () => {
+    const { id, cookie } = await accountSignedIn('two@allowed.test', 'Two');
+    const mine = await createWorkspace(client.db, { label: 'mine' });
+    const clientOf = await createWorkspace(client.db, { label: 'client-of' });
+    const other = await createWorkspace(client.db, { label: 'other' });
+    await addTeamRole(client.db, { workspaceId: mine.id, accountId: id, role: 'owner' });
+    await addClient(client.db, { workspaceId: clientOf.id, accountId: id });
+
+    const me = await meOf(cookie);
+
+    expect(me.workspaces.map((workspace) => workspace.id)).toEqual([mine.id]);
+    expect(JSON.stringify(me)).not.toContain(clientOf.id);
+    expect(JSON.stringify(me)).not.toContain(other.id);
   });
 
   it('AC14: an account without a stored language has none, and the contract allows it', async () => {

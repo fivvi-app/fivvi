@@ -19,6 +19,7 @@ import {
 const ACCOUNT: SignedInAccount = {
   id: '0197c0de-0000-7000-8000-000000000001',
   email: 'owner@example.com',
+  name: '',
   preferredLocale: null,
 };
 

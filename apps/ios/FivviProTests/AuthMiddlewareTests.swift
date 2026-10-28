@@ -8,7 +8,8 @@ import XCTest
 /// The auth layer on the real generated `Client`, with a stub transport in place of the network.
 final class AuthMiddlewareTests: XCTestCase {
     private let account = """
-    {"id":"2f6a1f0e-0000-4000-8000-000000000001","email":"owner@example.com","preferredLocale":null}
+    {"id":"2f6a1f0e-0000-4000-8000-000000000001","email":"owner@example.com","name":"Owner",\
+    "preferredLocale":null,"canCreateWorkspace":false,"workspaces":[]}
     """
 
     /// A counter the middleware's `onSignedOut` closure can bump.
