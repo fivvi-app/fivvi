@@ -1,11 +1,18 @@
-import { clientIpHeaders, createAccount, newAddress, newAllowedAddress } from './accounts';
+import {
+  clientIpHeaders,
+  createAccount,
+  newAddress,
+  newAllowedAddress,
+  signInWithSession,
+} from './accounts';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 import { signInWithCode } from './sign-in-page';
 
 // F002, TW-11 `/welcome`, the signed-in home and the no-access page. Copy comes from the
 // catalogs. Sign-in works as in sign-in.spec.ts: each spec has an address of its own and a visitor
 // IP address of its own, and reads the code from the fake Brevo server. The e2e database holds the
-// seed: the account owner@example.com owns the workspace John's Gym (`johns-gym`), so a workspace
+// seed: the account owner@example.com (signed in with a session, not a code: see
+// `signInWithSession`) owns the workspace John's Gym (`johns-gym`), so a workspace
 // that a spec creates under that name gets a number (`johns-gym-2`, …).
 const SEEDED_OWNER = 'owner@example.com';
 const SEEDED_SLUG = 'johns-gym';
@@ -61,11 +68,14 @@ test.describe('F002 first run and the signed-in home', () => {
         slug: expect.stringMatching(/^johns-gym-\d+$/),
       },
     ]);
-    // Opening TW-11 again, or the signed-in home, now leads to the workspace (AC4).
+    // Opening TW-11 again, or the signed-in home, now leads to the workspace (AC4) ...
     for (const path of ['/welcome', '/home']) {
       await page.goto(path);
       await expect(page).toHaveURL(SLUG_OF_NEW_GYM);
     }
+    // ... and a slug that is not one of its workspaces leads there too, showing nothing of it.
+    await page.goto('/w/no-such-gym');
+    await expect(page).toHaveURL(SLUG_OF_NEW_GYM);
   });
 
   test('AC1: TW-11 asks for the name only when the account has none', async ({
@@ -135,12 +145,16 @@ test.describe('F002 first run and the signed-in home', () => {
     await expect(page).toHaveURL(/\/w\/fit-zuid(-\d+)?$/);
   });
 
-  test('AC4 and AC13: the seeded owner lands in John’s Gym, and /welcome leads back to it', async ({
+  test('AC13: the seeded owner lands in John’s Gym, and /welcome leads back to it', async ({
+    context,
     page,
     messages: copy,
   }) => {
-    await page.goto('/login');
-    await signInWithCode(page, copy, SEEDED_OWNER);
+    // The seeded account is shared by every run, so it is signed in without an emailed code
+    // (`signInWithSession`): its one live code and its three sign-ins per 15 minutes would not
+    // hold for parallel projects and retries. AC4 and the sign-in itself use accounts of their own.
+    await signInWithSession(context, SEEDED_OWNER);
+    await page.goto('/home');
 
     await expect(page).toHaveURL(new RegExp(`/w/${SEEDED_SLUG}$`));
     await expect(page.getByRole('heading', { level: 1, name: "John's Gym" })).toBeVisible();
@@ -152,7 +166,6 @@ test.describe('F002 first run and the signed-in home', () => {
       { id: expect.any(String), name: "John's Gym", slug: SEEDED_SLUG },
     ]);
 
-    // AC4: an account with a workspace that opens TW-11 goes to its workspace's home.
     await page.goto('/welcome');
     await expect(page).toHaveURL(new RegExp(`/w/${SEEDED_SLUG}$`));
     // A slug that is not one of its workspaces leads home too, without showing anything of it.

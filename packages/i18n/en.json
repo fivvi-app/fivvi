@@ -51,9 +51,7 @@
     }
   },
   "home": {
-    "title": "You're signed in",
-    "signedInAs": "Signed in as {email}",
-    "description": "Your workspace will appear here soon."
+    "signedInAs": "Signed in as {email}"
   },
   "welcome": {
     "title": "Welcome to Fivvi",

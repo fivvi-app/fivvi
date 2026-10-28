@@ -4,6 +4,7 @@ import { runMigrations } from '@fivvi/database/migrate';
 import { seed } from '@fivvi/database/seed';
 import { appRoleUrl, databaseUrl, identifier, onServer } from '@fivvi/testing/database/server';
 import { ensureTestRoles } from '@fivvi/testing/database/setup';
+import { E2E_AUTH_SECRET } from './servers.ts';
 
 // Playwright's web server command (playwright.config.ts): the standalone server, as in production
 // (Dockerfile), on a database of its own. Each run starts from an empty database with every
@@ -41,7 +42,7 @@ const server = spawn(process.execPath, ['.next/standalone/apps/web/server.js'], 
   env: {
     ...serverEnv,
     APP_DATABASE_URL: appRoleUrl(name),
-    BETTER_AUTH_SECRET: 'e2e-secret-that-is-at-least-thirty-two-characters-long',
+    BETTER_AUTH_SECRET: E2E_AUTH_SECRET,
     BETTER_AUTH_URL: `http://localhost:${process.env.PORT}`,
   },
 });

@@ -30,12 +30,8 @@
         <item quantity="other">Je hebt vandaag %1$d sessies.</item>
     </plurals>
     <string name="hello_title">Welkom bij Fivvi</string>
-    <!-- Line under the heading of the placeholder signed-in home. -->
-    <string name="home_description">Hier komt straks je werkruimte.</string>
     <!-- Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner. -->
     <string name="home_signed_in_as">Ingelogd als %1$s</string>
-    <!-- Heading of the signed-in home, a placeholder until workspaces arrive (F002). -->
-    <string name="home_title">Je bent ingelogd</string>
     <!-- Text of the no-access page (information-architecture §9.5, No permission). Native apps show it too, under the same conditions. The Dutch uses 'werkruimte' as the spec words it. -->
     <string name="no_access_body">Je hebt nog geen toegang tot een werkruimte.</string>
     <!-- Heading of the no-access page: a signed-in person who is not in a workspace and may not create one (a client, or someone who was removed). The page has the sign-out button. -->

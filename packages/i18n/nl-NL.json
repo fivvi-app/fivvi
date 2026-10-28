@@ -51,9 +51,7 @@
     }
   },
   "home": {
-    "title": "Je bent ingelogd",
-    "signedInAs": "Ingelogd als {email}",
-    "description": "Hier komt straks je werkruimte."
+    "signedInAs": "Ingelogd als {email}"
   },
   "welcome": {
     "title": "Welkom bij Fivvi",

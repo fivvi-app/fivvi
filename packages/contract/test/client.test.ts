@@ -184,7 +184,11 @@ describe('F001N TypeScript client: native sign-in', () => {
     expect(exchanged.data).toEqual({ token: 'token-1' });
 
     const headers = { Authorization: `Bearer ${exchanged.data?.token}` };
-    expect((await api.GET('/v1/me', { headers })).data).toMatchObject(account);
+    expect((await api.GET('/v1/me', { headers })).data).toEqual({
+      ...account,
+      canCreateWorkspace: false,
+      workspaces: [],
+    });
     expect((await api.POST('/v1/sign-out', { headers })).response.status).toBe(204);
   });
 

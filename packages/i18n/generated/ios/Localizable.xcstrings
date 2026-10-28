@@ -295,24 +295,6 @@
         }
       }
     },
-    "home.description" : {
-      "comment" : "Line under the heading of the placeholder signed-in home.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your workspace will appear here soon."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hier komt straks je werkruimte."
-          }
-        }
-      }
-    },
     "home.signedInAs" : {
       "comment" : "Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner.",
       "extractionState" : "manual",
@@ -327,24 +309,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ingelogd als %1$@"
-          }
-        }
-      }
-    },
-    "home.title" : {
-      "comment" : "Heading of the signed-in home, a placeholder until workspaces arrive (F002).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You're signed in"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Je bent ingelogd"
           }
         }
       }
