@@ -333,10 +333,14 @@ jobs:
         run: echo "version=$(xcodebuild -version | tr -s ' \n' '--' | sed 's/-$//')" >> "$GITHUB_OUTPUT"
 
       # DerivedData, with the compiled Swift packages (sentry-cocoa takes minutes to build), and the packages
-      # themselves. Keyed by Package.resolved, the Xcode version and the runner OS; a stale cache (the restore key)
+      # themselves. Keyed by Package.resolved, the Xcode version, the runner OS and the run: every run saves what it
+      # built (an exact hit is never saved again, so a key without the run would freeze the cache at the first
+      # build) and restores the newest one through the restore keys, the same Package.resolved first. A stale cache
       # only costs build time and never changes a result. A PR can read its own caches and main's; main's are
       # written by the pushes that change native paths, so a PR's first run is warm once main has run it. The
-      # manifest of the sources' modification times (scripts/ios-mtimes.mjs) is part of it.
+      # manifest of the sources' modification times (scripts/ios-mtimes.mjs) is part of it. The index store is left
+      # out: nothing in a build reads it, and it is a large part of the payload. GitHub keeps a repository's caches
+      # to 10 GB, evicts the least recently used first, and removes any not read for 7 days.
       - name: Cache the iOS build
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -345,8 +349,10 @@ jobs:
             apps/ios/.build/SourcePackages
             apps/ios/.build/source-mtimes.json
             !apps/ios/.build/DerivedData/Logs
-          key: ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+            !apps/ios/.build/DerivedData/Index.noindex
+          key: ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
+            ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-
             ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-
 
       # Xcode decides what to compile by the modification time of the inputs, and a checkout gives every file the

@@ -650,10 +650,30 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.match(key, /runner\.os/);
     assert.match(key, /steps\.xcode\.outputs\.version/);
     assert.match(key, /hashFiles\('apps\/ios\/.*Package\.resolved'\)/);
-    assert.match(
-      iosBuild,
-      /restore-keys: \|\n +ios-build-\$\{\{ runner\.os \}\}-\$\{\{ steps\.xcode\.outputs\.version \}\}-\n/,
-    );
+  });
+
+  it('#293 AC15: the iOS cache key is new on every run, so each run saves what it built, and restores the latest one', () => {
+    // An exact hit is never saved again: with a key that only changes with Package.resolved the cache would be frozen at
+    // the first run's DerivedData and the second run of a PR could not get incremental.
+    const key = iosBuild.match(/^ +key: (ios-build-.+)$/m)?.[1] ?? '';
+    assert.match(key, /github\.run_id/);
+    assert.match(key, /github\.run_attempt/);
+    const restoreKeys = iosBuild
+      .match(/restore-keys: \|\n((?: +ios-build-.+\n)+)/)?.[1]
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const prefix = '${{ runner.os }}-${{ steps.xcode.outputs.version }}-';
+    assert.deepEqual(restoreKeys, [
+      `ios-build-${prefix}\${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-`,
+      `ios-build-${prefix}`,
+    ]);
+    assert.ok(key.startsWith(restoreKeys[0]), 'the key starts with the first restore key');
+  });
+
+  it('#293 AC15: the saved iOS cache leaves out what a build does not read (logs, the index)', () => {
+    assert.match(iosBuild, /^ +!apps\/ios\/\.build\/DerivedData\/Logs$/m);
+    assert.match(iosBuild, /^ +!apps\/ios\/\.build\/DerivedData\/Index\.noindex$/m);
   });
 
   it('#293 AC15: restores the sources modification times before the build and records them after it, in the cache', () => {
