@@ -98,6 +98,46 @@ describe('E002 #112 test-summary.sh', () => {
     assert.match(result.stdout, /ui\s+pass\s+33\s+0\s+0\n/);
   });
 
+  it('#293 AC13: lists a suite the change does not affect as skipped (not affected), not as not-run', () => {
+    const result = summarize(
+      vitest('api', 'test', '29 passed (29)'),
+      '--run',
+      'unit',
+      '--expect',
+      '@fivvi/api:test',
+      '--unaffected',
+      '@fivvi/ui:test',
+      '--unaffected',
+      '@fivvi/web:test:e2e',
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.json.suites, [
+      suite('api', 'unit', 'pass', 29, 0, 0),
+      suite('ui', 'unit', 'skipped (not affected)', null, null, null),
+      suite('web e2e', 'e2e', 'skipped (not affected)', null, null, null),
+    ]);
+    assert.match(result.stdout, /ui\s+skipped \(not affected\)\s+-\s+-\s+-\n/);
+    assert.deepEqual(result.json.total, { passed: 29, failed: 0, skipped: 0 });
+  });
+
+  it('#293: an unaffected suite that ran anyway (a cached or pulled-in task) is reported with its counts', () => {
+    const result = summarize(node(260, 0, 0), '--run', 'unit', '--unaffected', '//:test:root');
+    assert.deepEqual(result.json.suites, [suite('root', 'unit', 'pass', 260, 0, 0)]);
+  });
+
+  it('#293: a kind left out by --skip is listed once, also when its suites are unaffected', () => {
+    const result = summarize(
+      [],
+      '--skip',
+      'e2e',
+      '--unaffected',
+      '@fivvi/web:test:e2e',
+      '--unaffected',
+      '@fivvi/cron:test:e2e',
+    );
+    assert.deepEqual(result.json.suites, [suite('e2e', 'e2e', 'skipped', null, null, null)]);
+  });
+
   it('E002 #112 AC1: reports a failing suite with its failures, next to the suites that passed', () => {
     const result = summarize(
       [
@@ -329,6 +369,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       'packages/ui': { test: 'vitest run' },
       'apps/web': { 'test:e2e': 'playwright test', lint: 'biome lint' },
     };
+    write(join(repo(), 'pnpm-workspace.yaml'), 'packages:\n  - apps/*\n  - packages/*\n');
     for (const [dir, scripts] of Object.entries(workspace)) {
       mkdirSync(join(repo(), dir), { recursive: true });
       const name = `@fivvi/${dir.split('/')[1]}`;
@@ -340,6 +381,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       '_shellcheck.sh',
       'test-summary.sh',
       'test-summary.jq',
+      'affected.mjs',
     ]) {
       copyFileSync(join(SCRIPTS, file), join(repo(), 'scripts', file));
     }
@@ -373,7 +415,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     execFileSync('git', ['-C', repo(), ...args], { encoding: 'utf8', env: gitEnv() });
 
   let n = 0;
-  const check = (runs, args = [], setup = () => {}) => {
+  const check = (runs, args = ['--all'], setup = () => {}) => {
     const dir = join(base, `runs-${n++}`);
     mkdirSync(dir);
     for (const [name, { lines, exit = 0 }] of Object.entries(runs)) {
@@ -535,7 +577,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
 
   it('E002 #112 AC1: leaves no stale summary when check.sh stops early', () => {
     const stale = join(repo(), '.work/check-summary.json');
-    const result = check({}, [], () => {
+    const result = check({}, ['--all'], () => {
       mkdirSync(join(repo(), '.work'), { recursive: true });
       write(stale, '{"stale":true}\n');
       rmSync(join(repo(), 'node_modules'), { recursive: true });
@@ -547,7 +589,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
   });
 
   it('E002 #112 AC1: lists the integration and e2e suites as skipped with --fast', () => {
-    const result = check({ unit: unit() }, ['--fast']);
+    const result = check({ unit: unit() }, ['--all', '--fast']);
     assert.equal(result.status, 0, result.stdout);
     assert.deepEqual(
       result.summary.suites.map(({ name, status }) => [name, status]),
@@ -589,7 +631,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     });
 
     it('warns about a different local version, names the fix, and still passes', () => {
-      const result = check({ unit: unit(), integration, e2e }, [], () =>
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], () =>
         fakeShellcheck(join(bin(), 'shellcheck'), '0.9.0', 'system'),
       );
       assert.equal(result.status, 0, result.stdout);
@@ -600,7 +642,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     });
 
     it('is silent when the local version is the pinned one', () => {
-      const result = check({ unit: unit(), integration, e2e }, [], () =>
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], () =>
         fakeShellcheck(join(bin(), 'shellcheck'), PINNED, 'system'),
       );
       assert.equal(result.status, 0, result.stdout);
@@ -608,7 +650,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     });
 
     it('runs the pinned binary from the tools directory in place of the one on PATH, without a warning', () => {
-      const result = check({ unit: unit(), integration, e2e }, [], () => {
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], () => {
         fakeShellcheck(join(bin(), 'shellcheck'), '0.9.0', 'system');
         mkdirSync(join(repo(), '.tools', `shellcheck-${PINNED}`), { recursive: true });
         fakeShellcheck(

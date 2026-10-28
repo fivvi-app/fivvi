@@ -95,7 +95,8 @@ export function readWorkspace(root) {
 function packageOf(path, packages) {
   let found;
   for (const pkg of packages) {
-    if (path.startsWith(`${pkg.dir}/`) && (!found || pkg.dir.length > found.dir.length)) found = pkg;
+    if (path.startsWith(`${pkg.dir}/`) && (!found || pkg.dir.length > found.dir.length))
+      found = pkg;
   }
   return found;
 }
@@ -106,7 +107,10 @@ function withDependents(names, packages) {
   for (let grew = true; grew; ) {
     grew = false;
     for (const pkg of packages) {
-      if (!affected.has(pkg.name) && pkg.dependencies.some((dependency) => affected.has(dependency))) {
+      if (
+        !affected.has(pkg.name) &&
+        pkg.dependencies.some((dependency) => affected.has(dependency))
+      ) {
         affected.add(pkg.name);
         grew = true;
       }
@@ -125,16 +129,23 @@ export function plan({ paths, packages, force = false }) {
   const byName = new Map(packages.map((pkg) => [pkg.name, pkg]));
   const result = (affected, { all = false, root = false, docs = false }) => {
     const names = packages.map((pkg) => pkg.name).filter((name) => affected.has(name));
-    const integration = names.filter((name) => byName.get(name).scripts.includes('test:integration'));
+    const integration = names.filter((name) =>
+      byName.get(name).scripts.includes('test:integration'),
+    );
     const e2e = affected.has(WEB) && byName.get(WEB).scripts.includes('test:e2e');
     reasons.push(
       names.length === 0 ? 'packages: none affected' : `packages: ${names.join(', ')}`,
       integration.length > 0
         ? `integration: ${integration.join(', ')}`
         : 'integration: skipped (not affected): no package with integration tests is affected',
-      e2e ? `e2e: web app affected${all ? '' : ' (it or a package it depends on changed)'}` : 'e2e: skipped (not affected): no web change',
+      e2e
+        ? `e2e: web app affected${all ? '' : ' (it or a package it depends on changed)'}`
+        : 'e2e: skipped (not affected): no web change',
     );
-    if (!root && !all) reasons.push('root scripts, hooks and shellcheck: skipped (not affected): no script or hook change');
+    if (!root && !all)
+      reasons.push(
+        'root scripts, hooks and shellcheck: skipped (not affected): no script or hook change',
+      );
     return { all, root: root || all, docs, packages: names, integration, e2e, reasons };
   };
 

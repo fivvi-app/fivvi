@@ -13,13 +13,12 @@ const pkg = (name, dir, scripts, dependencies) => ({ name, dir, scripts, depende
 const UNIT = ['test'];
 const INTEGRATION = ['test', 'test:integration'];
 const workspace = [
-  pkg('@fivvi/web', 'apps/web', ['test', 'test:integration', 'test:e2e'], [
-    '@fivvi/api',
-    '@fivvi/database',
-    '@fivvi/contract',
-    '@fivvi/ui',
-    '@fivvi/testing',
-  ]),
+  pkg(
+    '@fivvi/web',
+    'apps/web',
+    ['test', 'test:integration', 'test:e2e'],
+    ['@fivvi/api', '@fivvi/database', '@fivvi/contract', '@fivvi/ui', '@fivvi/testing'],
+  ),
   pkg('@fivvi/cron', 'apps/cron', INTEGRATION, ['@fivvi/database', '@fivvi/testing']),
   pkg('@fivvi/api', 'packages/api', INTEGRATION, ['@fivvi/database', '@fivvi/testing']),
   pkg('@fivvi/contract', 'packages/contract', UNIT, ['@fivvi/api', '@fivvi/typescript-generator']),
@@ -42,7 +41,11 @@ describe('#293 AC1 AC2: scripts and Markdown changes', () => {
   });
 
   it('AC2: Markdown only affects nothing but the hygiene checks', () => {
-    const result = decide(['docs/product/PRODUCT.md', 'docs/decisions/ADR-023-x.md', 'GLOSSARY.md']);
+    const result = decide([
+      'docs/product/PRODUCT.md',
+      'docs/decisions/ADR-023-x.md',
+      'GLOSSARY.md',
+    ]);
     assert.equal(result.docs, true);
     assert.equal(result.root, false);
     assert.deepEqual(result.packages, []);
@@ -201,7 +204,9 @@ describe('#293 AC8 AC13: the e2e decision and the reason of every skip', () => {
         paths: [path],
         packages: [
           ...workspace.map((p) =>
-            p.name === '@fivvi/web' ? { ...p, dependencies: [...p.dependencies, '@fivvi/i18n'] } : p,
+            p.name === '@fivvi/web'
+              ? { ...p, dependencies: [...p.dependencies, '@fivvi/i18n'] }
+              : p,
           ),
           i18n,
         ],
@@ -253,7 +258,12 @@ describe('#293 the command line', () => {
   it('prints key=value lines the way $GITHUB_OUTPUT wants them, with the reasons on stderr', () => {
     const result = run('scripts/check.sh\n');
     assert.equal(result.status, 0, result.stderr);
-    const out = Object.fromEntries(result.stdout.trim().split('\n').map((l) => l.split('=')));
+    const out = Object.fromEntries(
+      result.stdout
+        .trim()
+        .split('\n')
+        .map((l) => l.split('=')),
+    );
     assert.equal(out.e2e, 'false');
     assert.equal(out.root, 'true');
     assert.equal(out.all, 'false');
@@ -262,7 +272,12 @@ describe('#293 the command line', () => {
 
   it('--force turns every output on', () => {
     const result = run('docs/product/PRODUCT.md\n', ['--force']);
-    const out = Object.fromEntries(result.stdout.trim().split('\n').map((l) => l.split('=')));
+    const out = Object.fromEntries(
+      result.stdout
+        .trim()
+        .split('\n')
+        .map((l) => l.split('=')),
+    );
     assert.equal(out.e2e, 'true');
     assert.equal(out.all, 'true');
   });

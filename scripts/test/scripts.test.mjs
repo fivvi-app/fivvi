@@ -249,7 +249,12 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'packages/contract/tools/swift-generator/Package.swift',
       'packages/contract/config/openapi-generator.json',
     ]) {
-      for (const args of [[], ['--event', 'pull_request'], ['--event', 'push'], ['--event', 'merge_group']]) {
+      for (const args of [
+        [],
+        ['--event', 'pull_request'],
+        ['--event', 'push'],
+        ['--event', 'merge_group'],
+      ]) {
         const jobs = nativeJobs([path], args);
         assert.equal(jobs.ios, 'false', `${path} ${args.join(' ')}`);
         assert.equal(jobs.android, 'false', `${path} ${args.join(' ')}`);
@@ -260,7 +265,9 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
   it('#293 AC9: the committed Swift client starts iOS only, the committed Kotlin client Android only', () => {
     const swift = nativeJobs(['packages/contract/swift/Sources/FivviAPI/Generated/Client.swift']);
     assert.deepEqual([swift.ios, swift.android], ['true', 'false']);
-    const kotlin = nativeJobs(['packages/contract/kotlin/generated/app/fivvi/api/apis/HelloApi.kt']);
+    const kotlin = nativeJobs([
+      'packages/contract/kotlin/generated/app/fivvi/api/apis/HelloApi.kt',
+    ]);
     assert.deepEqual([kotlin.ios, kotlin.android], ['false', 'true']);
   });
 
