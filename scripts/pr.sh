@@ -70,6 +70,8 @@ PREVIEW_SKIPPED="No deployment needed"
 # How long wait waits for CI, in minutes: the cold iOS run took 24.5 min, so the jobs of the native apps get longer.
 WAIT_MINUTES=20
 WAIT_MINUTES_NATIVE=45
+# The gates are the required checks iOS and Android; their parts (iOS build, iOS tests (nl), Android Maestro, ...) start with the
+# same word (#293).
 NATIVE_JOBS=(iOS Android)
 
 open_pr() { gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty'; }
@@ -179,7 +181,7 @@ native_durations() {
   out="$(jq -r --argjson native "$(printf '%s\n' "${NATIVE_JOBS[@]}" | jq -R . | jq -sc .)" '
     def seconds: (.completed_at | fromdateiso8601) - (.started_at | fromdateiso8601);
     def clock: "\(. / 60 | floor) min \(. % 60) s";
-    .jobs[]? | select(.name | IN($native[])) | . as $job
+    .jobs[]? | select(.name as $n | $native | any(. as $j | $n == $j or ($n | startswith($j + " ")))) | . as $job
     | [(.steps // [])[] | select(.started_at != null and .completed_at != null)] as $steps
     | if ($steps | length) > 0 then
         "", "Step durations: \($job.name)",

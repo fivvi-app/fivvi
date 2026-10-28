@@ -1293,6 +1293,28 @@ describe('E002 #107 pr.sh ship', () => {
     assert.doesNotMatch(out, /Lint/);
   });
 
+  it('#293: prints the step durations of the parts of the native checks (iOS build, iOS tests (nl), Android Maestro), not of other jobs', () => {
+    const part = (name) => ({
+      name,
+      status: 'completed',
+      conclusion: 'success',
+      steps: [
+        {
+          name: `Work of ${name}`,
+          started_at: '2026-10-28T10:00:00Z',
+          completed_at: '2026-10-28T10:07:30Z',
+        },
+      ],
+    });
+    const names = ['iOS build', 'iOS tests (nl)', 'iOS tests (en)', 'Android Maestro', 'Iosa'];
+    const result = ship({ jobs: { jobs: [JOBS.jobs[0], ...names.map(part)] } });
+    assert.equal(result.status, 0, result.stderr);
+    for (const name of names.slice(0, 4))
+      assert.match(result.stdout, new RegExp(`Step durations: ${name.replace(/[()]/g, '\\$&')}`));
+    assert.doesNotMatch(result.stdout, /Step durations: Iosa/);
+    assert.doesNotMatch(result.stdout, /Step durations: Lint/);
+  });
+
   it('E002 #107 AC2: prints the durations also when a step failed, and prints none when no native job ran', () => {
     const failed = ship({ ci: checks(['iOS'], 'fail') });
     assert.match(failed.stdout, /Step durations: iOS/);

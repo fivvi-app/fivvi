@@ -303,9 +303,23 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
   it('E002 #91: the job names stay, and ci.yml has no path list of its own', () => {
     assert.match(ci(), /^ {2}workflow_dispatch:/m);
     assert.doesNotMatch(ci(), /^ +decide /m);
+    const names = [...ci().matchAll(/^ {4}name: (.+)$/gm)].map((match) => match[1]);
+    // The five required checks keep their names (the ruleset names them); #293 added the parts behind iOS and Android.
+    for (const required of ['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android']) {
+      assert.ok(names.includes(required), required);
+    }
     assert.deepEqual(
-      [...ci().matchAll(/^ {4}name: (.+)$/gm)].map((match) => match[1]),
-      ['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android'],
+      names.filter(
+        (name) =>
+          !['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android'].includes(name),
+      ),
+      [
+        'iOS build',
+        'iOS tests (${{ matrix.locale }})',
+        'Android build',
+        'Android tests',
+        'Android Maestro',
+      ],
     );
   });
 
@@ -313,7 +327,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
   // `changed`, with the event and label the workflow would pass; returns what it writes to $GITHUB_OUTPUT.
   // `earlier` are paths changed by a commit before it, in the same group: a merge queue group holds the commits of
   // every queued PR on top of its base commit (the event's base_sha).
-  const detectChanges = ({
+  const detectAll = ({
     event,
     label = false,
     changed = ['docs/product/FEATURES.md'],
@@ -351,6 +365,20 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         mkdirSync(join(repo, dir), { recursive: true });
       writeFileSync(join(repo, 'apps/ios/.keep'), '');
       writeFileSync(join(repo, 'apps/android/.keep'), '');
+      // The workspace scripts/affected.mjs reads: the web app depends on the database, the API on neither.
+      writeFileSync(join(repo, 'pnpm-workspace.yaml'), 'packages:\n  - apps/*\n  - packages/*\n');
+      for (const [dir, json] of Object.entries({
+        'apps/web': {
+          name: '@fivvi/web',
+          scripts: { 'test:e2e': 'x' },
+          dependencies: { '@fivvi/database': 'workspace:*' },
+        },
+        'packages/database': { name: '@fivvi/database', scripts: {} },
+        'packages/other': { name: '@fivvi/other', scripts: {} },
+      })) {
+        mkdirSync(join(repo, dir), { recursive: true });
+        writeFileSync(join(repo, dir, 'package.json'), JSON.stringify(json));
+      }
       git('add', '.');
       git('commit', '--quiet', '-m', 'chore: base');
       if (earlier.length > 0) {
@@ -400,6 +428,63 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       rmSync(repo, { recursive: true, force: true });
     }
   };
+
+  // The native jobs only, as most tests below ask; detectAll also has the Linux E2E decision (#293).
+  const detectChanges = (options) => {
+    const { e2e: _e2e, ...native } = detectAll(options);
+    return native;
+  };
+
+  const e2e = (options) => detectAll(options).e2e;
+
+  it('#293 AC8: the Linux E2E job is skipped for a change the web app does not depend on', () => {
+    for (const changed of [
+      ['docs/product/FEATURES.md'],
+      ['scripts/pr.sh'],
+      ['.github/workflows/ci.yml'],
+      ['packages/other/src/x.ts'],
+      ['apps/ios/App.swift'],
+    ]) {
+      assert.equal(e2e({ event: 'pull_request', changed }), 'false', changed.join());
+    }
+  });
+
+  it('#293 AC8: the Linux E2E job runs for the web app and for a package it depends on', () => {
+    for (const changed of [
+      ['apps/web/src/app/page.tsx'],
+      ['packages/database/src/schema.ts'],
+      ['package.json'],
+      ['pnpm-lock.yaml'],
+    ]) {
+      assert.equal(e2e({ event: 'pull_request', changed }), 'true', changed.join());
+    }
+  });
+
+  it('#293 AC11: a merge group is decided against the base of the group, over every queued commit', () => {
+    assert.equal(e2e({ event: 'merge_group', changed: ['scripts/pr.sh'] }), 'false');
+    assert.equal(e2e({ event: 'merge_group', changed: ['apps/web/src/a.ts'] }), 'true');
+    assert.equal(
+      e2e({
+        event: 'merge_group',
+        earlier: ['packages/database/src/a.ts'],
+        changed: ['scripts/pr.sh'],
+      }),
+      'true',
+      'an earlier queued commit counts',
+    );
+    assert.equal(e2e({ event: 'merge_group', noMergeBase: true }), 'true', 'no base: everything');
+  });
+
+  it('#293 AC12: workflow_dispatch and the run-native label run the Linux E2E job too', () => {
+    assert.equal(e2e({ event: 'workflow_dispatch' }), 'true');
+    assert.equal(e2e({ event: 'pull_request', label: true }), 'true');
+    assert.equal(e2e({ event: 'pull_request' }), 'false');
+  });
+
+  it('#293: a push to main is decided by the commits it adds', () => {
+    assert.equal(e2e({ event: 'push', changed: ['apps/web/src/a.ts'] }), 'true');
+    assert.equal(e2e({ event: 'push', changed: ['docs/product/FEATURES.md'] }), 'false');
+  });
 
   it("E002 #119: a merge group is compared with the queue's base commit, so native jobs skip when no native path changed", () => {
     assert.deepEqual(detectChanges({ event: 'merge_group' }), { ios: 'false', android: 'false' });
@@ -507,79 +592,190 @@ describe('E002 #119 CI on the merge queue (merge_group)', () => {
 
 describe('E002 #91 the native jobs in ci.yml', () => {
   const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
-  const ios = ci.slice(ci.indexOf('\n  ios:\n'), ci.indexOf('\n  android:\n'));
-  const android = ci.slice(ci.indexOf('\n  android:\n'));
+  // The text of one job: from its key to the next job's.
+  const job = (name) => {
+    const start = ci.indexOf(`\n  ${name}:\n`);
+    assert.ok(start >= 0, `job ${name}`);
+    const next = ci.slice(start + 1).search(/\n(?: {2}#[^\n]*\n)* {2}[a-z][a-z0-9-]*:\n/);
+    return next < 0 ? ci.slice(start) : ci.slice(start, start + 1 + next);
+  };
+  const iosBuild = job('ios-build');
+  const iosTests = job('ios-tests');
+  const androidBuild = job('android-build');
+  const androidTests = job('android-tests');
+  const androidMaestro = job('android-maestro');
+  const parts = { iosBuild, iosTests, androidBuild, androidTests, androidMaestro };
 
   it('caches the iOS DerivedData and Swift packages by Package.resolved, Xcode version and runner OS', () => {
-    assert.match(ios, /apps\/ios\/\.build\/DerivedData/);
-    assert.match(ios, /apps\/ios\/\.build\/SourcePackages/);
-    const key = ios.match(/^ +key: (ios-build-.+)$/m)?.[1] ?? '';
+    assert.match(iosBuild, /apps\/ios\/\.build\/DerivedData/);
+    assert.match(iosBuild, /apps\/ios\/\.build\/SourcePackages/);
+    const key = iosBuild.match(/^ +key: (ios-build-.+)$/m)?.[1] ?? '';
     assert.match(key, /runner\.os/);
     assert.match(key, /steps\.xcode\.outputs\.version/);
     assert.match(key, /hashFiles\('apps\/ios\/.*Package\.resolved'\)/);
     assert.match(
-      ios,
+      iosBuild,
       /restore-keys: \|\n +ios-build-\$\{\{ runner\.os \}\}-\$\{\{ steps\.xcode\.outputs\.version \}\}-\n/,
     );
   });
 
-  it('runs the iOS tests through scripts/test-ios.sh and uploads the result bundles on failure', () => {
-    assert.match(ios, /run: scripts\/test-ios\.sh/);
-    assert.match(ios, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/TestResults-\*\.xcresult/);
-  });
-
-  it('E002 #242: the iOS job runs on macos-15 with an Xcode that image has, and says why in a comment', () => {
-    assert.match(ios, /^ {4}runs-on: macos-15$/m);
-    assert.match(ios, /\n {4}# [^\n]*macos-15[^\n]*\n(?: {4}#[^\n]*\n)* {4}runs-on: macos-15/);
-    // The Xcode must be one the image installs (macos-15: 16.x and 26.0.1 to 26.3).
+  it('#293 AC15: restores the sources modification times before the build and records them after it, in the cache', () => {
     assert.match(
-      ios,
-      /DEVELOPER_DIR: \/Applications\/Xcode_(?:26\.(?:0\.1|1\.1|2|3)|16\.[0-4])\.app\/Contents\/Developer/,
+      iosBuild,
+      /apps\/ios\/\.build\/source-mtimes\.json/,
+      'the manifest is in the cache',
+    );
+    const order = [
+      'node scripts/ios-mtimes.mjs restore',
+      'run: scripts/test-ios.sh build',
+      'node scripts/ios-mtimes.mjs save',
+    ].map((text) => iosBuild.indexOf(text));
+    assert.ok(
+      order.every((index) => index > 0),
+      order.join(),
+    );
+    assert.deepEqual(
+      order,
+      [...order].sort((x, y) => x - y),
     );
   });
 
-  it('E002 #242: on a pull request the iOS UI tests run in nl only; the merge queue and a manual run run nl and en', () => {
-    const step = ios.slice(
-      ios.indexOf('run: scripts/test-ios.sh') - 300,
-      ios.indexOf('run: scripts/test-ios.sh'),
+  it('#293 AC14: the iOS build job builds once and uploads the test bundle; two test jobs run nl and en from it', () => {
+    assert.match(iosBuild, /run: scripts\/test-ios\.sh build\n/);
+    assert.match(
+      iosBuild,
+      /uses: actions\/upload-artifact@[^\n]*\n +with:\n +name: ios-test-bundle\n +path: apps\/ios\/\.build\/ios-test-bundle\.tar\n/,
     );
-    const value = step.match(/^ +IOS_UI_LOCALES: \$\{\{ (.+) \}\}$/m)?.[1];
-    assert.equal(value, "github.event_name == 'pull_request' && 'nl' || 'nl en'");
-    // Nothing else in the workflow sets it: merge_group and workflow_dispatch get the script's default (both).
-    assert.equal(ci.match(/^ +IOS_UI_LOCALES:/gm).length, 1);
+    assert.match(iosBuild, /include-hidden-files: true/);
+    assert.match(iosTests, /needs: ios-build\n/);
+    assert.match(iosTests, /matrix:\n +locale: \[nl, en\]/);
+    assert.match(iosTests, /fail-fast: false/);
+    assert.match(
+      iosTests,
+      /uses: actions\/download-artifact@[^\n]*\n +with:\n +name: ios-test-bundle\n +path: apps\/ios\/\.build\n/,
+    );
+    assert.match(iosTests, /run: scripts\/test-ios\.sh test \$\{\{ matrix\.locale \}\}\n/);
+    assert.doesNotMatch(
+      iosTests,
+      /test-ios\.sh build|xcodebuild build/,
+      'the test jobs do not build',
+    );
+    assert.match(iosTests, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/TestResults-\*\.xcresult/);
+    assert.match(iosBuild, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/build-for-testing\.log/);
+  });
+
+  it('E002 #242: the iOS jobs run on macos-15 with an Xcode that image has, and say why in a comment', () => {
+    for (const section of [iosBuild, iosTests]) {
+      assert.match(section, /^ {4}runs-on: macos-15$/m);
+      // The Xcode must be one the image installs (macos-15: 16.x and 26.0.1 to 26.3).
+      assert.match(
+        section,
+        /DEVELOPER_DIR: \/Applications\/Xcode_(?:26\.(?:0\.1|1\.1|2|3)|16\.[0-4])\.app\/Contents\/Developer/,
+      );
+    }
+    assert.match(ci, /\n {2}# [^\n]*macos-15[^\n]*\n(?: {2}#[^\n]*\n)* {2}ios-build:/);
+  });
+
+  it('#293: the iOS UI tests run in both languages on every push: nothing narrows them to one', () => {
+    assert.doesNotMatch(ci, /IOS_UI_LOCALES/);
+  });
+
+  it('#293 AC16: Android build uploads the debug app, Maestro downloads it and runs the flows in a job of its own', () => {
+    assert.match(androidBuild, /run: scripts\/android\.sh build\n/);
+    assert.match(androidBuild, /run: scripts\/android\.sh maestro-apk\n/);
+    assert.match(
+      androidBuild,
+      /uses: actions\/upload-artifact@[^\n]*\n +with:\n +name: android-maestro-apk\n +path: apps\/android\/build\/maestro\/app-debug\.apk\n/,
+    );
+    assert.match(androidMaestro, /needs: \[changes, android-build\]/);
+    assert.match(
+      androidMaestro,
+      /uses: actions\/download-artifact@[^\n]*\n +with:\n +name: android-maestro-apk\n +path: apps\/android\/build\/maestro\n/,
+    );
+    assert.match(androidMaestro, /run: scripts\/maestro\.sh android --apk\n/);
+    assert.doesNotMatch(androidMaestro, /gradle|test:maestro|android\.sh (build|verify|test)/i);
+    assert.match(androidTests, /run: scripts\/android\.sh verify\n/);
+    assert.doesNotMatch(androidTests, /maestro\.sh|test:maestro/);
+    // The tests job does not wait for the build: it runs next to it and builds what it tests.
+    assert.match(androidTests, /needs: changes\n/);
+  });
+
+  it('#293: the debug app and the Maestro web server agree on the port the app has baked in', () => {
+    const port = (section) => section.match(/^ {6}E2E_PORT: '(\d+)'$/m)?.[1];
+    assert.ok(port(androidBuild), 'Android build sets E2E_PORT');
+    assert.equal(port(androidMaestro), port(androidBuild));
   });
 
   it('caches the AVD with its snapshot, boots with snapshots on and stops the emulator before the cache is saved', () => {
-    assert.match(android, /android\.sh avd-key/);
-    assert.match(
-      android,
-      /path: ~\/\.android\/avd\n +key: avd-v2-\$\{\{ runner\.os \}\}-\$\{\{ steps\.avd\.outputs\.key \}\}/,
-    );
-    const boot = android.slice(android.indexOf('name: Boot the emulator'));
-    assert.match(boot.slice(0, boot.indexOf('- name:', 10)), /AVD_SNAPSHOT: '1'/);
-    const order = [
-      'name: Cache the emulator',
-      'name: Boot the emulator',
-      'name: Stop the emulator',
-    ].map((name) => android.indexOf(name));
-    assert.deepEqual(
-      order,
-      [...order].sort((a, b) => a - b),
-    );
-    assert.ok(order.every((index) => index > 0));
-    assert.match(
-      android,
-      /name: Stop the emulator\n +if: always\(\)\n +run: scripts\/android\.sh stop\n/,
-    );
+    for (const android of [androidTests, androidMaestro]) {
+      assert.match(android, /android\.sh avd-key/);
+      assert.match(
+        android,
+        /path: ~\/\.android\/avd\n +key: avd-v2-\$\{\{ runner\.os \}\}-\$\{\{ steps\.avd\.outputs\.key \}\}/,
+      );
+      const boot = android.slice(android.indexOf('name: Boot the emulator'));
+      assert.match(boot.slice(0, boot.indexOf('- name:', 10)), /AVD_SNAPSHOT: '1'/);
+      const order = [
+        'name: Cache the emulator',
+        'name: Boot the emulator',
+        'name: Stop the emulator',
+      ].map((name) => android.indexOf(name));
+      assert.deepEqual(
+        order,
+        [...order].sort((a, b) => a - b),
+      );
+      assert.ok(order.every((index) => index > 0));
+      assert.match(
+        android,
+        /name: Stop the emulator\n +if: always\(\)\n +run: scripts\/android\.sh stop\n/,
+      );
+    }
   });
 
-  it('prints the step durations of both native jobs in the job summary', () => {
-    for (const section of [ios, android]) {
-      assert.match(section, /actions: read/);
+  it('prints the step durations of every native part in the job summary', () => {
+    for (const [name, section] of Object.entries(parts)) {
+      assert.match(section, /actions: read/, name);
       assert.match(
         section,
         /if: always\(\)\n +continue-on-error: true\n +env:\n +GH_TOKEN: \$\{\{ github\.token \}\}\n +run: scripts\/step-timings\.sh/,
+        name,
       );
+    }
+  });
+
+  it('#293 AC17: the required checks iOS and Android are gates that need their parts and report the combined result', () => {
+    for (const [gate, native, needs] of [
+      ['ios', 'ios', '[changes, ios-build, ios-tests]'],
+      ['android', 'android', '[changes, android-build, android-tests, android-maestro]'],
+    ]) {
+      const section = job(gate);
+      const name = native === 'ios' ? 'iOS' : 'Android';
+      assert.match(section, new RegExp(`^ {4}name: ${name}$`, 'm'));
+      assert.ok(section.includes(`needs: ${needs}`), `${gate} needs ${needs}`);
+      // Skipped when the native decision says skip (a skipped required check passes); run, whatever the parts did, otherwise.
+      assert.ok(
+        section.includes(`if: always() && needs.changes.outputs.${native} == 'true'`),
+        `${gate} runs after its parts, also when one failed`,
+      );
+      assert.match(section, /RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}/);
+      assert.match(section, new RegExp(`run: scripts/native-gate\\.sh ${name} true \\$RESULTS\n`));
+    }
+  });
+
+  it('#293 AC8: the E2E job needs the decision of Detect changes and is skipped without it', () => {
+    const e2e = job('e2e');
+    assert.match(e2e, /^ {4}name: E2E \(Linux\)$/m);
+    assert.match(e2e, /^ {4}needs: changes$/m);
+    assert.match(e2e, /^ {4}if: needs\.changes\.outputs\.e2e == 'true'$/m);
+    assert.match(job('changes'), /e2e: \$\{\{ steps\.filter\.outputs\.e2e \}\}/);
+  });
+
+  it('every native part waits for the decision of Detect changes', () => {
+    for (const [name, section] of Object.entries(parts)) {
+      assert.match(section, /needs: (changes|ios-build|\[changes, android-build\])\n/, name);
+    }
+    for (const section of [iosBuild, androidBuild, androidTests, androidMaestro]) {
+      assert.match(section, /if: needs\.changes\.outputs\.(ios|android) == 'true'/);
     }
   });
 });
@@ -626,10 +822,14 @@ describe('E002 #290 upload-artifact skips hidden folders unless include-hidden-f
       upload.paths.includes('apps/ios/.build/TestResults-*.xcresult'),
     );
     assert.deepEqual(ios.map((upload) => upload.file).sort(), ['ci.yml', 'release.yml']);
-    for (const upload of ios) {
-      assert.ok(upload.paths.includes('apps/ios/.build/build-for-testing.log'), upload.file);
+    for (const upload of ios)
       assert.match(upload.step, /^ +include-hidden-files: true$/m, upload.file);
-    }
+    // release.yml uploads the build log with the results; ci.yml has its build job upload it, and the test bundle (#293).
+    const release = ios.find((upload) => upload.file === 'release.yml');
+    assert.ok(release.paths.includes('apps/ios/.build/build-for-testing.log'));
+    const ci = uploads.filter((upload) => upload.file === 'ci.yml');
+    assert.ok(ci.some((upload) => upload.paths.includes('apps/ios/.build/build-for-testing.log')));
+    assert.ok(ci.some((upload) => upload.paths.includes('apps/ios/.build/ios-test-bundle.tar')));
   });
 
   it('the rule sees a hidden folder, and not a plain one, a dot in a name or ..', () => {
