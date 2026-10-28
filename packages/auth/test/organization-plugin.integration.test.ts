@@ -519,7 +519,9 @@ describe('F002 does Better Auth’s organization plugin fit E011’s tables?', (
 
       expect(viaPlugin).toContain('row-level security');
       expect(viaSql).toContain('row-level security');
-      expect(await rows(sql`select slug from organizations where slug in ('new-plugin', 'new-sql')`)).toEqual([]);
+      expect(
+        await rows(sql`select slug from organizations where slug in ('new-plugin', 'new-sql')`),
+      ).toEqual([]);
     });
 
     it('create works with an id chosen up front for the whole instance and a hook that hands it to the plugin', async () => {
