@@ -70,6 +70,8 @@ describe('risk of a pull request', () => {
     legal: ['docs/legal/privacy-policy.nl.md'],
     billing: ['packages/domain/src/billing/plan.ts', 'apps/web/src/payments/checkout.tsx'],
     'product-docs': ['docs/product/FEATURES.md', 'docs/decisions/ADR-016-agent-merges.md'],
+    // Core, owner-only (spec #292): the rules agents work by, the agent definitions, hooks, CI and the files that
+    // decide risk, the merge gate, phases and labels (ADR-021: agents never loosen their own rules).
     guardrails: [
       'AGENTS.md',
       'CLAUDE.md',
@@ -83,17 +85,51 @@ describe('risk of a pull request', () => {
       '.agents/agents/builder.md',
       '.claude/agents/builder.md',
       '.github/agents/builder.agent.md',
-      'scripts/agents.sh',
-      'scripts/codex-agent.sh',
-      'scripts/high-risk-paths.txt',
-      // The rules agents work by and the files that define the checks (ADR-021: agents never loosen their own rules).
       'docs/agents/build.md',
       'docs/agents/issue-tracker.md',
       'docs/agents/triage-labels.md',
       'docs/engineering/WORKFLOW.md',
       'apps/AGENTS.md',
       'packages/api/CLAUDE.md',
+      // The scripts that decide risk, gates, phases, labels, issues, PRs, checks, agent definitions, GitHub settings
+      // and allowlists, with their tests: everything in scripts/ that is not a tooling script below.
+      'scripts/agents.sh',
+      'scripts/codex-agent.sh',
+      'scripts/high-risk-paths.txt',
+      'scripts/risk.jq',
+      'scripts/risk.sh',
+      'scripts/status-only.jq',
+      'scripts/merge-gate.jq',
+      'scripts/flow-phase.jq',
+      'scripts/records.jq',
+      'scripts/pr.sh',
+      'scripts/flow.sh',
+      'scripts/issue.sh',
+      'scripts/check.sh',
+      'scripts/github-settings.sh',
+      'scripts/email-allowlist.txt',
+      'scripts/secrets-allowlist.txt',
+      'scripts/secret-files-allowlist.txt',
+      'scripts/native-jobs.sh',
+      'scripts/_lib.sh',
+      'scripts/new-script-nobody-listed.sh',
+      'scripts/test/risk.test.mjs',
+      'scripts/test/pr.test.mjs',
+      'scripts/test/fake-gh.mjs',
+      // What chooses which checks run: the root package.json (also a dependency), turbo.json at every depth.
       'turbo.json',
+      'packages/contract/turbo.json',
+      // The files that skip tests: Xcode test plans and schemes, and the iOS skip list.
+      'apps/ios/FivviPro.xctestplan',
+      'apps/ios/Other/Deep.xctestplan',
+      'FivviPro.xctestplan',
+      'apps/ios/FivviProUITests/Support/TestPlanSkips.swift',
+      'apps/ios/FivviPro.xcodeproj/xcshareddata/xcschemes/FivviPro.xcscheme',
+      'apps/ios/Other.xcscheme',
+    ],
+    // Tooling, agent-queueable (spec #292): configs and checks that agents change with their feature work.
+    tooling: [
+      // The rules agents work by and the files that define the checks (ADR-021: agents never loosen their own rules).
       'biome.json',
       '.shellcheckrc',
       // Check-defining files at any depth or in their own folder: a nested biome.json loads the i18n lint rule.
@@ -107,7 +143,6 @@ describe('risk of a pull request', () => {
       // The rest of what defines a check: a nested turbo.json overrides inputs, the shared vitest preset, the
       // integration configs, the Playwright config, the CLIs that pick the checks, the native lint rules, every
       // tsconfig.
-      'packages/contract/turbo.json',
       'apps/web/vitest.integration.config.ts',
       'packages/testing/vitest.integration.config.ts',
       'packages/testing/src/vitest.ts',
@@ -129,10 +164,6 @@ describe('risk of a pull request', () => {
       // rules, the Android lint wiring and the global setup of a test folder.
       'packages/i18n/src/tools/checks.ts',
       'packages/i18n/src/tools/icu.ts',
-      'apps/ios/FivviPro.xctestplan',
-      'apps/ios/Other/Deep.xctestplan',
-      'FivviPro.xctestplan',
-      'apps/ios/FivviProUITests/Support/TestPlanSkips.swift',
       'packages/contract/scripts/check.ts',
       'packages/design-tokens/src/check.ts',
       'packages/design-tokens/src/cli.ts',
@@ -146,13 +177,30 @@ describe('risk of a pull request', () => {
       'apps/android/app/build.gradle.kts',
       'apps/android/settings.gradle.kts',
       'e2e/maestro/config.yaml',
-      'apps/ios/FivviPro.xcodeproj/xcshareddata/xcschemes/FivviPro.xcscheme',
-      'apps/ios/Other.xcscheme',
       '.editorconfig',
       'apps/android/.editorconfig',
       'apps/web/test/global-setup.ts',
       'packages/api/test/global-setup.ts',
       'packages/testing/test/global-setup.ts',
+      // The native, release and asset helper scripts in scripts/ and their tests (carved out of the core /scripts
+      // rule by @except lines in the risk list).
+      'scripts/release.sh',
+      'scripts/release-ios.sh',
+      'scripts/release-android.sh',
+      'scripts/release-secrets.sh',
+      'scripts/play-publish.mjs',
+      'scripts/app-icon.mjs',
+      'scripts/_ios.sh',
+      'scripts/_android.sh',
+      'scripts/android.sh',
+      'scripts/ios-device.sh',
+      'scripts/maestro.sh',
+      'scripts/test-ios.sh',
+      'scripts/test/release.test.mjs',
+      'scripts/test/release-android.test.mjs',
+      'scripts/test/release-secrets.test.mjs',
+      'scripts/test/app-icon.test.mjs',
+      'scripts/test/app-ids.test.mjs',
     ],
     dependencies: [
       'apps/web/package.json',
@@ -172,8 +220,16 @@ describe('risk of a pull request', () => {
     infrastructure: ['Dockerfile', 'apps/cron/Dockerfile.cron', '.railway/railway.ts'],
   };
 
-  // ADR-021: these groups are agent-queueable ("high"); every other group is owner-only ("owner").
-  const AGENT_QUEUE = ['auth', 'tenant-data', 'health-notes', 'dependencies', 'infrastructure'];
+  // ADR-021, spec #292: these groups are agent-queueable ("high"); every other group is owner-only ("owner").
+  const AGENT_QUEUE = [
+    'auth',
+    'tenant-data',
+    'health-notes',
+    'dependencies',
+    'infrastructure',
+    'billing',
+    'tooling',
+  ];
 
   for (const [group, files] of Object.entries(groups)) {
     const level = AGENT_QUEUE.includes(group) ? 'high' : 'owner';
@@ -323,7 +379,9 @@ describe('risk of a pull request', () => {
       'scripts/auth-check.sh': ['auth', 'guardrails'],
       'docs/legal/release-notes.md': ['health-notes', 'legal'],
       '.agents/skills/notes/SKILL.md': ['health-notes', 'guardrails'],
-      'packages/database/src/billing.ts': ['tenant-data', 'billing'],
+      'docs/legal/billing-terms.md': ['legal', 'billing'],
+      'docs/product/payments-plan.md': ['product-docs', 'billing'],
+      '.github/workflows/billing.yml': ['guardrails', 'billing'],
     };
     for (const [file, groups] of Object.entries(overlaps)) {
       const result = pr([file]);
@@ -335,6 +393,48 @@ describe('risk of a pull request', () => {
           `${file}: ${group}`,
         );
       }
+    }
+  });
+
+  it('spec #292: the Dockerfile check is tooling, and infrastructure too by its name: high', () => {
+    const result = pr(['scripts/test/dockerfile.test.mjs']);
+    assert.equal(result.risk, 'high');
+    assert.equal(result.reasons.length, 2);
+  });
+
+  it('spec #292: a new script in scripts/ is core until the list moves it: owner-only', () => {
+    for (const file of [
+      'scripts/new-helper.sh',
+      'scripts/release.mjs',
+      'scripts/test/new-helper.test.mjs',
+    ]) {
+      assert.deepEqual(
+        pr([file]),
+        { risk: 'owner', reasons: [`${file}: guardrails (/scripts)`] },
+        file,
+      );
+    }
+    assert.deepEqual(pr(['scripts/release-ios.sh']), {
+      risk: 'high',
+      reasons: ['scripts/release-ios.sh: tooling (/scripts/release*.sh)'],
+    });
+  });
+
+  it('spec #292: billing and tooling are agent-queueable together with the other agent-queueable groups', () => {
+    const result = pr([
+      'packages/domain/src/billing/plan.ts',
+      'apps/web/vitest.config.ts',
+      'Dockerfile',
+    ]);
+    assert.equal(result.risk, 'high');
+    assert.equal(result.reasons.length, 3);
+  });
+
+  it('spec #292: a core path next to tooling or billing paths makes the PR owner-only', () => {
+    for (const core of ['scripts/pr.sh', 'docs/legal/dpa.md', 'AGENTS.md']) {
+      const result = pr(['apps/web/vitest.config.ts', 'apps/web/src/payments/checkout.tsx', core]);
+      assert.equal(result.risk, 'owner', core);
+      assert.equal(result.reasons.length, 3, core);
     }
   });
 
@@ -407,6 +507,99 @@ describe('risk of a pull request', () => {
 
   it('is low without a linked issue when no path is high-risk', () => {
     assert.equal(pr(['apps/web/page.tsx'], []).risk, 'low');
+  });
+});
+
+describe('spec #292: status-only changes to ROADMAP.md and FEATURES.md', () => {
+  const ROADMAP = 'docs/product/ROADMAP.md';
+  const FEATURES = 'docs/product/FEATURES.md';
+  const tick = '@@ -5,4 +5,4 @@\n \n - **Owner setup:**\n-  - [ ] Set it\n+  - [x] Set it\n ';
+  const forward = [
+    '@@ -3,3 +3,3 @@',
+    ' | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |',
+    ' |---|---|---|---|---|---|---|---|---|',
+    '-| F002 | Workspaces | PLANNED | Must | M2 | F001 | ⬜ | ⬜ | §5 |',
+    '+| F002 | Workspaces | IN PROGRESS | Must | M2 | F001 | ⬜ | ⬜ | §5 |',
+  ].join('\n');
+  const wording = '@@ -5,3 +5,3 @@\n \n-Goal: a.\n+Goal: b.\n ';
+  const withPatches = (files, patches) => classify({ files, issues: [ticket()], patches });
+
+  it('AC1: drops the product-docs reason of a ROADMAP.md that only ticks boxes', () => {
+    assert.deepEqual(withPatches([ROADMAP], { [ROADMAP]: tick }), { risk: 'low', reasons: [] });
+  });
+
+  it('AC3: drops the product-docs reason of a FEATURES.md that only moves a status forward', () => {
+    assert.deepEqual(withPatches([FEATURES], { [FEATURES]: forward }), {
+      risk: 'low',
+      reasons: [],
+    });
+  });
+
+  it('AC2, AC4: keeps it owner-only for any other change to either file', () => {
+    for (const [file, patch] of [
+      [ROADMAP, wording],
+      [
+        ROADMAP,
+        tick.replace('-  - [ ] Set it\n+  - [x] Set it', '-  - [x] Set it\n+  - [ ] Set it'),
+      ],
+      [FEATURES, forward.replace('IN PROGRESS | Must', 'IN PROGRESS | Should')],
+      [FEATURES, wording],
+      // A tick in the wrong file is not status-only there.
+      [FEATURES, tick],
+    ]) {
+      const result = withPatches([file], { [file]: patch });
+      assert.equal(result.risk, 'owner', file);
+      assert.deepEqual(result.reasons, [`${file}: product-docs (/docs/product)`], file);
+    }
+  });
+
+  it('AC5: fails closed when the patch is missing, empty, null or truncated', () => {
+    for (const patches of [
+      undefined,
+      {},
+      { [ROADMAP]: null },
+      { [ROADMAP]: '' },
+      { [ROADMAP]: tick.split('\n').slice(0, -2).join('\n') },
+      { 'docs/product/OTHER.md': tick },
+    ]) {
+      const result = withPatches([ROADMAP], patches);
+      assert.equal(result.risk, 'owner', JSON.stringify(patches));
+    }
+  });
+
+  it('only the two files qualify: PRODUCT.md and decisions stay owner-only whatever the patches say', () => {
+    for (const file of [
+      'docs/product/PRODUCT.md',
+      'docs/decisions/ADR-021-agents-queue-high-risk.md',
+    ]) {
+      assert.equal(withPatches([file], { [file]: tick }).risk, 'owner', file);
+    }
+  });
+
+  it('every other path of the PR still decides its own risk', () => {
+    const ticked = { [ROADMAP]: tick, [FEATURES]: forward };
+    assert.deepEqual(withPatches([ROADMAP, FEATURES, 'scripts/pr.sh'], ticked), {
+      risk: 'owner',
+      reasons: ['scripts/pr.sh: guardrails (/scripts)'],
+    });
+    assert.deepEqual(withPatches([ROADMAP, 'apps/web/vitest.config.ts'], ticked), {
+      risk: 'high',
+      reasons: ['apps/web/vitest.config.ts: tooling (vitest*.config.*)'],
+    });
+    // One status-only file and one that is not: only the second keeps its reason.
+    assert.deepEqual(withPatches([ROADMAP, FEATURES], { [ROADMAP]: tick, [FEATURES]: wording }), {
+      risk: 'owner',
+      reasons: [`${FEATURES}: product-docs (/docs/product)`],
+    });
+  });
+
+  it('the labels of the ticket and its spec still count', () => {
+    const labelled = classify({
+      files: [ROADMAP],
+      issues: [ticket({ labels: ['owner-only'] })],
+      patches: { [ROADMAP]: tick },
+    });
+    assert.deepEqual(labelled, { risk: 'owner', reasons: ['#57 is labelled owner-only'] });
   });
 });
 
@@ -488,6 +681,68 @@ describe('risk.sh', () => {
     });
   });
 
+  describe('spec #292: reads the patch of ROADMAP.md and FEATURES.md from the files API', () => {
+    const tick = '@@ -5,4 +5,4 @@\n \n - **Owner setup:**\n-  - [ ] Set it\n+  - [x] Set it\n ';
+    const changed = (filename, patch, extra = {}) => ({
+      filename,
+      status: 'modified',
+      patch,
+      ...extra,
+    });
+    const verdict = (files) => JSON.parse(run(github({ files }), '60', '--json').stdout);
+
+    it('AC1: a PR that only ticks a roadmap box is low', () => {
+      assert.deepEqual(verdict([changed('docs/product/ROADMAP.md', tick)]), {
+        risk: 'low',
+        reasons: [],
+      });
+    });
+
+    it('AC2: a roadmap change that is more than a tick stays owner-only', () => {
+      const wording = '@@ -5,3 +5,3 @@\n \n-Goal: a.\n+Goal: b.\n ';
+      assert.deepEqual(verdict([changed('docs/product/ROADMAP.md', wording)]), {
+        risk: 'owner',
+        reasons: ['docs/product/ROADMAP.md: product-docs (/docs/product)'],
+      });
+    });
+
+    it('AC5: the files API leaves the patch out of a large diff: owner-only', () => {
+      for (const file of [
+        { filename: 'docs/product/ROADMAP.md', status: 'modified' },
+        changed('docs/product/ROADMAP.md', tick.split('\n').slice(0, -2).join('\n')),
+        changed('docs/product/FEATURES.md', ''),
+      ]) {
+        assert.equal(verdict([file]).risk, 'owner', JSON.stringify(file));
+      }
+    });
+
+    it('a renamed, added or removed file is not a status change, whatever its patch', () => {
+      for (const status of ['added', 'removed', 'renamed']) {
+        const file = changed('docs/product/ROADMAP.md', tick, { status });
+        assert.equal(verdict([file]).risk, 'owner', status);
+      }
+      // The old path of a rename counts too: it carries no patch of its own.
+      const moved = verdict([
+        changed('docs/ROADMAP.md', tick, {
+          status: 'renamed',
+          previous_filename: 'docs/product/ROADMAP.md',
+        }),
+      ]);
+      assert.equal(moved.risk, 'owner');
+      assert.deepEqual(moved.reasons, ['docs/product/ROADMAP.md: product-docs (/docs/product)']);
+    });
+
+    it('keeps the other paths of the PR deciding their own risk', () => {
+      assert.deepEqual(
+        verdict([changed('docs/product/ROADMAP.md', tick), { filename: 'scripts/pr.sh' }]),
+        {
+          risk: 'owner',
+          reasons: ['scripts/pr.sh: guardrails (/scripts)'],
+        },
+      );
+    });
+  });
+
   it('prints low for a PR without high-risk paths or labels', () => {
     const result = run(github({ files: [{ filename: 'apps/web/page.tsx' }] }), '60');
     assert.equal(result.stdout, 'low\n');
@@ -536,10 +791,12 @@ describe('high-risk paths', () => {
     const declared = [...text.matchAll(/^@agent-queue\s+(\S+)\s*(#.*)?$/gm)].map((m) => m[1]);
     assert.deepEqual(declared.sort(), [
       'auth',
+      'billing',
       'dependencies',
       'health-notes',
       'infrastructure',
       'tenant-data',
+      'tooling',
     ]);
     const ruled = new Set([...text.matchAll(/^([a-z][a-z-]*)\s+\S+\s*(#.*)?$/gm)].map((m) => m[1]));
     for (const group of declared) assert.ok(ruled.has(group), `${group} has a path rule`);
@@ -564,6 +821,60 @@ describe('high-risk paths', () => {
       assert.notEqual(result.status, 0, line);
       assert.match(result.stderr, /malformed rule/, line);
     }
+  });
+
+  it('spec #292: the core groups are not declared @agent-queue', () => {
+    const text = readFileSync(join(SCRIPTS, 'high-risk-paths.txt'), 'utf8');
+    for (const group of ['guardrails', 'legal', 'product-docs']) {
+      assert.doesNotMatch(text, new RegExp(`^@agent-queue\\s+${group}\\b`, 'm'), group);
+    }
+  });
+
+  it('spec #292: the header says the @agent-queue lines end at pilot setup, and the billing line earlier with a live key', () => {
+    const text = readFileSync(join(SCRIPTS, 'high-risk-paths.txt'), 'utf8');
+    const header = text.slice(0, text.indexOf('@agent-queue auth'));
+    assert.match(header, /end at pilot setup/);
+    assert.match(header, /billing/);
+    assert.match(header, /live payment-provider key/);
+    assert.doesNotMatch(header, /end at Gate G2/);
+  });
+
+  it('spec #292: @except removes the files it matches from the rules of one group only', () => {
+    const rules = [
+      '@agent-queue tooling',
+      'core /scripts',
+      '@except core /scripts/release*.sh',
+      'tooling /scripts/release*.sh',
+      'core *.sh',
+    ].join('\n');
+    const result = JSON.parse(decide(rules, ['scripts/release-ios.sh']).stdout);
+    // Carved out of /scripts, but still matched by the other core rule `*.sh`: the carve-out applies to no rule
+    // after it either, so the whole group is skipped for the file.
+    assert.deepEqual(result, {
+      risk: 'high',
+      reasons: ['scripts/release-ios.sh: tooling (/scripts/release*.sh)'],
+    });
+    assert.equal(JSON.parse(decide(rules, ['scripts/pr.sh']).stdout).risk, 'owner');
+    assert.equal(JSON.parse(decide(rules, ['scripts/release-ios.md']).stdout).risk, 'owner');
+  });
+
+  it('spec #292: a path carved out of a group and matched by no other rule is low', () => {
+    const rules = 'core /scripts\n@except core /scripts/free.sh\n';
+    assert.equal(JSON.parse(decide(rules, ['scripts/free.sh']).stdout).risk, 'low');
+  });
+
+  it('spec #292: an @except line that is not exactly the directive, a group and a pattern is an error', () => {
+    for (const line of ['@except', '@except core', '@except core a b', '@except @core a']) {
+      const result = decide(`${line}\ncore /scripts\n`);
+      assert.notEqual(result.status, 0, line);
+      assert.match(result.stderr, /malformed rule/, line);
+    }
+  });
+
+  it('spec #292: an @except for a group with no path rule is an error (fail closed)', () => {
+    const result = decide('@except ghost /x\ncore /scripts\n');
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /@except group 'ghost' has no path rule/);
   });
 
   it('is an error when a rule line does not have exactly a group and a pattern', () => {

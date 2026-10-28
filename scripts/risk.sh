@@ -30,15 +30,20 @@ issue_facts() {
   jq --argjson parent "$parent" '.parent = $parent' <<<"$item" || die "could not read issue #$1"
 }
 
-# The PR's facts as the input of risk.jq: every path it touches (both sides of a rename) and its issues' labels.
+# The PR's facts as the input of risk.jq: every path it touches (both sides of a rename), its issues' labels and the
+# patch of each modified file under docs/product/ (risk.jq tells a status-only ROADMAP.md or FEATURES.md from the
+# patch; a file with no patch here, a large diff, a rename, an added or removed file, stays owner-only).
 # The files API lists at most 3000 files, so the count read must be the PR's changedFiles: a file left out could be
 # high-risk.
 risk_facts() {
-  local pr="$1" entries files listed changed view numbers issues="[]" n item
-  entries="$(gh api "repos/$REPO/pulls/$pr/files" --paginate --jq '.[] | {filename, previous_filename}')" \
+  local pr="$1" entries files patches listed changed view numbers issues="[]" n item
+  entries="$(gh api "repos/$REPO/pulls/$pr/files" --paginate --jq '.[] | {filename, previous_filename, status,
+      patch: (if (.filename | startswith("docs/product/")) then .patch else null end)}')" \
     || die "could not read the files of PR #$pr"
   files="$(jq -s '[.[] | .filename, (.previous_filename // empty)] | unique' <<<"$entries")" \
     || die "could not read the files of PR #$pr"
+  patches="$(jq -s '[.[] | select(.status == "modified" and .patch != null) | {key: .filename, value: .patch}]
+    | from_entries' <<<"$entries")" || die "could not read the files of PR #$pr"
   listed="$(jq -s length <<<"$entries")" || die "could not read the files of PR #$pr"
   view="$(gh pr view "$pr" --repo "$REPO" --json headRefName,closingIssuesReferences,changedFiles)" \
     || die "could not read the issues of PR #$pr"
@@ -51,7 +56,8 @@ risk_facts() {
     item="$(issue_facts "$n")" || exit 1
     issues="$(jq --argjson i "$item" '. + [$i]' <<<"$issues")" || die "could not read issue #$n"
   done
-  jq -n --argjson files "$files" --argjson issues "$issues" '{files: $files, issues: $issues}'
+  jq -n --argjson files "$files" --argjson issues "$issues" --argjson patches "$patches" \
+    '{files: $files, issues: $issues, patches: $patches}'
 }
 
 pr="" json=false

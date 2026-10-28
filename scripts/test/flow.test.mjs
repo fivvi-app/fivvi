@@ -223,6 +223,27 @@ describe('flow.sh next', () => {
                 mergedAt: secondsAgo(7 * 86400 + 1),
               },
               {
+                // Spec #292: tooling and billing PRs are agent-queueable too; the owner reads them like any other.
+                number: 89,
+                title: '[F001] Vitest config for a new package',
+                body: agentMerge(
+                  'e'.repeat(40),
+                  'packages/auth/vitest.config.ts: tooling (vitest*.config.*)',
+                ),
+                headRefOid: 'e'.repeat(40),
+                mergedAt: daysAgo(0.04),
+              },
+              {
+                number: 90,
+                title: '[F001] Payment link in test mode',
+                body: agentMerge(
+                  '6'.repeat(40),
+                  'packages/domain/src/billing/plan.ts: billing (*billing*); apps/web/src/payments/checkout.tsx: billing (*payment*)',
+                ),
+                headRefOid: '6'.repeat(40),
+                mergedAt: daysAgo(0.5),
+              },
+              {
                 // No head commit read: it can't be matched, so it is not listed.
                 number: 88,
                 title: '[F001] No head commit',
@@ -285,7 +306,9 @@ describe('flow.sh next', () => {
       read,
       [
         '== For the owner to read',
+        'PR #89 [F001] Vitest config for a new package (merged by an agent; high-risk: packages/auth/vitest.config.ts: tooling (vitest*.config.*))',
         'PR #85 [F001] Merged without a queue record (merged by an agent; high-risk: package.json: dependencies (package.json))',
+        'PR #90 [F001] Payment link in test mode (merged by an agent; high-risk: packages/domain/src/billing/plan.ts: billing (*billing*); apps/web/src/payments/checkout.tsx: billing (*payment*))',
         'PR #83 [F001] Two reasons (merged by an agent; high-risk: package.json: dependencies (package.json); Dockerfile: infrastructure (Dockerfile*))',
         'PR #80 [F001] Verification rules (merged by an agent; high-risk: packages/database/migrations/0004.sql: tenant-data (/packages/database))',
         'PR #86 [F001] Seven days (merged by an agent; high-risk: Dockerfile: infrastructure (Dockerfile*))',
