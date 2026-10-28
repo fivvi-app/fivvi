@@ -179,6 +179,14 @@ slowest_tests() {
     | "| \(.id) | \(.seconds * 10 | round / 10) |"' 2>/dev/null || true
 }
 
+# The failed tests of the result bundle $1 as `<test>: <message>` lines (a message on one line), each once. Nothing when
+# the bundle can't be read: a report never changes the run's exit code (#290).
+failed_tests() {
+  xcrun xcresulttool get test-results summary --path "$1" 2>/dev/null | jq -r '
+    [(.testFailures // [])[] | "\(.testIdentifierString // .testName): \((.failureText // "") | gsub("\\s+"; " "))"]
+    | unique[]' 2>/dev/null || true
+}
+
 # Deletes the simulator of the worktree in $1; nothing on a machine without Xcode.
 delete_worktree_simulator() {
   local name udid

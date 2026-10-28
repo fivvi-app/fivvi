@@ -104,6 +104,8 @@ jobs:
           path: |
             apps/ios/.build/TestResults-*.xcresult
             apps/ios/.build/build-for-testing.log
+          # .build is a hidden folder, which the action skips by default (#290). Only these two paths are named.
+          include-hidden-files: true
           retention-days: 7
           if-no-files-found: ignore
 

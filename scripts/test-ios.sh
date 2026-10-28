@@ -11,7 +11,8 @@
 #                 iPhone simulator, in a worktree its own copy (IOS_SIMULATOR="iPhone 17" picks one by name). Both
 #                 locales run on one simulator, also on CI (two simulators were slower on CI's 3-core runner);
 #                 IOS_PARALLEL=1 runs one run per locale at the same time on two. Prints the durations of its steps, the
-#                 build timing summary and the slowest tests per locale (also in the job summary on CI). Shuts down the
+#                 build timing summary and the slowest tests per locale (also in the job summary on CI); when tests fail, the names and
+#                 messages of the failed tests from the result bundle (#290). Shuts down the
 #                 simulators it booted when it ends, unless KEEP_DEVICE=1
 #
 #   IOS_UI_LOCALES  the locales whose UI tests run, default "nl en" (what `pnpm test:ios` does). The unit tests always run
@@ -401,5 +402,17 @@ for locale in $LOCALES; do
     summary "### Slowest iOS tests in $locale" "" "| Test | Seconds |" "|---|--:|" "$rows" ""
   }
 done
-[ "$tests" = 0 ] || exit 1
+if [ "$tests" != 0 ]; then
+  # What failed, by name: `xcodebuild -quiet` only says TEST EXECUTE FAILED (#290). Once per result bundle.
+  $per_locale && bundles=".build/TestResults-nl.xcresult .build/TestResults-en.xcresult" || bundles=$RESULTS
+  for bundle in $bundles; do
+    rows="$(failed_tests "$bundle")"
+    [ -z "$rows" ] || {
+      echo "Failed tests:"
+      echo "  ${rows//$'\n'/$'\n  '}"
+      summary "### Failed iOS tests" "" '```' "$rows" '```' ""
+    }
+  done
+  exit 1
+fi
 echo "✓ iOS"
