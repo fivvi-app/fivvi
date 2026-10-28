@@ -51,9 +51,30 @@
     }
   },
   "home": {
-    "title": "Je bent ingelogd",
-    "signedInAs": "Ingelogd als {email}",
-    "description": "Hier komt straks je werkruimte."
+    "signedInAs": "Ingelogd als {email}"
+  },
+  "welcome": {
+    "title": "Welkom bij Fivvi",
+    "description": "Nog één stap: vertel hoe je sportschool of bedrijf heet.",
+    "personNameLabel": "Je naam",
+    "workspaceNameLabel": "Naam van je sportschool of bedrijf",
+    "workspaceNameHint": "Bijvoorbeeld John's Gym",
+    "submit": "Aan de slag",
+    "errors": {
+      "personNameRequired": "Vul je naam in.",
+      "personNameTooLong": "Je naam is te lang. Gebruik een kortere naam.",
+      "workspaceNameRequired": "Vul de naam van je sportschool of bedrijf in.",
+      "workspaceNameTooLong": "Deze naam is te lang. Gebruik een kortere naam.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
+    }
+  },
+  "noAccess": {
+    "title": "Nog geen toegang",
+    "body": "Je hebt nog geen toegang tot een werkruimte."
+  },
+  "workspaceHome": {
+    "description": "Hier komt binnenkort het overzicht van je sportschool of bedrijf."
   },
   "signOut": {
     "label": "Uitloggen",

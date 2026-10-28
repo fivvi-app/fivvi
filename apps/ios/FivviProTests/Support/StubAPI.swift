@@ -139,11 +139,16 @@ actor StubAPI: APIProtocol {
         fatalError("The app doesn't call createWorkspace yet")
     }
 
+    /// The account `getMe` answers with: no workspace yet (the app's workspace states come with F002).
+    private static func me(id: String, email: String) -> Components.Schemas.MeResponse {
+        .init(id: id, email: email, name: "Owner", canCreateWorkspace: false, workspaces: [])
+    }
+
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
         meCalls += 1
         switch meAnswer {
         case let .account(email, id):
-            return .ok(.init(body: .json(.init(id: id, email: email))))
+            return .ok(.init(body: .json(Self.me(id: id, email: email))))
         case .unauthorized:
             return .unauthorized(.init(body: .json(.init(code: .notSignedIn))))
         case let .status(code):
@@ -157,7 +162,7 @@ actor StubAPI: APIProtocol {
                 hangingMeWatchers = []
                 watchers.forEach { $0.resume() }
             }
-            return .ok(.init(body: .json(.init(id: Self.accountID, email: "owner@example.com"))))
+            return .ok(.init(body: .json(Self.me(id: Self.accountID, email: "owner@example.com"))))
         }
     }
 

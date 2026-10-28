@@ -225,7 +225,10 @@ private final class Responder: @unchecked Sendable {
 
     /// `GET /api/v1/me`'s answer for the one account.
     private var account: [String: Any] {
-        ["id": "2f6a1f0e-0000-4000-8000-000000000001", "email": signIn.email, "preferredLocale": NSNull()]
+        [
+            "id": "2f6a1f0e-0000-4000-8000-000000000001", "email": signIn.email, "name": "Owner",
+            "preferredLocale": NSNull(), "canCreateWorkspace": false, "workspaces": [Any]()
+        ]
     }
 
     private func respond(_ connection: NWConnection, locale: String?, with answer: StubServer.Answer) {

@@ -26,6 +26,16 @@ import retrofit2.Response
 // Synthetic ID (AGENTS.md, D8).
 private val ACCOUNT_ID = UUID.fromString("0b9c4f2e-5d6a-4c1b-9e8f-1a2b3c4d5e6f")
 
+/** What `GET /v1/me` answers for the account: no workspace yet (the app's workspace states come with F002). */
+private fun ownerAccount() = MeResponse(
+    id = ACCOUNT_ID,
+    email = "owner@example.com",
+    name = "Owner",
+    preferredLocale = MeResponse.PreferredLocale.NL_NL,
+    canCreateWorkspace = false,
+    workspaces = emptyList(),
+)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
     private val api = FakeMeApi()
@@ -78,7 +88,7 @@ class HomeViewModelTest {
         viewModel()
         assertEquals(emptyList<String>(), identified)
 
-        answer.complete(Response.success(MeResponse(ACCOUNT_ID, "owner@example.com", MeResponse.PreferredLocale.NL_NL)))
+        answer.complete(Response.success(ownerAccount()))
 
         assertEquals(listOf(ACCOUNT_ID.toString()), identified)
     }
@@ -103,7 +113,7 @@ class HomeViewModelTest {
         viewModel.signOut()
         assertEquals(1, clears)
 
-        answer.complete(Response.success(MeResponse(ACCOUNT_ID, "owner@example.com", MeResponse.PreferredLocale.NL_NL)))
+        answer.complete(Response.success(ownerAccount()))
 
         assertEquals(emptyList<String>(), identified)
     }
@@ -115,7 +125,7 @@ class HomeViewModelTest {
         viewModel()
         session.expire("tok-1")
 
-        answer.complete(Response.success(MeResponse(ACCOUNT_ID, "owner@example.com", MeResponse.PreferredLocale.NL_NL)))
+        answer.complete(Response.success(ownerAccount()))
 
         assertEquals(emptyList<String>(), identified)
     }

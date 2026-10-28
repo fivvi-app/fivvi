@@ -96,7 +96,8 @@ describe('E011 account routes', () => {
     const outsider = await world.request(s.outsider, '/v1/me');
 
     expect([sam.status, client.status, outsider.status]).toEqual([200, 200, 200]);
-    // GET /v1/me ran in a context of the workspaces where the caller has any place.
+    // GET /v1/me ran in a context of the workspaces where the caller has a team role: it lists
+    // those and no workspace the caller is only a client of.
     expect(world.observed.map((observed) => observed.kind)).toEqual([
       'account',
       'account',
@@ -104,28 +105,41 @@ describe('E011 account routes', () => {
     ]);
     expect(world.observed.map((observed) => idsOf(observed.context.workspaceIds))).toEqual([
       idsOf([s.a, s.b]),
-      idsOf([s.a]),
+      [],
       [],
     ]);
     // Postgres holds the same, and never an unscoped context.
     expect(
       world.observed.map((observed) => observed.stored.workspaceIds?.toSorted() ?? null),
-    ).toEqual([idsOf([s.a, s.b]), idsOf([s.a]), null]);
+    ).toEqual([idsOf([s.a, s.b]), null, null]);
     expect(world.observed.map((observed) => observed.stored.accountId)).toEqual([
       s.sam.id,
       s.clientAccount.id,
       s.outsider.id,
     ]);
-    // The response is the account and nothing of any workspace.
+    // The response is the account and the workspaces it has a team role in, nothing of any other.
     const body = await sam.text();
+    const listed = [s.a, s.b].map((id) => ({
+      id,
+      name: expect.any(String),
+      slug: expect.any(String),
+    }));
     expect(JSON.parse(body)).toEqual({
       id: s.sam.id,
       email: `${s.sam.id}@example.com`,
+      name: null,
       preferredLocale: null,
+      canCreateWorkspace: false,
+      workspaces: expect.arrayContaining(listed),
     });
-    for (const foreign of [s.a, s.b, s.c, clientInC, ...Object.values(s.clients)]) {
+    expect(JSON.parse(body).workspaces).toHaveLength(2);
+    for (const foreign of [s.c, clientInC, ...Object.values(s.clients)]) {
       expect(body).not.toContain(foreign);
     }
+    // A client of A has no team role anywhere: nothing of A, and the first-run rule applies.
+    const clientBody = await client.text();
+    expect(JSON.parse(clientBody)).toMatchObject({ workspaces: [], canCreateWorkspace: true });
+    expect(clientBody).not.toContain(s.a);
   });
 
   it('AC13: a route asks for the relationship it needs: team roles only', async () => {

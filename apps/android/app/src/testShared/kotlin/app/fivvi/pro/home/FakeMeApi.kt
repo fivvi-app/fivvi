@@ -17,6 +17,17 @@ class FakeMeApi : MeApi {
     }
 
     fun answerAccount(email: String = "owner@example.com", id: UUID = UUID.randomUUID()) {
-        answers += { Response.success(MeResponse(id, email, MeResponse.PreferredLocale.NL_NL)) }
+        answers += {
+            Response.success(
+                MeResponse(
+                    id = id,
+                    email = email,
+                    name = "Owner",
+                    preferredLocale = MeResponse.PreferredLocale.NL_NL,
+                    canCreateWorkspace = false,
+                    workspaces = emptyList(),
+                ),
+            )
+        }
     }
 }

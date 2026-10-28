@@ -213,9 +213,14 @@ export function createAuth({
     });
     const setCookies = answer.getSetCookie();
     if (!response) return { account: undefined, setCookies };
-    const { id, email, preferredLocale } = response.user;
+    const { id, email, name, preferredLocale } = response.user;
     return {
-      account: { id, email, preferredLocale: isLocale(preferredLocale) ? preferredLocale : null },
+      account: {
+        id,
+        email,
+        name,
+        preferredLocale: isLocale(preferredLocale) ? preferredLocale : null,
+      },
       setCookies,
     };
   }

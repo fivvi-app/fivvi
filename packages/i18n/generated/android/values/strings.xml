@@ -30,12 +30,12 @@
         <item quantity="other">Je hebt vandaag %1$d sessies.</item>
     </plurals>
     <string name="hello_title">Welkom bij Fivvi</string>
-    <!-- Line under the heading of the placeholder signed-in home. -->
-    <string name="home_description">Hier komt straks je werkruimte.</string>
     <!-- Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner. -->
     <string name="home_signed_in_as">Ingelogd als %1$s</string>
-    <!-- Heading of the signed-in home, a placeholder until workspaces arrive (F002). -->
-    <string name="home_title">Je bent ingelogd</string>
+    <!-- Text of the no-access page (information-architecture §9.5, No permission). Native apps show it too, under the same conditions. The Dutch uses 'werkruimte' as the spec words it. -->
+    <string name="no_access_body">Je hebt nog geen toegang tot een werkruimte.</string>
+    <!-- Heading of the no-access page: a signed-in person who is not in a workspace and may not create one (a client, or someone who was removed). The page has the sign-out button. -->
+    <string name="no_access_title">Nog geen toegang</string>
     <string name="not_found_body">We kunnen deze pagina niet vinden. Controleer de link en probeer het opnieuw.</string>
     <string name="not_found_title">Pagina niet gevonden</string>
     <!-- Button on the second step that goes back to the email field. -->
@@ -88,4 +88,30 @@
     <string name="sign_out_error">Uitloggen is niet gelukt. Probeer het opnieuw.</string>
     <!-- Button that signs out only the browser (or device) it is pressed on; other browsers stay signed in. On every signed-in page of the web app. -->
     <string name="sign_out_label">Uitloggen</string>
+    <!-- Line under the heading of TW-11. -->
+    <string name="welcome_description">Nog één stap: vertel hoe je sportschool of bedrijf heet.</string>
+    <!-- Shown on TW-11 when creating the workspace failed for any other reason. Nothing was created. -->
+    <string name="welcome_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <!-- Shown on TW-11 when the request to create the workspace could not reach the server. Nothing was created. -->
+    <string name="welcome_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <!-- Under the name field on TW-11 when it is empty or only spaces. -->
+    <string name="welcome_errors_person_name_required">Vul je naam in.</string>
+    <!-- Under the name field on TW-11 when the name is too long (the API refuses it: more than 80 characters). -->
+    <string name="welcome_errors_person_name_too_long">Je naam is te lang. Gebruik een kortere naam.</string>
+    <!-- Under the workspace name field on TW-11 when it is empty or only spaces. -->
+    <string name="welcome_errors_workspace_name_required">Vul de naam van je sportschool of bedrijf in.</string>
+    <!-- Under the workspace name field on TW-11 when the name is too long (the API refuses it: more than 80 characters). -->
+    <string name="welcome_errors_workspace_name_too_long">Deze naam is te lang. Gebruik een kortere naam.</string>
+    <!-- Label of the field for the person's own name on TW-11. Shown only when the account has no name yet. -->
+    <string name="welcome_person_name_label">Je naam</string>
+    <!-- Submit button of TW-11. It creates the workspace and opens it. -->
+    <string name="welcome_submit">Aan de slag</string>
+    <!-- Heading of TW-11, the first-run screen (`/welcome`) shown once to an operator-approved person who has no workspace yet. Fivvi is the product name. -->
+    <string name="welcome_title">Welkom bij Fivvi</string>
+    <!-- Hint under the workspace name field on TW-11: an example of a name. "John's Gym" is a name, the same in both languages. -->
+    <string name="welcome_workspace_name_hint">Bijvoorbeeld John\'s Gym</string>
+    <!-- Label of the field for the name of the gym or business on TW-11. The workspace itself, worded as the person's own business (GLOSSARY §4.1: prefer this over the word werkruimte). -->
+    <string name="welcome_workspace_name_label">Naam van je sportschool of bedrijf</string>
+    <!-- Line under the workspace name on the placeholder home of a workspace, until the owner dashboard and the trainer's day arrive. -->
+    <string name="workspace_home_description">Hier komt binnenkort het overzicht van je sportschool of bedrijf.</string>
 </resources>

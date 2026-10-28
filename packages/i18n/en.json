@@ -51,9 +51,30 @@
     }
   },
   "home": {
-    "title": "You're signed in",
-    "signedInAs": "Signed in as {email}",
-    "description": "Your workspace will appear here soon."
+    "signedInAs": "Signed in as {email}"
+  },
+  "welcome": {
+    "title": "Welcome to Fivvi",
+    "description": "One more step: tell us the name of your gym or business.",
+    "personNameLabel": "Your name",
+    "workspaceNameLabel": "Name of your gym or business",
+    "workspaceNameHint": "For example John's Gym",
+    "submit": "Get started",
+    "errors": {
+      "personNameRequired": "Enter your name.",
+      "personNameTooLong": "Your name is too long. Use a shorter one.",
+      "workspaceNameRequired": "Enter the name of your gym or business.",
+      "workspaceNameTooLong": "This name is too long. Use a shorter one.",
+      "noConnection": "No connection. Check your internet and try again.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
+  "noAccess": {
+    "title": "No access yet",
+    "body": "You don't have access to a workspace yet."
+  },
+  "workspaceHome": {
+    "description": "The overview of your gym or business will appear here soon."
   },
   "signOut": {
     "label": "Sign out",

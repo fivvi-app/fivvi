@@ -101,6 +101,7 @@ export async function createWorld(): Promise<World> {
         emails.set(account.id, {
           id: account.id,
           email: `${account.id}@example.com`,
+          name: '',
           preferredLocale: null,
         });
       }

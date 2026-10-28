@@ -23,6 +23,7 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.MeWorkspace
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -33,7 +34,10 @@ import kotlinx.serialization.Contextual
  *
  * @param id The account ID.
  * @param email The address the account signs in with.
+ * @param name The person’s own name; null until one is given (TW-11 asks for it).
  * @param preferredLocale The language stored on the account; null until one is stored.
+ * @param canCreateWorkspace Whether the account may set up a workspace: it is on the sign-up allowlist and has no team role in any workspace yet. The web and the apps show the first-run screen or the no-access page from this, never from rules of their own.
+ * @param workspaces The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed.
  */
 @Serializable
 
@@ -47,9 +51,21 @@ data class MeResponse (
     @SerialName(value = "email")
     val email: kotlin.String,
 
+    /* The person’s own name; null until one is given (TW-11 asks for it). */
+    @SerialName(value = "name")
+    val name: kotlin.String?,
+
     /* The language stored on the account; null until one is stored. */
     @SerialName(value = "preferredLocale")
-    val preferredLocale: MeResponse.PreferredLocale?
+    val preferredLocale: MeResponse.PreferredLocale?,
+
+    /* Whether the account may set up a workspace: it is on the sign-up allowlist and has no team role in any workspace yet. The web and the apps show the first-run screen or the no-access page from this, never from rules of their own. */
+    @SerialName(value = "canCreateWorkspace")
+    val canCreateWorkspace: kotlin.Boolean,
+
+    /* The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed. */
+    @SerialName(value = "workspaces")
+    val workspaces: kotlin.collections.List<MeWorkspace>
 
 ) {
 

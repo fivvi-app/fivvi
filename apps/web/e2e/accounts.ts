@@ -1,7 +1,14 @@
-import { randomBytes, randomUUID } from 'node:crypto';
-import { authUsers, createDatabase } from '@fivvi/database';
+import { createHmac, randomBytes, randomUUID } from 'node:crypto';
+import { authSessions, authUsers, createDatabase } from '@fivvi/database';
 import { databaseUrl } from '@fivvi/testing/database/server';
-import { ALLOWED_SIGN_UP_DOMAIN, appServer, UNLISTED_SIGN_UP_DOMAIN } from './servers';
+import type { BrowserContext } from '@playwright/test';
+import { eq } from 'drizzle-orm';
+import {
+  ALLOWED_SIGN_UP_DOMAIN,
+  appServer,
+  E2E_AUTH_SECRET,
+  UNLISTED_SIGN_UP_DOMAIN,
+} from './servers';
 
 /**
  * A new synthetic address for one spec. Not `@example.com`: outside production that mail goes to
@@ -44,6 +51,36 @@ export async function createAccount(email: string): Promise<void> {
   } finally {
     await client.close();
   }
+}
+
+/**
+ * Signs the existing account `email` in without the emailed code: a sign-in session on the e2e
+ * app server's database and its signed cookie in the browser context. For the seeded account
+ * (`owner@example.com`), which every spec shares: an address has one live code and three
+ * sign-ins per 15 minutes, so specs and projects that signed it in by email would replace each
+ * other's code and run out of attempts. The sign-in itself is proven with accounts of a spec's own.
+ */
+export async function signInWithSession(context: BrowserContext, email: string): Promise<void> {
+  const token = randomBytes(24).toString('base64url');
+  const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
+  try {
+    const user = (await client.db.select().from(authUsers).where(eq(authUsers.email, email)))[0];
+    if (!user) throw new Error(`No account ${email} on the e2e database.`);
+    await client.db
+      .insert(authSessions)
+      .values({ userId: user.id, token, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) });
+  } finally {
+    await client.close();
+  }
+  // Better Auth's signed cookie: the token, a dot and the base64 HMAC-SHA256 of the token.
+  const signature = createHmac('sha256', E2E_AUTH_SECRET).update(token).digest('base64');
+  await context.addCookies([
+    {
+      name: 'better-auth.session_token',
+      value: encodeURIComponent(`${token}.${signature}`),
+      url: appServer.baseURL,
+    },
+  ]);
 }
 
 /** The pool behind the Drizzle client, which the `Database` type doesn't show. */

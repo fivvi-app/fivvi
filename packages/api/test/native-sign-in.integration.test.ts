@@ -7,6 +7,7 @@ import {
   createDatabase,
   createTenantScopes,
   type DatabaseClient,
+  organizations,
 } from '@fivvi/database';
 import { seed } from '@fivvi/database/seed';
 import { createMemoryTransport, createSendEmail, type SendEmail } from '@fivvi/email';
@@ -333,10 +334,18 @@ describe('F001N native sign-in through the API', () => {
 
       expect(response.status).toBe(200);
       const row = await accountOf('owner@example.com');
+      // The seed makes the account the owner of John's Gym.
+      const [gym] = await client.db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.slug, 'johns-gym'));
       expect(await response.json()).toEqual({
         id: row?.id,
         email: 'owner@example.com',
+        name: 'Owner',
         preferredLocale: 'nl-NL',
+        canCreateWorkspace: false,
+        workspaces: [{ id: gym?.id, name: "John's Gym", slug: 'johns-gym' }],
       });
     });
 

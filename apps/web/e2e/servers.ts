@@ -10,6 +10,9 @@ export const ALLOWED_SIGN_UP_DOMAIN = 'allowed.e2e.test';
 /** A domain the sign-up allowlist does not cover (the default of `newAddress`): its addresses need `createAccount`. */
 export const UNLISTED_SIGN_UP_DOMAIN = 'fivvi.e2e.test';
 
+/** The secret of the e2e servers (`BETTER_AUTH_SECRET`): synthetic, and known to `signInWithSession`. */
+export const E2E_AUTH_SECRET = 'e2e-secret-that-is-at-least-thirty-two-characters-long';
+
 /** The app as in CI and local development: no Sentry DSN and no PostHog key. */
 export const appServer = server(port);
 

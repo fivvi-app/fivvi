@@ -88,6 +88,7 @@ describe('F002 POST /v1/workspaces', () => {
           .select({
             id: authUsers.id,
             email: authUsers.email,
+            name: authUsers.name,
             preferredLocale: authUsers.preferredLocale,
           })
           .from(authUsers)
