@@ -14,7 +14,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [004](ADR-004-api-layer.md) | API layer: REST + OpenAPI 3.1 with Hono + zod-openapi and generated clients | Accepted |
 | [005](ADR-005-database-and-orm.md) | Database & ORM: PostgreSQL (EU) + Drizzle + versioned SQL migrations | Accepted |
 | [006](ADR-006-tenant-isolation.md) | Tenant isolation: org-scoped data layer + Postgres RLS + cross-tenant tests | Accepted |
-| [007](ADR-007-authentication.md) | Authentication: Better Auth with magic link + 6-digit code, bearer tokens for native | Accepted |
+| [007](ADR-007-authentication.md) | Authentication: Better Auth with magic link + 6-digit code, bearer tokens for native; the organization plugin for workspaces amended by ADR-022 | Accepted |
 | [008](ADR-008-localization.md) | Localization: ICU catalogs in `packages/i18n`, exported to native catalogs | Accepted |
 | [009](ADR-009-transactional-email.md) | Transactional email: React Email + Brevo | Accepted; provider selected |
 | [010](ADR-010-background-jobs.md) | Background jobs: lazy expiry + daily cron, no job runner | Accepted |
@@ -29,6 +29,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [019](ADR-019-sign-in-communication-language.md) | Sign-in communication language: stored preference, otherwise the language of the screen that asked; amends ADR-017 | Proposed |
 | [020](ADR-020-payment-provider.md) | Payment provider and merchant model: Mollie Connect for Platforms, the gym as merchant on its own account | Accepted |
 | [021](ADR-021-agents-queue-high-risk.md) | Agents queue high-risk PRs before G2, except owner-only changes (guardrails, legal, money, product and decision docs); amends ADR-016 and ADR-018 | Proposed |
+| [022](ADR-022-workspaces-on-our-own-tables.md) | Workspaces and team roles run on our own tables and routes (E011), not on Better Auth's organization plugin; amends ADR-007 | Proposed |
 
 ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. ADR-011 was re-evaluated during the write-up and accepted in its new form (Railway) the same day. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
 

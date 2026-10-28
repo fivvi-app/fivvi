@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted (2026-09-22) |
+| **Status** | Accepted (2026-09-22); the use of the organization / member / invitation plugins for workspaces and roles amended by [ADR-022](ADR-022-workspaces-on-our-own-tables.md) |
 | **Date** | 2026-09-22 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | PRODUCT.md §2.4, §9, §23, §26, §27, §49, §50; ROADMAP.md M2, M5, §13 (R1); ADR-003, ADR-008, ADR-009; F001, F003, F011, F030 |
@@ -22,6 +22,8 @@ The spec rules out passwords, phone numbers and SMS in MVP; clients use an **ema
 - **Bearer tokens** for the native apps (stored in Keychain / encrypted storage); cookies for web.
 - Better Auth stores its data in **our own Postgres tables** (ADR-005), and its emails are **our own localized templates** (ADR-009).
 - **Spike in M1:** prove the native bearer-token flow end to end (code sign-in → token → authenticated generated-client call) on iOS and Android.
+
+> **Amended by [ADR-022](ADR-022-workspaces-on-our-own-tables.md) (28 October 2026):** workspaces and team roles run on our own tables (`organizations`, `team_members`) and routes, not on Better Auth's organization / member / invitation plugins. Sign-in, sessions and bearer tokens stay on Better Auth. The rest of this ADR stands.
 
 > **Note (19 October 2026):** the native spike's timing moved from M1 to M8, alongside the iOS and Android apps (`ROADMAP.md` M8), during F001 shaping. This is a scheduling change, not a reversal: the decisions above (Better Auth, email + 6-digit code, bearer tokens for native) stand unchanged.
 
