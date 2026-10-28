@@ -53,6 +53,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/sign-out`.
     /// - Remark: Generated from `#/paths//v1/sign-out/post(signOut)`.
     func signOut(_ input: Operations.SignOut.Input) async throws -> Operations.SignOut.Output
+    /// Create the caller’s workspace
+    ///
+    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/post(createWorkspace)`.
+    func createWorkspace(_ input: Operations.CreateWorkspace.Input) async throws -> Operations.CreateWorkspace.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -128,6 +135,21 @@ extension APIProtocol {
     /// - Remark: Generated from `#/paths//v1/sign-out/post(signOut)`.
     public func signOut(headers: Operations.SignOut.Input.Headers = .init()) async throws -> Operations.SignOut.Output {
         try await signOut(Operations.SignOut.Input(headers: headers))
+    }
+    /// Create the caller’s workspace
+    ///
+    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/post(createWorkspace)`.
+    public func createWorkspace(
+        headers: Operations.CreateWorkspace.Input.Headers = .init(),
+        body: Operations.CreateWorkspace.Input.Body
+    ) async throws -> Operations.CreateWorkspace.Output {
+        try await createWorkspace(Operations.CreateWorkspace.Input(
+            headers: headers,
+            body: body
+        ))
     }
 }
 

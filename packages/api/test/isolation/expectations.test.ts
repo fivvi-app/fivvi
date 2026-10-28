@@ -4,6 +4,7 @@ import {
   type CallFacts,
   expectedCall,
   markersIn,
+  mayAddWorkspace,
   mayChangeRow,
   mayShow,
   mustShow,
@@ -80,6 +81,46 @@ describe('the expected answer of a route, from its access and the caller’s pla
   it('lets every signed-in account call an account route', () => {
     expect(expectedCall(call({ type: 'account' }, { signedIn: false })).status).toBe(401);
     expect(expectedCall(call({ type: 'account' })).status).toBe('success');
+  });
+});
+
+describe('a route that creates the caller’s workspace (F002)', () => {
+  const creates = (rest: Partial<CallFacts> = {}) =>
+    call(
+      { type: 'account', workspaces: 'team' },
+      { method: 'POST', createsWorkspace: true, ...rest },
+    );
+
+  it.each([
+    ['anonymous', { signedIn: false }, 401],
+    ['an account with no place anywhere', { places: {} }, 'success'],
+    ['a client with no team role', { places: { a: { clientId: 'c1' } } }, 'success'],
+    ['an owner', { places: { a: { teamRole: 'owner' } } }, 403],
+    ['a trainer', { places: { a: { teamRole: 'trainer' } } }, 403],
+    [
+      'a trainer in one workspace and a client in another',
+      {
+        places: { a: { clientId: 'c1' }, b: { teamRole: 'trainer' } },
+      },
+      403,
+    ],
+  ] as const)('%s', (_name, facts, status) => {
+    expect(expectedCall(creates(facts as Partial<CallFacts>)).status).toBe(status);
+  });
+
+  it('may add one workspace of its own, only when it succeeds', () => {
+    expect(mayAddWorkspace(creates({ places: {} }))).toBe(true);
+    expect(mayAddWorkspace(creates({ places: { a: { teamRole: 'owner' } } }))).toBe(false);
+    expect(mayAddWorkspace(creates({ signedIn: false }))).toBe(false);
+  });
+
+  it('is nothing special for any other route', () => {
+    const other = call({ type: 'account' }, { method: 'POST', places: {} });
+
+    expect(mayAddWorkspace(other)).toBe(false);
+    expect(
+      expectedCall(call({ type: 'account' }, { places: { a: { teamRole: 'owner' } } })).status,
+    ).toBe('success');
   });
 });
 

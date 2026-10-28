@@ -33,6 +33,14 @@ export interface IsolationCase {
   query?: string;
   /** A valid body, for a route that takes one. */
   body?: unknown;
+  /**
+   * The route creates the caller's workspace (F002). Its business rule refuses an account with a
+   * team role in any workspace (`403`), and a call that succeeds adds one workspace of the
+   * caller's own, which the suite then counts among the caller's places. The only thing a case
+   * may say about the status or what changes; the flag cannot make a refusal weaker, because
+   * every account without a team role must still succeed (`expectations.ts`).
+   */
+  createsWorkspace?: true;
 }
 
 /** The client row that the seed was called for: what a route about one client names. */
@@ -46,6 +54,7 @@ const theWorkspace: IsolationCase['seed'] = (_db, { workspaceId }) =>
 export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // Account routes.
   getMe: {},
+  createWorkspace: { body: { name: "John's Gym" }, createsWorkspace: true },
 
   // The probe routes of the test app (`probe-routes.ts`), one per kind of access.
   probeOwner: { seed: theWorkspace },

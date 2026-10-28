@@ -21,4 +21,10 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     // The first sign-in of an allowed address created its account.
     new_account: property.boolean(),
   },
+  // F002: an allowlisted account created its workspace. The workspace ID only (the account's own
+  // UUID is the distinct ID): no workspace name, person's name or email address, which are free
+  // text and not allowed as properties.
+  workspace_created: {
+    workspace_id: property.uuid(),
+  },
 });

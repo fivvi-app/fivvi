@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { readAuthConfig } from './auth';
 
 const secret = 'test-secret-that-is-at-least-thirty-two-characters-long';
@@ -82,5 +82,22 @@ describe('F001 sign-in configuration', () => {
     expect(() =>
       readAuthConfig({ BETTER_AUTH_SECRET: secret, BETTER_AUTH_URL: 'fivvi.app' }),
     ).toThrow('BETTER_AUTH_URL is not a URL.');
+  });
+});
+
+describe('F002 the allowlist the API builds the workspace rule on', () => {
+  it('is the one sign-in parsed from SIGN_UP_ALLOWED_EMAILS, read once on first use', async () => {
+    vi.resetModules();
+    vi.stubEnv('BETTER_AUTH_SECRET', secret);
+    vi.stubEnv('BETTER_AUTH_URL', 'https://fivvi.app');
+    vi.stubEnv('SIGN_UP_ALLOWED_EMAILS', 'pilot@gym.test');
+    const { signUpAllowlist } = await import('./auth');
+
+    const first = signUpAllowlist();
+    vi.stubEnv('SIGN_UP_ALLOWED_EMAILS', 'someone@else.test');
+
+    expect(first.allows('pilot@gym.test')).toBe(true);
+    expect(first.allows('someone@else.test')).toBe(false);
+    expect(signUpAllowlist()).toBe(first);
   });
 });

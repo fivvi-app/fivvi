@@ -1,3 +1,4 @@
+import type { Place } from '@fivvi/database';
 import { sql } from 'drizzle-orm';
 import { buildOpenApiDocument } from '../../src/index.ts';
 import { type Actor, type Scenario, seedActors } from './actors.ts';
@@ -6,6 +7,7 @@ import {
   type CallFacts,
   expectedCall,
   markersIn,
+  mayAddWorkspace,
   mayChangeRow,
   mayShow,
   mustShow,
@@ -347,6 +349,7 @@ export async function runIsolationSuite(
         self: planned.actor.account
           ? [planned.actor.account.id, planned.actor.account.email, planned.actor.account.marker]
           : [],
+        ...(isolationCase.createsWorkspace ? { createsWorkspace: true } : {}),
       };
       const where =
         access.type === 'account' ? '' : ` in ${scenario.labels[planned.workspaceId] ?? '?'}`;
@@ -392,9 +395,22 @@ export async function runIsolationSuite(
         );
       }
 
-      // 3. Nothing changed that the call may not change.
+      // 3. Nothing changed that the call may not change. A route that creates the caller's
+      // workspace may add one workspace that did not exist (its rows are a group of their own).
+      const added = [...after.keys()].filter((key) => !before.has(key));
+      const created = mayAddWorkspace(facts) && response.status >= 200 && response.status < 300;
+      if (created && added.length > 0) {
+        const [key, ...more] = added;
+        const group = after.get(key as string)?.group as RowGroup;
+        if (more.length > 0) {
+          failures.push(`${label}: it added ${added.length} workspaces; it may add one.`);
+        }
+        // From now on the caller is the Owner of the workspace it made, for the calls after this one.
+        (planned.actor.places as Record<string, Place>)[group.workspaceId] = { teamRole: 'owner' };
+      }
       for (const key of new Set([...before.keys(), ...after.keys()])) {
         const group = (before.get(key) ?? after.get(key))?.group as RowGroup;
+        if (!before.has(key) && created) continue;
         if (mayChangeRow(facts, group)) continue;
         if (before.get(key)?.text !== after.get(key)?.text) {
           failures.push(

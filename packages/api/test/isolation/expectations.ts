@@ -38,6 +38,12 @@ export interface CallFacts {
   record: RecordKind;
   /** What identifies the caller itself (account id, email, marker): a response may always show it. */
   self?: readonly string[];
+  /**
+   * The route creates the caller's workspace (F002, `IsolationCase.createsWorkspace`): its business
+   * rule refuses an account that has a team role in any workspace (`403`, not a matter of access),
+   * and a call that succeeds adds one workspace of the caller's own.
+   */
+  createsWorkspace?: boolean;
 }
 
 export type ExpectedStatus = 'success' | 401 | 403 | 404;
@@ -59,7 +65,10 @@ export function expectedCall(facts: CallFacts): ExpectedCall {
   const { access } = facts;
   if (access.type === 'public') return { status: 'success' };
   if (!facts.signedIn) return { status: 401 };
-  if (access.type === 'account') return { status: 'success' };
+  if (access.type === 'account') {
+    const hasTeamRole = Object.values(facts.places).some((place) => place.teamRole);
+    return facts.createsWorkspace && hasTeamRole ? { status: 403 } : { status: 'success' };
+  }
 
   const place = facts.places[facts.workspaceId];
   if (!place?.teamRole && !place?.clientId) return { status: 404 };
@@ -107,6 +116,15 @@ export function mayChangeRow(facts: CallFacts, group: RowGroup): boolean {
     return mode !== 'team' && clientRowOf(place, group);
   }
   return false;
+}
+
+/**
+ * Whether a call may add a workspace that did not exist before it: a successful call of a route
+ * that creates the caller's workspace. The rows of that one new workspace (the workspace and its
+ * Owner) are not among those `mayChangeRow` knows, because nothing named them before the call.
+ */
+export function mayAddWorkspace(facts: CallFacts): boolean {
+  return facts.createsWorkspace === true && expectedCall(facts).status === 'success';
 }
 
 function clientRowOf(place: Place | undefined, group: RowGroup): boolean {

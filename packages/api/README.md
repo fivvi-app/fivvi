@@ -21,6 +21,8 @@ the tests of this package may use tables, as they seed and read rows directly. E
 `lint/repository-only-imports.test.ts` (with the reason a route may use it); a new export in neither fails
 that test, so whoever adds a table, a handle or a connection opener has to say which it is.
 
+Business rules are not written in a route: the route calls `@fivvi/domain` (for example `canCreateWorkspace`, `slugCandidates`). A refusal that is a business rule and not the access (`POST /v1/workspaces`: not on the sign-up allowlist, or already has a team role) is a route middleware that runs after the access and before the body's validation, so a refused caller gets `403` whatever it sent. Declare a `security` list once as a typed constant when a route has two schemes and a body (`SIGNED_IN` in `src/routes/workspaces.ts`): written inline, TypeScript loses the route's request types.
+
 ## The isolation suite (E011)
 
 `pnpm test` fails until every route is covered, and the suite proves that workspace A's data does not
@@ -43,6 +45,8 @@ reach, and is not changed by, anyone without a place in A.
   - no row of any workspace changed, except those a successful write may change.
 - **The self-test** (`test/isolation/self-test.integration.test.ts`): a leaky probe route and a table
   without a policy, which exist only in that test, make the suite report failures.
+
+A route that creates the caller's workspace (`POST /v1/workspaces`, F002) says so in its case (`createsWorkspace: true`). Its business rule refuses an account with a team role (`403`), every other signed-in account succeeds (the harness's allowlist is `@example.com`), and a successful call may add exactly one workspace of the caller's own, whose rows the suite then lets through and counts among the caller's places for the calls after it.
 
 ### A new route's isolation case
 

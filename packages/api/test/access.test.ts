@@ -355,6 +355,7 @@ describe('E011 route access', () => {
       'post /v1/sign-in/request': 'public',
       'post /v1/sign-in/token': 'public',
       'post /v1/sign-out': 'public',
+      'post /v1/workspaces': 'account',
     });
   });
 });

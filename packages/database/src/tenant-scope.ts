@@ -79,9 +79,11 @@ function openScope<S extends TenantScope>(
 
 /**
  * Sets the three context settings in one statement, replacing whatever was set before. An empty
- * string means unset (the context functions read it as NULL, which matches no row).
+ * string means unset (the context functions read it as NULL, which matches no row). For the
+ * repositories of this package only (not exported from `index.ts`): the one that creates a
+ * workspace has to put it in the context before the row exists.
  */
-async function setContext(
+export async function setContext(
   tx: DatabaseExecutor,
   context: { accountId: string; workspaceIds: readonly string[]; clientId?: string },
 ): Promise<void> {

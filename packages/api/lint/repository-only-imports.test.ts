@@ -198,6 +198,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     findClient: 'repository of clients, takes a workspace scope',
     listClients: 'repository of clients, takes a workspace scope',
     listMyWorkspaces: 'repository of places, takes the account scope',
+    claimWorkspaceCreation: 'repository of workspaces, takes the account scope (F002)',
+    createWorkspaceWithOwner: 'repository of workspaces, takes the account scope (F002)',
     findSystemGreeting: 'query of the system data, which has no tenant',
     consumeRateLimit:
       'query of the rate limits, which have no tenant; takes the executor it is given',
@@ -218,6 +220,9 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     SystemGreetingView: 'type',
     ClientView: 'type',
     WorkspacePlace: 'type',
+    NewWorkspace: 'type of the workspace repository (F002)',
+    WorkspaceCreationClaim: 'type of the workspace repository (F002)',
+    WorkspaceView: 'type of the workspace repository (F002)',
     AccountScopeInput: 'type of the tenant scope',
     ActingAs: 'type of the tenant scope',
     Place: 'type of the tenant scope',

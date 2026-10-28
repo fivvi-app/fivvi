@@ -405,6 +405,9 @@ importers:
       '@fivvi/database':
         specifier: workspace:*
         version: link:../database
+      '@fivvi/domain':
+        specifier: workspace:*
+        version: link:../domain
       '@fivvi/i18n':
         specifier: workspace:*
         version: link:../i18n
@@ -583,6 +586,24 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 5.0.1(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2))
+
+  packages/domain:
+    devDependencies:
+      '@biomejs/biome':
+        specifier: 'catalog:'
+        version: 2.5.14
+      '@fivvi/testing':
+        specifier: workspace:*
+        version: link:../testing
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.2
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.1(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/email:
     dependencies:

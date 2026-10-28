@@ -9,9 +9,9 @@ import { authUsers, clients, organizations, teamMembers } from '../schema/index.
 // connection that is not subject to RLS (the privileged role), or a context that allows the write.
 //
 // Every record carries something unique to search for: the markers below where the record has a
-// text column (an account's email and name), the record's own uuid where it has none yet (a
-// workspace until F002 adds its name, a team role, a client until F006 adds the profile). A test
-// that asks "does this body contain anything of workspace A" searches for A's ids and markers.
+// text column (an account's email and name, a workspace's name and slug), the record's own uuid
+// where it has none yet (a team role, a client until F006 adds the profile). A test that asks
+// "does this body contain anything of workspace A" searches for A's ids and markers.
 
 /** A short unique string for a record: `<label>-<8 hex digits>`. Lower case, safe in an email. */
 export function uniqueMarker(label: string): string {
@@ -26,12 +26,20 @@ function first<T>(rows: T[], what: string): T {
   return row;
 }
 
-/** A workspace. Its uuid is its marker until F002 adds a name. */
-export async function createWorkspace(db: Executor): Promise<{ id: string }> {
-  return first(
-    await db.insert(organizations).values({}).returning({ id: organizations.id }),
+/** A workspace whose name and slug are one unique marker, in the defaults of a new workspace. */
+export async function createWorkspace(
+  db: Executor,
+  options: { label?: string } = {},
+): Promise<{ id: string; marker: string }> {
+  const marker = uniqueMarker(options.label ?? 'workspace');
+  const row = first(
+    await db
+      .insert(organizations)
+      .values({ name: marker, slug: marker, defaultLocale: 'nl-NL', timeZone: 'Europe/Amsterdam' })
+      .returning({ id: organizations.id }),
     'workspace',
   );
+  return { id: row.id, marker };
 }
 
 /** An account (a person's global login) whose email and name carry a unique marker. */

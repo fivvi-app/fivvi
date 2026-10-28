@@ -38,6 +38,18 @@ export function readAuthConfig(env: Readonly<Record<string, string | undefined>>
   return { secret, baseURL: url.replace(/\/+$/, ''), signUpAllowlist };
 }
 
+let allowlist: SignUpAllowlist | undefined;
+
+/**
+ * The sign-up allowlist of this process (`SIGN_UP_ALLOWED_EMAILS`), as sign-in parsed it: the API
+ * builds the rule "who may create a workspace" (F002) on it, so the variable is read by one parser.
+ * Created on first use, like `auth()`, so `next build` runs without the environment.
+ */
+export function signUpAllowlist(): SignUpAllowlist {
+  allowlist ??= readAuthConfig(process.env).signUpAllowlist;
+  return allowlist;
+}
+
 let instance: Auth | undefined;
 
 /**

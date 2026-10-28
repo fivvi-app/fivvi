@@ -1,5 +1,6 @@
+import { eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from './client.ts';
-import { authUsers } from './schema/index.ts';
+import { authUsers, organizations, teamMembers } from './schema/index.ts';
 
 export interface SeedOptions {
   /**
@@ -20,9 +21,12 @@ export function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env): b
  * here (ADR-005).
  *
  * Today: the account `owner@example.com` (F001), so every preview has an account to sign in
- * with; its sign-in email is written to the server log (`@example.com`, packages/email).
- * Rows that every environment needs, like the `hello` greeting, are data migrations instead
- * (`src/system-data.ts`).
+ * with (its sign-in email is written to the server log, `@example.com`, packages/email), and
+ * the workspace "John's Gym" (`johns-gym`) that account owns (F002), so previews and e2e start
+ * with a workspace. The seed writes as the privileged role, so it sets the same defaults the
+ * create route does (`WORKSPACE_DEFAULTS` of packages/domain) by hand: this package can't
+ * import the domain. Rows that every environment needs, like the `hello` greeting, are data
+ * migrations instead (`src/system-data.ts`).
  */
 export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Promise<void> {
   if (options.production) return;
@@ -35,4 +39,26 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
       preferredLocale: 'nl-NL',
     })
     .onConflictDoNothing({ target: authUsers.email });
+  await db
+    .insert(organizations)
+    .values({
+      name: "John's Gym",
+      slug: 'johns-gym',
+      defaultLocale: 'nl-NL',
+      timeZone: 'Europe/Amsterdam',
+    })
+    .onConflictDoNothing({ target: organizations.slug });
+  const [owner] = await db
+    .select({ id: authUsers.id })
+    .from(authUsers)
+    .where(eq(authUsers.email, 'owner@example.com'));
+  const [gym] = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.slug, 'johns-gym'));
+  if (!owner || !gym) throw new Error('The seed did not find its account and workspace.');
+  await db
+    .insert(teamMembers)
+    .values({ organizationId: gym.id, accountId: owner.id, role: 'owner' })
+    .onConflictDoNothing({ target: [teamMembers.organizationId, teamMembers.accountId] });
 }
