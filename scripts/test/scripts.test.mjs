@@ -9,6 +9,7 @@ import {
   readdirSync,
   readFileSync,
   realpathSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -1542,6 +1543,80 @@ esac`,
       assert.match(build, /-derivedDataPath \.build\/DerivedData/);
       assert.equal(fake.simulators().length, 2, 'no second simulator');
       assert.match(run.output, /Build Timing Summary/);
+    });
+
+    describe('#293 AC14: test-ios.sh build, then test <nl|en> from the packed bundle', () => {
+      const bundle = (fake) => join(fake.repo, 'apps/ios/.build/ios-test-bundle.tar');
+
+      it('build runs the checks and one build-for-testing, packs the bundle, and runs no test', async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/test-ios.sh', ['build']);
+
+        assert.equal(run.status, 0, run.output);
+        assert.equal(commands(fake).filter((c) => c === 'build-for-testing').length, 1);
+        assert.ok(!commands(fake).includes('test-without-building'));
+        assert.ok(existsSync(bundle(fake)), 'the bundle is packed');
+        assert.match(run.output, /SwiftLint/);
+      });
+
+      for (const locale of ['nl', 'en']) {
+        it(`test ${locale} unpacks the bundle and runs that language's configuration without building`, async () => {
+          const fake = checkout();
+          assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+          // Another job: the products are not there, only the downloaded bundle is.
+          rmSync(join(fake.repo, 'apps/ios/.build/DerivedData'), { recursive: true, force: true });
+          const before = fake.log('xcodebuild').length;
+
+          const run = await fake.run('scripts/test-ios.sh', ['test', locale]);
+
+          assert.equal(run.status, 0, run.output);
+          const after = fake.log('xcodebuild').slice(before);
+          assert.equal(
+            after.filter((line) => line.startsWith('build-for-testing')).length,
+            0,
+            'no build',
+          );
+          const tests = after.filter((line) => line.startsWith('test-without-building '));
+          assert.equal(tests.length, 1);
+          assert.match(tests[0], new RegExp(`-only-test-configuration ${locale}\\b`));
+          assert.match(tests[0], /-xctestrun \S*FivviPro\.xctestrun/);
+          assert.match(tests[0], new RegExp(`TestResults-${locale}\\.xcresult`));
+          assert.ok(!tests[0].includes('-skip-testing'), 'the UI tests run too');
+        });
+      }
+
+      it('test fails when the tests of that language fail', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'en'], { FAKE_RESULT: 'fail' });
+
+        assert.equal(run.status, 1, run.output);
+      });
+
+      it('test without a bundle says what to run first, and asks for nl or en', async () => {
+        const fake = checkout();
+
+        const missing = await fake.run('scripts/test-ios.sh', ['test', 'nl']);
+        assert.notEqual(missing.status, 0);
+        assert.match(missing.output, /no test bundle/);
+
+        const bad = await fake.run('scripts/test-ios.sh', ['test', 'fr']);
+        assert.notEqual(bad.status, 0);
+        assert.equal((await fake.run('scripts/test-ios.sh', ['nope'])).status, 1);
+      });
+
+      it('test --bundle takes the bundle from another place', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+        const moved = join(fake.repo, 'downloaded.tar');
+        renameSync(bundle(fake), moved);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl', '--bundle', moved]);
+
+        assert.equal(run.status, 0, run.output);
+      });
     });
 
     it('#224: pnpm test:ios leaves signing to the xcconfigs, so the simulator build keeps its ad hoc signature', async () => {

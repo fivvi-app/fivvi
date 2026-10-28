@@ -15,6 +15,13 @@
 #                 messages of the failed tests from the result bundle (#290). Shuts down the
 #                 simulators it booted when it ends, unless KEEP_DEVICE=1
 #
+#   test-ios.sh build            the same checks and the one build-for-testing, then packs the test bundle (the .xctestrun
+#                                and the build products) into apps/ios/.build/ios-test-bundle.tar; runs no test. CI's
+#                                `iOS build` job (#293)
+#   test-ios.sh test <nl|en>     unpacks that bundle (--bundle <file> names another) and runs the test plan's configuration
+#                                for one language, unit and UI tests, without building, on its own simulator. CI's two
+#                                `iOS tests` jobs run it in parallel, one per language, from the artifact of the build job
+#
 #   IOS_UI_LOCALES  the locales whose UI tests run, default "nl en" (what `pnpm test:ios` does). The unit tests always run
 #                   in both. CI sets "nl" on a pull request only, so a PR's run skips the en UI tests (a language-only
 #                   break of a UI test then shows in the merge queue, which runs both); with it, the nl run is everything
@@ -22,7 +29,25 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
-[ $# -eq 0 ] || usage_of "$0"
+MODE=all
+ONLY_LOCALE=""
+BUNDLE_FILE=""
+case "${1:-}" in
+  "") ;;
+  build) MODE=build; [ $# -eq 1 ] || usage_of "$0" ;;
+  test)
+    MODE='test'
+    ONLY_LOCALE="${2:-}"
+    [ "$ONLY_LOCALE" = nl ] || [ "$ONLY_LOCALE" = en ] || usage_of "$0"
+    shift 2
+    case "${1:-}" in
+      "") ;;
+      --bundle) [ $# -eq 2 ] || usage_of "$0"; BUNDLE_FILE="$2" ;;
+      *) usage_of "$0" ;;
+    esac
+    ;;
+  *) usage_of "$0" ;;
+esac
 
 need_cmd jq
 LOCALES="nl en"
@@ -36,7 +61,7 @@ in_ui_locales() { [[ " $UI_LOCALES " == *" $1 "* ]]; }
 all_ui=true
 for locale in $LOCALES; do in_ui_locales "$locale" || all_ui=false; done
 use_xcode || die "Xcode not found — run scripts/bootstrap.sh --mobile"
-install_swiftlint || die "could not install SwiftLint — run scripts/bootstrap.sh --mobile"
+[ "$MODE" = test ] || install_swiftlint || die "could not install SwiftLint — run scripts/bootstrap.sh --mobile"
 cd "$IOS_DIR"
 
 # Every line of a fixture marked `// expect: <rule>` must fail SwiftLint with that rule, naming the file and line; no
@@ -275,25 +300,27 @@ catalog_sync() {
   return "$rc"
 }
 
-step "SwiftLint"
-"$SWIFTLINT" lint --strict --quiet
-step "SwiftLint rejects literal text, colours and direct Sentry calls (lint/fixtures)"
-lint_fixture lint/fixtures/LiteralText.swift no_literal_text
-lint_fixture lint/fixtures/ColourLiteral.swift no_colour_literal
-lint_fixture lint/fixtures/DirectSentry.swift no_direct_sentry
-step "Every UI test runs in at least one test-plan configuration"
-test_plan_coverage
-step "Debug and Release configurations"
-debug_configuration
-production_base_url_fixtures
-release_configuration
-version_and_identifier "$(build_settings Debug)"
-build_number_from_outside
-plists_in_xcode_form
-step "Swift packages (no analytics SDK)"
-swift_packages
-step "Xcode's string catalog sync leaves the generated catalogs unchanged"
-catalog_sync
+if [ "$MODE" != test ]; then
+  step "SwiftLint"
+  "$SWIFTLINT" lint --strict --quiet
+  step "SwiftLint rejects literal text, colours and direct Sentry calls (lint/fixtures)"
+  lint_fixture lint/fixtures/LiteralText.swift no_literal_text
+  lint_fixture lint/fixtures/ColourLiteral.swift no_colour_literal
+  lint_fixture lint/fixtures/DirectSentry.swift no_direct_sentry
+  step "Every UI test runs in at least one test-plan configuration"
+  test_plan_coverage
+  step "Debug and Release configurations"
+  debug_configuration
+  production_base_url_fixtures
+  release_configuration
+  version_and_identifier "$(build_settings Debug)"
+  build_number_from_outside
+  plists_in_xcode_form
+  step "Swift packages (no analytics SDK)"
+  swift_packages
+  step "Xcode's string catalog sync leaves the generated catalogs unchanged"
+  catalog_sync
+fi
 
 BUILD_ARGS=(-project FivviPro.xcodeproj -scheme FivviPro -testPlan FivviPro
   -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData)
@@ -358,17 +385,91 @@ ios_cleanup() {
   delete_extra_simulator
 }
 
+# The test bundle of the build job: what test-without-building needs, packed so that file modes survive the artifact
+# upload (a zip of the files would drop the executable bit of the app and the test runner).
+BUNDLE_TAR=.build/ios-test-bundle.tar
+pack_bundle() {
+  tar -cf "$BUNDLE_TAR" -C .build/DerivedData/Build Products
+  echo "Packed $(basename "$BUNDLE_TAR") ($(du -h "$BUNDLE_TAR" | cut -f1))"
+}
+
+# Unpacks the bundle of the build job in place of Build/Products and finds its one .xctestrun.
+unpack_bundle() {
+  local file=${BUNDLE_FILE:-$BUNDLE_TAR} found
+  [ -f "$file" ] || die "no test bundle at $file — run scripts/test-ios.sh build first (or pass --bundle <file>)"
+  rm -rf .build/DerivedData/Build/Products
+  mkdir -p .build/DerivedData/Build
+  tar -xf "$file" -C .build/DerivedData/Build
+  found="$(find "$PRODUCTS" -maxdepth 1 -name '*.xctestrun')"
+  { [ -n "$found" ] && [ "$(wc -l <<<"$found")" -eq 1 ]; } \
+    || die "expected exactly one .xctestrun in the test bundle, found: $(tr '\n' ' ' <<<"${found:-none}")"
+  XCTESTRUN="$found"
+}
+
+# The slowest tests and, when a run failed, the failed tests of the result bundle $1 in locale $2 (also in the job summary).
+report_slowest() { # <bundle> <locale>
+  local rows
+  rows="$(slowest_tests "$1" 10 "$2")"
+  [ -z "$rows" ] || {
+    echo "Slowest tests in $2 (seconds):"
+    echo "$rows" | sed 's/^| /  /; s/ | / /; s/ |$//'
+    summary "### Slowest iOS tests in $2" "" "| Test | Seconds |" "|---|--:|" "$rows" ""
+  }
+}
+
+# What failed, by name: `xcodebuild -quiet` only says TEST EXECUTE FAILED (#290). Once per result bundle, with the
+# locale when there is a bundle per locale (as the slowest tests above).
+report_failed() { # <bundle> [locale]
+  local rows
+  rows="$(failed_tests "$1")"
+  [ -z "$rows" ] || {
+    echo "Failed tests${2:+ in $2}:"
+    echo "  ${rows//$'\n'/$'\n  '}"
+    summary "### Failed iOS tests${2:+ in $2}" "" '```' "$rows" '```' ""
+  }
+}
+
 udid="$(ios_simulator)"
 [ -n "$udid" ] || die "no iPhone simulator${IOS_SIMULATOR:+ named $IOS_SIMULATOR} — run scripts/bootstrap.sh --mobile"
 # on_exit holds one command: catalog_sync's restore ran and cleared it above, so this doesn't replace a live one.
 on_exit 'ios_cleanup'
+mkdir -p .build
+
+if [ "$MODE" = build ]; then
+  # No simulator boots: nothing runs. The build needs one only as its destination.
+  step "Build for testing (simulator $udid)"
+  build_for_testing "$udid"
+  step "Pack the test bundle"
+  pack_bundle
+  echo "✓ iOS build"
+  exit 0
+fi
+
+if [ "$MODE" = test ]; then
+  # One language from the bundle of the build job, on a simulator of its own.
+  step "Unpack the test bundle"
+  unpack_bundle
+  rm -rf ".build/TestResults-$ONLY_LOCALE.xcresult"
+  start_boot "$udid"
+  await_boots || die "a simulator did not boot"
+  step "Unit and UI tests in $ONLY_LOCALE (simulator $udid)"
+  tests=0
+  run_tests "$udid" "$ONLY_LOCALE" || tests=1
+  report_slowest ".build/TestResults-$ONLY_LOCALE.xcresult" "$ONLY_LOCALE"
+  if [ "$tests" != 0 ]; then
+    report_failed ".build/TestResults-$ONLY_LOCALE.xcresult" "$ONLY_LOCALE"
+    exit 1
+  fi
+  echo "✓ iOS tests in $ONLY_LOCALE"
+  exit 0
+fi
+
 parallel=false
 [ "${IOS_PARALLEL:-0}" != 1 ] || parallel=true
 if $parallel; then create_extra_simulator || die "could not create a second simulator"; fi
 extra="$EXTRA_SIMULATOR"
 
 # The simulators boot while the app builds.
-mkdir -p .build
 rm -rf .build/TestResults*.xcresult
 start_boot "$udid"
 [ -z "$extra" ] || start_boot "$extra"
@@ -395,25 +496,9 @@ fi
 for locale in $LOCALES; do
   bundle="$RESULTS"
   ! $per_locale || bundle=".build/TestResults-$locale.xcresult"
-  rows="$(slowest_tests "$bundle" 10 "$locale")"
-  [ -z "$rows" ] || {
-    echo "Slowest tests in $locale (seconds):"
-    echo "$rows" | sed 's/^| /  /; s/ | / /; s/ |$//'
-    summary "### Slowest iOS tests in $locale" "" "| Test | Seconds |" "|---|--:|" "$rows" ""
-  }
+  report_slowest "$bundle" "$locale"
 done
 if [ "$tests" != 0 ]; then
-  # What failed, by name: `xcodebuild -quiet` only says TEST EXECUTE FAILED (#290). Once per result bundle, with the
-  # locale when there is a bundle per locale (as the slowest tests above).
-  report_failed() { # <bundle> [locale]
-    local rows
-    rows="$(failed_tests "$1")"
-    [ -z "$rows" ] || {
-      echo "Failed tests${2:+ in $2}:"
-      echo "  ${rows//$'\n'/$'\n  '}"
-      summary "### Failed iOS tests${2:+ in $2}" "" '```' "$rows" '```' ""
-    }
-  }
   if $per_locale; then
     for locale in $LOCALES; do report_failed ".build/TestResults-$locale.xcresult" "$locale"; done
   else
