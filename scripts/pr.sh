@@ -5,9 +5,8 @@
 #   pr.sh create [--title <t>] [--body-file <f|->] [--ready] [--full] [--no-check]
 #                                                 check, push, then open a draft PR (or update the open one, changing only
 #                                                 what you pass); a new PR's title defaults to the issue title, its body
-#                                                 gets "Closes #<issue>". The first push runs the full scripts/check.sh;
-#                                                 a follow-up push (the PR exists) runs check.sh --fast, as CI runs the
-#                                                 full gate on every commit; --full forces the full run
+#                                                 gets "Closes #<issue>". Every push runs scripts/check.sh, the checks the
+#                                                 change can affect (#293); --full runs check.sh --all, everything
 #   pr.sh ready                                   mark the draft ready for review, only when for the head commit every
 #                                                 CI check passed (the merge gate's rule), the clean review is recorded
 #                                                 (pr.sh reviewed) and so is the smoke check (pr.sh smoke); else names
@@ -81,10 +80,11 @@ current_pr() {
   echo "$pr"
 }
 
-# run_check [--fast] [<why>]: scripts/check.sh in the given mode, announcing which mode ran and why.
+# run_check [--all] [<why>]: scripts/check.sh for the change's affected set, or with --all for everything, announcing
+# which ran and why.
 run_check() {
-  local flag="" mode=full
-  if [ "${1:-}" = --fast ]; then flag=--fast; mode=fast; shift; fi
+  local flag="" mode=affected
+  if [ "${1:-}" = --all ]; then flag=--all; mode=full; shift; fi
   echo "🔎 ${mode} checks${1:+: $1}"
   (cd "$(git rev-parse --show-toplevel)" && scripts/check.sh ${flag:+"$flag"}) || die "checks failed — fix them before opening or updating a PR"
 }
@@ -122,9 +122,9 @@ cmd_create() {
   fi
 
   if $check; then
-    if $full; then run_check "--full"
+    if $full; then run_check --all "--full"
     elif [ -z "$existing" ]; then run_check "first push of the branch"
-    else run_check --fast "follow-up push to PR #$existing; CI runs the full gate (integration, e2e) on this commit; --full runs it here too"
+    else run_check "follow-up push to PR #$existing; CI is still the full gate on this commit; --full runs everything here too"
     fi
   fi
   local out

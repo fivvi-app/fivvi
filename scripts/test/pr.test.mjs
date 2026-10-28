@@ -1026,25 +1026,25 @@ describe('pr.sh create: which local check runs before the push', () => {
     return { ...result, checks: readFileSync(log, 'utf8').trim().split('\n').filter(Boolean) };
   };
 
-  it('runs the full check on the first push, when there is no PR yet', () => {
+  it('runs the checks the change affects on the first push, when there is no PR yet', () => {
     const result = create(false);
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.checks, ['check.sh']);
-    assert.match(result.stdout, /full checks: first push/);
+    assert.match(result.stdout, /affected checks: first push/);
   });
 
-  it('runs the fast check on a follow-up push, when the PR exists, and says why', () => {
+  it('#293: runs the checks the change affects on a follow-up push too, and says why', () => {
     const result = create(true);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.checks, ['check.sh --fast']);
-    assert.match(result.stdout, /fast checks: follow-up push to PR #60/);
-    assert.match(result.stdout, /CI runs the full gate/);
+    assert.deepEqual(result.checks, ['check.sh']);
+    assert.match(result.stdout, /affected checks: follow-up push to PR #60/);
+    assert.match(result.stdout, /CI is still the full gate/);
   });
 
-  it('runs the full check on a follow-up push with --full', () => {
+  it('runs everything (check.sh --all) on a follow-up push with --full', () => {
     const result = create(true, ['--full']);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.checks, ['check.sh']);
+    assert.deepEqual(result.checks, ['check.sh --all']);
     assert.match(result.stdout, /full checks: --full/);
   });
 
