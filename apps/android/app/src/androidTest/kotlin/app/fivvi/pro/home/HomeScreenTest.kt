@@ -70,6 +70,51 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
     }
 
     @Test
+    fun test_F002_AC10_homeStateFromMe_workspace() {
+        me.answerAccount(workspaces = listOf("John's Gym"))
+        launch()
+
+        compose.onNodeWithTag(HomeTags.WORKSPACE_NAME).assertTextEquals("John's Gym")
+        compose.onNodeWithTag(HomeTags.SET_UP_ON_WEB).assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.NO_ACCESS).assertDoesNotExist()
+    }
+
+    @Test
+    fun test_F002_AC10_homeStateFromMe_setUpOnTheWeb() {
+        me.answerAccount(workspaces = emptyList(), canCreateWorkspace = true)
+        launch()
+
+        compose.onNodeWithTag(HomeTags.SET_UP_ON_WEB).assertTextEquals(string(R.string.home_set_up_on_web))
+        compose.onNodeWithTag(HomeTags.OPEN_WEB).assertTextEquals(string(R.string.home_open_web))
+        compose.onNodeWithTag(HomeTags.WORKSPACE_NAME).assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.NO_ACCESS).assertDoesNotExist()
+    }
+
+    @Test
+    fun test_F002_AC10_homeStateFromMe_noAccess() {
+        me.answerAccount(workspaces = emptyList(), canCreateWorkspace = false)
+        launch()
+
+        compose.onNodeWithTag(HomeTags.NO_ACCESS).assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.SIGN_OUT).assertTextEquals(string(R.string.sign_out_label))
+        compose.onNodeWithTag(HomeTags.SET_UP_ON_WEB).assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.WORKSPACE_NAME).assertDoesNotExist()
+    }
+
+    @Test
+    fun test_F002_AC10_noAccessSignOutShowsSignIn() {
+        me.answerAccount(workspaces = emptyList(), canCreateWorkspace = false)
+        signIn.answerSignedOut()
+        launch()
+
+        compose.onNodeWithTag(HomeTags.SIGN_OUT).performClick()
+
+        waitForSignIn()
+        assertEquals(1, signIn.signOuts)
+        assertNull(store.read())
+    }
+
+    @Test
     fun F001N_AC4_failedAccountCallShowsRetry() {
         me.answers += { throw IOException("offline") }
         me.answerAccount("owner@example.com")

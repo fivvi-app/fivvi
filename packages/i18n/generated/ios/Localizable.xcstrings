@@ -295,6 +295,42 @@
         }
       }
     },
+    "home.openWeb" : {
+      "comment" : "Button under home.setUpOnWeb in the native apps; opens Fivvi on the web (the first-run screen) in the phone's browser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Fivvi in the browser"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Fivvi in de browser"
+          }
+        }
+      }
+    },
+    "home.setUpOnWeb" : {
+      "comment" : "Native home when the account has no workspace but may set one up. Creating a workspace happens on the web only; this line tells the person to do that. Above home.openWeb.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set up your workspace on the web."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maak je werkruimte aan op het web."
+          }
+        }
+      }
+    },
     "home.signedInAs" : {
       "comment" : "Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner.",
       "extractionState" : "manual",
