@@ -3,6 +3,7 @@ import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import {
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -920,5 +921,463 @@ describe('#292 flow.sh lock: a run lock with a 3-hour expiry', () => {
       cwd: join(SCRIPTS, '..'),
     });
     assert.equal(ignored.status, 0);
+  });
+});
+
+// The scheduled factory run stopped on approved specs it could not see as work: `next` lists them under "Ready for an
+// agent" as `Cut #n`, and `idle` tells the run, before it loads anything, whether an agent has anything to do.
+describe('flow.sh next (specs to cut) and flow.sh idle', () => {
+  const gh = fakeGh();
+  const HEAD = 'a'.repeat(40);
+  const NEW_HEAD = 'b'.repeat(40);
+  let repo;
+  before(() => {
+    // The scripts run from their own checkout (its .work/ holds the notes), with a branch for each issue below.
+    repo = realpathSync(mkdtempSync(join(tmpdir(), 'flow-idle-')));
+    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+    const git = (...args) =>
+      execFileSync(
+        'git',
+        ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
+        { encoding: 'utf8' },
+      );
+    git('init', '--quiet', '--initial-branch=main');
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'chore: base');
+    git('remote', 'add', 'origin', 'https://github.com/o/r.git');
+    for (const branch of ['9001-removed', '9002-queued', '9003-refused', '9004-building'])
+      git('branch', `chore/${branch}`);
+  });
+  after(() => {
+    gh.cleanup();
+    rmSync(repo, { recursive: true, force: true });
+  });
+  beforeEach(() => rmSync(join(repo, '.work'), { recursive: true, force: true }));
+
+  const issue = (number, title, names, extra = {}) => ({
+    number,
+    title,
+    state: 'OPEN',
+    labels: labels(...names),
+    assignees: [],
+    body: '## Acceptance criteria',
+    comments: [],
+    parent: null,
+    subIssues: { nodes: [] },
+    blockedBy: { nodes: [] },
+    ...extra,
+  });
+  const spec = (number, title, names, { total = 0, ...extra } = {}) => ({
+    ...issue(number, title, ['spec', ...names], extra),
+    subIssuesSummary: { completed: 0, total },
+  });
+  // The PR of each branch: number, head commit, merge queue state and body (a merge gate refusal makes it merge-refused).
+  const PRS = {
+    'chore/9001-removed': {
+      number: 91,
+      head: HEAD,
+      queue: { removed: true },
+      body: 'Closes #9001',
+    },
+    'chore/9002-queued': { number: 92, head: HEAD, queue: { queued: true }, body: 'Closes #9002' },
+    'chore/9003-refused': {
+      number: 93,
+      head: HEAD,
+      queue: {},
+      body: `Closes #9003\n\n**Merge gate:** refused on \`${HEAD}\`: self-review clean (no self-review record in the PR body)`,
+    },
+  };
+  const prRules = (head = {}) =>
+    [
+      'chore/9001-removed',
+      'chore/9002-queued',
+      'chore/9003-refused',
+      'chore/9004-building',
+    ].flatMap((branch) => {
+      const pr = PRS[branch];
+      if (!pr) return [{ match: `^pr list .*--head ${branch}`, out: [] }];
+      return [
+        {
+          match: `^pr list .*--head ${branch}`,
+          out: [
+            {
+              number: pr.number,
+              state: 'OPEN',
+              isDraft: false,
+              reviewDecision: '',
+              statusCheckRollup: [],
+              url: `https://github.com/o/r/pull/${pr.number}`,
+              createdAt: '2026-10-18T10:00:00Z',
+              headRefOid: head[branch] ?? pr.head,
+            },
+          ],
+        },
+        {
+          match: `^api repos/[^ ]+/pulls/${pr.number}/files`,
+          out: [{ filename: 'apps/web/page.tsx' }],
+        },
+        { match: `^pr view ${pr.number} .*--json body`, out: { body: pr.body } },
+        {
+          match: `^pr view ${pr.number} `,
+          out: { headRefName: branch, closingIssuesReferences: [], changedFiles: 1 },
+        },
+        queueRule(pr.number, pr.queue),
+      ];
+    });
+
+  // scenario: assigned (issues assigned to you), specs, tickets (the ready ones), questions, others (issues read by
+  // number only), head (a PR's head commit by branch), failing (rules that fail).
+  const run = (command, scenario = {}) => {
+    const {
+      assigned = [],
+      specs = [],
+      tickets = [],
+      questions = [],
+      others = [],
+      head,
+      failing = [],
+      args = [],
+      env = {},
+    } = scenario;
+    return spawnSync(join(repo, 'scripts/flow.sh'), [command, ...args], {
+      encoding: 'utf8',
+      env: {
+        ...gh.env([
+          ...failing.map((match) => ({ match, out: '', status: 1 })),
+          { match: '^api user', out: { login: 'thekeyvan' } },
+          {
+            match: '^issue list .*--assignee @me',
+            out: assigned.map(({ number }) => ({ number })),
+          },
+          { match: '^issue list .*--label spec ', out: specs },
+          {
+            match: '^issue list .*--label ready-for-agent',
+            out: tickets.map(({ number }) => ({ number })),
+          },
+          { match: '^issue list .*--label needs-info', out: questions },
+          ...[...assigned, ...specs, ...tickets, ...others].map((item) => ({
+            match: `^issue view ${item.number} `,
+            out: item,
+          })),
+          ...prRules(head),
+          { match: '^pr list .*--state open', out: [] },
+          { match: '^pr list .*--state merged', out: [] },
+          {
+            match: '^api graphql ',
+            out: { data: { repository: { pullRequest: { reviewThreads: { nodes: [] } } } } },
+          },
+        ]),
+        FIVVI_NOW: NOW,
+        GIT_TERMINAL_PROMPT: '0',
+        ...env,
+      },
+    });
+  };
+  const readyOf = (stdout) =>
+    stdout.slice(
+      stdout.indexOf('== Ready for an agent'),
+      stdout.indexOf('== Waiting on the owner'),
+    );
+  const viewed = (number) =>
+    gh
+      .calls()
+      .some(({ args }) => args[0] === 'issue' && args[1] === 'view' && args[2] === String(number));
+  const writeNotes = (number, text) => {
+    mkdirSync(join(repo, '.work', String(number)), { recursive: true });
+    writeFileSync(join(repo, '.work', String(number), 'notes.md'), text);
+  };
+
+  const cut = spec(171, '[F003] Clients', ['spec-approved']);
+  const cutBlocked = spec(172, '[F004] Bookings', ['spec-approved'], {
+    blockedBy: { nodes: [{ number: 171, title: '[F003] Clients', state: 'OPEN' }] },
+  });
+  const unapproved = spec(173, '[F005] Waiting list', []);
+  const withTickets = spec(174, '[F006] Payments', ['spec-approved'], { total: 2 });
+  const untriaged = spec(175, '[F007] Idea', ['spec-approved', 'needs-triage']);
+  const SPECS = [cut, cutBlocked, unapproved, withTickets, untriaged];
+
+  describe('next: specs to cut', () => {
+    it('lists an approved spec without tickets as Cut, also one that waits on another spec', () => {
+      const result = run('next', { specs: SPECS });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        readyOf(result.stdout),
+        [
+          '== Ready for an agent',
+          'Cut #171 [F003] Clients (needs-tickets)',
+          'Cut #172 [F004] Bookings (needs-tickets)',
+          '',
+        ].join('\n'),
+      );
+    });
+
+    it('lists neither an unapproved spec nor a spec with tickets, and reads nothing more of them', () => {
+      const result = run('next', { specs: SPECS });
+      assert.doesNotMatch(readyOf(result.stdout), /#173|#174/);
+      assert.equal(viewed(173), false);
+      assert.equal(viewed(174), false);
+    });
+
+    it('lists no Cut for an approved spec whose phase is not needs-tickets', () => {
+      const result = run('next', { specs: SPECS });
+      assert.doesNotMatch(readyOf(result.stdout), /#175/);
+    });
+
+    it('lists a Cut spec next to a ready ticket and an answered question', () => {
+      const ticket = issue(180, '[F003] Add a client', ['ready-for-agent']);
+      const question = {
+        number: 181,
+        title: 'Which cancel window?',
+        comments: comments(TRIAGE_NOTE, '24 hours'),
+      };
+      const result = run('next', { specs: [cut], tickets: [ticket], questions: [question] });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        readyOf(result.stdout),
+        [
+          '== Ready for an agent',
+          '#180 [F003] Add a client',
+          'Cut #171 [F003] Clients (needs-tickets)',
+          'Triage #181 Which cancel window? (answered)',
+          '',
+        ].join('\n'),
+      );
+    });
+
+    it('fails instead of listing nothing when it cannot read the facts of a spec to cut', () => {
+      const result = run('next', { specs: [cut], failing: ['^issue view 171 '] });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /^error: could not read/m);
+      assert.doesNotMatch(result.stdout, /\(none\)\n== Waiting/);
+    });
+  });
+
+  describe('idle', () => {
+    const queued = issue(9002, 'Queued', ['ready-for-agent']);
+    const refused = issue(9003, 'Refused', ['ready-for-agent']);
+    const waiting = issue(9006, 'Which time?', ['needs-info'], { comments: comments(TRIAGE_NOTE) });
+    const removed = issue(9001, 'Removed', ['ready-for-agent']);
+
+    it('exits 0 with one line and what waits on the owner when only queued, refused and waiting items are left', () => {
+      const result = run('idle', {
+        assigned: [queued, refused, waiting],
+        specs: [unapproved, withTickets],
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        result.stdout,
+        [
+          'idle: nothing for an agent',
+          '== Waiting on the owner',
+          'Approve spec #173 [F005] Waiting list (add spec-approved)',
+          '',
+        ].join('\n'),
+      );
+    });
+
+    it('exits 0 when nothing is assigned or ready', () => {
+      const result = run('idle');
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout, 'idle: nothing for an agent\n== Waiting on the owner\n(none)\n');
+    });
+
+    it('exits 1 and lists a ready ticket', () => {
+      const result = run('idle', {
+        tickets: [issue(180, '[F003] Add a client', ['ready-for-agent'])],
+      });
+      assert.equal(result.status, 1, result.stderr);
+      assert.equal(result.stdout, '#180 [F003] Add a client\n');
+    });
+
+    it('exits 1 and lists an issue in progress with its phase', () => {
+      const result = run('idle', { assigned: [issue(9004, 'Build it', ['ready-for-agent'])] });
+      assert.equal(result.status, 1, result.stderr);
+      assert.equal(result.stdout, '#9004 Build it → in-progress\n');
+    });
+
+    it('exits 1 and lists a spec to cut', () => {
+      const result = run('idle', { specs: SPECS });
+      assert.equal(result.status, 1, result.stderr);
+      assert.equal(
+        result.stdout,
+        'Cut #171 [F003] Clients (needs-tickets)\nCut #172 [F004] Bookings (needs-tickets)\n',
+      );
+    });
+
+    it('exits 1 for an answered question', () => {
+      const question = {
+        number: 181,
+        title: 'Which cancel window?',
+        comments: comments(TRIAGE_NOTE, '24 hours'),
+      };
+      const result = run('idle', { questions: [question] });
+      assert.equal(result.status, 1, result.stderr);
+      assert.equal(result.stdout, 'Triage #181 Which cancel window? (answered)\n');
+    });
+
+    it('counts a queue-removed PR as work until the notes line names its current head commit', () => {
+      const scenario = { assigned: [removed] };
+      let result = run('idle', scenario);
+      assert.equal(result.status, 1, result.stderr);
+      assert.equal(result.stdout, '#9001 Removed → queue-removed\n');
+
+      writeNotes(9001, `# #9001 Removed\nqueue-removed ${HEAD}: reported to the owner\n`);
+      result = run('idle', scenario);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /^idle: nothing for an agent\n/);
+    });
+
+    it('counts the queue-removed PR as work again after a new commit', () => {
+      writeNotes(9001, `# #9001 Removed\nqueue-removed ${HEAD}: reported to the owner\n`);
+      const result = run('idle', { assigned: [removed], head: { 'chore/9001-removed': NEW_HEAD } });
+      assert.equal(result.status, 1, result.stderr);
+      assert.equal(result.stdout, '#9001 Removed → queue-removed\n');
+    });
+
+    it('does not take another line of the notes for the report', () => {
+      writeNotes(
+        9001,
+        `# #9001 Removed\nqueue-removed ${NEW_HEAD}: reported to the owner\nqueue-removed ${HEAD}: fixing it\n`,
+      );
+      const result = run('idle', { assigned: [removed] });
+      assert.equal(result.status, 1, result.stderr);
+    });
+
+    it('accepts the head commit in the notes as a prefix of at least 7 hex characters, with a list marker', () => {
+      const scenario = { assigned: [removed] };
+      for (const line of [
+        `queue-removed ${HEAD.slice(0, 7)}: reported to the owner`,
+        `- queue-removed ${HEAD.slice(0, 12)}: reported to the owner`,
+        `- queue-removed ${HEAD}: reported to the owner (flaky check)`,
+      ]) {
+        writeNotes(9001, `# #9001 Removed\n${line}\n`);
+        const result = run('idle', scenario);
+        assert.equal(result.status, 0, `${line}: ${result.stderr}`);
+      }
+    });
+
+    it('does not take a short, wrong or other commit for the report', () => {
+      const scenario = { assigned: [removed] };
+      for (const sha of [
+        HEAD.slice(0, 6), // fewer than 7 characters
+        HEAD.slice(0, 3),
+        NEW_HEAD.slice(0, 7), // a prefix of another commit
+        `${HEAD.slice(0, 6)}d`, // 7 characters, but not a prefix of the head
+        `${HEAD}0`, // longer than a commit
+      ]) {
+        writeNotes(9001, `# #9001 Removed\nqueue-removed ${sha}: reported to the owner\n`);
+        const result = run('idle', scenario);
+        assert.equal(result.status, 1, `${sha}: ${result.stderr}`);
+        assert.equal(result.stdout, '#9001 Removed → queue-removed\n', sha);
+      }
+    });
+
+    describe('every phase', () => {
+      // A stub of flow-phase.jq that answers the phase in FIVVI_STUB_PHASE, so each phase is tested on its own.
+      const phaseJq = () => join(repo, 'scripts/flow-phase.jq');
+      let original;
+      before(() => {
+        original = readFileSync(phaseJq(), 'utf8');
+        writeFileSync(phaseJq(), '{phase: env.FIVVI_STUB_PHASE, next: "", hint: ""}\n');
+      });
+      after(() => writeFileSync(phaseJq(), original));
+
+      const phased = (phase) =>
+        run('idle', {
+          assigned: [issue(9004, 'Build it', ['ready-for-agent'])],
+          env: { FIVVI_STUB_PHASE: phase },
+        });
+      const WORK = [
+        'ready',
+        'in-progress',
+        'draft-pr',
+        'changes-requested',
+        'ready-to-merge',
+        'merged',
+        'complete',
+        'needs-tickets',
+        'building',
+        'answered',
+        'queue-removed',
+        'a-phase-nobody-knows-yet',
+      ];
+      const WAIT = [
+        'queued',
+        'merge-refused',
+        'in-review',
+        'approved',
+        'waiting',
+        'needs-approval',
+        'needs-spec',
+        'needs-refinement',
+        'human',
+        'blocked',
+        'taken',
+        'abandoned',
+        'done',
+      ];
+      for (const phase of WORK)
+        it(`exits 1 for ${phase}`, () => {
+          const result = phased(phase);
+          assert.equal(result.status, 1, result.stderr);
+          assert.equal(result.stdout, `#9004 Build it → ${phase}\n`);
+        });
+      for (const phase of WAIT)
+        it(`exits 0 for ${phase}`, () => {
+          const result = phased(phase);
+          assert.equal(result.status, 0, result.stderr);
+          assert.match(result.stdout, /^idle: nothing for an agent\n/);
+        });
+    });
+
+    it('exits 2 on a bad argument, never 1 (work)', () => {
+      const result = run('idle', { args: ['x'] });
+      assert.equal(result.status, 2);
+      assert.doesNotMatch(result.stdout, /idle/);
+    });
+
+    it('is an error, never idle, when the script exits 0 without an answer', () => {
+      // macOS /bin/bash 3.2 runs the EXIT trap with $?=0 after a `set -u` abort; a `command` function that exits 0
+      // in the main shell (after the trap is set) stands in for that.
+      const hook = join(repo, 'exit-zero.sh');
+      writeFileSync(hook, 'command() { exit 0; }\n');
+      const result = run('idle', { env: { BASH_ENV: hook } });
+      assert.equal(result.status, 2, result.stderr);
+      assert.doesNotMatch(result.stdout, /idle/);
+    });
+
+    it('is an error, never idle, when it cannot tell who you are', () => {
+      const taken = issue(9004, 'Not mine', ['ready-for-agent'], {
+        assignees: [{ login: 'someone-else' }],
+      });
+      const result = run('idle', { assigned: [taken], failing: ['^api user'] });
+      assert.equal(result.status, 2, result.stderr);
+      assert.match(result.stderr, /^error: /m);
+      assert.doesNotMatch(result.stdout, /idle/);
+    });
+
+    it('is an error, never idle, when a read fails', () => {
+      const reads = {
+        'the issues assigned to you': '^issue list .*--assignee @me',
+        'the open specs': '^issue list .*--label spec ',
+        'the ready tickets': '^issue list .*--label ready-for-agent',
+        'the needs-info questions': '^issue list .*--label needs-info',
+        'an assigned issue': '^issue view 9002 ',
+        'a spec to cut': '^issue view 171 ',
+      };
+      for (const [what, match] of Object.entries(reads)) {
+        const result = run('idle', { assigned: [queued], specs: [cut], failing: [match] });
+        assert.ok(result.status >= 2, `${what}: exit ${result.status}`);
+        assert.match(result.stderr, /^error: /m, what);
+        assert.doesNotMatch(result.stdout, /idle/, what);
+      }
+    });
+
+    it('is an error, never idle, when it cannot read what waits on the owner', () => {
+      const result = run('idle', { failing: ['^pr list .*--state open'] });
+      assert.ok(result.status >= 2, `exit ${result.status}`);
+      assert.match(result.stderr, /^error: could not read the open PRs/m);
+      assert.doesNotMatch(result.stdout, /idle/);
+    });
   });
 });
