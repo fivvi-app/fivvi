@@ -15,7 +15,20 @@ final class AccountViewModel {
         case failed
     }
 
+    /// What the home shows besides the account line, decided by the API's answer to `GET /api/v1/me` (F002 AC10).
+    enum Destination: Equatable {
+        /// The account has a workspace: the app's home, with its name.
+        case workspace(name: String)
+        /// No workspace, but the account may create one: the app says to set it up on the web.
+        case setUpOnWeb
+        /// No workspace and the account may not create one.
+        case noAccess
+    }
+
     private(set) var state = State.loading
+    /// Nil until `GET /api/v1/me` has answered with the account. The app holds no rule: the answer's workspaces and
+    /// `canCreateWorkspace` decide.
+    private(set) var destination: Destination?
     /// A sign-out is under way: the home shows it and ignores another tap.
     private(set) var isSigningOut = false
     private let api: any APIProtocol
@@ -47,9 +60,16 @@ final class AccountViewModel {
 
     func load() async {
         state = .loading
+        destination = nil
         do {
             let account = try await api.getMe().ok.body.json
             state = .loaded(email: account.email)
+            // With more than one workspace (F012) the last one used will decide; until then the first is the home.
+            if let workspace = account.workspaces.first {
+                destination = .workspace(name: workspace.name)
+            } else {
+                destination = account.canCreateWorkspace ? .setUpOnWeb : .noAccess
+            }
             // An answer that arrives after the sign-out (the token is gone) or once the screen has gone (its task is
             // cancelled) must not set the account that was just cleared as the error-reporting user (#266).
             if !Task.isCancelled, store.token != nil { onAccount(account.id) }

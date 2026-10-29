@@ -1,3 +1,4 @@
+import FivviAPI
 import XCTest
 
 @testable import FivviPro
@@ -121,6 +122,63 @@ final class AccountViewModelTests: XCTestCase {
             await model.load()
 
             XCTAssertEqual(model.state, .failed, "\(answer)")
+        }
+    }
+
+    // MARK: Home state (F002 AC10)
+
+    /// The three states of the home come from `GET /api/v1/me`, in both languages: the workspace's name, the text to
+    /// set one up on the web, or the no-access text. The app decides nothing: the API's workspaces and
+    /// `canCreateWorkspace` do.
+    func test_F002_AC10_homeStateFromMe() async {
+        let cases: [(StubAPI.MeAnswer, AccountViewModel.Destination)] = [
+            (.account(email: "owner@example.com", workspaces: ["John's Gym"]), .workspace(name: "John's Gym")),
+            (.account(email: "owner@example.com", workspaces: ["John's Gym"], canCreateWorkspace: true),
+             .workspace(name: "John's Gym")),
+            (.account(email: "owner@example.com", canCreateWorkspace: true), .setUpOnWeb),
+            (.account(email: "owner@example.com"), .noAccess)
+        ]
+        for (answer, destination) in cases {
+            let api = StubAPI()
+            await api.answerMe(with: answer)
+            let model = model(api)
+            XCTAssertNil(model.destination, "nothing is decided before the API answers")
+
+            await model.load()
+
+            XCTAssertEqual(model.destination, destination, "\(answer)")
+        }
+        for locale in [Components.Schemas.Locale.nlNL, .en] {
+            let catalog = Catalog(locale: locale)
+            let expected = TestCatalog(locale)
+            XCTAssertEqual(catalog[.setUpOnWeb], expected["home.setUpOnWeb"])
+            XCTAssertEqual(catalog[.openWeb], expected["home.openWeb"])
+            XCTAssertEqual(catalog[.noAccessBody], expected["noAccess.body"])
+            XCTAssertEqual(catalog[.workspaceHomeDescription], expected["workspaceHome.description"])
+        }
+    }
+
+    func test_F002_AC10_aFailedAnswerDecidesNothing() async {
+        let api = StubAPI()
+        await api.answerMe(with: .account(email: "owner@example.com", workspaces: ["John's Gym"]))
+        let model = model(api)
+        await model.load()
+
+        await api.answerMe(with: .offline)
+        await model.load()
+
+        XCTAssertNil(model.destination, "a retry shows no state of the earlier answer")
+        XCTAssertEqual(model.state, .failed)
+    }
+
+    /// The button opens trainer web's first-run screen: the API's base URL without its `/api` mount, plus `/welcome`.
+    func test_F002_AC10_theWebButtonOpensWelcomeOnTheWebApp() throws {
+        for (api, web) in [
+            ("http://localhost:3000/api", "http://localhost:3000/welcome"),
+            ("https://fivvi.example.com/api", "https://fivvi.example.com/welcome"),
+            ("http://127.0.0.1:3383/api/", "http://127.0.0.1:3383/welcome")
+        ] {
+            XCTAssertEqual(AppConfiguration.welcomeURL(apiBaseURL: try XCTUnwrap(URL(string: api))).absoluteString, web)
         }
     }
 

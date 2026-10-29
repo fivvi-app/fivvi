@@ -21,6 +21,10 @@ final class StubServer: Sendable {
         var email = "owner@example.com"
         var code = "123456"
         var token = "stub-session-token"
+        /// The name of the account's one workspace, or nil for none (F002).
+        var workspaceName: String? = "John's Gym"
+        /// Whether `GET /api/v1/me` says the account may create a workspace.
+        var canCreateWorkspace = false
     }
 
     /// A request the app sent: its target, bearer token and JSON body (strings only).
@@ -227,7 +231,10 @@ private final class Responder: @unchecked Sendable {
     private var account: [String: Any] {
         [
             "id": "2f6a1f0e-0000-4000-8000-000000000001", "email": signIn.email, "name": "Owner",
-            "preferredLocale": NSNull(), "canCreateWorkspace": false, "workspaces": [Any]()
+            "preferredLocale": NSNull(), "canCreateWorkspace": signIn.canCreateWorkspace,
+            "workspaces": (signIn.workspaceName.map {
+                [["id": "7c1d2e3f-0000-4000-8000-000000000000", "name": $0, "slug": "workspace-0"]] as [Any]
+            } ?? []) as [Any]
         ]
     }
 

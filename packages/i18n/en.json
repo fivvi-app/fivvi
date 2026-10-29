@@ -51,7 +51,9 @@
     }
   },
   "home": {
-    "signedInAs": "Signed in as {email}"
+    "signedInAs": "Signed in as {email}",
+    "setUpOnWeb": "Set up your workspace on the web.",
+    "openWeb": "Open Fivvi in the browser"
   },
   "welcome": {
     "title": "Welcome to Fivvi",

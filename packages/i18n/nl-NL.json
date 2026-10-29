@@ -51,7 +51,9 @@
     }
   },
   "home": {
-    "signedInAs": "Ingelogd als {email}"
+    "signedInAs": "Ingelogd als {email}",
+    "setUpOnWeb": "Maak je werkruimte aan op het web.",
+    "openWeb": "Open Fivvi in de browser"
   },
   "welcome": {
     "title": "Welkom bij Fivvi",
