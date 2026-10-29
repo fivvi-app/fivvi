@@ -69,7 +69,7 @@ The phone results and the minimum OS versions are in [`phone-inventory.md`](phon
 5. The number of private sessions left is visible.
 6. It has the basic features small studios normally need.
 
-Success measures 1–3 and 5 are not in `ROADMAP.md §8` as metrics today. They are candidates for Part C of [`metric-targets.md`](../metric-targets.md) at the next target session: import completeness (see `import-plan.md` once agreed), billing (A4–A6) and private sessions left (credit balances, A4).
+Two of these success measures are missing from `ROADMAP.md §8` as metrics today: import completeness (measure 1) and private sessions left (measure 5). They are candidates for Part C of [`metric-targets.md`](metric-targets.md) at the next target session; for import completeness see `results/import-plan.md` once agreed. Billing (measure 2) maps to the §8 commerce rows A4–A6, and private sessions in the app (measure 3) to the §8 workout-logging row.
 
 ## What these answers tell us
 
@@ -77,5 +77,5 @@ Success measures 1–3 and 5 are not in `ROADMAP.md §8` as metrics today. They 
 - **Where the pain is:** private training. It is the part the current booking app does not cover, and the part kept in Word, with notes in a single place.
 - **Open Gym:** no demand today and none requested. It is a test, not a known need.
 - **Self-booking:** the gym owner expects almost everyone to book themselves. Group classes already do through the current booking app.
-- **No-shows:** 2–3 out of 10 is high. The roadmap sets no target for it (§8); it can be added as a Part C measure (C1).
+- **No-shows:** 2–3 out of 10 is high. The roadmap sets no target for it (§8); it can be added as a Part C measure (C3).
 - **Phones:** mostly Android. See `phone-inventory.md`.

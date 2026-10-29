@@ -642,7 +642,7 @@ These turn `PRODUCT.md §87` into measurable targets. **Targets marked ⚑ are c
 | Previous performance is easy to access | Trainer rating "easy to see what they did last time" | ≥ 4/5 |
 | Normal usage needs no developer | Developer interventions for routine operations | 0 in the final 2 weeks |
 | Reliability and safety | Uptime; cross-tenant incidents; app crash-free sessions | ≥ 99.5 %; 0; ≥ 99 % |
-| Admin time reduced | Hours per week on admin vs. M0 baseline (4–5 h, taken as 4.5 h) | ≤ 3.5 h per week (−1 h, about −22 %); hoped for ≤ 2.5 h (−50 %) (agreed 29 October 2026) |
+| Admin time reduced | Hours per week on admin vs. M0 baseline (4–5 h, taken as 4.5 h) | ≤ 3.5 h per week (−1 h, about −22 %); hoped for ≤ 2.5 h (about −44 %) (agreed 29 October 2026) |
 | Memberships, credit packs and credit plans run in the platform | Share of active agreements in the platform; unexplained balance differences | 100 % from pilot week 3 ⚑; 0 |
 | Payments are collected without the old app | Share of due payments collected through Fivvi; duplicate charges | 100 % by pilot week 6 ⚑; 0 |
 | Private invoices need no manual work | Invoices made or edited by hand per month | 0 ⚑ baseline from the M0 walkthrough |

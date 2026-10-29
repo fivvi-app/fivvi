@@ -5,7 +5,7 @@
 | **Date** | 29 October 2026 |
 | **Source** | Quick questions 19–21 ([`quick-questions.md`](quick-questions.md)) and the product owner's decisions in chat |
 | **Template** | [`../metric-targets.md`](../metric-targets.md) |
-| **Status** | Part A1–A3 agreed. A4–A6 are agreed in the commerce walkthrough ([#150](https://github.com/fivvi-app/fivvi/issues/150)). Parts B and C are not discussed yet |
+| **Status** | Part A1–A3 agreed. A4–A6 will be agreed in the commerce walkthrough ([#150](https://github.com/fivvi-app/fivvi/issues/150)). Parts B and C are not discussed yet |
 
 All baselines are estimates (quick questions, not a diary). At G5 the same question is asked again.
 
@@ -34,13 +34,13 @@ All baselines are estimates (quick questions, not a diary). At G5 the same quest
 | | |
 |---|---|
 | **Baseline** | 4–5 h/week (question 9, estimate), taken as 4.5 h |
-| **Agreed target** | **≤ 3.5 h/week** (minimum, 1 h less, about −22 %), hoped for **≤ 2.5 h/week** (−50 %, the roadmap default) |
-| **Reason** | The gym owner said 1 h less would make it worth it (question 19). The roadmap's −50 % stays as the hoped-for level |
+| **Agreed target** | **≤ 3.5 h/week** (minimum, 1 h less, about −22 %), hoped for **≤ 2.5 h/week** (about −44 %) |
+| **Reason** | The gym owner said 1 h less would make it worth it (question 19). The hoped-for level is close to the roadmap default of −50 % (2.25 h) |
 | **Measured** | The same question 9, asked again in pilot week 5 and reported at G5 |
 
 ### A4–A6. Commerce
 
-Not agreed yet. They are set in the commerce walkthrough with the gym owner ([#150](https://github.com/fivvi-app/fivvi/issues/150)). The roadmap defaults stay in `ROADMAP.md §8`: 100 % of agreements in the platform from pilot week 3, 100 % of due payments through Fivvi by pilot week 6, 0 invoices by hand.
+Not agreed yet. They will be agreed in the commerce walkthrough with the gym owner ([#150](https://github.com/fivvi-app/fivvi/issues/150)). The roadmap defaults stay in `ROADMAP.md §8`: 100 % of agreements in the platform from pilot week 3, 100 % of due payments through Fivvi by pilot week 6, 0 invoices by hand.
 
 ## Part C: the gym owner's own success measures
 
