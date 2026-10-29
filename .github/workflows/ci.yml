@@ -433,9 +433,10 @@ jobs:
       - name: Unit and UI tests (${{ matrix.locale }})
         run: scripts/test-ios.sh test ${{ matrix.locale }}
 
-      # Only on failure or when the timeout cancels the job (#305): artifact storage counts against the free quota.
+      # Only on failure, or when the timeout cancels the job (#305) in a run that nothing supersedes (a pull request
+      # run is cancelled by the next push): artifact storage counts against the free quota.
       - name: Upload test results
-        if: failure() || cancelled()
+        if: failure() || (cancelled() && github.event_name != 'pull_request')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ios-test-results-${{ matrix.locale }}

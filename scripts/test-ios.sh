@@ -360,9 +360,16 @@ RESULTS=.build/TestResults-nl-en.xcresult
 # allowances up to whole minutes and never lets a test run past the maximum.
 TEST_ALLOWANCE=120
 TEST_ALLOWANCE_MAX=180
+# The allowance only covers a stall inside a test method. A stall before the first test (the runner installs or
+# bootstraps) or between tests is not one, so a run that is still going after this many seconds is interrupted (#305).
+# SIGINT lets xcodebuild write its result bundle, and the run fails. A healthy run takes 10-16 minutes with the
+# simulator settle; the CI job's own timeout (25 minutes) stays above the deadline plus the grace, the reports and
+# the upload. IOS_TEST_DEADLINE and IOS_TEST_DEADLINE_GRACE override them (the tests of this script use short ones).
+TEST_DEADLINE=${IOS_TEST_DEADLINE:-1080}
+TEST_DEADLINE_GRACE=${IOS_TEST_DEADLINE_GRACE:-60}
 
 run_tests() {
-  local only=() bundle=$RESULTS
+  local only=() bundle=$RESULTS pid status=0 timed_out=false deadline=$((SECONDS + TEST_DEADLINE))
   if [ -n "${2:-}" ]; then
     only=(-only-test-configuration "$2")
     in_ui_locales "$2" || only+=(-skip-testing:FivviProUITests)
@@ -371,7 +378,24 @@ run_tests() {
   xcodebuild test-without-building -xctestrun "$XCTESTRUN" -destination "id=$1" ${only[@]+"${only[@]}"} \
     -resultBundlePath "$bundle" -quiet \
     -test-timeouts-enabled YES -default-test-execution-time-allowance "$TEST_ALLOWANCE" \
-    -maximum-test-execution-time-allowance "$TEST_ALLOWANCE_MAX"
+    -maximum-test-execution-time-allowance "$TEST_ALLOWANCE_MAX" &
+  pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$SECONDS" -ge "$deadline" ]; then
+      echo "::error::The ${2:-nl and en} tests ran past the deadline of $TEST_DEADLINE s and were interrupted (#305)"
+      kill -INT "$pid" 2>/dev/null || true
+      deadline=$((SECONDS + TEST_DEADLINE_GRACE))
+      while kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$deadline" ]; do sleep 1; done
+      ! kill -0 "$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null || true
+      timed_out=true
+      break
+    fi
+    sleep 1
+  done
+  wait "$pid" || status=$?
+  # Whatever the exit status of the interrupted xcodebuild, a run that hit the deadline fails.
+  ! $timed_out || return 1
+  return "$status"
 }
 
 # Runs nl on simulator $1 and en on simulator $2 at the same time, each with its output in a log, shown when it ends.
