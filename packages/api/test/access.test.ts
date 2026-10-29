@@ -353,6 +353,7 @@ describe('E011 route access', () => {
       'get /v1/health': 'public',
       'get /v1/hello': 'public',
       'get /v1/me': 'account',
+      'patch /v1/me': 'account',
       'post /v1/sign-in/request': 'public',
       'post /v1/sign-in/token': 'public',
       'post /v1/sign-out': 'public',

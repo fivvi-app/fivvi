@@ -62,6 +62,11 @@
     <string name="sign_in_title">Sign in</string>
     <string name="sign_out_error">Signing out didn\'t work. Try again.</string>
     <string name="sign_out_label">Sign out</string>
+    <string name="user_menu_error">Your language wasn\'t saved. Try again.</string>
+    <string name="user_menu_label">User menu</string>
+    <string name="user_menu_language">Language: %1$s</string>
+    <string name="user_menu_language_en">English</string>
+    <string name="user_menu_language_nl">Nederlands</string>
     <string name="welcome_description">One more step: tell us the name of your gym or business.</string>
     <string name="welcome_errors_generic">Something went wrong. Try again.</string>
     <string name="welcome_errors_no_connection">No connection. Check your internet and try again.</string>

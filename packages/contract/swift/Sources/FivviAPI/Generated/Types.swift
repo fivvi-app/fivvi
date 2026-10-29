@@ -32,6 +32,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/me`.
     /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output
+    /// Change the signed-in account
+    ///
+    /// Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load. Answers with the account, as `GET /v1/me` does. A value other than `nl-NL` or `en` answers `400` and nothing changes.
+    ///
+    /// - Remark: HTTP `PATCH /v1/me`.
+    /// - Remark: Generated from `#/paths//v1/me/patch(updateMe)`.
+    func updateMe(_ input: Operations.UpdateMe.Input) async throws -> Operations.UpdateMe.Output
     /// Ask for a sign-in email
     ///
     /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
@@ -110,6 +117,21 @@ extension APIProtocol {
     /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
     public func getMe(headers: Operations.GetMe.Input.Headers = .init()) async throws -> Operations.GetMe.Output {
         try await getMe(Operations.GetMe.Input(headers: headers))
+    }
+    /// Change the signed-in account
+    ///
+    /// Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load. Answers with the account, as `GET /v1/me` does. A value other than `nl-NL` or `en` answers `400` and nothing changes.
+    ///
+    /// - Remark: HTTP `PATCH /v1/me`.
+    /// - Remark: Generated from `#/paths//v1/me/patch(updateMe)`.
+    public func updateMe(
+        headers: Operations.UpdateMe.Input.Headers = .init(),
+        body: Operations.UpdateMe.Input.Body
+    ) async throws -> Operations.UpdateMe.Output {
+        try await updateMe(Operations.UpdateMe.Input(
+            headers: headers,
+            body: body
+        ))
     }
     /// Ask for a sign-in email
     ///

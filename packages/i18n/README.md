@@ -59,11 +59,11 @@ Two languages, two orders ([ADR-017](../../docs/decisions/ADR-017-language-polic
 - **Communication language** (`resolveCommunicationLanguage()`): the language of an email or other message. The recipient's stored preference → the workspace's default communication language. The workspace default never decides the interface language.
 - **Sign-in email language** (`resolveSignInCommunicationLanguage()`, [ADR-019](../../docs/decisions/ADR-019-sign-in-communication-language.md)): an email outside a workspace has no workspace default. The recipient's stored preference → the interface language of the page that asked for the email (so itself falling back to the browser language, then `en`). The first sign-in that creates an account stores that language on it.
 
-Any `nl-*` tag matches `nl-NL`, any `en-*` tag matches `en`, and unsupported values are skipped. Stored preferences arrive with F010 (M2) and booking-link languages with M6; until then callers pass what they have.
+Any `nl-*` tag matches `nl-NL`, any `en-*` tag matches `en`, and unsupported values are skipped. The stored preference comes with F010 (M2) and booking-link languages with M6; callers pass what they have.
 
 ## Web
 
-`apps/web` uses next-intl without locale routing. `apps/web/i18n/request.ts` resolves the interface language from the `NEXT_LOCALE` cookie, then `Accept-Language`, then `en`, and runs next-intl on the formatting locale (`nl-NL` or `en-GB`, also used for `<html lang>`). Keys are typed: `useTranslations('hello')('title')` compiles, a missing key doesn't.
+`apps/web` uses next-intl without locale routing. `apps/web/i18n/request.ts` resolves the interface language from the `NEXT_LOCALE` cookie, then `Accept-Language`, then `en`; for a signed-in browser the route guard (`apps/web/proxy.ts`) first rewrites that cookie to the language stored on the account (F010), and runs next-intl on the formatting locale (`nl-NL` or `en-GB`, also used for `<html lang>`). Keys are typed: `useTranslations('hello')('title')` compiles, a missing key doesn't.
 
 The `no-hard-coded-jsx-text` Biome plugin (registered in `apps/web/biome.json`) fails on literal text in JSX children, string and template literals rendered as children, and literals in `alt`, `title`, `placeholder`, `label` and user-facing `aria-*` attributes. It doesn't see strings outside JSX (e.g. `metadata`, custom component props or values passed through variables); review those by hand.
 
