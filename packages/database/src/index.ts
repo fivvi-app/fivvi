@@ -32,8 +32,10 @@ export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts'
 export {
   claimWorkspaceCreation,
   createWorkspaceWithOwner,
+  findWorkspace,
   listTeamWorkspaces,
   type NewWorkspace,
+  renameWorkspace,
   type WorkspaceCreationClaim,
   type WorkspaceSummary,
   type WorkspaceView,

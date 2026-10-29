@@ -139,6 +139,14 @@ actor StubAPI: APIProtocol {
         fatalError("The app doesn't call createWorkspace yet")
     }
 
+    func getWorkspace(_ input: Operations.GetWorkspace.Input) async throws -> Operations.GetWorkspace.Output {
+        fatalError("The app doesn't call getWorkspace yet")
+    }
+
+    func renameWorkspace(_ input: Operations.RenameWorkspace.Input) async throws -> Operations.RenameWorkspace.Output {
+        fatalError("The app doesn't call renameWorkspace yet")
+    }
+
     /// The account `getMe` answers with: no workspace yet (the app's workspace states come with F002).
     private static func me(id: String, email: String) -> Components.Schemas.MeResponse {
         .init(id: id, email: email, name: "Owner", canCreateWorkspace: false, workspaces: [])

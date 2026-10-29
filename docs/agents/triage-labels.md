@@ -21,3 +21,24 @@ Fivvi additions:
 - `run-native`: runs the `iOS` and `Android` CI jobs on this PR whatever changed (`WORKFLOW.md §7`). CI reads it on the PR's pushes, so add it before you push; re-running a job doesn't pick up a label added later.
 - Anything in `docs/product/PRODUCT.md §53` (MVP exclusions) is out of scope for the MVP: triage it as `wontfix` with a pointer to §53, or as a post-MVP idea (`ROADMAP.md §9`) if the owner wants to keep it.
 - Owner-only work (accounts, dashboards, legal sign-off, store submissions) is `ready-for-human`.
+
+Every open `ready-for-human` issue also carries one priority and one effort label, so the owner can filter on them (`label:prio-high label:effort-quick`). Set them when you create the issue, and check them again when a blocker closes or a gate moves. The owner may change any of them; keep theirs.
+
+**Priority: the first rule that matches wins.**
+
+1. `prio-low`: blocked by an open issue (its *Can you do it now?* says *Not yet*). Raise it when the blocker closes.
+2. `prio-high`: agents need its result for the next specs to be written or built: the current or next milestone, or the M11 commerce specs, which are the critical path to go-live. A task with a long wait (a sign-up, a verification, a supplier's reply) counts here only when agents need its result.
+3. `prio-medium`: due by G0 (the M0 exit, which includes the §4.1 discovery tasks) or G2.
+4. `prio-low`: everything else (go-live, G4, or later).
+
+**Effort: the owner's own time on the task, added up, meetings included. Waiting for a reply or a verification doesn't count.**
+
+| Label | When |
+|---|---|
+| `effort-quick` | 15 minutes or less |
+| `effort-medium` | More than 15 minutes, up to an hour |
+| `effort-big` | More than an hour |
+
+`with-pilot-gym`: at least one step is done with the pilot gym owner, so the owner can batch these into one visit.
+
+Every owner task's body has a *Can you do it now?* section after *Why* (yes, or what it waits on) and numbered steps: where to click, what to type, what to send back.

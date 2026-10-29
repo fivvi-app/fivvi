@@ -22,7 +22,7 @@ Who may read trainer-only notes about a client within a workspace? **Proposal:**
 **Resolved by the owner, 20 October 2026.** There is no Admin role in the MVP (`PRODUCT.md §9, §50`): the Owner does everything, including the money, and the Trainer runs their own sessions and classes, calendar and attendance. Admin is a later role 🔜, added when a gym asks for a manager who isn't the owner (Release 7.0 "advanced permissions", or earlier on request). Still open from this question: may a trainer copy or share booking links? **Proposal:** trainers may share a published link (TW-07, TD-03).
 
 ### Q06
-Does the gym say *privésessie* for a private appointment? Confirm *werkruimte*, *trainingsschema* and *vervanger* against the [glossary's open terms](../../packages/i18n/GLOSSARY.md#8-open-questions-validate-with-the-pilot-owner). **Proposal:** use glossary terms until validated (PS-01, CO-02).
+**Resolved by the owner, 29 October 2026.** The owner decided the glossary terms (*werkruimte*, *privésessie*, *trainingsschema*, *vervanger* and the commerce terms) by choosing the standard Dutch wording, not by pilot validation; see the [glossary's open questions](../../packages/i18n/GLOSSARY.md#8-open-questions). Use these terms (PS-01, CO-02).
 
 ### Q07
 How far ahead do clients expect to browse available lessons? **Proposal:** 14 days, with another 14 on request (PB-01).

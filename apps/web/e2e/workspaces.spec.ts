@@ -1,6 +1,7 @@
 import {
   clientIpHeaders,
   createAccount,
+  createGymWithTrainer,
   newAddress,
   newAllowedAddress,
   signInWithSession,
@@ -22,7 +23,7 @@ const TOO_LONG = 'x'.repeat(81);
 interface Me {
   name: string | null;
   canCreateWorkspace: boolean;
-  workspaces: { name: string; slug: string }[];
+  workspaces: { id: string; name: string; slug: string; role: string }[];
 }
 
 test.describe('F002 first run and the signed-in home', () => {
@@ -66,6 +67,7 @@ test.describe('F002 first run and the signed-in home', () => {
         id: expect.any(String),
         name: "John's Gym",
         slug: expect.stringMatching(/^johns-gym-\d+$/),
+        role: 'owner',
       },
     ]);
     // Opening TW-11 again, or the signed-in home, now leads to the workspace (AC4) ...
@@ -163,7 +165,7 @@ test.describe('F002 first run and the signed-in home', () => {
     const me = (await (await page.request.get('/api/v1/me')).json()) as Me;
     expect(me.canCreateWorkspace).toBe(false);
     expect(me.workspaces).toEqual([
-      { id: expect.any(String), name: "John's Gym", slug: SEEDED_SLUG },
+      { id: expect.any(String), name: "John's Gym", slug: SEEDED_SLUG, role: 'owner' },
     ]);
 
     await page.goto('/welcome');
@@ -213,5 +215,122 @@ test.describe('F002 first run and the signed-in home', () => {
 
     await page.goto(`/w/${SEEDED_SLUG}`);
     await expect(page).toHaveURL(new RegExp(`/login\\?returnTo=%2Fw%2F${SEEDED_SLUG}$`));
+  });
+});
+
+test.describe('F002 renaming the workspace (TW-08)', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders(clientIpHeaders());
+  });
+
+  test('AC6: the Owner renames the workspace, every page shows the new name and the slug stays', async ({
+    page,
+    appLocale,
+    messages: copy,
+  }) => {
+    const address = newAllowedAddress('renamer');
+    await page.goto('/login');
+    await signInWithCode(page, copy, address);
+    await page.getByLabel(copy.welcome.personNameLabel).fill('Sarah');
+    await page.getByLabel(copy.welcome.workspaceNameLabel).fill("John's Gym");
+    await page.getByRole('button', { name: copy.welcome.submit }).click();
+    await expect(page).toHaveURL(SLUG_OF_NEW_GYM);
+    const home = new URL(page.url()).pathname;
+    const slug = home.replace('/w/', '');
+
+    // Settings are in the Owner's navigation, and show the URL name and time zone read-only.
+    await page.getByRole('link', { name: copy.workspaceNav.settings }).click();
+    await expect(page).toHaveURL(`${home}/settings/general`);
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.settingsGeneral.title }),
+    ).toBeVisible();
+    await expect(page.getByLabel(copy.settingsGeneral.nameLabel)).toHaveValue("John's Gym");
+    await expect(page.getByText(slug, { exact: true })).toBeVisible();
+    await expect(page.getByText('Europe/Amsterdam')).toBeVisible();
+    await expectNoAxeViolations(page, `TW-08 in ${appLocale}`);
+
+    // AC3: a blank and a too long name are refused with a field error, and nothing changes.
+    const field = page.getByLabel(copy.settingsGeneral.nameLabel);
+    const save = page.getByRole('button', { name: copy.settingsGeneral.save });
+    await field.fill('   ');
+    await save.click();
+    await expect(page.getByText(copy.settingsGeneral.errors.nameRequired)).toBeVisible();
+    await expect(field).toHaveAttribute('aria-invalid', 'true');
+    // The pointer stays on the button after the click; axe judges the button at rest.
+    await page.mouse.move(0, 0);
+    await expectNoAxeViolations(page, `TW-08 with an error in ${appLocale}`);
+    await field.fill(TOO_LONG);
+    await save.click();
+    await expect(page.getByText(copy.settingsGeneral.errors.nameTooLong)).toBeVisible();
+    await expect(field).toHaveValue(TOO_LONG);
+    const unchanged = (await (await page.request.get('/api/v1/me')).json()) as Me;
+    expect(unchanged.workspaces[0]?.name).toBe("John's Gym");
+
+    // The rename: the sidebar shows the new name without a reload.
+    await field.fill("John's Gym Utrecht");
+    await save.click();
+    await expect(page.getByText(copy.settingsGeneral.saved)).toBeVisible();
+    await expect(page.getByRole('complementary')).toContainText("John's Gym Utrecht");
+    // The data path: the API holds the new name, and the slug is the one it always was.
+    const me = (await (await page.request.get('/api/v1/me')).json()) as Me;
+    expect(me.workspaces).toEqual([
+      { id: expect.any(String), name: "John's Gym Utrecht", slug, role: 'owner' },
+    ]);
+    // Every page shows it: the home of the workspace, at the same address.
+    await page.goto(home);
+    await expect(page.getByRole('heading', { level: 1, name: "John's Gym Utrecht" })).toBeVisible();
+    await expect(page).toHaveTitle("John's Gym Utrecht");
+    await expect(page.getByRole('complementary')).toContainText("John's Gym Utrecht");
+  });
+
+  test('AC7: a Trainer has no Settings, sees the no-permission page, and the rename answers 403', async ({
+    page,
+    appLocale,
+    messages: copy,
+  }) => {
+    const address = newAddress('trainer');
+    await createAccount(address);
+    const slug = await createGymWithTrainer(address, "John's Gym");
+    await page.goto('/login');
+    await signInWithCode(page, copy, address);
+
+    await expect(page).toHaveURL(`/w/${slug}`);
+    await expect(page.getByRole('heading', { level: 1, name: "John's Gym" })).toBeVisible();
+    await expect(page.getByRole('link', { name: copy.workspaceNav.settings })).toHaveCount(0);
+
+    await page.goto(`/w/${slug}/settings/general`);
+    await expect(
+      page.getByRole('heading', { level: 1, name: copy.noPermission.title }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(copy.noPermission.body.replace('{workspace}', "John's Gym")),
+    ).toBeVisible();
+    await expect(page.getByLabel(copy.settingsGeneral.nameLabel)).toHaveCount(0);
+    await expectNoAxeViolations(page, `the no-permission page in ${appLocale}`);
+
+    // The API says no as well, and the name is what it was.
+    const me = (await (await page.request.get('/api/v1/me')).json()) as Me;
+    const workspace = me.workspaces[0];
+    if (!workspace) throw new Error('The Trainer has no workspace.');
+    const renamed = await page.request.patch(`/api/v1/workspaces/${workspace.id}`, {
+      data: { name: 'Hijacked' },
+    });
+    expect(renamed.status()).toBe(403);
+    const read = await page.request.get(`/api/v1/workspaces/${workspace.id}`);
+    expect(read.status()).toBe(200);
+    expect(((await read.json()) as { name: string }).name).toBe("John's Gym");
+  });
+
+  test('AC9: anonymous gets 401 on the workspace routes and the settings go to sign-in', async ({
+    page,
+  }) => {
+    const id = '0197c0de-0000-7000-8000-0000000000a1';
+    expect((await page.request.get(`/api/v1/workspaces/${id}`)).status()).toBe(401);
+    expect(
+      (await page.request.patch(`/api/v1/workspaces/${id}`, { data: { name: 'X' } })).status(),
+    ).toBe(401);
+
+    await page.goto(`/w/${SEEDED_SLUG}/settings/general`);
+    await expect(page).toHaveURL(/\/login\?returnTo=/);
   });
 });

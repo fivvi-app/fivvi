@@ -383,10 +383,15 @@ export async function runIsolationSuite(
       }
 
       // 2. Nothing of a record the actor may not see.
-      const leaked = [...ledger].filter(
-        ([token, owners]) =>
-          text.includes(token) && !owners.some((owner) => mayShow(facts, token, owner)),
-      );
+      // Sorted by workspace label, so the example in the message does not depend on the order
+      // Postgres returns rows in (an update moves a row to the end).
+      const labelOf = (owners: TokenOwner[]) => scenario.labels[owners[0]?.workspaceId ?? ''] ?? '';
+      const leaked = [...ledger]
+        .filter(
+          ([token, owners]) =>
+            text.includes(token) && !owners.some((owner) => mayShow(facts, token, owner)),
+        )
+        .sort(([, a], [, b]) => labelOf(a).localeCompare(labelOf(b)));
       if (leaked.length > 0) {
         const [token, owners] = leaked[0] as [string, TokenOwner[]];
         const owner = owners[0] as TokenOwner;
