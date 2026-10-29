@@ -1,3 +1,4 @@
+import { messages } from '@fivvi/i18n';
 import {
   clientIpHeaders,
   createAccount,
@@ -150,8 +151,10 @@ test.describe('F002 first run and the signed-in home', () => {
   test('AC13: the seeded owner lands in John’s Gym, and /welcome leads back to it', async ({
     context,
     page,
-    messages: copy,
   }) => {
+    // The seeded account stores Dutch (the seed), which beats the browser language in both
+    // projects (F010 AC2), so its pages are Dutch whatever the project runs in.
+    const copy = messages['nl-NL'];
     // The seeded account is shared by every run, so it is signed in without an emailed code
     // (`signInWithSession`): its one live code and its three sign-ins per 15 minutes would not
     // hold for parallel projects and retries. AC4 and the sign-in itself use accounts of their own.

@@ -104,6 +104,13 @@
     "label": "Uitloggen",
     "error": "Uitloggen is niet gelukt. Probeer het opnieuw."
   },
+  "userMenu": {
+    "label": "Gebruikersmenu",
+    "language": "Taal: {language}",
+    "languageNl": "Nederlands",
+    "languageEn": "English",
+    "error": "Je taal is niet opgeslagen. Probeer het opnieuw."
+  },
   "email": {
     "layout": {
       "footer": "Deze e-mail is verstuurd door Fivvi."

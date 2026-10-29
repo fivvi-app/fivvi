@@ -116,6 +116,16 @@
     <string name="sign_out_error">Uitloggen is niet gelukt. Probeer het opnieuw.</string>
     <!-- Button that signs out only the browser (or device) it is pressed on; other browsers stay signed in. On every signed-in page of the web app. -->
     <string name="sign_out_label">Uitloggen</string>
+    <!-- Shown in the user menu when the chosen language could not be saved on the account (no connection or a server error). The page keeps its language and the person can try again. -->
+    <string name="user_menu_error">Je taal is niet opgeslagen. Probeer het opnieuw.</string>
+    <!-- Accessible name of the button that opens the user menu (the ⋯ button) in the frame of a workspace's pages. -->
+    <string name="user_menu_label">Gebruikersmenu</string>
+    <!-- Menu row that opens the two language options; {language} is the current language written in its own language (Nederlands or English). -->
+    <string name="user_menu_language">Taal: %1$s</string>
+    <!-- Language option, always written in English whatever the interface language (GLOSSARY §4.8). -->
+    <string name="user_menu_language_en">English</string>
+    <!-- Language option, always written in Dutch whatever the interface language (GLOSSARY §4.8). -->
+    <string name="user_menu_language_nl">Nederlands</string>
     <!-- Line under the heading of TW-11. -->
     <string name="welcome_description">Nog één stap: vertel hoe je sportschool of bedrijf heet.</string>
     <!-- Shown on TW-11 when creating the workspace failed for any other reason. Nothing was created. -->

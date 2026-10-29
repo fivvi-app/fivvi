@@ -1,9 +1,15 @@
-import { listTeamWorkspaces } from '@fivvi/database';
+import { listTeamWorkspaces, type SignedInAccount, setPreferredLocale } from '@fivvi/database';
 import { canCreateWorkspace } from '@fivvi/domain';
 import { locales } from '@fivvi/i18n';
-import { OpenAPIHono, z } from '@hono/zod-openapi';
+import { anonymousDistinctId } from '@fivvi/observability';
+import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
+import type { Context } from 'hono';
 import { type AccessEnv, defineRoute } from '../access.ts';
-import { internalServerErrorResponse } from '../errors.ts';
+import {
+  answerValidationFailure,
+  internalServerErrorResponse,
+  validationErrorResponse,
+} from '../errors.ts';
 
 export const MeWorkspaceSchema = z
   .object({
@@ -68,13 +74,66 @@ const meRoute = defineRoute(
   { type: 'account', workspaces: 'team' },
 );
 
+// Typed on purpose, as in routes/workspaces.ts: written inline, the two-element literal makes
+// TypeScript lose the route's request types.
+const SIGNED_IN: RouteConfig['security'] = [{ cookieAuth: [] }, { bearerAuth: [] }];
+
+/**
+ * What the account may change about itself. Every field is optional so F005 can add `name` to
+ * this body; today a request must carry `preferredLocale` to change anything.
+ */
+const UpdateMeRequestSchema = z
+  .object({
+    preferredLocale: z
+      .enum(locales)
+      .optional()
+      .openapi({
+        description:
+          'The language to store on the account, for its screens and emails: `nl-NL` or `en`. ' +
+          'Any other value, a browser’s `nl-BE` included, is refused with `400`.',
+      }),
+  })
+  .openapi('UpdateMeRequest', {
+    description: 'What to change on the signed-in account. Fields left out stay as they are.',
+  });
+
+const updateMeRoute = defineRoute(
+  {
+    method: 'patch',
+    path: '/v1/me',
+    operationId: 'updateMe',
+    tags: ['me'],
+    summary: 'Change the signed-in account',
+    description:
+      'Stores the language the person chose (`preferredLocale`), so every browser and app of the ' +
+      'account shows it from its next load. Answers with the account, as `GET /v1/me` does. ' +
+      'A value other than `nl-NL` or `en` answers `400` and nothing changes.',
+    security: SIGNED_IN,
+    request: {
+      body: {
+        required: true,
+        content: { 'application/json': { schema: UpdateMeRequestSchema } },
+      },
+    },
+    responses: {
+      200: {
+        description: 'The account with its change.',
+        content: { 'application/json': { schema: MeResponseSchema } },
+      },
+      400: validationErrorResponse,
+      500: internalServerErrorResponse,
+    },
+  },
+  { type: 'account', workspaces: 'team' },
+);
+
 export function registerMe(app: OpenAPIHono) {
   // Its own router, so `account` is typed on the routes behind the access middleware.
-  // /me has no input to validate, so it needs no `defaultHook`; a route with input added here
-  // must pass the one `createApp` sets, so its validation errors stay the same.
-  const me = new OpenAPIHono<AccessEnv>();
-  me.openapi(meRoute, async (c) => {
-    const { id, email, name, preferredLocale } = c.get('account');
+  const me = new OpenAPIHono<AccessEnv>({ defaultHook: answerValidationFailure });
+
+  /** The account as `GET` and `PATCH` answer, from the account of the request. */
+  async function meOf(c: Context<AccessEnv>, account: SignedInAccount) {
+    const { id, email, name, preferredLocale } = account;
     const workspaces = await listTeamWorkspaces(c.get('scope'));
     // The rule is in packages/domain: whoever listed workspaces has a team role.
     const mayCreate = canCreateWorkspace({
@@ -82,17 +141,32 @@ export function registerMe(app: OpenAPIHono) {
       signUpAllowlist: c.get('dependencies').signUpAllowlist,
       hasTeamRole: workspaces.length > 0,
     });
-    return c.json(
-      {
-        id,
-        email,
-        name: name === '' ? null : name,
-        preferredLocale,
-        canCreateWorkspace: mayCreate,
-        workspaces,
-      },
-      200,
-    );
+    return {
+      id,
+      email,
+      name: name === '' ? null : name,
+      preferredLocale,
+      canCreateWorkspace: mayCreate,
+      workspaces,
+    };
+  }
+
+  me.openapi(meRoute, async (c) => c.json(await meOf(c, c.get('account')), 200));
+  me.openapi(updateMeRoute, async (c) => {
+    const { preferredLocale } = c.req.valid('json');
+    const account = c.get('account');
+    if (preferredLocale === undefined) return c.json(await meOf(c, account), 200);
+    await setPreferredLocale(c.get('scope'), preferredLocale);
+    // The language and the surface only, under a random ID (OBSERVABILITY.md §4). A request with
+    // a bearer token comes from an app, which records its own surface (F010 iOS and Android).
+    if (!c.req.header('authorization')) {
+      c.get('dependencies').productEvents.track({
+        event: 'language_changed',
+        distinctId: anonymousDistinctId(),
+        properties: { locale: preferredLocale, surface: 'web' },
+      });
+    }
+    return c.json(await meOf(c, { ...account, preferredLocale }), 200);
   });
   app.route('/', me);
 }

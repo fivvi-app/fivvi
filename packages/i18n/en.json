@@ -104,6 +104,13 @@
     "label": "Sign out",
     "error": "Signing out didn't work. Try again."
   },
+  "userMenu": {
+    "label": "User menu",
+    "language": "Language: {language}",
+    "languageNl": "Nederlands",
+    "languageEn": "English",
+    "error": "Your language wasn't saved. Try again."
+  },
   "email": {
     "layout": {
       "footer": "This email was sent by Fivvi."
