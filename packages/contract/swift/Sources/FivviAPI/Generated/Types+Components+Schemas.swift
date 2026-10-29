@@ -559,23 +559,31 @@ extension Components {
                 case personName
             }
         }
-        /// Renames a workspace. Only the name changes: the slug stays, so links keep working.
+        /// Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored.
         ///
-        /// - Remark: Generated from `#/components/schemas/RenameWorkspaceRequest`.
-        public struct RenameWorkspaceRequest: Codable, Hashable, Sendable {
+        /// - Remark: Generated from `#/components/schemas/UpdateWorkspaceRequest`.
+        public struct UpdateWorkspaceRequest: Codable, Hashable, Sendable {
             /// The new name, as the product shows it from now on.
             ///
-            /// - Remark: Generated from `#/components/schemas/RenameWorkspaceRequest/name`.
-            public var name: Swift.String
-            /// Creates a new `RenameWorkspaceRequest`.
+            /// - Remark: Generated from `#/components/schemas/UpdateWorkspaceRequest/name`.
+            public var name: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/UpdateWorkspaceRequest/defaultLocale`.
+            public var defaultLocale: Components.Schemas.Locale?
+            /// Creates a new `UpdateWorkspaceRequest`.
             ///
             /// - Parameters:
             ///   - name: The new name, as the product shows it from now on.
-            public init(name: Swift.String) {
+            ///   - defaultLocale:
+            public init(
+                name: Swift.String? = nil,
+                defaultLocale: Components.Schemas.Locale? = nil
+            ) {
                 self.name = name
+                self.defaultLocale = defaultLocale
             }
             public enum CodingKeys: String, CodingKey {
                 case name
+                case defaultLocale
             }
         }
     }

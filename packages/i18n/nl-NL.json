@@ -92,13 +92,28 @@
       "generic": "Er ging iets mis. Probeer het opnieuw."
     }
   },
+  "settingsLanguage": {
+    "title": "Taal",
+    "defaultLabel": "Standaardtaal",
+    "help": "De taal van e-mails aan mensen van wie we de taal nog niet weten. Wat iemand op het scherm ziet, kiest diegene zelf.",
+    "optionNl": "Nederlands",
+    "optionEn": "English",
+    "save": "Opslaan",
+    "saved": "Opgeslagen.",
+    "errors": {
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
+    }
+  },
   "noPermission": {
     "title": "Geen toegang",
     "body": "Je hebt geen toegang tot deze pagina. Vraag de eigenaar van {workspace}."
   },
   "workspaceNav": {
     "label": "Hoofdnavigatie",
-    "settings": "Instellingen"
+    "settings": "Instellingen",
+    "settingsGeneral": "Algemeen",
+    "settingsLanguage": "Taal"
   },
   "signOut": {
     "label": "Uitloggen",

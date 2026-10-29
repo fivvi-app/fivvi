@@ -36,7 +36,7 @@ export {
   findWorkspace,
   listTeamWorkspaces,
   type NewWorkspace,
-  renameWorkspace,
+  updateWorkspace,
   type WorkspaceCreationClaim,
   type WorkspaceSummary,
   type WorkspaceView,

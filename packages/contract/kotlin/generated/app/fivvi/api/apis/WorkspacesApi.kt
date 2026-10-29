@@ -11,7 +11,7 @@ import app.fivvi.api.models.CreateWorkspaceRequest
 import app.fivvi.api.models.Forbidden
 import app.fivvi.api.models.NotFound
 import app.fivvi.api.models.NotSignedIn
-import app.fivvi.api.models.RenameWorkspaceRequest
+import app.fivvi.api.models.UpdateWorkspaceRequest
 import app.fivvi.api.models.ValidationError
 import app.fivvi.api.models.Workspace
 
@@ -53,10 +53,10 @@ interface WorkspacesApi {
 
     /**
      * PATCH v1/workspaces/{workspaceId}
-     * Rename a workspace
-     * Changes the name of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters.
+     * Rename a workspace or set its default language
+     * Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is &#x60;nl-NL&#x60; or &#x60;en&#x60;, anything else answers &#x60;400&#x60; and nothing changes.
      * Responses:
-     *  - 200: The workspace with its new name.
+     *  - 200: The workspace with its changes.
      *  - 400: The request did not match the contract.
      *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
      *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
@@ -64,10 +64,10 @@ interface WorkspacesApi {
      *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
      *
      * @param workspaceId The workspace ID.
-     * @param renameWorkspaceRequest 
+     * @param updateWorkspaceRequest 
      * @return [Workspace]
      */
     @PATCH("v1/workspaces/{workspaceId}")
-    suspend fun renameWorkspace(@Path("workspaceId") workspaceId: java.util.UUID, @Body renameWorkspaceRequest: RenameWorkspaceRequest): Response<Workspace>
+    suspend fun renameWorkspace(@Path("workspaceId") workspaceId: java.util.UUID, @Body updateWorkspaceRequest: UpdateWorkspaceRequest): Response<Workspace>
 
 }
