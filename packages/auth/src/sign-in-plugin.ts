@@ -1,7 +1,12 @@
 import { randomBytes, randomInt } from 'node:crypto';
 import { type Database, recordWrongSignInCode } from '@fivvi/database';
 import { type SendEmail, signInEmail } from '@fivvi/email';
-import { isLocale, parseAcceptLanguage, resolveSignInCommunicationLanguage } from '@fivvi/i18n';
+import {
+  isLocale,
+  parseAcceptLanguage,
+  resolveSignInCommunicationLanguage,
+  SIGN_IN_LANGUAGE_COOKIE,
+} from '@fivvi/i18n';
 import { anonymousDistinctId, type ProductEvents } from '@fivvi/observability';
 import type { BetterAuthPlugin, GenericEndpointContext } from 'better-auth';
 import { APIError, createAuthEndpoint } from 'better-auth/api';
@@ -169,6 +174,32 @@ export function signInWithEmail({
    * Uses up the checked verification and signs this browser in, for the code and the link alike.
    * `rejected` is the answer when it was already used or can not create the account.
    */
+  /**
+   * The language chosen on the sign-in page (F010, ADR-017: the latest explicit choice wins)
+   * becomes the account's stored language. Without such a choice nothing is saved. The choice is
+   * used up either way. The event has the language and the surface only, under a random ID.
+   */
+  async function saveChosenLanguage<User extends { id: string }>(
+    ctx: GenericEndpointContext,
+    user: User,
+  ): Promise<User> {
+    const chosen = ctx.getCookie(SIGN_IN_LANGUAGE_COOKIE);
+    if (chosen === null || chosen === undefined) return user;
+    ctx.setCookie(SIGN_IN_LANGUAGE_COOKIE, '', { path: '/', maxAge: 0 });
+    if (!isLocale(chosen) || chosen === (user as { preferredLocale?: unknown }).preferredLocale) {
+      return user;
+    }
+    const updated = await ctx.context.internalAdapter.updateUser(user.id, {
+      preferredLocale: chosen,
+    });
+    productEvents?.track({
+      event: 'language_changed',
+      distinctId: anonymousDistinctId(),
+      properties: { locale: chosen, surface: 'web' },
+    });
+    return (updated as User | null) ?? user;
+  }
+
   async function signInWithVerification(
     ctx: GenericEndpointContext,
     verification: Verification,
@@ -222,6 +253,7 @@ export function signInWithEmail({
     } else {
       throw rejected();
     }
+    user = await saveChosenLanguage(ctx, user);
     const session = await ctx.context.internalAdapter.createSession(user.id);
     await setSessionCookie(ctx, { session, user });
     // The account's own UUID is the pseudonymous ID of the event; nothing else about the person.

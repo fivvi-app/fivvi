@@ -94,6 +94,9 @@
     <string name="sign_in_errors_invalid_or_expired_code">Deze code klopt niet of is verlopen. Controleer de code in de e-mail of vraag een nieuwe code aan.</string>
     <!-- Shown when the sign-in request could not reach the server. -->
     <string name="sign_in_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="sign_in_language_en">English</string>
+    <string name="sign_in_language_label">Taal</string>
+    <string name="sign_in_language_nl">Nederlands</string>
     <!-- Button on the confirm step for a link that no longer works. Goes back to the sign-in page, where a new email is requested. -->
     <string name="sign_in_link_invalid_back">Terug naar inloggen</string>
     <!-- Line under signIn.linkInvalidTitle, pointing to the button that goes back to the sign-in page. -->

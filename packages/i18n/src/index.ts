@@ -21,6 +21,7 @@ export {
   resolveCommunicationLanguage,
   resolveInterfaceLanguage,
   resolveSignInCommunicationLanguage,
+  SIGN_IN_LANGUAGE_COOKIE,
   type SignInCommunicationLanguageSources,
 } from './locale.ts';
 

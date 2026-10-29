@@ -3,6 +3,14 @@ import { type Locale, locales } from './config.ts';
 /** The interface language when nothing supported is chosen, stored or requested (ADR-017). */
 const interfaceFallback: Locale = 'en';
 
+/**
+ * Cookie the language switch of the sign-in page sets next to `NEXT_LOCALE`, holding the chosen
+ * language. Only an explicit choice on that page puts it there, so signing in saves it as the
+ * account's language and then removes it (F010); the language the route guard writes into
+ * `NEXT_LOCALE` for a signed-in browser never counts as a choice.
+ */
+export const SIGN_IN_LANGUAGE_COOKIE = 'FIVVI_SIGN_IN_LANGUAGE';
+
 export function isLocale(value: unknown): value is Locale {
   return typeof value === 'string' && (locales as readonly string[]).includes(value);
 }

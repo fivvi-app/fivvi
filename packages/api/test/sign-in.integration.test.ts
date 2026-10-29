@@ -14,7 +14,7 @@ import {
   type EmailTransport,
   type OutgoingEmail,
 } from '@fivvi/email';
-import { messages } from '@fivvi/i18n';
+import { messages, SIGN_IN_LANGUAGE_COOKIE } from '@fivvi/i18n';
 import {
   createCaptureTransport,
   createErrorReporter,
@@ -281,6 +281,110 @@ describe('F001 sign in with the emailed code through the API', () => {
         .from(authUsers)
         .where(eq(authUsers.email, 'trainer@example.com'));
       expect(account?.preferredLocale).toBe('en');
+    });
+  });
+
+  describe('AC5 (F010): the language chosen on the sign-in page is saved at sign-in', () => {
+    const posthog = createProductEventCaptureTransport();
+    const productEvents = createProductEvents({
+      env: { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' },
+      transport: posthog,
+      errorReporter: createErrorReporter({ env: {} }),
+    });
+    const chosen = (locale: string) => ({ cookie: `${SIGN_IN_LANGUAGE_COOKIE}=${locale}` });
+    const storedOf = async () =>
+      (
+        await client.db.select().from(authUsers).where(eq(authUsers.email, 'trainer@example.com'))
+      )[0]?.preferredLocale;
+
+    beforeEach(() => {
+      posthog.events.length = 0;
+    });
+
+    async function signInWithCode(headers: Record<string, string>) {
+      const server = authAt({ overrides: { productEvents } });
+      await requestCode('trainer@example.com', 'en', { server });
+      return await post(
+        '/sign-in/code/verify',
+        { email: 'trainer@example.com', code: readEmail().code },
+        { server, headers },
+      );
+    }
+
+    it('a person with stored nl-NL who chose English gets en, and the choice is used up', async () => {
+      await addTrainerAccount('nl-NL');
+
+      const response = await signInWithCode(chosen('en'));
+
+      expect(response.status).toBe(200);
+      expect(await storedOf()).toBe('en');
+      const cleared = response.headers
+        .getSetCookie()
+        .find((cookie) => cookie.startsWith(`${SIGN_IN_LANGUAGE_COOKIE}=`));
+      expect(cleared).toMatch(/Max-Age=0/i);
+      const event = posthog.events.find(({ event: name }) => name === 'language_changed');
+      expect(event).toMatchObject({ properties: { locale: 'en', surface: 'web' } });
+      expect(JSON.stringify(posthog.events)).not.toContain('trainer');
+      expect(JSON.stringify(posthog.events)).not.toContain('example.com');
+    });
+
+    it('without a choice, the stored language stays', async () => {
+      await addTrainerAccount('nl-NL');
+
+      await signInWithCode({});
+
+      expect(await storedOf()).toBe('nl-NL');
+      expect(posthog.events.some(({ event: name }) => name === 'language_changed')).toBe(false);
+    });
+
+    it('a choice equal to the stored language saves nothing and records nothing', async () => {
+      await addTrainerAccount('en');
+
+      await signInWithCode(chosen('en'));
+
+      expect(await storedOf()).toBe('en');
+      expect(posthog.events.some(({ event: name }) => name === 'language_changed')).toBe(false);
+    });
+
+    it('a value that is no language is ignored', async () => {
+      await addTrainerAccount('nl-NL');
+
+      const response = await signInWithCode(chosen('fr'));
+
+      expect(response.status).toBe(200);
+      expect(await storedOf()).toBe('nl-NL');
+    });
+
+    it('the emailed link saves it too', async () => {
+      await addTrainerAccount('nl-NL');
+      const server = authAt({ overrides: { productEvents } });
+      await requestCode('trainer@example.com', 'en', { server });
+
+      const response = await post(
+        '/sign-in/link/confirm',
+        { token: readEmail().token },
+        { server, headers: chosen('en') },
+      );
+
+      expect(response.status).toBe(200);
+      expect(await storedOf()).toBe('en');
+    });
+
+    it('a new account takes the choice over the language of the page that asked', async () => {
+      allowlist = parseSignUpAllowlist('trainer@example.com');
+      const server = authAt({ overrides: { productEvents } });
+      await requestCode('trainer@example.com', 'nl-NL', { server });
+
+      await post(
+        '/sign-in/code/verify',
+        { email: 'trainer@example.com', code: readEmail().code },
+        { server, headers: chosen('en') },
+      );
+
+      expect(await storedOf()).toBe('en');
+      onTestFinished(async () => {
+        await client.db.delete(authUsers).where(eq(authUsers.email, 'trainer@example.com'));
+      });
     });
   });
 
