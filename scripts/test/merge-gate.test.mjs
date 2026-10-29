@@ -107,6 +107,43 @@ describe('merge gate', () => {
     assert.match(decision.conditions[0].detail, /high-risk.*migrations\/0004\.sql/);
   });
 
+  it('spec #292: merges a high-risk tooling or billing PR when every other condition holds', () => {
+    for (const reasons of [
+      ['apps/web/vitest.config.ts: tooling (vitest*.config.*)'],
+      [
+        'scripts/release-ios.sh: tooling (/scripts/release*.sh)',
+        'docs/engineering/TESTING.md: tooling (/docs/engineering/TESTING.md)',
+      ],
+      ['packages/domain/src/billing/plan.ts: billing (*billing*)'],
+      [
+        'apps/web/src/payments/checkout.tsx: billing (*payment*)',
+        'apps/web/vitest.config.ts: tooling (vitest*.config.*)',
+      ],
+    ]) {
+      const decision = gate(facts({ risk: { risk: 'high', reasons } }));
+      assert.equal(decision.merge, true, reasons.join('; '));
+      assert.deepEqual(failed(decision), []);
+      assert.equal(decision.conditions[0].name, 'not owner-only');
+      assert.match(decision.conditions[0].detail, /^high-risk, agent-queueable: /);
+    }
+  });
+
+  it('spec #292: still keeps a PR for the owner when a core reason sits next to tooling or billing ones', () => {
+    const decision = gate(
+      facts({
+        risk: {
+          risk: 'owner',
+          reasons: [
+            'apps/web/vitest.config.ts: tooling (vitest*.config.*)',
+            'scripts/pr.sh: guardrails (/scripts)',
+          ],
+        },
+      }),
+    );
+    assert.equal(decision.merge, false);
+    assert.deepEqual(failed(decision), ['not owner-only']);
+  });
+
   it('ADR-021: a high-risk PR still fails every other condition', () => {
     const high = { risk: 'high', reasons: ['package.json: dependencies (package.json)'] };
     assert.deepEqual(failed(gate(facts({ risk: high, threads: 2 }))), ['no open threads']);

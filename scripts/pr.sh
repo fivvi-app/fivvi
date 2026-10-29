@@ -96,6 +96,23 @@ cmd_check() {
   run_check "scripts/check.sh"
 }
 
+# After a ticket PR is pushed: its owner-only reasons and where they belong (spec #292, split owner-only edits). Only a
+# branch with an issue is a ticket PR; a PR of its own for guarded edits has none. Never fails the push: a risk that
+# cannot be read is only reported.
+report_owner_only() {
+  local pr="$1" decision reasons
+  decision="$("$ROOT/scripts/risk.sh" "$pr" --json --detail 2>/dev/null)" \
+    || { echo "⚠ could not read the risk of PR #$pr: run scripts/risk.sh $pr"; return 0; }
+  reasons="$(jq -r 'select(.risk == "owner") | .owner_reasons[] | "  - \(.)"' <<<"$decision")" \
+    || { echo "⚠ could not read the risk of PR #$pr: run scripts/risk.sh $pr"; return 0; }
+  [ -n "$reasons" ] || return 0
+  echo "🔒 PR #$pr is owner-only, so the owner reviews and queues all of it. Owner-only reasons:"
+  echo "$reasons"
+  echo "   Move the edits the ticket does not need in this commit to a PR of their own (a chore/ branch, blocked by nothing), so"
+  echo "   this PR can be queued by an agent; note it in the notes file. If the ticket cannot work without the guarded"
+  echo "   change, that PR goes first and this one waits on it. See docs/agents/build.md, Owner-only edits."
+}
+
 cmd_create() {
   local title="" body="" body_set=false draft=true check=true full=false issue existing
   while [ $# -gt 0 ]; do
@@ -138,11 +155,15 @@ cmd_create() {
     ! $body_set || args+=(--body "$body")
     [ "${#args[@]}" -eq 0 ] || gh pr edit "$existing" --repo "$REPO" "${args[@]}" >/dev/null
     echo "↻ pushed to PR #$existing: $(gh pr view "$existing" --repo "$REPO" --json url --jq .url)"
+    [ -z "$issue" ] || report_owner_only "$existing"
     return
   fi
   local args=(--repo "$REPO" --base "$(default_branch)" --head "$BRANCH" --title "$title" --body "$body")
   ! $draft || args+=(--draft)
-  echo "✅ PR $(gh pr create "${args[@]}") ($($draft && echo draft || echo ready))"
+  local url
+  url="$(gh pr create "${args[@]}")"
+  echo "✅ PR $url ($($draft && echo draft || echo ready))"
+  [ -z "$issue" ] || report_owner_only "${url##*/}"
 }
 
 # Conditions of the merge gate that must hold before a draft is published (decided by scripts/merge-gate.jq, so there is

@@ -1,9 +1,18 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { after, before, describe, it } from 'node:test';
+import { after, before, beforeEach, describe, it } from 'node:test';
 import { fakeGh } from './fake-gh.mjs';
 
 const SCRIPTS = join(import.meta.dirname, '..');
@@ -223,6 +232,27 @@ describe('flow.sh next', () => {
                 mergedAt: secondsAgo(7 * 86400 + 1),
               },
               {
+                // Spec #292: tooling and billing PRs are agent-queueable too; the owner reads them like any other.
+                number: 89,
+                title: '[F001] Vitest config for a new package',
+                body: agentMerge(
+                  'e'.repeat(40),
+                  'packages/auth/vitest.config.ts: tooling (vitest*.config.*)',
+                ),
+                headRefOid: 'e'.repeat(40),
+                mergedAt: daysAgo(0.04),
+              },
+              {
+                number: 90,
+                title: '[F001] Payment link in test mode',
+                body: agentMerge(
+                  '6'.repeat(40),
+                  'packages/domain/src/billing/plan.ts: billing (*billing*); apps/web/src/payments/checkout.tsx: billing (*payment*)',
+                ),
+                headRefOid: '6'.repeat(40),
+                mergedAt: daysAgo(0.5),
+              },
+              {
                 // No head commit read: it can't be matched, so it is not listed.
                 number: 88,
                 title: '[F001] No head commit',
@@ -285,7 +315,9 @@ describe('flow.sh next', () => {
       read,
       [
         '== For the owner to read',
+        'PR #89 [F001] Vitest config for a new package (merged by an agent; high-risk: packages/auth/vitest.config.ts: tooling (vitest*.config.*))',
         'PR #85 [F001] Merged without a queue record (merged by an agent; high-risk: package.json: dependencies (package.json))',
+        'PR #90 [F001] Payment link in test mode (merged by an agent; high-risk: packages/domain/src/billing/plan.ts: billing (*billing*); apps/web/src/payments/checkout.tsx: billing (*payment*))',
         'PR #83 [F001] Two reasons (merged by an agent; high-risk: package.json: dependencies (package.json); Dockerfile: infrastructure (Dockerfile*))',
         'PR #80 [F001] Verification rules (merged by an agent; high-risk: packages/database/migrations/0004.sql: tenant-data (/packages/database))',
         'PR #86 [F001] Seven days (merged by an agent; high-risk: Dockerfile: infrastructure (Dockerfile*))',
@@ -641,5 +673,252 @@ describe('ADR-021 flow.sh start: no fixed limit on the tickets in progress', () 
       );
       assert.equal(result.claimed, false, JSON.stringify(value));
     }
+  });
+});
+
+// #292 AC13, AC14: one factory run at a time. The lock is a file outside git, shared by all worktrees
+// (FIVVI_RUN_LOCK points the tests at their own); it expires after 3 hours, so a crashed run does not stop the factory.
+describe('#292 flow.sh lock: a run lock with a 3-hour expiry', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'run-lock-'));
+  const lockFile = join(dir, 'factory.lock');
+  after(() => rmSync(dir, { recursive: true, force: true }));
+  beforeEach(() => rmSync(lockFile, { force: true }));
+
+  const lock = (action, at = NOW, ...extra) =>
+    spawnSync(join(SCRIPTS, 'flow.sh'), ['lock', ...(action ? [action] : []), ...extra], {
+      encoding: 'utf8',
+      env: { ...process.env, FIVVI_NOW: at, FIVVI_RUN_LOCK: lockFile },
+    });
+  const HOUR = 3600;
+  // acquire prints the run's identity; refresh and release take it back.
+  const acquireId = (at = NOW) => {
+    const result = lock('acquire', at);
+    assert.equal(result.status, 0, result.stderr);
+    const id = /run id: (\S+)/.exec(result.stdout)?.[1];
+    assert.ok(id, `acquire prints the run id: ${result.stdout}`);
+    return id;
+  };
+
+  it('acquires a free lock and records when', () => {
+    const result = lock('acquire');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /lock acquired/);
+    assert.ok(existsSync(lockFile));
+    assert.match(readFileSync(lockFile, 'utf8'), /^2026-10-20T12:00:00Z/);
+  });
+
+  it('AC13: a live lock stops a second run, which reports the lock age and claims nothing', () => {
+    assert.equal(lock('acquire', secondsAgo(25 * 60)).status, 0);
+    const before = readFileSync(lockFile, 'utf8');
+    const result = lock('acquire');
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /another factory run is live/);
+    assert.match(result.stderr, /25m/);
+    assert.equal(readFileSync(lockFile, 'utf8'), before, 'the live lock is not touched');
+  });
+
+  it('AC13: reports the age in hours past the first hour', () => {
+    assert.equal(lock('acquire', secondsAgo(2 * HOUR + 5 * 60)).status, 0);
+    assert.match(lock('acquire').stderr, /2h05m/);
+  });
+
+  it('AC13: takes over a lock older than 3 hours, and says so', () => {
+    assert.equal(lock('acquire', secondsAgo(3 * HOUR + 1)).status, 0);
+    const result = lock('acquire');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /expired/);
+    assert.match(readFileSync(lockFile, 'utf8'), /^2026-10-20T12:00:00Z/);
+  });
+
+  it('AC13: a lock of exactly 3 hours is still live, one second more is not', () => {
+    assert.equal(lock('acquire', secondsAgo(3 * HOUR)).status, 0);
+    assert.equal(lock('acquire').status, 1);
+    rmSync(lockFile);
+    assert.equal(lock('acquire', secondsAgo(3 * HOUR + 1)).status, 0);
+    assert.equal(lock('acquire').status, 0);
+  });
+
+  it('AC14: release frees the lock, so the next run acquires it', () => {
+    const id = acquireId();
+    const released = lock('release', NOW, id);
+    assert.equal(released.status, 0, released.stderr);
+    assert.equal(existsSync(lockFile), false);
+    assert.equal(lock('acquire').status, 0);
+  });
+
+  it('release of a lock that is not held is not an error', () => {
+    const result = lock('release', NOW, 'any-run');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /no lock/);
+  });
+
+  it('release of a lock another run holds fails and leaves it alone', () => {
+    acquireId();
+    const before = readFileSync(lockFile, 'utf8');
+    for (const args of [['other-run'], []]) {
+      const result = lock('release', NOW, ...args);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /another run/);
+    }
+    assert.equal(readFileSync(lockFile, 'utf8'), before);
+  });
+
+  it('each acquire records its own run id, with the owner and the time, on the lock line', () => {
+    const first = acquireId();
+    assert.match(
+      readFileSync(lockFile, 'utf8'),
+      new RegExp(`^2026-10-20T12:00:00Z .*run ${first}\\n$`),
+    );
+    rmSync(lockFile);
+    assert.notEqual(acquireId(), first);
+  });
+
+  describe('refresh: the 3 hours count from the last refresh', () => {
+    it('renews the time of the lock this run holds, keeping its identity and owner', () => {
+      const id = acquireId(secondsAgo(2 * HOUR + 50 * 60));
+      const [, ...rest] = readFileSync(lockFile, 'utf8').trim().split(' ');
+      const refreshed = lock('refresh', NOW, id);
+      assert.equal(refreshed.status, 0, refreshed.stderr);
+      assert.match(refreshed.stdout, /refreshed/);
+      assert.equal(readFileSync(lockFile, 'utf8'), `2026-10-20T12:00:00Z ${rest.join(' ')}\n`);
+    });
+
+    it('a run that refreshes every so often holds the lock past 3 hours', () => {
+      const id = acquireId(secondsAgo(5 * HOUR));
+      assert.equal(lock('refresh', secondsAgo(2 * HOUR), id).status, 0);
+      assert.equal(lock('refresh', secondsAgo(HOUR), id).status, 0);
+      assert.match(lock('status').stdout, /live.*1h00m/);
+      const second = lock('acquire');
+      assert.equal(second.status, 1);
+      assert.match(second.stderr, /another factory run is live/);
+    });
+
+    it('without a refresh the same run is taken over after 3 hours', () => {
+      acquireId(secondsAgo(5 * HOUR));
+      assert.equal(lock('acquire').status, 0);
+    });
+
+    it('fails when no lock is held', () => {
+      const result = lock('refresh', NOW, 'any-run');
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /no run lock/);
+      assert.equal(existsSync(lockFile), false, 'refresh never creates a lock');
+    });
+
+    it('fails on a lock another run holds, and leaves it unchanged', () => {
+      acquireId(secondsAgo(60));
+      const before = readFileSync(lockFile, 'utf8');
+      for (const args of [['other-run'], []]) {
+        const result = lock('refresh', NOW, ...args);
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, /another run/);
+      }
+      assert.equal(readFileSync(lockFile, 'utf8'), before);
+    });
+
+    it('fails on a lock that another run took over after this one expired', () => {
+      const mine = acquireId(secondsAgo(4 * HOUR));
+      const theirs = acquireId();
+      assert.notEqual(mine, theirs);
+      const result = lock('refresh', NOW, mine);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /another run/);
+    });
+
+    it('fails closed on a lock that records no run id', () => {
+      writeFileSync(lockFile, '2026-10-20T11:00:00Z someone@host pid 1\n');
+      const result = lock('refresh', NOW, 'any-run');
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /another run|no run id/);
+    });
+  });
+
+  // Racing runs. The lock is replaced only by renaming the lock that was read, never by removing whatever is there, so of
+  // many runs taking over one expired lock exactly one wins, and a refresh and a takeover cannot both succeed.
+  describe('races on an expired lock', () => {
+    const lockAsync = (action, at, ...extra) =>
+      new Promise((resolve) => {
+        const child = spawn(join(SCRIPTS, 'flow.sh'), ['lock', action, ...extra], {
+          env: { ...process.env, FIVVI_NOW: at, FIVVI_RUN_LOCK: lockFile },
+        });
+        let stdout = '';
+        child.stdout.on('data', (chunk) => {
+          stdout += chunk;
+        });
+        child.on('close', (status) => resolve({ status, stdout }));
+      });
+    const idOf = (result) => /run id: (\S+)/.exec(result.stdout)?.[1];
+    const clean = () => {
+      for (const name of readdirSync(dir)) rmSync(join(dir, name), { force: true });
+    };
+
+    it('of many runs taking over an expired lock exactly one wins, and the lock is its own', async () => {
+      for (let round = 0; round < 5; round++) {
+        clean();
+        acquireId(secondsAgo(4 * HOUR));
+        const results = await Promise.all(
+          Array.from({ length: 8 }, () => lockAsync('acquire', NOW)),
+        );
+        const winners = results.filter((result) => result.status === 0);
+        assert.equal(winners.length, 1, `round ${round}: ${winners.length} runs took the lock`);
+        assert.match(readFileSync(lockFile, 'utf8'), new RegExp(`run ${idOf(winners[0])}\\n$`));
+        assert.deepEqual(
+          readdirSync(dir),
+          ['factory.lock'],
+          'no temporary or renamed file is left',
+        );
+      }
+    });
+
+    it('a refresh of an expired lock and runs taking it over cannot both succeed', async () => {
+      for (let round = 0; round < 8; round++) {
+        clean();
+        const mine = acquireId(secondsAgo(4 * HOUR));
+        const [refresh, ...takeovers] = await Promise.all([
+          lockAsync('refresh', NOW, mine),
+          ...Array.from({ length: 4 }, () => lockAsync('acquire', NOW)),
+        ]);
+        const winners = takeovers.filter((result) => result.status === 0);
+        const holder = readFileSync(lockFile, 'utf8').match(/run (\S+)\n$/)?.[1];
+        if (refresh.status === 0) {
+          assert.equal(winners.length, 0, `round ${round}: refreshed, yet a takeover won`);
+          assert.equal(holder, mine);
+        } else {
+          assert.equal(winners.length, 1, `round ${round}: refresh lost, so one takeover must win`);
+          assert.equal(holder, idOf(winners[0]));
+        }
+        assert.deepEqual(readdirSync(dir), ['factory.lock']);
+      }
+    });
+  });
+
+  it('status says free, live with its age, or expired, and changes nothing', () => {
+    assert.match(lock('status').stdout, /free/);
+    assert.equal(lock('acquire', secondsAgo(90 * 60)).status, 0);
+    assert.match(lock('status').stdout, /live.*1h30m/);
+    assert.match(lock('status', daysAgo(-1)).stdout, /expired/);
+    assert.ok(existsSync(lockFile));
+  });
+
+  it('fails closed on a lock it cannot read, naming the file', () => {
+    writeFileSync(lockFile, 'garbage\n');
+    const result = lock('acquire');
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /unreadable/);
+    assert.match(result.stderr, /factory\.lock/);
+  });
+
+  it('needs a known action', () => {
+    assert.equal(lock('').status, 1);
+    assert.equal(lock('steal').status, 1);
+  });
+
+  it('keeps the lock outside git: by default under the main checkout .work/, which git ignores', () => {
+    const flow = readFileSync(join(SCRIPTS, 'flow.sh'), 'utf8');
+    assert.match(flow, /\$NOTES_DIR\/factory\.lock/);
+    const ignored = spawnSync('git', ['check-ignore', '-q', '.work/factory.lock'], {
+      cwd: join(SCRIPTS, '..'),
+    });
+    assert.equal(ignored.status, 0);
   });
 });
