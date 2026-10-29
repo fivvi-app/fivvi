@@ -1652,6 +1652,10 @@ case "$*" in
     case "$*" in *"-only-test-configuration $FAKE_FAIL_CONFIGURATION"*) [ -z "$FAKE_FAIL_CONFIGURATION" ] || exit 1 ;; esac
     # FAKE_RESULT=stall: it never ends on its own, and on SIGINT it records that and ends with 130 (it has written its bundle).
     [ "$FAKE_RESULT" != stall ] || exec perl -e '$SIG{INT} = sub { open my $f, ">", shift(@ARGV); print $f "SIGINT\\n"; close $f; exit 130 }; sleep 60' "${state}/sigint.log"
+    # FAKE_RESULT=stall-ignore-int: the same, but it ignores SIGINT, so only SIGKILL ends it.
+    [ "$FAKE_RESULT" != stall-ignore-int ] || exec perl -e '$SIG{INT} = "IGNORE"; sleep 60'
+    # FAKE_RESULT=stall-default-int: it sets no SIGINT handler, so it ends on SIGINT only if the script did not start it with SIGINT ignored.
+    [ "$FAKE_RESULT" != stall-default-int ] || exec perl -e 'sleep 60'
     ${outcome} ;;
 esac
 exit 0`,
@@ -2103,6 +2107,35 @@ esac`,
         assert.match(run.output, deadlineError);
         assert.deepEqual(fake.log('sigint'), ['SIGINT']);
         assert.equal(fake.simulator('IPHONE-18').state, 'Shutdown', 'the cleanup still runs');
+      });
+
+      it('kills an xcodebuild that ignores SIGINT once the grace is over, and fails', async () => {
+        const fake = checkout();
+        const started = Date.now();
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          ...stalled,
+          FAKE_RESULT: 'stall-ignore-int',
+          IOS_TEST_DEADLINE_GRACE: '2',
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, deadlineError);
+        assert.ok(Date.now() - started < 30_000, 'the fake was killed, not waited for until its sleep ended');
+      });
+
+      it('reaches an xcodebuild that does not handle SIGINT itself (a background job of a script ignores it by default)', async () => {
+        const fake = checkout();
+        const started = Date.now();
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          ...stalled,
+          FAKE_RESULT: 'stall-default-int',
+          IOS_TEST_DEADLINE_GRACE: '40',
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.ok(Date.now() - started < 30_000, 'SIGINT ended it; the grace of 40 s was not waited for');
       });
 
       it('test <locale> does the same for the job of that language', async () => {

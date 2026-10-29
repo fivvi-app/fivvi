@@ -362,7 +362,9 @@ TEST_ALLOWANCE=120
 TEST_ALLOWANCE_MAX=180
 # The allowance only covers a stall inside a test method. A stall before the first test (the runner installs or
 # bootstraps) or between tests is not one, so a run that is still going after this many seconds is interrupted (#305).
-# SIGINT lets xcodebuild write its result bundle, and the run fails. A healthy run takes 10-16 minutes with the
+# SIGINT is meant to let xcodebuild wind down and write its result bundle; that is not verified (a local try with
+# Xcode 27.1 left no bundle and xcodebuild still running after 90 s), so after the grace it is killed and the run
+# fails either way, with or without a bundle. A healthy run takes 10-16 minutes with the
 # simulator settle; the CI job's own timeout (25 minutes) stays above the deadline plus the grace, the reports and
 # the upload. IOS_TEST_DEADLINE and IOS_TEST_DEADLINE_GRACE override them (the tests of this script use short ones).
 TEST_DEADLINE=${IOS_TEST_DEADLINE:-1080}
@@ -375,7 +377,9 @@ run_tests() {
     in_ui_locales "$2" || only+=(-skip-testing:FivviProUITests)
     bundle=".build/TestResults-$2.xcresult"
   fi
-  xcodebuild test-without-building -xctestrun "$XCTESTRUN" -destination "id=$1" ${only[@]+"${only[@]}"} \
+  # A background job of a script starts with SIGINT ignored, so perl puts the default back before it execs xcodebuild.
+  perl -e '$SIG{INT} = "DEFAULT"; exec @ARGV or die "exec $ARGV[0]: $!"' -- \
+    xcodebuild test-without-building -xctestrun "$XCTESTRUN" -destination "id=$1" ${only[@]+"${only[@]}"} \
     -resultBundlePath "$bundle" -quiet \
     -test-timeouts-enabled YES -default-test-execution-time-allowance "$TEST_ALLOWANCE" \
     -maximum-test-execution-time-allowance "$TEST_ALLOWANCE_MAX" &
