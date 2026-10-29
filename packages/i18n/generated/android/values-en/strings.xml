@@ -21,8 +21,20 @@
     <string name="home_signed_in_as">Signed in as %1$s</string>
     <string name="no_access_body">You don\'t have access to a workspace yet.</string>
     <string name="no_access_title">No access yet</string>
+    <string name="no_permission_body">You don\'t have access to this page. Ask the owner of %1$s.</string>
+    <string name="no_permission_title">No access</string>
     <string name="not_found_body">We can\'t find this page. Check the link and try again.</string>
     <string name="not_found_title">Page not found</string>
+    <string name="settings_general_errors_generic">Something went wrong. Try again.</string>
+    <string name="settings_general_errors_name_required">Enter the name of your gym or business.</string>
+    <string name="settings_general_errors_name_too_long">This name is too long. Use a shorter one.</string>
+    <string name="settings_general_errors_no_connection">No connection. Check your internet and try again.</string>
+    <string name="settings_general_name_label">Name of your gym or business</string>
+    <string name="settings_general_save">Save</string>
+    <string name="settings_general_saved">Saved.</string>
+    <string name="settings_general_time_zone_label">Time zone</string>
+    <string name="settings_general_title">General</string>
+    <string name="settings_general_url_name_label">URL name</string>
     <string name="sign_in_change_email">Change email address</string>
     <string name="sign_in_check_email_body">If %1$s is registered, you\'ll receive an email with a code and a sign-in link.</string>
     <string name="sign_in_check_email_body_app">If %1$s is registered, you\'ll receive an email with a code.</string>
@@ -61,4 +73,6 @@
     <string name="welcome_workspace_name_hint">For example John\'s Gym</string>
     <string name="welcome_workspace_name_label">Name of your gym or business</string>
     <string name="workspace_home_description">The overview of your gym or business will appear here soon.</string>
+    <string name="workspace_nav_label">Main navigation</string>
+    <string name="workspace_nav_settings">Settings</string>
 </resources>

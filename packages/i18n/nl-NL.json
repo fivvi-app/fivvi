@@ -76,6 +76,28 @@
   "workspaceHome": {
     "description": "Hier komt binnenkort het overzicht van je sportschool of bedrijf."
   },
+  "settingsGeneral": {
+    "title": "Algemeen",
+    "nameLabel": "Naam van je sportschool of bedrijf",
+    "save": "Opslaan",
+    "saved": "Opgeslagen.",
+    "urlNameLabel": "Naam in de link",
+    "timeZoneLabel": "Tijdzone",
+    "errors": {
+      "nameRequired": "Vul de naam van je sportschool of bedrijf in.",
+      "nameTooLong": "Deze naam is te lang. Gebruik een kortere naam.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
+    }
+  },
+  "noPermission": {
+    "title": "Geen toegang",
+    "body": "Je hebt geen toegang tot deze pagina. Vraag de eigenaar van {workspace}."
+  },
+  "workspaceNav": {
+    "label": "Hoofdnavigatie",
+    "settings": "Instellingen"
+  },
   "signOut": {
     "label": "Uitloggen",
     "error": "Uitloggen is niet gelukt. Probeer het opnieuw."

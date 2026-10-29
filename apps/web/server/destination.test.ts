@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { destinationOf, pathOf } from './destination';
 
-const gym = { id: '0197c0de-0000-7000-8000-0000000000a1', name: "John's Gym", slug: 'johns-gym' };
+const gym = {
+  id: '0197c0de-0000-7000-8000-0000000000a1',
+  name: "John's Gym",
+  slug: 'johns-gym',
+  role: 'owner',
+} as const;
 const studio = {
   id: '0197c0de-0000-7000-8000-0000000000a2',
   name: 'Studio Zuid',
   slug: 'studio-zuid',
-};
+  role: 'trainer',
+} as const;
 
 describe('F002 where the signed-in home sends a person', () => {
   it('AC1: no workspace and allowed to create one: TW-11', () => {

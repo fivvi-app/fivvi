@@ -60,6 +60,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/workspaces`.
     /// - Remark: Generated from `#/paths//v1/workspaces/post(createWorkspace)`.
     func createWorkspace(_ input: Operations.CreateWorkspace.Input) async throws -> Operations.CreateWorkspace.Output
+    /// A workspace
+    ///
+    /// The workspace: its name, URL name, default language and time zone.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/get(getWorkspace)`.
+    func getWorkspace(_ input: Operations.GetWorkspace.Input) async throws -> Operations.GetWorkspace.Output
+    /// Rename a workspace
+    ///
+    /// Changes the name of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/patch(renameWorkspace)`.
+    func renameWorkspace(_ input: Operations.RenameWorkspace.Input) async throws -> Operations.RenameWorkspace.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -147,6 +161,38 @@ extension APIProtocol {
         body: Operations.CreateWorkspace.Input.Body
     ) async throws -> Operations.CreateWorkspace.Output {
         try await createWorkspace(Operations.CreateWorkspace.Input(
+            headers: headers,
+            body: body
+        ))
+    }
+    /// A workspace
+    ///
+    /// The workspace: its name, URL name, default language and time zone.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/get(getWorkspace)`.
+    public func getWorkspace(
+        path: Operations.GetWorkspace.Input.Path,
+        headers: Operations.GetWorkspace.Input.Headers = .init()
+    ) async throws -> Operations.GetWorkspace.Output {
+        try await getWorkspace(Operations.GetWorkspace.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Rename a workspace
+    ///
+    /// Changes the name of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/patch(renameWorkspace)`.
+    public func renameWorkspace(
+        path: Operations.RenameWorkspace.Input.Path,
+        headers: Operations.RenameWorkspace.Input.Headers = .init(),
+        body: Operations.RenameWorkspace.Input.Body
+    ) async throws -> Operations.RenameWorkspace.Output {
+        try await renameWorkspace(Operations.RenameWorkspace.Input(
+            path: path,
             headers: headers,
             body: body
         ))
