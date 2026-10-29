@@ -1,15 +1,27 @@
-# High-risk paths (ADR-016, ADR-021). A PR that changes, adds, deletes or renames any of these is high-risk.
+# High-risk paths (ADR-016, ADR-021, spec #292). A PR that changes, adds, deletes or renames any of these is high-risk.
 # scripts/risk.sh reads this file; this file is itself owner-only (scripts/), so agents can't loosen it.
 #
 # Who merges a high-risk PR depends on its group: a group declared on an `@agent-queue <group>` line is agent-queueable
 # (an agent adds the PR to the merge queue when the whole merge gate holds, and records it in the PR body); every other
 # group is owner-only, and so is any group added later. A declared group needs a path rule below, and a line in any
-# other shape is an error (fail closed). The `@agent-queue` lines end at Gate G2 (ROADMAP.md M4): remove them then.
+# other shape is an error (fail closed). The `@agent-queue` lines end at pilot setup, before the first real personal
+# data enters production (ROADMAP.md, pilot setup checklist): remove them all then. The `billing` line ends earlier
+# if production gets a live payment-provider key first: remove it before that key is set, because payment code is only
+# agent-queueable while payments run in the provider's test mode. `guardrails` (core), `legal` and `product-docs` are
+# never declared: they stay owner-only.
+#
+# `@except <group> <pattern>` carves paths out of an owner-only rule: a file that matches it is skipped by every rule
+# of that group, so a broad rule (`guardrails /scripts`) keeps catching every new file while the files listed as
+# `tooling` below belong to the agent-queueable group instead.
 @agent-queue auth
 @agent-queue tenant-data
 @agent-queue health-notes
 @agent-queue dependencies
 @agent-queue infrastructure
+# Payments run in test mode until the pilot's Mollie account goes live (see above for when this line ends).
+@agent-queue billing
+# Tooling: test and build configs, lint rules, drift and contrast checks, native and release helper scripts, TESTING.md.
+@agent-queue tooling
 #
 # One rule per line: <group> <pattern>. Patterns are case-insensitive globs; `*` matches within one path segment. A
 # pattern that starts with `/` is anchored at the repo root, any other matches at every depth. A pattern also matches
@@ -34,6 +46,12 @@ billing               *billing*
 billing               *payment*
 product-docs          /docs/product
 product-docs          /docs/decisions
+# Core guardrails (owner-only): the rules agents work by and everything that decides risk, the merge gate, phases and
+# labels, so agents can never loosen their own rules. These are the rules (AGENTS.md, CLAUDE.md, CODING_STANDARDS.md,
+# WORKFLOW.md, docs/agents), the agent definitions, hooks, skills and CI (.agents, .claude, .codex, .github,
+# .githooks) and every script in scripts/ with its tests, which includes the risk list, the merge gate, flow, issue, PR
+# and check scripts, the allowlists and the GitHub settings. The tooling scripts below are carved out of /scripts; a
+# new script stays owner-only until a line below moves it.
 guardrails            AGENTS.md
 guardrails            CLAUDE.md
 guardrails            /CODING_STANDARDS.md
@@ -45,53 +63,86 @@ guardrails            /.githooks
 guardrails            /scripts
 guardrails            /docs/agents
 guardrails            /docs/engineering/WORKFLOW.md
-# The files that define the checks, or can switch one off or hide drift: the root package.json holds their scripts and
-# also matches the dependencies rule below, so it is owner-only, while every other package.json stays a dependency
-# change. Configs that a nested folder can add or override match at every depth: turbo.json (inputs), biome.json and
-# biome.jsonc (they can load the i18n lint rule), vitest configs (what the tests run, integration ones too), Playwright,
-# tsconfig, SwiftLint, .editorconfig (ktlint), Xcode test plans (they skip tests) and the global setup of a test
-# folder, and the Xcode scheme (it names the test plan). The anchored files and folders, which no other path matches,
-# are the shared vitest preset, the CLI and tools of i18n, the CLI of the design tokens and its contrast check
-# (contrast.ts holds the pass/fail), the lint folders (i18n, ui, api, Android, iOS), the drift checks (the contract's
-# check.ts and the pipeline.ts that holds its drift comparison and the list it compares, the design tokens'
-# check.ts), the iOS test-skip file, the Android build files that wire the checks (the root and app
-# build.gradle.kts hold the lint and release checks, settings.gradle.kts picks the lint-rules folder),
-# e2e/maestro/config.yaml (which flows CI runs), .shellcheckrc and docs/engineering/TESTING.md. project.pbxproj also
-# carries every ordinary project change, so it stays low (ADR-021). Other source inside packages, test helpers
-# included, stays low and is covered by review (the tenant-data rules above name E011's own files).
+# What chooses which checks run: the root package.json (it also matches the dependencies rule below, so it is
+# owner-only, while every other package.json stays a dependency change) and turbo.json at every depth (a nested one
+# overrides the inputs of a task).
 guardrails            /package.json
 guardrails            turbo.json
-guardrails            biome.json
-guardrails            biome.jsonc
-guardrails            /.shellcheckrc
-guardrails            /packages/i18n/lint
-guardrails            /packages/i18n/src/cli.ts
-guardrails            /packages/i18n/src/tools
-guardrails            /packages/testing/src/vitest.ts
-guardrails            /packages/contract/scripts/check.ts
-guardrails            /packages/contract/scripts/pipeline.ts
-guardrails            /packages/design-tokens/src/check.ts
-guardrails            /packages/design-tokens/src/cli.ts
-guardrails            /packages/design-tokens/src/contrast.ts
-guardrails            /packages/ui/lint
-guardrails            /packages/api/lint
-guardrails            /apps/android/lint
-guardrails            /apps/android/build.gradle.kts
-guardrails            /apps/android/app/build.gradle.kts
-guardrails            /apps/android/settings.gradle.kts
-guardrails            /e2e/maestro/config.yaml
+# The files that skip tests: Xcode test plans and schemes (a scheme names its test plan) and the iOS skip list.
+# project.pbxproj also carries every ordinary project change, so it stays low (ADR-021).
 guardrails            *.xcscheme
-guardrails            /apps/ios/lint
 guardrails            /apps/ios/FivviProUITests/Support/TestPlanSkips.swift
 guardrails            *.xctestplan
-guardrails            .editorconfig
-guardrails            .swiftlint.yml
-guardrails            test/global-setup.ts
-guardrails            /docs/engineering/TESTING.md
-guardrails            vitest*.config.*
-guardrails            playwright.config.*
-guardrails            tsconfig.json
-guardrails            tsconfig.*.json
+
+# Tooling (agent-queueable, spec #292): the configs and checks a feature PR changes along the way. Configs that a
+# nested folder can add or override match at every depth: biome.json and biome.jsonc (they load the i18n lint rule),
+# vitest configs (what the tests run, integration ones too), Playwright, tsconfig, SwiftLint, .editorconfig (ktlint) and
+# the global setup of a test folder. The anchored files and folders, which no other path matches, are the shared vitest
+# preset, the CLI and tools of i18n, the CLI of the design tokens and its contrast check (contrast.ts holds the
+# pass/fail), the lint folders (i18n, ui, api, Android, iOS), the drift checks (the contract's check.ts and the
+# pipeline.ts that holds its drift comparison and the list it compares, the design tokens' check.ts), the Android build
+# files that wire the checks (the root and app build.gradle.kts hold the lint and release checks, settings.gradle.kts
+# picks the lint-rules folder), e2e/maestro/config.yaml (which flows CI runs), .shellcheckrc and
+# docs/engineering/TESTING.md. Other source inside packages, test helpers included, stays low and is covered by review
+# (the tenant-data rules above name E011's own files).
+tooling               biome.json
+tooling               biome.jsonc
+tooling               /.shellcheckrc
+tooling               /packages/i18n/lint
+tooling               /packages/i18n/src/cli.ts
+tooling               /packages/i18n/src/tools
+tooling               /packages/testing/src/vitest.ts
+tooling               /packages/contract/scripts/check.ts
+tooling               /packages/contract/scripts/pipeline.ts
+tooling               /packages/design-tokens/src/check.ts
+tooling               /packages/design-tokens/src/cli.ts
+tooling               /packages/design-tokens/src/contrast.ts
+tooling               /packages/ui/lint
+tooling               /packages/api/lint
+tooling               /apps/android/lint
+tooling               /apps/android/build.gradle.kts
+tooling               /apps/android/app/build.gradle.kts
+tooling               /apps/android/settings.gradle.kts
+tooling               /e2e/maestro/config.yaml
+tooling               /apps/ios/lint
+tooling               .editorconfig
+tooling               .swiftlint.yml
+tooling               test/global-setup.ts
+tooling               /docs/engineering/TESTING.md
+tooling               vitest*.config.*
+tooling               playwright.config.*
+tooling               tsconfig.json
+tooling               tsconfig.*.json
+# The native, release and asset helper scripts in scripts/ with their tests: the Android and iOS builds and test runs
+# (android.sh, test-ios.sh, maestro.sh, ios-device.sh and the _android.sh and _ios.sh they share), the store releases
+# (release*.sh, play-publish.mjs) and the app icon. dockerfile.test.mjs and app-ids.test.mjs check the infrastructure
+# and the native app IDs. Every other script in scripts/ is core: this list is the whole boundary.
+@except guardrails /scripts/_android.sh
+@except guardrails /scripts/_ios.sh
+@except guardrails /scripts/android.sh
+@except guardrails /scripts/ios-device.sh
+@except guardrails /scripts/maestro.sh
+@except guardrails /scripts/test-ios.sh
+@except guardrails /scripts/release*.sh
+@except guardrails /scripts/play-publish.mjs
+@except guardrails /scripts/app-icon.mjs
+@except guardrails /scripts/test/release*.test.mjs
+@except guardrails /scripts/test/app-icon.test.mjs
+@except guardrails /scripts/test/app-ids.test.mjs
+@except guardrails /scripts/test/dockerfile.test.mjs
+tooling               /scripts/_android.sh
+tooling               /scripts/_ios.sh
+tooling               /scripts/android.sh
+tooling               /scripts/ios-device.sh
+tooling               /scripts/maestro.sh
+tooling               /scripts/test-ios.sh
+tooling               /scripts/release*.sh
+tooling               /scripts/play-publish.mjs
+tooling               /scripts/app-icon.mjs
+tooling               /scripts/test/release*.test.mjs
+tooling               /scripts/test/app-icon.test.mjs
+tooling               /scripts/test/app-ids.test.mjs
+tooling               /scripts/test/dockerfile.test.mjs
 dependencies          package.json
 dependencies          /pnpm-lock.yaml
 dependencies          /pnpm-workspace.yaml

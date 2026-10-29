@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed; the rule that agents add only low-risk PRs (context and decision 4) amended by [ADR-021](ADR-021-agents-queue-high-risk.md) |
+| **Status** | Proposed; the rule that agents add only low-risk PRs (context and decision 4) amended by [ADR-021](ADR-021-agents-queue-high-risk.md) and [ADR-023](ADR-023-owner-out-of-the-per-pr-loop.md) |
 | **Date** | 2026-10-19; decision 4 amended 2026-10-21 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | Amends ADR-016 (decisions 2 and 3); WORKFLOW.md §3, §4, §7; ENVIRONMENTS.md §4; ADR-011; issue #119 (supersedes the idea of #113) |

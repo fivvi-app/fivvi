@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed; decisions 2 and 3 amended by [ADR-018](ADR-018-merge-queue.md); decision 1, the "low-risk" condition of the merge gate and the parallel limit of three amended by [ADR-021](ADR-021-agents-queue-high-risk.md) |
+| **Status** | Proposed; decisions 2 and 3 amended by [ADR-018](ADR-018-merge-queue.md); decision 1, the "low-risk" condition of the merge gate and the parallel limit of three amended by [ADR-021](ADR-021-agents-queue-high-risk.md), and in turn by [ADR-023](ADR-023-owner-out-of-the-per-pr-loop.md) (the end of agent queueing at pilot setup) |
 | **Date** | 2026-10-13 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | ROADMAP.md §4.3, M4 (Gate G2), §16 v1.12; WORKFLOW.md §3, §4, §7; ENVIRONMENTS.md §4; ADR-011; ADR-018 (merge queue); issue #28 |

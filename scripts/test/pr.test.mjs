@@ -1062,6 +1062,94 @@ describe('pr.sh create: which local check runs before the push', () => {
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.checks, []);
   });
+
+  // #292 AC12: owner-only edits do not ride along in a ticket PR; the builder moves them to a PR of their own.
+  describe('#292: names the owner-only reasons of a ticket PR after the push', () => {
+    const riskRules = (files, ticketLabels = []) => [
+      { match: '^api repos/[^ ]+/pulls/60/files', out: files },
+      {
+        match: '^pr view 60 .*closingIssuesReferences',
+        out: {
+          headRefName: 'feature/57-hold-a-spot',
+          closingIssuesReferences: [{ number: 57 }],
+          changedFiles: files.length,
+        },
+      },
+      {
+        match: '^issue view 57 .*number,labels,parent',
+        out: { number: 57, labels: ticketLabels.map((name) => ({ name })), parent: null },
+      },
+    ];
+    const createWith = (existing, rules) => {
+      const result = spawnSync(join(repo, 'scripts/pr.sh'), ['create', '--no-check'], {
+        cwd: repo,
+        encoding: 'utf8',
+        env: gh.env([
+          ...rules,
+          { match: '^pr list ', out: existing ? [{ number: 60 }] : [] },
+          { match: '^issue view 57 ', out: { title: 'Hold a spot' } },
+          { match: '^pr create ', out: 'https://github.com/example/fivvi/pull/60' },
+          { match: '^pr edit ', out: '' },
+          { match: '^pr view 60 ', out: { url: 'https://github.com/example/fivvi/pull/60' } },
+        ]),
+      });
+      return result;
+    };
+    const ownerFiles = [
+      { filename: 'apps/web/page.tsx' },
+      { filename: 'packages/database/migrations/0004.sql' },
+      { filename: 'scripts/pr.sh' },
+    ];
+
+    it('prints each owner-only reason, not the agent-queueable ones, and the hint to split them off', () => {
+      for (const existing of [false, true]) {
+        const result = createWith(existing, riskRules(ownerFiles));
+        assert.equal(result.status, 0, result.stderr);
+        assert.match(result.stdout, /PR #60 is owner-only/, `existing ${existing}`);
+        assert.match(result.stdout, /scripts\/pr\.sh: guardrails/, `existing ${existing}`);
+        assert.doesNotMatch(result.stdout, /tenant-data/, `existing ${existing}`);
+        assert.match(result.stdout, /PR of their own/, `existing ${existing}`);
+        assert.match(result.stdout, /docs\/agents\/build\.md/, `existing ${existing}`);
+      }
+    });
+
+    it('says nothing for a PR that is low or high risk', () => {
+      for (const files of [[{ filename: 'apps/web/page.tsx' }], ownerFiles.slice(0, 2)]) {
+        const result = createWith(false, riskRules(files));
+        assert.equal(result.status, 0, result.stderr);
+        assert.doesNotMatch(result.stdout, /owner-only/);
+      }
+    });
+
+    it('says nothing for a branch without an issue: it is not a ticket PR', () => {
+      git('checkout', '--quiet', '-b', 'chore/guard-change');
+      try {
+        const result = spawnSync(
+          join(repo, 'scripts/pr.sh'),
+          ['create', '--no-check', '--title', 'chore: x'],
+          {
+            cwd: repo,
+            encoding: 'utf8',
+            env: gh.env([
+              ...riskRules(ownerFiles),
+              { match: '^pr list ', out: [] },
+              { match: '^pr create ', out: 'https://github.com/example/fivvi/pull/60' },
+            ]),
+          },
+        );
+        assert.equal(result.status, 0, result.stderr);
+        assert.doesNotMatch(result.stdout, /owner-only/);
+      } finally {
+        git('checkout', '--quiet', 'feature/57-hold-a-spot');
+      }
+    });
+
+    it('still succeeds, with a warning, when the risk cannot be read', () => {
+      const result = createWith(false, []);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout + result.stderr, /could not read the risk of PR #60/);
+    });
+  });
 });
 
 describe('E002 #107 pr.sh ready', () => {

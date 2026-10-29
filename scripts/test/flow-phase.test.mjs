@@ -379,6 +379,38 @@ describe('flow phase of a spec', () => {
     assert.equal(decide(spec({ labels: ['spec', 'needs-triage'] })).phase, 'needs-spec');
   });
 
+  // #292 AC10: tickets are cut as soon as a spec is approved; the real dependencies move to the tickets.
+  it('#292 AC10: an approved spec with open blockers and no tickets needs tickets, not blocked', () => {
+    const decision = decide(spec({ blockers: [{ number: 49, title: '[F001] Sign in' }] }));
+    assert.equal(decision.phase, 'needs-tickets');
+    assert.match(decision.next, /to-tickets/);
+    assert.match(decision.next, /#49/);
+    assert.match(decision.next, /--blocked-by/);
+  });
+
+  it('#292 AC10: once an approved, blocked spec has tickets, it is building and lists the ready ones', () => {
+    const blockers = [{ number: 49, title: '[F001] Sign in' }];
+    const decision = decide(spec({ blockers, children: [child(51), child(52)] }));
+    assert.equal(decision.phase, 'building');
+    assert.match(decision.next, /Ready now: #51 #52/);
+    const done = decide(spec({ blockers, children: [child(51, { state: 'CLOSED' })] }));
+    assert.equal(done.phase, 'complete');
+    const unapproved = decide(spec({ blockers, labels: ['spec'], children: [child(51)] }));
+    assert.equal(unapproved.phase, 'blocked', 'a spec whose approval was removed stays blocked');
+  });
+
+  it('#292 AC10: a spec that is not approved, not described, or its own ticket stays blocked or waiting', () => {
+    const blockers = [{ number: 49, title: '[F001] Sign in' }];
+    assert.equal(decide(spec({ blockers, labels: ['spec'] })).phase, 'blocked');
+    assert.equal(decide(spec({ blockers, described: false })).phase, 'blocked');
+    assert.equal(
+      decide(spec({ blockers, labels: ['spec', 'spec-approved', 'ready-for-agent'] })).phase,
+      'blocked',
+      'a spec built as its own ticket waits for its blockers',
+    );
+    assert.equal(decide(spec({ blockers, state: 'CLOSED' })).phase, 'done');
+  });
+
   it('waits for the owner to approve a described spec before it gets tickets', () => {
     assert.deepEqual(decide(spec({ labels: ['spec'] })), {
       phase: 'needs-approval',

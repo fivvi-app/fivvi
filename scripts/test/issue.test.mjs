@@ -264,6 +264,39 @@ describe('issue.sh', () => {
       assert.equal(result.stdout, '51\tissue 51\n61\tissue 61\n');
     });
 
+    // #292 AC11: tickets are cut for a spec that waits on another spec; readiness is decided per ticket.
+    it('#292 AC11: lists a ticket of a blocked spec with no open blocker of its own, not one blocked by a ticket or by the spec', () => {
+      const blockedBy = (...nodes) => ({ blockedBy: { nodes } });
+      const withBlockers = (number, nodes) => {
+        const rule = item(number, ['ready-for-agent'], { number: 50 });
+        return { ...rule, out: { ...rule.out, ...blockedBy(...nodes) } };
+      };
+      const result = issueSh(
+        [
+          {
+            match: '^issue list ',
+            out: [{ number: 51 }, { number: 52 }, { number: 53 }, { number: 54 }],
+          },
+          withBlockers(51, []),
+          withBlockers(52, [{ number: 45, state: 'OPEN' }]),
+          withBlockers(53, [{ number: 49, state: 'OPEN' }]),
+          withBlockers(54, [{ number: 44, state: 'CLOSED' }]),
+          // Spec #50 itself waits on spec #49: its tickets are approved to be built, so only their own edges count.
+          {
+            ...viewOf(50, ['spec', 'spec-approved']),
+            out: {
+              number: 50,
+              labels: labels('spec', 'spec-approved'),
+              blockedBy: { nodes: [{ number: 49, state: 'OPEN' }] },
+            },
+          },
+        ],
+        'ready',
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout, '51\tissue 51\n54\tissue 54\n');
+    });
+
     it("fails instead of listing a ticket whose spec's labels it can't read", () => {
       const result = issueSh(
         [
