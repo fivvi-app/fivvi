@@ -8,6 +8,7 @@ import {
   newAllowedAddress,
   signInWithSession,
 } from './accounts';
+import { emailsTo, waitForEmails } from './brevo';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 import { appServer } from './servers';
 import { signInWithCode } from './sign-in-page';
@@ -306,5 +307,132 @@ test.describe('F010 language', () => {
       defaultLocale: string;
     };
     expect(after.defaultLocale).toBe(before.defaultLocale);
+  });
+});
+
+// F010, the language switch on the sign-in page (TW-10): signed out, nothing is saved on an
+// account until sign-in.
+test.describe('F010 language switch on the sign-in page', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders(clientIpHeaders());
+  });
+
+  const switchButton = (page: Page, locale: Locale) =>
+    page.getByRole('button', { name: ownName(locale), exact: true });
+
+  const localeCookie = async (page: Page) =>
+    (await page.context().cookies()).find((cookie) => cookie.name === 'NEXT_LOCALE')?.value;
+
+  test('AC4: choosing a language switches the page, is kept, and the email follows it', async ({
+    page,
+    appLocale,
+    otherLocale,
+    messages: copy,
+  }) => {
+    const address = newAddress('chooser');
+    await createAccount(address);
+    const other = messages[otherLocale];
+    await page.goto('/login');
+    await expect(switchButton(page, appLocale)).toHaveAttribute('aria-pressed', 'true');
+    await expect(switchButton(page, otherLocale)).toHaveAttribute('aria-pressed', 'false');
+    await expectNoAxeViolations(page, `the sign-in page with the switch in ${appLocale}`);
+    await page.evaluate(() => {
+      (window as unknown as { __notReloaded: boolean }).__notReloaded = true;
+    });
+
+    await switchButton(page, otherLocale).click();
+
+    await expect(page.getByRole('heading', { level: 1, name: other.signIn.title })).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('lang', formattingLocales[otherLocale]);
+    await expect(switchButton(page, otherLocale)).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      await page.evaluate(() => (window as unknown as { __notReloaded?: boolean }).__notReloaded),
+    ).toBe(true);
+    expect(await localeCookie(page)).toBe(otherLocale);
+    await expectNoAxeViolations(page, `the sign-in page after the switch to ${otherLocale}`);
+
+    // The choice is kept on a reload.
+    await page.reload();
+    await expect(page.getByRole('heading', { level: 1, name: other.signIn.title })).toBeVisible();
+
+    // The account has no stored language, so the email is in the language of the page.
+    await page.getByLabel(other.signIn.emailLabel).fill(address);
+    await page.getByRole('button', { name: other.signIn.sendCode }).click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: other.signIn.checkEmailTitle }),
+    ).toBeVisible();
+    const [email] = await waitForEmails(address);
+    expect(email?.subject).toBe(other.email.signIn.subject);
+    expect(email?.subject).not.toBe(copy.email.signIn.subject);
+    expect(await emailsTo(address)).toHaveLength(1);
+  });
+
+  test('AC5: the choice becomes the stored language at sign-in, and without one the stored language applies', async ({
+    page,
+    browser,
+    baseURL,
+    appLocale,
+    otherLocale,
+    messages: copy,
+  }) => {
+    const other = messages[otherLocale];
+    // Stored in the language this project does not run in: the page language alone would not
+    // lead there.
+    const chooser = newAddress('stored-chooser');
+    await createAccount(chooser, appLocale);
+    await page.goto('/login');
+    await switchButton(page, otherLocale).click();
+    await expect(page.getByRole('heading', { level: 1, name: other.signIn.title })).toBeVisible();
+
+    // The stored language wins for the email (ADR-019).
+    await signInWithCode(page, other, chooser);
+
+    await expect(page).toHaveURL(`${baseURL}/home`);
+    await expect(page.getByRole('heading', { level: 1, name: other.noAccess.title })).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('lang', formattingLocales[otherLocale]);
+    expect(await storedLanguage(page)).toBe(otherLocale);
+
+    // Another browser that chose nothing: the stored language applies, not the browser language.
+    const quiet = await browser.newContext({
+      baseURL,
+      locale: formattingLocales[appLocale],
+      extraHTTPHeaders: clientIpHeaders(),
+    });
+    try {
+      const quietPage = await quiet.newPage();
+      const address = newAddress('stored-quiet');
+      await createAccount(address, otherLocale);
+      await quietPage.goto('/login');
+      await expect(
+        quietPage.getByRole('heading', { level: 1, name: copy.signIn.title }),
+      ).toBeVisible();
+      await signInWithCode(quietPage, copy, address);
+      await expect(
+        quietPage.getByRole('heading', { level: 1, name: other.noAccess.title }),
+      ).toBeVisible();
+      expect(await storedLanguage(quietPage)).toBe(otherLocale);
+    } finally {
+      await quiet.close();
+    }
+  });
+
+  test('AC6: after sign-out the language stays on this browser', async ({
+    page,
+    baseURL,
+    otherLocale,
+    messages: copy,
+  }) => {
+    const other = messages[otherLocale];
+    const address = newAddress('leaver');
+    await createAccount(address, otherLocale);
+    await page.goto('/login');
+    await signInWithCode(page, copy, address);
+    await expect(page.getByRole('heading', { level: 1, name: other.noAccess.title })).toBeVisible();
+
+    await page.getByRole('button', { name: other.signOut.label }).click();
+
+    await expect(page).toHaveURL(`${baseURL}/login`);
+    await expect(page.getByRole('heading', { level: 1, name: other.signIn.title })).toBeVisible();
+    expect(await localeCookie(page)).toBe(otherLocale);
   });
 });

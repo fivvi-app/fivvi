@@ -43,6 +43,9 @@
     "linkInvalidBody": "Vraag een nieuwe e-mail aan om in te loggen.",
     "linkInvalidBack": "Terug naar inloggen",
     "signedOutNotice": "Je bent uitgelogd. Log opnieuw in.",
+    "languageLabel": "Taal",
+    "languageNl": "Nederlands",
+    "languageEn": "English",
     "errors": {
       "invalidEmail": "Dit e-mailadres klopt niet. Controleer het en probeer het opnieuw.",
       "invalidOrExpiredCode": "Deze code klopt niet of is verlopen. Controleer de code in de e-mail of vraag een nieuwe code aan.",

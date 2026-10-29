@@ -60,6 +60,9 @@
     <string name="sign_in_errors_invalid_email">This email address doesn\'t look right. Check it and try again.</string>
     <string name="sign_in_errors_invalid_or_expired_code">This code isn\'t right or has expired. Check the code in the email or request a new one.</string>
     <string name="sign_in_errors_no_connection">No connection. Check your internet and try again.</string>
+    <string name="sign_in_language_en">English</string>
+    <string name="sign_in_language_label">Language</string>
+    <string name="sign_in_language_nl">Nederlands</string>
     <string name="sign_in_link_invalid_back">Back to sign in</string>
     <string name="sign_in_link_invalid_body">Request a new email to sign in.</string>
     <string name="sign_in_link_invalid_title">This sign-in link no longer works</string>

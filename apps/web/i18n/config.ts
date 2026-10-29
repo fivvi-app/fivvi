@@ -17,6 +17,9 @@ import {
  */
 export const localeCookie = 'NEXT_LOCALE';
 
+/** How long the browser keeps the language cookie: a year, renewed whenever it is rewritten. */
+export const localeCookieMaxAge = 365 * 24 * 60 * 60;
+
 /**
  * The request's interface language (ADR-017): the cookie, then the first supported browser
  * language, then English. The URL carries no locale (no i18n routing). For a signed-in browser

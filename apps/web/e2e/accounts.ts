@@ -6,6 +6,7 @@ import {
   organizations,
   teamMembers,
 } from '@fivvi/database';
+import type { Locale } from '@fivvi/i18n';
 import { databaseUrl } from '@fivvi/testing/database/server';
 import type { BrowserContext } from '@playwright/test';
 import { eq } from 'drizzle-orm';
@@ -50,10 +51,15 @@ export function clientIpHeaders(): Record<string, string> {
 }
 
 /** Creates the account `email` on the e2e app server's database; the sign-in page has no sign-up. */
-export async function createAccount(email: string): Promise<void> {
+export async function createAccount(email: string, preferredLocale?: Locale): Promise<void> {
   const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
   try {
-    await client.db.insert(authUsers).values({ email, name: 'E2E', emailVerified: true });
+    await client.db.insert(authUsers).values({
+      email,
+      name: 'E2E',
+      emailVerified: true,
+      ...(preferredLocale ? { preferredLocale } : {}),
+    });
   } finally {
     await client.close();
   }
