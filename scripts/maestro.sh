@@ -51,7 +51,6 @@ set_flow_env() {
   FLOW_ENV=(
     --env "SIGN_IN_SEND_CODE=$(catalog "$1" signIn.sendCode)"
     --env "HELLO_TITLE=$(catalog "$1" hello.title)"
-    --env "HOME_SET_UP_ON_WEB=$(catalog "$1" home.setUpOnWeb)"
     --env "BREVO_URL=http://localhost:$BREVO_PORT"
   )
 }
