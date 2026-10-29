@@ -4,7 +4,7 @@ This is the **single wording source** for every user-facing string on every surf
 
 What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLOSSARY.md) at the repo root (English canonical terms, definitions, words to avoid). This file says how those terms are **worded** in nl-NL and en.
 
-- **Status:** v0.9, started in M0 (`ROADMAP.md §4.2`). Terms marked ⚠️ still need to be validated with the pilot owner (see [§8 Open questions](#8-open-questions-validate-with-the-pilot-owner)).
+- **Status:** v0.11, started in M0 (`ROADMAP.md §4.2`). The owner confirmed the nine open terms on 2026-10-29. Terms marked ⚠️ are still open (see [§8 Open questions](#8-open-questions)).
 - **Scope:** UI strings, emails, notifications, validation messages, empty states, public booking pages and QR posters. Legal documents (privacy policy, terms, verwerkersovereenkomst) follow their own register and are out of scope.
 - **Catalogs:** `packages/i18n/nl-NL.json` and `packages/i18n/en.json` (ICU MessageFormat, ADR-008). Native catalogs (`.xcstrings`, `strings.xml`) are generated from them and are never edited by hand.
 - **Precedence:** `PRODUCT.md` owns requirements. This file owns terminology, tone and copy style. Where it deliberately differs from example copy in `PRODUCT.md`, [§7](#7-deviations-from-productmd-example-copy) lists why.
@@ -18,7 +18,7 @@ What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLO
 5. [UI verbs, messages and dialogs](#5-ui-verbs-messages-and-dialogs)
 6. [How agents use this glossary](#6-how-agents-use-this-glossary)
 7. [Deviations from PRODUCT.md example copy](#7-deviations-from-productmd-example-copy)
-8. [Open questions (validate with the pilot owner)](#8-open-questions-validate-with-the-pilot-owner)
+8. [Open questions](#8-open-questions)
 9. [Changelog](#9-changelog)
 
 ---
@@ -77,7 +77,7 @@ Keep established loanwords that Dutch trainers actually use: *training, trainer,
 - *e-mail* has a hyphen in Dutch (*e-mail, e-mails, e-mailadres*). English writes *email*.
 - Plurals with an apostrophe after a long vowel: *agenda's, schema's*. No apostrophe elsewhere: *sessies, lessen, klanten*.
 - Adjective inflection follows the article: *de les → nieuwe les*, but *het trainingsschema → nieuw trainingsschema*, *het account → nieuw account*. The term table lists articles for this reason.
-- Diaeresis and accents: *privé, privésessie, cliënt* (forbidden anyway), *kopiëren, geïnteresseerd*.
+- Diaeresis and accents: *privé, cliënt* (forbidden anyway), *kopiëren, geïnteresseerd*.
 
 ### 2.3 Punctuation
 
@@ -153,11 +153,11 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 
 | EN term | NL term | Notes / forbidden alternatives |
 |---|---|---|
-| workspace | werkruimte (de, werkruimtes) ⚠️ | Prefer the workspace's own name ("John's Gym") wherever it fits. ❌ NL: *organisatie, bedrijf, omgeving, workspace*. ❌ EN UI: *organization, org, company, account* (for the business). |
-| organization | — *(internal)* | Code and database name for a workspace (`organization_id`, `organizations`). Never shown in the UI. Say *workspace/werkruimte*. |
-| personal workspace 🔜 2.2 | persoonlijke werkruimte |  |
+| workspace | bedrijf (het, bedrijven) | Fits a solo trainer and a gym alike. Prefer the workspace's own name ("John's Gym") wherever it fits. ❌ NL: *werkruimte, organisatie, omgeving, workspace*. ❌ EN UI: *organization, org, company, account* (for the business). |
+| organization | — *(internal)* | Code and database name for a workspace (`organization_id`, `organizations`). Never shown in the UI. Say *workspace/bedrijf*. |
+| personal workspace 🔜 2.2 | persoonlijk bedrijf |  |
 | team | team (het, teams) |  |
-| team member | teamlid (het, teamleden) | ❌ *lid, leden, lidmaatschap, member, membership* for this concept. *Membership* (*abonnement / lidmaatschap* ⚠️) means a client's membership (`PRODUCT.md §91`, §4.9); *member / lid* is not used for people in the UI. ❌ *medewerker, personeel, staff, gebruiker*. Internally `organization_member`. |
+| team member | teamlid (het, teamleden) | ❌ *lid, leden, lidmaatschap, member, membership* for this concept. *Membership* (*abonnement*; ❌ *lidmaatschap*) means a client's membership (`PRODUCT.md §91`, §4.9); *member / lid* is not used for people in the UI. ❌ *medewerker, personeel, staff, gebruiker*. Internally `organization_member`. |
 | role | rol (de, rollen) | No custom roles in MVP. The MVP roles are Eigenaar and Trainer. |
 | Owner | Eigenaar (de, eigenaren) | ❌ *baas, beheerder* (that's Admin 🔜 7.0), *owner* (NL). |
 | Admin 🔜 7.0 | Beheerder (de, beheerders) | A later role, not in the MVP (owner decision, 2026-10-20): no strings until it is built. ❌ NL: *admin, administrator, manager*. |
@@ -182,7 +182,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | timetable | rooster (het, roosters); *lesrooster* | Use *schedule change* → *roosterwijziging* for trainer-facing copy. For clients, describe the change instead: "Je les is verplaatst". ❌ EN: *schedule* as a noun (ambiguous with the verb). |
 | schedule (verb) | inplannen | ❌ *plannen* (fine in speech, but use *inplannen* in UI), *schedulen*. |
 | session | sessie (de, sessies) | Use it only when you mean any type ("Waar is deze sessie?", "sessienotities"). Otherwise use the specific word. ❌ *afspraak, event, activiteit, evenement*. ❌ *training* (in NL that means *workout*). |
-| private session | privésessie (de, privésessies) ⚠️; type label **Privé** | EN type label: **Private**. ❌ *PT-sessie, privéles, privétraining, afspraak, personal training* (in UI). |
+| private session | PT-sessie (de, PT-sessies); type label **Privé** | EN type label: **Private**. ❌ *privésessie, privéles, privétraining, afspraak, personal training* (in UI). The type label *Privé* next to *PT-sessie* is a point for the owner to review. |
 | class | les (de, lessen); **groepsles** when you need to contrast with private; type label **Groep** | EN: *class*, *group class*; type label **Group**. The short type labels **Privé** / **Private**, **Groep** / **Group** and **Open Gym** name a session's type in calendar blocks and legends (`PRODUCT.md §48`). ❌ EN: *lesson, course, workshop, group session*. ❌ NL: *groepstraining, cursus, workshop*. Nav label: *Lessen / Classes*. |
 | occurrence | *(internal)* — in UI: **les** + date | Never show *occurrence, instantie, exemplaar, voorkomen*. Edit-scope choices: *Alleen deze les / Deze en volgende lessen / Alle lessen* — *Only this class / This and following classes / All classes*. Booking-link scope: *Eén lesdatum / One class date*. |
 | recurring | terugkerend (adj.) | Field label *Herhalen / Repeat* with options such as *Niet herhalen*, *Elke week op dinsdag*. **Never the noun "herhaling" for recurrence**, because *herhaling* means *rep* (§4.5). ❌ *repeterend, recurrent, periodiek*. |
@@ -250,7 +250,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | EN term | NL term | Notes / forbidden alternatives |
 |---|---|---|
 | workout | training (de, trainingen) | **In Dutch, "training" means workout, never the calendar item** (use *sessie/les*). ❌ NL: *workout, oefensessie, trainingssessie*. |
-| workout template | trainingsschema (het, trainingsschema's); short: **schema** ⚠️ | EN short form: *template*. ❌ NL: *sjabloon, template, programma*. |
+| workout template | trainingsschema (het, trainingsschema's); short: **schema** | EN short form: *template*. ❌ NL: *sjabloon, template, programma*. |
 | program 🔜 | programma (het, programma's) | Reserved. Don't use it for a single template. |
 | assign a workout | training toewijzen | Give a workout or template to a client. |
 | exercise | oefening (de, oefeningen) | ❌ *beweging, move*. |
@@ -310,20 +310,20 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 
 ### 4.9 Commerce
 
-Added with roadmap v1.19 (M11). The ⚠️ terms are open until the pilot owner confirms them (§8).
+Added with roadmap v1.19 (M11). The owner confirmed the commerce terms on 2026-10-29; the ⚠️ terms are still open (§8).
 
 | EN term | NL term | Notes / forbidden alternatives |
 |---|---|---|
-| offer | aanbod (het) ⚠️ | A single item: *dit aanbod*. ❌ *product*, *pakket* (alone; *creditpakket* is the name of one kind of offer). |
+| offer | aanbod (het) | A single item: *dit aanbod*. ❌ *product*, *pakket* (alone; *creditpakket* is the name of one kind of offer). |
 | agreement | overeenkomst (de, overeenkomsten) ⚠️ | Mostly internal; in the UI name the kind (*abonnement*, *creditpakket*, *creditabonnement*). ❌ *contract* outside the terms text. |
-| membership | abonnement (het, abonnementen) ⚠️ | The pilot owner calls it a subscription; *lidmaatschap* is the alternative to confirm. EN: *membership*, ❌ *subscription* in EN UI. |
-| credit | credit (de, credits) ⚠️ | One unit of a credit balance (`GLOSSARY.md`). Name the kind with a compound: *groepscredit* (group credit), *privécredit* (private credit), e.g. *6 groepscredits, 3 privécredits*. One credit books one session of its kind; the two kinds never mix. Alternative to confirm: *tegoedpunt*. ❌ *token*, *punt*, *voucher*; ❌ *tegoed* for one unit (*tegoed* is the balance). |
-| credit pack | creditpakket (het, creditpakketten) ⚠️ | A number of credits bought once, valid for a period. Name the kind next to it (*Groep* / *Privé*, as on calendar blocks) instead of a longer compound. Alternatives to confirm: *strippenkaart*, *rittenkaart*, *PT-pakket* (private only). ❌ *sessiepakket* (the retired *session pack*), *bundel*. |
-| credit plan | creditabonnement (het, creditabonnementen) ⚠️ | A number of credits each month, paid by recurring payment, with a carry-over limit. Alternative to confirm: *maandelijkse credits*. EN: *credit plan*, ❌ *credit subscription*. |
-| default plan | standaardaanbod (het) ⚠️ | One of the three ready-made offers a new workspace starts with, pre-filled and switched off until the owner turns it on; the owner adds the price (`PRODUCT.md §90`; the rules around the defaults are proposals, QC19). The owner's word is *default plan*; the EN UI may say *default offer*, to confirm. ❌ *standaardabonnement* (*abonnement* is the membership only). |
-| new offer | Nieuw aanbod ⚠️ | The owner action that makes an offer from scratch. *Abonnement* is the membership only and an owner-made offer can also be a credit pack or credit plan, so the neutral *aanbod* is proposed; to confirm. EN: ❌ *new plan* alone (a *credit plan* is one kind). |
+| membership | abonnement (het, abonnementen) | The pilot owner calls it a subscription. ❌ *lidmaatschap*. EN: *membership*, ❌ *subscription* in EN UI. |
+| credit | credit (de, credits) | One unit of a credit balance (`GLOSSARY.md`). Name the kind with a compound: *groepscredit* (group credit), *privécredit* (private credit), e.g. *6 groepscredits, 3 privécredits*. One credit books one session of its kind; the two kinds never mix. ❌ *tegoedpunt*, *token*, *punt*, *voucher*; ❌ *tegoed* for one unit (*tegoed* is the balance). |
+| credit pack | creditpakket (het, creditpakketten) | A number of credits bought once, valid for a period. Name the kind next to it (*Groep* / *Privé*, as on calendar blocks) instead of a longer compound. ❌ *strippenkaart*, *rittenkaart*, *PT-pakket*, *sessiepakket* (the retired *session pack*), *bundel*. |
+| credit plan | creditabonnement (het, creditabonnementen) | A number of credits each month, paid by recurring payment, with a carry-over limit. EN: *credit plan*, ❌ *credit subscription*. |
+| default plan | standaardaanbod (het) | One of the three ready-made offers a new workspace starts with, pre-filled and switched off until the owner turns it on; the owner adds the price (`PRODUCT.md §90`; the rules around the defaults are proposals, QC19). The owner's word is *default plan*; the EN UI may say *default offer*. ❌ *standaardabonnement* (*abonnement* is the membership only). |
+| new offer | Nieuw aanbod | The owner action that makes an offer from scratch. *Abonnement* is the membership only and an owner-made offer can also be a credit pack or credit plan, so the neutral *aanbod* is used. EN: ❌ *new plan* alone (a *credit plan* is one kind). |
 | single class | losse les (de, losse lessen) | ❌ *drop-in*, *extra les* as the offer name (*extra* is fine in a sentence). |
-| credit balance | tegoed (het) ⚠️ | What is left, per kind: *Nog 6 groepscredits en 3 privécredits tegoed*. Keep the word for the balance only; the unit is *credit*. ❌ *saldo* (money), *sessiesaldo* (the retired *session balance*). |
+| credit balance | tegoed (het) | What is left, per kind: *Nog 6 groepscredits en 3 privécredits tegoed*. Keep the word for the balance only; the unit is *credit*. ❌ *lessen over*, *saldo* (money), *sessiesaldo* (the retired *session balance*). |
 | cancellation policy | annuleringsbeleid (het) ⚠️ | The rules of an offer for cancellations and no-shows. In the UI show the rule itself (*Annuleren kan tot 12 uur van tevoren*) rather than the noun. ❌ *annuleringsvoorwaarden* unless it is the legal terms text. ❌ EN: *terms, rules* (alone). |
 | cancellation cutoff | annuleren tot … uur van tevoren | Phrase it as a sentence, not a noun: *Je kunt tot 12 uur van tevoren gratis annuleren.* |
 | makeup | inhaalles (de, inhaallessen) | ❌ *compensatieles*, *tegoedles*. |
@@ -445,7 +445,7 @@ Added with roadmap v1.19 (M11). The ⚠️ terms are open until the pilot owner 
 
 | Word | Means | Must not be used for |
 |---|---|---|
-| **training** (NL) | workout | a scheduled session or class → *sessie*, *les*, *privésessie* |
+| **training** (NL) | workout | a scheduled session or class → *sessie*, *les*, *PT-sessie* |
 | **herhaling** (NL) | rep | recurrence → *terugkerend*, *Herhalen: elke week* |
 | **koppelen** (NL) | connecting an account or provider: *Betalingen koppelen / Connect payments* (§4.9) | assigning a trainer to a session or class → *toewijzen* (§4.1); both words are fine in their own place, never swapped |
 | **annuleren / cancel** | cancelling a session, class or booking; also dismissing a dialog | both at once in one dialog → §5.3 |
@@ -454,7 +454,7 @@ Added with roadmap v1.19 (M11). The ⚠️ terms are open until the pilot owner 
 | **privé / private** | the private session type | note visibility → *Alleen voor trainers / Trainer-only* |
 | **schedule** (EN) | the verb *to schedule* (*inplannen*) | the timetable noun → *timetable / rooster* |
 | **slot** (EN) | an Open Gym slot | a spot in a class → *spot / plek* |
-| **organization** | code and database only | anything in the UI → *workspace / werkruimte* |
+| **organization** | code and database only | anything in the UI → *workspace / bedrijf* |
 
 ---
 
@@ -494,15 +494,11 @@ Follow this whenever you add or change a key in `packages/i18n/nl-NL.json` or `e
 
 ---
 
-## 8. Open questions (validate with the pilot owner)
+## 8. Open questions
 
-These terms are the best current choice. Confirm them in the M0 wireframe review (`ROADMAP.md §4.2`) with the pilot owner and at least one other trainer, then remove the ⚠️ markers.
+None of the nine terms that were open at v0.10 remain. The owner decided them himself on 2026-10-29, without asking the pilot gym (changelog 0.11): *workspace → bedrijf*, *private session → PT-sessie*, *workout template → trainingsschema*, *substitution → vervanger* and the commerce terms of §4.9 (*abonnement*, *creditpakket*, *creditabonnement*, *credit*, *tegoed*, *aanbod*, *standaardaanbod*, *Nieuw aanbod*).
 
-1. **workspace → werkruimte.** Standard in Dutch SaaS, but a gym owner might never say it. The alternative is *bedrijf*. It matters mostly for multi-workspace trainers switching between gyms.
-2. **private session → privésessie.** Dutch trainers often say *PT-sessie*. Check which word the pilot gym uses with its clients.
-3. **workout template → trainingsschema.** Trainers say *schema*. Confirm it isn't confused with the timetable (*rooster*).
-4. **substitution → vervanger.** *Invaller* is also common in Dutch sport. Pick the one the pilot trainers use.
-5. **Commerce terms (§4.9).** Does the pilot gym say *abonnement* or *lidmaatschap*, and what does it call a set of group or private credits bought once (*creditpakket*, *strippenkaart*) and credits paid every month (*creditabonnement*)? Do *standaardaanbod* (the three ready-made offers a new workspace starts with) and *Nieuw aanbod* (the owner action that makes an offer from scratch) read well to a gym owner? Is *credit* clear as the unit and *tegoed* for what a client has left, in *groepscredits* and *privécredits*? Ask in the M0 commerce walkthrough (`ROADMAP.md §4.1`).
+Still marked ⚠️ in §4.9 and not decided: *agreement / overeenkomst*, *recurring payment / automatische incasso*, *mandate / machtiging*, *payment provider / betaalprovider*, *merchant / verkoper* and *cancellation policy / annuleringsbeleid*. Open for review: the type label *Privé* next to *PT-sessie* (§4.2).
 
 ---
 
@@ -520,3 +516,4 @@ These terms are the best current choice. Confirm them in the M0 wireframe review
 | 2026-10-20 | 0.8 | Owner review of roadmap v1.19: *Admin* is a later role 🔜 (the MVP roles are Eigenaar and Trainer); new type label **Groep** / **Group** next to **Privé** / **Private** for calendar blocks (`PRODUCT.md §48`); §4.3 notes that only the own location exists at go-live; §4.9 adds *credit* 🔜 and *chargeback* and more forbidden alternatives, *merchant* ⚠️ and *Betalingen koppelen / Connect payments*; §5.4 notes the *koppelen* collision with *assign*. |
 | 2026-10-21 | 0.9 | Credits in the MVP (roadmap v1.21): §4.9 retires *session pack* and *credit* 🔜 and adds *credit* (*groepscredit*, *privécredit*), *credit pack* (*creditpakket*), *credit plan* (*creditabonnement*) and *credit balance* (*tegoed*, as the session balance was); the NL terms are proposals marked ⚠️ for the pilot to confirm (§8 question 5). |
 | 2026-10-21 | 0.10 | Default plans and owner-made offers (roadmap v1.21, `PRODUCT.md §90`): §4.9 adds *default plan* (*standaardaanbod*) and *new offer* (*Nieuw aanbod*), both ⚠️ for the pilot to confirm (§8 question 5). |
+| 2026-10-29 | 0.11 | The owner decided the nine open terms himself (#155), without the pilot gym. Changed: *workspace* is now *bedrijf* (was *werkruimte*, now forbidden) and *private session* is now *PT-sessie* (was *privésessie*, now forbidden); the type label **Privé** / **Private** is unchanged and open for review. Confirmed, ⚠️ removed: *trainingsschema*, *vervanger*, *abonnement*, *creditpakket*, *creditabonnement*, *credit*, *tegoed*, *aanbod*, *standaardaanbod*, *Nieuw aanbod*. §8 holds no open questions about them. |
