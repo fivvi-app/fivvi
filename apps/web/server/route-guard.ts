@@ -2,7 +2,7 @@ import type { SessionRead } from '@fivvi/auth';
 import { loginPath, SIGN_IN_PAGE } from '@fivvi/auth/return-path';
 import { isLocale } from '@fivvi/i18n';
 import { type NextRequest, NextResponse } from 'next/server';
-import { localeCookie } from '../i18n/config';
+import { localeCookie, localeCookieMaxAge } from '../i18n/config';
 
 /**
  * Pages and routes that need no sign-in (AC13): the sign-in page with its confirm step, the hello
@@ -21,9 +21,6 @@ export function isPublicPath(pathname: string): boolean {
     PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
   );
 }
-
-/** How long the browser keeps the language cookie: a year, renewed whenever it is rewritten. */
-const LOCALE_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 
 /**
  * The request with the language stored on the account written into its `NEXT_LOCALE` cookie, so
@@ -62,7 +59,7 @@ export async function guardRequest(
   if (language) {
     response.cookies.set(localeCookie, language.locale, {
       path: '/',
-      maxAge: LOCALE_COOKIE_MAX_AGE,
+      maxAge: localeCookieMaxAge,
       sameSite: 'lax',
     });
   }
