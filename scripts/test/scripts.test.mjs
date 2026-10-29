@@ -2121,7 +2121,10 @@ esac`,
 
         assert.equal(run.status, 1, run.output);
         assert.match(run.output, deadlineError);
-        assert.ok(Date.now() - started < 30_000, 'the fake was killed, not waited for until its sleep ended');
+        assert.ok(
+          Date.now() - started < 30_000,
+          'the fake was killed, not waited for until its sleep ended',
+        );
       });
 
       it('reaches an xcodebuild that does not handle SIGINT itself (a background job of a script ignores it by default)', async () => {
@@ -2135,7 +2138,10 @@ esac`,
         });
 
         assert.equal(run.status, 1, run.output);
-        assert.ok(Date.now() - started < 30_000, 'SIGINT ended it; the grace of 40 s was not waited for');
+        assert.ok(
+          Date.now() - started < 30_000,
+          'SIGINT ended it; the grace of 40 s was not waited for',
+        );
       });
 
       it('test <locale> does the same for the job of that language', async () => {
