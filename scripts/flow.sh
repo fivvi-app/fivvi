@@ -4,15 +4,17 @@
 #   flow.sh status <n>                      facts, phase and next step for an issue
 #   flow.sh facts <n>                       the facts as JSON (input of scripts/flow-phase.jq)
 #   flow.sh next                            your open issues with their phase, the open specs, the ready tickets, the
-#                                           approved specs to cut (Cut #n) and answered needs-info questions, then what waits on the owner: specs to
-#                                           approve, owner-only PRs, PRs the merge gate refused, PRs GitHub removed from
-#                                           the merge queue, unanswered questions; last, what the owner may read: the
-#                                           high-risk PRs agents merged in the last 7 days (ADR-021)
+#                                           approved specs to cut (Cut #n) and answered needs-info questions, then
+#                                           what waits on the owner: specs to approve, owner-only PRs, PRs the merge
+#                                           gate refused, PRs GitHub removed from the merge queue, unanswered
+#                                           questions; last, what the owner may read: the high-risk PRs agents merged
+#                                           in the last 7 days (ADR-021)
 #   flow.sh idle                            exit 0 and "idle: nothing for an agent" (plus what waits on the owner) when no
 #                                           agent has anything to do: nothing under "Ready for an agent" in `next` and no
 #                                           issue assigned to you in a phase an agent acts on; exit 1 and what there is
-#                                           otherwise; exit 2 on an error, never a false idle. A cheap check for the
-#                                           scheduled factory run, right after `lock acquire`
+#                                           otherwise; exit 2 on every error (a bad argument and a missing tool
+#                                           included), never a false idle. A cheap check for the scheduled factory run,
+#                                           right after `lock acquire`
 #   flow.sh start <n> [--type <t>] [--force]  claim a ready ticket and create its <type>/<n>-<slug> worktree and notes;
 #                                           no limit on the tickets in progress, unless FIVVI_MAX_TICKETS (a positive
 #                                           integer) sets one: then it refuses at that many (--force to override)
@@ -30,11 +32,20 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
+# `idle` answers with its exit status: 0 idle, 1 work, 2 an error. Every other way out of the script, whatever fails
+# (a bad argument, a missing tool, a die), becomes 2: an error must never read as "work, carry on" or as idle.
+IDLE_ANSWERED=false
+if [ "${1:-}" = idle ]; then
+  idle_exit() { local rc=$?; $IDLE_ANSWERED || [ "$rc" -eq 0 ] || exit 2; }
+  trap idle_exit EXIT
+fi
+
 usage() { usage_of "$0"; }
 
 need_cmd gh
 need_cmd jq
 REPO="$(repo_slug)"
+[ -n "$REPO" ] || die "could not read the GitHub repository from the origin remote"
 OWNER="${REPO%%/*}"
 NAME="${REPO#*/}"
 PHASE_JQ="$ROOT/scripts/flow-phase.jq"
@@ -46,7 +57,15 @@ ANSWERED_JQ='def answered: (.comments // []) | length > 0
 is_number() { [[ "${1:-}" =~ ^[0-9]+$ ]] || die "not an issue number: ${1:-<missing>}"; }
 
 ME=""
-me() { [ -n "$ME" ] || ME="$(gh api user --jq .login)"; echo "$ME"; }
+# Who you are. Dies on a failed or empty read, so a failure can't pass for "nobody": call it as `x="$(me)" || exit 1`
+# (a die in the command substitution only ends that subshell).
+me() {
+  if [ -z "$ME" ]; then
+    ME="$(gh api user --jq .login)" || die "could not read who you are (gh api user)"
+    [ -n "$ME" ] || die "could not read who you are (gh api user)"
+  fi
+  echo "$ME"
+}
 
 FETCHED=false
 fetch_once() {
@@ -115,7 +134,8 @@ child_facts() {
 }
 
 facts() {
-  local n="$1" item parent=null children="[]" branches="[]" child branch p
+  local n="$1" item parent=null children="[]" branches="[]" child branch p login
+  login="$(me)" || return 1
   item="$(gh issue view "$n" --repo "$REPO" --json number,title,state,labels,assignees,body,comments,parent,subIssues,blockedBy)"
   for child in $(jq -r '.subIssues.nodes[].number' <<<"$item"); do
     children="$(jq --argjson c "$(child_facts "$child")" '. + [$c]' <<<"$children")"
@@ -129,7 +149,7 @@ facts() {
   for branch in $(issue_branches "$n"); do
     branches="$(jq --argjson b "$(branch_facts "$branch")" '. + [$b]' <<<"$branches")"
   done
-  jq --arg me "$(me)" --argjson parent "$parent" --argjson children "$children" --argjson branches "$branches" "$ANSWERED_JQ"'{
+  jq --arg me "$login" --argjson parent "$parent" --argjson children "$children" --argjson branches "$branches" "$ANSWERED_JQ"'{
     number, title, state, me: $me, answered: answered,
     labels: [.labels[].name], assignees: [.assignees[].login],
     described: ((.body // "") | gsub("\\s"; "") | length > 0),
@@ -252,14 +272,18 @@ cmd_next() {
 # the owner was told about the PR's head commit. Any other phase counts as work, so an unknown one is never a false idle.
 WAITING_PHASES=" queued merge-refused in-review approved waiting needs-approval needs-spec needs-refinement human blocked taken abandoned done "
 
-# True when the notes of #$1 have `queue-removed <head sha>: reported to the owner` for every head commit in $2
-# (comma-separated).
+# True when the notes of #$1 have `queue-removed <sha>: reported to the owner` (an optional "- " before it) for every
+# head commit in $2 (comma-separated); <sha> is the commit or a prefix of it of at least 7 hex characters.
 removal_reported() {
-  local n="$1" notes head
+  local n="$1" notes head sha found
   notes="$(notes_of "$n")"
-  [ -n "$notes" ] || return 1
+  [ -n "$notes" ] && [ -n "${2:-}" ] || return 1
   for head in ${2//,/ }; do
-    grep -qE "^queue-removed $head: reported to the owner" "$notes" || return 1
+    found=false
+    while IFS= read -r sha; do
+      case "$head" in "$sha"*) found=true; break ;; esac
+    done < <(sed -nE 's/^(- )?queue-removed ([0-9a-f]{7,40}): reported to the owner.*/\2/p' "$notes")
+    $found || return 1
   done
 }
 
@@ -294,6 +318,7 @@ cmd_idle() {
   [ $# -eq 0 ] || usage
   local out
   out="$(idle_scan)" || exit 2
+  IDLE_ANSWERED=true
   if [ "$(head -n 1 <<<"$out")" = idle ]; then
     echo "idle: nothing for an agent"
     tail -n +2 <<<"$out"
@@ -403,7 +428,7 @@ tickets_in_progress() {
 }
 
 cmd_start() {
-  local n="" type="" force=false f d phase branch wt title max
+  local n="" type="" force=false f d phase branch wt title max login
   while [ $# -gt 0 ]; do
     case "$1" in
       --type) type="${2:?}"; shift ;;
@@ -439,7 +464,8 @@ cmd_start() {
     branch="$type/$n-$(slugify "$title")"
   fi
 
-  jq -e --arg me "$(me)" '.assignees | index($me)' <<<"$f" >/dev/null || "$ROOT/scripts/issue.sh" claim "$n"
+  login="$(me)" || exit 1
+  jq -e --arg me "$login" '.assignees | index($me)' <<<"$f" >/dev/null || "$ROOT/scripts/issue.sh" claim "$n"
   mkdir -p "$NOTES_DIR/$n"
   [ -f "$NOTES_DIR/$n/notes.md" ] || printf '# #%s %s\n' "$n" "$(jq -r .title <<<"$f")" > "$NOTES_DIR/$n/notes.md"
   wt="$(worktree_of "$branch")"

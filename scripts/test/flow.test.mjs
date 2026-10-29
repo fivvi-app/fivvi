@@ -1036,8 +1036,10 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       others = [],
       head,
       failing = [],
+      args = [],
+      env = {},
     } = scenario;
-    return spawnSync(join(repo, 'scripts/flow.sh'), [command], {
+    return spawnSync(join(repo, 'scripts/flow.sh'), [command, ...args], {
       encoding: 'utf8',
       env: {
         ...gh.env([
@@ -1067,6 +1069,7 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
         ]),
         FIVVI_NOW: NOW,
         GIT_TERMINAL_PROMPT: '0',
+        ...env,
       },
     });
   };
@@ -1238,6 +1241,109 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       );
       const result = run('idle', { assigned: [removed] });
       assert.equal(result.status, 1, result.stderr);
+    });
+
+    it('accepts the head commit in the notes as a prefix of at least 7 hex characters, with a list marker', () => {
+      const scenario = { assigned: [removed] };
+      for (const line of [
+        `queue-removed ${HEAD.slice(0, 7)}: reported to the owner`,
+        `- queue-removed ${HEAD.slice(0, 12)}: reported to the owner`,
+        `- queue-removed ${HEAD}: reported to the owner (flaky check)`,
+      ]) {
+        writeNotes(9001, `# #9001 Removed\n${line}\n`);
+        const result = run('idle', scenario);
+        assert.equal(result.status, 0, `${line}: ${result.stderr}`);
+      }
+    });
+
+    it('does not take a short, wrong or other commit for the report', () => {
+      const scenario = { assigned: [removed] };
+      for (const sha of [
+        HEAD.slice(0, 6), // fewer than 7 characters
+        HEAD.slice(0, 3),
+        NEW_HEAD.slice(0, 7), // a prefix of another commit
+        `${HEAD.slice(0, 6)}d`, // 7 characters, but not a prefix of the head
+        `${HEAD}0`, // longer than a commit
+      ]) {
+        writeNotes(9001, `# #9001 Removed\nqueue-removed ${sha}: reported to the owner\n`);
+        const result = run('idle', scenario);
+        assert.equal(result.status, 1, `${sha}: ${result.stderr}`);
+        assert.equal(result.stdout, '#9001 Removed → queue-removed\n', sha);
+      }
+    });
+
+    describe('every phase', () => {
+      // A stub of flow-phase.jq that answers the phase in FIVVI_STUB_PHASE, so each phase is tested on its own.
+      const phaseJq = () => join(repo, 'scripts/flow-phase.jq');
+      let original;
+      before(() => {
+        original = readFileSync(phaseJq(), 'utf8');
+        writeFileSync(phaseJq(), '{phase: env.FIVVI_STUB_PHASE, next: "", hint: ""}\n');
+      });
+      after(() => writeFileSync(phaseJq(), original));
+
+      const phased = (phase) =>
+        run('idle', {
+          assigned: [issue(9004, 'Build it', ['ready-for-agent'])],
+          env: { FIVVI_STUB_PHASE: phase },
+        });
+      const WORK = [
+        'ready',
+        'in-progress',
+        'draft-pr',
+        'changes-requested',
+        'ready-to-merge',
+        'merged',
+        'complete',
+        'needs-tickets',
+        'building',
+        'answered',
+        'queue-removed',
+        'a-phase-nobody-knows-yet',
+      ];
+      const WAIT = [
+        'queued',
+        'merge-refused',
+        'in-review',
+        'approved',
+        'waiting',
+        'needs-approval',
+        'needs-spec',
+        'needs-refinement',
+        'human',
+        'blocked',
+        'taken',
+        'abandoned',
+        'done',
+      ];
+      for (const phase of WORK)
+        it(`exits 1 for ${phase}`, () => {
+          const result = phased(phase);
+          assert.equal(result.status, 1, result.stderr);
+          assert.equal(result.stdout, `#9004 Build it → ${phase}\n`);
+        });
+      for (const phase of WAIT)
+        it(`exits 0 for ${phase}`, () => {
+          const result = phased(phase);
+          assert.equal(result.status, 0, result.stderr);
+          assert.match(result.stdout, /^idle: nothing for an agent\n/);
+        });
+    });
+
+    it('exits 2 on a bad argument, never 1 (work)', () => {
+      const result = run('idle', { args: ['x'] });
+      assert.equal(result.status, 2);
+      assert.doesNotMatch(result.stdout, /idle/);
+    });
+
+    it('is an error, never idle, when it cannot tell who you are', () => {
+      const taken = issue(9004, 'Not mine', ['ready-for-agent'], {
+        assignees: [{ login: 'someone-else' }],
+      });
+      const result = run('idle', { assigned: [taken], failing: ['^api user'] });
+      assert.equal(result.status, 2, result.stderr);
+      assert.match(result.stderr, /^error: /m);
+      assert.doesNotMatch(result.stdout, /idle/);
     });
 
     it('is an error, never idle, when a read fails', () => {
