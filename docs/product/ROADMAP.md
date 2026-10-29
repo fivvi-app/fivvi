@@ -208,7 +208,7 @@ Run it with the printable kit in [`docs/discovery/`](../discovery/README.md) (sh
   5. Live workout logging with previous values
   6. Manage a class occurrence (substitution, cancellation, attendance)
 - [x] The [mobile flow drafts](../design/README.md) specify **platform conventions**: iOS Human Interface Guidelines and Android Material 3, with the same flow and content; pending prototype validation on both platforms.
-- [ ] Clickable prototype validated with the pilot owner and at least 1 other trainer.
+- [x] Clickable prototype validated with the pilot owner and at least 1 other trainer.
 - [ ] Visual direction and **design tokens** (colour, type, spacing) as a single source that exports to web CSS, Swift and Kotlin (ADR-015).
 - [x] Start the **Dutch terminology glossary** (`packages/i18n/GLOSSARY.md`), e.g. Klanten, Lessen, Boekingslinks, Aanwezig, Niet verschenen. It keeps LLM translations consistent.
 
