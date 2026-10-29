@@ -27,8 +27,9 @@ export function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env): b
  * create route does (`WORKSPACE_DEFAULTS` of packages/domain) by hand: this package can't
  * import the domain. And the account `trainer@example.com` ("Sarah", F003): Trainer of John's
  * Gym and Owner of a second workspace, "Sarah Personal Training" (`sarah-personal-training`),
- * so previews and tests have the multi-workspace and two-role cases of `PRODUCT.md §9`. Rows that every environment needs, like the `hello`
- * greeting, are data migrations instead (`src/system-data.ts`).
+ * so previews and tests have the multi-workspace and two-role cases of `PRODUCT.md §9`. Rows that
+ * every environment needs, like the `hello` greeting, are data migrations instead
+ * (`src/system-data.ts`).
  */
 export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Promise<void> {
   if (options.production) return;

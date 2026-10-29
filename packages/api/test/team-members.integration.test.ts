@@ -16,7 +16,7 @@ import {
   createProductEvents,
 } from '@fivvi/observability';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
-import { and, eq, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
 
@@ -251,7 +251,7 @@ describe('F003 team list and removal', () => {
   });
 
   it('AC7: with a second Owner, an Owner may be removed', async () => {
-    const { gym, john, sarah, johnRole, sarahRole } = await world();
+    const { gym, john, johnRole, sarahRole } = await world();
     await admin.db
       .update(teamMembers)
       .set({ role: 'owner' })
@@ -261,7 +261,6 @@ describe('F003 team list and removal', () => {
 
     expect(response.status).toBe(204);
     expect(await teamOf(gym.id)).toEqual([{ id: sarahRole.id, role: 'owner' }]);
-    expect(sarah.id).toBeDefined();
   });
 
   it('AC7: two Owners removing each other at once leave one Owner (committed transactions)', async () => {
@@ -404,10 +403,7 @@ describe('F003 team list and removal', () => {
 
     expect(listed.map(({ email }) => email)).not.toContain(client.email);
     expect(
-      await admin.db
-        .select()
-        .from(teamMembers)
-        .where(and(eq(teamMembers.accountId, client.id))),
+      await admin.db.select().from(teamMembers).where(eq(teamMembers.accountId, client.id)),
     ).toEqual([]);
   });
 });

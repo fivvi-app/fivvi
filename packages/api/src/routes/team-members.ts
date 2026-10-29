@@ -108,12 +108,15 @@ export function registerTeamMembers(app: OpenAPIHono) {
     const { teamMemberId } = c.req.valid('param');
     // The Owners first, locked: a parallel removal that commits first is already gone from here.
     const owners = await lockOwners(scope);
-    const member = await findTeamMember(scope, teamMemberId);
-    if (!member) return c.json(NOT_FOUND, 404);
-    const team = [...owners, ...(owners.some(({ id }) => id === member.id) ? [] : [member])];
+    const teamMember = await findTeamMember(scope, teamMemberId);
+    if (!teamMember) return c.json(NOT_FOUND, 404);
+    const team = [
+      ...owners,
+      ...(owners.some(({ id }) => id === teamMember.id) ? [] : [teamMember]),
+    ];
     // The 409 rolls the request's transaction back, which is what "nothing changes" needs.
-    if (!canRemoveTeamMember(team, member.id)) return c.json(LAST_OWNER, 409);
-    if (!(await deleteTeamMember(scope, member.id))) return c.json(NOT_FOUND, 404);
+    if (!canRemoveTeamMember(team, teamMember.id)) return c.json(LAST_OWNER, 409);
+    if (!(await deleteTeamMember(scope, teamMember.id))) return c.json(NOT_FOUND, 404);
     // The workspace ID only: the Owner’s own UUID is the pseudonymous ID (OBSERVABILITY.md §4).
     c.get('dependencies').productEvents.track({
       event: 'team_member_removed',
