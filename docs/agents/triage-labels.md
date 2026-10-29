@@ -31,13 +31,13 @@ Every open `ready-for-human` issue also carries one priority and one effort labe
 3. `prio-medium`: due by G0 (the M0 exit, which includes the §4.1 discovery tasks) or G2.
 4. `prio-low`: everything else (go-live, G4, or later).
 
-**Effort: the owner's own time, meetings included.**
+**Effort: the owner's own time on the task, added up, meetings included. Waiting for a reply or a verification doesn't count.**
 
 | Label | When |
 |---|---|
 | `effort-quick` | 15 minutes or less |
-| `effort-medium` | Up to an hour: on their own, a short call or chat, or one message and waiting for the reply |
-| `effort-big` | More than an hour, a separate appointment of an hour or more, or several steps over days |
+| `effort-medium` | More than 15 minutes, up to an hour |
+| `effort-big` | More than an hour |
 
 `with-pilot-gym`: at least one step is done with the pilot gym owner, so the owner can batch these into one visit.
 

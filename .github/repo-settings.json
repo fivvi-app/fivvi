@@ -44,17 +44,17 @@
     {
       "name": "effort-quick",
       "color": "0e8a16",
-      "description": "Owner task: 15 minutes or less, on your own"
+      "description": "Owner task: 15 minutes or less of your own time (waiting doesn't count)"
     },
     {
       "name": "effort-medium",
       "color": "bfdadc",
-      "description": "Owner task: up to an hour (on your own, a short call, or one message and a wait for the reply)"
+      "description": "Owner task: more than 15 minutes, up to an hour of your own time"
     },
     {
       "name": "effort-big",
       "color": "7057ff",
-      "description": "Owner task: more than an hour, an appointment of an hour or more, or steps over days"
+      "description": "Owner task: more than an hour of your own time, meetings included"
     },
     {
       "name": "with-pilot-gym",
