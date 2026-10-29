@@ -121,6 +121,7 @@ class HomeViewModel(
     }
 
     private fun destination(account: MeResponse): HomeDestination = when {
+        // The first workspace for now; "last workspace used" comes with F012.
         account.workspaces.isNotEmpty() -> HomeDestination.Workspace(account.workspaces.first().name)
         account.canCreateWorkspace -> HomeDestination.SetUpOnWeb
         else -> HomeDestination.NoAccess

@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.fivvi.pro.AppLanguage
 import app.fivvi.pro.AppRule
@@ -96,6 +97,8 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
         launch()
 
         compose.onNodeWithTag(HomeTags.NO_ACCESS).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.no_access_title)).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.no_access_body)).assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.SIGN_OUT).assertTextEquals(string(R.string.sign_out_label))
         compose.onNodeWithTag(HomeTags.SET_UP_ON_WEB).assertDoesNotExist()
         compose.onNodeWithTag(HomeTags.WORKSPACE_NAME).assertDoesNotExist()
@@ -122,6 +125,8 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
 
         compose.onNodeWithTag(HomeTags.ERROR)
             .assertTextEquals(localizedString(language, R.string.sign_in_errors_generic))
+        // The hello block stays while /me has failed.
+        compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(localizedString(language, R.string.hello_title))
         compose.onNodeWithTag(HomeTags.RETRY).performClick()
 
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)

@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -115,12 +116,14 @@ fun HomeScreen(
 @Composable
 private fun Destination(hello: HelloState, me: MeState, onRetryHello: () -> Unit, onOpenWeb: () -> Unit) {
     when (val destination = (me as? MeState.Loaded)?.destination) {
-        null -> if (me == MeState.Loading) HelloContent(hello, onRetryHello)
+        // Loading or failed: /me has not said, so the hello block stays, as before F002.
+        null -> HelloContent(hello, onRetryHello)
 
         is HomeDestination.Workspace -> {
             Text(
                 text = destination.name,
-                modifier = Modifier.padding(horizontal = Spacing.space6).testTag(HomeTags.WORKSPACE_NAME),
+                modifier = Modifier.padding(horizontal = Spacing.space6).testTag(HomeTags.WORKSPACE_NAME)
+                    .semantics { heading() },
                 style = MaterialTheme.typography.title1,
                 textAlign = TextAlign.Center,
             )
@@ -153,6 +156,7 @@ private fun Destination(hello: HelloState, me: MeState, onRetryHello: () -> Unit
         ) {
             Text(
                 text = stringResource(R.string.no_access_title),
+                modifier = Modifier.semantics { heading() },
                 style = MaterialTheme.typography.title2,
                 textAlign = TextAlign.Center,
             )
