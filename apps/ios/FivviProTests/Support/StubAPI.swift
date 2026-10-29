@@ -153,7 +153,9 @@ actor StubAPI: APIProtocol {
         fatalError("The app doesn't call listTeamMembers yet")
     }
 
-    func removeTeamMember(_ input: Operations.RemoveTeamMember.Input) async throws -> Operations.RemoveTeamMember.Output {
+    func removeTeamMember(
+        _ input: Operations.RemoveTeamMember.Input
+    ) async throws -> Operations.RemoveTeamMember.Output {
         fatalError("The app doesn't call removeTeamMember yet")
     }
 
