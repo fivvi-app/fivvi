@@ -498,7 +498,7 @@ Follow this whenever you add or change a key in `packages/i18n/nl-NL.json` or `e
 
 None of the nine terms that were open at v0.10 remain. The owner decided them himself on 2026-10-29, without asking the pilot gym (changelog 0.11): *workspace → bedrijf*, *private session → PT-sessie*, *workout template → trainingsschema*, *substitution → vervanger* and the commerce terms of §4.9 (*abonnement*, *creditpakket*, *creditabonnement*, *credit*, *tegoed*, *aanbod*, *standaardaanbod*, *Nieuw aanbod*).
 
-Still marked ⚠️ in §4.9 and not decided: *agreement / overeenkomst*, *recurring payment / automatische incasso*, *mandate / machtiging*, *payment provider / betaalprovider*, *merchant / verkoper* and *cancellation policy / annuleringsbeleid*. Open for review: the type label *Privé* next to *PT-sessie* (§4.2).
+Still marked ⚠️ in §4.9 and not decided: *agreement / overeenkomst*, *recurring payment / automatische incasso*, *mandate / machtiging*, *payment provider / betaalprovider*, *merchant / verkoper* and *cancellation policy / annuleringsbeleid*. Open for review: the type label *Privé* next to *PT-sessie* (§4.2) and the EN UI word *default offer* for *default plan* / *standaardaanbod* (§4.9).
 
 ---
 
