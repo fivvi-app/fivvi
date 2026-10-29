@@ -21,3 +21,17 @@ Fivvi additions:
 - `run-native`: runs the `iOS` and `Android` CI jobs on this PR whatever changed (`WORKFLOW.md §7`). CI reads it on the PR's pushes, so add it before you push; re-running a job doesn't pick up a label added later.
 - Anything in `docs/product/PRODUCT.md §53` (MVP exclusions) is out of scope for the MVP: triage it as `wontfix` with a pointer to §53, or as a post-MVP idea (`ROADMAP.md §9`) if the owner wants to keep it.
 - Owner-only work (accounts, dashboards, legal sign-off, store submissions) is `ready-for-human`.
+
+Every open `ready-for-human` issue also carries one priority and one effort label, so the owner can filter on them (`label:prio-high label:effort-quick`). Set them when you create the issue, and change them when the issue's blockers or due gate change. The owner may change any of them; keep theirs.
+
+| Label | When |
+|---|---|
+| `prio-high` | Do first: it blocks agent work soon (a spec that is next to be written or built), or it has a long wait the owner should start early (a sign-up, a verification, a reply from a supplier) |
+| `prio-medium` | Due before the next gate (G0 or G2), and not blocking agents yet |
+| `prio-low` | For go-live (G4) or later, or blocked by another issue (the issue body's *Can you do it now?* says which) |
+| `effort-quick` | 15 minutes or less, on the owner's own |
+| `effort-medium` | Up to an hour on the owner's own, or one message and waiting for the reply |
+| `effort-big` | A meeting with someone else (the pilot gym, a lawyer, an accountant), or several steps over days |
+| `with-pilot-gym` | Done with the pilot gym owner; the owner batches these into one visit |
+
+The issue body starts with *Can you do it now?* (yes, or what it waits on) and has numbered steps: where to click, what to type, what to send back.
