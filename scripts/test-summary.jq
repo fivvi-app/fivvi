@@ -1,6 +1,7 @@
 # The test counts of a check run, read from the logs turbo prints. Pure: no I/O.
-# Input: the lines of the logs (jq --raw-input --slurp), the --run and --skip kinds as $run and $skip, and the suites
-# the workspace has as $expect, each as "<package>:<task>" like the prefix turbo prints ("@fivvi/ui:test").
+# Input: the lines of the logs (jq --raw-input --slurp), the --run and --skip kinds as $run and $skip, the suites
+# the workspace has as $expect and the suites this change does not affect as $unaffected, each as "<package>:<task>"
+# like the prefix turbo prints ("@fivvi/ui:test").
 # Output: {suites: [{name, kind, status, passed, failed, skipped}], total: {passed, failed, skipped}}
 #
 # turbo puts "<package>:<task>: " before every line of a task, so the log of the whole run tells the suites apart:
@@ -13,6 +14,7 @@
 #   not-run      no counts and no error: turbo never started the task or cancelled it after another task failed (it
 #                may have printed "cache miss" and "$ vitest run"), or an expected suite printed nothing
 #   skipped      the kind was left out of this run (check.sh --fast)
+#   skipped (not affected)  the suite is in $unaffected and left no output: nothing it depends on changed (#293)
 #   no-results   a kind that ran has no suite in the logs and none expected (when called without --expect)
 
 # The test kinds, in the order of the table, and the turbo tasks that run them.
@@ -92,8 +94,14 @@ def first_match(f): [f] | first;
    | select((.task | kind_of) as $k | $skip | any(. == $k) | not)
    | select($tasks["\(.pkg)|\(.task)"] == null)
    | task_suite(.pkg; .task; "not-run"; empty_counts)] as $absent
+| [$unaffected[]
+   | first_match(capture("^(?<pkg>.+?):(?<task>\(test_task))$"))
+   | select(. != null)
+   | select((.task | kind_of) as $k | $skip | any(. == $k) | not)
+   | select($tasks["\(.pkg)|\(.task)"] == null)
+   | task_suite(.pkg; .task; "skipped (not affected)"; empty_counts)] as $unaffected_suites
 | ($found + $absent | map(.kind)) as $kinds
-| ($found + $absent
+| ($found + $absent + $unaffected_suites
    + [$run[] | select(. as $k | $kinds | any(. == $k) | not) | kind_suite(.; "no-results")]
    + [$skip[] | kind_suite(.; "skipped")])
 | sort_by([(.kind as $k | kinds | index($k)), (.name != "root"), .name]) as $suites

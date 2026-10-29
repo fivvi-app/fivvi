@@ -5,9 +5,8 @@
 #   pr.sh create [--title <t>] [--body-file <f|->] [--ready] [--full] [--no-check]
 #                                                 check, push, then open a draft PR (or update the open one, changing only
 #                                                 what you pass); a new PR's title defaults to the issue title, its body
-#                                                 gets "Closes #<issue>". The first push runs the full scripts/check.sh;
-#                                                 a follow-up push (the PR exists) runs check.sh --fast, as CI runs the
-#                                                 full gate on every commit; --full forces the full run
+#                                                 gets "Closes #<issue>". Every push runs scripts/check.sh, the checks the
+#                                                 change can affect (#293); --full runs check.sh --all, everything
 #   pr.sh ready                                   mark the draft ready for review, only when for the head commit every
 #                                                 CI check passed (the merge gate's rule), the clean review is recorded
 #                                                 (pr.sh reviewed) and so is the smoke check (pr.sh smoke); else names
@@ -71,6 +70,8 @@ PREVIEW_SKIPPED="No deployment needed"
 # How long wait waits for CI, in minutes: the cold iOS run took 24.5 min, so the jobs of the native apps get longer.
 WAIT_MINUTES=20
 WAIT_MINUTES_NATIVE=45
+# The gates are the required checks iOS and Android; their parts (iOS build, iOS tests (nl), Android Maestro, ...) start with the
+# same word (#293).
 NATIVE_JOBS=(iOS Android)
 
 open_pr() { gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty'; }
@@ -81,10 +82,11 @@ current_pr() {
   echo "$pr"
 }
 
-# run_check [--fast] [<why>]: scripts/check.sh in the given mode, announcing which mode ran and why.
+# run_check [--all] [<why>]: scripts/check.sh for the change's affected set, or with --all for everything, announcing
+# which ran and why.
 run_check() {
-  local flag="" mode=full
-  if [ "${1:-}" = --fast ]; then flag=--fast; mode=fast; shift; fi
+  local flag="" mode=affected
+  if [ "${1:-}" = --all ]; then flag=--all; mode=full; shift; fi
   echo "🔎 ${mode} checks${1:+: $1}"
   (cd "$(git rev-parse --show-toplevel)" && scripts/check.sh ${flag:+"$flag"}) || die "checks failed — fix them before opening or updating a PR"
 }
@@ -139,9 +141,9 @@ cmd_create() {
   fi
 
   if $check; then
-    if $full; then run_check "--full"
+    if $full; then run_check --all "--full"
     elif [ -z "$existing" ]; then run_check "first push of the branch"
-    else run_check --fast "follow-up push to PR #$existing; CI runs the full gate (integration, e2e) on this commit; --full runs it here too"
+    else run_check "follow-up push to PR #$existing; CI is still the full gate on this commit; --full runs everything here too"
     fi
   fi
   local out
@@ -200,7 +202,7 @@ native_durations() {
   out="$(jq -r --argjson native "$(printf '%s\n' "${NATIVE_JOBS[@]}" | jq -R . | jq -sc .)" '
     def seconds: (.completed_at | fromdateiso8601) - (.started_at | fromdateiso8601);
     def clock: "\(. / 60 | floor) min \(. % 60) s";
-    .jobs[]? | select(.name | IN($native[])) | . as $job
+    .jobs[]? | select(.name as $n | $native | any(. as $j | $n == $j or ($n | startswith($j + " ")))) | . as $job
     | [(.steps // [])[] | select(.started_at != null and .completed_at != null)] as $steps
     | if ($steps | length) > 0 then
         "", "Step durations: \($job.name)",

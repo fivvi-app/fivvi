@@ -24,12 +24,26 @@
     },
     "test:integration": {
       "dependsOn": ["^build"],
-      "cache": false,
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/packages/testing/src/**",
+        "$TURBO_ROOT$/packages/database/migrations/**",
+        "$TURBO_ROOT$/packages/database/src/seed.ts",
+        "$TURBO_ROOT$/packages/database/src/scripts/**",
+        "$TURBO_ROOT$/compose.yaml"
+      ],
       "passThroughEnv": ["TEST_DATABASE_URL", "DATABASE_URL"]
     },
     "test:e2e": {
       "dependsOn": ["build"],
-      "cache": false,
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/packages/testing/src/**",
+        "$TURBO_ROOT$/packages/database/migrations/**",
+        "$TURBO_ROOT$/packages/database/src/seed.ts",
+        "$TURBO_ROOT$/packages/database/src/scripts/**",
+        "$TURBO_ROOT$/compose.yaml"
+      ],
       "passThroughEnv": [
         "CI",
         "E2E_PORT",
@@ -57,7 +71,10 @@
         "scripts/**",
         ".githooks/**",
         "Dockerfile",
-        "apps/web/package.json",
+        "apps/*/package.json",
+        "packages/*/package.json",
+        "pnpm-workspace.yaml",
+        "compose.yaml",
         ".github/rulesets/**",
         ".github/repo-settings.json",
         ".github/workflows/ci.yml",

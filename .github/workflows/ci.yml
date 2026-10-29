@@ -4,7 +4,11 @@
 #
 # The job names ("Detect changes", "Checks (Linux)", "E2E (Linux)", "iOS",
 # "Android") are the intended required checks; see docs/engineering/WORKFLOW.md §7. Renaming a job
-# renames its check, so update WORKFLOW.md in the same PR.
+# renames its check, so update WORKFLOW.md in the same PR. "iOS" and "Android" are gate jobs (#293): each needs its parts
+# (a build job and the test jobs) and reports their combined result through scripts/native-gate.sh, so the required
+# names stay while the parts change; a gate is skipped, and passes as skipped, when "Detect changes" says the app's
+# inputs did not change. Every job runs when something it depends on changed, and only then (scripts/affected.mjs,
+# scripts/native-jobs.sh; ADR-024).
 #
 # New static checks (i18n parity, OpenAPI drift, ...) are added as a `check`
 # script in the package that owns them. Turbo picks them up; no change here.
@@ -45,6 +49,7 @@ jobs:
     outputs:
       ios: ${{ steps.filter.outputs.ios }}
       android: ${{ steps.filter.outputs.android }}
+      e2e: ${{ steps.filter.outputs.e2e }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -79,7 +84,7 @@ jobs:
           fi
 
           if [[ -n "$base" ]]; then
-            changed="$(git diff --name-only "$base" HEAD)"
+            changed="$(git diff --no-renames --name-only "$base" HEAD)"
           else
             echo 'No base commit to compare with; treating every path as changed.'
             changed="$(git ls-files)"
@@ -91,6 +96,15 @@ jobs:
           args=(--event "$EVENT")
           if [[ "$RUN_NATIVE" == 'true' ]]; then args+=(--run-native); fi
           scripts/native-jobs.sh "${args[@]}" <<<"$changed" >>"$GITHUB_OUTPUT"
+
+          # Whether the Linux E2E job runs (scripts/affected.mjs, the decision scripts/check.sh makes too): only when the
+          # web app or a package it depends on changed, or on demand. Why it skips is in the log and the job summary.
+          affected_args=()
+          if [[ "$EVENT" == 'workflow_dispatch' || "$RUN_NATIVE" == 'true' ]]; then affected_args+=(--force); fi
+          reasons="$(mktemp)"
+          node scripts/affected.mjs ${affected_args[@]+"${affected_args[@]}"} <<<"$changed" 2>"$reasons" | grep '^e2e=' >>"$GITHUB_OUTPUT"
+          cat "$reasons"
+          { echo '### What this change affects'; sed 's/^/- /' "$reasons"; } >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
 
   checks:
     name: Checks (Linux)
@@ -199,6 +213,10 @@ jobs:
 
   e2e:
     name: E2E (Linux)
+    needs: changes
+    # Only when the web app or a package it depends on is affected (scripts/affected.mjs); otherwise this required check
+    # passes as skipped, and "Detect changes" says why.
+    if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     # The e2e servers each create and migrate their own database on it (apps/web/e2e/serve.ts).
@@ -281,25 +299,25 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  ios:
-    name: iOS
+
+  # iOS (E008, E002, #293). Three parts and the gate "iOS": one job builds once and packs the test bundle, two jobs run
+  # the Dutch and the English test pass from it at the same time, each on its own simulator (a cold run was 16 of 21
+  # minutes of tests in a row). They start only when the app, its generated inputs or its own scripts changed (in a PR, a
+  # merge group or a push to main), or on demand (scripts/native-jobs.sh), to keep PR feedback fast. The UI tests run in
+  # both languages on every push. The image and Xcode are pinned, so a runner update doesn't change the toolchain.
+  #
+  # The image (E002 #242): macos-15, not macos-26, whose runners queued about 10 minutes in two runs. The app needs
+  # no Xcode 26: Swift 6.0 mode, swift-tools-version 6.0 packages, project format 77 and iOS 17 as the deployment
+  # target all build with Xcode 16. macos-15 has Xcode 16.0 to 16.4 and 26.0.1 to 26.3 (not 26.5 or 26.6, which only
+  # macos-26 has), so this takes 26.3, the newest, to stay on the Xcode 26 line of local runs (iOS 26.2 simulator
+  # instead of 26.5). If the job fails here but not on macos-26, or its queue isn't shorter, go back to macos-26 and
+  # Xcode_26.6.
+  ios-build:
+    name: iOS build
     needs: changes
     if: needs.changes.outputs.ios == 'true'
-    # Only starts when the app, its generated inputs or its own scripts changed (in a PR, a merge group or a push to main), or on
-    # demand (scripts/native-jobs.sh), to keep PR feedback fast. The image and Xcode are pinned, so a runner update doesn't
-    # change the toolchain. One job, not a matrix per locale: the check keeps its name, and nl and en share one build
-    # without an artifact upload and download. nl and en run in one test-without-building run on one simulator (scripts/test-ios.sh),
-    # so the simulator is prepared and the app installed once: two simulators on the 3-core runner were slower (cold
-    # run: 743 s in parallel).
-    #
-    # The image (E002 #242): macos-15, not macos-26, whose runners queued about 10 minutes in two runs. The app needs
-    # no Xcode 26: Swift 6.0 mode, swift-tools-version 6.0 packages, project format 77 and iOS 17 as the deployment
-    # target all build with Xcode 16. macos-15 has Xcode 16.0 to 16.4 and 26.0.1 to 26.3 (not 26.5 or 26.6, which only
-    # macos-26 has), so this takes 26.3, the newest, to stay on the Xcode 26 line of local runs (iOS 26.2 simulator
-    # instead of 26.5). If the job fails here but not on macos-26, or its queue isn't shorter, go back to macos-26 and
-    # Xcode_26.6.
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 25
     permissions:
       contents: read
       actions: read # scripts/step-timings.sh reads this run's step durations
@@ -315,39 +333,61 @@ jobs:
         run: echo "version=$(xcodebuild -version | tr -s ' \n' '--' | sed 's/-$//')" >> "$GITHUB_OUTPUT"
 
       # DerivedData, with the compiled Swift packages (sentry-cocoa takes minutes to build), and the packages
-      # themselves. Keyed by Package.resolved, the Xcode version and the runner OS; a stale cache (the restore key)
+      # themselves. Keyed by Package.resolved, the Xcode version, the runner OS and the run: every run saves what it
+      # built (an exact hit is never saved again, so a key without the run would freeze the cache at the first
+      # build) and restores the newest one through the restore keys, the same Package.resolved first. A stale cache
       # only costs build time and never changes a result. A PR can read its own caches and main's; main's are
-      # written by the pushes that change native paths, so a PR's first run is warm once main has run it.
+      # written by the pushes that change native paths, so a PR's first run is warm once main has run it. The
+      # manifest of the sources' modification times (scripts/ios-mtimes.mjs) is part of it. The index store is left
+      # out: nothing in a build reads it, and it is a large part of the payload. GitHub keeps a repository's caches
+      # to 10 GB, evicts the least recently used first, and removes any not read for 7 days.
       - name: Cache the iOS build
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             apps/ios/.build/DerivedData
             apps/ios/.build/SourcePackages
+            apps/ios/.build/source-mtimes.json
             !apps/ios/.build/DerivedData/Logs
-          key: ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+            !apps/ios/.build/DerivedData/Index.noindex
+          key: ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
+            ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-
             ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-
 
-      # The same steps as `pnpm test:ios` (apps/ios/README.md#tests): SwiftLint, one build-for-testing, then the nl and
-      # en tests without building again. Prints the build timing summary and the slowest tests. A pull request runs the
-      # UI tests in nl only (the unit tests in nl and en: IOS_UI_LOCALES, scripts/test-ios.sh); the merge queue
-      # (merge_group) and a manual run run everything in nl and en, so a language-only break shows there (TESTING.md).
-      - name: SwiftLint, build and tests
-        env:
-          IOS_UI_LOCALES: ${{ github.event_name == 'pull_request' && 'nl' || 'nl en' }}
-        run: scripts/test-ios.sh
+      # Xcode decides what to compile by the modification time of the inputs, and a checkout gives every file the
+      # time of the checkout: the restored DerivedData above was thrown away by a build that found every source "changed"
+      # (about 90 s of Swift and 50 s of asset catalog every run). The files whose content is the cached build's get
+      # their old time back; the ones that changed keep the new time and are compiled (#293 AC15).
+      - name: Restore the sources' modification times
+        run: node scripts/ios-mtimes.mjs restore
+
+      # The same steps as `pnpm test:ios` up to the build (apps/ios/README.md#tests): SwiftLint, the checks, one
+      # build-for-testing; then it packs the test bundle. Prints the build timing summary.
+      - name: SwiftLint, checks and build for testing
+        run: scripts/test-ios.sh build
+
+      - name: Record the sources' modification times
+        run: node scripts/ios-mtimes.mjs save
+
+      # What the two test jobs run: the .xctestrun and the build products, packed in a tar to keep the file modes.
+      - name: Upload the test bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-test-bundle
+          path: apps/ios/.build/ios-test-bundle.tar
+          # .build is a hidden folder, which the action skips by default (#290).
+          include-hidden-files: true
+          retention-days: 1
+          if-no-files-found: error
 
       # Only on failure: artifact storage counts against the free quota.
-      - name: Upload test results
+      - name: Upload build log
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ios-test-results
-          path: |
-            apps/ios/.build/TestResults-*.xcresult
-            apps/ios/.build/build-for-testing.log
-          # .build is a hidden folder, which the action skips by default (#290). Only these two paths are named.
+          name: ios-build-log
+          path: apps/ios/.build/build-for-testing.log
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: ignore
@@ -359,15 +399,144 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/step-timings.sh
 
-  android:
-    name: Android
+  ios-tests:
+    name: iOS tests (${{ matrix.locale }})
+    needs: ios-build
+    runs-on: macos-15
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read # scripts/step-timings.sh reads this run's step durations
+    strategy:
+      # Both languages always run: a failing one doesn't hide the other's result.
+      fail-fast: false
+      matrix:
+        locale: [nl, en]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the test bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ios-test-bundle
+          path: apps/ios/.build
+
+      # The unit and UI tests of this language, from the bundle of "iOS build", without building again, on this job's own
+      # simulator. Prints the slowest tests.
+      - name: Unit and UI tests (${{ matrix.locale }})
+        run: scripts/test-ios.sh test ${{ matrix.locale }}
+
+      # Only on failure: artifact storage counts against the free quota.
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-test-results-${{ matrix.locale }}
+          path: apps/ios/.build/TestResults-*.xcresult
+          # .build is a hidden folder, which the action skips by default (#290). Only these paths are named.
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Step durations
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/step-timings.sh
+
+  # The required check "iOS": the combined result of the build and both test passes (AC17); skipped, and so passing,
+  # when the native decision says the app's inputs didn't change.
+  ios:
+    name: iOS
+    needs: [changes, ios-build, ios-tests]
+    if: always() && needs.changes.outputs.ios == 'true'
+    runs-on: ubuntu-24.04
+    # Only reads the results of the jobs it needs; short, so the chain of a native check stays under the queue timeout.
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Combined result of the iOS jobs
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: scripts/native-gate.sh iOS true $RESULTS
+
+  # Android (E008, #293). The same commands as locally (TESTING.md §7.2), in three jobs and the gate "Android": "Android
+  # build" (ktlint and the other checks, the debug build, and the debug app for Maestro, uploaded), "Android tests" (unit
+  # tests and the Compose UI tests on an emulator; builds what it tests itself, so it runs next to the build job) and
+  # "Android Maestro" (the flows in nl-NL and en on an emulator, from the uploaded app). The emulator needs KVM.
+  android-build:
+    name: Android build
     needs: changes
     if: needs.changes.outputs.android == 'true'
-    # The same commands as locally (TESTING.md §7.2): pnpm test:android (ktlint and the literal-text check, build, unit
-    # tests, Compose UI tests on an emulator), then pnpm test:maestro (Postgres, migrate, seed, the web server, and the
-    # Maestro flows in nl-NL and en). The emulator needs KVM.
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read # scripts/step-timings.sh reads this run's step durations
+    env:
+      # The debug app for Maestro has the address of the web server of the Maestro job baked in: the same port in both.
+      E2E_PORT: '3100'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Caches Gradle's dependencies and wrapper; main's cache is readable by every PR.
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      - name: Android SDK build tools
+        run: scripts/android.sh setup --build-only
+
+      - name: ktlint, checks and debug build
+        timeout-minutes: 20
+        run: scripts/android.sh build
+
+      - name: Debug app for Maestro
+        run: scripts/android.sh maestro-apk
+
+      - name: Upload the debug app
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-maestro-apk
+          path: apps/android/build/maestro/app-debug.apk
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload Android reports
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-build-reports
+          path: apps/android/app/build/reports/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Step durations
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/step-timings.sh
+
+  android-tests:
+    name: Android tests
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
     permissions:
       contents: read
       actions: read # scripts/step-timings.sh reads this run's step durations
@@ -376,8 +545,114 @@ jobs:
         with:
           persist-credentials: false
 
-      # The emulator creates a 6 GB data partition on its first boot and needs 7.4 GB free for it; Gradle, Postgres
-      # and the web build need more. These preinstalled toolchains aren't used by this job.
+      # The emulator creates a 6 GB data partition on its first boot and needs 7.4 GB free for it; Gradle
+      # needs more. These preinstalled toolchains aren't used by this job.
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Caches Gradle's dependencies and wrapper; main's cache is readable by every PR.
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo udevadm settle
+          ls -l /dev/kvm || true
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo '::error::/dev/kvm is not usable by the runner user'
+            exit 1
+          fi
+
+      - name: Android SDK packages and emulator
+        run: scripts/android.sh setup
+
+      - id: avd
+        name: Emulator cache key
+        run: echo "key=$(scripts/android.sh avd-key)" >> "$GITHUB_OUTPUT"
+
+      # The AVD with the snapshot of its booted state. Keyed by the system image, the emulator and the AVD settings
+      # (a snapshot only loads on the same ones). Saved when the job passes on a miss, after the emulator has stopped.
+      # A missing or broken snapshot is not an error: the boot below falls back to a cold boot. Bump the version (now v2) to drop every
+      # cached AVD, and do it when a snapshot that no longer loads was replaced by a cold boot: the cache action never
+      # overwrites an existing key, so the replacement isn't saved and every run would fall back to a cold boot. The
+      # caches of a PR are its own and main's (written by pushes to main that change native paths).
+      - name: Cache the emulator
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.android/avd
+          key: avd-v2-${{ runner.os }}-${{ steps.avd.outputs.key }}
+
+      # Booted once; verify reuses it. From the snapshot when it is cached, else cold: then the
+      # script saves one. It gives up after EMULATOR_BOOT_TIMEOUT (a cold boot can take minutes) and prints the
+      # emulator log; the step timeout is a backstop.
+      - name: Boot the emulator
+        timeout-minutes: 10
+        env:
+          AVD_SNAPSHOT: '1'
+          EMULATOR_BOOT_TIMEOUT: '480'
+        run: scripts/android.sh emulator
+
+      - name: Unit tests, release bundle and Compose UI tests
+        timeout-minutes: 25
+        run: scripts/android.sh verify
+
+      # The cache of the emulator is saved after this step: the emulator must not be running, or it would be copied in
+      # mid-write.
+      - name: Stop the emulator
+        if: always()
+        run: scripts/android.sh stop
+
+      # Always, also after a cancel or timeout: without the emulator log a hung boot can't be diagnosed. Kept 7 days,
+      # as artifact storage counts against the free quota.
+      - name: Upload Android reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-test-reports
+          path: |
+            apps/android/app/build/reports/
+            apps/android/app/build/outputs/androidTest-results/
+            apps/android/build/emulator.log*
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Step durations
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/step-timings.sh
+
+  android-maestro:
+    name: Android Maestro
+    needs: [changes, android-build]
+    if: needs.changes.outputs.android == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read # scripts/step-timings.sh reads this run's step durations
+    env:
+      # The port the debug app of "Android build" has baked in (scripts/android.sh maestro-apk).
+      E2E_PORT: '3100'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The emulator creates a 6 GB data partition on its first boot and needs 7.4 GB free for it; Postgres and the web
+      # build need more. These preinstalled toolchains aren't used by this job.
       - name: Free disk space
         run: |
           df -h /
@@ -391,13 +666,11 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
+      # Maestro needs a JDK.
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '21'
-
-      # Caches Gradle's dependencies and wrapper; main's cache is readable by every PR.
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Enable KVM
         run: |
@@ -432,21 +705,14 @@ jobs:
         name: Emulator cache key
         run: echo "key=$(scripts/android.sh avd-key)" >> "$GITHUB_OUTPUT"
 
-      # The AVD with the snapshot of its booted state. Keyed by the system image, the emulator and the AVD settings
-      # (a snapshot only loads on the same ones). Saved when the job passes on a miss, after the emulator has stopped.
-      # A missing or broken snapshot is not an error: the boot below falls back to a cold boot. Bump the version (now v2) to drop every
-      # cached AVD, and do it when a snapshot that no longer loads was replaced by a cold boot: the cache action never
-      # overwrites an existing key, so the replacement isn't saved and every run would fall back to a cold boot. The
-      # caches of a PR are its own and main's (written by pushes to main that change native paths).
+      # The AVD with the snapshot of its booted state (see "Android tests"): the same key, so a cache saved by one job is
+      # read by the other.
       - name: Cache the emulator
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.android/avd
           key: avd-v2-${{ runner.os }}-${{ steps.avd.outputs.key }}
 
-      # Booted once; test:android and test:maestro reuse it. From the snapshot when it is cached, else cold: then the
-      # script saves one. It gives up after EMULATOR_BOOT_TIMEOUT (a cold boot can take minutes) and prints the
-      # emulator log; the step timeout is a backstop.
       - name: Boot the emulator
         timeout-minutes: 10
         env:
@@ -454,13 +720,17 @@ jobs:
           EMULATOR_BOOT_TIMEOUT: '480'
         run: scripts/android.sh emulator
 
-      - name: ktlint, build, unit tests and Compose UI tests
-        timeout-minutes: 20
-        run: pnpm test:android
+      - name: Download the debug app
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: android-maestro-apk
+          path: apps/android/build/maestro
 
+      # Postgres (migrated and seeded), the fake Brevo server and the web server, then every flow in nl-NL and en, with the
+      # app of "Android build" (nothing is built here).
       - name: Maestro flows (sign-in, anonymous and hello; nl-NL and en)
-        timeout-minutes: 15
-        run: pnpm test:maestro
+        timeout-minutes: 20
+        run: scripts/maestro.sh android --apk
 
       # The cache of the emulator is saved after this step: the emulator must not be running, or it would be copied in
       # mid-write.
@@ -468,16 +738,12 @@ jobs:
         if: always()
         run: scripts/android.sh stop
 
-      # Always, also after a cancel or timeout: without the emulator log a hung boot can't be diagnosed. Kept 7 days,
-      # as artifact storage counts against the free quota.
-      - name: Upload Android reports
+      - name: Upload Maestro reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: android-reports
+          name: android-maestro-reports
           path: |
-            apps/android/app/build/reports/
-            apps/android/app/build/outputs/androidTest-results/
             apps/android/build/emulator.log*
             e2e/maestro/build/
           retention-days: 7
@@ -489,3 +755,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: scripts/step-timings.sh
+
+  # The required check "Android": the combined result of the build, the tests and Maestro (AC17); skipped, and so passing,
+  # when the native decision says the app's inputs didn't change.
+  android:
+    name: Android
+    needs: [changes, android-build, android-tests, android-maestro]
+    if: always() && needs.changes.outputs.android == 'true'
+    runs-on: ubuntu-24.04
+    # Only reads the results of the jobs it needs; short, so the chain of a native check stays under the queue timeout.
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Combined result of the Android jobs
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: scripts/native-gate.sh Android true $RESULTS

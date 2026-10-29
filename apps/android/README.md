@@ -6,8 +6,9 @@ The native Android app (E008, ADR-003): Kotlin, Jetpack Compose and Material 3, 
 
 ```bash
 scripts/bootstrap.sh --mobile   # once: JDK, Android SDK, the `fivvi` emulator, Maestro
-pnpm test:android               # what CI runs: ktlint, the release Sentry DSN, build, unit tests, Compose UI tests
+pnpm test:android               # what CI runs, in one go: ktlint, the release Sentry DSN, build (android.sh build), unit tests, Compose UI tests (android.sh verify)
 pnpm test:maestro               # the local stack + e2e/maestro flows on the emulator, in nl-NL and en
+                                # (CI builds the app once with android.sh maestro-apk and runs maestro.sh android --apk)
 scripts/android.sh emulator     # boot the emulator and leave it running for repeated runs
 ```
 

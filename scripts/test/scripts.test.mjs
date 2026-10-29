@@ -9,12 +9,15 @@ import {
   readdirSync,
   readFileSync,
   realpathSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
+
+import { SOURCE_PATHS } from '../ios-mtimes.mjs';
 
 const SCRIPTS = join(import.meta.dirname, '..');
 const lib = (expression) =>
@@ -132,6 +135,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'packages/design-tokens/FivviDesignTokens/Sources/FivviDesignTokens/Generated/Colors.swift',
       'scripts/test-ios.sh',
       'scripts/_ios.sh',
+      // It puts the modification times back before the build (#293 AC15), so a change to it changes the build.
+      'scripts/ios-mtimes.mjs',
     ]) {
       assert.ok(runs('ios', path), path);
     }
@@ -143,6 +148,17 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     ]) {
       assert.ok(!runs('ios', path), path);
     }
+  });
+
+  it('#293: the sources scripts/ios-mtimes.mjs records are the iOS inputs of native-jobs.sh, without the scripts', () => {
+    // One list kept in two places: this fails when they drift.
+    const script = readFileSync(join(SCRIPTS, 'native-jobs.sh'), 'utf8');
+    const iosPaths = script.match(/^IOS_PATHS='(.+)'$/m)[1];
+    const [directories] = iosPaths.match(/^\^\(([^)]+)\)\//).slice(1);
+    const files = [...iosPaths.matchAll(/\|\^([^|$]+)\$/g)]
+      .map((m) => m[1].replaceAll('\\', ''))
+      .filter((path) => !path.startsWith('scripts/'));
+    assert.deepEqual([...SOURCE_PATHS].sort(), [...directories.split('|'), ...files].sort());
   });
 
   it('E008 AC9: the Android job runs for the app and its generated inputs, including the Kotlin design tokens', () => {
@@ -236,9 +252,39 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     const android = nativeJobs(['apps/android/app/build.gradle.kts'], ['--event', 'push']);
     assert.equal(android.ios, 'false');
     assert.equal(android.android, 'true');
-    const contract = nativeJobs(['packages/contract/openapi.json'], ['--event', 'push']);
-    assert.equal(contract.ios, 'true');
-    assert.equal(contract.android, 'true');
+    const swift = nativeJobs(['packages/contract/swift/Package.swift'], ['--event', 'push']);
+    assert.equal(swift.ios, 'true');
+    assert.equal(swift.android, 'false');
+  });
+
+  it('#293 AC9: a contract change that leaves the committed Swift and Kotlin clients alone runs neither native job', () => {
+    for (const path of [
+      'packages/contract/openapi.json',
+      'packages/contract/src/pipeline.ts',
+      'packages/contract/scripts/generate.ts',
+      'packages/contract/tools/swift-generator/Package.swift',
+      'packages/contract/config/openapi-generator.json',
+    ]) {
+      for (const args of [
+        [],
+        ['--event', 'pull_request'],
+        ['--event', 'push'],
+        ['--event', 'merge_group'],
+      ]) {
+        const jobs = nativeJobs([path], args);
+        assert.equal(jobs.ios, 'false', `${path} ${args.join(' ')}`);
+        assert.equal(jobs.android, 'false', `${path} ${args.join(' ')}`);
+      }
+    }
+  });
+
+  it('#293 AC9: the committed Swift client starts iOS only, the committed Kotlin client Android only', () => {
+    const swift = nativeJobs(['packages/contract/swift/Sources/FivviAPI/Generated/Client.swift']);
+    assert.deepEqual([swift.ios, swift.android], ['true', 'false']);
+    const kotlin = nativeJobs([
+      'packages/contract/kotlin/generated/app/fivvi/api/apis/HelloApi.kt',
+    ]);
+    assert.deepEqual([kotlin.ios, kotlin.android], ['false', 'true']);
   });
 
   it('E002 #91: a push to main that touches no native path, or only ci.yml and _lib.sh, runs neither native job', () => {
@@ -272,9 +318,23 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
   it('E002 #91: the job names stay, and ci.yml has no path list of its own', () => {
     assert.match(ci(), /^ {2}workflow_dispatch:/m);
     assert.doesNotMatch(ci(), /^ +decide /m);
+    const names = [...ci().matchAll(/^ {4}name: (.+)$/gm)].map((match) => match[1]);
+    // The five required checks keep their names (the ruleset names them); #293 added the parts behind iOS and Android.
+    for (const required of ['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android']) {
+      assert.ok(names.includes(required), required);
+    }
     assert.deepEqual(
-      [...ci().matchAll(/^ {4}name: (.+)$/gm)].map((match) => match[1]),
-      ['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android'],
+      names.filter(
+        (name) =>
+          !['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android'].includes(name),
+      ),
+      [
+        'iOS build',
+        'iOS tests (${{ matrix.locale }})',
+        'Android build',
+        'Android tests',
+        'Android Maestro',
+      ],
     );
   });
 
@@ -282,11 +342,12 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
   // `changed`, with the event and label the workflow would pass; returns what it writes to $GITHUB_OUTPUT.
   // `earlier` are paths changed by a commit before it, in the same group: a merge queue group holds the commits of
   // every queued PR on top of its base commit (the event's base_sha).
-  const detectChanges = ({
+  const detectAll = ({
     event,
     label = false,
     changed = ['docs/product/FEATURES.md'],
     earlier = [],
+    moves = [],
     noMergeBase = false,
   }) => {
     const lines = ci().split('\n');
@@ -320,8 +381,34 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         mkdirSync(join(repo, dir), { recursive: true });
       writeFileSync(join(repo, 'apps/ios/.keep'), '');
       writeFileSync(join(repo, 'apps/android/.keep'), '');
+      // The workspace scripts/affected.mjs reads: the web app depends on the database, the API on neither.
+      writeFileSync(join(repo, 'pnpm-workspace.yaml'), 'packages:\n  - apps/*\n  - packages/*\n');
+      for (const [dir, json] of Object.entries({
+        'apps/web': {
+          name: '@fivvi/web',
+          scripts: { 'test:e2e': 'x' },
+          dependencies: { '@fivvi/database': 'workspace:*' },
+        },
+        'packages/database': { name: '@fivvi/database', scripts: {} },
+        'packages/other': { name: '@fivvi/other', scripts: {} },
+      })) {
+        mkdirSync(join(repo, dir), { recursive: true });
+        writeFileSync(join(repo, dir, 'package.json'), JSON.stringify(json));
+      }
+      // `moves` are [from, to] pairs: the file sits at `from` in the base commit and the last commit moves it.
+      for (const [from] of moves) {
+        mkdirSync(join(repo, from, '..'), { recursive: true });
+        writeFileSync(
+          join(repo, from),
+          'a file that is moved without a change, so git sees a rename\n'.repeat(5),
+        );
+      }
       git('add', '.');
       git('commit', '--quiet', '-m', 'chore: base');
+      for (const [from, to] of moves) {
+        mkdirSync(join(repo, to, '..'), { recursive: true });
+        git('mv', from, to);
+      }
       if (earlier.length > 0) {
         for (const path of earlier) {
           mkdirSync(join(repo, path, '..'), { recursive: true });
@@ -369,6 +456,87 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       rmSync(repo, { recursive: true, force: true });
     }
   };
+
+  // The native jobs only, as most tests below ask; detectAll also has the Linux E2E decision (#293).
+  const detectChanges = (options) => {
+    const { e2e: _e2e, ...native } = detectAll(options);
+    return native;
+  };
+
+  const e2e = (options) => detectAll(options).e2e;
+
+  it('#293 AC8: the Linux E2E job is skipped for a change the web app does not depend on', () => {
+    for (const changed of [
+      ['docs/product/FEATURES.md'],
+      ['scripts/pr.sh'],
+      ['.github/workflows/ci.yml'],
+      ['packages/other/src/x.ts'],
+      ['apps/ios/App.swift'],
+    ]) {
+      assert.equal(e2e({ event: 'pull_request', changed }), 'false', changed.join());
+    }
+  });
+
+  it('#293 AC8: the Linux E2E job runs for the web app and for a package it depends on', () => {
+    for (const changed of [
+      ['apps/web/src/app/page.tsx'],
+      ['packages/database/src/schema.ts'],
+      ['package.json'],
+      ['pnpm-lock.yaml'],
+    ]) {
+      assert.equal(e2e({ event: 'pull_request', changed }), 'true', changed.join());
+    }
+  });
+
+  it('#293: a file moved out of a package marks the package it left, not only the one it went to', () => {
+    // git diff --name-only follows renames and lists only the new path, which would leave the old package unchecked.
+    for (const event of ['pull_request', 'push', 'merge_group']) {
+      assert.equal(
+        e2e({
+          event,
+          changed: [],
+          moves: [['packages/database/src/schema.ts', 'packages/other/src/schema.ts']],
+        }),
+        'true',
+        `${event}: web depends on the database package the file left`,
+      );
+      assert.deepEqual(
+        detectChanges({
+          event,
+          changed: [],
+          moves: [['apps/ios/FivviPro/App.swift', 'docs/product/App.txt']],
+        }),
+        { ios: 'true', android: 'false' },
+        `${event}: iOS reads the file that left apps/ios`,
+      );
+    }
+  });
+
+  it('#293 AC11: a merge group is decided against the base of the group, over every queued commit', () => {
+    assert.equal(e2e({ event: 'merge_group', changed: ['scripts/pr.sh'] }), 'false');
+    assert.equal(e2e({ event: 'merge_group', changed: ['apps/web/src/a.ts'] }), 'true');
+    assert.equal(
+      e2e({
+        event: 'merge_group',
+        earlier: ['packages/database/src/a.ts'],
+        changed: ['scripts/pr.sh'],
+      }),
+      'true',
+      'an earlier queued commit counts',
+    );
+    assert.equal(e2e({ event: 'merge_group', noMergeBase: true }), 'true', 'no base: everything');
+  });
+
+  it('#293 AC12: workflow_dispatch and the run-native label run the Linux E2E job too', () => {
+    assert.equal(e2e({ event: 'workflow_dispatch' }), 'true');
+    assert.equal(e2e({ event: 'pull_request', label: true }), 'true');
+    assert.equal(e2e({ event: 'pull_request' }), 'false');
+  });
+
+  it('#293: a push to main is decided by the commits it adds', () => {
+    assert.equal(e2e({ event: 'push', changed: ['apps/web/src/a.ts'] }), 'true');
+    assert.equal(e2e({ event: 'push', changed: ['docs/product/FEATURES.md'] }), 'false');
+  });
 
   it("E002 #119: a merge group is compared with the queue's base commit, so native jobs skip when no native path changed", () => {
     assert.deepEqual(detectChanges({ event: 'merge_group' }), { ios: 'false', android: 'false' });
@@ -476,79 +644,211 @@ describe('E002 #119 CI on the merge queue (merge_group)', () => {
 
 describe('E002 #91 the native jobs in ci.yml', () => {
   const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
-  const ios = ci.slice(ci.indexOf('\n  ios:\n'), ci.indexOf('\n  android:\n'));
-  const android = ci.slice(ci.indexOf('\n  android:\n'));
+  // The text of one job: from its key to the next job's.
+  const job = (name) => {
+    const start = ci.indexOf(`\n  ${name}:\n`);
+    assert.ok(start >= 0, `job ${name}`);
+    const next = ci.slice(start + 1).search(/\n(?: {2}#[^\n]*\n)* {2}[a-z][a-z0-9-]*:\n/);
+    return next < 0 ? ci.slice(start) : ci.slice(start, start + 1 + next);
+  };
+  const iosBuild = job('ios-build');
+  const iosTests = job('ios-tests');
+  const androidBuild = job('android-build');
+  const androidTests = job('android-tests');
+  const androidMaestro = job('android-maestro');
+  const parts = { iosBuild, iosTests, androidBuild, androidTests, androidMaestro };
 
   it('caches the iOS DerivedData and Swift packages by Package.resolved, Xcode version and runner OS', () => {
-    assert.match(ios, /apps\/ios\/\.build\/DerivedData/);
-    assert.match(ios, /apps\/ios\/\.build\/SourcePackages/);
-    const key = ios.match(/^ +key: (ios-build-.+)$/m)?.[1] ?? '';
+    assert.match(iosBuild, /apps\/ios\/\.build\/DerivedData/);
+    assert.match(iosBuild, /apps\/ios\/\.build\/SourcePackages/);
+    const key = iosBuild.match(/^ +key: (ios-build-.+)$/m)?.[1] ?? '';
     assert.match(key, /runner\.os/);
     assert.match(key, /steps\.xcode\.outputs\.version/);
     assert.match(key, /hashFiles\('apps\/ios\/.*Package\.resolved'\)/);
+  });
+
+  it('#293 AC15: the iOS cache key is new on every run, so each run saves what it built, and restores the latest one', () => {
+    // An exact hit is never saved again: with a key that only changes with Package.resolved the cache would be frozen at
+    // the first run's DerivedData and the second run of a PR could not get incremental.
+    const key = iosBuild.match(/^ +key: (ios-build-.+)$/m)?.[1] ?? '';
+    assert.match(key, /github\.run_id/);
+    assert.match(key, /github\.run_attempt/);
+    const restoreKeys = iosBuild
+      .match(/restore-keys: \|\n((?: +ios-build-.+\n)+)/)?.[1]
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub Actions expression, not a template
+    const prefix = '${{ runner.os }}-${{ steps.xcode.outputs.version }}-';
+    assert.deepEqual(restoreKeys, [
+      `ios-build-${prefix}\${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-`,
+      `ios-build-${prefix}`,
+    ]);
+    assert.ok(key.startsWith(restoreKeys[0]), 'the key starts with the first restore key');
+  });
+
+  it('#293 AC15: the saved iOS cache leaves out what a build does not read (logs, the index)', () => {
+    assert.match(iosBuild, /^ +!apps\/ios\/\.build\/DerivedData\/Logs$/m);
+    assert.match(iosBuild, /^ +!apps\/ios\/\.build\/DerivedData\/Index\.noindex$/m);
+  });
+
+  it('#293 AC15: restores the sources modification times before the build and records them after it, in the cache', () => {
     assert.match(
-      ios,
-      /restore-keys: \|\n +ios-build-\$\{\{ runner\.os \}\}-\$\{\{ steps\.xcode\.outputs\.version \}\}-\n/,
+      iosBuild,
+      /apps\/ios\/\.build\/source-mtimes\.json/,
+      'the manifest is in the cache',
+    );
+    const order = [
+      'node scripts/ios-mtimes.mjs restore',
+      'run: scripts/test-ios.sh build',
+      'node scripts/ios-mtimes.mjs save',
+    ].map((text) => iosBuild.indexOf(text));
+    assert.ok(
+      order.every((index) => index > 0),
+      order.join(),
+    );
+    assert.deepEqual(
+      order,
+      [...order].sort((x, y) => x - y),
     );
   });
 
-  it('runs the iOS tests through scripts/test-ios.sh and uploads the result bundles on failure', () => {
-    assert.match(ios, /run: scripts\/test-ios\.sh/);
-    assert.match(ios, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/TestResults-\*\.xcresult/);
-  });
-
-  it('E002 #242: the iOS job runs on macos-15 with an Xcode that image has, and says why in a comment', () => {
-    assert.match(ios, /^ {4}runs-on: macos-15$/m);
-    assert.match(ios, /\n {4}# [^\n]*macos-15[^\n]*\n(?: {4}#[^\n]*\n)* {4}runs-on: macos-15/);
-    // The Xcode must be one the image installs (macos-15: 16.x and 26.0.1 to 26.3).
+  it('#293 AC14: the iOS build job builds once and uploads the test bundle; two test jobs run nl and en from it', () => {
+    assert.match(iosBuild, /run: scripts\/test-ios\.sh build\n/);
     assert.match(
-      ios,
-      /DEVELOPER_DIR: \/Applications\/Xcode_(?:26\.(?:0\.1|1\.1|2|3)|16\.[0-4])\.app\/Contents\/Developer/,
+      iosBuild,
+      /uses: actions\/upload-artifact@[^\n]*\n +with:\n +name: ios-test-bundle\n +path: apps\/ios\/\.build\/ios-test-bundle\.tar\n/,
     );
+    assert.match(iosBuild, /include-hidden-files: true/);
+    assert.match(iosTests, /needs: ios-build\n/);
+    assert.match(iosTests, /matrix:\n +locale: \[nl, en\]/);
+    assert.match(iosTests, /fail-fast: false/);
+    assert.match(
+      iosTests,
+      /uses: actions\/download-artifact@[^\n]*\n +with:\n +name: ios-test-bundle\n +path: apps\/ios\/\.build\n/,
+    );
+    assert.match(iosTests, /run: scripts\/test-ios\.sh test \$\{\{ matrix\.locale \}\}\n/);
+    assert.doesNotMatch(
+      iosTests,
+      /test-ios\.sh build|xcodebuild build/,
+      'the test jobs do not build',
+    );
+    assert.match(iosTests, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/TestResults-\*\.xcresult/);
+    assert.match(iosBuild, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/build-for-testing\.log/);
   });
 
-  it('E002 #242: on a pull request the iOS UI tests run in nl only; the merge queue and a manual run run nl and en', () => {
-    const step = ios.slice(
-      ios.indexOf('run: scripts/test-ios.sh') - 300,
-      ios.indexOf('run: scripts/test-ios.sh'),
+  it('E002 #242: the iOS jobs run on macos-15 with an Xcode that image has, and say why in a comment', () => {
+    for (const section of [iosBuild, iosTests]) {
+      assert.match(section, /^ {4}runs-on: macos-15$/m);
+      // The Xcode must be one the image installs (macos-15: 16.x and 26.0.1 to 26.3).
+      assert.match(
+        section,
+        /DEVELOPER_DIR: \/Applications\/Xcode_(?:26\.(?:0\.1|1\.1|2|3)|16\.[0-4])\.app\/Contents\/Developer/,
+      );
+    }
+    assert.match(ci, /\n {2}# [^\n]*macos-15[^\n]*\n(?: {2}#[^\n]*\n)* {2}ios-build:/);
+  });
+
+  it('#293: the iOS UI tests run in both languages on every push: nothing narrows them to one', () => {
+    assert.doesNotMatch(ci, /IOS_UI_LOCALES/);
+  });
+
+  it('#293 AC16: Android build uploads the debug app, Maestro downloads it and runs the flows in a job of its own', () => {
+    assert.match(androidBuild, /run: scripts\/android\.sh build\n/);
+    assert.match(androidBuild, /run: scripts\/android\.sh maestro-apk\n/);
+    assert.match(
+      androidBuild,
+      /uses: actions\/upload-artifact@[^\n]*\n +with:\n +name: android-maestro-apk\n +path: apps\/android\/build\/maestro\/app-debug\.apk\n/,
     );
-    const value = step.match(/^ +IOS_UI_LOCALES: \$\{\{ (.+) \}\}$/m)?.[1];
-    assert.equal(value, "github.event_name == 'pull_request' && 'nl' || 'nl en'");
-    // Nothing else in the workflow sets it: merge_group and workflow_dispatch get the script's default (both).
-    assert.equal(ci.match(/^ +IOS_UI_LOCALES:/gm).length, 1);
+    assert.match(androidMaestro, /needs: \[changes, android-build\]/);
+    assert.match(
+      androidMaestro,
+      /uses: actions\/download-artifact@[^\n]*\n +with:\n +name: android-maestro-apk\n +path: apps\/android\/build\/maestro\n/,
+    );
+    assert.match(androidMaestro, /run: scripts\/maestro\.sh android --apk\n/);
+    assert.doesNotMatch(androidMaestro, /gradle|test:maestro|android\.sh (build|verify|test)/i);
+    assert.match(androidTests, /run: scripts\/android\.sh verify\n/);
+    assert.doesNotMatch(androidTests, /maestro\.sh|test:maestro/);
+    // The tests job does not wait for the build: it runs next to it and builds what it tests.
+    assert.match(androidTests, /needs: changes\n/);
+  });
+
+  it('#293: the debug app and the Maestro web server agree on the port the app has baked in', () => {
+    const port = (section) => section.match(/^ {6}E2E_PORT: '(\d+)'$/m)?.[1];
+    assert.ok(port(androidBuild), 'Android build sets E2E_PORT');
+    assert.equal(port(androidMaestro), port(androidBuild));
   });
 
   it('caches the AVD with its snapshot, boots with snapshots on and stops the emulator before the cache is saved', () => {
-    assert.match(android, /android\.sh avd-key/);
-    assert.match(
-      android,
-      /path: ~\/\.android\/avd\n +key: avd-v2-\$\{\{ runner\.os \}\}-\$\{\{ steps\.avd\.outputs\.key \}\}/,
-    );
-    const boot = android.slice(android.indexOf('name: Boot the emulator'));
-    assert.match(boot.slice(0, boot.indexOf('- name:', 10)), /AVD_SNAPSHOT: '1'/);
-    const order = [
-      'name: Cache the emulator',
-      'name: Boot the emulator',
-      'name: Stop the emulator',
-    ].map((name) => android.indexOf(name));
-    assert.deepEqual(
-      order,
-      [...order].sort((a, b) => a - b),
-    );
-    assert.ok(order.every((index) => index > 0));
-    assert.match(
-      android,
-      /name: Stop the emulator\n +if: always\(\)\n +run: scripts\/android\.sh stop\n/,
-    );
+    for (const android of [androidTests, androidMaestro]) {
+      assert.match(android, /android\.sh avd-key/);
+      assert.match(
+        android,
+        /path: ~\/\.android\/avd\n +key: avd-v2-\$\{\{ runner\.os \}\}-\$\{\{ steps\.avd\.outputs\.key \}\}/,
+      );
+      const boot = android.slice(android.indexOf('name: Boot the emulator'));
+      assert.match(boot.slice(0, boot.indexOf('- name:', 10)), /AVD_SNAPSHOT: '1'/);
+      const order = [
+        'name: Cache the emulator',
+        'name: Boot the emulator',
+        'name: Stop the emulator',
+      ].map((name) => android.indexOf(name));
+      assert.deepEqual(
+        order,
+        [...order].sort((a, b) => a - b),
+      );
+      assert.ok(order.every((index) => index > 0));
+      assert.match(
+        android,
+        /name: Stop the emulator\n +if: always\(\)\n +run: scripts\/android\.sh stop\n/,
+      );
+    }
   });
 
-  it('prints the step durations of both native jobs in the job summary', () => {
-    for (const section of [ios, android]) {
-      assert.match(section, /actions: read/);
+  it('prints the step durations of every native part in the job summary', () => {
+    for (const [name, section] of Object.entries(parts)) {
+      assert.match(section, /actions: read/, name);
       assert.match(
         section,
         /if: always\(\)\n +continue-on-error: true\n +env:\n +GH_TOKEN: \$\{\{ github\.token \}\}\n +run: scripts\/step-timings\.sh/,
+        name,
       );
+    }
+  });
+
+  it('#293 AC17: the required checks iOS and Android are gates that need their parts and report the combined result', () => {
+    for (const [gate, native, needs] of [
+      ['ios', 'ios', '[changes, ios-build, ios-tests]'],
+      ['android', 'android', '[changes, android-build, android-tests, android-maestro]'],
+    ]) {
+      const section = job(gate);
+      const name = native === 'ios' ? 'iOS' : 'Android';
+      assert.match(section, new RegExp(`^ {4}name: ${name}$`, 'm'));
+      assert.ok(section.includes(`needs: ${needs}`), `${gate} needs ${needs}`);
+      // Skipped when the native decision says skip (a skipped required check passes); run, whatever the parts did, otherwise.
+      assert.ok(
+        section.includes(`if: always() && needs.changes.outputs.${native} == 'true'`),
+        `${gate} runs after its parts, also when one failed`,
+      );
+      assert.match(section, /RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}/);
+      assert.match(section, new RegExp(`run: scripts/native-gate\\.sh ${name} true \\$RESULTS\n`));
+    }
+  });
+
+  it('#293 AC8: the E2E job needs the decision of Detect changes and is skipped without it', () => {
+    const e2e = job('e2e');
+    assert.match(e2e, /^ {4}name: E2E \(Linux\)$/m);
+    assert.match(e2e, /^ {4}needs: changes$/m);
+    assert.match(e2e, /^ {4}if: needs\.changes\.outputs\.e2e == 'true'$/m);
+    assert.match(job('changes'), /e2e: \$\{\{ steps\.filter\.outputs\.e2e \}\}/);
+  });
+
+  it('every native part waits for the decision of Detect changes', () => {
+    for (const [name, section] of Object.entries(parts)) {
+      assert.match(section, /needs: (changes|ios-build|\[changes, android-build\])\n/, name);
+    }
+    for (const section of [iosBuild, androidBuild, androidTests, androidMaestro]) {
+      assert.match(section, /if: needs\.changes\.outputs\.(ios|android) == 'true'/);
     }
   });
 });
@@ -595,10 +895,14 @@ describe('E002 #290 upload-artifact skips hidden folders unless include-hidden-f
       upload.paths.includes('apps/ios/.build/TestResults-*.xcresult'),
     );
     assert.deepEqual(ios.map((upload) => upload.file).sort(), ['ci.yml', 'release.yml']);
-    for (const upload of ios) {
-      assert.ok(upload.paths.includes('apps/ios/.build/build-for-testing.log'), upload.file);
+    for (const upload of ios)
       assert.match(upload.step, /^ +include-hidden-files: true$/m, upload.file);
-    }
+    // release.yml uploads the build log with the results; ci.yml has its build job upload it, and the test bundle (#293).
+    const release = ios.find((upload) => upload.file === 'release.yml');
+    assert.ok(release.paths.includes('apps/ios/.build/build-for-testing.log'));
+    const ci = uploads.filter((upload) => upload.file === 'ci.yml');
+    assert.ok(ci.some((upload) => upload.paths.includes('apps/ios/.build/build-for-testing.log')));
+    assert.ok(ci.some((upload) => upload.paths.includes('apps/ios/.build/ios-test-bundle.tar')));
   });
 
   it('the rule sees a hidden folder, and not a plain one, a dot in a name or ..', () => {
@@ -793,6 +1097,21 @@ exit 0`
       'hw.cpu.ncore=2',
       'hw.ramSize=2G',
     ]);
+  });
+
+  it('#293: --build-only installs the SDK build tools, with no emulator, system image, AVD or Maestro', () => {
+    const { env, installed } = fakeSdk();
+    const result = spawnSync(join(SCRIPTS, 'android.sh'), ['setup', '--build-only'], {
+      encoding: 'utf8',
+      env,
+    });
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(installed(), /platforms;android-37\.0/);
+    assert.match(installed(), /build-tools;37\.0\.0/);
+    assert.doesNotMatch(installed(), /system-images|emulator/);
+    assert.doesNotMatch(result.stdout, /Maestro|emulator '/);
+    assert.equal(spawnSync(join(SCRIPTS, 'android.sh'), ['setup', '--nope'], { env }).status, 1);
   });
 
   it('installs cmdline-tools only when the SDK has none', () => {
@@ -1254,6 +1573,7 @@ case "$*" in
     if [ -n "$ANDROID_UPLOAD_KEYSTORE_FILE" ] && [ "$FAKE_SIGNING" != accept ] && [ -z "$ANDROID_UPLOAD_KEY_PASSWORD" ]; then
       echo 'ANDROID_UPLOAD_KEYSTORE_FILE is set, so ANDROID_UPLOAD_KEYSTORE_PASSWORD must be set too (fake)'; exit 1
     fi ;;
+  *assembleDebug*) mkdir -p app/build/outputs/apk/debug; echo "fake apk: $*" >app/build/outputs/apk/debug/app-debug.apk ;;
 esac`,
     );
     // E017 #191: the throwaway upload keystore of pnpm test:android, and the check of the bundle's signature.
@@ -1381,6 +1701,7 @@ esac`,
             JAVA_HOME: join(base, 'jdk'),
             EMULATOR_LOG: join(base, 'emulator.log'),
             E2E_PORT: '3999',
+            IOS_SIM_SETTLE: '0',
             ...extraEnv,
           },
         });
@@ -1512,6 +1833,130 @@ esac`,
       assert.match(build, /-derivedDataPath \.build\/DerivedData/);
       assert.equal(fake.simulators().length, 2, 'no second simulator');
       assert.match(run.output, /Build Timing Summary/);
+    });
+
+    describe('#293 AC14: test-ios.sh build, then test <nl|en> from the packed bundle', () => {
+      const bundle = (fake) => join(fake.repo, 'apps/ios/.build/ios-test-bundle.tar');
+
+      it('build runs the checks and one build-for-testing, packs the bundle, and runs no test', async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/test-ios.sh', ['build']);
+
+        assert.equal(run.status, 0, run.output);
+        assert.equal(commands(fake).filter((c) => c === 'build-for-testing').length, 1);
+        assert.ok(!commands(fake).includes('test-without-building'));
+        assert.ok(existsSync(bundle(fake)), 'the bundle is packed');
+        assert.match(run.output, /SwiftLint/);
+      });
+
+      for (const locale of ['nl', 'en']) {
+        it(`test ${locale} unpacks the bundle and runs that language's configuration without building`, async () => {
+          const fake = checkout();
+          assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+          // Another job: the products are not there, only the downloaded bundle is.
+          rmSync(join(fake.repo, 'apps/ios/.build/DerivedData'), { recursive: true, force: true });
+          const before = fake.log('xcodebuild').length;
+
+          const run = await fake.run('scripts/test-ios.sh', ['test', locale]);
+
+          assert.equal(run.status, 0, run.output);
+          const after = fake.log('xcodebuild').slice(before);
+          assert.equal(
+            after.filter((line) => line.startsWith('build-for-testing')).length,
+            0,
+            'no build',
+          );
+          const tests = after.filter((line) => line.startsWith('test-without-building '));
+          assert.equal(tests.length, 1);
+          assert.match(tests[0], new RegExp(`-only-test-configuration ${locale}\\b`));
+          assert.match(tests[0], /-xctestrun \S*FivviPro\.xctestrun/);
+          assert.match(tests[0], new RegExp(`TestResults-${locale}\\.xcresult`));
+          assert.ok(!tests[0].includes('-skip-testing'), 'the UI tests run too');
+        });
+      }
+
+      it('test boots the simulator before it unpacks the bundle and lets it settle before the first test (#293)', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], { IOS_SIM_SETTLE: '3' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(
+          run.output,
+          /▶ Boot the simulator[\s\S]*▶ Unpack the test bundle[\s\S]*▶ Wait for the simulator to settle[\s\S]*waiting \d+ s more[\s\S]*▶ Unit and UI tests in nl/,
+        );
+        const settled = run.output.match(/waiting (\d+) s more/)[1];
+        assert.ok(Number(settled) >= 1 && Number(settled) <= 3, `waited ${settled} s`);
+      });
+
+      it('test does not wait for a simulator that has been up as long as IOS_SIM_SETTLE says', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'en'], { IOS_SIM_SETTLE: '0' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.doesNotMatch(run.output, /more \(IOS_SIM_SETTLE\)/);
+      });
+
+      it('test waits 150 s from the boot by default, as CI runs it without IOS_SIM_SETTLE (#293)', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], {
+          IOS_SIM_SETTLE: undefined,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(run.output, /waiting 1(4\d|50) s more \(IOS_SIM_SETTLE\)/);
+      });
+
+      it('test does not wait for a simulator that was already booted before the run (#293)', async () => {
+        const fake = checkout({ simulatorBooted: true });
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], {
+          IOS_SIM_SETTLE: '1000',
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.doesNotMatch(run.output, /more \(IOS_SIM_SETTLE\)/);
+        assert.equal(fake.simulator('IPHONE-18').state, 'Booted', 'the reused simulator stays up');
+      });
+
+      it('test fails when the tests of that language fail', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'en'], { FAKE_RESULT: 'fail' });
+
+        assert.equal(run.status, 1, run.output);
+      });
+
+      it('test without a bundle says what to run first, and asks for nl or en', async () => {
+        const fake = checkout();
+
+        const missing = await fake.run('scripts/test-ios.sh', ['test', 'nl']);
+        assert.notEqual(missing.status, 0);
+        assert.match(missing.output, /no test bundle/);
+
+        const bad = await fake.run('scripts/test-ios.sh', ['test', 'fr']);
+        assert.notEqual(bad.status, 0);
+        assert.equal((await fake.run('scripts/test-ios.sh', ['nope'])).status, 1);
+      });
+
+      it('test --bundle takes the bundle from another place', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+        const moved = join(fake.repo, 'downloaded.tar');
+        renameSync(bundle(fake), moved);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl', '--bundle', moved]);
+
+        assert.equal(run.status, 0, run.output);
+      });
     });
 
     it('#224: pnpm test:ios leaves signing to the xcconfigs, so the simulator build keeps its ad hoc signature', async () => {
@@ -2308,6 +2753,98 @@ esac`,
 
     assert.equal(run.status, 1, run.output);
     assert.match(run.output, /E017 AC4: CURRENT_PROJECT_VERSION=42 .* resolves to '1', not 42/);
+  });
+
+  describe('#293 AC16: android.sh build, maestro-apk and verify, and maestro.sh android --apk', () => {
+    const gradleTasks = (fake) => fake.log('gradle').join('\n');
+
+    it('build runs the static checks and the debug build, and starts no emulator and no test', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/android.sh', ['build']);
+
+      assert.equal(run.status, 0, run.output);
+      const tasks = gradleTasks(fake);
+      assert.match(tasks, /ktlintCheck/);
+      assert.match(tasks, /checkReleaseApiBaseUrl/);
+      assert.match(tasks, /assembleDebug/);
+      assert.doesNotMatch(tasks, /testDebugUnitTest|connectedDebugAndroidTest|bundleRelease/);
+      assert.equal(fake.emulator().booted, false);
+    });
+
+    it('verify runs the unit tests, the signed release bundle and the Compose UI tests, not the static checks', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/android.sh', ['verify']);
+
+      assert.equal(run.status, 0, run.output);
+      const tasks = gradleTasks(fake);
+      assert.match(tasks, /testDebugUnitTest/);
+      assert.match(tasks, /BuildInfoTest/);
+      assert.match(tasks, /:app:bundleRelease/);
+      assert.match(tasks, /connectedDebugAndroidTest/);
+      assert.doesNotMatch(tasks, /ktlintCheck|assembleDebug/);
+    });
+
+    it('test is build and verify: the same Gradle tasks as before the split', async () => {
+      const fake = checkout();
+      const split = checkout();
+
+      assert.equal((await fake.run('scripts/android.sh', ['test'])).status, 0);
+      assert.equal((await split.run('scripts/android.sh', ['build'])).status, 0);
+      assert.equal((await split.run('scripts/android.sh', ['verify'])).status, 0);
+
+      const words = (f) =>
+        new Set(
+          gradleTasks(f)
+            .split(/\s+/)
+            .filter((w) => /^[:A-Za-z]/.test(w)),
+        );
+      for (const word of words(fake))
+        assert.ok(words(split).has(word), `${word} runs in build or verify`);
+    });
+
+    it('maestro-apk builds the debug app for the API address of the Maestro run and copies it where --apk looks', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/android.sh', ['maestro-apk']);
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        gradleTasks(fake),
+        /assembleDebug -Pfivvi\.apiBaseUrl=http:\/\/10\.0\.2\.2:3999\/api\//,
+      );
+      const apk = join(fake.repo, 'apps/android/build/maestro/app-debug.apk');
+      assert.match(readFileSync(apk, 'utf8'), /fivvi\.apiBaseUrl=http:\/\/10\.0\.2\.2:3999\/api\//);
+    });
+
+    it('maestro.sh android --apk installs that APK and does not run Gradle', async () => {
+      const fake = checkout({ emulatorRunning: true });
+      assert.equal((await fake.run('scripts/android.sh', ['maestro-apk'])).status, 0);
+      const before = fake.log('gradle').length;
+
+      const run = await fake.run('scripts/maestro.sh', ['android', '--apk']);
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(fake.log('gradle').length, before, 'no Gradle run');
+      assert.ok(
+        fake.log('adb').some((line) => /^install -r -t \S+app-debug\.apk$/.test(line)),
+        fake.log('adb').join('\n'),
+      );
+    });
+
+    it('maestro.sh android --apk without the APK says how to build it', async () => {
+      const fake = checkout({ emulatorRunning: true });
+
+      const run = await fake.run('scripts/maestro.sh', [
+        'android',
+        '--apk',
+        '/nonexistent/app.apk',
+      ]);
+
+      assert.notEqual(run.status, 0);
+      assert.match(run.output, /no APK at \/nonexistent\/app\.apk/);
+    });
   });
 
   it('E017 AC4: pnpm test:android also runs BuildInfoTest with a build number passed from outside', async () => {

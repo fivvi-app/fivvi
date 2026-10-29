@@ -1026,25 +1026,25 @@ describe('pr.sh create: which local check runs before the push', () => {
     return { ...result, checks: readFileSync(log, 'utf8').trim().split('\n').filter(Boolean) };
   };
 
-  it('runs the full check on the first push, when there is no PR yet', () => {
+  it('runs the checks the change affects on the first push, when there is no PR yet', () => {
     const result = create(false);
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.checks, ['check.sh']);
-    assert.match(result.stdout, /full checks: first push/);
+    assert.match(result.stdout, /affected checks: first push/);
   });
 
-  it('runs the fast check on a follow-up push, when the PR exists, and says why', () => {
+  it('#293: runs the checks the change affects on a follow-up push too, and says why', () => {
     const result = create(true);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.checks, ['check.sh --fast']);
-    assert.match(result.stdout, /fast checks: follow-up push to PR #60/);
-    assert.match(result.stdout, /CI runs the full gate/);
+    assert.deepEqual(result.checks, ['check.sh']);
+    assert.match(result.stdout, /affected checks: follow-up push to PR #60/);
+    assert.match(result.stdout, /CI is still the full gate/);
   });
 
-  it('runs the full check on a follow-up push with --full', () => {
+  it('runs everything (check.sh --all) on a follow-up push with --full', () => {
     const result = create(true, ['--full']);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.checks, ['check.sh']);
+    assert.deepEqual(result.checks, ['check.sh --all']);
     assert.match(result.stdout, /full checks: --full/);
   });
 
@@ -1379,6 +1379,28 @@ describe('E002 #107 pr.sh ship', () => {
     assert.match(out, /Step durations: Android/);
     assert.match(out, /12 min 5 s +Emulator tests/);
     assert.doesNotMatch(out, /Lint/);
+  });
+
+  it('#293: prints the step durations of the parts of the native checks (iOS build, iOS tests (nl), Android Maestro), not of other jobs', () => {
+    const part = (name) => ({
+      name,
+      status: 'completed',
+      conclusion: 'success',
+      steps: [
+        {
+          name: `Work of ${name}`,
+          started_at: '2026-10-28T10:00:00Z',
+          completed_at: '2026-10-28T10:07:30Z',
+        },
+      ],
+    });
+    const names = ['iOS build', 'iOS tests (nl)', 'iOS tests (en)', 'Android Maestro', 'Iosa'];
+    const result = ship({ jobs: { jobs: [JOBS.jobs[0], ...names.map(part)] } });
+    assert.equal(result.status, 0, result.stderr);
+    for (const name of names.slice(0, 4))
+      assert.match(result.stdout, new RegExp(`Step durations: ${name.replace(/[()]/g, '\\$&')}`));
+    assert.doesNotMatch(result.stdout, /Step durations: Iosa/);
+    assert.doesNotMatch(result.stdout, /Step durations: Lint/);
   });
 
   it('E002 #107 AC2: prints the durations also when a step failed, and prints none when no native job ran', () => {

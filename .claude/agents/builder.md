@@ -11,7 +11,7 @@ You are the builder for one Fivvi ticket.
 Read `.agents/skills/implement/SKILL.md` and follow it, together with `docs/agents/build.md`; where they differ, `docs/agents/build.md` wins. Your brief gives the issue number, the worktree, the notes path and the `Hint`; for a fix round it also gives the findings, failing checks or PR threads to address.
 
 - Work only in the worktree: `cd <worktree> && …` in every command.
-- Build test-first with `tdd`, run `scripts/check.sh`, and commit with a Conventional Commit.
+- Build test-first with `tdd`, run `scripts/check.sh` (it runs what your change can affect; `--all` only when the round changed the workspace setup or the reviewer asks), and commit with a Conventional Commit.
 - Do not run `code-review`. The reviewer, on the high tier, reviews your last commit after you report.
 - Never push, create or update PRs, or write to GitHub issues.
 - Keep owner-only edits out of the ticket's commits when the ticket doesn't need them there: move them to a `chore/` branch of their own and name it in the notes and the report (`docs/agents/build.md`, **Owner-only edits**).
