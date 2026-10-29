@@ -3,11 +3,16 @@
 #
 #   flow.sh status <n>                      facts, phase and next step for an issue
 #   flow.sh facts <n>                       the facts as JSON (input of scripts/flow-phase.jq)
-#   flow.sh next                            your open issues with their phase, the open specs, the ready tickets and
-#                                           answered needs-info questions, then what waits on the owner: specs to
+#   flow.sh next                            your open issues with their phase, the open specs, the ready tickets, the
+#                                           approved specs to cut (Cut #n) and answered needs-info questions, then what waits on the owner: specs to
 #                                           approve, owner-only PRs, PRs the merge gate refused, PRs GitHub removed from
 #                                           the merge queue, unanswered questions; last, what the owner may read: the
 #                                           high-risk PRs agents merged in the last 7 days (ADR-021)
+#   flow.sh idle                            exit 0 and "idle: nothing for an agent" (plus what waits on the owner) when no
+#                                           agent has anything to do: nothing under "Ready for an agent" in `next` and no
+#                                           issue assigned to you in a phase an agent acts on; exit 1 and what there is
+#                                           otherwise; exit 2 on an error, never a false idle. A cheap check for the
+#                                           scheduled factory run, right after `lock acquire`
 #   flow.sh start <n> [--type <t>] [--force]  claim a ready ticket and create its <type>/<n>-<slug> worktree and notes;
 #                                           no limit on the tickets in progress, unless FIVVI_MAX_TICKETS (a positive
 #                                           integer) sets one: then it refuses at that many (--force to override)
@@ -166,34 +171,136 @@ cmd_facts() {
   facts "$1"
 }
 
-cmd_next() {
-  [ $# -eq 0 ] || usage
-  local n f mine specs ready questions owner read_items
-  echo "== Assigned to you"
+# Your open issues, one line each, separated by | (the title comes last, so it may contain one): number, phase, the head commits of its PRs that GitHub removed from
+# the merge queue (comma-separated, empty otherwise) and the title. Dies when a read fails.
+assigned_lines() {
+  local mine n f phase heads
   mine="$(gh issue list --repo "$REPO" --assignee @me --state open --json number --jq '.[].number')" \
     || die "could not read the issues assigned to you"
-  [ -n "$mine" ] || echo "(none)"
   for n in $mine; do
-    f="$(facts "$n")"
-    echo "#$n $(jq -r .title <<<"$f") → $(jq -r .phase <<<"$(jq -f "$PHASE_JQ" <<<"$f")")"
+    f="$(facts "$n")" || die "could not read #$n"
+    phase="$(facts_phase "$f")" || die "could not read the phase of #$n"
+    heads="$(jq -r '[.branches[].pr | select(. != null and .state == "OPEN" and .queue.state == "removed") | .head] | join(",")' <<<"$f")" \
+      || die "could not read the merge queue state of #$n"
+    printf '%s|%s|%s|%s\n' "$n" "$phase" "$heads" "$(jq -r .title <<<"$f")"
   done
+}
+
+# The phase flow-phase.jq decides from the facts $1 of an issue; fails when there is none.
+facts_phase() {
+  local d
+  d="$(jq -f "$PHASE_JQ" <<<"$1")" || return 1
+  jq -er .phase <<<"$d"
+}
+
+read_specs() {
+  gh issue list --repo "$REPO" --label "$SPEC_LABEL" --state open --limit 200 \
+    --json number,title,body,labels,subIssuesSummary || die "could not read the open specs"
+}
+
+read_questions() {
+  gh issue list --repo "$REPO" --label needs-info --state open --limit 100 --json number,title,comments \
+    --jq "$ANSWERED_JQ"'.[] | {number, title, answered: answered}' || die "could not read the needs-info questions"
+}
+
+# What an agent can start without the owner: the ready tickets (scripts/issue.sh ready), the approved specs without
+# tickets that flow-phase.jq calls needs-tickets (`Cut #n`; facts are read only for such candidates, so a spec that has
+# tickets or is not approved costs no read) and the needs-info questions that were answered. $1 is read_specs, $2
+# read_questions. Dies when a read fails, so an empty list means nothing is ready.
+ready_items() {
+  local ready candidates n title f phase
+  ready="$("$ROOT/scripts/issue.sh" ready)" || die "could not read the ready tickets"
+  candidates="$(jq -r --arg approved "$APPROVED_LABEL" '.[]
+    | select(([.labels[].name] | index($approved)) and .subIssuesSummary.total == 0)
+    | "\(.number)\t\(.title)"' <<<"$1")" || die "could not read the open specs"
+  awk -F'\t' 'NF { print "#" $1 " " $2 }' <<<"$ready"
+  while IFS=$'\t' read -r n title; do
+    [ -n "$n" ] || continue
+    f="$(facts "$n")" || die "could not read #$n"
+    phase="$(facts_phase "$f")" || die "could not read the phase of #$n"
+    [ "$phase" != needs-tickets ] || echo "Cut #$n $title ($phase)"
+  done <<<"$candidates"
+  jq -r 'select(.answered) | "Triage #\(.number) \(.title) (answered)"' <<<"$2"
+}
+
+cmd_next() {
+  [ $# -eq 0 ] || usage
+  local specs questions ready owner read_items mine n phase heads title
+  echo "== Assigned to you"
+  mine="$(assigned_lines)" || exit 1
+  if [ -z "$mine" ]; then echo "(none)"; fi
+  while IFS='|' read -r n phase heads title; do
+    [ -z "$n" ] || echo "#$n $title → $phase"
+  done <<<"$mine"
   echo "== Open specs"
-  specs="$(gh issue list --repo "$REPO" --label "$SPEC_LABEL" --state open --limit 200 \
-    --json number,title,body,labels,subIssuesSummary)" || die "could not read the open specs"
+  specs="$(read_specs)" || exit 1
   jq -r 'if length == 0 then "(none)" else .[] | "#\(.number) \(.title) — \(.subIssuesSummary.completed) of \(.subIssuesSummary.total) tickets done" end' <<<"$specs"
   echo "== Ready for an agent"
   # Read first, then print: a failed read is an error, never "(none)".
-  ready="$("$ROOT/scripts/issue.sh" ready)" || die "could not read the ready tickets"
-  questions="$(gh issue list --repo "$REPO" --label needs-info --state open --limit 100 --json number,title,comments \
-    --jq "$ANSWERED_JQ"'.[] | {number, title, answered: answered}')" || die "could not read the needs-info questions"
-  { awk -F'\t' 'NF { print "#" $1 " " $2 }' <<<"$ready"
-    jq -r 'select(.answered) | "Triage #\(.number) \(.title) (answered)"' <<<"$questions"; } | grep . || echo "(none)"
+  questions="$(read_questions)" || exit 1
+  ready="$(ready_items "$specs" "$questions")" || exit 1
+  grep . <<<"$ready" || echo "(none)"
   echo "== Waiting on the owner"
   owner="$(owner_items "$specs" "$questions")" || exit 1
   grep . <<<"$owner" || echo "(none)"
   echo "== For the owner to read"
   read_items="$(agent_merged_items)" || exit 1
   grep . <<<"$read_items" || echo "(none)"
+}
+
+# The phases the work skill's playbook leaves to the owner, GitHub or the user; queue-removed is work until the notes say
+# the owner was told about the PR's head commit. Any other phase counts as work, so an unknown one is never a false idle.
+WAITING_PHASES=" queued merge-refused in-review approved waiting needs-approval needs-spec needs-refinement human blocked taken abandoned done "
+
+# True when the notes of #$1 have `queue-removed <head sha>: reported to the owner` for every head commit in $2
+# (comma-separated).
+removal_reported() {
+  local n="$1" notes head
+  notes="$(notes_of "$n")"
+  [ -n "$notes" ] || return 1
+  for head in ${2//,/ }; do
+    grep -qE "^queue-removed $head: reported to the owner" "$notes" || return 1
+  done
+}
+
+# The scan of `idle`: the first line is `work` or `idle`, then the lines that explain it. Dies when a read fails.
+idle_scan() {
+  local specs questions ready mine owner work='' n phase heads title
+  mine="$(assigned_lines)" || exit 1
+  while IFS='|' read -r n phase heads title; do
+    [ -n "$n" ] || continue
+    case "$WAITING_PHASES" in *" $phase "*) continue ;; esac
+    if [ "$phase" = queue-removed ] && removal_reported "$n" "$heads"; then continue; fi
+    work+="#$n $title → $phase"$'\n'
+  done <<<"$mine"
+  specs="$(read_specs)" || exit 1
+  questions="$(read_questions)" || exit 1
+  ready="$(ready_items "$specs" "$questions")" || exit 1
+  work+="$ready"
+  if grep -q . <<<"$work"; then
+    echo work
+    grep . <<<"$work"
+  else
+    owner="$(owner_items "$specs" "$questions")" || exit 1
+    echo idle
+    echo "== Waiting on the owner"
+    grep . <<<"$owner" || echo "(none)"
+  fi
+}
+
+# Exit 0 when nothing is for an agent, 1 when there is, 2 on an error. The scan runs apart, so a die (exit 1) in it
+# can't pass for "there is work", and nothing is printed as idle before the scan is done.
+cmd_idle() {
+  [ $# -eq 0 ] || usage
+  local out
+  out="$(idle_scan)" || exit 2
+  if [ "$(head -n 1 <<<"$out")" = idle ]; then
+    echo "idle: nothing for an agent"
+    tail -n +2 <<<"$out"
+    exit 0
+  fi
+  tail -n +2 <<<"$out"
+  exit 1
 }
 
 # Now as seconds since the epoch: the real clock, or FIVVI_NOW (ISO-8601 UTC, like 2026-10-20T12:00:00Z) so tests and
@@ -514,6 +621,7 @@ case "${1:-}" in
   status) shift; cmd_status "$@" ;;
   facts)  shift; cmd_facts "$@" ;;
   next)   shift; cmd_next "$@" ;;
+  idle)   shift; cmd_idle "$@" ;;
   start)  shift; cmd_start "$@" ;;
   finish) shift; cmd_finish "$@" ;;
   *) usage ;;
