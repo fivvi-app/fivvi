@@ -733,8 +733,24 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       /test-ios\.sh build|xcodebuild build/,
       'the test jobs do not build',
     );
-    assert.match(iosTests, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/TestResults-\*\.xcresult/);
+    assert.match(
+      iosTests,
+      /if: failure\(\) \|\| cancelled\(\)[\s\S]*apps\/ios\/\.build\/TestResults-\*\.xcresult/,
+      'a job cancelled by its timeout keeps the results (#305)',
+    );
     assert.match(iosBuild, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/build-for-testing\.log/);
+  });
+
+  it('E002 #305: the iOS test job leaves room above a healthy run, and the chain stays under the merge queue timeout', () => {
+    const minutes = (section) => Number(section.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
+    const queue = Number(
+      readFileSync(join(SCRIPTS, '../.github/rulesets/main.json'), 'utf8').match(
+        /"check_response_timeout_minutes": (\d+)/,
+      )[1],
+    );
+    assert.ok(minutes(iosTests) >= 22, 'a healthy run takes up to 16 minutes, with the settle');
+    // Detect changes (5) + build + tests + the report job (2) must end before the queue gives up on the check.
+    assert.ok(5 + minutes(iosBuild) + minutes(iosTests) + 2 < queue, 'under the queue timeout');
   });
 
   it('E002 #242: the iOS jobs run on macos-15 with an Xcode that image has, and say why in a comment', () => {
@@ -1873,6 +1889,10 @@ esac`,
           assert.match(tests[0], /-xctestrun \S*FivviPro\.xctestrun/);
           assert.match(tests[0], new RegExp(`TestResults-${locale}\\.xcresult`));
           assert.ok(!tests[0].includes('-skip-testing'), 'the UI tests run too');
+          // A hung test fails after an allowance instead of stalling the job (#305).
+          assert.match(tests[0], /-test-timeouts-enabled YES/);
+          assert.match(tests[0], /-default-test-execution-time-allowance \d+/);
+          assert.match(tests[0], /-maximum-test-execution-time-allowance \d+/);
         });
       }
 

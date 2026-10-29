@@ -355,6 +355,12 @@ build_for_testing() {
 # only that locale's configuration, into a bundle of its own, and without the UI tests when the locale isn't one of
 # IOS_UI_LOCALES.
 RESULTS=.build/TestResults-nl-en.xcresult
+# A test that hangs fails after this many seconds instead of stalling the job until its timeout (#305). The slowest
+# tests take 39 s locally (about twice that on a runner), so 2 minutes leaves clear headroom; XCTest rounds the
+# allowances up to whole minutes and never lets a test run past the maximum.
+TEST_ALLOWANCE=120
+TEST_ALLOWANCE_MAX=180
+
 run_tests() {
   local only=() bundle=$RESULTS
   if [ -n "${2:-}" ]; then
@@ -363,7 +369,9 @@ run_tests() {
     bundle=".build/TestResults-$2.xcresult"
   fi
   xcodebuild test-without-building -xctestrun "$XCTESTRUN" -destination "id=$1" ${only[@]+"${only[@]}"} \
-    -resultBundlePath "$bundle" -quiet
+    -resultBundlePath "$bundle" -quiet \
+    -test-timeouts-enabled YES -default-test-execution-time-allowance "$TEST_ALLOWANCE" \
+    -maximum-test-execution-time-allowance "$TEST_ALLOWANCE_MAX"
 }
 
 # Runs nl on simulator $1 and en on simulator $2 at the same time, each with its output in a log, shown when it ends.
