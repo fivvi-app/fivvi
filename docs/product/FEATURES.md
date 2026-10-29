@@ -33,7 +33,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | F007 | Localization Infrastructure | PLANNED | Must | M1–M2 | E005 | ⬜ | ⬜ | §3, §73 |
 | F008 | Dutch UI | PLANNED | Must | continuous | F007 | ⬜ | — | §2.2 |
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |
-| F010 | Locale Preference | PLANNED | Must | M2 (+ iOS/Android) | F001, F007 | ⬜ | ⬜ | §3 |
+| F010 | Locale Preference | IN PROGRESS | Must | M2 (+ iOS/Android) | F001, F007 | ⬜ | ⬜ | §3 |
 
 ### Trainers
 

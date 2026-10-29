@@ -374,7 +374,7 @@
         ],
         "description": "Creates a workspace for the caller, who becomes its Owner. Nothing else is asked: the default language, the time zone and the slug are the platform’s defaults."
       },
-      "RenameWorkspaceRequest": {
+      "UpdateWorkspaceRequest": {
         "type": "object",
         "properties": {
           "name": {
@@ -382,12 +382,12 @@
             "minLength": 1,
             "maxLength": 80,
             "description": "The new name, as the product shows it from now on."
+          },
+          "defaultLocale": {
+            "$ref": "#/components/schemas/Locale"
           }
         },
-        "required": [
-          "name"
-        ],
-        "description": "Renames a workspace. Only the name changes: the slug stays, so links keep working."
+        "description": "Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored."
       }
     },
     "parameters": {}
@@ -890,8 +890,8 @@
         "tags": [
           "workspaces"
         ],
-        "summary": "Rename a workspace",
-        "description": "Changes the name of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters.",
+        "summary": "Rename a workspace or set its default language",
+        "description": "Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.",
         "security": [
           {
             "cookieAuth": []
@@ -925,14 +925,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RenameWorkspaceRequest"
+                "$ref": "#/components/schemas/UpdateWorkspaceRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "The workspace with its new name.",
+            "description": "The workspace with its changes.",
             "content": {
               "application/json": {
                 "schema": {

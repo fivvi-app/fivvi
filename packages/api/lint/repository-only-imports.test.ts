@@ -202,7 +202,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     createWorkspaceWithOwner: 'repository of workspaces, takes the account scope (F002)',
     listTeamWorkspaces: 'repository of workspaces, takes the account scope (F002)',
     findWorkspace: 'repository of workspaces, takes the workspace scope (F002)',
-    renameWorkspace: 'repository of workspaces, takes the workspace scope (F002)',
+    updateWorkspace: 'repository of workspaces, takes the workspace scope (F002, F010)',
     findSystemGreeting: 'query of the system data, which has no tenant',
     consumeRateLimit:
       'query of the rate limits, which have no tenant; takes the executor it is given',

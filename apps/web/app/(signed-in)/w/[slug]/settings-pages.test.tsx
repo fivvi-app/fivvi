@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { escapeHtml, render } from '../../../../test/render';
 import { GeneralForm } from './settings/general/general-form';
 import { NoPermission } from './settings/general/no-permission';
+import { LanguageForm } from './settings/language/language-form';
 import { WorkspaceFrame } from './workspace-frame';
 
 // The form refreshes the page through the router, which exists only in a running app.
@@ -38,6 +39,63 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
         `<a[^>]*href="/w/johns-gym/settings/general"[^>]*>${escapeHtml(copy.workspaceNav.settings)}</a>`,
       ),
     );
+  });
+
+  it('F010 AC7: the Owner has the General and Language settings in the navigation', () => {
+    const html = render(
+      locale,
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" isOwner>
+        <hr id="page" />
+      </WorkspaceFrame>,
+    );
+
+    for (const [path, label] of [
+      ['general', copy.workspaceNav.settingsGeneral],
+      ['language', copy.workspaceNav.settingsLanguage],
+    ]) {
+      expect(html).toMatch(
+        new RegExp(
+          `<a[^>]*href="/w/johns-gym/settings/${path}"[^>]*>${escapeHtml(label as string)}</a>`,
+        ),
+      );
+    }
+  });
+
+  it('F010 AC8: a Trainer has no Language in the navigation', () => {
+    const html = render(
+      locale,
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" isOwner={false}>
+        <hr id="page" />
+      </WorkspaceFrame>,
+    );
+
+    expect(html).not.toContain(escapeHtml(copy.workspaceNav.settingsLanguage));
+    expect(html).not.toContain('/settings/language');
+  });
+
+  it('F010 AC7: TW-08 Language shows the two languages in their own names, the current one checked, the help line and Save', () => {
+    const html = render(locale, <LanguageForm workspaceId="w1" defaultLocale="en" />);
+
+    expect(html).toContain(`<h1>${escapeHtml(copy.settingsLanguage.title)}</h1>`);
+    expect(html).toContain(escapeHtml(copy.settingsLanguage.defaultLabel));
+    expect(html).toContain(escapeHtml(copy.settingsLanguage.help));
+    expect(html).toMatch(
+      new RegExp(
+        `<label[^>]*>[^<]*<input[^>]*value="nl-NL"[^>]*/?>[^<]*${copy.settingsLanguage.optionNl}`,
+      ),
+    );
+    expect(html.match(/<input[^>]*type="radio"/g)).toHaveLength(2);
+    expect(html).toMatch(
+      /<input[^>]*value="en"[^>]*checked=""|<input[^>]*checked=""[^>]*value="en"/,
+    );
+    expect(html).not.toMatch(/<input[^>]*value="nl-NL"[^>]*checked/);
+    expect(html).toContain(copy.settingsLanguage.optionEn);
+    expect(html).toMatch(
+      new RegExp(
+        `<button[^>]*type="submit"[^>]*>${escapeHtml(copy.settingsLanguage.save)}</button>`,
+      ),
+    );
+    expect(html).not.toContain('role="alert"');
   });
 
   it('AC7: a Trainer has no Settings in the navigation', () => {

@@ -2061,9 +2061,9 @@ public enum Operations {
             }
         }
     }
-    /// Rename a workspace
+    /// Rename a workspace or set its default language
     ///
-    /// Changes the name of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters.
+    /// Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.
     ///
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/patch(renameWorkspace)`.
@@ -2100,7 +2100,7 @@ public enum Operations {
             /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/PATCH/requestBody`.
             @frozen public enum Body: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/PATCH/requestBody/content/application\/json`.
-                case json(Components.Schemas.RenameWorkspaceRequest)
+                case json(Components.Schemas.UpdateWorkspaceRequest)
             }
             public var body: Operations.RenameWorkspace.Input.Body
             /// Creates a new `Input`.
@@ -2148,7 +2148,7 @@ public enum Operations {
                     self.body = body
                 }
             }
-            /// The workspace with its new name.
+            /// The workspace with its changes.
             ///
             /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/patch(renameWorkspace)/responses/200`.
             ///

@@ -37,6 +37,15 @@
     <string name="settings_general_time_zone_label">Time zone</string>
     <string name="settings_general_title">General</string>
     <string name="settings_general_url_name_label">URL name</string>
+    <string name="settings_language_default_label">Default language</string>
+    <string name="settings_language_errors_generic">Something went wrong. Try again.</string>
+    <string name="settings_language_errors_no_connection">No connection. Check your internet and try again.</string>
+    <string name="settings_language_help">The language of emails to people whose language we don\'t know yet. What people see on screen, they choose themselves.</string>
+    <string name="settings_language_option_en">English</string>
+    <string name="settings_language_option_nl">Nederlands</string>
+    <string name="settings_language_save">Save</string>
+    <string name="settings_language_saved">Saved.</string>
+    <string name="settings_language_title">Language</string>
     <string name="sign_in_change_email">Change email address</string>
     <string name="sign_in_check_email_body">If %1$s is registered, you\'ll receive an email with a code and a sign-in link.</string>
     <string name="sign_in_check_email_body_app">If %1$s is registered, you\'ll receive an email with a code.</string>
@@ -77,4 +86,6 @@
     <string name="workspace_home_description">The overview of your gym or business will appear here soon.</string>
     <string name="workspace_nav_label">Main navigation</string>
     <string name="workspace_nav_settings">Settings</string>
+    <string name="workspace_nav_settings_general">General</string>
+    <string name="workspace_nav_settings_language">Language</string>
 </resources>

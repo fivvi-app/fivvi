@@ -162,8 +162,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Rename a workspace
-         * @description Changes the name of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters.
+         * Rename a workspace or set its default language
+         * @description Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.
          */
         patch: operations["renameWorkspace"];
         trace?: never;
@@ -313,10 +313,11 @@ export interface components {
             /** @description The creator’s own name, stored on the account. Leave it out when the account has one. */
             personName?: string;
         };
-        /** @description Renames a workspace. Only the name changes: the slug stays, so links keep working. */
-        RenameWorkspaceRequest: {
+        /** @description Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored. */
+        UpdateWorkspaceRequest: {
             /** @description The new name, as the product shows it from now on. */
-            name: string;
+            name?: string;
+            defaultLocale?: components["schemas"]["Locale"];
         };
     };
     responses: never;
@@ -702,11 +703,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RenameWorkspaceRequest"];
+                "application/json": components["schemas"]["UpdateWorkspaceRequest"];
             };
         };
         responses: {
-            /** @description The workspace with its new name. */
+            /** @description The workspace with its changes. */
             200: {
                 headers: {
                     [name: string]: unknown;

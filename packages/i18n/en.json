@@ -92,13 +92,28 @@
       "generic": "Something went wrong. Try again."
     }
   },
+  "settingsLanguage": {
+    "title": "Language",
+    "defaultLabel": "Default language",
+    "help": "The language of emails to people whose language we don't know yet. What people see on screen, they choose themselves.",
+    "optionNl": "Nederlands",
+    "optionEn": "English",
+    "save": "Save",
+    "saved": "Saved.",
+    "errors": {
+      "noConnection": "No connection. Check your internet and try again.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
   "noPermission": {
     "title": "No access",
     "body": "You don't have access to this page. Ask the owner of {workspace}."
   },
   "workspaceNav": {
     "label": "Main navigation",
-    "settings": "Settings"
+    "settings": "Settings",
+    "settingsGeneral": "General",
+    "settingsLanguage": "Language"
   },
   "signOut": {
     "label": "Sign out",
