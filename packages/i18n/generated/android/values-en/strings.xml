@@ -18,6 +18,8 @@
         <item quantity="other">You have %1$d sessions today.</item>
     </plurals>
     <string name="hello_title">Welcome to Fivvi</string>
+    <string name="home_open_web">Open Fivvi in the browser</string>
+    <string name="home_set_up_on_web">Set up your workspace on the web.</string>
     <string name="home_signed_in_as">Signed in as %1$s</string>
     <string name="no_access_body">You don\'t have access to a workspace yet.</string>
     <string name="no_access_title">No access yet</string>

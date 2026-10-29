@@ -21,6 +21,12 @@ final class StubServer: Sendable {
         var email = "owner@example.com"
         var code = "123456"
         var token = "stub-session-token"
+        /// The name of the account's one workspace, or nil for none (F002).
+        var workspaceName: String? = "John's Gym"
+        /// Whether `GET /api/v1/me` says the account may create a workspace.
+        var canCreateWorkspace = false
+        /// An error status for `GET /api/v1/me`, or nil to answer as the API does.
+        var meStatus: Int?
     }
 
     /// A request the app sent: its target, bearer token and JSON body (strings only).
@@ -213,8 +219,7 @@ private final class Responder: @unchecked Sendable {
             let works = authorization == "Bearer \(signIn.token)"
             send(connection, status: works ? 204 : 401, json: works ? nil : Self.unauthorized)
         case ("GET", "/api/v1/me"):
-            let works = authorization == "Bearer \(signIn.token)"
-            send(connection, status: works ? 200 : 401, json: works ? account : Self.notSignedIn)
+            respondToMe(connection, authorization: authorization)
         default:
             send(connection, status: 404, json: nil)
         }
@@ -227,8 +232,22 @@ private final class Responder: @unchecked Sendable {
     private var account: [String: Any] {
         [
             "id": "2f6a1f0e-0000-4000-8000-000000000001", "email": signIn.email, "name": "Owner",
-            "preferredLocale": NSNull(), "canCreateWorkspace": false, "workspaces": [Any]()
+            "preferredLocale": NSNull(), "canCreateWorkspace": signIn.canCreateWorkspace,
+            "workspaces": (signIn.workspaceName.map {
+                [[
+                    "id": "7c1d2e3f-0000-4000-8000-000000000000", "name": $0, "slug": "workspace-0", "role": "owner"
+                ]] as [Any]
+            } ?? []) as [Any]
         ]
+    }
+
+    private func respondToMe(_ connection: NWConnection, authorization: String?) {
+        if let status = signIn.meStatus {
+            send(connection, status: status, json: nil)
+            return
+        }
+        let works = authorization == "Bearer \(signIn.token)"
+        send(connection, status: works ? 200 : 401, json: works ? account : Self.notSignedIn)
     }
 
     private func respond(_ connection: NWConnection, locale: String?, with answer: StubServer.Answer) {

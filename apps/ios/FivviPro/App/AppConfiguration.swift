@@ -21,4 +21,14 @@ enum AppConfiguration {
         }
         return url
     }
+
+    /// Trainer web's first-run screen (`/welcome`): the app opens it in the system browser when the account has no
+    /// workspace yet. The web app is the API's host; the API is mounted under `/api` (F002 AC10).
+    static func welcomeURL(apiBaseURL: URL) -> URL {
+        var parts = URLComponents(url: apiBaseURL, resolvingAgainstBaseURL: false) ?? URLComponents()
+        parts.path = "/welcome"
+        parts.query = nil
+        parts.fragment = nil
+        return parts.url ?? apiBaseURL
+    }
 }

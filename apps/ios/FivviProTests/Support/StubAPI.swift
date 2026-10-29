@@ -32,7 +32,9 @@ actor StubAPI: APIProtocol {
 
     /// What `getMe` answers.
     enum MeAnswer: Sendable {
-        case account(email: String, id: String = StubAPI.accountID)
+        case account(
+            email: String, id: String = StubAPI.accountID, workspaces: [String] = [], canCreateWorkspace: Bool = false
+        )
         case unauthorized
         case status(Int)
         case offline
@@ -147,16 +149,28 @@ actor StubAPI: APIProtocol {
         fatalError("The app doesn't call renameWorkspace yet")
     }
 
-    /// The account `getMe` answers with: no workspace yet (the app's workspace states come with F002).
-    private static func me(id: String, email: String) -> Components.Schemas.MeResponse {
-        .init(id: id, email: email, name: "Owner", canCreateWorkspace: false, workspaces: [])
+    /// The account `getMe` answers with: a workspace of each name in `workspaces` (synthetic IDs and slugs).
+    private static func me(
+        id: String, email: String, workspaces: [String] = [], canCreateWorkspace: Bool = false
+    ) -> Components.Schemas.MeResponse {
+        .init(
+            id: id, email: email, name: "Owner", canCreateWorkspace: canCreateWorkspace,
+            workspaces: workspaces.enumerated().map { index, name in
+                .init(
+                    id: "7c1d2e3f-0000-4000-8000-00000000000\(index)", name: name,
+                    slug: "workspace-\(index)", role: .owner
+                )
+            }
+        )
     }
 
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
         meCalls += 1
         switch meAnswer {
-        case let .account(email, id):
-            return .ok(.init(body: .json(Self.me(id: id, email: email))))
+        case let .account(email, id, workspaces, canCreateWorkspace):
+            return .ok(.init(body: .json(
+                Self.me(id: id, email: email, workspaces: workspaces, canCreateWorkspace: canCreateWorkspace)
+            )))
         case .unauthorized:
             return .unauthorized(.init(body: .json(.init(code: .notSignedIn))))
         case let .status(code):

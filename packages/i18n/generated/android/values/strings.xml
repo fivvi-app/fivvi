@@ -30,6 +30,10 @@
         <item quantity="other">Je hebt vandaag %1$d sessies.</item>
     </plurals>
     <string name="hello_title">Welkom bij Fivvi</string>
+    <!-- Button under home.setUpOnWeb in the native apps; opens Fivvi on the web (the first-run screen) in the phone's browser. -->
+    <string name="home_open_web">Open Fivvi in de browser</string>
+    <!-- Native home when the account has no workspace but may set one up. Creating a workspace happens on the web only; this line tells the person to do that. Above home.openWeb. -->
+    <string name="home_set_up_on_web">Maak je werkruimte aan op het web.</string>
     <!-- Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner. -->
     <string name="home_signed_in_as">Ingelogd als %1$s</string>
     <!-- Text of the no-access page (information-architecture §9.5, No permission). Native apps show it too, under the same conditions. The Dutch uses 'werkruimte' as the spec words it. -->
