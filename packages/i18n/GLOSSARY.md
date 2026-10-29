@@ -4,7 +4,7 @@ This is the **single wording source** for every user-facing string on every surf
 
 What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLOSSARY.md) at the repo root (English canonical terms, definitions, words to avoid). This file says how those terms are **worded** in nl-NL and en.
 
-- **Status:** v0.11, started in M0 (`ROADMAP.md §4.2`). The owner confirmed the nine open terms on 2026-10-29. Terms marked ⚠️ are still open (see [§8 Open questions](#8-open-questions)).
+- **Status:** v0.11, started in M0 (`ROADMAP.md §4.2`). The owner decided the nine open terms on 2026-10-29 (two changed, *bedrijf* and *PT-sessie*; the rest were confirmed). Terms marked ⚠️ are still open (see [§8 Open questions](#8-open-questions)).
 - **Scope:** UI strings, emails, notifications, validation messages, empty states, public booking pages and QR posters. Legal documents (privacy policy, terms, verwerkersovereenkomst) follow their own register and are out of scope.
 - **Catalogs:** `packages/i18n/nl-NL.json` and `packages/i18n/en.json` (ICU MessageFormat, ADR-008). Native catalogs (`.xcstrings`, `strings.xml`) are generated from them and are never edited by hand.
 - **Precedence:** `PRODUCT.md` owns requirements. This file owns terminology, tone and copy style. Where it deliberately differs from example copy in `PRODUCT.md`, [§7](#7-deviations-from-productmd-example-copy) lists why.
@@ -310,7 +310,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 
 ### 4.9 Commerce
 
-Added with roadmap v1.19 (M11). The owner confirmed the commerce terms on 2026-10-29; the ⚠️ terms are still open (§8).
+Added with roadmap v1.19 (M11). The owner decided the commerce terms of the nine open terms on 2026-10-29 (*abonnement*, *creditpakket*, *creditabonnement*, *credit*, *tegoed*, *aanbod*, *standaardaanbod*, *Nieuw aanbod*). The commerce terms that were not part of the nine keep ⚠️ (agreement, recurring payment, mandate, payment provider, merchant, cancellation policy); they are still open (§8).
 
 | EN term | NL term | Notes / forbidden alternatives |
 |---|---|---|
@@ -320,10 +320,10 @@ Added with roadmap v1.19 (M11). The owner confirmed the commerce terms on 2026-1
 | credit | credit (de, credits) | One unit of a credit balance (`GLOSSARY.md`). Name the kind with a compound: *groepscredit* (group credit), *privécredit* (private credit), e.g. *6 groepscredits, 3 privécredits*. One credit books one session of its kind; the two kinds never mix. ❌ *tegoedpunt*, *token*, *punt*, *voucher*; ❌ *tegoed* for one unit (*tegoed* is the balance). |
 | credit pack | creditpakket (het, creditpakketten) | A number of credits bought once, valid for a period. Name the kind next to it (*Groep* / *Privé*, as on calendar blocks) instead of a longer compound. ❌ *strippenkaart*, *rittenkaart*, *PT-pakket*, *sessiepakket* (the retired *session pack*), *bundel*. |
 | credit plan | creditabonnement (het, creditabonnementen) | A number of credits each month, paid by recurring payment, with a carry-over limit. EN: *credit plan*, ❌ *credit subscription*. |
-| default plan | standaardaanbod (het) | One of the three ready-made offers a new workspace starts with, pre-filled and switched off until the owner turns it on; the owner adds the price (`PRODUCT.md §90`; the rules around the defaults are proposals, QC19). The owner's word is *default plan*; the EN UI may say *default offer*. ❌ *standaardabonnement* (*abonnement* is the membership only). |
+| default plan | standaardaanbod (het) | One of the three ready-made offers a new workspace starts with, pre-filled and switched off until the owner turns it on; the owner adds the price (`PRODUCT.md §90`; the rules around the defaults are proposals, QC19). The owner's word is *default plan*; the EN UI may say *default offer* (⚠️ to confirm: the EN word only; the NL word is decided). ❌ *standaardabonnement* (*abonnement* is the membership only). |
 | new offer | Nieuw aanbod | The owner action that makes an offer from scratch. *Abonnement* is the membership only and an owner-made offer can also be a credit pack or credit plan, so the neutral *aanbod* is used. EN: ❌ *new plan* alone (a *credit plan* is one kind). |
 | single class | losse les (de, losse lessen) | ❌ *drop-in*, *extra les* as the offer name (*extra* is fine in a sentence). |
-| credit balance | tegoed (het) | What is left, per kind: *Nog 6 groepscredits en 3 privécredits tegoed*. Keep the word for the balance only; the unit is *credit*. ❌ *lessen over*, *saldo* (money), *sessiesaldo* (the retired *session balance*). |
+| credit balance | tegoed (het) | What is left, per kind: *Nog 6 groepscredits en 3 privécredits tegoed*. Keep the word for the balance only; the unit is *credit*. ❌ *saldo* (money), *sessiesaldo* (the retired *session balance*). |
 | cancellation policy | annuleringsbeleid (het) ⚠️ | The rules of an offer for cancellations and no-shows. In the UI show the rule itself (*Annuleren kan tot 12 uur van tevoren*) rather than the noun. ❌ *annuleringsvoorwaarden* unless it is the legal terms text. ❌ EN: *terms, rules* (alone). |
 | cancellation cutoff | annuleren tot … uur van tevoren | Phrase it as a sentence, not a noun: *Je kunt tot 12 uur van tevoren gratis annuleren.* |
 | makeup | inhaalles (de, inhaallessen) | ❌ *compensatieles*, *tegoedles*. |
@@ -449,7 +449,7 @@ Added with roadmap v1.19 (M11). The owner confirmed the commerce terms on 2026-1
 | **herhaling** (NL) | rep | recurrence → *terugkerend*, *Herhalen: elke week* |
 | **koppelen** (NL) | connecting an account or provider: *Betalingen koppelen / Connect payments* (§4.9) | assigning a trainer to a session or class → *toewijzen* (§4.1); both words are fine in their own place, never swapped |
 | **annuleren / cancel** | cancelling a session, class or booking; also dismissing a dialog | both at once in one dialog → §5.3 |
-| **abonnement / lidmaatschap**, **membership** | a client's membership (§4.9) | a person: *klant met een abonnement / client with a membership* (never *lid / member*); a team member → *teamlid / team member* |
+| **abonnement**, **membership** | a client's membership (§4.9) | a person: *klant met een abonnement / client with a membership* (never *lid / member*); a team member → *teamlid / team member* |
 | **plek** (NL) | a spot in a class | a location → *locatie* |
 | **privé / private** | the private session type | note visibility → *Alleen voor trainers / Trainer-only* |
 | **schedule** (EN) | the verb *to schedule* (*inplannen*) | the timetable noun → *timetable / rooster* |
@@ -516,4 +516,4 @@ Still marked ⚠️ in §4.9 and not decided: *agreement / overeenkomst*, *recur
 | 2026-10-20 | 0.8 | Owner review of roadmap v1.19: *Admin* is a later role 🔜 (the MVP roles are Eigenaar and Trainer); new type label **Groep** / **Group** next to **Privé** / **Private** for calendar blocks (`PRODUCT.md §48`); §4.3 notes that only the own location exists at go-live; §4.9 adds *credit* 🔜 and *chargeback* and more forbidden alternatives, *merchant* ⚠️ and *Betalingen koppelen / Connect payments*; §5.4 notes the *koppelen* collision with *assign*. |
 | 2026-10-21 | 0.9 | Credits in the MVP (roadmap v1.21): §4.9 retires *session pack* and *credit* 🔜 and adds *credit* (*groepscredit*, *privécredit*), *credit pack* (*creditpakket*), *credit plan* (*creditabonnement*) and *credit balance* (*tegoed*, as the session balance was); the NL terms are proposals marked ⚠️ for the pilot to confirm (§8 question 5). |
 | 2026-10-21 | 0.10 | Default plans and owner-made offers (roadmap v1.21, `PRODUCT.md §90`): §4.9 adds *default plan* (*standaardaanbod*) and *new offer* (*Nieuw aanbod*), both ⚠️ for the pilot to confirm (§8 question 5). |
-| 2026-10-29 | 0.11 | The owner decided the nine open terms himself (#155), without the pilot gym. Changed: *workspace* is now *bedrijf* (was *werkruimte*, now forbidden) and *private session* is now *PT-sessie* (was *privésessie*, now forbidden); the type label **Privé** / **Private** is unchanged and open for review. Confirmed, ⚠️ removed: *trainingsschema*, *vervanger*, *abonnement*, *creditpakket*, *creditabonnement*, *credit*, *tegoed*, *aanbod*, *standaardaanbod*, *Nieuw aanbod*. §8 holds no open questions about them. |
+| 2026-10-29 | 0.11 | The owner decided the nine open terms himself (#155), without the pilot gym. Changed: *workspace* is now *bedrijf* (was *werkruimte*, now forbidden) and *private session* is now *PT-sessie* (was *privésessie*, now forbidden); the type label **Privé** / **Private** is unchanged and open for review. Confirmed as worded (*vervanger* had no ⚠️ on main, the others had it removed): *trainingsschema*, *vervanger*, *abonnement*, *creditpakket*, *creditabonnement*, *credit*, *tegoed*, *aanbod*, *standaardaanbod*, *Nieuw aanbod*; only the EN UI word for *default plan* (*default offer*) is still to confirm. The commerce terms outside the nine keep ⚠️. |
