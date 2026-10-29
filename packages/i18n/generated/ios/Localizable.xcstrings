@@ -349,6 +349,42 @@
         }
       }
     },
+    "noPermission.body" : {
+      "comment" : "Text of the no-permission page. {workspace} is the name of the workspace, a name as typed by its owner and not translated.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You don't have access to this page. Ask the owner of %1$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je hebt geen toegang tot deze pagina. Vraag de eigenaar van %1$@."
+          }
+        }
+      }
+    },
+    "noPermission.title" : {
+      "comment" : "Heading of the no-permission page (information-architecture §9.5): a team member opens a page their role may not use, such as a Trainer opening Settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No access"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen toegang"
+          }
+        }
+      }
+    },
     "notFound.body" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -379,6 +415,186 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pagina niet gevonden"
+          }
+        }
+      }
+    },
+    "settingsGeneral.errors.generic" : {
+      "comment" : "Shown on TW-08 when saving failed for any other reason. Nothing was changed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er ging iets mis. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "settingsGeneral.errors.nameRequired" : {
+      "comment" : "Under the name field on TW-08 when it is empty or only spaces.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the name of your gym or business."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul de naam van je sportschool of bedrijf in."
+          }
+        }
+      }
+    },
+    "settingsGeneral.errors.nameTooLong" : {
+      "comment" : "Under the name field on TW-08 when the name is too long (the API refuses it: more than 80 characters).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This name is too long. Use a shorter one."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze naam is te lang. Gebruik een kortere naam."
+          }
+        }
+      }
+    },
+    "settingsGeneral.errors.noConnection" : {
+      "comment" : "Shown on TW-08 when the request to save could not reach the server. Nothing was changed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No connection. Check your internet and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen verbinding. Controleer je internet en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "settingsGeneral.nameLabel" : {
+      "comment" : "Label of the workspace name field on TW-08. Same wording as the name field on the first-run screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name of your gym or business"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naam van je sportschool of bedrijf"
+          }
+        }
+      }
+    },
+    "settingsGeneral.save" : {
+      "comment" : "Button of TW-08 that saves the new workspace name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opslaan"
+          }
+        }
+      }
+    },
+    "settingsGeneral.saved" : {
+      "comment" : "Confirmation shown next to the save button on TW-08 after the name was saved.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opgeslagen."
+          }
+        }
+      }
+    },
+    "settingsGeneral.timeZoneLabel" : {
+      "comment" : "Label of the read-only time zone of the workspace on TW-08, shown with its IANA name, e.g. Europe/Amsterdam.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time zone"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tijdzone"
+          }
+        }
+      }
+    },
+    "settingsGeneral.title" : {
+      "comment" : "Heading and browser tab title of TW-08, Settings → General (`/w/{slug}/settings/general`, Owner only). Dutch: Algemeen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algemeen"
+          }
+        }
+      }
+    },
+    "settingsGeneral.urlNameLabel" : {
+      "comment" : "Label of the read-only URL name of the workspace on TW-08 (the part of the web address and booking link made from the name at creation, which a rename never changes).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL name"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naam in de link"
           }
         }
       }
@@ -1063,6 +1279,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hier komt binnenkort het overzicht van je sportschool of bedrijf."
+          }
+        }
+      }
+    },
+    "workspaceNav.label" : {
+      "comment" : "Accessible name of the navigation of a workspace's pages, read by screen readers.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Main navigation"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoofdnavigatie"
+          }
+        }
+      }
+    },
+    "workspaceNav.settings" : {
+      "comment" : "Navigation link to Settings (Instellingen). Shown to the Owner only (GLOSSARY §4.8).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instellingen"
           }
         }
       }

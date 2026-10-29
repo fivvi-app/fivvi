@@ -136,7 +136,7 @@ describe('GET /v1/me', () => {
       name: 'Owner',
       preferredLocale: 'nl-NL',
       canCreateWorkspace: false,
-      workspaces: [{ id: gym?.id, name: "John's Gym", slug: 'johns-gym' }],
+      workspaces: [{ id: gym?.id, name: "John's Gym", slug: 'johns-gym', role: 'owner' }],
     });
   });
 
@@ -183,7 +183,7 @@ describe('GET /v1/me', () => {
 
     expect(me.canCreateWorkspace).toBe(false);
     expect(me.workspaces).toEqual([
-      { id: workspace.id, name: workspace.marker, slug: workspace.marker },
+      { id: workspace.id, name: workspace.marker, slug: workspace.marker, role: 'trainer' },
     ]);
   });
 

@@ -56,6 +56,10 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   getMe: {},
   createWorkspace: { body: { name: "John's Gym" }, createsWorkspace: true },
 
+  // The routes of one workspace (F002): a read shows its id, a rename takes a valid name.
+  getWorkspace: { seed: theWorkspace },
+  renameWorkspace: { seed: theWorkspace, body: { name: 'Renamed Gym' } },
+
   // The probe routes of the test app (`probe-routes.ts`), one per kind of access.
   probeOwner: { seed: theWorkspace },
   probeTeam: { seed: theWorkspace },

@@ -2,7 +2,13 @@ import { randomUUID } from 'node:crypto';
 import type { Locale } from '@fivvi/i18n';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { authUsers, organizations, teamMembers } from '../schema/index.ts';
-import { executorOf, setContext, type TenantScope } from '../tenant-scope.ts';
+import {
+  executorOf,
+  setContext,
+  type TeamRole,
+  type TenantScope,
+  type WorkspaceScope,
+} from '../tenant-scope.ts';
 
 // Creating a workspace (F002, ADR-022). The row of a workspace is out of reach of the RLS policy
 // `organizations_workspace` until its id is in the request's context, and the id of a workspace
@@ -23,6 +29,8 @@ export interface WorkspaceSummary {
   readonly id: string;
   readonly name: string;
   readonly slug: string;
+  /** What the account is in it: the page decides from this who sees the settings. */
+  readonly role: TeamRole;
 }
 
 export interface NewWorkspace {
@@ -117,9 +125,47 @@ export function listTeamWorkspaces(scope: TenantScope): Promise<WorkspaceSummary
   const { accountId, workspaceIds } = scope.context;
   if (workspaceIds.length === 0) return Promise.resolve([]);
   return db
-    .select({ id: organizations.id, name: organizations.name, slug: organizations.slug })
+    .select({
+      id: organizations.id,
+      name: organizations.name,
+      slug: organizations.slug,
+      role: teamMembers.role,
+    })
     .from(organizations)
     .innerJoin(teamMembers, eq(teamMembers.organizationId, organizations.id))
     .where(and(eq(teamMembers.accountId, accountId), inArray(organizations.id, [...workspaceIds])))
     .orderBy(asc(organizations.name), asc(organizations.slug));
+}
+
+const workspaceColumns = {
+  id: organizations.id,
+  name: organizations.name,
+  slug: organizations.slug,
+  defaultLocale: organizations.defaultLocale,
+  timeZone: organizations.timeZone,
+};
+
+/** The workspace of a workspace route's scope. `undefined` when RLS shows no such row. */
+export async function findWorkspace(scope: WorkspaceScope): Promise<WorkspaceView | undefined> {
+  const [workspace] = await executorOf(scope)
+    .select(workspaceColumns)
+    .from(organizations)
+    .where(eq(organizations.id, scope.workspaceId));
+  return workspace;
+}
+
+/**
+ * Changes the name of the scope's workspace and nothing else: the slug stays, so links and QR
+ * codes keep working. The caller has trimmed and checked the name and decided the account may.
+ */
+export async function renameWorkspace(
+  scope: WorkspaceScope,
+  name: string,
+): Promise<WorkspaceView | undefined> {
+  const [workspace] = await executorOf(scope)
+    .update(organizations)
+    .set({ name })
+    .where(eq(organizations.id, scope.workspaceId))
+    .returning(workspaceColumns);
+  return workspace;
 }

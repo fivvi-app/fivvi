@@ -345,7 +345,7 @@ describe('F001N native sign-in through the API', () => {
         name: 'Owner',
         preferredLocale: 'nl-NL',
         canCreateWorkspace: false,
-        workspaces: [{ id: gym?.id, name: "John's Gym", slug: 'johns-gym' }],
+        workspaces: [{ id: gym?.id, name: "John's Gym", slug: 'johns-gym', role: 'owner' }],
       });
     });
 

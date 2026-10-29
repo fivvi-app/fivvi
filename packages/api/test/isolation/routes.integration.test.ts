@@ -123,6 +123,7 @@ describe('E011 account routes', () => {
       id,
       name: expect.any(String),
       slug: expect.any(String),
+      role: expect.stringMatching(/^(owner|trainer)$/),
     }));
     expect(JSON.parse(body)).toEqual({
       id: s.sam.id,
