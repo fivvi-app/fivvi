@@ -314,7 +314,7 @@
       }
     },
     "noAccess.body" : {
-      "comment" : "Text of the no-access page (information-architecture §9.5, No permission). Native apps show it too, under the same conditions. The Dutch uses 'bedrijf' for the workspace (GLOSSARY §4.1).",
+      "comment" : "Text of the no-access page (information-architecture §9.5, No permission). Native apps show it too, under the same conditions. The Dutch uses 'werkruimte' as the spec words it.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -326,7 +326,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Je hebt nog geen toegang tot een bedrijf."
+            "value" : "Je hebt nog geen toegang tot een werkruimte."
           }
         }
       }
@@ -1248,7 +1248,7 @@
       }
     },
     "welcome.workspaceNameLabel" : {
-      "comment" : "Label of the field for the name of the gym or business on TW-11. The workspace itself, worded as the person's own business (GLOSSARY §4.1: the Dutch word is bedrijf, but prefer the business's own name).",
+      "comment" : "Label of the field for the name of the gym or business on TW-11. The workspace itself, worded as the person's own business (GLOSSARY §4.1: prefer this over the word werkruimte).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
