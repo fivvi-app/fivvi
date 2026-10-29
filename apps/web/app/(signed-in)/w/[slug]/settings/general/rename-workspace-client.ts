@@ -1,3 +1,5 @@
+import { refusedFields } from '../../../../validation-issues';
+
 /** The `settingsGeneral.errors.*` catalog key that words a refused name. */
 export type NameErrorKey = 'nameRequired' | 'nameTooLong';
 
@@ -33,13 +35,12 @@ export async function renameWorkspace(
   if ([401, 403, 404].includes(response.status)) return { ok: false, reason: 'home' };
   if (response.status === 400) {
     const body: unknown = await response.json().catch(() => null);
-    const issues = (body as { issues?: { path?: unknown; code?: unknown }[] } | null)?.issues;
-    const issue = Array.isArray(issues) ? issues.find(({ path }) => path === 'name') : undefined;
-    if (issue) {
+    const { name: refusal } = refusedFields(body);
+    if (refusal) {
       return {
         ok: false,
         reason: 'name',
-        error: issue.code === 'too_big' ? 'nameTooLong' : 'nameRequired',
+        error: refusal === 'tooLong' ? 'nameTooLong' : 'nameRequired',
       };
     }
   }

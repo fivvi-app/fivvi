@@ -1,4 +1,5 @@
 import type { Schemas } from '@fivvi/contract';
+import { refusedFields } from '../validation-issues';
 
 /** The `welcome.errors.*` catalog key that words a refused field. */
 export type FieldErrorKey =
@@ -57,14 +58,10 @@ export async function createWorkspace(
 
 /** The refused fields of a `validation_failed` answer; `undefined` when it names none the page has. */
 function fieldsOf(body: unknown): Fields | undefined {
-  const issues = (body as { issues?: { path?: unknown; code?: unknown }[] } | null)?.issues;
-  if (!Array.isArray(issues)) return undefined;
+  const { name, personName } = refusedFields(body);
   const fields: Fields = {};
-  for (const { path, code } of issues) {
-    const tooLong = code === 'too_big';
-    if (path === 'name') fields.name = tooLong ? 'workspaceNameTooLong' : 'workspaceNameRequired';
-    if (path === 'personName')
-      fields.personName = tooLong ? 'personNameTooLong' : 'personNameRequired';
-  }
+  if (name) fields.name = name === 'tooLong' ? 'workspaceNameTooLong' : 'workspaceNameRequired';
+  if (personName)
+    fields.personName = personName === 'tooLong' ? 'personNameTooLong' : 'personNameRequired';
   return fields.name || fields.personName ? fields : undefined;
 }

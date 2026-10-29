@@ -1,3 +1,4 @@
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
@@ -26,7 +27,7 @@ export function WorkspaceFrame({
         <p className="font-display text-lg font-semibold">{name}</p>
         <nav aria-label={t('label')}>
           {isOwner ? (
-            <Link href={`/w/${slug}/settings/general` as never} className="underline">
+            <Link href={`/w/${slug}/settings/general` as Route} className="underline">
               {t('settings')}
             </Link>
           ) : null}
