@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.apis.SignInApi
+import app.fivvi.api.models.MeResponse
 import app.fivvi.pro.auth.Session
 import java.io.IOException
 import java.net.HttpURLConnection.HTTP_UNAUTHORIZED
@@ -24,9 +25,24 @@ import kotlinx.serialization.SerializationException
 sealed interface MeState {
     data object Loading : MeState
 
-    data class Loaded(val email: String) : MeState
+    data class Loaded(val email: String, val destination: HomeDestination) : MeState
 
     data object Failed : MeState
+}
+
+/**
+ * What the home shows once `GET /v1/me` has answered (F002 AC10). The API decides: the account's workspaces and
+ * `canCreateWorkspace`; the app has no rule of its own about who may set one up.
+ */
+sealed interface HomeDestination {
+    /** The account has a workspace: the app's home (a placeholder until Vandaag) with the workspace's name. */
+    data class Workspace(val name: String) : HomeDestination
+
+    /** No workspace, and the API says the account may create one: set it up on the web. */
+    data object SetUpOnWeb : HomeDestination
+
+    /** No workspace, and the account may not create one. */
+    data object NoAccess : HomeDestination
 }
 
 /**
@@ -100,8 +116,15 @@ class HomeViewModel(
         val account = response.body()?.takeIf { response.isSuccessful }
         return account?.let {
             if (stillSignedIn()) onAccount(it.id.toString())
-            MeState.Loaded(it.email)
+            MeState.Loaded(it.email, destination(it))
         } ?: MeState.Failed
+    }
+
+    // The first workspace for now; "last workspace used" comes with F012.
+    private fun destination(account: MeResponse): HomeDestination = when {
+        account.workspaces.isNotEmpty() -> HomeDestination.Workspace(account.workspaces.first().name)
+        account.canCreateWorkspace -> HomeDestination.SetUpOnWeb
+        else -> HomeDestination.NoAccess
     }
 
     // An answer that arrives after the sign-out must not set the account that has just been cleared as the error-reporting

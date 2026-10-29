@@ -36,6 +36,8 @@ private fun ownerAccount() = MeResponse(
     workspaces = emptyList(),
 )
 
+private val OWNER_IN_WORKSPACE = MeState.Loaded("owner@example.com", HomeDestination.Workspace("John's Gym"))
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
     private val api = FakeMeApi()
@@ -77,8 +79,35 @@ class HomeViewModelTest {
 
         val viewModel = viewModel()
 
-        assertEquals(MeState.Loaded("owner@example.com"), viewModel.state.value)
+        assertEquals(OWNER_IN_WORKSPACE, viewModel.state.value)
         assertEquals(1, api.calls)
+    }
+
+    // F002 AC10: the API decides (workspaces, canCreateWorkspace of GET /v1/me); the app only maps the answer. The
+    // texts of each state, in both locales, are checked in HomeScreenTest.
+    @Test
+    fun test_F002_AC10_homeStateFromMe() {
+        api.answerAccount(workspaces = listOf("John's Gym"), canCreateWorkspace = false)
+        api.answerAccount(workspaces = emptyList(), canCreateWorkspace = true)
+        api.answerAccount(workspaces = emptyList(), canCreateWorkspace = false)
+        val viewModel = viewModel()
+        assertEquals(HomeDestination.Workspace("John's Gym"), (viewModel.state.value as MeState.Loaded).destination)
+
+        viewModel.retry()
+        assertEquals(HomeDestination.SetUpOnWeb, (viewModel.state.value as MeState.Loaded).destination)
+
+        viewModel.retry()
+        assertEquals(HomeDestination.NoAccess, (viewModel.state.value as MeState.Loaded).destination)
+    }
+
+    @Test
+    fun test_F002_AC10_aWorkspaceWinsOverTheRightToCreateOne() {
+        api.answerAccount(workspaces = listOf("John's Gym", "Other"), canCreateWorkspace = true)
+
+        assertEquals(
+            HomeDestination.Workspace("John's Gym"),
+            (viewModel().state.value as MeState.Loaded).destination,
+        )
     }
 
     @Test
@@ -161,7 +190,7 @@ class HomeViewModelTest {
 
         viewModel.retry()
 
-        assertEquals(MeState.Loaded("owner@example.com"), viewModel.state.value)
+        assertEquals(OWNER_IN_WORKSPACE, viewModel.state.value)
     }
 
     @Test

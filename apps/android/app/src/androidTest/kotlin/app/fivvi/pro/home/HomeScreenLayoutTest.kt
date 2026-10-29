@@ -32,6 +32,8 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
     @get:Rule
     val compose = createComposeRule()
 
+    private fun inWorkspace(email: String) = MeState.Loaded(email, HomeDestination.Workspace("John's Gym"))
+
     private fun show(me: MeState, signingOut: Boolean = false, height: Dp = 640.dp) =
         compose.showAtLargestFontScale(language, height = height) {
             HomeScreen(
@@ -41,14 +43,24 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
                 onRetryHello = {},
                 onRetryMe = {},
                 onSignOut = {},
+                onOpenWeb = {},
             )
         }
 
     @Test
     fun F001N_AC15_fontScale200Wraps() {
-        show(MeState.Loaded("a.long.address.for.a.trainer@example.com"))
+        show(inWorkspace("a.long.address.for.a.trainer@example.com"))
 
         compose.assertWraps(HomeTags.SIGNED_IN_AS, wraps = true)
+        compose.assertButtonFits(HomeTags.SIGN_OUT)
+    }
+
+    @Test
+    fun F002_AC10_setUpOnTheWebWrapsAndTheButtonFits() {
+        show(MeState.Loaded("owner@example.com", HomeDestination.SetUpOnWeb))
+
+        compose.assertWraps(HomeTags.SET_UP_ON_WEB, wraps = true)
+        compose.assertButtonFits(HomeTags.OPEN_WEB)
         compose.assertButtonFits(HomeTags.SIGN_OUT)
     }
 
@@ -65,7 +77,7 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
     fun F001N_AC15_smallScreenScrollsAsOneToReachEverything() {
         // A 320 dp high screen at 200%: the hello block and the account block don't fit together. The hello block keeps
         // its height (it is not squeezed by the account block) and the screen scrolls to the sign-out button.
-        show(MeState.Loaded("a.long.address.for.a.trainer@example.com"), height = 320.dp)
+        show(inWorkspace("a.long.address.for.a.trainer@example.com"), height = 320.dp)
 
         compose.assertWraps(HelloTags.GREETING)
         compose.onNodeWithTag(HelloTags.GREETING).assertIsDisplayed()
@@ -75,14 +87,14 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
 
     @Test
     fun F001N_AC15_theSignOutButtonIsLabelled() {
-        show(MeState.Loaded("owner@example.com"))
+        show(inWorkspace("owner@example.com"))
 
         compose.onNodeWithTag(HomeTags.SIGN_OUT).assertTextEquals(localizedString(language, R.string.sign_out_label))
     }
 
     @Test
     fun F001N_AC15_signingOutIsLabelledAndAnnounced() {
-        show(MeState.Loaded("owner@example.com"), signingOut = true)
+        show(inWorkspace("owner@example.com"), signingOut = true)
 
         compose.onNodeWithTag(HomeTags.SIGNING_OUT)
             .assert(hasContentDescription(localizedString(language, R.string.common_loading)))

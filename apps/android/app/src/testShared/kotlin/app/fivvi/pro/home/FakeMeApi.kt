@@ -2,6 +2,7 @@ package app.fivvi.pro.home
 
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.models.MeResponse
+import app.fivvi.api.models.MeWorkspace
 import java.util.UUID
 import retrofit2.Response
 
@@ -16,7 +17,13 @@ class FakeMeApi : MeApi {
         return answers.removeFirst()()
     }
 
-    fun answerAccount(email: String = "owner@example.com", id: UUID = UUID.randomUUID()) {
+    /** The account has a workspace by default, so the screens that don't care which state they are in show the home. */
+    fun answerAccount(
+        email: String = "owner@example.com",
+        id: UUID = UUID.randomUUID(),
+        workspaces: List<String> = listOf("John's Gym"),
+        canCreateWorkspace: Boolean = false,
+    ) {
         answers += {
             Response.success(
                 MeResponse(
@@ -24,8 +31,8 @@ class FakeMeApi : MeApi {
                     email = email,
                     name = "Owner",
                     preferredLocale = MeResponse.PreferredLocale.NL_NL,
-                    canCreateWorkspace = false,
-                    workspaces = emptyList(),
+                    canCreateWorkspace = canCreateWorkspace,
+                    workspaces = workspaces.map { MeWorkspace(UUID.randomUUID(), it, "slug", MeWorkspace.Role.OWNER) },
                 ),
             )
         }
