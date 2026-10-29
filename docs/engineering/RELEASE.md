@@ -111,10 +111,10 @@ Only the owner does these. Agents never do them or ask for the secrets. Each ste
 | ☑ | Confirm the company Apple Developer Program membership is active and paid up, and that you are its Account Holder or Admin (#148) | Everything on iOS; an expired membership blocks every release |
 | ☑ | Register the bundle ID `app.fivvi.pro` and create the app in App Store Connect: name *Fivvi Pro* (check that it is free), primary language Dutch, an SKU ([#148](https://github.com/fivvi-app/fivvi/issues/148)) | The identifier can't change after the first upload; the store name |
 | ☑ | Accept any pending agreements in App Store Connect (the free-apps agreement is enough) (#148) | Uploads and TestFlight |
-| ☐ | Create the Apple Distribution certificate and the App Store provisioning profile for the bundle ID | Signing in the iOS lane |
-| ☐ | Create an App Store Connect API key with the *App Manager* role (not *Admin*) | The upload from the lane |
-| ☐ | Run `scripts/release-secrets.sh ios` | The iOS lane can sign and upload |
-| ☐ | Add yourself as an internal TestFlight tester (later the pilot trainers, §4) | Installing on your iPhone |
+| ☑ | Create the Apple Distribution certificate and the App Store provisioning profile for the bundle ID | Signing in the iOS lane |
+| ☑ | Create an App Store Connect API key with the *App Manager* role (not *Admin*) | The upload from the lane |
+| ☑ | Run `scripts/release-secrets.sh ios` | The iOS lane can sign and upload |
+| ☑ | Add yourself as an internal TestFlight tester (later the pilot trainers, §4) | Installing on your iPhone |
 
 **Google**
 
@@ -122,17 +122,17 @@ Only the owner does these. Agents never do them or ask for the secrets. Each ste
 |---|---|---|
 | ☑ | Confirm whether a Google Play Console developer account exists and is verified. If not, enroll: **US$25 once, your approval as spend**. An organization account needs a D-U-N-S number; a personal account adds Play's closed-test rule before the public release (§9) (#149) | Everything on Android |
 | ☑ | Create the app in Play Console: name *Fivvi Pro* (check that it is free), default language Dutch, free, an app, not a game ([#149](https://github.com/fivvi-app/fivvi/issues/149)) | The application ID and the store name |
-| ☐ | Run `scripts/release-secrets.sh android-keystore`; back up the keystore and its password; enroll in Play App Signing | The upload key the lane signs with |
-| ☐ | Upload the first App Bundle by hand in Play Console. Google's API can't create an app's first release. Start the **Release** workflow with *Publish the Android bundle* switched off, approve it, download the **android-app-bundle** artifact (signed with the upload key; it holds no secret) and upload it to the internal testing track. **Roll that first release out to internal testing** (*Review release*, then *Start rollout*); do not leave it as a draft. Only a rolled-out release takes the app out of draft state, and until then Play accepts nothing but draft releases from the API (§6, the *draft state* row), while the lane sends a completed release | Every later release through the API |
-| ☐ | Create a Google Cloud service account, grant it release rights for this app in Play Console, download its JSON key, run `scripts/release-secrets.sh play` | The lane can publish to the internal testing track |
+| ☑ | Run `scripts/release-secrets.sh android-keystore`; back up the keystore and its password; enroll in Play App Signing | The upload key the lane signs with |
+| ☑ | Upload the first App Bundle by hand in Play Console. Google's API can't create an app's first release. Start the **Release** workflow with *Publish the Android bundle* switched off, approve it, download the **android-app-bundle** artifact (signed with the upload key; it holds no secret) and upload it to the internal testing track. **Roll that first release out to internal testing** (*Review release*, then *Start rollout*); do not leave it as a draft. Only a rolled-out release takes the app out of draft state, and until then Play accepts nothing but draft releases from the API (§6, the *draft state* row), while the lane sends a completed release | Every later release through the API |
+| ☑ | Create a Google Cloud service account, grant it release rights for this app in Play Console, download its JSON key, run `scripts/release-secrets.sh play` | The lane can publish to the internal testing track |
 | ☑ | Create the internal testers list (email addresses) in Play Console (#149) | Installing from the internal-test link (§4) |
 
 **GitHub and Sentry**
 
 | | Step | Unlocks |
 |---|---|---|
-| ☐ | `scripts/github-settings.sh apply` | The `release` environment with your approval and `main`-only deployments |
-| ☐ | Create a Sentry organisation auth token for symbol uploads (`org:ci`: releases and debug files; it carries the organisation and the region, which `sentry-cli` needs here), run `scripts/release-secrets.sh sentry` | Symbolicated crashes from tester builds |
+| ☑ | `scripts/github-settings.sh apply` | The `release` environment with your approval and `main`-only deployments |
+| ☑ | Create a Sentry organisation auth token for symbol uploads (`org:ci`: releases and debug files; it carries the organisation and the region, which `sentry-cli` needs here), run `scripts/release-secrets.sh sentry` | Symbolicated crashes from tester builds |
 
 ## 9. Store requirements for the public release
 
