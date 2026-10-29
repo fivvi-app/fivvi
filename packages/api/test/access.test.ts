@@ -350,6 +350,7 @@ describe('E011 route access', () => {
     );
 
     expect(Object.fromEntries(access)).toEqual({
+      'delete /v1/workspaces/{workspaceId}/team-members/{teamMemberId}': 'workspace',
       'get /v1/health': 'public',
       'get /v1/hello': 'public',
       'get /v1/me': 'account',
@@ -357,6 +358,7 @@ describe('E011 route access', () => {
       'post /v1/sign-in/token': 'public',
       'post /v1/sign-out': 'public',
       'get /v1/workspaces/{workspaceId}': 'workspace',
+      'get /v1/workspaces/{workspaceId}/team-members': 'workspace',
       'patch /v1/workspaces/{workspaceId}': 'workspace',
       'post /v1/workspaces': 'account',
     });

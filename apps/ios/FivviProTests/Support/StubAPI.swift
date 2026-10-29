@@ -149,6 +149,14 @@ actor StubAPI: APIProtocol {
         fatalError("The app doesn't call renameWorkspace yet")
     }
 
+    func listTeamMembers(_ input: Operations.ListTeamMembers.Input) async throws -> Operations.ListTeamMembers.Output {
+        fatalError("The app doesn't call listTeamMembers yet")
+    }
+
+    func removeTeamMember(_ input: Operations.RemoveTeamMember.Input) async throws -> Operations.RemoveTeamMember.Output {
+        fatalError("The app doesn't call removeTeamMember yet")
+    }
+
     /// The account `getMe` answers with: a workspace of each name in `workspaces` (synthetic IDs and slugs).
     private static func me(
         id: String, email: String, workspaces: [String] = [], canCreateWorkspace: Bool = false

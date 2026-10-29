@@ -27,4 +27,9 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   workspace_created: {
     workspace_id: property.uuid(),
   },
+  // F003: an Owner removed a team member from a workspace. The workspace ID only (the Owner's
+  // account UUID is the distinct ID): not the removed person, their name or email address.
+  team_member_removed: {
+    workspace_id: property.uuid(),
+  },
 });

@@ -40,6 +40,14 @@ export {
   type WorkspaceSummary,
   type WorkspaceView,
 } from './repositories/workspaces.ts';
+export {
+  deleteTeamMember,
+  findTeamMember,
+  listTeamMembers,
+  lockOwners,
+  type TeamMemberRole,
+  type TeamMemberView,
+} from './repositories/team-members.ts';
 export * from './schema/index.ts';
 export { HELLO_GREETING } from './system-data.ts';
 export {

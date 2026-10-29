@@ -14,6 +14,7 @@ import { registerHealth } from './routes/health.ts';
 import { registerHello } from './routes/hello.ts';
 import { registerMe } from './routes/me.ts';
 import { registerSignIn } from './routes/sign-in.ts';
+import { registerTeamMembers } from './routes/team-members.ts';
 import { registerWorkspaces } from './routes/workspaces.ts';
 
 /** Where apps/web mounts the API. Contract paths don't include it, so the API can move later. */
@@ -62,6 +63,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerMe(app);
   registerSignIn(app, dependencies);
   registerWorkspaces(app);
+  registerTeamMembers(app);
   return app;
 }
 

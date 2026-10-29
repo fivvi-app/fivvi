@@ -83,6 +83,15 @@ export const ForbiddenSchema = z.object({ code: z.enum(['forbidden']) }).openapi
     'user-facing text.',
 });
 
+export const LastOwnerSchema = z.object({ code: z.enum(['last_owner']) }).openapi('LastOwner', {
+  description:
+    'The change would leave the workspace without an Owner; nothing changed. Contains no ' +
+    'user-facing text.',
+});
+
+/** The body of the `409` when a change would leave a workspace without an Owner (F003 AC7). */
+export const LAST_OWNER = { code: 'last_owner' } as const;
+
 /** The body of the `401` of a route that needs a signed-in account. */
 export const NOT_SIGNED_IN = { code: 'not_signed_in' } as const;
 /** The body of the `404` for a workspace or record the caller can't reach. */
