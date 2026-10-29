@@ -1336,6 +1336,16 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       assert.doesNotMatch(result.stdout, /idle/);
     });
 
+    it('is an error, never idle, when the script exits 0 without an answer', () => {
+      // macOS /bin/bash 3.2 runs the EXIT trap with $?=0 after a `set -u` abort; a `command` function that exits 0
+      // in the main shell (after the trap is set) stands in for that.
+      const hook = join(repo, 'exit-zero.sh');
+      writeFileSync(hook, 'command() { exit 0; }\n');
+      const result = run('idle', { env: { BASH_ENV: hook } });
+      assert.equal(result.status, 2, result.stderr);
+      assert.doesNotMatch(result.stdout, /idle/);
+    });
+
     it('is an error, never idle, when it cannot tell who you are', () => {
       const taken = issue(9004, 'Not mine', ['ready-for-agent'], {
         assignees: [{ login: 'someone-else' }],

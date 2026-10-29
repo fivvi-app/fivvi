@@ -32,11 +32,12 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
-# `idle` answers with its exit status: 0 idle, 1 work, 2 an error. Every other way out of the script, whatever fails
-# (a bad argument, a missing tool, a die), becomes 2: an error must never read as "work, carry on" or as idle.
+# `idle` answers with its exit status: 0 idle, 1 work, 2 an error. Every way out of the script that is not that answer,
+# whatever the status (a bad argument, a missing tool, a die, or an exit 0 after a `set -u` abort, which bash 3.2 on
+# macOS reports as 0), becomes 2: an error must never read as "work, carry on" or as idle.
 IDLE_ANSWERED=false
 if [ "${1:-}" = idle ]; then
-  idle_exit() { local rc=$?; $IDLE_ANSWERED || [ "$rc" -eq 0 ] || exit 2; }
+  idle_exit() { $IDLE_ANSWERED || exit 2; }
   trap idle_exit EXIT
 fi
 
@@ -318,13 +319,14 @@ cmd_idle() {
   [ $# -eq 0 ] || usage
   local out
   out="$(idle_scan)" || exit 2
-  IDLE_ANSWERED=true
   if [ "$(head -n 1 <<<"$out")" = idle ]; then
     echo "idle: nothing for an agent"
     tail -n +2 <<<"$out"
+    IDLE_ANSWERED=true
     exit 0
   fi
   tail -n +2 <<<"$out"
+  IDLE_ANSWERED=true
   exit 1
 }
 
