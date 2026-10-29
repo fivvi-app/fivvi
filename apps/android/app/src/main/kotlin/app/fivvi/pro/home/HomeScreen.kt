@@ -22,11 +22,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
+import app.fivvi.designtokens.title1
+import app.fivvi.designtokens.title2
 import app.fivvi.pro.R
 import app.fivvi.pro.hello.HelloContent
 import app.fivvi.pro.hello.HelloState
@@ -39,6 +42,10 @@ object HomeTags {
     const val RETRY = "home.retry"
     const val SIGN_OUT = "home.signOut"
     const val SIGNING_OUT = "home.signingOut"
+    const val WORKSPACE_NAME = "home.workspaceName"
+    const val SET_UP_ON_WEB = "home.setUpOnWeb"
+    const val OPEN_WEB = "home.openWeb"
+    const val NO_ACCESS = "home.noAccess"
 }
 
 /**
@@ -53,6 +60,7 @@ fun HomeScreen(
     onRetryHello: () -> Unit,
     onRetryMe: () -> Unit,
     onSignOut: () -> Unit,
+    onOpenWeb: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // One scroll for the whole screen, so the account block can't squeeze the hello block at the largest font scale. The
@@ -62,7 +70,7 @@ fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.weight(1f))
-        HelloContent(hello, onRetryHello)
+        Destination(hello, me, onRetryHello, onOpenWeb)
         Spacer(Modifier.weight(1f))
         Column(
             modifier = Modifier.fillMaxWidth().padding(Spacing.space6),
@@ -99,6 +107,64 @@ fun HomeScreen(
                 }
             }
             SignOut(signingOut, onSignOut)
+        }
+    }
+}
+
+// The part above the account block: what the API said the person gets (F002 AC10). The hello block is the placeholder of
+// the workspace's home; the other two states have nothing but their text.
+@Composable
+private fun Destination(hello: HelloState, me: MeState, onRetryHello: () -> Unit, onOpenWeb: () -> Unit) {
+    when (val destination = (me as? MeState.Loaded)?.destination) {
+        // Loading or failed: /me has not said, so the hello block stays, as before F002.
+        null -> HelloContent(hello, onRetryHello)
+
+        is HomeDestination.Workspace -> {
+            Text(
+                text = destination.name,
+                modifier = Modifier.padding(horizontal = Spacing.space6).testTag(HomeTags.WORKSPACE_NAME)
+                    .semantics { heading() },
+                style = MaterialTheme.typography.title1,
+                textAlign = TextAlign.Center,
+            )
+            HelloContent(hello, onRetryHello)
+        }
+
+        HomeDestination.SetUpOnWeb -> Column(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.space6),
+            verticalArrangement = Arrangement.spacedBy(Spacing.space4),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = stringResource(R.string.home_set_up_on_web),
+                modifier = Modifier.testTag(HomeTags.SET_UP_ON_WEB),
+                style = MaterialTheme.typography.title2,
+                textAlign = TextAlign.Center,
+            )
+            Button(
+                onClick = onOpenWeb,
+                modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.space12).testTag(HomeTags.OPEN_WEB),
+            ) {
+                Text(stringResource(R.string.home_open_web), textAlign = TextAlign.Center)
+            }
+        }
+
+        HomeDestination.NoAccess -> Column(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.space6).testTag(HomeTags.NO_ACCESS),
+            verticalArrangement = Arrangement.spacedBy(Spacing.space2),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = stringResource(R.string.no_access_title),
+                modifier = Modifier.semantics { heading() },
+                style = MaterialTheme.typography.title2,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = stringResource(R.string.no_access_body),
+                style = MaterialTheme.typography.body,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }

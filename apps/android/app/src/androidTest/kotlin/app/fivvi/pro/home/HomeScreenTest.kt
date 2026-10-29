@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.fivvi.pro.AppLanguage
 import app.fivvi.pro.AppRule
@@ -70,6 +71,53 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
     }
 
     @Test
+    fun test_F002_AC10_homeStateFromMe_workspace() {
+        me.answerAccount(workspaces = listOf("John's Gym"))
+        launch()
+
+        compose.onNodeWithTag(HomeTags.WORKSPACE_NAME).assertTextEquals("John's Gym")
+        compose.onNodeWithTag(HomeTags.SET_UP_ON_WEB).assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.NO_ACCESS).assertDoesNotExist()
+    }
+
+    @Test
+    fun test_F002_AC10_homeStateFromMe_setUpOnTheWeb() {
+        me.answerAccount(workspaces = emptyList(), canCreateWorkspace = true)
+        launch()
+
+        compose.onNodeWithTag(HomeTags.SET_UP_ON_WEB).assertTextEquals(string(R.string.home_set_up_on_web))
+        compose.onNodeWithTag(HomeTags.OPEN_WEB).assertTextEquals(string(R.string.home_open_web))
+        compose.onNodeWithTag(HomeTags.WORKSPACE_NAME).assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.NO_ACCESS).assertDoesNotExist()
+    }
+
+    @Test
+    fun test_F002_AC10_homeStateFromMe_noAccess() {
+        me.answerAccount(workspaces = emptyList(), canCreateWorkspace = false)
+        launch()
+
+        compose.onNodeWithTag(HomeTags.NO_ACCESS).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.no_access_title)).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.no_access_body)).assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.SIGN_OUT).assertTextEquals(string(R.string.sign_out_label))
+        compose.onNodeWithTag(HomeTags.SET_UP_ON_WEB).assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.WORKSPACE_NAME).assertDoesNotExist()
+    }
+
+    @Test
+    fun test_F002_AC10_noAccessSignOutShowsSignIn() {
+        me.answerAccount(workspaces = emptyList(), canCreateWorkspace = false)
+        signIn.answerSignedOut()
+        launch()
+
+        compose.onNodeWithTag(HomeTags.SIGN_OUT).performClick()
+
+        waitForSignIn()
+        assertEquals(1, signIn.signOuts)
+        assertNull(store.read())
+    }
+
+    @Test
     fun F001N_AC4_failedAccountCallShowsRetry() {
         me.answers += { throw IOException("offline") }
         me.answerAccount("owner@example.com")
@@ -77,6 +125,8 @@ class HomeScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lang
 
         compose.onNodeWithTag(HomeTags.ERROR)
             .assertTextEquals(localizedString(language, R.string.sign_in_errors_generic))
+        // The hello block stays while /me has failed.
+        compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(localizedString(language, R.string.hello_title))
         compose.onNodeWithTag(HomeTags.RETRY).performClick()
 
         compose.onNodeWithTag(HomeTags.SIGNED_IN_AS)

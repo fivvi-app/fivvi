@@ -1,7 +1,10 @@
 package app.fivvi.pro
 
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Bundle
 import android.os.LocaleList
 import androidx.activity.ComponentActivity
@@ -19,6 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.pro.hello.HelloViewModel
 import app.fivvi.pro.home.HomeScreen
 import app.fivvi.pro.home.HomeViewModel
+import app.fivvi.pro.home.WebLinks
 import app.fivvi.pro.observability.Observability
 import app.fivvi.pro.signin.SignInActions
 import app.fivvi.pro.signin.SignInScreen
@@ -76,6 +80,16 @@ class MainActivity : ComponentActivity() {
         SignInScreen(state, actions, showsSignedOutNotice = showsSignedOutNotice)
     }
 
+    // The system browser, never a web view: creating a workspace happens on the web only (F002 AC10).
+    private fun openWelcomeOnTheWeb() {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(WebLinks.welcomeUrl(BuildConfig.API_BASE_URL)))
+        try {
+            startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            // A phone without a browser can't open it; there is nothing else to do here.
+        }
+    }
+
     @Composable
     private fun Home(dependencies: AppDependencies, key: String) {
         val hello = viewModel(key = "hello-$key-${language.tag}") {
@@ -99,6 +113,7 @@ class MainActivity : ComponentActivity() {
             onRetryHello = hello::retry,
             onRetryMe = me::retry,
             onSignOut = me::signOut,
+            onOpenWeb = ::openWelcomeOnTheWeb,
         )
     }
 }

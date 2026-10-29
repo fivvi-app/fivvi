@@ -25,7 +25,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | [F001](https://github.com/fivvi-app/fivvi/issues/128) | Authentication: sign-in with the emailed link or 6-digit code on the web, and with the code and a bearer token on iOS and Android (ADR-007) | IMPLEMENTED | Must | M2 (+ iOS/Android; native sign-in: separate spec) | E004, E006 | ✅ | ✅ | §2.4, §27 |
-| F002 | Workspaces | IN PROGRESS | Must | M2 | F001 | ⬜ | ⬜ | §5 |
+| [F002](https://github.com/fivvi-app/fivvi/issues/170) | Workspaces: create a workspace on the web (TW-11), rename it in Settings → General, signed-in home routes to the workspace, first run or no access; iOS and Android open the workspace or point to the web (`GET /api/v1/me`) | IMPLEMENTED | Must | M2 | F001 | ✅ | ✅ | §5 |
 | F003 | Workspace Membership | IN PROGRESS | Must | M2 | F002 | ⬜ | ⬜ | §2.9, §6, §9 (team role next to client relationship) |
 | F004 | Roles | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9, §50 (Owner and Trainer; Admin is a later role 🔜) |
 | F005 | Trainer Profile | PLANNED | Must | M2 (+ iOS/Android: profile) | F003 | ⬜ | ⬜ | §9 |
