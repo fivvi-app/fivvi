@@ -1238,6 +1238,96 @@
         }
       }
     },
+    "userMenu.error" : {
+      "comment" : "Shown in the user menu when the chosen language could not be saved on the account (no connection or a server error). The page keeps its language and the person can try again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your language wasn't saved. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je taal is niet opgeslagen. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "userMenu.label" : {
+      "comment" : "Accessible name of the button that opens the user menu (the ⋯ button) in the frame of a workspace's pages.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User menu"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruikersmenu"
+          }
+        }
+      }
+    },
+    "userMenu.language" : {
+      "comment" : "Menu row that opens the two language options; {language} is the current language written in its own language (Nederlands or English).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language: %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taal: %1$@"
+          }
+        }
+      }
+    },
+    "userMenu.languageEn" : {
+      "comment" : "Language option, always written in English whatever the interface language (GLOSSARY §4.8).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
+          }
+        }
+      }
+    },
+    "userMenu.languageNl" : {
+      "comment" : "Language option, always written in Dutch whatever the interface language (GLOSSARY §4.8).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nederlands"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nederlands"
+          }
+        }
+      }
+    },
     "welcome.description" : {
       "comment" : "Line under the heading of TW-11.",
       "extractionState" : "manual",

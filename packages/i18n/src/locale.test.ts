@@ -141,3 +141,27 @@ describe('F001 AC9: communication language order for sign-in emails (ADR-019)', 
     expect(resolveSignInCommunicationLanguage({ page: {} })).toBe('en');
   });
 });
+
+// F010 AC6: one test per case of ADR-017's order, named as in the spec. The native apps mirror
+// these names in their own tests.
+describe('AC6: explicit, stored, device, English', () => {
+  it('explicit: a choice made now wins over a stored preference and the device', () => {
+    expect(
+      resolveInterfaceLanguage({ explicit: 'en', stored: 'nl-NL', requested: ['nl-NL'] }),
+    ).toBe('en');
+  });
+
+  it('stored: the stored preference wins over the device languages', () => {
+    expect(resolveInterfaceLanguage({ stored: 'en', requested: ['nl-NL'] })).toBe('en');
+    expect(resolveInterfaceLanguage({ stored: 'nl-NL', requested: ['en-GB'] })).toBe('nl-NL');
+  });
+
+  it('device: the first supported device or browser language decides without a choice', () => {
+    expect(resolveInterfaceLanguage({ requested: ['fr-FR', 'nl-BE', 'en-GB'] })).toBe('nl-NL');
+  });
+
+  it('English: nothing supported is chosen, stored or requested', () => {
+    expect(resolveInterfaceLanguage({ requested: ['de-DE'] })).toBe('en');
+    expect(resolveInterfaceLanguage({})).toBe('en');
+  });
+});

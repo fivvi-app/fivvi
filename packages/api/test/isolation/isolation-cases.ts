@@ -54,6 +54,8 @@ const theWorkspace: IsolationCase['seed'] = (_db, { workspaceId }) =>
 export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // Account routes.
   getMe: {},
+  // The caller's own account: it stores their language and touches no workspace's data (F010).
+  updateMe: { body: { preferredLocale: 'en' } },
   createWorkspace: { body: { name: "John's Gym" }, createsWorkspace: true },
 
   // The routes of one workspace (F002): a read shows its id, a rename takes a valid name.

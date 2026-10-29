@@ -1,7 +1,7 @@
 import { messages } from '@fivvi/i18n';
 import { createFormatter, createTranslator } from 'next-intl';
 import { describe, expect, it } from 'vitest';
-import { intlConfig, requestLocale } from './config';
+import { catalogLocale, intlConfig, requestLocale } from './config';
 
 describe('E005 web request locale', () => {
   it('uses the language cookie before the browser languages', () => {
@@ -16,6 +16,11 @@ describe('E005 web request locale', () => {
     expect(requestLocale(undefined, 'de-DE')).toBe('en');
     expect(requestLocale('fr', 'de-DE')).toBe('en');
     expect(requestLocale(undefined, null)).toBe('en');
+  });
+
+  it('F010: maps the formatting locale back to the catalog locale', () => {
+    expect(catalogLocale(intlConfig('nl-NL').locale)).toBe('nl-NL');
+    expect(catalogLocale(intlConfig('en').locale)).toBe('en');
   });
 
   it('runs next-intl on the formatting locale', () => {

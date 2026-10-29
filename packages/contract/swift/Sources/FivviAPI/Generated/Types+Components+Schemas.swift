@@ -361,6 +361,32 @@ extension Components {
                 case role
             }
         }
+        /// What to change on the signed-in account. Fields left out stay as they are.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdateMeRequest`.
+        public struct UpdateMeRequest: Codable, Hashable, Sendable {
+            /// The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/preferredLocale`.
+            @frozen public enum PreferredLocalePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case nlNL = "nl-NL"
+                case en = "en"
+            }
+            /// The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/preferredLocale`.
+            public var preferredLocale: Components.Schemas.UpdateMeRequest.PreferredLocalePayload?
+            /// Creates a new `UpdateMeRequest`.
+            ///
+            /// - Parameters:
+            ///   - preferredLocale: The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
+            public init(preferredLocale: Components.Schemas.UpdateMeRequest.PreferredLocalePayload? = nil) {
+                self.preferredLocale = preferredLocale
+            }
+            public enum CodingKeys: String, CodingKey {
+                case preferredLocale
+            }
+        }
         /// Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.
         ///
         /// - Remark: Generated from `#/components/schemas/SignInRequest`.

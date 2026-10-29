@@ -9,6 +9,8 @@ import kotlinx.serialization.Serializable
 
 import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.NotSignedIn
+import app.fivvi.api.models.UpdateMeRequest
+import app.fivvi.api.models.ValidationError
 
 interface MeApi {
     /**
@@ -24,5 +26,21 @@ interface MeApi {
      */
     @GET("v1/me")
     suspend fun getMe(): Response<MeResponse>
+
+    /**
+     * PATCH v1/me
+     * Change the signed-in account
+     * Stores the language the person chose (&#x60;preferredLocale&#x60;), so every browser and app of the account shows it from its next load. Answers with the account, as &#x60;GET /v1/me&#x60; does. A value other than &#x60;nl-NL&#x60; or &#x60;en&#x60; answers &#x60;400&#x60; and nothing changes.
+     * Responses:
+     *  - 200: The account with its change.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param updateMeRequest 
+     * @return [MeResponse]
+     */
+    @PATCH("v1/me")
+    suspend fun updateMe(@Body updateMeRequest: UpdateMeRequest): Response<MeResponse>
 
 }

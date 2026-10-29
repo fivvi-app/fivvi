@@ -79,5 +79,10 @@
   "workspaceNav.label": "Accessible name of the navigation of a workspace's pages, read by screen readers.",
   "workspaceNav.settings": "Navigation link to Settings (Instellingen). Shown to the Owner only (GLOSSARY §4.8).",
   "signOut.label": "Button that signs out only the browser (or device) it is pressed on; other browsers stay signed in. On every signed-in page of the web app.",
-  "signOut.error": "Shown next to the sign-out button when signing out failed (no connection or a server error). The person is still signed in and can try again."
+  "signOut.error": "Shown next to the sign-out button when signing out failed (no connection or a server error). The person is still signed in and can try again.",
+  "userMenu.label": "Accessible name of the button that opens the user menu (the ⋯ button) in the frame of a workspace's pages.",
+  "userMenu.language": "Menu row that opens the two language options; {language} is the current language written in its own language (Nederlands or English).",
+  "userMenu.languageNl": "Language option, always written in Dutch whatever the interface language (GLOSSARY §4.8).",
+  "userMenu.languageEn": "Language option, always written in English whatever the interface language (GLOSSARY §4.8).",
+  "userMenu.error": "Shown in the user menu when the chosen language could not be saved on the account (no connection or a server error). The page keeps its language and the person can try again."
 }

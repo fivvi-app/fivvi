@@ -27,4 +27,11 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   workspace_created: {
     workspace_id: property.uuid(),
   },
+  // F010: someone chose their interface language. The language and the surface only: the distinct
+  // ID is random for each event (`anonymousDistinctId()`), so nothing leads to the account, and no
+  // name or email address is recorded.
+  language_changed: {
+    locale: property.enum(['nl-NL', 'en']),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
 });
