@@ -3,6 +3,7 @@ package app.fivvi.pro.home
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.MeWorkspace
+import app.fivvi.api.models.UpdateMeRequest
 import java.util.UUID
 import retrofit2.Response
 
@@ -16,6 +17,9 @@ class FakeMeApi : MeApi {
         calls++
         return answers.removeFirst()()
     }
+
+    override suspend fun updateMe(updateMeRequest: UpdateMeRequest): Response<MeResponse> =
+        error("FakeMeApi.updateMe is not expected in this test")
 
     /** The account has a workspace by default, so the screens that don't care which state they are in show the home. */
     fun answerAccount(
