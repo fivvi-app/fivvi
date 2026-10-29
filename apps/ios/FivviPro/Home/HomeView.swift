@@ -38,7 +38,15 @@ struct HomeView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     Spacer(minLength: 0)
-                    destination
+                    VStack(spacing: Tokens.Spacing.space4) {
+                        destination
+                        // One hello block in one place, so it loads once whether /me is loading, failed or answered
+                        // with a workspace; the other states have their own text instead.
+                        if showsHello {
+                            HelloView(model: hello)
+                                .padding(.horizontal, Tokens.Spacing.gutter)
+                        }
+                    }
                     Spacer(minLength: 0)
                     accountLine
                 }
@@ -47,6 +55,13 @@ struct HomeView: View {
         }
         .background(Tokens.Colors.bgCanvas)
         .task { await account.load() }
+    }
+
+    private var showsHello: Bool {
+        switch account.destination {
+        case nil, .workspace: true
+        case .setUpOnWeb, .noAccess: false
+        }
     }
 
     @ViewBuilder private var destination: some View {
@@ -60,13 +75,6 @@ struct HomeView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
                     .accessibilityIdentifier("home.workspaceName")
-                Text(catalog[.workspaceHomeDescription])
-                    .font(.system(Tokens.TextStyle.body))
-                    .foregroundStyle(Tokens.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("home.workspaceDescription")
-                HelloView(model: hello)
             }
             .padding(.horizontal, Tokens.Spacing.gutter)
         case .setUpOnWeb:
@@ -85,8 +93,17 @@ struct HomeView: View {
             }
             .padding(.horizontal, Tokens.Spacing.gutter)
         case .noAccess:
-            message(catalog[.noAccessBody], id: "home.noAccess")
-                .padding(.horizontal, Tokens.Spacing.gutter)
+            VStack(spacing: Tokens.Spacing.space4) {
+                Text(catalog[.noAccessTitle])
+                    .font(.system(Tokens.TextStyle.title2, weight: .semibold))
+                    .foregroundStyle(Tokens.Colors.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("home.noAccessTitle")
+                message(catalog[.noAccessBody], id: "home.noAccess")
+            }
+            .padding(.horizontal, Tokens.Spacing.gutter)
         case nil:
             EmptyView()
         }

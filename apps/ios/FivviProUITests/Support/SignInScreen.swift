@@ -24,6 +24,7 @@ struct SignInScreen {
     /// The block holding the account line and Sign out.
     var account: XCUIElement { app.otherElements["home.account"] }
     var greeting: XCUIElement { app.staticTexts["hello.greeting"] }
+    var homeRetry: XCUIElement { app.buttons["home.retry"] }
     var signOut: XCUIElement { app.buttons["home.signOut"] }
 
     /// Launches the app against `server`; the parameters are `AppLaunch.launch`'s.

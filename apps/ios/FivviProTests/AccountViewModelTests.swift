@@ -153,8 +153,8 @@ final class AccountViewModelTests: XCTestCase {
             let expected = TestCatalog(locale)
             XCTAssertEqual(catalog[.setUpOnWeb], expected["home.setUpOnWeb"])
             XCTAssertEqual(catalog[.openWeb], expected["home.openWeb"])
+            XCTAssertEqual(catalog[.noAccessTitle], expected["noAccess.title"])
             XCTAssertEqual(catalog[.noAccessBody], expected["noAccess.body"])
-            XCTAssertEqual(catalog[.workspaceHomeDescription], expected["workspaceHome.description"])
         }
     }
 

@@ -41,12 +41,40 @@ final class WorkspaceHomeUITests: SignInUITestCase {
         browser.terminate()
     }
 
+    func test_F002_AC10_aFailedAccountCallKeepsTheHelloBlockNextToRetry() throws {
+        let server = try StubServer(
+            .greeting(key: "hello.title"), signIn: StubServer.SignIn(meStatus: 503)
+        )
+        let screen = SignInScreen.launch(against: server, session: .signedIn)
+
+        XCTAssertTrue(screen.homeRetry.waitUntilExists(timeout: timeout))
+        XCTAssertTrue(screen.greeting.waitUntilExists(timeout: timeout), "the hello block shows without /me")
+        XCTAssertFalse(screen.app.staticTexts["home.workspaceName"].exists)
+    }
+
+    func test_F002_AC10_setUpOnTheWebWrapsAtTheLargestTextSize() throws {
+        let server = try StubServer(
+            .greeting(key: "hello.title"), signIn: StubServer.SignIn(workspaceName: nil, canCreateWorkspace: true)
+        )
+        let screen = SignInScreen.launch(against: server, session: .signedIn, textSize: AppLaunch.largestTextSize)
+        let button = screen.app.buttons["home.openWeb"]
+
+        XCTAssertTrue(button.waitUntilExists(timeout: timeout))
+        screen.scrollIntoView(screen.app.staticTexts["home.setUpOnWeb"])
+        screen.scrollIntoView(button)
+        try assertReadable(screen, [screen.app.staticTexts["home.setUpOnWeb"], button], wholeInWindow: true)
+        try assertTouchTarget(button, on: screen)
+    }
+
     func test_F002_AC10_noAccessShowsTheTextAndSignsOut() throws {
         let catalog = TestCatalog.configured
         let (screen, server) = try launch(workspace: nil, canCreate: false)
 
         XCTAssertTrue(screen.app.staticTexts["home.noAccess"].waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.app.staticTexts["home.noAccess"].label, catalog["noAccess.body"])
+        let title = screen.app.staticTexts["home.noAccessTitle"]
+        XCTAssertEqual(title.label, catalog["noAccess.title"])
+        XCTAssertTrue(try title.hasTrait(.header))
         XCTAssertFalse(screen.app.buttons["home.openWeb"].exists)
         XCTAssertEqual(screen.signOut.label, catalog["signOut.label"])
 
