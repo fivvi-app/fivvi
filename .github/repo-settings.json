@@ -29,12 +29,12 @@
     {
       "name": "prio-high",
       "color": "b60205",
-      "description": "Owner task: do first; it blocks agent work soon or has a long wait (a sign-up, a reply)"
+      "description": "Owner task: do first; agents need its result for the next specs to be written or built"
     },
     {
       "name": "prio-medium",
       "color": "fbca04",
-      "description": "Owner task: due before the next gate (G0 or G2); not blocking agents yet"
+      "description": "Owner task: due by G0 or G2; agents don't need it yet"
     },
     {
       "name": "prio-low",
@@ -49,17 +49,17 @@
     {
       "name": "effort-medium",
       "color": "bfdadc",
-      "description": "Owner task: up to an hour on your own, or one message and wait for the reply"
+      "description": "Owner task: up to an hour (on your own, a short call, or one message and a wait for the reply)"
     },
     {
       "name": "effort-big",
       "color": "7057ff",
-      "description": "Owner task: a meeting with someone else, or several steps over days"
+      "description": "Owner task: more than an hour, an appointment of an hour or more, or steps over days"
     },
     {
       "name": "with-pilot-gym",
       "color": "f9d0c4",
-      "description": "Owner task: done with the pilot gym owner; batch these into one visit"
+      "description": "Owner task: at least one step is with the pilot gym owner; batch these into one visit"
     }
   ]
 }
