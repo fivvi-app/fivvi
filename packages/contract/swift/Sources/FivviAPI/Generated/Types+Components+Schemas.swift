@@ -325,25 +325,40 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeWorkspace/slug`.
             public var slug: Swift.String
+            /// What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeWorkspace/role`.
+            @frozen public enum RolePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case owner = "owner"
+                case trainer = "trainer"
+            }
+            /// What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeWorkspace/role`.
+            public var role: Components.Schemas.MeWorkspace.RolePayload
             /// Creates a new `MeWorkspace`.
             ///
             /// - Parameters:
             ///   - id: The workspace ID.
             ///   - name: The name shown in the product.
             ///   - slug: The URL name: `/w/{slug}` on the web.
+            ///   - role: What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway.
             public init(
                 id: Swift.String,
                 name: Swift.String,
-                slug: Swift.String
+                slug: Swift.String,
+                role: Components.Schemas.MeWorkspace.RolePayload
             ) {
                 self.id = id
                 self.name = name
                 self.slug = slug
+                self.role = role
             }
             public enum CodingKeys: String, CodingKey {
                 case id
                 case name
                 case slug
+                case role
             }
         }
         /// Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.
@@ -516,6 +531,25 @@ extension Components {
             public enum CodingKeys: String, CodingKey {
                 case name
                 case personName
+            }
+        }
+        /// Renames a workspace. Only the name changes: the slug stays, so links keep working.
+        ///
+        /// - Remark: Generated from `#/components/schemas/RenameWorkspaceRequest`.
+        public struct RenameWorkspaceRequest: Codable, Hashable, Sendable {
+            /// The new name, as the product shows it from now on.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RenameWorkspaceRequest/name`.
+            public var name: Swift.String
+            /// Creates a new `RenameWorkspaceRequest`.
+            ///
+            /// - Parameters:
+            ///   - name: The new name, as the product shows it from now on.
+            public init(name: Swift.String) {
+                self.name = name
+            }
+            public enum CodingKeys: String, CodingKey {
+                case name
             }
         }
     }

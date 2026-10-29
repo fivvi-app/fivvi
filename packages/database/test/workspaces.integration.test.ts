@@ -8,9 +8,11 @@ import {
   createTenantScopes,
   createWorkspaceWithOwner,
   type DatabaseClient,
+  findWorkspace,
   listMyWorkspaces,
   listTeamWorkspaces,
   organizations,
+  renameWorkspace,
   teamMembers,
 } from '../src/index.ts';
 import { addClient, addTeamRole, createAccount, createWorkspace } from '../src/testing/index.ts';
@@ -199,7 +201,7 @@ describe('F002 creating a workspace', () => {
     );
 
     const [row] = await admin.db.select().from(organizations).where(eq(organizations.id, owned.id));
-    expect(listed).toEqual([{ id: owned.id, name: row?.name, slug: row?.slug }]);
+    expect(listed).toEqual([{ id: owned.id, name: row?.name, slug: row?.slug, role: 'owner' }]);
     expect(fromAny).toEqual(listed);
     expect(JSON.stringify([listed, fromAny])).not.toContain(stranger.id);
     expect(JSON.stringify([listed, fromAny])).not.toContain(clientOf.id);
@@ -214,5 +216,107 @@ describe('F002 creating a workspace', () => {
     );
 
     expect(listed).toEqual([]);
+  });
+});
+
+describe('F002 reading and renaming a workspace', () => {
+  let database: TestDatabase;
+  let admin: DatabaseClient;
+  let app: DatabaseClient;
+
+  beforeAll(async () => {
+    database = await cloneTemplateDatabase();
+    admin = createDatabase({ url: database.url, maxConnections: 2 });
+    app = createDatabase({ url: database.appUrl, maxConnections: 6 });
+  });
+
+  afterAll(async () => {
+    await app?.close();
+    await admin?.close();
+    await database?.drop();
+  });
+
+  const scopes = () => createTenantScopes(() => app.db);
+
+  async function ownerOf(workspaceId: string) {
+    const account = await createAccount(admin.db, { label: 'owner' });
+    await addTeamRole(admin.db, { workspaceId, accountId: account.id, role: 'owner' });
+    return account;
+  }
+
+  it('AC6: reads the workspace of the scope', async () => {
+    const workspace = await createWorkspace(admin.db);
+    const owner = await ownerOf(workspace.id);
+
+    const entry = await scopes().inWorkspaceScope(
+      { accountId: owner.id, workspaceId: workspace.id, admit: () => 'team' },
+      (scope) => findWorkspace(scope),
+    );
+
+    expect(entry).toEqual({
+      status: 'entered',
+      value: {
+        id: workspace.id,
+        name: workspace.marker,
+        slug: workspace.marker,
+        defaultLocale: 'nl-NL',
+        timeZone: 'Europe/Amsterdam',
+      },
+    });
+  });
+
+  it('AC6: a rename changes the name and never the slug', async () => {
+    const workspace = await createWorkspace(admin.db);
+    const owner = await ownerOf(workspace.id);
+
+    const entry = await scopes().inWorkspaceScope(
+      { accountId: owner.id, workspaceId: workspace.id, admit: () => 'team' },
+      (scope) => renameWorkspace(scope, "John's Gym Utrecht"),
+    );
+
+    expect(entry).toMatchObject({
+      status: 'entered',
+      value: { id: workspace.id, name: "John's Gym Utrecht", slug: workspace.marker },
+    });
+    const [row] = await admin.db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, workspace.id));
+    expect(row).toMatchObject({ name: "John's Gym Utrecht", slug: workspace.marker });
+  });
+
+  it('AC8: a rename touches no other workspace', async () => {
+    const mine = await createWorkspace(admin.db);
+    const other = await createWorkspace(admin.db);
+    const owner = await ownerOf(mine.id);
+
+    await scopes().inWorkspaceScope(
+      { accountId: owner.id, workspaceId: mine.id, admit: () => 'team' },
+      (scope) => renameWorkspace(scope, 'Mine Only'),
+    );
+
+    const [row] = await admin.db.select().from(organizations).where(eq(organizations.id, other.id));
+    expect(row?.name).toBe(other.marker);
+  });
+
+  it('AC6: a rename that fails later in the request is rolled back', async () => {
+    const workspace = await createWorkspace(admin.db);
+    const owner = await ownerOf(workspace.id);
+
+    await expect(
+      scopes().inWorkspaceScope(
+        { accountId: owner.id, workspaceId: workspace.id, admit: () => 'team' },
+        async (scope) => {
+          await renameWorkspace(scope, 'Gone');
+          throw new Error('the request failed');
+        },
+      ),
+    ).rejects.toThrow('the request failed');
+
+    const [row] = await admin.db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, workspace.id));
+    expect(row?.name).toBe(workspace.marker);
   });
 });

@@ -10,6 +10,11 @@ export const MeWorkspaceSchema = z
     id: z.uuid().openapi({ description: 'The workspace ID.' }),
     name: z.string().openapi({ description: 'The name shown in the product.' }),
     slug: z.string().openapi({ description: 'The URL name: `/w/{slug}` on the web.' }),
+    role: z.enum(['owner', 'trainer']).openapi({
+      description:
+        'What the account is in the workspace. The web shows Settings to the Owner only; the ' +
+        'API refuses the rest of what a Trainer may not do with `403` anyway.',
+    }),
   })
   .openapi('MeWorkspace', { description: 'A workspace the account has a team role in.' });
 

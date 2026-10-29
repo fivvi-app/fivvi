@@ -356,6 +356,8 @@ describe('E011 route access', () => {
       'post /v1/sign-in/request': 'public',
       'post /v1/sign-in/token': 'public',
       'post /v1/sign-out': 'public',
+      'get /v1/workspaces/{workspaceId}': 'workspace',
+      'patch /v1/workspaces/{workspaceId}': 'workspace',
       'post /v1/workspaces': 'account',
     });
   });

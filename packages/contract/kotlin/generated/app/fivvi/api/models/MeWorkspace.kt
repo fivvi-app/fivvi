@@ -34,6 +34,7 @@ import kotlinx.serialization.Contextual
  * @param id The workspace ID.
  * @param name The name shown in the product.
  * @param slug The URL name: `/w/{slug}` on the web.
+ * @param role What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway.
  */
 @Serializable
 
@@ -49,10 +50,24 @@ data class MeWorkspace (
 
     /* The URL name: `/w/{slug}` on the web. */
     @SerialName(value = "slug")
-    val slug: kotlin.String
+    val slug: kotlin.String,
+
+    /* What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway. */
+    @SerialName(value = "role")
+    val role: MeWorkspace.Role
 
 ) {
 
+    /**
+     * What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway.
+     *
+     * Values: OWNER,TRAINER
+     */
+    @Serializable
+    enum class Role(val value: kotlin.String) {
+        @SerialName(value = "owner") OWNER("owner"),
+        @SerialName(value = "trainer") TRAINER("trainer");
+    }
 
 }
 

@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import { workspaceOf } from '../../../../server/workspace-of';
+import { WorkspaceFrame } from './workspace-frame';
 
 /**
  * Every page of `/w/{slug}` is a page of a workspace the signed-in person has a team role in
- * (F002): any other slug goes to the signed-in home. The navigation with the workspace name and
- * the person's role (`information-architecture.md §4.1`) joins here with F013/F014.
+ * (F002): any other slug goes to the signed-in home. The frame shows the workspace name and the
+ * navigation; the rest of the navigation joins it with F013/F014.
  */
 export default async function WorkspaceLayout({
   children,
@@ -13,6 +14,10 @@ export default async function WorkspaceLayout({
   children: ReactNode;
   params: Promise<{ slug: string }>;
 }) {
-  await workspaceOf((await params).slug);
-  return children;
+  const { name, slug, role } = await workspaceOf((await params).slug);
+  return (
+    <WorkspaceFrame name={name} slug={slug} isOwner={role === 'owner'}>
+      {children}
+    </WorkspaceFrame>
+  );
 }

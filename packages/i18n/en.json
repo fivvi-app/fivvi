@@ -78,6 +78,28 @@
   "workspaceHome": {
     "description": "The overview of your gym or business will appear here soon."
   },
+  "settingsGeneral": {
+    "title": "General",
+    "nameLabel": "Name of your gym or business",
+    "save": "Save",
+    "saved": "Saved.",
+    "urlNameLabel": "URL name",
+    "timeZoneLabel": "Time zone",
+    "errors": {
+      "nameRequired": "Enter the name of your gym or business.",
+      "nameTooLong": "This name is too long. Use a shorter one.",
+      "noConnection": "No connection. Check your internet and try again.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
+  "noPermission": {
+    "title": "No access",
+    "body": "You don't have access to this page. Ask the owner of {workspace}."
+  },
+  "workspaceNav": {
+    "label": "Main navigation",
+    "settings": "Settings"
+  },
   "signOut": {
     "label": "Sign out",
     "error": "Signing out didn't work. Try again."

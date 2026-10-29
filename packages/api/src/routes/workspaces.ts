@@ -1,4 +1,9 @@
-import { claimWorkspaceCreation, createWorkspaceWithOwner } from '@fivvi/database';
+import {
+  claimWorkspaceCreation,
+  createWorkspaceWithOwner,
+  findWorkspace,
+  renameWorkspace,
+} from '@fivvi/database';
 import {
   canCreateWorkspace,
   NAME_MAX_LENGTH,
@@ -7,12 +12,13 @@ import {
 } from '@fivvi/domain';
 import { OpenAPIHono, type RouteConfig, type RouteHandler, z } from '@hono/zod-openapi';
 import type { Context, MiddlewareHandler } from 'hono';
-import { type AccessEnv, defineRoute } from '../access.ts';
+import { type AccessEnv, defineRoute, type WorkspaceEnv } from '../access.ts';
 import {
   answerValidationFailure,
   FORBIDDEN,
   ForbiddenSchema,
   internalServerErrorResponse,
+  NOT_FOUND,
   validationErrorResponse,
 } from '../errors.ts';
 import { LocaleSchema } from '../schemas.ts';
@@ -110,6 +116,74 @@ const createWorkspaceRoute = defineRoute(
   { type: 'account', workspaces: 'team' },
 );
 
+const WorkspaceParamsSchema = z.object({
+  workspaceId: z.uuid().openapi({
+    param: { name: 'workspaceId', in: 'path' },
+    description: 'The workspace ID.',
+  }),
+});
+
+const RenameWorkspaceRequestSchema = z
+  .object({
+    name: nameField('The new name, as the product shows it from now on.'),
+  })
+  .openapi('RenameWorkspaceRequest', {
+    description:
+      'Renames a workspace. Only the name changes: the slug stays, so links keep working.',
+  });
+
+const getWorkspaceRoute = defineRoute(
+  {
+    method: 'get',
+    path: '/v1/workspaces/{workspaceId}',
+    operationId: 'getWorkspace',
+    tags: ['workspaces'],
+    summary: 'A workspace',
+    description: 'The workspace: its name, URL name, default language and time zone.',
+    security: SIGNED_IN,
+    request: { params: WorkspaceParamsSchema },
+    responses: {
+      200: {
+        description: 'The workspace.',
+        content: { 'application/json': { schema: WorkspaceSchema } },
+      },
+      400: validationErrorResponse,
+      500: internalServerErrorResponse,
+    },
+  },
+  { type: 'workspace', roles: ['owner', 'trainer'], client: 'none' },
+);
+
+const renameWorkspaceRoute = defineRoute(
+  {
+    method: 'patch',
+    path: '/v1/workspaces/{workspaceId}',
+    operationId: 'renameWorkspace',
+    tags: ['workspaces'],
+    summary: 'Rename a workspace',
+    description:
+      'Changes the name of the workspace (the Owner only). The slug never changes, so links ' +
+      'and QR codes keep working. The name is trimmed, not blank and at most 80 characters.',
+    security: SIGNED_IN,
+    request: {
+      params: WorkspaceParamsSchema,
+      body: {
+        required: true,
+        content: { 'application/json': { schema: RenameWorkspaceRequestSchema } },
+      },
+    },
+    responses: {
+      200: {
+        description: 'The workspace with its new name.',
+        content: { 'application/json': { schema: WorkspaceSchema } },
+      },
+      400: validationErrorResponse,
+      500: internalServerErrorResponse,
+    },
+  },
+  { type: 'workspace', roles: ['owner'], client: 'none' },
+);
+
 /**
  * Claims the right to create (the account's lock, its team roles as of now) and asks the rule of
  * `packages/domain`. A refusal is a 403 and the transaction rolls back.
@@ -158,4 +232,16 @@ export function registerWorkspaces(app: OpenAPIHono) {
   };
   workspaces.openapi(createWorkspaceRoute, createWorkspace);
   app.route('/', workspaces);
+
+  // The routes of one workspace: the scope holds that workspace only.
+  const inWorkspace = new OpenAPIHono<WorkspaceEnv>({ defaultHook: answerValidationFailure });
+  inWorkspace.openapi(getWorkspaceRoute, async (c) => {
+    const workspace = await findWorkspace(c.get('scope'));
+    return workspace ? c.json(workspace, 200) : c.json(NOT_FOUND, 404);
+  });
+  inWorkspace.openapi(renameWorkspaceRoute, async (c) => {
+    const workspace = await renameWorkspace(c.get('scope'), c.req.valid('json').name);
+    return workspace ? c.json(workspace, 200) : c.json(NOT_FOUND, 404);
+  });
+  app.route('/', inWorkspace);
 }

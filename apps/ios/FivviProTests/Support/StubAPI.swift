@@ -141,6 +141,14 @@ actor StubAPI: APIProtocol {
         fatalError("The app doesn't call createWorkspace yet")
     }
 
+    func getWorkspace(_ input: Operations.GetWorkspace.Input) async throws -> Operations.GetWorkspace.Output {
+        fatalError("The app doesn't call getWorkspace yet")
+    }
+
+    func renameWorkspace(_ input: Operations.RenameWorkspace.Input) async throws -> Operations.RenameWorkspace.Output {
+        fatalError("The app doesn't call renameWorkspace yet")
+    }
+
     /// The account `getMe` answers with: a workspace of each name in `workspaces` (synthetic IDs and slugs).
     private static func me(
         id: String, email: String, workspaces: [String] = [], canCreateWorkspace: Bool = false
@@ -148,7 +156,10 @@ actor StubAPI: APIProtocol {
         .init(
             id: id, email: email, name: "Owner", canCreateWorkspace: canCreateWorkspace,
             workspaces: workspaces.enumerated().map { index, name in
-                .init(id: "7c1d2e3f-0000-4000-8000-00000000000\(index)", name: name, slug: "workspace-\(index)")
+                .init(
+                    id: "7c1d2e3f-0000-4000-8000-00000000000\(index)", name: name,
+                    slug: "workspace-\(index)", role: .owner
+                )
             }
         )
     }

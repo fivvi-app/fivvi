@@ -1,5 +1,11 @@
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
-import { authSessions, authUsers, createDatabase } from '@fivvi/database';
+import {
+  authSessions,
+  authUsers,
+  createDatabase,
+  organizations,
+  teamMembers,
+} from '@fivvi/database';
 import { databaseUrl } from '@fivvi/testing/database/server';
 import type { BrowserContext } from '@playwright/test';
 import { eq } from 'drizzle-orm';
@@ -48,6 +54,32 @@ export async function createAccount(email: string): Promise<void> {
   const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
   try {
     await client.db.insert(authUsers).values({ email, name: 'E2E', emailVerified: true });
+  } finally {
+    await client.close();
+  }
+}
+
+/**
+ * Makes `email` (an existing account, see `createAccount`) a Trainer of a new workspace named
+ * `name`, on the e2e app server's database, and returns the workspace's URL name. The workspace
+ * has no Owner: the spec is about what a Trainer sees. The URL name is made unique, so specs and
+ * retries never share a workspace.
+ */
+export async function createGymWithTrainer(email: string, name: string): Promise<string> {
+  const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
+  try {
+    const user = (await client.db.select().from(authUsers).where(eq(authUsers.email, email)))[0];
+    if (!user) throw new Error(`No account ${email} on the e2e database.`);
+    const slug = `trainer-gym-${randomUUID().slice(0, 8)}`;
+    const [gym] = await client.db
+      .insert(organizations)
+      .values({ name, slug, defaultLocale: 'nl-NL', timeZone: 'Europe/Amsterdam' })
+      .returning({ id: organizations.id });
+    if (!gym) throw new Error('The workspace was not created.');
+    await client.db
+      .insert(teamMembers)
+      .values({ organizationId: gym.id, accountId: user.id, role: 'trainer' });
+    return slug;
   } finally {
     await client.close();
   }

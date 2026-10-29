@@ -25,6 +25,41 @@
       "name": "run-native",
       "color": "1d76db",
       "description": "Run the iOS and Android CI jobs on this PR, whatever changed (read on its pushes)"
+    },
+    {
+      "name": "prio-high",
+      "color": "b60205",
+      "description": "Owner task: do first; agents need its result for the next specs to be written or built"
+    },
+    {
+      "name": "prio-medium",
+      "color": "fbca04",
+      "description": "Owner task: due by G0 or G2; agents don't need it yet"
+    },
+    {
+      "name": "prio-low",
+      "color": "c5def5",
+      "description": "Owner task: for go-live (G4) or later, or blocked by another issue"
+    },
+    {
+      "name": "effort-quick",
+      "color": "0e8a16",
+      "description": "Owner task: 15 minutes or less of your own time (waiting doesn't count)"
+    },
+    {
+      "name": "effort-medium",
+      "color": "bfdadc",
+      "description": "Owner task: more than 15 minutes, up to an hour of your own time"
+    },
+    {
+      "name": "effort-big",
+      "color": "7057ff",
+      "description": "Owner task: more than an hour of your own time, meetings included"
+    },
+    {
+      "name": "with-pilot-gym",
+      "color": "f9d0c4",
+      "description": "Owner task: at least one step is with the pilot gym owner; batch these into one visit"
     }
   ]
 }

@@ -145,7 +145,7 @@ describe('github-settings.sh apply', () => {
     assert.deepEqual(JSON.parse(repo.input), SETTINGS.merge);
   });
 
-  it('creates or updates the spec-approved, owner-merge, owner-only and run-native labels', () => {
+  it('creates or updates the spec-approved, owner-merge, owner-only, run-native and owner-task labels', () => {
     const labels = apply([]).filter((call) => call.args[0] === 'label');
     assert.deepEqual(
       labels.map((call) => [call.args[2], call.args.includes('--force')]),
@@ -154,6 +154,13 @@ describe('github-settings.sh apply', () => {
         ['owner-merge', true],
         ['owner-only', true],
         ['run-native', true],
+        ['prio-high', true],
+        ['prio-medium', true],
+        ['prio-low', true],
+        ['effort-quick', true],
+        ['effort-medium', true],
+        ['effort-big', true],
+        ['with-pilot-gym', true],
       ],
     );
   });

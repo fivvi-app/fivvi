@@ -395,4 +395,159 @@ describe('F002 POST /v1/workspaces', () => {
 
     expect(posthog.events).toEqual([]);
   });
+
+  describe('GET and PATCH /v1/workspaces/{workspaceId}', () => {
+    /** A workspace made through the API, its Owner, and a Trainer of it. */
+    async function gym(name = "John's Gym") {
+      const owner = await account();
+      const created = await create(owner, { name });
+      const workspace = (await created.json()) as WorkspaceBody;
+      const trainer = await account();
+      await addTeamRole(admin.db, { workspaceId: workspace.id, accountId: trainer.id });
+      return { owner, trainer, workspace };
+    }
+
+    const call = (
+      method: 'GET' | 'PATCH',
+      workspaceId: string,
+      who: { id: string } | undefined,
+      body?: unknown,
+    ) =>
+      api().request(`/v1/workspaces/${workspaceId}`, {
+        method,
+        headers: {
+          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+          ...(who ? { 'x-test-account': who.id } : {}),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+
+    const storedName = async (id: string) =>
+      (await admin.db.select().from(organizations).where(eq(organizations.id, id)))[0]?.name;
+
+    it('AC6: the Owner and a Trainer read the workspace', async () => {
+      const { owner, trainer, workspace } = await gym();
+
+      for (const who of [owner, trainer]) {
+        const response = await call('GET', workspace.id, who);
+
+        expect(response.status).toBe(200);
+        const body = (await response.json()) as WorkspaceBody;
+        expect(ContractWorkspace.parse(body)).toEqual(body);
+        expect(body).toEqual(workspace);
+      }
+    });
+
+    it('AC6: the Owner renames the workspace and the slug stays', async () => {
+      const { owner, workspace } = await gym();
+
+      const response = await call('PATCH', workspace.id, owner, {
+        name: "  John's Gym Utrecht ",
+      });
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as WorkspaceBody;
+      expect(ContractWorkspace.parse(body)).toEqual(body);
+      expect(body).toEqual({ ...workspace, name: "John's Gym Utrecht" });
+      expect(await storedName(workspace.id)).toBe("John's Gym Utrecht");
+      // Every page reads it: the next read, and the account's list in /me.
+      const read = await call('GET', workspace.id, owner);
+      expect(((await read.json()) as WorkspaceBody).name).toBe("John's Gym Utrecht");
+      const me = await api().request('/v1/me', { headers: { 'x-test-account': owner.id } });
+      expect(((await me.json()) as { workspaces: unknown[] }).workspaces).toEqual([
+        { id: workspace.id, name: "John's Gym Utrecht", slug: workspace.slug, role: 'owner' },
+      ]);
+    });
+
+    it('AC7: a Trainer gets 403 on a rename, and the name stays', async () => {
+      const { trainer, workspace } = await gym();
+
+      const response = await call('PATCH', workspace.id, trainer, { name: 'Hijacked' });
+
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({ code: 'forbidden' });
+      expect(await storedName(workspace.id)).toBe(workspace.name);
+    });
+
+    it('AC8: an Owner of another workspace gets 404 and no data, on read and on rename', async () => {
+      const { workspace } = await gym('Gym Alpha');
+      const other = await gym('Gym Beta');
+
+      for (const response of [
+        await call('GET', workspace.id, other.owner),
+        await call('PATCH', workspace.id, other.owner, { name: 'Taken Over' }),
+        await call('GET', '00000000-0000-4000-8000-000000000000', other.owner),
+        await call('GET', 'not-an-id', other.owner),
+      ]) {
+        expect(response.status).toBe(404);
+        expect(await response.json()).toEqual({ code: 'not_found' });
+      }
+      expect(await storedName(workspace.id)).toBe('Gym Alpha');
+    });
+
+    it('AC9: anonymous gets 401 on read and on rename', async () => {
+      const { workspace } = await gym();
+
+      for (const response of [
+        await call('GET', workspace.id, undefined),
+        await call('PATCH', workspace.id, undefined, { name: 'Nope' }),
+      ]) {
+        expect(response.status).toBe(401);
+        expect(await response.json()).toEqual({ code: 'not_signed_in' });
+      }
+      expect(await storedName(workspace.id)).toBe(workspace.name);
+    });
+
+    it('AC3: a blank, too long or missing name is refused with a field error', async () => {
+      const { owner, workspace } = await gym();
+
+      for (const body of [
+        { name: '' },
+        { name: '   ' },
+        { name: 'x'.repeat(81) },
+        {},
+        { name: 7 },
+      ]) {
+        const response = await call('PATCH', workspace.id, owner, body);
+
+        expect(response.status, JSON.stringify(body)).toBe(400);
+        const error = (await response.json()) as { code: string; issues: { path: string }[] };
+        expect(error.code).toBe('validation_failed');
+        expect(error.issues.map((issue) => issue.path)).toEqual(['name']);
+      }
+      expect(await storedName(workspace.id)).toBe(workspace.name);
+      // Exactly 80 characters is fine.
+      const longest = await call('PATCH', workspace.id, owner, { name: 'y'.repeat(80) });
+      expect(longest.status).toBe(200);
+    });
+
+    it('AC6: only the name changes; other fields in the body are ignored', async () => {
+      const { owner, workspace } = await gym();
+
+      const response = await call('PATCH', workspace.id, owner, {
+        name: 'Renamed Gym',
+        slug: 'new-slug',
+        timeZone: 'Asia/Tokyo',
+      });
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ ...workspace, name: 'Renamed Gym' });
+    });
+
+    it('AC11: both routes are in the committed contract with their access', () => {
+      const item = contract.paths['/v1/workspaces/{workspaceId}'];
+      expect(item.get.operationId).toBe('getWorkspace');
+      expect(item.get['x-access']).toEqual({
+        type: 'workspace',
+        roles: ['owner', 'trainer'],
+        client: 'none',
+      });
+      expect(item.patch.operationId).toBe('renameWorkspace');
+      expect(item.patch['x-access']).toEqual({
+        type: 'workspace',
+        roles: ['owner'],
+        client: 'none',
+      });
+    });
+  });
 });

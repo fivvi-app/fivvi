@@ -234,7 +234,9 @@ private final class Responder: @unchecked Sendable {
             "id": "2f6a1f0e-0000-4000-8000-000000000001", "email": signIn.email, "name": "Owner",
             "preferredLocale": NSNull(), "canCreateWorkspace": signIn.canCreateWorkspace,
             "workspaces": (signIn.workspaceName.map {
-                [["id": "7c1d2e3f-0000-4000-8000-000000000000", "name": $0, "slug": "workspace-0"]] as [Any]
+                [[
+                    "id": "7c1d2e3f-0000-4000-8000-000000000000", "name": $0, "slug": "workspace-0", "role": "owner"
+                ]] as [Any]
             } ?? []) as [Any]
         ]
     }
