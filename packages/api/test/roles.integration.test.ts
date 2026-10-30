@@ -106,7 +106,7 @@ describe('F004 roles on every workspace route', () => {
       body: method === 'GET' || method === 'DELETE' ? undefined : JSON.stringify({ name: 'x' }),
     });
 
-  it('AC7: a role elsewhere or a client relationship gives 404; anonymous 401', async () => {
+  it('AC7: a role elsewhere gives 404, a client relationship 403; anonymous 401', async () => {
     const { gym, mike, anna, sarahRole } = await world();
     const calls = workspaceCalls(gym.id, sarahRole.id);
     expect(calls.length).toBeGreaterThan(0);
@@ -115,8 +115,8 @@ describe('F004 roles on every workspace route', () => {
       expect(await (await call(route)).status, `${route.name} anonymous`).toBe(401);
       // Mike is an Owner of Fit Studio and nothing in John's Gym.
       expect((await call(route, mike)).status, `${route.name} Mike`).toBe(404);
-      // Anna is a client of John's Gym: a place without a team capability. Open question: AC7
-      // says 404, E011 AC10 (the isolation suite) says 403 for a place the access doesn't allow.
+      // Anna is a client of John's Gym: she has a place in the workspace but no team capability,
+      // so 403 (E011 AC10). 404 is only for no place at all (Mike).
       expect((await call(route, anna)).status, `${route.name} Anna`).toBe(403);
     }
   });
