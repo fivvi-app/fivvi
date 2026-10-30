@@ -2,7 +2,7 @@ import {
   claimWorkspaceCreation,
   createWorkspaceWithOwner,
   findWorkspace,
-  renameWorkspace,
+  updateWorkspace,
 } from '@fivvi/database';
 import {
   canCreateWorkspace,
@@ -123,13 +123,23 @@ const WorkspaceParamsSchema = z.object({
   }),
 });
 
-const RenameWorkspaceRequestSchema = z
+const UpdateWorkspaceRequestSchema = z
   .object({
-    name: nameField('The new name, as the product shows it from now on.'),
+    name: nameField('The new name, as the product shows it from now on.').optional(),
+    // A bare `LocaleSchema`, like `Workspace.defaultLocale` (#223).
+    defaultLocale: LocaleSchema.optional(),
   })
-  .openapi('RenameWorkspaceRequest', {
+  // A body with neither changes nothing; it is refused on `name`, the field every client sent
+  // before `defaultLocale` existed.
+  .refine((body) => body.name !== undefined || body.defaultLocale !== undefined, {
+    path: ['name'],
+    error: 'Give the name, the default language or both.',
+  })
+  .openapi('UpdateWorkspaceRequest', {
     description:
-      'Renames a workspace. Only the name changes: the slug stays, so links keep working.',
+      'Changes a workspace: its name, its default communication language (the language of ' +
+      'emails to people whose own preference is unknown, never what anyone sees on screen, ' +
+      'ADR-017), or both. The slug stays, so links keep working. Other fields are ignored.',
   });
 
 const getWorkspaceRoute = defineRoute(
@@ -160,21 +170,23 @@ const renameWorkspaceRoute = defineRoute(
     path: '/v1/workspaces/{workspaceId}',
     operationId: 'renameWorkspace',
     tags: ['workspaces'],
-    summary: 'Rename a workspace',
+    summary: 'Rename a workspace or set its default language',
     description:
-      'Changes the name of the workspace (the Owner only). The slug never changes, so links ' +
-      'and QR codes keep working. The name is trimmed, not blank and at most 80 characters.',
+      'Changes the name and/or the default communication language of the workspace (the Owner ' +
+      'only). The slug never changes, so links and QR codes keep working. The name is trimmed, ' +
+      'not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else ' +
+      'answers `400` and nothing changes.',
     security: SIGNED_IN,
     request: {
       params: WorkspaceParamsSchema,
       body: {
         required: true,
-        content: { 'application/json': { schema: RenameWorkspaceRequestSchema } },
+        content: { 'application/json': { schema: UpdateWorkspaceRequestSchema } },
       },
     },
     responses: {
       200: {
-        description: 'The workspace with its new name.',
+        description: 'The workspace with its changes.',
         content: { 'application/json': { schema: WorkspaceSchema } },
       },
       400: validationErrorResponse,
@@ -240,7 +252,7 @@ export function registerWorkspaces(app: OpenAPIHono) {
     return workspace ? c.json(workspace, 200) : c.json(NOT_FOUND, 404);
   });
   inWorkspace.openapi(renameWorkspaceRoute, async (c) => {
-    const workspace = await renameWorkspace(c.get('scope'), c.req.valid('json').name);
+    const workspace = await updateWorkspace(c.get('scope'), c.req.valid('json'));
     return workspace ? c.json(workspace, 200) : c.json(NOT_FOUND, 404);
   });
   app.route('/', inWorkspace);

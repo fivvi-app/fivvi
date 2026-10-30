@@ -361,6 +361,32 @@ extension Components {
                 case role
             }
         }
+        /// What to change on the signed-in account. Fields left out stay as they are.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdateMeRequest`.
+        public struct UpdateMeRequest: Codable, Hashable, Sendable {
+            /// The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/preferredLocale`.
+            @frozen public enum PreferredLocalePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case nlNL = "nl-NL"
+                case en = "en"
+            }
+            /// The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/preferredLocale`.
+            public var preferredLocale: Components.Schemas.UpdateMeRequest.PreferredLocalePayload?
+            /// Creates a new `UpdateMeRequest`.
+            ///
+            /// - Parameters:
+            ///   - preferredLocale: The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
+            public init(preferredLocale: Components.Schemas.UpdateMeRequest.PreferredLocalePayload? = nil) {
+                self.preferredLocale = preferredLocale
+            }
+            public enum CodingKeys: String, CodingKey {
+                case preferredLocale
+            }
+        }
         /// Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.
         ///
         /// - Remark: Generated from `#/components/schemas/SignInRequest`.
@@ -533,23 +559,31 @@ extension Components {
                 case personName
             }
         }
-        /// Renames a workspace. Only the name changes: the slug stays, so links keep working.
+        /// Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored.
         ///
-        /// - Remark: Generated from `#/components/schemas/RenameWorkspaceRequest`.
-        public struct RenameWorkspaceRequest: Codable, Hashable, Sendable {
+        /// - Remark: Generated from `#/components/schemas/UpdateWorkspaceRequest`.
+        public struct UpdateWorkspaceRequest: Codable, Hashable, Sendable {
             /// The new name, as the product shows it from now on.
             ///
-            /// - Remark: Generated from `#/components/schemas/RenameWorkspaceRequest/name`.
-            public var name: Swift.String
-            /// Creates a new `RenameWorkspaceRequest`.
+            /// - Remark: Generated from `#/components/schemas/UpdateWorkspaceRequest/name`.
+            public var name: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/UpdateWorkspaceRequest/defaultLocale`.
+            public var defaultLocale: Components.Schemas.Locale?
+            /// Creates a new `UpdateWorkspaceRequest`.
             ///
             /// - Parameters:
             ///   - name: The new name, as the product shows it from now on.
-            public init(name: Swift.String) {
+            ///   - defaultLocale:
+            public init(
+                name: Swift.String? = nil,
+                defaultLocale: Components.Schemas.Locale? = nil
+            ) {
                 self.name = name
+                self.defaultLocale = defaultLocale
             }
             public enum CodingKeys: String, CodingKey {
                 case name
+                case defaultLocale
             }
         }
         /// A person on the team of a workspace.

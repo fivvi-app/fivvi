@@ -61,7 +61,11 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Change the signed-in account
+         * @description Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load. Answers with the account, as `GET /v1/me` does. A value other than `nl-NL` or `en` answers `400` and nothing changes.
+         */
+        patch: operations["updateMe"];
         trace?: never;
     };
     "/v1/sign-in/request": {
@@ -162,8 +166,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Rename a workspace
-         * @description Changes the name of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters.
+         * Rename a workspace or set its default language
+         * @description Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.
          */
         patch: operations["renameWorkspace"];
         trace?: never;
@@ -304,6 +308,14 @@ export interface components {
              */
             role: "owner" | "trainer";
         };
+        /** @description What to change on the signed-in account. Fields left out stay as they are. */
+        UpdateMeRequest: {
+            /**
+             * @description The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
+             * @enum {string}
+             */
+            preferredLocale?: "nl-NL" | "en";
+        };
         /** @description Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019. */
         SignInRequest: {
             /**
@@ -353,10 +365,11 @@ export interface components {
             /** @description The creator’s own name, stored on the account. Leave it out when the account has one. */
             personName?: string;
         };
-        /** @description Renames a workspace. Only the name changes: the slug stays, so links keep working. */
-        RenameWorkspaceRequest: {
+        /** @description Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored. */
+        UpdateWorkspaceRequest: {
             /** @description The new name, as the product shows it from now on. */
-            name: string;
+            name?: string;
+            defaultLocale?: components["schemas"]["Locale"];
         };
         /** @description A person on the team of a workspace. */
         TeamMember: {
@@ -478,6 +491,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    updateMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMeRequest"];
+            };
+        };
+        responses: {
+            /** @description The account with its change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
                 };
             };
             /** @description Nobody is signed in: no valid sign-in session or bearer token. */
@@ -767,11 +831,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RenameWorkspaceRequest"];
+                "application/json": components["schemas"]["UpdateWorkspaceRequest"];
             };
         };
         responses: {
-            /** @description The workspace with its new name. */
+            /** @description The workspace with its changes. */
             200: {
                 headers: {
                     [name: string]: unknown;

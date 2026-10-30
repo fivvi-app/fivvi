@@ -12,8 +12,8 @@ import {
   listMyWorkspaces,
   listTeamWorkspaces,
   organizations,
-  renameWorkspace,
   teamMembers,
+  updateWorkspace,
 } from '../src/index.ts';
 import { addClient, addTeamRole, createAccount, createWorkspace } from '../src/testing/index.ts';
 
@@ -271,7 +271,7 @@ describe('F002 reading and renaming a workspace', () => {
 
     const entry = await scopes().inWorkspaceScope(
       { accountId: owner.id, workspaceId: workspace.id, admit: () => 'team' },
-      (scope) => renameWorkspace(scope, "John's Gym Utrecht"),
+      (scope) => updateWorkspace(scope, { name: "John's Gym Utrecht" }),
     );
 
     expect(entry).toMatchObject({
@@ -292,7 +292,7 @@ describe('F002 reading and renaming a workspace', () => {
 
     await scopes().inWorkspaceScope(
       { accountId: owner.id, workspaceId: mine.id, admit: () => 'team' },
-      (scope) => renameWorkspace(scope, 'Mine Only'),
+      (scope) => updateWorkspace(scope, { name: 'Mine Only' }),
     );
 
     const [row] = await admin.db.select().from(organizations).where(eq(organizations.id, other.id));
@@ -307,7 +307,7 @@ describe('F002 reading and renaming a workspace', () => {
       scopes().inWorkspaceScope(
         { accountId: owner.id, workspaceId: workspace.id, admit: () => 'team' },
         async (scope) => {
-          await renameWorkspace(scope, 'Gone');
+          await updateWorkspace(scope, { name: 'Gone' });
           throw new Error('the request failed');
         },
       ),

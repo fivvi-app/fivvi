@@ -15,6 +15,7 @@ import { Input } from '@fivvi/ui/components/input';
 import { Label } from '@fivvi/ui/components/label';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { LanguageSwitch } from './language-switch';
 import { requestCode, type SignInErrorKey, verifyCode } from './sign-in-client';
 
 /**
@@ -90,7 +91,10 @@ export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath?
   const disabled = !ready || pending;
 
   return (
-    <main className="flex min-h-dvh items-center justify-center p-4">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-2 p-4">
+      <div className="flex w-full max-w-sm justify-end">
+        <LanguageSwitch />
+      </div>
       <Card className="w-full max-w-sm">
         {step === 'email' ? (
           <form noValidate onSubmit={sendEmail} className="grid gap-(--card-spacing)">

@@ -36,7 +36,7 @@ final class WorkspaceHomeUITests: SignInUITestCase {
         button.tap()
 
         let browser = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
-        let opened = browser.wait(for: .runningForeground, timeout: timeout)
+        let opened = browser.wait(for: .runningForeground, timeout: externalAppLaunchTimeout)
         XCTAssertTrue(opened, "the system browser opens, not a web view")
         browser.terminate()
     }

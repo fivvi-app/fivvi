@@ -43,6 +43,9 @@
     "linkInvalidBody": "Request a new email to sign in.",
     "linkInvalidBack": "Back to sign in",
     "signedOutNotice": "You've been signed out. Sign in again.",
+    "languageLabel": "Language",
+    "languageNl": "Nederlands",
+    "languageEn": "English",
     "errors": {
       "invalidEmail": "This email address doesn't look right. Check it and try again.",
       "invalidOrExpiredCode": "This code isn't right or has expired. Check the code in the email or request a new one.",
@@ -92,17 +95,39 @@
       "generic": "Something went wrong. Try again."
     }
   },
+  "settingsLanguage": {
+    "title": "Language",
+    "defaultLabel": "Default language",
+    "help": "The language of emails to people whose language we don't know yet. What people see on screen, they choose themselves.",
+    "optionNl": "Nederlands",
+    "optionEn": "English",
+    "save": "Save",
+    "saved": "Saved.",
+    "errors": {
+      "noConnection": "No connection. Check your internet and try again.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
   "noPermission": {
     "title": "No access",
     "body": "You don't have access to this page. Ask the owner of {workspace}."
   },
   "workspaceNav": {
     "label": "Main navigation",
-    "settings": "Settings"
+    "settings": "Settings",
+    "settingsGeneral": "General",
+    "settingsLanguage": "Language"
   },
   "signOut": {
     "label": "Sign out",
     "error": "Signing out didn't work. Try again."
+  },
+  "userMenu": {
+    "label": "User menu",
+    "language": "Language: {language}",
+    "languageNl": "Nederlands",
+    "languageEn": "English",
+    "error": "Your language wasn't saved. Try again."
   },
   "email": {
     "layout": {

@@ -10,6 +10,7 @@ import {
   teamMembers,
 } from '@fivvi/database';
 import { addClient, addTeamRole } from '@fivvi/database/testing';
+import { resolveCommunicationLanguage } from '@fivvi/i18n';
 import {
   createErrorReporter,
   createProductEventCaptureTransport,
@@ -534,6 +535,97 @@ describe('F002 POST /v1/workspaces', () => {
       expect(await response.json()).toEqual({ ...workspace, name: 'Renamed Gym' });
     });
 
+    const storedLocale = async (id: string) =>
+      (await admin.db.select().from(organizations).where(eq(organizations.id, id)))[0]
+        ?.defaultLocale;
+
+    it('F010 AC7: the Owner sets the default language; only that changes', async () => {
+      const { owner, workspace } = await gym();
+      const [before] = await admin.db.select().from(authUsers).where(eq(authUsers.id, owner.id));
+      const preferredBefore = before?.preferredLocale;
+
+      const response = await call('PATCH', workspace.id, owner, { defaultLocale: 'en' });
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as WorkspaceBody;
+      expect(ContractWorkspace.parse(body)).toEqual(body);
+      expect(body).toEqual({ ...workspace, defaultLocale: 'en' });
+      expect(await storedLocale(workspace.id)).toBe('en');
+      // The communication language of a recipient without a preference is the default; the
+      // interface language of the Owner is not touched (ADR-017).
+      const stored = await storedLocale(workspace.id);
+      if (stored === undefined) throw new Error('The workspace has no default language.');
+      expect(
+        resolveCommunicationLanguage({ recipientPreference: null, workspaceDefault: stored }),
+      ).toBe('en');
+      const [account] = await admin.db.select().from(authUsers).where(eq(authUsers.id, owner.id));
+      expect(account?.preferredLocale).toBe(preferredBefore);
+    });
+
+    it('F010 AC7: the name and the default language can be set in one request', async () => {
+      const { owner, workspace } = await gym();
+
+      const response = await call('PATCH', workspace.id, owner, {
+        name: 'Both Gym',
+        defaultLocale: 'en',
+      });
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        ...workspace,
+        name: 'Both Gym',
+        defaultLocale: 'en',
+      });
+    });
+
+    it('F010 AC8: a Trainer gets 403 on the default language, and it stays', async () => {
+      const { trainer, workspace } = await gym();
+
+      const response = await call('PATCH', workspace.id, trainer, { defaultLocale: 'en' });
+
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({ code: 'forbidden' });
+      expect(await storedLocale(workspace.id)).toBe('nl-NL');
+    });
+
+    it('F010 AC9: another workspace’s Owner gets 404 and anonymous 401, and it stays', async () => {
+      const { workspace } = await gym('Gym Alpha');
+      const other = await gym('Gym Beta');
+
+      const foreign = await call('PATCH', workspace.id, other.owner, { defaultLocale: 'en' });
+      expect(foreign.status).toBe(404);
+      expect(await foreign.json()).toEqual({ code: 'not_found' });
+      const anonymous = await call('PATCH', workspace.id, undefined, { defaultLocale: 'en' });
+      expect(anonymous.status).toBe(401);
+      expect(await storedLocale(workspace.id)).toBe('nl-NL');
+    });
+
+    it('F010 AC10: any other language is refused with a field error and nothing is stored', async () => {
+      const { owner, workspace } = await gym();
+
+      for (const defaultLocale of ['nl-BE', 'de', 'EN', '', null, 7]) {
+        const response = await call('PATCH', workspace.id, owner, { defaultLocale });
+
+        expect(response.status, String(defaultLocale)).toBe(400);
+        const error = (await response.json()) as { code: string; issues: { path: string }[] };
+        expect(error.code).toBe('validation_failed');
+        expect(error.issues.map((issue) => issue.path)).toEqual(['defaultLocale']);
+      }
+      expect(await storedLocale(workspace.id)).toBe('nl-NL');
+    });
+
+    it('F010 AC10: a valid name does not rescue an invalid language', async () => {
+      const { owner, workspace } = await gym();
+
+      const response = await call('PATCH', workspace.id, owner, {
+        name: 'Changed',
+        defaultLocale: 'de',
+      });
+
+      expect(response.status).toBe(400);
+      expect(await storedName(workspace.id)).toBe(workspace.name);
+    });
+
     it('AC11: both routes are in the committed contract with their access', () => {
       const item = contract.paths['/v1/workspaces/{workspaceId}'];
       expect(item.get.operationId).toBe('getWorkspace');
@@ -548,6 +640,13 @@ describe('F002 POST /v1/workspaces', () => {
         roles: ['owner'],
         client: 'none',
       });
+      // F010 AC11: the default language is in the request body of the same operation.
+      expect(item.patch.requestBody.content['application/json'].schema.$ref).toBe(
+        '#/components/schemas/UpdateWorkspaceRequest',
+      );
+      expect(contract.components.schemas.UpdateWorkspaceRequest.properties.defaultLocale.$ref).toBe(
+        '#/components/schemas/Locale',
+      );
     });
   });
 });

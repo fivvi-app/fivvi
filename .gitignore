@@ -12,6 +12,7 @@ next-env.d.ts
 .turbo/
 .expo/
 coverage/
+.vitest/
 
 # Playwright output (apps/web)
 playwright-report/

@@ -154,17 +154,31 @@ export async function findWorkspace(scope: WorkspaceScope): Promise<WorkspaceVie
   return workspace;
 }
 
+/** What an Owner may change of a workspace: the fields given change, the others stay. */
+export interface WorkspaceChanges {
+  /** Trimmed and checked by the caller. */
+  readonly name?: string;
+  /** The default communication language (ADR-017); checked by the caller to be a catalog locale. */
+  readonly defaultLocale?: Locale;
+}
+
 /**
- * Changes the name of the scope's workspace and nothing else: the slug stays, so links and QR
- * codes keep working. The caller has trimmed and checked the name and decided the account may.
+ * Changes the name and/or the default communication language of the scope's workspace and
+ * nothing else: the slug stays, so links and QR codes keep working. The caller has checked the
+ * values and decided the account may. With nothing to change it just reads the workspace.
  */
-export async function renameWorkspace(
+export async function updateWorkspace(
   scope: WorkspaceScope,
-  name: string,
+  changes: WorkspaceChanges,
 ): Promise<WorkspaceView | undefined> {
+  const values = {
+    ...(changes.name === undefined ? {} : { name: changes.name }),
+    ...(changes.defaultLocale === undefined ? {} : { defaultLocale: changes.defaultLocale }),
+  };
+  if (Object.keys(values).length === 0) return findWorkspace(scope);
   const [workspace] = await executorOf(scope)
     .update(organizations)
-    .set({ name })
+    .set(values)
     .where(eq(organizations.id, scope.workspaceId))
     .returning(workspaceColumns);
   return workspace;

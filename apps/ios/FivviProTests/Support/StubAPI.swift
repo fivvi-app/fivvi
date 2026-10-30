@@ -159,6 +159,10 @@ actor StubAPI: APIProtocol {
         fatalError("The app doesn't call removeTeamMember yet")
     }
 
+    func updateMe(_ input: Operations.UpdateMe.Input) async throws -> Operations.UpdateMe.Output {
+        fatalError("The app doesn't call updateMe yet")
+    }
+
     /// The account `getMe` answers with: a workspace of each name in `workspaces` (synthetic IDs and slugs).
     private static func me(
         id: String, email: String, workspaces: [String] = [], canCreateWorkspace: Bool = false

@@ -66,6 +66,15 @@
     <string name="settings_general_title">Algemeen</string>
     <!-- Label of the read-only URL name of the workspace on TW-08 (the part of the web address and booking link made from the name at creation, which a rename never changes). -->
     <string name="settings_general_url_name_label">Naam in de link</string>
+    <string name="settings_language_default_label">Standaardtaal</string>
+    <string name="settings_language_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <string name="settings_language_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="settings_language_help">De taal van e-mails aan mensen van wie we de taal nog niet weten. Wat iemand op het scherm ziet, kiest diegene zelf.</string>
+    <string name="settings_language_option_en">English</string>
+    <string name="settings_language_option_nl">Nederlands</string>
+    <string name="settings_language_save">Opslaan</string>
+    <string name="settings_language_saved">Opgeslagen.</string>
+    <string name="settings_language_title">Taal</string>
     <!-- Button on the second step that goes back to the email field. -->
     <string name="sign_in_change_email">E-mailadres wijzigen</string>
     <!-- Under the heading of the second step. {email} is the address that was entered. Deliberately does not say whether an account exists (no account enumeration). -->
@@ -94,6 +103,9 @@
     <string name="sign_in_errors_invalid_or_expired_code">Deze code klopt niet of is verlopen. Controleer de code in de e-mail of vraag een nieuwe code aan.</string>
     <!-- Shown when the sign-in request could not reach the server. -->
     <string name="sign_in_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="sign_in_language_en">English</string>
+    <string name="sign_in_language_label">Taal</string>
+    <string name="sign_in_language_nl">Nederlands</string>
     <!-- Button on the confirm step for a link that no longer works. Goes back to the sign-in page, where a new email is requested. -->
     <string name="sign_in_link_invalid_back">Terug naar inloggen</string>
     <!-- Line under signIn.linkInvalidTitle, pointing to the button that goes back to the sign-in page. -->
@@ -116,6 +128,16 @@
     <string name="sign_out_error">Uitloggen is niet gelukt. Probeer het opnieuw.</string>
     <!-- Button that signs out only the browser (or device) it is pressed on; other browsers stay signed in. On every signed-in page of the web app. -->
     <string name="sign_out_label">Uitloggen</string>
+    <!-- Shown in the user menu when the chosen language could not be saved on the account (no connection or a server error). The page keeps its language and the person can try again. -->
+    <string name="user_menu_error">Je taal is niet opgeslagen. Probeer het opnieuw.</string>
+    <!-- Accessible name of the button that opens the user menu (the ⋯ button) in the frame of a workspace's pages. -->
+    <string name="user_menu_label">Gebruikersmenu</string>
+    <!-- Menu row that opens the two language options; {language} is the current language written in its own language (Nederlands or English). -->
+    <string name="user_menu_language">Taal: %1$s</string>
+    <!-- Language option, always written in English whatever the interface language (GLOSSARY §4.8). -->
+    <string name="user_menu_language_en">English</string>
+    <!-- Language option, always written in Dutch whatever the interface language (GLOSSARY §4.8). -->
+    <string name="user_menu_language_nl">Nederlands</string>
     <!-- Line under the heading of TW-11. -->
     <string name="welcome_description">Nog één stap: vertel hoe je sportschool of bedrijf heet.</string>
     <!-- Shown on TW-11 when creating the workspace failed for any other reason. Nothing was created. -->
@@ -146,4 +168,6 @@
     <string name="workspace_nav_label">Hoofdnavigatie</string>
     <!-- Navigation link to Settings (Instellingen). Shown to the Owner only (GLOSSARY §4.8). -->
     <string name="workspace_nav_settings">Instellingen</string>
+    <string name="workspace_nav_settings_general">Algemeen</string>
+    <string name="workspace_nav_settings_language">Taal</string>
 </resources>

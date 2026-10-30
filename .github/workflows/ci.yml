@@ -403,7 +403,10 @@ jobs:
     name: iOS tests (${{ matrix.locale }})
     needs: ios-build
     runs-on: macos-15
-    timeout-minutes: 20
+    # A healthy run takes 10-16 min (the simulator settle is about 2.5). A test that hangs fails after its own allowance
+    # (scripts/test-ios.sh), so this is the backstop. Detect changes (5) + iOS build (25) + this + the report job (2) stay
+    # under the merge queue's check timeout of 60 (ADR-018).
+    timeout-minutes: 25
     permissions:
       contents: read
       actions: read # scripts/step-timings.sh reads this run's step durations
@@ -430,9 +433,10 @@ jobs:
       - name: Unit and UI tests (${{ matrix.locale }})
         run: scripts/test-ios.sh test ${{ matrix.locale }}
 
-      # Only on failure: artifact storage counts against the free quota.
+      # Only on failure, or when the timeout cancels the job (#305) in a run that nothing supersedes (a pull request
+      # run is cancelled by the next push): artifact storage counts against the free quota.
       - name: Upload test results
-        if: failure()
+        if: failure() || (cancelled() && github.event_name != 'pull_request')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ios-test-results-${{ matrix.locale }}

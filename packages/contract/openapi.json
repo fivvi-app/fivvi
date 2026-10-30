@@ -256,6 +256,20 @@
         ],
         "description": "A workspace the account has a team role in."
       },
+      "UpdateMeRequest": {
+        "type": "object",
+        "properties": {
+          "preferredLocale": {
+            "type": "string",
+            "enum": [
+              "nl-NL",
+              "en"
+            ],
+            "description": "The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`."
+          }
+        },
+        "description": "What to change on the signed-in account. Fields left out stay as they are."
+      },
       "SignInRequest": {
         "type": "object",
         "properties": {
@@ -374,7 +388,7 @@
         ],
         "description": "Creates a workspace for the caller, who becomes its Owner. Nothing else is asked: the default language, the time zone and the slug are the platform’s defaults."
       },
-      "RenameWorkspaceRequest": {
+      "UpdateWorkspaceRequest": {
         "type": "object",
         "properties": {
           "name": {
@@ -382,12 +396,12 @@
             "minLength": 1,
             "maxLength": 80,
             "description": "The new name, as the product shows it from now on."
+          },
+          "defaultLocale": {
+            "$ref": "#/components/schemas/Locale"
           }
         },
-        "required": [
-          "name"
-        ],
-        "description": "Renames a workspace. Only the name changes: the slug stays, so links keep working."
+        "description": "Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored."
       },
       "TeamMember": {
         "type": "object",
@@ -561,6 +575,79 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateMe",
+        "tags": [
+          "me"
+        ],
+        "summary": "Change the signed-in account",
+        "description": "Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load. Answers with the account, as `GET /v1/me` does. A value other than `nl-NL` or `en` answers `400` and nothing changes.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "account",
+          "workspaces": "team"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The account with its change.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
                 }
               }
             }
@@ -939,8 +1026,8 @@
         "tags": [
           "workspaces"
         ],
-        "summary": "Rename a workspace",
-        "description": "Changes the name of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters.",
+        "summary": "Rename a workspace or set its default language",
+        "description": "Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.",
         "security": [
           {
             "cookieAuth": []
@@ -974,14 +1061,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RenameWorkspaceRequest"
+                "$ref": "#/components/schemas/UpdateWorkspaceRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "The workspace with its new name.",
+            "description": "The workspace with its changes.",
             "content": {
               "application/json": {
                 "schema": {

@@ -635,6 +635,159 @@
         }
       }
     },
+    "settingsLanguage.defaultLabel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default language"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standaardtaal"
+          }
+        }
+      }
+    },
+    "settingsLanguage.errors.generic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er ging iets mis. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "settingsLanguage.errors.noConnection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No connection. Check your internet and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen verbinding. Controleer je internet en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "settingsLanguage.help" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The language of emails to people whose language we don't know yet. What people see on screen, they choose themselves."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De taal van e-mails aan mensen van wie we de taal nog niet weten. Wat iemand op het scherm ziet, kiest diegene zelf."
+          }
+        }
+      }
+    },
+    "settingsLanguage.optionEn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
+          }
+        }
+      }
+    },
+    "settingsLanguage.optionNl" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nederlands"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nederlands"
+          }
+        }
+      }
+    },
+    "settingsLanguage.save" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opslaan"
+          }
+        }
+      }
+    },
+    "settingsLanguage.saved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opgeslagen."
+          }
+        }
+      }
+    },
+    "settingsLanguage.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taal"
+          }
+        }
+      }
+    },
     "signIn.changeEmail" : {
       "comment" : "Button on the second step that goes back to the email field.",
       "extractionState" : "manual",
@@ -887,6 +1040,57 @@
         }
       }
     },
+    "signIn.languageEn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
+          }
+        }
+      }
+    },
+    "signIn.languageLabel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taal"
+          }
+        }
+      }
+    },
+    "signIn.languageNl" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nederlands"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nederlands"
+          }
+        }
+      }
+    },
     "signIn.linkInvalidBack" : {
       "comment" : "Button on the confirm step for a link that no longer works. Goes back to the sign-in page, where a new email is requested.",
       "extractionState" : "manual",
@@ -1081,6 +1285,96 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uitloggen"
+          }
+        }
+      }
+    },
+    "userMenu.error" : {
+      "comment" : "Shown in the user menu when the chosen language could not be saved on the account (no connection or a server error). The page keeps its language and the person can try again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your language wasn't saved. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je taal is niet opgeslagen. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "userMenu.label" : {
+      "comment" : "Accessible name of the button that opens the user menu (the ⋯ button) in the frame of a workspace's pages.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User menu"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruikersmenu"
+          }
+        }
+      }
+    },
+    "userMenu.language" : {
+      "comment" : "Menu row that opens the two language options; {language} is the current language written in its own language (Nederlands or English).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language: %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taal: %1$@"
+          }
+        }
+      }
+    },
+    "userMenu.languageEn" : {
+      "comment" : "Language option, always written in English whatever the interface language (GLOSSARY §4.8).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
+          }
+        }
+      }
+    },
+    "userMenu.languageNl" : {
+      "comment" : "Language option, always written in Dutch whatever the interface language (GLOSSARY §4.8).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nederlands"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nederlands"
           }
         }
       }
@@ -1351,6 +1645,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Instellingen"
+          }
+        }
+      }
+    },
+    "workspaceNav.settingsGeneral" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algemeen"
+          }
+        }
+      }
+    },
+    "workspaceNav.settingsLanguage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taal"
           }
         }
       }

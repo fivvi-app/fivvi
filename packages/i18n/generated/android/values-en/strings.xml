@@ -37,6 +37,15 @@
     <string name="settings_general_time_zone_label">Time zone</string>
     <string name="settings_general_title">General</string>
     <string name="settings_general_url_name_label">URL name</string>
+    <string name="settings_language_default_label">Default language</string>
+    <string name="settings_language_errors_generic">Something went wrong. Try again.</string>
+    <string name="settings_language_errors_no_connection">No connection. Check your internet and try again.</string>
+    <string name="settings_language_help">The language of emails to people whose language we don\'t know yet. What people see on screen, they choose themselves.</string>
+    <string name="settings_language_option_en">English</string>
+    <string name="settings_language_option_nl">Nederlands</string>
+    <string name="settings_language_save">Save</string>
+    <string name="settings_language_saved">Saved.</string>
+    <string name="settings_language_title">Language</string>
     <string name="sign_in_change_email">Change email address</string>
     <string name="sign_in_check_email_body">If %1$s is registered, you\'ll receive an email with a code and a sign-in link.</string>
     <string name="sign_in_check_email_body_app">If %1$s is registered, you\'ll receive an email with a code.</string>
@@ -51,6 +60,9 @@
     <string name="sign_in_errors_invalid_email">This email address doesn\'t look right. Check it and try again.</string>
     <string name="sign_in_errors_invalid_or_expired_code">This code isn\'t right or has expired. Check the code in the email or request a new one.</string>
     <string name="sign_in_errors_no_connection">No connection. Check your internet and try again.</string>
+    <string name="sign_in_language_en">English</string>
+    <string name="sign_in_language_label">Language</string>
+    <string name="sign_in_language_nl">Nederlands</string>
     <string name="sign_in_link_invalid_back">Back to sign in</string>
     <string name="sign_in_link_invalid_body">Request a new email to sign in.</string>
     <string name="sign_in_link_invalid_title">This sign-in link no longer works</string>
@@ -62,6 +74,11 @@
     <string name="sign_in_title">Sign in</string>
     <string name="sign_out_error">Signing out didn\'t work. Try again.</string>
     <string name="sign_out_label">Sign out</string>
+    <string name="user_menu_error">Your language wasn\'t saved. Try again.</string>
+    <string name="user_menu_label">User menu</string>
+    <string name="user_menu_language">Language: %1$s</string>
+    <string name="user_menu_language_en">English</string>
+    <string name="user_menu_language_nl">Nederlands</string>
     <string name="welcome_description">One more step: tell us the name of your gym or business.</string>
     <string name="welcome_errors_generic">Something went wrong. Try again.</string>
     <string name="welcome_errors_no_connection">No connection. Check your internet and try again.</string>
@@ -77,4 +94,6 @@
     <string name="workspace_home_description">The overview of your gym or business will appear here soon.</string>
     <string name="workspace_nav_label">Main navigation</string>
     <string name="workspace_nav_settings">Settings</string>
+    <string name="workspace_nav_settings_general">General</string>
+    <string name="workspace_nav_settings_language">Language</string>
 </resources>

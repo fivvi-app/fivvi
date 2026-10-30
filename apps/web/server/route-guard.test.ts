@@ -75,7 +75,12 @@ describe('F001 AC13 route guard', () => {
     it('with the renewed sign-in session cookie (AC12)', async () => {
       const renewed = 'better-auth.session_token=abc.def; Max-Age=2592000; Path=/; HttpOnly';
 
-      const response = await guard('/home', { ...SIGNED_IN, setCookies: [renewed] }).answer;
+      // The cookie of the stored language already matches, so only the session cookie goes out.
+      const response = await guard(
+        '/home',
+        { ...SIGNED_IN, setCookies: [renewed] },
+        { headers: { cookie: 'NEXT_LOCALE=nl-NL' } },
+      ).answer;
 
       expect(response.headers.getSetCookie()).toEqual([renewed]);
     });
@@ -88,6 +93,68 @@ describe('F001 AC13 route guard', () => {
 
       const headers = readSession.mock.calls[0] as unknown as [Headers];
       expect(headers[0].get('cookie')).toBe('better-auth.session_token=abc.def');
+    });
+  });
+
+  // F010 AC2: the stored preference decides on every load, over whatever cookie this browser has.
+  describe('a signed-in browser follows the language stored on the account', () => {
+    const stored = (preferredLocale: 'nl-NL' | 'en' | null): SessionRead => ({
+      account: { ...account, name: '', preferredLocale },
+      setCookies: [],
+    });
+    const localeCookieOf = (response: Response) =>
+      response.headers.getSetCookie().find((cookie) => cookie.startsWith('NEXT_LOCALE='));
+
+    it('rewrites an older NEXT_LOCALE cookie, for the page and for the browser', async () => {
+      const response = await guard('/home', stored('en'), {
+        headers: { cookie: 'better-auth.session_token=abc.def; NEXT_LOCALE=nl-NL' },
+      }).answer;
+
+      expect(localeCookieOf(response)).toMatch(
+        /^NEXT_LOCALE=en; Path=\/;.* Max-Age=31536000; SameSite=lax/i,
+      );
+      // The page of this very request is rendered with it, not with the older cookie.
+      expect(response.headers.get('x-middleware-request-cookie')).toBe(
+        'better-auth.session_token=abc.def; NEXT_LOCALE=en',
+      );
+    });
+
+    it('adds the cookie to a browser that has none', async () => {
+      const response = await guard('/home', stored('nl-NL'), {
+        headers: { cookie: 'better-auth.session_token=abc.def' },
+      }).answer;
+
+      expect(localeCookieOf(response)).toContain('NEXT_LOCALE=nl-NL');
+      expect(response.headers.get('x-middleware-request-cookie')).toBe(
+        'better-auth.session_token=abc.def; NEXT_LOCALE=nl-NL',
+      );
+    });
+
+    it('leaves a cookie that already matches alone', async () => {
+      const response = await guard('/home', stored('en'), {
+        headers: { cookie: 'better-auth.session_token=abc.def; NEXT_LOCALE=en' },
+      }).answer;
+
+      expect(localeCookieOf(response)).toBeUndefined();
+      expect(response.headers.get('x-middleware-request-cookie')).toBeNull();
+    });
+
+    it('leaves the cookie alone while no language is stored', async () => {
+      const response = await guard('/home', stored(null), {
+        headers: { cookie: 'better-auth.session_token=abc.def; NEXT_LOCALE=en' },
+      }).answer;
+
+      expect(localeCookieOf(response)).toBeUndefined();
+      expect(response.headers.get('x-middleware-request-cookie')).toBeNull();
+    });
+
+    it('keeps the renewed sign-in session cookie as well', async () => {
+      const renewed = 'better-auth.session_token=abc.def; Max-Age=2592000; Path=/; HttpOnly';
+
+      const response = await guard('/home', { ...stored('en'), setCookies: [renewed] }).answer;
+
+      expect(response.headers.getSetCookie()).toContain(renewed);
+      expect(localeCookieOf(response)).toContain('NEXT_LOCALE=en');
     });
   });
 

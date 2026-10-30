@@ -733,8 +733,24 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       /test-ios\.sh build|xcodebuild build/,
       'the test jobs do not build',
     );
-    assert.match(iosTests, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/TestResults-\*\.xcresult/);
+    assert.match(
+      iosTests,
+      /if: failure\(\) \|\| \(cancelled\(\) && github\.event_name != 'pull_request'\)[\s\S]*apps\/ios\/\.build\/TestResults-\*\.xcresult/,
+      'a job cancelled by its timeout keeps the results, a superseded pull request run does not (#305)',
+    );
     assert.match(iosBuild, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/build-for-testing\.log/);
+  });
+
+  it('E002 #305: the iOS test job leaves room above a healthy run, and the chain stays under the merge queue timeout', () => {
+    const minutes = (section) => Number(section.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
+    const queue = Number(
+      readFileSync(join(SCRIPTS, '../.github/rulesets/main.json'), 'utf8').match(
+        /"check_response_timeout_minutes": (\d+)/,
+      )[1],
+    );
+    assert.ok(minutes(iosTests) >= 22, 'a healthy run takes up to 16 minutes, with the settle');
+    // Detect changes (5) + build + tests + the report job (2) must end before the queue gives up on the check.
+    assert.ok(5 + minutes(iosBuild) + minutes(iosTests) + 2 < queue, 'under the queue timeout');
   });
 
   it('E002 #242: the iOS jobs run on macos-15 with an Xcode that image has, and say why in a comment', () => {
@@ -1634,6 +1650,12 @@ case "$*" in
   test-without-building\\ *)
     # FAKE_FAIL_CONFIGURATION=<locale>: only the run of that test-plan configuration fails.
     case "$*" in *"-only-test-configuration $FAKE_FAIL_CONFIGURATION"*) [ -z "$FAKE_FAIL_CONFIGURATION" ] || exit 1 ;; esac
+    # FAKE_RESULT=stall: it never ends on its own, and on SIGINT it records that and ends with 130 (it has written its bundle).
+    [ "$FAKE_RESULT" != stall ] || exec perl -e '$SIG{INT} = sub { open my $f, ">", shift(@ARGV); print $f "SIGINT\\n"; close $f; exit 130 }; sleep 60' "${state}/sigint.log"
+    # FAKE_RESULT=stall-ignore-int: the same, but it ignores SIGINT, so only SIGKILL ends it.
+    [ "$FAKE_RESULT" != stall-ignore-int ] || exec perl -e '$SIG{INT} = "IGNORE"; sleep 60'
+    # FAKE_RESULT=stall-default-int: it sets no SIGINT handler, so it ends on SIGINT only if the script did not start it with SIGINT ignored.
+    [ "$FAKE_RESULT" != stall-default-int ] || exec perl -e 'sleep 60'
     ${outcome} ;;
 esac
 exit 0`,
@@ -1873,6 +1895,10 @@ esac`,
           assert.match(tests[0], /-xctestrun \S*FivviPro\.xctestrun/);
           assert.match(tests[0], new RegExp(`TestResults-${locale}\\.xcresult`));
           assert.ok(!tests[0].includes('-skip-testing'), 'the UI tests run too');
+          // A hung test fails after an allowance instead of stalling the job (#305).
+          assert.match(tests[0], /-test-timeouts-enabled YES/);
+          assert.match(tests[0], /-default-test-execution-time-allowance \d+/);
+          assert.match(tests[0], /-maximum-test-execution-time-allowance \d+/);
         });
       }
 
@@ -2062,6 +2088,92 @@ esac`,
 
       assert.equal(run.status, 1, run.output);
       assert.deepEqual(configs(fake), ['all']);
+    });
+
+    describe('#305 a run that outlasts the deadline is interrupted and fails', () => {
+      const stalled = {
+        FAKE_RESULT: 'stall',
+        IOS_TEST_DEADLINE: '2',
+        IOS_TEST_DEADLINE_GRACE: '10',
+      };
+      const deadlineError = /::error::The .* tests ran past the deadline of 2 s/;
+
+      it('pnpm test:ios sends xcodebuild SIGINT, says so, and fails', async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/test-ios.sh', [], stalled);
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, deadlineError);
+        assert.deepEqual(fake.log('sigint'), ['SIGINT']);
+        assert.equal(fake.simulator('IPHONE-18').state, 'Shutdown', 'the cleanup still runs');
+      });
+
+      it('kills an xcodebuild that ignores SIGINT once the grace is over, and fails', async () => {
+        const fake = checkout();
+        const started = Date.now();
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          ...stalled,
+          FAKE_RESULT: 'stall-ignore-int',
+          IOS_TEST_DEADLINE_GRACE: '2',
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, deadlineError);
+        assert.ok(
+          Date.now() - started < 30_000,
+          'the fake was killed, not waited for until its sleep ended',
+        );
+      });
+
+      it('reaches an xcodebuild that does not handle SIGINT itself (a background job of a script ignores it by default)', async () => {
+        const fake = checkout();
+        const started = Date.now();
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          ...stalled,
+          FAKE_RESULT: 'stall-default-int',
+          IOS_TEST_DEADLINE_GRACE: '40',
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.ok(
+          Date.now() - started < 30_000,
+          'SIGINT ended it; the grace of 40 s was not waited for',
+        );
+      });
+
+      it('test <locale> does the same for the job of that language', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], stalled);
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /::error::The nl tests ran past the deadline of 2 s/);
+        assert.deepEqual(fake.log('sigint'), ['SIGINT']);
+      });
+
+      it('IOS_PARALLEL=1 interrupts both runs and fails', async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/test-ios.sh', [], { ...stalled, IOS_PARALLEL: '1' });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /::error::The nl tests ran past the deadline of 2 s/);
+        assert.match(run.output, /::error::The en tests ran past the deadline of 2 s/);
+        assert.equal(fake.log('sigint').length > 0, true, 'xcodebuild got SIGINT');
+      });
+
+      it('a run inside the deadline is not interrupted', async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/test-ios.sh', [], { IOS_TEST_DEADLINE: '60' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.doesNotMatch(run.output, /past the deadline/);
+      });
     });
 
     it('IOS_PARALLEL=1 tests nl and en at the same time on two simulators, and deletes the second', async () => {

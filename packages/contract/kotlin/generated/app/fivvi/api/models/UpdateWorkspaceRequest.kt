@@ -23,23 +23,28 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.Locale
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * Renames a workspace. Only the name changes: the slug stays, so links keep working.
+ * Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored.
  *
  * @param name The new name, as the product shows it from now on.
+ * @param defaultLocale 
  */
 @Serializable
 
-data class RenameWorkspaceRequest (
+data class UpdateWorkspaceRequest (
 
     /* The new name, as the product shows it from now on. */
     @SerialName(value = "name")
-    val name: kotlin.String
+    val name: kotlin.String? = null,
+
+    @Contextual @SerialName(value = "defaultLocale")
+    val defaultLocale: Locale? = null
 
 ) {
 
