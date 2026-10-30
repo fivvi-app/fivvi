@@ -166,7 +166,7 @@ Run from the repo root. Turbo runs the task in every package that has it; add `-
 
 ```bash
 pnpm db:up
-export TEST_DATABASE_URL=postgres://fivvi:fivvi@localhost:5432/fivvi
+export TEST_DATABASE_URL=postgres://fivvi:fake-local-db-password@localhost:5432/fivvi
 pnpm test:integration
 ```
 

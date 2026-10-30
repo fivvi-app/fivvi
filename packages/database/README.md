@@ -82,7 +82,7 @@ The integration test enforces the id and timestamp conventions and the tenancy c
 
 ```bash
 pnpm db:up
-TEST_DATABASE_URL=postgres://fivvi:fivvi@localhost:5432/fivvi pnpm test:integration
+TEST_DATABASE_URL=postgres://fivvi:fake-local-db-password@localhost:5432/fivvi pnpm test:integration
 ```
 
 `TEST_DATABASE_URL` falls back to `DATABASE_URL`, and both are also read from `packages/database/.env`. The tests only accept a server on `localhost` and need `CREATEDB`. CI runs them against a Postgres 18 service container.
