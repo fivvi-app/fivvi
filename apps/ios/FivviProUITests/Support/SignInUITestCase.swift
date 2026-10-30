@@ -5,6 +5,11 @@ import XCTest
 class SignInUITestCase: XCTestCase {
     let timeout: TimeInterval = 10
 
+    /// The wait for another app to come to the foreground (Safari after `home.openWeb`). On a cold CI simulator Safari's
+    /// first launch (no warm process, first-run set-up) can take far longer than a screen of our own app, so it has its own
+    /// bound; it only ends early on success, so a warm launch costs nothing extra (#338).
+    let externalAppLaunchTimeout: TimeInterval = 60
+
     override func setUpWithError() throws {
         continueAfterFailure = false
     }
