@@ -36,11 +36,15 @@ private fun ownerAccount() = MeResponse(
     workspaces = emptyList(),
 )
 
-private val OWNER_IN_WORKSPACE = MeState.Loaded("owner@example.com", HomeDestination.Workspace("John's Gym"))
+private val OWNER_IN_WORKSPACE = MeState.Loaded(
+    "owner@example.com",
+    HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym")),
+)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
     private val api = FakeMeApi()
+    private val workspaces = FakeWorkspacesApi()
     private val signInApi = FakeSignInApi()
     private val store = InMemorySessionStore("tok-1")
     private val session = Session(store, onSignedOut = { clears++ })
@@ -64,6 +68,7 @@ class HomeViewModelTest {
 
     private fun viewModel() = HomeViewModel(
         api,
+        workspaces,
         session,
         signOutApi = { token ->
             signOutTokens += token
@@ -91,7 +96,10 @@ class HomeViewModelTest {
         api.answerAccount(workspaces = emptyList(), canCreateWorkspace = true)
         api.answerAccount(workspaces = emptyList(), canCreateWorkspace = false)
         val viewModel = viewModel()
-        assertEquals(HomeDestination.Workspace("John's Gym"), (viewModel.state.value as MeState.Loaded).destination)
+        assertEquals(
+            HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym")),
+            (viewModel.state.value as MeState.Loaded).destination,
+        )
 
         viewModel.retry()
         assertEquals(HomeDestination.SetUpOnWeb, (viewModel.state.value as MeState.Loaded).destination)
@@ -105,9 +113,64 @@ class HomeViewModelTest {
         api.answerAccount(workspaces = listOf("John's Gym", "Other"), canCreateWorkspace = true)
 
         assertEquals(
-            HomeDestination.Workspace("John's Gym"),
+            HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym")),
             (viewModel().state.value as MeState.Loaded).destination,
         )
+    }
+
+    // F003 AC6: Sarah was removed from John's Gym while the app was in the background. The next request for the workspace
+    // it shows answers 404; the app asks /me again and shows what is left, without a sign-out and without a crash.
+    @Test
+    fun test_F003_AC6_workspaceGoneShowsNoAccess() {
+        api.answerAccount(workspaces = listOf("John's Gym"))
+        api.answerAccount(workspaces = emptyList(), canCreateWorkspace = false)
+        workspaces.answerGone()
+        val viewModel = viewModel()
+
+        viewModel.refresh()
+
+        assertEquals(listOf(workspaceIdOf("John's Gym")), workspaces.requested)
+        assertEquals(HomeDestination.NoAccess, (viewModel.state.value as MeState.Loaded).destination)
+        assertEquals(true, session.state.value.signedIn)
+        assertEquals(0, clears)
+    }
+
+    @Test
+    fun test_F003_AC6_workspaceGoneShowsTheOtherWorkspace() {
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        api.answerAccount(workspaces = listOf("Sarah Personal Training"))
+        workspaces.answerGone()
+        val viewModel = viewModel()
+
+        viewModel.refresh()
+
+        assertEquals(
+            HomeDestination.Workspace("Sarah Personal Training", workspaceIdOf("Sarah Personal Training")),
+            (viewModel.state.value as MeState.Loaded).destination,
+        )
+    }
+
+    @Test
+    fun test_F003_AC6_aWorkspaceThatIsStillThereChangesNothing() {
+        api.answerAccount(workspaces = listOf("John's Gym"))
+        workspaces.answerFound()
+        val viewModel = viewModel()
+
+        viewModel.refresh()
+
+        assertEquals(OWNER_IN_WORKSPACE, viewModel.state.value)
+        assertEquals(1, api.calls)
+    }
+
+    @Test
+    fun test_F003_AC6_noConnectionOnForegroundKeepsTheScreen() {
+        api.answerAccount(workspaces = listOf("John's Gym"))
+        workspaces.answers += { throw IOException("offline") }
+        val viewModel = viewModel()
+
+        viewModel.refresh()
+
+        assertEquals(OWNER_IN_WORKSPACE, viewModel.state.value)
     }
 
     @Test
@@ -331,7 +394,7 @@ class HomeViewModelTest {
     fun F001N_AC10_signOutWithoutATokenSkipsTheRequest() {
         val empty = Session(InMemorySessionStore())
         api.answerAccount()
-        val viewModel = HomeViewModel(api, empty, { signInApi }, { identified += it }, dispatcher)
+        val viewModel = HomeViewModel(api, workspaces, empty, { signInApi }, { identified += it }, dispatcher)
 
         viewModel.signOut()
 

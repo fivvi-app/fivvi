@@ -32,7 +32,8 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
     @get:Rule
     val compose = createComposeRule()
 
-    private fun inWorkspace(email: String) = MeState.Loaded(email, HomeDestination.Workspace("John's Gym"))
+    private fun inWorkspace(email: String) =
+        MeState.Loaded(email, HomeDestination.Workspace("John's Gym", workspaceIdOf("John's Gym")))
 
     private fun show(me: MeState, signingOut: Boolean = false, height: Dp = 640.dp) =
         compose.showAtLargestFontScale(language, height = height) {
@@ -44,6 +45,7 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
                 onRetryMe = {},
                 onSignOut = {},
                 onOpenWeb = {},
+                onOpenProfile = {},
             )
         }
 
