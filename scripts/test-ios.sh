@@ -355,15 +355,51 @@ build_for_testing() {
 # only that locale's configuration, into a bundle of its own, and without the UI tests when the locale isn't one of
 # IOS_UI_LOCALES.
 RESULTS=.build/TestResults-nl-en.xcresult
+# A test that hangs fails after this many seconds instead of stalling the job until its timeout (#305). The slowest
+# tests take 39 s locally (about twice that on a runner), so 2 minutes leaves clear headroom; XCTest rounds the
+# allowances up to whole minutes and never lets a test run past the maximum.
+TEST_ALLOWANCE=120
+TEST_ALLOWANCE_MAX=180
+# The allowance only covers a stall inside a test method. A stall before the first test (the runner installs or
+# bootstraps) or between tests is not one, so a run that is still going after this many seconds is interrupted (#305).
+# SIGINT is meant to let xcodebuild wind down and write its result bundle; that is not verified (a local try with
+# Xcode 27.1 left no bundle and xcodebuild still running after 90 s), so after the grace it is killed and the run
+# fails either way, with or without a bundle. A healthy run takes 10-16 minutes with the
+# simulator settle; the CI job's own timeout (25 minutes) stays above the deadline plus the grace, the reports and
+# the upload. IOS_TEST_DEADLINE and IOS_TEST_DEADLINE_GRACE override them (the tests of this script use short ones).
+TEST_DEADLINE=${IOS_TEST_DEADLINE:-1080}
+TEST_DEADLINE_GRACE=${IOS_TEST_DEADLINE_GRACE:-60}
+
 run_tests() {
-  local only=() bundle=$RESULTS
+  local only=() bundle=$RESULTS pid status=0 timed_out=false deadline=$((SECONDS + TEST_DEADLINE))
   if [ -n "${2:-}" ]; then
     only=(-only-test-configuration "$2")
     in_ui_locales "$2" || only+=(-skip-testing:FivviProUITests)
     bundle=".build/TestResults-$2.xcresult"
   fi
-  xcodebuild test-without-building -xctestrun "$XCTESTRUN" -destination "id=$1" ${only[@]+"${only[@]}"} \
-    -resultBundlePath "$bundle" -quiet
+  # A background job of a script starts with SIGINT ignored, so perl puts the default back before it execs xcodebuild.
+  perl -e '$SIG{INT} = "DEFAULT"; exec @ARGV or die "exec $ARGV[0]: $!"' -- \
+    xcodebuild test-without-building -xctestrun "$XCTESTRUN" -destination "id=$1" ${only[@]+"${only[@]}"} \
+    -resultBundlePath "$bundle" -quiet \
+    -test-timeouts-enabled YES -default-test-execution-time-allowance "$TEST_ALLOWANCE" \
+    -maximum-test-execution-time-allowance "$TEST_ALLOWANCE_MAX" &
+  pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$SECONDS" -ge "$deadline" ]; then
+      echo "::error::The ${2:-nl and en} tests ran past the deadline of $TEST_DEADLINE s and were interrupted (#305)"
+      kill -INT "$pid" 2>/dev/null || true
+      deadline=$((SECONDS + TEST_DEADLINE_GRACE))
+      while kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$deadline" ]; do sleep 1; done
+      ! kill -0 "$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null || true
+      timed_out=true
+      break
+    fi
+    sleep 1
+  done
+  wait "$pid" || status=$?
+  # Whatever the exit status of the interrupted xcodebuild, a run that hit the deadline fails.
+  ! $timed_out || return 1
+  return "$status"
 }
 
 # Runs nl on simulator $1 and en on simulator $2 at the same time, each with its output in a log, shown when it ends.
