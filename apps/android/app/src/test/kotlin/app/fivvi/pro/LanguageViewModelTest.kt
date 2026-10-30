@@ -4,6 +4,8 @@ import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.UpdateMeRequest
 import app.fivvi.pro.home.FakeMeApi
 import java.io.IOException
+import java.util.UUID
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -15,6 +17,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import retrofit2.Response
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LanguageViewModelTest {
@@ -23,6 +26,18 @@ class LanguageViewModelTest {
     private val settings = FakeLanguageSettings(device = listOf("en-GB"))
     private val preference = LanguagePreference(store, settings)
     private val viewModel by lazy { LanguageViewModel(api, preference) }
+
+    private fun fromAndroid(locale: UpdateMeRequest.PreferredLocale) =
+        UpdateMeRequest(locale, UpdateMeRequest.Surface.ANDROID)
+
+    private fun meAnswering(locale: MeResponse.PreferredLocale) = MeResponse(
+        id = UUID.randomUUID(),
+        email = "owner@example.com",
+        name = "Owner",
+        preferredLocale = locale,
+        canCreateWorkspace = false,
+        workspaces = emptyList(),
+    )
 
     @Before
     fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -35,7 +50,7 @@ class LanguageViewModelTest {
         viewModel.choose(AppLanguage.DUTCH)
 
         assertEquals(AppLanguage.DUTCH, viewModel.language.value)
-        assertEquals(listOf(UpdateMeRequest(UpdateMeRequest.PreferredLocale.NL_NL)), api.updates)
+        assertEquals(listOf(fromAndroid(UpdateMeRequest.PreferredLocale.NL_NL)), api.updates)
         assertEquals(null, preference.unsavedChoice)
         assertFalse(viewModel.saveFailed.value)
     }
@@ -85,7 +100,22 @@ class LanguageViewModelTest {
         viewModel.onStored(MeResponse.PreferredLocale.NL_NL)
 
         assertEquals(AppLanguage.ENGLISH, viewModel.language.value)
-        assertEquals(listOf(UpdateMeRequest(UpdateMeRequest.PreferredLocale.EN)), api.updates)
+        assertEquals(listOf(fromAndroid(UpdateMeRequest.PreferredLocale.EN)), api.updates)
+    }
+
+    @Test
+    fun test_F010_AC3_aStoredPreferenceReadBeforeTheChoiceDoesNotUndoIt() {
+        store.stored = AppLanguage.ENGLISH
+        val model = LanguageViewModel(api, LanguagePreference(store, settings))
+        val staleRead = CompletableDeferred<Response<MeResponse>>()
+        api.answers += { staleRead.await() }
+
+        model.refresh()
+        model.choose(AppLanguage.DUTCH)
+        // The GET sent before the PATCH answers after it, with the older preference.
+        staleRead.complete(Response.success(meAnswering(MeResponse.PreferredLocale.EN)))
+
+        assertEquals(AppLanguage.DUTCH, model.language.value)
     }
 
     @Test

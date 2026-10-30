@@ -428,15 +428,32 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/preferredLocale`.
             public var preferredLocale: Components.Schemas.UpdateMeRequest.PreferredLocalePayload?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/surface`.
+            public var surface: Components.Schemas.UpdateMeRequest.SurfacePayload?
             /// Creates a new `UpdateMeRequest`.
             ///
             /// - Parameters:
             ///   - preferredLocale: The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
-            public init(preferredLocale: Components.Schemas.UpdateMeRequest.PreferredLocalePayload? = nil) {
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                preferredLocale: Components.Schemas.UpdateMeRequest.PreferredLocalePayload? = nil,
+                surface: Components.Schemas.UpdateMeRequest.SurfacePayload? = nil
+            ) {
                 self.preferredLocale = preferredLocale
+                self.surface = surface
             }
             public enum CodingKeys: String, CodingKey {
                 case preferredLocale
+                case surface
             }
         }
         /// Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.

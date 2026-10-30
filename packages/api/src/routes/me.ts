@@ -102,6 +102,16 @@ const UpdateMeRequestSchema = z
           'The language to store on the account, for its screens and emails: `nl-NL` or `en`. ' +
           'Any other value, a browser’s `nl-BE` included, is refused with `400`.',
       }),
+    surface: z
+      .enum(['ios', 'android'])
+      .optional()
+      .openapi({
+        description:
+          'The app that sends the request: `ios` or `android`. A request with a bearer token ' +
+          'that changes `preferredLocale` records the `language_changed` event with this surface; ' +
+          'without it nothing is recorded. The web does not send it, and a request without a ' +
+          'bearer token ignores it.',
+      }),
   })
   .openapi('UpdateMeRequest', {
     description: 'What to change on the signed-in account. Fields left out stay as they are.',
@@ -194,17 +204,19 @@ export function registerMe(app: OpenAPIHono) {
     );
   });
   me.openapi(updateMeRoute, async (c) => {
-    const { preferredLocale } = c.req.valid('json');
+    const { preferredLocale, surface } = c.req.valid('json');
     const account = c.get('account');
     if (preferredLocale === undefined) return c.json(await meOf(c, account), 200);
     await setPreferredLocale(c.get('scope'), preferredLocale);
     // The language and the surface only, under a random ID (OBSERVABILITY.md §4). A request with
-    // a bearer token comes from an app, which records its own surface (F010 iOS and Android).
-    if (!c.req.header('authorization')) {
+    // a bearer token comes from an app, which names its surface in the body (F010); one that
+    // names none records nothing, as the API does not guess. Without a token it is the web.
+    const appSurface = c.req.header('authorization') ? surface : 'web';
+    if (appSurface !== undefined) {
       c.get('dependencies').productEvents.track({
         event: 'language_changed',
         distinctId: anonymousDistinctId(),
-        properties: { locale: preferredLocale, surface: 'web' },
+        properties: { locale: preferredLocale, surface: appSurface },
       });
     }
     return c.json(await meOf(c, { ...account, preferredLocale }), 200);

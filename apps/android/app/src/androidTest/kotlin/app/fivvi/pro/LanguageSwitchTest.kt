@@ -72,6 +72,7 @@ class LanguageSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
                     } else {
                         UpdateMeRequest.PreferredLocale.EN
                     },
+                    UpdateMeRequest.Surface.ANDROID,
                 ),
             ),
             me.updates,

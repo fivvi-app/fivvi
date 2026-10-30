@@ -1,7 +1,7 @@
 # Sub-flow: after sign-in, show the app in the language of the device (F010). The signed-in app follows the account's
 # stored language, and the seeded accounts store nl-NL, so in an English run the app would show Dutch. When the sign-out
 # button is not in the device language, choose that language under Profiel → Taal (which saves it on the account, so the
-# next sign-in already has it) and go back. Needs SIGN_OUT_LABEL (signOut.label in the device language) and
+# next sign-in already has it) and reopen the app. Needs SIGN_OUT_LABEL (signOut.label in the device language) and
 # DEVICE_LANGUAGE (nl-NL or en), set by scripts/maestro.sh.
 appId: ${APP_ID}
 ---
@@ -19,7 +19,8 @@ appId: ${APP_ID}
           timeout: 20000
       - tapOn:
           id: profile\.language\.${DEVICE_LANGUAGE}
-      - back
+      # Reopen the app (the session stays, no clearState): `back` exists on Android only, and this flow is one file for both.
+      - launchApp
       - extendedWaitUntil:
           visible:
             id: home\.signOut

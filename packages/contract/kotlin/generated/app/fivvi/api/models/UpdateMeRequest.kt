@@ -32,6 +32,7 @@ import kotlinx.serialization.Contextual
  * What to change on the signed-in account. Fields left out stay as they are.
  *
  * @param preferredLocale The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
+ * @param surface The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
  */
 @Serializable
 
@@ -39,7 +40,11 @@ data class UpdateMeRequest (
 
     /* The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`. */
     @SerialName(value = "preferredLocale")
-    val preferredLocale: UpdateMeRequest.PreferredLocale? = null
+    val preferredLocale: UpdateMeRequest.PreferredLocale? = null,
+
+    /* The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. */
+    @SerialName(value = "surface")
+    val surface: UpdateMeRequest.Surface? = null
 
 ) {
 
@@ -52,6 +57,16 @@ data class UpdateMeRequest (
     enum class PreferredLocale(val value: kotlin.String) {
         @SerialName(value = "nl-NL") NL_NL("nl-NL"),
         @SerialName(value = "en") EN("en");
+    }
+    /**
+     * The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+     *
+     * Values: IOS,ANDROID
+     */
+    @Serializable
+    enum class Surface(val value: kotlin.String) {
+        @SerialName(value = "ios") IOS("ios"),
+        @SerialName(value = "android") ANDROID("android");
     }
 
 }

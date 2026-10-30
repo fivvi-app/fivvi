@@ -27,7 +27,12 @@ class LanguageViewModel(private val api: MeApi, private val preference: Language
     /** The last save of a choice did not go through; the choice shows anyway and is saved again at the next foreground. */
     val saveFailed: StateFlow<Boolean> = _saveFailed.asStateFlow()
 
+    /** Counts the choices made here and the saves in flight: a stored preference read before a choice is out of date. */
+    private var choices = 0
+    private var saves = 0
+
     fun choose(language: AppLanguage) {
+        choices++
         preference.choose(language)
         viewModelScope.launch { save() }
     }
@@ -41,6 +46,7 @@ class LanguageViewModel(private val api: MeApi, private val preference: Language
     /** The app is in the foreground again: read the stored preference. */
     fun refresh() {
         viewModelScope.launch {
+            val seen = choices
             val account = try {
                 api.getMe().let { response -> response.body()?.takeIf { response.isSuccessful } }
             } catch (_: IOException) {
@@ -48,6 +54,8 @@ class LanguageViewModel(private val api: MeApi, private val preference: Language
             } catch (_: SerializationException) {
                 null
             }
+            // An answer that left before a choice (or while it is being saved) must not undo that choice.
+            if (choices != seen || saves > 0) return@launch
             account?.preferredLocale?.toAppLanguage()?.let { reconcile(it) }
         }
     }
@@ -58,12 +66,15 @@ class LanguageViewModel(private val api: MeApi, private val preference: Language
 
     private suspend fun save() {
         val choice = preference.unsavedChoice ?: return
+        saves++
         val saved = try {
-            api.updateMe(UpdateMeRequest(choice.toPreferredLocale())).isSuccessful
+            api.updateMe(UpdateMeRequest(choice.toPreferredLocale(), UpdateMeRequest.Surface.ANDROID)).isSuccessful
         } catch (_: IOException) {
             false
         } catch (_: SerializationException) {
             false
+        } finally {
+            saves--
         }
         if (saved) preference.saved(choice)
         _saveFailed.value = !saved
