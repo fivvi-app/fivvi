@@ -406,8 +406,8 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - If the "native may trail the web by one milestone" lever is used (§6, scope levers), the native items of this milestone move to the next milestone's exit criteria.
 - Email is ready for real names (`docs/legal/sub-processors.md §4`):
   - [ ] Brevo support has switched off open/click tracking (link rewriting) and the unsubscribe header for transactional email, or the owner has accepted the risk with a reason (R1).
-  - [ ] A PDF of the Brevo terms and DPA (Annex 2) in force on that day is saved.
-  - [ ] R18 in `docs/legal/retention-policy.md` records that Brevo deletes delivery logs after 1 month, the minimum it allows and a few days over the 30-day maximum (owner approves the wording).
+  - [x] A PDF of the Brevo terms and DPA (Appendix 3) in force on that day is saved.
+  - [x] R18 in `docs/legal/retention-policy.md` records that Brevo deletes delivery logs after 1 month, the minimum it allows and a few days over the 30-day maximum (owner approves the wording).
 - Production releases need the owner's approval: once real names are in production, an agent merge to `main` no longer releases by itself. The release step is built before G2, so it is in place long before real names enter at pilot setup (ADR-016).
 - Agent queueing of high-risk PRs does not end here: it ends at pilot setup, before real personal data enters production (ADR-023; §7, pilot setup checklist).
 
