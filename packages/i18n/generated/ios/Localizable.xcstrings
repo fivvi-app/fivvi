@@ -349,6 +349,42 @@
         }
       }
     },
+    "myProfile.title" : {
+      "comment" : "Title of the page My profile (TW-09).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My profile"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mijn profiel"
+          }
+        }
+      }
+    },
+    "myProfile.workspacesTitle" : {
+      "comment" : "Heading of the section listing the workspaces the person is on the team of, each with their role.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My workspaces"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mijn werkruimtes"
+          }
+        }
+      }
+    },
     "noAccess.body" : {
       "comment" : "Text of the no-access page (information-architecture §9.5, No permission). Native apps show it too, under the same conditions. The Dutch uses 'werkruimte' as the spec words it.",
       "extractionState" : "manual",
@@ -451,6 +487,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pagina niet gevonden"
+          }
+        }
+      }
+    },
+    "roles.owner" : {
+      "comment" : "Role label of an Owner (Eigenaar) of a workspace, shown as a plain label.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Owner"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eigenaar"
+          }
+        }
+      }
+    },
+    "roles.trainer" : {
+      "comment" : "Role label of a Trainer of a workspace, shown as a plain label.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
           }
         }
       }
@@ -1379,6 +1451,24 @@
         }
       }
     },
+    "userMenu.profile" : {
+      "comment" : "Menu link to the page My profile (TW-09), where the person sees the workspaces they are on the team of.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My profile"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mijn profiel"
+          }
+        }
+      }
+    },
     "welcome.description" : {
       "comment" : "Line under the heading of TW-11.",
       "extractionState" : "manual",
@@ -1679,6 +1769,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Taal"
+          }
+        }
+      }
+    },
+    "workspaceNav.workspaceWithRole" : {
+      "comment" : "Header of the sidebar: the workspace name, then the role of the signed-in person in it, e.g. \"John's Gym · Owner\". {name} is the workspace name, {role} the role label.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
           }
         }
       }

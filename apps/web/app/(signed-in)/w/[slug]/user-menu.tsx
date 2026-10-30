@@ -2,6 +2,7 @@
 
 import type { Locale } from '@fivvi/i18n';
 import { Button } from '@fivvi/ui/components/button';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
@@ -20,13 +21,13 @@ const OPTIONS = [
  * Choosing one saves it on the account first, then asks the server for the page again: it
  * re-renders in the new language in place, without a reload, so what was typed stays (the route
  * guard writes the stored language into the cookie of the request). When the save fails the page
- * keeps its language and says so. F003 adds *Mijn profiel* to this menu.
+ * keeps its language and says so. *Mijn profiel* / *My profile* (F003) opens TW-09.
  */
-export function UserMenu() {
+export function UserMenu({ initiallyOpen = false }: { initiallyOpen?: boolean }) {
   const t = useTranslations('userMenu');
   const router = useRouter();
   const current = catalogLocale(useLocale());
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
   const [choosing, setChoosing] = useState(false);
   const [failed, setFailed] = useState(false);
   const [pending, setPending] = useState(false);
@@ -94,6 +95,9 @@ export function UserMenu() {
           id="user-menu"
           className="absolute left-0 z-10 mt-1 grid min-w-48 gap-1 rounded-lg border bg-background p-1 shadow-md"
         >
+          <Button asChild variant="ghost" className="justify-start">
+            <Link href="/me/profile">{t('profile')}</Link>
+          </Button>
           <Button
             type="button"
             variant="ghost"

@@ -68,6 +68,26 @@ export interface paths {
         patch: operations["updateMe"];
         trace?: never;
     };
+    "/v1/me/workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The workspaces the signed-in account is on the team of
+         * @description The workspaces where the account has a team role (Owner or Trainer), by name, each with that role: the list *My workspaces* of the profile shows and the apps use. Workspaces the account is only a client of are not listed. Empty when it has no team role.
+         */
+        get: operations["listMyWorkspaces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/sign-in/request": {
         parameters: {
             query?: never;
@@ -308,6 +328,23 @@ export interface components {
              */
             role: "owner" | "trainer";
         };
+        /** @description A workspace the account is on the team of. */
+        MyWorkspace: {
+            /**
+             * Format: uuid
+             * @description The workspace ID.
+             */
+            workspaceId: string;
+            /** @description The name shown in the product. */
+            name: string;
+            /** @description The URL name: `/w/{slug}` on the web. */
+            slug: string;
+            /**
+             * @description What the account is on the team.
+             * @enum {string}
+             */
+            role: "owner" | "trainer";
+        };
         /** @description What to change on the signed-in account. Fields left out stay as they are. */
         UpdateMeRequest: {
             /**
@@ -542,6 +579,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listMyWorkspaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The workspaces. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyWorkspace"][];
                 };
             };
             /** @description Nobody is signed in: no valid sign-in session or bearer token. */

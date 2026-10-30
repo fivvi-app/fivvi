@@ -21,12 +21,16 @@
     <string name="home_open_web">Open Fivvi in the browser</string>
     <string name="home_set_up_on_web">Set up your workspace on the web.</string>
     <string name="home_signed_in_as">Signed in as %1$s</string>
+    <string name="my_profile_title">My profile</string>
+    <string name="my_profile_workspaces_title">My workspaces</string>
     <string name="no_access_body">You don\'t have access to a workspace yet.</string>
     <string name="no_access_title">No access yet</string>
     <string name="no_permission_body">You don\'t have access to this page. Ask the owner of %1$s.</string>
     <string name="no_permission_title">No access</string>
     <string name="not_found_body">We can\'t find this page. Check the link and try again.</string>
     <string name="not_found_title">Page not found</string>
+    <string name="roles_owner">Owner</string>
+    <string name="roles_trainer">Trainer</string>
     <string name="settings_general_errors_generic">Something went wrong. Try again.</string>
     <string name="settings_general_errors_name_required">Enter the name of your gym or business.</string>
     <string name="settings_general_errors_name_too_long">This name is too long. Use a shorter one.</string>
@@ -79,6 +83,7 @@
     <string name="user_menu_language">Language: %1$s</string>
     <string name="user_menu_language_en">English</string>
     <string name="user_menu_language_nl">Nederlands</string>
+    <string name="user_menu_profile">My profile</string>
     <string name="welcome_description">One more step: tell us the name of your gym or business.</string>
     <string name="welcome_errors_generic">Something went wrong. Try again.</string>
     <string name="welcome_errors_no_connection">No connection. Check your internet and try again.</string>
@@ -96,4 +101,5 @@
     <string name="workspace_nav_settings">Settings</string>
     <string name="workspace_nav_settings_general">General</string>
     <string name="workspace_nav_settings_language">Language</string>
+    <string name="workspace_nav_workspace_with_role">%1$s · %2$s</string>
 </resources>
