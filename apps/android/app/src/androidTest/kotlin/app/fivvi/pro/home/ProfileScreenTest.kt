@@ -99,6 +99,8 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     @Test
     fun test_F003_AC6_workspaceGoneShowsNoAccess() {
         me.answerAccount(workspaces = listOf("John's Gym"))
+        // On foreground the home reads the account again after the 404, and so does the language (F010 AC2).
+        me.answerAccount(workspaces = emptyList(), canCreateWorkspace = false)
         me.answerAccount(workspaces = emptyList(), canCreateWorkspace = false)
         workspaces.answerGone()
         launch()

@@ -50,3 +50,4 @@ appId: ${APP_ID}
     visible:
       id: home\.signedInAs
     timeout: 20000
+- runFlow: device-language.yaml

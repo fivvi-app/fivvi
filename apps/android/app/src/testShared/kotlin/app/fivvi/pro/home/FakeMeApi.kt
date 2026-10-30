@@ -13,6 +13,9 @@ fun workspaceIdOf(name: String): UUID = UUID.nameUUIDFromBytes(name.toByteArray(
 
 /** The generated client's own API interface, answering each call with the next queued answer. */
 class FakeMeApi : MeApi {
+    /** The stored language of an account answered without one: the activity tests set the phone's, so it changes nothing. */
+    var defaultPreferredLocale = MeResponse.PreferredLocale.NL_NL
+
     val answers = ArrayDeque<suspend () -> Response<MeResponse>>()
     var calls = 0
         private set
@@ -22,8 +25,30 @@ class FakeMeApi : MeApi {
         return answers.removeFirst()()
     }
 
-    override suspend fun updateMe(updateMeRequest: UpdateMeRequest): Response<MeResponse> =
-        error("FakeMeApi.updateMe is not expected in this test")
+    /** Every `PATCH /v1/me` body received, in order. */
+    val updates = mutableListOf<UpdateMeRequest>()
+
+    /** What `PATCH /v1/me` answers; it fails with this exception when set. */
+    var updateFailure: Exception? = null
+
+    override suspend fun updateMe(updateMeRequest: UpdateMeRequest): Response<MeResponse> {
+        updates += updateMeRequest
+        updateFailure?.let { throw it }
+        return Response.success(
+            MeResponse(
+                id = UUID.randomUUID(),
+                email = "owner@example.com",
+                name = "Owner",
+                preferredLocale = if (updateMeRequest.preferredLocale == UpdateMeRequest.PreferredLocale.EN) {
+                    MeResponse.PreferredLocale.EN
+                } else {
+                    MeResponse.PreferredLocale.NL_NL
+                },
+                canCreateWorkspace = false,
+                workspaces = emptyList(),
+            ),
+        )
+    }
 
     val workspaceAnswers = ArrayDeque<suspend () -> Response<List<MyWorkspace>>>()
     var workspaceCalls = 0
@@ -51,6 +76,7 @@ class FakeMeApi : MeApi {
         id: UUID = UUID.randomUUID(),
         workspaces: List<String> = listOf("John's Gym"),
         canCreateWorkspace: Boolean = false,
+        preferredLocale: MeResponse.PreferredLocale? = null,
     ) {
         answers += {
             Response.success(
@@ -58,7 +84,7 @@ class FakeMeApi : MeApi {
                     id = id,
                     email = email,
                     name = "Owner",
-                    preferredLocale = MeResponse.PreferredLocale.NL_NL,
+                    preferredLocale = preferredLocale ?: defaultPreferredLocale,
                     canCreateWorkspace = canCreateWorkspace,
                     workspaces = workspaces.map { MeWorkspace(workspaceIdOf(it), it, "slug", MeWorkspace.Role.OWNER) },
                 ),
