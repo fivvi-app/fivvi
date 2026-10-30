@@ -22,8 +22,9 @@ struct LanguageSources: Equatable {
 
 /// The language the app shows and sends to the API, by ADR-017's interface-language rule. It mirrors
 /// `resolveInterfaceLanguage` in packages/i18n: the explicit choice (made in the app), then the account's stored
-/// preference, then the per-app language of iOS Settings, then the first supported device language, then English. Never the bundle's resolved language: the catalogs' source is Dutch, so iOS's own
-/// fallback would give Dutch to an unsupported device.
+/// preference, then the per-app language of iOS Settings, then the first supported device language, then English.
+/// Never the bundle's resolved language: the catalogs' source is Dutch, so iOS's own fallback would give Dutch to an
+/// unsupported device.
 enum InterfaceLanguage {
     static func resolve(_ sources: LanguageSources) -> Components.Schemas.Locale {
         for tag in [sources.explicit, sources.stored, sources.perApp].compactMap(\.self) + sources.device {

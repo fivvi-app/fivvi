@@ -5,6 +5,9 @@ import FivviAPI
 /// The signed-in account shown on the home: asks `GET /api/v1/me` through the generated client, which sends the bearer
 /// token (`AuthMiddleware`). A `401` is the middleware's business: it signs the app out. It also signs the person out
 /// on request (`signOut()`, F001 AC10).
+/// Takes the stored preference a `GET /api/v1/me` answered (`AppLanguage.startRead()`).
+typealias StoredLocaleHandler = (_ stored: Components.Schemas.Locale?) -> Void
+
 @MainActor
 @Observable
 final class AccountViewModel {
@@ -37,7 +40,7 @@ final class AccountViewModel {
     private let signOutTimeout: Duration
     private let onAccount: (_ id: String) -> Void
     private let onSignedOut: (_ afterRejection: Bool) -> Void
-    private let onPreferredLocale: (_ stored: Components.Schemas.Locale?) -> Void
+    private let onPreferredLocale: () -> StoredLocaleHandler
 
     /// `signOutTimeout` is how long a sign-out waits for the API, on `clock`, before it goes on without an answer.
     /// `onAccount` is told the account's ID (a UUID) once `GET /api/v1/me` has answered: the app sets it as the
@@ -50,7 +53,7 @@ final class AccountViewModel {
         signOutTimeout: Duration = .seconds(10),
         onAccount: @escaping (_ id: String) -> Void,
         onSignedOut: @escaping (_ afterRejection: Bool) -> Void,
-        onPreferredLocale: @escaping (_ stored: Components.Schemas.Locale?) -> Void = { _ in }
+        onPreferredLocale: @escaping () -> StoredLocaleHandler = { { _ in } }
     ) {
         self.api = api
         self.store = store
@@ -78,11 +81,13 @@ final class AccountViewModel {
     }
 
     private func fetch() async throws {
+        // Told when the request goes out, so an answer to a read that began before a save can be dropped.
+        let storedLocaleRead = onPreferredLocale()
         let account = try await api.getMe().ok.body.json
         // The stored language is told before the workspaces are looked up: a preference changed on the web is adopted
         // even when that lookup fails (F010 AC2).
         if !Task.isCancelled, store.token != nil {
-            onPreferredLocale(account.preferredLocale.flatMap { Components.Schemas.Locale(rawValue: $0.rawValue) })
+            storedLocaleRead(account.preferredLocale.flatMap { Components.Schemas.Locale(rawValue: $0.rawValue) })
         }
         let destination = try await destination(of: account)
         state = .loaded(email: account.email)

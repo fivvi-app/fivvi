@@ -41,6 +41,8 @@ actor StubAPI: APIProtocol {
         case offline
         /// No answer until the test calls `releaseHangingMes()`, then the account of `StubAPI.accountID`.
         case hang
+        /// Like `hang`, and the account then tells this stored preference (the answer to a read that went out earlier).
+        case hangThenTelling(Components.Schemas.Locale)
     }
 
     /// A team role in a workspace, as `listMyWorkspaces` lists it (synthetic IDs).
@@ -223,7 +225,8 @@ actor StubAPI: APIProtocol {
 
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
         meCalls += 1
-        switch meAnswer {
+        let asked = meAnswer
+        switch asked {
         case let .account(email, id, workspaces, canCreateWorkspace, preferredLocale):
             return .ok(.init(body: .json(
                 Self.me(
@@ -237,14 +240,18 @@ actor StubAPI: APIProtocol {
             return .undocumented(statusCode: code, .init())
         case .offline:
             throw URLError(.notConnectedToInternet)
-        case .hang:
+        case .hang, .hangThenTelling:
             await withCheckedContinuation { continuation in
                 hangingMes.append(continuation)
                 let watchers = hangingMeWatchers
                 hangingMeWatchers = []
                 watchers.forEach { $0.resume() }
             }
-            return .ok(.init(body: .json(Self.me(id: Self.accountID, email: "owner@example.com"))))
+            var told: Components.Schemas.Locale?
+            if case let .hangThenTelling(locale) = asked { told = locale }
+            return .ok(.init(body: .json(
+                Self.me(id: Self.accountID, email: "owner@example.com", preferredLocale: told)
+            )))
         }
     }
 

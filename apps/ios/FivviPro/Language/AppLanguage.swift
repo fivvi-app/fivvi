@@ -33,6 +33,8 @@ final class AppLanguage {
     private var stored: Components.Schemas.Locale?
     private var unsaved: Bool
     private var saving = false
+    /// Counts the choices and the saves, so a read of the stored preference can tell that one happened meanwhile.
+    private var revision = 0
 
     /// `sources` are what iOS tells at launch. A per-app language that differs from the one seen at the last launch is
     /// a new explicit choice: it becomes the local choice and is saved like one.
@@ -70,6 +72,7 @@ final class AppLanguage {
     /// The person chose `locale` here: the screen re-renders in it now. Saving it is `save()`'s job, which the caller
     /// starts when the person is signed in.
     func choose(_ locale: Components.Schemas.Locale) {
+        revision += 1
         choice = locale
         unsaved = true
         saveFailed = false
@@ -87,6 +90,7 @@ final class AppLanguage {
             do {
                 switch try await api.updateMe(body: .json(.init(preferredLocale: .init(rawValue: target.rawValue)))) {
                 case .ok:
+                    revision += 1
                     stored = target
                     saveFailed = false
                     if choice == target {
@@ -101,6 +105,16 @@ final class AppLanguage {
                 saveFailed = true
                 return
             }
+        }
+    }
+
+    /// Call when a `GET /api/v1/me` goes out; the handler it returns adopts the answer unless a choice or a save came
+    /// in between, because that answer may predate it and would put the screen back.
+    func startRead() -> StoredLocaleHandler {
+        let mark = revision
+        return { [weak self] stored in
+            guard let self, self.revision == mark else { return }
+            self.adopt(stored: stored)
         }
     }
 

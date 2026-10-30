@@ -57,10 +57,14 @@ final class LanguageUITests: SignInUITestCase {
         XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.2) { open.label == configured["profile.title"] })
         screen.app.terminate()
         let again = SignInScreen.launch(
-            against: server, session: .signedIn, deviceLanguages: [other], perAppLanguage: nil
+            against: server, session: .asLeft, deviceLanguages: [other], perAppLanguage: nil
         )
-        XCTAssertTrue(again.app.buttons["home.openProfile"].waitUntilExists(timeout: timeout))
-        XCTAssertEqual(again.app.buttons["home.openProfile"].label, configured["profile.title"])
+        let reopened = again.app.buttons["home.openProfile"]
+        XCTAssertTrue(reopened.waitUntilExists(timeout: timeout))
+        XCTAssertTrue(
+            Polling.until(timeout: timeout, interval: 0.2) { reopened.label == configured["profile.title"] },
+            "the choice is kept on the phone and in the account"
+        )
     }
 
     func test_F010_AC2_adoptsStoredPreferenceOnForeground() throws {

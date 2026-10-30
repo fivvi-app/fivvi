@@ -29,7 +29,7 @@ struct HomeView: View {
         _profile = State(initialValue: ProfileViewModel(api: api, catalog: language.catalog))
         _account = State(initialValue: AccountViewModel(
             api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut,
-            onPreferredLocale: { language.adopt(stored: $0) }
+            onPreferredLocale: { language.startRead() }
         ))
         self.language = language
         self.welcomeURL = welcomeURL

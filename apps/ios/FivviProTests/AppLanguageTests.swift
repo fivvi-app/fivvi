@@ -58,7 +58,7 @@ final class AppLanguageTests: XCTestCase {
         let language = appLanguage(api, defaults: try emptyDefaults())
         let account = AccountViewModel(
             api: api, store: signedIn, onAccount: { _ in }, onSignedOut: { _ in },
-            onPreferredLocale: { language.adopt(stored: $0) }
+            onPreferredLocale: { language.startRead() }
         )
         XCTAssertEqual(language.catalog.locale, .en, "an English phone")
 
@@ -70,6 +70,25 @@ final class AppLanguageTests: XCTestCase {
         XCTAssertEqual(language.catalog.locale, .en, "and again when it changes once more")
         let saved = await api.savedLocales
         XCTAssertEqual(saved, [], "adopting is not a new choice, nothing is saved")
+    }
+
+    func test_F010_AC2_aReadSentBeforeASaveButAnsweredAfterItDoesNotRevertTheScreen() async throws {
+        let api = StubAPI()
+        await api.answerMe(with: .hangThenTelling(.en))
+        let language = appLanguage(api, defaults: try emptyDefaults())
+        let account = AccountViewModel(
+            api: api, store: signedIn, onAccount: { _ in }, onSignedOut: { _ in },
+            onPreferredLocale: { language.startRead() }
+        )
+        let reading = Task { await account.refresh() }
+        await api.untilMeHangs()
+
+        language.choose(.nlNL)
+        await language.save()
+        await api.releaseHangingMes()
+        await reading.value
+
+        XCTAssertEqual(language.catalog.locale, .nlNL, "the old English answer predates the choice")
     }
 
     func test_F010_AC2_theAdoptedPreferenceReplacesTheOlderLocalChoice() throws {
@@ -132,7 +151,7 @@ final class AppLanguageTests: XCTestCase {
         XCTAssertEqual(saved, [.nlNL])
     }
 
-    func test_F010_AC6_languageKeptAfterSignOut() async throws {
+    func test_F010_AC6_signOut_theLanguageStaysUntilSomeoneChoosesAnother() async throws {
         let defaults = try emptyDefaults()
         let store = InMemorySessionStore(token: "stored-token")
         let language = appLanguage(store: store, defaults: defaults)
