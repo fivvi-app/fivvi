@@ -52,6 +52,9 @@ set_flow_env() {
     --env "SIGN_IN_SEND_CODE=$(catalog "$1" signIn.sendCode)"
     --env "HELLO_TITLE=$(catalog "$1" hello.title)"
     --env "HOME_SET_UP_ON_WEB=$(catalog "$1" home.setUpOnWeb)"
+    --env "ROLE_OWNER=$(catalog "$1" roles.owner)"
+    --env "ROLE_TRAINER=$(catalog "$1" roles.trainer)"
+    --env "PROFILE_WORKSPACES_TITLE=$(catalog "$1" myProfile.workspacesTitle)"
     --env "BREVO_URL=http://localhost:$BREVO_PORT"
   )
 }

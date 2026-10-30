@@ -23,10 +23,20 @@ final class StubServer: Sendable {
         var token = "stub-session-token"
         /// The name of the account's one workspace, or nil for none (F002).
         var workspaceName: String? = "John's Gym"
+        /// The role in that workspace (`owner` or `trainer`).
+        var role = "owner"
+        /// More workspaces the account is on the team of, after the first (F003).
+        var otherWorkspaces: [Workspace] = []
         /// Whether `GET /api/v1/me` says the account may create a workspace.
         var canCreateWorkspace = false
         /// An error status for `GET /api/v1/me`, or nil to answer as the API does.
         var meStatus: Int?
+    }
+
+    /// A workspace of the account (synthetic).
+    struct Workspace: Sendable, Equatable {
+        let name: String
+        let role: String
     }
 
     /// A request the app sent: its target, bearer token and JSON body (strings only).
@@ -84,6 +94,12 @@ final class StubServer: Sendable {
     /// The requests so far to `path` (e.g. "/api/v1/me").
     func requests(to path: String) -> [Request] { requests.filter { $0.path == path } }
 
+    /// The account loses its team access to workspace number `index` (0 is the first): from now on the API answers
+    /// `404` for it and no list has it any more (F003 AC6).
+    func removeFromTeam(workspace index: Int) {
+        responder.removeFromTeam(workspace: index)
+    }
+
     /// While offline, every request is cut off without an answer, as a lost connection would (it is still recorded in
     /// `requests`).
     func setOffline(_ offline: Bool) {
@@ -110,6 +126,7 @@ private final class Responder: @unchecked Sendable {
     private var received: [StubServer.Request] = []
     private var held: [(connection: NWConnection, locale: String?)] = []
     private var offline = false
+    private var lost: Set<Int> = []
     private var holdsSignIn = false
     private var heldSignIn: [NWConnection] = []
 
@@ -126,6 +143,10 @@ private final class Responder: @unchecked Sendable {
 
     func setOffline(_ value: Bool) {
         lock.withLock { offline = value }
+    }
+
+    func removeFromTeam(workspace index: Int) {
+        lock.withLock { _ = lost.insert(index) }
     }
 
     func holdSignInRequests(_ hold: Bool) {
@@ -218,8 +239,8 @@ private final class Responder: @unchecked Sendable {
         case ("POST", "/api/v1/sign-out"):
             let works = authorization == "Bearer \(signIn.token)"
             send(connection, status: works ? 204 : 401, json: works ? nil : Self.unauthorized)
-        case ("GET", "/api/v1/me"):
-            respondToMe(connection, authorization: authorization)
+        case ("GET", _) where Self.isAccountRoute(path):
+            respondToAccountRoute(connection, path: path, authorization: authorization)
         default:
             send(connection, status: 404, json: nil)
         }
@@ -228,17 +249,70 @@ private final class Responder: @unchecked Sendable {
     private static var unauthorized: [String: Any] { ["code": "unauthorized"] }
     private static var notSignedIn: [String: Any] { ["code": "not_signed_in"] }
 
+    /// The account's workspaces in the order of the list, with the number each one has (0 for the first); the ones it
+    /// lost its team access to are not in it.
+    private var teamWorkspaceEntries: [(index: Int, workspace: StubServer.Workspace)] {
+        let lost = lock.withLock { lost }
+        let all = (signIn.workspaceName.map { [StubServer.Workspace(name: $0, role: signIn.role)] } ?? [])
+            + signIn.otherWorkspaces
+        return all.enumerated().filter { !lost.contains($0.offset) }.map { ($0.offset, $0.element) }
+    }
+
+    private static func workspaceID(_ index: Int) -> String { "7c1d2e3f-0000-4000-8000-00000000000\(index)" }
+
+    /// `GET /api/v1/me/workspaces`: the list.
+    private var teamWorkspaces: [[String: Any]] {
+        teamWorkspaceEntries.map {
+            [
+                "workspaceId": Self.workspaceID($0.index), "name": $0.workspace.name, "slug": "workspace-\($0.index)",
+                "role": $0.workspace.role
+            ]
+        }
+    }
+
     /// `GET /api/v1/me`'s answer for the one account.
     private var account: [String: Any] {
         [
             "id": "2f6a1f0e-0000-4000-8000-000000000001", "email": signIn.email, "name": "Owner",
             "preferredLocale": NSNull(), "canCreateWorkspace": signIn.canCreateWorkspace,
-            "workspaces": (signIn.workspaceName.map {
-                [[
-                    "id": "7c1d2e3f-0000-4000-8000-000000000000", "name": $0, "slug": "workspace-0", "role": "owner"
-                ]] as [Any]
-            } ?? []) as [Any]
+            "workspaces": teamWorkspaces.map { entry in
+                ["id": entry["workspaceId"] as Any, "name": entry["name"] as Any, "slug": entry["slug"] as Any,
+                 "role": entry["role"] as Any]
+            }
         ]
+    }
+
+    private static func isAccountRoute(_ path: String) -> Bool {
+        path == "/api/v1/me" || path == "/api/v1/me/workspaces" || path.hasPrefix("/api/v1/workspaces/")
+    }
+
+    /// `GET /api/v1/me`, `GET /api/v1/me/workspaces` and `GET /api/v1/workspaces/{id}`.
+    private func respondToAccountRoute(_ connection: NWConnection, path: String, authorization: String?) {
+        if path == "/api/v1/me" {
+            respondToMe(connection, authorization: authorization)
+            return
+        }
+        guard authorization == "Bearer \(signIn.token)" else {
+            send(connection, status: 401, json: Self.notSignedIn)
+            return
+        }
+        if path == "/api/v1/me/workspaces" {
+            send(connection, status: 200, json: ["_": teamWorkspaces])
+        } else {
+            respondToWorkspace(connection, id: String(path.dropFirst("/api/v1/workspaces/".count)))
+        }
+    }
+
+    /// `GET /api/v1/workspaces/{id}`: the workspace for a team member, `404` for anyone else.
+    private func respondToWorkspace(_ connection: NWConnection, id: String) {
+        guard let entry = teamWorkspaceEntries.first(where: { Self.workspaceID($0.index) == id }) else {
+            send(connection, status: 404, json: ["code": "not_found"])
+            return
+        }
+        send(connection, status: 200, json: [
+            "id": id, "name": entry.workspace.name, "slug": "workspace-\(entry.index)", "defaultLocale": "nl-NL",
+            "timeZone": "Europe/Amsterdam"
+        ])
     }
 
     private func respondToMe(_ connection: NWConnection, authorization: String?) {
@@ -262,7 +336,9 @@ private final class Responder: @unchecked Sendable {
     }
 
     private func send(_ connection: NWConnection, status: Int, json: [String: Any]?) {
-        let body = json.flatMap { try? JSONSerialization.data(withJSONObject: $0) } ?? Data()
+        // A list is sent as a JSON array: `["_": list]` stands for the list itself.
+        let value: Any? = json.flatMap { $0.count == 1 ? $0["_"] : nil } ?? json
+        let body = value.flatMap { try? JSONSerialization.data(withJSONObject: $0) } ?? Data()
         let head = "HTTP/1.1 \(status) Stub\r\nContent-Type: application/json\r\n"
             + "Content-Length: \(body.count)\r\nConnection: close\r\n\r\n"
         connection.send(content: Data(head.utf8) + body, completion: .contentProcessed { _ in connection.cancel() })

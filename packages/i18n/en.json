@@ -160,5 +160,9 @@
   "myProfile": {
     "title": "My profile",
     "workspacesTitle": "My workspaces"
+  },
+  "profile": {
+    "title": "Profile",
+    "error": "Your workspaces couldn't be loaded."
   }
 }

@@ -42,6 +42,22 @@ actor StubAPI: APIProtocol {
         case hang
     }
 
+    /// A team role in a workspace, as `listMyWorkspaces` lists it (synthetic IDs).
+    struct Membership: Sendable {
+        let workspaceID: String
+        let name: String
+        let slug: String
+        let role: Components.Schemas.MyWorkspace.RolePayload
+    }
+
+    /// What `listMyWorkspaces` answers.
+    enum MyWorkspacesAnswer: Sendable {
+        case workspaces([Membership])
+        case unauthorized
+        case status(Int)
+        case offline
+    }
+
     /// What `signOut` answers.
     enum SignOutAnswer: Sendable {
         case noContent
@@ -57,11 +73,17 @@ actor StubAPI: APIProtocol {
     private var signInAnswer = SignInAnswer.accepted
     private var exchangeAnswer = ExchangeAnswer.unauthorized
     private var meAnswer = MeAnswer.unauthorized
+    private var myWorkspacesAnswer = MyWorkspacesAnswer.workspaces([])
+    private var goneWorkspaces: Set<String> = []
+    private var workspaceStatus: Int?
     private(set) var requestedLocales: [Components.Schemas.Locale?] = []
     /// The bodies of every `requestSignIn`, `exchangeSignInCode` and the number of `getMe` calls so far.
     private(set) var signInRequests: [Components.Schemas.SignInRequest] = []
     private(set) var exchanges: [Components.Schemas.SignInTokenRequest] = []
     private(set) var meCalls = 0
+    private(set) var myWorkspacesCalls = 0
+    /// The IDs `getWorkspace` was asked for, in order.
+    private(set) var requestedWorkspaces: [String] = []
     private(set) var signOutCalls = 0
     private var hanging: [CheckedContinuation<Void, Never>] = []
     private var hangWatchers: [CheckedContinuation<Void, Never>] = []
@@ -113,6 +135,21 @@ actor StubAPI: APIProtocol {
         waiting.forEach { $0.resume() }
     }
 
+    func answerMyWorkspaces(with answer: MyWorkspacesAnswer) {
+        myWorkspacesAnswer = answer
+    }
+
+    /// From now on `getWorkspace` answers `404` for the workspace, as the API does once the account has lost its team
+    /// access (F003 AC6).
+    func removeFromTeam(of workspaceID: String) {
+        goneWorkspaces.insert(workspaceID)
+    }
+
+    /// From now on `getWorkspace` answers this status (without a body) for every workspace.
+    func answerWorkspace(withStatus status: Int) {
+        workspaceStatus = status
+    }
+
     func answerMe(with answer: MeAnswer) {
         meAnswer = answer
     }
@@ -141,10 +178,6 @@ actor StubAPI: APIProtocol {
         fatalError("The app doesn't call createWorkspace yet")
     }
 
-    func getWorkspace(_ input: Operations.GetWorkspace.Input) async throws -> Operations.GetWorkspace.Output {
-        fatalError("The app doesn't call getWorkspace yet")
-    }
-
     func renameWorkspace(_ input: Operations.RenameWorkspace.Input) async throws -> Operations.RenameWorkspace.Output {
         fatalError("The app doesn't call renameWorkspace yet")
     }
@@ -157,12 +190,6 @@ actor StubAPI: APIProtocol {
         _ input: Operations.RemoveTeamMember.Input
     ) async throws -> Operations.RemoveTeamMember.Output {
         fatalError("The app doesn't call removeTeamMember yet")
-    }
-
-    func listMyWorkspaces(
-        _ input: Operations.ListMyWorkspaces.Input
-    ) async throws -> Operations.ListMyWorkspaces.Output {
-        fatalError("The app doesn't call listMyWorkspaces yet")
     }
 
     func updateMe(_ input: Operations.UpdateMe.Input) async throws -> Operations.UpdateMe.Output {
@@ -259,6 +286,38 @@ actor StubAPI: APIProtocol {
                 watchers.forEach { $0.resume() }
             }
             return .noContent(.init())
+        }
+    }
+}
+
+extension StubAPI {
+    func getWorkspace(_ input: Operations.GetWorkspace.Input) async throws -> Operations.GetWorkspace.Output {
+        requestedWorkspaces.append(input.path.workspaceId)
+        if let workspaceStatus { return .undocumented(statusCode: workspaceStatus, .init()) }
+        if goneWorkspaces.contains(input.path.workspaceId) {
+            return .notFound(.init(body: .json(.init(code: .notFound))))
+        }
+        return .ok(.init(body: .json(.init(
+            id: input.path.workspaceId, name: "Workspace", slug: "workspace", defaultLocale: .nlNL,
+            timeZone: "Europe/Amsterdam"
+        ))))
+    }
+
+    func listMyWorkspaces(
+        _ input: Operations.ListMyWorkspaces.Input
+    ) async throws -> Operations.ListMyWorkspaces.Output {
+        myWorkspacesCalls += 1
+        switch myWorkspacesAnswer {
+        case let .workspaces(memberships):
+            return .ok(.init(body: .json(memberships.map {
+                .init(workspaceId: $0.workspaceID, name: $0.name, slug: $0.slug, role: $0.role)
+            })))
+        case .unauthorized:
+            return .unauthorized(.init(body: .json(.init(code: .notSignedIn))))
+        case let .status(code):
+            return .undocumented(statusCode: code, .init())
+        case .offline:
+            throw URLError(.notConnectedToInternet)
         }
     }
 }

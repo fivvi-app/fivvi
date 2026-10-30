@@ -5,11 +5,12 @@ import FivviDesignTokens
 /// The signed-in home, a placeholder until the tab bar arrives. `GET /api/v1/me` decides what it shows (F002 AC10): the
 /// workspace's name with the hello block, the text to set a workspace up on the web with a button that opens trainer
 /// web in the browser, or the no-access text. Under it always sit the address of the account that is signed in and the
-/// sign-out button.
+/// sign-out button; above it the button *Profiel* opens TM-04, the person's workspaces with their roles (F003).
 struct HomeView: View {
     @Environment(\.openURL) private var openURL
     @State private var hello: HelloViewModel
     @State private var account: AccountViewModel
+    @State private var profile: ProfileViewModel
     private let catalog: Catalog
     private let welcomeURL: URL
 
@@ -23,6 +24,7 @@ struct HomeView: View {
         onSignedOut: @escaping (Bool) -> Void
     ) {
         _hello = State(initialValue: HelloViewModel(api: api, catalog: catalog))
+        _profile = State(initialValue: ProfileViewModel(api: api, catalog: catalog))
         _account = State(initialValue: AccountViewModel(
                 api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut
             ))
@@ -34,12 +36,20 @@ struct HomeView: View {
     /// (#233). The spacers share what is left when both fit (the hello block centred above the account block) and give
     /// way when not.
     var body: some View {
+        NavigationStack {
+            screen
+                .toolbar(.hidden, for: .navigationBar)
+        }
+    }
+
+    private var screen: some View {
         GeometryReader { proxy in
             ScrollView {
                 VStack(spacing: 0) {
                     Spacer(minLength: 0)
                     VStack(spacing: Tokens.Spacing.space4) {
                         destination
+                        profileLink
                         // One hello block in one place, so it loads once whether /me is loading, failed or answered
                         // with a workspace; the other states have their own text instead.
                         if showsHello {
@@ -55,6 +65,8 @@ struct HomeView: View {
         }
         .background(Tokens.Colors.bgCanvas)
         .task { await account.load() }
+        // Coming back to the app asks again: a workspace the person lost access to meanwhile is noticed (F003 AC6).
+        .onReturnToForeground { await account.refresh() }
     }
 
     private var showsHello: Bool {
@@ -127,6 +139,19 @@ struct HomeView: View {
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("home.account")
+    }
+
+    /// *Profiel* (TM-04): the person's workspaces with their role.
+    private var profileLink: some View {
+        NavigationLink {
+            ProfileView(model: profile)
+        } label: {
+            Text(catalog[.profileTitle])
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .buttonStyle(.secondaryAction)
+        .accessibilityIdentifier("home.openProfile")
     }
 
     @ViewBuilder private var signOut: some View {
