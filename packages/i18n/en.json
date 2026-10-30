@@ -116,7 +116,8 @@
     "label": "Main navigation",
     "settings": "Settings",
     "settingsGeneral": "General",
-    "settingsLanguage": "Language"
+    "settingsLanguage": "Language",
+    "workspaceWithRole": "{name} · {role}"
   },
   "signOut": {
     "label": "Sign out",
@@ -127,7 +128,8 @@
     "language": "Language: {language}",
     "languageNl": "Nederlands",
     "languageEn": "English",
-    "error": "Your language wasn't saved. Try again."
+    "error": "Your language wasn't saved. Try again.",
+    "profile": "My profile"
   },
   "email": {
     "layout": {
@@ -150,5 +152,13 @@
       "validity": "The code and the sign-in link work for {minutes, plural, one {# minute} other {# minutes}}.",
       "ignore": "Didn't ask for this? You can ignore this email."
     }
+  },
+  "roles": {
+    "owner": "Owner",
+    "trainer": "Trainer"
+  },
+  "myProfile": {
+    "title": "My profile",
+    "workspacesTitle": "My workspaces"
   }
 }

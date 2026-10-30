@@ -1,6 +1,7 @@
 import { locales, messages } from '@fivvi/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import { escapeHtml, render } from '../../../../test/render';
+import { UserMenu } from './user-menu';
 import { WorkspaceFrame } from './workspace-frame';
 
 // The menu refreshes the page through the router, which exists only in a running app.
@@ -14,7 +15,7 @@ describe.each(locales)('F010 user menu of the workspace frame in %s', (locale) =
   it('AC1: the frame has a closed user menu button with an accessible name', () => {
     const html = render(
       locale,
-      <WorkspaceFrame name="John's Gym" slug="johns-gym" isOwner={false}>
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="trainer">
         <hr />
       </WorkspaceFrame>,
     );
@@ -25,5 +26,13 @@ describe.each(locales)('F010 user menu of the workspace frame in %s', (locale) =
       ),
     );
     expect(html).not.toContain(copy.languageNl);
+  });
+
+  it('F003: the opened menu links to My profile', () => {
+    const html = render(locale, <UserMenu initiallyOpen />);
+
+    expect(html).toMatch(
+      new RegExp(`<a[^>]*href="/me/profile"[^>]*>${escapeHtml(copy.profile)}</a>`),
+    );
   });
 });

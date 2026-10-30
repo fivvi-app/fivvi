@@ -62,6 +62,8 @@ const aTeamMember: IsolationCase['seed'] = async (db, { workspaceId }) => {
 export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // Account routes.
   getMe: {},
+  // The account's own team roles across its workspaces, never a workspace's data (F003).
+  listMyWorkspaces: {},
   // The caller's own account: it stores their language and touches no workspace's data (F010).
   updateMe: { body: { preferredLocale: 'en' } },
   createWorkspace: { body: { name: "John's Gym" }, createsWorkspace: true },

@@ -84,5 +84,11 @@
   "userMenu.language": "Menu row that opens the two language options; {language} is the current language written in its own language (Nederlands or English).",
   "userMenu.languageNl": "Language option, always written in Dutch whatever the interface language (GLOSSARY §4.8).",
   "userMenu.languageEn": "Language option, always written in English whatever the interface language (GLOSSARY §4.8).",
-  "userMenu.error": "Shown in the user menu when the chosen language could not be saved on the account (no connection or a server error). The page keeps its language and the person can try again."
+  "userMenu.error": "Shown in the user menu when the chosen language could not be saved on the account (no connection or a server error). The page keeps its language and the person can try again.",
+  "userMenu.profile": "Menu link to the page My profile (TW-09), where the person sees the workspaces they are on the team of.",
+  "roles.owner": "Role label of an Owner (Eigenaar) of a workspace, shown as a plain label.",
+  "roles.trainer": "Role label of a Trainer of a workspace, shown as a plain label.",
+  "workspaceNav.workspaceWithRole": "Header of the sidebar: the workspace name, then the role of the signed-in person in it, e.g. \"John's Gym · Owner\". {name} is the workspace name, {role} the role label.",
+  "myProfile.title": "Title of the page My profile (TW-09).",
+  "myProfile.workspacesTitle": "Heading of the section listing the workspaces the person is on the team of, each with their role."
 }

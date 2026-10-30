@@ -16,7 +16,7 @@ export default async function WorkspaceLayout({
 }) {
   const { name, slug, role } = await workspaceOf((await params).slug);
   return (
-    <WorkspaceFrame name={name} slug={slug} isOwner={role === 'owner'}>
+    <WorkspaceFrame name={name} slug={slug} teamRole={role}>
       {children}
     </WorkspaceFrame>
   );

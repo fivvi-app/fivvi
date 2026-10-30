@@ -48,6 +48,16 @@ export const MeResponseSchema = z
   })
   .openapi('MeResponse', { description: 'The signed-in account.' });
 
+/** One workspace of the list the apps get: the account’s team role in it. */
+export const MyWorkspaceSchema = z
+  .object({
+    workspaceId: z.uuid().openapi({ description: 'The workspace ID.' }),
+    name: z.string().openapi({ description: 'The name shown in the product.' }),
+    slug: z.string().openapi({ description: 'The URL name: `/w/{slug}` on the web.' }),
+    role: z.enum(['owner', 'trainer']).openapi({ description: 'What the account is on the team.' }),
+  })
+  .openapi('MyWorkspace', { description: 'A workspace the account is on the team of.' });
+
 const meRoute = defineRoute(
   {
     method: 'get',
@@ -127,6 +137,29 @@ const updateMeRoute = defineRoute(
   { type: 'account', workspaces: 'team' },
 );
 
+const listMyWorkspacesRoute = defineRoute(
+  {
+    method: 'get',
+    path: '/v1/me/workspaces',
+    operationId: 'listMyWorkspaces',
+    tags: ['me'],
+    summary: 'The workspaces the signed-in account is on the team of',
+    description:
+      'The workspaces where the account has a team role (Owner or Trainer), by name, each with ' +
+      'that role: the list *My workspaces* of the profile shows and the apps use. Workspaces ' +
+      'the account is only a client of are not listed. Empty when it has no team role.',
+    security: SIGNED_IN,
+    responses: {
+      200: {
+        description: 'The workspaces.',
+        content: { 'application/json': { schema: z.array(MyWorkspaceSchema) } },
+      },
+      500: internalServerErrorResponse,
+    },
+  },
+  { type: 'account', workspaces: 'team' },
+);
+
 export function registerMe(app: OpenAPIHono) {
   // Its own router, so `account` is typed on the routes behind the access middleware.
   const me = new OpenAPIHono<AccessEnv>({ defaultHook: answerValidationFailure });
@@ -152,6 +185,14 @@ export function registerMe(app: OpenAPIHono) {
   }
 
   me.openapi(meRoute, async (c) => c.json(await meOf(c, c.get('account')), 200));
+  me.openapi(listMyWorkspacesRoute, async (c) => {
+    // The same query as `GET /v1/me`: the account's own team-member records, within its scope.
+    const workspaces = await listTeamWorkspaces(c.get('scope'));
+    return c.json(
+      workspaces.map(({ id, ...rest }) => ({ workspaceId: id, ...rest })),
+      200,
+    );
+  });
   me.openapi(updateMeRoute, async (c) => {
     const { preferredLocale } = c.req.valid('json');
     const account = c.get('account');

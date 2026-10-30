@@ -256,6 +256,39 @@
         ],
         "description": "A workspace the account has a team role in."
       },
+      "MyWorkspace": {
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The workspace ID."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name shown in the product."
+          },
+          "slug": {
+            "type": "string",
+            "description": "The URL name: `/w/{slug}` on the web."
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "trainer"
+            ],
+            "description": "What the account is on the team."
+          }
+        },
+        "required": [
+          "workspaceId",
+          "name",
+          "slug",
+          "role"
+        ],
+        "description": "A workspace the account is on the team of."
+      },
       "UpdateMeRequest": {
         "type": "object",
         "properties": {
@@ -648,6 +681,64 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/workspaces": {
+      "get": {
+        "operationId": "listMyWorkspaces",
+        "tags": [
+          "me"
+        ],
+        "summary": "The workspaces the signed-in account is on the team of",
+        "description": "The workspaces where the account has a team role (Owner or Trainer), by name, each with that role: the list *My workspaces* of the profile shows and the apps use. Workspaces the account is only a client of are not listed. Empty when it has no team role.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "account",
+          "workspaces": "team"
+        },
+        "responses": {
+          "200": {
+            "description": "The workspaces.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyWorkspace"
+                  }
                 }
               }
             }

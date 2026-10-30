@@ -116,7 +116,8 @@
     "label": "Hoofdnavigatie",
     "settings": "Instellingen",
     "settingsGeneral": "Algemeen",
-    "settingsLanguage": "Taal"
+    "settingsLanguage": "Taal",
+    "workspaceWithRole": "{name} · {role}"
   },
   "signOut": {
     "label": "Uitloggen",
@@ -127,7 +128,8 @@
     "language": "Taal: {language}",
     "languageNl": "Nederlands",
     "languageEn": "English",
-    "error": "Je taal is niet opgeslagen. Probeer het opnieuw."
+    "error": "Je taal is niet opgeslagen. Probeer het opnieuw.",
+    "profile": "Mijn profiel"
   },
   "email": {
     "layout": {
@@ -150,5 +152,13 @@
       "validity": "De code en de inloglink werken {minutes, plural, one {# minuut} other {# minuten}}.",
       "ignore": "Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren."
     }
+  },
+  "roles": {
+    "owner": "Eigenaar",
+    "trainer": "Trainer"
+  },
+  "myProfile": {
+    "title": "Mijn profiel",
+    "workspacesTitle": "Mijn werkruimtes"
   }
 }

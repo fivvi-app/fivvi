@@ -8,6 +8,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 import app.fivvi.api.models.MeResponse
+import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.NotSignedIn
 import app.fivvi.api.models.UpdateMeRequest
 import app.fivvi.api.models.ValidationError
@@ -26,6 +27,20 @@ interface MeApi {
      */
     @GET("v1/me")
     suspend fun getMe(): Response<MeResponse>
+
+    /**
+     * GET v1/me/workspaces
+     * The workspaces the signed-in account is on the team of
+     * The workspaces where the account has a team role (Owner or Trainer), by name, each with that role: the list *My workspaces* of the profile shows and the apps use. Workspaces the account is only a client of are not listed. Empty when it has no team role.
+     * Responses:
+     *  - 200: The workspaces.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @return [kotlin.collections.List<MyWorkspace>]
+     */
+    @GET("v1/me/workspaces")
+    suspend fun listMyWorkspaces(): Response<kotlin.collections.List<MyWorkspace>>
 
     /**
      * PATCH v1/me

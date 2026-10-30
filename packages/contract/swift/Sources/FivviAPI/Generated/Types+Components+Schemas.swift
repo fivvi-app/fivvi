@@ -361,6 +361,58 @@ extension Components {
                 case role
             }
         }
+        /// A workspace the account is on the team of.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MyWorkspace`.
+        public struct MyWorkspace: Codable, Hashable, Sendable {
+            /// The workspace ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/workspaceId`.
+            public var workspaceId: Swift.String
+            /// The name shown in the product.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/name`.
+            public var name: Swift.String
+            /// The URL name: `/w/{slug}` on the web.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/slug`.
+            public var slug: Swift.String
+            /// What the account is on the team.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/role`.
+            @frozen public enum RolePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case owner = "owner"
+                case trainer = "trainer"
+            }
+            /// What the account is on the team.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/role`.
+            public var role: Components.Schemas.MyWorkspace.RolePayload
+            /// Creates a new `MyWorkspace`.
+            ///
+            /// - Parameters:
+            ///   - workspaceId: The workspace ID.
+            ///   - name: The name shown in the product.
+            ///   - slug: The URL name: `/w/{slug}` on the web.
+            ///   - role: What the account is on the team.
+            public init(
+                workspaceId: Swift.String,
+                name: Swift.String,
+                slug: Swift.String,
+                role: Components.Schemas.MyWorkspace.RolePayload
+            ) {
+                self.workspaceId = workspaceId
+                self.name = name
+                self.slug = slug
+                self.role = role
+            }
+            public enum CodingKeys: String, CodingKey {
+                case workspaceId
+                case name
+                case slug
+                case role
+            }
+        }
         /// What to change on the signed-in account. Fields left out stay as they are.
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateMeRequest`.
