@@ -8,6 +8,9 @@ import app.fivvi.api.models.UpdateMeRequest
 import java.util.UUID
 import retrofit2.Response
 
+/** The ID the fakes give the workspace of this name, so a test can name it without keeping it. */
+fun workspaceIdOf(name: String): UUID = UUID.nameUUIDFromBytes(name.toByteArray())
+
 /** The generated client's own API interface, answering each call with the next queued answer. */
 class FakeMeApi : MeApi {
     val answers = ArrayDeque<suspend () -> Response<MeResponse>>()
@@ -22,8 +25,25 @@ class FakeMeApi : MeApi {
     override suspend fun updateMe(updateMeRequest: UpdateMeRequest): Response<MeResponse> =
         error("FakeMeApi.updateMe is not expected in this test")
 
-    override suspend fun listMyWorkspaces(): Response<List<MyWorkspace>> =
-        error("FakeMeApi.listMyWorkspaces is not expected in this test")
+    val workspaceAnswers = ArrayDeque<suspend () -> Response<List<MyWorkspace>>>()
+    var workspaceCalls = 0
+        private set
+
+    override suspend fun listMyWorkspaces(): Response<List<MyWorkspace>> {
+        workspaceCalls++
+        return workspaceAnswers.removeFirst()()
+    }
+
+    /** `GET /v1/me/workspaces` answers with these workspaces: name to slug to role. */
+    fun answerWorkspaces(vararg workspaces: Triple<String, String, MyWorkspace.Role>) {
+        workspaceAnswers += {
+            Response.success(
+                workspaces.map { (name, slug, role) ->
+                    MyWorkspace(workspaceIdOf(name), name, slug, role)
+                },
+            )
+        }
+    }
 
     /** The account has a workspace by default, so the screens that don't care which state they are in show the home. */
     fun answerAccount(
@@ -40,7 +60,7 @@ class FakeMeApi : MeApi {
                     name = "Owner",
                     preferredLocale = MeResponse.PreferredLocale.NL_NL,
                     canCreateWorkspace = canCreateWorkspace,
-                    workspaces = workspaces.map { MeWorkspace(UUID.randomUUID(), it, "slug", MeWorkspace.Role.OWNER) },
+                    workspaces = workspaces.map { MeWorkspace(workspaceIdOf(it), it, "slug", MeWorkspace.Role.OWNER) },
                 ),
             )
         }

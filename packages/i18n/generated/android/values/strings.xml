@@ -138,6 +138,32 @@
     <string name="sign_out_error">Uitloggen is niet gelukt. Probeer het opnieuw.</string>
     <!-- Button that signs out only the browser (or device) it is pressed on; other browsers stay signed in. On every signed-in page of the web app. -->
     <string name="sign_out_label">Uitloggen</string>
+    <!-- Header of the last column of the team list, which holds the row action. Only read aloud by screen readers. -->
+    <string name="team_actions_column">Acties</string>
+    <!-- Column header of the email address in the team list. -->
+    <string name="team_email_column">E-mailadres</string>
+    <!-- Shown on the Trainers page when removing a person failed for another reason. Nothing changed. -->
+    <string name="team_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <!-- Shown on the Trainers page when removing a person failed because there is no connection. Nothing changed. -->
+    <string name="team_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <!-- Column header of the person's name in the team list. -->
+    <string name="team_name_column">Naam</string>
+    <!-- Row action of a Trainer in the team list. Opens the remove dialog; the team access ends only after the Owner confirms there. -->
+    <string name="team_remove">Uit het team verwijderen</string>
+    <!-- Body of the remove dialog. {name} is the person's name, repeated instead of a pronoun; {workspace} the workspace name. Says that only the team access goes and what they have as a client stays. -->
+    <string name="team_remove_dialog_body">%1$s kan niet meer als trainer bij %2$s. Wat %1$s als klant heeft, zoals boekingen, blijft.</string>
+    <!-- Dismiss button of the remove dialog. Closes it without removing anyone. -->
+    <string name="team_remove_dialog_cancel">Annuleren</string>
+    <!-- Destructive button of the remove dialog. Removes the person from the team. -->
+    <string name="team_remove_dialog_confirm">Verwijderen</string>
+    <!-- Title of the remove dialog, a question. {name} is the person's name (or email address when they have no name). No pronoun: the product does not know anyone's pronouns. -->
+    <string name="team_remove_dialog_title">%1$s uit het team verwijderen?</string>
+    <!-- Confirmation shown after a person was removed from the team. {name} is the person's name (or email address when they have no name). -->
+    <string name="team_removed">%1$s is uit het team verwijderd.</string>
+    <!-- Column header of the role label (Owner or Trainer) in the team list. -->
+    <string name="team_role_column">Rol</string>
+    <!-- Title of the Trainers page (TW-06), which lists the team of the workspace, and its browser tab title. -->
+    <string name="team_title">Trainers</string>
     <!-- Shown in the user menu when the chosen language could not be saved on the account (no connection or a server error). The page keeps its language and the person can try again. -->
     <string name="user_menu_error">Je taal is niet opgeslagen. Probeer het opnieuw.</string>
     <!-- Accessible name of the button that opens the user menu (the ⋯ button) in the frame of a workspace's pages. -->
@@ -182,6 +208,8 @@
     <string name="workspace_nav_settings">Instellingen</string>
     <string name="workspace_nav_settings_general">Algemeen</string>
     <string name="workspace_nav_settings_language">Taal</string>
+    <!-- Navigation link to the Trainers page (TW-06), the team list. Shown to the Owner only. -->
+    <string name="workspace_nav_trainers">Trainers</string>
     <!-- Header of the sidebar: the workspace name, then the role of the signed-in person in it, e.g. "John's Gym · Owner". {name} is the workspace name, {role} the role label. -->
     <string name="workspace_nav_workspace_with_role">%1$s · %2$s</string>
 </resources>

@@ -44,6 +44,32 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     expect(trainer).not.toContain(escapeHtml(copy.roles.owner));
   });
 
+  it('F003 AC2: the Owner has Trainers in the navigation, linking to the Trainers page', () => {
+    const html = render(
+      locale,
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="owner">
+        <hr />
+      </WorkspaceFrame>,
+    );
+
+    expect(html).toMatch(
+      new RegExp(
+        `<a[^>]*href="/w/johns-gym/trainers"[^>]*>${escapeHtml(copy.workspaceNav.trainers)}</a>`,
+      ),
+    );
+  });
+
+  it('F003 AC3: a Trainer has no Trainers in the navigation', () => {
+    const html = render(
+      locale,
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="trainer">
+        <hr />
+      </WorkspaceFrame>,
+    );
+
+    expect(html).not.toContain('/trainers');
+  });
+
   it('AC7: the Owner has Settings in the navigation, linking to the general settings', () => {
     const html = render(
       locale,

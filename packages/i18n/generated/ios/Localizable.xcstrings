@@ -1395,6 +1395,240 @@
         }
       }
     },
+    "team.actionsColumn" : {
+      "comment" : "Header of the last column of the team list, which holds the row action. Only read aloud by screen readers.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actions"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acties"
+          }
+        }
+      }
+    },
+    "team.emailColumn" : {
+      "comment" : "Column header of the email address in the team list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email address"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-mailadres"
+          }
+        }
+      }
+    },
+    "team.errors.generic" : {
+      "comment" : "Shown on the Trainers page when removing a person failed for another reason. Nothing changed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er ging iets mis. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "team.errors.noConnection" : {
+      "comment" : "Shown on the Trainers page when removing a person failed because there is no connection. Nothing changed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No connection. Check your internet and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen verbinding. Controleer je internet en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "team.nameColumn" : {
+      "comment" : "Column header of the person's name in the team list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naam"
+          }
+        }
+      }
+    },
+    "team.remove" : {
+      "comment" : "Row action of a Trainer in the team list. Opens the remove dialog; the team access ends only after the Owner confirms there.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove from team"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uit het team verwijderen"
+          }
+        }
+      }
+    },
+    "team.removeDialog.body" : {
+      "comment" : "Body of the remove dialog. {name} is the person's name, repeated instead of a pronoun; {workspace} the workspace name. Says that only the team access goes and what they have as a client stays.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ will no longer have access to %2$@ as a trainer. What %1$@ has as a client, such as bookings, stays."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ kan niet meer als trainer bij %2$@. Wat %1$@ als klant heeft, zoals boekingen, blijft."
+          }
+        }
+      }
+    },
+    "team.removeDialog.cancel" : {
+      "comment" : "Dismiss button of the remove dialog. Closes it without removing anyone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuleren"
+          }
+        }
+      }
+    },
+    "team.removeDialog.confirm" : {
+      "comment" : "Destructive button of the remove dialog. Removes the person from the team.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwijderen"
+          }
+        }
+      }
+    },
+    "team.removeDialog.title" : {
+      "comment" : "Title of the remove dialog, a question. {name} is the person's name (or email address when they have no name). No pronoun: the product does not know anyone's pronouns.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %1$@ from the team?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ uit het team verwijderen?"
+          }
+        }
+      }
+    },
+    "team.removed" : {
+      "comment" : "Confirmation shown after a person was removed from the team. {name} is the person's name (or email address when they have no name).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ has been removed from the team."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is uit het team verwijderd."
+          }
+        }
+      }
+    },
+    "team.roleColumn" : {
+      "comment" : "Column header of the role label (Owner or Trainer) in the team list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Role"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rol"
+          }
+        }
+      }
+    },
+    "team.title" : {
+      "comment" : "Title of the Trainers page (TW-06), which lists the team of the workspace, and its browser tab title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainers"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainers"
+          }
+        }
+      }
+    },
     "userMenu.error" : {
       "comment" : "Shown in the user menu when the chosen language could not be saved on the account (no connection or a server error). The page keeps its language and the person can try again.",
       "extractionState" : "manual",
@@ -1803,6 +2037,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Taal"
+          }
+        }
+      }
+    },
+    "workspaceNav.trainers" : {
+      "comment" : "Navigation link to the Trainers page (TW-06), the team list. Shown to the Owner only.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainers"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainers"
           }
         }
       }
