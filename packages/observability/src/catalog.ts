@@ -32,7 +32,6 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   team_member_removed: {
     workspace_id: property.uuid(),
   },
-
   // F010: someone chose their interface language. The language and the surface only: the distinct
   // ID is random for each event (`anonymousDistinctId()`), so nothing leads to the account, and no
   // name or email address is recorded.
