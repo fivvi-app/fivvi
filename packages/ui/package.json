@@ -20,7 +20,8 @@
     "cn": "catalog:",
     "radix-ui": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "tw-animate-css": "catalog:"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

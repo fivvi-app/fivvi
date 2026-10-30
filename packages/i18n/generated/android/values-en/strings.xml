@@ -78,6 +78,19 @@
     <string name="sign_in_title">Sign in</string>
     <string name="sign_out_error">Signing out didn\'t work. Try again.</string>
     <string name="sign_out_label">Sign out</string>
+    <string name="team_actions_column">Actions</string>
+    <string name="team_email_column">Email address</string>
+    <string name="team_errors_generic">Something went wrong. Try again.</string>
+    <string name="team_errors_no_connection">No connection. Check your internet and try again.</string>
+    <string name="team_name_column">Name</string>
+    <string name="team_remove">Remove from team</string>
+    <string name="team_remove_dialog_body">%1$s will no longer have access to %2$s as a trainer. What %1$s has as a client, such as bookings, stays.</string>
+    <string name="team_remove_dialog_cancel">Cancel</string>
+    <string name="team_remove_dialog_confirm">Remove</string>
+    <string name="team_remove_dialog_title">Remove %1$s from the team?</string>
+    <string name="team_removed">%1$s has been removed from the team.</string>
+    <string name="team_role_column">Role</string>
+    <string name="team_title">Trainers</string>
     <string name="user_menu_error">Your language wasn\'t saved. Try again.</string>
     <string name="user_menu_label">User menu</string>
     <string name="user_menu_language">Language: %1$s</string>
@@ -101,5 +114,6 @@
     <string name="workspace_nav_settings">Settings</string>
     <string name="workspace_nav_settings_general">General</string>
     <string name="workspace_nav_settings_language">Language</string>
+    <string name="workspace_nav_trainers">Trainers</string>
     <string name="workspace_nav_workspace_with_role">%1$s · %2$s</string>
 </resources>

@@ -51,12 +51,16 @@ export function clientIpHeaders(): Record<string, string> {
 }
 
 /** Creates the account `email` on the e2e app server's database; the sign-in page has no sign-up. */
-export async function createAccount(email: string, preferredLocale?: Locale): Promise<void> {
+export async function createAccount(
+  email: string,
+  preferredLocale?: Locale,
+  name = 'E2E',
+): Promise<void> {
   const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
   try {
     await client.db.insert(authUsers).values({
       email,
-      name: 'E2E',
+      name,
       emailVerified: true,
       ...(preferredLocale ? { preferredLocale } : {}),
     });
@@ -90,6 +94,31 @@ export async function createGymWithTrainer(
       .insert(teamMembers)
       .values({ organizationId: gym.id, accountId: user.id, role });
     return slug;
+  } finally {
+    await client.close();
+  }
+}
+
+/**
+ * Puts the existing account `email` on the team of the workspace with the URL name `slug`, on
+ * the e2e app server's database (the team page lists it; inviting people is F011).
+ */
+export async function joinTeam(
+  email: string,
+  slug: string,
+  role: 'owner' | 'trainer' = 'trainer',
+): Promise<void> {
+  const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
+  try {
+    const user = (await client.db.select().from(authUsers).where(eq(authUsers.email, email)))[0];
+    if (!user) throw new Error(`No account ${email} on the e2e database.`);
+    const gym = (
+      await client.db.select().from(organizations).where(eq(organizations.slug, slug))
+    )[0];
+    if (!gym) throw new Error(`No workspace ${slug} on the e2e database.`);
+    await client.db
+      .insert(teamMembers)
+      .values({ organizationId: gym.id, accountId: user.id, role });
   } finally {
     await client.close();
   }
