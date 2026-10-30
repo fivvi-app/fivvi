@@ -347,9 +347,13 @@ describe('F003 team list and removal', () => {
 
     expect(listOperation.operationId).toBe('listTeamMembers');
     expect(removeOperation.operationId).toBe('removeTeamMember');
-    for (const operation of [listOperation, removeOperation]) {
+    for (const [operation, capability] of [
+      [listOperation, 'team.view'],
+      [removeOperation, 'team.manage'],
+    ] as const) {
       expect(operation['x-access']).toEqual({
         type: 'workspace',
+        capability,
         roles: ['owner'],
         client: 'none',
       });

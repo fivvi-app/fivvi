@@ -40,7 +40,15 @@ class FakeMeApi : MeApi {
                     name = "Owner",
                     preferredLocale = MeResponse.PreferredLocale.NL_NL,
                     canCreateWorkspace = canCreateWorkspace,
-                    workspaces = workspaces.map { MeWorkspace(UUID.randomUUID(), it, "slug", MeWorkspace.Role.OWNER) },
+                    workspaces = workspaces.map {
+                        MeWorkspace(
+                            UUID.randomUUID(),
+                            it,
+                            "slug",
+                            MeWorkspace.Role.OWNER,
+                            MeWorkspace.Capabilities.values().toList(),
+                        )
+                    },
                 ),
             )
         }

@@ -178,7 +178,8 @@ actor StubAPI: APIProtocol {
             workspaces: workspaces.enumerated().map { index, name in
                 .init(
                     id: "7c1d2e3f-0000-4000-8000-00000000000\(index)", name: name,
-                    slug: "workspace-\(index)", role: .owner
+                    slug: "workspace-\(index)", role: .owner,
+                    capabilities: Components.Schemas.MeWorkspace.CapabilitiesPayloadPayload.allCases
                 )
             }
         )

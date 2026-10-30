@@ -10,6 +10,7 @@ import {
   organizations,
 } from '@fivvi/database';
 import { seed } from '@fivvi/database/seed';
+import { capabilitiesOf } from '@fivvi/domain';
 import { createMemoryTransport, createSendEmail, type SendEmail } from '@fivvi/email';
 import { type Locale, messages } from '@fivvi/i18n';
 import {
@@ -348,7 +349,15 @@ describe('F001N native sign-in through the API', () => {
         name: 'Owner',
         preferredLocale: 'nl-NL',
         canCreateWorkspace: false,
-        workspaces: [{ id: gym?.id, name: "John's Gym", slug: 'johns-gym', role: 'owner' }],
+        workspaces: [
+          {
+            id: gym?.id,
+            name: "John's Gym",
+            slug: 'johns-gym',
+            role: 'owner',
+            capabilities: capabilitiesOf('owner'),
+          },
+        ],
       });
     });
 

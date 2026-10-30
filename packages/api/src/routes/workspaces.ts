@@ -161,7 +161,8 @@ const getWorkspaceRoute = defineRoute(
       500: internalServerErrorResponse,
     },
   },
-  { type: 'workspace', roles: ['owner', 'trainer'], client: 'none' },
+  // Any team member reads the workspace they work in: the lowest capability both roles have.
+  { type: 'workspace', capability: 'clients.view', client: 'none' },
 );
 
 const renameWorkspaceRoute = defineRoute(
@@ -193,7 +194,7 @@ const renameWorkspaceRoute = defineRoute(
       500: internalServerErrorResponse,
     },
   },
-  { type: 'workspace', roles: ['owner'], client: 'none' },
+  { type: 'workspace', capability: 'workspace.manage', client: 'none' },
 );
 
 /**

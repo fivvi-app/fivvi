@@ -10,6 +10,7 @@ import {
   teamMembers,
 } from '@fivvi/database';
 import { addClient, addTeamRole } from '@fivvi/database/testing';
+import { capabilitiesOf } from '@fivvi/domain';
 import { resolveCommunicationLanguage } from '@fivvi/i18n';
 import {
   createErrorReporter,
@@ -456,7 +457,13 @@ describe('F002 POST /v1/workspaces', () => {
       expect(((await read.json()) as WorkspaceBody).name).toBe("John's Gym Utrecht");
       const me = await api().request('/v1/me', { headers: { 'x-test-account': owner.id } });
       expect(((await me.json()) as { workspaces: unknown[] }).workspaces).toEqual([
-        { id: workspace.id, name: "John's Gym Utrecht", slug: workspace.slug, role: 'owner' },
+        {
+          id: workspace.id,
+          name: "John's Gym Utrecht",
+          slug: workspace.slug,
+          role: 'owner',
+          capabilities: capabilitiesOf('owner'),
+        },
       ]);
     });
 
@@ -631,12 +638,14 @@ describe('F002 POST /v1/workspaces', () => {
       expect(item.get.operationId).toBe('getWorkspace');
       expect(item.get['x-access']).toEqual({
         type: 'workspace',
+        capability: 'clients.view',
         roles: ['owner', 'trainer'],
         client: 'none',
       });
       expect(item.patch.operationId).toBe('renameWorkspace');
       expect(item.patch['x-access']).toEqual({
         type: 'workspace',
+        capability: 'workspace.manage',
         roles: ['owner'],
         client: 'none',
       });

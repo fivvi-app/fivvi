@@ -5,6 +5,7 @@ import type {
   TenantScope,
   WorkspaceScope,
 } from '@fivvi/database';
+import { type Capability, rolesWith } from '@fivvi/domain';
 import { createRoute, type RouteConfig } from '@hono/zod-openapi';
 import type { Context, MiddlewareHandler, Next } from 'hono';
 import type { ApiDependencies } from './dependencies.ts';
@@ -27,9 +28,6 @@ import {
 //   anonymous -> 401 not_signed_in; no place in the workspace -> 404 not_found; a place without
 //   the route's access -> 403 forbidden; only then validation (400) and the handler.
 
-/** The team roles of a workspace that exist today (AC3); Admin comes later. */
-export type TeamRole = 'owner' | 'trainer';
-
 /**
  * Who may call a route:
  * - `public`: anyone, signed in or not. Each one is on the public-routes allow-list of the
@@ -38,15 +36,18 @@ export type TeamRole = 'owner' | 'trainer';
  *   request transaction's context holds the workspaces where the account has the relationship
  *   `workspaces` asks for (a team role, a client relationship, or either, the default): never an
  *   unscoped query (ADR-006).
- * - `workspace`: a signed-in account with one of the allowed team `roles` in the workspace of
- *   the path, or, with `client: 'own-records'`, a client of it, then only for their own records.
+ * - `workspace`: a signed-in account whose team role in the workspace of the path has the route's
+ *   `capability`, or, with `client: 'own-records'`, a client of it, then only for their own
+ *   records. The roles that have the capability come from the permission matrix in
+ *   `@fivvi/domain` (F004); a route never names a role. A route without a `capability` is for
+ *   clients alone.
  */
 export type Access =
   | { readonly type: 'public' }
   | { readonly type: 'account'; readonly workspaces?: 'team' | 'client' | 'any' }
   | {
       readonly type: 'workspace';
-      readonly roles: readonly TeamRole[];
+      readonly capability?: Capability;
       readonly client: 'none' | 'own-records';
     };
 
@@ -71,6 +72,11 @@ export function provideDependencies(dependencies: ApiDependencies): MiddlewareHa
 /** Thrown inside the request transaction to roll it back; the answer is already set. */
 class RollBack extends Error {}
 
+/** The team roles that may call the route: the matrix's roles for its capability. */
+function rolesOf(access: Extract<Access, { type: 'workspace' }>) {
+  return access.capability ? rolesWith(access.capability) : [];
+}
+
 /**
  * Whether a place may call the route, and as what. A team role the route lists runs as a team
  * member, whatever else the caller is (a trainer who is also a client of the workspace sees what
@@ -81,7 +87,7 @@ export function admission(
   access: Extract<Access, { type: 'workspace' }>,
   place: Place,
 ): ActingAs | undefined {
-  if (place.teamRole && access.roles.includes(place.teamRole)) return 'team';
+  if (place.teamRole && rolesOf(access).includes(place.teamRole)) return 'team';
   if (access.client === 'own-records' && place.clientId) return 'client';
   return undefined;
 }
@@ -177,7 +183,12 @@ function refusalsOf(access: Access) {
 /** What `x-access` holds in openapi.json: the declaration, nothing derived. */
 function describeAccess(access: Access) {
   if (access.type === 'workspace') {
-    return { type: access.type, roles: [...access.roles], client: access.client };
+    return {
+      type: access.type,
+      ...(access.capability ? { capability: access.capability } : {}),
+      roles: rolesOf(access),
+      client: access.client,
+    };
   }
   if (access.type === 'account' && access.workspaces) {
     return { type: access.type, workspaces: access.workspaces };
@@ -195,8 +206,10 @@ const WORKSPACE_PATH = '/v1/workspaces/{workspaceId}';
  * middleware would still send the refusal, so the contract would lie. It throws instead.
  */
 export function defineRoute<R extends RouteConfig, A extends Access>(route: R, access: A) {
-  if (access.type === 'workspace' && access.roles.length === 0 && access.client === 'none') {
-    throw new Error(`${route.operationId ?? route.path}: no team role and no client may call it.`);
+  if (access.type === 'workspace' && !access.capability && access.client === 'none') {
+    throw new Error(
+      `${route.operationId ?? route.path}: no capability and no client: nobody may call it.`,
+    );
   }
   if (access.type === 'workspace' && !route.path.startsWith(WORKSPACE_PATH)) {
     throw new Error(

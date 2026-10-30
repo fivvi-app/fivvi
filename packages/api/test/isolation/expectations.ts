@@ -14,7 +14,12 @@ import type { Place } from '@fivvi/database';
 export type XAccess =
   | { type: 'public' }
   | { type: 'account'; workspaces?: 'team' | 'client' | 'any' }
-  | { type: 'workspace'; roles: readonly ('owner' | 'trainer')[]; client: 'none' | 'own-records' };
+  | {
+      type: 'workspace';
+      capability?: string;
+      roles: readonly ('owner' | 'trainer')[];
+      client: 'none' | 'own-records';
+    };
 
 /** Whose record the path of the call names, seen from the caller. */
 export type RecordKind =

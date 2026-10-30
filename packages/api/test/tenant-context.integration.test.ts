@@ -35,7 +35,7 @@ describe('F003 AC10: requests run with only the account’s workspace IDs', () =
             200: { description: 'It ran.', content: { 'application/json': { schema: Rows } } },
           },
         },
-        { type: 'workspace', roles: ['owner', 'trainer'], client: 'none' },
+        { type: 'workspace', capability: 'clients.view', client: 'none' },
       ),
       async (c) =>
         c.json({ rows: await selectEverythingInScope(c.get('scope'), 'team_members') }, 200),

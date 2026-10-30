@@ -6,12 +6,14 @@ const gym = {
   name: "John's Gym",
   slug: 'johns-gym',
   role: 'owner',
+  capabilities: [] as never[],
 } as const;
 const studio = {
   id: '0197c0de-0000-7000-8000-0000000000a2',
   name: 'Studio Zuid',
   slug: 'studio-zuid',
   role: 'trainer',
+  capabilities: [] as never[],
 } as const;
 
 describe('F002 where the signed-in home sends a person', () => {

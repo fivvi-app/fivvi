@@ -28,7 +28,7 @@ const route = (path: string, operationId: string) => ({
     200: { description: 'It ran.', content: { 'application/json': { schema: Body } } },
   },
 });
-const team = { type: 'workspace', roles: ['owner', 'trainer'], client: 'none' } as const;
+const team = { type: 'workspace', capability: 'clients.view', client: 'none' } as const;
 
 /**
  * Creates a note of the workspace in a probe table, through the privileged connection. Returns

@@ -1,5 +1,7 @@
+import type { Role } from '../permissions/matrix.ts';
+
 /** A team role (`team_role` in the database): the roles that exist today. */
-export type TeamRole = 'owner' | 'trainer';
+export type TeamRole = Role;
 
 /** One person on a workspace's team, as the rule sees it. */
 export interface TeamMemberRole {

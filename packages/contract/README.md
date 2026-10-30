@@ -26,7 +26,7 @@ Every operation declares who may call it in an `x-access` extension (E011). The 
 |---|---|---|
 | `{ "type": "public" }` | Anyone. Each one is on the allow-list in `packages/api/test/isolation/public-routes.ts` with a one-line reason | none |
 | `{ "type": "account" }` | Any signed-in account | `401` |
-| `{ "type": "workspace", "roles": [...], "client": "none" \| "own-records" }` | A team role of the workspace in the path, or a client of it for their own records | `401`, `404`, `403` |
+| `{ "type": "workspace", "capability": "team.manage", "roles": [...], "client": "none" \| "own-records" }` | A team role of the workspace in the path whose capability the route names (`roles` are the roles the permission matrix in `packages/domain` gives it; F004), or a client of it for their own records | `401`, `404`, `403` |
 
 Refusals are machine-readable bodies without text: `NotSignedIn` (`401`, `not_signed_in`), `NotFound` (`404`, `not_found`) and `Forbidden` (`403`, `forbidden`). The order of checks is anonymous (`401`), no place in the workspace (`404`), a place without the access (`403`), and only then validation (`400`).
 

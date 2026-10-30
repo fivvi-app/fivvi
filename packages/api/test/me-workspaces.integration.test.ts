@@ -7,6 +7,7 @@ import {
   type SignedInAccount,
 } from '@fivvi/database';
 import { addClient, addTeamRole, createAccount, createWorkspace } from '@fivvi/database/testing';
+import { capabilitiesOf } from '@fivvi/domain';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -73,10 +74,55 @@ describe('F003 GET /v1/me/workspaces', () => {
     const listed = (await response.json()) as { workspaceId: string; name: string }[];
     expect(listed).toEqual(
       [
-        { workspaceId: gym.id, name: gym.marker, slug: gym.marker, role: 'trainer' },
-        { workspaceId: own.id, name: own.marker, slug: own.marker, role: 'owner' },
+        {
+          workspaceId: gym.id,
+          name: gym.marker,
+          slug: gym.marker,
+          role: 'trainer',
+          capabilities: capabilitiesOf('trainer'),
+        },
+        {
+          workspaceId: own.id,
+          name: own.marker,
+          slug: own.marker,
+          role: 'owner',
+          capabilities: capabilitiesOf('owner'),
+        },
       ].toSorted((a, b) => a.name.localeCompare(b.name)),
     );
+  });
+
+  it('AC8: Sarah has every Owner capability in her own workspace and Trainer ones in John’s Gym', async () => {
+    const gym = await createWorkspace(admin.db, { label: 'johns-gym' });
+    const own = await createWorkspace(admin.db, { label: 'sarah-training' });
+    const sarah = await createAccount(admin.db, { label: 'sarah' });
+    await addTeamRole(admin.db, { workspaceId: gym.id, accountId: sarah.id, role: 'trainer' });
+    await addTeamRole(admin.db, { workspaceId: own.id, accountId: sarah.id, role: 'owner' });
+
+    const listed = (await (await get(sarah)).json()) as {
+      workspaceId: string;
+      capabilities: string[];
+    }[];
+
+    const capabilitiesIn = (id: string) => listed.find((w) => w.workspaceId === id)?.capabilities;
+    expect(capabilitiesIn(own.id)).toEqual([
+      'workspace.manage',
+      'team.view',
+      'team.manage',
+      'trainers.view',
+      'clients.view',
+      'clients.manage',
+    ]);
+    expect(capabilitiesIn(gym.id)).toEqual(['trainers.view', 'clients.view', 'clients.manage']);
+  });
+
+  it('AC9: the capabilities of every workspace match the matrix, and the contract rejects admin', () => {
+    const schemas = contract.components.schemas;
+    for (const name of ['MyWorkspace', 'MeWorkspace']) {
+      expect(schemas[name].properties.role.enum).toEqual(['owner', 'trainer']);
+      expect(schemas[name].properties.capabilities.items.enum).toEqual(capabilitiesOf('owner'));
+      expect(schemas[name].required).toContain('capabilities');
+    }
   });
 
   it('does not list a workspace the account is only a client of, nor anyone else’s', async () => {

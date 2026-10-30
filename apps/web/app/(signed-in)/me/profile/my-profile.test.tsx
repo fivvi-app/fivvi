@@ -12,8 +12,20 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
       locale,
       <MyProfile
         workspaces={[
-          { workspaceId: 'w1', name: "John's Gym", slug: 'johns-gym', role: 'trainer' },
-          { workspaceId: 'w2', name: 'Sarah Personal Training', slug: 'sarah', role: 'owner' },
+          {
+            workspaceId: 'w1',
+            name: "John's Gym",
+            slug: 'johns-gym',
+            role: 'trainer',
+            capabilities: [],
+          },
+          {
+            workspaceId: 'w2',
+            name: 'Sarah Personal Training',
+            slug: 'sarah',
+            role: 'owner',
+            capabilities: [],
+          },
         ]}
       />,
     );

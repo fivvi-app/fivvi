@@ -1,4 +1,13 @@
 export {
+  CAPABILITIES,
+  type Capability,
+  capabilitiesOf,
+  hasCapability,
+  ROLES,
+  type Role,
+  rolesWith,
+} from './permissions/matrix.ts';
+export {
   canRemoveTeamMember,
   keepsAnOwner,
   type TeamMemberRole,
