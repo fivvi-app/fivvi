@@ -117,7 +117,8 @@
     "settings": "Instellingen",
     "settingsGeneral": "Algemeen",
     "settingsLanguage": "Taal",
-    "workspaceWithRole": "{name} · {role}"
+    "workspaceWithRole": "{name} · {role}",
+    "trainers": "Trainers"
   },
   "signOut": {
     "label": "Uitloggen",
@@ -160,5 +161,24 @@
   "myProfile": {
     "title": "Mijn profiel",
     "workspacesTitle": "Mijn werkruimtes"
+  },
+  "team": {
+    "title": "Trainers",
+    "nameColumn": "Naam",
+    "emailColumn": "E-mailadres",
+    "roleColumn": "Rol",
+    "actionsColumn": "Acties",
+    "remove": "Uit het team verwijderen",
+    "removeDialog": {
+      "title": "{name} uit het team verwijderen?",
+      "body": "{name} kan niet meer als trainer bij {workspace}. Wat {name} als klant heeft, zoals boekingen, blijft.",
+      "confirm": "Verwijderen",
+      "cancel": "Annuleren"
+    },
+    "removed": "{name} is uit het team verwijderd.",
+    "errors": {
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
+    }
   }
 }

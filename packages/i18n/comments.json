@@ -90,5 +90,19 @@
   "roles.trainer": "Role label of a Trainer of a workspace, shown as a plain label.",
   "workspaceNav.workspaceWithRole": "Header of the sidebar: the workspace name, then the role of the signed-in person in it, e.g. \"John's Gym · Owner\". {name} is the workspace name, {role} the role label.",
   "myProfile.title": "Title of the page My profile (TW-09).",
-  "myProfile.workspacesTitle": "Heading of the section listing the workspaces the person is on the team of, each with their role."
+  "myProfile.workspacesTitle": "Heading of the section listing the workspaces the person is on the team of, each with their role.",
+  "workspaceNav.trainers": "Navigation link to the Trainers page (TW-06), the team list. Shown to the Owner only.",
+  "team.title": "Title of the Trainers page (TW-06), which lists the team of the workspace, and its browser tab title.",
+  "team.nameColumn": "Column header of the person's name in the team list.",
+  "team.emailColumn": "Column header of the email address in the team list.",
+  "team.roleColumn": "Column header of the role label (Owner or Trainer) in the team list.",
+  "team.actionsColumn": "Header of the last column of the team list, which holds the row action. Only read aloud by screen readers.",
+  "team.remove": "Row action of a Trainer in the team list. Opens the remove dialog; the team access ends only after the Owner confirms there.",
+  "team.removeDialog.title": "Title of the remove dialog, a question. {name} is the person's name (or email address when they have no name). No pronoun: the product does not know anyone's pronouns.",
+  "team.removeDialog.body": "Body of the remove dialog. {name} is the person's name, repeated instead of a pronoun; {workspace} the workspace name. Says that only the team access goes and what they have as a client stays.",
+  "team.removeDialog.confirm": "Destructive button of the remove dialog. Removes the person from the team.",
+  "team.removeDialog.cancel": "Dismiss button of the remove dialog. Closes it without removing anyone.",
+  "team.removed": "Confirmation shown after a person was removed from the team. {name} is the person's name (or email address when they have no name).",
+  "team.errors.noConnection": "Shown on the Trainers page when removing a person failed because there is no connection. Nothing changed.",
+  "team.errors.generic": "Shown on the Trainers page when removing a person failed for another reason. Nothing changed."
 }

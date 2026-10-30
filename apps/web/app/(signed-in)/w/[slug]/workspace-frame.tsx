@@ -8,7 +8,7 @@ import { UserMenu } from './user-menu';
 /**
  * The frame of every page of a workspace (`information-architecture.md §4.1`): a sidebar whose
  * header shows the workspace name and the person's role in it (F003; a plain label, switching
- * comes with F012), and the navigation. Settings are in it for the Owner only
+ * comes with F012), and the navigation. Trainers (F003) and Settings are in it for the Owner only
  * (F002 AC7) with its pages General and Language (F010); a Trainer never sees them. The user menu with
  * the language switch is below them (F010). The rest of the navigation comes with F013/F014.
  */
@@ -34,6 +34,9 @@ export function WorkspaceFrame({
         <nav aria-label={t('label')}>
           {teamRole === 'owner' ? (
             <div className="grid gap-1">
+              <Link href={`/w/${slug}/trainers` as Route} className="underline">
+                {t('trainers')}
+              </Link>
               <Link href={`/w/${slug}/settings/general` as Route} className="underline">
                 {t('settings')}
               </Link>
