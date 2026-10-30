@@ -21,6 +21,15 @@
     <string name="home_open_web">Open Fivvi in the browser</string>
     <string name="home_set_up_on_web">Set up your workspace on the web.</string>
     <string name="home_signed_in_as">Signed in as %1$s</string>
+    <string name="my_profile_details_title">Your details</string>
+    <string name="my_profile_email_label">Email address</string>
+    <string name="my_profile_errors_generic">Something went wrong. Try again.</string>
+    <string name="my_profile_errors_name_required">Enter your name.</string>
+    <string name="my_profile_errors_name_too_long">This name is too long. Use a shorter one.</string>
+    <string name="my_profile_errors_no_connection">No connection. Check your internet and try again.</string>
+    <string name="my_profile_name_label">Name</string>
+    <string name="my_profile_save">Save</string>
+    <string name="my_profile_saved">Saved.</string>
     <string name="my_profile_title">My profile</string>
     <string name="my_profile_workspaces_title">My workspaces</string>
     <string name="no_access_body">You don\'t have access to a workspace yet.</string>

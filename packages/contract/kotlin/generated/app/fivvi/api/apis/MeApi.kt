@@ -45,7 +45,7 @@ interface MeApi {
     /**
      * PATCH v1/me
      * Change the signed-in account
-     * Stores the language the person chose (&#x60;preferredLocale&#x60;), so every browser and app of the account shows it from its next load. Answers with the account, as &#x60;GET /v1/me&#x60; does. A value other than &#x60;nl-NL&#x60; or &#x60;en&#x60; answers &#x60;400&#x60; and nothing changes.
+     * Stores the language the person chose (&#x60;preferredLocale&#x60;), so every browser and app of the account shows it from its next load, and the name they gave themselves (&#x60;name&#x60;), one per account, shown in every workspace they are on. Answers with the account, as &#x60;GET /v1/me&#x60; does. A language other than &#x60;nl-NL&#x60; or &#x60;en&#x60;, or a name that is empty, blank or over 80 characters, answers &#x60;400&#x60; and nothing changes.
      * Responses:
      *  - 200: The account with its change.
      *  - 400: The request did not match the contract.
