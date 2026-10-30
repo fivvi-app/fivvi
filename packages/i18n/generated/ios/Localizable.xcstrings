@@ -508,6 +508,23 @@
         }
       }
     },
+    "profile.language" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taal"
+          }
+        }
+      }
+    },
     "profile.title" : {
       "extractionState" : "manual",
       "localizations" : {

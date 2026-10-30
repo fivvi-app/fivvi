@@ -164,7 +164,8 @@
   },
   "profile": {
     "title": "Profile",
-    "error": "Your workspaces couldn't be loaded."
+    "error": "Your workspaces couldn't be loaded.",
+    "language": "Language"
   },
   "team": {
     "title": "Trainers",

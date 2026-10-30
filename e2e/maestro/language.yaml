@@ -1,0 +1,43 @@
+# F010 native language switch (spec #175, AC3), against the local stack: Sarah chooses the other language under
+# Profiel → Taal, the app re-renders at once without a restart, and chooses the device language again at the end (the
+# choice is saved on the account, which the other flows sign in with). Elements are found by id: the Android testTag and the
+# iOS accessibilityIdentifier, the same on both apps.
+# LANGUAGE_THIS, LANGUAGE_OTHER (nl-NL or en), PROFILE_LANGUAGE_THIS and PROFILE_LANGUAGE_OTHER (profile.language in
+# each), set by scripts/maestro.sh. They have no default here: a flow's own env default would win over the value
+# maestro.sh passes.
+appId: ${APP_ID}
+name: AC3 Profiel → Taal switches without a restart
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # Sarah: seeded (packages/database/src/seed.ts).
+  EMAIL: trainer@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+- runFlow:
+    file: shared/device-language.yaml
+- tapOn:
+    id: home\.openProfile
+- extendedWaitUntil:
+    visible:
+      id: profile\.language
+      text: ${PROFILE_LANGUAGE_THIS}
+    timeout: 20000
+- tapOn:
+    id: profile\.language\.${LANGUAGE_OTHER}
+- extendedWaitUntil:
+    visible:
+      id: profile\.language
+      text: ${PROFILE_LANGUAGE_OTHER}
+    timeout: 20000
+# Back to the device language, so the account ends as it started.
+- tapOn:
+    id: profile\.language\.${LANGUAGE_THIS}
+- extendedWaitUntil:
+    visible:
+      id: profile\.language
+      text: ${PROFILE_LANGUAGE_THIS}
+    timeout: 20000

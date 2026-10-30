@@ -62,6 +62,7 @@ sealed interface HomeDestination {
  * dispatcher, so tests set it with virtual time. Storing and deleting the token is file I/O, so it runs on [io].
  * [onAccount] is told the account's ID (a UUID) once `GET /api/v1/me` has answered: the app sets it as the error-reporting
  * user (F001 AC2, #266) unless the sign-in has ended meanwhile; [Session] clears it again on sign-out.
+ * [onPreferredLocale] is told the account's stored language at the same time (F010 AC2, AC5).
  */
 class HomeViewModel(
     private val api: MeApi,
@@ -71,6 +72,7 @@ class HomeViewModel(
     private val onAccount: (id: String) -> Unit,
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val signOutTimeout: Duration = SIGN_OUT_TIMEOUT,
+    private val onPreferredLocale: (MeResponse.PreferredLocale?) -> Unit = {},
 ) : ViewModel() {
     private val _state = MutableStateFlow<MeState>(MeState.Loading)
     val state: StateFlow<MeState> = _state.asStateFlow()
@@ -142,7 +144,10 @@ class HomeViewModel(
         }
         val account = response.body()?.takeIf { response.isSuccessful }
         return account?.let {
-            if (stillSignedIn()) onAccount(it.id.toString())
+            if (stillSignedIn()) {
+                onAccount(it.id.toString())
+                onPreferredLocale(it.preferredLocale)
+            }
             MeState.Loaded(it.email, destination(it))
         } ?: MeState.Failed
     }

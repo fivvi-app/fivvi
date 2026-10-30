@@ -2,8 +2,10 @@ package app.fivvi.pro
 
 import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.net.Uri
 import android.os.Bundle
 import android.os.LocaleList
@@ -14,13 +16,18 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.lifecycle.Lifecycle
@@ -40,13 +47,10 @@ import app.fivvi.pro.signin.SignInViewModel
 import app.fivvi.pro.theme.FivviTheme
 
 class MainActivity : ComponentActivity() {
-    private lateinit var language: AppLanguage
-
     // The resources follow the resolved language, not Android's own match: an unsupported device language would
-    // otherwise get the default (Dutch) resources.
+    // otherwise get the default (Dutch) resources. A switch while the app runs re-renders in place (see [Localized]).
     override fun attachBaseContext(newBase: Context) {
-        val settings = (newBase.applicationContext as FivviApplication).dependencies.languageSettings
-        language = AppLanguage.resolve(settings.perAppLanguages, settings.deviceLanguages)
+        val language = (newBase.applicationContext as FivviApplication).dependencies.languagePreference.language.value
         super.attachBaseContext(newBase)
         applyOverrideConfiguration(Configuration().apply { setLocales(LocaleList(language.locale)) })
     }
@@ -56,26 +60,57 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val dependencies = (application as FivviApplication).dependencies
         setContent {
-            FivviTheme {
-                // Test tags double as resource ids, so Maestro finds them as on iOS.
-                Surface(Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }) {
-                    // App start: no token is the sign-in screen, with no authenticated call; a token is the home.
-                    val auth by dependencies.session.state.collectAsStateWithLifecycle()
-                    if (auth.signedIn) {
-                        Home(dependencies, key = "${auth.generation}")
-                    } else {
-                        SignIn(dependencies, key = "${auth.generation}", showsSignedOutNotice = auth.afterRejection)
+            val language by dependencies.languagePreference.language.collectAsStateWithLifecycle()
+            Localized(language) {
+                FivviTheme {
+                    // Test tags double as resource ids, so Maestro finds them as on iOS.
+                    Surface(Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }) {
+                        // App start: no token is the sign-in screen, with no authenticated call; a token is the home.
+                        val auth by dependencies.session.state.collectAsStateWithLifecycle()
+                        if (auth.signedIn) {
+                            Home(dependencies, key = "${auth.generation}", language)
+                        } else {
+                            SignIn(dependencies, key = "${auth.generation}", language, auth.afterRejection)
+                        }
                     }
                 }
             }
         }
     }
 
-    // The view models belong to one sign-in (the key holds its generation), so the next one starts fresh.
+    // The screens read their strings from the context that follows the language, so a switch re-renders in place:
+    // no restart, and what was typed stays in the view models.
     @Composable
-    private fun SignIn(dependencies: AppDependencies, key: String, showsSignedOutNotice: Boolean) {
-        val viewModel = viewModel(key = "signIn-$key-${language.tag}") {
-            SignInViewModel(dependencies.signInApi, dependencies.session, language.apiLocale)
+    private fun Localized(language: AppLanguage, content: @Composable () -> Unit) {
+        val configuration = remember(language) {
+            Configuration(resources.configuration).apply { setLocales(LocaleList(language.locale)) }
+        }
+        val localized = remember(language) {
+            val resources = createConfigurationContext(configuration).resources
+            object : ContextWrapper(this) {
+                override fun getResources(): Resources = resources
+            }
+        }
+        CompositionLocalProvider(
+            LocalContext provides localized,
+            LocalConfiguration provides configuration,
+            LocalResources provides localized.resources,
+            content = content,
+        )
+    }
+
+    // The view models belong to one sign-in (the key holds its generation), so the next one starts fresh. The sign-in
+    // view model outlives a language switch, so the address typed stays; its email follows the language shown (AC4).
+    @Composable
+    private fun SignIn(
+        dependencies: AppDependencies,
+        key: String,
+        language: AppLanguage,
+        showsSignedOutNotice: Boolean,
+    ) {
+        val current by rememberUpdatedState(language)
+        val viewModel = viewModel(key = "signIn-$key") {
+            SignInViewModel(dependencies.signInApi, dependencies.session, { current.apiLocale })
         }
         val state by viewModel.state.collectAsStateWithLifecycle()
         val actions = SignInActions(
@@ -86,6 +121,9 @@ class MainActivity : ComponentActivity() {
             onResend = viewModel::resendCode,
             onChangeEmail = viewModel::changeEmail,
             onRetry = viewModel::retry,
+            language = language,
+            // Signed out, the choice is kept on the device and saved on the account at sign-in (AC4, AC5).
+            onChooseLanguage = dependencies.languagePreference::choose,
         )
         SignInScreen(state, actions, showsSignedOutNotice = showsSignedOutNotice)
     }
@@ -102,11 +140,13 @@ class MainActivity : ComponentActivity() {
 
     // Profiel (TM-04): opened from the home; it lists the workspaces on opening and on foreground (F003 AC9).
     @Composable
-    private fun Profile(dependencies: AppDependencies, key: String, opening: Int) {
+    private fun Profile(dependencies: AppDependencies, key: String, opening: Int, languages: LanguageViewModel) {
         val profile = viewModel(key = "profile-$key-$opening") { ProfileViewModel(dependencies.meApi) }
         val state by profile.state.collectAsStateWithLifecycle()
+        val language by languages.language.collectAsStateWithLifecycle()
+        val saveFailed by languages.saveFailed.collectAsStateWithLifecycle()
         OnForeground(profile::refresh)
-        ProfileScreen(state, onRetry = profile::retry)
+        ProfileScreen(state, onRetry = profile::retry, language, saveFailed, onChooseLanguage = languages::choose)
     }
 
     // Runs [action] each time the app comes back to the foreground, not at the start that composing this already covers
@@ -120,9 +160,12 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun Home(dependencies: AppDependencies, key: String) {
+    private fun Home(dependencies: AppDependencies, key: String, language: AppLanguage) {
         val hello = viewModel(key = "hello-$key-${language.tag}") {
             HelloViewModel(dependencies.helloApi, language.apiLocale)
+        }
+        val languages = viewModel(key = "language-$key") {
+            LanguageViewModel(dependencies.meApi, dependencies.languagePreference)
         }
         val me = viewModel(key = "home-$key") {
             HomeViewModel(
@@ -131,6 +174,7 @@ class MainActivity : ComponentActivity() {
                 dependencies.session,
                 dependencies::signOutApi,
                 onAccount = Observability::setUser,
+                onPreferredLocale = languages::onStored,
             )
         }
         val helloState by hello.state.collectAsStateWithLifecycle()
@@ -142,10 +186,12 @@ class MainActivity : ComponentActivity() {
 
         // On foreground: is the workspace shown still the person's (F003 AC6)?
         OnForeground(me::refresh)
+        // On foreground the stored language is read again: a change made elsewhere is adopted (F010 AC2).
+        OnForeground(languages::refresh)
 
         if (showsProfile) {
             BackHandler { showsProfile = false }
-            Profile(dependencies, key, profileOpenings)
+            Profile(dependencies, key, profileOpenings, languages)
             return
         }
         HomeScreen(

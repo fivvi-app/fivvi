@@ -24,6 +24,8 @@ import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.title1
 import app.fivvi.designtokens.title2
+import app.fivvi.pro.AppLanguage
+import app.fivvi.pro.LanguageList
 import app.fivvi.pro.R
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
@@ -34,6 +36,10 @@ object ProfileTags {
     const val ERROR = "profile.error"
     const val RETRY = "profile.retry"
 
+    /** The language section: `profile.language` is its title, `profile.language.nl-NL` and `.en` the options. */
+    const val LANGUAGE = "profile.language"
+    const val LANGUAGE_ERROR = "profile.language.error"
+
     /** Row tags end in the workspace's slug: `profile.workspaceName.<slug>` and `profile.workspaceRole.<slug>`. */
     const val WORKSPACE_NAME = "profile.workspaceName"
     const val WORKSPACE_ROLE = "profile.workspaceRole"
@@ -41,10 +47,17 @@ object ProfileTags {
 
 /**
  * *Profiel* / *Profile* (TM-04, F003 AC9): the section *Mijn werkruimtes* / *My workspaces* lists each workspace with the
- * role label of the account on its team. Back is the system's back. No switching (F012); F005 and F010 add name, email and language to this screen.
+ * role label of the account on its team. Back is the system's back. No switching (F012); F005 adds name and email; F010 adds *Taal* (the language list, saved on the account).
  */
 @Composable
-fun ProfileScreen(state: ProfileState, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+fun ProfileScreen(
+    state: ProfileState,
+    onRetry: () -> Unit,
+    language: AppLanguage,
+    languageSaveFailed: Boolean,
+    onChooseLanguage: (AppLanguage) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState())
             .padding(Spacing.space6),
@@ -81,6 +94,20 @@ fun ProfileScreen(state: ProfileState, onRetry: () -> Unit, modifier: Modifier =
                     Text(stringResource(R.string.common_retry))
                 }
             }
+        }
+        Text(
+            text = stringResource(R.string.profile_language),
+            modifier = Modifier.testTag(ProfileTags.LANGUAGE).semantics { heading() },
+            style = MaterialTheme.typography.title2,
+        )
+        LanguageList(ProfileTags.LANGUAGE, language, onChooseLanguage)
+        if (languageSaveFailed) {
+            Text(
+                text = stringResource(R.string.user_menu_error),
+                modifier = Modifier.testTag(ProfileTags.LANGUAGE_ERROR),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.body,
+            )
         }
     }
 }

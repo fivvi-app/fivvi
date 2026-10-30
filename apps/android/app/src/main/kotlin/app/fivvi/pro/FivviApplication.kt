@@ -20,6 +20,9 @@ interface AppDependencies {
     val session: Session
     val languageSettings: LanguageSettings
 
+    /** The language shown and kept (F010). */
+    val languagePreference: LanguagePreference
+
     /** The sign-in API for the one sign-out request that carries [token] (AC10). */
     fun signOutApi(token: String): SignInApi
 }
@@ -38,6 +41,9 @@ class DefaultAppDependencies(context: Context) : AppDependencies {
     override val workspacesApi: WorkspacesApi get() = services.workspacesApi
     override fun signOutApi(token: String): SignInApi = services.signOutApi(token)
     override val languageSettings: LanguageSettings = SystemLanguageSettings(context)
+    override val languagePreference: LanguagePreference by lazy {
+        LanguagePreference(SharedPreferencesLanguageStore(context), languageSettings)
+    }
 }
 
 class FivviApplication : Application() {
