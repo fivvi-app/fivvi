@@ -252,10 +252,15 @@ private final class Responder: @unchecked Sendable {
     /// The account's workspaces in the order of the list, with the number each one has (0 for the first); the ones it
     /// lost its team access to are not in it.
     private var teamWorkspaceEntries: [(index: Int, workspace: StubServer.Workspace)] {
-        let lost = lock.withLock { lost }
-        let all = (signIn.workspaceName.map { [StubServer.Workspace(name: $0, role: signIn.role)] } ?? [])
-            + signIn.otherWorkspaces
-        return all.enumerated().filter { !lost.contains($0.offset) }.map { ($0.offset, $0.element) }
+        let lostNumbers: Set<Int> = lock.withLock { self.lost }
+        var all: [StubServer.Workspace] = []
+        if let name = signIn.workspaceName { all.append(StubServer.Workspace(name: name, role: signIn.role)) }
+        all.append(contentsOf: signIn.otherWorkspaces)
+        var entries: [(index: Int, workspace: StubServer.Workspace)] = []
+        for (number, workspace) in all.enumerated() where !lostNumbers.contains(number) {
+            entries.append((index: number, workspace: workspace))
+        }
+        return entries
     }
 
     private static func workspaceID(_ index: Int) -> String { "7c1d2e3f-0000-4000-8000-00000000000\(index)" }
