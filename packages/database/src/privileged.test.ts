@@ -303,7 +303,7 @@ describe('E011 privileged database path', () => {
   });
 
   describe('openPrivilegedDatabase', () => {
-    const env = { DATABASE_URL: 'postgres://owner:hunter2@localhost:5432/trainer_hub' };
+    const env = { DATABASE_URL: 'postgres://owner:hunter2@localhost:5432/fivvi' };
 
     it('logs the reason and not the connection', async () => {
       const logs: string[] = [];

@@ -1,22 +1,22 @@
 # Local development services. Start with `pnpm db:up`, stop with `pnpm db:down`.
 # One shared project name, so every worktree uses the same container and volume.
-name: trainer-hub
+name: fivvi
 
 services:
   postgres:
     # Same major version as Railway's Postgres template (postgres-ssl:18, ADR-011).
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: trainer_hub
-      POSTGRES_PASSWORD: trainer_hub
-      POSTGRES_DB: trainer_hub
+      POSTGRES_USER: fivvi
+      POSTGRES_PASSWORD: fake-local-db-password
+      POSTGRES_DB: fivvi
     ports:
       - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
     volumes:
       # Postgres 18 images keep their data under /var/lib/postgresql/<major>/.
       - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U trainer_hub -d trainer_hub']
+      test: ['CMD-SHELL', 'pg_isready -U fivvi -d fivvi']
       interval: 2s
       timeout: 5s
       retries: 15

@@ -12,7 +12,7 @@ describe('E004 database config', () => {
   });
 
   it.each([
-    'postgres://app:secret@localhost:5432/trainer_hub',
+    'postgres://app:secret@localhost:5432/fivvi',
     'postgresql://app:secret@postgres.railway.internal:5432/railway',
   ])('reads the variable it is asked for: %s', (url) => {
     expect(readDatabaseConfig({ APP_DATABASE_URL: url }, 'APP_DATABASE_URL')).toEqual({ url });
@@ -20,7 +20,7 @@ describe('E004 database config', () => {
   });
 
   it('E011: never falls back from one variable to the other', () => {
-    const env = { DATABASE_URL: 'postgres://owner:secret@localhost:5432/trainer_hub' };
+    const env = { DATABASE_URL: 'postgres://owner:secret@localhost:5432/fivvi' };
     expect(() => readDatabaseConfig(env, 'APP_DATABASE_URL')).toThrow(
       /APP_DATABASE_URL is not set/,
     );
