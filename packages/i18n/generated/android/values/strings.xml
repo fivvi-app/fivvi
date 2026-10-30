@@ -36,6 +36,15 @@
     <string name="home_set_up_on_web">Maak je werkruimte aan op het web.</string>
     <!-- Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner. -->
     <string name="home_signed_in_as">Ingelogd als %1$s</string>
+    <string name="my_profile_details_title">Jouw gegevens</string>
+    <string name="my_profile_email_label">E-mailadres</string>
+    <string name="my_profile_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <string name="my_profile_errors_name_required">Vul je naam in.</string>
+    <string name="my_profile_errors_name_too_long">Deze naam is te lang. Gebruik een kortere naam.</string>
+    <string name="my_profile_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="my_profile_name_label">Naam</string>
+    <string name="my_profile_save">Opslaan</string>
+    <string name="my_profile_saved">Opgeslagen.</string>
     <!-- Title of the page My profile (TW-09). -->
     <string name="my_profile_title">Mijn profiel</string>
     <!-- Heading of the section listing the workspaces the person is on the team of, each with their role. -->

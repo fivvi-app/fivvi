@@ -160,7 +160,18 @@
   },
   "myProfile": {
     "title": "My profile",
-    "workspacesTitle": "My workspaces"
+    "workspacesTitle": "My workspaces",
+    "detailsTitle": "Your details",
+    "nameLabel": "Name",
+    "emailLabel": "Email address",
+    "save": "Save",
+    "saved": "Saved.",
+    "errors": {
+      "nameRequired": "Enter your name.",
+      "nameTooLong": "This name is too long. Use a shorter one.",
+      "noConnection": "No connection. Check your internet and try again.",
+      "generic": "Something went wrong. Try again."
+    }
   },
   "team": {
     "title": "Trainers",

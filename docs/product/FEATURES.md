@@ -28,7 +28,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | [F002](https://github.com/fivvi-app/fivvi/issues/170) | Workspaces: create a workspace on the web (TW-11), rename it in Settings → General, signed-in home routes to the workspace, first run or no access; iOS and Android open the workspace or point to the web (`GET /api/v1/me`) | IMPLEMENTED | Must | M2 | F001 | ✅ | ✅ | §5 |
 | F003 | Workspace Membership | IN PROGRESS | Must | M2 | F002 | ⬜ | ⬜ | §2.9, §6, §9 (team role next to client relationship) |
 | F004 | Roles | PLANNED | Must | M2 | F003 | ⬜ | ⬜ | §9, §50 (Owner and Trainer; Admin is a later role 🔜) |
-| F005 | Trainer Profile | PLANNED | Must | M2 (+ iOS/Android: profile) | F003 | ⬜ | ⬜ | §9 |
+| F005 | Trainer Profile | IN PROGRESS | Must | M2 (+ iOS/Android: profile) | F003 | ⬜ | ⬜ | §9 |
 | F006 | Client Profile | PLANNED | Must | M2 (+ iOS/Android in M4) | F002 | ⬜ | ⬜ | §2.9, §9, §10, §34 (quick add, name only; links to an existing account) |
 | F007 | Localization Infrastructure | PLANNED | Must | M1–M2 | E005 | ⬜ | ⬜ | §3, §73 |
 | F008 | Dutch UI | PLANNED | Must | continuous | F007 | ⬜ | — | §2.2 |

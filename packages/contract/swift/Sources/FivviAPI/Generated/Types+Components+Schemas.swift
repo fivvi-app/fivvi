@@ -417,6 +417,10 @@ extension Components {
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateMeRequest`.
         public struct UpdateMeRequest: Codable, Hashable, Sendable {
+            /// The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/name`.
+            public var name: Swift.String?
             /// The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/preferredLocale`.
@@ -431,11 +435,17 @@ extension Components {
             /// Creates a new `UpdateMeRequest`.
             ///
             /// - Parameters:
+            ///   - name: The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error.
             ///   - preferredLocale: The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
-            public init(preferredLocale: Components.Schemas.UpdateMeRequest.PreferredLocalePayload? = nil) {
+            public init(
+                name: Swift.String? = nil,
+                preferredLocale: Components.Schemas.UpdateMeRequest.PreferredLocalePayload? = nil
+            ) {
+                self.name = name
                 self.preferredLocale = preferredLocale
             }
             public enum CodingKeys: String, CodingKey {
+                case name
                 case preferredLocale
             }
         }

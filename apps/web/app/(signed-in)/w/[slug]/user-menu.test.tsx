@@ -15,7 +15,7 @@ describe.each(locales)('F010 user menu of the workspace frame in %s', (locale) =
   it('AC1: the frame has a closed user menu button with an accessible name', () => {
     const html = render(
       locale,
-      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="trainer">
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="trainer" personName={null}>
         <hr />
       </WorkspaceFrame>,
     );
@@ -26,6 +26,22 @@ describe.each(locales)('F010 user menu of the workspace frame in %s', (locale) =
       ),
     );
     expect(html).not.toContain(copy.languageNl);
+  });
+
+  it('F005 AC1: the sidebar footer shows the name as entered', () => {
+    const html = render(
+      locale,
+      <WorkspaceFrame
+        name="John's Gym"
+        slug="johns-gym"
+        teamRole="trainer"
+        personName="Sarah de Vries"
+      >
+        <hr />
+      </WorkspaceFrame>,
+    );
+
+    expect(html).toMatch(/<footer[^>]*>[\s\S]*Sarah de Vries[\s\S]*<\/footer>/);
   });
 
   it('F003: the opened menu links to My profile', () => {
