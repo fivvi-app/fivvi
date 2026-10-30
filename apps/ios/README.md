@@ -73,7 +73,7 @@ The app picks its interface language itself, by ADR-017's rule, and uses it for 
 4. The first supported language in the device's preferred list (`Locale.preferredLanguages`): any `nl-*` is `nl-NL`, any `en-*` is `en`.
 5. English.
 
-`AppLanguage` (an `@Observable` the app creates once) holds the `Catalog` that is shown. A choice re-renders the screens at once (the view models take the new catalog with `use(_:)`, the greeting is asked again in it) and is saved with `PATCH /api/v1/me` (`preferredLocale`); a choice made signed out, or one the API did not take, stays "unsaved" and is saved when the home opens and on every foreground. The choice survives sign-out. `language_changed` for surface `ios` is not recorded yet: the API records it only for a request without a bearer token, and the app has no analytics SDK. Android #332 adds an optional `surface` to `UpdateMeRequest`; once it is merged, the app sends `ios` on `PATCH /api/v1/me`.
+`AppLanguage` (an `@Observable` the app creates once) holds the `Catalog` that is shown. A choice re-renders the screens at once (the view models take the new catalog with `use(_:)`, the greeting is asked again in it) and is saved with `PATCH /api/v1/me` (`preferredLocale`); a choice made signed out, or one the API did not take, stays "unsaved" and is saved when the home opens and on every foreground. The choice survives sign-out. The save sends `surface: ios` with the language, so the API records `language_changed` for surface `ios` (it records nothing without a `surface`; the app has no analytics SDK of its own).
 
 Accessibility identifiers of the language switch (the Android test tags are the same, so one Maestro flow serves both):
 

@@ -94,6 +94,8 @@ actor StubAPI: APIProtocol {
     private(set) var meCalls = 0
     /// The `preferredLocale` of every `updateMe`, in order.
     private(set) var savedLocales: [Components.Schemas.Locale?] = []
+    /// The `surface` of every `updateMe`, in order.
+    private(set) var savedSurfaces: [Components.Schemas.UpdateMeRequest.SurfacePayload?] = []
     private(set) var myWorkspacesCalls = 0
     /// The IDs `getWorkspace` was asked for, in order.
     private(set) var requestedWorkspaces: [String] = []
@@ -318,6 +320,7 @@ extension StubAPI {
     func updateMe(_ input: Operations.UpdateMe.Input) async throws -> Operations.UpdateMe.Output {
         if case let .json(body) = input.body {
             savedLocales.append(body.preferredLocale.flatMap { Components.Schemas.Locale(rawValue: $0.rawValue) })
+            savedSurfaces.append(body.surface)
         }
         switch updateMeAnswer {
         case .accepted:

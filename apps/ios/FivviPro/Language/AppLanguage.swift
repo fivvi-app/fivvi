@@ -88,7 +88,11 @@ final class AppLanguage {
         defer { saving = false }
         while unsaved, let target = choice, store.token != nil {
             do {
-                switch try await api.updateMe(body: .json(.init(preferredLocale: .init(rawValue: target.rawValue)))) {
+                let body = Components.Schemas.UpdateMeRequest(
+                    preferredLocale: .init(rawValue: target.rawValue),
+                    surface: .ios
+                )
+                switch try await api.updateMe(body: .json(body)) {
                 case .ok:
                     revision += 1
                     stored = target

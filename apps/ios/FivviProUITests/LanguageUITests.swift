@@ -48,7 +48,9 @@ final class LanguageUITests: SignInUITestCase {
         }
         XCTAssertTrue(saved, "the stored preference is the choice")
         let patches = server.requests.filter { $0.method == "PATCH" && $0.path == "/api/v1/me" }
-        XCTAssertEqual(patches.map(\.body), [["preferredLocale": apiLocale(TestCatalog.configuredLanguage)]])
+        let language = apiLocale(TestCatalog.configuredLanguage)
+        let sent: [[String: String]] = [["preferredLocale": language, "surface": "ios"]]
+        XCTAssertEqual(patches.map(\.body), sent)
         XCTAssertEqual(patches.map(\.authorization), ["Bearer \(server.signIn.token)"])
         XCTAssertFalse(screen.app.staticTexts["profile.language.error"].exists)
 

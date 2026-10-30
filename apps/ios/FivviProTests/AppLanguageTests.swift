@@ -32,6 +32,18 @@ final class AppLanguageTests: XCTestCase {
         XCTAssertFalse(language.saveFailed)
     }
 
+    func test_F010_AC3_theSaveNamesTheIosSurface() async throws {
+        let api = StubAPI()
+        let language = appLanguage(api, defaults: try emptyDefaults())
+
+        language.choose(.nlNL)
+        await language.save()
+
+        let surfaces = await api.savedSurfaces
+        let expected: [Components.Schemas.UpdateMeRequest.SurfacePayload?] = [.ios]
+        XCTAssertEqual(surfaces, expected)
+    }
+
     func test_F010_AC3_aFailedSaveIsTriedAgainAndNothingIsLost() async throws {
         let api = StubAPI()
         await api.answerUpdateMe(with: .offline)
