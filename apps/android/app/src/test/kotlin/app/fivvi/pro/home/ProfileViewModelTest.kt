@@ -60,7 +60,7 @@ class ProfileViewModelTest {
     }
 
     @Test
-    fun test_F003_AC6_foregroundReadsTheListAgainAndKeepsItWhileItLoads() {
+    fun test_F003_AC9_foregroundReadsTheListAgainAndKeepsItWhileItLoads() {
         api.answerWorkspaces(gym, personalTraining)
         api.answerWorkspaces(personalTraining)
         val viewModel = ProfileViewModel(api)
@@ -77,7 +77,7 @@ class ProfileViewModelTest {
     }
 
     @Test
-    fun test_F003_AC6_noConnectionOnForegroundKeepsTheList() {
+    fun test_F003_AC9_noConnectionOnForegroundKeepsTheList() {
         api.answerWorkspaces(gym)
         api.workspaceAnswers += { throw IOException("offline") }
         val viewModel = ProfileViewModel(api)

@@ -64,6 +64,24 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     }
 
     @Test
+    fun test_F003_AC9_openingTheProfileAgainReadsTheListAgain() {
+        me.answerAccount()
+        me.answerWorkspaces(Triple("John's Gym", "johns-gym", Role.OWNER))
+        me.answerWorkspaces(Triple("Sarah Personal Training", "sarah-personal-training", Role.OWNER))
+        launch()
+        compose.waitUntilTagExists(HomeTags.OPEN_PROFILE)
+        compose.onNodeWithTag(HomeTags.OPEN_PROFILE).performClick()
+        compose.waitUntilTagExists("${ProfileTags.WORKSPACE_NAME}.johns-gym")
+        app.pressBack()
+        compose.waitUntilTagExists(HomeTags.OPEN_PROFILE)
+
+        compose.onNodeWithTag(HomeTags.OPEN_PROFILE).performClick()
+
+        compose.waitUntilTagExists("${ProfileTags.WORKSPACE_NAME}.sarah-personal-training")
+        compose.onNodeWithTag("${ProfileTags.WORKSPACE_NAME}.johns-gym").assertDoesNotExist()
+    }
+
+    @Test
     fun test_F003_AC9_backLeavesTheProfile() {
         me.answerAccount()
         me.answerWorkspaces(Triple("John's Gym", "johns-gym", Role.OWNER))

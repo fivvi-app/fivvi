@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -101,8 +102,8 @@ class MainActivity : ComponentActivity() {
 
     // Profiel (TM-04): opened from the home; it lists the workspaces on opening and on foreground (F003 AC9).
     @Composable
-    private fun Profile(dependencies: AppDependencies, key: String) {
-        val profile = viewModel(key = "profile-$key") { ProfileViewModel(dependencies.meApi) }
+    private fun Profile(dependencies: AppDependencies, key: String, opening: Int) {
+        val profile = viewModel(key = "profile-$key-$opening") { ProfileViewModel(dependencies.meApi) }
         val state by profile.state.collectAsStateWithLifecycle()
         OnForeground(profile::refresh)
         ProfileScreen(state, onRetry = profile::retry)
@@ -136,13 +137,15 @@ class MainActivity : ComponentActivity() {
         val meState by me.state.collectAsStateWithLifecycle()
         val signingOut by me.signingOut.collectAsStateWithLifecycle()
         var showsProfile by rememberSaveable { mutableStateOf(false) }
+        // Each opening of Profiel gets a new view model, so it reads the list again (F003 AC9).
+        var profileOpenings by rememberSaveable { mutableIntStateOf(0) }
 
         // On foreground: is the workspace shown still the person's (F003 AC6)?
         OnForeground(me::refresh)
 
         if (showsProfile) {
             BackHandler { showsProfile = false }
-            Profile(dependencies, key)
+            Profile(dependencies, key, profileOpenings)
             return
         }
         HomeScreen(
@@ -153,7 +156,10 @@ class MainActivity : ComponentActivity() {
             onRetryMe = me::retry,
             onSignOut = me::signOut,
             onOpenWeb = ::openWelcomeOnTheWeb,
-            onOpenProfile = { showsProfile = true },
+            onOpenProfile = {
+                profileOpenings++
+                showsProfile = true
+            },
         )
     }
 }
