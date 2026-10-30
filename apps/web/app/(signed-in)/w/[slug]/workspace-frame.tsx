@@ -10,17 +10,21 @@ import { UserMenu } from './user-menu';
  * header shows the workspace name and the person's role in it (F003; a plain label, switching
  * comes with F012), and the navigation. Trainers (F003) and Settings are in it for the Owner only
  * (F002 AC7) with its pages General and Language (F010); a Trainer never sees them. The user menu with
- * the language switch is below them (F010). The rest of the navigation comes with F013/F014.
+ * the language switch is below them (F010), and the sidebar footer shows the person's name as
+ * entered (F005). The rest of the navigation comes with F013/F014.
  */
 export function WorkspaceFrame({
   name,
   slug,
   teamRole,
+  personName,
   children,
 }: {
   name: string;
   slug: string;
   teamRole: Schemas['MyWorkspace']['role'];
+  /** The person's own name as entered; null until they have one. */
+  personName: string | null;
   children: ReactNode;
 }) {
   const t = useTranslations('workspaceNav');
@@ -56,6 +60,9 @@ export function WorkspaceFrame({
           ) : null}
         </nav>
         <UserMenu />
+        {personName ? (
+          <footer className="text-sm text-muted-foreground">{personName}</footer>
+        ) : null}
       </aside>
       <div className="flex flex-1 flex-col">{children}</div>
     </div>

@@ -63,7 +63,7 @@ export interface paths {
         head?: never;
         /**
          * Change the signed-in account
-         * @description Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load. Answers with the account, as `GET /v1/me` does. A value other than `nl-NL` or `en` answers `400` and nothing changes.
+         * @description Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, or a name that is empty, blank or over 80 characters, answers `400` and nothing changes.
          */
         patch: operations["updateMe"];
         trace?: never;
@@ -347,6 +347,8 @@ export interface components {
         };
         /** @description What to change on the signed-in account. Fields left out stay as they are. */
         UpdateMeRequest: {
+            /** @description The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error. */
+            name?: string;
             /**
              * @description The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
              * @enum {string}

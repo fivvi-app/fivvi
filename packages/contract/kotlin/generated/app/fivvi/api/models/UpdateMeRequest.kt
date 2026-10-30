@@ -31,12 +31,17 @@ import kotlinx.serialization.Contextual
 /**
  * What to change on the signed-in account. Fields left out stay as they are.
  *
+ * @param name The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error.
  * @param preferredLocale The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
  * @param surface The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
  */
 @Serializable
 
 data class UpdateMeRequest (
+
+    /* The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error. */
+    @SerialName(value = "name")
+    val name: kotlin.String? = null,
 
     /* The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`. */
     @SerialName(value = "preferredLocale")

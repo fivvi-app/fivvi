@@ -454,5 +454,27 @@ describe('GET /v1/me', () => {
       ]);
       expect(JSON.stringify(posthog.events)).not.toContain(id);
     });
+
+    it('a name and a language in one request from an app are both stored; only the language is recorded', async () => {
+      const posthog = createProductEventCaptureTransport();
+      const productEvents = createProductEvents({
+        env: { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' },
+        transport: posthog,
+        errorReporter: createErrorReporter({ env: {} }),
+      });
+      const { cookie } = await accountSignedIn('both@allowed.test', 'Old Name');
+      const token = decodeURIComponent(/session_token=([^;]+)/.exec(cookie)?.[1] ?? '');
+      const response = await patch(
+        undefined,
+        { name: 'New Name', preferredLocale: 'en', surface: 'ios' },
+        api(client.db, productEvents),
+        { authorization: `Bearer ${token}` },
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ name: 'New Name', preferredLocale: 'en' });
+      expect(posthog.events).toHaveLength(1);
+      expect(posthog.events[0]?.properties).toMatchObject({ locale: 'en', surface: 'ios' });
+      expect(JSON.stringify(posthog.events)).not.toContain('New Name');
+    });
   });
 });
