@@ -63,6 +63,19 @@ class SignInViewModelTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
         assertEquals(SignInState.CodeEntry(EMAIL), viewModel.state.value)
     }
 
+    // F010 AC4: the email follows the language shown when the request goes out, also after a switch on the screen.
+    @Test
+    fun test_F010_AC4_signedOutChoiceSetsTheSignInEmailLanguage() {
+        api.answerAccepted()
+        var shown = language
+        val viewModel = SignInViewModel(api, session, { shown.apiLocale }, dispatcher)
+        shown = AppLanguage.entries.first { it != language }
+
+        viewModel.requestCode()
+
+        assertEquals(listOf(SignInRequest(EMAIL, shown.apiLocale)), api.requests)
+    }
+
     @Test
     fun F001N_AC1_sendingUntilTheApiAnswers() {
         val answer = CompletableDeferred<Response<Unit>>()

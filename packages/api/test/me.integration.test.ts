@@ -246,10 +246,19 @@ describe('GET /v1/me', () => {
   });
 
   describe('PATCH /v1/me', () => {
-    const patch = (cookie: string | undefined, body: unknown, server = api(client.db)) =>
+    const patch = (
+      cookie: string | undefined,
+      body: unknown,
+      server = api(client.db),
+      extraHeaders: Record<string, string> = {},
+    ) =>
       server.request('/v1/me', {
         method: 'PATCH',
-        headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) },
+        headers: {
+          'content-type': 'application/json',
+          ...(cookie ? { cookie } : {}),
+          ...extraHeaders,
+        },
         body: JSON.stringify(body),
       });
 
@@ -374,6 +383,98 @@ describe('GET /v1/me', () => {
         expect(sent).not.toContain(personal);
       }
       for (const log of logs) log.mockRestore();
+    });
+
+    it('AC12: a request with a bearer token records the surface the app names, none without one', async () => {
+      const posthog = createProductEventCaptureTransport();
+      const productEvents = createProductEvents({
+        env: { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' },
+        transport: posthog,
+        errorReporter: createErrorReporter({ env: {} }),
+      });
+      const { id, cookie } = await accountSignedIn('app-person@allowed.test', 'App Persoon');
+      const server = api(client.db, productEvents);
+      // The session the apps send as a bearer token resolves the same account here.
+      const token = decodeURIComponent(/session_token=([^;]+)/.exec(cookie)?.[1] ?? '');
+      const bearer = { authorization: `Bearer ${token}` };
+
+      const android = await patch(
+        undefined,
+        { preferredLocale: 'en', surface: 'android' },
+        server,
+        bearer,
+      );
+      const ios = await patch(
+        undefined,
+        { preferredLocale: 'nl-NL', surface: 'ios' },
+        server,
+        bearer,
+      );
+      // An app that names no surface records nothing: the API does not guess one.
+      const unnamed = await patch(undefined, { preferredLocale: 'en' }, server, bearer);
+      // A refusal records nothing, with or without a surface.
+      const refused = await patch(
+        undefined,
+        { preferredLocale: 'de', surface: 'android' },
+        server,
+        bearer,
+      );
+      // The web names no surface and sends no token; a surface in its body is not trusted.
+      const web = await patch(cookie, { preferredLocale: 'nl-NL', surface: 'android' }, server);
+      // Anything but `ios` and `android` is a validation error.
+      const invalid = await patch(
+        undefined,
+        { preferredLocale: 'en', surface: 'web' },
+        server,
+        bearer,
+      );
+
+      expect([
+        android.status,
+        ios.status,
+        unnamed.status,
+        refused.status,
+        web.status,
+        invalid.status,
+      ]).toEqual([200, 200, 200, 400, 200, 400]);
+      expect(posthog.events.map(({ event }) => event)).toEqual([
+        'language_changed',
+        'language_changed',
+        'language_changed',
+      ]);
+      expect(posthog.events.map(({ properties }) => properties?.surface)).toEqual([
+        'android',
+        'ios',
+        'web',
+      ]);
+      expect(posthog.events.map(({ properties }) => properties?.locale)).toEqual([
+        'en',
+        'nl-NL',
+        'nl-NL',
+      ]);
+      expect(JSON.stringify(posthog.events)).not.toContain(id);
+    });
+
+    it('a name and a language in one request from an app are both stored; only the language is recorded', async () => {
+      const posthog = createProductEventCaptureTransport();
+      const productEvents = createProductEvents({
+        env: { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' },
+        transport: posthog,
+        errorReporter: createErrorReporter({ env: {} }),
+      });
+      const { cookie } = await accountSignedIn('both@allowed.test', 'Old Name');
+      const token = decodeURIComponent(/session_token=([^;]+)/.exec(cookie)?.[1] ?? '');
+      const response = await patch(
+        undefined,
+        { name: 'New Name', preferredLocale: 'en', surface: 'ios' },
+        api(client.db, productEvents),
+        { authorization: `Bearer ${token}` },
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ name: 'New Name', preferredLocale: 'en' });
+      expect(posthog.events).toHaveLength(1);
+      expect(posthog.events[0]?.properties).toMatchObject({ locale: 'en', surface: 'ios' });
+      expect(JSON.stringify(posthog.events)).not.toContain('New Name');
     });
   });
 });

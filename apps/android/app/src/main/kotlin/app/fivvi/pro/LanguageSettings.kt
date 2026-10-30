@@ -14,6 +14,9 @@ interface LanguageSettings {
 
     /** The device's preferred languages in order, unaffected by the per-app language. */
     val deviceLanguages: List<Locale>
+
+    /** Sets [language] as the language of this app in Android settings (API 33+); nothing before. */
+    fun applyPerApp(language: AppLanguage) {}
 }
 
 class SystemLanguageSettings(private val context: Context) : LanguageSettings {
@@ -30,6 +33,12 @@ class SystemLanguageSettings(private val context: Context) : LanguageSettings {
         } else {
             Resources.getSystem().configuration.locales.toList()
         }
+
+    override fun applyPerApp(language: AppLanguage) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.getSystemService(LocaleManager::class.java).applicationLocales = LocaleList(language.locale)
+        }
+    }
 }
 
 private fun LocaleList.toList(): List<Locale> = List(size()) { get(it) }

@@ -1,22 +1,32 @@
 import type { Schemas } from '@fivvi/contract';
 import { Card, CardHeader, CardTitle } from '@fivvi/ui/components/card';
 import { useTranslations } from 'next-intl';
+import { NameForm } from './name-form';
 
 /** A workspace of the account's own team roles, as `GET /v1/me/workspaces` lists it. */
 export type MyWorkspace = Schemas['MyWorkspace'];
 
 /**
  * TW-09 My profile (`/me/profile`, F003): the section *Mijn werkruimtes* / *My workspaces*, each
- * workspace with the person's role in it as a plain label. No switching (F012); F005 and F010 add
- * the name, email and language rows to this page.
+ * workspace with the person's role in it as a plain label (no switching, F012), and the name
+ * (editable) and email address (read-only) of the person (F005); F010 adds the language row.
  */
-export function MyProfile({ workspaces }: { workspaces: readonly MyWorkspace[] }) {
+export function MyProfile({
+  name,
+  email,
+  workspaces,
+}: {
+  name: string | null;
+  email: string;
+  workspaces: readonly MyWorkspace[];
+}) {
   const t = useTranslations('myProfile');
   const roles = useTranslations('roles');
   return (
     <main className="flex flex-1 justify-center p-4">
       <div className="grid w-full max-w-lg content-start gap-4">
         <h1 className="font-display text-2xl font-semibold">{t('title')}</h1>
+        <NameForm name={name} email={email} />
         <Card>
           <CardHeader>
             <CardTitle>

@@ -14,3 +14,15 @@ export async function setPreferredLocale(scope: TenantScope, locale: Locale): Pr
     .set({ preferredLocale: locale })
     .where(eq(authUsers.id, scope.context.accountId));
 }
+
+/**
+ * Stores the name the scope's account gave itself (F005). One name per account, so every
+ * workspace shows it. Only the account of the scope is changed. The caller has trimmed it and
+ * checked its length.
+ */
+export async function setAccountName(scope: TenantScope, name: string): Promise<void> {
+  await executorOf(scope)
+    .update(authUsers)
+    .set({ name })
+    .where(eq(authUsers.id, scope.context.accountId));
+}

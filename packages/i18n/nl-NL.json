@@ -160,7 +160,18 @@
   },
   "myProfile": {
     "title": "Mijn profiel",
-    "workspacesTitle": "Mijn werkruimtes"
+    "workspacesTitle": "Mijn werkruimtes",
+    "detailsTitle": "Jouw gegevens",
+    "nameLabel": "Naam",
+    "emailLabel": "E-mailadres",
+    "save": "Opslaan",
+    "saved": "Opgeslagen.",
+    "errors": {
+      "nameRequired": "Vul je naam in.",
+      "nameTooLong": "Deze naam is te lang. Gebruik een kortere naam.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
+    }
   },
   "profile": {
     "title": "Profiel",

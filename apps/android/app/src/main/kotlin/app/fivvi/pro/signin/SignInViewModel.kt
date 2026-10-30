@@ -49,7 +49,8 @@ sealed interface SignInState {
 }
 
 /**
- * Signs in with the emailed code through the generated client: asks for the email in [locale], exchanges the 6-digit
+ * Signs in with the emailed code through the generated client: asks for the email in [locale] (the language shown when
+ * the request goes out, so a switch on the screen counts, F010 AC4), exchanges the 6-digit
  * code for a bearer token and hands the token to the [session], on [io]: storing it is Keystore crypto and file I/O.
  * The code step can ask for a new email ([resendCode]), go back to change the address ([changeEmail]) and, after a lost
  * connection, try again ([retry]).
@@ -57,9 +58,16 @@ sealed interface SignInState {
 class SignInViewModel(
     private val api: SignInApi,
     private val session: Session,
-    private val locale: ApiLocale,
+    private val locale: () -> ApiLocale,
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
+    constructor(
+        api: SignInApi,
+        session: Session,
+        locale: ApiLocale,
+        io: CoroutineDispatcher = Dispatchers.IO,
+    ) : this(api, session, { locale }, io)
+
     /** What [retry] does again after a lost connection. */
     private enum class Attempt { RequestCode, SubmitCode, ResendCode }
 
@@ -144,7 +152,7 @@ class SignInViewModel(
     // The error of a failed request for the sign-in email, or null when the API accepted it.
     private suspend fun requestEmail(email: String): SignInError? {
         val response = try {
-            api.requestSignIn(SignInRequest(email, locale))
+            api.requestSignIn(SignInRequest(email, locale()))
         } catch (_: IOException) {
             return SignInError.NoConnection
         }
