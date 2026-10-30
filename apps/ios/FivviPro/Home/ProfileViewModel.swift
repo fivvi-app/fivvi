@@ -24,8 +24,10 @@ final class ProfileViewModel {
     }
 
     private(set) var state = State.loading
-    let catalog: Catalog
+    private(set) var catalog: Catalog
     private let api: any APIProtocol
+    /// What the API listed last, so the roles can be labelled again when the language changes.
+    private var memberships: [Components.Schemas.MyWorkspace]?
 
     init(api: any APIProtocol, catalog: Catalog) {
         self.api = api
@@ -41,14 +43,25 @@ final class ProfileViewModel {
     /// only when nothing was shown yet.
     func refresh() async {
         do {
-            let workspaces = try await api.listMyWorkspaces().ok.body.json
-            state = .loaded(workspaces.map {
-                .init(id: $0.workspaceId, name: $0.name, slug: $0.slug, role: label(of: $0.role))
-            })
+            memberships = try await api.listMyWorkspaces().ok.body.json
+            relabel()
         } catch {
             if case .loaded = state { return }
             state = .failed
         }
+    }
+
+    /// The interface language changed: the roles are labelled in it at once, without asking the API again.
+    func use(_ catalog: Catalog) {
+        self.catalog = catalog
+        relabel()
+    }
+
+    private func relabel() {
+        guard let memberships else { return }
+        state = .loaded(memberships.map {
+            .init(id: $0.workspaceId, name: $0.name, slug: $0.slug, role: label(of: $0.role))
+        })
     }
 
     private func label(of role: Components.Schemas.MyWorkspace.RolePayload) -> String {

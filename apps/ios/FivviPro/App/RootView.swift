@@ -7,17 +7,19 @@ struct RootView: View {
     let session: Session
     let api: any APIProtocol
     let store: any SessionStore
-    let catalog: Catalog
+    let language: AppLanguage
     /// The API's base URL; trainer web is on the same host.
     var apiBaseURL = AppConfiguration.apiBaseURL()
 
     var body: some View {
         switch session.state {
         case let .signedOut(afterRejection):
-            SignInView(api: api, store: store, catalog: catalog, afterRejection: afterRejection) { session.signedIn() }
+            SignInView(api: api, store: store, language: language, afterRejection: afterRejection) {
+                session.signedIn()
+            }
         case .signedIn:
             HomeView(
-                api: api, store: store, catalog: catalog,
+                api: api, store: store, language: language,
                 welcomeURL: AppConfiguration.welcomeURL(apiBaseURL: apiBaseURL), onAccount: ErrorReporting.setUser,
                 onSignedOut: { session.signedOut(afterRejection: $0) }
             )

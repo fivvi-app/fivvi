@@ -13,7 +13,7 @@ struct HelloView: View {
             .frame(maxWidth: .infinity)
             .foregroundStyle(Tokens.Colors.textPrimary)
             .environment(\.locale, model.catalog.formattingLocale)
-            .task { await model.load() }
+            .task(id: model.catalog.locale) { await model.load() }
     }
 
     @ViewBuilder private var content: some View {

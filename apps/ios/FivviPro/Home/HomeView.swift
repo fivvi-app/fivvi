@@ -11,24 +11,27 @@ struct HomeView: View {
     @State private var hello: HelloViewModel
     @State private var account: AccountViewModel
     @State private var profile: ProfileViewModel
-    private let catalog: Catalog
+    private let language: AppLanguage
     private let welcomeURL: URL
+
+    private var catalog: Catalog { language.catalog }
 
     /// `welcomeURL` is trainer web's first-run screen, which the set-up button opens in the system browser.
     /// `onAccount` is told the account's ID once `GET /api/v1/me` has answered; the app passes it to error reporting.
     /// `onSignedOut` runs after the person signed out and the token is gone; its argument says whether the API
     /// refused the token of the sign-out call.
     init(
-        api: any APIProtocol, store: any SessionStore, catalog: Catalog, welcomeURL: URL,
+        api: any APIProtocol, store: any SessionStore, language: AppLanguage, welcomeURL: URL,
         onAccount: @escaping (String) -> Void,
         onSignedOut: @escaping (Bool) -> Void
     ) {
-        _hello = State(initialValue: HelloViewModel(api: api, catalog: catalog))
-        _profile = State(initialValue: ProfileViewModel(api: api, catalog: catalog))
+        _hello = State(initialValue: HelloViewModel(api: api, catalog: language.catalog))
+        _profile = State(initialValue: ProfileViewModel(api: api, catalog: language.catalog))
         _account = State(initialValue: AccountViewModel(
-                api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut
-            ))
-        self.catalog = catalog
+            api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut,
+            onPreferredLocale: { language.startRead() }
+        ))
+        self.language = language
         self.welcomeURL = welcomeURL
     }
 
@@ -64,9 +67,22 @@ struct HomeView: View {
             }
         }
         .background(Tokens.Colors.bgCanvas)
-        .task { await account.load() }
-        // Coming back to the app asks again: a workspace the person lost access to meanwhile is noticed (F003 AC6).
-        .onReturnToForeground { await account.refresh() }
+        // A language chosen before signing in, or in iOS Settings, is saved first; then the account's stored language is
+        // read, so an older stored one can't override it (F010).
+        .task {
+            await language.save()
+            await account.load()
+        }
+        // Coming back to the app asks again: a workspace the person lost access to meanwhile is noticed (F003 AC6), and
+        // a language changed on the web is adopted (F010 AC2).
+        .onReturnToForeground {
+            await language.save()
+            await account.refresh()
+        }
+        .onChange(of: language.catalog) { _, catalog in
+            hello.use(catalog)
+            profile.use(catalog)
+        }
     }
 
     private var showsHello: Bool {
@@ -144,7 +160,7 @@ struct HomeView: View {
     /// *Profiel* (TM-04): the person's workspaces with their role.
     private var profileLink: some View {
         NavigationLink {
-            ProfileView(model: profile)
+            ProfileView(model: profile, language: language)
         } label: {
             Text(catalog[.profileTitle])
                 .multilineTextAlignment(.center)

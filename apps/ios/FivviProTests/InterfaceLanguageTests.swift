@@ -31,6 +31,35 @@ final class InterfaceLanguageTests: XCTestCase {
     }
 }
 
+/// F010 AC6: one test per case of ADR-017's order, named as in `packages/i18n/src/locale.test.ts` (`AC6: explicit,
+/// stored, device, English`).
+final class InterfaceLanguageResolverTests: XCTestCase {
+    func test_F010_AC6_explicit_aChoiceMadeNowWinsOverAStoredPreferenceAndTheDevice() {
+        XCTAssertEqual(
+            InterfaceLanguage.resolve(LanguageSources(perApp: nil, device: ["nl-NL"], explicit: "en", stored: "nl-NL")),
+            .en
+        )
+    }
+
+    func test_F010_AC6_stored_theStoredPreferenceWinsOverTheDeviceLanguages() {
+        XCTAssertEqual(InterfaceLanguage.resolve(LanguageSources(perApp: nil, device: ["nl-NL"], stored: "en")), .en)
+        XCTAssertEqual(
+            InterfaceLanguage.resolve(LanguageSources(perApp: nil, device: ["en-GB"], stored: "nl-NL")), .nlNL
+        )
+    }
+
+    func test_F010_AC6_device_theFirstSupportedDeviceLanguageDecidesWithoutAChoice() {
+        XCTAssertEqual(
+            InterfaceLanguage.resolve(LanguageSources(perApp: nil, device: ["fr-FR", "nl-BE", "en-GB"])), .nlNL
+        )
+    }
+
+    func test_F010_AC6_english_nothingSupportedIsChosenStoredOrRequested() {
+        XCTAssertEqual(InterfaceLanguage.resolve(LanguageSources(perApp: nil, device: ["de-DE"])), .en)
+        XCTAssertEqual(InterfaceLanguage.resolve(LanguageSources(perApp: nil, device: [])), .en)
+    }
+}
+
 /// Where the app reads its language sources on iOS.
 final class LanguageSourcesTests: XCTestCase {
     private var domain = ""

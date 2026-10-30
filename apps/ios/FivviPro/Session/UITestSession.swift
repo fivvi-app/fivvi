@@ -11,6 +11,8 @@ enum UITestSession {
     static func apply(to store: any SessionStore, defaults: UserDefaults = .standard) {
         #if DEBUG
             guard let value = defaults.string(forKey: key) else { return }
+            // A test starts from a phone with no language choice either (F010).
+            AppLanguage.forgetChoice(defaults: defaults)
             if value == signedOut {
                 store.deleteToken()
             } else {
