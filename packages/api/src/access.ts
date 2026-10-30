@@ -78,10 +78,10 @@ function rolesOf(access: Extract<Access, { type: 'workspace' }>) {
 }
 
 /**
- * Whether a place may call the route, and as what. A team role the route lists runs as a team
- * member, whatever else the caller is (a trainer who is also a client of the workspace sees what
- * any trainer sees); otherwise a client relationship runs as a client when the route allows
- * clients, on their own records only.
+ * Whether a place may call the route, and as what. A team role that has the route's capability
+ * (the matrix, `@fivvi/domain`) runs as a team member, whatever else the caller is (a trainer who
+ * is also a client of the workspace sees what any trainer sees); otherwise a client relationship
+ * runs as a client when the route allows clients, on their own records only.
  */
 export function admission(
   access: Extract<Access, { type: 'workspace' }>,

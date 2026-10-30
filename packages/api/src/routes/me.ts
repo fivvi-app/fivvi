@@ -1,5 +1,5 @@
 import { listTeamWorkspaces, type SignedInAccount, setPreferredLocale } from '@fivvi/database';
-import { CAPABILITIES, canCreateWorkspace, capabilitiesOf, ROLES } from '@fivvi/domain';
+import { CAPABILITIES, canCreateWorkspace, capabilitiesOf, ROLES, type Role } from '@fivvi/domain';
 import { locales } from '@fivvi/i18n';
 import { anonymousDistinctId } from '@fivvi/observability';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
@@ -172,7 +172,7 @@ const listMyWorkspacesRoute = defineRoute(
 );
 
 /** The workspace with the capabilities its role has in the matrix (`@fivvi/domain`). */
-function withCapabilities<W extends { role: (typeof ROLES)[number] }>(workspace: W) {
+function withCapabilities<W extends { role: Role }>(workspace: W) {
   return { ...workspace, capabilities: capabilitiesOf(workspace.role) };
 }
 
