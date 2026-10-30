@@ -126,7 +126,7 @@ test.describe('F003 my workspaces and the role in the header', () => {
     // The Owner's row has no action; a Trainer's has; nothing adds people (invitations are F011).
     await expect(rows.nth(1).getByRole('button')).toHaveCount(0);
     await expect(rows.nth(2).getByRole('button', { name: copy.team.remove })).toBeVisible();
-    await expect(page.getByRole('link', { name: /uitnodigen|invite/i })).toHaveCount(0);
+    await expect(page.getByRole('main').getByRole('link')).toHaveCount(0);
     await expectNoAxeViolations(page, `TW-06 in ${appLocale}`);
   });
 
@@ -201,7 +201,7 @@ test.describe('F003 my workspaces and the role in the header', () => {
       await expect(page.getByText(sarah)).toHaveCount(0);
       await expectNoAxeViolations(page, `TW-06 after a removal in ${appLocale}`);
 
-      // The data path: the API holds only John, and Sarah's account is still there.
+      // The data path: the API holds only John.
       const listed = (await (
         await page.request.get(
           `/api/v1/workspaces/${(await (await page.request.get('/api/v1/me/workspaces')).json())[0].workspaceId}/team-members`,
@@ -209,7 +209,8 @@ test.describe('F003 my workspaces and the role in the header', () => {
       ).json()) as { name: string }[];
       expect(listed.map(({ name }) => name)).toEqual(['John']);
 
-      // No sign-out needed: Sarah's next page is the no-access page.
+      // No sign-out needed: Sarah's session still works (she is not sent to sign in), so her
+      // account is kept, and her next page is the no-access page.
       await sarahsPage.goto(`/w/${slug}`);
       await expect(
         sarahsPage.getByRole('heading', { level: 1, name: copy.noAccess.title }),

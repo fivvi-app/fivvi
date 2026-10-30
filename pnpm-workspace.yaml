@@ -54,6 +54,8 @@ catalog:
   # Major 4, as decided in spec #33 (E007).
   style-dictionary: ^4.4.0
   tailwindcss: ^4.3.3
+  # Animation utilities (`animate-in`, `fade-in-0`) of the shadcn/ui components that animate, such as AlertDialog.
+  tw-animate-css: ^1.4.0
   tsx: ^4.23.15
   turbo: ^2.11.2
   typescript: ~7.0.2

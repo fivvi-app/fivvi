@@ -38,6 +38,12 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
     expect(html).not.toContain(escapeHtml(copy.team.remove));
   });
 
+  it('with two Owners, both rows have the remove action', () => {
+    const html = list([john, { ...john, id: 't3', name: 'Joan', email: 'joan@example.com' }]);
+
+    expect(html.match(new RegExp(escapeHtml(copy.team.remove), 'g'))).toHaveLength(2);
+  });
+
   it('falls back to the email address for a person without a name', () => {
     const html = list([john, { ...sarah, name: '' }]);
 

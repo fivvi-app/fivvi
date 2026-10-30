@@ -3,6 +3,7 @@
  * Apps import only this file (`@fivvi/ui/globals.css`). See README.md.
  */
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /* Only token colours: drops Tailwind's default palette before the token theme adds ours. */
 @import "./palette-reset.css";

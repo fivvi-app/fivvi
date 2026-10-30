@@ -9,6 +9,7 @@ import {
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
+  AlertDialogHeader,
   AlertDialogTitle,
 } from '@fivvi/ui/components/alert-dialog';
 import { Button } from '@fivvi/ui/components/button';
@@ -122,15 +123,18 @@ export function TeamList({
       <AlertDialog open={asking !== null} onOpenChange={(open) => !open && setAsking(null)}>
         {asking ? (
           <AlertDialogContent>
-            <AlertDialogTitle>
-              {t('removeDialog.title', { name: displayName(asking) })}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('removeDialog.body', { name: displayName(asking), workspace: workspaceName })}
-            </AlertDialogDescription>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {t('removeDialog.title', { name: displayName(asking) })}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('removeDialog.body', { name: displayName(asking), workspace: workspaceName })}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>{t('removeDialog.cancel')}</AlertDialogCancel>
               <AlertDialogAction
+                variant="destructive"
                 disabled={pending}
                 onClick={(event) => {
                   event.preventDefault();
