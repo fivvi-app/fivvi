@@ -25,7 +25,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     expect(html).toContain('<hr id="page"/>');
   });
 
-  it('F003 AC6: the sidebar header shows the workspace name and the role label, as plain text', () => {
+  it('F003: the sidebar header shows the workspace name and the role label, as plain text', () => {
     const owner = render(
       locale,
       <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="owner">

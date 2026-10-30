@@ -1,13 +1,9 @@
+import type { Schemas } from '@fivvi/contract';
 import { Card, CardHeader, CardTitle } from '@fivvi/ui/components/card';
 import { useTranslations } from 'next-intl';
 
 /** A workspace of the account's own team roles, as `GET /v1/me/workspaces` lists it. */
-export interface MyWorkspace {
-  workspaceId: string;
-  name: string;
-  slug: string;
-  role: 'owner' | 'trainer';
-}
+export type MyWorkspace = Schemas['MyWorkspace'];
 
 /**
  * TW-09 My profile (`/me/profile`, F003): the section *Mijn werkruimtes* / *My workspaces*, each

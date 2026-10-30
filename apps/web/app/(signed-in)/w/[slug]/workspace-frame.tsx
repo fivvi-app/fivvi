@@ -1,3 +1,4 @@
+import type { Schemas } from '@fivvi/contract';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -19,7 +20,7 @@ export function WorkspaceFrame({
 }: {
   name: string;
   slug: string;
-  teamRole: 'owner' | 'trainer';
+  teamRole: Schemas['MyWorkspace']['role'];
   children: ReactNode;
 }) {
   const t = useTranslations('workspaceNav');
