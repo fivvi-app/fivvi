@@ -586,5 +586,78 @@ extension Components {
                 case defaultLocale
             }
         }
+        /// A person on the team of a workspace.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TeamMember`.
+        public struct TeamMember: Codable, Hashable, Sendable {
+            /// The team-member ID: this person’s place on this team.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMember/id`.
+            public var id: Swift.String
+            /// The account’s name; empty when the person has not given one.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMember/name`.
+            public var name: Swift.String
+            /// The address the account signs in with.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMember/email`.
+            public var email: Swift.String
+            /// What the person is on the team.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMember/role`.
+            @frozen public enum RolePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case owner = "owner"
+                case trainer = "trainer"
+            }
+            /// What the person is on the team.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TeamMember/role`.
+            public var role: Components.Schemas.TeamMember.RolePayload
+            /// Creates a new `TeamMember`.
+            ///
+            /// - Parameters:
+            ///   - id: The team-member ID: this person’s place on this team.
+            ///   - name: The account’s name; empty when the person has not given one.
+            ///   - email: The address the account signs in with.
+            ///   - role: What the person is on the team.
+            public init(
+                id: Swift.String,
+                name: Swift.String,
+                email: Swift.String,
+                role: Components.Schemas.TeamMember.RolePayload
+            ) {
+                self.id = id
+                self.name = name
+                self.email = email
+                self.role = role
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case email
+                case role
+            }
+        }
+        /// The change would leave the workspace without an Owner; nothing changed. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/LastOwner`.
+        public struct LastOwner: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/LastOwner/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case lastOwner = "last_owner"
+            }
+            /// - Remark: Generated from `#/components/schemas/LastOwner/code`.
+            public var code: Components.Schemas.LastOwner.CodePayload
+            /// Creates a new `LastOwner`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.LastOwner.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
     }
 }

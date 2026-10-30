@@ -15,6 +15,7 @@ for (const slug of slugCandidates("John's Gym")) {
 |---|---|---|
 | `src/workspaces/can-create.ts` | Who may create a workspace: on the sign-up allowlist (F001) and no team role in any workspace | F002 AC4, AC5 |
 | `src/workspaces/slug.ts` | The URL name from a workspace name: transliterate, lower case, hyphens, a number when taken, reserved words skipped | F002 AC2 |
+| `src/team/last-owner.ts` | A workspace keeps at least one Owner: whether a removal (F004: a role change) leaves one | F003 AC7 |
 | `src/workspaces/defaults.ts` | What a new workspace starts with (`nl-NL`, `Europe/Amsterdam`) and the 80-character name limit | F002 AC2, AC3 |
 
 Tests: `pnpm --filter @fivvi/domain test` (Vitest, `*.test.ts` next to the code).

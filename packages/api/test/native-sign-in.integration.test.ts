@@ -23,7 +23,7 @@ import {
 } from '@fivvi/observability';
 import { freezeSystemTime } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
-import { eq, ne } from 'drizzle-orm';
+import { eq, notInArray } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
 
@@ -227,7 +227,10 @@ describe('F001N native sign-in through the API', () => {
     await client.db.delete(authVerifications);
     await client.db.delete(authRateLimits);
     await client.db.delete(authSessions);
-    await client.db.delete(authUsers).where(ne(authUsers.email, 'owner@example.com'));
+    // Only the seeded accounts stay (John and Sarah, F003).
+    await client.db
+      .delete(authUsers)
+      .where(notInArray(authUsers.email, ['owner@example.com', 'trainer@example.com']));
   });
 
   describe.each(['nl-NL', 'en'] as const)('interface language %s', (locale) => {

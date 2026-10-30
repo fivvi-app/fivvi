@@ -1,4 +1,5 @@
 import type { DatabaseExecutor } from '@fivvi/database';
+import { addTeamRole, createAccount } from '@fivvi/database/testing';
 
 // The isolation cases (E011, AC11, AC14): one per workspace and account operation, by operation
 // ID, holding only the data the isolation suite needs to call the route. The suite derives the
@@ -51,6 +52,13 @@ const theClient: IsolationCase['seed'] = (_db, { clientId }) =>
 const theWorkspace: IsolationCase['seed'] = (_db, { workspaceId }) =>
   Promise.resolve({ workspace: workspaceId });
 
+/** A Trainer of the workspace the seed was called for: what the team routes list and remove (F003). */
+const aTeamMember: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  const account = await createAccount(db, { label: 'team-member' });
+  const { id } = await addTeamRole(db, { workspaceId, accountId: account.id });
+  return { teamMember: id };
+};
+
 export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // Account routes.
   getMe: {},
@@ -61,6 +69,10 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // The routes of one workspace (F002): a read shows its id, a rename takes a valid name.
   getWorkspace: { seed: theWorkspace },
   renameWorkspace: { seed: theWorkspace, body: { name: 'Renamed Gym' } },
+
+  // The team of a workspace (F003): the list shows the seeded team member, the removal names it.
+  listTeamMembers: { seed: aTeamMember },
+  removeTeamMember: { seed: aTeamMember, params: { teamMemberId: 'teamMember' } },
 
   // The probe routes of the test app (`probe-routes.ts`), one per kind of access.
   probeOwner: { seed: theWorkspace },

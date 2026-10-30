@@ -149,6 +149,16 @@ actor StubAPI: APIProtocol {
         fatalError("The app doesn't call renameWorkspace yet")
     }
 
+    func listTeamMembers(_ input: Operations.ListTeamMembers.Input) async throws -> Operations.ListTeamMembers.Output {
+        fatalError("The app doesn't call listTeamMembers yet")
+    }
+
+    func removeTeamMember(
+        _ input: Operations.RemoveTeamMember.Input
+    ) async throws -> Operations.RemoveTeamMember.Output {
+        fatalError("The app doesn't call removeTeamMember yet")
+    }
+
     func updateMe(_ input: Operations.UpdateMe.Input) async throws -> Operations.UpdateMe.Output {
         fatalError("The app doesn't call updateMe yet")
     }

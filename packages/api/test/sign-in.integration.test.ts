@@ -23,7 +23,7 @@ import {
 } from '@fivvi/observability';
 import { type Clock, freezeSystemTime, manualClock } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
-import { eq, ne } from 'drizzle-orm';
+import { eq, notInArray } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { createApp, NO_DEPENDENCIES } from '../src/index.ts';
 
@@ -148,13 +148,24 @@ describe('F001 sign in with the emailed code through the API', () => {
     };
   }
 
-  /** A second account, removed again when the test ends. */
+  /**
+   * The second account: the seeded Sarah (F003), with the stored language the test asks for,
+   * back to the seeded one when the test ends.
+   */
   async function addTrainerAccount(preferredLocale: 'nl-NL' | 'en' | null = null) {
-    await client.db.insert(authUsers).values({ email: 'trainer@example.com', preferredLocale });
-    onTestFinished(async () => {
-      await client.db.delete(authUsers).where(eq(authUsers.email, 'trainer@example.com'));
-    });
+    await client.db
+      .update(authUsers)
+      .set({ preferredLocale })
+      .where(eq(authUsers.email, 'trainer@example.com'));
+    onTestFinished(resetTrainerAccount);
   }
+
+  const resetTrainerAccount = async () => {
+    await client.db
+      .update(authUsers)
+      .set({ preferredLocale: 'nl-NL' })
+      .where(eq(authUsers.email, 'trainer@example.com'));
+  };
 
   /** Both accounts have asked for a code; their codes, in order. */
   async function ownerAndTrainerCodes() {
@@ -218,8 +229,11 @@ describe('F001 sign in with the emailed code through the API', () => {
     allowlist = parseSignUpAllowlist(undefined);
     await client.db.delete(authVerifications);
     await client.db.delete(authRateLimits);
-    // Accounts that first sign-ins created: only the seeded owner stays.
-    await client.db.delete(authUsers).where(ne(authUsers.email, 'owner@example.com'));
+    // Accounts that first sign-ins created: only the seeded accounts stay (John and Sarah).
+    await client.db
+      .delete(authUsers)
+      .where(notInArray(authUsers.email, ['owner@example.com', 'trainer@example.com']));
+    await resetTrainerAccount();
   });
 
   describe.each([
@@ -292,10 +306,9 @@ describe('F001 sign in with the emailed code through the API', () => {
       errorReporter: createErrorReporter({ env: {} }),
     });
     const chosen = (locale: string) => ({ cookie: `${SIGN_IN_LANGUAGE_COOKIE}=${locale}` });
-    const storedOf = async () =>
-      (
-        await client.db.select().from(authUsers).where(eq(authUsers.email, 'trainer@example.com'))
-      )[0]?.preferredLocale;
+    const storedOf = async (email = 'trainer@example.com') =>
+      (await client.db.select().from(authUsers).where(eq(authUsers.email, email)))[0]
+        ?.preferredLocale;
 
     beforeEach(() => {
       posthog.events.length = 0;
@@ -371,19 +384,19 @@ describe('F001 sign in with the emailed code through the API', () => {
     });
 
     it('a new account takes the choice over the language of the page that asked', async () => {
-      allowlist = parseSignUpAllowlist('trainer@example.com');
+      allowlist = parseSignUpAllowlist('newcomer@example.com');
       const server = authAt({ overrides: { productEvents } });
-      await requestCode('trainer@example.com', 'nl-NL', { server });
+      await requestCode('newcomer@example.com', 'nl-NL', { server });
 
       await post(
         '/sign-in/code/verify',
-        { email: 'trainer@example.com', code: readEmail().code },
+        { email: 'newcomer@example.com', code: readEmail().code },
         { server, headers: chosen('en') },
       );
 
-      expect(await storedOf()).toBe('en');
+      expect(await storedOf('newcomer@example.com')).toBe('en');
       onTestFinished(async () => {
-        await client.db.delete(authUsers).where(eq(authUsers.email, 'trainer@example.com'));
+        await client.db.delete(authUsers).where(eq(authUsers.email, 'newcomer@example.com'));
       });
     });
   });
@@ -873,7 +886,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(transport.sent).toEqual([]);
       // No account, and no verification that a code could be entered for.
       expect(await client.db.$count(authUsers, eq(authUsers.email, 'nobody@example.com'))).toBe(0);
-      expect(await client.db.$count(authUsers)).toBe(1);
+      expect(await client.db.$count(authUsers)).toBe(2);
       expect(await verifications()).toEqual([]);
     });
 
@@ -908,7 +921,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       }
 
       expect(transport.sent).toEqual([]);
-      expect(await client.db.$count(authUsers)).toBe(1);
+      expect(await client.db.$count(authUsers)).toBe(2);
     });
 
     it('AC8: with no allowlist at all, sign-up is closed even for example.com', async () => {

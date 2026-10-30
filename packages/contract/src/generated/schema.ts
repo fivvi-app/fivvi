@@ -172,6 +172,46 @@ export interface paths {
         patch: operations["renameWorkspace"];
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/team-members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The team of a workspace
+         * @description The people on the team of the workspace (the Owner only), sorted by name: team-member ID, name, email address and role. Clients of the workspace are not on the team.
+         */
+        get: operations["listTeamMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/team-members/{teamMemberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a team member
+         * @description Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: removing the last one answers `409` and changes nothing.
+         */
+        delete: operations["removeTeamMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -330,6 +370,31 @@ export interface components {
             /** @description The new name, as the product shows it from now on. */
             name?: string;
             defaultLocale?: components["schemas"]["Locale"];
+        };
+        /** @description A person on the team of a workspace. */
+        TeamMember: {
+            /**
+             * Format: uuid
+             * @description The team-member ID: this person’s place on this team.
+             */
+            id: string;
+            /** @description The account’s name; empty when the person has not given one. */
+            name: string;
+            /**
+             * Format: email
+             * @description The address the account signs in with.
+             */
+            email: string;
+            /**
+             * @description What the person is on the team.
+             * @enum {string}
+             */
+            role: "owner" | "trainer";
+        };
+        /** @description The change would leave the workspace without an Owner; nothing changed. Contains no user-facing text. */
+        LastOwner: {
+            /** @enum {string} */
+            code: "last_owner";
         };
     };
     responses: never;
@@ -813,6 +878,151 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listTeamMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The team. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamMember"][];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    removeTeamMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The team-member ID, from the team list. */
+                teamMemberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The team member was removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The team member is the last Owner of the workspace; nothing changed. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LastOwner"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

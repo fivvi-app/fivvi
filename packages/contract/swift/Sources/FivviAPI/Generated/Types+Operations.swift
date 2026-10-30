@@ -2745,4 +2745,834 @@ public enum Operations {
             }
         }
     }
+    /// The team of a workspace
+    ///
+    /// The people on the team of the workspace (the Owner only), sorted by name: team-member ID, name, email address and role. Clients of the workspace are not on the team.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/team-members`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/get(listTeamMembers)`.
+    public enum ListTeamMembers {
+        public static let id: Swift.String = "listTeamMembers"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/path`.
+            public struct Path: Sendable, Hashable {
+                /// The workspace ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/path/workspaceId`.
+                public var workspaceId: Swift.String
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - workspaceId: The workspace ID.
+                public init(workspaceId: Swift.String) {
+                    self.workspaceId = workspaceId
+                }
+            }
+            public var path: Operations.ListTeamMembers.Input.Path
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ListTeamMembers.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ListTeamMembers.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.ListTeamMembers.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            public init(
+                path: Operations.ListTeamMembers.Input.Path,
+                headers: Operations.ListTeamMembers.Input.Headers = .init()
+            ) {
+                self.path = path
+                self.headers = headers
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/responses/200/content/application\/json`.
+                    case json([Components.Schemas.TeamMember])
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: [Components.Schemas.TeamMember] {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.ListTeamMembers.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.ListTeamMembers.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The team.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/get(listTeamMembers)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.ListTeamMembers.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.ListTeamMembers.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/responses/400/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ValidationError)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.ValidationError {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.ListTeamMembers.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.ListTeamMembers.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// The request did not match the contract.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/get(listTeamMembers)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.ListTeamMembers.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Operations.ListTeamMembers.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/responses/401/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/responses/401/content/application\/json`.
+                    case json(Components.Schemas.NotSignedIn)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotSignedIn {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.ListTeamMembers.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.ListTeamMembers.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// Nobody is signed in: no valid sign-in session or bearer token.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/get(listTeamMembers)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.ListTeamMembers.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Operations.ListTeamMembers.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/responses/403/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/responses/403/content/application\/json`.
+                    case json(Components.Schemas.Forbidden)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Forbidden {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.ListTeamMembers.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.ListTeamMembers.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has a place in the workspace that this route’s access doesn’t allow.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/get(listTeamMembers)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.ListTeamMembers.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Operations.ListTeamMembers.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct NotFound: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/responses/404/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/responses/404/content/application\/json`.
+                    case json(Components.Schemas.NotFound)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotFound {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.ListTeamMembers.Output.NotFound.Body
+                /// Creates a new `NotFound`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.ListTeamMembers.Output.NotFound.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has no place in the workspace, or the record is out of the caller’s reach.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/get(listTeamMembers)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Operations.ListTeamMembers.Output.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Operations.ListTeamMembers.Output.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct InternalServerError: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/responses/500/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/GET/responses/500/content/text\/plain`.
+                    case plainText(OpenAPIRuntime.HTTPBody)
+                    /// The associated value of the enum case if `self` is `.plainText`.
+                    ///
+                    /// - Throws: An error if `self` is not `.plainText`.
+                    /// - SeeAlso: `.plainText`.
+                    public var plainText: OpenAPIRuntime.HTTPBody {
+                        get throws {
+                            switch self {
+                            case let .plainText(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.ListTeamMembers.Output.InternalServerError.Body
+                /// Creates a new `InternalServerError`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.ListTeamMembers.Output.InternalServerError.Body) {
+                    self.body = body
+                }
+            }
+            /// Unexpected server error, reported to error tracking. Contains no error details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/get(listTeamMembers)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Operations.ListTeamMembers.Output.InternalServerError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Operations.ListTeamMembers.Output.InternalServerError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case plainText
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "text/plain":
+                    self = .plainText
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .plainText:
+                    return "text/plain"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .plainText
+                ]
+            }
+        }
+    }
+    /// Remove a team member
+    ///
+    /// Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: removing the last one answers `409` and changes nothing.
+    ///
+    /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)`.
+    public enum RemoveTeamMember {
+        public static let id: Swift.String = "removeTeamMember"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/path`.
+            public struct Path: Sendable, Hashable {
+                /// The workspace ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/path/workspaceId`.
+                public var workspaceId: Swift.String
+                /// The team-member ID, from the team list.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/path/teamMemberId`.
+                public var teamMemberId: Swift.String
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - workspaceId: The workspace ID.
+                ///   - teamMemberId: The team-member ID, from the team list.
+                public init(
+                    workspaceId: Swift.String,
+                    teamMemberId: Swift.String
+                ) {
+                    self.workspaceId = workspaceId
+                    self.teamMemberId = teamMemberId
+                }
+            }
+            public var path: Operations.RemoveTeamMember.Input.Path
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.RemoveTeamMember.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.RemoveTeamMember.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.RemoveTeamMember.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            public init(
+                path: Operations.RemoveTeamMember.Input.Path,
+                headers: Operations.RemoveTeamMember.Input.Headers = .init()
+            ) {
+                self.path = path
+                self.headers = headers
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct NoContent: Sendable, Hashable {
+                /// Creates a new `NoContent`.
+                public init() {}
+            }
+            /// The team member was removed.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)/responses/204`.
+            ///
+            /// HTTP response code: `204 noContent`.
+            case noContent(Operations.RemoveTeamMember.Output.NoContent)
+            /// The team member was removed.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)/responses/204`.
+            ///
+            /// HTTP response code: `204 noContent`.
+            public static var noContent: Self {
+                .noContent(.init())
+            }
+            /// The associated value of the enum case if `self` is `.noContent`.
+            ///
+            /// - Throws: An error if `self` is not `.noContent`.
+            /// - SeeAlso: `.noContent`.
+            public var noContent: Operations.RemoveTeamMember.Output.NoContent {
+                get throws {
+                    switch self {
+                    case let .noContent(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "noContent",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/responses/400/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ValidationError)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.ValidationError {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RemoveTeamMember.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RemoveTeamMember.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// The request did not match the contract.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.RemoveTeamMember.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Operations.RemoveTeamMember.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/responses/401/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/responses/401/content/application\/json`.
+                    case json(Components.Schemas.NotSignedIn)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotSignedIn {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RemoveTeamMember.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RemoveTeamMember.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// Nobody is signed in: no valid sign-in session or bearer token.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.RemoveTeamMember.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Operations.RemoveTeamMember.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/responses/403/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/responses/403/content/application\/json`.
+                    case json(Components.Schemas.Forbidden)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Forbidden {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RemoveTeamMember.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RemoveTeamMember.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has a place in the workspace that this route’s access doesn’t allow.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.RemoveTeamMember.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Operations.RemoveTeamMember.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct NotFound: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/responses/404/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/responses/404/content/application\/json`.
+                    case json(Components.Schemas.NotFound)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotFound {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RemoveTeamMember.Output.NotFound.Body
+                /// Creates a new `NotFound`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RemoveTeamMember.Output.NotFound.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has no place in the workspace, or the record is out of the caller’s reach.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Operations.RemoveTeamMember.Output.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Operations.RemoveTeamMember.Output.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Conflict: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/responses/409/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/responses/409/content/application\/json`.
+                    case json(Components.Schemas.LastOwner)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.LastOwner {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RemoveTeamMember.Output.Conflict.Body
+                /// Creates a new `Conflict`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RemoveTeamMember.Output.Conflict.Body) {
+                    self.body = body
+                }
+            }
+            /// The team member is the last Owner of the workspace; nothing changed.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)/responses/409`.
+            ///
+            /// HTTP response code: `409 conflict`.
+            case conflict(Operations.RemoveTeamMember.Output.Conflict)
+            /// The associated value of the enum case if `self` is `.conflict`.
+            ///
+            /// - Throws: An error if `self` is not `.conflict`.
+            /// - SeeAlso: `.conflict`.
+            public var conflict: Operations.RemoveTeamMember.Output.Conflict {
+                get throws {
+                    switch self {
+                    case let .conflict(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "conflict",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct InternalServerError: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/responses/500/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/team-members/{teamMemberId}/DELETE/responses/500/content/text\/plain`.
+                    case plainText(OpenAPIRuntime.HTTPBody)
+                    /// The associated value of the enum case if `self` is `.plainText`.
+                    ///
+                    /// - Throws: An error if `self` is not `.plainText`.
+                    /// - SeeAlso: `.plainText`.
+                    public var plainText: OpenAPIRuntime.HTTPBody {
+                        get throws {
+                            switch self {
+                            case let .plainText(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RemoveTeamMember.Output.InternalServerError.Body
+                /// Creates a new `InternalServerError`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RemoveTeamMember.Output.InternalServerError.Body) {
+                    self.body = body
+                }
+            }
+            /// Unexpected server error, reported to error tracking. Contains no error details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Operations.RemoveTeamMember.Output.InternalServerError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Operations.RemoveTeamMember.Output.InternalServerError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case plainText
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "text/plain":
+                    self = .plainText
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .plainText:
+                    return "text/plain"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .plainText
+                ]
+            }
+        }
+    }
 }

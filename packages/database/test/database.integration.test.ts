@@ -7,7 +7,7 @@ import {
   type TestDatabase,
   withRollback,
 } from '@fivvi/testing/database';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -209,7 +209,7 @@ describe('E004 database', () => {
         await resetRateLimits(tx);
 
         expect(await tx.$count(authRateLimits)).toBe(0);
-        expect(await tx.$count(authUsers)).toBe(1);
+        expect(await tx.$count(authUsers)).toBe(2);
       });
     });
   });
@@ -220,7 +220,10 @@ describe('E004 database', () => {
         await seed(tx);
         await seed(tx);
 
-        const users = await tx.select().from(authUsers);
+        const users = await tx
+          .select()
+          .from(authUsers)
+          .where(eq(authUsers.email, 'owner@example.com'));
         expect(users).toEqual([
           expect.objectContaining({
             email: 'owner@example.com',
@@ -245,7 +248,7 @@ describe('E004 database', () => {
         expect(await client.db.$count(authUsers)).toBe(0);
 
         await release(client.db, { seed: true }, () => {});
-        expect(await client.db.$count(authUsers)).toBe(1);
+        expect(await client.db.$count(authUsers)).toBe(2);
       });
     });
   });
@@ -256,25 +259,53 @@ describe('E004 database', () => {
         await seed(tx);
         await seed(tx);
 
-        expect(await tx.select().from(organizations)).toEqual([
+        const [gym] = await tx
+          .select()
+          .from(organizations)
+          .where(eq(organizations.slug, 'johns-gym'));
+        expect(gym).toEqual(
           expect.objectContaining({
             name: "John's Gym",
             slug: 'johns-gym',
             defaultLocale: 'nl-NL',
             timeZone: 'Europe/Amsterdam',
           }),
-        ]);
+        );
         const [owner] = await tx
-          .select({
-            role: teamMembers.role,
-            email: authUsers.email,
-            workspace: teamMembers.organizationId,
-          })
+          .select({ role: teamMembers.role, email: authUsers.email })
           .from(teamMembers)
-          .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId));
-        const [gym] = await tx.select({ id: organizations.id }).from(organizations);
-        expect(await tx.$count(teamMembers)).toBe(1);
-        expect(owner).toEqual({ role: 'owner', email: 'owner@example.com', workspace: gym?.id });
+          .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+          .where(and(eq(teamMembers.organizationId, gym?.id ?? ''), eq(teamMembers.role, 'owner')));
+        expect(owner).toEqual({ role: 'owner', email: 'owner@example.com' });
+      });
+    });
+
+    it('AC13 (F003): Sarah is Trainer of John’s Gym and Owner of her own workspace, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
+
+        const roles = await tx
+          .select({ role: teamMembers.role, slug: organizations.slug, name: authUsers.name })
+          .from(teamMembers)
+          .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+          .innerJoin(organizations, eq(organizations.id, teamMembers.organizationId))
+          .where(eq(authUsers.email, 'trainer@example.com'));
+        expect(roles.toSorted((a, b) => a.slug.localeCompare(b.slug))).toEqual([
+          { role: 'trainer', slug: 'johns-gym', name: 'Sarah' },
+          { role: 'owner', slug: 'sarah-personal-training', name: 'Sarah' },
+        ]);
+        const [second] = await tx
+          .select()
+          .from(organizations)
+          .where(eq(organizations.slug, 'sarah-personal-training'));
+        expect(second).toEqual(
+          expect.objectContaining({
+            name: 'Sarah Personal Training',
+            timeZone: 'Europe/Amsterdam',
+          }),
+        );
+        expect(await tx.$count(teamMembers)).toBe(3);
       });
     });
 
@@ -293,7 +324,7 @@ describe('E004 database', () => {
         expect(await client.db.$count(organizations)).toBe(0);
 
         await release(client.db, { seed: true }, () => {});
-        expect(await client.db.$count(organizations)).toBe(1);
+        expect(await client.db.$count(organizations)).toBe(2);
       });
     });
   });

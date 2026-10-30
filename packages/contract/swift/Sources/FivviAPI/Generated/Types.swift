@@ -81,6 +81,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/patch(renameWorkspace)`.
     func renameWorkspace(_ input: Operations.RenameWorkspace.Input) async throws -> Operations.RenameWorkspace.Output
+    /// The team of a workspace
+    ///
+    /// The people on the team of the workspace (the Owner only), sorted by name: team-member ID, name, email address and role. Clients of the workspace are not on the team.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/team-members`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/get(listTeamMembers)`.
+    func listTeamMembers(_ input: Operations.ListTeamMembers.Input) async throws -> Operations.ListTeamMembers.Output
+    /// Remove a team member
+    ///
+    /// Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: removing the last one answers `409` and changes nothing.
+    ///
+    /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)`.
+    func removeTeamMember(_ input: Operations.RemoveTeamMember.Input) async throws -> Operations.RemoveTeamMember.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -217,6 +231,36 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// The team of a workspace
+    ///
+    /// The people on the team of the workspace (the Owner only), sorted by name: team-member ID, name, email address and role. Clients of the workspace are not on the team.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/team-members`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/get(listTeamMembers)`.
+    public func listTeamMembers(
+        path: Operations.ListTeamMembers.Input.Path,
+        headers: Operations.ListTeamMembers.Input.Headers = .init()
+    ) async throws -> Operations.ListTeamMembers.Output {
+        try await listTeamMembers(Operations.ListTeamMembers.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Remove a team member
+    ///
+    /// Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: removing the last one answers `409` and changes nothing.
+    ///
+    /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)`.
+    public func removeTeamMember(
+        path: Operations.RemoveTeamMember.Input.Path,
+        headers: Operations.RemoveTeamMember.Input.Headers = .init()
+    ) async throws -> Operations.RemoveTeamMember.Output {
+        try await removeTeamMember(Operations.RemoveTeamMember.Input(
+            path: path,
+            headers: headers
         ))
     }
 }

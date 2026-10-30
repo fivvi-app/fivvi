@@ -402,6 +402,55 @@
           }
         },
         "description": "Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored."
+      },
+      "TeamMember": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The team-member ID: this person’s place on this team."
+          },
+          "name": {
+            "type": "string",
+            "description": "The account’s name; empty when the person has not given one."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "The address the account signs in with."
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "trainer"
+            ],
+            "description": "What the person is on the team."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role"
+        ],
+        "description": "A person on the team of a workspace."
+      },
+      "LastOwner": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "last_owner"
+            ]
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "The change would leave the workspace without an Owner; nothing changed. Contains no user-facing text."
       }
     },
     "parameters": {}
@@ -1064,6 +1113,225 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/team-members": {
+      "get": {
+        "operationId": "listTeamMembers",
+        "tags": [
+          "team"
+        ],
+        "summary": "The team of a workspace",
+        "description": "The people on the team of the workspace (the Owner only), sorted by name: team-member ID, name, email address and role. Clients of the workspace are not on the team.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The team.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamMember"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/team-members/{teamMemberId}": {
+      "delete": {
+        "operationId": "removeTeamMember",
+        "tags": [
+          "team"
+        ],
+        "summary": "Remove a team member",
+        "description": "Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: removing the last one answers `409` and changes nothing.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The team-member ID, from the team list."
+            },
+            "required": true,
+            "description": "The team-member ID, from the team list.",
+            "name": "teamMemberId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The team member was removed."
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The team member is the last Owner of the workspace; nothing changed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LastOwner"
                 }
               }
             }

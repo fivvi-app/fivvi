@@ -1,4 +1,10 @@
 export {
+  canRemoveTeamMember,
+  keepsAnOwner,
+  type TeamMemberRole,
+  type TeamRole,
+} from './team/last-owner.ts';
+export {
   type CanCreateWorkspaceInput,
   canCreateWorkspace,
   type SignUpAllowlist,
