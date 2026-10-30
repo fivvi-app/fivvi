@@ -31,6 +31,8 @@ final class StubServer: Sendable {
         var canCreateWorkspace = false
         /// An error status for `GET /api/v1/me`, or nil to answer as the API does.
         var meStatus: Int?
+        /// The account's stored language (`nl-NL` or `en`) at the start, or nil for none (F010).
+        var preferredLocale: String?
     }
 
     /// A workspace of the account (synthetic).
@@ -100,6 +102,12 @@ final class StubServer: Sendable {
         responder.removeFromTeam(workspace: index)
     }
 
+    /// The account's stored language, as `PATCH /api/v1/me` from the app or a change on the web leaves it (F010).
+    var preferredLocale: String? {
+        get { responder.preferredLocale }
+        set { responder.preferredLocale = newValue }
+    }
+
     /// While offline, every request is cut off without an answer, as a lost connection would (it is still recorded in
     /// `requests`).
     func setOffline(_ offline: Bool) {
@@ -127,12 +135,19 @@ private final class Responder: @unchecked Sendable {
     private var held: [(connection: NWConnection, locale: String?)] = []
     private var offline = false
     private var lost: Set<Int> = []
+    private var storedLocale: String?
     private var holdsSignIn = false
     private var heldSignIn: [NWConnection] = []
 
     init(_ answer: StubServer.Answer, signIn: StubServer.SignIn) {
         currentAnswer = answer
         self.signIn = signIn
+        storedLocale = signIn.preferredLocale
+    }
+
+    var preferredLocale: String? {
+        get { lock.withLock { storedLocale } }
+        set { lock.withLock { storedLocale = newValue } }
     }
 
     var requests: [StubServer.Request] { lock.withLock { received } }
@@ -239,8 +254,11 @@ private final class Responder: @unchecked Sendable {
         case ("POST", "/api/v1/sign-out"):
             let works = authorization == "Bearer \(signIn.token)"
             send(connection, status: works ? 204 : 401, json: works ? nil : Self.unauthorized)
-        case ("GET", _) where Self.isAccountRoute(path):
-            respondToAccountRoute(connection, path: path, authorization: authorization)
+        case (_, _) where Self.isAccountRoute(method: method, path: path):
+            respondToAccountRoute(
+                connection, method: method, path: path, authorization: authorization,
+                preferredLocale: stringFields["preferredLocale"]
+            )
         default:
             send(connection, status: 404, json: nil)
         }
@@ -279,7 +297,8 @@ private final class Responder: @unchecked Sendable {
     private var account: [String: Any] {
         [
             "id": "2f6a1f0e-0000-4000-8000-000000000001", "email": signIn.email, "name": "Owner",
-            "preferredLocale": NSNull(), "canCreateWorkspace": signIn.canCreateWorkspace,
+            "preferredLocale": preferredLocale.map { $0 as Any } ?? NSNull(),
+            "canCreateWorkspace": signIn.canCreateWorkspace,
             "workspaces": teamWorkspaces.map { entry in
                 ["id": entry["workspaceId"] as Any, "name": entry["name"] as Any, "slug": entry["slug"] as Any,
                  "role": entry["role"] as Any]
@@ -287,12 +306,20 @@ private final class Responder: @unchecked Sendable {
         ]
     }
 
-    private static func isAccountRoute(_ path: String) -> Bool {
-        path == "/api/v1/me" || path == "/api/v1/me/workspaces" || path.hasPrefix("/api/v1/workspaces/")
+    private static func isAccountRoute(method: String, path: String) -> Bool {
+        if method == "PATCH" { return path == "/api/v1/me" }
+        return method == "GET"
+            && (path == "/api/v1/me" || path == "/api/v1/me/workspaces" || path.hasPrefix("/api/v1/workspaces/"))
     }
 
     /// `GET /api/v1/me`, `GET /api/v1/me/workspaces` and `GET /api/v1/workspaces/{id}`.
-    private func respondToAccountRoute(_ connection: NWConnection, path: String, authorization: String?) {
+    private func respondToAccountRoute(
+        _ connection: NWConnection, method: String, path: String, authorization: String?, preferredLocale: String?
+    ) {
+        if method == "PATCH" {
+            updateMe(connection, authorization: authorization, preferredLocale: preferredLocale)
+            return
+        }
         if path == "/api/v1/me" {
             respondToMe(connection, authorization: authorization)
             return
@@ -318,6 +345,20 @@ private final class Responder: @unchecked Sendable {
             "id": id, "name": entry.workspace.name, "slug": "workspace-\(entry.index)", "defaultLocale": "nl-NL",
             "timeZone": "Europe/Amsterdam"
         ])
+    }
+
+    /// `PATCH /api/v1/me`: stores the language and answers with the account, as the API does.
+    private func updateMe(_ connection: NWConnection, authorization: String?, preferredLocale locale: String?) {
+        guard authorization == "Bearer \(signIn.token)" else {
+            send(connection, status: 401, json: Self.notSignedIn)
+            return
+        }
+        guard let locale, ["nl-NL", "en"].contains(locale) else {
+            send(connection, status: 400, json: ["code": "validation_failed", "issues": []])
+            return
+        }
+        preferredLocale = locale
+        send(connection, status: 200, json: account)
     }
 
     private func respondToMe(_ connection: NWConnection, authorization: String?) {

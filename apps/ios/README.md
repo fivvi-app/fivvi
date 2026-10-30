@@ -67,9 +67,23 @@ The app follows the system's light or dark mode: nothing fixes its appearance (`
 
 The app picks its interface language itself, by ADR-017's rule, and uses it for the screen and for the `locale` it sends to the API (`Language/InterfaceLanguage.swift`, mirroring `resolveInterfaceLanguage()` in `packages/i18n`):
 
-1. The per-app language from iOS Settings (stored as `AppleLanguages` in the app's own defaults domain).
-2. The first supported language in the device's preferred list (`Locale.preferredLanguages`): any `nl-*` is `nl-NL`, any `en-*` is `en`.
-3. English.
+1. The explicit choice made in the app on this device (F010): *Profiel → Taal* or the switch on TM-01, kept in `UserDefaults` (`AppLanguage`). A per-app language changed in *Settings → Fivvi Pro → Language* is read at launch as a new choice of this kind (iOS has no API to set it from the app): it counts when it differs from the one seen at the last launch.
+2. The account's stored preference (`preferredLocale`), read with `GET /api/v1/me` on opening and on every foreground. When it differs from what is shown, the app adopts it and it replaces the older local choice, unless a choice of this device still waits to be saved (that one is newer).
+3. The per-app language from iOS Settings (stored as `AppleLanguages` in the app's own defaults domain).
+4. The first supported language in the device's preferred list (`Locale.preferredLanguages`): any `nl-*` is `nl-NL`, any `en-*` is `en`.
+5. English.
+
+`AppLanguage` (an `@Observable` the app creates once) holds the `Catalog` that is shown. A choice re-renders the screens at once (the view models take the new catalog with `use(_:)`, the greeting is asked again in it) and is saved with `PATCH /api/v1/me` (`preferredLocale`); a choice made signed out, or one the API did not take, stays "unsaved" and is saved when the home opens and on every foreground. The choice survives sign-out. `language_changed` for surface `ios` is not recorded yet: the API records it only for a request without a bearer token, and the app has no analytics SDK. Android #332 adds an optional `surface` to `UpdateMeRequest`; once it is merged, the app sends `ios` on `PATCH /api/v1/me`.
+
+Accessibility identifiers of the language switch (the Android test tags are the same, so one Maestro flow serves both):
+
+| Id | Where |
+|---|---|
+| `profile.language` | *Taal* section header on *Profiel* |
+| `profile.language.nl-NL`, `profile.language.en` | the two options; the one shown has a check mark and the selected trait |
+| `profile.language.error` | the text under the options when the save failed |
+| `signIn.language` | the *Nederlands \| English* switch on TM-01 (a group) |
+| `signIn.language.nl-NL`, `signIn.language.en` | its two buttons; the one shown is bold and underlined and has the selected trait |
 
 `Catalog` reads that language's `nl.lproj` or `en.lproj` directly. iOS's own choice (`Bundle.preferredLocalizations`) can't decide it: the source language is Dutch, so a German-only phone would get Dutch. Format dates and numbers with `Catalog.formattingLocale`, which the hello screen puts in SwiftUI's environment: `en` formats as `en-GB` (`packages/i18n/README.md`).
 

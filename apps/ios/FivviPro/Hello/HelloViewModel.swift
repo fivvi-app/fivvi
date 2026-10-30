@@ -15,11 +15,16 @@ final class HelloViewModel {
     }
 
     private(set) var state: State = .loading
-    let catalog: Catalog
+    private(set) var catalog: Catalog
     private let api: any APIProtocol
 
     init(api: any APIProtocol, catalog: Catalog) {
         self.api = api
+        self.catalog = catalog
+    }
+
+    /// The interface language changed: the text is in the new one at once; `load()` fetches the greeting again.
+    func use(_ catalog: Catalog) {
         self.catalog = catalog
     }
 

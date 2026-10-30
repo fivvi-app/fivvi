@@ -51,6 +51,7 @@
     <string name="not_found_body">We kunnen deze pagina niet vinden. Controleer de link en probeer het opnieuw.</string>
     <string name="not_found_title">Pagina niet gevonden</string>
     <string name="profile_error">Je werkruimtes konden niet worden geladen.</string>
+    <string name="profile_language">Taal</string>
     <string name="profile_title">Profiel</string>
     <!-- Role label of an Owner (Eigenaar) of a workspace, shown as a plain label. -->
     <string name="roles_owner">Eigenaar</string>

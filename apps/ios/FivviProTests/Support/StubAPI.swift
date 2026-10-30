@@ -33,7 +33,8 @@ actor StubAPI: APIProtocol {
     /// What `getMe` answers.
     enum MeAnswer: Sendable {
         case account(
-            email: String, id: String = StubAPI.accountID, workspaces: [String] = [], canCreateWorkspace: Bool = false
+            email: String, id: String = StubAPI.accountID, workspaces: [String] = [], canCreateWorkspace: Bool = false,
+            preferredLocale: Components.Schemas.Locale? = nil
         )
         case unauthorized
         case status(Int)
@@ -58,6 +59,13 @@ actor StubAPI: APIProtocol {
         case offline
     }
 
+    /// What `updateMe` answers.
+    enum UpdateMeAnswer: Sendable {
+        case accepted
+        case status(Int)
+        case offline
+    }
+
     /// What `signOut` answers.
     enum SignOutAnswer: Sendable {
         case noContent
@@ -74,6 +82,7 @@ actor StubAPI: APIProtocol {
     private var exchangeAnswer = ExchangeAnswer.unauthorized
     private var meAnswer = MeAnswer.unauthorized
     private var myWorkspacesAnswer = MyWorkspacesAnswer.workspaces([])
+    private var updateMeAnswer = UpdateMeAnswer.accepted
     private var goneWorkspaces: Set<String> = []
     private var workspaceStatus: Int?
     private(set) var requestedLocales: [Components.Schemas.Locale?] = []
@@ -81,6 +90,8 @@ actor StubAPI: APIProtocol {
     private(set) var signInRequests: [Components.Schemas.SignInRequest] = []
     private(set) var exchanges: [Components.Schemas.SignInTokenRequest] = []
     private(set) var meCalls = 0
+    /// The `preferredLocale` of every `updateMe`, in order.
+    private(set) var savedLocales: [Components.Schemas.Locale?] = []
     private(set) var myWorkspacesCalls = 0
     /// The IDs `getWorkspace` was asked for, in order.
     private(set) var requestedWorkspaces: [String] = []
@@ -192,16 +203,15 @@ actor StubAPI: APIProtocol {
         fatalError("The app doesn't call removeTeamMember yet")
     }
 
-    func updateMe(_ input: Operations.UpdateMe.Input) async throws -> Operations.UpdateMe.Output {
-        fatalError("The app doesn't call updateMe yet")
-    }
-
     /// The account `getMe` answers with: a workspace of each name in `workspaces` (synthetic IDs and slugs).
     private static func me(
-        id: String, email: String, workspaces: [String] = [], canCreateWorkspace: Bool = false
+        id: String, email: String, workspaces: [String] = [], canCreateWorkspace: Bool = false,
+        preferredLocale: Components.Schemas.Locale? = nil
     ) -> Components.Schemas.MeResponse {
         .init(
-            id: id, email: email, name: "Owner", canCreateWorkspace: canCreateWorkspace,
+            id: id, email: email, name: "Owner",
+            preferredLocale: preferredLocale.flatMap { .init(rawValue: $0.rawValue) },
+            canCreateWorkspace: canCreateWorkspace,
             workspaces: workspaces.enumerated().map { index, name in
                 .init(
                     id: "7c1d2e3f-0000-4000-8000-00000000000\(index)", name: name,
@@ -214,9 +224,12 @@ actor StubAPI: APIProtocol {
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
         meCalls += 1
         switch meAnswer {
-        case let .account(email, id, workspaces, canCreateWorkspace):
+        case let .account(email, id, workspaces, canCreateWorkspace, preferredLocale):
             return .ok(.init(body: .json(
-                Self.me(id: id, email: email, workspaces: workspaces, canCreateWorkspace: canCreateWorkspace)
+                Self.me(
+                    id: id, email: email, workspaces: workspaces, canCreateWorkspace: canCreateWorkspace,
+                    preferredLocale: preferredLocale
+                )
             )))
         case .unauthorized:
             return .unauthorized(.init(body: .json(.init(code: .notSignedIn))))
@@ -291,6 +304,24 @@ actor StubAPI: APIProtocol {
 }
 
 extension StubAPI {
+    func answerUpdateMe(with answer: UpdateMeAnswer) {
+        updateMeAnswer = answer
+    }
+
+    func updateMe(_ input: Operations.UpdateMe.Input) async throws -> Operations.UpdateMe.Output {
+        if case let .json(body) = input.body {
+            savedLocales.append(body.preferredLocale.flatMap { Components.Schemas.Locale(rawValue: $0.rawValue) })
+        }
+        switch updateMeAnswer {
+        case .accepted:
+            return .ok(.init(body: .json(Self.me(id: Self.accountID, email: "owner@example.com"))))
+        case let .status(code):
+            return .undocumented(statusCode: code, .init())
+        case .offline:
+            throw URLError(.notConnectedToInternet)
+        }
+    }
+
     func getWorkspace(_ input: Operations.GetWorkspace.Input) async throws -> Operations.GetWorkspace.Output {
         requestedWorkspaces.append(input.path.workspaceId)
         if let workspaceStatus { return .undocumented(statusCode: workspaceStatus, .init()) }

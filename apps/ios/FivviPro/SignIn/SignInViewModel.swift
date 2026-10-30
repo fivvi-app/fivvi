@@ -58,7 +58,7 @@ final class SignInViewModel {
     private(set) var code = ""
     /// The API stopped accepting the token: the screen says so above the form.
     let showsSignedOutNotice: Bool
-    let catalog: Catalog
+    private(set) var catalog: Catalog
     private let api: any APIProtocol
     private let store: any SessionStore
     private let onSignedIn: () -> Void
@@ -84,6 +84,11 @@ final class SignInViewModel {
         self.showsSignedOutNotice = showsSignedOutNotice
         self.onSignedIn = onSignedIn
         self.announce = announce
+    }
+
+    /// The interface language changed (the switch on TM-01): the screen and the `locale` of the next sign-in email follow.
+    func use(_ catalog: Catalog) {
+        self.catalog = catalog
     }
 
     var isCodeComplete: Bool { code.count == Self.codeLength }

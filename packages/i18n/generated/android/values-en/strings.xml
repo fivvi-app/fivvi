@@ -30,6 +30,7 @@
     <string name="not_found_body">We can\'t find this page. Check the link and try again.</string>
     <string name="not_found_title">Page not found</string>
     <string name="profile_error">Your workspaces couldn\'t be loaded.</string>
+    <string name="profile_language">Language</string>
     <string name="profile_title">Profile</string>
     <string name="roles_owner">Owner</string>
     <string name="roles_trainer">Trainer</string>

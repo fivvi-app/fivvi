@@ -164,7 +164,8 @@
   },
   "profile": {
     "title": "Profiel",
-    "error": "Je werkruimtes konden niet worden geladen."
+    "error": "Je werkruimtes konden niet worden geladen.",
+    "language": "Taal"
   },
   "team": {
     "title": "Trainers",

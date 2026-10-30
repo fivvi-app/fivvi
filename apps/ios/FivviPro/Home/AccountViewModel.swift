@@ -37,6 +37,7 @@ final class AccountViewModel {
     private let signOutTimeout: Duration
     private let onAccount: (_ id: String) -> Void
     private let onSignedOut: (_ afterRejection: Bool) -> Void
+    private let onPreferredLocale: (_ stored: Components.Schemas.Locale?) -> Void
 
     /// `signOutTimeout` is how long a sign-out waits for the API, on `clock`, before it goes on without an answer.
     /// `onAccount` is told the account's ID (a UUID) once `GET /api/v1/me` has answered: the app sets it as the
@@ -48,7 +49,8 @@ final class AccountViewModel {
         clock: any Clock<Duration> = ContinuousClock(),
         signOutTimeout: Duration = .seconds(10),
         onAccount: @escaping (_ id: String) -> Void,
-        onSignedOut: @escaping (_ afterRejection: Bool) -> Void
+        onSignedOut: @escaping (_ afterRejection: Bool) -> Void,
+        onPreferredLocale: @escaping (_ stored: Components.Schemas.Locale?) -> Void = { _ in }
     ) {
         self.api = api
         self.store = store
@@ -56,6 +58,7 @@ final class AccountViewModel {
         self.signOutTimeout = signOutTimeout
         self.onAccount = onAccount
         self.onSignedOut = onSignedOut
+        self.onPreferredLocale = onPreferredLocale
     }
 
     func load() async {
@@ -76,6 +79,11 @@ final class AccountViewModel {
 
     private func fetch() async throws {
         let account = try await api.getMe().ok.body.json
+        // The stored language is told before the workspaces are looked up: a preference changed on the web is adopted
+        // even when that lookup fails (F010 AC2).
+        if !Task.isCancelled, store.token != nil {
+            onPreferredLocale(account.preferredLocale.flatMap { Components.Schemas.Locale(rawValue: $0.rawValue) })
+        }
         let destination = try await destination(of: account)
         state = .loaded(email: account.email)
         self.destination = destination
