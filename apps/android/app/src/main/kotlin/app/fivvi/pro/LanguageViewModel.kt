@@ -68,7 +68,12 @@ class LanguageViewModel(private val api: MeApi, private val preference: Language
         val choice = preference.unsavedChoice ?: return
         saves++
         val saved = try {
-            api.updateMe(UpdateMeRequest(choice.toPreferredLocale(), UpdateMeRequest.Surface.ANDROID)).isSuccessful
+            api.updateMe(
+                UpdateMeRequest(
+                    preferredLocale = choice.toPreferredLocale(),
+                    surface = UpdateMeRequest.Surface.ANDROID,
+                ),
+            ).isSuccessful
         } catch (_: IOException) {
             false
         } catch (_: SerializationException) {

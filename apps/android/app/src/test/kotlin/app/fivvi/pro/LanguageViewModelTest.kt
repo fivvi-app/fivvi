@@ -28,7 +28,7 @@ class LanguageViewModelTest {
     private val viewModel by lazy { LanguageViewModel(api, preference) }
 
     private fun fromAndroid(locale: UpdateMeRequest.PreferredLocale) =
-        UpdateMeRequest(locale, UpdateMeRequest.Surface.ANDROID)
+        UpdateMeRequest(preferredLocale = locale, surface = UpdateMeRequest.Surface.ANDROID)
 
     private fun meAnswering(locale: MeResponse.PreferredLocale) = MeResponse(
         id = UUID.randomUUID(),

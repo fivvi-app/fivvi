@@ -65,14 +65,14 @@ class LanguageSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
         assertEquals(
             listOf(
                 UpdateMeRequest(
-                    if (other ==
+                    preferredLocale = if (other ==
                         AppLanguage.DUTCH
                     ) {
                         UpdateMeRequest.PreferredLocale.NL_NL
                     } else {
                         UpdateMeRequest.PreferredLocale.EN
                     },
-                    UpdateMeRequest.Surface.ANDROID,
+                    surface = UpdateMeRequest.Surface.ANDROID,
                 ),
             ),
             me.updates,
