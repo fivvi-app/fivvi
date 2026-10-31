@@ -864,7 +864,8 @@ flowchart TB
 
 These are intentionally left open. Each one is decided when its release's entry gate opens (§3.3), based on what the pilot and early customers show. It is recorded here and in an ADR when decided.
 
-| # |
+| # | Decision | Decided at |
+|---|---|---|
 | 16 | Platform billing model (free beta / manual invoicing / billing in 2.0) | 2.0 entry gate |
 | 17 | AI provider(s) and data terms | 1.3 entry gate |
 

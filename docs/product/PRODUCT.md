@@ -24,7 +24,7 @@ The first version must solve the real workflow of the pilot gym:
 - public class booking
 - Open Gym booking
 - client management
-- memberships, credit packs and credit plans (group and private credits), with a credit balance the owner and the client can trust
+- memberships, credit packs and credit plans (group, private and Open Gym credits), with a credit balance the owner and the client can trust
 - recurring payments and invoices (§90–§97)
 - workout/program management
 - live workout logging
@@ -1642,7 +1642,7 @@ Single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisi
 
 - offers and prices (§90)
 - memberships with a weekly allowance of group classes (§91)
-- credit packs and credit plans, group and private (§92)
+- credit packs and credit plans, group, private and Open Gym (§92)
 - credit balance per kind with its history (§92)
 - cancellation cutoff, no-shows and limited makeups (§93)
 - recurring payments through the workspace's payment provider account (decided in ADR-020; §94)
@@ -2514,7 +2514,7 @@ Phase K: single classes and payouts are proposed scope ([decision 9](ROADMAP.md#
 79. offers and prices
 80. payment provider account per workspace (decided in ADR-020)
 81. memberships with a weekly allowance of group classes
-82. credit packs and credit plans, group and private
+82. credit packs and credit plans, group, private and Open Gym
 83. credit balance per kind and its history
 84. cancellation cutoff, no-shows and makeups
 85. recurring payments
