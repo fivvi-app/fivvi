@@ -15,10 +15,16 @@ export default async function WorkspaceLayout({
   children: ReactNode;
   params: Promise<{ slug: string }>;
 }) {
-  const { name, slug, role } = await workspaceOf((await params).slug);
+  const { name, slug, role, capabilities } = await workspaceOf((await params).slug);
   const me = await currentMe();
   return (
-    <WorkspaceFrame name={name} slug={slug} teamRole={role} personName={me.name}>
+    <WorkspaceFrame
+      name={name}
+      slug={slug}
+      teamRole={role}
+      capabilities={capabilities}
+      personName={me.name}
+    >
       {children}
     </WorkspaceFrame>
   );

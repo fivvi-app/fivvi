@@ -194,7 +194,25 @@
     "removed": "{name} has been removed from the team.",
     "errors": {
       "noConnection": "No connection. Check your internet and try again.",
-      "generic": "Something went wrong. Try again."
+      "generic": "Something went wrong. Try again.",
+      "lastOwner": "A workspace needs at least one owner."
+    },
+    "roleMenu": "Role of {name}",
+    "makeOwnerDialog": {
+      "title": "Make {name} an owner?",
+      "body": "An owner can do everything in {workspace}, including the team, the settings and the money.",
+      "confirm": "Make owner",
+      "cancel": "Cancel"
+    },
+    "stepDownDialog": {
+      "title": "Make yourself a trainer?",
+      "body": "You will no longer be an owner of {workspace}.",
+      "confirm": "Make trainer",
+      "cancel": "Cancel"
+    },
+    "roleChanged": {
+      "owner": "{name} is now an owner.",
+      "trainer": "{name} is now a trainer."
     }
   }
 }

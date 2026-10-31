@@ -13,38 +13,62 @@ import {
   AlertDialogTitle,
 } from '@fivvi/ui/components/alert-dialog';
 import { Button } from '@fivvi/ui/components/button';
+import { NativeSelect, NativeSelectOption } from '@fivvi/ui/components/native-select';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { changeTeamMemberRole } from './change-role-client';
 import { removeTeamMember } from './remove-team-member-client';
 
 type TeamMember = Schemas['TeamMember'];
+type Role = TeamMember['role'];
+
+/** The roles of the menu, in the order the glossary lists them. */
+const ROLES = ['owner', 'trainer'] as const satisfies readonly Role[];
+
+/** The copy of each question, in the `team` catalog. */
+const DIALOGS = {
+  remove: 'removeDialog',
+  makeOwner: 'makeOwnerDialog',
+  stepDown: 'stepDownDialog',
+} as const;
+
+/** What the person is asked to confirm: leaving the team, making someone Owner, or stepping down. */
+type Question = { kind: 'remove' | 'makeOwner' | 'stepDown'; member: TeamMember };
 
 /** What the page calls a person: their name, or the address they sign in with when they have none. */
 const displayName = (member: TeamMember) => member.name || member.email;
 
 /**
- * TW-06 Trainers (F003, Owner only): the team in one list, in the order the API gives (sorted by
- * name). A Trainer row has the row action *Remove from team*, which asks for confirmation in a
- * dialog that repeats the person's name; the last Owner's row has none (AC7), and there is no
- * add button (invitations are F011). After a removal the page asks the server again, so the list
- * is what the API holds, and the confirmation names the person.
+ * TW-06 Trainers (F003, F004; a person with `team.view`): the team in one list, in the order the
+ * API gives (sorted by name). With `team.manage` each row has the role menu *Rol: Eigenaar /
+ * Trainer* and the row action *Remove from team*. Making someone Owner asks once, and so does
+ * making yourself a Trainer; making another Owner a Trainer asks nothing. The last Owner's row has
+ * neither the menu nor the action (F003 AC7, F004 AC5), and there is no add button (invitations
+ * are F011). After a change the page asks the server again, so the list is what the API holds.
+ * "You" is the row with the address of the signed-in account.
  */
 export function TeamList({
   workspaceId,
   workspaceName,
   members,
+  canManage,
+  currentEmail,
 }: {
   workspaceId: string;
   workspaceName: string;
   members: readonly TeamMember[];
+  /** Whether the API lists `team.manage` for this person in this workspace. */
+  canManage: boolean;
+  /** The address the signed-in account signs in with. */
+  currentEmail: string;
 }) {
   const t = useTranslations('team');
   const roles = useTranslations('roles');
   const router = useRouter();
-  const [asking, setAsking] = useState<TeamMember | null>(null);
-  const [removed, setRemoved] = useState<string | null>(null);
-  const [failure, setFailure] = useState<'noConnection' | 'generic' | null>(null);
+  const [asking, setAsking] = useState<Question | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [failure, setFailure] = useState<'noConnection' | 'generic' | 'lastOwner' | null>(null);
   const [pending, setPending] = useState(false);
   // The buttons wait for the page to hydrate: a click before that would do nothing.
   const [ready, setReady] = useState(false);
@@ -53,27 +77,61 @@ export function TeamList({
 
   const owners = members.filter(({ role }) => role === 'owner').length;
 
-  async function confirm(member: TeamMember) {
+  const isYou = (member: TeamMember) => member.email.toLowerCase() === currentEmail.toLowerCase();
+
+  async function run(
+    action: () => Promise<
+      { ok: true } | { ok: false; reason: NonNullable<typeof failure> | 'home' }
+    >,
+    done: string,
+  ) {
     setPending(true);
     setFailure(null);
-    setRemoved(null);
-    const result = await removeTeamMember(workspaceId, member.id);
+    setNotice(null);
+    const result = await action();
     setPending(false);
     setAsking(null);
     if (result.ok) {
-      setRemoved(displayName(member));
+      setNotice(done);
       return router.refresh();
     }
     // Not allowed (any more): the signed-in home knows where this person belongs.
     if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
     setFailure(result.reason);
+    // Someone else changed the team first: show what the API holds now.
+    if (result.reason === 'lastOwner') router.refresh();
+  }
+
+  const remove = (member: TeamMember) =>
+    run(
+      () => removeTeamMember(workspaceId, member.id),
+      t('removed', { name: displayName(member) }),
+    );
+
+  const changeRole = (member: TeamMember, role: Role) =>
+    run(
+      () => changeTeamMemberRole(workspaceId, member.id, role),
+      t(`roleChanged.${role}`, { name: displayName(member) }),
+    );
+
+  /** The menu applies a change to a Trainer at once, and asks first for the two that need it. */
+  function chooseRole(member: TeamMember, role: Role) {
+    if (role === member.role) return;
+    if (role === 'owner') return setAsking({ kind: 'makeOwner', member });
+    if (isYou(member)) return setAsking({ kind: 'stepDown', member });
+    void changeRole(member, role);
+  }
+
+  function confirm({ kind, member }: Question) {
+    if (kind === 'remove') return remove(member);
+    return changeRole(member, kind === 'makeOwner' ? 'owner' : 'trainer');
   }
 
   return (
     <main className="flex flex-1 justify-center p-4">
       <div className="grid w-full max-w-3xl content-start gap-4">
         <h1 className="font-display text-2xl font-semibold">{t('title')}</h1>
-        {removed ? <p role="status">{t('removed', { name: removed })}</p> : null}
+        {notice ? <p role="status">{notice}</p> : null}
         {failure ? (
           <p role="alert" className="text-status-danger-fg">
             {t(`errors.${failure}`)}
@@ -101,19 +159,36 @@ export function TeamList({
               <tr key={member.id} className="border-b">
                 <td className="p-2">{displayName(member)}</td>
                 <td className="p-2">{member.email}</td>
-                <td className="p-2">{roles(member.role)}</td>
+                <td className="p-2">
+                  {canManage && !(member.role === 'owner' && owners <= 1) ? (
+                    <NativeSelect
+                      aria-label={t('roleMenu', { name: displayName(member) })}
+                      value={member.role}
+                      disabled={!ready || pending}
+                      onChange={(event) => chooseRole(member, event.target.value as Role)}
+                    >
+                      {ROLES.map((role) => (
+                        <NativeSelectOption key={role} value={role}>
+                          {roles(role)}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  ) : (
+                    roles(member.role)
+                  )}
+                </td>
                 <td className="p-2 text-end">
-                  {member.role === 'owner' && owners <= 1 ? null : (
+                  {canManage && !(member.role === 'owner' && owners <= 1) ? (
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       disabled={!ready || pending}
-                      onClick={() => setAsking(member)}
+                      onClick={() => setAsking({ kind: 'remove', member })}
                     >
                       {t('remove')}
                     </Button>
-                  )}
+                  ) : null}
                 </td>
               </tr>
             ))}
@@ -125,23 +200,26 @@ export function TeamList({
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {t('removeDialog.title', { name: displayName(asking) })}
+                {t(`${DIALOGS[asking.kind]}.title`, { name: displayName(asking.member) })}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {t('removeDialog.body', { name: displayName(asking), workspace: workspaceName })}
+                {t(`${DIALOGS[asking.kind]}.body`, {
+                  name: displayName(asking.member),
+                  workspace: workspaceName,
+                })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>{t('removeDialog.cancel')}</AlertDialogCancel>
+              <AlertDialogCancel>{t(`${DIALOGS[asking.kind]}.cancel`)}</AlertDialogCancel>
               <AlertDialogAction
-                variant="destructive"
+                variant={asking.kind === 'remove' ? 'destructive' : 'default'}
                 disabled={pending}
                 onClick={(event) => {
                   event.preventDefault();
                   void confirm(asking);
                 }}
               >
-                {t('removeDialog.confirm')}
+                {t(`${DIALOGS[asking.kind]}.confirm`)}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

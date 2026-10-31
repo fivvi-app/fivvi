@@ -154,8 +154,13 @@
     <string name="team_email_column">E-mailadres</string>
     <!-- Shown on the Trainers page when removing a person failed for another reason. Nothing changed. -->
     <string name="team_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <string name="team_errors_last_owner">Er moet minstens één eigenaar blijven.</string>
     <!-- Shown on the Trainers page when removing a person failed because there is no connection. Nothing changed. -->
     <string name="team_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="team_make_owner_dialog_body">Een eigenaar kan alles in %1$s, ook het team, de instellingen en het geld.</string>
+    <string name="team_make_owner_dialog_cancel">Annuleren</string>
+    <string name="team_make_owner_dialog_confirm">Eigenaar maken</string>
+    <string name="team_make_owner_dialog_title">%1$s eigenaar maken?</string>
     <!-- Column header of the person's name in the team list. -->
     <string name="team_name_column">Naam</string>
     <!-- Row action of a Trainer in the team list. Opens the remove dialog; the team access ends only after the Owner confirms there. -->
@@ -170,8 +175,15 @@
     <string name="team_remove_dialog_title">%1$s uit het team verwijderen?</string>
     <!-- Confirmation shown after a person was removed from the team. {name} is the person's name (or email address when they have no name). -->
     <string name="team_removed">%1$s is uit het team verwijderd.</string>
+    <string name="team_role_changed_owner">%1$s is nu eigenaar.</string>
+    <string name="team_role_changed_trainer">%1$s is nu trainer.</string>
     <!-- Column header of the role label (Owner or Trainer) in the team list. -->
     <string name="team_role_column">Rol</string>
+    <string name="team_role_menu">Rol van %1$s</string>
+    <string name="team_step_down_dialog_body">Je bent dan geen eigenaar meer van %1$s.</string>
+    <string name="team_step_down_dialog_cancel">Annuleren</string>
+    <string name="team_step_down_dialog_confirm">Trainer maken</string>
+    <string name="team_step_down_dialog_title">Jezelf trainer maken?</string>
     <!-- Title of the Trainers page (TW-06), which lists the team of the workspace, and its browser tab title. -->
     <string name="team_title">Trainers</string>
     <!-- Shown in the user menu when the chosen language could not be saved on the account (no connection or a server error). The page keeps its language and the person can try again. -->

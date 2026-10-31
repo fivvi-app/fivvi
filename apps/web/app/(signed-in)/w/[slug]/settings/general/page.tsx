@@ -20,8 +20,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function GeneralSettingsPage({
   params,
 }: PageProps<'/w/[slug]/settings/general'>) {
-  const { id, name, role } = await workspaceOf((await params).slug);
-  if (role !== 'owner') return <NoPermission workspace={name} />;
+  const { id, name, capabilities } = await workspaceOf((await params).slug);
+  if (!capabilities.includes('workspace.manage')) return <NoPermission workspace={name} />;
   const cookie = (await headers()).get('cookie');
   const { data } = await apiClient.GET('/v1/workspaces/{workspaceId}', {
     params: { path: { workspaceId: id } },
