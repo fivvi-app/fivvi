@@ -14,6 +14,7 @@ import app.fivvi.api.models.ClientList
 import app.fivvi.api.models.Forbidden
 import app.fivvi.api.models.NotFound
 import app.fivvi.api.models.NotSignedIn
+import app.fivvi.api.models.UpdateClientRequest
 import app.fivvi.api.models.ValidationError
 
 interface ClientsApi {
@@ -38,6 +39,25 @@ interface ClientsApi {
     suspend fun addClient(@Path("workspaceId") workspaceId: java.util.UUID, @Body addClientRequest: AddClientRequest): Response<Client>
 
     /**
+     * GET v1/workspaces/{workspaceId}/clients/{clientId}
+     * A client of a workspace
+     * One client of the workspace (the Owner and every Trainer): name, email address and language for emails. A client ID of another workspace, or one that does not exist, answers &#x60;404&#x60;.
+     * Responses:
+     *  - 200: The client.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param clientId The client ID, from the client list.
+     * @return [Client]
+     */
+    @GET("v1/workspaces/{workspaceId}/clients/{clientId}")
+    suspend fun getClient(@Path("workspaceId") workspaceId: java.util.UUID, @Path("clientId") clientId: java.util.UUID): Response<Client>
+
+    /**
      * GET v1/workspaces/{workspaceId}/clients
      * The clients of a workspace
      * The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. &#x60;search&#x60; matches part of a name or an email address in the server, ignoring case and accents.
@@ -57,5 +77,26 @@ interface ClientsApi {
      */
     @GET("v1/workspaces/{workspaceId}/clients")
     suspend fun listClients(@Path("workspaceId") workspaceId: java.util.UUID, @Query("search") search: kotlin.String? = null, @Query("pageSize") pageSize: kotlin.Int? = 50, @Query("page") page: kotlin.Int? = 1): Response<ClientList>
+
+    /**
+     * PATCH v1/workspaces/{workspaceId}/clients/{clientId}
+     * Edit a client
+     * Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address may be cleared with &#x60;null&#x60;. An address another client of the workspace has answers &#x60;409&#x60; with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.
+     * Responses:
+     *  - 200: The client as saved.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 409: Another client of the workspace already has the email address; nothing changed.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param clientId The client ID, from the client list.
+     * @param updateClientRequest 
+     * @return [Client]
+     */
+    @PATCH("v1/workspaces/{workspaceId}/clients/{clientId}")
+    suspend fun updateClient(@Path("workspaceId") workspaceId: java.util.UUID, @Path("clientId") clientId: java.util.UUID, @Body updateClientRequest: UpdateClientRequest): Response<Client>
 
 }

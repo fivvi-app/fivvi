@@ -123,6 +123,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/clients`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/post(addClient)`.
     func addClient(_ input: Operations.AddClient.Input) async throws -> Operations.AddClient.Output
+    /// A client of a workspace
+    ///
+    /// One client of the workspace (the Owner and every Trainer): name, email address and language for emails. A client ID of another workspace, or one that does not exist, answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/clients/{clientId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/get(getClient)`.
+    func getClient(_ input: Operations.GetClient.Input) async throws -> Operations.GetClient.Output
+    /// Edit a client
+    ///
+    /// Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address may be cleared with `null`. An address another client of the workspace has answers `409` with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/clients/{clientId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/patch(updateClient)`.
+    func updateClient(_ input: Operations.UpdateClient.Input) async throws -> Operations.UpdateClient.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -346,6 +360,38 @@ extension APIProtocol {
         body: Operations.AddClient.Input.Body
     ) async throws -> Operations.AddClient.Output {
         try await addClient(Operations.AddClient.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// A client of a workspace
+    ///
+    /// One client of the workspace (the Owner and every Trainer): name, email address and language for emails. A client ID of another workspace, or one that does not exist, answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/clients/{clientId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/get(getClient)`.
+    public func getClient(
+        path: Operations.GetClient.Input.Path,
+        headers: Operations.GetClient.Input.Headers = .init()
+    ) async throws -> Operations.GetClient.Output {
+        try await getClient(Operations.GetClient.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Edit a client
+    ///
+    /// Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address may be cleared with `null`. An address another client of the workspace has answers `409` with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/clients/{clientId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/patch(updateClient)`.
+    public func updateClient(
+        path: Operations.UpdateClient.Input.Path,
+        headers: Operations.UpdateClient.Input.Headers = .init(),
+        body: Operations.UpdateClient.Input.Body
+    ) async throws -> Operations.UpdateClient.Output {
+        try await updateClient(Operations.UpdateClient.Input(
             path: path,
             headers: headers,
             body: body

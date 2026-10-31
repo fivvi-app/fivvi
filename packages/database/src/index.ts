@@ -33,6 +33,7 @@ export {
   setPreferredLocale,
 } from './repositories/accounts.ts';
 export {
+  type ClientChanges,
   type ClientPage,
   type ClientView,
   createClient,
@@ -42,6 +43,7 @@ export {
   listClients,
   type NewClient,
   searchClients,
+  updateClient,
 } from './repositories/clients.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
 export {

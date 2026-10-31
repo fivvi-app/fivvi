@@ -78,12 +78,12 @@ describe('F004 roles on every workspace route', () => {
       role: 'trainer',
     });
     await addTeamRole(admin.db, { workspaceId: other.id, accountId: mike.id, role: 'owner' });
-    await addClient(admin.db, { workspaceId: gym.id, accountId: anna.id });
-    return { gym, other, john, sarah, mike, anna, sarahRole };
+    const annaClient = await addClient(admin.db, { workspaceId: gym.id, accountId: anna.id });
+    return { gym, other, john, sarah, mike, anna, sarahRole, annaClient };
   }
 
   /** Every workspace operation of the contract, with a path that names John's Gym. */
-  function workspaceCalls(workspaceId: string, teamMemberId: string) {
+  function workspaceCalls(workspaceId: string, teamMemberId: string, clientId = ANY_ID) {
     return describeOperations(contract)
       .filter(({ access }) => access?.type === 'workspace')
       .map(({ name, method, path, access }) => ({
@@ -93,6 +93,7 @@ describe('F004 roles on every workspace route', () => {
         url: path
           .replace('{workspaceId}', workspaceId)
           .replace('{teamMemberId}', teamMemberId)
+          .replace('{clientId}', clientId)
           .replace(/\{[^}]+\}/g, ANY_ID),
       }));
   }
@@ -150,8 +151,8 @@ describe('F004 roles on every workspace route', () => {
   });
 
   it('AC3: Trainer may call the routes the matrix gives a Trainer', async () => {
-    const { gym, sarah, sarahRole } = await world();
-    const trainerRoutes = workspaceCalls(gym.id, sarahRole.id).filter(
+    const { gym, sarah, sarahRole, annaClient } = await world();
+    const trainerRoutes = workspaceCalls(gym.id, sarahRole.id, annaClient.id).filter(
       ({ access }) =>
         access?.type === 'workspace' && (access.roles as readonly string[]).includes('trainer'),
     );
@@ -159,20 +160,28 @@ describe('F004 roles on every workspace route', () => {
     // The clients (F006) are the Trainer's too: `clients.view` and `clients.manage`.
     expect(trainerRoutes.map(({ name }) => name).toSorted()).toEqual([
       'addClient',
+      'getClient',
       'getWorkspace',
       'listClients',
+      'updateClient',
     ]);
     const statuses = Object.fromEntries(
       await Promise.all(
         trainerRoutes.map(async (route) => [route.name, (await call(route, sarah)).status]),
       ),
     );
-    expect(statuses).toEqual({ getWorkspace: 200, listClients: 200, addClient: 201 });
+    expect(statuses).toEqual({
+      getWorkspace: 200,
+      listClients: 200,
+      addClient: 201,
+      getClient: 200,
+      updateClient: 200,
+    });
   });
 
   it('AC3: Owner is admitted to every workspace route', async () => {
-    const { gym, john, sarahRole } = await world();
-    for (const route of workspaceCalls(gym.id, sarahRole.id)) {
+    const { gym, john, sarahRole, annaClient } = await world();
+    for (const route of workspaceCalls(gym.id, sarahRole.id, annaClient.id)) {
       // 400 for the body the probe sends is fine: the Owner got past the access check.
       expect([200, 201, 204, 400], route.name).toContain((await call(route, john)).status);
     }

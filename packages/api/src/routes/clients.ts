@@ -2,26 +2,37 @@ import {
   type ClientView,
   createClient,
   findAccountIdByEmail,
+  findClient,
   findClientByEmail,
   findClientOfAccount,
   searchClients,
+  updateClient,
   type WorkspaceScope,
 } from '@fivvi/database';
-import { CLIENT_NAME_MAX_LENGTH, decideNewClient, normalizeEmail } from '@fivvi/domain';
+import {
+  CLIENT_NAME_MAX_LENGTH,
+  type ClientEditFacts,
+  decideClientEdit,
+  decideNewClient,
+  normalizeEmail,
+} from '@fivvi/domain';
 import { locales } from '@fivvi/i18n';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
 import {
   answerValidationFailure,
   internalServerErrorResponse,
+  NOT_FOUND,
   validationErrorResponse,
 } from '../errors.ts';
 
 // The clients of a workspace (F006, spec #174): owners and trainers add a client, with a name
-// only if they like, and list and search them. A client is a record of the workspace, not a
+// only if they like, list and search them, and read and edit one. A client is a record of the workspace, not a
 // person's account (`PRODUCT.md §2.9`): adding one never sends an email and never creates an
 // account. If an account has the email address, the new client is linked to it, quietly: the
-// answer is the same either way (AC4). The duplicate-and-link decision is in @fivvi/domain.
+// answer is the same either way (AC4). Editing the email address moves the link with it (AC8),
+// also quietly, and never changes the account. The duplicate-and-link decisions are in
+// @fivvi/domain.
 // Wording: *client*, never customer, member or user.
 
 // Typed once: written inline, TypeScript loses the route's request types (see workspaces.ts).
@@ -110,10 +121,56 @@ const AddClientBodySchema = z
   })
   .openapi('AddClientRequest', { description: 'A client to add. Only the name is required.' });
 
+const UpdateClientBodySchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .max(CLIENT_NAME_MAX_LENGTH)
+      .optional()
+      .openapi({
+        description:
+          `The new name: trimmed, at least one and at most ${CLIENT_NAME_MAX_LENGTH} ` +
+          'characters, as when adding. Leave it out to keep the name. Empty, blank or longer ' +
+          'answers `400` with a field error.',
+      }),
+    email: z
+      .email()
+      .nullable()
+      .optional()
+      .openapi({
+        description:
+          'The new email address; stored lower case. `null` clears it. Leave it out to keep it. ' +
+          'An address that is no email address answers `400`; one that another client of the ' +
+          'workspace has answers `409`. The client’s link to an account, if any, follows the ' +
+          'address; the answer is the same either way, and the account itself never changes.',
+      }),
+    emailLocale: z
+      .enum(locales)
+      .nullable()
+      .optional()
+      .openapi({
+        description:
+          'The new language for the client’s emails: `nl-NL` or `en`. `null` follows the ' +
+          'workspace’s default language. Leave it out to keep it. Any other value answers `400`.',
+      }),
+  })
+  .openapi('UpdateClientRequest', {
+    description: 'The fields of a client to change. Fields left out stay as they are.',
+  });
+
 const WorkspaceParamsSchema = z.object({
   workspaceId: z.uuid().openapi({
     param: { name: 'workspaceId', in: 'path' },
     description: 'The workspace ID.',
+  }),
+});
+
+const ClientParamsSchema = WorkspaceParamsSchema.extend({
+  clientId: z.uuid().openapi({
+    param: { name: 'clientId', in: 'path' },
+    description: 'The client ID, from the client list.',
   }),
 });
 
@@ -213,6 +270,68 @@ const addClientRoute = defineRoute(
   manageClients,
 );
 
+const getClientRoute = defineRoute(
+  {
+    method: 'get',
+    path: '/v1/workspaces/{workspaceId}/clients/{clientId}',
+    operationId: 'getClient',
+    tags: ['clients'],
+    summary: 'A client of a workspace',
+    description:
+      'One client of the workspace (the Owner and every Trainer): name, email address and ' +
+      'language for emails. A client ID of another workspace, or one that does not exist, ' +
+      'answers `404`.',
+    security: SIGNED_IN,
+    request: { params: ClientParamsSchema },
+    responses: {
+      200: {
+        description: 'The client.',
+        content: { 'application/json': { schema: ClientSchema } },
+      },
+      400: validationErrorResponse,
+      500: internalServerErrorResponse,
+    },
+  },
+  viewClients,
+);
+
+const updateClientRoute = defineRoute(
+  {
+    method: 'patch',
+    path: '/v1/workspaces/{workspaceId}/clients/{clientId}',
+    operationId: 'updateClient',
+    tags: ['clients'],
+    summary: 'Edit a client',
+    description:
+      'Changes the name, email address or language for emails of a client (the Owner and every ' +
+      'Trainer); fields left out stay as they are. The rules of adding apply: a trimmed name of ' +
+      'at most 120 characters, a valid email address stored lower case. The email address may be ' +
+      'cleared with `null`. An address another client of the workspace has answers `409` with ' +
+      'that client’s ID, and nothing changes. If the email address changes, the client’s link ' +
+      'to an account follows it: to the account that has the new address, otherwise to none. The ' +
+      'answer is the same either way, and the team never changes the account itself.',
+    security: SIGNED_IN,
+    request: {
+      params: ClientParamsSchema,
+      body: { required: true, content: { 'application/json': { schema: UpdateClientBodySchema } } },
+    },
+    responses: {
+      200: {
+        description: 'The client as saved.',
+        content: { 'application/json': { schema: ClientSchema } },
+      },
+      400: validationErrorResponse,
+      409: {
+        description:
+          'Another client of the workspace already has the email address; nothing changed.',
+        content: { 'application/json': { schema: ClientExistsSchema } },
+      },
+      500: internalServerErrorResponse,
+    },
+  },
+  manageClients,
+);
+
 /** What the answer shows of a client: the fields of `Client`, never the workspace or an account. */
 function shown({ id, name, email, emailLocale }: ClientView) {
   return { id, name, email, emailLocale };
@@ -230,6 +349,17 @@ async function factsAbout(scope: WorkspaceScope, email: string | undefined) {
     ...(accountId ? { accountId } : {}),
     ...(clientOfAccount ? { clientOfAccount } : {}),
   };
+}
+
+/** What the workspace already knows about the address a client is edited to. */
+async function editFactsAbout(
+  scope: WorkspaceScope,
+  clientId: string,
+  email: string | null | undefined,
+): Promise<ClientEditFacts> {
+  if (email === undefined || email === null)
+    return { clientId, ...(email === null ? { email } : {}) };
+  return { clientId, ...(await factsAbout(scope, email)) };
 }
 
 export function registerClients(app: OpenAPIHono) {
@@ -276,6 +406,38 @@ export function registerClients(app: OpenAPIHono) {
       });
     }
     return c.json(shown(client), 201);
+  });
+  router.openapi(getClientRoute, async (c) => {
+    const client = await findClient(c.get('scope'), c.req.valid('param').clientId);
+    if (!client) return c.json(NOT_FOUND, 404);
+    return c.json(shown(client), 200);
+  });
+  router.openapi(updateClientRoute, async (c) => {
+    const scope = c.get('scope');
+    const { clientId } = c.req.valid('param');
+    const { name, email: typed, emailLocale } = c.req.valid('json');
+    if (!(await findClient(scope, clientId))) return c.json(NOT_FOUND, 404);
+    const email = typeof typed === 'string' ? normalizeEmail(typed) : typed;
+    let decision = decideClientEdit(await editFactsAbout(scope, clientId, email));
+    let client: Awaited<ReturnType<typeof updateClient>>;
+    if (decision.outcome === 'update') {
+      client = await updateClient(scope, clientId, {
+        name,
+        email,
+        emailLocale,
+        accountId: decision.accountId,
+      });
+      // A parallel request gave the address to another client between the check and the save.
+      if (client === 'taken')
+        decision = decideClientEdit(await editFactsAbout(scope, clientId, email));
+    }
+    // The 409 rolls the request's transaction back; nothing changed.
+    if (decision.outcome === 'duplicate') {
+      return c.json({ code: 'client_exists' as const, clientId: decision.clientId }, 409);
+    }
+    if (client === undefined) return c.json(NOT_FOUND, 404);
+    if (client === 'taken') throw new Error('The client was not saved.');
+    return c.json(shown(client), 200);
   });
   app.route('/', router);
 }

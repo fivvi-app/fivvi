@@ -152,3 +152,55 @@ export async function createClient(
     .returning(columns);
   return row;
 }
+
+export interface ClientChanges {
+  readonly name?: string;
+  /** The new email address (lower case); `null` clears it. */
+  readonly email?: string | null;
+  /** The new language for emails; `null` follows the workspace default. */
+  readonly emailLocale?: Locale | null;
+  /** The account the client is linked to; `null` removes the link. Leave it out to keep the link. */
+  readonly accountId?: string | null;
+}
+
+/** Whether the failure is Postgres refusing a second row for a unique index or constraint (23505). */
+function isUniqueViolation(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 5 && current !== null && typeof current === 'object'; depth += 1) {
+    if ((current as { code?: unknown }).code === '23505') return true;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
+/**
+ * Changes a client of the scope's workspace, only the fields given. `undefined` when the client
+ * is not there (another workspace's, or not the caller's own). `'taken'` when a parallel request
+ * gave the email address, or the account, to another client of the workspace first: nothing
+ * changed, and the caller looks the other client up. The change runs in a savepoint, so that
+ * refusal does not abort the request's transaction. A client route can't edit clients (RLS
+ * refuses it).
+ */
+export async function updateClient(
+  scope: WorkspaceScope,
+  clientId: string,
+  changes: ClientChanges,
+): Promise<ClientView | 'taken' | undefined> {
+  const given = Object.fromEntries(
+    Object.entries(changes).filter(([, value]) => value !== undefined),
+  );
+  if (Object.keys(given).length === 0) return findClient(scope, clientId);
+  try {
+    return await executorOf(scope).transaction(async (savepoint) => {
+      const [row] = await savepoint
+        .update(clients)
+        .set(given)
+        .where(and(visibleTo(scope), eq(clients.id, clientId)))
+        .returning(columns);
+      return row;
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) return 'taken';
+    throw error;
+  }
+}

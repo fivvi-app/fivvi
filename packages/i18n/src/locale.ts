@@ -90,6 +90,32 @@ export function resolveCommunicationLanguage(sources: CommunicationLanguageSourc
   return matchLocale(sources.recipientPreference) ?? sources.workspaceDefault;
 }
 
+/** What is known about a client of a workspace, for the language of the emails to them. */
+export interface ClientCommunicationLanguageSources {
+  /** The stored preference of the account the client is linked to; none without a linked account. */
+  accountPreference?: string | null;
+  /** The language for emails the team set on the client (`email_locale`). */
+  clientLanguage?: string | null;
+  /** The workspace's default communication language. Every workspace has one. */
+  workspaceDefault: Locale;
+}
+
+/**
+ * The language of an email to a client of a workspace (ADR-017, F006 AC11, owner decision 4): the
+ * linked account's own stored preference → the language the team set on the client → the
+ * workspace's default communication language. Without a linked account the first step is
+ * skipped. Unsupported values are skipped too.
+ */
+export function resolveClientCommunicationLanguage(
+  sources: ClientCommunicationLanguageSources,
+): Locale {
+  return (
+    matchLocale(sources.accountPreference) ??
+    matchLocale(sources.clientLanguage) ??
+    sources.workspaceDefault
+  );
+}
+
 /** What is known about the recipient of a sign-in email and the screen that asked for it. */
 export interface SignInCommunicationLanguageSources {
   /** The account's stored personal preference (`preferredLocale`); none for a new account. */
