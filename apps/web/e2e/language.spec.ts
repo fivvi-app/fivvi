@@ -12,6 +12,7 @@ import { emailsTo, waitForEmails } from './brevo';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 import { appServer } from './servers';
 import { signInWithCode } from './sign-in-page';
+import { holdBackPageTitle } from './streamed-title';
 
 // F010: the language switch in the user menu of a workspace's pages (AC1, AC2) and TW-08 Settings →
 // Language, where the Owner sets the workspace's default communication language (AC7 to AC10).
@@ -102,6 +103,8 @@ test.describe('F010 language', () => {
         name: other.userMenu.language.replace('{language}', ownName(otherLocale)),
       }),
     ).toBeVisible();
+    // The title streams in after the body (#353), and axe wants one: wait for it.
+    await expect(page).toHaveTitle(other.settingsGeneral.title);
     await expectNoAxeViolations(page, `the user menu after the switch to ${otherLocale}`);
   });
 
@@ -349,6 +352,8 @@ test.describe('F010 language switch on the sign-in page', () => {
       await page.evaluate(() => (window as unknown as { __notReloaded?: boolean }).__notReloaded),
     ).toBe(true);
     expect(await localeCookie(page)).toBe(otherLocale);
+    // The title streams in after the body (#353), and axe wants one: wait for it.
+    await expect(page).toHaveTitle(other.signIn.title);
     await expectNoAxeViolations(page, `the sign-in page after the switch to ${otherLocale}`);
 
     // The choice is kept on a reload.
@@ -365,6 +370,34 @@ test.describe('F010 language switch on the sign-in page', () => {
     expect(email?.subject).toBe(other.email.signIn.subject);
     expect(email?.subject).not.toBe(copy.email.signIn.subject);
     expect(await emailsTo(address)).toHaveLength(1);
+  });
+
+  // #353: the new heading and the new <title> do not arrive together. The title is held back here
+  // to make the gap last, so no run depends on timing.
+  test('AC4: while the title of the switched page is on its way, axe has no title to judge', async ({
+    page,
+    appLocale,
+    otherLocale,
+  }) => {
+    const other = messages[otherLocale];
+    const title = await holdBackPageTitle(page);
+    await page.goto('/login');
+    await expect(page).toHaveTitle(messages[appLocale].signIn.title);
+
+    await switchButton(page, otherLocale).click();
+
+    await expect(page.getByRole('heading', { level: 1, name: other.signIn.title })).toBeVisible();
+    await expect(switchButton(page, otherLocale)).toHaveAttribute('aria-pressed', 'true');
+    // The page is in the new language, and without a title, which axe does not let through.
+    await expect.poll(() => page.title()).toBe('');
+    await expect(expectNoAxeViolations(page, 'the page without its title')).rejects.toThrow(
+      /document-title/,
+    );
+
+    await title.release();
+
+    await expect(page).toHaveTitle(other.signIn.title);
+    await expectNoAxeViolations(page, `the sign-in page after the switch to ${otherLocale}`);
   });
 
   test('AC5: the choice becomes the stored language at sign-in, and without one the stored language applies', async ({
