@@ -113,26 +113,46 @@ describe('E004 migrations', () => {
   it('backfills trainer profiles for the Trainers and first Owners of an older database (F005 AC2, AC3)', async () => {
     const trainerProfilesBackfill = '0014_trainer_profiles_backfill';
     const journal = await readJournal(migrationsFolder);
-    expect(journal.entries.at(-1)?.tag).toBe(trainerProfilesBackfill);
+    const backfillIndex = journal.entries.findIndex(
+      (entry) => entry.tag === trainerProfilesBackfill,
+    );
+    expect(backfillIndex).toBeGreaterThanOrEqual(0);
 
     const previous = await mkdtemp(join(tmpdir(), 'fivvi-migrations-'));
     try {
       await cp(migrationsFolder, previous, { recursive: true });
-      const previousJournal = { ...journal, entries: journal.entries.slice(0, -1) };
+      // The journal cut just before the backfill, so only that migration is applied after it.
+      const previousJournal = { ...journal, entries: journal.entries.slice(0, backfillIndex) };
       await writeFile(join(previous, 'meta', '_journal.json'), JSON.stringify(previousJournal));
 
       await withFreshDatabase(async (client) => {
         // The database as it was before the backfill: members, no profiles.
         await migrate(client.db, { migrationsFolder: previous });
+        // F002 inserts a workspace and its first Owner in one transaction, so both get the same
+        // created_at (now()). The test sets that value on the workspace and its creator by hand.
+        const created = {
+          gym: '2026-01-01T10:00:00Z',
+          studio: '2026-04-01T10:00:00Z',
+          orphan: '2026-05-01T10:00:00Z',
+        };
         const [workspace] = await rows<{ id: string }>(
           client.db,
-          sql`insert into organizations (name, slug, default_locale, time_zone)
-              values ('Backfill Gym', 'backfill-gym', 'nl-NL', 'Europe/Amsterdam') returning id`,
+          sql`insert into organizations (name, slug, default_locale, time_zone, created_at)
+              values ('Backfill Gym', 'backfill-gym', 'nl-NL', 'Europe/Amsterdam', ${created.gym})
+              returning id`,
         );
         const [other] = await rows<{ id: string }>(
           client.db,
-          sql`insert into organizations (name, slug, default_locale, time_zone)
-              values ('Backfill Studio', 'backfill-studio', 'en', 'Europe/Amsterdam') returning id`,
+          sql`insert into organizations (name, slug, default_locale, time_zone, created_at)
+              values ('Backfill Studio', 'backfill-studio', 'en', 'Europe/Amsterdam', ${created.studio})
+              returning id`,
+        );
+        // A workspace whose creator Owner was removed (F003): only a later Owner is left.
+        const [orphan] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into organizations (name, slug, default_locale, time_zone, created_at)
+              values ('Backfill Orphan', 'backfill-orphan', 'nl-NL', 'Europe/Amsterdam', ${created.orphan})
+              returning id`,
         );
         const member = async (
           organizationId: string | undefined,
@@ -151,12 +171,7 @@ describe('E004 migrations', () => {
           );
           return created?.id ?? '';
         };
-        const firstOwner = await member(
-          workspace?.id,
-          'first@example.com',
-          'owner',
-          '2026-01-01T10:00:00Z',
-        );
+        const firstOwner = await member(workspace?.id, 'first@example.com', 'owner', created.gym);
         const secondOwner = await member(
           workspace?.id,
           'second@example.com',
@@ -169,11 +184,12 @@ describe('E004 migrations', () => {
           'trainer',
           '2026-03-01T10:00:00Z',
         );
-        const otherOwner = await member(
-          other?.id,
-          'studio@example.com',
+        const otherOwner = await member(other?.id, 'studio@example.com', 'owner', created.studio);
+        const laterOwner = await member(
+          orphan?.id,
+          'later@example.com',
           'owner',
-          '2026-04-01T10:00:00Z',
+          '2026-06-01T10:00:00Z',
         );
 
         const profiled = async (): Promise<string[]> =>
@@ -190,6 +206,7 @@ describe('E004 migrations', () => {
         const afterMigration = await profiled();
         expect(afterMigration).toEqual([firstOwner, trainer, otherOwner].sort());
         expect(afterMigration).not.toContain(secondOwner);
+        expect(afterMigration).not.toContain(laterOwner);
 
         // Running the migration's SQL again changes nothing.
         const statements = (

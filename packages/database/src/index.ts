@@ -57,7 +57,6 @@ export {
 } from './repositories/team-members.ts';
 export {
   findOwnTeamMember,
-  hasTrainerProfile,
   listTrainers,
   type OwnTeamMember,
   setTrainerProfile,

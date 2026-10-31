@@ -12,11 +12,13 @@ WHERE "role" = 'trainer'
 ON CONFLICT ("team_member_id") DO NOTHING;
 --> statement-breakpoint
 -- AC3: the creator of a workspace starts with a profile. A workspace does not record its creator,
--- but F002's create transaction makes the creator the first Owner, so the earliest Owner of each
--- workspace (by created_at, then id) is the creator.
+-- but F002's create transaction inserts the workspace and its first Owner together, so in Postgres
+-- both rows get the same created_at (now() is the transaction's start). The Owner whose created_at
+-- equals the workspace's is the creator. A creator who was removed (F003) or demoted before this
+-- runs gets nobody in their place: a later Owner is not a creator and has no profile.
 INSERT INTO "trainer_profiles" ("organization_id", "team_member_id")
-SELECT DISTINCT ON ("organization_id") "organization_id", "id"
-FROM "team_members"
-WHERE "role" = 'owner'
-ORDER BY "organization_id", "created_at", "id"
+SELECT tm."organization_id", tm."id"
+FROM "team_members" tm
+JOIN "organizations" o ON o."id" = tm."organization_id"
+WHERE tm."role" = 'owner' AND tm."created_at" = o."created_at"
 ON CONFLICT ("team_member_id") DO NOTHING;

@@ -215,7 +215,6 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     deleteTeamMember: 'repository of the team, takes the workspace scope (F003)',
     listTrainers: 'repository of the trainer profiles, takes the workspace scope (F005)',
     findOwnTeamMember: 'repository of the trainer profiles, takes the workspace scope (F005)',
-    hasTrainerProfile: 'repository of the trainer profiles, takes the workspace scope (F005)',
     setTrainerProfile: 'repository of the trainer profiles, takes the workspace scope (F005)',
     updateWorkspace: 'repository of workspaces, takes the workspace scope (F002, F010)',
     setPreferredLocale: 'repository of accounts, takes the account scope (F010)',

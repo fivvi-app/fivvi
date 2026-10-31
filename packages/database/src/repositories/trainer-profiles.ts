@@ -54,24 +54,6 @@ export async function findOwnTeamMember(scope: WorkspaceScope): Promise<OwnTeamM
   return row;
 }
 
-/** Whether the team member of the scope's workspace has a trainer profile. */
-export async function hasTrainerProfile(
-  scope: WorkspaceScope,
-  teamMemberId: string,
-): Promise<boolean> {
-  const [row] = await executorOf(scope)
-    .select({ id: trainerProfiles.id })
-    .from(trainerProfiles)
-    .where(
-      and(
-        eq(trainerProfiles.organizationId, scope.workspaceId),
-        eq(trainerProfiles.teamMemberId, teamMemberId),
-      ),
-    )
-    .limit(1);
-  return row !== undefined;
-}
-
 /**
  * Gives the team member a trainer profile (`trains`) or takes it away. Idempotent: returns whether
  * anything changed. The caller has decided the change is allowed.
