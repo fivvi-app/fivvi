@@ -186,7 +186,7 @@ class HomeViewModelTest {
         viewModel()
 
         assertEquals(listOf("John's Gym", "Sarah Personal Training"), listed.single().map { it.name })
-        assertEquals(MeWorkspace.Capabilities.values().toList(), listed.single().first().capabilities)
+        assertEquals(MeWorkspace.Capabilities.entries, listed.single().first().capabilities)
     }
 
     @Test

@@ -16,13 +16,15 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
 import retrofit2.Response
 
-/** What the API lists per workspace: the answer to "may I show this action here?" for a [Capabilities] snapshot. */
-data class Capabilities(private val byWorkspace: Map<UUID, Set<MeWorkspace.Capabilities>> = emptyMap()) {
+/** What the API lists per workspace: the answer to "may I show this action here?" in one snapshot. */
+data class WorkspaceCapabilitiesSnapshot(
+    private val byWorkspace: Map<UUID, Set<MeWorkspace.Capabilities>> = emptyMap(),
+) {
     /** Whether an action guarded by [capability] shows in [workspaceId]: only when the API lists it there. */
     fun mayShow(workspaceId: UUID, capability: MeWorkspace.Capabilities): Boolean =
         byWorkspace[workspaceId]?.contains(capability) == true
 
-    fun without(workspaceId: UUID, capability: MeWorkspace.Capabilities): Capabilities =
+    fun without(workspaceId: UUID, capability: MeWorkspace.Capabilities): WorkspaceCapabilitiesSnapshot =
         copy(byWorkspace = byWorkspace + (workspaceId to byWorkspace[workspaceId].orEmpty() - capability))
 }
 
@@ -37,10 +39,10 @@ data class Capabilities(private val byWorkspace: Map<UUID, Set<MeWorkspace.Capab
  * action is hidden at once and the account is read again; the list the API gives from then on decides.
  */
 class WorkspaceCapabilities(private val api: MeApi) : ViewModel() {
-    private val _capabilities = MutableStateFlow(Capabilities())
+    private val _capabilities = MutableStateFlow(WorkspaceCapabilitiesSnapshot())
 
     /** What is listed now, for a screen to collect: it changes when an answer of the API replaces it. */
-    val capabilities: StateFlow<Capabilities> = _capabilities.asStateFlow()
+    val capabilities: StateFlow<WorkspaceCapabilitiesSnapshot> = _capabilities.asStateFlow()
     private var reading: Job? = null
 
     fun mayShow(workspaceId: UUID, capability: MeWorkspace.Capabilities): Boolean =
@@ -48,7 +50,7 @@ class WorkspaceCapabilities(private val api: MeApi) : ViewModel() {
 
     /** Takes what `GET /api/v1/me` listed. A workspace listed twice counts once, the later entry. */
     fun replace(workspaces: List<MeWorkspace>) {
-        _capabilities.value = Capabilities(workspaces.associate { it.id to it.capabilities.toSet() })
+        _capabilities.value = WorkspaceCapabilitiesSnapshot(workspaces.associate { it.id to it.capabilities.toSet() })
     }
 
     /**
