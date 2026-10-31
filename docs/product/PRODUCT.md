@@ -954,7 +954,7 @@ The entire flow stays in the user's selected language. Capacity is enforced tran
 
 Added to the MVP, before the pilot, on 31 October 2026 (moved forward from Release 1.1, §54), because the pilot gym has one today. The rules below are the owner's, 31 October 2026 (F062; they replace "settled in the F062 spec" for these points).
 
-- **Who and what.** Group class occurrences only: not private sessions, and Open Gym is left to the F035 spec. A signed-in, approved client joins a full class with **one tap**, sees their position ("You're 2nd on the waitlist") in the email they get when they join and on their dashboard (F033), and can **leave at any time**. There is no limit on how many waitlists a client joins.
+- **Who and what.** F062 is for group classes only (not private sessions); a waitlist for Open Gym slots is not in F062 and may be added by the F035 spec. A signed-in, approved client joins a full class with **one tap**, sees their position ("Number 2 on the waitlist") in the email they get when they join and on their dashboard (F033), and can **leave at any time**. There is no limit on how many waitlists a client joins.
 - **A spot frees up** when a client cancels (in time or late), when the owner or a trainer removes a participant, or when the owner raises the capacity (then as many move up as fit). The **first in line is booked automatically** and gets a "you're in" email: the booking confirmation, noting it came from the waitlist. Trainers get the existing "new booking" email. A **no-show frees nothing.**
 - **Waitlist closing time.** One workspace setting, in minutes before the class starts, **default 30**. After it nobody moves up and nobody can join: the class shows full, with no waitlist button, so a spot is never given at the last minute (the pilot gym's problem today). Everyone still waiting gets a "you didn't get in" email at the closing time (sent by the cron job within 5 minutes of it, [ADR-027](../decisions/ADR-027-a-cron-every-5-minutes.md)). This is not the *cancellation cutoff* (§93): that one is in hours and is about cancelling.
 - **Cancelling a booking from the waitlist.** A client whose booking came from the waitlist after the cancellation cutoff can cancel as if in time (the class or the credit comes back), **outside the 2-per-month limit** (§93).
@@ -1046,7 +1046,7 @@ No:
 
 in MVP.
 
-Everyone signs in the same way: email, then the link or the 6-digit code from the email (ADR-007).
+Everyone signs in with the emailed link or code: email, then the link or the 6-digit code from the email (ADR-007). Sign in with Apple and Google is planned as F063 (Should, M5), below.
 
 **Sign-up is open for accounts** (owner, 31 October 2026, ADR-026): anyone can create an account with their email address (F030; F001 shipped with sign-up closed). A sign-in response never reveals whether an account exists (no enumeration), and sign-in and join requests are rate-limited (E013).
 
@@ -1102,7 +1102,7 @@ Localized appropriately.
 
 # 30. Open Gym booking
 
-Uses the same booking flow as classes (§23, §25): an approved client signs in, chooses the slot and books; the booking is immediate. From M11 an Open Gym slot needs an active agreement with Open Gym credits (§92). Whether Open Gym has a waitlist is settled in the F035 spec (§23).
+Uses the same booking flow as classes (§23, §25): an approved client signs in, chooses the slot and books; the booking is immediate. From M11 an Open Gym slot needs an active agreement with Open Gym credits (§92). F062 (the waitlist) is for group classes only; a waitlist for Open Gym slots is not in F062 and may be added by the F035 spec (§23).
 
 ---
 
@@ -1525,7 +1525,7 @@ MVP client emails:
 - invitation to join a workspace (§26)
 - join request declined (short and neutral, §26)
 - booking confirmation
-- on the waitlist (with the position, "You're 2nd on the waitlist"), you're in (the booking confirmation, noting it came from the waitlist), you didn't get in (at the waitlist closing time) and, from M11, skipped (taken off the waitlist, with the reason) (§23)
+- on the waitlist (with the position, "Number 2 on the waitlist"), you're in (the booking confirmation, noting it came from the waitlist), you didn't get in (at the waitlist closing time) and, from M11, skipped (taken off the waitlist, with the reason) (§23)
 - cancellation
 - schedule change
 - class cancellation
@@ -2268,7 +2268,7 @@ Issue:
 Branch:
 
 ```text
-feature/F031-open-gym-booking
+feature/F035-open-gym-booking
 ```
 
 PR:

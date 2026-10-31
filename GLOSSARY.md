@@ -128,7 +128,7 @@ The day and week view of sessions. A trainer's **my calendar** combines all thei
 _Avoid_: agenda (the Dutch word), planning, roster
 
 **Capacity**:
-The maximum number of participants of a class occurrence or Open Gym slot. Bookings count toward it, enforced transactionally; there are no holds. The waitlist never exceeds it: a client moves up only into a free spot.
+The maximum number of participants of a class occurrence or Open Gym slot. Bookings count toward it. The waitlist never exceeds it: a client moves up only into a free spot.
 
 **Spot**:
 One place within the capacity of a class occurrence or Open Gym slot.
@@ -167,8 +167,12 @@ A client's usual location, used to infer the location of new sessions. After go-
 A client's place in a class occurrence or Open Gym slot. It is immediate: a signed-in, approved client books and the place is theirs at once (from M11 an active agreement must cover the class). There is no hold and no email step before it.
 _Avoid_: reservation, registration, sign-up, enrolment
 
+**Client timetable**:
+The workspace's timetable that only its approved clients see: the classes and Open Gym slots they can book, on the web without an app. Not public: a visitor who is not an approved client sees only a sign-in and, with the join link, a request to join.
+_Avoid_: public timetable, public booking page
+
 **Booking page**:
-The workspace's **client timetable**: the web page where its approved clients see the classes and book, without an app. Not public: a visitor who is not an approved client sees only a sign-in and, with the join link, a request to join.
+The web page of the **client timetable**, where approved clients book. Use *Client timetable* for the concept.
 _Avoid_: public booking page
 
 **Booking link**:
@@ -187,7 +191,7 @@ Retired on 31 October 2026 (ADR-026). A booking is immediate, so no spot is held
 _Avoid_: reservation
 
 **Hold state** (retired):
-Retired on 31 October 2026 with *Hold*: there is no `pending_verification` or `expired` state of a booking.
+Retired on 31 October 2026 with *Hold*: a booking has no verification or expiry state.
 
 **Verify**:
 To prove ownership of an email address at sign-in with the magic link or the verification code. Booking no longer needs it.

@@ -31,7 +31,7 @@ Railway's cron jobs run a service's start command on a UTC schedule. Its documen
 
 - **Positive:** the "you didn't get in" email arrives **within 5 minutes** of the waitlist closing time, with no new service.
 - **Positive:** the same job can serve other near-time needs later (session reminders to within 5 minutes).
-- **Negative:** the cron service runs 288 times a day instead of once. A run that finds nothing due exits in seconds, and Railway bills a cron service only while it runs, so the cost on the free tier and on Hobby is small. Check the usage in the first weeks (ENVIRONMENTS.md, §12 of the roadmap).
+- **Negative:** the cron service runs 288 times a day instead of once. A run that finds nothing due exits in seconds, and Railway bills a cron service only while it runs, so the cost on the free tier and on Hobby is small. Check the usage in the first weeks (ENVIRONMENTS.md, `ROADMAP.md §12`).
 - **Negative:** the daily tasks need their own last-run record, so a missed day is not silently skipped and a double run is harmless.
 - **Negative:** a long run delays the next one (Railway skips it). Keep a run short; the daily work is the longest part.
 - **Follow-ups:** E012 builds the job and its schedule in M4/M5 (`.railway/railway.ts` and `ENVIRONMENTS.md` change with it); F062 adds the closing-time task. ADR-010 gets a note that points here.

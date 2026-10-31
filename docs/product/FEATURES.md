@@ -81,7 +81,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | F030 | Client Sign-Up: open account sign-up with the emailed link or code (ADR-007); workspace creation stays allowlisted until 2.0 | PLANNED | Must | M5 | F001 | ⬜ | ⬜ | §27 |
 | F031 | Booking for Approved Clients: immediate booking, capacity, and from M11 the agreement check | PLANNED | Must | M5 (+M11 commerce) | F027, F028, F030 | ⬜ | ⬜ | §22, §23, §25 |
 | F032 | Client Invitations: the Owner adds a client, who gets an invitation email and is in once they sign in | PLANNED | Must | M5 | F006, F030, F049 | ⬜ | ⬜ | §2.4, §26, §34 |
-| F033 | Client Booking Dashboard | PLANNED | Must | M5 (+M11 commerce) | F031 | ⬜ | ⬜ | §15 (Client Web: my schedule with private + group; the waitlists the client is on, with the position; from M11, per workspace, the payment history and the invoice and credit-note PDFs, §96) |
+| F033 | Client Booking Dashboard | PLANNED | Must | M5 (+M11 commerce) | F031, F062 | ⬜ | ⬜ | §15 (Client Web: my schedule with private + group; the waitlists the client is on, with the position; from M11, per workspace, the payment history and the invoice and credit-note PDFs, §96) |
 | F062 | Waitlist: group classes only; one tap to join, position shown; the first in line is booked automatically when a spot frees up (a cancellation, a removal, more capacity) with a "you're in" email; a workspace **waitlist closing time** (default 30 minutes before the class) after which nobody moves up and everyone waiting gets a "you didn't get in" email; from M11 a client who can't book is skipped; the owner and trainers see the list on the web | PLANNED | Must | M5 (+M11 commerce) | F026, F028, F031, F049 | ⬜ | ⬜ | §23 (Waitlist) |
 
 ### Open Gym
