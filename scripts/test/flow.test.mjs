@@ -564,7 +564,7 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
       const body = `Closes #9999\n\n**Merge queue:** re-queued \`${HEAD}\` after #353 fixed the check that removed it`;
       const result = status({ removed: true, body }, { blockers: { nodes: [bug()] } });
       assert.match(result.stdout, /^Phase: queue-removed$/m);
-      assert.match(result.stdout, /already re-queued once after a fix/);
+      assert.match(result.stdout, /removed from the queue twice/);
     });
 
     it('carries the blockers closed as completed in the facts, with the time they closed', () => {

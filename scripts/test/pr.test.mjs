@@ -604,6 +604,20 @@ describe('pr.sh merge', () => {
       }
     });
 
+    it('keeps the line when the enqueue failed and the queue state cannot be read afterwards', () => {
+      const result = merge(
+        [
+          { match: ENQUEUE, out: 'timeout', status: 1 },
+          { match: BUG_QUERY, out: bugFacts() },
+          ...github({ queue: [removedFacts(), 'not json'] }),
+        ],
+        ['--after', '353'],
+      );
+      assert.equal(result.status, 1);
+      assert.deepEqual(result.bodies, [`${BASE}\n\n${REQUEUE_LINE}`]);
+      assert.match(result.stderr, /kept the re-queue record/);
+    });
+
     it('queues nothing when the audit line cannot be recorded', () => {
       const result = merge(
         [

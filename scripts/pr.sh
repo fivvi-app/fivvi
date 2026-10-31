@@ -558,6 +558,9 @@ merge_facts() {
 # the event's time and the head commit's committedDate, not the **Merge queue:** record, which names only what an agent
 # queued. A commit pushed while the PR is queued makes GitHub remove it, with the removal after that commit's
 # committedDate: it shows as removed and the gate refuses it (fails closed); the owner decides.
+# The timeline window is the last 20 events, enough: removals after the head commit are the newest events, so a window
+# full of events after the head commit holds at least two removals (an add is followed by at most one removal), and a
+# re-queue cannot be missed.
 # Times are compared as UTC instants (GitHub's dates have a Z or an offset), not as text.
 queue_state() {
   local out

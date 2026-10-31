@@ -503,7 +503,7 @@ describe('flow phase from the code', () => {
         { requeued: true },
       );
       assert.equal(again.phase, 'queue-removed');
-      assert.match(again.next, /already re-queued once after a fix/);
+      assert.match(again.next, /removed from the queue twice/);
       assert.match(again.next, /Report and stop/);
       assert.doesNotMatch(again.next, /--after <bug>/);
     });
