@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Date** | 29 October 2026 |
-| **Source** | Quick questions 19–21 ([`quick-questions.md`](quick-questions.md)) and the product owner's decisions in chat |
+| **Date** | 29 October 2026 (A4–A6: 31 October 2026) |
+| **Source** | Quick questions 19–21 ([`quick-questions.md`](quick-questions.md)), the commerce walkthrough ([#150](https://github.com/fivvi-app/fivvi/issues/150)) and the product owner's decisions in chat |
 | **Template** | [`../metric-targets.md`](../metric-targets.md) |
-| **Status** | Part A1–A3 agreed. A4–A6 will be agreed in the commerce walkthrough ([#150](https://github.com/fivvi-app/fivvi/issues/150)). Parts B and C are not discussed yet |
+| **Status** | Part A1–A6 agreed (A4–A6 on 31 October 2026, commerce walkthrough, [#150](https://github.com/fivvi-app/fivvi/issues/150)). Parts B and C are not discussed yet |
 
 All baselines are estimates (quick questions, not a diary). At G5 the same question is asked again.
 
@@ -38,9 +38,41 @@ All baselines are estimates (quick questions, not a diary). At G5 the same quest
 | **Reason** | The gym owner said 1 h less would make it worth it (question 19). The hoped-for level is close to the roadmap default of −50 % (2.25 h) |
 | **Measured** | The same question 9, asked again in pilot week 5 and reported at G5 |
 
-### A4–A6. Commerce
+### A4. Agreements run in the platform
 
-Not agreed yet. They will be agreed in the commerce walkthrough with the gym owner ([#150](https://github.com/fivvi-app/fivvi/issues/150)). The roadmap defaults stay in `ROADMAP.md §8`: 100 % of agreements in the platform from pilot week 3, 100 % of due payments through Fivvi by pilot week 6, 0 invoices by hand.
+| | |
+|---|---|
+| **Baseline** | All memberships, credit packs and private agreements run in the current booking app and in Word (private sessions). Nothing runs in Fivvi |
+| **Agreed target** | **100 % of running agreements in Fivvi from pilot week 0** (the first pilot day, instead of the roadmap default of week 3), with **0** unexplained balance differences |
+| **Reason** | The gym owner does not want to run two systems next to each other. All running agreements move over at once, unchanged (same end date, remaining sessions and next payment date) |
+| **Measured** | Share of active agreements in the database against the count in the old app at cutover; the reconciliation report of the import (E015) for balance differences, pilot weeks 0–6 |
+
+### A5. Payments collected without the old app
+
+| | |
+|---|---|
+| **Baseline** | All group payments are collected by the current booking app; private training is invoiced by message and paid by hand |
+| **Agreed target** | **100 % of due payments through Fivvi from pilot week 0** (instead of the roadmap default of week 6), with **0** duplicate charges |
+| **Reason** | One cut-over date for both apps: the old app's collection stops on the same date, so no client is charged twice. Private training moves to direct debit too |
+| **Measured** | Payments collected through Fivvi against due payments, and charges of the same amount for the same due date, from the payment provider's reports, pilot weeks 0–6 |
+
+### A6. Private invoices need no manual work
+
+| | |
+|---|---|
+| **Baseline** | Private sessions are tracked in Word; invoices are sent by message and paid by hand (whether the invoices are also made in Word is not confirmed) |
+| **Agreed target** | **0** invoices made or edited by hand per month |
+| **Reason** | The roadmap default stands. Every payment gets an invoice made by Fivvi (`PRODUCT.md §96`) |
+| **Measured** | Invoices made or edited outside Fivvi, asked of the gym owner each month of the pilot and reported at G5 |
+
+### What A4 and A5 at week 0 mean
+
+Week 0 has consequences for the plan; they shape `ROADMAP.md §7` (the launch checklist) and the M11 specs:
+
+- The import is **complete and checked before go-live** ([#157](https://github.com/fivvi-app/fivvi/issues/157)), with the reconciliation report agreed by the gym owner.
+- The gym's **Mollie account is approved** before go-live (Mollie reviews SEPA Direct Debit separately).
+- The **first-payment links go out before week 0**, so every client has a new mandate when the old app's collection stops (QC09).
+- **One cut-over date for both apps:** the old app's collection stops on that date; the old app may stay read-only until the first full payment cycle reconciles.
 
 ## Part C: the gym owner's own success measures
 

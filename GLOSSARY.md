@@ -143,8 +143,8 @@ One Open Gym session, with a start, end, location and capacity.
 **Publish**:
 To make a class or Open Gym slot visible on the booking page.
 
-**Waitlist** 🔜:
-A queue for a full class. Not in the MVP.
+**Waitlist**:
+A queue for a full class occurrence. When a spot frees up, the first in line gets it and an email, until the owner's cut-off a few minutes before the start; after that nobody is moved up, and the clients still waiting are told they didn't get in. In the MVP, before the pilot, since 31 October 2026 (`PRODUCT.md §24`).
 
 ### Locations
 
@@ -211,19 +211,19 @@ A client's commitment to a membership, credit pack or credit plan: start, end, r
 _Avoid_: contract (outside legal text), subscription (for the agreement itself)
 
 **Membership**:
-An agreement for group classes on fixed weekdays for a term, e.g. two classes a week for six months, paid through recurring payments (see *Recurring payment*).
+An agreement for a weekly allowance of group classes for a term, e.g. two classes a week for six months, paid through recurring payments (see *Recurring payment*). The client books each class themself; there is no standing spot.
 _Avoid_: subscription (see *Recurring payment*), plan, pass
 
 **Credit**:
-One unit of a group or private credit balance. One credit books one session of its kind: a **group credit** books a group class, a **private credit** books a private session. The two kinds never mix and have no exchange rate. Combined credits, one balance for every session type, are not planned (`PRODUCT.md §53`).
+One unit of a group, private or Open Gym credit balance. One credit books one session of its kind: a **group credit** books a group class, a **private credit** books a private session, an **Open Gym credit** books an Open Gym slot. The three kinds never mix and have no exchange rate. Combined credits, one balance for every session type, are not planned (`PRODUCT.md §53`).
 _Avoid_: token, point, voucher; using it for a makeup
 
 **Credit pack**:
-An offer, and the agreement it makes, for a number of group or private credits bought once and valid for a period. The pilot's private agreement (about one session a week for six months) can be a private credit pack.
+An offer, and the agreement it makes, for a number of group, private or Open Gym credits bought once and valid for a period. It can be limited to once per client (an intro offer). The pilot's private agreement (about one session a week for six months) can be a private credit pack.
 _Avoid_: package, bundle, session pack (retired, see below)
 
 **Credit plan**:
-An offer, and the agreement it makes, for a number of group or private credits each month, paid by recurring payment (see *Recurring payment*), with a carry-over limit for credits left at the end of the month. When a plan's monthly credits are granted is open ([QC17](docs/design/open-questions.md#qc17)).
+An offer, and the agreement it makes, for a number of group, private or Open Gym credits each billing cycle, paid by recurring payment (see *Recurring payment*), with a carry-over limit for credits left at the end of the cycle. The pilot's private training is a private credit plan.
 _Avoid_: subscription (see *Recurring payment*), credit subscription
 
 **Session pack** (retired):
@@ -234,8 +234,16 @@ One group class bought on its own, by a client without a membership or as an ext
 _Avoid_: drop-in, top-up
 
 **Credit balance**:
-What a client can still use under one agreement, in credits of one kind (group or private); a client with group and private credits sees two balances. Always explained by its history (granted, used, returned, expired), never a bare counter. A membership's makeups are tracked the same way but are not credits.
+What a client can still use under one agreement, in credits of one kind (group, private or Open Gym); a client with group and private credits sees two balances. Always explained by its history (granted, used, returned, expired), never a bare counter. A membership's makeups are tracked the same way but are not credits.
 _Avoid_: session balance (retired), saldo, remaining sessions
+
+**Weekly limit**:
+The most bookings one client can make in a week, a workspace setting (a number, or off). The pilot uses 4, whatever the size of the membership. It also stops a client from saving up unused weekly classes and using them all at once.
+_Avoid_: maximum, cap, quota
+
+**Billing cycle**:
+How often an offer's recurring payment is due: every month or every 4 weeks. The pilot uses every month.
+_Avoid_: payment frequency, subscription period
 
 **Cancellation policy**:
 The rules of an offer for cancellations and no-shows: the cutoff, the makeup limit and what each case does to the balance.

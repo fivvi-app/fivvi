@@ -194,7 +194,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | spot | plek (de, plekken) | ❌ NL: *plaats*. ❌ EN: *place, seat, slot* (*slot* belongs to Open Gym). |
 | full | vol | No spots left. Badge *Vol / Full*. |
 | available | beschikbaar | Spots still open. "Nog 3 plekken beschikbaar" / "3 spots left". |
-| waitlist 🔜 1.1 | wachtlijst (de, wachtlijsten) | ❌ *reservelijst*. |
+| waitlist | wachtlijst (de, wachtlijsten) | In the MVP since 2026-10-31. ❌ *reservelijst*. |
 | Open Gym | Open Gym (never translated) | Always two capitalized words. ❌ *vrij trainen, open training, open sportschool, open gym*. |
 | Open Gym slot | Open Gym-moment (het, Open Gym-momenten) | ❌ NL: *tijdslot, Open Gym-sessie*. |
 | publish | publiceren | Opposite: *offline halen / unpublish*. ❌ *live zetten, online zetten*. |
@@ -310,20 +310,23 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 
 ### 4.9 Commerce
 
-Added with roadmap v1.19 (M11). The owner decided the commerce terms among the nine open terms on 2026-10-29 (*abonnement*, *creditpakket*, *creditabonnement*, *credit*, *tegoed*, *aanbod*, *standaardaanbod*, *Nieuw aanbod*) by choosing the standard wording. Only the commerce terms that were not part of the nine keep ⚠️ (agreement, recurring payment, mandate, payment provider, merchant, cancellation policy); they wait on the payment decisions (QC06), not on the pilot (§8).
+Added with roadmap v1.19 (M11). The owner decided the commerce terms among the nine open terms on 2026-10-29 (*abonnement*, *creditpakket*, *creditabonnement*, *credit*, *tegoed*, *aanbod*, *standaardaanbod*, *Nieuw aanbod*) by choosing the standard wording. Only the commerce terms that were not part of the nine keep ⚠️ (agreement, recurring payment, mandate, payment provider, merchant, cancellation policy); they wait on the payment decisions (QC06), not on the pilot (§8). The terms added after the commerce walkthrough of 2026-10-31 (weekly limit, billing cycle, Open Gym credit) are ⚠️ until the pilot gym owner confirms the wording.
 
 | EN term | NL term | Notes / forbidden alternatives |
 |---|---|---|
 | offer | aanbod (het) | A single item: *dit aanbod*. ❌ *product*, *pakket* (alone; *creditpakket* is the name of one kind of offer). |
 | agreement | overeenkomst (de, overeenkomsten) ⚠️ | Mostly internal; in the UI name the kind (*abonnement*, *creditpakket*, *creditabonnement*). ❌ *contract* outside the terms text. |
 | membership | abonnement (het, abonnementen) | The pilot owner calls it a subscription. ❌ *lidmaatschap*. EN: *membership*, ❌ *subscription* in EN UI. |
-| credit | credit (de, credits) | One unit of a credit balance (`GLOSSARY.md`). Name the kind with a compound: *groepscredit* (group credit), *privécredit* (private credit), e.g. *6 groepscredits, 3 privécredits*. One credit books one session of its kind; the two kinds never mix. ❌ *tegoedpunt*, *token*, *punt*, *voucher*; ❌ *tegoed* for one unit (*tegoed* is the balance). |
+| credit | credit (de, credits) | One unit of a credit balance (`GLOSSARY.md`). Name the kind with a compound: *groepscredit* (group credit), *privécredit* (private credit), *Open Gym-credit*, e.g. *6 groepscredits, 3 privécredits*. One credit books one session of its kind; the two kinds never mix. ❌ *tegoedpunt*, *token*, *punt*, *voucher*; ❌ *tegoed* for one unit (*tegoed* is the balance). |
+| Open Gym credit | Open Gym-credit (de, Open Gym-credits) ⚠️ | The third kind of credit; books an Open Gym slot. Capitalise *Open Gym* and join with a hyphen, as in *Open Gym-moment* (§4.2). |
 | credit pack | creditpakket (het, creditpakketten) | A number of credits bought once, valid for a period. Name the kind next to it (*Groep* / *Privé*, as on calendar blocks) instead of a longer compound. ❌ *strippenkaart*, *rittenkaart*, *PT-pakket*, *sessiepakket* (the retired *session pack*), *bundel*. |
 | credit plan | creditabonnement (het, creditabonnementen) | A number of credits each month, paid by recurring payment, with a carry-over limit. EN: *credit plan*, ❌ *credit subscription*. |
 | default plan | standaardaanbod (het) | One of the three ready-made offers a new workspace starts with, pre-filled and switched off until the owner turns it on; the owner adds the price (`PRODUCT.md §90`; the rules around the defaults are proposals, QC19). The owner's word is *default plan*; the EN UI says *default offer*, consistent with *offer*. ❌ *standaardabonnement* (*abonnement* is the membership only). |
 | new offer | Nieuw aanbod | The owner action that makes an offer from scratch. *Abonnement* is the membership only and an owner-made offer can also be a credit pack or credit plan, so the neutral *aanbod* is used. EN: ❌ *new plan* alone (a *credit plan* is one kind). |
 | single class | losse sessie (de, losse sessies) | The offer name for one group class bought on its own (`GLOSSARY.md`, *Single class*). A deliberate exception to the *session* row: *losse sessie* is the offer name, the thing booked is still a *les* (*groepsles*, *inhaalles*). ❌ *losse les* (retired), *drop-in*, *extra les* as the offer name (*extra* is fine in a sentence). |
 | credit balance | tegoed (het) | What is left, per kind: *Nog 6 groepscredits en 3 privécredits tegoed*. Keep the word for the balance only; the unit is *credit*. ❌ *saldo* (money), *sessiesaldo* (the retired *session balance*). |
+| weekly limit | weeklimiet (de) ⚠️ | The most bookings one client can make in a week. In the UI show the rule: *Je kunt maximaal 4 keer per week boeken.* ❌ *weekmaximum*, *quotum*. |
+| billing cycle | betaalperiode (de) ⚠️ | Every month or every 4 weeks. UI: *Elke maand* / *Elke 4 weken*. ❌ *frequentie*, *termijn* (the term is the length of the agreement). |
 | cancellation policy | annuleringsbeleid (het) ⚠️ | The rules of an offer for cancellations and no-shows. In the UI show the rule itself (*Annuleren kan tot 12 uur van tevoren*) rather than the noun. ❌ *annuleringsvoorwaarden* unless it is the legal terms text. ❌ EN: *terms, rules* (alone). |
 | cancellation cutoff | annuleren tot … uur van tevoren | Phrase it as a sentence, not a noun: *Je kunt tot 12 uur van tevoren gratis annuleren.* |
 | makeup | inhaalles (de, inhaallessen) | ❌ *compensatieles*, *tegoedles*. |
