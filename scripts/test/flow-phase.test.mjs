@@ -10,6 +10,10 @@ const decide = (facts) =>
     execFileSync('jq', ['-c', '-f', PHASE_JQ], { input: JSON.stringify(facts), encoding: 'utf8' }),
   );
 
+const BEFORE_REMOVAL = '2026-10-31T09:00:00Z';
+const REMOVED_AT = '2026-10-31T10:00:00Z';
+const AFTER_REMOVAL = '2026-10-31T11:00:00Z';
+
 const issue = (overrides = {}) => ({
   number: 57,
   title: '[F031] Hold a spot',
@@ -315,6 +319,225 @@ describe('flow phase from the code', () => {
     assert.match(removed.next, /gh run list --event merge_group/);
     assert.match(removed.next, /Never queue the same commit again yourself/);
     assert.doesNotMatch(removed.next, /^Low-risk: scripts\/pr\.sh merge/);
+  });
+
+  it('ADR-025: a removal names how to tell a cause in the PR from one outside it, and the only way to queue the commit again', () => {
+    const removed = decide(
+      issue({
+        branches: [
+          branch(
+            pr({
+              risk: 'low',
+              queue: {
+                state: 'removed',
+                position: null,
+                reason: 'Merge group failed',
+                removed_at: REMOVED_AT,
+                requeued: false,
+              },
+            }),
+          ),
+        ],
+      }),
+    );
+    assert.equal(removed.phase, 'queue-removed');
+    assert.match(removed.next, /A cause in this PR: fix it and push/);
+    assert.match(removed.next, /A cause outside it/);
+    assert.match(removed.next, /scripts\/issue\.sh create bug/);
+    assert.match(removed.next, /scripts\/issue\.sh block 57 --by <bug>/);
+    assert.match(removed.next, /scripts\/pr\.sh merge <pr> --after <bug>/);
+    assert.match(removed.next, /Never queue the same commit again yourself/);
+  });
+
+  describe('ADR-025: a PR removed for a cause outside it', () => {
+    const HEAD = 'c'.repeat(40);
+    const removedQueue = (overrides = {}) => ({
+      state: 'removed',
+      position: null,
+      reason: 'Merge group failed',
+      removed_at: REMOVED_AT,
+      requeued: false,
+      ...overrides,
+    });
+    const decideRemoved = (issueOverrides = {}, queueOverrides = {}, prOverrides = {}) =>
+      decide(
+        issue({
+          branches: [
+            branch(
+              pr({ risk: 'low', head: HEAD, queue: removedQueue(queueOverrides), ...prOverrides }),
+            ),
+          ],
+          ...issueOverrides,
+        }),
+      );
+    const fixed = (number, closed_at) => ({ number, title: `bug ${number}`, closed_at });
+
+    it('waits for the bug while it is open: nothing to do on the PR', () => {
+      const waiting = decideRemoved({ blockers: [{ number: 353, title: 'flaky' }] });
+      assert.equal(waiting.phase, 'waiting-fix');
+      assert.match(waiting.next, /^Wait for #353, which fixes the check that removed it/);
+      assert.match(waiting.next, /Nothing to do on this PR/);
+      assert.doesNotMatch(waiting.next, /scripts\/pr\.sh merge/);
+    });
+
+    it('waits for every open blocker, and an open one beats a fixed one', () => {
+      const waiting = decideRemoved({
+        blockers: [
+          { number: 353, title: 'flaky' },
+          { number: 360, title: 'other' },
+        ],
+        fixed_blockers: [fixed(354, AFTER_REMOVAL)],
+      });
+      assert.equal(waiting.phase, 'waiting-fix');
+      assert.match(waiting.next, /#353, #360/);
+    });
+
+    it('is a requeue once a blocker was closed as completed after the removal', () => {
+      const requeue = decideRemoved({ fixed_blockers: [fixed(353, AFTER_REMOVAL)] });
+      assert.equal(requeue.phase, 'requeue');
+      assert.match(requeue.next, /^scripts\/pr\.sh merge 60 --after 353/);
+      assert.match(requeue.next, /same commit/);
+    });
+
+    it('names the blocker closed last when several were', () => {
+      const requeue = decideRemoved({
+        fixed_blockers: [fixed(353, AFTER_REMOVAL), fixed(354, '2026-10-31T13:00:00Z')],
+      });
+      assert.match(requeue.next, /--after 354/);
+    });
+
+    it('does not count a blocker closed before the removal', () => {
+      const plain = decideRemoved({ fixed_blockers: [fixed(353, BEFORE_REMOVAL)] });
+      assert.equal(plain.phase, 'queue-removed');
+      assert.doesNotMatch(plain.next, /--after 353/);
+    });
+
+    it('does not count a blocker closed at the very moment of the removal', () => {
+      assert.equal(
+        decideRemoved({ fixed_blockers: [fixed(353, REMOVED_AT)] }).phase,
+        'queue-removed',
+      );
+    });
+
+    it('does not count a blocker that was not closed as completed (facts carry only completed ones)', () => {
+      // flow.sh leaves a blocker closed as not planned out of fixed_blockers, so no fix is on record.
+      assert.equal(decideRemoved({ fixed_blockers: [] }).phase, 'queue-removed');
+    });
+
+    it('is a plain removal without a blocker, and without the removal time', () => {
+      assert.equal(decideRemoved().phase, 'queue-removed');
+      assert.equal(
+        decideRemoved({ fixed_blockers: [fixed(353, AFTER_REMOVAL)] }, { removed_at: null }).phase,
+        'queue-removed',
+      );
+      assert.equal(
+        decideRemoved({ fixed_blockers: [fixed(353, AFTER_REMOVAL)] }, { removed_at: undefined })
+          .phase,
+        'queue-removed',
+      );
+    });
+
+    it('is a plain removal when the facts have no fixed blockers at all', () => {
+      assert.equal(decideRemoved({ fixed_blockers: undefined }).phase, 'queue-removed');
+    });
+
+    it('agent-queueable high risk is waiting-fix and requeue too', () => {
+      const high = {
+        risk: 'high',
+        risk_reasons: ['packages/database/migrations/0004.sql: tenant-data'],
+      };
+      assert.equal(
+        decideRemoved({ blockers: [{ number: 353, title: 'flaky' }] }, {}, high).phase,
+        'waiting-fix',
+      );
+      assert.equal(
+        decideRemoved({ fixed_blockers: [fixed(353, AFTER_REMOVAL)] }, {}, high).phase,
+        'requeue',
+      );
+    });
+
+    it('leaves an owner-only or unknown-risk PR to the owner: no waiting-fix, no requeue', () => {
+      for (const risk of ['owner', null]) {
+        for (const issueOverrides of [
+          { blockers: [{ number: 353, title: 'flaky' }] },
+          { fixed_blockers: [fixed(353, AFTER_REMOVAL)] },
+        ]) {
+          const removed = decideRemoved(issueOverrides, {}, { risk });
+          assert.equal(removed.phase, 'queue-removed', `risk ${risk}`);
+          assert.equal(removed.bug, undefined);
+          assert.match(removed.next, /owner-only or its risk is unknown/);
+          assert.doesNotMatch(removed.next, /pr\.sh merge \d+ --after \d+/);
+        }
+      }
+    });
+
+    it('sends a PR the merge gate refused on its head commit to the owner, not to a requeue', () => {
+      const refusal = { sha: HEAD, reasons: 'smoke checked (no smoke record)' };
+      for (const issueOverrides of [
+        { fixed_blockers: [fixed(353, AFTER_REMOVAL)] },
+        { blockers: [{ number: 353, title: 'flaky' }] },
+      ]) {
+        const refused = decideRemoved(issueOverrides, {}, { refusal });
+        assert.equal(refused.phase, 'merge-refused');
+        assert.equal(refused.bug, undefined);
+        assert.match(refused.next, /refused it on cccccc/);
+        assert.match(refused.next, /never retry the merge on this commit/);
+      }
+    });
+
+    it('a refusal of an earlier commit does not hold the requeue back', () => {
+      const stale = { sha: 'd'.repeat(40), reasons: 'old' };
+      assert.equal(
+        decideRemoved({ fixed_blockers: [fixed(353, AFTER_REMOVAL)] }, {}, { refusal: stale })
+          .phase,
+        'requeue',
+      );
+    });
+
+    it('stops at a second removal of a commit already re-queued after a fix: the owner decides', () => {
+      const again = decideRemoved(
+        {
+          blockers: [{ number: 360, title: 'again' }],
+          fixed_blockers: [fixed(353, AFTER_REMOVAL)],
+        },
+        { requeued: true },
+      );
+      assert.equal(again.phase, 'queue-removed');
+      assert.match(again.next, /removed from the queue twice/);
+      assert.match(again.next, /Report and stop/);
+      assert.doesNotMatch(again.next, /--after <bug>/);
+    });
+
+    it('leaves a plain removal for failing checks or open threads, as before', () => {
+      assert.equal(
+        decide(
+          issue({
+            blockers: [{ number: 353, title: 'flaky' }],
+            branches: [branch(pr({ risk: 'low', failing: 1, queue: removedQueue() }))],
+          }),
+        ).phase,
+        'changes-requested',
+      );
+    });
+
+    it('a new push makes the removal stale: the usual flow again', () => {
+      assert.equal(
+        decide(
+          issue({
+            blockers: [{ number: 353, title: 'flaky' }],
+            branches: [
+              branch(
+                pr({
+                  risk: 'low',
+                  queue: { state: null, position: null, reason: null, removed_at: null },
+                }),
+              ),
+            ],
+          }),
+        ).phase,
+        'ready-to-merge',
+      );
+    });
   });
 
   it('E002 #119: no queue state is the usual flow, and failing checks or open threads come before a removal', () => {

@@ -32,6 +32,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [022](ADR-022-workspaces-on-our-own-tables.md) | Workspaces and team roles run on our own tables and routes (E011), not on Better Auth's organization plugin; amends ADR-007 | Accepted |
 | [023](ADR-023-owner-out-of-the-per-pr-loop.md) | The owner out of the per-PR loop: status-only roadmap and registry edits, guardrails split into core and tooling (`@except`), payments in test mode, early tickets, split owner-only edits, a factory run lock, and the end of agent queueing at pilot setup instead of G2; amends ADR-016, ADR-018 and ADR-021 | Proposed |
 | [024](ADR-024-run-only-the-checks-a-change-can-affect.md) | A check runs when something it depends on changed, and only then: scoped `check.sh`, cacheable integration and e2e tests, narrower CI triggers, faster native jobs; builds on ADR-002, ADR-014, ADR-018 | Proposed |
+| [025](ADR-025-requeue-after-a-fix.md) | A PR the merge queue removed for a cause outside it is re-queued once after the fix (`pr.sh merge --after <bug>`) instead of waiting on the owner; amends ADR-018 | Proposed |
 
 ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. ADR-011 was re-evaluated during the write-up and accepted in its new form (Railway) the same day. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
 

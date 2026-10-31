@@ -1,18 +1,26 @@
 # The phase of an issue and the next step, decided from the facts flow.sh collects. Pure: no I/O.
 # Input: {number, title, state, labels, assignees, me, has_criteria, described, answered,
 #         parent: null|{number, title, state, labels, open, total}, blockers: [{number, title}],
+#         fixed_blockers: [{number, title, closed_at}],
 #         children: [{number, title, state, labels, assignees, blocked}],
 #         branches: [{name, local, worktree, dirty,
 #                     pr: null|{number, state, draft, review, failing, threads, age_days, risk, risk_reasons,
 #                               head, refusal: null|{sha, reasons},
-#                               queue: null|{state: null|"queued"|"removed", position, reason}}}]}
+#                               queue: null|{state: null|"queued"|"removed", position, reason, removed_at, requeued}}}]}
 # risk is "low", "high", "owner" or null (unknown) for an open PR (scripts/risk.sh, ADR-021): an agent merges low and
 # high; owner (owner-only) and unknown wait for the owner. refusal is the last refusal of the merge
 # gate recorded on the PR (scripts/pr.sh refusal); it holds only for the head commit it names. queue is the PR's place
 # in the merge queue (scripts/pr.sh queue, ADR-018): "queued" while GitHub tests and merges it, "removed" when GitHub
-# took it out (the combined commit failed or timed out) and the branch has not been pushed to since. answered is true
+# took it out (the combined commit failed or timed out) and the branch has not been pushed to since, at removed_at;
+# requeued is whether the head commit was already re-queued after a fix (the record pr.sh merge --after writes, ADR-025).
+# blockers are the open blockers of the issue; fixed_blockers (read only for an issue whose PR was removed; absent means
+# none) the blockers closed as completed. A removed low- or high-risk PR whose head commit the merge gate has not refused
+# and with an open blocker waits for its fix (waiting-fix); once a blocker was closed as completed after the removal, it
+# is re-queued once (requeue). An owner-only or unknown-risk PR stays queue-removed, a refused one is merge-refused. answered is true
 # when there is a comment and the newest is not a triage note, i.e. someone replied to the needs-info question.
-# Output: {phase, next, hint}
+# Output: {phase, next, hint}, and bug (the number of the fixed blocker to re-queue after) in the phase requeue
+
+include "records" {search: "./"};
 
 def has($l): (.labels | index($l)) != null;
 def open: .state == "OPEN";
@@ -22,14 +30,36 @@ def unapproved_spec: has("spec") and (has("spec-approved") | not);
 def refused: .refusal != null and .refusal.sha != null and .refusal.sha == .head;
 def queue_state: .queue.state? // null;
 
-def code_phase:
+# The blocker closed as completed last, after the removal at $at, or null: the bug whose fix the removed PR waited for.
+# A time that can't be read never counts (instant is null).
+def fix_after($f; $at):
+  if ($at | instant) == null then null
+  else [($f.fixed_blockers // [])[] | select((.closed_at | instant) != null and (.closed_at | instant) > ($at | instant))]
+       | sort_by(.closed_at | instant) | last
+  end;
+
+# A removed PR (ADR-025): waiting for the bug that blocks its issue, re-queued once that bug is fixed, or, when nothing
+# of the kind is on record, left to the report and the owner. Only a PR an agent may queue (risk low or high) waits or is
+# re-queued, and only while the merge gate has not refused its head commit (that refusal is for the owner, like any
+# other); an owner-only or unknown-risk PR, and a commit already re-queued after a fix, stay queue-removed.
+def removed_phase($f):
+  (.queue.requeued // false) as $requeued
+  | fix_after($f; .queue.removed_at // null) as $fix
+  | if $requeued or (.risk | IN("low", "high") | not) then {phase: "queue-removed", rank: 3}
+    elif refused then {phase: "merge-refused", rank: 3}
+    elif ($f.blockers | length) > 0 then {phase: "waiting-fix", rank: 3, blockers: [$f.blockers[].number]}
+    elif $fix != null then {phase: "requeue", rank: 3, bug: $fix.number}
+    else {phase: "queue-removed", rank: 3}
+    end;
+
+def code_phase($f):
   if .pr == null then {phase: "in-progress", rank: 0}
   elif .pr.state == "MERGED" then {phase: "merged", rank: 5}
   elif .pr.state == "CLOSED" then {phase: "abandoned", rank: -1}
   elif .pr.draft then {phase: "draft-pr", rank: 1}
   elif (.pr | queue_state) == "queued" then {phase: "queued", rank: 4}
   elif .pr.failing > 0 or .pr.review == "CHANGES_REQUESTED" or .pr.threads > 0 then {phase: "changes-requested", rank: 1}
-  elif (.pr | queue_state) == "removed" then {phase: "queue-removed", rank: 3}
+  elif (.pr | queue_state) == "removed" then (.pr | removed_phase($f))
   elif (.pr.risk | IN("low", "high")) and (.pr | refused) then {phase: "merge-refused", rank: 3}
   elif .pr.risk | IN("low", "high") then {phase: "ready-to-merge", rank: 4}
   elif .pr.review == "APPROVED" then {phase: "approved", rank: 4}
@@ -45,7 +75,8 @@ def merge_next($n):
    else "Low-risk: scripts/pr.sh merge in the worktree. It adds the PR to the merge queue" end)
   + " only when the whole merge gate holds; otherwise the PR stays for the owner. Then scripts/flow.sh status \($n) until GitHub has merged it, and scripts/flow.sh finish \($n).";
 
-# Input: {phase, pr} of the least advanced branch.
+# Input: {phase, pr, blockers, bug} of the least advanced branch (blockers: the open ones, bug: the one closed last, as
+# a number, for a removed PR).
 def code_next($n):
   {
     "in-progress": "Build it in its worktree with the implement skill (docs/agents/build.md), then scripts/pr.sh create from the worktree.",
@@ -53,7 +84,16 @@ def code_next($n):
     "changes-requested": "Fix what is open: scripts/pr.sh status and scripts/pr.sh threads in the worktree, fix with the implement skill, push with scripts/pr.sh create, reply with scripts/pr.sh reply.",
     "ready-to-merge": merge_next($n),
     "queued": "In the merge queue (position \(.pr.queue.position // "?")): GitHub tests it on the latest main and squash-merges it. Nothing to do: scripts/flow.sh status \($n) shows when it is merged, then scripts/flow.sh finish \($n). Never queue it again, and never use --auto or --admin.",
-    "queue-removed": "GitHub removed it from the merge queue (\(.pr.queue.reason // "no reason given")): the commit tested on the latest main failed a check or timed out. Read the merge_group run of its queue branch (gh run list --event merge_group). When the cause is in this PR, fix it and push (scripts/pr.sh create), which makes the removal stale, then review, smoke and scripts/pr.sh merge again. Otherwise (a flaky check, a timeout) report and stop: the owner decides whether to queue it again. Never queue the same commit again yourself.",
+    "queue-removed": (
+      if (.pr.risk | IN("low", "high") | not) then
+        "GitHub removed it from the merge queue (\(.pr.queue.reason // "no reason given")), and it is owner-only or its risk is unknown, so an agent can neither wait for a fix nor queue it again. Report and stop: the owner decides, or fix a cause in this PR and push (scripts/pr.sh create), which makes the removal stale."
+      elif .pr.queue.requeued // false then
+        "GitHub removed it from the merge queue again (\(.pr.queue.reason // "no reason given")), after it was removed from the queue twice (re-queued once after a fix, or queued again by the owner; ADR-025). Read the merge_group run (gh run list --event merge_group) and report it. The owner decides, or fix a cause in this PR and push (scripts/pr.sh create), which makes the removal stale. Report and stop; never queue the same commit again."
+      else
+        "GitHub removed it from the merge queue (\(.pr.queue.reason // "no reason given")): the commit tested on the latest main failed a check or timed out. Read the merge_group run of its queue branch (gh run list --event merge_group). A cause in this PR: fix it and push (scripts/pr.sh create), which makes the removal stale, then review, smoke and scripts/pr.sh merge again. A cause outside it (the failing check also fails on main or on other PRs, a flaky test, a stalled or timed-out job): file a bug for the check (scripts/issue.sh create bug ... --label ready-for-agent, with the run ids, the failing test and error, and ## Acceptance criteria) or find the open one that covers it, link it with scripts/issue.sh block \($n) --by <bug>, and build the bug first. Once the bug is closed as completed, this PR is re-queued with scripts/pr.sh merge <pr> --after <bug> (ADR-025). A removal with no fix in code to wait for: report and stop, the owner decides. Never queue the same commit again yourself, except with pr.sh merge --after <bug>."
+      end),
+    "waiting-fix": "Wait for \([(.blockers // [])[] | "#\(.)"] | join(", ")), which fixes the check that removed it from the merge queue (\(.pr.queue.reason // "no reason given")). Nothing to do on this PR: build the bug (it is ready work), then scripts/flow.sh status \($n) shows the next step. Never queue the same commit again yourself.",
+    "requeue": "scripts/pr.sh merge \(.pr.number) --after \(.bug): #\(.bug) was closed as completed after the queue removed \(.pr.head[:7]) (\(.pr.queue.reason // "no reason given")). It queues the same commit once more, with no push and no merge of main, when the whole merge gate holds; the queue tests it on the latest main, which has the fix. Then scripts/flow.sh status \($n) until GitHub has merged it, and scripts/flow.sh finish \($n). If the queue removes it again, report it and stop: the owner decides.",
     "merge-refused": "The merge gate refused it on \(.pr.head[:7]): \(.pr.refusal.reasons). The owner decides, or fix it and push (scripts/pr.sh create), which makes the refusal stale. Report and stop; never retry the merge on this commit.",
     "in-review": "\(.pr | owner_review) and adds it to the merge queue. Nothing to do.",
     "approved": "Approved. \(.pr | owner_review | sub(": the owner reviews"; "")): the owner adds it to the merge queue on GitHub; then scripts/flow.sh finish \($n).",
@@ -96,7 +136,7 @@ def ticket_phase($n):
 
 . as $f
 | $f.number as $n
-| ([$f.branches[] | code_phase + {name, pr}] | sort_by(.rank)) as $code
+| ([$f.branches[] | code_phase($f) + {name, pr}] | sort_by(.rank)) as $code
 # A needs-info question holds the issue, whatever its code, blockers or other labels say; merged work still gets
 # cleaned up.
 | (if ($f | open) and ($f | has("needs-info")) and ($code[0].phase != "merged") then
@@ -105,6 +145,7 @@ def ticket_phase($n):
    elif ($f.branches | length) > 0
       and (($f | open) or any($f.branches[]; .local or .worktree != null) or any($f.branches[]; .pr.state == "OPEN"))
    then {phase: $code[0].phase, next: ($code[0] | code_next($n))}
+        + (if $code[0].bug != null then {bug: $code[0].bug} else {} end)
    elif ($f | open | not) then {phase: "done", next: "Nothing to do."}
    elif ($f.blockers | length) > 0 and ($f | awaiting_tickets | not) then
      {phase: "blocked", next: "Wait for \([$f.blockers[] | "#\(.number)"] | join(", ")) to be done."}

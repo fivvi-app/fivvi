@@ -60,3 +60,57 @@ describe('ADR-021: records.jq reads the reasons of a record', () => {
     assert.equal(run(null, 'record_reasons'), null);
   });
 });
+
+describe('ADR-025: records.jq reads the re-queue record', () => {
+  const line = (sha) =>
+    `**Merge queue:** re-queued \`${sha}\` after #353 fixed the check that removed it`;
+  const requeued = (body, sha = SHA) =>
+    run(body, `requeued_after_fix("Merge queue"; ${JSON.stringify(sha)})`);
+
+  it('is true for the commit a line at the start of a line names, whatever the line ending', () => {
+    assert.equal(requeued(`Closes #57\n\n${line(SHA)}`), true);
+    assert.equal(requeued(`Closes #57\r\n${line(SHA)}\r\n`), true);
+  });
+
+  it('is false for another commit, the plain queue record, a mention inside a line, or no body', () => {
+    const other = 'b'.repeat(40);
+    assert.equal(requeued(line(other)), false);
+    assert.equal(requeued(`**Merge queue:** added to the merge queue on \`${SHA}\``), false);
+    assert.equal(requeued(`see ${line(SHA)}`), false);
+    assert.equal(requeued(''), false);
+    assert.equal(requeued(null), false);
+  });
+
+  it('is false without a commit to ask about', () => {
+    assert.equal(run(line(SHA), 'requeued_after_fix("Merge queue"; null)'), false);
+  });
+});
+
+describe('ADR-025: records.jq reads GitHub times as instants', () => {
+  const instant = (time) => run(time, 'instant');
+
+  it('reads a UTC time, with or without fractional seconds', () => {
+    assert.equal(instant('2026-10-31T10:00:00Z'), Date.UTC(2026, 9, 31, 10) / 1000);
+    assert.equal(instant('2026-10-31T10:00:00.250Z'), Date.UTC(2026, 9, 31, 10) / 1000);
+  });
+
+  it('reads an offset as the UTC instant it is: 12:30+02:00 is 10:30Z', () => {
+    assert.equal(instant('2026-10-31T12:30:00+02:00'), Date.UTC(2026, 9, 31, 10, 30) / 1000);
+    assert.equal(instant('2026-10-31T05:00:00-05:30'), Date.UTC(2026, 9, 31, 10, 30) / 1000);
+  });
+
+  it('is null for anything else: an unreadable time never passes', () => {
+    for (const value of [
+      '2026-10-31T10:00:00',
+      '2026-10-31 10:00:00Z',
+      '2026-10-31',
+      '2026-13-45T25:61:61Z',
+      'later',
+      '',
+      null,
+      12,
+    ]) {
+      assert.equal(instant(value), null, JSON.stringify(value));
+    }
+  });
+});

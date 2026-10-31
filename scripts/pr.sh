@@ -29,18 +29,25 @@
 #                                                 health-checked; otherwise smoke fails with a hint
 #   pr.sh reviewed                                record in the PR body that both reviewers (standards and spec) found
 #                                                 nothing to fix on the PR's head commit; local HEAD must be that commit
-#   pr.sh merge                                   add a low-risk or high-risk (agent-queueable) PR to the merge queue
+#   pr.sh merge [<pr>] [--after <bug>]            add a low-risk or high-risk (agent-queueable) PR to the merge queue
 #                                                 (ADR-018, ADR-021), which squash-merges it after testing it on the
 #                                                 latest main, only when every condition of the merge gate holds
 #                                                 (ADR-016); a high-risk PR is first recorded in the PR body with its
 #                                                 reasons; an owner-only PR is never queued; otherwise queue
 #                                                 nothing, record the refusal for the head commit in the PR body, print
 #                                                 why and exit 1: the PR stays for the owner. Never --auto or --admin;
-#                                                 the queued commit is recorded in the PR body
+#                                                 the queued commit is recorded in the PR body. <pr> defaults to the
+#                                                 open PR of the current branch. A commit the queue removed is refused,
+#                                                 except with --after <bug> (ADR-025): the same commit is queued once
+#                                                 more when <bug> blocks the PR's issue, was closed as completed after
+#                                                 the removal and the commit was not re-queued after a fix before; the
+#                                                 re-queue is recorded in the PR body first. No merge of main, no push
 #   pr.sh refusal <pr>                            the last refusal recorded in the PR body as {sha, reasons}, or null
-#   pr.sh queue <pr>                              the merge queue state as {state, position, reason}: state is "queued",
-#                                                 "removed" (GitHub took the PR out of the queue, reason says why, and no
-#                                                 commit was pushed after that) or null
+#   pr.sh queue <pr>                              the merge queue state as {state, position, reason, removed_at, requeued}:
+#                                                 state is "queued", "removed" (GitHub took the PR out of the queue,
+#                                                 reason says why, removed_at when, and no commit was pushed after that)
+#                                                 or null; requeued whether the head commit was already re-queued after
+#                                                 a fix (pr.sh merge --after)
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -380,8 +387,10 @@ record() {
   local pr="$1" mark="$2" line="$3" body
   body="$(gh pr view "$pr" --repo "$REPO" --json body --jq .body)" \
     || die "could not read the body of PR #$pr; nothing recorded"
-  # grep exits 1 when no line is left (the body was only the old record); that's fine, a failure (2) isn't.
-  body="$(grep -v "^\*\*$mark:\*\*" <<<"$body")" || [ $? -eq 1 ] || die "could not update the body of PR #$pr"
+  # The previous record goes, except a re-queue after a fix (ADR-025): it is the audit line that allows one re-queue per
+  # commit, and it stays next to the "added to the merge queue" line.
+  body="$(awk -v mark="**$mark:**" -v keep="**$mark:** re-queued" 'index($0, mark) != 1 || index($0, keep) == 1' <<<"$body")" \
+    || die "could not update the body of PR #$pr"
   # Checked here: a caller that runs record under `||` has errexit off, and would print the line as recorded.
   gh pr edit "$pr" --repo "$REPO" --body "${body:+$body$'\n\n'}$line" >/dev/null \
     || die "could not update the body of PR #$pr; nothing recorded"
@@ -535,17 +544,23 @@ merge_facts() {
   risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr"
   queue="$(queue_state "$pr")" || exit 1
   jq --argjson threads "$(jq length <<<"$threads")" --argjson risk "$risk" --argjson queue "$queue" \
-    '. + {risk: $risk, threads: $threads, queue_removed: $queue.removed, pr_id: $queue.id,
-      queue_enabled: $queue.queue_enabled}' <<<"$facts"
+    '. + {risk: $risk, threads: $threads, queue_removed: $queue.removed, queue_removed_at: $queue.removed_at,
+      requeued: $queue.requeued, pr_id: $queue.id, queue_enabled: $queue.queue_enabled}' <<<"$facts"
 }
 
 # Where a PR is in the merge queue, from GitHub, as JSON {id, queue_enabled, merged, queued, position, auto_merge, removed,
-# reason}: id is the PR's node ID, queue_enabled whether its base branch has a merge queue. A PR
+# reason, removed_at, requeued}: id is the PR's node ID, queue_enabled whether its base branch has a merge queue,
+# removed_at when the queue removed it (the event's createdAt, null unless removed), requeued whether the head commit was
+# re-queued after a fix (pr.sh merge --after, ADR-025): the PR body records it, or, as the body can be replaced
+# (pr.sh create --body-file), the timeline holds two removals after the head commit, a fact GitHub keeps. A PR
 # is removed when the queue took it out (its last queue event on the timeline) after the head commit was made: a commit
 # pushed after the removal makes it stale, and a later removal (the owner queued the new commit) counts again. This reads
 # the event's time and the head commit's committedDate, not the **Merge queue:** record, which names only what an agent
 # queued. A commit pushed while the PR is queued makes GitHub remove it, with the removal after that commit's
 # committedDate: it shows as removed and the gate refuses it (fails closed); the owner decides.
+# The timeline window is the last 20 events, enough: removals after the head commit are the newest events, so a window
+# full of events after the head commit holds at least two removals (an add is followed by at most one removal), and a
+# re-queue cannot be missed.
 # Times are compared as UTC instants (GitHub's dates have a Z or an offset), not as text.
 queue_state() {
   local out
@@ -554,31 +569,79 @@ queue_state() {
     query($owner: String!, $name: String!, $n: Int!) {
       repository(owner: $owner, name: $name) { pullRequest(number: $n) {
         id state isMergeQueueEnabled headRefOid body commits(last: 1) { nodes { commit { committedDate } } } isInMergeQueue mergeQueueEntry { state position } autoMergeRequest { enabledAt }
-        timelineItems(last: 1, itemTypes: [ADDED_TO_MERGE_QUEUE_EVENT, REMOVED_FROM_MERGE_QUEUE_EVENT]) {
+        timelineItems(last: 20, itemTypes: [ADDED_TO_MERGE_QUEUE_EVENT, REMOVED_FROM_MERGE_QUEUE_EVENT]) {
           nodes { __typename ... on RemovedFromMergeQueueEvent { reason createdAt } } } } }
     }')" || die "could not read the merge queue state of PR #$1"
-  jq '
-    def instant: capture("^(?<t>[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(?:\\.[0-9]+)?(?<z>Z|[+-][0-9]{2}:[0-9]{2})$")
-      | (.t + "Z" | fromdateiso8601)
-        - (if .z == "Z" then 0
-           else (if .z[0:1] == "-" then -1 else 1 end) * ((.z[1:3] | tonumber) * 3600 + (.z[4:6] | tonumber) * 60) end);
+  jq -L "$ROOT/scripts" --arg mark "$QUEUE_MARK" 'include "records";
+    def utc: instant // error("unreadable time");
     .data.repository.pullRequest as $p
     | if $p == null then error("no such PR") else . end
     | ($p.timelineItems.nodes | last) as $last
-    | ($p.commits.nodes | last | .commit.committedDate | instant) as $committed
+    | ($p.commits.nodes | last | .commit.committedDate | utc) as $committed
     | {id: $p.id, queue_enabled: $p.isMergeQueueEnabled, merged: ($p.state == "MERGED"), queued: $p.isInMergeQueue, position: $p.mergeQueueEntry.position,
        auto_merge: ($p.autoMergeRequest != null),
        removed: ($p.state == "OPEN" and ($p.isInMergeQueue | not)
-         and $last.__typename == "RemovedFromMergeQueueEvent" and ($last.createdAt | instant) >= $committed),
-       reason: $last.reason}
-    | .reason = (if .removed then .reason else null end)' <<<"$out" \
+         and $last.__typename == "RemovedFromMergeQueueEvent" and ($last.createdAt | utc) >= $committed),
+       reason: $last.reason, removed_at: $last.createdAt,
+       requeued: (($p.body | requeued_after_fix($mark; $p.headRefOid))
+         or ([$p.timelineItems.nodes[] | select(.__typename == "RemovedFromMergeQueueEvent" and (.createdAt | utc) >= $committed)]
+             | length >= 2))}
+    | .reason = (if .removed then .reason else null end)
+    | .removed_at = (if .removed then .removed_at else null end)' <<<"$out" \
     || die "could not read the merge queue state of PR #$1"
 }
 
 cmd_queue() {
   { [ $# -eq 1 ] && [[ "$1" =~ ^[0-9]+$ ]]; } || usage
   queue_state "$1" | jq -c '{state: (if .queued then "queued" elif .removed then "removed" else null end),
-    position: (if .queued then .position else null end), reason}'
+    position: (if .queued then .position else null end), reason, removed_at, requeued}'
+}
+
+# What `pr.sh merge --after <bug>` needs to know about bug $2 for PR $1's facts, with the issue $3 the PR closes (empty
+# when its branch names none): the facts plus after {bug, issue, blocks, state, state_reason, closed_at}, where blocks is
+# whether the bug is among the issue's blockers. gh issue view does not show the state reason or the closing time of an
+# issue, so this reads GraphQL. Dies when anything is unreadable or incomplete (more than 100 blockers), so the gate
+# never decides on a guess.
+after_facts() {
+  local facts="$1" bug="$2" issue="$3" out what="#$2" vars=(-F "bug=$2") part=""
+  if [ -n "$issue" ]; then
+    what="#$bug and the blockers of #$issue"
+    vars+=(-F "n=$issue")
+    # shellcheck disable=SC2016 # GraphQL variables, not shell
+    part='issue: issue(number: $n) { blockedBy(first: 100) { totalCount nodes { number } } }'
+  fi
+  # shellcheck disable=SC2016 # GraphQL variables, not shell
+  out="$(gh api graphql -F owner="$OWNER" -F name="$NAME" "${vars[@]}" -f query='
+    query($owner: String!, $name: String!, $bug: Int!'"${issue:+, \$n: Int!}"') {
+      repository(owner: $owner, name: $name) {
+        bug: issue(number: $bug) { state stateReason closedAt } '"$part"'
+      }
+    }')" || die "could not read $what; nothing queued"
+  jq -c --argjson after "$(jq -c --argjson bug "$bug" --argjson issue "${issue:-null}" '
+    .data.repository as $r
+    | if $r.bug == null then error("no such issue")
+      elif $issue != null and ($r.issue.blockedBy.totalCount != ($r.issue.blockedBy.nodes | length)) then error("unread blockers")
+      else {bug: $bug, issue: $issue,
+            blocks: ($issue != null and ([$r.issue.blockedBy.nodes[].number] | index($bug)) != null),
+            state: $r.bug.state, state_reason: $r.bug.stateReason, closed_at: $r.bug.closedAt} end' <<<"$out")" \
+    '. + {after: $after}' <<<"$facts" || die "could not read $what; nothing queued"
+}
+
+# Takes the record line $2 (when there is one) out of the body of PR $1 again, after the PR could not be queued: a
+# re-queue that did not happen must not use up the one re-queue of the commit (ADR-025). An enqueue error can be unclear
+# (a timeout while GitHub did queue the PR), so the line stays unless the queue state confirms the PR is neither queued
+# nor merged. Best effort; says so when it can't.
+drop_record() {
+  local pr="$1" line="$2" body state
+  [ -n "$line" ] || return 0
+  if ! state="$(queue_state "$pr")" || jq -e '.queued or .merged' <<<"$state" >/dev/null; then
+    echo "⚠  PR #$pr may be queued or merged: kept the re-queue record '$line' in its body" >&2
+    return 0
+  fi
+  body="$(gh pr view "$pr" --repo "$REPO" --json body --jq .body)" \
+    && body="$(awk -v line="$line" '$0 != line' <<<"$body")" \
+    && gh pr edit "$pr" --repo "$REPO" --body "$body" >/dev/null \
+    || echo "⚠  could not take the re-queue record out of the body of PR #$pr: remove the line '$line' by hand to try again" >&2
 }
 
 # Adds a low-risk or high-risk (agent-queueable) PR that passes the whole merge gate to the merge queue, which tests it
@@ -587,11 +650,22 @@ cmd_queue() {
 # GraphQL's enqueuePullRequest. A branch without a queue is squash-merged with `gh pr merge`. Should auto-merge ever be
 # on afterwards, turn it off again.
 cmd_merge() {
-  [ $# -eq 0 ] || usage
-  local pr facts decision head branch issue out failed state attempt reasons
-  pr="$(current_pr)"
+  local pr="" after="" facts decision head branch issue out failed state attempt reasons requeue_line=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --after) { [ -z "$after" ] && [[ "${2:-}" =~ ^[0-9]+$ ]]; } || usage; after="$2"; shift ;;
+      *) { [ -z "$pr" ] && [[ "$1" =~ ^[0-9]+$ ]]; } || usage; pr="$1" ;;
+    esac
+    shift
+  done
+  [ -n "$pr" ] || pr="$(current_pr)"
   if ! facts="$(merge_facts "$pr")" || [ -z "$facts" ]; then
     die "could not read the facts of PR #$pr; nothing queued"
+  fi
+  branch="$(jq -r .branch <<<"$facts")"
+  issue="$(branch_issue "$branch")"
+  if [ -n "$after" ]; then
+    facts="$(after_facts "$facts" "$after" "$issue")" || exit 1
   fi
   decision="$(jq -c --arg review_mark "$REVIEW_MARK" --arg smoke_mark "$SMOKE_MARK" --arg no_preview "$NO_PREVIEW" \
     -f "$ROOT/scripts/merge-gate.jq" <<<"$facts")" \
@@ -614,16 +688,21 @@ cmd_merge() {
     record "$pr" "$HIGH_RISK_MARK" "**$HIGH_RISK_MARK:** \`$head\`: $reasons"
   fi
 
-  branch="$(jq -r .branch <<<"$facts")"
-  issue="$(branch_issue "$branch")"
+  # The audit of a re-queue after a fix (ADR-025) comes before the queueing, like the high-risk record: it is what stops a
+  # second re-queue of the commit, so queue nothing when it can't be recorded.
+  if [ -n "$after" ]; then
+    requeue_line="**$QUEUE_MARK:** re-queued \`$head\` after #$after fixed the check that removed it"
+    record "$pr" "$QUEUE_MARK" "$requeue_line"
+  fi
   if jq -e .queue_enabled <<<"$facts" >/dev/null; then
     # shellcheck disable=SC2016 # GraphQL variables, not shell
     out="$(gh api graphql -f id="$(jq -r .pr_id <<<"$facts")" -f head="$head" -f query='
       mutation($id: ID!, $head: GitObjectID!) {
         enqueuePullRequest(input: {pullRequestId: $id, expectedHeadOid: $head}) { mergeQueueEntry { position } }
-      }' 2>&1)" || die "could not add PR #$pr to the merge queue: $out"
+      }' 2>&1)" || { drop_record "$pr" "$requeue_line"; die "could not add PR #$pr to the merge queue: $out"; }
   else
-    out="$(gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$head" 2>&1)" || die "merge failed: $out"
+    out="$(gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$head" 2>&1)" \
+      || { drop_record "$pr" "$requeue_line"; die "merge failed: $out"; }
   fi
   # The queue answers at once; look a few times in case GitHub is slow to show it.
   for attempt in 1 2 3; do
