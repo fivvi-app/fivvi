@@ -118,7 +118,11 @@
     "settingsGeneral": "Algemeen",
     "settingsLanguage": "Taal",
     "workspaceWithRole": "{name} · {role}",
-    "trainers": "Trainers"
+    "trainers": "Trainers",
+    "clients": "Klanten",
+    "new": "Nieuw",
+    "newMenu": "Nieuw maken",
+    "newClient": "Klant"
   },
   "signOut": {
     "label": "Uitloggen",
@@ -213,6 +217,51 @@
     "roleChanged": {
       "owner": "{name} is nu eigenaar.",
       "trainer": "{name} is nu trainer."
+    }
+  },
+  "clients": {
+    "title": "Klanten",
+    "searchPlaceholder": "Zoek klant…",
+    "add": "Klant toevoegen",
+    "listLabel": "Klanten",
+    "empty": "Nog geen klanten. Voeg je eerste klant toe.",
+    "noResults": "Geen klanten gevonden.",
+    "loading": "Klanten laden…",
+    "loadError": "Er ging iets mis bij het laden.",
+    "partial": "{shown} van {total} klanten getoond. Zoek om de rest te vinden.",
+    "addDialog": {
+      "title": "Klant toevoegen",
+      "description": "Alleen een naam is nodig. E-mailadres en taal kunnen later.",
+      "nameLabel": "Naam",
+      "emailLabel": "E-mailadres (optioneel)",
+      "localeLabel": "Taal voor e-mails",
+      "localeDefault": "Standaard ({language})",
+      "localeNl": "Nederlands",
+      "localeEn": "English",
+      "submit": "Toevoegen",
+      "cancel": "Annuleren",
+      "exists": "{name} gebruikt dit e-mailadres al.",
+      "openExisting": "{name} openen",
+      "otherEmail": "Ander e-mailadres",
+      "errors": {
+        "nameRequired": "Vul een naam in.",
+        "nameTooLong": "Deze naam is te lang. Gebruik maximaal 120 tekens.",
+        "emailInvalid": "Vul een geldig e-mailadres in.",
+        "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw."
+      }
+    },
+    "languageNames": {
+      "nl": "Nederlands",
+      "en": "Engels"
+    },
+    "profile": {
+      "title": "Klantprofiel",
+      "added": "{name} is toegevoegd.",
+      "overview": "Overzicht",
+      "nameLabel": "Naam",
+      "emailLabel": "E-mailadres",
+      "noEmail": "Geen e-mailadres",
+      "localeLabel": "Taal voor e-mails"
     }
   }
 }

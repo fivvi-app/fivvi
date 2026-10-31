@@ -118,7 +118,11 @@
     "settingsGeneral": "General",
     "settingsLanguage": "Language",
     "workspaceWithRole": "{name} · {role}",
-    "trainers": "Trainers"
+    "trainers": "Trainers",
+    "clients": "Clients",
+    "new": "New",
+    "newMenu": "Create new",
+    "newClient": "Client"
   },
   "signOut": {
     "label": "Sign out",
@@ -213,6 +217,51 @@
     "roleChanged": {
       "owner": "{name} is now an owner.",
       "trainer": "{name} is now a trainer."
+    }
+  },
+  "clients": {
+    "title": "Clients",
+    "searchPlaceholder": "Search client…",
+    "add": "Add client",
+    "listLabel": "Clients",
+    "empty": "No clients yet. Add your first client.",
+    "noResults": "No clients found.",
+    "loading": "Loading clients…",
+    "loadError": "Something went wrong while loading.",
+    "partial": "Showing {shown} of {total} clients. Search to find the rest.",
+    "addDialog": {
+      "title": "Add client",
+      "description": "Only a name is needed. Email address and language can follow.",
+      "nameLabel": "Name",
+      "emailLabel": "Email address (optional)",
+      "localeLabel": "Language for emails",
+      "localeDefault": "Default ({language})",
+      "localeNl": "Nederlands",
+      "localeEn": "English",
+      "submit": "Add",
+      "cancel": "Cancel",
+      "exists": "{name} already uses this email address.",
+      "openExisting": "Open {name}",
+      "otherEmail": "Use another email address",
+      "errors": {
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "This name is too long. Use at most 120 characters.",
+        "emailInvalid": "Enter a valid email address.",
+        "notSaved": "Not saved. Check your connection and try again."
+      }
+    },
+    "languageNames": {
+      "nl": "Dutch",
+      "en": "English"
+    },
+    "profile": {
+      "title": "Client profile",
+      "added": "{name} has been added.",
+      "overview": "Overview",
+      "nameLabel": "Name",
+      "emailLabel": "Email address",
+      "noEmail": "No email address",
+      "localeLabel": "Language for emails"
     }
   }
 }
