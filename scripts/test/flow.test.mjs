@@ -37,16 +37,19 @@ const agentMerge = (sha, reasons, queuedSha = sha) =>
   (queuedSha ? `\n\n**Merge queue:** added to the merge queue on \`${queuedSha}\`` : '');
 
 // What the merge queue query of scripts/pr.sh answers for PR <number> (see pr.test.mjs queueFacts).
-const queueRule = (number, { queued = false, removed = false, position = 1 } = {}) => ({
+const queueRule = (
+  number,
+  { queued = false, removed = false, position = 1, body = '', head = 'c'.repeat(40) } = {},
+) => ({
   match: `^api graphql -F owner=\\S+ -F name=\\S+ -F n=${number} [\\s\\S]*isInMergeQueue`,
   out: {
     data: {
       repository: {
         pullRequest: {
           state: 'OPEN',
-          headRefOid: 'c'.repeat(40),
+          headRefOid: head,
           commits: { nodes: [{ commit: { committedDate: '2026-10-19T09:00:00Z' } }] },
-          body: '',
+          body,
           isInMergeQueue: queued,
           mergeQueueEntry: queued ? { state: 'QUEUED', position } : null,
           autoMergeRequest: null,
@@ -419,11 +422,32 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
     rmSync(repo, { recursive: true, force: true });
   });
 
-  const run = (command, queue, file = 'apps/web/page.tsx') =>
+  // `open` are the numbers of the issue's open blockers (gh issue view), `blockers` what the GraphQL read of the
+  // blockers answers ({nodes, total}, or a failure).
+  const run = (command, queue, file = 'apps/web/page.tsx', { open = [], blockers } = {}) =>
     spawnSync(join(repo, 'scripts/flow.sh'), [command, '9999'], {
       encoding: 'utf8',
       env: gh.env([
         { match: '^api user', out: { login: 'thekeyvan' } },
+        {
+          match: '^api graphql .*-F n=9999 [\\s\\S]*blockedBy',
+          ...(blockers === 'fail'
+            ? { out: '', status: 1 }
+            : {
+                out: {
+                  data: {
+                    repository: {
+                      issue: {
+                        blockedBy: {
+                          totalCount: blockers?.total ?? (blockers?.nodes ?? []).length,
+                          nodes: blockers?.nodes ?? [],
+                        },
+                      },
+                    },
+                  },
+                },
+              }),
+        },
         {
           match: '^issue view 9999 ',
           out: {
@@ -436,7 +460,9 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
             comments: [],
             parent: null,
             subIssues: { nodes: [] },
-            blockedBy: { nodes: [] },
+            blockedBy: {
+              nodes: open.map((number) => ({ number, title: `bug ${number}`, state: 'OPEN' })),
+            },
           },
         },
         {
@@ -485,6 +511,100 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
     assert.match(result.stdout, / · removed from the merge queue \(Merge group failed\) · /);
     assert.match(result.stdout, /^Phase: queue-removed$/m);
     assert.match(result.stdout, /Never queue the same commit again yourself/);
+  });
+
+  describe('ADR-025: a PR removed for a cause outside it', () => {
+    const REMOVAL = '2026-10-19T10:00:00Z';
+    const bug = (overrides = {}) => ({
+      number: 353,
+      title: 'Flaky web E2E',
+      state: 'CLOSED',
+      stateReason: 'COMPLETED',
+      closedAt: '2026-10-19T11:00:00Z',
+      ...overrides,
+    });
+    const removed = { removed: true };
+    const status = (queue, options) => run('status', queue, 'apps/web/page.tsx', options);
+    const bugReads = () =>
+      gh
+        .calls()
+        .filter((call) => call.args[0] === 'api' && call.args.join(' ').includes('blockedBy'));
+
+    it('waits while the bug that blocks the issue is open, and is no work on the PR', () => {
+      const result = status(removed, {
+        open: [353],
+        blockers: { nodes: [bug({ state: 'OPEN', stateReason: null, closedAt: null })] },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /^Blocked by:\n {2}#353 — bug 353$/m);
+      assert.match(result.stdout, /^Phase: waiting-fix$/m);
+      assert.match(result.stdout, /^Next: Wait for #353, which fixes the check that removed it/m);
+    });
+
+    it('is a requeue once the bug was closed as completed after the removal', () => {
+      const result = status(removed, { blockers: { nodes: [bug()] } });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /^Phase: requeue$/m);
+      assert.match(result.stdout, /^Next: scripts\/pr\.sh merge 70 --after 353: /m);
+    });
+
+    it('does not count a blocker closed before the removal, or one closed as not planned', () => {
+      for (const node of [
+        bug({ closedAt: '2026-10-19T09:00:00Z' }),
+        bug({ stateReason: 'NOT_PLANNED' }),
+        bug({ state: 'OPEN', stateReason: null, closedAt: null }),
+      ]) {
+        const result = status(removed, { blockers: { nodes: [node] } });
+        assert.equal(result.status, 0, result.stderr);
+        assert.match(result.stdout, /^Phase: queue-removed$/m, JSON.stringify(node));
+      }
+    });
+
+    it('stops at a commit that was already re-queued after a fix', () => {
+      const body = `Closes #9999\n\n**Merge queue:** re-queued \`${HEAD}\` after #353 fixed the check that removed it`;
+      const result = status({ removed: true, body }, { blockers: { nodes: [bug()] } });
+      assert.match(result.stdout, /^Phase: queue-removed$/m);
+      assert.match(result.stdout, /already re-queued once after a fix/);
+    });
+
+    it('carries the blockers closed as completed in the facts, with the time they closed', () => {
+      const result = run('facts', removed, 'apps/web/page.tsx', {
+        blockers: {
+          nodes: [
+            bug(),
+            bug({ number: 354, stateReason: 'NOT_PLANNED' }),
+            bug({ number: 355, state: 'OPEN', stateReason: null, closedAt: null }),
+          ],
+        },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      const facts = JSON.parse(result.stdout);
+      assert.deepEqual(facts.fixed_blockers, [
+        { number: 353, title: 'Flaky web E2E', closed_at: '2026-10-19T11:00:00Z' },
+      ]);
+      assert.equal(facts.branches[0].pr.queue.removed_at, REMOVAL);
+      assert.equal(facts.branches[0].pr.queue.requeued, false);
+    });
+
+    it('reads the blockers only for a PR the queue removed: no fixed blockers otherwise, and no extra read', () => {
+      const result = run('facts', { queued: true }, 'apps/web/page.tsx', {
+        blockers: { nodes: [bug()] },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(JSON.parse(result.stdout).fixed_blockers, []);
+      assert.equal(bugReads().length, 0);
+    });
+
+    it("dies when the blockers can't be read, or are not all there: never no blockers", () => {
+      for (const blockers of ['fail', { nodes: [bug()], total: 101 }]) {
+        for (const command of ['facts', 'status']) {
+          const result = run(command, removed, 'apps/web/page.tsx', { blockers });
+          assert.notEqual(result.status, 0, `${command} ${JSON.stringify(blockers)}`);
+          assert.match(result.stderr, /could not read the blockers of #9999/);
+          assert.equal(result.stdout, '');
+        }
+      }
+    });
   });
 
   it('shows a PR that was never queued as ready to merge', () => {
@@ -1021,7 +1141,7 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
           match: `^pr view ${pr.number} `,
           out: { headRefName: branch, closingIssuesReferences: [], changedFiles: 1 },
         },
-        queueRule(pr.number, pr.queue),
+        queueRule(pr.number, { head: head[branch] ?? pr.head, ...pr.queue }),
       ];
     });
 
@@ -1038,6 +1158,8 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       failing = [],
       args = [],
       env = {},
+      openPrs = [],
+      blockers = [],
     } = scenario;
     return spawnSync(join(repo, 'scripts/flow.sh'), [command, ...args], {
       encoding: 'utf8',
@@ -1060,8 +1182,19 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
             out: item,
           })),
           ...prRules(head),
-          { match: '^pr list .*--state open', out: [] },
+          { match: '^pr list .*--state open', out: openPrs },
           { match: '^pr list .*--state merged', out: [] },
+          {
+            // The blockers of an issue (ADR-025), read only for an issue whose PR the queue removed.
+            match: '^api graphql -F owner=\\S+ -F name=\\S+ -F n=\\d+ [\\s\\S]*blockedBy',
+            out: {
+              data: {
+                repository: {
+                  issue: { blockedBy: { totalCount: blockers.length, nodes: blockers } },
+                },
+              },
+            },
+          },
           {
             match: '^api graphql ',
             out: { data: { repository: { pullRequest: { reviewThreads: { nodes: [] } } } } },
@@ -1227,6 +1360,127 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       assert.match(result.stdout, /^idle: nothing for an agent\n/);
     });
 
+    describe('ADR-025: a removed PR waits for its bug, then is re-queued', () => {
+      const BUG_OPEN = {
+        number: 353,
+        title: 'Flaky web E2E',
+        state: 'OPEN',
+        stateReason: null,
+        closedAt: null,
+      };
+      const BUG_FIXED = {
+        ...BUG_OPEN,
+        state: 'CLOSED',
+        stateReason: 'COMPLETED',
+        closedAt: '2026-10-19T11:00:00Z',
+      };
+      const blocked = issue(9001, 'Removed', ['ready-for-agent'], {
+        blockedBy: { nodes: [{ number: 353, title: 'Flaky web E2E', state: 'OPEN' }] },
+      });
+      const OPEN_PRS = [
+        {
+          number: 91,
+          title: '[F031] Removed',
+          isDraft: false,
+          headRefOid: HEAD,
+          headRefName: 'chore/9001-removed',
+        },
+      ];
+      const ownerOf = (stdout) =>
+        stdout.slice(
+          stdout.indexOf('== Waiting on the owner'),
+          stdout.indexOf('== For the owner to read'),
+        );
+
+      it('is idle while the bug is open: the PR is no work, and does not wait on the owner either', () => {
+        const scenario = { assigned: [blocked], openPrs: OPEN_PRS, blockers: [BUG_OPEN] };
+        const result = run('idle', scenario);
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(
+          result.stdout,
+          'idle: nothing for an agent\n== Waiting on the owner\n(none)\n',
+        );
+        const next = run('next', scenario);
+        assert.equal(next.status, 0, next.stderr);
+        assert.match(next.stdout, /^#9001 Removed → waiting-fix$/m);
+        assert.doesNotMatch(ownerOf(next.stdout), /PR #91/);
+        assert.doesNotMatch(readyOf(next.stdout), /PR #91/);
+      });
+
+      it('is work once the bug is closed as completed after the removal: idle lists it, next says to requeue', () => {
+        const scenario = { assigned: [removed], openPrs: OPEN_PRS, blockers: [BUG_FIXED] };
+        const result = run('idle', scenario);
+        assert.equal(result.status, 1, result.stderr);
+        assert.match(result.stdout, /^#9001 Removed → requeue$/m);
+        assert.match(result.stdout, /^Requeue PR #91 after #353$/m);
+        const next = run('next', scenario);
+        assert.equal(next.status, 0, next.stderr);
+        assert.match(readyOf(next.stdout), /^Requeue PR #91 after #353$/m);
+        assert.doesNotMatch(ownerOf(next.stdout), /PR #91/);
+      });
+
+      it('lists the requeue as ready work also when the issue is not assigned to you', () => {
+        const scenario = { others: [removed], openPrs: OPEN_PRS, blockers: [BUG_FIXED] };
+        const result = run('idle', scenario);
+        assert.equal(result.status, 1, result.stderr);
+        assert.equal(result.stdout, 'Requeue PR #91 after #353\n');
+      });
+
+      it('is a plain removal for the owner when the bug was closed before it, or as not planned', () => {
+        for (const bug of [
+          { ...BUG_FIXED, closedAt: '2026-10-19T09:00:00Z' },
+          { ...BUG_FIXED, stateReason: 'NOT_PLANNED' },
+        ]) {
+          const scenario = { assigned: [removed], openPrs: OPEN_PRS, blockers: [bug] };
+          const next = run('next', scenario);
+          assert.equal(next.status, 0, next.stderr);
+          assert.match(next.stdout, /^#9001 Removed → queue-removed$/m);
+          assert.doesNotMatch(readyOf(next.stdout), /PR #91/);
+          assert.match(
+            ownerOf(next.stdout),
+            /^Decide on PR #91 \[F031\] Removed \(GitHub removed it/m,
+          );
+          const idle = run('idle', scenario);
+          assert.equal(idle.status, 1, idle.stderr);
+          assert.equal(idle.stdout, '#9001 Removed → queue-removed\n');
+        }
+      });
+
+      it('is a plain removal when the commit was already re-queued after a fix: once only', () => {
+        const body = `Closes #9001\n\n**Merge queue:** re-queued \`${HEAD}\` after #353 fixed the check that removed it`;
+        PRS['chore/9001-removed'].queue = { removed: true, body };
+        try {
+          const scenario = { assigned: [removed], openPrs: OPEN_PRS, blockers: [BUG_FIXED] };
+          const next = run('next', scenario);
+          assert.match(next.stdout, /^#9001 Removed → queue-removed$/m);
+          assert.doesNotMatch(readyOf(next.stdout), /Requeue/);
+          assert.match(ownerOf(next.stdout), /^Decide on PR #91 /m);
+          // The notes line still ends it for an agent, as before.
+          writeNotes(9001, `# #9001 Removed\nqueue-removed ${HEAD}: reported to the owner\n`);
+          const idle = run('idle', scenario);
+          assert.equal(idle.status, 0, idle.stderr);
+        } finally {
+          PRS['chore/9001-removed'].queue = { removed: true };
+        }
+      });
+
+      it('fails instead of listing nothing when it cannot read the issue of a removed PR', () => {
+        const result = run('next', {
+          assigned: [removed],
+          openPrs: OPEN_PRS,
+          failing: ['^api graphql -F owner=\\S+ -F name=\\S+ -F n=9001 [\\s\\S]*blockedBy'],
+        });
+        assert.notEqual(result.status, 0);
+        assert.match(result.stderr, /^error: could not read/m);
+        const idle = run('idle', {
+          assigned: [removed],
+          openPrs: OPEN_PRS,
+          failing: ['^api graphql -F owner=\\S+ -F name=\\S+ -F n=9001 [\\s\\S]*blockedBy'],
+        });
+        assert.equal(idle.status, 2);
+      });
+    });
+
     it('counts the queue-removed PR as work again after a new commit', () => {
       writeNotes(9001, `# #9001 Removed\nqueue-removed ${HEAD}: reported to the owner\n`);
       const result = run('idle', { assigned: [removed], head: { 'chore/9001-removed': NEW_HEAD } });
@@ -1299,10 +1553,12 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
         'building',
         'answered',
         'queue-removed',
+        'requeue',
         'a-phase-nobody-knows-yet',
       ];
       const WAIT = [
         'queued',
+        'waiting-fix',
         'merge-refused',
         'in-review',
         'approved',

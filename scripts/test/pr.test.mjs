@@ -88,9 +88,12 @@ const queueFacts = ({
 const QUEUE = '^api graphql [\\s\\S]*isInMergeQueue';
 const ENQUEUE = '^api graphql [\\s\\S]*enqueuePullRequest';
 
+// `queue` is the answers to the queue state (one, or a list for a state that changes during the command), `views` the
+// bodies the PR has at its successive reads (the default: one body that never changes).
 const github = ({
   files = ['apps/web/page.tsx'],
   body,
+  views,
   queue = queueFacts({ queued: true }),
   status = statuses(),
   rollup = CI.map((name) => checkRun(name)),
@@ -107,21 +110,25 @@ const github = ({
   },
   {
     match: '^pr view 60 ',
-    out: {
-      number: 60,
-      state: 'OPEN',
-      isDraft: false,
-      baseRefName: 'main',
-      headRefName: 'feature/57-hold-a-spot',
-      headRefOid: HEAD,
-      body:
+    ...(() => {
+      const view = (text) => ({
+        number: 60,
+        state: 'OPEN',
+        isDraft: false,
+        baseRefName: 'main',
+        headRefName: 'feature/57-hold-a-spot',
+        headRefOid: HEAD,
+        body: text,
+        statusCheckRollup: rollup,
+      });
+      const first =
         body ??
-        `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${HEAD}\` ✅\n\n${NO_PREVIEW}`,
-      statusCheckRollup: rollup,
-    },
+        `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${HEAD}\` ✅\n\n${NO_PREVIEW}`;
+      return views ? { outs: views.map(view) } : { out: view(first) };
+    })(),
   },
   { match: '^issue view 57 ', out: { number: 57, labels: [], parent: null } },
-  { match: QUEUE, out: queue },
+  Array.isArray(queue) ? { match: QUEUE, outs: queue } : { match: QUEUE, out: queue },
   { match: ENQUEUE, out: { data: { enqueuePullRequest: { mergeQueueEntry: { position: 1 } } } } },
   { match: '^api graphql ', out: threads([]) },
   { match: STATUS, out: status },
@@ -135,8 +142,8 @@ describe('pr.sh merge', () => {
   const gh = fakeGh();
   after(() => gh.cleanup());
 
-  const merge = (rules) => {
-    const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['merge'], {
+  const merge = (rules, args = []) => {
+    const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['merge', ...args], {
       encoding: 'utf8',
       env: gh.env(rules),
     });
@@ -374,6 +381,224 @@ describe('pr.sh merge', () => {
       github({ queue: queueFacts({ queued: true, events: [REMOVED], committed: AFTER_REMOVAL }) }),
     );
     assert.equal(result.status, 0, result.stderr);
+  });
+
+  describe('ADR-025: --after <bug> queues the removed commit once more', () => {
+    const BUG_QUERY = '^api graphql [\\s\\S]*stateReason';
+    const BASE = `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${HEAD}\` ✅\n\n${NO_PREVIEW}`;
+    const ADDED_LINE = `**Merge queue:** added to the merge queue on \`${HEAD}\``;
+    const REQUEUE_LINE = `**Merge queue:** re-queued \`${HEAD}\` after #353 fixed the check that removed it`;
+    const bugFacts = ({ bug = {}, blockers = [353, 311], total = blockers.length } = {}) => ({
+      data: {
+        repository: {
+          bug: { state: 'CLOSED', stateReason: 'COMPLETED', closedAt: AFTER_REMOVAL, ...bug },
+          issue: {
+            blockedBy: { totalCount: total, nodes: blockers.map((number) => ({ number })) },
+          },
+        },
+      },
+    });
+    const removedFacts = (body = BASE) => queueFacts({ events: [ADDED, REMOVED], body });
+    const requeued = queueFacts({ queued: true, events: [ADDED, REMOVED, ADDED] });
+    const requeue = ({ bug, files, views, removed = removedFacts(), after = requeued } = {}) =>
+      merge(
+        [
+          { match: BUG_QUERY, out: bug ?? bugFacts() },
+          ...github({ files, views, queue: [removed, after] }),
+        ],
+        ['--after', '353'],
+      );
+
+    it('queues the same commit once more, with no push, and records the audit line before it queues', () => {
+      const result = requeue();
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(
+        result.stdout,
+        /✓ not removed from the queue: .*re-queued after #353 fixed the check/,
+      );
+      assert.match(result.stdout, /✅ PR #60 added to the merge queue \(position 1\)/);
+      assert.equal(result.bodies[0], `${BASE}\n\n${REQUEUE_LINE}`);
+      const edit = result.calls.findIndex((call) => /^pr edit 60 /.test(call));
+      const enqueue = result.calls.findIndex((call) => new RegExp(ENQUEUE).test(call));
+      assert.ok(edit >= 0 && edit < enqueue, 'the audit line comes before the queueing');
+      assert.ok(result.calls[enqueue].includes(`head=${HEAD}`), result.calls[enqueue]);
+      assert.ok(
+        !result.calls.some((call) => /--auto|--admin|^pr merge/.test(call)),
+        result.calls.join('\n'),
+      );
+      assert.ok(
+        !result.calls.some((call) => /^push|merge origin/.test(call)),
+        result.calls.join('\n'),
+      );
+    });
+
+    it('keeps the audit line next to the "added to the merge queue" line', () => {
+      const result = requeue({ views: [BASE, BASE, `${BASE}\n\n${REQUEUE_LINE}`] });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.bodies.length, 2);
+      assert.equal(result.bodies[1], `${BASE}\n\n${REQUEUE_LINE}\n\n${ADDED_LINE}`);
+    });
+
+    it('records the high-risk merge too, for a high-risk PR', () => {
+      const result = requeue({ files: ['packages/database/migrations/0004.sql'] });
+      assert.equal(result.status, 0, result.stderr);
+      assert.ok(
+        result.bodies.some((text) => /\*\*High-risk agent merge:\*\* `c{40}`/.test(text)),
+        result.bodies.join('\n---\n'),
+      );
+    });
+
+    it('works on a PR number from any directory: no worktree, no lookup of the current branch', () => {
+      const result = merge(
+        [{ match: BUG_QUERY, out: bugFacts() }, ...github({ queue: [removedFacts(), requeued] })],
+        ['60', '--after', '353'],
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.ok(!result.calls.some((call) => /^pr list /.test(call)), result.calls.join('\n'));
+    });
+
+    const refusesAfter = (options, reason) => {
+      const result = requeue(options);
+      assert.equal(result.status, 1, result.stdout);
+      assert.match(result.stdout, /✗ not removed from the queue: --after #353: /);
+      assert.match(result.stdout, reason);
+      assert.match(result.stderr, /not removed from the queue; nothing queued/);
+      assert.ok(
+        !result.calls.some((call) => new RegExp(ENQUEUE).test(call)),
+        result.calls.join('\n'),
+      );
+      assert.ok(!result.calls.some((call) => /^pr merge/.test(call)), result.calls.join('\n'));
+      // The refusal is recorded for the head commit, as for any other: the PR stays for the owner.
+      assert.equal(result.bodies.length, 1);
+      assert.match(
+        result.bodies[0],
+        new RegExp(`\\*\\*Merge gate:\\*\\* refused on \`${HEAD}\`: .*--after #353`),
+      );
+      assert.doesNotMatch(result.bodies[0], /\*\*Merge queue:\*\* re-queued/);
+    };
+
+    it('refuses a bug that is still open', () => {
+      refusesAfter(
+        { bug: bugFacts({ bug: { state: 'OPEN', stateReason: null, closedAt: null } }) },
+        /#353 is not closed/,
+      );
+    });
+
+    it('refuses a bug closed as not planned', () => {
+      refusesAfter(
+        { bug: bugFacts({ bug: { stateReason: 'NOT_PLANNED' } }) },
+        /#353 was not closed as completed/,
+      );
+    });
+
+    it('refuses a bug that does not block the issue of the PR', () => {
+      refusesAfter({ bug: bugFacts({ blockers: [311] }) }, /#353 does not block #57/);
+    });
+
+    it('refuses a bug closed before the removal', () => {
+      refusesAfter(
+        { bug: bugFacts({ bug: { closedAt: BEFORE_REMOVAL } }) },
+        /#353 was closed before the queue removed/,
+      );
+    });
+
+    it('refuses a commit that was already re-queued after a fix: once only', () => {
+      refusesAfter(
+        { removed: removedFacts(`${BASE}\n\n${REQUEUE_LINE}`) },
+        /already re-queued once after a fix/,
+      );
+    });
+
+    it('refuses a commit the queue has not removed: nothing to re-queue', () => {
+      const result = requeue({ removed: queueFacts({ queued: false }) });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /there is nothing to re-queue, merge without --after/);
+    });
+
+    it('still refuses every other failing condition', () => {
+      const result = requeue({ files: ['docs/legal/verwerkersovereenkomst.md'] });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /✗ not owner-only/);
+      assert.match(result.stdout, /✓ not removed from the queue/);
+      assert.ok(
+        !result.calls.some((call) => new RegExp(ENQUEUE).test(call)),
+        result.calls.join('\n'),
+      );
+    });
+
+    it('still refuses a removed commit without --after', () => {
+      const result = merge(github({ queue: removedFacts() }));
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /✗ not removed from the queue: GitHub removed/);
+      assert.doesNotMatch(result.stdout, /--after #/);
+    });
+
+    it("queues nothing when the bug or the blockers can't all be read", () => {
+      for (const out of [
+        { out: '', status: 1 },
+        { out: bugFacts({ total: 101 }) },
+        { out: { data: { repository: { bug: null, issue: null } } } },
+      ]) {
+        const result = merge(
+          [{ match: BUG_QUERY, ...out }, ...github({ queue: removedFacts() })],
+          ['--after', '353'],
+        );
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, /could not read #353 and the blockers of #57; nothing queued/);
+        assert.ok(
+          !result.calls.some((call) => /^pr edit|enqueue/.test(call)),
+          result.calls.join('\n'),
+        );
+      }
+    });
+
+    it('takes only a bug number, and --after only once', () => {
+      for (const args of [
+        ['--after'],
+        ['--after', 'x'],
+        ['--after', '353', '--after', '354'],
+        ['--auto'],
+      ]) {
+        const result = merge(github(), args);
+        assert.notEqual(result.status, 0, args.join(' '));
+        assert.ok(
+          !result.calls.some((call) => /^pr edit|enqueue/.test(call)),
+          result.calls.join('\n'),
+        );
+      }
+    });
+
+    it('takes the line back when GitHub cannot add the PR to the queue, so the one re-queue is not used up', () => {
+      const result = merge(
+        [
+          { match: ENQUEUE, out: 'not allowed', status: 1 },
+          { match: BUG_QUERY, out: bugFacts() },
+          ...github({ views: [BASE, BASE, `${BASE}\n\n${REQUEUE_LINE}`], queue: removedFacts() }),
+        ],
+        ['--after', '353'],
+      );
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /could not add PR #60 to the merge queue: not allowed/);
+      assert.equal(result.bodies.length, 2);
+      assert.equal(result.bodies[0], `${BASE}\n\n${REQUEUE_LINE}`);
+      assert.equal(result.bodies[1], BASE);
+    });
+
+    it('queues nothing when the audit line cannot be recorded', () => {
+      const result = merge(
+        [
+          { match: '^pr edit 60 ', out: '', status: 1 },
+          { match: BUG_QUERY, out: bugFacts() },
+          ...github({ queue: removedFacts() }),
+        ],
+        ['--after', '353'],
+      );
+      assert.equal(result.status, 1);
+      assert.ok(
+        !result.calls.some((call) => new RegExp(ENQUEUE).test(call)),
+        result.calls.join('\n'),
+      );
+    });
   });
 
   it('E002 #119: fails when the PR is neither queued nor merged after GitHub took it', () => {
@@ -861,7 +1086,13 @@ describe('E002 #119 pr.sh queue', () => {
   it('says the PR is queued, with its position', () => {
     const result = queue(queueFacts({ queued: true, position: 2, events: [ADDED] }));
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.json, { state: 'queued', position: 2, reason: null });
+    assert.deepEqual(result.json, {
+      state: 'queued',
+      position: 2,
+      reason: null,
+      removed_at: null,
+      requeued: false,
+    });
   });
 
   it('says the PR was removed from the queue, and why, while it is still on the commit that was queued', () => {
@@ -870,6 +1101,8 @@ describe('E002 #119 pr.sh queue', () => {
       state: 'removed',
       position: null,
       reason: 'Merge group failed',
+      removed_at: REMOVAL,
+      requeued: false,
     });
   });
 
@@ -881,7 +1114,13 @@ describe('E002 #119 pr.sh queue', () => {
     const result = queue(
       queueFacts({ events: [REMOVED], body: queued(OLD), committed: AFTER_REMOVAL }),
     );
-    assert.deepEqual(result.json, { state: null, position: null, reason: null });
+    assert.deepEqual(result.json, {
+      state: null,
+      position: null,
+      reason: null,
+      removed_at: null,
+      requeued: false,
+    });
   });
 
   it('E002 #119: compares times as instants, not as text: a commit date with an offset', () => {
@@ -909,7 +1148,35 @@ describe('E002 #119 pr.sh queue', () => {
       state: 'removed',
       position: null,
       reason: 'Merge group failed',
+      removed_at: '2026-10-19T12:00:00Z',
+      requeued: false,
     });
+  });
+
+  it('ADR-025: gives the time of the removal, and whether the head commit was already re-queued after a fix', () => {
+    const requeuedLine = (sha) =>
+      `**Merge queue:** re-queued \`${sha}\` after #353 fixed the check that removed it`;
+    const body = (...lines) => ['Closes #57', ...lines].join('\n\n');
+    const again = queue(
+      queueFacts({
+        events: [ADDED, REMOVED],
+        body: body(queued(HEAD), requeuedLine(HEAD)),
+      }),
+    );
+    assert.equal(again.json.state, 'removed');
+    assert.equal(again.json.removed_at, REMOVAL);
+    assert.equal(again.json.requeued, true);
+    // A re-queue of an earlier commit, or only the plain queue record, is not a re-queue of this one.
+    assert.equal(
+      queue(queueFacts({ events: [REMOVED], body: requeuedLine(OLD) })).json.requeued,
+      false,
+    );
+    assert.equal(queue(queueFacts({ events: [REMOVED], body: queued(HEAD) })).json.requeued, false);
+    // The text of a line that merely mentions it is not the record.
+    assert.equal(
+      queue(queueFacts({ events: [REMOVED], body: `see ${requeuedLine(HEAD)}` })).json.requeued,
+      false,
+    );
   });
 
   it('says nothing for a PR that was never queued, one that is queued again, or one that is merged', () => {

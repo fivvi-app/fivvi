@@ -60,3 +60,28 @@ describe('ADR-021: records.jq reads the reasons of a record', () => {
     assert.equal(run(null, 'record_reasons'), null);
   });
 });
+
+describe('ADR-025: records.jq reads the re-queue record', () => {
+  const line = (sha) =>
+    `**Merge queue:** re-queued \`${sha}\` after #353 fixed the check that removed it`;
+  const requeued = (body, sha = SHA) =>
+    run(body, `requeued_after_fix("Merge queue"; ${JSON.stringify(sha)})`);
+
+  it('is true for the commit a line at the start of a line names, whatever the line ending', () => {
+    assert.equal(requeued(`Closes #57\n\n${line(SHA)}`), true);
+    assert.equal(requeued(`Closes #57\r\n${line(SHA)}\r\n`), true);
+  });
+
+  it('is false for another commit, the plain queue record, a mention inside a line, or no body', () => {
+    const other = 'b'.repeat(40);
+    assert.equal(requeued(line(other)), false);
+    assert.equal(requeued(`**Merge queue:** added to the merge queue on \`${SHA}\``), false);
+    assert.equal(requeued(`see ${line(SHA)}`), false);
+    assert.equal(requeued(''), false);
+    assert.equal(requeued(null), false);
+  });
+
+  it('is false without a commit to ask about', () => {
+    assert.equal(run(line(SHA), 'requeued_after_fix("Merge queue"; null)'), false);
+  });
+});

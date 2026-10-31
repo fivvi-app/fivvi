@@ -18,3 +18,9 @@ def record_sha: captured(sha_pattern; "sha");
 
 # The reasons a record line gives after its commit, `<sha>`: <reasons>, or null.
 def record_reasons: captured("\(sha_pattern): (?<reasons>.*)$"; "reasons");
+
+# Whether the PR body (the input, a string or null) records that commit $sha was re-queued after a fix (scripts/pr.sh
+# merge --after, ADR-025): a line `**<mark>:** re-queued `<sha>` …`. Once per commit: this is what stops a second one.
+def requeued_after_fix($mark; $sha):
+  $sha != null and ([(. // "") | split("\n")[] | rtrimstr("\r")
+    | select(startswith("**\($mark):** re-queued `\($sha)`"))] | length > 0);

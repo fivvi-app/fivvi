@@ -284,6 +284,133 @@ describe('merge gate', () => {
     assert.deepEqual(failed(gate(unknown)), ['not removed from the queue']);
   });
 
+  describe('ADR-025: --after <bug> queues a removed commit once more', () => {
+    const REMOVED_AT = '2026-10-31T10:00:00Z';
+    // pr.sh merge reads the bug among the blockers of the PR's issue and passes what it found.
+    const fixedBug = (overrides = {}) => ({
+      bug: 353,
+      issue: 57,
+      blocks: true,
+      state: 'CLOSED',
+      state_reason: 'COMPLETED',
+      closed_at: '2026-10-31T11:00:00Z',
+      ...overrides,
+    });
+    const afterFacts = (after = fixedBug(), overrides = {}) =>
+      facts({
+        queue_removed: true,
+        queue_removed_at: REMOVED_AT,
+        requeued: false,
+        after,
+        ...overrides,
+      });
+    const removal = (decision) =>
+      decision.conditions.find((c) => c.name === 'not removed from the queue');
+
+    it('passes the removal condition when every --after condition holds, and merges', () => {
+      const decision = gate(afterFacts());
+      assert.equal(decision.merge, true);
+      assert.deepEqual(failed(decision), []);
+      assert.match(removal(decision).detail, /re-queued after #353 fixed the check that removed/);
+    });
+
+    it('refuses a removed commit without --after, as before', () => {
+      const decision = gate(afterFacts(null));
+      assert.deepEqual(failed(decision), ['not removed from the queue']);
+      assert.match(removal(decision).detail, /GitHub removed aaaaaaa from the merge queue/);
+    });
+
+    it('names a bug that is still open', () => {
+      const decision = gate(
+        afterFacts(fixedBug({ state: 'OPEN', state_reason: null, closed_at: null })),
+      );
+      assert.deepEqual(failed(decision), ['not removed from the queue']);
+      assert.match(removal(decision).detail, /#353 is not closed/);
+    });
+
+    it('names a bug closed as not planned, or with no reason', () => {
+      for (const state_reason of ['NOT_PLANNED', 'DUPLICATE', null]) {
+        const decision = gate(afterFacts(fixedBug({ state_reason })));
+        assert.deepEqual(failed(decision), ['not removed from the queue']);
+        assert.match(removal(decision).detail, /#353 was not closed as completed/);
+      }
+    });
+
+    it('names a bug that does not block the issue of the PR', () => {
+      const decision = gate(afterFacts(fixedBug({ blocks: false })));
+      assert.deepEqual(failed(decision), ['not removed from the queue']);
+      assert.match(removal(decision).detail, /#353 does not block #57/);
+    });
+
+    it('names a bug closed before the removal, or at the moment of it', () => {
+      for (const closed_at of ['2026-10-31T09:59:59Z', REMOVED_AT]) {
+        const decision = gate(afterFacts(fixedBug({ closed_at })));
+        assert.deepEqual(failed(decision), ['not removed from the queue']);
+        assert.match(removal(decision).detail, /#353 was closed before the queue removed aaaaaaa/);
+      }
+    });
+
+    it('names a commit that was already re-queued after a fix: once only', () => {
+      const decision = gate(afterFacts(fixedBug(), { requeued: true }));
+      assert.deepEqual(failed(decision), ['not removed from the queue']);
+      assert.match(removal(decision).detail, /aaaaaaa was already re-queued once after a fix/);
+    });
+
+    it('names every condition that fails', () => {
+      const detail = removal(
+        gate(
+          afterFacts(fixedBug({ blocks: false, state_reason: 'NOT_PLANNED' }), { requeued: true }),
+        ),
+      ).detail;
+      assert.match(detail, /does not block #57/);
+      assert.match(detail, /not closed as completed/);
+      assert.match(detail, /already re-queued/);
+    });
+
+    it('fails closed when the bug, the removal time or the re-queue record are unknown', () => {
+      for (const facts_ of [
+        afterFacts(fixedBug({ closed_at: null })),
+        afterFacts(fixedBug({ closed_at: 'yesterday' })),
+        afterFacts(fixedBug(), { queue_removed_at: null }),
+        afterFacts(fixedBug(), { queue_removed_at: 'last night' }),
+        afterFacts(fixedBug(), { requeued: null }),
+        afterFacts({ bug: 353 }),
+        afterFacts({ ...fixedBug(), issue: null }),
+      ]) {
+        const decision = gate(facts_);
+        assert.deepEqual(failed(decision), ['not removed from the queue']);
+        assert.equal(decision.merge, false);
+      }
+    });
+
+    it('is refused for a commit the queue has not removed: there is nothing to re-queue', () => {
+      const decision = gate(afterFacts(fixedBug(), { queue_removed: false }));
+      assert.deepEqual(failed(decision), ['not removed from the queue']);
+      assert.match(removal(decision).detail, /has not removed aaaaaaa.*without --after/);
+    });
+
+    it('fails closed when it is unknown whether the queue removed the commit', () => {
+      const { queue_removed: _, ...unknown } = afterFacts();
+      assert.deepEqual(failed(gate(unknown)), ['not removed from the queue']);
+    });
+
+    it('does not relax any other condition', () => {
+      assert.deepEqual(
+        failed(gate(afterFacts(fixedBug(), { risk: { risk: 'owner', reasons: ['x'] } }))),
+        ['not owner-only'],
+      );
+      assert.deepEqual(failed(gate(afterFacts(fixedBug(), { threads: 1 }))), ['no open threads']);
+      assert.deepEqual(
+        failed(gate(afterFacts(fixedBug(), { checks: [run('Detect changes', 'FAILURE')] }))),
+        ['checks passed'],
+      );
+      assert.deepEqual(
+        failed(gate(afterFacts(fixedBug(), { pr: { ...facts().pr, body: 'Closes #57' } }))),
+        ['self-review clean', 'preview smoke-checked'],
+      );
+    });
+  });
+
   it('refuses open threads, a draft, a closed PR or another base', () => {
     assert.deepEqual(failed(gate(facts({ threads: 1 }))), ['no open threads']);
     assert.deepEqual(failed(gate(withPr({ draft: true }))), ['ready for review']);

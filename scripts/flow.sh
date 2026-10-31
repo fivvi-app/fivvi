@@ -4,9 +4,11 @@
 #   flow.sh status <n>                      facts, phase and next step for an issue
 #   flow.sh facts <n>                       the facts as JSON (input of scripts/flow-phase.jq)
 #   flow.sh next                            your open issues with their phase, the open specs, the ready tickets, the
-#                                           approved specs to cut (Cut #n) and answered needs-info questions, then
+#                                           approved specs to cut (Cut #n), answered needs-info questions and PRs to
+#                                           re-queue after their bug was fixed (Requeue PR #n after #bug), then
 #                                           what waits on the owner: specs to approve, owner-only PRs, PRs the merge
-#                                           gate refused, PRs GitHub removed from the merge queue, unanswered
+#                                           gate refused, PRs GitHub removed from the merge queue (not those that wait
+#                                           for their bug or are to be re-queued after it, ADR-025), unanswered
 #                                           questions; last, what the owner may read: the high-risk PRs agents merged
 #                                           in the last 7 days (ADR-021)
 #   flow.sh idle                            exit 0 and "idle: nothing for an agent" (plus what waits on the owner) when no
@@ -134,8 +136,25 @@ child_facts() {
     blocked: ([.blockedBy.nodes[] | select(.state == "OPEN")] | length > 0)}'
 }
 
+# The blockers of issue $1 that were closed as completed, as JSON [{number, title, closed_at}] (ADR-025): the bugs whose
+# fix a PR the merge queue removed was waiting for. gh issue view shows neither the state reason nor the closing time of a
+# blocker, so this reads GraphQL. Fails when the read fails or is incomplete (more than 100 blockers): never "no blockers".
+fixed_blockers() {
+  local out
+  # shellcheck disable=SC2016 # GraphQL variables, not shell
+  out="$(gh api graphql -F owner="$OWNER" -F name="$NAME" -F n="$1" -f query='
+    query($owner: String!, $name: String!, $n: Int!) {
+      repository(owner: $owner, name: $name) { issue(number: $n) {
+        blockedBy(first: 100) { totalCount nodes { number title state stateReason closedAt } } } }
+    }')" || return 1
+  jq -c '.data.repository.issue.blockedBy as $b
+    | if $b == null or $b.totalCount != ($b.nodes | length) then error("unread blockers")
+      else [$b.nodes[] | select(.state == "CLOSED" and .stateReason == "COMPLETED")
+        | {number, title, closed_at: .closedAt}] end' <<<"$out"
+}
+
 facts() {
-  local n="$1" item parent=null children="[]" branches="[]" child branch p login
+  local n="$1" item parent=null children="[]" branches="[]" fixed="[]" child branch p login
   login="$(me)" || return 1
   item="$(gh issue view "$n" --repo "$REPO" --json number,title,state,labels,assignees,body,comments,parent,subIssues,blockedBy)"
   for child in $(jq -r '.subIssues.nodes[].number' <<<"$item"); do
@@ -150,13 +169,18 @@ facts() {
   for branch in $(issue_branches "$n"); do
     branches="$(jq --argjson b "$(branch_facts "$branch")" '. + [$b]' <<<"$branches")"
   done
-  jq --arg me "$login" --argjson parent "$parent" --argjson children "$children" --argjson branches "$branches" "$ANSWERED_JQ"'{
+  # Only an issue whose PR the queue removed can be waiting for a fix; the others cost no read.
+  if jq -e 'any(.[]; .pr != null and .pr.state == "OPEN" and .pr.queue.state == "removed")' <<<"$branches" >/dev/null; then
+    fixed="$(fixed_blockers "$n")" || die "could not read the blockers of #$n"
+  fi
+  jq --arg me "$login" --argjson parent "$parent" --argjson children "$children" --argjson branches "$branches" \
+    --argjson fixed "$fixed" "$ANSWERED_JQ"'{
     number, title, state, me: $me, answered: answered,
     labels: [.labels[].name], assignees: [.assignees[].login],
     described: ((.body // "") | gsub("\\s"; "") | length > 0),
     has_criteria: ((.body // "") | test("(^|\\n)#+\\s*acceptance criteria|(^|\\n)\\s*- \\[[ x]\\]"; "i")),
     parent: $parent, children: $children, branches: $branches,
-    blockers: [.blockedBy.nodes[] | select(.state == "OPEN") | {number, title}]}' <<<"$item"
+    blockers: [.blockedBy.nodes[] | select(.state == "OPEN") | {number, title}], fixed_blockers: $fixed}' <<<"$item"
 }
 
 render() {
@@ -224,10 +248,35 @@ read_questions() {
     --jq "$ANSWERED_JQ"'.[] | {number, title, answered: answered}' || die "could not read the needs-info questions"
 }
 
+# The open PRs (not drafts) the merge queue removed, one line each, tab-separated: the PR number, its title, the phase
+# flow-phase.jq decides for its issue (`queue-removed` for a PR whose branch names no issue) and, for `requeue`, the bug to
+# re-queue after (ADR-025). The phase decides where the PR is listed: `waiting-fix` and `requeue` belong to the factory
+# (the bug is ready work, the re-queue too), the others to the owner. Dies when a read fails.
+removal_items() {
+  local prs pr title branch issue queue f d
+  prs="$(gh pr list --repo "$REPO" --state open --limit 100 --json number,title,isDraft,headRefName \
+    --jq '.[] | select(.isDraft | not) | [.number, .title, .headRefName] | @tsv')" || die "could not read the open PRs"
+  while IFS=$'\t' read -r pr title branch; do
+    [ -n "$pr" ] || continue
+    queue="$("$ROOT/scripts/pr.sh" queue "$pr")" || die "could not read the merge queue state of PR #$pr"
+    [ "$(jq -r '.state // ""' <<<"$queue")" = removed ] || continue
+    issue="$(branch_issue "$branch")"
+    if [ -z "$issue" ]; then
+      printf '%s\t%s\tqueue-removed\t\n' "$pr" "$title"
+      continue
+    fi
+    f="$(facts "$issue")" || die "could not read #$issue"
+    d="$(jq -c -f "$PHASE_JQ" <<<"$f")" || die "could not read the phase of #$issue"
+    jq -er --arg pr "$pr" --arg title "$title" '[$pr, $title, .phase, (.bug // "" | tostring)] | @tsv' <<<"$d" \
+      || die "could not read the phase of #$issue"
+  done <<<"$prs"
+}
+
 # What an agent can start without the owner: the ready tickets (scripts/issue.sh ready), the approved specs without
 # tickets that flow-phase.jq calls needs-tickets (`Cut #n`; facts are read only for such candidates, so a spec that has
-# tickets or is not approved costs no read) and the needs-info questions that were answered. $1 is read_specs, $2
-# read_questions. Dies when a read fails, so an empty list means nothing is ready.
+# tickets or is not approved costs no read), the needs-info questions that were answered and the PRs to re-queue after
+# their bug was fixed (`Requeue PR #n after #bug`, ADR-025). $1 is read_specs, $2 read_questions, $3 removal_items.
+# Dies when a read fails, so an empty list means nothing is ready.
 ready_items() {
   local ready candidates n title f phase
   ready="$("$ROOT/scripts/issue.sh" ready)" || die "could not read the ready tickets"
@@ -242,11 +291,12 @@ ready_items() {
     [ "$phase" != needs-tickets ] || echo "Cut #$n $title ($phase)"
   done <<<"$candidates"
   jq -r 'select(.answered) | "Triage #\(.number) \(.title) (answered)"' <<<"$2"
+  awk -F'\t' '$3 == "requeue" { print "Requeue PR #" $1 " after #" $4 }' <<<"${3:-}"
 }
 
 cmd_next() {
   [ $# -eq 0 ] || usage
-  local specs questions ready owner read_items mine n phase heads title
+  local specs questions ready owner read_items mine n phase heads title removals
   echo "== Assigned to you"
   mine="$(assigned_lines)" || exit 1
   if [ -z "$mine" ]; then echo "(none)"; fi
@@ -259,10 +309,11 @@ cmd_next() {
   echo "== Ready for an agent"
   # Read first, then print: a failed read is an error, never "(none)".
   questions="$(read_questions)" || exit 1
-  ready="$(ready_items "$specs" "$questions")" || exit 1
+  removals="$(removal_items)" || exit 1
+  ready="$(ready_items "$specs" "$questions" "$removals")" || exit 1
   grep . <<<"$ready" || echo "(none)"
   echo "== Waiting on the owner"
-  owner="$(owner_items "$specs" "$questions")" || exit 1
+  owner="$(owner_items "$specs" "$questions" "$removals")" || exit 1
   grep . <<<"$owner" || echo "(none)"
   echo "== For the owner to read"
   read_items="$(agent_merged_items)" || exit 1
@@ -270,8 +321,9 @@ cmd_next() {
 }
 
 # The phases the work skill's playbook leaves to the owner, GitHub or the user; queue-removed is work until the notes say
-# the owner was told about the PR's head commit. Any other phase counts as work, so an unknown one is never a false idle.
-WAITING_PHASES=" queued merge-refused in-review approved waiting needs-approval needs-spec needs-refinement human blocked taken abandoned done "
+# the owner was told about the PR's head commit. waiting-fix waits for a bug that is itself ready work (ADR-025); requeue
+# is work. Any other phase counts as work, so an unknown one is never a false idle.
+WAITING_PHASES=" queued waiting-fix merge-refused in-review approved waiting needs-approval needs-spec needs-refinement human blocked taken abandoned done "
 
 # True when the notes of #$1 have `queue-removed <sha>: reported to the owner` (an optional "- " before it) for every
 # head commit in $2 (comma-separated); <sha> is the commit or a prefix of it of at least 7 hex characters.
@@ -290,7 +342,7 @@ removal_reported() {
 
 # The scan of `idle`: the first line is `work` or `idle`, then the lines that explain it. Dies when a read fails.
 idle_scan() {
-  local specs questions ready mine owner work='' n phase heads title
+  local specs questions ready mine owner removals work='' n phase heads title
   mine="$(assigned_lines)" || exit 1
   while IFS='|' read -r n phase heads title; do
     [ -n "$n" ] || continue
@@ -300,13 +352,14 @@ idle_scan() {
   done <<<"$mine"
   specs="$(read_specs)" || exit 1
   questions="$(read_questions)" || exit 1
-  ready="$(ready_items "$specs" "$questions")" || exit 1
+  removals="$(removal_items)" || exit 1
+  ready="$(ready_items "$specs" "$questions" "$removals")" || exit 1
   work+="$ready"
   if grep -q . <<<"$work"; then
     echo work
     grep . <<<"$work"
   else
-    owner="$(owner_items "$specs" "$questions")" || exit 1
+    owner="$(owner_items "$specs" "$questions" "$removals")" || exit 1
     echo idle
     echo "== Waiting on the owner"
     grep . <<<"$owner" || echo "(none)"
@@ -373,7 +426,8 @@ agent_merged_items() {
 
 # Specs to approve, owner-only PRs (scripts/risk.sh; an unknown risk counts as owner-only), PRs GitHub removed from the
 # merge queue (scripts/pr.sh queue), low-risk and high-risk PRs the merge gate refused on their head commit
-# (scripts/pr.sh refusal) and unanswered needs-info questions ($2, from cmd_next). A PR in the merge queue waits on
+# (scripts/pr.sh refusal) and unanswered needs-info questions ($2, from cmd_next). $3 is removal_items: a removed PR that
+# waits for its bug or is to be re-queued (ADR-025) is the factory's, not listed. A PR in the merge queue waits on
 # GitHub, not on the owner. A spec is to approve when flow-phase.jq would call it needs-approval: not approved, not
 # complete, and not still needs-spec (no tickets, not ready-for-agent, and needs-triage or no body). Dies when a read
 # fails, so an empty list means nothing waits.
@@ -395,6 +449,8 @@ owner_items() {
     case "$(jq -r '.state // ""' <<<"$queue")" in
       queued) continue ;;
       removed)
+        # waiting-fix and requeue are the factory's (removal_items), not the owner's.
+        case "$(awk -F'\t' -v pr="$pr" '$1 == pr { print $3 }' <<<"${3:-}")" in waiting-fix|requeue) continue ;; esac
         jq -r --arg pr "$pr" --arg title "$title" \
           '"Decide on PR #\($pr) \($title) (GitHub removed it from the merge queue: \(.reason // "no reason given"); or fix it and push)"' <<<"$queue" \
           || die "could not read the merge queue state of PR #$pr"
