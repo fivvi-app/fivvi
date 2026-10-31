@@ -497,6 +497,11 @@ describe('F006 add and list clients', () => {
       expect.objectContaining({ workspace_id: gym.id, surface: 'web' }),
       expect.objectContaining({ workspace_id: gym.id, surface: 'ios' }),
     ]);
+    // Only these two properties: nothing about the person (name, email, locale) rides along.
+    for (const { properties } of posthog.events) {
+      const keys = Object.keys(properties ?? {}).filter((key) => !key.startsWith('$'));
+      expect(keys.toSorted()).toEqual(['surface', 'workspace_id']);
+    }
     const sent = JSON.stringify([posthog.events, lines]);
     for (const personal of ['Zoë', 'Émile', 'zoe@example.com', 'Bram', 'Carla', 'Visser', 'Smit']) {
       expect(sent).not.toContain(personal);
