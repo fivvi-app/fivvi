@@ -5,6 +5,9 @@ import FivviAPI
 /// The signed-in account shown on the home: asks `GET /api/v1/me` through the generated client, which sends the bearer
 /// token (`AuthMiddleware`). A `401` is the middleware's business: it signs the app out. It also signs the person out
 /// on request (`signOut()`, F001 AC10).
+/// Takes the stored preference a `GET /api/v1/me` answered (`AppLanguage.startRead()`).
+typealias StoredLocaleHandler = (_ stored: Components.Schemas.Locale?) -> Void
+
 @MainActor
 @Observable
 final class AccountViewModel {
@@ -37,6 +40,7 @@ final class AccountViewModel {
     private let signOutTimeout: Duration
     private let onAccount: (_ id: String) -> Void
     private let onSignedOut: (_ afterRejection: Bool) -> Void
+    private let onPreferredLocale: () -> StoredLocaleHandler
 
     /// `signOutTimeout` is how long a sign-out waits for the API, on `clock`, before it goes on without an answer.
     /// `onAccount` is told the account's ID (a UUID) once `GET /api/v1/me` has answered: the app sets it as the
@@ -48,7 +52,8 @@ final class AccountViewModel {
         clock: any Clock<Duration> = ContinuousClock(),
         signOutTimeout: Duration = .seconds(10),
         onAccount: @escaping (_ id: String) -> Void,
-        onSignedOut: @escaping (_ afterRejection: Bool) -> Void
+        onSignedOut: @escaping (_ afterRejection: Bool) -> Void,
+        onPreferredLocale: @escaping () -> StoredLocaleHandler = { { _ in } }
     ) {
         self.api = api
         self.store = store
@@ -56,26 +61,55 @@ final class AccountViewModel {
         self.signOutTimeout = signOutTimeout
         self.onAccount = onAccount
         self.onSignedOut = onSignedOut
+        self.onPreferredLocale = onPreferredLocale
     }
 
     func load() async {
         state = .loading
         destination = nil
         do {
-            let account = try await api.getMe().ok.body.json
-            state = .loaded(email: account.email)
-            // With more than one workspace (F012) the last one used will decide; until then the first is the home.
-            if let workspace = account.workspaces.first {
-                destination = .workspace(name: workspace.name)
-            } else {
-                destination = account.canCreateWorkspace ? .setUpOnWeb : .noAccess
-            }
-            // An answer that arrives after the sign-out (the token is gone) or once the screen has gone (its task is
-            // cancelled) must not set the account that was just cleared as the error-reporting user (#266).
-            if !Task.isCancelled, store.token != nil { onAccount(account.id) }
+            try await fetch()
         } catch {
             state = .failed
         }
+    }
+
+    /// Asks again on opening the app again (foreground, F003): what is on screen stays until the answer is there, and an
+    /// answer that fails changes nothing.
+    func refresh() async {
+        try? await fetch()
+    }
+
+    private func fetch() async throws {
+        // Told when the request goes out, so an answer to a read that began before a save can be dropped.
+        let storedLocaleRead = onPreferredLocale()
+        let account = try await api.getMe().ok.body.json
+        // The stored language is told before the workspaces are looked up: a preference changed on the web is adopted
+        // even when that lookup fails (F010 AC2).
+        if !Task.isCancelled, store.token != nil {
+            storedLocaleRead(account.preferredLocale.flatMap { Components.Schemas.Locale(rawValue: $0.rawValue) })
+        }
+        let destination = try await destination(of: account)
+        state = .loaded(email: account.email)
+        self.destination = destination
+        // An answer that arrives after the sign-out (the token is gone) or once the screen has gone (its task is
+        // cancelled) must not set the account that was just cleared as the error-reporting user (#266).
+        if !Task.isCancelled, store.token != nil { onAccount(account.id) }
+    }
+
+    /// With more than one workspace (F012) the last one used will decide; until then the first one the API still lets
+    /// the person into is the home. A `404` for a workspace means the team access is gone (F003 AC6): the next one is
+    /// tried, and with none left the no-access text shows. Any other failure is a failure of the screen, not a verdict.
+    private func destination(of account: Components.Schemas.MeResponse) async throws -> Destination {
+        for workspace in account.workspaces {
+            switch try await api.getWorkspace(.init(path: .init(workspaceId: workspace.id))) {
+            case .ok: return .workspace(name: workspace.name)
+            case .notFound: continue
+            default: throw URLError(.badServerResponse)
+            }
+        }
+        if account.workspaces.isEmpty, account.canCreateWorkspace { return .setUpOnWeb }
+        return .noAccess
     }
 
     /// Ends this phone's sign-in session. The token is deleted first, so a phone that is switched off or an app that

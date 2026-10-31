@@ -16,7 +16,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
   it('AC6: the frame shows the workspace name in its sidebar header', () => {
     const html = render(
       locale,
-      <WorkspaceFrame name="John's Gym Utrecht" slug="johns-gym" teamRole="owner">
+      <WorkspaceFrame name="John's Gym Utrecht" slug="johns-gym" teamRole="owner" personName={null}>
         <hr id="page" />
       </WorkspaceFrame>,
     );
@@ -28,13 +28,13 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
   it('F003: the sidebar header shows the workspace name and the role label, as plain text', () => {
     const owner = render(
       locale,
-      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="owner">
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="owner" personName={null}>
         <hr />
       </WorkspaceFrame>,
     );
     const trainer = render(
       locale,
-      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="trainer">
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="trainer" personName={null}>
         <hr />
       </WorkspaceFrame>,
     );
@@ -44,10 +44,36 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     expect(trainer).not.toContain(escapeHtml(copy.roles.owner));
   });
 
+  it('F003 AC2: the Owner has Trainers in the navigation, linking to the Trainers page', () => {
+    const html = render(
+      locale,
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="owner" personName={null}>
+        <hr />
+      </WorkspaceFrame>,
+    );
+
+    expect(html).toMatch(
+      new RegExp(
+        `<a[^>]*href="/w/johns-gym/trainers"[^>]*>${escapeHtml(copy.workspaceNav.trainers)}</a>`,
+      ),
+    );
+  });
+
+  it('F003 AC3: a Trainer has no Trainers in the navigation', () => {
+    const html = render(
+      locale,
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="trainer" personName={null}>
+        <hr />
+      </WorkspaceFrame>,
+    );
+
+    expect(html).not.toContain('/trainers');
+  });
+
   it('AC7: the Owner has Settings in the navigation, linking to the general settings', () => {
     const html = render(
       locale,
-      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="owner">
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="owner" personName={null}>
         <hr id="page" />
       </WorkspaceFrame>,
     );
@@ -63,7 +89,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
   it('F010 AC7: the Owner has the General and Language settings in the navigation', () => {
     const html = render(
       locale,
-      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="owner">
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="owner" personName={null}>
         <hr id="page" />
       </WorkspaceFrame>,
     );
@@ -83,7 +109,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
   it('F010 AC8: a Trainer has no Language in the navigation', () => {
     const html = render(
       locale,
-      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="trainer">
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="trainer" personName={null}>
         <hr id="page" />
       </WorkspaceFrame>,
     );
@@ -120,7 +146,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
   it('AC7: a Trainer has no Settings in the navigation', () => {
     const html = render(
       locale,
-      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="trainer">
+      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="trainer" personName={null}>
         <hr id="page" />
       </WorkspaceFrame>,
     );

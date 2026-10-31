@@ -1,0 +1,45 @@
+# F003 native Profiel (spec #171, AC9), against the local stack: Sarah (the seeded trainer@example.com) is Trainer of
+# John's Gym and Owner of Sarah Personal Training, and Profiel lists both with the role label of the device language.
+# The sign-in is the shared sub-flow; Profiel is reached from the signed-in home and answers from
+# GET /api/v1/me/workspaces. Elements are found by id: the Android testTag and the iOS accessibilityIdentifier, the same on
+# both apps (the row ids end in the workspace's slug).
+# ROLE_OWNER, ROLE_TRAINER and PROFILE_WORKSPACES_TITLE, set by scripts/maestro.sh: roles.owner, roles.trainer and
+# myProfile.workspacesTitle from packages/i18n in the device language. They have no default here: a flow's own env default
+# would win over the value maestro.sh passes.
+appId: ${APP_ID}
+name: AC9 Profiel lists my workspaces with my role
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # Sarah: seeded (packages/database/src/seed.ts).
+  EMAIL: trainer@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+- tapOn:
+    id: home\.openProfile
+- extendedWaitUntil:
+    visible:
+      id: profile\.workspacesTitle
+    timeout: 20000
+- assertVisible:
+    id: profile\.workspacesTitle
+    text: ${PROFILE_WORKSPACES_TITLE}
+- extendedWaitUntil:
+    visible:
+      id: profile\.workspaceName\.johns-gym
+    timeout: 20000
+- assertVisible:
+    id: profile\.workspaceName\.johns-gym
+    text: John's Gym
+- assertVisible:
+    id: profile\.workspaceRole\.johns-gym
+    text: ${ROLE_TRAINER}
+- assertVisible:
+    id: profile\.workspaceName\.sarah-personal-training
+    text: Sarah Personal Training
+- assertVisible:
+    id: profile\.workspaceRole\.sarah-personal-training
+    text: ${ROLE_OWNER}

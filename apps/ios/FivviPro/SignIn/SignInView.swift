@@ -6,24 +6,29 @@ import FivviDesignTokens
 /// tokens, text from the catalog; text wraps and every control keeps a 44 pt touch target.
 struct SignInView: View {
     @State private var model: SignInViewModel
+    private let language: AppLanguage
     @FocusState private var focus: Field?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private enum Field {
         case email, code
     }
 
     init(
-        api: any APIProtocol, store: any SessionStore, catalog: Catalog, afterRejection: Bool,
+        api: any APIProtocol, store: any SessionStore, language: AppLanguage, afterRejection: Bool,
         onSignedIn: @escaping () -> Void
     ) {
         _model = State(initialValue: SignInViewModel(
-            api: api, store: store, catalog: catalog, showsSignedOutNotice: afterRejection, onSignedIn: onSignedIn
+            api: api, store: store, catalog: language.catalog, showsSignedOutNotice: afterRejection,
+            onSignedIn: onSignedIn
         ))
+        self.language = language
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Tokens.Spacing.space6) {
+                languageSwitch
                 Text(model.catalog[.signInTitle])
                     .font(.system(Tokens.TextStyle.display, weight: .semibold))
                     .fixedSize(horizontal: false, vertical: true)
@@ -62,6 +67,7 @@ struct SignInView: View {
         .foregroundStyle(Tokens.Colors.textPrimary)
         .background(Tokens.Colors.bgCanvas)
         .environment(\.locale, model.catalog.formattingLocale)
+        .onChange(of: language.catalog) { _, catalog in model.use(catalog) }
         .onChange(of: model.state) { _, state in
             switch state {
             case .enteringCode: focus = .code
@@ -72,6 +78,26 @@ struct SignInView: View {
         .onChange(of: model.code) {
             if model.isCodeComplete { Task { await model.submitCode() } }
         }
+    }
+
+    /// *Nederlands | English* (F010): the choice re-renders the screen at once and is kept on the phone; the sign-in email
+    /// follows it, and signing in saves it on the account.
+    private var languageSwitch: some View {
+        // At accessibility text sizes the two names don't fit next to each other: they stack.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Tokens.Spacing.space2))
+            : AnyLayout(HStackLayout(spacing: Tokens.Spacing.space2))
+        return layout {
+            ForEach(Components.Schemas.Locale.allCases, id: \.self) { locale in
+                LanguageOptionButton(
+                    title: model.catalog[locale.languageNameKey], isSelected: language.catalog.locale == locale,
+                    id: "signIn.language.\(locale.rawValue)"
+                ) { language.choose(locale) }
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(model.catalog[.signInLanguageLabel])
+        .accessibilityIdentifier("signIn.language")
     }
 
     @ViewBuilder private var step: some View {

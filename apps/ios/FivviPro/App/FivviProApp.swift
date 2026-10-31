@@ -8,7 +8,7 @@ struct FivviProApp: App {
     @State private var session: Session
     private let api: Client
     private let store: KeychainSessionStore
-    private let catalog: Catalog
+    private let language: AppLanguage
 
     init() {
         ErrorReporting.start()
@@ -18,14 +18,14 @@ struct FivviProApp: App {
         let session = Session(store: store, onSignedOut: ErrorReporting.clearUser)
         let auth = AuthMiddleware(store: store) { await session.tokenRejected() }
         api = Client(serverURL: AppConfiguration.apiBaseURL(), transport: URLSessionTransport(), middlewares: [auth])
-        catalog = Catalog(locale: InterfaceLanguage.resolve(.forLaunch()))
+        language = AppLanguage(api: api, store: store)
         self.store = store
         _session = State(initialValue: session)
     }
 
     var body: some Scene {
         WindowGroup {
-            RootView(session: session, api: api, store: store, catalog: catalog)
+            RootView(session: session, api: api, store: store, language: language)
                 .tint(Tokens.Colors.actionPrimaryBg)
                 .preferredColorScheme(LaunchAppearance.colorScheme())
         }

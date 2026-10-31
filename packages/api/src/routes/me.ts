@@ -1,5 +1,17 @@
-import { listTeamWorkspaces, type SignedInAccount, setPreferredLocale } from '@fivvi/database';
-import { CAPABILITIES, canCreateWorkspace, capabilitiesOf, ROLES, type Role } from '@fivvi/domain';
+import {
+  listTeamWorkspaces,
+  type SignedInAccount,
+  setAccountName,
+  setPreferredLocale,
+} from '@fivvi/database';
+import {
+  CAPABILITIES,
+  canCreateWorkspace,
+  capabilitiesOf,
+  NAME_MAX_LENGTH,
+  ROLES,
+  type Role,
+} from '@fivvi/domain';
 import { locales } from '@fivvi/i18n';
 import { anonymousDistinctId } from '@fivvi/observability';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
@@ -99,12 +111,20 @@ const meRoute = defineRoute(
 // TypeScript lose the route's request types.
 const SIGNED_IN: RouteConfig['security'] = [{ cookieAuth: [] }, { bearerAuth: [] }];
 
-/**
- * What the account may change about itself. Every field is optional so F005 can add `name` to
- * this body; today a request must carry `preferredLocale` to change anything.
- */
+/** What the account may change about itself. Every field is optional; one left out stays. */
 const UpdateMeRequestSchema = z
   .object({
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .max(NAME_MAX_LENGTH)
+      .optional()
+      .openapi({
+        description:
+          'The person’s own name, as shown in every workspace they are on: trimmed, at least ' +
+          'one and at most 80 characters. Empty, blank or longer answers `400` with a field error.',
+      }),
     preferredLocale: z
       .enum(locales)
       .optional()
@@ -112,6 +132,16 @@ const UpdateMeRequestSchema = z
         description:
           'The language to store on the account, for its screens and emails: `nl-NL` or `en`. ' +
           'Any other value, a browser’s `nl-BE` included, is refused with `400`.',
+      }),
+    surface: z
+      .enum(['ios', 'android'])
+      .optional()
+      .openapi({
+        description:
+          'The app that sends the request: `ios` or `android`. A request with a bearer token ' +
+          'that changes `preferredLocale` records the `language_changed` event with this surface; ' +
+          'without it nothing is recorded. The web does not send it, and a request without a ' +
+          'bearer token ignores it.',
       }),
   })
   .openapi('UpdateMeRequest', {
@@ -127,8 +157,10 @@ const updateMeRoute = defineRoute(
     summary: 'Change the signed-in account',
     description:
       'Stores the language the person chose (`preferredLocale`), so every browser and app of the ' +
-      'account shows it from its next load. Answers with the account, as `GET /v1/me` does. ' +
-      'A value other than `nl-NL` or `en` answers `400` and nothing changes.',
+      'account shows it from its next load, and the name they gave themselves (`name`), one per ' +
+      'account, shown in every workspace they are on. Answers with the account, as ' +
+      '`GET /v1/me` does. A language other than `nl-NL` or `en`, or a name that is empty, blank ' +
+      'or over 80 characters, answers `400` and nothing changes.',
     security: SIGNED_IN,
     request: {
       body: {
@@ -210,20 +242,29 @@ export function registerMe(app: OpenAPIHono) {
     );
   });
   me.openapi(updateMeRoute, async (c) => {
-    const { preferredLocale } = c.req.valid('json');
-    const account = c.get('account');
-    if (preferredLocale === undefined) return c.json(await meOf(c, account), 200);
-    await setPreferredLocale(c.get('scope'), preferredLocale);
-    // The language and the surface only, under a random ID (OBSERVABILITY.md §4). A request with
-    // a bearer token comes from an app, which records its own surface (F010 iOS and Android).
-    if (!c.req.header('authorization')) {
-      c.get('dependencies').productEvents.track({
-        event: 'language_changed',
-        distinctId: anonymousDistinctId(),
-        properties: { locale: preferredLocale, surface: 'web' },
-      });
+    const { name, preferredLocale, surface } = c.req.valid('json');
+    let account = c.get('account');
+    // No product event for a name, and nothing of it in a log: it is personal data (F005).
+    if (name !== undefined) {
+      await setAccountName(c.get('scope'), name);
+      account = { ...account, name };
     }
-    return c.json(await meOf(c, { ...account, preferredLocale }), 200);
+    if (preferredLocale !== undefined) {
+      await setPreferredLocale(c.get('scope'), preferredLocale);
+      account = { ...account, preferredLocale };
+      // The language and the surface only, under a random ID (OBSERVABILITY.md §4). A request with
+      // a bearer token comes from an app, which names its surface in the body (F010); one that
+      // names none records nothing, as the API does not guess. Without a token it is the web.
+      const appSurface = c.req.header('authorization') ? surface : 'web';
+      if (appSurface !== undefined) {
+        c.get('dependencies').productEvents.track({
+          event: 'language_changed',
+          distinctId: anonymousDistinctId(),
+          properties: { locale: preferredLocale, surface: appSurface },
+        });
+      }
+    }
+    return c.json(await meOf(c, account), 200);
   });
   app.route('/', me);
 }

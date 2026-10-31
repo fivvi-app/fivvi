@@ -45,3 +45,52 @@ class AppLanguageTest {
         assertEquals(ApiLocale.EN, AppLanguage.ENGLISH.apiLocale)
     }
 }
+
+// F010 AC6: the same case names as `AC6: explicit, stored, device, English` in packages/i18n/src/locale.test.ts.
+class AppLanguageOrderTest {
+    private val dutchPhone = listOf(Locale.forLanguageTag("nl-NL"))
+
+    @Test
+    fun AC6_explicit_aChoiceMadeNowWinsOverAStoredPreferenceAndTheDevice() {
+        assertEquals(
+            AppLanguage.ENGLISH,
+            AppLanguage.resolve(
+                perApp = emptyList(),
+                device = dutchPhone,
+                explicit = AppLanguage.ENGLISH,
+                stored = AppLanguage.DUTCH,
+            ),
+        )
+    }
+
+    @Test
+    fun AC6_stored_theStoredPreferenceWinsOverTheDeviceLanguages() {
+        assertEquals(
+            AppLanguage.ENGLISH,
+            AppLanguage.resolve(perApp = emptyList(), device = dutchPhone, stored = AppLanguage.ENGLISH),
+        )
+        assertEquals(
+            AppLanguage.DUTCH,
+            AppLanguage.resolve(
+                perApp = emptyList(),
+                device = listOf(Locale.forLanguageTag("en-GB")),
+                stored = AppLanguage.DUTCH,
+            ),
+        )
+    }
+
+    @Test
+    fun AC6_device_theFirstSupportedDeviceLanguageDecidesWithoutAChoice() {
+        val device = listOf("fr-FR", "nl-BE", "en-GB").map(Locale::forLanguageTag)
+        assertEquals(AppLanguage.DUTCH, AppLanguage.resolve(perApp = emptyList(), device = device))
+    }
+
+    @Test
+    fun AC6_english_nothingSupportedIsChosenStoredOrRequested() {
+        assertEquals(
+            AppLanguage.ENGLISH,
+            AppLanguage.resolve(perApp = emptyList(), device = listOf(Locale.forLanguageTag("de-DE"))),
+        )
+        assertEquals(AppLanguage.ENGLISH, AppLanguage.resolve(perApp = emptyList(), device = emptyList()))
+    }
+}

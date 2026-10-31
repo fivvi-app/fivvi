@@ -49,6 +49,11 @@ struct Catalog: Sendable {
     }
 }
 
+extension Catalog: Equatable {
+    /// Two catalogs are the same when they are in the same language.
+    static func == (lhs: Catalog, rhs: Catalog) -> Bool { lhs.locale == rhs.locale }
+}
+
 /// The i18n keys the app uses directly (packages/i18n/{nl-NL,en}.json).
 enum StringKey: String {
     case commonLoading = "common.loading"
@@ -59,7 +64,17 @@ enum StringKey: String {
     case noAccessBody = "noAccess.body"
     case setUpOnWeb = "home.setUpOnWeb"
     case openWeb = "home.openWeb"
+    case profileTitle = "profile.title"
+    case profileError = "profile.error"
+    case profileLanguage = "profile.language"
+    case myProfileWorkspacesTitle = "myProfile.workspacesTitle"
+    case rolesOwner = "roles.owner"
+    case rolesTrainer = "roles.trainer"
     case signOutLabel = "signOut.label"
+    case signInLanguageLabel = "signIn.languageLabel"
+    case signInLanguageNl = "signIn.languageNl"
+    case signInLanguageEn = "signIn.languageEn"
+    case userMenuError = "userMenu.error"
     case signInTitle = "signIn.title"
     case signInEmailLabel = "signIn.emailLabel"
     case signInSendCode = "signIn.sendCode"

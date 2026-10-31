@@ -117,7 +117,8 @@
     "settings": "Settings",
     "settingsGeneral": "General",
     "settingsLanguage": "Language",
-    "workspaceWithRole": "{name} · {role}"
+    "workspaceWithRole": "{name} · {role}",
+    "trainers": "Trainers"
   },
   "signOut": {
     "label": "Sign out",
@@ -159,6 +160,41 @@
   },
   "myProfile": {
     "title": "My profile",
-    "workspacesTitle": "My workspaces"
+    "workspacesTitle": "My workspaces",
+    "detailsTitle": "Your details",
+    "nameLabel": "Name",
+    "emailLabel": "Email address",
+    "save": "Save",
+    "saved": "Saved.",
+    "errors": {
+      "nameRequired": "Enter your name.",
+      "nameTooLong": "This name is too long. Use a shorter one.",
+      "noConnection": "No connection. Check your internet and try again.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "error": "Your workspaces couldn't be loaded.",
+    "language": "Language"
+  },
+  "team": {
+    "title": "Trainers",
+    "nameColumn": "Name",
+    "emailColumn": "Email address",
+    "roleColumn": "Role",
+    "actionsColumn": "Actions",
+    "remove": "Remove from team",
+    "removeDialog": {
+      "title": "Remove {name} from the team?",
+      "body": "{name} will no longer have access to {workspace} as a trainer. What {name} has as a client, such as bookings, stays.",
+      "confirm": "Remove",
+      "cancel": "Cancel"
+    },
+    "removed": "{name} has been removed from the team.",
+    "errors": {
+      "noConnection": "No connection. Check your internet and try again.",
+      "generic": "Something went wrong. Try again."
+    }
   }
 }

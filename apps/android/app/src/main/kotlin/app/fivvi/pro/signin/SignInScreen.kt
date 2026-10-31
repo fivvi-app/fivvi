@@ -40,6 +40,8 @@ import androidx.compose.ui.text.style.TextAlign
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.title1
+import app.fivvi.pro.AppLanguage
+import app.fivvi.pro.LanguageSwitch
 import app.fivvi.pro.R
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
@@ -57,6 +59,9 @@ object SignInTags {
     const val RETRY = "signIn.retry"
     const val LOADING = "signIn.loading"
     const val ERROR = "signIn.error"
+
+    /** The switch: `signIn.language.nl-NL` and `signIn.language.en` are its two options. */
+    const val LANGUAGE = "signIn.language"
 }
 
 /** What the screen does for the person: the view model's functions, or tests' stand-ins. */
@@ -68,6 +73,8 @@ class SignInActions(
     val onResend: () -> Unit,
     val onChangeEmail: () -> Unit,
     val onRetry: () -> Unit,
+    val language: AppLanguage = AppLanguage.ENGLISH,
+    val onChooseLanguage: (AppLanguage) -> Unit = {},
 )
 
 /**
@@ -97,6 +104,7 @@ fun SignInScreen(
         if (showsSignedOutNotice) Notice()
         if (atCodeStep) CodeStep(state, busy, actions) else EmailStep(state, busy, actions)
         val error = (state as? SignInState.EmailEntry)?.error ?: (state as? SignInState.CodeEntry)?.error
+        LanguageSwitch(SignInTags.LANGUAGE, actions.language, actions.onChooseLanguage)
         if (error != null) {
             ErrorText(error)
             if (error ==

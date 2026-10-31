@@ -208,6 +208,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     deleteTeamMember: 'repository of the team, takes the workspace scope (F003)',
     updateWorkspace: 'repository of workspaces, takes the workspace scope (F002, F010)',
     setPreferredLocale: 'repository of accounts, takes the account scope (F010)',
+    setAccountName: 'repository of accounts, takes the account scope (F005)',
     findSystemGreeting: 'query of the system data, which has no tenant',
     consumeRateLimit:
       'query of the rate limits, which have no tenant; takes the executor it is given',

@@ -5,28 +5,33 @@ import FivviDesignTokens
 /// The signed-in home, a placeholder until the tab bar arrives. `GET /api/v1/me` decides what it shows (F002 AC10): the
 /// workspace's name with the hello block, the text to set a workspace up on the web with a button that opens trainer
 /// web in the browser, or the no-access text. Under it always sit the address of the account that is signed in and the
-/// sign-out button.
+/// sign-out button; above it the button *Profiel* opens TM-04, the person's workspaces with their roles (F003).
 struct HomeView: View {
     @Environment(\.openURL) private var openURL
     @State private var hello: HelloViewModel
     @State private var account: AccountViewModel
-    private let catalog: Catalog
+    @State private var profile: ProfileViewModel
+    private let language: AppLanguage
     private let welcomeURL: URL
+
+    private var catalog: Catalog { language.catalog }
 
     /// `welcomeURL` is trainer web's first-run screen, which the set-up button opens in the system browser.
     /// `onAccount` is told the account's ID once `GET /api/v1/me` has answered; the app passes it to error reporting.
     /// `onSignedOut` runs after the person signed out and the token is gone; its argument says whether the API
     /// refused the token of the sign-out call.
     init(
-        api: any APIProtocol, store: any SessionStore, catalog: Catalog, welcomeURL: URL,
+        api: any APIProtocol, store: any SessionStore, language: AppLanguage, welcomeURL: URL,
         onAccount: @escaping (String) -> Void,
         onSignedOut: @escaping (Bool) -> Void
     ) {
-        _hello = State(initialValue: HelloViewModel(api: api, catalog: catalog))
+        _hello = State(initialValue: HelloViewModel(api: api, catalog: language.catalog))
+        _profile = State(initialValue: ProfileViewModel(api: api, catalog: language.catalog))
         _account = State(initialValue: AccountViewModel(
-                api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut
-            ))
-        self.catalog = catalog
+            api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut,
+            onPreferredLocale: { language.startRead() }
+        ))
+        self.language = language
         self.welcomeURL = welcomeURL
     }
 
@@ -34,12 +39,20 @@ struct HomeView: View {
     /// (#233). The spacers share what is left when both fit (the hello block centred above the account block) and give
     /// way when not.
     var body: some View {
+        NavigationStack {
+            screen
+                .toolbar(.hidden, for: .navigationBar)
+        }
+    }
+
+    private var screen: some View {
         GeometryReader { proxy in
             ScrollView {
                 VStack(spacing: 0) {
                     Spacer(minLength: 0)
                     VStack(spacing: Tokens.Spacing.space4) {
                         destination
+                        profileLink
                         // One hello block in one place, so it loads once whether /me is loading, failed or answered
                         // with a workspace; the other states have their own text instead.
                         if showsHello {
@@ -54,7 +67,22 @@ struct HomeView: View {
             }
         }
         .background(Tokens.Colors.bgCanvas)
-        .task { await account.load() }
+        // A language chosen before signing in, or in iOS Settings, is saved first; then the account's stored language is
+        // read, so an older stored one can't override it (F010).
+        .task {
+            await language.save()
+            await account.load()
+        }
+        // Coming back to the app asks again: a workspace the person lost access to meanwhile is noticed (F003 AC6), and
+        // a language changed on the web is adopted (F010 AC2).
+        .onReturnToForeground {
+            await language.save()
+            await account.refresh()
+        }
+        .onChange(of: language.catalog) { _, catalog in
+            hello.use(catalog)
+            profile.use(catalog)
+        }
     }
 
     private var showsHello: Bool {
@@ -127,6 +155,19 @@ struct HomeView: View {
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("home.account")
+    }
+
+    /// *Profiel* (TM-04): the person's workspaces with their role.
+    private var profileLink: some View {
+        NavigationLink {
+            ProfileView(model: profile, language: language)
+        } label: {
+            Text(catalog[.profileTitle])
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .buttonStyle(.secondaryAction)
+        .accessibilityIdentifier("home.openProfile")
     }
 
     @ViewBuilder private var signOut: some View {

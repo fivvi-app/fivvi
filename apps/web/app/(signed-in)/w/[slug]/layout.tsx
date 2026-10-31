@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { currentMe } from '../../../../server/signed-in';
 import { workspaceOf } from '../../../../server/workspace-of';
 import { WorkspaceFrame } from './workspace-frame';
 
@@ -15,8 +16,9 @@ export default async function WorkspaceLayout({
   params: Promise<{ slug: string }>;
 }) {
   const { name, slug, role } = await workspaceOf((await params).slug);
+  const me = await currentMe();
   return (
-    <WorkspaceFrame name={name} slug={slug} teamRole={role}>
+    <WorkspaceFrame name={name} slug={slug} teamRole={role} personName={me.name}>
       {children}
     </WorkspaceFrame>
   );

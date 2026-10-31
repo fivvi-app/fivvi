@@ -27,7 +27,7 @@ export {
 } from './queries/rate-limits.ts';
 export { findSystemGreeting, type SystemGreetingView } from './queries/system-greetings.ts';
 export { recordWrongSignInCode } from './queries/verifications.ts';
-export { setPreferredLocale } from './repositories/accounts.ts';
+export { setAccountName, setPreferredLocale } from './repositories/accounts.ts';
 export { type ClientView, createClient, findClient, listClients } from './repositories/clients.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
 export {

@@ -48,10 +48,21 @@ catalog() {
 # screens show in locale $1, and where the flows read the sign-in emails (the host: Maestro runs there on both platforms).
 FLOW_ENV=()
 set_flow_env() {
+  local other="nl-NL"
+  [ "$1" != "nl-NL" ] || other="en"
   FLOW_ENV=(
     --env "SIGN_IN_SEND_CODE=$(catalog "$1" signIn.sendCode)"
     --env "HELLO_TITLE=$(catalog "$1" hello.title)"
     --env "HOME_SET_UP_ON_WEB=$(catalog "$1" home.setUpOnWeb)"
+    --env "ROLE_OWNER=$(catalog "$1" roles.owner)"
+    --env "ROLE_TRAINER=$(catalog "$1" roles.trainer)"
+    --env "PROFILE_WORKSPACES_TITLE=$(catalog "$1" myProfile.workspacesTitle)"
+    --env "SIGN_OUT_LABEL=$(catalog "$1" signOut.label)"
+    --env "DEVICE_LANGUAGE=$1"
+    --env "LANGUAGE_THIS=$1"
+    --env "LANGUAGE_OTHER=$other"
+    --env "PROFILE_LANGUAGE_THIS=$(catalog "$1" profile.language)"
+    --env "PROFILE_LANGUAGE_OTHER=$(catalog "$other" profile.language)"
     --env "BREVO_URL=http://localhost:$BREVO_PORT"
   )
 }

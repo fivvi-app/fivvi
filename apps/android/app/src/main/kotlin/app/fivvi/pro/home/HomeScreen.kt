@@ -46,6 +46,7 @@ object HomeTags {
     const val SET_UP_ON_WEB = "home.setUpOnWeb"
     const val OPEN_WEB = "home.openWeb"
     const val NO_ACCESS = "home.noAccess"
+    const val OPEN_PROFILE = "home.openProfile"
 }
 
 /**
@@ -61,6 +62,7 @@ fun HomeScreen(
     onRetryMe: () -> Unit,
     onSignOut: () -> Unit,
     onOpenWeb: () -> Unit,
+    onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // One scroll for the whole screen, so the account block can't squeeze the hello block at the largest font scale. The
@@ -104,6 +106,15 @@ fun HomeScreen(
                     Button(onClick = onRetryMe, modifier = Modifier.testTag(HomeTags.RETRY)) {
                         Text(stringResource(R.string.common_retry), textAlign = TextAlign.Center)
                     }
+                }
+            }
+            // Profiel (TM-04) is reached from here once the account has answered; it lists the workspaces, whatever the home shows.
+            if (me is MeState.Loaded) {
+                OutlinedButton(
+                    onClick = onOpenProfile,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.space12).testTag(HomeTags.OPEN_PROFILE),
+                ) {
+                    Text(stringResource(R.string.my_profile_title), textAlign = TextAlign.Center)
                 }
             }
             SignOut(signingOut, onSignOut)
