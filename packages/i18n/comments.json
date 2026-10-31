@@ -2,6 +2,7 @@
   "app.title": "Browser tab title (HTML <title>) of web pages that don't set their own. The product name, Fivvi, the same in both languages.",
   "app.name": "Name of the native app under its home-screen icon (iOS CFBundleDisplayName and CFBundleName, Android app label). The name of the trainer app, Fivvi Pro, the same in both languages.",
   "common.loading": "Accessibility label of the progress indicator while a screen loads (read by VoiceOver and TalkBack).",
+  "common.loadingSlow": "Line under a loading placeholder that is still waiting after 10 seconds.",
   "common.retry": "Button under an error message that tries the failed action again.",
   "hello.description": "Line under the title of the hello page, above the first-name field.",
   "hello.firstNameLabel": "Label of the first-name field on the hello page.",
