@@ -17,7 +17,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [007](ADR-007-authentication.md) | Authentication: Better Auth with magic link + 6-digit code, bearer tokens for native; the organization plugin for workspaces amended by ADR-022 | Accepted |
 | [008](ADR-008-localization.md) | Localization: ICU catalogs in `packages/i18n`, exported to native catalogs | Accepted |
 | [009](ADR-009-transactional-email.md) | Transactional email: React Email + Brevo | Accepted; provider selected |
-| [010](ADR-010-background-jobs.md) | Background jobs: lazy expiry + daily cron, no job runner | Accepted |
+| [010](ADR-010-background-jobs.md) | Background jobs: lazy expiry + daily cron, no job runner; the hold expiry ends with ADR-026 and the daily-only cron is amended by ADR-027 | Accepted |
 | [011](ADR-011-hosting-and-environments.md) | Hosting & environments: Railway EU West (Amsterdam) for web, API, Postgres and cron | Accepted (re-evaluated; replaces Vercel + Neon) |
 | [012](ADR-012-time-and-recurrence.md) | Time & recurrence: UTC `timestamptz` + IANA zones, RRULE in wall-clock time, materialized occurrences | Accepted |
 | [013](ADR-013-observability.md) | Observability: Sentry EU, uptime checks, PostHog EU cookieless | Accepted |
@@ -33,6 +33,8 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [023](ADR-023-owner-out-of-the-per-pr-loop.md) | The owner out of the per-PR loop: status-only roadmap and registry edits, guardrails split into core and tooling (`@except`), payments in test mode, early tickets, split owner-only edits, a factory run lock, and the end of agent queueing at pilot setup instead of G2; amends ADR-016, ADR-018 and ADR-021 | Proposed |
 | [024](ADR-024-run-only-the-checks-a-change-can-affect.md) | A check runs when something it depends on changed, and only then: scoped `check.sh`, cacheable integration and e2e tests, narrower CI triggers, faster native jobs; builds on ADR-002, ADR-014, ADR-018 | Proposed |
 | [025](ADR-025-requeue-after-a-fix.md) | A PR the merge queue removed for a cause outside it is re-queued once after the fix (`pr.sh merge --after <bug>`) instead of waiting on the owner; amends ADR-018 | Proposed |
+| [026](ADR-026-clients-sign-in-and-are-approved-to-book.md) | Clients sign in and are approved to book: anyone can create an account, a client joins a workspace by its join link or an invitation and the Owner approves, nothing is public, booking is immediate (no holds, no email step), booking needs an agreement from M11; Sign in with Apple and Google planned (F063); reverses `PRODUCT.md` §23–§26 as written | Proposed |
+| [027](ADR-027-a-cron-every-5-minutes.md) | A cron every 5 minutes (Railway's minimum) for the waitlist's closing-time email; the daily work stays daily; amends ADR-010 | Proposed |
 
 ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. ADR-011 was re-evaluated during the write-up and accepted in its new form (Railway) the same day. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
 

@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.29 |
+| **Version** | 1.30 |
 | **Date** | 31 October 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
 | **Builders** | AI coding agents: GitHub Copilot (VS Code + CLI), Claude Code and Codex, working in parallel worktrees |
-| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7; GitHub Copilot added as a builder in v1.8; Matt Pocock's skills and GitHub issue specs in v1.9; E006 owner to-dos placed at M2, G2 and G4 in v1.10; prototype feedback on workouts, clients and app creation applied in v1.11; agents merge low-risk PRs in v1.12 (ADR-016, proposed); workout duration added to §41 and packages confirmed outside the MVP in v1.13; bilingual class name and description, exercise types and a one-list logger in v1.14; web-first pilot, native trainer apps after go-live in v1.15; personal language policy in v1.17 (ADR-017, accepted); F001 shaped in v1.18: closed sign-up, a client account at first verified booking and the sign-in communication language (ADR-019, proposed); commerce before go-live in v1.19: memberships, session packs, recurring payments and invoices (M11; single classes and payouts are proposed), workouts, notes and location inference after go-live; owner review of 20 October 2026 in v1.20: no parallel run (the four pain points define go-live), session packs decided, one location at go-live, no Admin role in the MVP, ADR-020 (payment provider and merchant model: Mollie Connect for Platforms, the gym as merchant; accepted by the owner on 21 October 2026 in v1.22), the simple user experience as the first product principle (`PRODUCT.md §2.0`), payments connected in one guided step, and native trainer apps built in parallel with the web from M2; credits in v1.21: group and private credit packs and credit plans in the MVP (the two kinds never mix; combined credits are not planned), replacing the session pack; the product is named Fivvi, with the domain fivvi.app, and the business app Fivvi Pro and the client app Fivvi are separate apps, and ADR-020 (payment provider and merchant model) accepted by the owner (21 October 2026) in v1.22; agents queue high-risk PRs before G2, except owner-only changes, and there is no fixed parallel limit in v1.23 (ADR-021, proposed); the Google Play Console organisation account verified and the Fivvi Pro app and its internal testers list created in v1.24; F001's owner setup (#146) done in v1.25; the owner out of the per-PR loop in v1.26 (ADR-023, proposed): status-only edits, tooling and test-mode payments agent-queueable, and agent queueing ends at pilot setup instead of G2; the commerce walkthrough in v1.28: memberships with a weekly allowance, new commerce settings, the waitlist before the pilot and the commerce targets at pilot week 0; the waitlist placed as F062 in M5 in v1.29 |
+| **Status** | Approved (22 September 2026); ADR-011 (hosting) revised to Railway in v1.3; ADR-009 email provider selected in v1.5; account inventory updated in v1.6; E006 email infrastructure and the G1 email check in v1.7; GitHub Copilot added as a builder in v1.8; Matt Pocock's skills and GitHub issue specs in v1.9; E006 owner to-dos placed at M2, G2 and G4 in v1.10; prototype feedback on workouts, clients and app creation applied in v1.11; agents merge low-risk PRs in v1.12 (ADR-016, proposed); workout duration added to §41 and packages confirmed outside the MVP in v1.13; bilingual class name and description, exercise types and a one-list logger in v1.14; web-first pilot, native trainer apps after go-live in v1.15; personal language policy in v1.17 (ADR-017, accepted); F001 shaped in v1.18: closed sign-up, a client account at first verified booking and the sign-in communication language (ADR-019, proposed); commerce before go-live in v1.19: memberships, session packs, recurring payments and invoices (M11; single classes and payouts are proposed), workouts, notes and location inference after go-live; owner review of 20 October 2026 in v1.20: no parallel run (the four pain points define go-live), session packs decided, one location at go-live, no Admin role in the MVP, ADR-020 (payment provider and merchant model: Mollie Connect for Platforms, the gym as merchant; accepted by the owner on 21 October 2026 in v1.22), the simple user experience as the first product principle (`PRODUCT.md §2.0`), payments connected in one guided step, and native trainer apps built in parallel with the web from M2; credits in v1.21: group and private credit packs and credit plans in the MVP (the two kinds never mix; combined credits are not planned), replacing the session pack; the product is named Fivvi, with the domain fivvi.app, and the business app Fivvi Pro and the client app Fivvi are separate apps, and ADR-020 (payment provider and merchant model) accepted by the owner (21 October 2026) in v1.22; agents queue high-risk PRs before G2, except owner-only changes, and there is no fixed parallel limit in v1.23 (ADR-021, proposed); the Google Play Console organisation account verified and the Fivvi Pro app and its internal testers list created in v1.24; F001's owner setup (#146) done in v1.25; the owner out of the per-PR loop in v1.26 (ADR-023, proposed): status-only edits, tooling and test-mode payments agent-queueable, and agent queueing ends at pilot setup instead of G2; the commerce walkthrough in v1.28: memberships with a weekly allowance, new commerce settings, the waitlist before the pilot and the commerce targets at pilot week 0; the waitlist placed as F062 in M5 in v1.29; clients sign in and are approved to book in v1.30: anyone can create an account, a client joins a workspace by its join link or an invitation and the Owner approves, nothing is public, booking is immediate with no holds, F063 Sign in with Apple and Google, and a cron every 5 minutes (ADR-026 and ADR-027, proposed) |
 | **Requirements source** | [`PRODUCT.md`](PRODUCT.md) (what we build and why) |
 | **Feature registry** | [`FEATURES.md`](FEATURES.md) (status of every feature) |
 | **Engineering workflow** | [`../engineering/WORKFLOW.md`](../engineering/WORKFLOW.md) (branches, worktrees, reviews, cleanup, Definition of Done) |
@@ -38,7 +38,7 @@
 
 ## 1. Executive summary
 
-**What:** A Dutch-first, fully bilingual (nl-NL + en) operating platform for personal trainers and small fitness businesses. It covers scheduling, public booking, Open Gym, client management, memberships, payments and invoices, workouts and notes, on **web, native iOS and native Android**.
+**What:** A Dutch-first, fully bilingual (nl-NL + en) operating platform for personal trainers and small fitness businesses. It covers scheduling, booking for approved clients, Open Gym, client management, memberships, payments and invoices, workouts and notes, on **web, native iOS and native Android**.
 
 **First customer:** A pilot gym owner who is also a PT and works with other trainers. Today they run on two apps (one books group classes, tracks memberships and collects payments), Google Calendar and Word documents, and invoice private training by hand (`docs/discovery/results/interview-01.md`). They won't use Fivvi in parallel with the old apps: they start when it solves at least the four pain points they named in interview 01 (billing, one clear calendar, proper roles, prepaid session tracking), so memberships, credit packs and credit plans (group and private credits), recurring payments and invoices are part of the MVP (v1.19, v1.21).
 
@@ -53,7 +53,7 @@
 | **H3: Open it** | Self-serve SaaS for independent trainers, freelancers and multi-location gyms | 2.0 – 2.3 | After the pilot says "would not go back" |
 | **H4+: Scale it** | Smart scheduling, analytics, advanced commerce, integrations, enterprise | 3.0 – 7.0 | Themes only; scoped when their gate opens |
 
-**MVP at a glance:** 62 user-facing features (F001–F062) plus 19 engineering enablers (E001–E019), delivered in **11 milestones**, followed by a **6-week real-world pilot**. Go-live (G4) needs scheduling, booking, Open Gym and **commerce** (M11: memberships, credit packs and credit plans, recurring payments and invoices; single classes and payouts are proposed scope, [decision 9](#14-decisions)), with one location per workspace. The web works for everyone at go-live, with a cutover, not a parallel run. The native trainer apps are built **in parallel with the web** from M2 (M8 is the label of that track): trainers use them from day one through TestFlight and Play internal testing if they pass their checks, and go-live doesn't wait for public App Store / Play listings. Training and notes (M7, on web, iOS and Android together), more locations and automatic location inference (F017–F019) follow after go-live and join the running pilot. Everything runs on **free tiers** until real clients are on the platform (§12).
+**MVP at a glance:** 63 user-facing features (F001–F063) plus 19 engineering enablers (E001–E019), delivered in **11 milestones**, followed by a **6-week real-world pilot**. Go-live (G4) needs scheduling, booking, Open Gym and **commerce** (M11: memberships, credit packs and credit plans, recurring payments and invoices; single classes and payouts are proposed scope, [decision 9](#14-decisions)), with one location per workspace. The web works for everyone at go-live, with a cutover, not a parallel run. The native trainer apps are built **in parallel with the web** from M2 (M8 is the label of that track): trainers use them from day one through TestFlight and Play internal testing if they pass their checks, and go-live doesn't wait for public App Store / Play listings. Training and notes (M7, on web, iOS and Android together), more locations and automatic location inference (F017–F019) follow after go-live and join the running pilot. Everything runs on **free tiers** until real clients are on the platform (§12).
 
 ---
 
@@ -86,7 +86,7 @@ flowchart LR
   M1 --> M2[M2 Identity<br/>& tenancy]
   M2 --> M3[M3 Trainers<br/>& location]
   M3 --> M4[M4 Scheduling<br/>core]
-  M4 --> M5[M5 Public<br/>booking]
+  M4 --> M5[M5 Client sign-in<br/>and booking]
   M5 --> M6[M6 Open Gym<br/>& sharing]
   M5 --> M11[M11 Commerce<br/>memberships, credits, payments, invoices]
   M6 --> M9[M9 Hardening<br/>& launch readiness]
@@ -146,8 +146,8 @@ Size is relative complexity (S / M / L / XL), not a duration.
 | **M2** | Identity & tenancy | Owner signs in, creates a workspace, sees Dutch-default UI, switches to English; signs in on iOS and Android with the 6-digit code | F001–F010, E011, E017 | L |
 | **M3** | Trainers & location | Owner invites trainers; a trainer belongs to several workspaces; the workspace has one location (the gym's own) and every session takes it | F011, F012, F015 (one location), F016 | M |
 | **M4** | Scheduling core | A full week shaped like the pilot's timetable (synthetic data) runs: private sessions, recurring classes, substitution, attendance, cancellations (time and actor recorded for the M11 cutoff); every calendar labels and filters by type; the trainer's day (Today, calendar, session, attendance, **+**) also runs on iOS and Android | F013, F014, F020–F026, E012 | XL |
-| **M5** | Public booking | A client scans a link, books a class with name + email, verifies, gets a localized confirmation; a client joins the waitlist of a full class and gets a freed spot | F027–F033, F049, F050, F062, E013 | L |
-| **M6** | Open Gym & sharing | Owner publishes Open Gym; clients book it; booking links and QR posters are printable; the owner creates Open Gym from the apps' **+** menu | F034–F038 | M |
+| **M5** | Client sign-in and booking | A client signs in with their email (no password), joins a studio by its link or invitation, and books from its timetable; a client joins the waitlist of a full class and gets a freed spot | F027–F033, F049, F050, F062, F063, E013 | L |
+| **M6** | Open Gym & sharing | Owner publishes Open Gym; approved clients book it; booking links, the join link and QR posters are printable; the owner creates Open Gym from the apps' **+** menu | F034–F038 | M |
 | **M11** | Commerce | A client confirms a membership, a credit pack or a credit plan and pays online; recurring payments are collected; every payment gets an invoice; credit balances and makeups are explainable (single classes and payouts are proposed scope, [decision 9](#14-decisions)) | F052–F061, E019 | XL |
 | **M7** | Training & notes, after G4 | Trainer logs live sets with or without a template, repeats the previous workout, keeps notes, on web, iOS and Android. Joins the running pilot; more locations and F019 location inference come with it | F039–F048, F051, F017–F019 | L |
 | **M8** | Native track (iOS + Android), runs in parallel from M2 | A trainer's day runs from the phone on both platforms, built beside the web: sign-in with the 6-digit code (M2), Today, calendar, clients, session, attendance and **+** by role (M4), Open Gym (M6), logging and notes (M7). Builds reach testers through TestFlight and Play internal testing from M2 | Mobile surfaces of F001, F006, F010, F013, F020–F022, F025, F034, F043–F048, F051; E017 | XL (×2 platforms), spread over M2–M7 |
@@ -160,7 +160,7 @@ Size is relative complexity (S / M / L / XL), not a duration.
 |---|---|---|---|
 | **MVP** | Dutch-first pilot gym platform | H1 | Roadmap approved |
 | **1.1** | Pilot-driven refinement | H1 | ≥ 4 weeks of pilot usage data; findings triaged |
-| **1.2** | Native client iOS + Android apps | H2 | Public booking web is healthy (funnel ≥ target); clients ask for an app |
+| **1.2** | Native client iOS + Android apps | H2 | Client booking web is healthy (funnel ≥ target); clients ask for an app |
 | **1.3** | NL/EN AI note capture | H2 | AI processor DPA signed; per-workspace opt-in designed |
 | **1.4** | AI client briefing | H2 | 1.3 in use; enough history per client to summarize |
 | **2.0** | Public SaaS onboarding | H3 | Pilot says "would not go back"; pricing model decided (see §9, 2.0) |
@@ -199,9 +199,9 @@ Run it with the printable kit in [`docs/discovery/`](../discovery/README.md) (sh
 
 ### 4.2 UX design
 
-- [x] Draft [information architecture](../design/information-architecture.md) for trainer web, iOS/Android trainer apps, public booking and client web; pending pilot validation.
+- [x] Draft [information architecture](../design/information-architecture.md) for trainer web, iOS/Android trainer apps, the client timetable and client web; pending pilot validation.
 - [x] Draft [wireframes for the 6 critical flows](../design/README.md), **written in Dutch first**; pending pilot validation:
-  1. Public booking on a phone (QR → class → name/email → verify → confirmed → client account created)
+  1. Booking on a phone (drawn as QR → class → name/email → verify → confirmed → client account created; ADR-026, 31 October 2026, replaces it with QR → join link → sign in → join request → approved → timetable → book, redrawn with the F027 and F029 specs)
   2. Trainer "Today" on mobile
   3. Workspace calendar on web (owner view)
   4. Create / reschedule a private session (the workspace's location; inference after go-live)
@@ -221,7 +221,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 | ADR | Decision | Choice | Status | Why |
 |---|---|---|---|---|
 | [001](../decisions/ADR-001-monorepo-tooling.md) | Monorepo tooling | **pnpm workspaces + Turborepo** for TS; native projects live in the same repo (`apps/ios`, `apps/android`) with their own build tools (Xcode, Gradle) | Accepted | One repo, one PR per change across all platforms |
-| [002](../decisions/ADR-002-web-framework.md) | Web framework | **Next.js (App Router) + TypeScript strict** | Accepted | Per spec §71; server rendering is good for public booking speed |
+| [002](../decisions/ADR-002-web-framework.md) | Web framework | **Next.js (App Router) + TypeScript strict** | Accepted | Per spec §71; server rendering is good for client timetable speed |
 | [003](../decisions/ADR-003-native-mobile-apps.md) | Mobile | **Native: iOS in Swift + SwiftUI; Android in Kotlin + Jetpack Compose** (min OS versions set in M0 from the trainers' phones) | **Accepted, deviates from spec §72** | Owner decision: best platform fit, performance and native feel. The cost is two UI codebases, offset by the shared API contract, i18n and design tokens |
 | [004](../decisions/ADR-004-api-layer.md) | API layer | **REST + OpenAPI 3.1**, built with Hono + `@hono/zod-openapi` in `packages/api` and served from Next.js route handlers. The OpenAPI spec is generated and committed; **typed clients are generated** for TS (web), Swift (swift-openapi-generator) and Kotlin (openapi-generator) | Accepted (replaces tRPC) | Native clients need a language-neutral contract. One backend still serves all clients (§75) |
 | [005](../decisions/ADR-005-database-and-orm.md) | Database & ORM | **PostgreSQL (EU region) + Drizzle ORM + versioned SQL migrations** | Accepted | Per spec §76; SQL-first, works cleanly with Row-Level Security |
@@ -229,7 +229,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 | [007](../decisions/ADR-007-authentication.md) | Authentication | **Better Auth** (organization/member/invitation plugins + email magic link **and** 6-digit email code; bearer tokens for native apps). Workspaces and roles run on our own tables, not the organization plugin: ADR-022 | Accepted | Our own tables and our own localized emails. The 6-digit code lets native apps sign in without needing Universal/App Links on day one, and it survives email link scanners. *Spike in M2, as the first step of the native track: native bearer-token flow* |
 | [008](../decisions/ADR-008-localization.md) | Localization | **One source of truth:** ICU MessageFormat catalogs in `packages/i18n` (`nl-NL.json`, `en.json`). Web uses next-intl. A generator **exports the catalogs to iOS String Catalogs (`.xcstrings`) and Android `strings.xml`/plurals**. Emails use the same catalogs | Accepted | One set of keys and translations for three platforms; CI checks parity on the source and on the generated files |
 | [009](../decisions/ADR-009-transactional-email.md) | Transactional email | **React Email templates + Brevo** (free tier initially) | Accepted; implemented in E006 | One template structure with localized strings (§74); E006 checked the DPA, send limits, EU storage, tracking and log retention (`docs/legal/sub-processors.md §4`). Own domain before M5 |
-| [010](../decisions/ADR-010-background-jobs.md) | Background jobs | **Avoid needing a job runner:** holds expire *lazily* (`expires_at` is checked when capacity is read) and a daily cron cleans up; emails are sent inline with retry; recurrence is materialized by a daily cron plus on-demand at edit time | Accepted | Works within free-tier cron limits; add a queue (e.g. Inngest free tier) only if needed |
+| [010](../decisions/ADR-010-background-jobs.md) | Background jobs | **Avoid needing a job runner:** emails are sent inline with retry; recurrence is materialized by a daily cron plus on-demand at edit time. *Holds and their lazy expiry are gone (ADR-026); the cron job runs every 5 minutes for the waitlist's closing-time email, the daily work stays daily (ADR-027)* | Accepted | Works within free-tier cron limits; add a queue (e.g. Inngest free tier) only if needed |
 | [011](../decisions/ADR-011-hosting-and-environments.md) | Hosting & environments | All on **Railway, EU West (Amsterdam)**: Next.js web + API, Postgres and a cron service in one project; a PR environment per PR. Hobby (already paid) during the build → **Pro ($20/month) at G4**. *Replaces v1.2: Vercel Hobby + Neon free* | Accepted (revised in v1.3) | Vercel Hobby is non-commercial only, so G4 needs a paid plan anyway. Railway keeps app and DB in one EU location with one DPA, no DB cold starts, and costs a flat $20/month at pilot volume vs ≈ $20–40 for Vercel Pro + Neon |
 | [012](../decisions/ADR-012-time-and-recurrence.md) | Time & recurrence model | **UTC `timestamptz` + IANA timezone on workspace/location; recurrence as RRULE in local wall-clock time; occurrences materialized as rows for a rolling horizon (e.g. 12 weeks)** | Accepted | "Every Tuesday 18:00" must stay 18:00 across daylight-saving changes; each occurrence needs its own trainer, capacity and bookings (§20) |
 | [013](../decisions/ADR-013-observability.md) | Observability | **Free tiers:** Sentry (EU region; web, iOS, Android, API), UptimeRobot / Better Stack uptime checks, PostHog EU (cookieless mode) for product events | Accepted | Pilot observation (§85 J) needs data; cookieless means no consent banner |
@@ -243,6 +243,8 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 | [021](../decisions/ADR-021-agents-queue-high-risk.md) | Agents queue high-risk PRs | **Until G2 (moved to pilot setup by ADR-023), agents add high-risk PRs to the merge queue** when the whole merge gate holds; **owner-only** stays with the owner: guardrails, legal, billing and payments (billing and tooling agent-queueable since ADR-023), product and decision docs, and issues labelled `owner-only`. `risk.sh` reports `low`, `high` or `owner`; agent merges of high-risk PRs are recorded and listed for the owner. Amends ADR-016 and ADR-018; amended by ADR-023 | Proposed | Every approved spec was `owner-merge`, so the factory stopped after each ticket; before G2 production holds no real personal data, and high-risk PRs already pass the same gate |
 | [022](../decisions/ADR-022-workspaces-on-our-own-tables.md) | Workspaces on our own tables | **Workspaces and team roles run on `organizations` and `team_members` (E011) behind the access helper, not on Better Auth's organization plugin**; sign-in stays Better Auth. Amends ADR-007 | Accepted | F002's proof (#276) showed the plugin answers 400 where we answer 404, and runs on one app-wide connection outside the request's tenant context and RLS |
 | [023](../decisions/ADR-023-owner-out-of-the-per-pr-loop.md) | The owner out of the per-PR loop | **Status-only edits** of `ROADMAP.md` (ticks) and `FEATURES.md` (statuses forward) are agent-queueable; `guardrails` splits into **core** (owner-only: risk rules, merge gate, agent rules, `AGENTS.md`, CI, allowlists) and **tooling** (agent-queueable: test and build configs, lint, drift and contrast checks, native and release helper scripts, `TESTING.md`; new `@except` directive); **billing and payments agent-queueable while payments run in test mode**, until a live payment-provider key is set; tickets are cut for a blocked spec; owner-only edits go to small PRs of their own; the factory runs every 2 hours with a run lock; **agent queueing of high-risk PRs ends at pilot setup**, not G2 (processor agreement T12, version 0.4). Amends ADR-016, ADR-018 and ADR-021 | Proposed | 26 of the last 60 PRs were owner-only and about 15 of them only because of one config or status file; G2 is an internal alpha on synthetic data, and real data first enters at pilot setup |
+| [026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) | Clients sign in and are approved to book | **Anyone can create an account** (email now, Apple and Google later: F063); an account shows nothing of any workspace. A client joins a workspace when it **adds** them (an invitation) or when the Owner **approves their join request** (made through the workspace's one **join link** or its QR code); no workspace search. **Nothing is public.** Booking is **immediate** (no holds, no email step) and, from M11, needs an active agreement that covers the class. Creating a workspace stays allowlisted until 2.0. Reverses `PRODUCT.md` §23–§26 as written | Proposed | One tap to book, no hold or expiry to build, a workspace that knows and controls its clients, and an agreement check that has a client to check; the abuse surface is smaller |
+| [027](../decisions/ADR-027-a-cron-every-5-minutes.md) | A cron every 5 minutes | **The cron job runs every 5 minutes** (Railway's minimum), idempotent, on the privileged path; the waitlist's "you didn't get in" email at the waitlist closing time needs it; the daily work stays daily. Amends ADR-010 | Proposed | A timer is needed that no request triggers; a queue service is more than one email needs |
 
 > **Three notes on the table (owner review, 20 October 2026).** (1) The MVP configures only the Owner and Trainer roles (decision 13); Better Auth's role setup in ADR-007, which also lists Admin, is unchanged, and Admin is a later role. (2) the safeguards ADR-011 and ADR-016 tie to G2 (the Railway DPA, PITR, the release step) stay due no later than G2, while real data first enters at pilot setup, before G4 (decision 6). (3) ADR-003 (native apps) and ADR-007 (bearer tokens for native apps, with its native spike) are unchanged; only their timing moves: the native track (M8) runs in parallel with the web from M2, and the bearer-token spike opens it there. ADR-007's dated note names M8 as the spike's place, which still reads true, because M8 is now the label of the native track. The same holds for ADR-003's follow-up "E017 handles distribution at M8": E017 App distribution is now part of M2 (§6, M8 table).
 
@@ -257,7 +259,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 - [x] **Sub-processor list drafted** for Railway, Brevo, error tracking, bot protection and analytics, with regions and DPA links.
 - [x] **Initial DPIA screening drafted** for the MVP and pilot, because free-form notes may contain health data (special-category data).
 - [x] **Privacy policy and terms drafted** in **NL and EN**.
-- [x] **Data retention policy drafted** for guest bookings, expired holds, deleted clients and backups.
+- [x] **Data retention policy drafted** for guest bookings, expired holds, deleted clients and backups (guest bookings and holds no longer exist after ADR-026, v1.30; the policy is updated with the F029 and F030 specs).
 - [ ] Complete the remaining legal-entity details and review the agreement and public texts before signing or publishing them.
 - [ ] Confirm Railway's signed DPA before real data enters (pilot setup), no later than G2; resolve its special-category-data scope before health notes at M7. *(Since v1.20 there is no parallel run: real data first enters at pilot setup, before G4. The G2 items stay where they are; doing them early is harmless.)*
 - [ ] Sign the processor agreement with the pilot gym before real personal data enters (pilot setup), no later than G2; complete the pilot gym's DPIA assessment before G4.
@@ -266,7 +268,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 ### 4.5 Accounts and setup (free-first)
 
 - [x] **Name:** Fivvi (owner, 21 October 2026; the working name was Trainer Hub, [decision 1](#14-decisions)). The business app for owners and trainers is **Fivvi Pro**; the client app (Release 1.2) is **Fivvi**.
-- [x] **Domain:** **fivvi.app** bought by the owner (21 October 2026): the web app, the public booking pages and the API (under `/api`) all live on it; a marketing site can take `www` or a path later.
+- [x] **Domain:** **fivvi.app** bought by the owner (21 October 2026): the web app, the client timetable and join pages and the API (under `/api`) all live on it; a marketing site can take `www` or a path later.
 - [ ] **Domain setup, before M5:** add `fivvi.app` as a custom domain in Railway (web service, `production`), and set up the email sender `Fivvi` (noreply at fivvi.app) in Brevo with SPF, DKIM and DMARC on `fivvi.app` (R1; ADR-009). Real clients need emails from an authenticated domain and deep links need the domain.
 - [x] GitHub repository is public since 2026-10-16 (owner decision, §14 #7): Actions minutes are free, macOS included.
 - [ ] Ruleset on `main` (GitHub Pro): apply `.github/rulesets/main.json`, the squash-only merge settings and the `spec-approved`, `owner-merge`, `owner-only` and `run-native` labels with `scripts/github-settings.sh apply` (ADR-016), which also requires the merge queue (ADR-018): merge the PR of ADR-018 first, so `ci.yml` has `merge_group` on `main`, then apply. Then the orchestrator lists the open specs without `spec-approved` for the owner to approve.
@@ -303,7 +305,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
   ```text
   /apps
-    /web          Next.js: trainer web, public booking, client web, hosts the API
+    /web          Next.js: trainer web, client timetable and booking, client web, hosts the API
     /ios          Xcode project, Swift + SwiftUI
     /android      Gradle project, Kotlin + Jetpack Compose
   /packages
@@ -341,7 +343,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 **Key notes**
 - `preferredLocale: "nl-NL" | "en"` on the user; a `defaultLocale` (default communication language) on the workspace; people without a stored preference are detected from browser/device locale (§3).
 - Language resolution, implemented once in `packages/i18n` and used by every platform ([ADR-017](../decisions/ADR-017-language-policy.md)): **interface language** = explicit choice → stored preference → a booking link's fixed language → first supported device/browser language → English; **communication language** = recipient's stored preference → workspace default, except for a sign-in email, which falls back to the interface language of the screen that asked ([ADR-019](../decisions/ADR-019-sign-in-communication-language.md)). The workspace default never decides the interface language. The native apps follow the in-app choice, not only the OS language.
-- **Sign-up is closed in MVP** (`PRODUCT.md §27`): an account is created only by the first sign-in of an email address we've allowed, an accepted trainer invitation, or a client's first verified booking (M5). Every other address gets the same neutral answer and no email.
+- **Sign-up is closed in M2** (`PRODUCT.md §27`): an account is created only by the first sign-in of an email address we've allowed or an accepted trainer invitation; every other address gets the same neutral answer and no email. **Sign-up for accounts opens in M5** (F030, ADR-026): anyone can create an account, but creating a workspace stays limited to `SIGN_UP_ALLOWED_EMAILS` until Release 2.0.
 - Roles: Owner and Trainer (§50, §9). The Owner can do everything, including the money; the Trainer runs their own sessions and classes, calendar and attendance. **No Admin role in the MVP** (owner, 20 October 2026): it is a later role 🔜, added when a gym asks for a manager who isn't the owner (Release 7.0 "advanced permissions", or earlier on request). The role model must allow it without migration pain. No custom permissions. Owner + Trainer on the same person is a normal case.
 - **One account, separate relationships** (`PRODUCT.md §2.9, §9`): a team role (F003/F004) and being a client (F006) are separate records for the same account and workspace, and can exist together. Accepting an invitation adds a team role to an existing account; removing it keeps the person's client history. The F003, F004 and F006 specs include these cases, and E011 tests one person who is a trainer in workspace A, owner of B and client of A.
 - Every business table carries `organization_id`; RLS policies are active; the cross-tenant test suite runs in CI.
@@ -413,51 +415,55 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 ---
 
-### M5: Public booking
+### M5: Client sign-in and booking
 
-**Goal:** A client books without an app, without a password and without a phone number.
+**Goal:** A client signs in with their email (no password), joins a studio by its link or invitation, and books from its timetable.
 
-**Scope:** F027 Public Booking Page, F028 Booking Capacity, F029 Booking Hold, F030 Magic-Link Verification, F031 Booking with Email Verification, F032 Client Account on First Booking, F033 Client Booking Dashboard, F049 Localized Transactional Emails, F050 Trainer Booking Notifications, F062 Waitlist, E013 Public surface security.
+**Scope:** F027 Client Timetable, F028 Booking Capacity, F029 Join Link and Join Requests, F030 Client Sign-Up, F031 Booking for Approved Clients, F032 Client Invitations, F033 Client Booking Dashboard, F049 Localized Transactional Emails, F050 Trainer Booking Notifications, F062 Waitlist, F063 Sign in with Apple and Google *(Should-have; may slip to 1.1, as every Should)*, E013 Public surface security.
 
-**Key notes**
-- Flow per §23: choose → name + email → **hold (`pending_verification`, 10–15 min)** → magic link → verified → `confirmed` → client account created. Expired holds become `expired` and free the spot. Expiry is checked lazily, per ADR-010.
-- **Capacity is enforced transactionally**: row lock or constraint on the occurrence, with holds counted against capacity, and concurrent booking tests (two people, one spot).
-- **Abuse protection:** holds could be spammed to block a class. Mitigate with rate limits per IP/email, a cap on active holds per email, and Cloudflare Turnstile (free, privacy-friendly) on the form.
-- A prominent **NL | EN** switch; the chosen language is carried through the hold, the email, the confirmation and all future emails (§3, "Client language").
-- Email set (NL + EN each): magic link, booking confirmation, cancellation, schedule change, class cancellation; trainer: new booking, cancellation (§51).
-- **There are no guests.** A client's account is created automatically at their first verified booking (§26); the booking form still only asks for name + email, never a password, and its initial stored language preference is whatever language the booking was made in. Whether a signed-in client booking again should skip the confirmation email is open ([`open-questions.md`](../design/open-questions.md)).
-- Client web (F033): **my schedule** with group bookings and private sessions together, labelled by type and filterable; past bookings, cancellation, profile; reachable after signing in, or by the email link of a booking. M11 adds agreements, balances, payments and invoices to it.
-- **Waitlist (F062):** the rules are in `PRODUCT.md §23`. Moving a client up shares the capacity lock and the concurrency tests with booking; how a waitlisted client with a membership or credits is handled comes with M11.
-- The public booking page never lists private sessions. M11 makes booking membership-aware and adds paid single classes (proposed, [decision 9](#14-decisions)).
+**Key notes** (the flow is ADR-026, owner, 31 October 2026; it replaces the anonymous booking with a hold and a magic link of v1.0)
+- **Accounts are open, workspaces are not.** Anyone can create an account with their email (F030, sign-in by link or 6-digit code, ADR-007); an account shows nothing of any workspace. Creating a workspace stays limited to `SIGN_UP_ALLOWED_EMAILS` until Release 2.0. An account with no workspace sees "Ask your studio for its link".
+- **Two ways into a workspace** (`PRODUCT.md §26`): the Owner adds the client (F032, an invitation email; they are in once they sign in), or the client opens the workspace's **join link** or scans its QR code, signs in or signs up and sends a **join request** (F029). They see "waiting for the studio" until the Owner approves. Only the Owner approves or declines, by email and on the web (a list of requests on Clients); no native surface now. A declined client gets a short, neutral email and may ask again. The Owner can renew the join link and remove a client. No workspace search.
+- **Nothing is public** (F027): only approved clients see the client timetable. It never lists private sessions.
+- **Booking is immediate** (F031): choose → book → confirmed. There are no holds, no `pending_verification` or `expired` statuses and no email step. M11 makes it agreement-aware: an active agreement that covers the class; before M11, being an approved client is enough.
+- **Capacity is enforced transactionally**: row lock or constraint on the occurrence, and concurrent booking tests (two people, one spot).
+- **Abuse protection** (E013): rate limits per IP and email on sign-up, the sign-in request and the join request, a cap on pending join requests per account, and Cloudflare Turnstile (free, privacy-friendly) on those forms. The Owner can decline.
+- A prominent **NL | EN** switch; the chosen language is carried through the sign-in, the emails and all future emails (§3, "Client language").
+- Email set (NL + EN each): sign-in, invitation, join request declined, booking confirmation, cancellation, schedule change, class cancellation, on the waitlist, you're in, you didn't get in; trainer: new booking, cancellation; owner: new join request (§51).
+- Client web (F033): **my schedule** with group bookings and private sessions together, labelled by type and filterable; the waitlists the client is on and their position; past bookings, cancellation, profile; reachable after signing in. M11 adds agreements, balances, payments, invoices, and per workspace the payment history with invoice and credit-note PDFs.
+- **Waitlist (F062):** the rules are in `PRODUCT.md §23` (owner, 31 October 2026): group classes only; the first in line is booked automatically when a spot frees up and gets a "you're in" email; a **waitlist closing time** per workspace (default 30 minutes before the class) after which nobody moves up or joins, and everyone still waiting gets a "you didn't get in" email, sent by the 5-minute cron job ([ADR-027](../decisions/ADR-027-a-cron-every-5-minutes.md)). Moving a client up shares the capacity lock and the concurrency tests with booking. M11 adds the agreement check at move-up: a client who can't book is skipped and told why.
+- **Sign in with Apple and Google (F063)**, Should (may slip to 1.1, as every Should): web first, for clients and team members; Fivvi Pro after (on iOS, App Store guideline 4.8 requires Sign in with Apple when an app offers Google sign-in). Owner steps when it is built: an Apple Services ID and a Google OAuth client. Email sign-in stays.
+- M11 adds paid single classes (proposed, [decision 9](#14-decisions)); only a signed-in approved client can buy one.
 - **The domain is bought (fivvi.app, 21 October 2026); set up its DNS before this milestone:** the Railway custom domain, and SPF, DKIM and DMARC for the sender `Fivvi` (noreply at fivvi.app) in Brevo (§4.5). Real clients need emails from an authenticated domain.
-- Performance budget for the public page: fast on a mid-range phone over 4G (LCP < 2.5 s).
+- Performance budget for the client timetable: fast on a mid-range phone over 4G (LCP < 2.5 s).
 
 **Exit criteria**
-- Playwright e2e passes the whole flow **in Dutch and in English** on a mobile viewport.
+- Playwright e2e passes the whole flow **in Dutch and in English** on a mobile viewport: sign in, ask to join through the join link, the Owner approves, the client books. The same for a client the Owner added.
+- A client who is not approved sees nothing of the workspace, and a declined client neither (also in the E011 suite).
 - A concurrency test proves no overbooking, also when a waitlisted client moves up.
-- Playwright e2e covers the waitlist **in Dutch and in English**: a freed spot goes to the first in line with an email, nobody moves up after the cut-off, and those still waiting get the "you didn't get in" message.
+- Playwright e2e covers the waitlist **in Dutch and in English**: a freed spot goes to the first in line with an email, nobody moves up after the waitlist closing time, and those still waiting get the "you didn't get in" message.
 - Deliverability tested against Gmail, Outlook/Hotmail and a Dutch ISP mailbox.
 
 ---
 
 ### M6: Open Gym and sharing
 
-**Goal:** Open Gym is bookable, and every booking surface is shareable by link and QR.
+**Goal:** Open Gym is bookable by approved clients, and the join link and every booking surface are shareable by link and QR.
 
-**Scope:** F034 Open Gym Slots, F035 Open Gym Public Booking, F036 Open Gym Suggestions *(Should-have; the first candidate to slip to 1.1)*, F037 Booking Links, F038 QR Codes.
+**Scope:** F034 Open Gym Slots, F035 Open Gym Booking, F036 Open Gym Suggestions *(Should-have; the first candidate to slip to 1.1)*, F037 Booking Links, F038 QR Codes.
 
 **Native slice (the M8 track):** Open Gym in the owner's **+** menu (F034) on iOS and Android, next to its web ticket.
 
 **Key notes**
 - Open Gym is just a session type with start, end, location and capacity (§2.7, §28). It reuses the M4 engine and the M5 booking flow.
-- Booking-link scopes: all bookings, group classes, Open Gym, a specific class, a specific occurrence (§32). Links carry a language behaviour: detect the visitor's language, or a fixed page language; the visitor can always switch (ADR-017).
-- QR codes: copy link, download (PNG + SVG), a print-ready poster (A4, bilingual), share (§33). Generated server-side, so native apps just show and share them.
+- The workspace has **one join link** (F029, §26), which the Owner can renew. Booking-link scopes: all bookings, group classes, Open Gym, a specific class, a specific occurrence (§32); booking links work only for approved clients (ADR-026). Links carry a language behaviour: detect the visitor's language, or a fixed page language; the visitor can always switch (ADR-017).
+- QR codes: for the join link (the desk poster) and the booking links: copy link, download (PNG + SVG), a print-ready poster (A4, bilingual), share (§33). Generated server-side, so native apps just show and share them.
 - Suggestions (F036): "You're already at the gym 10:00–11:00. Offer Open Gym?", derived from the trainer's calendar.
 
-**Pilot touchpoint (Gate G3: booking beta):** a QR poster is printed and scanned on a preview environment by testers with synthetic data (no real clients, no real data). Real clients first book at the cutover (§7).
+**Pilot touchpoint (Gate G3: booking beta):** the join link's QR poster is printed and scanned on a preview environment by testers with synthetic data (no real clients, no real data): they ask to join, are approved and book. Real clients first book at the cutover (§7).
 
 **Exit criteria**
-- Testers have completed bookings through a printed QR code, in both languages.
+- Testers have joined a workspace through a printed join-link QR code, been approved and completed bookings, in both languages.
 - The owner creates an Open Gym from the **+** menu on iOS and Android.
 - If the "native may trail the web by one milestone" lever is used (§6, scope levers), the native items of this milestone move to the next milestone's exit criteria.
 
@@ -469,7 +475,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 **Scope:** F052 Offers and Prices (including the three default plans and owner-made offers, `PRODUCT.md §90`), F053 Memberships, F054 Credit Packs and Plans (group, private and Open Gym), F055 Credit Balance, F056 Cancellation Policy and Makeups, F057 Recurring Payments, F058 Single Class Purchase, F059 Invoices and Billing Details, F060 Failed Payments and Refunds, F061 Payouts and Reconciliation, E019 Payment provider integration.
 
-**When:** after M5 (it needs bookings and client accounts), in parallel with M6, before M9. The subscription model and invoices ship together: no recurring payment without its invoice.
+**When:** after M5 (it needs bookings and approved clients), in parallel with M6, before M9. The subscription model and invoices ship together: no recurring payment without its invoice.
 
 **Key notes**
 - **Opening spike (E019, done as ADR-020):** Mollie Connect vs Stripe Connect for a Dutch gym, researched against primary sources (`docs/decisions/research/`). ADR-020 decides **Mollie Connect for Platforms** with the gym as merchant on its own Mollie account (Fivvi never holds client money) and Stripe Connect as the fallback; the owner accepted ADR-020 on 21 October 2026 (decision 14). Before any money code is written, E019 asks Mollie the questions ADR-020 lists (iDEAL on Wero rails and mandates, partner terms and cost, test connection for previews, failed-debit fees, retries) and compares the fees with the per-payment fee the pilot pays today (figures in the owner's private notes).
@@ -481,6 +487,8 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - **Capacity stays correct** with memberships: their spots count against capacity in the same transaction as bookings (R3); a membership holds no standing spot: the client books each class within a weekly allowance (QC01), so capacity is counted per booking.
 - **Invoices** follow the Dutch requirements (`PRODUCT.md §96`): a gapless number series per workspace (proposal, QC10), immutable once issued, credit notes for corrections, a PDF in the client's communication language. Invoice numbering is concurrency-tested.
 - **Permissions:** the owner manages offers, prices and the provider connection (ADR-020); the owner does all commerce, and what a trainer sees of a client's credit balance follows QC12 (proposal: the balance, not amounts). Clients see only their own agreements, balances, payments and invoices. All of it is tenant-scoped and in the E011 suite.
+- **Booking needs an agreement** (ADR-026): from M11 a booking needs an active agreement that covers the class, a membership with weekly allowance left or credits of the matching kind. A trial is an offer (an intro credit pack "once per client") and books like any agreement. An approved client without an agreement sees the timetable and the offers and can't book. Private sessions stay booked by the trainer or owner. The waitlist (F062) checks this at move-up: a client who can't book is skipped, taken off the waitlist and emailed why, and nothing is reserved while waiting; a client who could only book by paying for a single class can't join a waitlist.
+- **Client web shows the money, per workspace:** the payment history (date, amount, what it was for, and the status paid, failed or refunded) and the invoice and credit-note PDFs to download (`PRODUCT.md §96`, F033).
 - **Native:** commerce is web: the owner's screens in the trainer web, the client's in the client web. Clients never pay inside the apps (`PRODUCT.md §53`). If the trainer apps show a client's credit balances (what a trainer sees follows QC12), that screen gets iOS and Android tickets next to its web ticket.
 - **No real money before G4.** Previews and the synthetic end-to-end run use the provider's test mode.
 
@@ -492,6 +500,8 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - A client with a private credit pack books private sessions with their credits; a timely cancellation returns the credit ([QC02](../design/open-questions.md#qc02)), a no-show uses it ([QC16](../design/open-questions.md#qc16)); the history explains every step.
 - Group and private credits never mix: a group credit cannot book a private session and a private credit cannot book a group class, and a client with both sees two balances.
 - A client with a membership buys an extra class; it doesn't change the membership or any credit agreement (single classes: proposed, [decision 9](#14-decisions)).
+- An approved client without an agreement sees the timetable and the offers and can't book; after they confirm an agreement they can. A waitlisted client who can't book at move-up is skipped and emailed, and the next in line moves up.
+- A client sees their payment history for a workspace, with the invoice and credit-note PDFs, and nothing of another client or workspace.
 - A new workspace shows the three default plans, switched off. The owner adds prices, turns one on, edits another (for example the number of classes or credits) and creates their own credit plan; clients see only what is switched on, and the offers keep the four kinds.
 - An owner connects payments from Fivvi in one guided flow (test mode) without leaving the product for anything else than Mollie's own checks.
 - A duplicate webhook and a retried job leave one payment, one invoice and one balance change.
@@ -540,6 +550,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 | M1 | App shells with the generated clients and string catalogs (done) | E008 |
 | M2 | Sign-in with the 6-digit code and bearer token, sign-out, the in-app NL/EN switch; the bearer-token spike opens the track; E017 App distribution (TestFlight, Play internal testing) | F001, F010, E017 |
 | M4 | Today, personal calendar, clients (list, profile, quick add), session screen, attendance, the **+** menu by role | F006, F013, F020–F022, F025 |
+| M5 | Sign in with Apple and Google, after the web ticket (F063; on iOS, App Store guideline 4.8 requires Sign in with Apple when the app offers Google). Join requests have no native surface yet (`PRODUCT.md §26`) | F063 |
 | M6 | Open Gym from the owner's **+** menu | F034 |
 | M7 | Workout logger, history, repeat previous workout, notes and their visibility | F043–F048, F051 |
 
@@ -568,8 +579,8 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - [ ] Local security review + owner sign-off: authn/authz on every route, tenant isolation suite green, rate limits, security headers, secrets rotation, dependency audit, native secure storage for tokens (Keychain / EncryptedSharedPreferences or DataStore).
 - [ ] Privacy: data export and deletion work per client and per workspace (§79); retention jobs run; processor agreement signed.
 - [ ] **Full bilingual QA pass:** review every string locally against the glossary and tone guide, on web, iOS, Android and email. Dates/times checked (`22 september 2026`, 24h, Europe/Amsterdam). The pilot owner flags anything that reads oddly.
-- [ ] Accessibility: public booking and client web meet WCAG 2.2 AA. Native apps support Dynamic Type / font scaling, VoiceOver / TalkBack labels, and have sufficient contrast.
-- [ ] Performance: public page budget met; calendar loads a busy week quickly.
+- [ ] Accessibility: the client timetable, the join pages and client web meet WCAG 2.2 AA. Native apps support Dynamic Type / font scaling, VoiceOver / TalkBack labels, and have sufficient contrast.
+- [ ] Performance: client timetable budget met; calendar loads a busy week quickly.
 - [ ] Backups verified by an **actual restore** to a scratch Postgres service on Railway.
 - [ ] Runbooks: incident response, rollback, "a client says they didn't get the email", "wrong booking".
 - [ ] Import scripts dry-run against a copy of the pilot's real data, including agreements, balances and due dates, with a reconciliation report against the old app.
@@ -595,7 +606,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
   - Keep PRs small (one feature or sub-feature each).
   - The author completes the local review checklist before pushing. A second agent can review locally when useful; no agent review is required on GitHub.
   - At most **3–4 open worktrees at once**, to limit merge conflicts and review load.
-- **Scope levers, in order, if a gate is at risk:** the native tracks trail the web by one milestone (a feature's web ticket lands first and its iOS and Android tickets follow within the next milestone; never the other way round; the native exit items of the milestone then move to the next milestone's exit criteria) → F036 (Open Gym suggestions) → F038 QR posters (keep plain booking links) → a minimal F061 (payout list without per-line matching) → a minimal version of F033 client web. **Never cut:** bilingual, tenant isolation, booking capacity correctness, payments exactly once, correct invoices, explainable balances, iOS/Android parity (the two native tracks trail together, never one without the other), privacy basics.
+- **Scope levers, in order, if a gate is at risk:** the native tracks trail the web by one milestone (a feature's web ticket lands first and its iOS and Android tickets follow within the next milestone; never the other way round; the native exit items of the milestone then move to the next milestone's exit criteria) → F036 (Open Gym suggestions) → F063 (Sign in with Apple and Google; email sign-in stays) → F038 QR posters (keep the join link and booking links as plain URLs) → a minimal F061 (payout list without per-line matching) → a minimal version of F033 client web. **Never cut:** bilingual, tenant isolation, booking capacity correctness, payments exactly once, correct invoices, explainable balances, iOS/Android parity (the two native tracks trail together, never one without the other), privacy basics.
 
 ---
 
@@ -603,7 +614,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 | Week | Activity |
 |---|---|
-| **0: Setup** | The pilot owner has connected Mollie (*Betalingen koppelen*) at least a week before cutover day, so Mollie's separate SEPA Direct Debit review is done in time; import data (clients, timetable, future sessions, active agreements, balances, due dates); the owner checks the reconciliation report against the old app; 1:1 onboarding with the owner; short onboarding per trainer (Dutch quick guide); install the iOS or Android app for each trainer through TestFlight / Play internal testing, and add the trainer web to the phone's home screen as the fallback; create classes, offers and Open Gym; print QR posters. Real data first enters here, not earlier |
+| **0: Setup** | The pilot owner has connected Mollie (*Betalingen koppelen*) at least a week before cutover day, so Mollie's separate SEPA Direct Debit review is done in time; import data (clients, timetable, future sessions, active agreements, balances, due dates); the owner checks the reconciliation report against the old app; 1:1 onboarding with the owner; short onboarding per trainer (Dutch quick guide); install the iOS or Android app for each trainer through TestFlight / Play internal testing, and add the trainer web to the phone's home screen as the fallback; create classes, offers and Open Gym; print the join-link QR poster. Real data first enters here, not earlier |
 | **Cutover day** | Scheduling, booking and payments all move to Fivvi at once; every client gets the first-payment link for the new mandate ([QC09](../design/open-questions.md#qc09)). There is no soft launch with a subset next to the old app. The old app stays only as a **read-only fallback** until the first full payment cycle reconciles, then it is cancelled |
 | **1–3: Stabilise** | Every payout reconciled (if F061 is in scope, decision 9); the first full payment cycle matches the expected amounts; the old app is cancelled after it |
 | **4–6: Observe** | Weekly 30-min check-in with the owner; trainers asked every two weeks; workaround log maintained |
@@ -620,7 +631,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - Where people still use the old app, Google Calendar, Word or notes, and why.
 - Workarounds (things people do *around* the product).
 - Support requests and developer interventions (goal: zero for normal use).
-- Funnel drop-offs in public booking.
+- Funnel drop-offs in joining and booking (sign-in, join request, approval, first booking).
 - Laptop vs phone-browser vs native-app issue split; iOS vs Android.
 
 **Feedback channels:** in-app "feedback" link (NL/EN) on web and in both apps, the weekly check-in, and the workaround log in `docs/pilot/`.
@@ -635,8 +646,8 @@ These turn `PRODUCT.md §87` into measurable targets. **Targets marked ⚑ are c
 |---|---|---|
 | Owner runs gym scheduling through the platform | Share of the real weekly schedule that exists in the platform | ≥ 95 % from pilot week 3 |
 | Trainers use their assigned sessions | Active trainers per week ÷ trainers with sessions | 100 % |
-| Customers book through public pages | Share of group + Open Gym bookings made via public pages | ≥ 80 % (agreed 29 October 2026, hoped for 90 % or more) |
-| Booking is easy | Started → confirmed conversion; median time to verify | ≥ 70 %; < 5 min |
+| Clients book on the client timetable | Share of group + Open Gym bookings made by clients on the client timetable | ≥ 80 % (agreed 29 October 2026, hoped for 90 % or more) |
+| Booking is easy | Opened the timetable → booked conversion; median time to book | ≥ 70 %; < 5 min |
 | Dutch-only and English-only users complete everything | Missing keys; e2e suites per locale on web, iOS, Android | 0 missing; all suites green |
 | Open Gym receives bookings | Open Gym bookings per week | A test with no pass/fail number (agreed 29 October 2026): no demand today, so report slots, spots and bookings per week at G5 and set a number then |
 | Workout logging replaces Word and by-hand notes | Private sessions with a logged workout, measured from 2 weeks after M7 joins | ≥ 80 % |
@@ -687,7 +698,7 @@ Near-term releases have concrete scope. Later releases are **themes**, and their
 ### Horizon 3: Open it
 
 #### Release 2.0: Public SaaS onboarding
-- **Scope:** self-serve signup; "What describes you?" (Independent trainer / Trainer at a gym / Studio or gym owner, in Dutch by default); a workspace setup wizard per persona; marketing site (NL/EN); help center; support process; public App Store / Play listings for the trainer apps.
+- **Scope:** self-serve workspace creation (accounts are open since M5, ADR-026); "What describes you?" (Independent trainer / Trainer at a gym / Studio or gym owner, in Dutch by default); a workspace setup wizard per persona; marketing site (NL/EN); help center; support process; public App Store / Play listings for the trainer apps.
 - ⚠️ **Decision needed before 2.0:** a public SaaS needs a way to charge *our* customers. **Platform subscription billing** (charging trainers and gyms for the product) is different from **client payments** (gyms charging their clients, MVP since v1.19). Choose: free beta / manual invoicing / pull platform billing forward into 2.0.
 
 #### Release 2.1: Freelance trainers
@@ -725,7 +736,7 @@ These run continuously from M1 onward. They are not phases.
 | **API contract** | All clients use generated clients; changes are additive and versioned after a freeze | OpenAPI drift check in CI |
 | **Security** | Least privilege; tenant isolation; hashed single-use tokens; rate limits; secure token storage on devices; dependency updates | E011 suite in CI; local security review at M9 and before each major release |
 | **Privacy (AVG/GDPR)** | Minimal data (name + email for booking); trainer-only notes by default; EU residency; export and deletion; retention; processor agreements | Definition of Done checklist for any feature touching personal data |
-| **Accessibility** | WCAG 2.2 AA on public and client web; Dynamic Type, VoiceOver/TalkBack and contrast on native | axe checks in web e2e; native accessibility audits at M9 |
+| **Accessibility** | WCAG 2.2 AA on the client timetable, the join pages and client web; Dynamic Type, VoiceOver/TalkBack and contrast on native | axe checks in web e2e; native accessibility audits at M9 |
 | **Observability** | Errors, logs, uptime, crash-free rate; **product events captured from MVP** (bookings, attendance, logging) so 3.2 analytics has history | E009; event list maintained in `docs/engineering/` |
 | **Quality** | Test pyramid; e2e for booking, tenancy, scheduling; tests ship with every change (`docs/engineering/TESTING.md`) | Deterministic CI checks on `main`; feature Test plans; local review checklist |
 | **Documentation** | Spec issues + registry + `GLOSSARY.md` updated with the code | PR checklist (WORKFLOW.md) |
@@ -738,7 +749,7 @@ These run continuously from M1 onward. They are not phases.
 flowchart TB
   subgraph Clients
     TW[Trainer web<br/>Next.js]
-    PB[Public booking + client web<br/>Next.js, responsive]
+    PB[Client timetable + client web<br/>Next.js, responsive]
     IOS[Trainer iOS app<br/>Swift + SwiftUI]
     AND[Trainer Android app<br/>Kotlin + Compose]
     CM[Client iOS/Android apps<br/>Release 1.2]
@@ -754,7 +765,7 @@ flowchart TB
     API[packages/api<br/>Hono + zod-openapi REST]
     AUTH[packages/auth<br/>Better Auth: magic link + code,<br/>orgs, roles, bearer tokens]
     DOM[packages/domain<br/>scheduling, capacity,<br/>location inference, recurrence]
-    CRON[Daily cron service<br/>hold cleanup, recurrence,<br/>retention]
+    CRON[Cron service, every 5 minutes<br/>waitlist closing, daily recurrence<br/>and retention]
   end
 
   DB[(PostgreSQL — Railway EU West<br/>private network, RLS per organization)]
@@ -790,7 +801,7 @@ flowchart TB
 
 | Need | Free choice now | Limit to watch | Upgrade trigger → option |
 |---|---|---|---|
-| Web + API hosting, cron, previews | Railway Hobby, EU West (Amsterdam): **already paid by the owner** ($5/month incl. $5 usage) | Usage above the $5 credit is billed (watch PR environments); community support only; 7-day logs | **G4 → Railway Pro**, $20/month incl. $20 usage (≈ $5–10 expected usage at pilot volume) |
+| Web + API hosting, cron, previews | Railway Hobby, EU West (Amsterdam): **already paid by the owner** ($5/month incl. $5 usage) | Usage above the $5 credit is billed (watch PR environments and the cron job, which runs every 5 minutes, ADR-027); community support only; 7-day logs | **G4 → Railway Pro**, $20/month incl. $20 usage (≈ $5–10 expected usage at pilot volume) |
 | Database | Railway Postgres in the same project (EU West, Amsterdam) | Hobby: 5 GB volume; backup/PITR availability per plan to verify in M1 | Covered by Railway Pro at G4; storage $0.15/GB-month |
 | Email | Brevo free (set up in E006) | **300 emails/day**, shared by transactional and marketing; no authenticated sender yet (From is rewritten to `@brevosend.com` until SPF, DKIM and DMARC are set on fivvi.app) | Send volume near the cap, and before G4 → paid plan; authenticate fivvi.app in Brevo before M5 |
 | Domain | **fivvi.app, bought by the owner (21 October 2026)**; until M5 the provider's test sending and `*.up.railway.app` are enough | Yearly renewal | **Before M5:** set up DNS (Railway custom domain; Brevo SPF, DKIM, DMARC), no new spend |
@@ -812,11 +823,11 @@ flowchart TB
 
 | ID | Risk | L | I | Mitigation | Watch in |
 |---|---|---|---|---|---|
-| R1 | **Magic-link emails land in spam or links get pre-clicked by scanners** → bookings fail | M | H | Authenticated domain (SPF/DKIM/DMARC) before M5; Brevo open/click tracking (link rewriting) switched off before G2; confirm-click page; 6-digit code fallback; deliverability tests | M1, M5 |
+| R1 | **Magic-link emails land in spam or links get pre-clicked by scanners** → sign-in fails, and with it joining and booking | M | H | Authenticated domain (SPF/DKIM/DMARC) before M5; Brevo open/click tracking (link rewriting) switched off before G2; confirm-click page; 6-digit code fallback; deliverability tests | M1, M5 |
 | R2 | **Daylight-saving/timezone bugs** in recurring classes | M | H | ADR-012; UTC + IANA TZ; DST test fixtures (March/October) | M4 |
 | R3 | **Overbooking via race conditions** | M | H | Transactional capacity checks; concurrency tests | M5 |
 | R4 | **Cross-tenant data leak** | L | Critical | Org-scoped data layer + RLS + CI isolation suite | M2 onward |
-| R5 | **Hold spam blocks classes** | L | M | Rate limits; hold caps per email; Turnstile | M5 |
+| R5 | **Account and join-request spam**: open sign-up lets anyone create accounts and send join requests, which email the Owner (ADR-026; the old hold spam is gone with the holds) | L | M | Rate limits per IP and email on sign-up, sign-in and join requests; a cap on pending requests per account; Turnstile; the Owner can decline; an unapproved account sees nothing | M5 |
 | R6 | **Single pilot = single point of failure and bias** | M | H | Interview a second gym owner in M0 (v1.19); recruit 1–2 "friendly" extra trainers/gyms during the pilot to sanity-check findings before 2.0 | M0, M10 |
 | R7 | **Scope creep** from pilot requests during the build | H | M | Requests go to a 1.1 backlog unless they block a success criterion; roadmap changelog | All |
 | R8 | **AI-agent drift:** inconsistent patterns, duplicated logic, or plausible-but-wrong code across Copilot, Claude and Codex | M | H | One shared `AGENTS.md` + area rules + ADRs; edit guard hook (no edits on `main` or of generated files); deterministic CI; small PRs; local review checklist; optional local second-agent review; owner approval at every gate; business logic only in `packages/domain` | All |
@@ -825,7 +836,7 @@ flowchart TB
 | R11 | **Health data in notes (GDPR special category)** | M | H | Trainer-only default; access audit log; DPIA assessment; EU residency; processor agreement | M0, M7, M9 |
 | R12 | **Weak gym connectivity** breaks live logging | M | M | Offline-tolerant logging API; the web logger keeps unsent sets on the device (M7), the native apps queue locally (their M7 slice); full offline in 1.1 | M7, M8 |
 | R13 | **Pilot data import is messier than expected**, now with agreements and balances from the old app | H | M | M0: the gym owner describes the old app's data and how it is kept by hand (no files); go-live data entered by hand or imported from a template the gym owner fills in; import dry-runs in M9 | M0, M9 |
-| R14 | **A free-tier limit bites at the worst moment** (email cap blocks magic links; DB cold starts slow booking; CI minutes run out) | M | H | Know the limits (§12); usage alerts; upgrade path ready before G4 | M1, M9, M10 |
+| R14 | **A free-tier limit bites at the worst moment** (email cap blocks sign-in emails; DB cold starts slow booking; CI minutes run out) | M | H | Know the limits (§12); usage alerts; upgrade path ready before G4 | M1, M9, M10 |
 | R15 | **No over-the-air updates for native apps**, so pilot fixes are slower | M | M | Keep business rules server-side; TestFlight/internal builds are fast to ship and the build pipeline works from M2 (E017); the trainer web is the fallback; feature flags from the API for risky features | M2, M10 |
 | R16 | **A trainer's app isn't ready or fails its checks at go-live**, so the trainer falls back to the phone browser and keeps old notes or Word documents | M | M | The native tracks run beside the web from M2 with the parity checklist per milestone; the phone-friendly trainer web with touch targets and a home-screen icon stays the fallback (M4, M7); the native tracks may trail the web by one milestone (§6); watch the workaround log in weeks 1–3 | M2–M7, M10 |
 | R17 | **Payments or balances go wrong** (double charge, lost debit, wrong credit used) and the gym loses money or trust | M | H | Ledgers, idempotency keys, stored webhook events, replay tests, reconciliation per payout (M11); old app as read-only fallback until a full cycle matches (M9) | M11, M10 |
@@ -845,7 +856,7 @@ flowchart TB
 
 | # | Decision | Outcome |
 |---|---|---|
-| 1 | Product name and domain | **Fivvi**, domain **fivvi.app** (21 October 2026; was the working name Trainer Hub). fivvi.app serves the web app, the public booking pages and the API (under `/api`); a marketing site can take `www` or a path later. The email sender is `Fivvi` (noreply at fivvi.app), sent by Brevo once fivvi.app has SPF, DKIM and DMARC. The apps: **Fivvi Pro** for owners and trainers (app ID `app.fivvi.pro`, the iOS bundle ID and the Android application ID) and **Fivvi** for clients (`app.fivvi`, Release 1.2); store names to check for availability in E017. The GitHub repository keeps its name until the owner renames it |
+| 1 | Product name and domain | **Fivvi**, domain **fivvi.app** (21 October 2026; was the working name Trainer Hub). fivvi.app serves the web app, the client timetable and join pages and the API (under `/api`); a marketing site can take `www` or a path later. The email sender is `Fivvi` (noreply at fivvi.app), sent by Brevo once fivvi.app has SPF, DKIM and DMARC. The apps: **Fivvi Pro** for owners and trainers (app ID `app.fivvi.pro`, the iOS bundle ID and the Android application ID) and **Fivvi** for clients (`app.fivvi`, Release 1.2); store names to check for availability in E017. The GitHub repository keeps its name until the owner renames it |
 | 2 | Team and capacity | **Built by AI agents (GitHub Copilot, Claude Code, Codex)**; no human-capacity timeline; sequence- and gate-based plan |
 | 3 | Stack (ADRs) | **Native iOS (Swift/SwiftUI) + native Android (Kotlin/Compose)**; the rest as recommended; API switched to REST + OpenAPI because of native |
 | 4 | Hosting and budget | **Free tiers until real clients**; upgrades at G4 (§12) |
@@ -861,6 +872,7 @@ flowchart TB
 | 14 | Payment provider (Mollie or Stripe) and merchant model (resolved 21 October 2026) | **Mollie Connect for Platforms**, decided in [ADR-020](../decisions/ADR-020-payment-provider.md) (Accepted, 21 October 2026): each gym is the merchant on its own Mollie account, connected in one guided step, and Fivvi never holds client money; Stripe Connect is the fallback. Decided at the M11 opening spike; the questions for Mollie that ADR-020 lists are asked before E019 starts |
 | 15 | Open commerce rules (QC01–QC19): membership seats, cutoff, makeups, failed-payment access, credit expiry and carry-over and more (resolved 31 October 2026) | **Answered in the M0 commerce walkthrough (31 October 2026)** and recorded in [`open-questions.md`](../design/open-questions.md); a few points stay open there (the pilot's end-of-term setting, early ending, a consumer surcharge, QC19 a–c) for the M11 specs and the legal check |
 | 18 | Client apps: separate apps or a role mode inside the trainer apps (resolved 21 October 2026) | **Separate apps:** **Fivvi Pro** (owners and trainers, app ID `app.fivvi.pro`) and **Fivvi** (clients, Release 1.2, app ID `app.fivvi`), on both iOS (bundle ID) and Android (application ID). It was a decided-iteratively decision for the 1.2 entry gate; the owner settled it with the app names. Store names to check for availability in E017 |
+| 19 | Clients sign in and are approved to book (resolved 31 October 2026) | **Decided in [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) (Proposed) and [ADR-027](../decisions/ADR-027-a-cron-every-5-minutes.md) (Proposed):** anyone can create an account (email now, Apple and Google later as F063); a client joins a workspace through an invitation or by asking through its join link, and only the Owner approves; nothing is public; booking is immediate (no holds, no email step) and from M11 needs an active agreement; creating a workspace stays allowlisted until Release 2.0; the waitlist closing time and the 5-minute cron job |
 
 ### Decided iteratively (at their entry gate, from evidence)
 
@@ -916,3 +928,4 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-10-29 | 1.27 | **Quick questions with the pilot gym ([#153](https://github.com/fivvi-app/fivvi/issues/153)).** (A) The inventory, phone and baseline lines of §4.1 are ticked, from estimates ([`results/quick-questions.md`](../discovery/results/quick-questions.md)). (B) **Minimum OS versions:** iOS 17.0 and Android 8.0 (API 26), unchanged defaults, recorded in ADR-003; the exact phone versions of four trainers are still open. (C) **⚑ targets agreed in §8:** public-page bookings ≥ 80 % (hoped for 90 % or more); Open Gym is a test with no pass/fail number until G5; admin time ≤ 3.5 h per week (hoped for ≤ 2.5 h). The commerce targets stay ⚑ until the commerce walkthrough ([#150](https://github.com/fivvi-app/fivvi/issues/150)). |
 | 2026-10-31 | 1.28 | **Commerce walkthrough with the pilot gym ([#150](https://github.com/fivvi-app/fivvi/issues/150)).** (A) **QC01–QC19 answered** in [`open-questions.md`](../design/open-questions.md) (pilot gym owner's answers and product-owner decisions); points still open are listed at the end of that section. (B) **Memberships are weekly allowances** (1, 2 or 3 group classes a week, booked by the client), not fixed weekdays and no standing spot; two workspace settings, a **weekly limit** (the pilot: 4) and **unused weekly classes** (expire at the end of the week, or stay valid until the agreement ends). Cutoff 12 hours for classes and 24 hours for private sessions; 2 makeups a month, valid until the end of the membership; the default private credit plan has a minimum term of 3 months and the default membership 2 makeups a month. (C) **New settings for every workspace (product owner):** billing cycle per offer (every month or every 4 weeks; the pilot is monthly), intro credit pack "once per client", member-only offers, an end-of-term setting (stop, or continue per cycle within Dutch consumer law), and the single class stays an offer kind. The pilot allows upgrades and no downgrades. (D) **Open Gym gets its own kind of credits** (QC18), a third kind next to group and private that never mix. (E) **The waitlist moves into the MVP, before the pilot** (from Release 1.1, `PRODUCT.md §54`): a cut-off a few minutes before the class after which nobody is moved up, and a message to waitlisted clients who did not get in. Its milestone and feature ID are still to place (`FEATURES.md`). (F) **Commerce targets agreed in §8 (⚑ replaced):** A4 all running agreements in Fivvi from pilot week 0 with 0 unexplained balance differences; A5 all payments through Fivvi from pilot week 0 with 0 duplicate charges, the old app's collection stopping on the same date; A6 0 invoices by hand. Consequences: the import complete and checked before go-live, the gym's Mollie account approved, first-payment links before week 0, one cut-over date ([`metric-targets.md`](../discovery/results/metric-targets.md)). (G) Private training moves to direct debit too; the pilot pays Mollie's fee itself where today the current app charges its clients (a consumer surcharge goes to the legal check, §4.4). `PRODUCT.md §54, §90–§97`, `GLOSSARY.md` and the i18n glossary follow. |
 | 2026-10-31 | 1.29 | **The waitlist placed (owner):** **F062 Waitlist**, `Must`, in **M5** with the public booking (it needs F026 cancellations, F028 capacity, F031 verified booking and F049 emails); how a waitlisted client with a membership or credits is handled comes with M11 (`+M11 commerce`, like F033). The MVP has 62 user-facing features (F001–F062). `FEATURES.md` and `PRODUCT.md §23, §84` follow. |
+| 2026-10-31 | 1.30 | **Clients sign in and are approved to book (owner, grilling session; ADR-026 and ADR-027, proposed).** (A) **Accounts and workspaces:** anyone can create a Fivvi account (email sign-in now, Apple and Google later as **F063**, Should, M5); an account alone shows nothing of any workspace. A client joins a workspace when it **adds** them (an invitation email) or when the Owner **approves their join request**, made through the workspace's one **join link** or its QR code (they see "waiting for the studio"); no workspace search ("at least for the beginning"). Only the Owner approves or declines, by email and on the web (a list of requests on Clients); a declined client gets a short, neutral email; nothing in Fivvi Pro yet. Creating a workspace stays allowlisted (`SIGN_UP_ALLOWED_EMAILS`) until Release 2.0. (B) **Booking:** nothing is public; the public booking page becomes the **client timetable**; booking needs a sign-in and, from M11, an active agreement that covers the class (a trial is just an offer); before M11 being an approved client is enough; private sessions stay booked by the trainer or owner; **no holds and no email verification step** (a booking is immediate); booking links and QR codes work only for approved clients, next to the one join link, which the Owner can renew; the Owner can remove a client. (C) **Waitlist rules (F062):** group classes only; one tap to join, position shown; the first in line is booked automatically and gets a "you're in" email; a **waitlist closing time** per workspace (default 30 minutes before the class; not the cancellation cutoff) after which nobody moves up or joins and everyone waiting gets a "you didn't get in" email; a booking from the waitlist can be cancelled as if in time, outside the 2-a-month limit; from M11 a client who can't book is skipped and nothing is reserved while waiting; the owner and trainers see the list on the web. (D) **Client web (M11)** shows, per workspace, the payment history and the invoice and credit-note PDFs. (E) **Registry:** F027 Client Timetable, F029 Join Link and Join Requests, F030 Client Sign-Up, F031 Booking for Approved Clients, F032 Client Invitations, F035 Open Gym Booking (IDs kept, F029's hold gone); F037 and F038 for approved clients and the join link; **F063** added: 63 features (F001–F063). (F) **ADR-027:** the cron job runs every 5 minutes (Railway's minimum) for the waitlist's closing-time email; amends ADR-010. New emails (§51). Risk R5 becomes account and join-request spam. M5 is renamed Client sign-in and booking. `PRODUCT.md §2–§33, §51–§53, §84–§95`, `FEATURES.md`, both glossaries and `open-questions.md` (QE06 and others resolved) follow. |

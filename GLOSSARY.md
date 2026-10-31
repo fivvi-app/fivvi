@@ -1,6 +1,6 @@
 # Fivvi
 
-The domain language of Fivvi: a platform where gyms, studios and independent trainers run their scheduling, public booking, Open Gym, clients, workouts and notes. Use these terms in code, issues, specs, tests and conversation.
+The domain language of Fivvi: a platform where gyms, studios and independent trainers run their scheduling, booking, Open Gym, clients, workouts and notes. Use these terms in code, issues, specs, tests and conversation.
 
 This glossary says what a concept **is**, in English. How each term is worded in the Dutch and English UI, plus tone and copy rules, is in [`packages/i18n/GLOSSARY.md`](packages/i18n/GLOSSARY.md) §4. Code names and i18n keys follow the English term here. 🔜 marks a concept for a post-MVP release, listed so nobody uses the word for something else meanwhile. Requirements: `docs/product/PRODUCT.md`.
 
@@ -36,7 +36,7 @@ What a team member may do in a workspace: Owner or Trainer, at most one per work
 _Avoid_: permission level, custom role
 
 **Owner**:
-Manages the whole workspace, including trainers, settings, booking links and the money (offers, agreements, payments and invoices). Can also be a trainer.
+Manages the whole workspace, including trainers, settings, booking links and the join link, join requests (the only one who approves or declines them) and the money (offers, agreements, payments and invoices). Can also be a trainer.
 _Avoid_: boss, Admin (a different, later role)
 
 **Admin** 🔜:
@@ -52,7 +52,7 @@ A trainer who runs their own workspace.
 _Avoid_: freelancer
 
 **Client**:
-A person who trains with or books at a workspace. Belongs to the workspace, not to one trainer. A team member can also be a client (`PRODUCT.md §2.9`).
+A person who trains with or books at a workspace. Belongs to the workspace, not to one trainer. A client is **approved** once the workspace has added them or the Owner has accepted their join request; only an approved client sees the timetable and books. A team member can also be a client (`PRODUCT.md §2.9`).
 _Avoid_: customer, member, user, athlete, guest
 
 **Participant**:
@@ -60,17 +60,17 @@ A client on a session's list: booked into a class or Open Gym slot, or the clien
 _Avoid_: attendee, student
 
 **Invitation**:
-An email from an owner asking someone to join the workspace as a trainer. Accepting it adds the role to the person's existing account, if they have one.
+An email from the workspace asking someone to join it: as a trainer (an owner's invitation; accepting adds the role to the person's existing account, if they have one) or as a client (the person is in once they sign in).
 
 **Account**:
-A login: required for a team member; created for a client at their first verified booking. One per person and email address, shared by every workspace the person belongs to.
+A login: required for a team member and for a client. Anyone can create one (ADR-026); on its own it shows nothing of any workspace. One per person and email address, shared by every workspace the person belongs to.
 
 **Sign in**:
-To start using an account by verifying its email address with a magic link or a verification code.
+To start using an account by verifying its email address with a magic link or a verification code. Anyone can do this: the first sign-in with an address creates the account.
 _Avoid_: log in, login (as a verb), sign up, register, session (for being signed in)
 
-**Sign-up** 🔜:
-Creating a new account by choice, separate from a first sign-in, an accepted invitation or a client's first verified booking.
+**Sign-up**:
+Creating a new account by choice. Open for accounts from M5 (ADR-026); creating a **workspace** stays limited to allowed email addresses until Release 2.0 (public SaaS onboarding).
 
 **Interface language**:
 The language a person sees on screen: Dutch or English. It follows the person (their choice, their preference or their device), or a booking link's fixed language; never the workspace's default communication language.
@@ -128,7 +128,7 @@ The day and week view of sessions. A trainer's **my calendar** combines all thei
 _Avoid_: agenda (the Dutch word), planning, roster
 
 **Capacity**:
-The maximum number of participants of a class occurrence or Open Gym slot. Active holds count toward it.
+The maximum number of participants of a class occurrence or Open Gym slot. Bookings count toward it. The waitlist never exceeds it: a client moves up only into a free spot.
 
 **Spot**:
 One place within the capacity of a class occurrence or Open Gym slot.
@@ -141,10 +141,14 @@ Bookable time where clients train on their own at a location.
 One Open Gym session, with a start, end, location and capacity.
 
 **Publish**:
-To make a class or Open Gym slot visible on the booking page.
+To make a class or Open Gym slot visible on the client timetable.
 
 **Waitlist**:
-A queue for a full class occurrence: when a spot frees up, the first in line gets it. The rules (cut-off, messages) are in `PRODUCT.md §23`.
+A queue for a full group class occurrence. When a spot frees up (a cancellation, a removal, more capacity), the first in line is booked automatically and told by email. Nobody moves up or joins after the **waitlist closing time**. The rules are in `PRODUCT.md §23`.
+
+**Waitlist closing time**:
+A workspace setting, in minutes before a class starts (default 30): after it nobody moves up the waitlist and nobody can join, and everyone still waiting gets a "you didn't get in" email. Not the *cancellation cutoff*, which is in hours and is about cancelling.
+_Avoid_: cut-off, cutoff (alone: easily confused with the cancellation cutoff)
 
 ### Locations
 
@@ -157,36 +161,49 @@ What kind of place a location is: the workspace's own premises, an external gym 
 **Default training location**:
 A client's usual location, used to infer the location of new sessions. After go-live, with more locations.
 
-### Booking and verification
+### Booking and joining
 
 **Booking**:
-A client's confirmed place in a class occurrence or Open Gym slot. Until the email is verified, the place is a hold, not a booking.
+A client's place in a class occurrence or Open Gym slot. It is immediate: a signed-in, approved client books and the place is theirs at once (from M11 an active agreement must cover the class). There is no hold and no email step before it.
 _Avoid_: reservation, registration, sign-up, enrolment
 
+**Client timetable**:
+The workspace's timetable that only its approved clients see: the classes and Open Gym slots they can book, on the web without an app. Not public: a visitor who is not an approved client sees only a sign-in and, with the join link, a request to join.
+_Avoid_: public timetable, public booking page
+
 **Booking page**:
-The public web page where clients book without an app.
+The web page of the **client timetable**, where approved clients book. Use *Client timetable* for the concept.
+_Avoid_: public booking page
 
 **Booking link**:
-A shareable URL for a booking scope: all, group classes, Open Gym, one class or one class date. A **QR code** opens a booking link.
+A shareable URL for a booking scope: all, group classes, Open Gym, one class or one class date. It works only for approved clients. A **QR code** opens a link, such as the join link or a booking link.
 
-**Hold**:
-A spot reserved for 10–15 minutes while the client verifies their email. It counts toward capacity until it is confirmed or expires.
+**Join link**:
+The one link a workspace has for new clients to ask to join (with a QR code for the desk). The Owner can renew it; the old one then stops working. It leads to a sign-in and a join request, not to the timetable.
+_Avoid_: invite link, signup link
+
+**Join request**:
+A signed-in person's request to become a client of a workspace, made through its join link. It waits ("waiting for the studio") until the Owner approves or declines it. A declined person sees nothing of the workspace and may ask again.
+_Avoid_: application, access request
+
+**Hold** (retired):
+Retired on 31 October 2026 (ADR-026). A booking is immediate, so no spot is held while a client verifies their email. Use *Booking*; for the queue of a full class, *Waitlist*.
 _Avoid_: reservation
 
-**Hold state**:
-Where a hold is in verification: **pending verification** (email not verified yet), **confirmed** (verified: the hold became a booking) or **expired** (the hold ran out and the spot was released).
+**Hold state** (retired):
+Retired on 31 October 2026 with *Hold*: a booking has no verification or expiry state.
 
 **Verify**:
-To prove ownership of an email address with the magic link or the verification code.
+To prove ownership of an email address at sign-in with the magic link or the verification code. Booking no longer needs it.
 
 **Magic link**:
-The link in a verification or sign-in email.
+The link in a sign-in email.
 
 **Verification code**:
 The 6-digit code in the same email as the magic link.
 
 **Booking confirmation**:
-The email and screen a client gets after a confirmed booking.
+The email and screen a client gets after a booking. A booking that came from the waitlist is confirmed with the "you're in" email and says so.
 
 ### Attendance
 
@@ -250,8 +267,8 @@ The rules of an offer for cancellations and no-shows: the cutoff, the makeup lim
 _Avoid_: terms, rules (alone)
 
 **Cancellation cutoff**:
-How many hours before the start a client can still cancel in time.
-_Avoid_: deadline, notice period
+How many hours before the start a client can still cancel in time. Not the *waitlist closing time*.
+_Avoid_: deadline, notice period, cut-off (alone)
 
 **Makeup**:
 A right to attend another class, granted under the cancellation policy, for example for a cancellation in time.

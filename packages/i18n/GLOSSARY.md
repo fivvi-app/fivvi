@@ -1,11 +1,11 @@
 # Fivvi: terminology and tone glossary (nl-NL + en)
 
-This is the **single wording source** for every user-facing string on every surface: trainer web, iOS, Android, public booking, client web and email. Humans and LLM translators both use it. If a string and this glossary disagree, the string is wrong.
+This is the **single wording source** for every user-facing string on every surface: trainer web, iOS, Android, the client timetable and join pages, client web and email. Humans and LLM translators both use it. If a string and this glossary disagree, the string is wrong.
 
 What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLOSSARY.md) at the repo root (English canonical terms, definitions, words to avoid). This file says how those terms are **worded** in nl-NL and en.
 
-- **Status:** v0.13, started in M0 (`ROADMAP.md §4.2`). The owner decided the nine open terms on 2026-10-29 by choosing the standard Dutch wording, and on the same day the wording of *single class* and *client*. Terms marked ⚠️ are still open (see [§8 Open questions](#8-open-questions)).
-- **Scope:** UI strings, emails, notifications, validation messages, empty states, public booking pages and QR posters. Legal documents (privacy policy, terms, verwerkersovereenkomst) follow their own register and are out of scope.
+- **Status:** v0.14, started in M0 (`ROADMAP.md §4.2`). The owner decided the nine open terms on 2026-10-29 by choosing the standard Dutch wording, and on the same day the wording of *single class* and *client*. Terms marked ⚠️ are still open (see [§8 Open questions](#8-open-questions)); v0.14 adds the join link, join request and waitlist closing time terms of ADR-026 as ⚠️.
+- **Scope:** UI strings, emails, notifications, validation messages, empty states, the client timetable and join pages and QR posters. Legal documents (privacy policy, terms, verwerkersovereenkomst) follow their own register and are out of scope.
 - **Catalogs:** `packages/i18n/nl-NL.json` and `packages/i18n/en.json` (ICU MessageFormat, ADR-008). Native catalogs (`.xcstrings`, `strings.xml`) are generated from them and are never edited by hand.
 - **Precedence:** `PRODUCT.md` owns requirements. This file owns terminology, tone and copy style. Where it deliberately differs from example copy in `PRODUCT.md`, [§7](#7-deviations-from-productmd-example-copy) lists why.
 
@@ -27,7 +27,7 @@ What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLO
 
 ### 1.1 Dutch (nl-NL): informal "je", friendly and short
 
-**Decision: always address the reader with "je", never "u".** `ROADMAP.md §10` sets the tone guide as *informal "je", friendly and short*, and `PRODUCT.md §26` already uses it ("Je boeking is bevestigd." on the confirmation screen, "We maken een account voor je aan, zodat je je boekingen kunt zien." on the booking page). This applies to every audience (owners, trainers, clients) and every surface, including emails.
+**Decision: always address the reader with "je", never "u".** `ROADMAP.md §10` sets the tone guide as *informal "je", friendly and short*, and `PRODUCT.md §25` already uses it ("Je boeking is bevestigd." on the confirmation screen). This applies to every audience (owners, trainers, clients) and every surface, including emails.
 
 | Rule | ✅ Do | ❌ Don't |
 |---|---|---|
@@ -194,7 +194,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | spot | plek (de, plekken) | ❌ NL: *plaats*. ❌ EN: *place, seat, slot* (*slot* belongs to Open Gym). |
 | full | vol | No spots left. Badge *Vol / Full*. |
 | available | beschikbaar | Spots still open. "Nog 3 plekken beschikbaar" / "3 spots left". |
-| waitlist | wachtlijst (de, wachtlijsten) | In the MVP since 2026-10-31. ❌ *reservelijst*. |
+| waitlist | wachtlijst (de, wachtlijsten) | In the MVP since 2026-10-31; the rules are in `PRODUCT.md §23`. Emails: *Je staat op de wachtlijst* (with the position), *Je bent erbij* ("you're in") ⚠️, *Je hebt geen plek gekregen* ("you didn't get in") ⚠️. ❌ *reservelijst*. |
 | Open Gym | Open Gym (never translated) | Always two capitalized words. ❌ *vrij trainen, open training, open sportschool, open gym*. |
 | Open Gym slot | Open Gym-moment (het, Open Gym-momenten) | ❌ NL: *tijdslot, Open Gym-sessie*. |
 | publish | publiceren | Opposite: *offline halen / unpublish*. ❌ *live zetten, online zetten*. |
@@ -212,27 +212,28 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | Location type: `online` | Online | EN: *Online*. |
 | Location type: `other` | Anders | EN: *Other*. |
 
-### 4.4 Booking and verification
+### 4.4 Booking, joining and sign-in
 
 | EN term | NL term | Notes / forbidden alternatives |
 |---|---|---|
 | booking | boeking (de, boekingen); *to book* → **boeken**; *booked* → **geboekt** | ❌ NL: *reservering, inschrijving, aanmelding*. ❌ EN: *reservation, registration, sign-up, enrolment*. |
-| booking page | boekingspagina (de, boekingspagina's) |  |
-| booking link | boekingslink (de, boekingslinks) | Nav: *Boekingslinks / Booking links*. |
+| booking page | boekingspagina (de, boekingspagina's) | The workspace's client timetable. Not public: never call it a *publieke* / public page in the UI. |
+| booking link | boekingslink (de, boekingslinks) | Nav: *Boekingslinks / Booking links*. Works only for approved clients. |
+| join link | aanmeldlink (de, aanmeldlinks) ⚠️ | The workspace's one link for new clients to ask to join (`PRODUCT.md §26`). A proposal, not the owner's wording: to confirm with the pilot gym owner. *Aanmelden* is otherwise forbidden for signing in (see *sign in*), and *aanmelding* for a booking; the compound is only for the join link and request. EN: *join link*. ❌ *uitnodigingslink* (an invitation is something the workspace sends), *signup link*. |
+| join request | aanmeldverzoek (het, aanmeldverzoeken) ⚠️ | A person's request to become a client of a workspace. A proposal, not the owner's wording: to confirm with the pilot gym owner. Owner actions: *Goedkeuren* ⚠️ / *Afwijzen* (EN *Approve* / *Decline*). Waiting state: *Wachten op de studio* ⚠️ / *Waiting for the studio* (name the workspace where it fits, §1.3). ❌ *aanvraag*, *toegangsverzoek*. |
+| waitlist closing time | *(a sentence, not a noun)* — **De wachtlijst sluit 30 minuten voor de les.** ⚠️ | A workspace setting (default 30 minutes). EN: *The waitlist closes 30 minutes before the class.* ⚠️ Phrase it as a sentence with the number, like the cancellation cutoff (§4.9). ❌ *sluitingstijd* as a label, *deadline*, *cut-off* in either language (confused with the cancellation cutoff). |
 | QR code | QR-code (de, QR-codes) | Actions: *Link kopiëren, QR-code downloaden, Afdrukken, Delen* — *Copy link, Download QR code, Print, Share*. |
-| hold | *(noun not used in UI)* — **je plek vasthouden** | UI: "We houden je plek {minutes} minuten voor je vast." / "We're holding your spot for {minutes} minutes." ❌ *reservering, blokkering, hold, claim*. |
-| status `pending_verification` | Wacht op bevestiging | A held spot whose email isn't verified yet. EN: *Awaiting confirmation*. |
-| status `confirmed` | Bevestigd | Verified, booking complete. EN: *Confirmed*. |
-| status `expired` | Verlopen | The hold ran out and the spot was released. EN: *Expired*. |
-| verify (email) | bevestigen ("Bevestig je e-mailadres") | ❌ NL: *verifiëren, valideren, activeren*. EN: *confirm your email* in UI copy; *verify* is fine in internal docs. |
-| magic link | *(internal)* — **inloglink** / **bevestigingslink** | EN: *sign-in link* / *confirmation link*. ❌ *magic link, magische link* in UI. Say *inloglink* when it signs someone in, *bevestigingslink* when it confirms a booking. |
+| hold | *(retired 31 October 2026, ADR-026)* | Booking is immediate, so there is no "we're holding your spot" copy, no *Wacht op bevestiging / Awaiting confirmation* status and no hold *Verlopen / Expired* status. ❌ *reservering, blokkering, hold, claim*. Not to be confused with the *waitlist* (§4.2). |
+| status `confirmed` | Bevestigd | The booking is complete. EN: *Confirmed*. |
+| verify (email) | bevestigen ("Bevestig je e-mailadres") | Only at sign-in now; booking no longer verifies an email. ❌ NL: *verifiëren, valideren, activeren*. EN: *confirm your email* in UI copy; *verify* is fine in internal docs. |
+| magic link | *(internal)* — **inloglink** | EN: *sign-in link*. ❌ *magic link, magische link* in UI. It signs someone in; there is no confirmation link for a booking any more. |
 | verification code | verificatiecode (de, verificatiecodes); short: **code** | "Vul de code uit de e-mail in." / "Enter the code from the email." ❌ *pincode, wachtwoord, token, OTP, sms-code*. |
 | sign in / sign out | inloggen / uitloggen | EN: *Sign in / Sign out*. ❌ EN: *Log in, Login* (as a verb). ❌ NL: *aanmelden* (ambiguous with registering), *afmelden*. |
-| account | account (het, accounts) | Created automatically at a client's first verified booking (`PRODUCT.md §26`) — never shown as a choice, so there is no "Create account" / "Continue without account" copy. ❌ *profiel* for the login itself. |
+| account | account (het, accounts) | Anyone can create one (`PRODUCT.md §27`, ADR-026); on its own it shows nothing of any workspace. The wording of the creation step (*Account aanmaken* / *Create account*, §5.1) is to confirm ⚠️. ❌ *profiel* for the login itself. |
 | email | e-mail (de, e-mails); *email address* → **e-mailadres** (het) | EN writes *email* without a hyphen. ❌ NL: *mail, mailadres, emailadres*. |
 | booking confirmation | boekingsbevestiging (de) |  |
 | my bookings | Mijn boekingen | The client's booking overview (`PRODUCT.md §15`, F033). Tabs: *Aankomend / Upcoming*, *Afgelopen / Past*. |
-| name | naam | The only personal field on the booking form, next to email (`PRODUCT.md §22`). Label: *Naam / Name*. ❌ No phone number field, ever, in MVP. |
+| name | naam | Asked at sign-up or in the join request, not on a booking (there is no booking form, `PRODUCT.md §22`). Label: *Naam / Name*. ❌ No phone number field, ever, in MVP. |
 
 ### 4.5 Attendance
 
@@ -383,6 +384,7 @@ Added with roadmap v1.19 (M11). The owner decided the commerce terms among the n
 | Show more | Meer tonen | | |
 | Invite | Uitnodigen | | |
 | Accept / Decline | Accepteren / Afwijzen | Invitations | *Weigeren* |
+| Approve / Decline | Goedkeuren ⚠️ / Afwijzen | Join requests (the owner's list on Clients) | *Accepteren* (that is for invitations), *Weigeren* |
 | Book | Boeken / Plek boeken | Booking CTA | *Reserveren, Inschrijven* |
 | Publish / Unpublish | Publiceren / Offline halen | Classes and Open Gym | |
 | Share | Delen | | |
@@ -401,7 +403,10 @@ Added with roadmap v1.19 (M11). The owner decided the commerce terms among the n
 | Required field | Vul je naam in. | Enter your name. |
 | Invalid email | Dit e-mailadres klopt niet. Controleer het en probeer het opnieuw. | This email address doesn't look right. Check it and try again. |
 | Class full | Deze les is vol. Kies een ander tijdstip. | This class is full. Choose another time. |
-| Hold expired | Je plek is vrijgegeven, omdat je e-mailadres niet op tijd is bevestigd. Boek opnieuw als er nog plek is. | Your spot was released because your email wasn't confirmed in time. Book again if there's still space. |
+| No workspace yet ⚠️ | Vraag je studio om de aanmeldlink. | Ask your studio for its link. |
+| Join request sent ⚠️ | Wachten op de studio | Waiting for the studio |
+| Position on the waitlist ⚠️ | Nummer {position} op de wachtlijst. | Number {position} on the waitlist. *(A plain number, not an ordinal: "2nd" and "2e" need a form per number; the owner's example was "You're 2nd on the waitlist".)* |
+| Waitlist closing time ⚠️ | De wachtlijst sluit {minutes} minuten voor de les. | The waitlist closes {minutes} minutes before the class. |
 | Wrong code | Deze code klopt niet. Controleer de code in de e-mail. | That code isn't right. Check the code in the email. |
 | Code expired | Deze code is verlopen. Vraag een nieuwe code aan. | This code has expired. Request a new one. |
 | No connection | Geen verbinding. Controleer je internet en probeer het opnieuw. | No connection. Check your internet and try again. |
@@ -467,7 +472,7 @@ Follow this whenever you add or change a key in `packages/i18n/nl-NL.json` or `e
 
 1. **Look up every domain noun and verb** in the root `GLOSSARY.md` (meaning) and in §4 and §5 here (wording) before writing a string. Use the listed NL and EN term exactly. Never use a forbidden alternative, even if it sounds more natural to you.
 2. **Write both languages in the same change.** Never add a key to one catalog only (CI checks parity). Dutch is the primary language: it must read like a Dutch product, not like a translation of English. Draft both, then read the Dutch aloud.
-3. **Key names use the English term from the root `GLOSSARY.md`** (`class`, `session`, `booking`, `hold`, `workspace`), never a synonym (`lesson`, `appointment`, `reservation`). Keys are dot paths of lowerCamelCase segments, grouped by screen or feature (`booking.spotsAvailable`); see `packages/i18n/README.md`.
+3. **Key names use the English term from the root `GLOSSARY.md`** (`class`, `session`, `booking`, `waitlist`, `workspace`), never a synonym (`lesson`, `appointment`, `reservation`). Keys are dot paths of lowerCamelCase segments, grouped by screen or feature (`booking.spotsAvailable`); see `packages/i18n/README.md`.
 4. **One key per context.** Don't reuse a key because the text happens to match today. *Annuleren* as a dialog dismiss and *Annuleren* as "cancel this booking" are two keys, and they may diverge.
 5. **Full sentences with placeholders, ICU plurals, no concatenation** (§3.3). Format dates, times and numbers in code (§3.1).
 6. **Add context for ambiguous strings** in `packages/i18n/comments.json`, e.g. "button that dismisses the dialog" vs "button that cancels the booking". Native exporters pass it on as translator comments.
@@ -503,6 +508,8 @@ No question from the nine terms that were open at v0.10 remains. The owner decid
 
 The owner also decided two wordings on 2026-10-29, not by pilot validation (changelog 0.12): *single class → losse sessie* (only the Dutch word changes, the concept stays; was *losse les*) and *client → klant* (confirmed, unchanged).
 
+Marked ⚠️ in §4.4 and §5.2 since v0.14 (ADR-026, 31 October 2026), waiting for the pilot gym owner: *join link / aanmeldlink*, *join request / aanmeldverzoek* with *Goedkeuren* and *Wachten op de studio*, the sentence for the *waitlist closing time*, the "ask your studio for its link" empty state, the waitlist position and the *account* creation wording. *Aanmelden* stays forbidden for signing in, so the owner's suggested compounds need a check that they do not read as signing in.
+
 Still marked ⚠️ in §4.9 and not decided: the three terms added after the commerce walkthrough of 2026-10-31 (*weekly limit / weeklimiet*, *billing cycle / betaalperiode* and *Open Gym credit / Open Gym-credit*, which wait on the pilot gym owner's confirmation), and *agreement / overeenkomst*, *recurring payment / automatische incasso*, *mandate / machtiging*, *payment provider / betaalprovider*, *merchant / verkoper* and *cancellation policy / annuleringsbeleid*. The three new terms wait on the pilot gym owner; the six payment terms wait on the payment decisions (QC06), not on the pilot.
 
 ---
@@ -524,3 +531,4 @@ Still marked ⚠️ in §4.9 and not decided: the three terms added after the co
 | 2026-10-29 | 0.11 | The owner decided all nine open terms (#155) by choosing the standard Dutch wording, not by pilot validation. All nine keep their v0.10 wording and the ⚠️ is removed (*vervanger* had none): *werkruimte*, *privésessie*, *trainingsschema*, *vervanger*, *abonnement*, *creditpakket*, *creditabonnement*, *credit*, *tegoed*, *aanbod*, *standaardaanbod*, *Nieuw aanbod*. The EN UI word for *default plan* is *default offer*. The commerce terms outside the nine keep ⚠️ and wait on the payment decisions (QC06). |
 | 2026-10-29 | 0.12 | The owner decided two wordings, not by pilot validation. *Single class* is now *losse sessie* (plural *losse sessies*; was *losse les*): only the Dutch word changes, the concept stays as in `GLOSSARY.md`. *Losse les* is forbidden; the offer name is a deliberate exception to the *session* row, the thing booked is still a *les*. *Client* stays *klant* (confirmed, unchanged). |
 | 2026-10-31 | 0.13 | Commerce walkthrough with the pilot gym ([#150](https://github.com/fivvi-app/fivvi/issues/150)): new §4.9 terms *weekly limit* (*weeklimiet*), *billing cycle* (*betaalperiode*) and *Open Gym credit* (*Open Gym-credit*), all ⚠️ until the pilot gym owner confirms the wording (§8); *credit* now has three kinds that never mix; *credit plan* grants credits each billing cycle; *waitlist* is in the MVP (no longer 🔜 1.1). |
+| 2026-10-31 | 0.14 | Clients sign in and are approved to book (roadmap v1.30, ADR-026): §4.4 is now *Booking, joining and sign-in*; new terms *join link* (*aanmeldlink*), *join request* (*aanmeldverzoek*, with *Goedkeuren / Afwijzen* and *Wachten op de studio*) and *waitlist closing time* (a sentence, *De wachtlijst sluit 30 minuten voor de les.*), all ⚠️ until the pilot gym owner confirms (§8); *hold* and its statuses are retired (no holds, no email step); *booking page* is the client timetable, not public; *account* is open to anyone; *name* is no longer a booking field; *magic link* is only the sign-in link; new ⚠️ messages for an account with no workspace, a join request waiting, the waitlist position and closing time; the waitlist emails are listed on the *waitlist* row. |

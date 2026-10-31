@@ -34,13 +34,13 @@ When should a class stop accepting bookings? **Proposal:** at its start time (PB
 When may a client cancel a booking, and must that differ for Open Gym? **Proposal:** until the start time. A cancellation cutoff per offer is now MVP with commerce (see QC02, `PRODUCT.md §93`); Open Gym may use a different cutoff or none (CW-03; cutoff rules in QC02).
 
 ### Q10
-How long should a pending email confirmation hold a place? **Proposal:** 15 minutes, ending earlier if the class starts (PB-04).
+**Resolved by the owner, 31 October 2026 ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)).** Nothing is held: clients sign in before they book, so a booking is immediate and there is no pending email confirmation. (Was: how long should a pending email confirmation hold a place? Proposal: 15 minutes, ending earlier if the class starts, PB-04.)
 
 ### Q11
 Which details make a class choice clear: exact available places, trainer, location, or only a full/available label? **Proposal:** show trainer and remaining places (PB-01/02).
 
 ### Q12
-If verification arrives after the hold expires but capacity remains, may the client confirm immediately? **Proposal:** offer a fresh capacity check and confirmation, never silently reclaim the old hold (PB-08).
+**Resolved by the owner, 31 October 2026 ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)).** There are no holds and no booking verification, so a late verification cannot happen. (Was: if verification arrives after the hold expires but capacity remains, may the client confirm immediately?)
 
 ### Q13
 Is a six-digit code beside the email link useful for clients who read mail on another device? **Proposal:** both in the same email; code entry on PB-04 (ADR-007).
@@ -52,7 +52,7 @@ How much location detail does a class or Open Gym listing need, and must an Open
 Do clients use an add-to-calendar action from a booking confirmation? **Proposal:** one-event calendar download (PB-06).
 
 ### Q16
-**Resolved by the owner, 19 October 2026.** There are no guests: every client's account is created automatically at their first verified booking (`PRODUCT.md §2.4, §26`). The booking page explains this with one line before the client submits it; there is no account-creation screen and no choice to make. Managing one booking by the email link remains possible either way (`/manage/{token}`, CW-03). Whether a signed-in, already-verified client can book again without a new confirmation email is still open — see QE06.
+**Resolved by the owner, 31 October 2026 ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)).** There are still no guests, but an account is no longer created at the first verified booking: anyone creates an account, and a client books only after the workspace has added them or the Owner has approved their join request (`PRODUCT.md §2.4, §26`). There is no booking form and no account explanation on it any more. Whether a booking can still be managed by an emailed link (`/manage/{token}`) is for the F033 spec. (Was, 19 October 2026: there are no guests; every client's account is created automatically at their first verified booking, explained by one line on the booking page; managing one booking by the email link stays possible either way, CW-03; whether a signed-in, already-verified client can book again without a new confirmation email was open, QE06.)
 
 ### Q17
 What must appear on a trainer's Today row to choose the next action quickly? **Proposal:** time, client/class, location, workspace and attendance cue (TD-01).
@@ -149,10 +149,10 @@ Decide whether private-session creation email (EM-11) belongs in F049/F020 and w
 **Resolved by owner, 22 September 2026.** A trainer saves an internal note separately from an optional client message. After explicit review and share, the client sees the workout recap and client message in *Mijn trainingen* in the signed-in profile and receives the same in a localized email. The internal note is excluded. A private session does not become a client booking in CW-02/03 solely because its workout was shared.
 
 ### QE05
-Decide whether a signed-in client sees bookings across all workspaces sharing the verified email, with per-workspace authorization on each booking (CW-02).
+Decide whether a signed-in client sees bookings across all workspaces sharing the verified email, with per-workspace authorization on each booking (CW-02). **Partly resolved by the owner, 31 October 2026 ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)):** an account is one per email, but it shows nothing of a workspace until the client is added or approved, so every booking and every screen is authorised per workspace, and the client web shows the money per workspace. Whether the *my schedule* list combines all of a client's workspaces is for the F033 spec.
 
 ### QE06
-Decide whether an authenticated, verified client can book without a new email confirmation, while still using the same atomic capacity check (PB-03/06).
+**Resolved by the owner, 31 October 2026 ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)).** Yes: a signed-in client books without any email step, and the same atomic capacity check runs. There is no verification step for anyone. (Was: decide whether an authenticated, verified client can book without a new email confirmation, PB-03/06.)
 
 ### QE07
 Decide whether a short booking link may change target after a QR code is printed. Define how inactive or retargeted links behave, including safeguards against redirecting a class-specific link to another class (PB-09).
@@ -176,7 +176,7 @@ Starting a workout from a client profile creates a private session that starts n
 The trainer apps can now create group classes (one-off or weekly) and Open Gym for owners (flow 02, TD-05). Confirm the weekly series horizon (prototype: 8 weeks; ADR-012 proposes a rolling 12-week window) and that editing or ending a series stays web-only in MVP.
 
 ### QE17
-Decide whether verifying a booking (PB-05/PB-06) signs the client in, so *Naar mijn boekingen* can go straight to CW-02, or whether it still needs a separate CW-01 sign-in. Nobody has decided this; it sits next to QE06 (PB-06, CW-01/02).
+**Resolved by the owner, 31 October 2026 ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)).** There is no booking verification: the client is signed in before they book, so *Naar mijn boekingen* goes straight to CW-02. (Was: decide whether verifying a booking signs the client in.)
 
 ## Commerce (interview 01 follow-up)
 
@@ -269,6 +269,8 @@ Does the pilot agree with these four rules? (1) The trainer and client apps neve
 ADR-020 (Accepted) settles: Mollie's hosted checkout on the web, and a one-off iDEAL payment for a single class (single classes are still proposed scope, decision 9). It suggests holding the spot while the client pays; how long the hold lasts is set in the F058 spec.
 **Answer (pilot gym owner, 31 October 2026):** All four rules as written.
 
+**Note (31 October 2026):** the spot held in rule 2 is a payment in progress, not a booking hold: booking holds are gone ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)).
+
 ### QC17
 What are the rules of the credit offers? (1) How long does a **credit pack** stay valid, and do unused credits expire or can the owner extend them? (2) What is the **carry-over limit** of a **credit plan**, and do carried-over credits expire (after one month, or never)? (3) When are a plan's credits for the month granted, and what happens to them when the payment fails or a debit is reversed? (4) When a client has several credit agreements of the same kind, which credit is used first? **Proposal:** (1) a validity set on the offer; unused credits expire at the end, shown as an *expired* line in the history, and the owner can extend them by a new line with a reason; (2) a carry-over limit set on the offer, default 0 (no carry-over) until the pilot says otherwise, and carried-over credits expire at the end of the next month; (3) the credits are granted when the month's payment is paid, and a reversed debit takes back the credits of that month that are still unused, the rest is left to the owner; (4) the credits that expire first (`PRODUCT.md §92`). The pilot's private agreement of about one session a week for six months can be a private credit pack or a private credit plan; the pilot decides which one it sells (QC08).
 **Answer (pilot gym owner, 31 October 2026):** The proposal stands for (1)–(4). For private sessions, moving or cancelling up to 24 hours before counts as in time, within the limit of 2 a month (QC02).
@@ -292,7 +294,29 @@ The walkthrough with the pilot gym owner (29–31 October 2026) led the product 
 5. **End-of-term setting:** stop, or continue per cycle (QC07).
 6. **Weekly limit** and **unused weekly classes** settings (QC01).
 7. **Plan changes:** the pilot allows **upgrades at any time and no downgrades** (in its terms).
-8. **Waitlist before the pilot**, moved forward from Release 1.1 (`PRODUCT.md §54`). The pilot gym has one today: the first in line gets the spot and an email. The gym owner's problem is that a spot can be given 1 minute before the class starts. Wanted: a **cut-off a few minutes before the class** (the owner sets it) after which nobody is moved up, and a **message to waitlisted clients who did not get in**. The owner placed it as F062 in M5 (`ROADMAP.md` v1.29).
+8. **Waitlist before the pilot**, moved forward from Release 1.1 (`PRODUCT.md §54`). The pilot gym has one today: the first in line gets the spot and an email. The gym owner's problem is that a spot can be given 1 minute before the class starts. Wanted: a **cut-off a few minutes before the class** (the owner sets it) after which nobody is moved up, and a **message to waitlisted clients who did not get in**. The product owner named it the **waitlist closing time** (default 30 minutes) on 31 October 2026, to keep it apart from the cancellation cutoff (see below). The owner placed it as F062 in M5 (`ROADMAP.md` v1.29).
 9. **Group credit plan** (credits every cycle, book any class) stays possible as an owner-made offer. It was offered to the pilot as an option; the pilot keeps the weekly-allowance membership.
 
 **Still open after the walkthrough:** which end-of-term setting the pilot uses and early ending (QC07, lawyer, #165); what the current app can export (QC14); passing a payment-method surcharge on to consumers (QC13, legal check); confirmation of QC19 (a)–(c); the name of the invoicing tool.
+
+## Product-owner decisions: clients sign in and are approved to book (31 October 2026)
+
+Decided by the product owner in a grilling session on 31 October 2026 and recorded in [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) and [ADR-027](../decisions/ADR-027-a-cron-every-5-minutes.md) (both Proposed), `PRODUCT.md §2.3–§2.4, §21–§27, §51` and `ROADMAP.md` v1.30. They resolve Q10, Q12, QE06 and QE17, replace the account rule of Q16 and partly resolve QE05 (see above).
+
+1. Anyone can create an account (email now; Apple and Google later as F063). An account on its own shows nothing of any workspace.
+2. A client gets in when the workspace adds them (an invitation email) or when the Owner approves their join request, made through the workspace's join link or QR code. No workspace search, at least for the beginning.
+3. Only the Owner approves or declines. An email per request and a list on Clients (web); nothing in Fivvi Pro yet. A declined client gets a short, neutral email and may ask again.
+4. Creating a workspace stays limited to the allowlist until Release 2.0. An account with no workspace sees "Ask your studio for its link" (wording to confirm).
+5. Nothing is public; the public booking page becomes the client timetable.
+6. Booking needs a sign-in and, from M11, an active agreement that covers the class. Before M11 an approved client can book. A trial is just an offer.
+7. No holds, no email verification step: a booking is immediate.
+8. Booking links and QR codes work only for approved clients; one join link per workspace, which the Owner can renew; the Owner can remove a client.
+9. **Waitlist:** F062 is for group classes only (not private sessions); a waitlist for Open Gym slots is not in F062 and may be added by the F035 spec; one tap to join, the position shown, leave any time, no limit on how many waitlists.
+10. A freed spot (a cancellation in time or late, a removal, more capacity) books the first in line automatically, with a "you're in" email. A no-show frees nothing.
+11. **Waitlist closing time:** one workspace setting, in minutes before the class, default 30. After it nobody moves up or joins, the class shows full with no waitlist button, and everyone still waiting gets a "you didn't get in" email.
+12. A booking from the waitlist after the cancellation cutoff can be cancelled as if in time, outside the 2-a-month limit (QC02).
+13. From M11 nothing is reserved while waiting; at move-up a client who can't book is skipped, taken off and emailed why, and the next moves up. A client who could only book by paying for a single class can't join a waitlist.
+14. Owner and trainers see the waitlist in order on the class on the web and can remove someone; no reordering, no adding.
+15. The client web shows, per workspace, the payment history (date, amount, what it was for, status) and the invoice and credit-note PDFs (M11).
+
+**Still open from these decisions:** the exact UI wording (`packages/i18n/GLOSSARY.md`, marked ⚠️); where the name is asked (account or join request); what removing a client does to their future bookings and agreements; whether a booking can still be managed by an emailed link; whether the pilot import sends invitations to the imported clients or adds them silently; how long the spot is kept while a single class is paid for (F058 spec, QC16).

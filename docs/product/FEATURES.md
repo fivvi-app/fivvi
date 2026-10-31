@@ -14,9 +14,11 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 62 (F001–F062) + 19 engineering enablers (E001–E019); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live; trainer iOS and Android screens are built with their web features (the M8 native track) | 0 |
+| MVP | 63 (F001–F063) + 19 engineering enablers (E001–E019); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live; trainer iOS and Android screens are built with their web features (the M8 native track) | 0 |
 
 **Waitlist moved to the MVP (31 October 2026, [#150](https://github.com/fivvi-app/fivvi/issues/150)):** it was a Release 1.1 candidate. The owner placed it as **F062** in **M5** (31 October 2026, `ROADMAP.md` v1.29); the rules are in `PRODUCT.md §23`.
+
+**Clients sign in and are approved to book (31 October 2026, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md), `ROADMAP.md` v1.30):** the anonymous booking with a hold and a magic link is gone. F027–F032, F035, F037 and F038 are reshaped (the IDs stay), F062's rules are the owner's of that day, and **F063 Sign in with Apple and Google** is new. The cron job runs every 5 minutes for the waitlist's closing-time email ([ADR-027](../decisions/ADR-027-a-cron-every-5-minutes.md)).
 
 ---
 
@@ -36,6 +38,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | F008 | Dutch UI | PLANNED | Must | continuous | F007 | ⬜ | — | §2.2 |
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |
 | F010 | Locale Preference | IN PROGRESS | Must | M2 (+ iOS/Android) | F001, F007 | ⬜ | ⬜ | §3 |
+| F063 | Sign in with Apple and Google: a second way to sign in, on the web first (clients and team members), then Fivvi Pro (App Store guideline 4.8: Sign in with Apple when an app offers Google). Owner steps later: an Apple Services ID and a Google OAuth client | PLANNED | **Should** | M5 (web first; Fivvi Pro after) | F001 | ⬜ | ⬜ | §27, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) |
 
 ### Trainers
 
@@ -72,29 +75,29 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F027 | Public Booking Page | PLANNED | Must | M5 | F022, F007 | ⬜ | ⬜ | §15, §21 |
+| F027 | Client Timetable: the booking page for approved clients only, nothing public | PLANNED | Must | M5 | F022, F007, F029 | ⬜ | ⬜ | §15, §21 |
 | F028 | Booking Capacity | PLANNED | Must | M5 (+ iOS/Android: add a participant) | F027 | ⬜ | ⬜ | §18 |
-| F029 | Booking Hold | PLANNED | Must | M5 | F028, E012 | ⬜ | ⬜ | §24 |
-| F030 | Magic-Link Verification | PLANNED | Must | M5 | F029, F049 | ⬜ | ⬜ | §23, §27 |
-| F031 | Booking with Email Verification | PLANNED | Must | M5 | F030 | ⬜ | ⬜ | §25 |
-| F032 | Client Account on First Booking | PLANNED | Must | M5 | F031, F001 | ⬜ | ⬜ | §2.4, §26 |
-| F033 | Client Booking Dashboard | PLANNED | Must | M5 (+M11 commerce) | F031 | ⬜ | ⬜ | §15 (Client Web: my schedule with private + group) |
-| F062 | Waitlist | PLANNED | Must | M5 (+M11 commerce) | F026, F028, F031, F049 | ⬜ | ⬜ | §23 (Waitlist: first in line gets a freed spot and an email; the owner's cut-off before the class; a "you didn't get in" message; capacity never exceeded) |
+| F029 | Join Link and Join Requests: one join link per workspace with its QR code, a join request, the Owner approves or declines (a list on Clients, an email per request), renew the link | PLANNED | Must | M5 | F006, F049, F032 | ⬜ | ⬜ | §26 |
+| F030 | Client Sign-Up: open account sign-up with the emailed link or code (ADR-007); workspace creation stays allowlisted until 2.0 | PLANNED | Must | M5 | F001 | ⬜ | ⬜ | §27 |
+| F031 | Booking for Approved Clients: immediate booking, capacity, and from M11 the agreement check | PLANNED | Must | M5 (+M11 commerce) | F027, F028, F030 | ⬜ | ⬜ | §22, §23, §25 |
+| F032 | Client Invitations: the Owner adds a client, who gets an invitation email and is in once they sign in | PLANNED | Must | M5 | F006, F030, F049 | ⬜ | ⬜ | §2.4, §26, §34 |
+| F033 | Client Booking Dashboard | PLANNED | Must | M5 (+M11 commerce) | F031, F062 | ⬜ | ⬜ | §15 (Client Web: my schedule with private + group; the waitlists the client is on, with the position; from M11, per workspace, the payment history and the invoice and credit-note PDFs, §96) |
+| F062 | Waitlist: group classes only; one tap to join, position shown; the first in line is booked automatically when a spot frees up (a cancellation, a removal, more capacity) with a "you're in" email; a workspace **waitlist closing time** (default 30 minutes before the class) after which nobody moves up and everyone waiting gets a "you didn't get in" email; from M11 a client who can't book is skipped; the owner and trainers see the list on the web | PLANNED | Must | M5 (+M11 commerce) | F026, F028, F031, F049 | ⬜ | ⬜ | §23 (Waitlist) |
 
 ### Open Gym
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | F034 | Open Gym Slots | PLANNED | Must | M6 (+ iOS/Android) | F015, F020 | ⬜ | ⬜ | §2.7, §15, §28 |
-| F035 | Open Gym Public Booking | PLANNED | Must | M6 | F034, F027–F031 | ⬜ | ⬜ | §30 |
+| F035 | Open Gym Booking: approved clients book an Open Gym slot (Open Gym credits from M11) | PLANNED | Must | M6 | F034, F027, F028, F031 | ⬜ | ⬜ | §30 |
 | F036 | Open Gym Suggestions | PLANNED | **Should** | M6 | F034, F013 | ⬜ | ⬜ | §29 |
 
 ### Sharing
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F037 | Booking Links | PLANNED | Must | M6 | F027, F035 | ⬜ | ⬜ | §32 |
-| F038 | QR Codes | PLANNED | Must | M6 | F037 | ⬜ | ⬜ | §33 |
+| F037 | Booking Links: for approved clients only, next to the workspace's one join link | PLANNED | Must | M6 | F027, F029, F035 | ⬜ | ⬜ | §32 |
+| F038 | QR Codes: the join link's QR code for the desk, and class links | PLANNED | Must | M6 | F037 | ⬜ | ⬜ | §33 |
 
 ### Workouts
 
@@ -129,7 +132,7 @@ Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, gro
 | F055 | Credit Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (one balance per kind, group, private or Open Gym, per agreement; history: granted, used, returned, expired) |
 | F056 | Cancellation Policy and Makeups | PLANNED | Must | M11 | F026, F055 | ⬜ | ⬜ | §93 (cutoff, late cancellation, makeups) |
 | F057 | Recurring Payments | PLANNED | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit: proposal, QC06; exactly once) |
-| F058 | Single Class Purchase | PLANNED | Must (proposed, decision 9) | M11 | F029, E019, F059 | ⬜ | ⬜ | §95 |
+| F058 | Single Class Purchase | PLANNED | Must (proposed, decision 9) | M11 | F031, E019, F059 | ⬜ | ⬜ | §95 |
 | F059 | Invoices and Billing Details | PLANNED | Must | M11 | F006, F052 | ⬜ | ⬜ | §96 (company details, gapless numbers, credit notes) |
 | F060 | Failed Payments and Refunds | PLANNED | Must | M11 | F057, F059 | ⬜ | ⬜ | §94 |
 | F061 | Payouts and Reconciliation | PLANNED | Must (proposed, decision 9) | M11 | F057, F060 | ⬜ | ⬜ | §97 |
@@ -138,7 +141,7 @@ Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, gro
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F049 | Localized Transactional Emails | PLANNED | Must | M1 (infra) → M5 | E006, F007 | ⬜ | ⬜ | §51, §74 (commerce emails in M11, EM-12 in M7) |
+| F049 | Localized Transactional Emails | PLANNED | Must | M1 (infra) → M5 | E006, F007 | ⬜ | ⬜ | §51, §74 (client emails: invitation, join request declined, on the waitlist, you're in, you didn't get in, skipped in M11; owner email: new join request; commerce emails in M11, EM-12 in M7) |
 | F050 | Trainer Booking Notifications | PLANNED | Must | M5 | F049, F031 | ⬜ | ⬜ | §51 |
 
 ---
@@ -160,8 +163,8 @@ These are not user-facing, so they don't need NL/EN columns. They still go throu
 | [E009](https://github.com/fivvi-app/fivvi/issues/32) | Observability | IMPLEMENTED | M1 | `packages/observability`, the only TypeScript code that imports Sentry or PostHog (ADR-013): Sentry (EU, Frankfurt) error reporting for the API, the cron job and the web app (server and browser), tagged with environment and release, scrubbed by an allowlist before sending, with private source maps; typed server product events from a versioned catalog and cookieless page views to PostHog EU Cloud (host from `POSTHOG_HOST`, production only); Sentry crash reporting with crash-free sessions in the iOS and Android apps, scrubbed by the same rules, release builds only. Off without a DSN or key (local, tests, CI). UptimeRobot monitors on production's health check and home page; Sentry and PostHog set to free-tier limits, DPAs signed, legal docs aligned. See `docs/engineering/OBSERVABILITY.md` |
 | E010 | Test infrastructure | IMPLEMENTED | M1 | `packages/testing`: shared Vitest presets (`unitConfig` / `integrationConfig`, `*.integration.test.ts`, `TZ=UTC`, no retries), database isolation (template database migrated once per run → clone per test file → `withRollback` per test; commit-needing tests get their own database), clock and Europe/Amsterdam DST helpers. CI runs `test:integration` against a Postgres 18 service in `Checks (Linux)`, and Playwright in a new `E2E (Linux)` job: every spec in nl-NL and en with automatic axe (WCAG 2.2 AA) checks, Chromium cached. Commands in `TESTING.md §7.1`. XCTest/XCUITest, JUnit + Compose UI tests and Maestro are specified for E008 in `TESTING.md §7.2` (ADR-014) |
 | E011 | Tenant isolation suite & RLS | IMPLEMENTED | M2 | Two barriers and a suite that proves them (ADR-006): each request that touches business data runs in one transaction with its tenant scope, the only way to the repositories of `packages/database`; Postgres RLS on every business table for the `fivvi_app` role, checked at start-up; every route declares its access in `openapi.json` (`x-access`), and a suite calls every one as each actor of workspaces A and B, a stranger and an anonymous caller, including Sam, who has a different place in each workspace. Code in `packages/api` cannot import a table or a database handle (Biome plugin), and E011's own paths are high-risk |
-| E012 | Scheduled jobs | PLANNED | M4 | Daily cron: recurrence materialization, hold cleanup, retention; holds expire lazily (ADR-010) |
-| E013 | Public surface security | PLANNED | M5 | Rate limits, hold caps, Cloudflare Turnstile, headers |
+| E012 | Scheduled jobs | PLANNED | M4 | The cron job runs every 5 minutes (ADR-027); the daily work (recurrence materialization, retention) runs once a day from it, and F062's closing-time email runs on every run. There are no holds to clean up (ADR-026) |
+| E013 | Public surface security | PLANNED | M5 | Rate limits and caps on sign-up, sign-in requests and join requests, Cloudflare Turnstile, headers |
 | E014 | Privacy tooling | PLANNED | M9 | Data export, deletion, retention jobs, note-access audit log (§79) |
 | E015 | Data import tooling | PLANNED | M9 | Pilot data from the old app export or a CSV template → clients, timetable, sessions, active agreements, credit balances, next due dates, billing details; reconciliation report |
 | E016 | Backups, restore drill & runbooks | PLANNED | M9 | A verified restore, incident/rollback runbooks |
@@ -181,7 +184,7 @@ These get `F0xx` IDs when they move to `PLANNED`. Full context is in [`ROADMAP.m
 | 1.2 | Native client iOS/Android apps · push (APNs + FCM) · email → app deep links |
 | 1.3 | AI note capture (NL/EN, speech + text, trainer confirms) |
 | 1.4 | AI pre-session client briefing |
-| 2.0 | Self-serve signup · persona onboarding · marketing site · help center · *platform billing (decision pending)* |
+| 2.0 | Self-serve workspace creation · persona onboarding · marketing site · help center · *platform billing (decision pending)* |
 | 2.1 | Freelance improvements · gym access information |
 | 2.2 | Workspace switching · cross-workspace conflict detection · workspace-specific permissions |
 | 2.3 | Multi-location organizations |
