@@ -46,6 +46,7 @@ export MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=tru
 # The catalog text of a dotted key, e.g. `catalog en hello.title`: what the screen should show. Fails, with the key and
 # the locale on stderr, when the key is missing or is not a text (a renamed leaf would otherwise print "undefined").
 catalog() {
+  # shellcheck disable=SC2016 # the `${key}` is a JavaScript template literal, not shell
   node -e 'const [file, key, locale] = process.argv.slice(1);
     const text = key.split(".").reduce((o, k) => (o == null ? undefined : o[k]), JSON.parse(require("fs").readFileSync(file, "utf8")));
     if (typeof text !== "string") {
