@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  decideTrainerProfileSwitch,
-  hasTrainerProfileAfterRoleChange,
-  startsWithTrainerProfile,
-} from './trainer-profile.ts';
+import { decideTrainerProfileSwitch, startsWithTrainerProfile } from './trainer-profile.ts';
 
 describe('F005 trainer profile rules', () => {
   it('AC2: a Trainer always has a trainer profile, from the day the record exists', () => {
@@ -12,8 +8,7 @@ describe('F005 trainer profile rules', () => {
   });
 
   it('AC2: becoming Trainer creates it; an Owner who becomes Trainer without one gets one', () => {
-    expect(hasTrainerProfileAfterRoleChange('trainer', false)).toBe(true);
-    expect(hasTrainerProfileAfterRoleChange('trainer', true)).toBe(true);
+    expect(startsWithTrainerProfile('trainer')).toBe(true);
   });
 
   it('AC2: a Trainer can not switch it off, and nobody else decides it for them', () => {
@@ -32,9 +27,8 @@ describe('F005 trainer profile rules', () => {
     expect(startsWithTrainerProfile('owner', { creator: false })).toBe(false);
   });
 
-  it('AC2: an Owner keeps the trainer profile (or the lack of one) when the role changes to Owner', () => {
-    expect(hasTrainerProfileAfterRoleChange('owner', true)).toBe(true);
-    expect(hasTrainerProfileAfterRoleChange('owner', false)).toBe(false);
+  it('AC2: becoming Owner creates no trainer profile (the Owner decides, AC4)', () => {
+    expect(startsWithTrainerProfile('owner')).toBe(false);
   });
 
   it('AC4: an Owner switches it on and off', () => {

@@ -399,7 +399,7 @@ describe('F005 PUT and DELETE /v1/workspaces/{workspaceId}/trainer-profile', () 
     expect(
       (await admin.db.select().from(teamMembers).where(eq(teamMembers.id, johnRole.id)))[0],
     ).toEqual(before);
-    expect(await await meBefore.clone().json()).toEqual(
+    expect(await meBefore.clone().json()).toEqual(
       await (
         await api().request('/v1/me/workspaces', { headers: { 'x-test-account': john.id } })
       ).json(),

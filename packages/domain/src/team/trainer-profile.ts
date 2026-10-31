@@ -4,21 +4,16 @@ import type { TeamRole } from './last-owner.ts';
 // workspace". Every Trainer has one; an Owner has one when they also train. Pure rules, no I/O:
 // the repository stores the answer, the route asks.
 
-/** Whether a new team-member record starts with a trainer profile. */
+/**
+ * Whether a team-member record starts with a trainer profile, and whether a role change to this
+ * role creates one: a Trainer always trains. A role change to Owner keeps what the person had.
+ */
 export function startsWithTrainerProfile(
   role: TeamRole,
   options: { creator?: boolean } = {},
 ): boolean {
   // A Trainer always trains; the person who creates a workspace almost always trains too (D1).
   return role === 'trainer' || options.creator === true;
-}
-
-/**
- * Whether the team member has a trainer profile after a role change: becoming Trainer creates it,
- * becoming Owner keeps what the person had (their own choice stays theirs).
- */
-export function hasTrainerProfileAfterRoleChange(role: TeamRole, hasOne: boolean): boolean {
-  return role === 'trainer' ? true : hasOne;
 }
 
 export type TrainerProfileSwitchDecision =

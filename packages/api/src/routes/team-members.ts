@@ -2,17 +2,11 @@ import {
   changeTeamMemberRole,
   deleteTeamMember,
   findTeamMember,
-  hasTrainerProfile,
   listTeamMembers,
   lockOwners,
   setTrainerProfile,
 } from '@fivvi/database';
-import {
-  canChangeRole,
-  canRemoveTeamMember,
-  hasTrainerProfileAfterRoleChange,
-  ROLES,
-} from '@fivvi/domain';
+import { canChangeRole, canRemoveTeamMember, ROLES, startsWithTrainerProfile } from '@fivvi/domain';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
 import {
@@ -199,12 +193,9 @@ export function registerTeamMembers(app: OpenAPIHono) {
     if (!canChangeRole(team, teamMember.id, role)) return c.json(LAST_OWNER, 409);
     const changed = await changeTeamMemberRole(scope, teamMember.id, role);
     if (!changed) return c.json(NOT_FOUND, 404);
-    // A Trainer always trains (F005 AC2): becoming one creates the trainer profile, becoming an
-    // Owner keeps what the person had.
-    const hadProfile = await hasTrainerProfile(scope, teamMember.id);
-    if (hasTrainerProfileAfterRoleChange(role, hadProfile) && !hadProfile) {
-      await setTrainerProfile(scope, teamMember.id, true);
-    }
+    // A Trainer always trains (F005 AC2): becoming one creates the trainer profile (setting it is
+    // idempotent), becoming an Owner keeps what the person had.
+    if (startsWithTrainerProfile(role)) await setTrainerProfile(scope, teamMember.id, true);
     return c.json(changed, 200);
   });
   app.route('/', team);
