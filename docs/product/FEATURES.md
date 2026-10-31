@@ -14,9 +14,9 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 61 (F001–F061) + 19 engineering enablers (E001–E019); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live; trainer iOS and Android screens are built with their web features (the M8 native track) | 0 |
+| MVP | 62 (F001–F062) + 19 engineering enablers (E001–E019); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live; trainer iOS and Android screens are built with their web features (the M8 native track) | 0 |
 
-**Waitlist moved to the MVP (31 October 2026, [#150](https://github.com/fivvi-app/fivvi/issues/150)):** it was a Release 1.1 candidate. It gets an F-ID and a milestone when the owner places it; the rules are in `PRODUCT.md §23`.
+**Waitlist moved to the MVP (31 October 2026, [#150](https://github.com/fivvi-app/fivvi/issues/150)):** it was a Release 1.1 candidate. The owner placed it as **F062** in **M5** (31 October 2026, `ROADMAP.md` v1.29); the rules are in `PRODUCT.md §23`.
 
 ---
 
@@ -79,6 +79,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | F031 | Booking with Email Verification | PLANNED | Must | M5 | F030 | ⬜ | ⬜ | §25 |
 | F032 | Client Account on First Booking | PLANNED | Must | M5 | F031, F001 | ⬜ | ⬜ | §2.4, §26 |
 | F033 | Client Booking Dashboard | PLANNED | Must | M5 (+M11 commerce) | F031 | ⬜ | ⬜ | §15 (Client Web: my schedule with private + group) |
+| F062 | Waitlist | PLANNED | Must | M5 (+M11 commerce) | F026, F028, F031, F049 | ⬜ | ⬜ | §23 (Waitlist: first in line gets a freed spot and an email; the owner's cut-off before the class; a "you didn't get in" message; capacity never exceeded) |
 
 ### Open Gym
 
