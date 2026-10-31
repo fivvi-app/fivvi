@@ -1,10 +1,10 @@
 import type { Page } from '@playwright/test';
 
-// #353. Next streams a page's metadata (its <title>) as the last row of the response to
-// `router.refresh()`, after the body. The page shows its new heading while the title is still on
-// its way, and in between the document has no <title>. In CI that window is sometimes open when
-// the next line runs, so a test that checks the page right after a refresh has to wait for the
-// title first. This helper holds the title row back to open the window on purpose, so a spec can
+// #353. Next streams a page's metadata (its <title>) in a row of the response to
+// `router.refresh()` that comes after the body rows (more rows can follow it). The page shows its
+// new heading while the title is still on its way, and in between the document has no <title>. In
+// CI that window is sometimes open when the next line runs, so a test that checks the page right
+// after a refresh has to wait for the title first. This helper holds the title row back to open the window on purpose, so a spec can
 // prove that, and what it waits for, without relying on timing.
 
 interface HoldWindow {
