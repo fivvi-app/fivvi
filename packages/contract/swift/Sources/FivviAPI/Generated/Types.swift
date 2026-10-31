@@ -95,6 +95,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/team-members`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/get(listTeamMembers)`.
     func listTeamMembers(_ input: Operations.ListTeamMembers.Input) async throws -> Operations.ListTeamMembers.Output
+    /// Change a team member’s role
+    ///
+    /// Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other than `owner` or `trainer` (`admin` included) answers `400`.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/patch(changeTeamMemberRole)`.
+    func changeTeamMemberRole(_ input: Operations.ChangeTeamMemberRole.Input) async throws -> Operations.ChangeTeamMemberRole.Output
     /// Remove a team member
     ///
     /// Removes a person from the team of the workspace (the Owner only). Only the team access goes: the person’s account and sign-in sessions stay, and so does anything they have as a client of the workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: removing the last one answers `409` and changes nothing.
@@ -262,6 +269,23 @@ extension APIProtocol {
         try await listTeamMembers(Operations.ListTeamMembers.Input(
             path: path,
             headers: headers
+        ))
+    }
+    /// Change a team member’s role
+    ///
+    /// Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other than `owner` or `trainer` (`admin` included) answers `400`.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/patch(changeTeamMemberRole)`.
+    public func changeTeamMemberRole(
+        path: Operations.ChangeTeamMemberRole.Input.Path,
+        headers: Operations.ChangeTeamMemberRole.Input.Headers = .init(),
+        body: Operations.ChangeTeamMemberRole.Input.Body
+    ) async throws -> Operations.ChangeTeamMemberRole.Output {
+        try await changeTeamMemberRole(Operations.ChangeTeamMemberRole.Input(
+            path: path,
+            headers: headers,
+            body: body
         ))
     }
     /// Remove a team member

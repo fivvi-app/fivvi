@@ -31,6 +31,7 @@ export { setAccountName, setPreferredLocale } from './repositories/accounts.ts';
 export { type ClientView, createClient, findClient, listClients } from './repositories/clients.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
 export {
+  changeTeamMemberRole,
   deleteTeamMember,
   findTeamMember,
   listTeamMembers,

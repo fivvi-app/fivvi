@@ -1,5 +1,11 @@
-import { deleteTeamMember, findTeamMember, listTeamMembers, lockOwners } from '@fivvi/database';
-import { canRemoveTeamMember } from '@fivvi/domain';
+import {
+  changeTeamMemberRole,
+  deleteTeamMember,
+  findTeamMember,
+  listTeamMembers,
+  lockOwners,
+} from '@fivvi/database';
+import { canChangeRole, canRemoveTeamMember, ROLES } from '@fivvi/domain';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
 import {
@@ -11,7 +17,8 @@ import {
   validationErrorResponse,
 } from '../errors.ts';
 
-// The team of a workspace (F003, spec #171): the Owner lists it and removes a trainer from it.
+// The team of a workspace (F003, spec #171): the Owner lists it, removes a trainer from it and
+// changes a role on it (F004, spec #172).
 // Removal deletes the team-member record only. The rule "a workspace keeps at least one Owner" is
 // in @fivvi/domain; the repository locks the Owners so two removals at once can't both pass it.
 // Wording: a person on a team is a *team member*, never a "member".
@@ -26,9 +33,17 @@ export const TeamMemberSchema = z
       description: 'The account’s name; empty when the person has not given one.',
     }),
     email: z.email().openapi({ description: 'The address the account signs in with.' }),
-    role: z.enum(['owner', 'trainer']).openapi({ description: 'What the person is on the team.' }),
+    role: z.enum(ROLES).openapi({ description: 'What the person is on the team.' }),
   })
   .openapi('TeamMember', { description: 'A person on the team of a workspace.' });
+
+const ChangeRoleBodySchema = z
+  .object({
+    role: z.enum(ROLES).openapi({
+      description: 'The new role: `owner` or `trainer`. There is no `admin` role; it answers 400.',
+    }),
+  })
+  .openapi('ChangeTeamMemberRole', { description: 'The role a team member gets.' });
 
 const WorkspaceParamsSchema = z.object({
   workspaceId: z.uuid().openapi({
@@ -99,6 +114,40 @@ const removeTeamMemberRoute = defineRoute(
   manageTeam,
 );
 
+const changeTeamMemberRoleRoute = defineRoute(
+  {
+    method: 'patch',
+    path: '/v1/workspaces/{workspaceId}/team-members/{teamMemberId}',
+    operationId: 'changeTeamMemberRole',
+    tags: ['team'],
+    summary: 'Change a team member’s role',
+    description:
+      'Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is ' +
+      'replaced on the same team-member record, so a person never has two roles in a ' +
+      'workspace. It takes effect on the person’s next request. A workspace keeps at least one ' +
+      'Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other ' +
+      'than `owner` or `trainer` (`admin` included) answers `400`.',
+    security: SIGNED_IN,
+    request: {
+      params: TeamMemberParamsSchema,
+      body: { required: true, content: { 'application/json': { schema: ChangeRoleBodySchema } } },
+    },
+    responses: {
+      200: {
+        description: 'The team member with the new role.',
+        content: { 'application/json': { schema: TeamMemberSchema } },
+      },
+      400: validationErrorResponse,
+      409: {
+        description: 'The team member is the last Owner of the workspace; nothing changed.',
+        content: { 'application/json': { schema: LastOwnerSchema } },
+      },
+      500: internalServerErrorResponse,
+    },
+  },
+  manageTeam,
+);
+
 export function registerTeamMembers(app: OpenAPIHono) {
   const team = new OpenAPIHono<WorkspaceEnv>({ defaultHook: answerValidationFailure });
   team.openapi(listTeamMembersRoute, async (c) =>
@@ -125,6 +174,24 @@ export function registerTeamMembers(app: OpenAPIHono) {
       properties: { workspace_id: scope.workspaceId },
     });
     return c.body(null, 204);
+  });
+  team.openapi(changeTeamMemberRoleRoute, async (c) => {
+    const scope = c.get('scope');
+    const { teamMemberId } = c.req.valid('param');
+    const { role } = c.req.valid('json');
+    // The Owners first, locked, as for a removal: two demotions at once decide one after the other.
+    const owners = await lockOwners(scope);
+    const teamMember = await findTeamMember(scope, teamMemberId);
+    if (!teamMember) return c.json(NOT_FOUND, 404);
+    const team = [
+      ...owners,
+      ...(owners.some(({ id }) => id === teamMember.id) ? [] : [teamMember]),
+    ];
+    // The 409 rolls the request's transaction back, which is what "nothing changes" needs.
+    if (!canChangeRole(team, teamMember.id, role)) return c.json(LAST_OWNER, 409);
+    const changed = await changeTeamMemberRole(scope, teamMember.id, role);
+    if (!changed) return c.json(NOT_FOUND, 404);
+    return c.json(changed, 200);
   });
   app.route('/', team);
 }

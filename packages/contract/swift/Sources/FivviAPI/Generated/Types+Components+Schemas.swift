@@ -778,5 +778,31 @@ extension Components {
                 case code
             }
         }
+        /// The role a team member gets.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ChangeTeamMemberRole`.
+        public struct ChangeTeamMemberRole: Codable, Hashable, Sendable {
+            /// The new role: `owner` or `trainer`. There is no `admin` role; it answers 400.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ChangeTeamMemberRole/role`.
+            @frozen public enum RolePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case owner = "owner"
+                case trainer = "trainer"
+            }
+            /// The new role: `owner` or `trainer`. There is no `admin` role; it answers 400.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ChangeTeamMemberRole/role`.
+            public var role: Components.Schemas.ChangeTeamMemberRole.RolePayload
+            /// Creates a new `ChangeTeamMemberRole`.
+            ///
+            /// - Parameters:
+            ///   - role: The new role: `owner` or `trainer`. There is no `admin` role; it answers 400.
+            public init(role: Components.Schemas.ChangeTeamMemberRole.RolePayload) {
+                self.role = role
+            }
+            public enum CodingKeys: String, CodingKey {
+                case role
+            }
+        }
     }
 }

@@ -8,6 +8,7 @@ export {
   rolesWith,
 } from './permissions/matrix.ts';
 export {
+  canChangeRole,
   canRemoveTeamMember,
   keepsAnOwner,
   type TeamMemberRole,

@@ -9,9 +9,10 @@ import {
   teamMembers,
 } from '@fivvi/database';
 import { addClient, addTeamRole, createAccount, createWorkspace } from '@fivvi/database/testing';
+import { capabilitiesOf, ROLES } from '@fivvi/domain';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
-import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { eq, sql } from 'drizzle-orm';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createApp, NO_DEPENDENCIES } from '../src/index.ts';
 import { describeOperations } from './isolation/coverage.ts';
 
@@ -78,7 +79,7 @@ describe('F004 roles on every workspace route', () => {
     });
     await addTeamRole(admin.db, { workspaceId: other.id, accountId: mike.id, role: 'owner' });
     await addClient(admin.db, { workspaceId: gym.id, accountId: anna.id });
-    return { gym, john, sarah, mike, anna, sarahRole };
+    return { gym, other, john, sarah, mike, anna, sarahRole };
   }
 
   /** Every workspace operation of the contract, with a path that names John's Gym. */
@@ -128,6 +129,7 @@ describe('F004 roles on every workspace route', () => {
         access?.type === 'workspace' && !(access.roles as readonly string[]).includes('trainer'),
     );
     expect(ownerRoutes.map(({ name }) => name).sort()).toEqual([
+      'changeTeamMemberRole',
       'listTeamMembers',
       'removeTeamMember',
       'renameWorkspace',
@@ -164,5 +166,219 @@ describe('F004 roles on every workspace route', () => {
       // 400 for the body the probe sends is fine: the Owner got past the access check.
       expect([200, 204, 400], route.name).toContain((await call(route, john)).status);
     }
+  });
+
+  // The role change (#316): PATCH /v1/workspaces/{workspaceId}/team-members/{teamMemberId}.
+  const changeRole = (
+    workspaceId: string,
+    teamMemberId: string,
+    who: { id: string } | undefined,
+    role: unknown,
+    request: (path: string, init: RequestInit) => Response | Promise<Response> = (path, init) =>
+      server().request(path, init),
+  ) =>
+    request(`/v1/workspaces/${workspaceId}/team-members/${teamMemberId}`, {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+        ...(who ? { 'x-test-account': who.id } : {}),
+      },
+      body: JSON.stringify({ role }),
+    });
+
+  const rolesOf = async (workspaceId: string) =>
+    (
+      await admin.db
+        .select({ id: teamMembers.id, accountId: teamMembers.accountId, role: teamMembers.role })
+        .from(teamMembers)
+        .where(eq(teamMembers.organizationId, workspaceId))
+    ).toSorted((a, b) => a.id.localeCompare(b.id));
+
+  const recordOf = async (workspaceId: string, accountId: string) => {
+    const record = (await rolesOf(workspaceId)).find((row) => row.accountId === accountId);
+    if (!record) throw new Error('no such team member');
+    return record;
+  };
+
+  const myWorkspaces = async (who: { id: string }, workspaceId: string) => {
+    const response = await server().request('/v1/me/workspaces', {
+      headers: { 'x-test-account': who.id },
+    });
+    expect(response.status).toBe(200);
+    const all = (await response.json()) as {
+      workspaceId: string;
+      role: string;
+      capabilities: string[];
+    }[];
+    return all.find((workspace) => workspace.workspaceId === workspaceId);
+  };
+
+  const listTeam = (workspaceId: string, who: { id: string }) =>
+    server().request(`/v1/workspaces/${workspaceId}/team-members`, {
+      headers: { 'x-test-account': who.id },
+    });
+
+  it('AC4: role change takes effect on the next request', async () => {
+    const { gym, john, sarah, sarahRole } = await world();
+    expect((await listTeam(gym.id, sarah)).status).toBe(403);
+    expect((await myWorkspaces(sarah, gym.id))?.capabilities).toEqual(capabilitiesOf('trainer'));
+
+    const promoted = await changeRole(gym.id, sarahRole.id, john, 'owner');
+
+    expect(promoted.status).toBe(200);
+    expect(await promoted.json()).toMatchObject({ id: sarahRole.id, role: 'owner' });
+    // Her next request: every Owner capability, and the owner routes open.
+    const asOwner = await myWorkspaces(sarah, gym.id);
+    expect(asOwner?.role).toBe('owner');
+    expect(asOwner?.capabilities).toEqual(capabilitiesOf('owner'));
+    expect((await listTeam(gym.id, sarah)).status).toBe(200);
+
+    const demoted = await changeRole(gym.id, sarahRole.id, john, 'trainer');
+
+    expect(demoted.status).toBe(200);
+    const asTrainer = await myWorkspaces(sarah, gym.id);
+    expect(asTrainer?.role).toBe('trainer');
+    expect(asTrainer?.capabilities).toEqual(capabilitiesOf('trainer'));
+    expect((await listTeam(gym.id, sarah)).status).toBe(403);
+  });
+
+  it('AC4: the role is owner or trainer; admin and anything else answers 400', async () => {
+    const { gym, john, sarahRole } = await world();
+    const before = await rolesOf(gym.id);
+
+    expect(ROLES).toEqual(['owner', 'trainer']);
+    for (const role of ['admin', 'Owner', '', 1, null, undefined]) {
+      const response = await changeRole(gym.id, sarahRole.id, john, role);
+      expect(response.status, String(role)).toBe(400);
+    }
+    expect(await rolesOf(gym.id)).toEqual(before);
+  });
+
+  it('AC4: a team member of another workspace or none answers 404 and nothing changes', async () => {
+    const { gym, other, john } = await world();
+    const [foreign] = await rolesOf(other.id);
+    const before = await rolesOf(other.id);
+
+    for (const id of [foreign?.id ?? '', crypto.randomUUID()]) {
+      const response = await changeRole(gym.id, id, john, 'trainer');
+      expect(response.status).toBe(404);
+      expect(await response.json()).toEqual({ code: 'not_found' });
+    }
+    expect(await rolesOf(other.id)).toEqual(before);
+  });
+
+  it('AC5: the only Owner making himself Trainer gets 409 and nothing changes', async () => {
+    const { gym, john } = await world();
+    const johnRole = await recordOf(gym.id, john.id);
+    const before = await rolesOf(gym.id);
+
+    const response = await changeRole(gym.id, johnRole.id, john, 'trainer');
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ code: 'last_owner' });
+    expect(await rolesOf(gym.id)).toEqual(before);
+    expect((await myWorkspaces(john, gym.id))?.role).toBe('owner');
+  });
+
+  it('AC5: with a second Owner, an Owner may become a Trainer', async () => {
+    const { gym, john, sarahRole } = await world();
+    await changeRole(gym.id, sarahRole.id, john, 'owner');
+    const johnRole = await recordOf(gym.id, john.id);
+
+    const response = await changeRole(gym.id, johnRole.id, john, 'trainer');
+
+    expect(response.status).toBe(200);
+    expect((await rolesOf(gym.id)).map(({ role }) => role).toSorted()).toEqual([
+      'owner',
+      'trainer',
+    ]);
+  });
+
+  it('AC5: racing demotions keep an Owner (own database, committed transactions)', async () => {
+    const gym = await createWorkspace(admin.db, { label: 'race' });
+    const first = await createAccount(admin.db, { label: 'first' });
+    const second = await createAccount(admin.db, { label: 'second' });
+    const firstRole = await addTeamRole(admin.db, {
+      workspaceId: gym.id,
+      accountId: first.id,
+      role: 'owner',
+    });
+    const secondRole = await addTeamRole(admin.db, {
+      workspaceId: gym.id,
+      accountId: second.id,
+      role: 'owner',
+    });
+    const app = server();
+    const send = (path: string, init: RequestInit) => app.request(path, init);
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const blocked = async () =>
+      admin.db.$count(
+        sql`pg_stat_activity`,
+        sql`wait_event_type = 'Lock' and datname = current_database() and query ilike '%for update%'`,
+      );
+
+    // Both requests get past the access check (a plain read) and then wait for the Owners' row
+    // lock that this transaction holds, so they really run one after the other.
+    let locked: () => void = () => {};
+    const hasLock = new Promise<void>((resolve) => {
+      locked = resolve;
+    });
+    const holder = admin.db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select id from team_members where organization_id = ${gym.id} for update`,
+      );
+      locked();
+      await gate;
+    });
+    await hasLock;
+    const requests = Promise.all([
+      changeRole(gym.id, secondRole.id, first, 'trainer', send),
+      changeRole(gym.id, firstRole.id, second, 'trainer', send),
+    ]);
+    await vi.waitFor(async () => expect(await blocked()).toBe(2), { timeout: 5000 });
+    release();
+    await holder;
+
+    const statuses = (await requests).map((response) => response.status).toSorted();
+    expect(statuses).toEqual([200, 409]);
+    expect((await rolesOf(gym.id)).map(({ role }) => role).toSorted()).toEqual([
+      'owner',
+      'trainer',
+    ]);
+  });
+
+  it('AC6: Trainer can’t change roles; one role per team member', async () => {
+    const { gym, sarah, john, sarahRole } = await world();
+    const johnRole = await recordOf(gym.id, john.id);
+    const before = await rolesOf(gym.id);
+
+    for (const id of [sarahRole.id, johnRole.id]) {
+      const response = await changeRole(gym.id, id, sarah, 'owner');
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({ code: 'forbidden' });
+    }
+    expect(await rolesOf(gym.id)).toEqual(before);
+
+    // The Owner's change replaces the role on the same record: still two records, same ids.
+    await changeRole(gym.id, sarahRole.id, john, 'owner');
+    const after = await rolesOf(gym.id);
+    expect(after.map(({ id }) => id)).toEqual(before.map(({ id }) => id));
+    expect(after.filter(({ accountId }) => accountId === sarah.id)).toHaveLength(1);
+  });
+
+  it('AC9: the PATCH route is in the contract with its capability', () => {
+    const operation =
+      contract.paths['/v1/workspaces/{workspaceId}/team-members/{teamMemberId}'].patch;
+
+    expect(operation.operationId).toBe('changeTeamMemberRole');
+    expect(operation['x-access']).toEqual({
+      type: 'workspace',
+      capability: 'team.manage',
+      roles: ['owner'],
+      client: 'none',
+    });
   });
 });
