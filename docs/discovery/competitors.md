@@ -29,7 +29,7 @@ Products a Dutch gym or PT studio could choose instead of Fivvi, and what we lea
 |---|---|---|
 | Member app | Branded member app for iOS and Android: book classes, buy or upgrade a membership, buy credits and products | Client web in the MVP; client apps in Release 1.2. Trainer apps in parallel from M2 |
 | Leads | Booking widget for trial lessons, automatic lead follow-up | Public booking page and QR codes (M5, M6); no lead follow-up planned |
-| Bookings | Waiting lists, credits, no-shows, bring a friend | Credits (group and private, never mixed), cutoff, makeups (M11); waitlists are a 1.1 candidate |
+| Bookings | Waiting lists, credits, no-shows, bring a friend | Credits (group, private and Open Gym, never mixed), cutoff, makeups (M11); waitlists moved to the MVP on 31 October 2026 |
 | Finance | "Closed-loop finance": automated payments, invoices, reminders and follow-up; flexible payment methods | Recurring payments and invoices together, failed-payment handling, payouts (proposed) (M11); reminders and dunning beyond that in Release 4 (`PRODUCT.md §66`) |
 | Business clients | Company accounts that bill business ride passes or memberships | Billing details with a company name on invoices (`PRODUCT.md §96`); no separate company accounts |
 | Selling | In-app shop for merchandise and products; discount codes | Excluded from the MVP (`PRODUCT.md §53`: discounts); no shop planned |

@@ -24,7 +24,7 @@ The first version must solve the real workflow of the pilot gym:
 - public class booking
 - Open Gym booking
 - client management
-- memberships, credit packs and credit plans (group and private credits), with a credit balance the owner and the client can trust
+- memberships, credit packs and credit plans (group, private and Open Gym credits), with a credit balance the owner and the client can trust
 - recurring payments and invoices (§90–§97)
 - workout/program management
 - live workout logging
@@ -193,7 +193,7 @@ The pilot owner won't use Fivvi in parallel with the old apps (owner, 20 October
 
 A product that only replaces the calendar, while memberships, payments and invoices stay in the old app, is not a replacement (`docs/discovery/results/interview-01.md`). So there is no parallel run and no soft launch next to the old app: everything moves at one cutover (`ROADMAP.md §7`).
 
-So the MVP covers the whole chain for the pilot's standard cases: a fixed-weekday group membership, and credits in two kinds that never mix, group credits for group classes and private credits for private sessions, bought as a credit pack or paid monthly as a credit plan (owner, 21 October 2026; §92). It also covers single classes (single classes and payouts are proposed scope, [decision 9](ROADMAP.md#14-decisions)):
+So the MVP covers the whole chain for the pilot's standard cases: a group membership with a weekly allowance of classes, and credits in kinds that never mix, group credits for group classes, private credits for private sessions and Open Gym credits for Open Gym, bought as a credit pack or paid monthly as a credit plan (owner, 21 and 31 October 2026; §91, §92). It also covers single classes (single classes and payouts are proposed scope, [decision 9](ROADMAP.md#14-decisions)):
 
 ```text
 agreement → booking → attendance → credit balance → payment → invoice
@@ -464,7 +464,7 @@ Today the gym runs on two apps, Google Calendar and Word documents (interview of
 
 - one app lets group clients book classes, keeps track of their memberships and collects their payments automatically
 - private training is managed by hand: the owner prepares and sends invoices for it, some in a company's name, and tracks how many prepaid sessions a client has left
-- group clients often commit for 6 or 12 months to fixed weekdays (for example Monday and Thursday); a missed class is normally lost, and a cancellation made in time may give a limited makeup
+- group clients often commit for 6 or 12 months to a number of classes a week (1, 2 or 3) and book each class themself; interview 01 suggested fixed weekdays, which the commerce walkthrough of 31 October 2026 corrected (§91); a missed class is normally lost, and a cancellation made in time may give a limited makeup
 - clients with a membership can buy an extra class on top of it
 - trainers have to use client access to see their schedule, and private sessions and group classes are mixed in one calendar, told apart only by colour
 
@@ -961,6 +961,15 @@ Client account created
 ```
 
 The entire flow stays in the user's selected language.
+
+## Waitlist
+
+Added to the MVP, before the pilot, on 31 October 2026 (moved forward from Release 1.1, §54), because the pilot gym has one today.
+
+- When a class is full, a client can join its **waitlist**. When a spot frees up, the first in line gets it and an email.
+- The owner sets a **cut-off**, a few minutes before the class starts. After it nobody is moved up, so a spot is never given at the last minute (the pilot gym's problem today: a spot can be given 1 minute before class).
+- Clients still on the waitlist after the cut-off get a **message that they didn't get in**.
+- Capacity is never exceeded. How long a client has to confirm, how a waitlisted client with a membership or credits is handled, and the waitlist's milestone and feature ID are settled in the feature spec.
 
 ---
 
@@ -1632,8 +1641,8 @@ Everything above **After go-live** is needed for the pilot's go-live (`ROADMAP.m
 Single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
 
 - offers and prices (§90)
-- memberships on fixed weekdays (§91)
-- credit packs and credit plans, group and private (§92)
+- memberships with a weekly allowance of group classes (§91)
+- credit packs and credit plans, group, private and Open Gym (§92)
 - credit balance per kind with its history (§92)
 - cancellation cutoff, no-shows and limited makeups (§93)
 - recurring payments through the workspace's payment provider account (decided in ADR-020; §94)
@@ -1715,7 +1724,6 @@ Do not build yet:
 
 Based on actual usage:
 
-- waitlists
 - recurring private appointments
 - schedule exceptions
 - holidays
@@ -1729,7 +1737,7 @@ Based on actual usage:
 - offline resilience
 - bulk attendance
 
-Previous-session duplication moved to the MVP (§41) on 23 September 2026, after prototype feedback. The cancellation cutoff moved to the MVP (§93) on 19 October 2026, because memberships and credits depend on it.
+Previous-session duplication moved to the MVP (§41) on 23 September 2026, after prototype feedback. The cancellation cutoff moved to the MVP (§93) on 19 October 2026, because memberships and credits depend on it. Waitlists moved to the MVP, before the pilot, on 31 October 2026 (§23), after the commerce walkthrough: the pilot gym has a waitlist today.
 
 All additions must work in Dutch and English.
 
@@ -2406,7 +2414,7 @@ F050 Trainer Booking Notifications
 ```text
 F052 Offers and Prices
 F053 Memberships
-F054 Credit Packs and Plans (group and private)
+F054 Credit Packs and Plans (group, private and Open Gym)
 F055 Credit Balance
 F056 Cancellation Policy and Makeups
 F057 Recurring Payments
@@ -2505,8 +2513,8 @@ Phase K: single classes and payouts are proposed scope ([decision 9](ROADMAP.md#
 
 79. offers and prices
 80. payment provider account per workspace (decided in ADR-020)
-81. memberships on fixed weekdays
-82. credit packs and credit plans, group and private
+81. memberships with a weekly allowance of group classes
+82. credit packs and credit plans, group, private and Open Gym
 83. credit balance per kind and its history
 84. cancellation cutoff, no-shows and makeups
 85. recurring payments
@@ -2660,7 +2668,7 @@ Strongest validation signal:
 
 # Commerce (MVP)
 
-Added on 19 October 2026 after the first interview with the pilot owner (`docs/discovery/results/interview-01.md`), who can't switch without it (§2.8). The subscription model (recurring payments) and invoices arrive **together**: every payment, recurring or one-off, gets an invoice. Memberships, credit packs and credit plans (group and private; owner, 21 October 2026), recurring payments and invoices are decided; single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)). A new workspace starts with three default plans, and the owner can make their own offers (§90; owner, 21 October 2026). Questions still open are in [`open-questions.md`](../design/open-questions.md) (QC01–QC19); the feature specs settle them with the owner, and nothing here guesses them.
+Added on 19 October 2026 after the first interview with the pilot owner (`docs/discovery/results/interview-01.md`), who can't switch without it (§2.8). The subscription model (recurring payments) and invoices arrive **together**: every payment, recurring or one-off, gets an invoice. Memberships, credit packs and credit plans (group and private; owner, 21 October 2026), recurring payments and invoices are decided; single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)). A new workspace starts with three default plans, and the owner can make their own offers (§90; owner, 21 October 2026). The commerce walkthrough of 31 October 2026 answered the questions QC01–QC19 ([`open-questions.md`](../design/open-questions.md)); what is still open is marked there, the feature specs settle it with the owner, and nothing here guesses it.
 
 Keep these concepts separate in the model, even where the screen combines them: a class's recurrence is not a payment schedule, a payment is not an invoice, and a missed class is not a missed payment.
 
@@ -2672,12 +2680,21 @@ An **offer** is what a workspace sells. MVP has four kinds (single class: propos
 
 | Offer | Example | Paid |
 |---|---|---|
-| **Membership** | 2 group classes a week on fixed weekdays, for 6 or 12 months | Recurring, usually monthly (§94) |
-| **Credit pack** (group or private) | 26 private credits to use within 6 months (about one session a week) | Once, up front (§94; instalments are open, [QC08](../design/open-questions.md#qc08)) |
-| **Credit plan** (group or private) | 4 group credits every month, with a carry-over limit | Recurring, monthly (§94) |
-| **Single class** (proposed, [decision 9](ROADMAP.md#14-decisions)) | One group class, on its own or on top of a membership | At booking (§95) |
+| **Membership** | 2 group classes a week, booked by the client, for 6 or 12 months | Recurring, usually monthly (§94) |
+| **Credit pack** (group, private or Open Gym) | 26 private credits to use within 6 months (about one session a week) | Once, up front (§94) |
+| **Credit plan** (group, private or Open Gym) | 4 group credits every month, with a carry-over limit | Recurring, every cycle (§94) |
+| **Single class** (stays an offer kind any studio can switch on; the single class itself is proposed, [decision 9](ROADMAP.md#14-decisions)) | One group class, on its own or on top of a membership | At booking (§95) |
 
-The owner sets each offer's name (Dutch, optional English, as in §18), price in euros including VAT, VAT rate, term and, for a membership, how many classes a week and which classes it covers; for a credit pack how many credits and how long they stay valid, for a credit plan how many credits each month and the carry-over limit (both open, [QC17](../design/open-questions.md#qc17)). A credit offer is either group or private, never both (§92). A change to an offer applies to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)); the defaults a new workspace starts with are in *Default plans* below.
+The owner sets each offer's name (Dutch, optional English, as in §18), price in euros including VAT, VAT rate, term and, for a membership, how many classes a week (1, 2 or 3 at the pilot gym) and which classes it covers; for a credit pack how many credits and how long they stay valid, for a credit plan how many credits each cycle and the carry-over limit (both a validity or limit set on the offer, [QC17](../design/open-questions.md#qc17)). A credit offer is of one kind (group, private or Open Gym), never mixed (§92). A change to an offer applies to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)); the defaults a new workspace starts with are in *Default plans* below.
+
+Every offer also has these settings (product owner, 31 October 2026, for every workspace; the pilot's choice in brackets):
+
+- **Billing cycle:** every month or every 4 weeks (the pilot: every month, because 4-weekly means 13 payments a year, which the gym owner finds unfair to clients).
+- **Intro offer:** a credit pack can be limited to **once per client**, for example 2 classes valid for 2 weeks (the pilot does trials by hand and won't use it).
+- **Member-only:** an offer can be limited to clients with an active membership, for example extra group credits for a member who wants another class in a week (QC08).
+- **End of term:** the agreement either **stops** (the client chooses a new term, with a reminder and a one-tap renewal) or **continues per cycle** at the same price until the client gives notice. A continuing agreement follows Dutch consumer law: no tacit renewal for another fixed term, a first term over 12 months is presumed unreasonable, notice of at most one month on any day, and online if the client signed up online (QC07; the legal check is `ROADMAP.md §4.4`). Which setting the pilot uses is open.
+
+**Plan changes** are not an offer setting: the pilot's own rule is **upgrades at any time and no downgrades**. Whether that becomes a setting for every workspace is not decided.
 
 ## Default plans
 
@@ -2685,50 +2702,54 @@ A new workspace starts with three ready-made offers, the **default plans** (owne
 
 | Default plan | Kind | Pre-filled | Paid |
 |---|---|---|---|
-| **Membership** | Membership | 2 group classes a week on fixed weekdays, for 6 months | Monthly (§94) |
+| **Membership** | Membership | 2 group classes a week, for 6 months, 2 makeups a month | Monthly (§94) |
 | **Group credit pack** | Credit pack, group | 10 group credits, valid for 3 months | Once, up front (§94) |
-| **Private credit plan** | Credit plan, private | 4 private credits a month (about one session a week) | Monthly (§94) |
+| **Private credit plan** | Credit plan, private | 4 private credits a month (about one session a week), minimum term of 3 months | Monthly (§94) |
 
 - **The owner can change every field of an offer** (owner decision), a default included: its name (Dutch and optional English, as in §18), price, VAT rate, classes and weekdays, credits, term or validity, payment schedule, cancellation cutoff, makeup limit and carry-over, where they apply. The owner can also switch a default off again or delete it.
-- **Proposed starting values, not decisions.** The defaults start with the proposals of [QC02](../design/open-questions.md#qc02) (a cutoff of 12 hours for classes and 24 hours for private sessions) and [QC17](../design/open-questions.md#qc17) (a carry-over limit of 0) until the pilot says otherwise. The private credit plan has no fixed term: it is paid monthly and cancellable per the membership rules of [QC07](../design/open-questions.md#qc07) (QC19 d). No makeup limit is proposed for the membership yet; it stays with [QC03](../design/open-questions.md#qc03) (QC19 e).
+- **Starting values.** The defaults start with the pilot's answers: a cutoff of 12 hours for classes and 24 hours for private sessions ([QC02](../design/open-questions.md#qc02)), a minimum term of 3 months for the private credit plan (QC19 d) and 2 makeups a month for the membership ([QC03](../design/open-questions.md#qc03), QC19 e). The carry-over limit starts at 0 ([QC17](../design/open-questions.md#qc17), the proposal stands). The rest of QC19 (a to c) is still a proposal, unconfirmed.
 - **A default is a starting point, not a template that stays linked** (proposal, QC19 b). The workspace gets its own copy when it is created; later changes to Fivvi's defaults never change an existing workspace.
 - **Changes apply to new agreements only** (proposal, [QC15](../design/open-questions.md#qc15)); this includes changing any field, switching an offer off or deleting it: agreements that already run keep their terms.
 
 ## Owner-made plans
 
-The owner can **create their own offers** from scratch (*Nieuw aanbod* / *New offer*; the UI term is to confirm, `packages/i18n/GLOSSARY.md` §4.9), next to or instead of the defaults, with the same fields as a default. Every offer is **one of the four kinds** above (membership, credit pack, credit plan or single class; the single class is proposed, [decision 9](ROADMAP.md#14-decisions)). An owner can't create a new kind, and a credit offer is group or private, never both, so group and private credits never mix (§92).
+The owner can **create their own offers** from scratch (*Nieuw aanbod* / *New offer*; the UI term is to confirm, `packages/i18n/GLOSSARY.md` §4.9), next to or instead of the defaults, with the same fields as a default. Every offer is **one of the four kinds** above (membership, credit pack, credit plan or single class; the single class is proposed, [decision 9](ROADMAP.md#14-decisions)). An owner can't create a new kind, and a credit offer is of one kind, so group, private and Open Gym credits never mix (§92).
 
 ---
 
 # 91. Memberships
 
-A **membership** is a client's agreement for group classes on fixed weekdays, for a term (for example Monday and Thursday, 6 months).
+A **membership** is a client's agreement for a **weekly allowance** of group classes, for a term (for example 2 classes a week, 6 months). The pilot's memberships give 1, 2 or 3 classes a week.
 
-- The owner or the client chooses the weekly classes it covers, within what the offer allows. Whether that keeps a spot in those classes for the whole term or the client books each week is open ([QC01](../design/open-questions.md#qc01)); either way, capacity is never exceeded.
-- While the membership is active and paid up, the client books the included classes without paying again. What happens when a payment fails is open ([QC05](../design/open-questions.md#qc05)).
-- It has a start date, an end date, and what happens at the end: it stops, or it renews under the rules of Dutch consumer law ([QC07](../design/open-questions.md#qc07)). The terms the client agreed to are stored with the agreement.
-- The client confirms it online with its first payment, which also gives the mandate for the recurring payments (§94; proposal, [QC06](../design/open-questions.md#qc06)).
+- **The client books each class themself** whenever a spot is free, within the allowance. Many clients keep the same day and time out of habit, but the membership holds **no standing spot**, so capacity is never exceeded. The pilot's membership is a weekly allowance; whether memberships on fixed weekdays with a standing spot stay an option is not decided (the product owner's call).
+- **Weekly limit** (a workspace setting, a number or off): the most bookings one client can make in a week. The pilot uses 4, whatever the size of the membership, so a client can catch up after a missed week.
+- **Unused weekly classes** (a workspace setting): they either **expire at the end of the week** (the pilot's choice) or **stay valid until the agreement ends**. Fivvi handles both automatically; the weekly limit stops a client from saving classes up and using them all at once.
+- While the membership is active and paid up, the client books the included classes without paying again. What happens when a payment fails is a setting of the offer (§94, [QC05](../design/open-questions.md#qc05)).
+- It has a start date, an end date, and what happens at the end, set on the offer (§90): it stops, or it continues per cycle under the rules of Dutch consumer law ([QC07](../design/open-questions.md#qc07)). The terms the client agreed to are stored with the agreement.
+- It is billed every month or every 4 weeks, as the offer says (§90). The pilot allows upgrades at any time and no downgrades.
+- The client confirms it online with its first payment, which also gives the mandate for the recurring payments (§94; [QC06](../design/open-questions.md#qc06)).
 
 ---
 
 # 92. Credits and the credit balance
 
-A **credit** is one unit of a client's credit balance. Credits come in two kinds that never mix (owner, 21 October 2026):
+A **credit** is one unit of a client's credit balance. Credits come in three kinds that never mix (owner, 21 October 2026; Open Gym credits added on 31 October 2026):
 
 - **Group credits** book group classes.
 - **Private credits** book private sessions.
+- **Open Gym credits** book Open Gym slots (§28). The pilot gym asked for these as their own kind, instead of Open Gym without credits. Whether the pilot sells any, and how, is settled in the F034 and F035 specs.
 
 One credit books one session of its kind: there are no exchange rates between the kinds, and no way to pay a private session with group credits or the other way round. **Combined credits**, one balance for every session type, are not planned (§53).
 
 Credits come with an agreement, from one of two offers (§90):
 
-- A **credit pack** gives a number of credits, bought once and valid for a period. How long they stay valid is open ([QC17](../design/open-questions.md#qc17)).
-- A **credit plan** gives a number of credits each month, paid by a recurring payment (§94), with a carry-over limit for credits left at the end of the month. The limit and how long carried-over credits last are open ([QC17](../design/open-questions.md#qc17)).
+- A **credit pack** gives a number of credits, bought once and valid for a period set on the offer ([QC17](../design/open-questions.md#qc17)). A pack can be an intro offer, limited to **once per client** (§90).
+- A **credit plan** gives a number of credits each billing cycle, paid by a recurring payment (§94), with a carry-over limit for credits left at the end of the cycle (a limit set on the offer; carried-over credits expire at the end of the next cycle, [QC17](../design/open-questions.md#qc17)).
 
-The pilot's private agreement today (about one session a week for six months) is a private credit pack or a private credit plan; which of the two the gym wants is open ([QC08](../design/open-questions.md#qc08)).
+The pilot's private training (about one session a week, 6 months today) is a **private credit plan**, paid monthly by direct debit ([QC08](../design/open-questions.md#qc08)). Its combination of 1 private session and 1 group class a week is two agreements, a membership and a private credit plan, sold together; how to present them as one product is for the F052 spec. A member who wants an extra group class buys group credits (one, or a pack) from a **member-only** offer (§90); they must be used during the membership. Unused credits expire at the end of the term, and private sessions get the 30 days of §93.
 
 - The owner creates the agreement for a client; the client confirms it and pays online (§94).
-- A group class (§18) can use one group credit and a private session (§17) one private credit, from an agreement of the matching kind. The booking and the session screen show which agreement. What counts as one credit for a private session of another length, whether Open Gym uses group credits, and which agreement is used when a client has several that fit are open (several credit agreements of one kind: [QC17](../design/open-questions.md#qc17); a membership and group credits: [QC18](../design/open-questions.md#qc18)).
+- A group class (§18) can use one group credit and a private session (§17) one private credit, from an agreement of the matching kind. The booking and the session screen show which agreement. One private credit covers a private session of any length ([QC18](../design/open-questions.md#qc18)). When a client has a membership and group credits, the booking uses the membership first and the credits only for an extra class; which of several credit agreements of one kind is used first is [QC17](../design/open-questions.md#qc17).
 
 A **credit balance** shows what a client can still use under an agreement, in credits of that agreement's kind. It is never a bare counter. Each change is a line in its history: granted, used, returned, expired, with the session, the person or rule that caused it, and the time. The balance is the sum of that history, so the owner and the client can always see why it says what it says. A membership's makeups (§93) are tracked the same way, as their own lines, and are not credits.
 
@@ -2742,23 +2763,23 @@ Each offer has a **cancellation policy**:
 
 | Event | Effect |
 |---|---|
-| The client cancels before the **cutoff** (hours before the start, set per offer; proposal, [QC02](../design/open-questions.md#qc02)) | Membership: may grant a **makeup**, up to a limit per term. Credits (pack or plan): the credit returns to the balance (proposal, [QC02](../design/open-questions.md#qc02)) |
+| The client cancels before the **cutoff** (hours before the start, set per offer; proposal, [QC02](../design/open-questions.md#qc02)) | Membership: may grant a **makeup**, up to the makeup limit (2 per month by default). Credit plan: the credit returns to the balance, at most 2 times per month like the makeups (QC02). Credit pack: the credit returns to the balance (proposal, [QC02](../design/open-questions.md#qc02)) |
 | The client cancels after the cutoff (late cancellation) | The credit is used or the membership class is lost, like a no-show (proposal, [QC16](../design/open-questions.md#qc16)) |
 | **No-show** | The credit is used (pack or plan) or the class is lost (membership) (proposal, [QC16](../design/open-questions.md#qc16)) |
 | The workspace cancels the session or class | Credits: the credit returns (proposal, [QC02](../design/open-questions.md#qc02)). Membership: a makeup, outside the limit (proposal, [QC04](../design/open-questions.md#qc04)) |
 
-The cutoff, the makeup limit and how long a makeup stays valid are open ([QC02](../design/open-questions.md#qc02), [QC03](../design/open-questions.md#qc03)). Before confirming a cancellation, the client sees what it does to their balance or makeups. An agreement keeps the policy that applied when it started (proposal, [QC15](../design/open-questions.md#qc15)).
+The pilot gym's values, which the defaults start with (§90): a cutoff of **12 hours for group classes and 24 hours for private sessions**; at most **2 makeups per month** on a membership and, on a credit plan, at most **2 credits returned per month** (the same limit as the cancellations in time that give them; after that the class is lost); a makeup is valid **until the end of the membership** and can be used in any class the membership includes; when the workspace cancels, everyone gets the class back in full, outside the limit. For a private session, moving it up to 24 hours before counts as cancelling in time, within the same limit. The owner can also add catch-up classes by hand, for example after a holiday while the client kept paying; they must be used within the membership. The pilot gym's terms let private sessions be made up until 30 days after the term ends; group classes not after the term. There is no pause (freeze): illness and holidays fall under the normal limit ([QC04](../design/open-questions.md#qc04)). Before confirming a cancellation, the client sees what it does to their balance or makeups. An agreement keeps the policy that applied when it started (proposal, [QC15](../design/open-questions.md#qc15)).
 
 ---
 
 # 94. Recurring payments
 
-Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-payment-provider.md) (Accepted by the owner, 21 October 2026) decides on **Mollie Connect for Platforms**, with Stripe Connect as the fallback (see [`ROADMAP.md` decision 14](ROADMAP.md#14-decisions)). **Merchant model (decided in ADR-020):** each workspace connects its own Mollie account, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Fivvi. The provider pays out to the gym weekly (the gym sets the day in its own Mollie dashboard); the pilot wants weekly payouts.
+Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-payment-provider.md) (Accepted by the owner, 21 October 2026) decides on **Mollie Connect for Platforms**, with Stripe Connect as the fallback (see [`ROADMAP.md` decision 14](ROADMAP.md#14-decisions)). **Merchant model (decided in ADR-020):** each workspace connects its own Mollie account, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Fivvi. The provider pays out to the gym weekly (the gym sets the day in its own Mollie dashboard); the pilot wants weekly payouts. The gym pays the provider's fee per payment; passing a payment-method surcharge on to clients is often not allowed in the Netherlands and is part of the legal check (`ROADMAP.md §4.4`, [QC13](../design/open-questions.md#qc13)).
 
 - **Connecting payments is one guided step, and only the Owner does it** (trainers never; decision 13 and ADR-020). In Fivvi the owner chooses *Betalingen koppelen* / *Connect payments*. Fivvi creates a pre-filled Mollie account (name, email, company, KvK) and opens Mollie's onboarding in Dutch. The owner finishes Mollie's own checks (KvK, ID, owners, bank verification) and returns to Fivvi connected. An owner who already has a Mollie account just logs in and approves. Mollie reviews SEPA Direct Debit separately (it aims for 3 business days), so payments switch on only when Mollie reports that the account can receive them; until then Fivvi shows the status in plain words.
 
 - **First payment:** the client pays online (iDEAL first; proposal, [QC06](../design/open-questions.md#qc06)) when confirming a membership, a credit pack or a credit plan. That payment also gives the **mandate** for later collections (proposal, [QC06](../design/open-questions.md#qc06)).
-- **Recurring payments:** on each due date Fivvi asks the provider to collect the next amount by SEPA Direct Debit under the mandate (proposal, [QC06](../design/open-questions.md#qc06)). The payment schedule belongs to the agreement and has nothing to do with the class times. A credit plan is paid this way like a membership; when its credits for the month are granted is open ([QC17](../design/open-questions.md#qc17)).
+- **Recurring payments:** on each due date Fivvi asks the provider to collect the next amount by SEPA Direct Debit under the mandate (proposal, [QC06](../design/open-questions.md#qc06)). The payment schedule belongs to the agreement and has nothing to do with the class times. It follows the offer's **billing cycle**, every month or every 4 weeks (§90; the pilot: every month). A credit plan is paid this way like a membership; its credits are granted when the cycle's payment is paid ([QC17](../design/open-questions.md#qc17)). The pilot's private training moves to direct debit too ([QC06](../design/open-questions.md#qc06)).
 - **Exactly once:** a due amount is charged once, even when a job retries or the provider sends the same event twice.
 - **Failed payment:** the client and the owner get an email (proposal, [QC05](../design/open-questions.md#qc05)), and the agreement shows the open amount. Whether the client can keep booking until it is paid is a setting of the offer (proposal, [QC05](../design/open-questions.md#qc05)), never an accident.
 - **Refund and chargeback:** the owner can refund a payment fully or in part (only the owner refunds in the MVP, [QC12](../design/open-questions.md#qc12)). A refund or a reversed direct debit gets a credit note (§96), and the policy says what happens to the credits.
@@ -2768,7 +2789,7 @@ Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-paym
 
 # 95. Single class purchase (proposed, [decision 9](ROADMAP.md#14-decisions))
 
-A client can buy one class: as a client without a membership, or as a client with a membership who wants an extra class this week. They choose the class on the booking page (§21), pay online, and the booking is confirmed when the payment succeeds. The spot is held while they pay, like a booking hold (§24; proposal, [QC16](../design/open-questions.md#qc16)). Buying an extra class never changes what the membership includes.
+A client can buy one class: as a client without a membership, or as a client with a membership who wants an extra class this week. They choose the class on the booking page (§21), pay online, and the booking is confirmed when the payment succeeds. The spot is held while they pay, like a booking hold (§24; proposal, [QC16](../design/open-questions.md#qc16)). Buying an extra class never changes what the membership includes. Single classes stay an offer kind any studio can switch on (product owner, 31 October 2026); whether the pilot gym sells them is not known.
 
 ---
 
@@ -2786,6 +2807,6 @@ Every payment gets an **invoice**, emailed to the client and kept on their profi
 
 # 97. Payouts and reconciliation
 
-The owner sees, per payout from the provider, which payments, refunds, chargebacks and provider fees it contains, and which payments failed or are still open. Everything the provider reports must match a payment in Fivvi; whatever doesn't is shown to the owner, never ignored.
+The owner sees, per payout from the provider, which payments, refunds, chargebacks and provider fees it contains, and which payments failed or are still open. Everything the provider reports must match a payment in Fivvi; whatever doesn't is shown to the owner, never ignored. The pilot gym wants as much detail as possible: each payment in a payout, not only a total. A payout on demand (the current app has a cash-out-at-any-time button) is a wish of the pilot gym owner, not decided.
 
 At go-live the active agreements, their credit balances and their next due dates are imported (E015) and the owner checks the reconciliation report against the old app before the cutover, when every client gets the first-payment link for the new mandate (`ROADMAP.md §7`).
