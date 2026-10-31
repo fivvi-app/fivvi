@@ -9,8 +9,8 @@ import { authUsers, clients, organizations, teamMembers } from '../schema/index.
 // connection that is not subject to RLS (the privileged role), or a context that allows the write.
 //
 // Every record carries something unique to search for: the markers below where the record has a
-// text column (an account's email and name, a workspace's name and slug), the record's own uuid
-// where it has none yet (a team role, a client until F006 adds the profile). A test that asks
+// text column (an account's email and name, a workspace's name and slug, a client's name), the record's own uuid
+// where it has none (a team role). A test that asks
 // "does this body contain anything of workspace A" searches for A's ids and markers.
 
 /** A short unique string for a record: `<label>-<8 hex digits>`. Lower case, safe in an email. */
@@ -98,16 +98,31 @@ export async function endTeamRole(
   if (removed.length === 0) throw new Error('The account has no team role in the workspace.');
 }
 
-/** A client of a workspace, linked to an account or (a quick-added client) to none. */
+/**
+ * A client of a workspace, linked to an account or (a quick-added client) to none. Its name is a
+ * unique marker unless the test gives one; it has no email address unless the test gives one.
+ */
 export async function addClient(
   db: Executor,
-  options: { workspaceId: string; accountId?: string },
-): Promise<{ id: string }> {
+  options: {
+    workspaceId: string;
+    accountId?: string;
+    name?: string;
+    email?: string;
+    emailLocale?: 'nl-NL' | 'en';
+  },
+): Promise<{ id: string; name: string }> {
   return first(
     await db
       .insert(clients)
-      .values({ organizationId: options.workspaceId, accountId: options.accountId ?? null })
-      .returning({ id: clients.id }),
+      .values({
+        organizationId: options.workspaceId,
+        accountId: options.accountId ?? null,
+        name: options.name ?? uniqueMarker('client'),
+        email: options.email ?? null,
+        emailLocale: options.emailLocale ?? null,
+      })
+      .returning({ id: clients.id, name: clients.name }),
     'client',
   );
 }

@@ -1,4 +1,5 @@
-import { and, eq } from 'drizzle-orm';
+import type { Locale } from '@fivvi/i18n';
+import { and, asc, count, eq, type SQL, sql } from 'drizzle-orm';
 import { clients } from '../schema/index.ts';
 import { executorOf, type WorkspaceScope } from '../tenant-scope.ts';
 
@@ -6,17 +7,24 @@ import { executorOf, type WorkspaceScope } from '../tenant-scope.ts';
 // itself (barrier 1) and, for a scope that acts as a client, the client's own record only
 // (Q2); RLS says the same underneath (barrier 2). Another workspace's or another client's
 // record is simply not there.
+//
+// What a client view holds is what the team sees: never the account link (F006 AC4). The link is
+// read by `findClientOfAccount` and written by `createClient`, and goes no further.
 
 export interface ClientView {
   readonly id: string;
   readonly workspaceId: string;
-  readonly accountId: string | null;
+  readonly name: string;
+  readonly email: string | null;
+  readonly emailLocale: Locale | null;
 }
 
 const columns = {
   id: clients.id,
   workspaceId: clients.organizationId,
-  accountId: clients.accountId,
+  name: clients.name,
+  email: clients.email,
+  emailLocale: clients.emailLocale,
 };
 
 function visibleTo(scope: WorkspaceScope) {
@@ -27,13 +35,57 @@ function visibleTo(scope: WorkspaceScope) {
     : inWorkspace;
 }
 
+/** `%`, `_` and `\` in text typed into a search stand for themselves, not for a pattern. */
+function likePattern(text: string): string {
+  return `%${text.replace(/[\\%_]/g, '\\$&')}%`;
+}
+
+/** The clause that matches a search: part of the name or of the email address, accents and case ignored. */
+function matches(search: string): SQL {
+  const pattern = likePattern(search);
+  return sql`(lower(unaccent(${clients.name})) like lower(unaccent(${pattern}))
+    or lower(unaccent(coalesce(${clients.email}, ''))) like lower(unaccent(${pattern})))`;
+}
+
+export interface ClientPage {
+  readonly items: ClientView[];
+  /** How many clients match, over all pages. */
+  readonly total: number;
+}
+
+const byName = [sql`lower(unaccent(${clients.name}))`, asc(clients.name), asc(clients.id)] as const;
+
 /** The clients the scope may see: all of the workspace's for a team member, the caller's own as a client. */
 export function listClients(scope: WorkspaceScope): Promise<ClientView[]> {
   return executorOf(scope)
     .select(columns)
     .from(clients)
     .where(visibleTo(scope))
-    .orderBy(clients.id);
+    .orderBy(...byName);
+}
+
+/**
+ * One page of the clients the scope may see, sorted by name. `search` matches part of a name or
+ * of an email address, ignoring case and accents, in the database (F006 AC6).
+ */
+export async function searchClients(
+  scope: WorkspaceScope,
+  options: { search?: string; limit: number; offset: number },
+): Promise<ClientPage> {
+  const db = executorOf(scope);
+  const search = options.search?.trim();
+  const where = and(visibleTo(scope), search ? matches(search) : undefined);
+  const [items, [counted]] = await Promise.all([
+    db
+      .select(columns)
+      .from(clients)
+      .where(where)
+      .orderBy(...byName)
+      .limit(options.limit)
+      .offset(options.offset),
+    db.select({ total: count() }).from(clients).where(where),
+  ]);
+  return { items, total: counted?.total ?? 0 };
 }
 
 /** One client, or `undefined` when it doesn't exist in the scope's workspace or isn't the caller's own. */
@@ -49,15 +101,54 @@ export async function findClient(
   return row;
 }
 
-/** Adds a client to the scope's workspace, never another. A client route can't add clients (RLS refuses it). */
+/** The client of the workspace that has the email address (lower case), if any. */
+export async function findClientByEmail(
+  scope: WorkspaceScope,
+  email: string,
+): Promise<{ id: string } | undefined> {
+  const [row] = await executorOf(scope)
+    .select({ id: clients.id })
+    .from(clients)
+    .where(and(visibleTo(scope), eq(clients.email, email)))
+    .limit(1);
+  return row;
+}
+
+/** The client of the workspace that is linked to the account, if any. Reads the link; shows nothing of it. */
+export async function findClientOfAccount(
+  scope: WorkspaceScope,
+  accountId: string,
+): Promise<{ id: string } | undefined> {
+  const [row] = await executorOf(scope)
+    .select({ id: clients.id })
+    .from(clients)
+    .where(and(visibleTo(scope), eq(clients.accountId, accountId)))
+    .limit(1);
+  return row;
+}
+
+export interface NewClient {
+  readonly name: string;
+  readonly email?: string | null;
+  readonly emailLocale?: Locale | null;
+  /** The account the client is linked to; leave it out for none. */
+  readonly accountId?: string | null;
+}
+
+/**
+ * Adds a client to the scope's workspace, never another. `undefined` when the workspace already
+ * has a client with that email address or for that account (a parallel request got there first):
+ * nothing is added, and the caller looks the existing client up. A client route can't add
+ * clients (RLS refuses it).
+ */
 export async function createClient(
   scope: WorkspaceScope,
-  input: { accountId?: string },
-): Promise<ClientView> {
+  input: NewClient,
+): Promise<ClientView | undefined> {
   const [row] = await executorOf(scope)
     .insert(clients)
-    .values({ organizationId: scope.workspaceId, accountId: input.accountId ?? null })
+    .values({ organizationId: scope.workspaceId, ...input })
+    .onConflictDoNothing()
     .returning(columns);
-  if (!row) throw new Error('The client was not created.');
   return row;
 }

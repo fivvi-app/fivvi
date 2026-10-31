@@ -10,6 +10,7 @@ import {
   NotFoundSchema,
   NotSignedInSchema,
 } from './errors.ts';
+import { registerClients } from './routes/clients.ts';
 import { registerHealth } from './routes/health.ts';
 import { registerHello } from './routes/hello.ts';
 import { registerMe } from './routes/me.ts';
@@ -64,6 +65,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerSignIn(app, dependencies);
   registerWorkspaces(app);
   registerTeamMembers(app);
+  registerClients(app);
   return app;
 }
 

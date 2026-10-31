@@ -13,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   authRateLimits,
   authUsers,
+  clients,
   createDatabase,
   type DatabaseClient,
   type DatabaseExecutor,
@@ -177,6 +178,45 @@ describe('E004 database', () => {
     database = await cloneTemplateDatabase();
     client = createDatabase({ url: database.url, maxConnections: 2 });
     db = client.db;
+  });
+
+  describe('F006 seed clients', () => {
+    it('AC15: gives John’s Gym a few synthetic clients, one without an email address, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
+
+        const [gym] = await tx
+          .select()
+          .from(organizations)
+          .where(eq(organizations.slug, 'johns-gym'));
+        const seeded = await tx
+          .select({ name: clients.name, email: clients.email, accountId: clients.accountId })
+          .from(clients)
+          .where(eq(clients.organizationId, gym?.id ?? ''))
+          .orderBy(clients.name);
+        expect(seeded.map(({ name }) => name)).toEqual([
+          'Anna de Vries',
+          'Mark Jansen',
+          'Sophie Bakker',
+        ]);
+        expect(seeded.filter(({ email }) => email === null)).toHaveLength(1);
+        for (const { email } of seeded) {
+          if (email !== null) expect(email).toMatch(/^[a-z.]+@example\.com$/);
+        }
+        // Adding a client links nobody: the seed has no account for them (F006 AC4).
+        expect(seeded.every(({ accountId }) => accountId === null)).toBe(true);
+        expect(await tx.$count(clients)).toBe(3);
+      });
+    });
+
+    it('AC15: seeds no client in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true });
+
+        expect(await tx.$count(clients)).toBe(0);
+      });
+    });
   });
 
   afterAll(async () => {

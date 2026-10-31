@@ -156,15 +156,25 @@ describe('F004 roles on every workspace route', () => {
         access?.type === 'workspace' && (access.roles as readonly string[]).includes('trainer'),
     );
 
-    expect(trainerRoutes.map(({ name }) => name)).toEqual(['getWorkspace']);
-    expect((await call(trainerRoutes[0] as never, sarah)).status).toBe(200);
+    // The clients (F006) are the Trainer's too: `clients.view` and `clients.manage`.
+    expect(trainerRoutes.map(({ name }) => name).toSorted()).toEqual([
+      'addClient',
+      'getWorkspace',
+      'listClients',
+    ]);
+    const statuses = Object.fromEntries(
+      await Promise.all(
+        trainerRoutes.map(async (route) => [route.name, (await call(route, sarah)).status]),
+      ),
+    );
+    expect(statuses).toEqual({ getWorkspace: 200, listClients: 200, addClient: 201 });
   });
 
   it('AC3: Owner is admitted to every workspace route', async () => {
     const { gym, john, sarahRole } = await world();
     for (const route of workspaceCalls(gym.id, sarahRole.id)) {
       // 400 for the body the probe sends is fine: the Owner got past the access check.
-      expect([200, 204, 400], route.name).toContain((await call(route, john)).status);
+      expect([200, 201, 204, 400], route.name).toContain((await call(route, john)).status);
     }
   });
 

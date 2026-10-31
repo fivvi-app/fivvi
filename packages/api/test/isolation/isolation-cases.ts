@@ -82,6 +82,11 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   },
   removeTeamMember: { seed: aTeamMember, params: { teamMemberId: 'teamMember' } },
 
+  // The clients of a workspace (F006): the list shows every client the seed made (the suite calls
+  // it once per client of the workspace), the add takes the only field it needs.
+  listClients: { seed: theClient },
+  addClient: { body: { name: 'Mark Jansen' } },
+
   // The probe routes of the test app (`probe-routes.ts`), one per kind of access.
   probeOwner: { seed: theWorkspace },
   probeTeam: { seed: theWorkspace },

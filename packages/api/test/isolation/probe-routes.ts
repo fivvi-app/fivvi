@@ -71,7 +71,11 @@ export function registerProbeRoutes(app: OpenAPIHono): void {
 
   workspaces.openapi(
     defineRoute({ ...workspace('/probe/clients', 'probeCreateClient'), method: 'post' }, team),
-    async (c) => c.json({ client: await createClient(c.get('scope'), {}) }, 200),
+    async (c) =>
+      c.json(
+        { client: (await createClient(c.get('scope'), { name: 'Probe client' })) ?? null },
+        200,
+      ),
   );
 
   // A route with a required body and a typed query: validation must run after the access.
@@ -156,7 +160,7 @@ export function registerRollbackProbe(app: OpenAPIHono): void {
       team,
     ),
     async (c) => {
-      await createClient(c.get('scope'), {});
+      await createClient(c.get('scope'), { name: 'Probe client' });
       return c.json(NOT_FOUND, 404);
     },
   );
