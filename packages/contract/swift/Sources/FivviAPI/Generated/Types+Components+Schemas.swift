@@ -976,19 +976,23 @@ extension Components {
                 case surface
             }
         }
-        /// The fields of a client to change. Fields left out stay as they are.
+        /// The fields of a client to change. A field left out, or `null`, stays as it is; the email address and the language are cleared with `clearEmail` and `clearEmailLocale`. The same body reads alike in every client: Swift leaves a `nil` out, Kotlin writes `null`.
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateClientRequest`.
         public struct UpdateClientRequest: Codable, Hashable, Sendable {
-            /// The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out to keep the name. Empty, blank or longer answers `400` with a field error.
+            /// The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out, or send `null`, to keep it. Empty, blank or longer answers `400` with a field error.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateClientRequest/name`.
             public var name: Swift.String?
-            /// The new email address; stored lower case. `null` clears it. Leave it out to keep it. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
+            /// The new email address; stored lower case. Leave it out, or send `null`, to keep it. To clear the address, send `clearEmail: true` instead. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateClientRequest/email`.
             public var email: Swift.String?
-            /// The new language for the client’s emails: `nl-NL` or `en`. `null` follows the workspace’s default language. Leave it out to keep it. Any other value answers `400`.
+            /// `true` clears the email address (and the link to an account with it). `false`, `null` or left out does not. Together with an `email` it answers `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClientRequest/clearEmail`.
+            public var clearEmail: Swift.Bool?
+            /// The new language for the client’s emails: `nl-NL` or `en`. Leave it out, or send `null`, to keep it. To follow the workspace’s default language again, send `clearEmailLocale: true` instead. Any other value answers `400`.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateClientRequest/emailLocale`.
             @frozen public enum EmailLocalePayload: String, Codable, Hashable, Sendable, CaseIterable {
@@ -996,29 +1000,41 @@ extension Components {
                 case en = "en"
                 case _empty_ = ""
             }
-            /// The new language for the client’s emails: `nl-NL` or `en`. `null` follows the workspace’s default language. Leave it out to keep it. Any other value answers `400`.
+            /// The new language for the client’s emails: `nl-NL` or `en`. Leave it out, or send `null`, to keep it. To follow the workspace’s default language again, send `clearEmailLocale: true` instead. Any other value answers `400`.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateClientRequest/emailLocale`.
             public var emailLocale: Components.Schemas.UpdateClientRequest.EmailLocalePayload?
+            /// `true` makes the client follow the workspace’s default language for emails. `false`, `null` or left out does not. Together with an `emailLocale` it answers `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateClientRequest/clearEmailLocale`.
+            public var clearEmailLocale: Swift.Bool?
             /// Creates a new `UpdateClientRequest`.
             ///
             /// - Parameters:
-            ///   - name: The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out to keep the name. Empty, blank or longer answers `400` with a field error.
-            ///   - email: The new email address; stored lower case. `null` clears it. Leave it out to keep it. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
-            ///   - emailLocale: The new language for the client’s emails: `nl-NL` or `en`. `null` follows the workspace’s default language. Leave it out to keep it. Any other value answers `400`.
+            ///   - name: The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out, or send `null`, to keep it. Empty, blank or longer answers `400` with a field error.
+            ///   - email: The new email address; stored lower case. Leave it out, or send `null`, to keep it. To clear the address, send `clearEmail: true` instead. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
+            ///   - clearEmail: `true` clears the email address (and the link to an account with it). `false`, `null` or left out does not. Together with an `email` it answers `400`.
+            ///   - emailLocale: The new language for the client’s emails: `nl-NL` or `en`. Leave it out, or send `null`, to keep it. To follow the workspace’s default language again, send `clearEmailLocale: true` instead. Any other value answers `400`.
+            ///   - clearEmailLocale: `true` makes the client follow the workspace’s default language for emails. `false`, `null` or left out does not. Together with an `emailLocale` it answers `400`.
             public init(
                 name: Swift.String? = nil,
                 email: Swift.String? = nil,
-                emailLocale: Components.Schemas.UpdateClientRequest.EmailLocalePayload? = nil
+                clearEmail: Swift.Bool? = nil,
+                emailLocale: Components.Schemas.UpdateClientRequest.EmailLocalePayload? = nil,
+                clearEmailLocale: Swift.Bool? = nil
             ) {
                 self.name = name
                 self.email = email
+                self.clearEmail = clearEmail
                 self.emailLocale = emailLocale
+                self.clearEmailLocale = clearEmailLocale
             }
             public enum CodingKeys: String, CodingKey {
                 case name
                 case email
+                case clearEmail
                 case emailLocale
+                case clearEmailLocale
             }
         }
     }

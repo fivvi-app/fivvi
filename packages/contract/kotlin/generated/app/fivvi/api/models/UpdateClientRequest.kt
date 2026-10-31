@@ -29,32 +29,42 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * The fields of a client to change. Fields left out stay as they are.
+ * The fields of a client to change. A field left out, or `null`, stays as it is; the email address and the language are cleared with `clearEmail` and `clearEmailLocale`. The same body reads alike in every client: Swift leaves a `nil` out, Kotlin writes `null`.
  *
- * @param name The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out to keep the name. Empty, blank or longer answers `400` with a field error.
- * @param email The new email address; stored lower case. `null` clears it. Leave it out to keep it. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
- * @param emailLocale The new language for the client’s emails: `nl-NL` or `en`. `null` follows the workspace’s default language. Leave it out to keep it. Any other value answers `400`.
+ * @param name The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out, or send `null`, to keep it. Empty, blank or longer answers `400` with a field error.
+ * @param email The new email address; stored lower case. Leave it out, or send `null`, to keep it. To clear the address, send `clearEmail: true` instead. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
+ * @param clearEmail `true` clears the email address (and the link to an account with it). `false`, `null` or left out does not. Together with an `email` it answers `400`.
+ * @param emailLocale The new language for the client’s emails: `nl-NL` or `en`. Leave it out, or send `null`, to keep it. To follow the workspace’s default language again, send `clearEmailLocale: true` instead. Any other value answers `400`.
+ * @param clearEmailLocale `true` makes the client follow the workspace’s default language for emails. `false`, `null` or left out does not. Together with an `emailLocale` it answers `400`.
  */
 @Serializable
 
 data class UpdateClientRequest (
 
-    /* The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out to keep the name. Empty, blank or longer answers `400` with a field error. */
+    /* The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out, or send `null`, to keep it. Empty, blank or longer answers `400` with a field error. */
     @SerialName(value = "name")
     val name: kotlin.String? = null,
 
-    /* The new email address; stored lower case. `null` clears it. Leave it out to keep it. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes. */
+    /* The new email address; stored lower case. Leave it out, or send `null`, to keep it. To clear the address, send `clearEmail: true` instead. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes. */
     @SerialName(value = "email")
     val email: kotlin.String? = null,
 
-    /* The new language for the client’s emails: `nl-NL` or `en`. `null` follows the workspace’s default language. Leave it out to keep it. Any other value answers `400`. */
+    /* `true` clears the email address (and the link to an account with it). `false`, `null` or left out does not. Together with an `email` it answers `400`. */
+    @SerialName(value = "clearEmail")
+    val clearEmail: kotlin.Boolean? = null,
+
+    /* The new language for the client’s emails: `nl-NL` or `en`. Leave it out, or send `null`, to keep it. To follow the workspace’s default language again, send `clearEmailLocale: true` instead. Any other value answers `400`. */
     @SerialName(value = "emailLocale")
-    val emailLocale: UpdateClientRequest.EmailLocale? = null
+    val emailLocale: UpdateClientRequest.EmailLocale? = null,
+
+    /* `true` makes the client follow the workspace’s default language for emails. `false`, `null` or left out does not. Together with an `emailLocale` it answers `400`. */
+    @SerialName(value = "clearEmailLocale")
+    val clearEmailLocale: kotlin.Boolean? = null
 
 ) {
 
     /**
-     * The new language for the client’s emails: `nl-NL` or `en`. `null` follows the workspace’s default language. Leave it out to keep it. Any other value answers `400`.
+     * The new language for the client’s emails: `nl-NL` or `en`. Leave it out, or send `null`, to keep it. To follow the workspace’s default language again, send `clearEmailLocale: true` instead. Any other value answers `400`.
      *
      * Values: NL_NL,EN
      */

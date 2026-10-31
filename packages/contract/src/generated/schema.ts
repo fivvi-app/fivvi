@@ -279,7 +279,7 @@ export interface paths {
         head?: never;
         /**
          * Edit a client
-         * @description Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address may be cleared with `null`. An address another client of the workspace has answers `409` with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.
+         * @description Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out, or `null`, stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address is cleared with `clearEmail: true`, the language with `clearEmailLocale: true`. An address another client of the workspace has answers `409` with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.
          */
         patch: operations["updateClient"];
         trace?: never;
@@ -561,20 +561,24 @@ export interface components {
              */
             surface?: "ios" | "android";
         };
-        /** @description The fields of a client to change. Fields left out stay as they are. */
+        /** @description The fields of a client to change. A field left out, or `null`, stays as it is; the email address and the language are cleared with `clearEmail` and `clearEmailLocale`. The same body reads alike in every client: Swift leaves a `nil` out, Kotlin writes `null`. */
         UpdateClientRequest: {
-            /** @description The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out to keep the name. Empty, blank or longer answers `400` with a field error. */
-            name?: string;
+            /** @description The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out, or send `null`, to keep it. Empty, blank or longer answers `400` with a field error. */
+            name?: string | null;
             /**
              * Format: email
-             * @description The new email address; stored lower case. `null` clears it. Leave it out to keep it. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
+             * @description The new email address; stored lower case. Leave it out, or send `null`, to keep it. To clear the address, send `clearEmail: true` instead. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
              */
             email?: string | null;
+            /** @description `true` clears the email address (and the link to an account with it). `false`, `null` or left out does not. Together with an `email` it answers `400`. */
+            clearEmail?: boolean | null;
             /**
-             * @description The new language for the client’s emails: `nl-NL` or `en`. `null` follows the workspace’s default language. Leave it out to keep it. Any other value answers `400`.
+             * @description The new language for the client’s emails: `nl-NL` or `en`. Leave it out, or send `null`, to keep it. To follow the workspace’s default language again, send `clearEmailLocale: true` instead. Any other value answers `400`.
              * @enum {string|null}
              */
             emailLocale?: "nl-NL" | "en" | null;
+            /** @description `true` makes the client follow the workspace’s default language for emails. `false`, `null` or left out does not. Together with an `emailLocale` it answers `400`. */
+            clearEmailLocale?: boolean | null;
         };
     };
     responses: never;

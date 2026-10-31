@@ -121,6 +121,12 @@ const AddClientBodySchema = z
   })
   .openapi('AddClientRequest', { description: 'A client to add. Only the name is required.' });
 
+// The three states of a field in an edit (keep, set, clear) in a body that the generated clients
+// send alike. Swift leaves out a field that is `nil`; Kotlin writes `null` for a field the app
+// did not set. So `null` and a missing field both mean "keep", and clearing is a flag of its own
+// (`clearEmail`, `clearEmailLocale`) that no client sends by accident.
+const KEEP = 'Leave it out, or send `null`, to keep it.';
+
 const UpdateClientBodySchema = z
   .object({
     name: z
@@ -128,36 +134,69 @@ const UpdateClientBodySchema = z
       .trim()
       .min(1)
       .max(CLIENT_NAME_MAX_LENGTH)
-      .optional()
+      .nullish()
       .openapi({
         description:
           `The new name: trimmed, at least one and at most ${CLIENT_NAME_MAX_LENGTH} ` +
-          'characters, as when adding. Leave it out to keep the name. Empty, blank or longer ' +
-          'answers `400` with a field error.',
+          `characters, as when adding. ${KEEP} Empty, blank or longer answers \`400\` with a ` +
+          'field error.',
       }),
     email: z
       .email()
-      .nullable()
-      .optional()
+      .nullish()
       .openapi({
         description:
-          'The new email address; stored lower case. `null` clears it. Leave it out to keep it. ' +
-          'An address that is no email address answers `400`; one that another client of the ' +
-          'workspace has answers `409`. The client’s link to an account, if any, follows the ' +
-          'address; the answer is the same either way, and the account itself never changes.',
+          `The new email address; stored lower case. ${KEEP} To clear the address, send ` +
+          '`clearEmail: true` instead. An address that is no email address answers `400`; one ' +
+          'that another client of the workspace has answers `409`. The client’s link to an ' +
+          'account, if any, follows the address; the answer is the same either way, and the ' +
+          'account itself never changes.',
+      }),
+    clearEmail: z
+      .boolean()
+      .nullish()
+      .openapi({
+        description:
+          '`true` clears the email address (and the link to an account with it). `false`, ' +
+          '`null` or left out does not. Together with an `email` it answers `400`.',
       }),
     emailLocale: z
       .enum(locales)
-      .nullable()
-      .optional()
+      .nullish()
       .openapi({
         description:
-          'The new language for the client’s emails: `nl-NL` or `en`. `null` follows the ' +
-          'workspace’s default language. Leave it out to keep it. Any other value answers `400`.',
+          `The new language for the client’s emails: \`nl-NL\` or \`en\`. ${KEEP} To follow the ` +
+          'workspace’s default language again, send `clearEmailLocale: true` instead. Any other ' +
+          'value answers `400`.',
+      }),
+    clearEmailLocale: z
+      .boolean()
+      .nullish()
+      .openapi({
+        description:
+          '`true` makes the client follow the workspace’s default language for emails. ' +
+          '`false`, `null` or left out does not. Together with an `emailLocale` it answers `400`.',
       }),
   })
+  .superRefine((body, context) => {
+    for (const [value, clear] of [
+      [body.email, 'clearEmail'],
+      [body.emailLocale, 'clearEmailLocale'],
+    ] as const) {
+      if (value != null && body[clear] === true) {
+        context.addIssue({
+          code: 'custom',
+          path: [clear],
+          message: 'Set the field or clear it, not both.',
+        });
+      }
+    }
+  })
   .openapi('UpdateClientRequest', {
-    description: 'The fields of a client to change. Fields left out stay as they are.',
+    description:
+      'The fields of a client to change. A field left out, or `null`, stays as it is; the ' +
+      'email address and the language are cleared with `clearEmail` and `clearEmailLocale`. ' +
+      'The same body reads alike in every client: Swift leaves a `nil` out, Kotlin writes `null`.',
   });
 
 const WorkspaceParamsSchema = z.object({
@@ -304,9 +343,9 @@ const updateClientRoute = defineRoute(
     summary: 'Edit a client',
     description:
       'Changes the name, email address or language for emails of a client (the Owner and every ' +
-      'Trainer); fields left out stay as they are. The rules of adding apply: a trimmed name of ' +
-      'at most 120 characters, a valid email address stored lower case. The email address may be ' +
-      'cleared with `null`. An address another client of the workspace has answers `409` with ' +
+      'Trainer); fields left out, or `null`, stay as they are. The rules of adding apply: a trimmed name of ' +
+      'at most 120 characters, a valid email address stored lower case. The email address is ' +
+      'cleared with `clearEmail: true`, the language with `clearEmailLocale: true`. An address another client of the workspace has answers `409` with ' +
       'that client’s ID, and nothing changes. If the email address changes, the client’s link ' +
       'to an account follows it: to the account that has the new address, otherwise to none. The ' +
       'answer is the same either way, and the team never changes the account itself.',
@@ -415,9 +454,13 @@ export function registerClients(app: OpenAPIHono) {
   router.openapi(updateClientRoute, async (c) => {
     const scope = c.get('scope');
     const { clientId } = c.req.valid('param');
-    const { name, email: typed, emailLocale } = c.req.valid('json');
+    const body = c.req.valid('json');
     if (!(await findClient(scope, clientId))) return c.json(NOT_FOUND, 404);
-    const email = typeof typed === 'string' ? normalizeEmail(typed) : typed;
+    // `null` and a missing field keep; only the flags clear (see UpdateClientBodySchema).
+    const name = body.name ?? undefined;
+    const emailLocale = body.clearEmailLocale === true ? null : (body.emailLocale ?? undefined);
+    const email =
+      body.clearEmail === true ? null : body.email ? normalizeEmail(body.email) : undefined;
     let decision = decideClientEdit(await editFactsAbout(scope, clientId, email));
     let client: Awaited<ReturnType<typeof updateClient>>;
     if (decision.outcome === 'update') {

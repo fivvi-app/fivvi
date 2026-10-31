@@ -478,7 +478,12 @@ describe('F006 add, list, read and edit clients', () => {
       [{ name: '' }, 'name'],
       [{ name: '   ' }, 'name'],
       [{ name: 'x'.repeat(121) }, 'name'],
-      [{ name: null }, 'name'],
+      [{ name: 5 }, 'name'],
+      [{ clearEmail: 'yes' }, 'clearEmail'],
+      [{ clearEmailLocale: 1 }, 'clearEmailLocale'],
+      // Setting and clearing in one request is no request: the field is named.
+      [{ email: 'anna@example.com', clearEmail: true }, 'clearEmail'],
+      [{ emailLocale: 'en', clearEmailLocale: true }, 'clearEmailLocale'],
       [{ email: 'not-an-address' }, 'email'],
       [{ email: 'anna@' }, 'email'],
       [{ emailLocale: 'de' }, 'emailLocale'],
@@ -560,7 +565,7 @@ describe('F006 add, list, read and edit clients', () => {
       )
     ).json()) as ClientBody;
 
-    const cleared = await edit(gym.id, anna.id, { email: null, emailLocale: null }, john);
+    const cleared = await edit(gym.id, anna.id, { clearEmail: true, clearEmailLocale: true }, john);
 
     expect(cleared.status).toBe(200);
     const expected = { id: anna.id, name: 'Anna de Vries', email: null, emailLocale: null };
@@ -569,6 +574,70 @@ describe('F006 add, list, read and edit clients', () => {
     // The address is free again for another client.
     const mark = (await (await post(gym.id, { name: 'Mark Jansen' }, john)).json()) as ClientBody;
     expect((await edit(gym.id, mark.id, { email: 'anna@example.com' }, john)).status).toBe(200);
+  });
+
+  it('AC7: null and a flag that is false are the same as a field left out: nothing changes', async () => {
+    const { gym, john } = await world();
+    const anna = (await (
+      await post(
+        gym.id,
+        { name: 'Anna de Vries', email: 'anna@example.com', emailLocale: 'nl-NL' },
+        john,
+      )
+    ).json()) as ClientBody;
+    // What the Kotlin client writes for a field the app did not set (`encodeDefaults`): `null`.
+    const kotlinRename = {
+      name: 'Anna Visser',
+      email: null,
+      clearEmail: null,
+      emailLocale: null,
+      clearEmailLocale: null,
+    };
+    // And what an app writes when it sends the whole form with nothing to clear.
+    const noClear = { name: 'Anna Jansen', clearEmail: false, clearEmailLocale: false };
+
+    const renamed = await edit(gym.id, anna.id, kotlinRename, john);
+    const again = await edit(gym.id, anna.id, noClear, john);
+
+    expect(renamed.status).toBe(200);
+    expect(again.status).toBe(200);
+    expect(await (await read(gym.id, anna.id, john)).json()).toEqual({
+      id: anna.id,
+      name: 'Anna Jansen',
+      email: 'anna@example.com',
+      emailLocale: 'nl-NL',
+    });
+  });
+
+  it('AC7: clearing one field leaves the other, and the flag clears a field when the value is null', async () => {
+    const { gym, john } = await world();
+    const anna = (await (
+      await post(
+        gym.id,
+        { name: 'Anna de Vries', email: 'anna@example.com', emailLocale: 'en' },
+        john,
+      )
+    ).json()) as ClientBody;
+
+    const noLanguage = await edit(
+      gym.id,
+      anna.id,
+      { emailLocale: null, clearEmailLocale: true },
+      john,
+    );
+    expect(await noLanguage.json()).toEqual({
+      id: anna.id,
+      name: 'Anna de Vries',
+      email: 'anna@example.com',
+      emailLocale: null,
+    });
+    const noEmail = await edit(gym.id, anna.id, { email: null, clearEmail: true }, john);
+    expect(await noEmail.json()).toEqual({
+      id: anna.id,
+      name: 'Anna de Vries',
+      email: null,
+      emailLocale: null,
+    });
   });
 
   it('AC7: two parallel edits to one address save one and answer one 409', async () => {
@@ -626,7 +695,9 @@ describe('F006 add, list, read and edit clients', () => {
     );
     expect(await linkOf()).toBe(first.id);
     // Cleared: no link.
-    answers.push((await (await edit(gym.id, anna.id, { email: null }, john)).json()) as ClientBody);
+    answers.push(
+      (await (await edit(gym.id, anna.id, { clearEmail: true }, john)).json()) as ClientBody,
+    );
     expect(await linkOf()).toBe(null);
 
     // Every answer has the same fields, whether or not an account was involved, and shows no ID of one.
@@ -663,7 +734,7 @@ describe('F006 add, list, read and edit clients', () => {
       { name: 'Anna Visser', emailLocale: 'en', email: 'elsewhere@example.com' },
       john,
     );
-    await edit(gym.id, anna.id, { email: null }, john);
+    await edit(gym.id, anna.id, { clearEmail: true }, john);
     await edit(gym.id, anna.id, { email: account.email, name: 'Anna Again' }, john);
 
     // Not a column of the account changed, and the account's preference is not the client's language.
@@ -696,7 +767,7 @@ describe('F006 add, list, read and edit clients', () => {
     const accounts = (await admin.db.select({ id: authUsers.id }).from(authUsers)).length;
 
     await edit(gym.id, mark.id, { email: 'mark@example.com' }, john, server);
-    await edit(gym.id, mark.id, { email: null }, john, server);
+    await edit(gym.id, mark.id, { clearEmail: true }, john, server);
 
     expect(mail.sent).toEqual([]);
     expect(requestSignIn).not.toHaveBeenCalled();
@@ -875,6 +946,21 @@ describe('F006 add, list, read and edit clients', () => {
     expect(Object.keys(path.patch.responses).toSorted()).toEqual(
       ['200', '400', '401', '403', '404', '409', '500'].toSorted(),
     );
+  });
+
+  it('AC7: the edit body reads alike in Swift (leaves nil out) and Kotlin (writes null)', () => {
+    const body = contract.components.schemas.UpdateClientRequest;
+
+    // No field is required, and every field accepts `null` as "keep", so a client that writes a
+    // `null` for a field it did not set and one that leaves it out send the same meaning. Clearing
+    // is a flag, which has no `null` state to lose. The Swift and Kotlin tests prove the encoding.
+    expect(body.required).toBeUndefined();
+    expect(Object.keys(body.properties).toSorted()).toEqual(
+      ['clearEmail', 'clearEmailLocale', 'email', 'emailLocale', 'name'].toSorted(),
+    );
+    for (const property of Object.values(body.properties) as { type: string[] }[]) {
+      expect(property.type).toContain('null');
+    }
   });
 
   it('AC14: client_added carries the workspace ID and the surface only', async () => {
