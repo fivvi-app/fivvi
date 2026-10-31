@@ -5,7 +5,7 @@ The web component kit (ADR-015, E007): [shadcn/ui](https://ui.shadcn.com/) compo
 | Path | What |
 |---|---|
 | `components.json` | shadcn configuration, as in shadcn's Next.js monorepo template |
-| `src/components/` | Components from the shadcn CLI: `Button` (variants `default` = primary, `secondary`, `ghost`, `destructive`, plus upstream's `outline` and `link`), `Input`, `Label`, `Card`, `AlertDialog` (confirmation dialog), `Dialog` (a form in a modal; no built-in close button), `NativeSelect` (the browser's own select, for short lists such as a role; its chevron is an inline SVG because the kit has no icon library). **Upstream code, never edit** |
+| `src/components/` | Components from the shadcn CLI: `Button` (variants `default` = primary, `secondary`, `ghost`, `destructive`, plus upstream's `outline` and `link`), `Input`, `Label`, `Card`, `AlertDialog` (confirmation dialog), `Dialog` (a form in a modal; no built-in close button), `NativeSelect` (the browser's own select, for short lists such as a role; its chevron is an inline SVG because the kit has no icon library). **The CLI's output; never edit except for the two divergences below (`Dialog`, `NativeSelect`)** |
 | `src/styles/globals.css` | The stylesheet apps import: Tailwind, the token theme, the kit's sources, the densities, shadcn's base styles and the focus indicator |
 | `src/styles/palette-reset.css` | Drops Tailwind's default colour palette, so the only colours are the tokens |
 | `lint/` | The raw-colour guard, run by `pnpm check` |
@@ -59,7 +59,7 @@ Commit the new file in `src/components/` as the CLI wrote it. `pnpm dlx shadcn@l
 
 ## Divergences from upstream
 
-The components themselves are unchanged. The kit differs from a fresh `shadcn init` only in its stylesheet:
+The components are the CLI's output, except for two edits (the `Dialog` and `NativeSelect` rows below). Apart from those, the kit differs from a fresh `shadcn init` only in its stylesheet:
 
 | What | Why |
 |---|---|
@@ -69,7 +69,9 @@ The components themselves are unchanged. The kit differs from a fresh `shadcn in
 | A `:focus-visible` outline in the focus colour (`--ring`), `border.width.focus` wide (2px) with a 2px offset, outside Tailwind's cascade layers | Upstream's `ring-ring/50` is about 2.4:1 against the light canvas, below the 3:1 a focus indicator needs (WCAG 2.4.7, 1.4.11). Being unlayered, the rule wins over the components' `outline-none` without editing them, and every future component gets it too. shadcn has no theme variable for the width, so the rule reads the token variable `--th-border-width-focus`, as the density rules read theirs; app code still never uses `--th-*` |
 | `tw-animate-css` is imported; no `shadcn/tailwind.css` | `AlertDialog` is the first animated component. No component uses shadcn's custom variants yet: add `shadcn/tailwind.css` with the first that does |
 | The `AlertDialog` overlay's upstream `bg-black/10` generates no CSS (the palette is removed), so the overlay only blurs the page (`backdrop-blur-xs`) | Accepted: upstream's 10% scrim is faint anyway, the content has `bg-popover` plus a ring, and there is no web scrim design token. `alert-dialog.tsx` stays the CLI output |
-| `Dialog` has no close button (upstream's `showCloseButton`, an `XIcon` from `lucide-react` and a hard-coded "Close", also in the footer) | The kit has no icon library and carries no text of its own; a dialog has a cancel button with a translated label and closes on Escape |
+| `Dialog` has no close button (upstream's `showCloseButton`, an `XIcon` from `lucide-react` and a hard-coded "Close", also in the footer). **`dialog.tsx` is edited** | The kit has no icon library and carries no text of its own; a dialog has a cancel button with a translated label and closes on Escape |
+| The `Dialog` overlay's upstream `bg-black/10` generates no CSS either (the palette is removed), so the overlay only blurs the page (`backdrop-blur-xs`) | Accepted for the same reasons as the `AlertDialog` overlay above |
+| `NativeSelect` draws its chevron as an inline SVG instead of upstream's `ChevronDownIcon` from `lucide-react`. **`native-select.tsx` is edited** | The kit has no icon library |
 | Density rules for `[data-density]` (`compact`, `touch`) in Tailwind's `base` layer, which also set `--text-sm` inside the layout | shadcn has one size scale; the densities set body text and a minimum control size per layout from the tokens, without editing the components ([densities](#densities)) |
 | No `src/lib/utils.ts` | The `radix-nova` components import `cn` from the `cn` package directly |
 
@@ -86,7 +88,7 @@ It leaves alone, on purpose:
 
 | What | Why |
 |---|---|
-| `src/components/` | Vendored shadcn components, never edited. Upstream's secondary `Button` uses `hover:bg-[color-mix(…)]`. The directory is where `components.json`'s `ui` alias resolves; a test keeps the two in step |
+| `src/components/` | Vendored shadcn components, edited only where the divergences above say so (`Dialog`, `NativeSelect`). Upstream's secondary `Button` uses `hover:bg-[color-mix(…)]`. The directory is where `components.json`'s `ui` alias resolves; a test keeps the two in step |
 | Tests (`*.test.*`, `*.spec.*`, and a package's top-level `test/` and `e2e/`) | They assert on colours, such as a token's computed `rgb()`, rather than paint with them |
 | `node_modules/`, hidden directories (`.next/`), and a package's top-level build output (`dist/`, `out/`, …) | Not source |
 

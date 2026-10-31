@@ -39,6 +39,7 @@
     <string name="clients_search_placeholder">Search client…</string>
     <string name="clients_title">Clients</string>
     <string name="common_loading">Loading…</string>
+    <string name="common_loading_slow">This is taking longer than usual…</string>
     <string name="common_retry">Try again</string>
     <string name="hello_continue">Continue</string>
     <string name="hello_description">Enter your first name and we\'ll greet you.</string>

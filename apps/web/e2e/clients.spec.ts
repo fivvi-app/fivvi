@@ -274,8 +274,8 @@ test.describe('F006 clients on the web', () => {
       const list = page.getByRole('list', { name: copy.clients.listLabel });
       // Sorted by name; a client with an email address shows it, one without shows the name alone.
       await expect(list.getByRole('listitem')).toHaveText([
-        'Anna de Vriesanna@example.com',
-        'Bram Visserbram@example.com',
+        'Anna de Vries, anna@example.com',
+        'Bram Visser, bram@example.com',
         'Mark Jansen',
       ]);
       await expectNoAxeViolations(page, `TW-01 in ${appLocale}`);
@@ -284,10 +284,10 @@ test.describe('F006 clients on the web', () => {
       const search = page.getByRole('searchbox', { name: copy.clients.searchPlaceholder });
       await expect(search).toHaveAttribute('placeholder', copy.clients.searchPlaceholder);
       await search.pressSequentially('VRIE');
-      await expect(list.getByRole('listitem')).toHaveText(['Anna de Vriesanna@example.com']);
+      await expect(list.getByRole('listitem')).toHaveText(['Anna de Vries, anna@example.com']);
       // Part of an email address finds Bram.
       await search.fill('bram@');
-      await expect(list.getByRole('listitem')).toHaveText(['Bram Visserbram@example.com']);
+      await expect(list.getByRole('listitem')).toHaveText(['Bram Visser, bram@example.com']);
       await search.fill('zzz');
       await expect(page.getByText(copy.clients.noResults)).toBeVisible();
       await expectNoAxeViolations(page, `TW-01 without a match in ${appLocale}`);
@@ -307,6 +307,104 @@ test.describe('F006 clients on the web', () => {
       expect(denied.status()).toBe(404);
     });
   }
+
+  test('a failed search keeps the list on screen with the error and Try again', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page);
+    await seed(page, workspaceId, { name: 'Mark Jansen' });
+    await seed(page, workspaceId, { name: 'Anna de Vries', email: 'anna@example.com' });
+    await page.goto(`/w/${slug}/clients`);
+    const list = page.getByRole('list', { name: copy.clients.listLabel });
+    const search = page.getByRole('searchbox', { name: copy.clients.searchPlaceholder });
+    await expect(list.getByRole('listitem')).toHaveCount(2);
+    // The link's name has a pause between the name and the address.
+    await expect(
+      page.getByRole('link', { name: /^Anna de Vries\s*,\s*anna@example\.com$/ }),
+    ).toBeVisible();
+
+    // The search fails: the two clients stay, with the error and Try again.
+    const searches = /\/api\/v1\/workspaces\/[^/]+\/clients\?.*search=/;
+    await page.route(searches, (route) => route.fulfill({ status: 500, body: '{}' }));
+    await search.fill('vrie');
+    const error = page.getByText(copy.clients.loadError);
+    await expect(error).toBeVisible();
+    await expect(list.getByRole('listitem')).toHaveText([
+      'Anna de Vries, anna@example.com',
+      'Mark Jansen',
+    ]);
+
+    // Try again asks the same search once more.
+    await page.unroute(searches);
+    await page.getByRole('button', { name: copy.common.retry }).click();
+    await expect(error).toHaveCount(0);
+    await expect(list.getByRole('listitem')).toHaveText(['Anna de Vries, anna@example.com']);
+  });
+
+  test('a load that takes 10 s gets the line that it takes longer than usual', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    await seed(page, await gymId(page), { name: 'Anna de Vries', email: 'anna@example.com' });
+    await page.clock.install();
+    await page.goto(`/w/${slug}/clients`);
+    // The request waits until the end of the test.
+    const held: (() => Promise<void>)[] = [];
+    await page.route(/\/api\/v1\/workspaces\/[^/]+\/clients\?.*search=/, (route) => {
+      held.push(() => route.abort());
+    });
+
+    await page.getByRole('searchbox', { name: copy.clients.searchPlaceholder }).fill('vrie');
+    await expect(page.getByText(copy.clients.loading)).toBeAttached();
+    await expect(page.getByText(copy.common.loadingSlow)).toHaveCount(0);
+    await page.clock.fastForward(10_000);
+    await expect(page.getByText(copy.common.loadingSlow)).toBeVisible();
+    await Promise.all(held.map((release) => release()));
+  });
+
+  test('"Not saved" keeps what was typed, and adding again works', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}/clients`);
+    const workspaceId = await gymId(page);
+    await page.getByRole('button', { name: copy.clients.add }).first().click();
+    const dialog = page.getByRole('dialog', { name: copy.clients.addDialog.title });
+    const name = dialog.getByLabel(copy.clients.addDialog.nameLabel);
+    const email = dialog.getByLabel(copy.clients.addDialog.emailLabel);
+    await name.fill('Anna de Vries');
+    await email.fill('anna@example.com');
+    await dialog.getByLabel(copy.clients.addDialog.localeLabel).selectOption('en');
+
+    const adds = /\/api\/v1\/workspaces\/[^/]+\/clients$/;
+    await page.route(adds, (route) =>
+      route.request().method() === 'POST' ? route.abort('failed') : route.continue(),
+    );
+    await dialog.getByRole('button', { name: copy.clients.addDialog.submit }).click();
+    await expect(dialog.getByText(copy.clients.addDialog.errors.notSaved)).toBeVisible();
+    await expect(name).toHaveValue('Anna de Vries');
+    await expect(email).toHaveValue('anna@example.com');
+    await expect(dialog.getByLabel(copy.clients.addDialog.localeLabel)).toHaveValue('en');
+    expect(await stored(page, workspaceId)).toEqual([]);
+
+    // The connection is back: the same form saves.
+    await page.unroute(adds);
+    await dialog.getByRole('button', { name: copy.clients.addDialog.submit }).click();
+    await expect(page).toHaveURL(new RegExp(`/w/${slug}/clients/[0-9a-f-]{36}\\?added=1$`));
+    expect(await stored(page, workspaceId)).toHaveLength(1);
+  });
 
   test('a client that is not in the workspace is a 404, and an English workspace default is named in the form', async ({
     page,

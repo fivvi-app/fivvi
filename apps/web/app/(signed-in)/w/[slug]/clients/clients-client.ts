@@ -1,10 +1,10 @@
 import type { Schemas } from '@fivvi/contract';
 import { refusedFields } from '../../../validation-issues';
+import { findClient, PAGE_SIZE } from './find-client';
 
 export type Client = Schemas['Client'];
 
-/** The biggest page the API gives; the list asks for it so most workspaces see everyone at once. */
-export const PAGE_SIZE = 100;
+export { PAGE_SIZE };
 
 export type SearchClientsResult =
   | { ok: true; items: Client[]; total: number }
@@ -111,7 +111,9 @@ export async function addClient(
 /**
  * The client with `clientId` behind a refused address, for the line "Anna de Vries gebruikt dit
  * e-mailadres al." The 409 names only the ID, so the name comes from the same search the list
- * uses, on the address that was typed. `null` when it can't be found.
+ * uses, on the address that was typed. That search can miss the client: the address belongs to an
+ * account linked to another client, or it is longer than the search accepts. Then the pages of
+ * the whole list are read for the ID (`findClient`). `null` when it can't be found.
  */
 export async function findExistingClient(
   workspaceId: string,
@@ -120,5 +122,19 @@ export async function findExistingClient(
   fetchFn: typeof fetch = fetch,
 ): Promise<Client | null> {
   const result = await searchClients(workspaceId, email, fetchFn);
-  return result.ok ? (result.items.find(({ id }) => id === clientId) ?? null) : null;
+  const found = result.ok ? result.items.find(({ id }) => id === clientId) : undefined;
+  if (found) return found;
+  if (!result.ok && result.reason === 'home') return null;
+  try {
+    return await findClient(clientId, async (page) => {
+      const response = await fetchFn(
+        `/api/v1/workspaces/${workspaceId}/clients?pageSize=${PAGE_SIZE}&page=${page}`,
+      );
+      const body = (await response.json()) as Schemas['ClientList'];
+      if (response.status !== 200 || !Array.isArray(body.items)) throw new Error('No page.');
+      return body;
+    });
+  } catch {
+    return null;
+  }
 }

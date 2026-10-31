@@ -650,6 +650,24 @@
         }
       }
     },
+    "common.loadingSlow" : {
+      "comment" : "Line under a loading placeholder that is still waiting after 10 seconds.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is taking longer than usual…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit duurt langer dan normaal…"
+          }
+        }
+      }
+    },
     "common.retry" : {
       "comment" : "Button under an error message that tries the failed action again.",
       "extractionState" : "manual",

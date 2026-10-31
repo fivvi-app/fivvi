@@ -76,7 +76,7 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
 
     expect(html).toMatch(new RegExp(`<h1[^>]*>${escapeHtml(copy.clients.title)}</h1>`));
     expect(html).toMatch(
-      /<a[^>]*href="\/w\/johns-gym\/clients\/c1"[^>]*><span[^>]*>Anna de Vries<\/span><span[^>]*>anna@example\.com<\/span><\/a>/,
+      /<a[^>]*href="\/w\/johns-gym\/clients\/c1"[^>]*><span[^>]*>Anna de Vries<\/span><span class="sr-only">, <\/span><span[^>]*>anna@example\.com<\/span><\/a>/,
     );
     expect(html).toMatch(
       /<a[^>]*href="\/w\/johns-gym\/clients\/c2"[^>]*><span[^>]*>Mark Jansen<\/span><\/a>/,

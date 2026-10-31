@@ -42,6 +42,8 @@
     <string name="clients_title">Klanten</string>
     <!-- Accessibility label of the progress indicator while a screen loads (read by VoiceOver and TalkBack). -->
     <string name="common_loading">Laden…</string>
+    <!-- Line under a loading placeholder that is still waiting after 10 seconds. -->
+    <string name="common_loading_slow">Dit duurt langer dan normaal…</string>
     <!-- Button under an error message that tries the failed action again. -->
     <string name="common_retry">Opnieuw proberen</string>
     <!-- Submit button of the first-name form on the hello page. Shows hello.formGreeting with the name entered. -->

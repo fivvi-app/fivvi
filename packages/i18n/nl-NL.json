@@ -5,7 +5,8 @@
   },
   "common": {
     "loading": "Laden…",
-    "retry": "Opnieuw proberen"
+    "retry": "Opnieuw proberen",
+    "loadingSlow": "Dit duurt langer dan normaal…"
   },
   "hello": {
     "title": "Welkom bij Fivvi",

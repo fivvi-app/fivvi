@@ -1,7 +1,9 @@
 import type { Schemas } from '@fivvi/contract';
-import { PAGE_SIZE } from './clients-client';
 
 type Client = Schemas['Client'];
+
+/** The biggest page the API gives; the list asks for it so most workspaces see everyone at once. */
+export const PAGE_SIZE = 100;
 
 /**
  * The client with `clientId`, read from the pages of the client list (`fetchPage` asks the API for
