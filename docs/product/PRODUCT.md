@@ -2614,8 +2614,8 @@ Strongest validation signal:
 | Release | Objective |
 |---|---|
 | **MVP** | Dutch-first pilot gym platform, including memberships, recurring payments and invoices |
-| **1.1** | Pilot-driven improvements |
-| **1.2** | Client iOS + Android |
+| **1.1** | Pilot-driven improvements, push notifications |
+| **1.2** | *(moved into the MVP in v1.31: client iOS + Android at go-live)* |
 | **1.3** | Dutch/English AI note capture |
 | **1.4** | AI client briefing |
 | **2.0** | Public SaaS onboarding |

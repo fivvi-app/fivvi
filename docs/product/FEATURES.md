@@ -37,7 +37,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | F007 | Localization Infrastructure | PLANNED | Must | M1–M2 | E005 | ⬜ | ⬜ | §3, §73 |
 | F008 | Dutch UI | PLANNED | Must | continuous | F007 | ⬜ | — | §2.2 |
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |
-| F010 | Locale Preference | IN PROGRESS | Must | M2 (+ iOS/Android) | F001, F007 | ⬜ | ⬜ | §3 |
+| F010 | Locale Preference | IN PROGRESS | Must | M2 (+ iOS/Android; + Fivvi iOS/Android from M5) | F001, F007 | ⬜ | ⬜ | §3 |
 | F063 | Sign in with Apple and Google: a second way to sign in, on the web first (clients and team members), then Fivvi Pro and Fivvi (App Store guideline 4.8: Sign in with Apple when an app offers Google). Owner steps later: an Apple Services ID and a Google OAuth client | PLANNED | **Should** | M5 (web first; Fivvi Pro and Fivvi after) | F001 | ⬜ | ⬜ | §27, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) |
 
 ### Trainers
@@ -109,7 +109,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | F042 | Client Workouts | PLANNED | Must | M7, after G4 (+ iOS/Android) | F041, F006 | ⬜ | ⬜ | §40 |
 | F043 | Live Workout Logging | PLANNED | Must | M7, after G4 (+ iOS/Android) | F039, F020 | ⬜ | ⬜ | §41 (with or without a template) |
 | F044 | Previous Workout Display | PLANNED | Must | M7, after G4 (+ iOS/Android) | F043 | ⬜ | ⬜ | §41 |
-| F045 | Workout History | PLANNED | Must | M7, after G4 (+ iOS/Android) | F043 | ⬜ | ⬜ | §42, §37 (shared recap) |
+| F045 | Workout History | PLANNED | Must | M7, after G4 (+ iOS/Android; + Fivvi iOS/Android) | F043 | ⬜ | ⬜ | §42, §37 (shared recap) |
 | F051 | Repeat Previous Workout | PLANNED | Must | M7, after G4 (+ iOS/Android) | F043, F045 | ⬜ | ⬜ | §41 (moved from §54) |
 
 ### Notes
@@ -180,8 +180,8 @@ These get `F0xx` IDs when they move to `PLANNED`. Full context is in [`ROADMAP.m
 
 | Release | Candidate items |
 |---|---|
-| 1.1 | Recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · warm-up sets · supersets · workout reordering · pinned notes · note search · offline resilience · bulk attendance · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *Universal Links / App Links (suggested)* |
-| 1.2 | Native client iOS/Android apps · push (APNs + FCM) · email → app deep links |
+| 1.1 | Recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · warm-up sets · supersets · workout reordering · pinned notes · note search · offline resilience · bulk attendance · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *Universal Links / App Links (suggested)* · push notifications in Fivvi and Fivvi Pro (APNs + FCM) · email → app deep links |
+| 1.2 | *(moved into the MVP in v1.31: the client app Fivvi ships at go-live)* |
 | 1.3 | AI note capture (NL/EN, speech + text, trainer confirms) |
 | 1.4 | AI pre-session client briefing |
 | 2.0 | Self-serve workspace creation · persona onboarding · marketing site · help center · *platform billing (decision pending)* |

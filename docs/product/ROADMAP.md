@@ -152,9 +152,9 @@ Size is relative complexity (S / M / L / XL), not a duration.
 | **M6** | Open Gym & sharing | Owner publishes Open Gym; approved clients book it; booking links, the join link and QR posters are printable; the owner creates Open Gym from the apps' **+** menu | F034–F038 | M |
 | **M11** | Commerce | A client confirms a membership, a credit pack or a credit plan and pays online; recurring payments are collected; every payment gets an invoice; credit balances and makeups are explainable (single classes and payouts are proposed scope, [decision 9](#14-decisions)) | F052–F061, E019 | XL |
 | **M7** | Training & notes, after G4 | Trainer logs live sets with or without a template, repeats the previous workout, keeps notes, on web, iOS and Android. Joins the running pilot; more locations and F019 location inference come with it | F039–F048, F051, F017–F019 | L |
-| **M8** | Native track (iOS + Android), runs in parallel from M2 | A trainer's day runs from the phone on both platforms, built beside the web: sign-in with the 6-digit code (M2), Today, calendar, clients, session, attendance and **+** by role (M4), Open Gym (M6), logging and notes (M7). Builds reach testers through TestFlight and Play internal testing from M2 | Mobile surfaces of F001, F006, F010, F013, F020–F022, F025, F034, F043–F048, F051; E017 | XL (×2 platforms), spread over M2–M7 |
+| **M8** | Native track (iOS + Android), runs in parallel from M2 | A trainer's day runs from the phone on both platforms, built beside the web: sign-in with the 6-digit code (M2), Today, calendar, clients, session, attendance and **+** by role (M4), Open Gym (M6), logging and notes (M7); the client app Fivvi beside the web from M5: booking (M5), Open Gym booking (M6), the client's agreements and invoices (M11). Builds reach testers through TestFlight and Play internal testing from M2 | Mobile surfaces of F001, F006, F010, F013, F020–F022, F025, F034, F043–F048, F051; E017 | XL (×2 platforms), spread over M2–M7 |
 | **M9** | Hardening & launch readiness | Security, privacy, accessibility, NL/EN QA, import tooling (incl. agreements and balances), backups, runbooks and the payments review are all done | E014–E016 | M |
-| **M10** | Pilot | After the cutover the pilot gym runs on the platform for 6 weeks (the web for everyone, the native trainer apps from day one), payments included, joined by M7 when it is done; the old app (read-only fallback) is cancelled once the first full payment cycle reconciles; Release 1.1 defined | — | 6 weeks |
+| **M10** | Pilot | After the cutover the pilot gym runs on the platform for 6 weeks (the web for everyone, the native trainer apps from day one, clients using Fivvi from the stores or the client web), payments included, joined by M7 when it is done; the old app (read-only fallback) is cancelled once the first full payment cycle reconciles; Release 1.1 defined | — | 6 weeks |
 
 ### 3.3 Release roadmap
 
@@ -434,7 +434,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - Email set (NL + EN each): sign-in, invitation, join request declined, booking confirmation, cancellation, schedule change, class cancellation, on the waitlist, you're in, you didn't get in; trainer: new booking, cancellation; owner: new join request (§51).
 - Client web (F033): **my schedule** with group bookings and private sessions together, labelled by type and filterable; the waitlists the client is on and their position; past bookings, cancellation, profile; reachable after signing in. M11 adds agreements, balances, payments, invoices, and per workspace the payment history with invoice and credit-note PDFs.
 - **Waitlist (F062):** the rules are in `PRODUCT.md §23` (owner, 31 October 2026): group classes only; the first in line is booked automatically when a spot frees up and gets a "you're in" email; a **waitlist closing time** per workspace (default 30 minutes before the class) after which nobody moves up or joins, and everyone still waiting gets a "you didn't get in" email, sent by the 5-minute cron job ([ADR-027](../decisions/ADR-027-a-cron-every-5-minutes.md)). Moving a client up shares the capacity lock and the concurrency tests with booking. M11 adds the agreement check at move-up: a client who can't book is skipped and told why.
-- **Sign in with Apple and Google (F063)**, Should (may slip to 1.1, as every Should): web first, for clients and team members; Fivvi Pro after (on iOS, App Store guideline 4.8 requires Sign in with Apple when an app offers Google sign-in). Owner steps when it is built: an Apple Services ID and a Google OAuth client. Email sign-in stays.
+- **Sign in with Apple and Google (F063)**, Should (may slip to 1.1, as every Should): web first, for clients and team members; Fivvi Pro and Fivvi after (on iOS, App Store guideline 4.8 requires Sign in with Apple when an app offers Google sign-in). Owner steps when it is built: an Apple Services ID and a Google OAuth client. Email sign-in stays.
 - M11 adds paid single classes (proposed, [decision 9](#14-decisions)); only a signed-in approved client can buy one.
 - **The domain is bought (fivvi.app, 21 October 2026); set up its DNS before this milestone:** the Railway custom domain, and SPF, DKIM and DMARC for the sender `Fivvi` (noreply at fivvi.app) in Brevo (§4.5). Real clients need emails from an authenticated domain.
 - Performance budget for the client timetable: fast on a mid-range phone over 4G (LCP < 2.5 s).
@@ -562,7 +562,7 @@ The client app **Fivvi** (v1.31):
 
 | Milestone | Native slice (iOS and Android) | Features |
 |---|---|---|
-| M5 | The app shell (a second app beside Fivvi Pro, `app.fivvi`, with the same generated clients, string catalogs and design tokens) and its E017 release lane; sign-in with the 6-digit code, joining a workspace, the client timetable, booking and cancelling, the waitlist, my schedule, profile and the NL/EN switch; Sign in with Apple and Google when F063 is built | F027, F029–F031, F033, F062, F063 |
+| M5 | The app shell (a second app beside Fivvi Pro, `app.fivvi`, with the same generated clients, string catalogs and design tokens) and its E017 release lane; sign-in with the 6-digit code, joining a workspace, the client timetable, booking and cancelling, the waitlist, my schedule, profile and the NL/EN switch; Sign in with Apple and Google when F063 is built | F010, F027, F029–F031, F033, F062, F063 |
 | M6 | Open Gym booking | F035 |
 | M11 | The client's memberships, credit packs and plans, balances, payment history and invoice PDFs; paying opens the web payment page in the browser | F033 (+M11 commerce) |
 | M9 | Public App Store and Google Play listings (NL + EN) and their requirements | — |
@@ -636,7 +636,7 @@ The client app **Fivvi** (v1.31):
 | **1–3: Stabilise** | Every payout reconciled (if F061 is in scope, decision 9); the first full payment cycle matches the expected amounts; the old app is cancelled after it |
 | **4–6: Observe** | Weekly 30-min check-in with the owner; trainers asked every two weeks; workaround log maintained |
 | **End of 6** | **Pilot review (Gate G5):** metrics vs. baseline and targets; ranked findings; Release 1.1 scope defined from evidence |
-| **From day one** | Trainers use the iOS and Android apps through TestFlight / Play internal testing if the apps pass their checks (§5 M9); the web works for everyone, so a trainer whose app isn't ready, or who prefers the browser, loses nothing. Public App Store / Play listings are not part of go-live |
+| **From day one** | Trainers use the iOS and Android apps through TestFlight / Play internal testing if the apps pass their checks (§5 M9); the web works for everyone, so a trainer whose app isn't ready, or who prefers the browser, loses nothing. Fivvi Pro needs no public App Store / Play listing for go-live; clients get Fivvi from the public listings if it is approved in time, otherwise they use the client web |
 
 **Pilot setup (week 0) checklist** (owner; nothing here is optional, and each item is its own PR or action before the step it guards):
 - [ ] **Connect the pilot's Mollie account (*Betalingen koppelen*): first remove `@agent-queue billing` from `scripts/high-risk-paths.txt`** (a PR of its own, queued by the owner), and only then set the live payment-provider key in `production`. Payment code is agent-queueable only while payments run in Mollie's test mode (ADR-023); `scripts/payment-key-guard.sh` refuses a live key while the line is there.
@@ -694,7 +694,7 @@ Near-term releases have concrete scope. Later releases are **themes**, and their
 - **Suggested additions (not in spec, validate in pilot):**
   - **Session reminder emails** (e.g. 24 h before): a cheap way to reduce no-shows.
   - **Read-only calendar feed (ICS)** per trainer: covers much of the Google/Apple/Outlook need well before 6.0.
-  - **Deep links** (Universal Links / App Links) so email links open the trainer apps directly.
+  - **Deep links** (Universal Links / App Links) so email links open the apps directly.
 - **Exit:** the top 5 pilot pain points are resolved; still zero dev interventions.
 
 ### Horizon 2: Deepen it
@@ -825,7 +825,7 @@ flowchart TB
 | Uptime | UptimeRobot / Better Stack free | Check interval | — |
 | Bot protection | Cloudflare Turnstile | Free | — |
 | Source + CI | GitHub public repo since 2026-10-16 (owner decision): standard runners, macOS included, are free | A run's wall time, not minutes: the native jobs are the slow ones | Path-filtered native CI, build caches and parallel locale runs (`WORKFLOW.md §7`); local Xcode builds |
-| iOS distribution | Existing Apple Developer Program company membership (owner-reported); verify access in E017 | Membership and team access must be active for TestFlight | **M2 (E017):** use the existing company membership; renew if required |
+| iOS distribution | Existing Apple Developer Program company membership (owner-reported), TestFlight for the app *Fivvi Pro*; the app *Fivvi* with a public App Store listing before G4 (v1.31); verify access in E017 | Membership and team access must be active for TestFlight | **M2 (E017):** use the existing company membership; renew if required |
 | Android distribution | Play Console organisation account (verified, 27 October 2026), Play internal testing for the app *Fivvi Pro*; the app *Fivvi* with a public listing before G4 (v1.31) | — | No new spend. **M2 (E017):** the release lane publishes to internal testing |
 | Push notifications (1.1) | APNs + FCM | Free | — |
 | Payments (M11) | The payment provider's test mode; no monthly fee for online payments expected; Mollie's platform cost is unconfirmed (ADR-020, open question 5) | Per-payment fees (ADR-020: paid by the gym as merchant on its own Mollie account) | **G4:** the pilot's Mollie account (ADR-020) goes live, connected at least a week before the cutover; fees compared with the per-payment fee the gym pays today |

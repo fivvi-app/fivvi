@@ -4,7 +4,7 @@ This is the **single wording source** for every user-facing string on every surf
 
 What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLOSSARY.md) at the repo root (English canonical terms, definitions, words to avoid). This file says how those terms are **worded** in nl-NL and en.
 
-- **Status:** v0.14, started in M0 (`ROADMAP.md §4.2`). The owner decided the nine open terms on 2026-10-29 by choosing the standard Dutch wording, and on the same day the wording of *single class* and *client*. Terms marked ⚠️ are still open (see [§8 Open questions](#8-open-questions)); v0.14 adds the join link, join request and waitlist closing time terms of ADR-026 as ⚠️.
+- **Status:** v0.15, started in M0 (`ROADMAP.md §4.2`). The owner decided the nine open terms on 2026-10-29 by choosing the standard Dutch wording, and on the same day the wording of *single class* and *client*. Terms marked ⚠️ are still open (see [§8 Open questions](#8-open-questions)); v0.14 adds the join link, join request and waitlist closing time terms of ADR-026 as ⚠️.
 - **Scope:** UI strings, emails, notifications, validation messages, empty states, the client timetable and join pages and QR posters. Legal documents (privacy policy, terms, verwerkersovereenkomst) follow their own register and are out of scope.
 - **Catalogs:** `packages/i18n/nl-NL.json` and `packages/i18n/en.json` (ICU MessageFormat, ADR-008). Native catalogs (`.xcstrings`, `strings.xml`) are generated from them and are never edited by hand.
 - **Precedence:** `PRODUCT.md` owns requirements. This file owns terminology, tone and copy style. Where it deliberately differs from example copy in `PRODUCT.md`, [§7](#7-deviations-from-productmd-example-copy) lists why.
@@ -288,7 +288,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 |---|---|---|
 | Dashboard | Dashboard | |
 | Settings | Instellingen | |
-| Home (client app 🔜 1.2) | Home | `PRODUCT.md §55` |
+| Home (client app) | Home | `PRODUCT.md §55` |
 | language | taal | Options always *Nederlands* / *English*. |
 | default communication language | standaardtaal | Workspace setting (`PRODUCT.md §3`). EN: *Default language*. |
 | notification | melding (de, meldingen) | ❌ *notificatie*. *E-mailmeldingen / Email notifications*. |
@@ -532,3 +532,4 @@ Still marked ⚠️ in §4.9 and not decided: the three terms added after the co
 | 2026-10-29 | 0.12 | The owner decided two wordings, not by pilot validation. *Single class* is now *losse sessie* (plural *losse sessies*; was *losse les*): only the Dutch word changes, the concept stays as in `GLOSSARY.md`. *Losse les* is forbidden; the offer name is a deliberate exception to the *session* row, the thing booked is still a *les*. *Client* stays *klant* (confirmed, unchanged). |
 | 2026-10-31 | 0.13 | Commerce walkthrough with the pilot gym ([#150](https://github.com/fivvi-app/fivvi/issues/150)): new §4.9 terms *weekly limit* (*weeklimiet*), *billing cycle* (*betaalperiode*) and *Open Gym credit* (*Open Gym-credit*), all ⚠️ until the pilot gym owner confirms the wording (§8); *credit* now has three kinds that never mix; *credit plan* grants credits each billing cycle; *waitlist* is in the MVP (no longer 🔜 1.1). |
 | 2026-10-31 | 0.14 | Clients sign in and are approved to book (roadmap v1.30, ADR-026): §4.4 is now *Booking, joining and sign-in*; new terms *join link* (*aanmeldlink*), *join request* (*aanmeldverzoek*, with *Goedkeuren / Afwijzen* and *Wachten op de studio*) and *waitlist closing time* (a sentence, *De wachtlijst sluit 30 minuten voor de les.*), all ⚠️ until the pilot gym owner confirms (§8); *hold* and its statuses are retired (no holds, no email step); *booking page* is the client timetable, not public; *account* is open to anyone; *name* is no longer a booking field; *magic link* is only the sign-in link; new ⚠️ messages for an account with no workspace, a join request waiting, the waitlist position and closing time; the waitlist emails are listed on the *waitlist* row. |
+| 2026-10-31 | 0.15 | The client app at go-live (roadmap v1.31): the brand rule says the client app is *Fivvi* (it was "of Release 1.2"), and the *Home* row is no longer marked 🔜 1.2. Terminology is unchanged. |

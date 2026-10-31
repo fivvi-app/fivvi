@@ -335,7 +335,7 @@ flowchart TD
 | **Trainer in several workspaces** | Everything merged into one timeline with workspace labels; each item opens in its own workspace's context and permissions | TD-01 |
 | **Trainer in one workspace** | No workspace labels, no colour dots | TD-01 |
 | **Removed from a workspace or role changed** | The next refresh drops that workspace's items; a one-time notice | TD-01 |
-| **Session moved or cancelled by the owner** | The next refresh shows the new time or *Geannuleerd*. No push in MVP (push is 1.2) | TD-01, TD-02 |
+| **Session moved or cancelled by the owner** | The next refresh shows the new time or *Geannuleerd*. No push in MVP (push is 1.1) | TD-01, TD-02 |
 | **Substituted in / out** | *Je valt in voor …* / *Overgenomen door …* | TD-01, TD-03 |
 | **Weak gym Wi-Fi** | Show cached data immediately; workout sets queue locally (R12). Attendance and note writes wait for a connection | TD-01, TD-02 |
 | **Long names / Dynamic Type AX sizes** | Rows wrap to more lines; times never truncate; client names truncate last | all |
