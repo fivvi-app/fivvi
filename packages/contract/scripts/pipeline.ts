@@ -114,28 +114,36 @@ export async function generateKotlin(specFile: string, outRoot: string): Promise
 export const KOTLIN_SERIALIZER = 'app/fivvi/api/infrastructure/Serializer.kt';
 
 const KOTLIN_ENCODE_DEFAULTS = '            encodeDefaults = true\n';
+const KOTLIN_JSON_PROPERTY = '    @JvmStatic\n    val kotlinxSerializationJson: Json by lazy {';
+const KOTLIN_JSON_IMPORT = 'import kotlinx.serialization.json.Json\n';
 
 /**
  * The generator's `Json` has `encodeDefaults = true`, which writes every unset optional field as `null`. The API
  * reads `null` as a value and refuses it (`400`), where the Swift client leaves a `nil` field out (#371). With
  * `explicitNulls = false` the Kotlin client leaves it out too, so a request carries only what the app set; an
  * explicit "clear" is a flag of the contract (`clearEmail`), never a `null`. Throws when the generator's output no
- * longer has the line, so a new generator version cannot silently bring the `null`s back.
+ * longer has one of the lines it adjusts (the setting, the property it annotates or the import), so a new generator
+ * version fails here and not later as a Gradle warning or with the `null`s back.
  */
 export function leaveUnsetFieldsOut(source: string): string {
-  if (!source.includes(KOTLIN_ENCODE_DEFAULTS)) {
-    throw new Error(
-      `The Kotlin Serializer has no \`encodeDefaults = true\` line to adjust (${KOTLIN_SERIALIZER})`,
-    );
+  const anchors: [string, string][] = [
+    [KOTLIN_ENCODE_DEFAULTS, 'the `encodeDefaults = true` line'],
+    [KOTLIN_JSON_PROPERTY, 'the `kotlinxSerializationJson` property'],
+    [KOTLIN_JSON_IMPORT, 'the `Json` import'],
+  ];
+  for (const [anchor, what] of anchors) {
+    if (!source.includes(anchor)) {
+      throw new Error(`The Kotlin Serializer has no ${what} to adjust (${KOTLIN_SERIALIZER})`);
+    }
   }
   return source
     .replace(
-      '    @JvmStatic\n    val kotlinxSerializationJson: Json by lazy {',
-      '    @OptIn(ExperimentalSerializationApi::class)\n    @JvmStatic\n    val kotlinxSerializationJson: Json by lazy {',
+      KOTLIN_JSON_PROPERTY,
+      `    @OptIn(ExperimentalSerializationApi::class)\n${KOTLIN_JSON_PROPERTY}`,
     )
     .replace(
-      'import kotlinx.serialization.json.Json\n',
-      'import kotlinx.serialization.ExperimentalSerializationApi\nimport kotlinx.serialization.json.Json\n',
+      KOTLIN_JSON_IMPORT,
+      `import kotlinx.serialization.ExperimentalSerializationApi\n${KOTLIN_JSON_IMPORT}`,
     )
     .replace(
       KOTLIN_ENCODE_DEFAULTS,

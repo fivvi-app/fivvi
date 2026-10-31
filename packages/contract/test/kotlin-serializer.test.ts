@@ -41,6 +41,20 @@ describe('the Kotlin Serializer', () => {
     expect(() => leaveUnsetFieldsOut('object Serializer {}\n')).toThrow(/encodeDefaults/);
   });
 
+  it.each([
+    ['the encodeDefaults line', '            encodeDefaults = true\n', /encodeDefaults/],
+    [
+      'the property to annotate',
+      '    @JvmStatic\n    val kotlinxSerializationJson: Json by lazy {',
+      /kotlinxSerializationJson/,
+    ],
+    ['the Json import', 'import kotlinx.serialization.json.Json\n', /Json. import/],
+  ])('fails when %s is missing, not later in the Gradle build', (_name, anchor, message) => {
+    expect(GENERATED).toContain(anchor);
+
+    expect(() => leaveUnsetFieldsOut(GENERATED.replace(anchor, ''))).toThrow(message);
+  });
+
   it('is applied to the committed Kotlin client', async () => {
     const committed = await readFile(
       join(CONTRACT_ROOT, GENERATED_PATHS.kotlin, KOTLIN_SERIALIZER),

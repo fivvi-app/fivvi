@@ -37,6 +37,11 @@ env:
 # app (no session, no local choice) and sign in: the signed-in app follows the language the account stored, so Profiel →
 # Taal reads in the other language only when the API took the choice. KEEP_ACCOUNT_LANGUAGE keeps the sign-in from
 # choosing the device language again (shared/device-language.yaml).
+# The second sign-in makes three trainer sign-ins per locale run, which is the rate limit on a plain main: this flow
+# relies on #363 clearing the limits in the background (scripts/maestro.sh).
+# What each locale proves: the nl-NL run expects the other language (en), so it goes red with the bug at this check;
+# the en run expects nl-NL, which is also the seeded value, so it passes with the bug and catches it only through
+# assertNotVisible profile.language.error (the refused save).
 - extendedWaitUntil:
     visible:
       id: maestro\.pause
