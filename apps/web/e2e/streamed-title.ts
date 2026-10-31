@@ -13,8 +13,9 @@ interface HoldWindow {
 
 /**
  * Holds back the title row of every refresh response (`?_rsc=`) the page asks for from now on,
- * until `release()`. Call it before `page.goto`. Everything else in the response arrives as it
- * would, so the page renders in the new language with no `<title>`.
+ * until `release()`. Call it before `page.goto`. Only that row is held; the rows after it
+ * arrive as they would, so the page renders its new body (the new language, the new workspace
+ * name in the sidebar) with no `<title>`.
  */
 export async function holdBackPageTitle(page: Page): Promise<{ release: () => Promise<void> }> {
   await page.addInitScript(() => {
@@ -35,9 +36,11 @@ export async function holdBackPageTitle(page: Page): Promise<{ release: () => Pr
       const encoder = new TextEncoder();
       const body = new ReadableStream<Uint8Array>({
         async start(controller) {
-          controller.enqueue(encoder.encode(text.slice(0, at)));
+          const end = text.indexOf('\n', at);
+          const after = end < 0 ? text.length : end + 1;
+          controller.enqueue(encoder.encode(text.slice(0, at) + text.slice(after)));
           await gate;
-          controller.enqueue(encoder.encode(text.slice(at)));
+          controller.enqueue(encoder.encode(text.slice(at, after)));
           controller.close();
         },
       });

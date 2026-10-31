@@ -68,6 +68,11 @@ test.describe('F005 my name', () => {
     await name.fill('Sarah de Vries');
     await page.getByRole('button', { name: copy.myProfile.save }).click();
     await expect(page.getByRole('status')).toHaveText(copy.myProfile.saved);
+    // The title streams in after the body of the refresh (#353, #354), and axe wants one.
+    await expect(page).toHaveTitle(copy.myProfile.title);
+    // The pointer stays on the button after the click; axe judges the button at rest.
+    await page.mouse.move(0, 0);
+    await expectNoAxeViolations(page, `TW-09 after saving in ${appLocale}`);
     // The data path: the account holds the new name.
     expect(((await (await page.request.get('/api/v1/me')).json()) as { name: string }).name).toBe(
       'Sarah de Vries',

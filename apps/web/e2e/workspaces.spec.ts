@@ -9,6 +9,7 @@ import {
 } from './accounts';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 import { signInWithCode } from './sign-in-page';
+import { holdBackPageTitle } from './streamed-title';
 
 // F002, TW-11 `/welcome`, the signed-in home and the no-access page. Copy comes from the
 // catalogs. Sign-in works as in sign-in.spec.ts: each spec has an address of its own and a visitor
@@ -281,6 +282,11 @@ test.describe('F002 renaming the workspace (TW-08)', () => {
     await save.click();
     await expect(page.getByText(copy.settingsGeneral.saved)).toBeVisible();
     await expect(page.getByRole('complementary')).toContainText("John's Gym Utrecht");
+    // The title streams in after the body of the refresh (#353, #354), and axe wants one.
+    await expect(page).toHaveTitle(copy.settingsGeneral.title);
+    // The pointer stays on the button after the click; axe judges the button at rest.
+    await page.mouse.move(0, 0);
+    await expectNoAxeViolations(page, `TW-08 after the rename in ${appLocale}`);
     // The data path: the API holds the new name, and the slug is the one it always was.
     const me = (await (await page.request.get('/api/v1/me')).json()) as Me;
     expect(me.workspaces).toEqual([
@@ -297,6 +303,40 @@ test.describe('F002 renaming the workspace (TW-08)', () => {
     await expect(page.getByRole('heading', { level: 1, name: "John's Gym Utrecht" })).toBeVisible();
     await expect(page).toHaveTitle("John's Gym Utrecht");
     await expect(page.getByRole('complementary')).toContainText("John's Gym Utrecht");
+  });
+
+  // #354: after a rename the page is refreshed, and the new name and the new <title> do not arrive
+  // together. The title is held back here to make the gap last, so no run depends on timing.
+  test('AC6: while the title of the refreshed settings is on its way, axe has no title to judge', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const address = newAddress('renamer');
+    await createAccount(address);
+    const slug = await createGymWithTrainer(address, "John's Gym", 'owner');
+    await signInWithSession(context, address);
+    const title = await holdBackPageTitle(page);
+    await page.goto(`/w/${slug}/settings/general`);
+    await expect(page).toHaveTitle(copy.settingsGeneral.title);
+
+    await page.getByLabel(copy.settingsGeneral.nameLabel).fill("John's Gym Utrecht");
+    await page.getByRole('button', { name: copy.settingsGeneral.save }).click();
+
+    await expect(page.getByText(copy.settingsGeneral.saved)).toBeVisible();
+    await expect(page.getByRole('complementary')).toContainText("John's Gym Utrecht");
+    // The page shows the new name, and has no title, which axe does not let through.
+    await expect.poll(() => page.title()).toBe('');
+    await expect(expectNoAxeViolations(page, 'the settings without their title')).rejects.toThrow(
+      /document-title/,
+    );
+
+    await title.release();
+
+    await expect(page).toHaveTitle(copy.settingsGeneral.title);
+    await page.mouse.move(0, 0);
+    await expectNoAxeViolations(page, `TW-08 after the rename in ${appLocale}`);
   });
 
   test('AC7: a Trainer has no Settings, sees the no-permission page, and the rename answers 403', async ({
