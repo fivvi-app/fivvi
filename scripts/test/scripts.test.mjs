@@ -3394,6 +3394,24 @@ esac`,
       });
     }
 
+    // A renamed leaf under a group that stays must fail too, not reach Maestro as the text "undefined".
+    it(`#363: ${name} stops before Maestro starts when the catalog lacks a leaf, naming the key and the locale`, async () => {
+      const fake = checkout();
+      const path = join(fake.repo, 'packages/i18n/nl-NL.json');
+      const catalog = JSON.parse(readFileSync(path, 'utf8'));
+      delete catalog.signIn.sendCode;
+      writeFileSync(path, JSON.stringify(catalog));
+
+      const run = await fake.run('scripts/maestro.sh', args);
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(run.output, /signIn\.sendCode.*nl-NL/);
+      assert.match(run.output, /catalog lacks a text/);
+      const calls = fake.log('calls');
+      assert.equal(calls.filter(isFlow).length, 0, `no flow started:\n${calls.join('\n')}`);
+      assert.ok(!run.output.includes('SIGN_IN_SEND_CODE=undefined'), run.output);
+    });
+
     it(`#363: ${name} stops before Maestro starts when it can't make the temporary file of the clearing`, async () => {
       const fake = checkout();
 
