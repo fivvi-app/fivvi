@@ -147,3 +147,4 @@
 | 2026-09-29 | E006: Brevo terms checked (storage, access from the US and India, DPA, free plan, tracking, log retention); open items in §4 |
 | 2026-10-13 | GitHub Copilot added to the AI coding agents in §5: not a sub-processor, on the same conditions (no production data, real exports or pilot files) |
 | 2026-10-30 | Brevo (§4): the DPA is Appendix 3 of the terms (version of 1 October 2025) and the owner saved its PDF; R18 has the Brevo log-retention exception; the tracking request waits on Brevo; the List-Unsubscribe risk is accepted (R1) |
+| 2026-10-31 | Apple and Google (§5): clients also get the app Fivvi from the App Store and Google Play at go-live; revisit at 1.1 when push notifications (APNs/FCM) arrive |
