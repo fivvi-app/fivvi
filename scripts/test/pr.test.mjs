@@ -584,6 +584,26 @@ describe('pr.sh merge', () => {
       assert.equal(result.bodies[1], BASE);
     });
 
+    it('keeps the line when the enqueue error was unclear and GitHub did queue or merge the PR', () => {
+      for (const after of [
+        queueFacts({ queued: true, events: [ADDED, REMOVED, ADDED] }),
+        queueFacts({ state: 'MERGED', events: [ADDED, REMOVED, ADDED] }),
+      ]) {
+        const result = merge(
+          [
+            { match: ENQUEUE, out: 'timeout', status: 1 },
+            { match: BUG_QUERY, out: bugFacts() },
+            ...github({ queue: [removedFacts(), after] }),
+          ],
+          ['--after', '353'],
+        );
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, /could not add PR #60 to the merge queue: timeout/);
+        // Only the audit line was written; it is not taken out again, as the PR is queued or merged.
+        assert.deepEqual(result.bodies, [`${BASE}\n\n${REQUEUE_LINE}`]);
+      }
+    });
+
     it('queues nothing when the audit line cannot be recorded', () => {
       const result = merge(
         [
@@ -1177,6 +1197,26 @@ describe('E002 #119 pr.sh queue', () => {
       queue(queueFacts({ events: [REMOVED], body: `see ${requeuedLine(HEAD)}` })).json.requeued,
       false,
     );
+  });
+
+  it('ADR-025: counts two removals after the head commit as a re-queue, whatever the PR body says', () => {
+    // A body that pr.sh create replaced, or a line dropped after an unclear error, must not give a second re-queue.
+    const second = removedAt('2026-10-19T12:00:00Z');
+    const erased = queue(
+      queueFacts({ events: [ADDED, REMOVED, ADDED, second], body: 'Closes #57' }),
+    );
+    assert.equal(erased.json.state, 'removed');
+    assert.equal(erased.json.requeued, true);
+    // One removal after the head commit, and one before it (an earlier commit), is not a re-queue.
+    const earlier = removedAt('2026-10-19T08:00:00Z');
+    assert.equal(
+      queue(queueFacts({ events: [ADDED, earlier, ADDED, REMOVED], body: 'Closes #57' })).json
+        .requeued,
+      false,
+    );
+    // Offsets are instants too: 12:30+02:00 is 10:30Z, after the head commit (09:00Z).
+    const offset = removedAt('2026-10-19T12:30:00+02:00');
+    assert.equal(queue(queueFacts({ events: [REMOVED, ADDED, offset] })).json.requeued, true);
   });
 
   it('says nothing for a PR that was never queued, one that is queued again, or one that is merged', () => {

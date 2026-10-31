@@ -49,11 +49,6 @@ def checks_passed:
   else checks_on_head
   end;
 
-# GitHub's UTC time (2026-10-31T10:00:00Z) as seconds, or null for anything else: an unreadable time never passes.
-def instant:
-  if type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$")
-  then sub("\\.[0-9]+"; "") | fromdateiso8601 else null end;
-
 # The condition "not removed from the queue" of a commit the queue removed, when pr.sh merge was given --after <bug>.
 # Every failed condition is named, so the refusal says what to fix.
 def requeue_after:

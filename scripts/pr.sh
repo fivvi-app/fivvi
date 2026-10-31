@@ -550,8 +550,9 @@ merge_facts() {
 
 # Where a PR is in the merge queue, from GitHub, as JSON {id, queue_enabled, merged, queued, position, auto_merge, removed,
 # reason, removed_at, requeued}: id is the PR's node ID, queue_enabled whether its base branch has a merge queue,
-# removed_at when the queue removed it (the event's createdAt, null unless removed), requeued whether the PR body records
-# that the head commit was re-queued after a fix (pr.sh merge --after, ADR-025). A PR
+# removed_at when the queue removed it (the event's createdAt, null unless removed), requeued whether the head commit was
+# re-queued after a fix (pr.sh merge --after, ADR-025): the PR body records it, or, as the body can be replaced
+# (pr.sh create --body-file), the timeline holds two removals after the head commit, a fact GitHub keeps. A PR
 # is removed when the queue took it out (its last queue event on the timeline) after the head commit was made: a commit
 # pushed after the removal makes it stale, and a later removal (the owner queued the new commit) counts again. This reads
 # the event's time and the head commit's committedDate, not the **Merge queue:** record, which names only what an agent
@@ -565,24 +566,23 @@ queue_state() {
     query($owner: String!, $name: String!, $n: Int!) {
       repository(owner: $owner, name: $name) { pullRequest(number: $n) {
         id state isMergeQueueEnabled headRefOid body commits(last: 1) { nodes { commit { committedDate } } } isInMergeQueue mergeQueueEntry { state position } autoMergeRequest { enabledAt }
-        timelineItems(last: 1, itemTypes: [ADDED_TO_MERGE_QUEUE_EVENT, REMOVED_FROM_MERGE_QUEUE_EVENT]) {
+        timelineItems(last: 20, itemTypes: [ADDED_TO_MERGE_QUEUE_EVENT, REMOVED_FROM_MERGE_QUEUE_EVENT]) {
           nodes { __typename ... on RemovedFromMergeQueueEvent { reason createdAt } } } } }
     }')" || die "could not read the merge queue state of PR #$1"
   jq -L "$ROOT/scripts" --arg mark "$QUEUE_MARK" 'include "records";
-    def instant: capture("^(?<t>[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(?:\\.[0-9]+)?(?<z>Z|[+-][0-9]{2}:[0-9]{2})$")
-      | (.t + "Z" | fromdateiso8601)
-        - (if .z == "Z" then 0
-           else (if .z[0:1] == "-" then -1 else 1 end) * ((.z[1:3] | tonumber) * 3600 + (.z[4:6] | tonumber) * 60) end);
+    def utc: instant // error("unreadable time");
     .data.repository.pullRequest as $p
     | if $p == null then error("no such PR") else . end
     | ($p.timelineItems.nodes | last) as $last
-    | ($p.commits.nodes | last | .commit.committedDate | instant) as $committed
+    | ($p.commits.nodes | last | .commit.committedDate | utc) as $committed
     | {id: $p.id, queue_enabled: $p.isMergeQueueEnabled, merged: ($p.state == "MERGED"), queued: $p.isInMergeQueue, position: $p.mergeQueueEntry.position,
        auto_merge: ($p.autoMergeRequest != null),
        removed: ($p.state == "OPEN" and ($p.isInMergeQueue | not)
-         and $last.__typename == "RemovedFromMergeQueueEvent" and ($last.createdAt | instant) >= $committed),
+         and $last.__typename == "RemovedFromMergeQueueEvent" and ($last.createdAt | utc) >= $committed),
        reason: $last.reason, removed_at: $last.createdAt,
-       requeued: ($p.body | requeued_after_fix($mark; $p.headRefOid))}
+       requeued: (($p.body | requeued_after_fix($mark; $p.headRefOid))
+         or ([$p.timelineItems.nodes[] | select(.__typename == "RemovedFromMergeQueueEvent" and (.createdAt | utc) >= $committed)]
+             | length >= 2))}
     | .reason = (if .removed then .reason else null end)
     | .removed_at = (if .removed then .removed_at else null end)' <<<"$out" \
     || die "could not read the merge queue state of PR #$1"
@@ -625,11 +625,16 @@ after_facts() {
 }
 
 # Takes the record line $2 (when there is one) out of the body of PR $1 again, after the PR could not be queued: a
-# re-queue that did not happen must not use up the one re-queue of the commit (ADR-025). Best effort; says so when it
-# can't.
+# re-queue that did not happen must not use up the one re-queue of the commit (ADR-025). An enqueue error can be unclear
+# (a timeout while GitHub did queue the PR), so the line stays unless the queue state confirms the PR is neither queued
+# nor merged. Best effort; says so when it can't.
 drop_record() {
-  local pr="$1" line="$2" body
+  local pr="$1" line="$2" body state
   [ -n "$line" ] || return 0
+  if ! state="$(queue_state "$pr")" || jq -e '.queued or .merged' <<<"$state" >/dev/null; then
+    echo "⚠  PR #$pr may be queued or merged: kept the re-queue record '$line' in its body" >&2
+    return 0
+  fi
   body="$(gh pr view "$pr" --repo "$REPO" --json body --jq .body)" \
     && body="$(awk -v line="$line" '$0 != line' <<<"$body")" \
     && gh pr edit "$pr" --repo "$REPO" --body "$body" >/dev/null \

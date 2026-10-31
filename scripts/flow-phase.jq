@@ -14,10 +14,13 @@
 # took it out (the combined commit failed or timed out) and the branch has not been pushed to since, at removed_at;
 # requeued is whether the head commit was already re-queued after a fix (the record pr.sh merge --after writes, ADR-025).
 # blockers are the open blockers of the issue; fixed_blockers (read only for an issue whose PR was removed; absent means
-# none) the blockers closed as completed. A removed PR with an open blocker waits for its fix (waiting-fix); once a
-# blocker was closed as completed after the removal, it is re-queued once (requeue). answered is true
+# none) the blockers closed as completed. A removed low- or high-risk PR whose head commit the merge gate has not refused
+# and with an open blocker waits for its fix (waiting-fix); once a blocker was closed as completed after the removal, it
+# is re-queued once (requeue). An owner-only or unknown-risk PR stays queue-removed, a refused one is merge-refused. answered is true
 # when there is a comment and the newest is not a triage note, i.e. someone replied to the needs-info question.
 # Output: {phase, next, hint}, and bug (the number of the fixed blocker to re-queue after) in the phase requeue
+
+include "records" {search: "./"};
 
 def has($l): (.labels | index($l)) != null;
 def open: .state == "OPEN";
@@ -27,21 +30,23 @@ def unapproved_spec: has("spec") and (has("spec-approved") | not);
 def refused: .refusal != null and .refusal.sha != null and .refusal.sha == .head;
 def queue_state: .queue.state? // null;
 
-def instant: sub("\\.[0-9]+"; "") | fromdateiso8601;
-
 # The blocker closed as completed last, after the removal at $at, or null: the bug whose fix the removed PR waited for.
+# A time that can't be read never counts (instant is null).
 def fix_after($f; $at):
-  if $at == null then null
-  else [($f.fixed_blockers // [])[] | select(.closed_at != null and (.closed_at | instant) > ($at | instant))]
+  if ($at | instant) == null then null
+  else [($f.fixed_blockers // [])[] | select((.closed_at | instant) != null and (.closed_at | instant) > ($at | instant))]
        | sort_by(.closed_at | instant) | last
   end;
 
 # A removed PR (ADR-025): waiting for the bug that blocks its issue, re-queued once that bug is fixed, or, when nothing
-# of the kind is on record (or its commit was already re-queued after a fix), left to the report and the owner.
+# of the kind is on record, left to the report and the owner. Only a PR an agent may queue (risk low or high) waits or is
+# re-queued, and only while the merge gate has not refused its head commit (that refusal is for the owner, like any
+# other); an owner-only or unknown-risk PR, and a commit already re-queued after a fix, stay queue-removed.
 def removed_phase($f):
   (.queue.requeued // false) as $requeued
   | fix_after($f; .queue.removed_at // null) as $fix
-  | if $requeued then {phase: "queue-removed", rank: 3}
+  | if $requeued or (.risk | IN("low", "high") | not) then {phase: "queue-removed", rank: 3}
+    elif refused then {phase: "merge-refused", rank: 3}
     elif ($f.blockers | length) > 0 then {phase: "waiting-fix", rank: 3, blockers: [$f.blockers[].number]}
     elif $fix != null then {phase: "requeue", rank: 3, bug: $fix.number}
     else {phase: "queue-removed", rank: 3}
@@ -80,7 +85,9 @@ def code_next($n):
     "ready-to-merge": merge_next($n),
     "queued": "In the merge queue (position \(.pr.queue.position // "?")): GitHub tests it on the latest main and squash-merges it. Nothing to do: scripts/flow.sh status \($n) shows when it is merged, then scripts/flow.sh finish \($n). Never queue it again, and never use --auto or --admin.",
     "queue-removed": (
-      if .pr.queue.requeued // false then
+      if (.pr.risk | IN("low", "high") | not) then
+        "GitHub removed it from the merge queue (\(.pr.queue.reason // "no reason given")), and it is owner-only or its risk is unknown, so an agent can neither wait for a fix nor queue it again. Report and stop: the owner decides, or fix a cause in this PR and push (scripts/pr.sh create), which makes the removal stale."
+      elif .pr.queue.requeued // false then
         "GitHub removed it from the merge queue again (\(.pr.queue.reason // "no reason given")), after it was already re-queued once after a fix (ADR-025). Read the merge_group run (gh run list --event merge_group) and report it. The owner decides, or fix a cause in this PR and push (scripts/pr.sh create), which makes the removal stale. Report and stop; never queue the same commit again."
       else
         "GitHub removed it from the merge queue (\(.pr.queue.reason // "no reason given")): the commit tested on the latest main failed a check or timed out. Read the merge_group run of its queue branch (gh run list --event merge_group). A cause in this PR: fix it and push (scripts/pr.sh create), which makes the removal stale, then review, smoke and scripts/pr.sh merge again. A cause outside it (the failing check also fails on main or on other PRs, a flaky test, a stalled or timed-out job): file a bug for the check (scripts/issue.sh create bug ... --label ready-for-agent, with the run ids, the failing test and error, and ## Acceptance criteria) or find the open one that covers it, link it with scripts/issue.sh block \($n) --by <bug>, and build the bug first. Once the bug is closed as completed, this PR is re-queued with scripts/pr.sh merge <pr> --after <bug> (ADR-025). A removal with no fix in code to wait for: report and stop, the owner decides. Never queue the same commit again yourself, except with pr.sh merge --after <bug>."

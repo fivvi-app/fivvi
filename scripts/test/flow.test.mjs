@@ -1134,7 +1134,7 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
         },
         {
           match: `^api repos/[^ ]+/pulls/${pr.number}/files`,
-          out: [{ filename: 'apps/web/page.tsx' }],
+          out: [{ filename: pr.file ?? 'apps/web/page.tsx' }],
         },
         { match: `^pr view ${pr.number} .*--json body`, out: { body: pr.body } },
         {
@@ -1461,6 +1461,46 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
           assert.equal(idle.status, 0, idle.stderr);
         } finally {
           PRS['chore/9001-removed'].queue = { removed: true };
+        }
+      });
+
+      it('leaves an owner-only removed PR to the owner after the fix: no requeue, and idle ends with the notes line', () => {
+        const pr = PRS['chore/9001-removed'];
+        pr.file = 'scripts/pr.sh';
+        try {
+          const scenario = { assigned: [removed], openPrs: OPEN_PRS, blockers: [BUG_FIXED] };
+          const next = run('next', scenario);
+          assert.equal(next.status, 0, next.stderr);
+          assert.match(next.stdout, /^#9001 Removed → queue-removed$/m);
+          assert.doesNotMatch(readyOf(next.stdout), /PR #91|Requeue/);
+          assert.match(ownerOf(next.stdout), /^Decide on PR #91 /m);
+          const idle = run('idle', scenario);
+          assert.equal(idle.status, 1, idle.stderr);
+          assert.equal(idle.stdout, '#9001 Removed → queue-removed\n');
+          writeNotes(9001, `# #9001 Removed\nqueue-removed ${HEAD}: reported to the owner\n`);
+          const done = run('idle', scenario);
+          assert.equal(done.status, 0, done.stderr);
+          assert.doesNotMatch(done.stdout, /Requeue/);
+        } finally {
+          delete pr.file;
+        }
+      });
+
+      it('leaves a removed PR the merge gate refused on its head to the owner: idle goes idle, next does not retry', () => {
+        const pr = PRS['chore/9001-removed'];
+        pr.body = `Closes #9001\n\n**Merge gate:** refused on \`${HEAD}\`: smoke checked (no smoke record)`;
+        try {
+          const scenario = { assigned: [removed], openPrs: OPEN_PRS, blockers: [BUG_FIXED] };
+          const next = run('next', scenario);
+          assert.equal(next.status, 0, next.stderr);
+          assert.match(next.stdout, /^#9001 Removed → merge-refused$/m);
+          assert.doesNotMatch(readyOf(next.stdout), /PR #91|Requeue/);
+          assert.match(ownerOf(next.stdout), /^Decide on PR #91 /m);
+          const idle = run('idle', scenario);
+          assert.equal(idle.status, 0, idle.stderr);
+          assert.doesNotMatch(idle.stdout, /Requeue/);
+        } finally {
+          pr.body = 'Closes #9001';
         }
       });
 
