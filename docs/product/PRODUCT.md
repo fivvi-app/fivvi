@@ -969,7 +969,9 @@ Added to the MVP, before the pilot, on 31 October 2026 (moved forward from Relea
 - When a class is full, a client can join its **waitlist**. When a spot frees up, the first in line gets it and an email.
 - The owner sets a **cut-off**, a few minutes before the class starts. After it nobody is moved up, so a spot is never given at the last minute (the pilot gym's problem today: a spot can be given 1 minute before class).
 - Clients still on the waitlist after the cut-off get a **message that they didn't get in**.
-- Capacity is never exceeded. How long a client has to confirm, how a waitlisted client with a membership or credits is handled, and the waitlist's milestone and feature ID are settled in the feature spec.
+- Capacity is never exceeded.
+
+The waitlist is **F062**, in M5 with the public booking (owner, 31 October 2026, `ROADMAP.md` v1.29). How long a client has to confirm and how a waitlisted client with a membership or credits is handled (M11) are settled in the F062 spec.
 
 ---
 
@@ -2306,7 +2308,7 @@ PR:
 
 # 84. Initial feature registry
 
-The current registry, with status, priority and milestone of every feature, is [`FEATURES.md`](FEATURES.md); this list is the initial one, extended with F051–F061.
+The current registry, with status, priority and milestone of every feature, is [`FEATURES.md`](FEATURES.md); this list is the initial one, extended with F051–F062.
 
 ## Foundation
 
@@ -2364,6 +2366,7 @@ F030 Magic-Link Verification
 F031 Booking with Email Verification
 F032 Client Account on First Booking
 F033 Client Booking Dashboard
+F062 Waitlist
 ```
 
 ## Open Gym
