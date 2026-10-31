@@ -294,6 +294,17 @@ export async function runIsolationSuite(
     const access = operation.access as XAccess;
     const hasRecords = Object.keys(isolationCase.params ?? {}).length > 0;
 
+    // What is stored after the last call or the seeds, so a call can start from it instead of
+    // reading the tables again. Invariant: it is valid only while nothing but JavaScript ran since
+    // it was read. Every seed of this operation therefore goes through `seed`, which forgets it;
+    // a write that did not would leave the next call judged against rows that no longer exist.
+    let stored: StoredRow[] | undefined;
+    const seed = async (workspaceId: string, clientId: string): Promise<Record<string, string>> => {
+      const values = (await isolationCase.seed?.(world.admin.db, { workspaceId, clientId })) ?? {};
+      stored = undefined;
+      return values;
+    };
+
     // The route's records in A and B, for every client of each.
     const seeded = new Map<string, Record<string, string>>();
     for (const [workspaceId, clientIds] of [
@@ -302,10 +313,7 @@ export async function runIsolationSuite(
       [scenario.c, Object.values(scenario.clients.c)],
     ] as const) {
       for (const clientId of clientIds) {
-        seeded.set(
-          `${workspaceId} ${clientId}`,
-          (await isolationCase.seed?.(world.admin.db, { workspaceId, clientId })) ?? {},
-        );
+        seeded.set(`${workspaceId} ${clientId}`, await seed(workspaceId, clientId));
       }
     }
 
@@ -314,7 +322,7 @@ export async function runIsolationSuite(
     // data) may seed nothing; a GET of a workspace must seed something it can show.
     const seedValues = [...new Set([...seeded.values()].flatMap((v) => Object.values(v)))];
     // What is stored once the seeds ran: the state the first call of the operation starts from.
-    let stored: StoredRow[] | undefined = await readRows(world, tables);
+    stored = await readRows(world, tables);
     const known = buildLedger(stored, scenario);
     for (const value of seedValues.filter((v) => !known.has(v))) {
       failures.push(
@@ -347,11 +355,7 @@ export async function runIsolationSuite(
       // next actor is judged on a record that exists, not on a 404 for the one removed before.
       if (planned.records && operation.method.toLowerCase() === 'delete') {
         const [workspaceId, clientId] = planned.records;
-        seeded.set(
-          planned.records.join(' '),
-          (await isolationCase.seed?.(world.admin.db, { workspaceId, clientId })) ?? {},
-        );
-        stored = undefined;
+        seeded.set(planned.records.join(' '), await seed(workspaceId, clientId));
       }
       const values = planned.records ? (seeded.get(planned.records.join(' ')) ?? {}) : {};
       const path = operation.path
