@@ -21,7 +21,7 @@ The first version must solve the real workflow of the pilot gym:
 - private training
 - group classes
 - multiple trainers
-- public class booking
+- class booking for approved clients, with a waitlist
 - Open Gym booking
 - client management
 - memberships, credit packs and credit plans (group, private and Open Gym credits), with a credit balance the owner and the client can trust
@@ -93,10 +93,10 @@ This applies to:
 
 - trainer web
 - trainer mobile
-- public booking pages
+- the client timetable and join pages
 - client web
 - client mobile
-- magic-link emails
+- sign-in emails
 - booking confirmations
 - cancellation emails
 - notifications
@@ -104,7 +104,7 @@ This applies to:
 - empty states
 - onboarding
 - settings
-- QR landing pages
+- join-link landing pages (QR)
 
 Never build Dutch and English as separate products.
 
@@ -112,30 +112,19 @@ All user-facing strings must come through the localization system.
 
 ---
 
-## 2.3 Public booking before app installation
+## 2.3 Booking before app installation
 
 Clients must not need an app to book.
 
-A QR code or URL opens a responsive booking page.
+A QR code or URL opens a responsive web page. Nothing is public (owner, 31 October 2026, ADR-026): a client signs in with their email, joins the workspace by its join link or an invitation, and books from the workspace's client timetable (§21). The native client app is Release 1.2 (§55).
 
 ---
 
-## 2.4 A client account is created at the first verified booking
+## 2.4 A client signs in, and the workspace approves them to book
 
-For first booking:
+A client signs in with their **email**: no password, no phone number. Anyone can create an account. An account on its own shows nothing of any workspace.
 
-```text
-Name
-Email
-```
-
-No phone number.
-
-No password.
-
-Email is verified using a magic link.
-
-The client's account is created automatically the moment they verify their first booking; there is no separate account-creation step or choice (§26, §27).
+A client gets into a workspace in one of two ways (owner, 31 October 2026, ADR-026): the workspace **adds** them (an invitation email), or they **ask to join** through the workspace's join link and the Owner approves (§26). Only an approved client sees the workspace's timetable and books. A booking is immediate: no hold and no email step (§23–§25).
 
 ---
 
@@ -273,11 +262,11 @@ This affects public-facing communication when no individual preference is known.
 
 ## Client language
 
-If a client selects English during booking:
+If a client selects English when they sign in or book:
 
 ```text
 Booking confirmation → English
-Future magic links → English
+Future sign-in emails → English
 Cancellation email → English
 Client dashboard → English
 ```
@@ -492,6 +481,7 @@ Owner and Trainer are the **team roles** of the MVP: a person has at most one pe
 | A client becomes a trainer | Accepting the invitation adds the team role to the existing account; the client's bookings and agreements stay |
 | A team member buys classes | Their own bookings appear under their client view; their team role shows them nothing more about other clients than it already did |
 | A team role is removed | Only the team rights go; the person's own bookings, agreements and invoices as a client stay |
+| Someone creates an account and has no workspace | They see nothing of any workspace, only "Ask your studio for its link" (§26) |
 
 Hiding a screen is never the permission: every API call checks the workspace, the relationship and the role.
 
@@ -506,7 +496,8 @@ Can:
 - manage classes
 - manage Open Gym
 - assign trainers
-- manage booking links
+- manage booking links and the workspace's join link (renew it)
+- approve or decline join requests, and remove a client (§26; only the Owner)
 - manage offers, prices and the cancellation policy: start from the three default plans or make their own (§90, §93)
 - manage agreements, payments and invoices (§91–§96)
 - connect the workspace's payment provider account in one guided step (decided in ADR-020; §94)
@@ -547,9 +538,9 @@ Can:
 
 Can:
 
-- book group classes
-- book Open Gym
-- verify email (creates the account automatically)
+- create an account and sign in with their email (§27)
+- ask to join a workspace through its join link, or accept the workspace's invitation (§26)
+- once approved: see the workspace's timetable, book group classes, book Open Gym and join the waitlist of a full class (§21–§25)
 - see their own schedule: group bookings and private sessions together, clearly labelled (§15, Client Web)
 - see their memberships, credit packs, credit plans and credit balances, one per kind (§91–§92)
 - buy a single class (§95)
@@ -688,8 +679,8 @@ Primary administrative interface. The daily operational screens (Today, personal
 - classes
 - Open Gym
 - workouts
-- booking links
-- QR codes
+- booking links, the join link and QR codes
+- join requests (a list on Clients, Owner only)
 - offers, agreements, payments and invoices (§90–§97)
 - settings
 
@@ -729,18 +720,21 @@ Available in Dutch and English.
 
 ---
 
-## Public Booking Web
+## Booking Web (the client timetable)
 
 Responsive.
 
 No installation required.
 
+Not public: only a signed-in, approved client sees a workspace's timetable (§21). Without that, a visitor sees a sign-in and, with the workspace's join link, a request to join (§26).
+
 Supports:
 
+- sign-in with the emailed link or code, and a join request (§26, §27)
 - group classes
 - Open Gym
-- booking
-- magic-link verification
+- booking (immediate)
+- the waitlist of a full class (§23)
 - paying for a single class (§95)
 
 It never lists private sessions. A client with a membership books the classes it includes without paying again (§91).
@@ -763,7 +757,8 @@ Initially:
 - past bookings
 - cancellation, with its effect on the credit balance shown before confirming (§93)
 - memberships, credit packs and credit plans, and the credit balance per kind with its history, for example "6 group credits, 3 private credits" (§91–§92)
-- payments and invoices (§94, §96)
+- the waitlists they are on, with their position (§23)
+- payments and invoices (§94, §96); from M11 the client sees, **per workspace**, the **payment history** (date, amount, what it was for, and the status: paid, failed or refunded) and can **download the invoice and credit-note PDFs**
 - profile, including billing details (§96)
 
 A client who books group classes only sees no private sessions; a client with both sees both, never another client's.
@@ -883,7 +878,7 @@ Each occurrence has:
 
 ---
 
-# 21. Public booking page
+# 21. Client timetable (the booking page)
 
 Example:
 
@@ -913,104 +908,86 @@ Trainer: Sarah
 3 spots available
 ```
 
+**Nothing is public** (owner, 31 October 2026, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)). Only a signed-in client who is **approved** for the workspace (added by it, or accepted by the Owner, §26) sees its timetable. Anyone else sees a sign-in and, with the workspace's join link, a request to join. The page never lists private sessions.
+
+From M11 the timetable also shows the workspace's offers. An approved client without an active agreement sees the timetable and the offers, and can't book until they have an agreement (§25).
+
 ---
 
 # 22. Booking input
 
-Require only:
-
-```text
-Name
-Email
-```
-
-Localized labels:
-
-```text
-Naam
-E-mailadres
-```
-
-or:
-
-```text
-Name
-Email
-```
+A booking has **no form**. The client is signed in and approved, so the workspace already has their name and email from the account; they pick a class and tap. Where the name is asked (at sign-up or in the join request) is settled in the F030 and F029 specs. No phone number.
 
 ---
 
 # 23. Booking flow
 
+Joining a workspace, once (§26):
+
 ```text
-Choose class/Open Gym
+Open the join link / scan its QR code
         ↓
-Name + email
+Sign in or sign up (email, link or code)
         ↓
-Temporarily hold spot
+Send a join request   (or: the workspace added the client, who just signs in)
         ↓
-Send magic link
+"Waiting for the studio"
         ↓
-Click link
-        ↓
-Email verified
-        ↓
-Booking confirmed
-        ↓
-Client account created
+Owner approves  →  the client is approved
 ```
 
-The entire flow stays in the user's selected language.
+Booking, every time:
+
+```text
+Client timetable
+        ↓
+Choose class/Open Gym
+        ↓
+Book (immediate; from M11 the agreement is checked)
+        ↓
+Booking confirmed + confirmation email
+```
+
+The entire flow stays in the user's selected language. Capacity is enforced transactionally: two clients and one spot never both get it.
 
 ## Waitlist
 
-Added to the MVP, before the pilot, on 31 October 2026 (moved forward from Release 1.1, §54), because the pilot gym has one today.
+Added to the MVP, before the pilot, on 31 October 2026 (moved forward from Release 1.1, §54), because the pilot gym has one today. The rules below are the owner's, 31 October 2026 (F062; they replace "settled in the F062 spec" for these points).
 
-- When a class is full, a client can join its **waitlist**. When a spot frees up, the first in line gets it and an email.
-- The owner sets a **cut-off**, a few minutes before the class starts. After it nobody is moved up, so a spot is never given at the last minute (the pilot gym's problem today: a spot can be given 1 minute before class).
-- Clients still on the waitlist after the cut-off get a **message that they didn't get in**.
+- **Who and what.** Group class occurrences only: not private sessions, and Open Gym is left to the F035 spec. A signed-in, approved client joins a full class with **one tap**, sees their position ("You're 2nd on the waitlist") in the email they get when they join and on their dashboard (F033), and can **leave at any time**. There is no limit on how many waitlists a client joins.
+- **A spot frees up** when a client cancels (in time or late), when the owner or a trainer removes a participant, or when the owner raises the capacity (then as many move up as fit). The **first in line is booked automatically** and gets a "you're in" email: the booking confirmation, noting it came from the waitlist. Trainers get the existing "new booking" email. A **no-show frees nothing.**
+- **Waitlist closing time.** One workspace setting, in minutes before the class starts, **default 30**. After it nobody moves up and nobody can join: the class shows full, with no waitlist button, so a spot is never given at the last minute (the pilot gym's problem today). Everyone still waiting gets a "you didn't get in" email at the closing time (sent by the cron job within 5 minutes of it, [ADR-027](../decisions/ADR-027-a-cron-every-5-minutes.md)). This is not the *cancellation cutoff* (§93): that one is in hours and is about cancelling.
+- **Cancelling a booking from the waitlist.** A client whose booking came from the waitlist after the cancellation cutoff can cancel as if in time (the class or the credit comes back), **outside the 2-per-month limit** (§93).
+- **From M11, nothing is reserved while waiting.** At move-up the booking uses the membership's weekly allowance or a credit, like any booking. A client who can't book at that moment (allowance used, weekly limit reached, no credit) is **skipped**, taken off the waitlist and emailed why, and the next in line moves up. A client who could only book by paying for a single class (§95) can't join a waitlist.
+- **Owner and trainer** see the waitlist in order on the class on the web and can remove someone. No reordering and no adding. There is nothing in Fivvi Pro now.
 - Capacity is never exceeded.
 
-The waitlist is **F062**, in M5 with the public booking (owner, 31 October 2026, `ROADMAP.md` v1.29). How long a client has to confirm and how a waitlisted client with a membership or credits is handled (M11) are settled in the F062 spec.
+The waitlist is **F062**, in M5 with the booking (`ROADMAP.md` v1.29, rules in v1.30).
 
 ---
 
-# 24. Temporary booking hold
+# 24. No booking hold
 
-Status:
-
-```text
-pending_verification
-```
-
-Suggested expiry:
-
-```text
-10–15 minutes
-```
-
-Verified:
-
-```text
-confirmed
-```
-
-Expired:
-
-```text
-expired
-```
+**Removed on 31 October 2026** ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)). Booking used to hold the spot for 10–15 minutes while the client verified their email (`pending_verification`, then `confirmed` or `expired`). Clients now sign in before they book, so a booking is **immediate**: it is confirmed at once, or refused because the class is full (the client can then join the waitlist, §23). There are no holds, no hold statuses, no expiry and no cleanup job (ADR-010 amended by ADR-026 and ADR-027).
 
 ---
 
-# 25. Booking with email verification
+# 25. Booking for approved clients
+
+A signed-in, approved client books group classes and Open Gym slots from the client timetable (§21).
+
+- **Before M11 (commerce):** being an approved client of the workspace is enough.
+- **From M11:** booking needs an **active agreement that covers the class**: a membership with weekly allowance left, or credits of the matching kind (group credits for a group class, Open Gym credits for Open Gym; §91, §92). A **trial** is just an offer, for example an intro credit pack "once per client" (§90), and books like any agreement.
+- An approved client **without an agreement** sees the timetable and the workspace's offers, and can't book until they have one.
+- **Private sessions** stay booked by the trainer or owner.
+- A **single class** (§95, proposed) can be bought only by a signed-in, approved client.
 
 The client retains:
 
 - name
-- verified email
+- email
 - language preference
-- booking history linked to email
+- booking history
 
 Receives localized:
 
@@ -1018,27 +995,7 @@ Receives localized:
 - cancellations
 - changes
 
-Verifying the email creates the client's account (§26); there is no separate account step.
-
----
-
-# 26. Client account created automatically
-
-Before submitting the booking form, it shows one explanatory line — no choice, no extra screen:
-
-Dutch:
-
-```text
-We maken een account voor je aan, zodat je je boekingen kunt zien.
-```
-
-English:
-
-```text
-We create an account for you so you can see your bookings.
-```
-
-After verification, the confirmation screen's headline is:
+After booking, the confirmation screen's headline is:
 
 Dutch:
 
@@ -1052,16 +1009,33 @@ English:
 Your booking is confirmed.
 ```
 
-The account's stored language is the language the client booked in (§3, *Client language*). The account can be deleted on request (E014).
+---
+
+# 26. Joining a workspace
+
+Anyone can create an account (§27), and an account on its own shows **nothing of any workspace**. There are two ways in as a client (owner, 31 October 2026, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)):
+
+1. **The workspace adds the client** (§34) with their email, and the client gets an **invitation email**. They are in once they sign in. A client added without an email can't sign in; the team manages them.
+2. **The client asks to join.** They open the workspace's **join link** or scan its QR code (§32, §33), sign in or sign up, and send a **join request**. They see "waiting for the studio" until the Owner decides.
+
+There is **no workspace search**, at least for the beginning: a later candidate, not planned.
+
+**Only the Owner approves or declines join requests** (no Admin role in the MVP, §9). The Owner gets an **email for each new request** and handles it on the web, in a list of requests on Clients. Fivvi Pro (iOS and Android) gets this later: there is no native surface now. A **declined** client gets a short, neutral email and sees nothing of the workspace; they may ask again later through the link.
+
+An account with no workspace sees "Ask your studio for its link" (wording to confirm in the i18n glossary).
+
+The Owner can **renew the join link**, which makes the old one stop working, and can **remove a client**. What removing a client does to their future bookings and agreements is settled in the F029 and F032 specs.
+
+The account's stored language is the language of the screen it was created on (ADR-019, §3 *Client language*). The account can be deleted on request (E014).
 
 ---
 
 # 27. Authentication
 
-Clients use:
+Everyone signs in with:
 
 ```text
-Email magic link
+Email: a link or a 6-digit code
 ```
 
 No:
@@ -1074,13 +1048,11 @@ in MVP.
 
 Everyone signs in the same way: email, then the link or the 6-digit code from the email (ADR-007).
 
-Sign-up is closed in MVP. An account is only created by:
+**Sign-up is open for accounts** (owner, 31 October 2026, ADR-026): anyone can create an account with their email address (F030; F001 shipped with sign-up closed). A sign-in response never reveals whether an account exists (no enumeration), and sign-in and join requests are rate-limited (E013).
 
-- the first sign-in of an email address we've allowed (the pilot owner)
-- accepting a trainer invitation (§49)
-- a client's first verified booking (§26)
+**Creating a workspace stays limited** to the allowed email addresses (`SIGN_UP_ALLOWED_EMAILS`, F001, F002), today the pilot owner, until Release 2.0 (§58). The other ways to get a team role are unchanged: accepting a trainer invitation (§49).
 
-Any other address gets the same "check your email" message and no email, so nobody can tell whether an account exists. Open sign-up comes with Release 2.0 (§58).
+**Sign in with Apple and Google** is planned (**F063**, Should, M5): the web first, for clients and team members, then Fivvi Pro. On iOS, App Store guideline 4.8 requires Sign in with Apple when an app offers Google sign-in. The owner will need an Apple Services ID and a Google OAuth client. It adds ways to sign in; the email sign-in above stays (ADR-026).
 
 ---
 
@@ -1130,15 +1102,7 @@ Localized appropriately.
 
 # 30. Open Gym booking
 
-Uses the same booking flow:
-
-```text
-Name
-Email
-Magic link
-Verification
-Confirmation
-```
+Uses the same booking flow as classes (§23, §25): an approved client signs in, chooses the slot and books; the booking is immediate. From M11 an Open Gym slot needs an active agreement with Open Gym credits (§92). Whether Open Gym has a waitlist is settled in the F035 spec (§23).
 
 ---
 
@@ -1156,8 +1120,13 @@ Later support rules:
 
 # 32. Booking links
 
+Each workspace has **one join link** (§26): the way a new client asks to join. The Owner can **renew** it, and the old one then stops working.
+
+Booking links (the timetable, group classes, Open Gym, a specific class or a specific occurrence) still exist, but they **work only for approved clients** (owner, 31 October 2026, ADR-026): anyone else who opens one is sent to sign in and, with the join link, to ask to join.
+
 Generate:
 
+- the join link
 - all bookings
 - group classes
 - Open Gym
@@ -1171,13 +1140,13 @@ A booking link can:
 - detect the visitor's browser language (the default)
 - set a fixed page language, Dutch or English, e.g. for an English-only class
 
-Every booking page allows manual switching, and the visitor's own choice wins over the link's language (ADR-017).
+Every page of the flow allows manual switching, and the visitor's own choice wins over the link's language (ADR-017).
 
 ---
 
 # 33. QR codes
 
-Generate QR codes for any booking link.
+Generate QR codes for the join link (for the desk) and for any booking link.
 
 Actions:
 
@@ -1188,13 +1157,13 @@ Print
 Share
 ```
 
-QR should lead to responsive bilingual pages.
+QR should lead to responsive bilingual pages. A QR code of a booking link only helps an approved client; a new client scans the join link's QR code.
 
 ---
 
 # 34. Client profile
 
-A client can be added wherever a client is chosen (new session, the client list, the app's **+**). Only a name is required; email and language for emails are optional (a default training location follows after go-live, §14). A matching email in the same workspace offers the existing client instead of a duplicate.
+A client can be added wherever a client is chosen (new session, the client list, the app's **+**). Only a name is required; email and language for emails are optional (a default training location follows after go-live, §14). A matching email in the same workspace offers the existing client instead of a duplicate. With an email, the workspace can send the client an invitation to sign in (§26); the Owner also approves the join requests of clients who found the join link themselves (a list on Clients).
 
 Contains:
 
@@ -1552,8 +1521,11 @@ These are team roles. Being a client is a separate relationship, not a fourth ro
 
 MVP client emails:
 
-- magic link
+- sign-in email (link and 6-digit code)
+- invitation to join a workspace (§26)
+- join request declined (short and neutral, §26)
 - booking confirmation
+- on the waitlist (with the position, "You're 2nd on the waitlist"), you're in (the booking confirmation, noting it came from the waitlist), you didn't get in (at the waitlist closing time) and, from M11, skipped (taken off the waitlist, with the reason) (§23)
 - cancellation
 - schedule change
 - class cancellation
@@ -1569,6 +1541,7 @@ Trainer emails:
 
 Owner emails:
 
+- new join request (§26)
 - failed payment (§94)
 
 All templates require:
@@ -1589,6 +1562,7 @@ Everything above **After go-live** is needed for the pilot's go-live (`ROADMAP.m
 ## Foundation
 
 - users
+- sign-up for accounts: anyone can create one; creating a workspace stays limited to allowed addresses (§27)
 - workspaces
 - memberships
 - roles
@@ -1624,18 +1598,16 @@ Everything above **After go-live** is needed for the pilot's go-live (`ROADMAP.m
 
 ## Booking
 
-- public bilingual booking page
-- group booking
+- bilingual client timetable, for approved clients only (§21)
+- the join link and join requests; client invitations (§26)
+- client sign-up and sign-in by email (§27)
+- group booking, immediate (§25)
 - Open Gym booking
-- name/email
-- temporary hold
-- magic link
-- booking with email verification
-- client account created automatically
+- the waitlist of a full class (§23)
 
 ## Sharing
 
-- booking links
+- booking links and the join link
 - QR codes
 
 ## Commerce
@@ -1655,7 +1627,7 @@ Single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisi
 ## Platforms
 
 - trainer web
-- responsive public booking web
+- responsive booking web (the client timetable)
 - basic client web
 - trainer iOS and Android apps, built in parallel with the web (not a G4 gate: an app that fails its checks stays off without delaying go-live, decision 8; `ROADMAP.md` M8, the native track): sign-in, Today, personal calendar, clients, session screen, attendance and the **+** menu come with the scheduling milestones; trainers install them through TestFlight and Play internal testing; no public store listings are needed for go-live
 
@@ -1718,7 +1690,8 @@ Do not build yet:
 - resource management
 - payroll
 - commissions
-- open sign-up (anyone creating an account themselves, §27, §58)
+- open workspace creation: anyone creating a workspace themselves waits for Release 2.0 (§27, §58); creating an account is open (ADR-026)
+- a workspace search for clients (a later candidate, not planned, §26)
 
 ---
 
@@ -1820,7 +1793,7 @@ Available in trainer's selected language.
 
 # 58. Release 2.0 — SaaS onboarding
 
-Open product to external customers.
+Open product to external customers: anyone can create a workspace (until then limited to allowed addresses, §27).
 
 Onboarding:
 
@@ -2034,7 +2007,7 @@ TypeScript
 Handles:
 
 - trainer dashboard
-- public booking
+- the client timetable and booking
 - client web
 - organization administration
 
@@ -2107,8 +2080,8 @@ Transactional email templates require separate translations.
 Example:
 
 ```text
-magic-link.nl
-magic-link.en
+sign-in.nl
+sign-in.en
 
 booking-confirmation.nl
 booking-confirmation.en
@@ -2127,7 +2100,7 @@ One backend serves:
 
 - web
 - mobile
-- public booking
+- the client timetable and booking
 - client web
 - future client mobile
 
@@ -2289,7 +2262,7 @@ A feature is not complete until both languages work.
 Issue:
 
 ```text
-[F031] Open Gym public booking
+[F035] Open Gym booking
 ```
 
 Branch:
@@ -2301,14 +2274,14 @@ feature/F031-open-gym-booking
 PR:
 
 ```text
-[F031] Implement Open Gym public booking
+[F035] Implement Open Gym booking
 ```
 
 ---
 
 # 84. Initial feature registry
 
-The current registry, with status, priority and milestone of every feature, is [`FEATURES.md`](FEATURES.md); this list is the initial one, extended with F051–F062.
+The current registry, with status, priority and milestone of every feature, is [`FEATURES.md`](FEATURES.md); this list is the initial one, extended with F051–F063.
 
 ## Foundation
 
@@ -2323,6 +2296,7 @@ F007 Localization Infrastructure
 F008 Dutch UI
 F009 English UI
 F010 Locale Preference
+F063 Sign in with Apple and Google
 ```
 
 ## Trainers
@@ -2359,12 +2333,12 @@ F026 Cancellations
 ## Booking
 
 ```text
-F027 Public Booking Page
+F027 Client Timetable
 F028 Booking Capacity
-F029 Booking Hold
-F030 Magic-Link Verification
-F031 Booking with Email Verification
-F032 Client Account on First Booking
+F029 Join Link and Join Requests
+F030 Client Sign-Up
+F031 Booking for Approved Clients
+F032 Client Invitations
 F033 Client Booking Dashboard
 F062 Waitlist
 ```
@@ -2373,7 +2347,7 @@ F062 Waitlist
 
 ```text
 F034 Open Gym Slots
-F035 Open Gym Public Booking
+F035 Open Gym Booking
 F036 Open Gym Suggestions
 ```
 
@@ -2475,17 +2449,17 @@ F061 Payouts and Reconciliation
 
 ---
 
-## Phase D — Public booking
+## Phase D — Client booking
 
-30. Public bilingual booking page
+30. bilingual client timetable for approved clients
 31. Language switcher
 32. Capacity
-33. name/email form
-34. temporary booking hold
-35. localized magic link
+33. client sign-up and sign-in (open accounts, workspace creation allowlisted)
+34. join link and join requests, Owner approval
+35. client invitations
 36. booking confirmation
-37. booking with email verification
-38. client account created automatically
+37. immediate booking for approved clients (the agreement check from M11)
+38. waitlist with the waitlist closing time
 39. client web dashboard
 
 ---
@@ -2494,7 +2468,7 @@ F061 Payouts and Reconciliation
 
 40. Open Gym creation
 41. capacity
-42. public booking
+42. Open Gym booking
 43. attendance
 44. publishing suggestion
 
@@ -2510,7 +2484,7 @@ F061 Payouts and Reconciliation
 
 ## Phase K — Commerce
 
-Runs after Phase D (it needs bookings and client accounts), next to Phases E and F, and before Phase J.
+Runs after Phase D (it needs bookings and approved clients), next to Phases E and F, and before Phase J.
 
 Phase K: single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
 
@@ -2571,7 +2545,7 @@ Built in parallel with the web, next to each web feature (`ROADMAP.md` M8, the n
 67. onboard gym owner
 68. onboard other trainers
 69. add group classes
-70. publish Dutch-first booking page
+70. publish the Dutch-first client timetable and the join link
 71. verify English booking experience
 72. publish Open Gym
 73. run real sessions
@@ -2606,7 +2580,7 @@ The MVP succeeds if:
 
 - owner runs gym scheduling through platform
 - trainers use their assigned classes/sessions
-- customers book through public pages
+- clients book on the client timetable
 - Dutch users can complete everything without English
 - English users can complete everything without Dutch
 - Open Gym receives bookings
@@ -2661,7 +2635,7 @@ Strongest validation signal:
 
 ## Clients
 
-> Scan a QR code, choose a session, enter your name and email, verify it and you're booked.
+> Open your studio's link, sign in with your email and, once the studio approves you, book a session in one tap.
 
 ## Netherlands launch requirement
 
@@ -2792,7 +2766,7 @@ Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-paym
 
 # 95. Single class purchase (proposed, [decision 9](ROADMAP.md#14-decisions))
 
-A client can buy one class: as a client without a membership, or as a client with a membership who wants an extra class this week. They choose the class on the booking page (§21), pay online, and the booking is confirmed when the payment succeeds. The spot is held while they pay, like a booking hold (§24; proposal, [QC16](../design/open-questions.md#qc16)). Buying an extra class never changes what the membership includes. Single classes stay an offer kind any studio can switch on (product owner, 31 October 2026); whether the pilot gym sells them is not known.
+A **signed-in, approved client** (§26) can buy one class: as a client without a membership, or as a client with a membership who wants an extra class this week. They choose the class on the client timetable (§21), pay online, and the booking is confirmed when the payment succeeds. How the spot is kept while they pay is settled in the F058 spec (the pilot agreed to keep it, [QC16](../design/open-questions.md#qc16)); it is a payment in progress, not a booking hold, and there are no booking holds (§24). Buying an extra class never changes what the membership includes. Single classes stay an offer kind any studio can switch on (product owner, 31 October 2026); whether the pilot gym sells them is not known.
 
 ---
 
