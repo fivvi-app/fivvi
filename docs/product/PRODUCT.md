@@ -962,6 +962,15 @@ Client account created
 
 The entire flow stays in the user's selected language.
 
+## Waitlist
+
+Added to the MVP, before the pilot, on 31 October 2026 (moved forward from Release 1.1, §54), because the pilot gym has one today.
+
+- When a class is full, a client can join its **waitlist**. When a spot frees up, the first in line gets it and an email.
+- The owner sets a **cut-off**, a few minutes before the class starts. After it nobody is moved up, so a spot is never given at the last minute (the pilot gym's problem today: a spot can be given 1 minute before class).
+- Clients still on the waitlist after the cut-off get a **message that they didn't get in**.
+- Capacity is never exceeded. How long a client has to confirm, how a waitlisted client with a membership or credits is handled, and the waitlist's milestone and feature ID are settled in the feature spec.
+
 ---
 
 # 24. Temporary booking hold
@@ -989,15 +998,6 @@ Expired:
 ```text
 expired
 ```
-
-## Waitlist
-
-Added to the MVP, before the pilot, on 31 October 2026 (moved forward from Release 1.1, §54), because the pilot gym has one today and its clients expect it.
-
-- When a class is full, a client can join its **waitlist**. When a spot frees up, the first in line gets it and an email.
-- The owner sets a **cut-off**, a few minutes before the class starts. After it nobody is moved up, so a spot is never given at the last minute (the pilot gym's problem today: a spot can be given 1 minute before class).
-- Clients still on the waitlist after the cut-off get a **message that they didn't get in**.
-- Capacity is never exceeded. How long a client has to confirm, how a waitlisted client with a membership or credits is handled, and the waitlist's milestone and feature ID are settled in the feature spec.
 
 ---
 
@@ -1737,7 +1737,7 @@ Based on actual usage:
 - offline resilience
 - bulk attendance
 
-Previous-session duplication moved to the MVP (§41) on 23 September 2026, after prototype feedback. The cancellation cutoff moved to the MVP (§93) on 19 October 2026, because memberships and credits depend on it. Waitlists moved to the MVP, before the pilot, on 31 October 2026 (§24), after the commerce walkthrough: the pilot gym has a waitlist today.
+Previous-session duplication moved to the MVP (§41) on 23 September 2026, after prototype feedback. The cancellation cutoff moved to the MVP (§93) on 19 October 2026, because memberships and credits depend on it. Waitlists moved to the MVP, before the pilot, on 31 October 2026 (§23), after the commerce walkthrough: the pilot gym has a waitlist today.
 
 All additions must work in Dutch and English.
 
@@ -2414,7 +2414,7 @@ F050 Trainer Booking Notifications
 ```text
 F052 Offers and Prices
 F053 Memberships
-F054 Credit Packs and Plans (group and private)
+F054 Credit Packs and Plans (group, private and Open Gym)
 F055 Credit Balance
 F056 Cancellation Policy and Makeups
 F057 Recurring Payments
@@ -2692,8 +2692,9 @@ Every offer also has these settings (product owner, 31 October 2026, for every w
 - **Billing cycle:** every month or every 4 weeks (the pilot: every month, because 4-weekly means 13 payments a year, which the gym owner finds unfair to clients).
 - **Intro offer:** a credit pack can be limited to **once per client**, for example 2 classes valid for 2 weeks (the pilot does trials by hand and won't use it).
 - **Member-only:** an offer can be limited to clients with an active membership, for example extra group credits for a member who wants another class in a week (QC08).
-- **End of term:** the agreement either **stops** (the client chooses a new term, with a reminder and a one-tap renewal) or **continues per cycle** at the same price until the client gives notice. A continuing agreement follows Dutch consumer law: no tacit renewal for another fixed term, a first term of at most 12 months, notice of at most one month on any day, and online if the client signed up online (QC07; the legal check is `ROADMAP.md §4.4`). Which setting the pilot uses is open.
-- **Plan changes:** the pilot allows **upgrades at any time and no downgrades**.
+- **End of term:** the agreement either **stops** (the client chooses a new term, with a reminder and a one-tap renewal) or **continues per cycle** at the same price until the client gives notice. A continuing agreement follows Dutch consumer law: no tacit renewal for another fixed term, a first term over 12 months is presumed unreasonable, notice of at most one month on any day, and online if the client signed up online (QC07; the legal check is `ROADMAP.md §4.4`). Which setting the pilot uses is open.
+
+**Plan changes** are not an offer setting: the pilot's own rule is **upgrades at any time and no downgrades**. Whether that becomes a setting for every workspace is not decided.
 
 ## Default plans
 
@@ -2720,7 +2721,7 @@ The owner can **create their own offers** from scratch (*Nieuw aanbod* / *New of
 
 A **membership** is a client's agreement for a **weekly allowance** of group classes, for a term (for example 2 classes a week, 6 months). The pilot's memberships give 1, 2 or 3 classes a week.
 
-- **The client books each class themself** whenever a spot is free, within the allowance. Many clients keep the same day and time out of habit, but the membership holds **no standing spot**, so capacity is never exceeded. Memberships on fixed weekdays with a standing spot (the earlier proposal) are not in the MVP: the pilot doesn't use them, and a studio that needs them is a later decision.
+- **The client books each class themself** whenever a spot is free, within the allowance. Many clients keep the same day and time out of habit, but the membership holds **no standing spot**, so capacity is never exceeded. The pilot's membership is a weekly allowance; whether memberships on fixed weekdays with a standing spot stay an option is not decided (the product owner's call).
 - **Weekly limit** (a workspace setting, a number or off): the most bookings one client can make in a week. The pilot uses 4, whatever the size of the membership, so a client can catch up after a missed week.
 - **Unused weekly classes** (a workspace setting): they either **expire at the end of the week** (the pilot's choice) or **stay valid until the agreement ends**. Fivvi handles both automatically; the weekly limit stops a client from saving classes up and using them all at once.
 - While the membership is active and paid up, the client books the included classes without paying again. What happens when a payment fails is a setting of the offer (§94, [QC05](../design/open-questions.md#qc05)).
@@ -2762,12 +2763,12 @@ Each offer has a **cancellation policy**:
 
 | Event | Effect |
 |---|---|
-| The client cancels before the **cutoff** (hours before the start, set per offer; proposal, [QC02](../design/open-questions.md#qc02)) | Membership: may grant a **makeup**, up to the makeup limit (2 per month by default). Credits (pack or plan): the credit returns to the balance (proposal, [QC02](../design/open-questions.md#qc02)) |
+| The client cancels before the **cutoff** (hours before the start, set per offer; proposal, [QC02](../design/open-questions.md#qc02)) | Membership: may grant a **makeup**, up to the makeup limit (2 per month by default). Credit plan: the credit returns to the balance, at most 2 times per month like the makeups (QC02). Credit pack: the credit returns to the balance (proposal, [QC02](../design/open-questions.md#qc02)) |
 | The client cancels after the cutoff (late cancellation) | The credit is used or the membership class is lost, like a no-show (proposal, [QC16](../design/open-questions.md#qc16)) |
 | **No-show** | The credit is used (pack or plan) or the class is lost (membership) (proposal, [QC16](../design/open-questions.md#qc16)) |
 | The workspace cancels the session or class | Credits: the credit returns (proposal, [QC02](../design/open-questions.md#qc02)). Membership: a makeup, outside the limit (proposal, [QC04](../design/open-questions.md#qc04)) |
 
-The pilot gym's values, which the defaults start with (§90): a cutoff of **12 hours for group classes and 24 hours for private sessions**; at most **2 makeups per month** (the same limit as the cancellations in time that give one; after that the class is lost); a makeup is valid **until the end of the membership** and can be used in any class the membership includes; when the workspace cancels, everyone gets the class back in full, outside the limit. For a private session, moving it up to 24 hours before counts as cancelling in time, within the same limit. The owner can also add catch-up classes by hand, for example after a holiday while the client kept paying; they must be used within the membership. The pilot gym's terms let private sessions be made up until 30 days after the term ends; group classes not after the term. There is no pause (freeze): illness and holidays fall under the normal limit ([QC04](../design/open-questions.md#qc04)). Before confirming a cancellation, the client sees what it does to their balance or makeups. An agreement keeps the policy that applied when it started (proposal, [QC15](../design/open-questions.md#qc15)).
+The pilot gym's values, which the defaults start with (§90): a cutoff of **12 hours for group classes and 24 hours for private sessions**; at most **2 makeups per month** on a membership and, on a credit plan, at most **2 credits returned per month** (the same limit as the cancellations in time that give them; after that the class is lost); a makeup is valid **until the end of the membership** and can be used in any class the membership includes; when the workspace cancels, everyone gets the class back in full, outside the limit. For a private session, moving it up to 24 hours before counts as cancelling in time, within the same limit. The owner can also add catch-up classes by hand, for example after a holiday while the client kept paying; they must be used within the membership. The pilot gym's terms let private sessions be made up until 30 days after the term ends; group classes not after the term. There is no pause (freeze): illness and holidays fall under the normal limit ([QC04](../design/open-questions.md#qc04)). Before confirming a cancellation, the client sees what it does to their balance or makeups. An agreement keeps the policy that applied when it started (proposal, [QC15](../design/open-questions.md#qc15)).
 
 ---
 
@@ -2788,7 +2789,7 @@ Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-paym
 
 # 95. Single class purchase (proposed, [decision 9](ROADMAP.md#14-decisions))
 
-A client can buy one class: as a client without a membership, or as a client with a membership who wants an extra class this week. They choose the class on the booking page (§21), pay online, and the booking is confirmed when the payment succeeds. The spot is held while they pay, like a booking hold (§24; proposal, [QC16](../design/open-questions.md#qc16)). Buying an extra class never changes what the membership includes. Single classes stay an offer kind any studio can switch on (product owner, 31 October 2026); the pilot may not use them.
+A client can buy one class: as a client without a membership, or as a client with a membership who wants an extra class this week. They choose the class on the booking page (§21), pay online, and the booking is confirmed when the payment succeeds. The spot is held while they pay, like a booking hold (§24; proposal, [QC16](../design/open-questions.md#qc16)). Buying an extra class never changes what the membership includes. Single classes stay an offer kind any studio can switch on (product owner, 31 October 2026); whether the pilot gym sells them is not known.
 
 ---
 
@@ -2806,6 +2807,6 @@ Every payment gets an **invoice**, emailed to the client and kept on their profi
 
 # 97. Payouts and reconciliation
 
-The owner sees, per payout from the provider, which payments, refunds, chargebacks and provider fees it contains, and which payments failed or are still open. Everything the provider reports must match a payment in Fivvi; whatever doesn't is shown to the owner, never ignored. The pilot gym wants as much detail as possible: each payment in a payout, not only a total. A payout on demand is a wish, not MVP scope.
+The owner sees, per payout from the provider, which payments, refunds, chargebacks and provider fees it contains, and which payments failed or are still open. Everything the provider reports must match a payment in Fivvi; whatever doesn't is shown to the owner, never ignored. The pilot gym wants as much detail as possible: each payment in a payout, not only a total. A payout on demand (the current app has a cash-out-at-any-time button) is a wish of the pilot gym owner, not decided.
 
 At go-live the active agreements, their credit balances and their next due dates are imported (E015) and the owner checks the reconciliation report against the old app before the cutover, when every client gets the first-payment link for the new mandate (`ROADMAP.md §7`).

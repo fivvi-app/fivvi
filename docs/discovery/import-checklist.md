@@ -140,9 +140,9 @@ Only **from the go-live date onwards**. Past sessions are not imported (history,
 
 ### 3.4a Agreements, balances and payments — **required** (v1.19)
 
-Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the active memberships, credit packs and credit plans (group and private credits) come along. The current booking and payment app is the source; agree in M0 what it can export (QC14 in [`open-questions.md`](../design/open-questions.md#qc14)). **Never** import or copy IBANs, card data or mandate documents: mandates stay with the payment provider (QC09).
+Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the active memberships, credit packs and credit plans (group, private and Open Gym credits) come along. The current booking and payment app is the source; agree in M0 what it can export (QC14 in [`open-questions.md`](../design/open-questions.md#qc14)). **Never** import or copy IBANs, card data or mandate documents: mandates stay with the payment provider (QC09).
 
-**Offers** — one row per kind of membership, credit pack or credit plan sold today: `name`, `kind` (`membership` / `credit_pack` / `credit_plan`), `credit_kind` (`group` / `private`, credit offers only), `price_eur` (incl. VAT), `vat_rate`, `term_months` or `validity_months`, `classes_per_week` (membership), `credits` (pack) or `credits_per_month` and `carry_over_limit` (plan), `cutoff_hours`, `makeups_per_term` (membership). Group and private credits never mix, so an old offer that covers both kinds is listed as two offers (proposal, [QC14](../design/open-questions.md#qc14)). A new workspace starts with three default plans, switched off (`PRODUCT.md §90`); proposal: the import creates the pilot's real offers from these rows, an imported offer may reuse a default (the same kind and values) instead of making a second one, and every default the gym doesn't use stays switched off.
+**Offers** — one row per kind of membership, credit pack or credit plan sold today: `name`, `kind` (`membership` / `credit_pack` / `credit_plan`), `credit_kind` (`group` / `private` / `open_gym`, credit offers only), `price_eur` (incl. VAT), `vat_rate`, `term_months` or `validity_months`, `billing_cycle` (`month` / `4_weeks`, membership and credit plan), `classes_per_week` (membership: the weekly allowance, 1, 2 or 3 at the pilot), `credits` (pack) or `credits_per_cycle` (per billing cycle) and `carry_over_limit` (plan), `cutoff_hours`, `makeups_per_month` (membership). The credit kinds never mix, so an old offer that covers both kinds is listed as two offers (proposal, [QC14](../design/open-questions.md#qc14)). A new workspace starts with three default plans, switched off (`PRODUCT.md §90`); proposal: the import creates the pilot's real offers from these rows, an imported offer may reuse a default (the same kind and values) instead of making a second one, and every default the gym doesn't use stays switched off.
 
 **Active agreements** — one row per client per agreement:
 
@@ -151,8 +151,8 @@ Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the
 | `client_key` | **Yes** | From 3.2 |
 | `offer_name` | **Yes** | From the offers above |
 | `start_date` / `end_date` | **Yes** | `YYYY-MM-DD` |
-| `renews` | **Yes** | `yes` / `no`, and the notice period if yes |
-| `weekly_classes` | Membership only | e.g. `Kracht di 18:00; Kracht do 18:00` |
+| `renews` | **Yes** | The end-of-term setting of the offer (`PRODUCT.md §90`): `stop` (the client chooses a new term) or `continue` per cycle, and the notice period if it continues |
+| `classes_per_week` | Membership only | The weekly allowance: the number of classes per week (e.g. `2`). No fixed weekdays or standing spot |
 | `next_due_date` / `amount_eur` | Membership and credit plan | The next recurring payment (a credit pack has none) |
 | `open_amount_eur` | Optional | Unpaid amounts at go-live |
 

@@ -144,7 +144,7 @@ One Open Gym session, with a start, end, location and capacity.
 To make a class or Open Gym slot visible on the booking page.
 
 **Waitlist**:
-A queue for a full class occurrence. When a spot frees up, the first in line gets it and an email, until the owner's cut-off a few minutes before the start; after that nobody is moved up, and the clients still waiting are told they didn't get in. In the MVP, before the pilot, since 31 October 2026 (`PRODUCT.md §24`).
+A queue for a full class occurrence: when a spot frees up, the first in line gets it. The rules (cut-off, messages) are in `PRODUCT.md §23`.
 
 ### Locations
 
@@ -219,7 +219,7 @@ One unit of a group, private or Open Gym credit balance. One credit books one se
 _Avoid_: token, point, voucher; using it for a makeup
 
 **Credit pack**:
-An offer, and the agreement it makes, for a number of group, private or Open Gym credits bought once and valid for a period. It can be limited to once per client (an intro offer). The pilot's private agreement (about one session a week for six months) can be a private credit pack.
+An offer, and the agreement it makes, for a number of group, private or Open Gym credits bought once and valid for a period. It can be limited to once per client (an intro offer). The pilot's private training is a private credit plan, not a pack.
 _Avoid_: package, bundle, session pack (retired, see below)
 
 **Credit plan**:

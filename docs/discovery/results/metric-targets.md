@@ -42,7 +42,7 @@ All baselines are estimates (quick questions, not a diary). At G5 the same quest
 
 | | |
 |---|---|
-| **Baseline** | All memberships, credit packs and private agreements run in the current booking app and in Word (private sessions). Nothing runs in Fivvi |
+| **Baseline** | All memberships, credit packs and private agreements run in the current booking and payments app (Pay'n Plan) and in Word (private sessions). Nothing runs in Fivvi |
 | **Agreed target** | **100 % of running agreements in Fivvi from pilot week 0** (the first pilot day, instead of the roadmap default of week 3), with **0** unexplained balance differences |
 | **Reason** | The gym owner does not want to run two systems next to each other. All running agreements move over at once, unchanged (same end date, remaining sessions and next payment date) |
 | **Measured** | Share of active agreements in the database against the count in the old app at cutover; the reconciliation report of the import (E015) for balance differences, pilot weeks 0–6 |
