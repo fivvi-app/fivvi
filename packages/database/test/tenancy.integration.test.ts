@@ -119,4 +119,25 @@ describe('E011 tenancy core tables', () => {
       ]);
     });
   });
+
+  it('AC11 (F004): adding a role value is one additive statement and rewrites no data', async () => {
+    await withRollback(db, async (tx) => {
+      const workspaceA = await workspace(tx);
+      const owner = await account(tx, 'owner-a@example.com');
+      await tx
+        .insert(teamMembers)
+        .values({ organizationId: workspaceA, accountId: owner, role: 'owner' });
+      const storage = () =>
+        tx.execute(sql`select relfilenode from pg_class where relname = 'team_members'`);
+      const before = await storage();
+
+      await tx.execute(sql`alter type team_role add value 'admin'`);
+
+      // The table keeps its storage file (no rewrite) and its row.
+      expect((await storage()).rows).toEqual(before.rows);
+      expect(await tx.select({ role: teamMembers.role }).from(teamMembers)).toEqual([
+        { role: 'owner' },
+      ]);
+    });
+  });
 });

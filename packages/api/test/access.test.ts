@@ -48,7 +48,7 @@ function probeApp(dependencies: ApiDependencies): OpenAPIHono {
   app.openapi(
     defineRoute(probeRoute('/v1/workspaces/{workspaceId}/probe', 'probeWorkspace'), {
       type: 'workspace',
-      roles: ['owner'],
+      capability: 'team.manage',
       client: 'none',
     }),
     run,
@@ -202,7 +202,7 @@ describe('E011 route access', () => {
             operationId: 'boom',
             responses: { 200: { description: 'It ran.' } },
           },
-          { type: 'workspace', roles: ['owner'], client: 'none' },
+          { type: 'workspace', capability: 'team.manage', client: 'none' },
         ),
         () => {
           throw new Error('boom');
@@ -221,10 +221,10 @@ describe('E011 route access', () => {
   });
 
   describe('admission: who runs as what', () => {
-    const route = { type: 'workspace', roles: ['trainer'], client: 'own-records' } as const;
+    const route = { type: 'workspace', capability: 'team.manage', client: 'own-records' } as const;
 
-    it('a listed team role runs as a team member, even for a client of the same workspace', () => {
-      expect(admission(route, { teamRole: 'trainer', clientId: 'c1' })).toBe('team');
+    it('a team role with the capability runs as a team member, even for a client of the same workspace', () => {
+      expect(admission(route, { teamRole: 'owner', clientId: 'c1' })).toBe('team');
     });
 
     it('a client runs as a client only where the route allows clients', () => {
@@ -232,9 +232,20 @@ describe('E011 route access', () => {
       expect(admission({ ...route, client: 'none' }, { clientId: 'c1' })).toBeUndefined();
     });
 
-    it('a team role the route does not list is not admitted, but a client side still is', () => {
-      expect(admission(route, { teamRole: 'owner' })).toBeUndefined();
-      expect(admission(route, { teamRole: 'owner', clientId: 'c1' })).toBe('client');
+    it('a team role without the capability is not admitted, but a client side still is', () => {
+      expect(admission(route, { teamRole: 'trainer' })).toBeUndefined();
+      expect(admission(route, { teamRole: 'trainer', clientId: 'c1' })).toBe('client');
+    });
+
+    it('a route for clients alone admits no team role', () => {
+      const clientsOnly = { type: 'workspace', client: 'own-records' } as const;
+      expect(admission(clientsOnly, { teamRole: 'owner' })).toBeUndefined();
+    });
+
+    it('a capability that both roles have admits both', () => {
+      const both = { type: 'workspace', capability: 'clients.view', client: 'none' } as const;
+      expect(admission(both, { teamRole: 'trainer' })).toBe('team');
+      expect(admission(both, { teamRole: 'owner' })).toBe('team');
     });
   });
 
@@ -246,7 +257,7 @@ describe('E011 route access', () => {
     expect(() =>
       defineRoute(probeRoute(path, 'elsewhere'), {
         type: 'workspace',
-        roles: ['owner'],
+        capability: 'team.manage',
         client: 'none',
       }),
     ).toThrow(/\/v1\/workspaces\/\{workspaceId\}/);
@@ -269,7 +280,6 @@ describe('E011 route access', () => {
     expect(() =>
       defineRoute(probeRoute('/v1/workspaces/{workspaceId}/none', 'none'), {
         type: 'workspace',
-        roles: [],
         client: 'none',
       }),
     ).toThrow(/none/);
@@ -286,7 +296,7 @@ describe('E011 route access', () => {
       expect(() =>
         defineRoute(withResponses({ [status]: own }), {
           type: 'workspace',
-          roles: ['owner'],
+          capability: 'team.manage',
           client: 'none',
         }),
       ).toThrow(new RegExp(`own.*${status}`));
@@ -316,6 +326,7 @@ describe('E011 route access', () => {
       expect(operation('/v1/probe/account', 'post')['x-access']).toEqual({ type: 'account' });
       expect(operation('/v1/workspaces/{workspaceId}/probe', 'post')['x-access']).toEqual({
         type: 'workspace',
+        capability: 'team.manage',
         roles: ['owner'],
         client: 'none',
       });

@@ -124,6 +124,7 @@ describe('E011 account routes', () => {
       name: expect.any(String),
       slug: expect.any(String),
       role: expect.stringMatching(/^(owner|trainer)$/),
+      capabilities: expect.any(Array),
     }));
     expect(JSON.parse(body)).toEqual({
       id: s.sam.id,

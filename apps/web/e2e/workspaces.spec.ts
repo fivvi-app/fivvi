@@ -69,6 +69,7 @@ test.describe('F002 first run and the signed-in home', () => {
         name: "John's Gym",
         slug: expect.stringMatching(/^johns-gym-\d+$/),
         role: 'owner',
+        capabilities: expect.arrayContaining(['workspace.manage', 'team.manage']),
       },
     ]);
     // Opening TW-11 again, or the signed-in home, now leads to the workspace (AC4) ...
@@ -168,7 +169,13 @@ test.describe('F002 first run and the signed-in home', () => {
     const me = (await (await page.request.get('/api/v1/me')).json()) as Me;
     expect(me.canCreateWorkspace).toBe(false);
     expect(me.workspaces).toEqual([
-      { id: expect.any(String), name: "John's Gym", slug: SEEDED_SLUG, role: 'owner' },
+      {
+        id: expect.any(String),
+        name: "John's Gym",
+        slug: SEEDED_SLUG,
+        role: 'owner',
+        capabilities: expect.arrayContaining(['workspace.manage']),
+      },
     ]);
 
     await page.goto('/welcome');
@@ -277,7 +284,13 @@ test.describe('F002 renaming the workspace (TW-08)', () => {
     // The data path: the API holds the new name, and the slug is the one it always was.
     const me = (await (await page.request.get('/api/v1/me')).json()) as Me;
     expect(me.workspaces).toEqual([
-      { id: expect.any(String), name: "John's Gym Utrecht", slug, role: 'owner' },
+      {
+        id: expect.any(String),
+        name: "John's Gym Utrecht",
+        slug,
+        role: 'owner',
+        capabilities: expect.arrayContaining(['workspace.manage']),
+      },
     ]);
     // Every page shows it: the home of the workspace, at the same address.
     await page.goto(home);

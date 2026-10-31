@@ -245,14 +245,30 @@
               "owner",
               "trainer"
             ],
-            "description": "What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway."
+            "description": "What the account is in the workspace; shown as a label, never decided on."
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "workspace.manage",
+                "team.view",
+                "team.manage",
+                "trainers.view",
+                "clients.view",
+                "clients.manage"
+              ]
+            },
+            "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
           }
         },
         "required": [
           "id",
           "name",
           "slug",
-          "role"
+          "role",
+          "capabilities"
         ],
         "description": "A workspace the account has a team role in."
       },
@@ -278,14 +294,30 @@
               "owner",
               "trainer"
             ],
-            "description": "What the account is on the team."
+            "description": "What the account is on the team; shown as a label, never decided on."
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "workspace.manage",
+                "team.view",
+                "team.manage",
+                "trainers.view",
+                "clients.view",
+                "clients.manage"
+              ]
+            },
+            "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
           }
         },
         "required": [
           "workspaceId",
           "name",
           "slug",
-          "role"
+          "role",
+          "capabilities"
         ],
         "description": "A workspace the account is on the team of."
       },
@@ -1043,6 +1075,7 @@
         ],
         "x-access": {
           "type": "workspace",
+          "capability": "clients.view",
           "roles": [
             "owner",
             "trainer"
@@ -1143,6 +1176,7 @@
         ],
         "x-access": {
           "type": "workspace",
+          "capability": "workspace.manage",
           "roles": [
             "owner"
           ],
@@ -1254,6 +1288,7 @@
         ],
         "x-access": {
           "type": "workspace",
+          "capability": "team.view",
           "roles": [
             "owner"
           ],
@@ -1358,6 +1393,7 @@
         ],
         "x-access": {
           "type": "workspace",
+          "capability": "team.manage",
           "roles": [
             "owner"
           ],

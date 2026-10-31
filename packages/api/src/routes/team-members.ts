@@ -44,8 +44,9 @@ const TeamMemberParamsSchema = WorkspaceParamsSchema.extend({
   }),
 });
 
-// F004 turns the allowed roles into capabilities; until then both routes are the Owner's.
-const ownerOnly = { type: 'workspace', roles: ['owner'], client: 'none' } as const;
+// The capabilities come from the permission matrix in @fivvi/domain (F004): the Owner's both.
+const viewTeam = { type: 'workspace', capability: 'team.view', client: 'none' } as const;
+const manageTeam = { type: 'workspace', capability: 'team.manage', client: 'none' } as const;
 
 const listTeamMembersRoute = defineRoute(
   {
@@ -68,7 +69,7 @@ const listTeamMembersRoute = defineRoute(
       500: internalServerErrorResponse,
     },
   },
-  ownerOnly,
+  viewTeam,
 );
 
 const removeTeamMemberRoute = defineRoute(
@@ -95,7 +96,7 @@ const removeTeamMemberRoute = defineRoute(
       500: internalServerErrorResponse,
     },
   },
-  ownerOnly,
+  manageTeam,
 );
 
 export function registerTeamMembers(app: OpenAPIHono) {

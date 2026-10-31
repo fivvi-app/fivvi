@@ -323,10 +323,12 @@ export interface components {
             /** @description The URL name: `/w/{slug}` on the web. */
             slug: string;
             /**
-             * @description What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway.
+             * @description What the account is in the workspace; shown as a label, never decided on.
              * @enum {string}
              */
             role: "owner" | "trainer";
+            /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage")[];
         };
         /** @description A workspace the account is on the team of. */
         MyWorkspace: {
@@ -340,10 +342,12 @@ export interface components {
             /** @description The URL name: `/w/{slug}` on the web. */
             slug: string;
             /**
-             * @description What the account is on the team.
+             * @description What the account is on the team; shown as a label, never decided on.
              * @enum {string}
              */
             role: "owner" | "trainer";
+            /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage")[];
         };
         /** @description What to change on the signed-in account. Fields left out stay as they are. */
         UpdateMeRequest: {

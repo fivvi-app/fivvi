@@ -4,7 +4,14 @@ import {
   setAccountName,
   setPreferredLocale,
 } from '@fivvi/database';
-import { canCreateWorkspace, NAME_MAX_LENGTH } from '@fivvi/domain';
+import {
+  CAPABILITIES,
+  canCreateWorkspace,
+  capabilitiesOf,
+  NAME_MAX_LENGTH,
+  ROLES,
+  type Role,
+} from '@fivvi/domain';
 import { locales } from '@fivvi/i18n';
 import { anonymousDistinctId } from '@fivvi/observability';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
@@ -16,16 +23,24 @@ import {
   validationErrorResponse,
 } from '../errors.ts';
 
+const RoleSchema = z.enum(ROLES);
+
+const CapabilitiesSchema = z.array(z.enum(CAPABILITIES)).openapi({
+  description:
+    'What the account may do in the workspace, from the permission matrix. The web and the ' +
+    'apps show a section or an action only when its capability is listed, never from the role ' +
+    'name; the API refuses the rest with `403` anyway.',
+});
+
 export const MeWorkspaceSchema = z
   .object({
     id: z.uuid().openapi({ description: 'The workspace ID.' }),
     name: z.string().openapi({ description: 'The name shown in the product.' }),
     slug: z.string().openapi({ description: 'The URL name: `/w/{slug}` on the web.' }),
-    role: z.enum(['owner', 'trainer']).openapi({
-      description:
-        'What the account is in the workspace. The web shows Settings to the Owner only; the ' +
-        'API refuses the rest of what a Trainer may not do with `403` anyway.',
+    role: RoleSchema.openapi({
+      description: 'What the account is in the workspace; shown as a label, never decided on.',
     }),
+    capabilities: CapabilitiesSchema,
   })
   .openapi('MeWorkspace', { description: 'A workspace the account has a team role in.' });
 
@@ -59,7 +74,10 @@ export const MyWorkspaceSchema = z
     workspaceId: z.uuid().openapi({ description: 'The workspace ID.' }),
     name: z.string().openapi({ description: 'The name shown in the product.' }),
     slug: z.string().openapi({ description: 'The URL name: `/w/{slug}` on the web.' }),
-    role: z.enum(['owner', 'trainer']).openapi({ description: 'What the account is on the team.' }),
+    role: RoleSchema.openapi({
+      description: 'What the account is on the team; shown as a label, never decided on.',
+    }),
+    capabilities: CapabilitiesSchema,
   })
   .openapi('MyWorkspace', { description: 'A workspace the account is on the team of.' });
 
@@ -185,6 +203,11 @@ const listMyWorkspacesRoute = defineRoute(
   { type: 'account', workspaces: 'team' },
 );
 
+/** The workspace with the capabilities its role has in the matrix (`@fivvi/domain`). */
+function withCapabilities<W extends { role: Role }>(workspace: W) {
+  return { ...workspace, capabilities: capabilitiesOf(workspace.role) };
+}
+
 export function registerMe(app: OpenAPIHono) {
   // Its own router, so `account` is typed on the routes behind the access middleware.
   const me = new OpenAPIHono<AccessEnv>({ defaultHook: answerValidationFailure });
@@ -192,7 +215,7 @@ export function registerMe(app: OpenAPIHono) {
   /** The account as `GET` and `PATCH` answer, from the account of the request. */
   async function meOf(c: Context<AccessEnv>, account: SignedInAccount) {
     const { id, email, name, preferredLocale } = account;
-    const workspaces = await listTeamWorkspaces(c.get('scope'));
+    const workspaces = (await listTeamWorkspaces(c.get('scope'))).map(withCapabilities);
     // The rule is in packages/domain: whoever listed workspaces has a team role.
     const mayCreate = canCreateWorkspace({
       email,
@@ -214,7 +237,7 @@ export function registerMe(app: OpenAPIHono) {
     // The same query as `GET /v1/me`: the account's own team-member records, within its scope.
     const workspaces = await listTeamWorkspaces(c.get('scope'));
     return c.json(
-      workspaces.map(({ id, ...rest }) => ({ workspaceId: id, ...rest })),
+      workspaces.map(({ id, ...rest }) => ({ workspaceId: id, ...withCapabilities(rest) })),
       200,
     );
   });

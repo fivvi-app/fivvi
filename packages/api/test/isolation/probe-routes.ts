@@ -30,9 +30,9 @@ const workspace = (base: string, operationId: string) => ({
   responses: ok,
 });
 
-const ownerOnly = { type: 'workspace', roles: ['owner'], client: 'none' } as const;
-const team = { type: 'workspace', roles: ['owner', 'trainer'], client: 'none' } as const;
-const ownRecords = { type: 'workspace', roles: [], client: 'own-records' } as const;
+const ownerOnly = { type: 'workspace', capability: 'team.manage', client: 'none' } as const;
+const team = { type: 'workspace', capability: 'clients.view', client: 'none' } as const;
+const ownRecords = { type: 'workspace', client: 'own-records' } as const;
 
 /** What a handler can tell about its own request: the scope, and what Postgres holds for it. */
 async function describeScope(scope: TenantScope) {

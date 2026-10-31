@@ -10,6 +10,7 @@ import {
 } from '@fivvi/database';
 import { seed } from '@fivvi/database/seed';
 import { addClient, addTeamRole, createWorkspace } from '@fivvi/database/testing';
+import { capabilitiesOf } from '@fivvi/domain';
 import { createMemoryTransport, createSendEmail } from '@fivvi/email';
 import {
   createErrorReporter,
@@ -143,7 +144,15 @@ describe('GET /v1/me', () => {
       name: 'Owner',
       preferredLocale: 'nl-NL',
       canCreateWorkspace: false,
-      workspaces: [{ id: gym?.id, name: "John's Gym", slug: 'johns-gym', role: 'owner' }],
+      workspaces: [
+        {
+          id: gym?.id,
+          name: "John's Gym",
+          slug: 'johns-gym',
+          role: 'owner',
+          capabilities: capabilitiesOf('owner'),
+        },
+      ],
     });
   });
 
@@ -190,7 +199,13 @@ describe('GET /v1/me', () => {
 
     expect(me.canCreateWorkspace).toBe(false);
     expect(me.workspaces).toEqual([
-      { id: workspace.id, name: workspace.marker, slug: workspace.marker, role: 'trainer' },
+      {
+        id: workspace.id,
+        name: workspace.marker,
+        slug: workspace.marker,
+        role: 'trainer',
+        capabilities: capabilitiesOf('trainer'),
+      },
     ]);
   });
 

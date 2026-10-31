@@ -288,9 +288,16 @@ private final class Responder: @unchecked Sendable {
         teamWorkspaceEntries.map {
             [
                 "workspaceId": Self.workspaceID($0.index), "name": $0.workspace.name, "slug": "workspace-\($0.index)",
-                "role": $0.workspace.role
+                "role": $0.workspace.role, "capabilities": Self.capabilities(ofRole: $0.workspace.role)
             ]
         }
+    }
+
+    /// The permission matrix of `packages/domain` (F004): what a role may do, as the API sends it.
+    private static func capabilities(ofRole role: String) -> [String] {
+        role == "owner"
+            ? ["workspace.manage", "team.view", "team.manage", "trainers.view", "clients.view", "clients.manage"]
+            : ["trainers.view", "clients.view", "clients.manage"]
     }
 
     /// `GET /api/v1/me`'s answer for the one account.
@@ -301,7 +308,7 @@ private final class Responder: @unchecked Sendable {
             "canCreateWorkspace": signIn.canCreateWorkspace,
             "workspaces": teamWorkspaces.map { entry in
                 ["id": entry["workspaceId"] as Any, "name": entry["name"] as Any, "slug": entry["slug"] as Any,
-                 "role": entry["role"] as Any]
+                 "role": entry["role"] as Any, "capabilities": entry["capabilities"] as Any]
             }
         ]
     }

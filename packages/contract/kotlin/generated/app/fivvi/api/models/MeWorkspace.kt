@@ -34,7 +34,8 @@ import kotlinx.serialization.Contextual
  * @param id The workspace ID.
  * @param name The name shown in the product.
  * @param slug The URL name: `/w/{slug}` on the web.
- * @param role What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway.
+ * @param role What the account is in the workspace; shown as a label, never decided on.
+ * @param capabilities What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
  */
 @Serializable
 
@@ -52,14 +53,18 @@ data class MeWorkspace (
     @SerialName(value = "slug")
     val slug: kotlin.String,
 
-    /* What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway. */
+    /* What the account is in the workspace; shown as a label, never decided on. */
     @SerialName(value = "role")
-    val role: MeWorkspace.Role
+    val role: MeWorkspace.Role,
+
+    /* What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
+    @SerialName(value = "capabilities")
+    val capabilities: kotlin.collections.List<MeWorkspace.Capabilities>
 
 ) {
 
     /**
-     * What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway.
+     * What the account is in the workspace; shown as a label, never decided on.
      *
      * Values: OWNER,TRAINER
      */
@@ -67,6 +72,20 @@ data class MeWorkspace (
     enum class Role(val value: kotlin.String) {
         @SerialName(value = "owner") OWNER("owner"),
         @SerialName(value = "trainer") TRAINER("trainer");
+    }
+    /**
+     * What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
+     *
+     * Values: WORKSPACE_PERIOD_MANAGE,TEAM_PERIOD_VIEW,TEAM_PERIOD_MANAGE,TRAINERS_PERIOD_VIEW,CLIENTS_PERIOD_VIEW,CLIENTS_PERIOD_MANAGE
+     */
+    @Serializable
+    enum class Capabilities(val value: kotlin.String) {
+        @SerialName(value = "workspace.manage") WORKSPACE_PERIOD_MANAGE("workspace.manage"),
+        @SerialName(value = "team.view") TEAM_PERIOD_VIEW("team.view"),
+        @SerialName(value = "team.manage") TEAM_PERIOD_MANAGE("team.manage"),
+        @SerialName(value = "trainers.view") TRAINERS_PERIOD_VIEW("trainers.view"),
+        @SerialName(value = "clients.view") CLIENTS_PERIOD_VIEW("clients.view"),
+        @SerialName(value = "clients.manage") CLIENTS_PERIOD_MANAGE("clients.manage");
     }
 
 }

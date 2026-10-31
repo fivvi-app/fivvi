@@ -325,40 +325,61 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeWorkspace/slug`.
             public var slug: Swift.String
-            /// What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway.
+            /// What the account is in the workspace; shown as a label, never decided on.
             ///
             /// - Remark: Generated from `#/components/schemas/MeWorkspace/role`.
             @frozen public enum RolePayload: String, Codable, Hashable, Sendable, CaseIterable {
                 case owner = "owner"
                 case trainer = "trainer"
             }
-            /// What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway.
+            /// What the account is in the workspace; shown as a label, never decided on.
             ///
             /// - Remark: Generated from `#/components/schemas/MeWorkspace/role`.
             public var role: Components.Schemas.MeWorkspace.RolePayload
+            /// - Remark: Generated from `#/components/schemas/MeWorkspace/CapabilitiesPayload`.
+            @frozen public enum CapabilitiesPayloadPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case workspace_manage = "workspace.manage"
+                case team_view = "team.view"
+                case team_manage = "team.manage"
+                case trainers_view = "trainers.view"
+                case clients_view = "clients.view"
+                case clients_manage = "clients.manage"
+            }
+            /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeWorkspace/capabilities`.
+            public typealias CapabilitiesPayload = [Components.Schemas.MeWorkspace.CapabilitiesPayloadPayload]
+            /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeWorkspace/capabilities`.
+            public var capabilities: Components.Schemas.MeWorkspace.CapabilitiesPayload
             /// Creates a new `MeWorkspace`.
             ///
             /// - Parameters:
             ///   - id: The workspace ID.
             ///   - name: The name shown in the product.
             ///   - slug: The URL name: `/w/{slug}` on the web.
-            ///   - role: What the account is in the workspace. The web shows Settings to the Owner only; the API refuses the rest of what a Trainer may not do with `403` anyway.
+            ///   - role: What the account is in the workspace; shown as a label, never decided on.
+            ///   - capabilities: What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             public init(
                 id: Swift.String,
                 name: Swift.String,
                 slug: Swift.String,
-                role: Components.Schemas.MeWorkspace.RolePayload
+                role: Components.Schemas.MeWorkspace.RolePayload,
+                capabilities: Components.Schemas.MeWorkspace.CapabilitiesPayload
             ) {
                 self.id = id
                 self.name = name
                 self.slug = slug
                 self.role = role
+                self.capabilities = capabilities
             }
             public enum CodingKeys: String, CodingKey {
                 case id
                 case name
                 case slug
                 case role
+                case capabilities
             }
         }
         /// A workspace the account is on the team of.
@@ -377,40 +398,61 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MyWorkspace/slug`.
             public var slug: Swift.String
-            /// What the account is on the team.
+            /// What the account is on the team; shown as a label, never decided on.
             ///
             /// - Remark: Generated from `#/components/schemas/MyWorkspace/role`.
             @frozen public enum RolePayload: String, Codable, Hashable, Sendable, CaseIterable {
                 case owner = "owner"
                 case trainer = "trainer"
             }
-            /// What the account is on the team.
+            /// What the account is on the team; shown as a label, never decided on.
             ///
             /// - Remark: Generated from `#/components/schemas/MyWorkspace/role`.
             public var role: Components.Schemas.MyWorkspace.RolePayload
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/CapabilitiesPayload`.
+            @frozen public enum CapabilitiesPayloadPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case workspace_manage = "workspace.manage"
+                case team_view = "team.view"
+                case team_manage = "team.manage"
+                case trainers_view = "trainers.view"
+                case clients_view = "clients.view"
+                case clients_manage = "clients.manage"
+            }
+            /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/capabilities`.
+            public typealias CapabilitiesPayload = [Components.Schemas.MyWorkspace.CapabilitiesPayloadPayload]
+            /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/capabilities`.
+            public var capabilities: Components.Schemas.MyWorkspace.CapabilitiesPayload
             /// Creates a new `MyWorkspace`.
             ///
             /// - Parameters:
             ///   - workspaceId: The workspace ID.
             ///   - name: The name shown in the product.
             ///   - slug: The URL name: `/w/{slug}` on the web.
-            ///   - role: What the account is on the team.
+            ///   - role: What the account is on the team; shown as a label, never decided on.
+            ///   - capabilities: What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             public init(
                 workspaceId: Swift.String,
                 name: Swift.String,
                 slug: Swift.String,
-                role: Components.Schemas.MyWorkspace.RolePayload
+                role: Components.Schemas.MyWorkspace.RolePayload,
+                capabilities: Components.Schemas.MyWorkspace.CapabilitiesPayload
             ) {
                 self.workspaceId = workspaceId
                 self.name = name
                 self.slug = slug
                 self.role = role
+                self.capabilities = capabilities
             }
             public enum CodingKeys: String, CodingKey {
                 case workspaceId
                 case name
                 case slug
                 case role
+                case capabilities
             }
         }
         /// What to change on the signed-in account. Fields left out stay as they are.
