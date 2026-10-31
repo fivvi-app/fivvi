@@ -5,7 +5,7 @@ The web component kit (ADR-015, E007): [shadcn/ui](https://ui.shadcn.com/) compo
 | Path | What |
 |---|---|
 | `components.json` | shadcn configuration, as in shadcn's Next.js monorepo template |
-| `src/components/` | Components from the shadcn CLI: `Button` (variants `default` = primary, `secondary`, `ghost`, `destructive`, plus upstream's `outline` and `link`), `Input`, `Label`, `Card`, `AlertDialog` (confirmation dialog). **Upstream code, never edit** |
+| `src/components/` | Components from the shadcn CLI: `Button` (variants `default` = primary, `secondary`, `ghost`, `destructive`, plus upstream's `outline` and `link`), `Input`, `Label`, `Card`, `AlertDialog` (confirmation dialog), `NativeSelect` (the browser's own select, for short lists such as a role; its chevron is an inline SVG because the kit has no icon library). **Upstream code, never edit** |
 | `src/styles/globals.css` | The stylesheet apps import: Tailwind, the token theme, the kit's sources, the densities, shadcn's base styles and the focus indicator |
 | `src/styles/palette-reset.css` | Drops Tailwind's default colour palette, so the only colours are the tokens |
 | `lint/` | The raw-colour guard, run by `pnpm check` |
@@ -28,7 +28,7 @@ Style with shadcn's theme classes (`bg-primary`, `text-muted-foreground`, `borde
 
 A page picks its density with a `data-density` attribute on a layout element, not a prop on each component (AC6):
 
-| `data-density` | For | Body text | Controls (`Button`, `Input`) |
+| `data-density` | For | Body text | Controls (`Button`, `Input`, `NativeSelect`) |
 |---|---|---|---|
 | `compact` | Trainer Web on a desktop pointer | `density.compact.body`: 14/20 px | `size.control.compact`: 36 px |
 | `touch` | Public and client pages | `density.touch.body`: 16/24 px | `size.control.touch`: 48 px, above the 44 px minimum touch target |

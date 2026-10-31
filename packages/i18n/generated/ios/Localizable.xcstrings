@@ -1619,6 +1619,23 @@
         }
       }
     },
+    "team.errors.lastOwner" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ needs at least one owner."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ moet minstens één eigenaar houden."
+          }
+        }
+      }
+    },
     "team.errors.noConnection" : {
       "comment" : "Shown on the Trainers page when removing a person failed because there is no connection. Nothing changed.",
       "extractionState" : "manual",
@@ -1633,6 +1650,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Geen verbinding. Controleer je internet en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "team.makeOwnerDialog.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An owner can do everything in %1$@, including the team, the settings and the money."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een eigenaar kan alles in %1$@, ook het team, de instellingen en het geld."
+          }
+        }
+      }
+    },
+    "team.makeOwnerDialog.cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuleren"
+          }
+        }
+      }
+    },
+    "team.makeOwnerDialog.confirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make owner"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eigenaar maken"
+          }
+        }
+      }
+    },
+    "team.makeOwnerDialog.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make %1$@ an owner?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ eigenaar maken?"
           }
         }
       }
@@ -1763,6 +1848,40 @@
         }
       }
     },
+    "team.roleChanged.owner" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is now an owner."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is nu eigenaar."
+          }
+        }
+      }
+    },
+    "team.roleChanged.trainer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is now a trainer."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is nu trainer."
+          }
+        }
+      }
+    },
     "team.roleColumn" : {
       "comment" : "Column header of the role label (Owner or Trainer) in the team list.",
       "extractionState" : "manual",
@@ -1777,6 +1896,91 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rol"
+          }
+        }
+      }
+    },
+    "team.roleMenu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Role of %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rol van %1$@"
+          }
+        }
+      }
+    },
+    "team.stepDownDialog.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You will no longer be an owner of %1$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent dan geen eigenaar meer van %1$@."
+          }
+        }
+      }
+    },
+    "team.stepDownDialog.cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuleren"
+          }
+        }
+      }
+    },
+    "team.stepDownDialog.confirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer maken"
+          }
+        }
+      }
+    },
+    "team.stepDownDialog.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make yourself a trainer?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jezelf trainer maken?"
           }
         }
       }

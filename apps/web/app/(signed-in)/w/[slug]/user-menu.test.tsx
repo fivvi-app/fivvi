@@ -1,5 +1,6 @@
 import { locales, messages } from '@fivvi/i18n';
 import { describe, expect, it, vi } from 'vitest';
+import { TRAINER } from '../../../../test/capabilities';
 import { escapeHtml, render } from '../../../../test/render';
 import { UserMenu } from './user-menu';
 import { WorkspaceFrame } from './workspace-frame';
@@ -15,7 +16,13 @@ describe.each(locales)('F010 user menu of the workspace frame in %s', (locale) =
   it('AC1: the frame has a closed user menu button with an accessible name', () => {
     const html = render(
       locale,
-      <WorkspaceFrame name="John's Gym" slug="johns-gym" teamRole="trainer" personName={null}>
+      <WorkspaceFrame
+        name="John's Gym"
+        slug="johns-gym"
+        teamRole="trainer"
+        capabilities={TRAINER}
+        personName={null}
+      >
         <hr />
       </WorkspaceFrame>,
     );
@@ -35,6 +42,7 @@ describe.each(locales)('F010 user menu of the workspace frame in %s', (locale) =
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
+        capabilities={TRAINER}
         personName="Sarah de Vries"
       >
         <hr />

@@ -121,7 +121,10 @@ test.describe('F003 my workspaces and the role in the header', () => {
     const rows = page.getByRole('row');
     await expect(rows).toHaveCount(3);
     await expect(rows.nth(1)).toContainText(`John${john}${copy.roles.owner}`);
-    await expect(rows.nth(2)).toContainText(`Sarah${sarah}${copy.roles.trainer}`);
+    await expect(rows.nth(2)).toContainText(`Sarah${sarah}`);
+    await expect(page.getByLabel(copy.team.roleMenu.replace('{name}', 'Sarah'))).toHaveValue(
+      'trainer',
+    );
     await expect(page.getByText('Mike')).toHaveCount(0);
     // The Owner's row has no action; a Trainer's has; nothing adds people (invitations are F011).
     await expect(rows.nth(1).getByRole('button')).toHaveCount(0);

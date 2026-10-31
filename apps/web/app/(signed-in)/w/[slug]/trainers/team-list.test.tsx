@@ -11,18 +11,70 @@ const sarah = { id: 't2', name: 'Sarah', email: 'sarah@example.com', role: 'trai
 // Expected copy is read from the catalogs, never hard-coded (TESTING.md §5.4).
 describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
   const copy = messages[locale];
-  const list = (members: Parameters<typeof TeamList>[0]['members']) =>
-    render(locale, <TeamList workspaceId="w1" workspaceName="John's Gym" members={members} />);
+  const list = (members: Parameters<typeof TeamList>[0]['members'], canManage = true) =>
+    render(
+      locale,
+      <TeamList
+        workspaceId="w1"
+        workspaceName="John's Gym"
+        members={members}
+        canManage={canManage}
+        currentEmail="john@example.com"
+      />,
+    );
+  /** The role menu of a person: the select named after them, with its options and the chosen one. */
+  const menuOf = (html: string, name: string) =>
+    html.match(
+      new RegExp(
+        `<select[^>]*aria-label="${escapeHtml(copy.team.roleMenu.replace('{name}', name))}"[^>]*>.*?</select>`,
+      ),
+    )?.[0];
 
   it('AC2: shows each person with name, email address and role label, in the order given', () => {
     const html = list([john, sarah]);
 
     expect(html).toMatch(new RegExp(`<h1[^>]*>${escapeHtml(copy.team.title)}</h1>`));
+    // John is the last Owner: a plain label. Sarah's role is in her menu (below).
     expect(html).toMatch(
       new RegExp(
-        `John</td><td[^>]*>john@example.com</td><td[^>]*>${copy.roles.owner}</td>.*Sarah</td><td[^>]*>sarah@example.com</td><td[^>]*>${copy.roles.trainer}</td>`,
+        `John</td><td[^>]*>john@example.com</td><td[^>]*>${copy.roles.owner}</td>.*Sarah</td><td[^>]*>sarah@example.com</td>`,
       ),
     );
+  });
+
+  it('F004 AC4: a Trainer row has the role menu with Owner and Trainer, her role chosen', () => {
+    const menu = menuOf(list([john, sarah]), 'Sarah');
+
+    expect(menu).toBeDefined();
+    expect(menu).toMatch(new RegExp(`<option[^>]*value="owner"[^>]*>${copy.roles.owner}</option>`));
+    expect(menu).toMatch(
+      new RegExp(`<option[^>]*value="trainer"[^>]*selected[^>]*>${copy.roles.trainer}</option>`),
+    );
+  });
+
+  it('F004 AC5: the last Owner has no role menu, so making them a Trainer is not offered', () => {
+    const html = list([john, sarah]);
+
+    expect(menuOf(html, 'John')).toBeUndefined();
+    expect(html.match(/<select/g)).toHaveLength(1);
+  });
+
+  it('F004 AC5: with two Owners both rows have the role menu', () => {
+    const html = list([john, { ...john, id: 't3', name: 'Joan', email: 'joan@example.com' }]);
+
+    expect(menuOf(html, 'John')).toMatch(/value="owner"[^>]*selected/);
+    expect(menuOf(html, 'Joan')).toMatch(/value="owner"[^>]*selected/);
+  });
+
+  it('F004 AC9: without team.manage nobody has a role menu or a remove action', () => {
+    const html = list(
+      [john, { ...john, id: 't3', name: 'Joan', email: 'joan@example.com' }, sarah],
+      false,
+    );
+
+    expect(html).not.toContain('<select');
+    expect(html).not.toContain('<button');
+    expect(html).toContain(copy.roles.trainer);
   });
 
   it('AC4: a Trainer row has the remove action, and there is no add button', () => {

@@ -93,7 +93,12 @@
     <string name="team_actions_column">Actions</string>
     <string name="team_email_column">Email address</string>
     <string name="team_errors_generic">Something went wrong. Try again.</string>
+    <string name="team_errors_last_owner">%1$s needs at least one owner.</string>
     <string name="team_errors_no_connection">No connection. Check your internet and try again.</string>
+    <string name="team_make_owner_dialog_body">An owner can do everything in %1$s, including the team, the settings and the money.</string>
+    <string name="team_make_owner_dialog_cancel">Cancel</string>
+    <string name="team_make_owner_dialog_confirm">Make owner</string>
+    <string name="team_make_owner_dialog_title">Make %1$s an owner?</string>
     <string name="team_name_column">Name</string>
     <string name="team_remove">Remove from team</string>
     <string name="team_remove_dialog_body">%1$s will no longer have access to %2$s as a trainer. What %1$s has as a client, such as bookings, stays.</string>
@@ -101,7 +106,14 @@
     <string name="team_remove_dialog_confirm">Remove</string>
     <string name="team_remove_dialog_title">Remove %1$s from the team?</string>
     <string name="team_removed">%1$s has been removed from the team.</string>
+    <string name="team_role_changed_owner">%1$s is now an owner.</string>
+    <string name="team_role_changed_trainer">%1$s is now a trainer.</string>
     <string name="team_role_column">Role</string>
+    <string name="team_role_menu">Role of %1$s</string>
+    <string name="team_step_down_dialog_body">You will no longer be an owner of %1$s.</string>
+    <string name="team_step_down_dialog_cancel">Cancel</string>
+    <string name="team_step_down_dialog_confirm">Make trainer</string>
+    <string name="team_step_down_dialog_title">Make yourself a trainer?</string>
     <string name="team_title">Trainers</string>
     <string name="user_menu_error">Your language wasn\'t saved. Try again.</string>
     <string name="user_menu_label">User menu</string>
