@@ -345,6 +345,14 @@ extension StubAPI {
         ))))
     }
 
+    /// The permission matrix of `packages/domain` (F004): the Owner may do everything, the Trainer the clients and the list.
+    private static func capabilities(
+        of role: Components.Schemas.MyWorkspace.RolePayload
+    ) -> [Components.Schemas.MyWorkspace.CapabilitiesPayloadPayload] {
+        typealias Capability = Components.Schemas.MyWorkspace.CapabilitiesPayloadPayload
+        return role == .owner ? Capability.allCases : [.trainers_view, .clients_view, .clients_manage]
+    }
+
     func listMyWorkspaces(
         _ input: Operations.ListMyWorkspaces.Input
     ) async throws -> Operations.ListMyWorkspaces.Output {
@@ -352,7 +360,10 @@ extension StubAPI {
         switch myWorkspacesAnswer {
         case let .workspaces(memberships):
             return .ok(.init(body: .json(memberships.map {
-                .init(workspaceId: $0.workspaceID, name: $0.name, slug: $0.slug, role: $0.role)
+                .init(
+                    workspaceId: $0.workspaceID, name: $0.name, slug: $0.slug, role: $0.role,
+                    capabilities: Self.capabilities(of: $0.role)
+                )
             })))
         case .unauthorized:
             return .unauthorized(.init(body: .json(.init(code: .notSignedIn))))

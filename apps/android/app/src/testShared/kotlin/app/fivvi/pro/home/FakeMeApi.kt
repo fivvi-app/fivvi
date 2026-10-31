@@ -64,10 +64,17 @@ class FakeMeApi : MeApi {
         workspaceAnswers += {
             Response.success(
                 workspaces.map { (name, slug, role) ->
-                    MyWorkspace(workspaceIdOf(name), name, slug, role)
+                    MyWorkspace(workspaceIdOf(name), name, slug, role, capabilitiesOf(role))
                 },
             )
         }
+    }
+
+    /** What the permission matrix gives a role (F004): the Owner everything, the Trainer the clients and the trainers list. */
+    private fun capabilitiesOf(role: MyWorkspace.Role): List<MyWorkspace.Capabilities> {
+        val all = MyWorkspace.Capabilities.values().toList()
+        if (role == MyWorkspace.Role.OWNER) return all
+        return all.filter { it.value.startsWith("trainers.") || it.value.startsWith("clients.") }
     }
 
     /** The account has a workspace by default, so the screens that don't care which state they are in show the home. */
