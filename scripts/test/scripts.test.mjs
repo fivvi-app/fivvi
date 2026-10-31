@@ -1559,6 +1559,11 @@ esac`;
     ]) {
       cpSync(join(SCRIPTS, '..', path), join(repo, path), { recursive: true });
     }
+    // The flows maestro.sh runs one at a time: the top-level ones, not config.yaml or the sub-flows in shared/.
+    mkdirSync(join(repo, 'e2e/maestro/shared'), { recursive: true });
+    for (const file of ['config.yaml', 'alpha.yaml', 'beta.yaml', 'shared/sub.yaml']) {
+      writeFileSync(join(repo, 'e2e/maestro', file), 'appId: app.fivvi.pro\n---\n');
+    }
     // The web server maestro.sh starts: it runs until it's stopped, and records its environment.
     mkdirSync(join(repo, 'apps/web/.next/standalone/apps/web'), { recursive: true });
     writeFileSync(
@@ -1686,6 +1691,8 @@ echo "maestro $*" >>"${state}/calls.log"
 case " $* " in *" test "*)
   node -e "fetch('http://localhost:' + (Number(process.env.E2E_PORT) + 2000) + '/emails?to=owner@example.com').then((r) => r.json()).then((emails) => process.exit(Array.isArray(emails) ? 0 : 1), () => process.exit(1))" \
     && touch "${state}/brevo-answered"
+  # FAKE_FAIL_FLOW=<name>: only that flow fails.
+  case "$*" in *"/$FAKE_FAIL_FLOW.yaml "*) exit 1 ;; esac
   ${outcome} ;; esac`,
     );
     script(
@@ -3212,7 +3219,7 @@ esac`,
         const text = JSON.parse(
           readFileSync(join(SCRIPTS, '../packages/i18n', `${file}.json`), 'utf8'),
         ).signIn.sendCode;
-        const flow = fake.log('maestro').find((call) => call.includes(`${prefix}-${locale}.xml`));
+        const flow = fake.log('maestro').find((call) => call.includes(`${prefix}-${locale}/`));
         assert.ok(flow?.includes(`--env SIGN_IN_SEND_CODE=${text} `), `${locale}: ${flow}`);
       }
     });
@@ -3233,7 +3240,7 @@ esac`,
         const title = JSON.parse(
           readFileSync(join(SCRIPTS, '../packages/i18n', `${locale}.json`), 'utf8'),
         ).hello.title;
-        const flow = fake.log('maestro').find((call) => call.includes(`${prefix}-${locale}.xml`));
+        const flow = fake.log('maestro').find((call) => call.includes(`${prefix}-${locale}/`));
         assert.ok(flow?.includes(`--env HELLO_TITLE=${title} `), `${locale}: ${flow}`);
         assert.ok(
           flow?.includes('--env SIGN_IN_SEND_CODE='),
@@ -3281,7 +3288,7 @@ esac`,
       assert.equal(env.RAILWAY_ENVIRONMENT_NAME, undefined);
     });
 
-    it(`F001: ${name} clears the sign-in rate limits before the flows of each locale`, async () => {
+    it(`F001: ${name} clears the sign-in rate limits before each flow`, async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/maestro.sh', args);
@@ -3290,12 +3297,66 @@ esac`,
       const steps = fake
         .log('calls')
         .map((call) => {
-          if (isFlow(call)) return `flow ${call.match(new RegExp(`${prefix}-(\\S+)\\.xml`))[1]}`;
+          if (isFlow(call)) {
+            const [, locale, flow] = call.match(new RegExp(`${prefix}-([^/]+)/(\\S+)\\.xml`));
+            return `flow ${locale} ${flow}`;
+          }
           if (call === 'pnpm db:reset-rate-limits') return 'clear';
           return '';
         })
         .filter(Boolean);
-      assert.deepEqual(steps, ['clear', 'flow nl-NL', 'clear', 'flow en']);
+      assert.deepEqual(steps, [
+        'clear',
+        'flow nl-NL alpha',
+        'clear',
+        'flow nl-NL beta',
+        'clear',
+        'flow en alpha',
+        'clear',
+        'flow en beta',
+      ]);
+    });
+
+    it(`F004: ${name} runs the top-level flows only, each with its own report, not config.yaml or shared/`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args);
+
+      assert.equal(run.status, 0, run.output);
+      const flows = fake.log('maestro').filter((call) => / test /.test(` ${call} `));
+      assert.equal(flows.length, 4, flows.join('\n'));
+      for (const locale of ['nl-NL', 'en']) {
+        for (const flow of ['alpha', 'beta']) {
+          const call = flows.find((line) => line.includes(`/e2e/maestro/${flow}.yaml `));
+          assert.ok(call, `${flow}: ${flows.join('\n')}`);
+          assert.ok(
+            flows.some(
+              (line) =>
+                line.includes(`/e2e/maestro/${flow}.yaml `) &&
+                line.includes(`--format junit --output `) &&
+                line.includes(`/e2e/maestro/build/${prefix}-${locale}/${flow}.xml `) &&
+                line.includes(`--test-output-dir `) &&
+                line.endsWith(`/e2e/maestro/build/${prefix}-${locale}/${flow}`),
+            ),
+            `${locale} ${flow}: ${flows.join('\n')}`,
+          );
+        }
+      }
+      assert.ok(!flows.some((line) => /config\.yaml|sub\.yaml/.test(line)), flows.join('\n'));
+    });
+
+    it(`F004: ${name} goes on with the other flows and locales after one flow fails, and then fails`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args, { FAKE_FAIL_FLOW: 'alpha' });
+
+      assert.equal(run.status, 1, run.output);
+      assert.equal(
+        fake.log('maestro').filter((call) => / test /.test(` ${call} `)).length,
+        4,
+        'every flow ran in both locales',
+      );
+      assert.match(run.output, /Maestro failed.* in: nl-NL en /);
     });
   }
 
@@ -3334,7 +3395,7 @@ esac`,
     const steps = fake
       .log('calls')
       .map((call) => {
-        if (isFlow(call)) return `flow ${call.match(/android-(\S+)\.xml/)[1]}`;
+        if (isFlow(call)) return `flow ${call.match(/android-([^/]+)\//)[1]}`;
         if (/setprop persist\.sys\.locale \S+;/.test(call))
           return `language ${call.match(/persist\.sys\.locale ([^;]+);/)[1]}`;
         if (call === 'adb shell am wait-for-broadcast-idle') return 'settled';
@@ -3345,8 +3406,10 @@ esac`,
       'language nl-NL',
       'settled',
       'flow nl-NL',
+      'flow nl-NL',
       'language en',
       'settled',
+      'flow en',
       'flow en',
     ]);
   });
