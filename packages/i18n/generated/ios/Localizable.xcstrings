@@ -1625,13 +1625,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A workspace needs at least one owner."
+            "value" : "%1$@ needs at least one owner."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Er moet minstens één eigenaar blijven."
+            "value" : "%1$@ moet minstens één eigenaar houden."
           }
         }
       }

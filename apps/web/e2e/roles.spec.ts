@@ -78,6 +78,13 @@ test.describe('F004 roles on the web', () => {
     await expect(page).toHaveURL(`/w/${slug}/trainers`);
     await expect(page.getByLabel(copy.team.roleMenu.replace('{name}', 'Sarah'))).toBeVisible();
     await expect(page.getByRole('button', { name: copy.team.remove })).toBeVisible();
+    // The trainer web runs at touch density: the menu is as tall as the Remove button (48 px).
+    const menuBox = await page
+      .getByLabel(copy.team.roleMenu.replace('{name}', 'Sarah'))
+      .boundingBox();
+    const removeBox = await page.getByRole('button', { name: copy.team.remove }).boundingBox();
+    expect(menuBox?.height).toBeGreaterThanOrEqual(48);
+    expect(menuBox?.height).toBe(removeBox?.height);
 
     // Settings: rename the workspace and set the default language.
     await nav.getByRole('link', { name: copy.workspaceNav.settingsGeneral }).click();
@@ -272,6 +279,47 @@ test.describe('F004 roles on the web', () => {
     await expect(page.getByRole('navigation').getByRole('link')).toHaveCount(0);
     await expect(page).toHaveTitle(copy.team.title);
     await expectNoAxeViolations(page, `the no-permission page after stepping down in ${appLocale}`);
+  });
+
+  test('AC5: Sarah is made a Trainer behind John’s back, so stepping down is refused, says why, and John’s menu is gone', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}/trainers`);
+    const { workspaceId, members } = await teamOf(page, GYM);
+    const sarahsId = members.find(({ name }) => name === 'Sarah')?.id;
+    const patch = (role: string) =>
+      page.request.patch(`/api/v1/workspaces/${workspaceId}/team-members/${sarahsId}`, {
+        data: { role },
+      });
+    expect((await patch('owner')).status()).toBe(200);
+    await page.reload();
+    const menu = page.getByLabel(copy.team.roleMenu.replace('{name}', 'John'));
+    await expect(menu).toHaveValue('owner');
+
+    // The page still shows two Owners; the API now holds one.
+    expect((await patch('trainer')).status()).toBe(200);
+    await menu.selectOption('trainer');
+    const dialog = page.getByRole('alertdialog');
+    await dialog.getByRole('button', { name: copy.team.stepDownDialog.confirm }).click();
+
+    await expect(
+      page
+        .getByRole('alert')
+        .filter({ hasText: copy.team.errors.lastOwner.replace('{workspace}', GYM) }),
+    ).toBeVisible();
+    await expect(dialog).toHaveCount(0);
+    // The page asked the server again: John is the only Owner and has no menu.
+    await expect(menu).toHaveCount(0);
+    await expect(page.getByText(`${GYM} · ${copy.roles.owner}`)).toBeVisible();
+    // The title streams in after the body of the refresh (#353, #354), and axe wants one.
+    await expect(page).toHaveTitle(copy.team.title);
+    await expectNoAxeViolations(page, `TW-06 after a refused step-down in ${appLocale}`);
+    expect((await teamOf(page, GYM)).members.map(({ role }) => role)).toEqual(['owner', 'trainer']);
   });
 
   test('AC8: Sarah has Owner navigation in Sarah Personal Training and Trainer navigation in John’s Gym', async ({

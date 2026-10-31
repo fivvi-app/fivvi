@@ -195,7 +195,7 @@
     "errors": {
       "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
       "generic": "Er ging iets mis. Probeer het opnieuw.",
-      "lastOwner": "Er moet minstens één eigenaar blijven."
+      "lastOwner": "{workspace} moet minstens één eigenaar houden."
     },
     "roleMenu": "Rol van {name}",
     "makeOwnerDialog": {

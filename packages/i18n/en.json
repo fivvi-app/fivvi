@@ -195,7 +195,7 @@
     "errors": {
       "noConnection": "No connection. Check your internet and try again.",
       "generic": "Something went wrong. Try again.",
-      "lastOwner": "A workspace needs at least one owner."
+      "lastOwner": "{workspace} needs at least one owner."
     },
     "roleMenu": "Role of {name}",
     "makeOwnerDialog": {

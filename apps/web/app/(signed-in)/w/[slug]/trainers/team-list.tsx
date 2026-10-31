@@ -134,7 +134,7 @@ export function TeamList({
         {notice ? <p role="status">{notice}</p> : null}
         {failure ? (
           <p role="alert" className="text-status-danger-fg">
-            {t(`errors.${failure}`)}
+            {t(`errors.${failure}`, { workspace: workspaceName })}
           </p>
         ) : null}
         <table className="w-full text-start text-sm">

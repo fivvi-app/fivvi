@@ -28,7 +28,7 @@ Style with shadcn's theme classes (`bg-primary`, `text-muted-foreground`, `borde
 
 A page picks its density with a `data-density` attribute on a layout element, not a prop on each component (AC6):
 
-| `data-density` | For | Body text | Controls (`Button`, `Input`) |
+| `data-density` | For | Body text | Controls (`Button`, `Input`, `NativeSelect`) |
 |---|---|---|---|
 | `compact` | Trainer Web on a desktop pointer | `density.compact.body`: 14/20 px | `size.control.compact`: 36 px |
 | `touch` | Public and client pages | `density.touch.body`: 16/24 px | `size.control.touch`: 48 px, above the 44 px minimum touch target |

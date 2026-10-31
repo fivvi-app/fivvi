@@ -93,7 +93,7 @@
     <string name="team_actions_column">Actions</string>
     <string name="team_email_column">Email address</string>
     <string name="team_errors_generic">Something went wrong. Try again.</string>
-    <string name="team_errors_last_owner">A workspace needs at least one owner.</string>
+    <string name="team_errors_last_owner">%1$s needs at least one owner.</string>
     <string name="team_errors_no_connection">No connection. Check your internet and try again.</string>
     <string name="team_make_owner_dialog_body">An owner can do everything in %1$s, including the team, the settings and the money.</string>
     <string name="team_make_owner_dialog_cancel">Cancel</string>
