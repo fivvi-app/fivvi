@@ -30,3 +30,21 @@ export function canRemoveTeamMember(
   if (!team.some((teamMember) => teamMember.id === teamMemberId)) return false;
   return keepsAnOwner(team.filter((teamMember) => teamMember.id !== teamMemberId));
 }
+
+/**
+ * Whether the team member may get the role without leaving the workspace without an Owner (F004).
+ * The person keeps their one team-member record; only the role on it changes. A person who isn't
+ * on the team can't change role. `team` is as in `canRemoveTeamMember`: read under a lock.
+ */
+export function canChangeRole(
+  team: readonly TeamMemberRole[],
+  teamMemberId: string,
+  role: TeamRole,
+): boolean {
+  if (!team.some((teamMember) => teamMember.id === teamMemberId)) return false;
+  return keepsAnOwner(
+    team.map((teamMember) =>
+      teamMember.id === teamMemberId ? { ...teamMember, role } : teamMember,
+    ),
+  );
+}

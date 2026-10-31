@@ -78,3 +78,34 @@ export async function deleteTeamMember(
     .returning({ id: teamMembers.id });
   return deleted.length > 0;
 }
+
+/**
+ * Replaces the role on the team-member record (F004): the same record, so a person never has two
+ * roles in a workspace. Returns the team member as listed, or `undefined` when no such record is in
+ * the scope's workspace. The caller has decided the role may change and the rule of the last Owner
+ * holds, with the Owners locked (`lockOwners`).
+ */
+export async function changeTeamMemberRole(
+  scope: WorkspaceScope,
+  teamMemberId: string,
+  role: TeamRole,
+): Promise<TeamMemberView | undefined> {
+  const updated = await executorOf(scope)
+    .update(teamMembers)
+    .set({ role })
+    .where(and(eq(teamMembers.organizationId, scope.workspaceId), eq(teamMembers.id, teamMemberId)))
+    .returning({ id: teamMembers.id });
+  if (updated.length === 0) return undefined;
+  const [view] = await executorOf(scope)
+    .select({
+      id: teamMembers.id,
+      name: authUsers.name,
+      email: authUsers.email,
+      role: teamMembers.role,
+    })
+    .from(teamMembers)
+    .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+    .where(and(eq(teamMembers.organizationId, scope.workspaceId), eq(teamMembers.id, teamMemberId)))
+    .limit(1);
+  return view;
+}

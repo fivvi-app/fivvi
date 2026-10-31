@@ -229,7 +229,11 @@ export interface paths {
         delete: operations["removeTeamMember"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Change a team member’s role
+         * @description Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other than `owner` or `trainer` (`admin` included) answers `400`.
+         */
+        patch: operations["changeTeamMemberRole"];
         trace?: never;
     };
 }
@@ -443,6 +447,14 @@ export interface components {
         LastOwner: {
             /** @enum {string} */
             code: "last_owner";
+        };
+        /** @description The role a team member gets. */
+        ChangeTeamMemberRole: {
+            /**
+             * @description The new role: `owner` or `trainer`. There is no `admin` role; it answers 400.
+             * @enum {string}
+             */
+            role: "owner" | "trainer";
         };
     };
     responses: never;
@@ -1065,6 +1077,89 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The team member is the last Owner of the workspace; nothing changed. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LastOwner"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    changeTeamMemberRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The team-member ID, from the team list. */
+                teamMemberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeTeamMemberRole"];
+            };
+        };
+        responses: {
+            /** @description The team member with the new role. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamMember"];
+                };
             };
             /** @description The request did not match the contract. */
             400: {

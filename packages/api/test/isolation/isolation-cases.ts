@@ -74,6 +74,12 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
 
   // The team of a workspace (F003): the list shows the seeded team member, the removal names it.
   listTeamMembers: { seed: aTeamMember },
+  // The role change (F004): it names the seeded team member and asks for the role it already has.
+  changeTeamMemberRole: {
+    seed: aTeamMember,
+    params: { teamMemberId: 'teamMember' },
+    body: { role: 'trainer' },
+  },
   removeTeamMember: { seed: aTeamMember, params: { teamMemberId: 'teamMember' } },
 
   // The probe routes of the test app (`probe-routes.ts`), one per kind of access.

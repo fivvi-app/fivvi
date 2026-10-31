@@ -205,6 +205,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     listTeamMembers: 'repository of the team, takes the workspace scope (F003)',
     lockOwners: 'repository of the team, takes the workspace scope (F003)',
     findTeamMember: 'repository of the team, takes the workspace scope (F003)',
+    changeTeamMemberRole: 'repository of the team, takes the workspace scope (F004)',
     deleteTeamMember: 'repository of the team, takes the workspace scope (F003)',
     updateWorkspace: 'repository of workspaces, takes the workspace scope (F002, F010)',
     setPreferredLocale: 'repository of accounts, takes the account scope (F010)',
