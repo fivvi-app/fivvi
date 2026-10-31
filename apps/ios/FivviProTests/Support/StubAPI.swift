@@ -374,3 +374,12 @@ extension StubAPI {
         }
     }
 }
+
+/// Operations the app doesn't call yet. In an extension so the stub's own body stays within SwiftLint's length limit.
+extension StubAPI {
+    func changeTeamMemberRole(
+        _ input: Operations.ChangeTeamMemberRole.Input
+    ) async throws -> Operations.ChangeTeamMemberRole.Output {
+        fatalError("The app doesn't call changeTeamMemberRole yet")
+    }
+}
