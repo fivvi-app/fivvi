@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   matchLocale,
   parseAcceptLanguage,
+  resolveClientCommunicationLanguage,
   resolveCommunicationLanguage,
   resolveInterfaceLanguage,
   resolveSignInCommunicationLanguage,
@@ -163,5 +164,77 @@ describe('AC6: explicit, stored, device, English', () => {
   it('English: nothing supported is chosen, stored or requested', () => {
     expect(resolveInterfaceLanguage({ requested: ['de-DE'] })).toBe('en');
     expect(resolveInterfaceLanguage({})).toBe('en');
+  });
+});
+
+// F006 AC11 (ADR-017, owner decision 4): the language of an email to a client of a workspace.
+describe('AC11: client communication language: account preference, client language, workspace default', () => {
+  it('uses the linked account’s own preference before the language the team set', () => {
+    expect(
+      resolveClientCommunicationLanguage({
+        accountPreference: 'en',
+        clientLanguage: 'nl-NL',
+        workspaceDefault: 'nl-NL',
+      }),
+    ).toBe('en');
+    expect(
+      resolveClientCommunicationLanguage({
+        accountPreference: 'nl-NL',
+        clientLanguage: 'en',
+        workspaceDefault: 'en',
+      }),
+    ).toBe('nl-NL');
+  });
+
+  it('uses the client’s language for emails when the account has no preference', () => {
+    expect(
+      resolveClientCommunicationLanguage({
+        accountPreference: null,
+        clientLanguage: 'en',
+        workspaceDefault: 'nl-NL',
+      }),
+    ).toBe('en');
+  });
+
+  it('uses the client’s language, then the workspace default, without a linked account', () => {
+    expect(
+      resolveClientCommunicationLanguage({ clientLanguage: 'en', workspaceDefault: 'nl-NL' }),
+    ).toBe('en');
+    expect(
+      resolveClientCommunicationLanguage({ clientLanguage: null, workspaceDefault: 'nl-NL' }),
+    ).toBe('nl-NL');
+    expect(resolveClientCommunicationLanguage({ workspaceDefault: 'en' })).toBe('en');
+  });
+
+  it('uses the workspace default when neither the account nor the client has a language', () => {
+    expect(
+      resolveClientCommunicationLanguage({
+        accountPreference: undefined,
+        clientLanguage: undefined,
+        workspaceDefault: 'en',
+      }),
+    ).toBe('en');
+  });
+
+  it('skips a language that is not supported and follows the next step', () => {
+    expect(
+      resolveClientCommunicationLanguage({
+        accountPreference: 'de-DE',
+        clientLanguage: 'nl-BE',
+        workspaceDefault: 'en',
+      }),
+    ).toBe('nl-NL');
+    expect(
+      resolveClientCommunicationLanguage({
+        accountPreference: 'de-DE',
+        clientLanguage: 'fr',
+        workspaceDefault: 'en',
+      }),
+    ).toBe('en');
+  });
+
+  it('never uses the device languages of the client', () => {
+    const sources = { requested: ['en-GB'], workspaceDefault: 'nl-NL' } as const;
+    expect(resolveClientCommunicationLanguage(sources)).toBe('nl-NL');
   });
 });
