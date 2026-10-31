@@ -19,7 +19,7 @@ interface TeamApi {
     /**
      * PATCH v1/workspaces/{workspaceId}/team-members/{teamMemberId}
      * Change a team member’s role
-     * Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: making the last Owner a Trainer answers &#x60;409&#x60; and changes nothing. A role other than &#x60;owner&#x60; or &#x60;trainer&#x60; (&#x60;admin&#x60; included) answers &#x60;400&#x60;.
+     * Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A new Trainer gets a trainer profile (a Trainer always trains); a new Owner keeps the one they had. A workspace keeps at least one Owner: making the last Owner a Trainer answers &#x60;409&#x60; and changes nothing. A role other than &#x60;owner&#x60; or &#x60;trainer&#x60; (&#x60;admin&#x60; included) answers &#x60;400&#x60;.
      * Responses:
      *  - 200: The team member with the new role.
      *  - 400: The request did not match the contract.

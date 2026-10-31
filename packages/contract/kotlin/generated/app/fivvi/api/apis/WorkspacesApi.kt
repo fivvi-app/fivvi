@@ -19,7 +19,7 @@ interface WorkspacesApi {
     /**
      * POST v1/workspaces
      * Create the caller’s workspace
-     * Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, &#x60;Europe/Amsterdam&#x60;, a slug made from its name, with a number added when taken), the Owner’s team role and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets &#x60;403&#x60; and nothing is created.
+     * Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, &#x60;Europe/Amsterdam&#x60;, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets &#x60;403&#x60; and nothing is created.
      * Responses:
      *  - 201: The new workspace.
      *  - 400: The request did not match the contract.

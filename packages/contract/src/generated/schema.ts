@@ -77,7 +77,7 @@ export interface paths {
         };
         /**
          * The workspaces the signed-in account is on the team of
-         * @description The workspaces where the account has a team role (Owner or Trainer), by name, each with that role: the list *My workspaces* of the profile shows and the apps use. Workspaces the account is only a client of are not listed. Empty when it has no team role.
+         * @description The workspaces where the account has a team role (Owner or Trainer), by name, each with that role and whether they train there (`trainsHere`): the list *My workspaces* of the profile shows and the apps use. Workspaces the account is only a client of are not listed. Empty when it has no team role.
          */
         get: operations["listMyWorkspaces"];
         put?: never;
@@ -159,7 +159,7 @@ export interface paths {
         put?: never;
         /**
          * Create the caller’s workspace
-         * @description Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.
+         * @description Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.
          */
         post: operations["createWorkspace"];
         delete?: never;
@@ -231,9 +231,53 @@ export interface paths {
         head?: never;
         /**
          * Change a team member’s role
-         * @description Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other than `owner` or `trainer` (`admin` included) answers `400`.
+         * @description Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A new Trainer gets a trainer profile (a Trainer always trains); a new Owner keeps the one they had. A workspace keeps at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other than `owner` or `trainer` (`admin` included) answers `400`.
          */
         patch: operations["changeTeamMemberRole"];
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/trainers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The trainers of a workspace
+         * @description The team members who train in the workspace, by name: every Trainer, and each Owner who also trains. Each has the team-member ID and the name. Both roles may read it; a client of the workspace gets `403`, a person with no place in it `404`.
+         */
+        get: operations["listTrainers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/trainer-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Switch on that the caller trains here
+         * @description Gives the caller their own trainer profile in the workspace: they train here and show in the list of trainers from their next request. The Owner only; a Trainer always has one and gets `403`. It acts on the caller alone: there is no way to name another team member. Idempotent: switching on twice keeps one trainer profile.
+         */
+        put: operations["putTrainerProfile"];
+        post?: never;
+        /**
+         * Switch off that the caller trains here
+         * @description Takes the caller’s own trainer profile away: they no longer show in the list of trainers from their next request, and nothing else about them changes. The Owner only; a Trainer always has one and gets `403`. It acts on the caller alone: there is no way to name another team member. Idempotent: switching off when it is off answers `204` too.
+         */
+        delete: operations["deleteTrainerProfile"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/workspaces/{workspaceId}/clients": {
@@ -400,6 +444,8 @@ export interface components {
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
             capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage")[];
+            /** @description Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
+            trainsHere: boolean;
         };
         /** @description What to change on the signed-in account. Fields left out stay as they are. */
         UpdateMeRequest: {
@@ -503,6 +549,29 @@ export interface components {
              * @enum {string}
              */
             role: "owner" | "trainer";
+        };
+        /** @description A team member who trains in the workspace. */
+        Trainer: {
+            /**
+             * Format: uuid
+             * @description The team-member ID: this person’s place on this team.
+             */
+            id: string;
+            /** @description The account’s name; empty when the person has not given one. */
+            name: string;
+        };
+        /** @description The caller’s own trainer profile: they train in this workspace. */
+        TrainerProfile: {
+            /**
+             * Format: uuid
+             * @description The caller’s team-member ID.
+             */
+            teamMemberId: string;
+            /**
+             * @description The caller trains in the workspace.
+             * @enum {boolean}
+             */
+            trainsHere: true;
         };
         /** @description One page of the clients of a workspace. */
         ClientList: {
@@ -1328,6 +1397,208 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LastOwner"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listTrainers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The trainers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Trainer"][];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    putTrainerProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller trains in the workspace. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerProfile"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    deleteTrainerProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller does not train in the workspace. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

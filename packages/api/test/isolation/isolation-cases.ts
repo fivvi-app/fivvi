@@ -82,6 +82,12 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   },
   removeTeamMember: { seed: aTeamMember, params: { teamMemberId: 'teamMember' } },
 
+  // The trainers of a workspace (F005): the list shows the seeded Trainer. The two switch routes
+  // act on the caller's own trainer profile, so they name no record.
+  listTrainers: { seed: aTeamMember },
+  putTrainerProfile: {},
+  deleteTrainerProfile: {},
+
   // The clients of a workspace (F006): the list shows every client the seed made (the suite calls
   // it once per client of the workspace), the add takes the only field it needs.
   listClients: { seed: theClient },

@@ -5,8 +5,15 @@ import {
   createTenantScopes,
   type DatabaseClient,
   type SignedInAccount,
+  teamMembers,
 } from '@fivvi/database';
-import { addClient, addTeamRole, createAccount, createWorkspace } from '@fivvi/database/testing';
+import {
+  addClient,
+  addTeamRole,
+  addTrainerProfile,
+  createAccount,
+  createWorkspace,
+} from '@fivvi/database/testing';
 import { capabilitiesOf, type Role } from '@fivvi/domain';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq } from 'drizzle-orm';
@@ -80,6 +87,7 @@ describe('F003 GET /v1/me/workspaces', () => {
           slug: gym.marker,
           role: 'trainer',
           capabilities: capabilitiesOf('trainer'),
+          trainsHere: true,
         },
         {
           workspaceId: own.id,
@@ -87,9 +95,42 @@ describe('F003 GET /v1/me/workspaces', () => {
           slug: own.marker,
           role: 'owner',
           capabilities: capabilitiesOf('owner'),
+          trainsHere: false,
         },
       ].toSorted((a, b) => a.name.localeCompare(b.name)),
     );
+  });
+
+  it('F005: tells per workspace whether the account trains there', async () => {
+    const gym = await createWorkspace(admin.db, { label: 'johns-gym' });
+    const own = await createWorkspace(admin.db, { label: 'sarah-training' });
+    const sarah = await createAccount(admin.db, { label: 'sarah' });
+    await addTeamRole(admin.db, { workspaceId: gym.id, accountId: sarah.id, role: 'trainer' });
+    await addTeamRole(admin.db, { workspaceId: own.id, accountId: sarah.id, role: 'owner' });
+    const trains = async () =>
+      Object.fromEntries(
+        ((await (await get(sarah)).json()) as { workspaceId: string; trainsHere: boolean }[]).map(
+          ({ workspaceId, trainsHere }) => [workspaceId, trainsHere],
+        ),
+      );
+
+    expect(await trains()).toEqual({ [gym.id]: true, [own.id]: false });
+
+    await addTrainerProfile(admin.db, {
+      workspaceId: own.id,
+      teamMemberId: (
+        await admin.db.select().from(teamMembers).where(eq(teamMembers.organizationId, own.id))
+      )[0]?.id as string,
+    });
+
+    expect(await trains()).toEqual({ [gym.id]: true, [own.id]: true });
+  });
+
+  it('F005: the contract has trainsHere on MyWorkspace', () => {
+    const { properties, required } = contract.components.schemas.MyWorkspace;
+
+    expect(properties.trainsHere.type).toBe('boolean');
+    expect(required).toContain('trainsHere');
   });
 
   it('does not list a workspace the account is only a client of, nor anyone else’s', async () => {

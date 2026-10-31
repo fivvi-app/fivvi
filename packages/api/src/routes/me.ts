@@ -78,6 +78,11 @@ export const MyWorkspaceSchema = z
       description: 'What the account is on the team; shown as a label, never decided on.',
     }),
     capabilities: CapabilitiesSchema,
+    trainsHere: z.boolean().openapi({
+      description:
+        'Whether the account trains in the workspace, that is has a trainer profile there (F005): ' +
+        'always true for a Trainer, the Owner’s own switch for an Owner.',
+    }),
   })
   .openapi('MyWorkspace', { description: 'A workspace the account is on the team of.' });
 
@@ -189,7 +194,8 @@ const listMyWorkspacesRoute = defineRoute(
     summary: 'The workspaces the signed-in account is on the team of',
     description:
       'The workspaces where the account has a team role (Owner or Trainer), by name, each with ' +
-      'that role: the list *My workspaces* of the profile shows and the apps use. Workspaces ' +
+      'that role and whether they train there (`trainsHere`): the list *My workspaces* of the ' +
+      'profile shows and the apps use. Workspaces ' +
       'the account is only a client of are not listed. Empty when it has no team role.',
     security: SIGNED_IN,
     responses: {
@@ -215,7 +221,9 @@ export function registerMe(app: OpenAPIHono) {
   /** The account as `GET` and `PATCH` answer, from the account of the request. */
   async function meOf(c: Context<AccessEnv>, account: SignedInAccount) {
     const { id, email, name, preferredLocale } = account;
-    const workspaces = (await listTeamWorkspaces(c.get('scope'))).map(withCapabilities);
+    const workspaces = (await listTeamWorkspaces(c.get('scope'))).map(
+      ({ trainsHere: _trainsHere, ...workspace }) => withCapabilities(workspace),
+    );
     // The rule is in packages/domain: whoever listed workspaces has a team role.
     const mayCreate = canCreateWorkspace({
       email,

@@ -23,6 +23,7 @@ import {
   pingDatabase,
   systemGreetings,
   teamMembers,
+  trainerProfiles,
 } from '../src/index.ts';
 import { migrationsFolder, runMigrations } from '../src/migrate.ts';
 import { release } from '../src/release.ts';
@@ -317,6 +318,27 @@ describe('E004 database', () => {
           .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
           .where(and(eq(teamMembers.organizationId, gym?.id ?? ''), eq(teamMembers.role, 'owner')));
         expect(owner).toEqual({ role: 'owner', email: 'owner@example.com' });
+      });
+    });
+
+    it('F005: John and Sarah train in John’s Gym and Sarah in her own workspace, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
+
+        const training = await tx
+          .select({ slug: organizations.slug, email: authUsers.email, role: teamMembers.role })
+          .from(trainerProfiles)
+          .innerJoin(teamMembers, eq(teamMembers.id, trainerProfiles.teamMemberId))
+          .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+          .innerJoin(organizations, eq(organizations.id, trainerProfiles.organizationId));
+        expect(
+          training.toSorted((a, b) => `${a.slug}${a.email}`.localeCompare(`${b.slug}${b.email}`)),
+        ).toEqual([
+          { slug: 'johns-gym', email: 'owner@example.com', role: 'owner' },
+          { slug: 'johns-gym', email: 'trainer@example.com', role: 'trainer' },
+          { slug: 'sarah-personal-training', email: 'trainer@example.com', role: 'owner' },
+        ]);
       });
     });
 

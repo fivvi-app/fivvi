@@ -27,6 +27,12 @@ export {
   type TeamRole,
 } from './team/last-owner.ts';
 export {
+  decideTrainerProfileSwitch,
+  hasTrainerProfileAfterRoleChange,
+  startsWithTrainerProfile,
+  type TrainerProfileSwitchDecision,
+} from './team/trainer-profile.ts';
+export {
   type CanCreateWorkspaceInput,
   canCreateWorkspace,
   type SignUpAllowlist,

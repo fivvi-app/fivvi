@@ -56,6 +56,14 @@ export {
   type TeamMemberView,
 } from './repositories/team-members.ts';
 export {
+  findOwnTeamMember,
+  hasTrainerProfile,
+  listTrainers,
+  type OwnTeamMember,
+  setTrainerProfile,
+  type TrainerView,
+} from './repositories/trainer-profiles.ts';
+export {
   claimWorkspaceCreation,
   createWorkspaceWithOwner,
   findWorkspace,
