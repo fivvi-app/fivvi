@@ -382,4 +382,12 @@ extension StubAPI {
     ) async throws -> Operations.ChangeTeamMemberRole.Output {
         fatalError("The app doesn't call changeTeamMemberRole yet")
     }
+
+    func listClients(_ input: Operations.ListClients.Input) async throws -> Operations.ListClients.Output {
+        fatalError("The app doesn't call listClients yet")
+    }
+
+    func addClient(_ input: Operations.AddClient.Input) async throws -> Operations.AddClient.Output {
+        fatalError("The app doesn't call addClient yet")
+    }
 }

@@ -26,3 +26,20 @@ export async function setAccountName(scope: TenantScope, name: string): Promise<
     .set({ name })
     .where(eq(authUsers.id, scope.context.accountId));
 }
+
+/**
+ * The ID of the account that signs in with the email address (lower case), if there is one. Only
+ * the ID, and only to link a client to it (F006 AC4): nothing else of the account is read, so
+ * nothing of it can reach an answer.
+ */
+export async function findAccountIdByEmail(
+  scope: TenantScope,
+  email: string,
+): Promise<string | undefined> {
+  const [row] = await executorOf(scope)
+    .select({ id: authUsers.id })
+    .from(authUsers)
+    .where(eq(authUsers.email, email))
+    .limit(1);
+  return row?.id;
+}

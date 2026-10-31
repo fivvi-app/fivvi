@@ -1,4 +1,11 @@
 export {
+  CLIENT_NAME_MAX_LENGTH,
+  decideNewClient,
+  type NewClientDecision,
+  type NewClientFacts,
+  normalizeEmail,
+} from './clients/new-client.ts';
+export {
   CAPABILITIES,
   type Capability,
   capabilitiesOf,

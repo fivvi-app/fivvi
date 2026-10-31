@@ -547,6 +547,125 @@
           "role"
         ],
         "description": "The role a team member gets."
+      },
+      "ClientList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Client"
+            },
+            "description": "This page of clients, sorted by name."
+          },
+          "total": {
+            "type": "integer",
+            "description": "How many clients match, over all pages."
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ],
+        "description": "One page of the clients of a workspace."
+      },
+      "Client": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The client ID: this person’s record in this workspace."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name as the team wrote it."
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "email",
+            "description": "The email address, lower case; `null` when none was given."
+          },
+          "emailLocale": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "nl-NL",
+              "en",
+              null
+            ],
+            "description": "The language for the client’s emails the team set: `nl-NL` or `en`. `null` follows the workspace’s default language."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "emailLocale"
+        ],
+        "description": "A client of a workspace."
+      },
+      "ClientExists": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "client_exists"
+            ]
+          },
+          "clientId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the client of this workspace that already has the email address."
+          }
+        },
+        "required": [
+          "code",
+          "clientId"
+        ],
+        "description": "A client of the workspace already has the email address (or is the person behind it); nothing was added. Contains no user-facing text."
+      },
+      "AddClientRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "The client’s name: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "The client’s email address; stored lower case. Leave it out to add the client with a name only. An address that is no email address answers `400`. If a client of the workspace has it already, nothing is added and the answer is `409`."
+          },
+          "emailLocale": {
+            "type": "string",
+            "enum": [
+              "nl-NL",
+              "en"
+            ],
+            "description": "The language for the client’s emails: `nl-NL` or `en`. Leave it out to follow the workspace’s default language. Any other value answers `400`."
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the `client_added` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "description": "A client to add. Only the name is required."
       }
     },
     "parameters": {}
@@ -1621,6 +1740,267 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LastOwner"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/clients": {
+      "get": {
+        "operationId": "listClients",
+        "tags": [
+          "clients"
+        ],
+        "summary": "The clients of a workspace",
+        "description": "The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. `search` matches part of a name or an email address in the server, ignoring case and accents.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "clients.view",
+          "roles": [
+            "owner",
+            "trainer"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 120,
+              "description": "Part of a name or an email address. Case and accents are ignored: `vrie` finds `Anna de Vries`. Blank is no search."
+            },
+            "required": false,
+            "description": "Part of a name or an email address. Case and accents are ignored: `vrie` finds `Anna de Vries`. Blank is no search.",
+            "name": "search",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "description": "How many clients a page holds, 1 to 100; 50 by default."
+            },
+            "required": false,
+            "description": "How many clients a page holds, 1 to 100; 50 by default.",
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1,
+              "description": "Which page, counted from 1, in the order of the list; 1 by default."
+            },
+            "required": false,
+            "description": "Which page, counted from 1, in the order of the list; 1 by default.",
+            "name": "page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of clients.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "addClient",
+        "tags": [
+          "clients"
+        ],
+        "summary": "Add a client",
+        "description": "Adds a client to the workspace (the Owner and every Trainer). Only the name is required. Adding a client never sends an email and never creates an account. If an account has the email address, the client is linked to it; the answer is the same either way. A client of the workspace with the same address (in any case) makes the answer `409` with that client’s ID, and nothing is added. Two clients without an email address may share a name.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "clients.manage",
+          "roles": [
+            "owner",
+            "trainer"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddClientRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The client that was added.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Client"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A client of the workspace already has the email address; nothing was added.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientExists"
                 }
               }
             }

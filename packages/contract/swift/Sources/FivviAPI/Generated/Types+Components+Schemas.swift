@@ -804,5 +804,177 @@ extension Components {
                 case role
             }
         }
+        /// One page of the clients of a workspace.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ClientList`.
+        public struct ClientList: Codable, Hashable, Sendable {
+            /// This page of clients, sorted by name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClientList/items`.
+            public var items: [Components.Schemas.Client]
+            /// How many clients match, over all pages.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClientList/total`.
+            public var total: Swift.Int
+            /// Creates a new `ClientList`.
+            ///
+            /// - Parameters:
+            ///   - items: This page of clients, sorted by name.
+            ///   - total: How many clients match, over all pages.
+            public init(
+                items: [Components.Schemas.Client],
+                total: Swift.Int
+            ) {
+                self.items = items
+                self.total = total
+            }
+            public enum CodingKeys: String, CodingKey {
+                case items
+                case total
+            }
+        }
+        /// A client of a workspace.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Client`.
+        public struct Client: Codable, Hashable, Sendable {
+            /// The client ID: this person’s record in this workspace.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Client/id`.
+            public var id: Swift.String
+            /// The name as the team wrote it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Client/name`.
+            public var name: Swift.String
+            /// The email address, lower case; `null` when none was given.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Client/email`.
+            public var email: Swift.String?
+            /// The language for the client’s emails the team set: `nl-NL` or `en`. `null` follows the workspace’s default language.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Client/emailLocale`.
+            @frozen public enum EmailLocalePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case nlNL = "nl-NL"
+                case en = "en"
+                case _empty_ = ""
+            }
+            /// The language for the client’s emails the team set: `nl-NL` or `en`. `null` follows the workspace’s default language.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Client/emailLocale`.
+            public var emailLocale: Components.Schemas.Client.EmailLocalePayload?
+            /// Creates a new `Client`.
+            ///
+            /// - Parameters:
+            ///   - id: The client ID: this person’s record in this workspace.
+            ///   - name: The name as the team wrote it.
+            ///   - email: The email address, lower case; `null` when none was given.
+            ///   - emailLocale: The language for the client’s emails the team set: `nl-NL` or `en`. `null` follows the workspace’s default language.
+            public init(
+                id: Swift.String,
+                name: Swift.String,
+                email: Swift.String? = nil,
+                emailLocale: Components.Schemas.Client.EmailLocalePayload? = nil
+            ) {
+                self.id = id
+                self.name = name
+                self.email = email
+                self.emailLocale = emailLocale
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case email
+                case emailLocale
+            }
+        }
+        /// A client of the workspace already has the email address (or is the person behind it); nothing was added. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ClientExists`.
+        public struct ClientExists: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/ClientExists/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case clientExists = "client_exists"
+            }
+            /// - Remark: Generated from `#/components/schemas/ClientExists/code`.
+            public var code: Components.Schemas.ClientExists.CodePayload
+            /// The ID of the client of this workspace that already has the email address.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClientExists/clientId`.
+            public var clientId: Swift.String
+            /// Creates a new `ClientExists`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            ///   - clientId: The ID of the client of this workspace that already has the email address.
+            public init(
+                code: Components.Schemas.ClientExists.CodePayload,
+                clientId: Swift.String
+            ) {
+                self.code = code
+                self.clientId = clientId
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case clientId
+            }
+        }
+        /// A client to add. Only the name is required.
+        ///
+        /// - Remark: Generated from `#/components/schemas/AddClientRequest`.
+        public struct AddClientRequest: Codable, Hashable, Sendable {
+            /// The client’s name: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AddClientRequest/name`.
+            public var name: Swift.String
+            /// The client’s email address; stored lower case. Leave it out to add the client with a name only. An address that is no email address answers `400`. If a client of the workspace has it already, nothing is added and the answer is `409`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AddClientRequest/email`.
+            public var email: Swift.String?
+            /// The language for the client’s emails: `nl-NL` or `en`. Leave it out to follow the workspace’s default language. Any other value answers `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AddClientRequest/emailLocale`.
+            @frozen public enum EmailLocalePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case nlNL = "nl-NL"
+                case en = "en"
+            }
+            /// The language for the client’s emails: `nl-NL` or `en`. Leave it out to follow the workspace’s default language. Any other value answers `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AddClientRequest/emailLocale`.
+            public var emailLocale: Components.Schemas.AddClientRequest.EmailLocalePayload?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `client_added` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AddClientRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `client_added` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AddClientRequest/surface`.
+            public var surface: Components.Schemas.AddClientRequest.SurfacePayload?
+            /// Creates a new `AddClientRequest`.
+            ///
+            /// - Parameters:
+            ///   - name: The client’s name: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error.
+            ///   - email: The client’s email address; stored lower case. Leave it out to add the client with a name only. An address that is no email address answers `400`. If a client of the workspace has it already, nothing is added and the answer is `409`.
+            ///   - emailLocale: The language for the client’s emails: `nl-NL` or `en`. Leave it out to follow the workspace’s default language. Any other value answers `400`.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `client_added` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                name: Swift.String,
+                email: Swift.String? = nil,
+                emailLocale: Components.Schemas.AddClientRequest.EmailLocalePayload? = nil,
+                surface: Components.Schemas.AddClientRequest.SurfacePayload? = nil
+            ) {
+                self.name = name
+                self.email = email
+                self.emailLocale = emailLocale
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case name
+                case email
+                case emailLocale
+                case surface
+            }
+        }
     }
 }

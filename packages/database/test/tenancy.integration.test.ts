@@ -44,6 +44,44 @@ describe('E011 tenancy core tables', () => {
     await database?.drop();
   });
 
+  it('F006: a client has a name, a lower case email address once per workspace, and a supported language', async () => {
+    await withRollback(db, async (tx) => {
+      const workspaceA = await workspace(tx);
+      const workspaceB = await workspace(tx);
+      const add = (values: Partial<typeof clients.$inferInsert>, workspaceId = workspaceA) =>
+        tx.transaction((inner) =>
+          inner
+            .insert(clients)
+            .values({ organizationId: workspaceId, name: 'Anna de Vries', ...values }),
+        );
+
+      // The same address in another workspace is another client; none at all may repeat.
+      await add({ email: 'anna@example.com' });
+      await add({ email: 'anna@example.com' }, workspaceB);
+      await add({});
+      await add({});
+      await expect(add({ email: 'anna@example.com' })).rejects.toMatchObject({
+        cause: { code: '23505', constraint: 'clients_organization_id_email_unique' },
+      });
+
+      // The name is there, not blank and at most 120 characters; the address is lower case; the
+      // language is one of the catalog's.
+      await expect(add({ name: '   ' })).rejects.toMatchObject({
+        cause: { code: '23514', constraint: 'clients_name_valid' },
+      });
+      await expect(add({ name: 'x'.repeat(121) })).rejects.toMatchObject({
+        cause: { code: '23514', constraint: 'clients_name_valid' },
+      });
+      await add({ name: 'x'.repeat(120) });
+      await expect(add({ email: 'Anna2@Example.com' })).rejects.toMatchObject({
+        cause: { code: '23514', constraint: 'clients_email_lowercase' },
+      });
+      await expect(add({ emailLocale: 'de' as never })).rejects.toMatchObject({
+        cause: { code: '23514', constraint: 'clients_email_locale_supported' },
+      });
+    });
+  });
+
   it('AC3: one team role and one client relationship per account and workspace, side by side', async () => {
     await withRollback(db, async (tx) => {
       const workspaceA = await workspace(tx);
@@ -55,7 +93,7 @@ describe('E011 tenancy core tables', () => {
       await tx
         .insert(teamMembers)
         .values({ organizationId: workspaceA, accountId: sam, role: 'trainer' });
-      await tx.insert(clients).values({ organizationId: workspaceA, accountId: sam });
+      await tx.insert(clients).values({ organizationId: workspaceA, accountId: sam, name: 'Sam' });
       expect(await tx.$count(teamMembers)).toBe(1);
       expect(await tx.$count(clients)).toBe(1);
 
@@ -73,7 +111,7 @@ describe('E011 tenancy core tables', () => {
       // Not a second client relationship in the same workspace.
       await expect(
         tx.transaction((inner) =>
-          inner.insert(clients).values({ organizationId: workspaceA, accountId: sam }),
+          inner.insert(clients).values({ organizationId: workspaceA, accountId: sam, name: 'Sam' }),
         ),
       ).rejects.toMatchObject({
         cause: { code: '23505', constraint: 'clients_organization_id_account_id_unique' },
@@ -86,9 +124,10 @@ describe('E011 tenancy core tables', () => {
       expect(await tx.$count(teamMembers)).toBe(2);
 
       // Clients added by hand have no account yet (PRODUCT.md §34), and there can be many.
-      await tx
-        .insert(clients)
-        .values([{ organizationId: workspaceA }, { organizationId: workspaceA }]);
+      await tx.insert(clients).values([
+        { organizationId: workspaceA, name: 'Mark Jansen' },
+        { organizationId: workspaceA, name: 'Mark Jansen' },
+      ]);
       expect(await tx.$count(clients)).toBe(3);
 
       // Only Owner or Trainer.

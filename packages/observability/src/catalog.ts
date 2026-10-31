@@ -32,6 +32,12 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   team_member_removed: {
     workspace_id: property.uuid(),
   },
+  // F006: a team member added a client. The workspace ID and the surface only (the team member's
+  // account UUID is the distinct ID): no client ID, name, email address or language.
+  client_added: {
+    workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
   // F010: someone chose their interface language. The language and the surface only: the distinct
   // ID is random for each event (`anonymousDistinctId()`), so nothing leads to the account, and no
   // name or email address is recorded.

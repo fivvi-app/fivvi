@@ -236,6 +236,30 @@ export interface paths {
         patch: operations["changeTeamMemberRole"];
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The clients of a workspace
+         * @description The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. `search` matches part of a name or an email address in the server, ignoring case and accents.
+         */
+        get: operations["listClients"];
+        put?: never;
+        /**
+         * Add a client
+         * @description Adds a client to the workspace (the Owner and every Trainer). Only the name is required. Adding a client never sends an email and never creates an account. If an account has the email address, the client is linked to it; the answer is the same either way. A client of the workspace with the same address (in any case) makes the answer `409` with that client’s ID, and nothing is added. Two clients without an email address may share a name.
+         */
+        post: operations["addClient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -455,6 +479,63 @@ export interface components {
              * @enum {string}
              */
             role: "owner" | "trainer";
+        };
+        /** @description One page of the clients of a workspace. */
+        ClientList: {
+            /** @description This page of clients, sorted by name. */
+            items: components["schemas"]["Client"][];
+            /** @description How many clients match, over all pages. */
+            total: number;
+        };
+        /** @description A client of a workspace. */
+        Client: {
+            /**
+             * Format: uuid
+             * @description The client ID: this person’s record in this workspace.
+             */
+            id: string;
+            /** @description The name as the team wrote it. */
+            name: string;
+            /**
+             * Format: email
+             * @description The email address, lower case; `null` when none was given.
+             */
+            email: string | null;
+            /**
+             * @description The language for the client’s emails the team set: `nl-NL` or `en`. `null` follows the workspace’s default language.
+             * @enum {string|null}
+             */
+            emailLocale: "nl-NL" | "en" | null;
+        };
+        /** @description A client of the workspace already has the email address (or is the person behind it); nothing was added. Contains no user-facing text. */
+        ClientExists: {
+            /** @enum {string} */
+            code: "client_exists";
+            /**
+             * Format: uuid
+             * @description The ID of the client of this workspace that already has the email address.
+             */
+            clientId: string;
+        };
+        /** @description A client to add. Only the name is required. */
+        AddClientRequest: {
+            /** @description The client’s name: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error. */
+            name: string;
+            /**
+             * Format: email
+             * @description The client’s email address; stored lower case. Leave it out to add the client with a name only. An address that is no email address answers `400`. If a client of the workspace has it already, nothing is added and the answer is `409`.
+             */
+            email?: string;
+            /**
+             * @description The language for the client’s emails: `nl-NL` or `en`. Leave it out to follow the workspace’s default language. Any other value answers `400`.
+             * @enum {string}
+             */
+            emailLocale?: "nl-NL" | "en";
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `client_added` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
         };
     };
     responses: never;
@@ -1204,6 +1285,162 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LastOwner"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listClients: {
+        parameters: {
+            query?: {
+                /** @description Part of a name or an email address. Case and accents are ignored: `vrie` finds `Anna de Vries`. Blank is no search. */
+                search?: string;
+                /** @description How many clients a page holds, 1 to 100; 50 by default. */
+                pageSize?: number;
+                /** @description Which page, counted from 1, in the order of the list; 1 by default. */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of clients. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientList"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    addClient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddClientRequest"];
+            };
+        };
+        responses: {
+            /** @description The client that was added. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Client"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description A client of the workspace already has the email address; nothing was added. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientExists"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

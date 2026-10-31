@@ -219,7 +219,7 @@ describe('E011 the tenant scope of a request transaction', () => {
         const scopesOnOne = createTenantScopes(() => single.db);
         const entry = await scopesOnOne.inWorkspaceScope(
           { accountId: people.ownerA.id, workspaceId: a, admit: teamOnly },
-          async (scope) => createClient(scope, {}),
+          async (scope) => createClient(scope, { name: 'Synthetic client' }),
         );
         expect(entry.status).toBe('entered');
 
@@ -240,7 +240,7 @@ describe('E011 the tenant scope of a request transaction', () => {
 
       await expect(
         enter(people.ownerA.id, a, teamOnly, async (scope) => {
-          await createClient(scope, {});
+          await createClient(scope, { name: 'Synthetic client' });
           throw new Error('the handler failed');
         }),
       ).rejects.toThrow('the handler failed');
@@ -330,7 +330,7 @@ describe('E011 the tenant scope of a request transaction', () => {
 
     it('writes into the scope’s workspace, whatever the caller asks', async () => {
       const entry = await enter(people.ownerA.id, a, teamOnly, async (scope) => {
-        const created = await createClient(scope, {});
+        const created = await createClient(scope, { name: 'Synthetic client' });
         throw Object.assign(new Error('rollback'), { created });
       }).catch((error: { created: { workspaceId: string } }) => error);
 

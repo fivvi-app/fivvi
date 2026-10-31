@@ -112,7 +112,7 @@ function registerLeakyRoutes(world: World) {
   });
   // Changes rows on a read: the suite must notice A's rows are not what they were.
   app.openapi(defineRoute(route('/probe/writing-get', 'probeWritingGet'), team), async (c) =>
-    c.json({ client: await createClient(c.get('scope'), {}) }, 200),
+    c.json({ client: (await createClient(c.get('scope'), { name: 'Probe client' })) ?? null }, 200),
   );
   // Reads the too-strict table, listed by a case whose seed returns nothing to look for.
   for (const operationId of ['probeUnseeded', 'probeUnknownSeed']) {

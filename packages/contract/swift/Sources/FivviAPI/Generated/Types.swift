@@ -109,6 +109,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)`.
     func removeTeamMember(_ input: Operations.RemoveTeamMember.Input) async throws -> Operations.RemoveTeamMember.Output
+    /// The clients of a workspace
+    ///
+    /// The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. `search` matches part of a name or an email address in the server, ignoring case and accents.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/clients`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/get(listClients)`.
+    func listClients(_ input: Operations.ListClients.Input) async throws -> Operations.ListClients.Output
+    /// Add a client
+    ///
+    /// Adds a client to the workspace (the Owner and every Trainer). Only the name is required. Adding a client never sends an email and never creates an account. If an account has the email address, the client is linked to it; the answer is the same either way. A client of the workspace with the same address (in any case) makes the answer `409` with that client’s ID, and nothing is added. Two clients without an email address may share a name.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/clients`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/post(addClient)`.
+    func addClient(_ input: Operations.AddClient.Input) async throws -> Operations.AddClient.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -301,6 +315,40 @@ extension APIProtocol {
         try await removeTeamMember(Operations.RemoveTeamMember.Input(
             path: path,
             headers: headers
+        ))
+    }
+    /// The clients of a workspace
+    ///
+    /// The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. `search` matches part of a name or an email address in the server, ignoring case and accents.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/clients`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/get(listClients)`.
+    public func listClients(
+        path: Operations.ListClients.Input.Path,
+        query: Operations.ListClients.Input.Query = .init(),
+        headers: Operations.ListClients.Input.Headers = .init()
+    ) async throws -> Operations.ListClients.Output {
+        try await listClients(Operations.ListClients.Input(
+            path: path,
+            query: query,
+            headers: headers
+        ))
+    }
+    /// Add a client
+    ///
+    /// Adds a client to the workspace (the Owner and every Trainer). Only the name is required. Adding a client never sends an email and never creates an account. If an account has the email address, the client is linked to it; the answer is the same either way. A client of the workspace with the same address (in any case) makes the answer `409` with that client’s ID, and nothing is added. Two clients without an email address may share a name.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/clients`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/post(addClient)`.
+    public func addClient(
+        path: Operations.AddClient.Input.Path,
+        headers: Operations.AddClient.Input.Headers = .init(),
+        body: Operations.AddClient.Input.Body
+    ) async throws -> Operations.AddClient.Output {
+        try await addClient(Operations.AddClient.Input(
+            path: path,
+            headers: headers,
+            body: body
         ))
     }
 }

@@ -497,7 +497,9 @@ describe('E011 RLS as the app role', () => {
       // Writes for another client of A fail or change nothing.
       await refused(tx, (inner) => addClient(inner, { workspaceId: scenario.a }));
       await refused(tx, (inner) =>
-        inner.execute(sql`insert into clients (organization_id) values (${scenario.a})`),
+        inner.execute(
+          sql`insert into clients (organization_id, name) values (${scenario.a}, 'Synthetic client')`,
+        ),
       );
       expect(
         await rows(tx, sql`update clients set updated_at = now() where id = ${y} returning id`),
@@ -528,7 +530,9 @@ describe('E011 RLS as the app role', () => {
         await rows(tx, sql`update clients set updated_at = now() where id = ${y} returning id`),
       ).toHaveLength(1);
       await expect(
-        tx.execute(sql`insert into clients (organization_id) values (${scenario.a})`),
+        tx.execute(
+          sql`insert into clients (organization_id, name) values (${scenario.a}, 'Synthetic client')`,
+        ),
       ).resolves.toBeDefined();
     });
 

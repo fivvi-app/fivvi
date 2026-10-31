@@ -33,7 +33,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | [F003](https://github.com/fivvi-app/fivvi/issues/171) | Workspace Membership: team members with one role per workspace, the Trainers page with removal and the last-Owner rule (web), my workspaces with my role on web, iOS and Android, tenant-scoped requests (a removed trainer gets 404 and the no-access state) | IMPLEMENTED | Must | M2 | F002 | ✅ | ✅ | §2.9, §6, §9 (team role next to client relationship) |
 | F004 | Roles | IN PROGRESS | Must | M2 | F003 | ⬜ | ⬜ | §9, §50 (Owner and Trainer; Admin is a later role 🔜) |
 | F005 | Trainer Profile | IN PROGRESS | Must | M2 (+ iOS/Android: profile) | F003 | ⬜ | ⬜ | §9 |
-| F006 | Client Profile | PLANNED | Must | M2 (+ iOS/Android in M4) | F002 | ⬜ | ⬜ | §2.9, §9, §10, §34 (quick add, name only; links to an existing account) |
+| F006 | Client Profile | IN PROGRESS | Must | M2 (+ iOS/Android in M4) | F002 | ⬜ | ⬜ | §2.9, §9, §10, §34 (quick add, name only; links to an existing account) |
 | F007 | Localization Infrastructure | PLANNED | Must | M1–M2 | E005 | ⬜ | ⬜ | §3, §73 |
 | F008 | Dutch UI | PLANNED | Must | continuous | F007 | ⬜ | — | §2.2 |
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |

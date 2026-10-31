@@ -1,4 +1,6 @@
-import { index, pgEnum, unique, uuid } from 'drizzle-orm/pg-core';
+import type { Locale } from '@fivvi/i18n';
+import { sql } from 'drizzle-orm';
+import { check, index, pgEnum, text, unique, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { authUsers } from './auth.ts';
 import { businessTable } from './business-table.ts';
 import { timestamps } from './columns.ts';
@@ -39,19 +41,42 @@ export const teamMembers = businessTable(
 );
 
 /**
- * The client record of a workspace (E011 creates the minimal shape; F006 adds the profile). The
- * account link is optional: a client added by hand has no account yet (`PRODUCT.md §34`). At most
- * one client relationship per account and workspace.
+ * The client record of a workspace (E011 created the minimal shape; F006 adds the profile). The
+ * account link is optional: a client added by hand has no account yet (`PRODUCT.md §34`), and one
+ * whose email address belongs to an account is linked to it (`PRODUCT.md §2.9`). At most one
+ * client relationship per account and workspace, and one client per email address and workspace.
+ *
+ * `email` is lower case (the API stores it so, the check holds the line) and may be empty: two
+ * clients without one may share a name. `email_locale` is the language for emails the team set;
+ * empty follows the workspace default (ADR-017).
  */
 export const clients = businessTable(
   'clients',
   {
     accountId: uuid('account_id').references(() => authUsers.id),
+    name: text('name').notNull(),
+    email: text('email'),
+    emailLocale: text('email_locale').$type<Locale>(),
     ...timestamps(),
   },
   (table) => [
     unique('clients_organization_id_account_id_unique').on(table.organizationId, table.accountId),
+    uniqueIndex('clients_organization_id_email_unique')
+      .on(table.organizationId, table.email)
+      .where(sql`${table.email} IS NOT NULL`),
     index('clients_account_id_idx').on(table.accountId),
+    check(
+      'clients_name_valid',
+      sql`btrim(${table.name}) <> '' AND char_length(${table.name}) <= 120`,
+    ),
+    check(
+      'clients_email_lowercase',
+      sql`${table.email} IS NULL OR ${table.email} = lower(${table.email})`,
+    ),
+    check(
+      'clients_email_locale_supported',
+      sql`${table.emailLocale} IS NULL OR ${table.emailLocale} IN ('nl-NL', 'en')`,
+    ),
   ],
   // A client route sees only its own client row (Q2); `id` is the client's id.
   { accountColumn: 'accountId', clientColumn: 'id' },
