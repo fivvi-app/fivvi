@@ -199,6 +199,8 @@ test.describe('F003 my workspaces and the role in the header', () => {
       );
       await expect(page.getByRole('row')).toHaveCount(2);
       await expect(page.getByText(sarah)).toHaveCount(0);
+      // The title streams in after the body of the refresh (#353, #354), and axe wants one.
+      await expect(page).toHaveTitle(copy.team.title);
       await expectNoAxeViolations(page, `TW-06 after a removal in ${appLocale}`);
 
       // The data path: the API holds only John.

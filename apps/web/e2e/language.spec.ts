@@ -129,6 +129,8 @@ test.describe('F010 language', () => {
       .click();
     await page.getByRole('button', { name: ownName(otherLocale), exact: true }).click();
     await expect.poll(() => storedLanguage(page)).toBe(otherLocale);
+    // The title streams in after the body (#353), and the end-of-test axe wants one: wait for it.
+    await expect(page).toHaveTitle(messages[otherLocale].settingsGeneral.title);
 
     // Another browser: set to the old language, with an old language cookie.
     const second = await browser.newContext({
