@@ -427,7 +427,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - Email set (NL + EN each): magic link, booking confirmation, cancellation, schedule change, class cancellation; trainer: new booking, cancellation (§51).
 - **There are no guests.** A client's account is created automatically at their first verified booking (§26); the booking form still only asks for name + email, never a password, and its initial stored language preference is whatever language the booking was made in. Whether a signed-in client booking again should skip the confirmation email is open ([`open-questions.md`](../design/open-questions.md)).
 - Client web (F033): **my schedule** with group bookings and private sessions together, labelled by type and filterable; past bookings, cancellation, profile; reachable after signing in, or by the email link of a booking. M11 adds agreements, balances, payments and invoices to it.
-- **Waitlist (F062, `PRODUCT.md §23`):** a full class offers a waitlist; when a spot frees up (a cancellation, an expired hold) the first in line gets it and an email. After the owner's cut-off, a few minutes before the class, nobody is moved up, and those still waiting get a "you didn't get in" message. Moving up shares the capacity lock and the concurrency tests with booking. How a waitlisted client with a membership or credits is handled comes with M11.
+- **Waitlist (F062):** the rules are in `PRODUCT.md §23`. Moving a client up shares the capacity lock and the concurrency tests with booking; how a waitlisted client with a membership or credits is handled comes with M11.
 - The public booking page never lists private sessions. M11 makes booking membership-aware and adds paid single classes (proposed, [decision 9](#14-decisions)).
 - **The domain is bought (fivvi.app, 21 October 2026); set up its DNS before this milestone:** the Railway custom domain, and SPF, DKIM and DMARC for the sender `Fivvi` (noreply at fivvi.app) in Brevo (§4.5). Real clients need emails from an authenticated domain.
 - Performance budget for the public page: fast on a mid-range phone over 4G (LCP < 2.5 s).
@@ -435,6 +435,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 **Exit criteria**
 - Playwright e2e passes the whole flow **in Dutch and in English** on a mobile viewport.
 - A concurrency test proves no overbooking, also when a waitlisted client moves up.
+- Playwright e2e covers the waitlist **in Dutch and in English**: a freed spot goes to the first in line with an email, nobody moves up after the cut-off, and those still waiting get the "you didn't get in" message.
 - Deliverability tested against Gmail, Outlook/Hotmail and a Dutch ISP mailbox.
 
 ---
