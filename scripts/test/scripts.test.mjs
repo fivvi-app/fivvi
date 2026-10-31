@@ -1559,11 +1559,6 @@ esac`;
     ]) {
       cpSync(join(SCRIPTS, '..', path), join(repo, path), { recursive: true });
     }
-    // The flows maestro.sh runs one at a time: the top-level ones, not config.yaml or the sub-flows in shared/.
-    mkdirSync(join(repo, 'e2e/maestro/shared'), { recursive: true });
-    for (const file of ['config.yaml', 'alpha.yaml', 'beta.yaml', 'shared/sub.yaml']) {
-      writeFileSync(join(repo, 'e2e/maestro', file), 'appId: app.fivvi.pro\n---\n');
-    }
     // The web server maestro.sh starts: it runs until it's stopped, and records its environment.
     mkdirSync(join(repo, 'apps/web/.next/standalone/apps/web'), { recursive: true });
     writeFileSync(
@@ -1675,7 +1670,20 @@ if [ "$FAKE_PLIST_FORM" = other ]; then sed 1d "\${@: -1}"; else cat "\${@: -1}"
     );
     script(join(bin, 'java'), 'echo "openjdk version \\"21\\"" >&2');
     for (const tool of ['sleep', 'docker']) script(join(bin, tool), 'exit 0');
-    script(join(bin, 'pnpm'), `echo "pnpm $*" >>"${state}/calls.log"\nexit 0`);
+    // FAKE_CLEAR (maestro.sh's db:reset-rate-limits): fail-after-first fails every clear but the first, flaky only the second.
+    script(
+      join(bin, 'pnpm'),
+      `echo "pnpm $*" >>"${state}/calls.log"
+if [ "$*" = "db:reset-rate-limits" ]; then
+  echo x >>"${state}/clears"
+  clears=$(wc -l <"${state}/clears")
+  case "$FAKE_CLEAR" in
+    fail-after-first) [ "$clears" -le 1 ] || exit 1 ;;
+    flaky) [ "$clears" -ne 2 ] || exit 1 ;;
+  esac
+fi
+exit 0`,
+    );
     // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_HELLO=fail: GET /api/v1/hello fails.
     script(
       join(bin, 'curl'),
@@ -1689,10 +1697,10 @@ exit 0`,
 echo "maestro $*" >>"${state}/calls.log"
 # A flow run reads the sign-in emails from the fake Brevo server (e2e/maestro/shared): record that it answered.
 case " $* " in *" test "*)
+  # FAKE_MAESTRO_SLEEP=<seconds>: the run lasts that long (the real sleep, the one in PATH is a fake).
+  [ -z "$FAKE_MAESTRO_SLEEP" ] || { /bin/sleep "$FAKE_MAESTRO_SLEEP"; echo "maestro-run-ended" >>"${state}/calls.log"; }
   node -e "fetch('http://localhost:' + (Number(process.env.E2E_PORT) + 2000) + '/emails?to=owner@example.com').then((r) => r.json()).then((emails) => process.exit(Array.isArray(emails) ? 0 : 1), () => process.exit(1))" \
     && touch "${state}/brevo-answered"
-  # FAKE_FAIL_FLOW=<name>: only that flow fails.
-  case "$*" in *"/$FAKE_FAIL_FLOW.yaml "*) exit 1 ;; esac
   ${outcome} ;; esac`,
     );
     script(
@@ -3219,7 +3227,7 @@ esac`,
         const text = JSON.parse(
           readFileSync(join(SCRIPTS, '../packages/i18n', `${file}.json`), 'utf8'),
         ).signIn.sendCode;
-        const flow = fake.log('maestro').find((call) => call.includes(`${prefix}-${locale}/`));
+        const flow = fake.log('maestro').find((call) => call.includes(`${prefix}-${locale}.xml`));
         assert.ok(flow?.includes(`--env SIGN_IN_SEND_CODE=${text} `), `${locale}: ${flow}`);
       }
     });
@@ -3240,7 +3248,7 @@ esac`,
         const title = JSON.parse(
           readFileSync(join(SCRIPTS, '../packages/i18n', `${locale}.json`), 'utf8'),
         ).hello.title;
-        const flow = fake.log('maestro').find((call) => call.includes(`${prefix}-${locale}/`));
+        const flow = fake.log('maestro').find((call) => call.includes(`${prefix}-${locale}.xml`));
         assert.ok(flow?.includes(`--env HELLO_TITLE=${title} `), `${locale}: ${flow}`);
         assert.ok(
           flow?.includes('--env SIGN_IN_SEND_CODE='),
@@ -3288,7 +3296,7 @@ esac`,
       assert.equal(env.RAILWAY_ENVIRONMENT_NAME, undefined);
     });
 
-    it(`F001: ${name} clears the sign-in rate limits before each flow`, async () => {
+    it(`F001: ${name} clears the sign-in rate limits before the flows of each locale`, async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/maestro.sh', args);
@@ -3297,66 +3305,100 @@ esac`,
       const steps = fake
         .log('calls')
         .map((call) => {
-          if (isFlow(call)) {
-            const [, locale, flow] = call.match(new RegExp(`${prefix}-([^/]+)/(\\S+)\\.xml`));
-            return `flow ${locale} ${flow}`;
-          }
+          if (isFlow(call)) return `flow ${call.match(new RegExp(`${prefix}-(\\S+)\\.xml`))[1]}`;
           if (call === 'pnpm db:reset-rate-limits') return 'clear';
           return '';
         })
         .filter(Boolean);
-      assert.deepEqual(steps, [
-        'clear',
-        'flow nl-NL alpha',
-        'clear',
-        'flow nl-NL beta',
-        'clear',
-        'flow en alpha',
-        'clear',
-        'flow en beta',
-      ]);
+      assert.deepEqual(steps, ['clear', 'flow nl-NL', 'clear', 'flow en']);
     });
 
-    it(`F004: ${name} runs the top-level flows only, each with its own report, not config.yaml or shared/`, async () => {
+    // #363: three flows sign in as the seeded trainer; one Maestro process runs them all, so the limits are cleared
+    // while it runs.
+    for (const [ending, result, status] of endings) {
+      it(`#363: ${name} clears the sign-in rate limits again and again while a locale's run lasts, and stops when it ${ending}`, async () => {
+        const fake = checkout();
+
+        const run = await fake.run(
+          'scripts/maestro.sh',
+          args,
+          { FAKE_RESULT: result, FAKE_MAESTRO_SLEEP: '1', MAESTRO_CLEAR_EVERY: '0.1' },
+          { interrupt: result === 'hang' },
+        );
+
+        assert.equal(run.status, status, run.output);
+        const calls = fake.log('calls');
+        const clearsIn = (from, to) =>
+          calls.slice(from, to).filter((call) => call === 'pnpm db:reset-rate-limits').length;
+        const start = calls.findIndex(isFlow);
+        assert.ok(
+          clearsIn(0, start) >= 1,
+          `a clear before the first run, as before: ${calls.join('\n')}`,
+        );
+        if (result !== 'hang') {
+          const end = calls.indexOf('maestro-run-ended');
+          assert.ok(end > start, calls.join('\n'));
+          assert.ok(clearsIn(start, end) >= 3, `cleared during the run: ${calls.join('\n')}`);
+        }
+        // Nothing clears once the script has ended, so the loop is gone with it.
+        const before = fake.log('calls').length;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        assert.equal(fake.log('calls').length, before, 'no clear after the run');
+      });
+    }
+
+    it(`#363: ${name} clears before and during the run of each locale`, async () => {
       const fake = checkout();
 
-      const run = await fake.run('scripts/maestro.sh', args);
+      const run = await fake.run('scripts/maestro.sh', args, {
+        FAKE_MAESTRO_SLEEP: '0.6',
+        MAESTRO_CLEAR_EVERY: '0.1',
+      });
 
       assert.equal(run.status, 0, run.output);
-      const flows = fake.log('maestro').filter((call) => / test /.test(` ${call} `));
-      assert.equal(flows.length, 4, flows.join('\n'));
-      for (const locale of ['nl-NL', 'en']) {
-        for (const flow of ['alpha', 'beta']) {
-          const call = flows.find((line) => line.includes(`/e2e/maestro/${flow}.yaml `));
-          assert.ok(call, `${flow}: ${flows.join('\n')}`);
-          assert.ok(
-            flows.some(
-              (line) =>
-                line.includes(`/e2e/maestro/${flow}.yaml `) &&
-                line.includes(`--format junit --output `) &&
-                line.includes(`/e2e/maestro/build/${prefix}-${locale}/${flow}.xml `) &&
-                line.includes(`--test-output-dir `) &&
-                line.endsWith(`/e2e/maestro/build/${prefix}-${locale}/${flow}`),
-            ),
-            `${locale} ${flow}: ${flows.join('\n')}`,
-          );
-        }
+      const calls = fake.log('calls');
+      const starts = calls.flatMap((call, index) => (isFlow(call) ? [index] : []));
+      const ends = calls.flatMap((call, index) => (call === 'maestro-run-ended' ? [index] : []));
+      assert.equal(starts.length, 2, calls.join('\n'));
+      assert.equal(ends.length, 2, calls.join('\n'));
+      const clears = (from, to) =>
+        calls.slice(from, to).filter((call) => call === 'pnpm db:reset-rate-limits').length;
+      assert.ok(clears(0, starts[0]) >= 1, 'a clear before the first locale');
+      assert.ok(clears(ends[0], starts[1]) >= 1, 'a clear before the second locale');
+      for (const locale of [0, 1]) {
+        assert.ok(clears(starts[locale], ends[locale]) >= 2, `during locale ${locale}`);
       }
-      assert.ok(!flows.some((line) => /config\.yaml|sub\.yaml/.test(line)), flows.join('\n'));
     });
 
-    it(`F004: ${name} goes on with the other flows and locales after one flow fails, and then fails`, async () => {
+    it(`#363: ${name} logs a clear that fails while the run lasts, and goes on`, async () => {
       const fake = checkout();
 
-      const run = await fake.run('scripts/maestro.sh', args, { FAKE_FAIL_FLOW: 'alpha' });
+      const run = await fake.run('scripts/maestro.sh', args, {
+        FAKE_CLEAR: 'flaky',
+        FAKE_MAESTRO_SLEEP: '1',
+        MAESTRO_CLEAR_EVERY: '0.1',
+      });
 
-      assert.equal(run.status, 1, run.output);
-      assert.equal(
-        fake.log('maestro').filter((call) => / test /.test(` ${call} `)).length,
-        4,
-        'every flow ran in both locales',
+      assert.equal(run.status, 0, run.output);
+      assert.match(run.output, /clearing the sign-in rate limits failed/);
+    });
+
+    it(`#363: ${name} fails the run when no clear worked while it lasted`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args, {
+        FAKE_CLEAR: 'fail-after-first',
+        FAKE_MAESTRO_SLEEP: '1',
+        MAESTRO_CLEAR_EVERY: '0.1',
+      });
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(run.output, /clearing the sign-in rate limits failed/);
+      assert.match(run.output, /never cleared/);
+      assert.ok(
+        fake.log('maestro').filter((call) => / test /.test(` ${call} `)).length >= 1,
+        'the run itself was not stopped by the failed clears',
       );
-      assert.match(run.output, /Maestro failed.* in: nl-NL en /);
     });
   }
 
@@ -3395,7 +3437,7 @@ esac`,
     const steps = fake
       .log('calls')
       .map((call) => {
-        if (isFlow(call)) return `flow ${call.match(/android-([^/]+)\//)[1]}`;
+        if (isFlow(call)) return `flow ${call.match(/android-(\S+)\.xml/)[1]}`;
         if (/setprop persist\.sys\.locale \S+;/.test(call))
           return `language ${call.match(/persist\.sys\.locale ([^;]+);/)[1]}`;
         if (call === 'adb shell am wait-for-broadcast-idle') return 'settled';
@@ -3406,10 +3448,8 @@ esac`,
       'language nl-NL',
       'settled',
       'flow nl-NL',
-      'flow nl-NL',
       'language en',
       'settled',
-      'flow en',
       'flow en',
     ]);
   });

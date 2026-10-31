@@ -15,10 +15,11 @@
 #
 # The app starts on its sign-in (F001), so the flows sign in as the seeded owner@example.com: the web server sends its
 # emails to the fake Brevo server, and the flows read the newest sign-in code from it (`GET /emails?to=`), so no real
-# inbox is involved. The flows run one at a time (every top-level e2e/maestro/*.yaml except config.yaml, by name), and the
-# sign-in rate limits are cleared before each flow: several flows sign in as the same seeded address, and 3 emails per
-# address in 15 minutes would stop the fourth, or the second run. The reports are one junit file per flow in
-# e2e/maestro/build/<platform>-<locale>/.
+# inbox is involved. Several flows sign in as the same seeded address, and 3 emails per address in 15 minutes would stop
+# the fourth, or the second run. So the sign-in rate limits are cleared before each locale's run (`maestro test
+# e2e/maestro`, one Maestro process for all its flows: a new one per flow made CI's emulator drop its adb connection, #363)
+# and, while it runs, every MAESTRO_CLEAR_EVERY seconds (default 20, shorter than one flow) by a background loop that stops
+# when the run ends, also on failure or Ctrl-C. Maestro reads e2e/maestro/config.yaml to pick the flows.
 #
 # Before the first flow, the web server has answered GET /api/v1/hello, the app's first request, in both locales.
 # When it ends, also on failure or Ctrl-C, it stops the emulator or simulator it booted and its Gradle daemons;
@@ -36,6 +37,9 @@ REPORTS="$ROOT/e2e/maestro/build"
 SERVER_PID=""
 BREVO_PID=""
 BREVO_PORT=$((PORT + 2000))
+CLEAR_EVERY="${MAESTRO_CLEAR_EVERY:-20}"
+CLEARER_PID=""
+CLEARER_LOG=""
 DEVICE_LOCALE=""
 export MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
 
@@ -160,29 +164,64 @@ restore_error_dialogs() {
   esac
 }
 
-# The flows of one locale, one at a time: `run_flows <report folder name> <maestro command...>` runs each top-level
-# e2e/maestro/*.yaml (not config.yaml, whose `flows: "*"` is this same set; shared/ holds the sub-flows) with the sign-in
-# rate limits cleared first. Each flow has its own junit report and test output in $REPORTS/<report folder name>/. Every
-# flow runs, also after one has failed; the status is that of the locale: non-zero when any flow failed. Ctrl-C stops the
-# whole run (Maestro, a JVM, exits 130 on it, so bash doesn't see the signal itself).
-run_flows() {
-  local report="$1" flow name broken=0
-  shift
-  mkdir -p "$REPORTS/$report"
-  for flow in "$ROOT"/e2e/maestro/*.yaml "$ROOT"/e2e/maestro/*.yml; do
-    [ -f "$flow" ] || continue
-    name="$(basename "$flow")"
-    name="${name%.*}"
-    [ "$name" != config ] || continue
-    clear_rate_limits
-    "$@" test "$flow" "${FLOW_ENV[@]}" \
-      --format junit --output "$REPORTS/$report/$name.xml" --test-output-dir "$REPORTS/$report/$name" \
-      || { [ $? -ne 130 ] || exit 130; broken=1; }
-  done
-  return "$broken"
+# Clears the sign-in rate limits now and every $CLEAR_EVERY seconds in the background, until stop_clearing. A flow that
+# signs in as the seeded address would otherwise be the fourth in 15 minutes. A clear that fails in the background is
+# logged to stderr, and stop_clearing fails when none of them ever worked. The loop sleeps with /bin/sleep (the tests put
+# a fake sleep in PATH) and ends at once on TERM, not after the sleep.
+start_clearing() {
+  clear_rate_limits
+  CLEARER_LOG="$(mktemp "${TMPDIR:-/tmp}/maestro-clearing.XXXXXX")"
+  (
+    nap=""
+    trap '[ -z "$nap" ] || kill "$nap" 2>/dev/null; exit 0' TERM
+    while :; do
+      /bin/sleep "$CLEAR_EVERY" &
+      nap=$!
+      wait "$nap" || true
+      if output="$(pnpm db:reset-rate-limits 2>&1)"; then
+        echo ok >>"$CLEARER_LOG"
+      else
+        echo fail >>"$CLEARER_LOG"
+        echo "maestro.sh: clearing the sign-in rate limits failed (the run goes on): $output" >&2
+      fi
+    done
+  ) &
+  CLEARER_PID=$!
+}
+
+# Stops the loop and waits until it is gone; fails when it tried to clear and never succeeded. Safe to call twice.
+stop_clearing() {
+  local status=0
+  if [ -n "$CLEARER_PID" ]; then
+    kill "$CLEARER_PID" 2>/dev/null || true
+    wait "$CLEARER_PID" 2>/dev/null || true
+    CLEARER_PID=""
+    if [ -s "$CLEARER_LOG" ] && ! grep -q '^ok$' "$CLEARER_LOG"; then
+      echo "maestro.sh: the sign-in rate limits were never cleared during the run" >&2
+      status=1
+    fi
+    rm -f "$CLEARER_LOG"
+  fi
+  return "$status"
+}
+
+# `run_locale <locale> <report> <maestro command...>`: one `maestro test` for all flows of the locale, with the rate limits
+# cleared around it. A failing flow fails the locale (the status), and the run goes on to the next. Ctrl-C stops the whole
+# run (Maestro, a JVM, exits 130 on it, so bash doesn't see the signal itself).
+run_locale() {
+  local locale="$1" report="$2" status=0
+  shift 2
+  set_flow_env "$locale"
+  start_clearing
+  "$@" test "$ROOT/e2e/maestro" "${FLOW_ENV[@]}" \
+    --format junit --output "$REPORTS/$report.xml" --test-output-dir "$REPORTS/$report" || status=$?
+  stop_clearing || [ "$status" -ne 0 ] || status=1
+  [ "$status" -ne 130 ] || exit 130
+  return "$status"
 }
 
 cleanup() {
+  stop_clearing || true
   stop_stack
   if [ "$EMULATOR_STARTED" = false ]; then
     # In this order: Android writes settings to disk a moment later, and the framework restart would lose the write.
@@ -222,8 +261,7 @@ cmd_android() {
     echo "Maestro on Android in $locale"
     set_device_locale "$locale"
     settle_device
-    set_flow_env "$locale"
-    run_flows "android-$locale" maestro || failed="$failed $locale"
+    run_locale "$locale" "android-$locale" maestro || failed="$failed $locale"
   done
   [ -z "$failed" ] || die "Maestro failed in:$failed (reports: e2e/maestro/build)"
 }
@@ -245,6 +283,7 @@ restart_simulator() {
 }
 
 cleanup_ios() {
+  stop_clearing || true
   stop_stack
   if [ -n "$SIMULATOR_SETTINGS" ] && [ -f "$SIMULATOR_SETTINGS" ]; then
     xcrun simctl spawn "$SIMULATOR" defaults import -g "$SIMULATOR_SETTINGS" || true
@@ -286,8 +325,7 @@ cmd_ios() {
   for locale in $LOCALES; do
     echo "Maestro on iOS in $locale"
     set_simulator_locale "$locale"
-    set_flow_env "$locale"
-    run_flows "ios-$locale" maestro --device "$SIMULATOR" || failed="$failed $locale"
+    run_locale "$locale" "ios-$locale" maestro --device "$SIMULATOR" || failed="$failed $locale"
   done
   [ -z "$failed" ] || die "Maestro failed on iOS in:$failed (reports: e2e/maestro/build)"
 }
