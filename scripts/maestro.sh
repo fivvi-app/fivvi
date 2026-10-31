@@ -50,25 +50,35 @@ catalog() {
     "$ROOT/packages/i18n/$1.json" "$2"
 }
 
+# Adds `--env <name>=<catalog text of key $3 in locale $2>` to FLOW_ENV; fails when the catalog has no such key.
+add_catalog_env() {
+  local text
+  text="$(catalog "$2" "$3")" || return 1
+  FLOW_ENV+=(--env "$1=$text")
+}
+
 # The values every flow gets (--env; a flow's own env default would win over them, so the flows have none): the texts the
 # screens show in locale $1, and where the flows read the sign-in emails (the host: Maestro runs there on both platforms).
+# Fails, rather than giving a flow an empty text, when the catalog lacks a key (each lookup is checked on its own: an
+# array assignment would only report the last one).
 FLOW_ENV=()
 set_flow_env() {
   local other="nl-NL"
   [ "$1" != "nl-NL" ] || other="en"
-  FLOW_ENV=(
-    --env "SIGN_IN_SEND_CODE=$(catalog "$1" signIn.sendCode)"
-    --env "HELLO_TITLE=$(catalog "$1" hello.title)"
-    --env "HOME_SET_UP_ON_WEB=$(catalog "$1" home.setUpOnWeb)"
-    --env "ROLE_OWNER=$(catalog "$1" roles.owner)"
-    --env "ROLE_TRAINER=$(catalog "$1" roles.trainer)"
-    --env "PROFILE_WORKSPACES_TITLE=$(catalog "$1" myProfile.workspacesTitle)"
-    --env "SIGN_OUT_LABEL=$(catalog "$1" signOut.label)"
+  FLOW_ENV=()
+  add_catalog_env SIGN_IN_SEND_CODE "$1" signIn.sendCode || return 1
+  add_catalog_env HELLO_TITLE "$1" hello.title || return 1
+  add_catalog_env HOME_SET_UP_ON_WEB "$1" home.setUpOnWeb || return 1
+  add_catalog_env ROLE_OWNER "$1" roles.owner || return 1
+  add_catalog_env ROLE_TRAINER "$1" roles.trainer || return 1
+  add_catalog_env PROFILE_WORKSPACES_TITLE "$1" myProfile.workspacesTitle || return 1
+  add_catalog_env SIGN_OUT_LABEL "$1" signOut.label || return 1
+  add_catalog_env PROFILE_LANGUAGE_THIS "$1" profile.language || return 1
+  add_catalog_env PROFILE_LANGUAGE_OTHER "$other" profile.language || return 1
+  FLOW_ENV+=(
     --env "DEVICE_LANGUAGE=$1"
     --env "LANGUAGE_THIS=$1"
     --env "LANGUAGE_OTHER=$other"
-    --env "PROFILE_LANGUAGE_THIS=$(catalog "$1" profile.language)"
-    --env "PROFILE_LANGUAGE_OTHER=$(catalog "$other" profile.language)"
     --env "BREVO_URL=http://localhost:$BREVO_PORT"
   )
 }
@@ -170,7 +180,7 @@ restore_error_dialogs() {
 # a fake sleep in PATH) and ends at once on TERM, not after the sleep.
 start_clearing() {
   clear_rate_limits
-  CLEARER_LOG="$(mktemp "${TMPDIR:-/tmp}/maestro-clearing.XXXXXX")"
+  CLEARER_LOG="$(mktemp "${TMPDIR:-/tmp}/maestro-clearing.XXXXXX")" || die "no temporary file for the rate limit clearing"
   (
     nap=""
     trap '[ -z "$nap" ] || kill "$nap" 2>/dev/null; exit 0' TERM
@@ -211,7 +221,8 @@ stop_clearing() {
 run_locale() {
   local locale="$1" report="$2" status=0
   shift 2
-  set_flow_env "$locale"
+  # Both die: this runs as `run_locale … || failed=…`, where set -e is off, and a run without its texts is worthless.
+  set_flow_env "$locale" || die "the i18n catalog lacks a text the $locale flows need (packages/i18n)"
   start_clearing
   "$@" test "$ROOT/e2e/maestro" "${FLOW_ENV[@]}" \
     --format junit --output "$REPORTS/$report.xml" --test-output-dir "$REPORTS/$report" || status=$?

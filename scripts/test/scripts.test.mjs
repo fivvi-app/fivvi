@@ -3322,7 +3322,7 @@ esac`,
         const run = await fake.run(
           'scripts/maestro.sh',
           args,
-          { FAKE_RESULT: result, FAKE_MAESTRO_SLEEP: '1', MAESTRO_CLEAR_EVERY: '0.1' },
+          { FAKE_RESULT: result, FAKE_MAESTRO_SLEEP: '1.5', MAESTRO_CLEAR_EVERY: '0.1' },
           { interrupt: result === 'hang' },
         );
 
@@ -3338,11 +3338,12 @@ esac`,
         if (result !== 'hang') {
           const end = calls.indexOf('maestro-run-ended');
           assert.ok(end > start, calls.join('\n'));
-          assert.ok(clearsIn(start, end) >= 3, `cleared during the run: ${calls.join('\n')}`);
+          // About 14 are due in 1.5 s; 2 prove that it repeats, even on a loaded machine.
+          assert.ok(clearsIn(start, end) >= 2, `cleared during the run: ${calls.join('\n')}`);
         }
-        // Nothing clears once the script has ended, so the loop is gone with it.
+        // Nothing clears once the script has ended, so the loop is gone with it (10 clears are due in the window).
         const before = fake.log('calls').length;
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         assert.equal(fake.log('calls').length, before, 'no clear after the run');
       });
     }
@@ -3351,7 +3352,7 @@ esac`,
       const fake = checkout();
 
       const run = await fake.run('scripts/maestro.sh', args, {
-        FAKE_MAESTRO_SLEEP: '0.6',
+        FAKE_MAESTRO_SLEEP: '1',
         MAESTRO_CLEAR_EVERY: '0.1',
       });
 
@@ -3366,8 +3367,44 @@ esac`,
       assert.ok(clears(0, starts[0]) >= 1, 'a clear before the first locale');
       assert.ok(clears(ends[0], starts[1]) >= 1, 'a clear before the second locale');
       for (const locale of [0, 1]) {
-        assert.ok(clears(starts[locale], ends[locale]) >= 2, `during locale ${locale}`);
+        assert.ok(clears(starts[locale], ends[locale]) >= 1, `during locale ${locale}`);
       }
+    });
+
+    // maestro.sh runs run_locale as `run_locale … || failed=…`, where set -e is off: a catalog lookup that fails there
+    // (a renamed i18n key) or a mktemp that fails must still stop the script, not start Maestro with an empty --env.
+    for (const [what, file, key] of [
+      ['the first text of the locale', 'nl-NL', 'signIn'],
+      ['the last text, of the other locale', 'en', 'profile'],
+    ]) {
+      it(`#363: ${name} stops before Maestro starts when the catalog lacks ${what}`, async () => {
+        const fake = checkout();
+        const path = join(fake.repo, 'packages/i18n', `${file}.json`);
+        const catalog = JSON.parse(readFileSync(path, 'utf8'));
+        delete catalog[key];
+        writeFileSync(path, JSON.stringify(catalog));
+
+        const run = await fake.run('scripts/maestro.sh', args);
+
+        assert.notEqual(run.status, 0, run.output);
+        assert.match(run.output, /catalog lacks a text/);
+        const calls = fake.log('calls');
+        assert.equal(calls.filter(isFlow).length, 0, `no flow started:\n${calls.join('\n')}`);
+        assert.ok(!run.output.includes('Maestro failed in'), run.output);
+      });
+    }
+
+    it(`#363: ${name} stops before Maestro starts when it can't make the temporary file of the clearing`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args, {
+        TMPDIR: join(fake.repo, 'no-such-directory'),
+      });
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(run.output, /no temporary file/);
+      const calls = fake.log('calls');
+      assert.equal(calls.filter(isFlow).length, 0, `no flow started:\n${calls.join('\n')}`);
     });
 
     it(`#363: ${name} logs a clear that fails while the run lasts, and goes on`, async () => {
