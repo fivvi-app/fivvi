@@ -5,7 +5,7 @@ The single source of truth for feature status. A status changes **in the same PR
 - **Lifecycle:** `IDEA → PLANNED → DESIGNED → IN PROGRESS → IN REVIEW → IMPLEMENTED → RELEASED` (`PRODUCT.md §81`)
 - **Priority:** `Must` (MVP cannot ship without it) · `Should` (first to slip to 1.1 if dates are at risk) · `Must (proposed, decision 9)` (proposed M11 scope, `ROADMAP.md` decision 9: a `Must` only once the owner confirms it)
 - **Languages:** a feature is not `IMPLEMENTED` until both NL and EN work (`PRODUCT.md §82`)
-- **Platforms:** a feature with a trainer mobile surface (marked `+ iOS/Android` in the Milestone column) is not `IMPLEMENTED` until web, iOS and Android all work; its iOS and Android tickets sit next to the web ticket with the same acceptance criteria (`ROADMAP.md` M8, the native track). Client apps stay Release 1.2
+- **Platforms:** a feature with a trainer mobile surface (marked `+ iOS/Android` in the Milestone column) or a client mobile surface in the client app (marked `+ Fivvi iOS/Android`, since `ROADMAP.md` v1.31) is not `IMPLEMENTED` until web, iOS and Android all work; its iOS and Android tickets sit next to the web ticket with the same acceptance criteria (`ROADMAP.md` M8, the native track)
 - **Spec:** the *Spec* column points to the requirements in [`PRODUCT.md`](PRODUCT.md). Each feature's spec and tickets are GitHub issues (`/to-spec`, `/to-tickets`, [`docs/agents/issue-tracker.md`](../agents/issue-tracker.md)); once a spec issue exists, the ID links to it, e.g. `[F031](https://github.com/fivvi-app/fivvi/issues/<n>)`
 - **Rows:** a stable summary and a Status. A ticket PR changes only its row's Status: the spec's first ticket sets `IN PROGRESS`, and the PR that completes the spec sets `IMPLEMENTED` and writes the final one-line summary. A spec's progress (what's open, what's next) lives in its tickets (`scripts/flow.sh status <spec>`), not in the row, so parallel PRs don't edit the same lines
 - **Milestones:** see [`ROADMAP.md §5`](ROADMAP.md#5-mvp-delivery-plan-m1m11)
@@ -14,7 +14,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 63 (F001–F063) + 19 engineering enablers (E001–E019); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live; trainer iOS and Android screens are built with their web features (the M8 native track) | 0 |
+| MVP | 63 (F001–F063) + 19 engineering enablers (E001–E019); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live; trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
 
 **Waitlist moved to the MVP (31 October 2026, [#150](https://github.com/fivvi-app/fivvi/issues/150)):** it was a Release 1.1 candidate. The owner placed it as **F062** in **M5** (31 October 2026, `ROADMAP.md` v1.29); the rules are in `PRODUCT.md §23`.
 
@@ -37,8 +37,8 @@ The single source of truth for feature status. A status changes **in the same PR
 | F007 | Localization Infrastructure | PLANNED | Must | M1–M2 | E005 | ⬜ | ⬜ | §3, §73 |
 | F008 | Dutch UI | PLANNED | Must | continuous | F007 | ⬜ | — | §2.2 |
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |
-| F010 | Locale Preference | IN PROGRESS | Must | M2 (+ iOS/Android) | F001, F007 | ⬜ | ⬜ | §3 |
-| F063 | Sign in with Apple and Google: a second way to sign in, on the web first (clients and team members), then Fivvi Pro (App Store guideline 4.8: Sign in with Apple when an app offers Google). Owner steps later: an Apple Services ID and a Google OAuth client | PLANNED | **Should** | M5 (web first; Fivvi Pro after) | F001 | ⬜ | ⬜ | §27, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) |
+| F010 | Locale Preference | IN PROGRESS | Must | M2 (+ iOS/Android; + Fivvi iOS/Android from M5) | F001, F007 | ⬜ | ⬜ | §3 |
+| F063 | Sign in with Apple and Google: a second way to sign in, on the web first (clients and team members), then Fivvi Pro and Fivvi (App Store guideline 4.8: Sign in with Apple when an app offers Google). Owner steps later: an Apple Services ID and a Google OAuth client | PLANNED | **Should** | M5 (web first; Fivvi Pro and Fivvi after) | F001 | ⬜ | ⬜ | §27, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) |
 
 ### Trainers
 
@@ -75,21 +75,21 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F027 | Client Timetable: the booking page for approved clients only, nothing public | PLANNED | Must | M5 | F022, F007, F029 | ⬜ | ⬜ | §15, §21 |
+| F027 | Client Timetable: the booking page for approved clients only, nothing public | PLANNED | Must | M5 (+ Fivvi iOS/Android) | F022, F007, F029 | ⬜ | ⬜ | §15, §21 |
 | F028 | Booking Capacity | PLANNED | Must | M5 (+ iOS/Android: add a participant) | F027 | ⬜ | ⬜ | §18 |
-| F029 | Join Link and Join Requests: one join link per workspace with its QR code, a join request, the Owner approves or declines (a list on Clients, an email per request), renew the link | PLANNED | Must | M5 | F006, F049, F032 | ⬜ | ⬜ | §26 |
-| F030 | Client Sign-Up: open account sign-up with the emailed link or code (ADR-007); workspace creation stays allowlisted until 2.0 | PLANNED | Must | M5 | F001 | ⬜ | ⬜ | §27 |
-| F031 | Booking for Approved Clients: immediate booking, capacity, and from M11 the agreement check | PLANNED | Must | M5 (+M11 commerce) | F027, F028, F030 | ⬜ | ⬜ | §22, §23, §25 |
+| F029 | Join Link and Join Requests: one join link per workspace with its QR code, a join request, the Owner approves or declines (a list on Clients, an email per request), renew the link | PLANNED | Must | M5 (+ Fivvi iOS/Android: join) | F006, F049, F032 | ⬜ | ⬜ | §26 |
+| F030 | Client Sign-Up: open account sign-up with the emailed link or code (ADR-007); workspace creation stays allowlisted until 2.0 | PLANNED | Must | M5 (+ Fivvi iOS/Android: sign-in) | F001 | ⬜ | ⬜ | §27 |
+| F031 | Booking for Approved Clients: immediate booking, capacity, and from M11 the agreement check | PLANNED | Must | M5 (+M11 commerce) (+ Fivvi iOS/Android) | F027, F028, F030 | ⬜ | ⬜ | §22, §23, §25 |
 | F032 | Client Invitations: the Owner adds a client, who gets an invitation email and is in once they sign in | PLANNED | Must | M5 | F006, F030, F049 | ⬜ | ⬜ | §2.4, §26, §34 |
-| F033 | Client Booking Dashboard | PLANNED | Must | M5 (+M11 commerce) | F031, F062 | ⬜ | ⬜ | §15 (Client Web: my schedule with private + group; the waitlists the client is on, with the position; from M11, per workspace, the payment history and the invoice and credit-note PDFs, §96) |
-| F062 | Waitlist: group classes only; one tap to join, position shown; the first in line is booked automatically when a spot frees up (a cancellation, a removal, more capacity) with a "you're in" email; a workspace **waitlist closing time** (default 30 minutes before the class) after which nobody moves up and everyone waiting gets a "you didn't get in" email; from M11 a client who can't book is skipped; the owner and trainers see the list on the web | PLANNED | Must | M5 (+M11 commerce) | F026, F028, F031, F049 | ⬜ | ⬜ | §23 (Waitlist) |
+| F033 | Client Booking Dashboard | PLANNED | Must | M5 (+M11 commerce) (+ Fivvi iOS/Android) | F031, F062 | ⬜ | ⬜ | §15 (Client Web: my schedule with private + group; the waitlists the client is on, with the position; from M11, per workspace, the payment history and the invoice and credit-note PDFs, §96) |
+| F062 | Waitlist: group classes only; one tap to join, position shown; the first in line is booked automatically when a spot frees up (a cancellation, a removal, more capacity) with a "you're in" email; a workspace **waitlist closing time** (default 30 minutes before the class) after which nobody moves up and everyone waiting gets a "you didn't get in" email; from M11 a client who can't book is skipped; the owner and trainers see the list on the web | PLANNED | Must | M5 (+M11 commerce) (+ Fivvi iOS/Android) | F026, F028, F031, F049 | ⬜ | ⬜ | §23 (Waitlist) |
 
 ### Open Gym
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | F034 | Open Gym Slots | PLANNED | Must | M6 (+ iOS/Android) | F015, F020 | ⬜ | ⬜ | §2.7, §15, §28 |
-| F035 | Open Gym Booking: approved clients book an Open Gym slot (Open Gym credits from M11) | PLANNED | Must | M6 | F034, F027, F028, F031 | ⬜ | ⬜ | §30 |
+| F035 | Open Gym Booking: approved clients book an Open Gym slot (Open Gym credits from M11) | PLANNED | Must | M6 (+ Fivvi iOS/Android) | F034, F027, F028, F031 | ⬜ | ⬜ | §30 |
 | F036 | Open Gym Suggestions | PLANNED | **Should** | M6 | F034, F013 | ⬜ | ⬜ | §29 |
 
 ### Sharing
@@ -109,7 +109,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | F042 | Client Workouts | PLANNED | Must | M7, after G4 (+ iOS/Android) | F041, F006 | ⬜ | ⬜ | §40 |
 | F043 | Live Workout Logging | PLANNED | Must | M7, after G4 (+ iOS/Android) | F039, F020 | ⬜ | ⬜ | §41 (with or without a template) |
 | F044 | Previous Workout Display | PLANNED | Must | M7, after G4 (+ iOS/Android) | F043 | ⬜ | ⬜ | §41 |
-| F045 | Workout History | PLANNED | Must | M7, after G4 (+ iOS/Android) | F043 | ⬜ | ⬜ | §42, §37 (shared recap) |
+| F045 | Workout History | PLANNED | Must | M7, after G4 (+ iOS/Android; + Fivvi iOS/Android) | F043 | ⬜ | ⬜ | §42, §37 (shared recap) |
 | F051 | Repeat Previous Workout | PLANNED | Must | M7, after G4 (+ iOS/Android) | F043, F045 | ⬜ | ⬜ | §41 (moved from §54) |
 
 ### Notes
@@ -168,7 +168,7 @@ These are not user-facing, so they don't need NL/EN columns. They still go throu
 | E014 | Privacy tooling | PLANNED | M9 | Data export, deletion, retention jobs, note-access audit log (§79) |
 | E015 | Data import tooling | PLANNED | M9 | Pilot data from the old app export or a CSV template → clients, timetable, sessions, active agreements, credit balances, next due dates, billing details; reconciliation report |
 | E016 | Backups, restore drill & runbooks | PLANNED | M9 | A verified restore, incident/rollback runbooks |
-| E017 | App distribution | IMPLEMENTED | M2 | The hand-started Release workflow runs in the `release` environment (the owner approves, `main` only): the full iOS and Android suites in nl and en first, one version for both apps and build number = run number + a fixed offset; iOS is signed and uploaded to TestFlight, with its dSYMs to Sentry; Android's App Bundle goes to Play internal testing (the first upload by hand, as Google's API can't make an app's first release), and its R8 mapping will go to Sentry once the release build is minified. App ID `app.fivvi.pro` (*Fivvi Pro*), the icon from one source. `docs/engineering/RELEASE.md` is the runbook, the owner checklist and the store requirements for the public release (§9); the client app `app.fivvi` comes with Release 1.2 |
+| E017 | App distribution | IMPLEMENTED | M2 | The hand-started Release workflow runs in the `release` environment (the owner approves, `main` only): the full iOS and Android suites in nl and en first, one version for both apps and build number = run number + a fixed offset; iOS is signed and uploaded to TestFlight, with its dSYMs to Sentry; Android's App Bundle goes to Play internal testing (the first upload by hand, as Google's API can't make an app's first release), and its R8 mapping will go to Sentry once the release build is minified. App ID `app.fivvi.pro` (*Fivvi Pro*), the icon from one source. `docs/engineering/RELEASE.md` is the runbook, the owner checklist and the store requirements for the public release (§9); the client app `app.fivvi` gets its own release lane in M5 (`ROADMAP.md` v1.31) |
 | E018 | API contract & client generation | IMPLEMENTED | M1 | `packages/api`: Hono + zod-openapi, mounted in `apps/web` under `/api`; `GET /api/v1/hello` reads `system_greetings` (#93). `packages/contract`: committed `openapi.json` (3.1) → TS (openapi-typescript + openapi-fetch), Swift (swift-openapi-generator), Kotlin (openapi-generator, retrofit2 + kotlinx.serialization); generators pinned. Drift check: `pnpm check` (Turborepo `check` task); E002 makes it a required CI check (ADR-004) |
 | E019 | Payment provider integration | PLANNED | M11 | ADR-020 (Accepted 21 October 2026: Mollie Connect for Platforms, the gym as merchant on its own Mollie account; Stripe Connect as fallback) and the questions for Mollie it lists; one guided connection step for the Owner (Mollie Client Links), test mode for previews, idempotent requests, stored webhook events processed once, replay tests |
 
@@ -180,8 +180,8 @@ These get `F0xx` IDs when they move to `PLANNED`. Full context is in [`ROADMAP.m
 
 | Release | Candidate items |
 |---|---|
-| 1.1 | Recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · warm-up sets · supersets · workout reordering · pinned notes · note search · offline resilience · bulk attendance · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *Universal Links / App Links (suggested)* |
-| 1.2 | Native client iOS/Android apps · push (APNs + FCM) · email → app deep links |
+| 1.1 | Recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · warm-up sets · supersets · workout reordering · pinned notes · note search · offline resilience · bulk attendance · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *deep links (Universal Links / App Links) so email links open the apps directly (suggested)* · push notifications in Fivvi and Fivvi Pro (APNs + FCM) |
+| 1.2 | *(moved into the MVP in v1.31: the client app Fivvi ships at go-live)* |
 | 1.3 | AI note capture (NL/EN, speech + text, trainer confirms) |
 | 1.4 | AI pre-session client briefing |
 | 2.0 | Self-serve workspace creation · persona onboarding · marketing site · help center · *platform billing (decision pending)* |

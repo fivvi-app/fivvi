@@ -28,6 +28,7 @@ Assumptions that `PRODUCT.md` doesn't settle are marked **⚑** and linked to [o
 | **Trainer web** | Owner, Trainer | Laptop/desktop (responsive down to tablet) | Next.js | M2–M7 | F001–F026, F034, F036–F048 |
 | **Trainer iOS app** | Trainer (incl. owner-trainers) | iPhone | Swift + SwiftUI | M2–M7, built beside the web (the M8 native track) | Mobile slices of F001, F006, F010, F013, F020–F022, F025, F034, F043–F048, F051 |
 | **Trainer Android app** | Trainer (incl. owner-trainers) | Android phone | Kotlin + Compose (Material 3) | M2–M7, built beside the web (the M8 native track) | Same as iOS (parity) |
+| **Client app Fivvi** | Client | iPhone and Android phone | Swift + SwiftUI and Kotlin + Compose (Material 3) | M5–M11, beside the client web (the M8 native track); ships at go-live | Mobile slices of F010, F027, F029–F031, F033, F035, F045, F062, F063; screens left to the first Fivvi spec |
 | **Public booking web** | Client (before or after verification) | Phone first (from QR), also desktop | Next.js (SSR) | M5–M6 | F027–F032, F035, F037, F038 |
 | **Client web** | Client (via the email's manage link, or signed in) | Phone first | Next.js | M5 | F033, F026, F010 |
 | **Emails** | Clients, trainers | Any mail client | React Email | M1 → M5 | F049, F050, F011, F001 |
