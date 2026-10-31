@@ -33,6 +33,30 @@ env:
       id: profile\.language
       text: ${PROFILE_LANGUAGE_OTHER}
     timeout: 20000
+# #371: the choice is stored on the account, not only kept in the app. Wait for the save, start again with no state of the
+# app (no session, no local choice) and sign in: the signed-in app follows the language the account stored, so Profiel →
+# Taal reads in the other language only when the API took the choice. KEEP_ACCOUNT_LANGUAGE keeps the sign-in from
+# choosing the device language again (shared/device-language.yaml).
+- extendedWaitUntil:
+    visible:
+      id: maestro\.pause
+    optional: true
+    timeout: 3000
+- assertNotVisible:
+    id: profile\.language\.error
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+    env:
+      KEEP_ACCOUNT_LANGUAGE: "true"
+- tapOn:
+    id: home\.openProfile
+- extendedWaitUntil:
+    visible:
+      id: profile\.language
+      text: ${PROFILE_LANGUAGE_OTHER}
+    timeout: 20000
 # Back to the device language, so the account ends as it started.
 - tapOn:
     id: profile\.language\.${LANGUAGE_THIS}

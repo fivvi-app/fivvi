@@ -4,13 +4,16 @@
 # stored language, and the seeded accounts store nl-NL, so in an English run the app would show Dutch. When the sign-out
 # button is not in the device language, choose that language under Profiel → Taal (which saves it on the account, so the
 # next sign-in already has it) and reopen the app. Needs SIGN_OUT_LABEL (signOut.label in the device language) and
-# DEVICE_LANGUAGE (nl-NL or en), set by scripts/maestro.sh.
+# DEVICE_LANGUAGE (nl-NL or en), set by scripts/maestro.sh. A flow that sets KEEP_ACCOUNT_LANGUAGE (in the env of its
+# runFlow) skips the step: language.yaml signs in again to see which language the account stored (#371), which this
+# step would hide by choosing the device language again.
 appId: ${APP_ID}
 ---
 - runFlow:
     when:
       notVisible:
         text: ${SIGN_OUT_LABEL}
+      true: ${typeof KEEP_ACCOUNT_LANGUAGE === 'undefined'}
     commands:
       - tapOn:
           id: home\.openProfile

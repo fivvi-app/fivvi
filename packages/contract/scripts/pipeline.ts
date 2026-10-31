@@ -103,9 +103,44 @@ export async function generateKotlin(specFile: string, outRoot: string): Promise
     // Android build; E008 compiles these sources in its own module.
     const dir = await resetDir(join(outRoot, GENERATED_PATHS.kotlin));
     await cp(join(staging, 'src/main/kotlin'), dir, { recursive: true });
+    const serializer = join(dir, KOTLIN_SERIALIZER);
+    await writeFile(serializer, leaveUnsetFieldsOut(await readFile(serializer, 'utf8')));
   } finally {
     await rm(staging, { recursive: true, force: true });
   }
+}
+
+/** The generated Kotlin `Json` configuration, relative to the Kotlin output directory. */
+export const KOTLIN_SERIALIZER = 'app/fivvi/api/infrastructure/Serializer.kt';
+
+const KOTLIN_ENCODE_DEFAULTS = '            encodeDefaults = true\n';
+
+/**
+ * The generator's `Json` has `encodeDefaults = true`, which writes every unset optional field as `null`. The API
+ * reads `null` as a value and refuses it (`400`), where the Swift client leaves a `nil` field out (#371). With
+ * `explicitNulls = false` the Kotlin client leaves it out too, so a request carries only what the app set; an
+ * explicit "clear" is a flag of the contract (`clearEmail`), never a `null`. Throws when the generator's output no
+ * longer has the line, so a new generator version cannot silently bring the `null`s back.
+ */
+export function leaveUnsetFieldsOut(source: string): string {
+  if (!source.includes(KOTLIN_ENCODE_DEFAULTS)) {
+    throw new Error(
+      `The Kotlin Serializer has no \`encodeDefaults = true\` line to adjust (${KOTLIN_SERIALIZER})`,
+    );
+  }
+  return source
+    .replace(
+      '    @JvmStatic\n    val kotlinxSerializationJson: Json by lazy {',
+      '    @OptIn(ExperimentalSerializationApi::class)\n    @JvmStatic\n    val kotlinxSerializationJson: Json by lazy {',
+    )
+    .replace(
+      'import kotlinx.serialization.json.Json\n',
+      'import kotlinx.serialization.ExperimentalSerializationApi\nimport kotlinx.serialization.json.Json\n',
+    )
+    .replace(
+      KOTLIN_ENCODE_DEFAULTS,
+      `${KOTLIN_ENCODE_DEFAULTS}            explicitNulls = false\n`,
+    );
 }
 
 /** Generates the spec and every client into `outRoot`. */
