@@ -138,6 +138,20 @@ final class WorkspaceCapabilitiesTests: XCTestCase {
         XCTAssertFalse(account.capabilities.allows(.clients_manage))
     }
 
+    func test_F004_AC10_aWorkspaceListedTwiceDoesNotCrashAndTheLaterEntryDecides() async {
+        let api = StubAPI()
+        await api.answerMe(with: .account(email: "trainer@example.com", team: [
+            johns([.clients_manage]),
+            johns([.clients_view])
+        ]))
+        let account = account(api)
+
+        await account.load()
+
+        XCTAssertFalse(account.capabilities.allows(.clients_manage, in: johnsGym))
+        XCTAssertTrue(account.capabilities.allows(.clients_view, in: johnsGym))
+    }
+
     func test_F004_AC10_aForbiddenAnswerRefreshesTheCapabilitiesAndHidesTheAction() async {
         let api = StubAPI()
         await answerAsSarah(api)

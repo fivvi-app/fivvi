@@ -38,7 +38,8 @@ final class WorkspaceCapabilities {
 
     /// Takes what `GET /api/v1/me` listed; `current` is the workspace the home shows, if any.
     func replace(with workspaces: [Components.Schemas.MeWorkspace], current: String?) {
-        byWorkspace = Dictionary(uniqueKeysWithValues: workspaces.map { ($0.id, Set($0.capabilities)) })
+        byWorkspace = Dictionary(
+            workspaces.map { ($0.id, Set($0.capabilities)) }, uniquingKeysWith: { _, later in later })
         currentWorkspaceID = current
     }
 }

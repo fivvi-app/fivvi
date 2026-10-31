@@ -372,7 +372,7 @@ extension StubAPI {
                 : team.map {
                     .init(
                         id: $0.workspaceID, name: $0.name, slug: $0.slug,
-                        role: .init(rawValue: $0.role.rawValue) ?? .owner,
+                        role: Self.meRole($0.role),
                         capabilities: ($0.capabilities ?? Self.capabilities(of: $0.role)).compactMap {
                             .init(rawValue: $0.rawValue)
                         }
@@ -381,8 +381,16 @@ extension StubAPI {
         )
     }
 
-    /// The permission matrix of `packages/domain` (F004): the Owner may do everything, the Trainer the
-    /// clients and the list.
+    /// The role `GET /api/v1/me` lists; one it has no value for is a broken fixture, so it stops.
+    private static func meRole(
+        _ role: Components.Schemas.MyWorkspace.RolePayload
+    ) -> Components.Schemas.MeWorkspace.RolePayload {
+        typealias MeRole = Components.Schemas.MeWorkspace.RolePayload
+        guard let mapped = MeRole(rawValue: role.rawValue) else { preconditionFailure("no me role \(role)") }
+        return mapped
+    }
+
+    /// The permission matrix of `packages/domain` (F004): the Owner may do everything, the Trainer the clients.
     private static func capabilities(
         of role: Components.Schemas.MyWorkspace.RolePayload
     ) -> [Components.Schemas.MyWorkspace.CapabilitiesPayloadPayload] {
