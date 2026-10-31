@@ -23,6 +23,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
             slug: 'johns-gym',
             role: 'trainer',
             capabilities: [],
+            trainsHere: true,
           },
           {
             workspaceId: 'w2',
@@ -30,6 +31,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
             slug: 'sarah',
             role: 'owner',
             capabilities: [],
+            trainsHere: false,
           },
         ]}
       />,
