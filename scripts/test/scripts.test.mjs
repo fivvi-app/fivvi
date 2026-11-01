@@ -1705,14 +1705,15 @@ exit 0`,
     );
     // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_HELLO=fail: GET /api/v1/hello fails.
     // The fake Brevo server is a real process (#379), so a GET to its port (E2E_PORT + 2000) succeeds only once it answers,
-    // like curl in maestro.sh's wait_for would, which the fake sleep cannot do: it polls for up to 20 s, then fails.
+    // like curl in maestro.sh's wait_for would, which the fake sleep cannot do: a call polls for up to 1 s (the skipped
+    // sleep 1) and then fails, so wait_for's 61 tries still end near its real 60 s when the server never answers.
     script(
       join(bin, 'curl'),
       `echo "curl $*" >>"${state}/calls.log"
 case "$*" in *"/api/v1/hello"*) [ "$FAKE_HELLO" != fail ] || exit 22 ;; esac
 case "$*" in *"localhost:$((E2E_PORT + 2000))/"*)
   exec node -e "
-    const url = process.argv[1], end = Date.now() + 20000;
+    const url = process.argv[1], end = Date.now() + 1000;
     const poll = () => fetch(url).then((r) => process.exit(r.ok ? 0 : 22), () => Date.now() < end ? setTimeout(poll, 50) : process.exit(7));
     poll();
   " "\${@: -1}" ;; esac
@@ -3897,7 +3898,7 @@ esac`,
         const run = await fake.run(
           'scripts/maestro.sh',
           args,
-          { FAKE_RESULT: result, FAKE_BREVO_LISTEN_DELAY_MS: '3000' },
+          { FAKE_RESULT: result, FAKE_BREVO_LISTEN_DELAY_MS: '2000' },
           { interrupt: result === 'hang' },
         );
 
