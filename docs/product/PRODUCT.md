@@ -116,7 +116,7 @@ All user-facing strings must come through the localization system.
 
 Clients must not need an app to book.
 
-A QR code or URL opens a responsive web page. Nothing is public (owner, 31 October 2026, ADR-026): a client signs in with their email, joins the workspace by its join link or an invitation, and books from the workspace's client timetable (§21). The native client app is Release 1.2 (§55).
+A QR code or URL opens a responsive web page. Nothing is public (owner, 31 October 2026, ADR-026): a client signs in with their email, joins the workspace by its join link or an invitation, and books from the workspace's client timetable (§21). The client app, **Fivvi**, ships at go-live next to the client web (§55, owner, 31 October 2026); the web stays, so no client needs the app.
 
 ---
 
@@ -546,7 +546,7 @@ Can:
 - buy a single class (§95)
 - pay, and see their payments and invoices (§94, §96)
 - keep their billing details, including a company name (§96)
-- use client web; client apps come later (§55)
+- use the client web or the client app, Fivvi (§55)
 
 ---
 
@@ -695,7 +695,7 @@ English
 
 ## Trainer Mobile
 
-The trainer app is **Fivvi Pro** (app ID `app.fivvi.pro`, the iOS bundle ID and the Android application ID); the client app of Release 1.2 is a separate app, **Fivvi** (`app.fivvi`, §55; `ROADMAP.md` decision 18). iOS + Android. Built in parallel with the web from M2 (`ROADMAP.md §3.1`; M8 is the label of this track), not after go-live: every feature with a trainer mobile surface gets iOS and Android tickets next to its web ticket, with the same acceptance criteria, and counts as done when web, iOS and Android all work. Trainers use the apps from go-live through TestFlight and Play internal testing if they pass their checks; go-live doesn't wait for public App Store / Play listings. Client apps stay Release 1.2.
+The trainer app is **Fivvi Pro** (app ID `app.fivvi.pro`, the iOS bundle ID and the Android application ID); the client app is a separate app, **Fivvi** (`app.fivvi`, §55; `ROADMAP.md` decision 18), at go-live since 31 October 2026. iOS + Android. Built in parallel with the web from M2 (`ROADMAP.md §3.1`; M8 is the label of this track), not after go-live: every feature with a trainer mobile surface gets iOS and Android tickets next to its web ticket, with the same acceptance criteria, and counts as done when web, iOS and Android all work. Trainers use the apps from go-live through TestFlight and Play internal testing if they pass their checks; go-live doesn't wait for public App Store / Play listings. The client app is built the same way from M5 (§55).
 
 Primary daily operational interface:
 
@@ -1669,13 +1669,12 @@ Do not build yet:
 - discounts, coupons, gift cards, family or shared memberships
 - accounting integrations (Moneybird, e-Boekhouden, Exact Online)
 - point-of-sale or kiosk payments at the desk, until the pilot's current use is known ([QC11](../design/open-questions.md#qc11))
-- payments inside the native apps (clients pay on the web) (proposal, [QC16](../design/open-questions.md#qc16))
+- payments inside the native apps (clients pay on the web; the client app opens the web payment page, owner, 31 October 2026, [QC16](../design/open-questions.md#qc16))
 - Fivvi holding client money in its own account (ADR-020 decides the gym as merchant instead; §94)
 - platform billing: charging gyms and trainers for Fivvi ([`ROADMAP.md` decision 16](ROADMAP.md#14-decisions), listed under "Decided iteratively" and decided at the 2.0 entry gate)
 - phone number requirement
 - SMS
 - complex permission system
-- client-native app
 - AI notes
 - AI programming
 - chat
@@ -1711,6 +1710,7 @@ Based on actual usage:
 - note search
 - offline resilience
 - bulk attendance
+- push notifications in Fivvi and Fivvi Pro (APNs + FCM, localized), for the events that send an email today (owner, 31 October 2026)
 
 Previous-session duplication moved to the MVP (§41) on 23 September 2026, after prototype feedback. The cancellation cutoff moved to the MVP (§93) on 19 October 2026, because memberships and credits depend on it. Waitlists moved to the MVP, before the pilot, on 31 October 2026 (§23), after the commerce walkthrough: the pilot gym has a waitlist today.
 
@@ -1718,9 +1718,18 @@ All additions must work in Dutch and English.
 
 ---
 
-# 55. Release 1.2 — Client apps
+# 55. Client app (at go-live)
 
 The client app is a separate app, **Fivvi** (app ID `app.fivvi`, iOS and Android), next to **Fivvi Pro** for owners and trainers (`app.fivvi.pro`); resolved by the owner on 21 October 2026 (`ROADMAP.md` decision 18). Check the store names for availability before the first listing.
+
+**At go-live (owner, 31 October 2026; it was Release 1.2, `ROADMAP.md` v1.31).** Fivvi ships at go-live next to the client web and is built beside it from M5, with iOS and Android parity. The client web stays: no client needs the app (§15).
+
+- **Scope at go-live:** what the client web does: sign in with the emailed code, join a workspace, the client timetable, booking and cancelling, the waitlist, Open Gym, my schedule, profile and the NL/EN switch; from M11 the client's memberships, credit packs and plans, balances, payment history and invoices.
+- **Paying** opens the web payment page in the browser; there are no payments inside the app (§53). Gym services are used outside the app, so the stores don't require in-app purchase.
+- **Notifications:** emails only at go-live; push notifications follow in Release 1.1 (§54).
+- **Distribution:** public App Store and Google Play listings in Dutch and English before go-live, with in-app account deletion (§79), the privacy label and data safety form, and a review account. Go-live doesn't wait for the store review: if Fivvi isn't approved in time, clients use the client web.
+- **After go-live:** the client's workout history comes with M7, so the **Training** tab arrives then.
+- **Open for the first Fivvi spec:** how a client joins a workspace in the app (the join link and its QR code opening the app, or scanning the QR code in the app).
 
 Launch:
 
@@ -1747,7 +1756,7 @@ Training
 Profiel
 ```
 
-Features:
+Features (the whole app; workout history comes with M7 and push notifications with Release 1.1):
 
 - upcoming bookings
 - group booking
@@ -2605,8 +2614,8 @@ Strongest validation signal:
 | Release | Objective |
 |---|---|
 | **MVP** | Dutch-first pilot gym platform, including memberships, recurring payments and invoices |
-| **1.1** | Pilot-driven improvements |
-| **1.2** | Client iOS + Android |
+| **1.1** | Pilot-driven improvements, push notifications |
+| **1.2** | *(moved into the MVP in v1.31: client iOS + Android at go-live)* |
 | **1.3** | Dutch/English AI note capture |
 | **1.4** | AI client briefing |
 | **2.0** | Public SaaS onboarding |
