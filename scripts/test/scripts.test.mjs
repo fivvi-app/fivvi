@@ -1707,6 +1707,8 @@ case " $* " in *" test "*)
   # assertion-optional (the assertion fails, and its log also has the adb error of an optional step), element-aftermath (a
   # real adb drop, and a flow that did not find an element and whose log mentions the dead driver) and aftermath-only (only
   # the dead driver, in every failed flow, no flow with the error itself). no-file: offline, but the report has no file attributes.
+  # died-text: as in a real report, the second flow's junit text (not its log) is the DeviceServerDiedException stack whose
+  # Caused by has the adb error.
   if [ -n "$FAKE_MAESTRO_ERROR" ]; then
     out=""; dir=""; prev=""
     for arg; do
@@ -1725,6 +1727,11 @@ Command failed (host:transport:emulator-5554): device offline"; second=""
         element-aftermath)
           first="Command failed (host:transport:emulator-5554): device offline"; second="maestro.android.DeviceServerDiedException: Device server died during 'launchApp'"
           msg2="Element not found: Text matching regex: Welcome" ;;
+        died-text)
+          first="Command failed (host:transport:emulator-5554): device offline"; second="[ERROR] nothing about the device here"
+          msg2="maestro.android.DeviceServerDiedException: Device server died during 'launchApp' on emulator-5554
+	at maestro.android.AndroidDeviceConnection.execute(AndroidDeviceConnection.kt:122)
+Caused by: java.io.IOException: Command failed (host:transport:emulator-5554): device offline" ;;
         aftermath-only)
           first="maestro.android.DeviceServerDiedException: Device server died during 'launchApp'"; second="$first" ;;
         assertion) first="Assertion is false: 'Welcome' is visible"; second="" ;;
@@ -3280,6 +3287,29 @@ esac`,
       assert.ok(
         steps.slice(failedRun).filter((s) => s === 'adb-state device').length >= 2,
         steps.join('\n'),
+      );
+    });
+
+    it('re-runs a flow whose junit failure text is the dead-driver stack caused by the adb error', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'died-text',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /the adb connection dropped \(device offline\) in 2 flow\(s\) in en; re-running them once: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/hello\.yaml/,
+      );
+      const [, , retry, ...more] = tests(fake);
+      assert.equal(more.length, 0, tests(fake).join('\n'));
+      assert.ok(
+        retry.includes('e2e/maestro/profile-workspaces.yaml') &&
+          retry.includes('e2e/maestro/hello.yaml') &&
+          !retry.includes('anonymous.yaml'),
+        retry,
       );
     });
 

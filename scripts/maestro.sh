@@ -176,8 +176,9 @@ device_answers() {
 }
 
 # Returns once the device has answered DEVICE_STABLE_PROBES probes in a row (a drop of the adb connection resets the
-# count), or fails once DEVICE_READY_TIMEOUT seconds (the clock, $SECONDS, not the passes: a slow adb call counts) have passed. An offline device is reconnected (`adb reconnect offline`); a
-# device the adb server doesn't list (yet) is waited for. Never kills the script itself: cleanup calls it too.
+# count), or fails once DEVICE_READY_TIMEOUT seconds (the clock, $SECONDS, not the passes: a slow adb call counts) have
+# passed. An offline device is reconnected (`adb reconnect offline`); a device the adb server doesn't list (yet) is
+# waited for. Never kills the script itself: cleanup calls it too.
 wait_for_device_ready() {
   local started=$SECONDS steady=0 state
   while [ "$steady" -lt "$DEVICE_STABLE_PROBES" ]; do
