@@ -246,11 +246,13 @@ start_emulator() {
 stop_emulator() {
   if [ "$EMULATOR_STARTED" = true ] && [ "${KEEP_DEVICE:-}" != 1 ]; then
     adb emu kill >/dev/null 2>&1 || true
-    local started=$SECONDS
+    local started=$SECONDS message
     # The emulator is a child of this shell, which reaps it when it exits (kill -0 then fails).
     while [ -n "$EMULATOR_PID" ] && kill -0 "$EMULATOR_PID" 2>/dev/null; do
       if [ "$((SECONDS - started))" -ge "$EMULATOR_STOP_TIMEOUT" ]; then
-        echo "The emulator didn't exit in ${EMULATOR_STOP_TIMEOUT}s after 'adb emu kill' (log: $EMULATOR_LOG)" >&2
+        message="The emulator didn't exit in ${EMULATOR_STOP_TIMEOUT}s after 'adb emu kill' (log: $EMULATOR_LOG)"
+        # On CI a GitHub warning annotation, so the run's summary shows it; the exit status stays the run's.
+        if [ -n "${CI:-}" ]; then echo "::warning::$message"; else echo "$message" >&2; fi
         break
       fi
       sleep 0.1

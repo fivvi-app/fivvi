@@ -1707,8 +1707,8 @@ case " $* " in *" test "*)
   # assertion-optional (the assertion fails, and its log also has the adb error of an optional step), element-aftermath (a
   # real adb drop, and a flow that did not find an element and whose log mentions the dead driver) and aftermath-only (only
   # the dead driver, in every failed flow, no flow with the error itself). no-file: offline, but the report has no file attributes.
-  # died-text: as in a real report, the second flow's junit text (not its log) is the DeviceServerDiedException stack whose
-  # Caused by has the adb error.
+  # died-text: as in a real report, the junit text (not the log, which has no adb error) of the first flow is the
+  # DeviceServerDiedException stack whose Caused by has the adb error, and that of the second flow the dead driver only.
   if [ -n "$FAKE_MAESTRO_ERROR" ]; then
     out=""; dir=""; prev=""
     for arg; do
@@ -1728,10 +1728,11 @@ Command failed (host:transport:emulator-5554): device offline"; second=""
           first="Command failed (host:transport:emulator-5554): device offline"; second="maestro.android.DeviceServerDiedException: Device server died during 'launchApp'"
           msg2="Element not found: Text matching regex: Welcome" ;;
         died-text)
-          first="Command failed (host:transport:emulator-5554): device offline"; second="[ERROR] nothing about the device here"
-          msg2="maestro.android.DeviceServerDiedException: Device server died during 'launchApp' on emulator-5554
+          first="[ERROR] nothing about the device here"; second="[ERROR] nothing about the device here either"
+          msg1="maestro.android.DeviceServerDiedException: Device server died during 'launchApp' on emulator-5554
 	at maestro.android.AndroidDeviceConnection.execute(AndroidDeviceConnection.kt:122)
-Caused by: java.io.IOException: Command failed (host:transport:emulator-5554): device offline" ;;
+Caused by: java.io.IOException: Command failed (host:transport:emulator-5554): device offline"
+          msg2="maestro.android.DeviceServerDiedException: Device server died during 'launchApp' on emulator-5554" ;;
         aftermath-only)
           first="maestro.android.DeviceServerDiedException: Device server died during 'launchApp'"; second="$first" ;;
         assertion) first="Assertion is false: 'Welcome' is visible"; second="" ;;
@@ -1768,12 +1769,16 @@ case "$*" in
       echo "error: device offline" >&2; exit 1
     fi
     if [ -e "${state}/booted" ]; then echo "adb-state device" >>"${state}/calls.log"; echo device; else exit 1; fi ;;
-  # FAKE_ADB_ROOT=closed-once|closed-twice|other (#373): "adb root" fails with the closed transport once, twice, or with another error.
+  # FAKE_ADB_ROOT=closed-once|closed-twice|offline-once|other (#373): "adb root" fails with the closed transport once or twice,
+  # with "device offline" once, or with another error. FAKE_ADB_ROOT_OFFLINE=<n>: as adbd restarts, the next n get-state calls
+  # after each "adb root" (failed or not) say the device is offline.
   root)
     n=$(( $(cat "${state}/root-calls" 2>/dev/null || echo 0) + 1 )); echo "$n" >"${state}/root-calls"
     echo "adb-root $n" >>"${state}/calls.log"
+    [ -z "$FAKE_ADB_ROOT_OFFLINE" ] || echo "$FAKE_ADB_ROOT_OFFLINE" >"${state}/offline-left"
     case "$FAKE_ADB_ROOT:$n" in
       closed-once:1|closed-twice:1|closed-twice:2) echo "adb: unable to connect for root: closed" >&2; exit 1 ;;
+      offline-once:1) echo "adb: device offline" >&2; exit 1 ;;
       other:*) echo "adb: unable to connect for root: insufficient permissions" >&2; exit 1 ;;
     esac
     echo "restarting adbd as root" ;;
@@ -1784,7 +1789,8 @@ case "$*" in
   "shell getprop persist.sys.locale") echo en-US ;;
   "shell settings get global hide_error_dialogs") echo null ;;
   # As the real one: "OK" at once, and the emulator exits a moment later (0.3 s here), not before the command returns.
-  "emu kill") (/bin/sleep 0.3; rm -f "${state}/booted"; kill "$(cat "${state}/pid")")</dev/null >/dev/null 2>&1 & ;;
+  # FAKE_STOP=hang (#373): the emulator ignores it and keeps running.
+  "emu kill") [ "$FAKE_STOP" = hang ] || (/bin/sleep 0.3; rm -f "${state}/booted"; kill "$(cat "${state}/pid")") </dev/null >/dev/null 2>&1 & ;;
 esac
 exit 0`,
     );
@@ -3205,6 +3211,38 @@ esac`,
       });
     }
 
+    // #373: a real `adb emu kill` can leave the emulator running (it once did, on CI); the command must not wait for ever.
+    for (const [ending, result, status] of endings.slice(0, 2)) {
+      it(`AC2: ${name} warns and ends within EMULATOR_STOP_TIMEOUT, with the same status, when the emulator ignores adb emu kill and the run ${ending}`, async () => {
+        const fake = checkout();
+        const message = /The emulator didn't exit in 1s after 'adb emu kill'/;
+
+        const local = await fake.run(command, args, {
+          FAKE_RESULT: result,
+          FAKE_STOP: 'hang',
+          EMULATOR_STOP_TIMEOUT: '1',
+          CI: '',
+        });
+        const onCi = await checkout().run(command, args, {
+          FAKE_RESULT: result,
+          FAKE_STOP: 'hang',
+          EMULATOR_STOP_TIMEOUT: '1',
+          CI: 'true',
+        });
+
+        assert.equal(local.status, status, local.output);
+        assert.match(local.output, message);
+        assert.doesNotMatch(local.output, /::warning/);
+        assert.ok(running(fake.emulator().pid), 'the fake emulator ignored adb emu kill');
+        gradleDaemonsStopped(fake); // the cleanup went on after the warning
+        assert.equal(onCi.status, status, onCi.output);
+        assert.match(
+          onCi.output,
+          /^::warning::The emulator didn't exit in 1s after 'adb emu kill'/m,
+        );
+      });
+    }
+
     it(`AC2: ${name} leaves an emulator that was already running, and still stops its Gradle daemons`, async () => {
       const fake = checkout({ emulatorRunning: true });
 
@@ -3285,6 +3323,54 @@ esac`,
       assert.equal(fake.log('calls').filter(isFlow).length, 2, fake.log('calls').join('\n'));
     });
 
+    it('waits for the device and asks for root once more when adb root says the device is offline', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_ADB_ROOT: 'offline-once',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /adb root lost the connection to the device \(adb: device offline\)/,
+      );
+      assert.deepEqual(
+        fake.log('calls').filter((call) => call.startsWith('adb-root ')),
+        ['adb-root 1', 'adb-root 2'],
+      );
+      assert.equal(fake.log('calls').filter(isFlow).length, 2, fake.log('calls').join('\n'));
+    });
+
+    it('waits for the device to be online and answering after each adb root, as adbd restarts', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_ADB_ROOT: 'closed-once',
+        FAKE_ADB_ROOT_OFFLINE: '3',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      const steps = fake
+        .log('calls')
+        .filter(
+          (call) =>
+            call.startsWith('adb-root ') ||
+            call.startsWith('adb-state ') ||
+            call === 'adb shell getprop persist.sys.locale',
+        )
+        .join('\n');
+      // Between the two roots, and after the last one before anything else asks the device: it was offline, then answered
+      // at least twice in a row.
+      assert.match(
+        steps,
+        /adb-root 1\n(adb-state offline\n)+(adb-state device\n){2,}adb-root 2\n(adb-state offline\n)+(adb-state device\n){2,}adb shell getprop persist\.sys\.locale/,
+        steps,
+      );
+    });
+
     it('fails at once when adb root fails with another error', async () => {
       const fake = checkout();
 
@@ -3352,7 +3438,7 @@ esac`,
       );
     });
 
-    it('re-runs a flow whose junit failure text is the dead-driver stack caused by the adb error', async () => {
+    it('re-runs flows whose junit failure text, not their log, has the adb error (the dead-driver stack caused by it)', async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/maestro.sh', ['android'], {
