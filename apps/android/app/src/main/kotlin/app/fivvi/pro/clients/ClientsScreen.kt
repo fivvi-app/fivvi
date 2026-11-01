@@ -30,11 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -55,7 +51,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import kotlinx.coroutines.delay
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
 object ClientsTags {
@@ -79,9 +74,6 @@ object ClientsTags {
     const val ROW_NAME = "clients.rowName"
     const val ROW_EMAIL = "clients.rowEmail"
 }
-
-/** How long the skeleton waits before it says that it takes longer than usual (`information-architecture.md §9.5`). */
-internal const val SLOW_AFTER_MILLIS = 10_000L
 
 /** What the list asks of its host. */
 data class ClientsActions(
@@ -212,11 +204,6 @@ private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 // Skeleton rows in the shape of the list; after 10 s a line says that it takes longer than usual.
 @Composable
 private fun Skeleton() {
-    var slow by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(SLOW_AFTER_MILLIS)
-        slow = true
-    }
     val label = stringResource(R.string.clients_loading)
     Column(
         modifier = Modifier.fillMaxSize().padding(Spacing.space4).testTag(ClientsTags.LOADING)
@@ -229,13 +216,7 @@ private fun Skeleton() {
                 Box(Modifier.fillMaxWidth(EMAIL_SHARE).height(Spacing.space3).placeholder())
             }
         }
-        if (slow) {
-            Text(
-                text = stringResource(R.string.common_loading_slow),
-                modifier = Modifier.testTag(ClientsTags.LOADING_SLOW),
-                style = MaterialTheme.typography.body,
-            )
-        }
+        SlowLoadingLine(ClientsTags.LOADING_SLOW)
     }
 }
 

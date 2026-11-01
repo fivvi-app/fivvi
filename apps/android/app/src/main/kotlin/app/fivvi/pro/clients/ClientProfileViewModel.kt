@@ -48,14 +48,15 @@ sealed interface ClientProfileState {
  * that is cleared is `clearEmail`, a language set back to the default `clearEmailLocale`: the Kotlin client writes no
  * `null`, which the contract reads as "keep" (`UpdateClientRequestTest`). The rules of adding apply (the API words the
  * field messages and answers 409 for an address another client has); nothing is checked here. The profile reads the client
- * again on opening and on [refresh]; a read that fails leaves the client on screen. [onNotAllowed] is told a 403 or 404 for
- * the capability helper (F004 AC10).
+ * again on opening and on [refresh]; a read that fails leaves the client on screen. [onNotAllowed] is told a 403 or 404 of
+ * the read (`clients.view`), [onSaveNotAllowed] a 403 of the save (`clients.manage`), for the capability helper (F004 AC10).
  */
 class ClientProfileViewModel(
     private val api: ClientsApi,
     private val workspaceId: UUID,
     private val clientId: UUID,
     private val onNotAllowed: (Response<*>) -> Unit = {},
+    private val onSaveNotAllowed: (Response<*>) -> Unit = {},
 ) : ViewModel() {
     private val _state = MutableStateFlow<ClientProfileState>(ClientProfileState.Loading)
     val state: StateFlow<ClientProfileState> = _state.asStateFlow()
@@ -177,7 +178,7 @@ class ClientProfileViewModel(
             }
 
             Refusal.NotAllowed -> {
-                onNotAllowed(response)
+                onSaveNotAllowed(response)
                 updateEdit { it.copy(pending = false, notAllowed = true) }
             }
 

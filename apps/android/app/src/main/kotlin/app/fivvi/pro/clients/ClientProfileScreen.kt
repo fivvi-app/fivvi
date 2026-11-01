@@ -24,10 +24,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -44,7 +41,6 @@ import app.fivvi.designtokens.body
 import app.fivvi.designtokens.footnote
 import app.fivvi.designtokens.title2
 import app.fivvi.pro.R
-import kotlinx.coroutines.delay
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows; the edit form's are `clientProfile.edit.*`. */
 object ClientProfileTags {
@@ -157,11 +153,6 @@ fun ClientProfileScreen(
 // (`information-architecture.md §9.5`).
 @Composable
 private fun Skeleton() {
-    var slow by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(SLOW_AFTER_MILLIS)
-        slow = true
-    }
     val label = stringResource(R.string.clients_loading)
     Column(
         modifier = Modifier.fillMaxWidth().testTag(ClientProfileTags.LOADING).semantics { contentDescription = label },
@@ -174,13 +165,7 @@ private fun Skeleton() {
                 Box(Modifier.fillMaxWidth(VALUE_SHARE).height(Spacing.space4).placeholder())
             }
         }
-        if (slow) {
-            Text(
-                text = stringResource(R.string.common_loading_slow),
-                modifier = Modifier.testTag(ClientProfileTags.LOADING_SLOW),
-                style = MaterialTheme.typography.body,
-            )
-        }
+        SlowLoadingLine(ClientProfileTags.LOADING_SLOW)
     }
 }
 

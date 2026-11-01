@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,12 +33,29 @@ private object Screen {
  * *Klanten* and what it opens (F006, M4): the list (TM-02), the full-screen *+ Nieuwe klant* and the profile (TM-03), one
  * level of navigation each, so at most two pushes from the home (`information-architecture.md §5.1`). System back goes one
  * step: out of an edit, from the profile or the form to the list, from the list to [onClose]. [sessionKey] belongs to one
- * sign-in, so the list read in memory is dropped with it; the view models are also keyed by [workspaceId], so the home
- * showing another workspace after the foreground read (F003 AC6) lists that workspace, not the one before. *+ Nieuwe klant* and *Bewerken* show only while
- * [capabilities] lists `clients.manage` for the workspace (F004 AC10); the helper is the only thing that decides it.
+ * sign-in, so the list read in memory is dropped with it. When the home shows another workspace after the foreground
+ * read (F003 AC6), the flow starts again at that workspace's list: an open profile or form belongs to the workspace
+ * before, whose client the new one doesn't have. *+ Nieuwe klant* and *Bewerken* show only while [capabilities] lists
+ * `clients.manage` for the workspace (F004 AC10); the helper is the only thing that decides it.
  */
 @Composable
 fun ClientsFlow(
+    clientsApi: ClientsApi,
+    workspacesApi: WorkspacesApi,
+    capabilities: WorkspaceCapabilities,
+    workspaceId: UUID,
+    workspaceName: String,
+    sessionKey: String,
+    onClose: () -> Unit,
+) {
+    // A new composition per workspace, so the screen kept across a rotation is the list again after a switch.
+    key(workspaceId) {
+        ClientsFlowContent(clientsApi, workspacesApi, capabilities, workspaceId, workspaceName, sessionKey, onClose)
+    }
+}
+
+@Composable
+private fun ClientsFlowContent(
     clientsApi: ClientsApi,
     workspacesApi: WorkspacesApi,
     capabilities: WorkspaceCapabilities,
@@ -121,6 +139,10 @@ fun ClientsFlow(
                     id,
                     onNotAllowed = {
                         capabilities.onResponse(it, workspaceId, MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW)
+                    },
+                    // The save is what clients.manage guards: a refusal hides Bewerken, not Klanten.
+                    onSaveNotAllowed = {
+                        capabilities.onResponse(it, workspaceId, MeWorkspace.Capabilities.CLIENTS_PERIOD_MANAGE)
                     },
                 )
             }

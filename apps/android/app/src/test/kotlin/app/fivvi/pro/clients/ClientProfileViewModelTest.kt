@@ -23,6 +23,7 @@ class ClientProfileViewModelTest {
     private val api = FakeClientsApi()
     private val workspace = workspaceIdOf("John's Gym")
     private val notAllowed = mutableListOf<Int>()
+    private val saveNotAllowed = mutableListOf<Int>()
     private val anna = clientOf("Anna de Vries", "anna@example.com", Client.EmailLocale.EN)
     private val mark = clientOf("Mark Jansen")
 
@@ -35,8 +36,13 @@ class ClientProfileViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(client: Client = anna) =
-        ClientProfileViewModel(api, workspace, client.id, onNotAllowed = { notAllowed += it.code() })
+    private fun viewModel(client: Client = anna) = ClientProfileViewModel(
+        api,
+        workspace,
+        client.id,
+        onNotAllowed = { notAllowed += it.code() },
+        onSaveNotAllowed = { saveNotAllowed += it.code() },
+    )
 
     private fun ClientProfileViewModel.loaded() = state.value as ClientProfileState.Loaded
 
@@ -249,7 +255,7 @@ class ClientProfileViewModelTest {
     }
 
     @Test
-    fun test_F006_AC12_aForbiddenSaveTellsTheCapabilityHelper() {
+    fun test_F006_AC12_aForbiddenSaveTellsTheCapabilityHelperAboutManageNotView() {
         api.updateAnswers += { _, _ -> api.status(403) }
         val viewModel = viewModel()
         viewModel.startEdit()
@@ -257,7 +263,8 @@ class ClientProfileViewModelTest {
 
         viewModel.save()
 
-        assertEquals(listOf(403), notAllowed)
+        assertEquals(listOf(403), saveNotAllowed)
+        assertEquals(emptyList<Int>(), notAllowed)
         assertTrue(viewModel.loaded().edit!!.notAllowed)
     }
 
