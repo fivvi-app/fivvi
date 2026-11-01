@@ -41,6 +41,10 @@
     <string name="profile_error">Your workspaces couldn\'t be loaded.</string>
     <string name="profile_language">Language</string>
     <string name="profile_title">Profile</string>
+    <string name="profile_trains_here_errors_generic">Something went wrong. Try again.</string>
+    <string name="profile_trains_here_errors_no_connection">No connection. Check your internet and try again.</string>
+    <string name="profile_trains_here_label">I also train at %1$s</string>
+    <string name="profile_trains_here_saved">Saved.</string>
     <string name="roles_owner">Owner</string>
     <string name="roles_trainer">Trainer</string>
     <string name="settings_general_errors_generic">Something went wrong. Try again.</string>
@@ -91,6 +95,7 @@
     <string name="sign_out_error">Signing out didn\'t work. Try again.</string>
     <string name="sign_out_label">Sign out</string>
     <string name="team_actions_column">Actions</string>
+    <string name="team_badge_trainer">Trainer</string>
     <string name="team_email_column">Email address</string>
     <string name="team_errors_generic">Something went wrong. Try again.</string>
     <string name="team_errors_last_owner">%1$s needs at least one owner.</string>

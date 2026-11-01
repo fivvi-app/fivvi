@@ -176,7 +176,15 @@
   "profile": {
     "title": "Profiel",
     "error": "Je werkruimtes konden niet worden geladen.",
-    "language": "Taal"
+    "language": "Taal",
+    "trainsHere": {
+      "label": "Ik geef zelf ook trainingen in {workspace}",
+      "saved": "Opgeslagen.",
+      "errors": {
+        "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+        "generic": "Er ging iets mis. Probeer het opnieuw."
+      }
+    }
   },
   "team": {
     "title": "Trainers",
@@ -213,6 +221,9 @@
     "roleChanged": {
       "owner": "{name} is nu eigenaar.",
       "trainer": "{name} is nu trainer."
+    },
+    "badge": {
+      "trainer": "Trainer"
     }
   }
 }

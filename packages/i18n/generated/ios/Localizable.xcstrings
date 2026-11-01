@@ -695,6 +695,78 @@
         }
       }
     },
+    "profile.trainsHere.errors.generic" : {
+      "comment" : "Shown next to the switch when saving failed for another reason. The switch is back as it was.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er ging iets mis. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "profile.trainsHere.errors.noConnection" : {
+      "comment" : "Shown next to the switch when saving failed because there is no connection. The switch is back as it was.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No connection. Check your internet and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen verbinding. Controleer je internet en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "profile.trainsHere.label" : {
+      "comment" : "Label of the switch on the profile (web My profile TW-09, iOS and Android Profile TM-04), one per workspace where the person is Owner. On means they also train there and show as a trainer (F005). {workspace} is the workspace name, e.g. John's Gym. It talks about training, never about profiles.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I also train at %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ik geef zelf ook trainingen in %1$@"
+          }
+        }
+      }
+    },
+    "profile.trainsHere.saved" : {
+      "comment" : "Confirmation shown after the switch was saved.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opgeslagen."
+          }
+        }
+      }
+    },
     "roles.owner" : {
       "comment" : "Role label of an Owner (Eigenaar) of a workspace, shown as a plain label.",
       "extractionState" : "manual",
@@ -1579,6 +1651,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Acties"
+          }
+        }
+      }
+    },
+    "team.badge.trainer" : {
+      "comment" : "Badge on a team member of the Trainers page (TW-06) who trains in the workspace, next to their role label. The word for the role Trainer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
           }
         }
       }

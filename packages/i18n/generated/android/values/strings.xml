@@ -62,6 +62,14 @@
     <string name="profile_error">Je werkruimtes konden niet worden geladen.</string>
     <string name="profile_language">Taal</string>
     <string name="profile_title">Profiel</string>
+    <!-- Shown next to the switch when saving failed for another reason. The switch is back as it was. -->
+    <string name="profile_trains_here_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <!-- Shown next to the switch when saving failed because there is no connection. The switch is back as it was. -->
+    <string name="profile_trains_here_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <!-- Label of the switch on the profile (web My profile TW-09, iOS and Android Profile TM-04), one per workspace where the person is Owner. On means they also train there and show as a trainer (F005). {workspace} is the workspace name, e.g. John's Gym. It talks about training, never about profiles. -->
+    <string name="profile_trains_here_label">Ik geef zelf ook trainingen in %1$s</string>
+    <!-- Confirmation shown after the switch was saved. -->
+    <string name="profile_trains_here_saved">Opgeslagen.</string>
     <!-- Role label of an Owner (Eigenaar) of a workspace, shown as a plain label. -->
     <string name="roles_owner">Eigenaar</string>
     <!-- Role label of a Trainer of a workspace, shown as a plain label. -->
@@ -150,6 +158,8 @@
     <string name="sign_out_label">Uitloggen</string>
     <!-- Header of the last column of the team list, which holds the row action. Only read aloud by screen readers. -->
     <string name="team_actions_column">Acties</string>
+    <!-- Badge on a team member of the Trainers page (TW-06) who trains in the workspace, next to their role label. The word for the role Trainer. -->
+    <string name="team_badge_trainer">Trainer</string>
     <!-- Column header of the email address in the team list. -->
     <string name="team_email_column">E-mailadres</string>
     <!-- Shown on the Trainers page when removing a person failed for another reason. Nothing changed. -->

@@ -176,7 +176,15 @@
   "profile": {
     "title": "Profile",
     "error": "Your workspaces couldn't be loaded.",
-    "language": "Language"
+    "language": "Language",
+    "trainsHere": {
+      "label": "I also train at {workspace}",
+      "saved": "Saved.",
+      "errors": {
+        "noConnection": "No connection. Check your internet and try again.",
+        "generic": "Something went wrong. Try again."
+      }
+    }
   },
   "team": {
     "title": "Trainers",
@@ -213,6 +221,9 @@
     "roleChanged": {
       "owner": "{name} is now an owner.",
       "trainer": "{name} is now a trainer."
+    },
+    "badge": {
+      "trainer": "Trainer"
     }
   }
 }
