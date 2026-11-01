@@ -1784,7 +1784,7 @@ case "$*" in
   "shell getprop persist.sys.locale") echo en-US ;;
   "shell settings get global hide_error_dialogs") echo null ;;
   # As the real one: "OK" at once, and the emulator exits a moment later (0.3 s here), not before the command returns.
-  "emu kill") (/bin/sleep 0.3; kill "$(cat "${state}/pid")"; rm -f "${state}/booted") </dev/null >/dev/null 2>&1 & ;;
+  "emu kill") (/bin/sleep 0.3; rm -f "${state}/booted"; kill "$(cat "${state}/pid")")</dev/null >/dev/null 2>&1 & ;;
 esac
 exit 0`,
     );
