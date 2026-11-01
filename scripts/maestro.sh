@@ -15,8 +15,11 @@
 #
 # The app starts on its sign-in (F001), so the flows sign in as the seeded owner@example.com: the web server sends its
 # emails to the fake Brevo server, and the flows read the newest sign-in code from it (`GET /emails?to=`), so no real
-# inbox is involved. Before each locale's flows the sign-in rate limits are cleared (3 emails per address in 15 minutes
-# would stop the second run).
+# inbox is involved. Several flows sign in as the same seeded address, and 3 emails per address in 15 minutes would stop
+# the fourth, or the second run. So the sign-in rate limits are cleared before each locale's run (`maestro test
+# e2e/maestro`, one Maestro process for all its flows: a new one per flow made CI's emulator drop its adb connection, #363)
+# and, while it runs, every MAESTRO_CLEAR_EVERY seconds (default 20, shorter than one flow) by a background loop that stops
+# when the run ends, also on failure or Ctrl-C. Maestro reads e2e/maestro/config.yaml to pick the flows.
 #
 # Before the first flow, the web server has answered GET /api/v1/hello, the app's first request, in both locales.
 # When it ends, also on failure or Ctrl-C, it stops the emulator or simulator it booted and its Gradle daemons;
@@ -34,35 +37,55 @@ REPORTS="$ROOT/e2e/maestro/build"
 SERVER_PID=""
 BREVO_PID=""
 BREVO_PORT=$((PORT + 2000))
+CLEAR_EVERY="${MAESTRO_CLEAR_EVERY:-20}"
+CLEARER_PID=""
+CLEARER_LOG=""
 DEVICE_LOCALE=""
 export MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
 
-# The catalog text of a dotted key, e.g. `catalog en hello.title`: what the screen should show.
+# The catalog text of a dotted key, e.g. `catalog en hello.title`: what the screen should show. Fails, with the key and
+# the locale on stderr, when the key is missing or is not a text (a renamed leaf would otherwise print "undefined").
 catalog() {
-  node -e 'const [file, key] = process.argv.slice(1);
-    console.log(key.split(".").reduce((o, k) => o[k], JSON.parse(require("fs").readFileSync(file, "utf8"))))' \
-    "$ROOT/packages/i18n/$1.json" "$2"
+  # shellcheck disable=SC2016 # the `${key}` is a JavaScript template literal, not shell
+  node -e 'const [file, key, locale] = process.argv.slice(1);
+    const text = key.split(".").reduce((o, k) => (o == null ? undefined : o[k]), JSON.parse(require("fs").readFileSync(file, "utf8")));
+    if (typeof text !== "string") {
+      console.error(`catalog key ${key} is not a text in locale ${locale}`);
+      process.exit(1);
+    }
+    console.log(text)' \
+    "$ROOT/packages/i18n/$1.json" "$2" "$1"
+}
+
+# Adds `--env <name>=<catalog text of key $3 in locale $2>` to FLOW_ENV; fails when the catalog has no such key.
+add_catalog_env() {
+  local text
+  text="$(catalog "$2" "$3")" || return 1
+  FLOW_ENV+=(--env "$1=$text")
 }
 
 # The values every flow gets (--env; a flow's own env default would win over them, so the flows have none): the texts the
 # screens show in locale $1, and where the flows read the sign-in emails (the host: Maestro runs there on both platforms).
+# Fails, rather than giving a flow an empty text, when the catalog lacks a key (each lookup is checked on its own: an
+# array assignment would only report the last one).
 FLOW_ENV=()
 set_flow_env() {
   local other="nl-NL"
   [ "$1" != "nl-NL" ] || other="en"
-  FLOW_ENV=(
-    --env "SIGN_IN_SEND_CODE=$(catalog "$1" signIn.sendCode)"
-    --env "HELLO_TITLE=$(catalog "$1" hello.title)"
-    --env "HOME_SET_UP_ON_WEB=$(catalog "$1" home.setUpOnWeb)"
-    --env "ROLE_OWNER=$(catalog "$1" roles.owner)"
-    --env "ROLE_TRAINER=$(catalog "$1" roles.trainer)"
-    --env "PROFILE_WORKSPACES_TITLE=$(catalog "$1" myProfile.workspacesTitle)"
-    --env "SIGN_OUT_LABEL=$(catalog "$1" signOut.label)"
+  FLOW_ENV=()
+  add_catalog_env SIGN_IN_SEND_CODE "$1" signIn.sendCode || return 1
+  add_catalog_env HELLO_TITLE "$1" hello.title || return 1
+  add_catalog_env HOME_SET_UP_ON_WEB "$1" home.setUpOnWeb || return 1
+  add_catalog_env ROLE_OWNER "$1" roles.owner || return 1
+  add_catalog_env ROLE_TRAINER "$1" roles.trainer || return 1
+  add_catalog_env PROFILE_WORKSPACES_TITLE "$1" myProfile.workspacesTitle || return 1
+  add_catalog_env SIGN_OUT_LABEL "$1" signOut.label || return 1
+  add_catalog_env PROFILE_LANGUAGE_THIS "$1" profile.language || return 1
+  add_catalog_env PROFILE_LANGUAGE_OTHER "$other" profile.language || return 1
+  FLOW_ENV+=(
     --env "DEVICE_LANGUAGE=$1"
     --env "LANGUAGE_THIS=$1"
     --env "LANGUAGE_OTHER=$other"
-    --env "PROFILE_LANGUAGE_THIS=$(catalog "$1" profile.language)"
-    --env "PROFILE_LANGUAGE_OTHER=$(catalog "$other" profile.language)"
     --env "BREVO_URL=http://localhost:$BREVO_PORT"
   )
 }
@@ -158,15 +181,65 @@ restore_error_dialogs() {
   esac
 }
 
-# After a failed run of the flows in locale $1: Ctrl-C stops the whole run (Maestro, a JVM, exits 130 on it, so bash
-# doesn't see the signal itself); any other failure goes on to the next locale.
-stopped_or_failed() {
-  local status=$?
+# Clears the sign-in rate limits now and every $CLEAR_EVERY seconds in the background, until stop_clearing. A flow that
+# signs in as the seeded address would otherwise be the fourth in 15 minutes. A clear that fails in the background is
+# logged to stderr, and stop_clearing fails when none of them ever worked. The loop sleeps with /bin/sleep (the tests put
+# a fake sleep in PATH) and ends at once on TERM, not after the sleep.
+start_clearing() {
+  clear_rate_limits
+  CLEARER_LOG="$(mktemp "${TMPDIR:-/tmp}/maestro-clearing.XXXXXX")" || die "no temporary file for the rate limit clearing"
+  (
+    nap=""
+    trap '[ -z "$nap" ] || kill "$nap" 2>/dev/null; exit 0' TERM
+    while :; do
+      /bin/sleep "$CLEAR_EVERY" &
+      nap=$!
+      wait "$nap" || true
+      if output="$(pnpm db:reset-rate-limits 2>&1)"; then
+        echo ok >>"$CLEARER_LOG"
+      else
+        echo fail >>"$CLEARER_LOG"
+        echo "maestro.sh: clearing the sign-in rate limits failed (the run goes on): $output" >&2
+      fi
+    done
+  ) &
+  CLEARER_PID=$!
+}
+
+# Stops the loop and waits until it is gone; fails when it tried to clear and never succeeded. Safe to call twice.
+stop_clearing() {
+  local status=0
+  if [ -n "$CLEARER_PID" ]; then
+    kill "$CLEARER_PID" 2>/dev/null || true
+    wait "$CLEARER_PID" 2>/dev/null || true
+    CLEARER_PID=""
+    if [ -s "$CLEARER_LOG" ] && ! grep -q '^ok$' "$CLEARER_LOG"; then
+      echo "maestro.sh: the sign-in rate limits were never cleared during the run" >&2
+      status=1
+    fi
+    rm -f "$CLEARER_LOG"
+  fi
+  return "$status"
+}
+
+# `run_locale <locale> <report> <maestro command...>`: one `maestro test` for all flows of the locale, with the rate limits
+# cleared around it. A failing flow fails the locale (the status), and the run goes on to the next. Ctrl-C stops the whole
+# run (Maestro, a JVM, exits 130 on it, so bash doesn't see the signal itself).
+run_locale() {
+  local locale="$1" report="$2" status=0
+  shift 2
+  # Both die: this runs as `run_locale … || failed=…`, where set -e is off, and a run without its texts is worthless.
+  set_flow_env "$locale" || die "the i18n catalog lacks a text the $locale flows need (packages/i18n)"
+  start_clearing
+  "$@" test "$ROOT/e2e/maestro" "${FLOW_ENV[@]}" \
+    --format junit --output "$REPORTS/$report.xml" --test-output-dir "$REPORTS/$report" || status=$?
+  stop_clearing || [ "$status" -ne 0 ] || status=1
   [ "$status" -ne 130 ] || exit 130
-  failed="$failed $1"
+  return "$status"
 }
 
 cleanup() {
+  stop_clearing || true
   stop_stack
   if [ "$EMULATOR_STARTED" = false ]; then
     # In this order: Android writes settings to disk a moment later, and the framework restart would lose the write.
@@ -206,11 +279,7 @@ cmd_android() {
     echo "Maestro on Android in $locale"
     set_device_locale "$locale"
     settle_device
-    clear_rate_limits
-    set_flow_env "$locale"
-    maestro test "$ROOT/e2e/maestro" "${FLOW_ENV[@]}" \
-      --format junit --output "$REPORTS/android-$locale.xml" --test-output-dir "$REPORTS/android-$locale" \
-      || stopped_or_failed "$locale"
+    run_locale "$locale" "android-$locale" maestro || failed="$failed $locale"
   done
   [ -z "$failed" ] || die "Maestro failed in:$failed (reports: e2e/maestro/build)"
 }
@@ -232,6 +301,7 @@ restart_simulator() {
 }
 
 cleanup_ios() {
+  stop_clearing || true
   stop_stack
   if [ -n "$SIMULATOR_SETTINGS" ] && [ -f "$SIMULATOR_SETTINGS" ]; then
     xcrun simctl spawn "$SIMULATOR" defaults import -g "$SIMULATOR_SETTINGS" || true
@@ -273,11 +343,7 @@ cmd_ios() {
   for locale in $LOCALES; do
     echo "Maestro on iOS in $locale"
     set_simulator_locale "$locale"
-    clear_rate_limits
-    set_flow_env "$locale"
-    maestro --device "$SIMULATOR" test "$ROOT/e2e/maestro" "${FLOW_ENV[@]}" \
-      --format junit --output "$REPORTS/ios-$locale.xml" --test-output-dir "$REPORTS/ios-$locale" \
-      || stopped_or_failed "$locale"
+    run_locale "$locale" "ios-$locale" maestro --device "$SIMULATOR" || failed="$failed $locale"
   done
   [ -z "$failed" ] || die "Maestro failed on iOS in:$failed (reports: e2e/maestro/build)"
 }

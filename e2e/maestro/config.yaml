@@ -1,4 +1,7 @@
-# Maestro workspace (TESTING.md §7.2): one flow per feature, the same YAML on iOS and Android. scripts/maestro.sh runs
-# every flow here once per catalog locale, after setting the device language.
+# Maestro workspace (TESTING.md §7.2): one flow per feature, the same YAML on iOS and Android.
+# scripts/maestro.sh runs `maestro test e2e/maestro` once per catalog locale, after setting the device language; Maestro
+# reads this file to pick the flows (`flows: "*"`: the files of this folder, not shared/). Several flows sign in as the same
+# seeded address, which the sign-in rate limit (3 emails per address in 15 minutes) would stop, so maestro.sh clears the
+# limits every few seconds while that run lasts (TESTING.md §7). Run by hand, `maestro test e2e/maestro` has no such clearing.
 flows:
   - "*"

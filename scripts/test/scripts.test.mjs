@@ -1670,7 +1670,20 @@ if [ "$FAKE_PLIST_FORM" = other ]; then sed 1d "\${@: -1}"; else cat "\${@: -1}"
     );
     script(join(bin, 'java'), 'echo "openjdk version \\"21\\"" >&2');
     for (const tool of ['sleep', 'docker']) script(join(bin, tool), 'exit 0');
-    script(join(bin, 'pnpm'), `echo "pnpm $*" >>"${state}/calls.log"\nexit 0`);
+    // FAKE_CLEAR (maestro.sh's db:reset-rate-limits): fail-after-first fails every clear but the first, flaky only the second.
+    script(
+      join(bin, 'pnpm'),
+      `echo "pnpm $*" >>"${state}/calls.log"
+if [ "$*" = "db:reset-rate-limits" ]; then
+  echo x >>"${state}/clears"
+  clears=$(wc -l <"${state}/clears")
+  case "$FAKE_CLEAR" in
+    fail-after-first) [ "$clears" -le 1 ] || exit 1 ;;
+    flaky) [ "$clears" -ne 2 ] || exit 1 ;;
+  esac
+fi
+exit 0`,
+    );
     // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_HELLO=fail: GET /api/v1/hello fails.
     script(
       join(bin, 'curl'),
@@ -1684,6 +1697,8 @@ exit 0`,
 echo "maestro $*" >>"${state}/calls.log"
 # A flow run reads the sign-in emails from the fake Brevo server (e2e/maestro/shared): record that it answered.
 case " $* " in *" test "*)
+  # FAKE_MAESTRO_SLEEP=<seconds>: the run lasts that long (the real sleep, the one in PATH is a fake).
+  [ -z "$FAKE_MAESTRO_SLEEP" ] || { /bin/sleep "$FAKE_MAESTRO_SLEEP"; echo "maestro-run-ended" >>"${state}/calls.log"; }
   node -e "fetch('http://localhost:' + (Number(process.env.E2E_PORT) + 2000) + '/emails?to=owner@example.com').then((r) => r.json()).then((emails) => process.exit(Array.isArray(emails) ? 0 : 1), () => process.exit(1))" \
     && touch "${state}/brevo-answered"
   ${outcome} ;; esac`,
@@ -3296,6 +3311,149 @@ esac`,
         })
         .filter(Boolean);
       assert.deepEqual(steps, ['clear', 'flow nl-NL', 'clear', 'flow en']);
+    });
+
+    // #363: three flows sign in as the seeded trainer; one Maestro process runs them all, so the limits are cleared
+    // while it runs.
+    for (const [ending, result, status] of endings) {
+      it(`#363: ${name} clears the sign-in rate limits again and again while a locale's run lasts, and stops when it ${ending}`, async () => {
+        const fake = checkout();
+
+        const run = await fake.run(
+          'scripts/maestro.sh',
+          args,
+          { FAKE_RESULT: result, FAKE_MAESTRO_SLEEP: '1.5', MAESTRO_CLEAR_EVERY: '0.1' },
+          { interrupt: result === 'hang' },
+        );
+
+        assert.equal(run.status, status, run.output);
+        const calls = fake.log('calls');
+        const clearsIn = (from, to) =>
+          calls.slice(from, to).filter((call) => call === 'pnpm db:reset-rate-limits').length;
+        const start = calls.findIndex(isFlow);
+        assert.ok(
+          clearsIn(0, start) >= 1,
+          `a clear before the first run, as before: ${calls.join('\n')}`,
+        );
+        if (result !== 'hang') {
+          const end = calls.indexOf('maestro-run-ended');
+          assert.ok(end > start, calls.join('\n'));
+          // About 14 are due in 1.5 s; 2 prove that it repeats, even on a loaded machine.
+          assert.ok(clearsIn(start, end) >= 2, `cleared during the run: ${calls.join('\n')}`);
+        }
+        // Nothing clears once the script has ended, so the loop is gone with it (10 clears are due in the window).
+        const before = fake.log('calls').length;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        assert.equal(fake.log('calls').length, before, 'no clear after the run');
+      });
+    }
+
+    it(`#363: ${name} clears before and during the run of each locale`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args, {
+        FAKE_MAESTRO_SLEEP: '1',
+        MAESTRO_CLEAR_EVERY: '0.1',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      const calls = fake.log('calls');
+      const starts = calls.flatMap((call, index) => (isFlow(call) ? [index] : []));
+      const ends = calls.flatMap((call, index) => (call === 'maestro-run-ended' ? [index] : []));
+      assert.equal(starts.length, 2, calls.join('\n'));
+      assert.equal(ends.length, 2, calls.join('\n'));
+      const clears = (from, to) =>
+        calls.slice(from, to).filter((call) => call === 'pnpm db:reset-rate-limits').length;
+      assert.ok(clears(0, starts[0]) >= 1, 'a clear before the first locale');
+      assert.ok(clears(ends[0], starts[1]) >= 1, 'a clear before the second locale');
+      for (const locale of [0, 1]) {
+        assert.ok(clears(starts[locale], ends[locale]) >= 1, `during locale ${locale}`);
+      }
+    });
+
+    // maestro.sh runs run_locale as `run_locale … || failed=…`, where set -e is off: a catalog lookup that fails there
+    // (a renamed i18n key) or a mktemp that fails must still stop the script, not start Maestro with an empty --env.
+    for (const [what, file, key] of [
+      ['the first text of the locale', 'nl-NL', 'signIn'],
+      ['the last text, of the other locale', 'en', 'profile'],
+    ]) {
+      it(`#363: ${name} stops before Maestro starts when the catalog lacks ${what}`, async () => {
+        const fake = checkout();
+        const path = join(fake.repo, 'packages/i18n', `${file}.json`);
+        const catalog = JSON.parse(readFileSync(path, 'utf8'));
+        delete catalog[key];
+        writeFileSync(path, JSON.stringify(catalog));
+
+        const run = await fake.run('scripts/maestro.sh', args);
+
+        assert.notEqual(run.status, 0, run.output);
+        assert.match(run.output, /catalog lacks a text/);
+        const calls = fake.log('calls');
+        assert.equal(calls.filter(isFlow).length, 0, `no flow started:\n${calls.join('\n')}`);
+        assert.ok(!run.output.includes('Maestro failed in'), run.output);
+      });
+    }
+
+    // A renamed leaf under a group that stays must fail too, not reach Maestro as the text "undefined".
+    it(`#363: ${name} stops before Maestro starts when the catalog lacks a leaf, naming the key and the locale`, async () => {
+      const fake = checkout();
+      const path = join(fake.repo, 'packages/i18n/nl-NL.json');
+      const catalog = JSON.parse(readFileSync(path, 'utf8'));
+      delete catalog.signIn.sendCode;
+      writeFileSync(path, JSON.stringify(catalog));
+
+      const run = await fake.run('scripts/maestro.sh', args);
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(run.output, /signIn\.sendCode.*nl-NL/);
+      assert.match(run.output, /catalog lacks a text/);
+      const calls = fake.log('calls');
+      assert.equal(calls.filter(isFlow).length, 0, `no flow started:\n${calls.join('\n')}`);
+      assert.ok(!run.output.includes('SIGN_IN_SEND_CODE=undefined'), run.output);
+    });
+
+    it(`#363: ${name} stops before Maestro starts when it can't make the temporary file of the clearing`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args, {
+        TMPDIR: join(fake.repo, 'no-such-directory'),
+      });
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(run.output, /no temporary file/);
+      const calls = fake.log('calls');
+      assert.equal(calls.filter(isFlow).length, 0, `no flow started:\n${calls.join('\n')}`);
+    });
+
+    it(`#363: ${name} logs a clear that fails while the run lasts, and goes on`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args, {
+        FAKE_CLEAR: 'flaky',
+        FAKE_MAESTRO_SLEEP: '1',
+        MAESTRO_CLEAR_EVERY: '0.1',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(run.output, /clearing the sign-in rate limits failed/);
+    });
+
+    it(`#363: ${name} fails the run when no clear worked while it lasted`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args, {
+        FAKE_CLEAR: 'fail-after-first',
+        FAKE_MAESTRO_SLEEP: '1',
+        MAESTRO_CLEAR_EVERY: '0.1',
+      });
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(run.output, /clearing the sign-in rate limits failed/);
+      assert.match(run.output, /never cleared/);
+      assert.ok(
+        fake.log('maestro').filter((call) => / test /.test(` ${call} `)).length >= 1,
+        'the run itself was not stopped by the failed clears',
+      );
     });
   }
 
