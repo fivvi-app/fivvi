@@ -5,7 +5,8 @@
   },
   "common": {
     "loading": "Loading…",
-    "retry": "Try again"
+    "retry": "Try again",
+    "offline": "You're offline. Last updated at {time}."
   },
   "hello": {
     "title": "Welcome to Fivvi",
@@ -213,6 +214,49 @@
     "roleChanged": {
       "owner": "{name} is now an owner.",
       "trainer": "{name} is now a trainer."
+    }
+  },
+  "clients": {
+    "title": "Clients",
+    "searchPlaceholder": "Search client…",
+    "newClient": "New client",
+    "empty": "No clients yet. Add your first client.",
+    "noResults": "No clients found.",
+    "loadError": "Something went wrong while loading.",
+    "addDialog": {
+      "nameLabel": "Name",
+      "emailLabel": "Email address (optional)",
+      "localeLabel": "Language for emails",
+      "localeDefault": "Default ({language})",
+      "localeNl": "Nederlands",
+      "localeEn": "English",
+      "submit": "Add",
+      "cancel": "Cancel",
+      "exists": "{name} already uses this email address.",
+      "openExisting": "Open {name}",
+      "otherEmail": "Use another email address",
+      "errors": {
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "This name is too long. Use at most 120 characters.",
+        "emailInvalid": "Enter a valid email address.",
+        "notSaved": "Not saved. Check your connection and try again."
+      }
+    },
+    "languageNames": {
+      "nl": "Dutch",
+      "en": "English"
+    },
+    "profile": {
+      "title": "Client profile",
+      "added": "{name} has been added.",
+      "overview": "Overview",
+      "nameLabel": "Name",
+      "emailLabel": "Email address",
+      "noEmail": "No email address",
+      "localeLabel": "Language for emails",
+      "edit": "Edit",
+      "save": "Save",
+      "saved": "Saved."
     }
   }
 }

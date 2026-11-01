@@ -116,6 +116,24 @@ final class WorkspaceCapabilitiesTests: XCTestCase {
         XCTAssertTrue(account.capabilities.allows(.team_manage), "the next workspace is the current one")
     }
 
+    func test_F006_AC1_theHomeKnowsTheWorkspaceAndItsDefaultLanguageForClientEmails() async {
+        let api = StubAPI()
+        api.clients.workspaceDefaultLocale = .en
+        await answerAsSarah(api)
+        let account = account(api)
+        XCTAssertNil(account.workspace)
+
+        await account.load()
+
+        XCTAssertEqual(account.workspace, CurrentWorkspace(id: johnsGym, name: "John's Gym", defaultLocale: .en))
+        await api.removeFromTeam(of: johnsGym)
+        await account.refresh()
+        XCTAssertEqual(account.workspace?.id, sarahTraining, "the next workspace is the current one")
+        await api.answerMe(with: .account(email: "trainer@example.com"))
+        await account.refresh()
+        XCTAssertNil(account.workspace, "no workspace, no clients")
+    }
+
     func test_F004_AC10_aFailedRefreshKeepsTheCachedCapabilities() async {
         let api = StubAPI()
         await answerAsSarah(api)

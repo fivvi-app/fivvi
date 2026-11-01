@@ -87,6 +87,8 @@ actor StubAPI: APIProtocol {
     private var meAnswer = MeAnswer.unauthorized
     private var myWorkspacesAnswer = MyWorkspacesAnswer.workspaces([])
     private var updateMeAnswer = UpdateMeAnswer.accepted
+    /// The clients of the workspace and what the client routes answer (F006).
+    let clients = StubClients()
     private var goneWorkspaces: Set<String> = []
     private var workspaceStatus: Int?
     private(set) var requestedLocales: [Components.Schemas.Locale?] = []
@@ -185,28 +187,6 @@ actor StubAPI: APIProtocol {
         case .offline:
             throw URLError(.notConnectedToInternet)
         }
-    }
-
-    func getHealth(_ input: Operations.GetHealth.Input) async throws -> Operations.GetHealth.Output {
-        fatalError("The hello screen doesn't call getHealth")
-    }
-
-    func createWorkspace(_ input: Operations.CreateWorkspace.Input) async throws -> Operations.CreateWorkspace.Output {
-        fatalError("The app doesn't call createWorkspace yet")
-    }
-
-    func renameWorkspace(_ input: Operations.RenameWorkspace.Input) async throws -> Operations.RenameWorkspace.Output {
-        fatalError("The app doesn't call renameWorkspace yet")
-    }
-
-    func listTeamMembers(_ input: Operations.ListTeamMembers.Input) async throws -> Operations.ListTeamMembers.Output {
-        fatalError("The app doesn't call listTeamMembers yet")
-    }
-
-    func removeTeamMember(
-        _ input: Operations.RemoveTeamMember.Input
-    ) async throws -> Operations.RemoveTeamMember.Output {
-        fatalError("The app doesn't call removeTeamMember yet")
     }
 
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
@@ -323,8 +303,8 @@ extension StubAPI {
             return .notFound(.init(body: .json(.init(code: .notFound))))
         }
         return .ok(.init(body: .json(.init(
-            id: input.path.workspaceId, name: "Workspace", slug: "workspace", defaultLocale: .nlNL,
-            timeZone: "Europe/Amsterdam"
+            id: input.path.workspaceId, name: "Workspace", slug: "workspace",
+            defaultLocale: clients.workspaceDefaultLocale, timeZone: "Europe/Amsterdam"
         ))))
     }
 

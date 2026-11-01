@@ -82,6 +82,13 @@ set_flow_env() {
   add_catalog_env SIGN_OUT_LABEL "$1" signOut.label || return 1
   add_catalog_env PROFILE_LANGUAGE_THIS "$1" profile.language || return 1
   add_catalog_env PROFILE_LANGUAGE_OTHER "$other" profile.language || return 1
+  add_catalog_env CLIENTS_SEARCH_PLACEHOLDER "$1" clients.searchPlaceholder || return 1
+  add_catalog_env CLIENT_LOCALE_EN "$1" clients.addDialog.localeEn || return 1
+  # "Standaard (Nederlands)": John's Gym, the seeded workspace, follows nl-NL, so its default is named in this language.
+  local default_text dutch
+  default_text="$(catalog "$1" clients.addDialog.localeDefault)" || return 1
+  dutch="$(catalog "$1" clients.languageNames.nl)" || return 1
+  FLOW_ENV+=(--env "CLIENT_LOCALE_DEFAULT=${default_text//\{language\}/$dutch}")
   FLOW_ENV+=(
     --env "DEVICE_LANGUAGE=$1"
     --env "LANGUAGE_THIS=$1"

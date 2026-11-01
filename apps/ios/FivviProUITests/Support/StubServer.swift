@@ -3,9 +3,9 @@ import Network
 
 /// A tiny HTTP server in the UI-test runner that stands in for the API. The app reaches it on the simulator's
 /// loopback interface (the Debug build allows plain HTTP), so UI tests can assert what the app requested. It answers
-/// the hello route as the test says (`Answer`) and the sign-in routes, `POST /api/v1/sign-out` and `GET /api/v1/me`
-/// like the API does for one account (`SignIn`). A test can also cut the connection (`setOffline`) or hold the
-/// sign-in email request to keep the loading state on screen (`holdSignInRequests`).
+/// the hello route as the test says (`Answer`), the sign-in routes, `POST /api/v1/sign-out`, `GET /api/v1/me` like the
+/// API does for one account (`SignIn`) and the client routes (`StubClientRoutes`). A test can also cut the connection
+/// (`setOffline`) or hold the sign-in email request to keep the loading state on screen (`holdSignInRequests`).
 final class StubServer: Sendable {
     enum Answer: Sendable {
         /// `200` with this greeting key.
@@ -14,31 +14,6 @@ final class StubServer: Sendable {
         case status(Int)
         /// No answer until `answer(with:)` gives one, so the loading state stays on screen.
         case hold
-    }
-
-    /// The account the sign-in routes know: its address, the code that works and the token that code is exchanged for.
-    struct SignIn: Sendable {
-        var email = "owner@example.com"
-        var code = "123456"
-        var token = "stub-session-token"
-        /// The name of the account's one workspace, or nil for none (F002).
-        var workspaceName: String? = "John's Gym"
-        /// The role in that workspace (`owner` or `trainer`).
-        var role = "owner"
-        /// More workspaces the account is on the team of, after the first (F003).
-        var otherWorkspaces: [Workspace] = []
-        /// Whether `GET /api/v1/me` says the account may create a workspace.
-        var canCreateWorkspace = false
-        /// An error status for `GET /api/v1/me`, or nil to answer as the API does.
-        var meStatus: Int?
-        /// The account's stored language (`nl-NL` or `en`) at the start, or nil for none (F010).
-        var preferredLocale: String?
-    }
-
-    /// A workspace of the account (synthetic).
-    struct Workspace: Sendable, Equatable {
-        let name: String
-        let role: String
     }
 
     /// A request the app sent: its target, bearer token and JSON body (strings only).
@@ -130,6 +105,7 @@ final class StubServer: Sendable {
 private final class Responder: @unchecked Sendable {
     private let lock = NSLock()
     private let signIn: StubServer.SignIn
+    private let clientRoutes = StubClientRoutes()
     private var currentAnswer: StubServer.Answer
     private var received: [StubServer.Request] = []
     private var held: [(connection: NWConnection, locale: String?)] = []
@@ -225,7 +201,8 @@ private final class Responder: @unchecked Sendable {
         let method = line.first ?? ""
         let request = line.dropFirst().first.flatMap { URLComponents(string: $0) }
         let path = request?.path ?? ""
-        let locale = request?.queryItems?.first { $0.name == "locale" }?.value
+        let query = Dictionary(request?.queryItems?.map { ($0.name, $0.value ?? "") } ?? [], uniquingKeysWith: { $1 })
+        let locale = query["locale"]
         let json = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any] ?? [:]
         let authorization = Self.header("authorization", in: head)
         let stringFields = json.compactMapValues { $0 as? String }
@@ -260,8 +237,17 @@ private final class Responder: @unchecked Sendable {
                 preferredLocale: stringFields["preferredLocale"]
             )
         default:
-            send(connection, status: 404, json: nil)
+            let reply = clientReply(method: method, path: path, query: query, body: json, authorization: authorization)
+            send(connection, status: reply.status, json: reply.json)
         }
+    }
+
+    /// The client routes (F006) for a signed-in caller; any other path is unknown.
+    private func clientReply(
+        method: String, path: String, query: [String: String], body: [String: Any], authorization: String?
+    ) -> (status: Int, json: [String: Any]?) {
+        guard authorization == "Bearer \(signIn.token)" else { return (path.contains("/clients") ? 401 : 404, nil) }
+        return clientRoutes.respond(method: method, path: path, query: query, body: body) ?? (404, nil)
     }
 
     private static var unauthorized: [String: Any] { ["code": "unauthorized"] }
@@ -316,7 +302,11 @@ private final class Responder: @unchecked Sendable {
     private static func isAccountRoute(method: String, path: String) -> Bool {
         if method == "PATCH" { return path == "/api/v1/me" }
         return method == "GET"
-            && (path == "/api/v1/me" || path == "/api/v1/me/workspaces" || path.hasPrefix("/api/v1/workspaces/"))
+            && (path == "/api/v1/me" || path == "/api/v1/me/workspaces" || isWorkspaceRoute(path))
+    }
+
+    private static func isWorkspaceRoute(_ path: String) -> Bool {
+        path.hasPrefix("/api/v1/workspaces/") && !path.contains("/clients")
     }
 
     /// `GET /api/v1/me`, `GET /api/v1/me/workspaces` and `GET /api/v1/workspaces/{id}`.

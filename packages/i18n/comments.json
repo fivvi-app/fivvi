@@ -104,5 +104,10 @@
   "team.removeDialog.cancel": "Dismiss button of the remove dialog. Closes it without removing anyone.",
   "team.removed": "Confirmation shown after a person was removed from the team. {name} is the person's name (or email address when they have no name).",
   "team.errors.noConnection": "Shown on the Trainers page when removing a person failed because there is no connection. Nothing changed.",
-  "team.errors.generic": "Shown on the Trainers page when removing a person failed for another reason. Nothing changed."
+  "team.errors.generic": "Shown on the Trainers page when removing a person failed for another reason. Nothing changed.",
+  "common.offline": "Banner at the top of a native screen that shows saved data because the phone can't reach Fivvi. {time} is the 24-hour time of the last update, e.g. '08:42', formatted in code in the workspace time zone.",
+  "clients.newClient": "The + action on the native Clients screen (iOS: button in the navigation bar; Android: button), and the title of the sheet or dialog for adding a client. Name only is required.",
+  "clients.profile.edit": "Button on the client profile that opens the form to change the name, email address and language for emails, and the title of that form.",
+  "clients.profile.save": "Save button of the form that edits a client.",
+  "clients.profile.saved": "Short confirmation under the overview after a client's changes were saved."
 }
