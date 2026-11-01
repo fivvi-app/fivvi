@@ -31,7 +31,8 @@ struct ClientProfileScreen: View {
 /// *Klantprofiel* / *Client profile* (TM-03, F006): the client's name as the title, the section *Overzicht* with name,
 /// email address and language for emails, and *Bewerken* in the bar for whoever may manage clients (the capability
 /// helper decides). The other parts of the profile come with the features that own them; no empty placeholders. The
-/// bar's back button is our own (`clientProfile.back`, the id the Maestro flow taps), with the swipe back kept.
+/// bar's back button is our own (`clientProfile.back`, the id the Maestro flow taps; SwiftUI can't give the system's one
+/// an id): the chevron and the title of the list, as the system's shows (IA §5.2), with the swipe back kept.
 struct ClientProfileView: View {
     let model: ClientProfileViewModel
     let language: AppLanguage
@@ -83,12 +84,17 @@ struct ClientProfileView: View {
         Button {
             dismiss()
         } label: {
-            Image(systemName: "chevron.left")
-                .fontWeight(.semibold)
-                .frame(minWidth: 44, minHeight: 44, alignment: .leading)
-                .contentShape(Rectangle())
+            HStack(spacing: Tokens.Spacing.space1) {
+                Image(systemName: "chevron.left")
+                    .fontWeight(.semibold)
+                Text(catalog[.clientsTitle])
+                    .lineLimit(1)
+            }
+            .frame(minWidth: 44, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
         }
-        .accessibilityLabel(catalog[.clientProfileBack])
+        // The size of a button in the bar is the system's (36 pt high, as the system's own back button).
+        .accessibilityLabel(catalog[.clientsTitle])
         .accessibilityIdentifier("clientProfile.back")
     }
 
@@ -188,16 +194,41 @@ struct ClientProfileView: View {
 }
 
 /// Keeps the swipe from the screen's edge that goes back, which UIKit turns off when the system's back button is
-/// replaced by our own.
+/// replaced by our own. Its recogniser answers to a delegate of ours only while this screen is shown, and only begins
+/// where there is a screen to go back to: with no delegate at all, or one left behind, a swipe on the root (Home) can
+/// lock the navigation up.
 private struct KeepSwipeBack: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> Keeper { Keeper() }
     func updateUIViewController(_ controller: Keeper, context: Context) {}
 
     final class Keeper: UIViewController {
+        private let guardian = SwipeBackGuardian()
+        private weak var original: UIGestureRecognizerDelegate?
+        private weak var recogniser: UIGestureRecognizer?
+
         override func viewDidAppear(_ animated: Bool) {
             super.viewDidAppear(animated)
-            navigationController?.interactivePopGestureRecognizer?.delegate = nil
-            navigationController?.interactivePopGestureRecognizer?.isEnabled = true
+            guard let navigation = navigationController, let recogniser = navigation.interactivePopGestureRecognizer
+            else { return }
+            guardian.navigation = navigation
+            if recogniser.delegate !== guardian { original = recogniser.delegate }
+            self.recogniser = recogniser
+            recogniser.delegate = guardian
+            recogniser.isEnabled = true
         }
+
+        override func viewDidDisappear(_ animated: Bool) {
+            super.viewDidDisappear(animated)
+            if recogniser?.delegate === guardian { recogniser?.delegate = original }
+        }
+    }
+}
+
+/// Lets the edge swipe begin only when the navigation stack has a screen below the one shown.
+final class SwipeBackGuardian: NSObject, UIGestureRecognizerDelegate {
+    weak var navigation: UINavigationController?
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        (navigation?.viewControllers.count ?? 0) > 1
     }
 }
