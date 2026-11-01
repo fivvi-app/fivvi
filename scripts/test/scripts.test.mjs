@@ -1467,8 +1467,10 @@ describe('E002 #91 android.sh avd-key', () => {
 const fakeSimctl = (
   state,
 ) => `# xcresulttool prints the canned test results of the bundle in --path: <FAKE_XCRESULT_DIR>/<bundle name>.json when
-# that exists, else the file FAKE_XCRESULT names (nothing without it).
+# that exists, else the file FAKE_XCRESULT names (nothing without it). Its \`activities\` command prints the file
+# FAKE_XCRESULT_ACTIVITIES names (nothing without it) for any test.
 if [ "$1" = xcresulttool ]; then
+  case "$*" in *" activities "*) [ -z "$FAKE_XCRESULT_ACTIVITIES" ] || cat "$FAKE_XCRESULT_ACTIVITIES"; exit 0 ;; esac
   bundle=; while [ $# -gt 0 ]; do [ "$1" != --path ] || bundle="$2"; shift; done
   by_bundle="$FAKE_XCRESULT_DIR/$(basename "$bundle").json"
   if [ -n "$FAKE_XCRESULT_DIR" ] && [ -f "$by_bundle" ]; then cat "$by_bundle"
@@ -2751,6 +2753,127 @@ esac`,
 
       assert.equal(run.status, 0, run.output);
       assert.doesNotMatch(run.output, /Failed tests:/);
+    });
+
+    describe('#388: a UI test that started the app again is reported as flaky (TESTING.md §8)', () => {
+      const warning =
+        '::warning::flaky: app unreadable after start, starting it again (start 2 of 2)';
+      const uiTests = (fake) => {
+        const tests = join(fake.repo, '..', 'tests.json');
+        writeFileSync(
+          tests,
+          JSON.stringify({
+            testNodes: [
+              {
+                nodeType: 'Test Case',
+                nodeIdentifier: 'SignInRecoveryUITests/test_lostConnection()',
+                nodeIdentifierURL:
+                  'test://com.apple.xcode/FivviPro/FivviProUITests/SignInRecoveryUITests/test_lostConnection',
+                durationInSeconds: 5,
+              },
+            ],
+          }),
+        );
+        return tests;
+      };
+      const activities = (fake, titles) => {
+        const file = join(fake.repo, '..', 'activities.json');
+        writeFileSync(
+          file,
+          JSON.stringify({
+            testRuns: [
+              {
+                testPlanConfiguration: { configurationName: 'en' },
+                activities: [
+                  { title: 'Set Up' },
+                  {
+                    title: 'Open app.fivvi.pro',
+                    childActivities: titles.map((title) => ({ title })),
+                  },
+                ],
+              },
+            ],
+          }),
+        );
+        return file;
+      };
+
+      it('prints the test and its locale as a ::warning:: line and puts it in the job summary; the run still passes', async () => {
+        const fake = checkout();
+        const summary = join(fake.repo, '..', 'summary.md');
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: activities(fake, [warning]),
+          GITHUB_STEP_SUMMARY: summary,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(
+          run.output,
+          /^::warning::flaky: app unreadable after start, starting it again \(start 2 of 2\) in SignInRecoveryUITests\/test_lostConnection\(\) \(en\)$/m,
+        );
+        assert.match(
+          readFileSync(summary, 'utf8'),
+          /### Flaky iOS tests\n[\s\S]*SignInRecoveryUITests\/test_lostConnection\(\)[\s\S]*\(en\)/,
+        );
+      });
+
+      it('also reports it when the run fails', async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          FAKE_RESULT: 'fail',
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: activities(fake, [warning]),
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /::warning::flaky: .* in SignInRecoveryUITests\//);
+      });
+
+      it('prints nothing for a test that never started the app again', async () => {
+        const fake = checkout();
+        const summary = join(fake.repo, '..', 'summary.md');
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: activities(fake, ['Tap "Continue"']),
+          GITHUB_STEP_SUMMARY: summary,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.doesNotMatch(run.output, /::warning::flaky/);
+        assert.doesNotMatch(readFileSync(summary, 'utf8'), /Flaky iOS tests/);
+      });
+
+      it('test <locale> from the packed bundle reports it too', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'en'], {
+          IOS_SIM_SETTLE: '0',
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: activities(fake, [warning]),
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(run.output, /^::warning::flaky: .* in SignInRecoveryUITests\/.*\(en\)$/m);
+      });
+
+      it('a bundle that cannot be read does not fail the run', async () => {
+        const fake = checkout();
+        const bad = join(fake.repo, '..', 'bad.json');
+        writeFileSync(bad, 'this is not JSON');
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: bad,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.doesNotMatch(run.output, /::warning::flaky/);
+      });
     });
 
     it('A: a bundle of one locale (IOS_PARALLEL=1) is reported for that locale', async () => {

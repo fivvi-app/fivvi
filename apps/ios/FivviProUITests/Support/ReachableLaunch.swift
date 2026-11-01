@@ -37,15 +37,16 @@ enum ReachableLaunch {
         return nil
     }
 
-    /// The line CI shows for a start that had to be repeated: a test that only passes on a retry is reported as flaky
-    /// (`TESTING.md §8`).
+    /// The title of the activity a repeated start leaves in the test's result. `scripts/test-ios.sh` reads the
+    /// activities that start with `::warning::flaky` from the result bundle and shows them as `::warning::` lines and in
+    /// the job summary: a test that only passes on a retry is reported as flaky (`TESTING.md §8`).
     static func warning(attempt: Int, of attempts: Int) -> String {
         "::warning::flaky: app unreadable after start, starting it again (start \(attempt) of \(attempts))"
     }
 
     /// Launches `app` until its accessibility hierarchy can be read. The probe is `snapshot()`, which throws instead of
-    /// failing the test when the app can't be read. Every repeated start is an activity of the test (in its result)
-    /// and a `::warning::` line on stdout.
+    /// failing the test when the app can't be read. Every repeated start is an activity of the test (in its result),
+    /// which is how CI finds it: `xcodebuild -quiet` drops what a test prints.
     @MainActor
     @discardableResult
     static func launch(_ app: XCUIApplication) -> Int? {
@@ -56,9 +57,7 @@ enum ReachableLaunch {
             isRunning: { app.state != .notRunning },
             terminate: { app.terminate() },
             report: { attempt, total in
-                let line = warning(attempt: attempt, of: total)
-                print(line)
-                XCTContext.runActivity(named: line) { _ in }
+                XCTContext.runActivity(named: warning(attempt: attempt, of: total)) { _ in }
             }
         )
     }
