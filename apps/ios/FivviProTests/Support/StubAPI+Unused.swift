@@ -23,4 +23,20 @@ extension StubAPI {
     func updateClient(_ input: Operations.UpdateClient.Input) async throws -> Operations.UpdateClient.Output {
         fatalError("The app doesn't call updateClient yet")
     }
+
+    func listTrainers(_ input: Operations.ListTrainers.Input) async throws -> Operations.ListTrainers.Output {
+        fatalError("The app doesn't call listTrainers yet")
+    }
+
+    func putTrainerProfile(
+        _ input: Operations.PutTrainerProfile.Input
+    ) async throws -> Operations.PutTrainerProfile.Output {
+        fatalError("The app doesn't call putTrainerProfile yet")
+    }
+
+    func deleteTrainerProfile(
+        _ input: Operations.DeleteTrainerProfile.Input
+    ) async throws -> Operations.DeleteTrainerProfile.Output {
+        fatalError("The app doesn't call deleteTrainerProfile yet")
+    }
 }

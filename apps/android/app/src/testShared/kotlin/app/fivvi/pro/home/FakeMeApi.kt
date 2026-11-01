@@ -64,7 +64,15 @@ class FakeMeApi : MeApi {
         workspaceAnswers += {
             Response.success(
                 workspaces.map { (name, slug, role) ->
-                    MyWorkspace(workspaceIdOf(name), name, slug, role, capabilitiesOf(role))
+                    MyWorkspace(
+                        workspaceIdOf(name),
+                        name,
+                        slug,
+                        role,
+                        capabilitiesOf(role),
+                        // A Trainer always trains; an Owner here has not switched it on (F005).
+                        trainsHere = role == MyWorkspace.Role.TRAINER,
+                    )
                 },
             )
         }

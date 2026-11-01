@@ -1,6 +1,12 @@
 import type { DatabaseExecutor } from '../client.ts';
 import { organizations } from '../schema/index.ts';
-import { addClient, addTeamRole, createAccount, uniqueMarker } from './factories.ts';
+import {
+  addClient,
+  addTeamRole,
+  addTrainerProfile,
+  createAccount,
+  uniqueMarker,
+} from './factories.ts';
 
 /**
  * Creates a valid row of one table in a given workspace (E011, AC15). The RLS suite runs every
@@ -48,5 +54,17 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
     scopeColumn: 'organization_id',
     create: async (db, workspaceId) =>
       addClient(db, { workspaceId, accountId: (await createAccount(db, { label: 'client' })).id }),
+  },
+  // The team member it belongs to is an Owner without a profile, so the profile is the one row.
+  trainer_profiles: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const teamMember = await addTeamRole(db, {
+        workspaceId,
+        accountId: (await createAccount(db, { label: 'trainer' })).id,
+        role: 'owner',
+      });
+      return addTrainerProfile(db, { workspaceId, teamMemberId: teamMember.id });
+    },
   },
 };

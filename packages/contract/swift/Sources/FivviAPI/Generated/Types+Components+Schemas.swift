@@ -426,6 +426,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MyWorkspace/capabilities`.
             public var capabilities: Components.Schemas.MyWorkspace.CapabilitiesPayload
+            /// Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/trainsHere`.
+            public var trainsHere: Swift.Bool
             /// Creates a new `MyWorkspace`.
             ///
             /// - Parameters:
@@ -434,18 +438,21 @@ extension Components {
             ///   - slug: The URL name: `/w/{slug}` on the web.
             ///   - role: What the account is on the team; shown as a label, never decided on.
             ///   - capabilities: What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
+            ///   - trainsHere: Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner.
             public init(
                 workspaceId: Swift.String,
                 name: Swift.String,
                 slug: Swift.String,
                 role: Components.Schemas.MyWorkspace.RolePayload,
-                capabilities: Components.Schemas.MyWorkspace.CapabilitiesPayload
+                capabilities: Components.Schemas.MyWorkspace.CapabilitiesPayload,
+                trainsHere: Swift.Bool
             ) {
                 self.workspaceId = workspaceId
                 self.name = name
                 self.slug = slug
                 self.role = role
                 self.capabilities = capabilities
+                self.trainsHere = trainsHere
             }
             public enum CodingKeys: String, CodingKey {
                 case workspaceId
@@ -453,6 +460,7 @@ extension Components {
                 case slug
                 case role
                 case capabilities
+                case trainsHere
             }
         }
         /// What to change on the signed-in account. Fields left out stay as they are.
@@ -802,6 +810,64 @@ extension Components {
             }
             public enum CodingKeys: String, CodingKey {
                 case role
+            }
+        }
+        /// A team member who trains in the workspace.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Trainer`.
+        public struct Trainer: Codable, Hashable, Sendable {
+            /// The team-member ID: this person’s place on this team.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Trainer/id`.
+            public var id: Swift.String
+            /// The account’s name; empty when the person has not given one.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Trainer/name`.
+            public var name: Swift.String
+            /// Creates a new `Trainer`.
+            ///
+            /// - Parameters:
+            ///   - id: The team-member ID: this person’s place on this team.
+            ///   - name: The account’s name; empty when the person has not given one.
+            public init(
+                id: Swift.String,
+                name: Swift.String
+            ) {
+                self.id = id
+                self.name = name
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+            }
+        }
+        /// The caller’s own trainer profile: they train in this workspace.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TrainerProfile`.
+        public struct TrainerProfile: Codable, Hashable, Sendable {
+            /// The caller’s team-member ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerProfile/teamMemberId`.
+            public var teamMemberId: Swift.String
+            /// The caller trains in the workspace.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerProfile/trainsHere`.
+            public var trainsHere: Swift.Bool
+            /// Creates a new `TrainerProfile`.
+            ///
+            /// - Parameters:
+            ///   - teamMemberId: The caller’s team-member ID.
+            ///   - trainsHere: The caller trains in the workspace.
+            public init(
+                teamMemberId: Swift.String,
+                trainsHere: Swift.Bool
+            ) {
+                self.teamMemberId = teamMemberId
+                self.trainsHere = trainsHere
+            }
+            public enum CodingKeys: String, CodingKey {
+                case teamMemberId
+                case trainsHere
             }
         }
         /// One page of the clients of a workspace.

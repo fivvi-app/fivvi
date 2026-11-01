@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Locale } from '@fivvi/i18n';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
-import { authUsers, organizations, teamMembers } from '../schema/index.ts';
+import { authUsers, organizations, teamMembers, trainerProfiles } from '../schema/index.ts';
 import {
   executorOf,
   setContext,
@@ -31,6 +31,8 @@ export interface WorkspaceSummary {
   readonly slug: string;
   /** What the account is in it: the page decides from this who sees the settings. */
   readonly role: TeamRole;
+  /** Whether the account has a trainer profile in it, that is whether it trains there (F005). */
+  readonly trainsHere: boolean;
 }
 
 export interface NewWorkspace {
@@ -42,6 +44,8 @@ export interface NewWorkspace {
   readonly timeZone: string;
   /** The account's own name, set in the same transaction when given. */
   readonly ownerName?: string;
+  /** Whether the Owner trains here: the rule of `packages/domain` (F005), made in the same transaction. */
+  readonly ownerTrains: boolean;
 }
 
 export interface WorkspaceCreationClaim {
@@ -70,7 +74,8 @@ export async function claimWorkspaceCreation(scope: TenantScope): Promise<Worksp
 }
 
 /**
- * Creates the workspace, the account's Owner role in it and, when given, the account's name, in
+ * Creates the workspace, the account's Owner role in it (with a trainer profile when the creator
+ * trains, F005) and, when given, the account's name, in
  * the scope's transaction: a failure later in the request rolls all of it back. `undefined` when
  * the slug is taken (the caller tries the next one; a workspace of someone else can't be seen,
  * so the unique index decides), and then nothing was created.
@@ -108,7 +113,14 @@ export async function createWorkspaceWithOwner(
     await setContext(db, { accountId, workspaceIds });
     return undefined;
   }
-  await db.insert(teamMembers).values({ organizationId: id, accountId, role: 'owner' });
+  const [owner] = await db
+    .insert(teamMembers)
+    .values({ organizationId: id, accountId, role: 'owner' })
+    .returning({ id: teamMembers.id });
+  if (!owner) throw new Error('The Owner’s team role was not created.');
+  if (input.ownerTrains) {
+    await db.insert(trainerProfiles).values({ organizationId: id, teamMemberId: owner.id });
+  }
   if (input.ownerName !== undefined) {
     await db.update(authUsers).set({ name: input.ownerName }).where(eq(authUsers.id, accountId));
   }
@@ -130,11 +142,25 @@ export function listTeamWorkspaces(scope: TenantScope): Promise<WorkspaceSummary
       name: organizations.name,
       slug: organizations.slug,
       role: teamMembers.role,
+      trainerProfileId: trainerProfiles.id,
     })
     .from(organizations)
     .innerJoin(teamMembers, eq(teamMembers.organizationId, organizations.id))
+    .leftJoin(
+      trainerProfiles,
+      and(
+        eq(trainerProfiles.organizationId, teamMembers.organizationId),
+        eq(trainerProfiles.teamMemberId, teamMembers.id),
+      ),
+    )
     .where(and(eq(teamMembers.accountId, accountId), inArray(organizations.id, [...workspaceIds])))
-    .orderBy(asc(organizations.name), asc(organizations.slug));
+    .orderBy(asc(organizations.name), asc(organizations.slug))
+    .then((rows) =>
+      rows.map(({ trainerProfileId, ...workspace }) => ({
+        ...workspace,
+        trainsHere: trainerProfileId !== null,
+      })),
+    );
 }
 
 const workspaceColumns = {

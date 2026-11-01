@@ -41,7 +41,7 @@ public protocol APIProtocol: Sendable {
     func updateMe(_ input: Operations.UpdateMe.Input) async throws -> Operations.UpdateMe.Output
     /// The workspaces the signed-in account is on the team of
     ///
-    /// The workspaces where the account has a team role (Owner or Trainer), by name, each with that role: the list *My workspaces* of the profile shows and the apps use. Workspaces the account is only a client of are not listed. Empty when it has no team role.
+    /// The workspaces where the account has a team role (Owner or Trainer), by name, each with that role and whether they train there (`trainsHere`): the list *My workspaces* of the profile shows and the apps use. Workspaces the account is only a client of are not listed. Empty when it has no team role.
     ///
     /// - Remark: HTTP `GET /v1/me/workspaces`.
     /// - Remark: Generated from `#/paths//v1/me/workspaces/get(listMyWorkspaces)`.
@@ -69,7 +69,7 @@ public protocol APIProtocol: Sendable {
     func signOut(_ input: Operations.SignOut.Input) async throws -> Operations.SignOut.Output
     /// Create the caller’s workspace
     ///
-    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.
+    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.
     ///
     /// - Remark: HTTP `POST /v1/workspaces`.
     /// - Remark: Generated from `#/paths//v1/workspaces/post(createWorkspace)`.
@@ -97,7 +97,7 @@ public protocol APIProtocol: Sendable {
     func listTeamMembers(_ input: Operations.ListTeamMembers.Input) async throws -> Operations.ListTeamMembers.Output
     /// Change a team member’s role
     ///
-    /// Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other than `owner` or `trainer` (`admin` included) answers `400`.
+    /// Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A new Trainer gets a trainer profile (a Trainer always trains); a new Owner keeps the one they had. A workspace keeps at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other than `owner` or `trainer` (`admin` included) answers `400`.
     ///
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/patch(changeTeamMemberRole)`.
@@ -109,6 +109,27 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)`.
     func removeTeamMember(_ input: Operations.RemoveTeamMember.Input) async throws -> Operations.RemoveTeamMember.Output
+    /// The trainers of a workspace
+    ///
+    /// The team members who train in the workspace, by name: every Trainer, and each Owner who also trains. Each has the team-member ID and the name. Both roles may read it; a client of the workspace gets `403`, a person with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/trainers`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainers/get(listTrainers)`.
+    func listTrainers(_ input: Operations.ListTrainers.Input) async throws -> Operations.ListTrainers.Output
+    /// Switch on that the caller trains here
+    ///
+    /// Gives the caller their own trainer profile in the workspace: they train here and show in the list of trainers from their next request. The Owner only; a Trainer always has one and gets `403`. It acts on the caller alone: there is no way to name another team member. Idempotent: switching on twice keeps one trainer profile.
+    ///
+    /// - Remark: HTTP `PUT /v1/workspaces/{workspaceId}/trainer-profile`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-profile/put(putTrainerProfile)`.
+    func putTrainerProfile(_ input: Operations.PutTrainerProfile.Input) async throws -> Operations.PutTrainerProfile.Output
+    /// Switch off that the caller trains here
+    ///
+    /// Takes the caller’s own trainer profile away: they no longer show in the list of trainers from their next request, and nothing else about them changes. The Owner only; a Trainer always has one and gets `403`. It acts on the caller alone: there is no way to name another team member. Idempotent: switching off when it is off answers `204` too.
+    ///
+    /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/trainer-profile`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-profile/delete(deleteTrainerProfile)`.
+    func deleteTrainerProfile(_ input: Operations.DeleteTrainerProfile.Input) async throws -> Operations.DeleteTrainerProfile.Output
     /// The clients of a workspace
     ///
     /// The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. `search` matches part of a name or an email address in the server, ignoring case and accents.
@@ -191,7 +212,7 @@ extension APIProtocol {
     }
     /// The workspaces the signed-in account is on the team of
     ///
-    /// The workspaces where the account has a team role (Owner or Trainer), by name, each with that role: the list *My workspaces* of the profile shows and the apps use. Workspaces the account is only a client of are not listed. Empty when it has no team role.
+    /// The workspaces where the account has a team role (Owner or Trainer), by name, each with that role and whether they train there (`trainsHere`): the list *My workspaces* of the profile shows and the apps use. Workspaces the account is only a client of are not listed. Empty when it has no team role.
     ///
     /// - Remark: HTTP `GET /v1/me/workspaces`.
     /// - Remark: Generated from `#/paths//v1/me/workspaces/get(listMyWorkspaces)`.
@@ -239,7 +260,7 @@ extension APIProtocol {
     }
     /// Create the caller’s workspace
     ///
-    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.
+    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.
     ///
     /// - Remark: HTTP `POST /v1/workspaces`.
     /// - Remark: Generated from `#/paths//v1/workspaces/post(createWorkspace)`.
@@ -301,7 +322,7 @@ extension APIProtocol {
     }
     /// Change a team member’s role
     ///
-    /// Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other than `owner` or `trainer` (`admin` included) answers `400`.
+    /// Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A new Trainer gets a trainer profile (a Trainer always trains); a new Owner keeps the one they had. A workspace keeps at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other than `owner` or `trainer` (`admin` included) answers `400`.
     ///
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/patch(changeTeamMemberRole)`.
@@ -327,6 +348,51 @@ extension APIProtocol {
         headers: Operations.RemoveTeamMember.Input.Headers = .init()
     ) async throws -> Operations.RemoveTeamMember.Output {
         try await removeTeamMember(Operations.RemoveTeamMember.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// The trainers of a workspace
+    ///
+    /// The team members who train in the workspace, by name: every Trainer, and each Owner who also trains. Each has the team-member ID and the name. Both roles may read it; a client of the workspace gets `403`, a person with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/trainers`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainers/get(listTrainers)`.
+    public func listTrainers(
+        path: Operations.ListTrainers.Input.Path,
+        headers: Operations.ListTrainers.Input.Headers = .init()
+    ) async throws -> Operations.ListTrainers.Output {
+        try await listTrainers(Operations.ListTrainers.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Switch on that the caller trains here
+    ///
+    /// Gives the caller their own trainer profile in the workspace: they train here and show in the list of trainers from their next request. The Owner only; a Trainer always has one and gets `403`. It acts on the caller alone: there is no way to name another team member. Idempotent: switching on twice keeps one trainer profile.
+    ///
+    /// - Remark: HTTP `PUT /v1/workspaces/{workspaceId}/trainer-profile`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-profile/put(putTrainerProfile)`.
+    public func putTrainerProfile(
+        path: Operations.PutTrainerProfile.Input.Path,
+        headers: Operations.PutTrainerProfile.Input.Headers = .init()
+    ) async throws -> Operations.PutTrainerProfile.Output {
+        try await putTrainerProfile(Operations.PutTrainerProfile.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Switch off that the caller trains here
+    ///
+    /// Takes the caller’s own trainer profile away: they no longer show in the list of trainers from their next request, and nothing else about them changes. The Owner only; a Trainer always has one and gets `403`. It acts on the caller alone: there is no way to name another team member. Idempotent: switching off when it is off answers `204` too.
+    ///
+    /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/trainer-profile`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-profile/delete(deleteTrainerProfile)`.
+    public func deleteTrainerProfile(
+        path: Operations.DeleteTrainerProfile.Input.Path,
+        headers: Operations.DeleteTrainerProfile.Input.Headers = .init()
+    ) async throws -> Operations.DeleteTrainerProfile.Output {
+        try await deleteTrainerProfile(Operations.DeleteTrainerProfile.Input(
             path: path,
             headers: headers
         ))

@@ -337,7 +337,7 @@ extension StubAPI {
             return .ok(.init(body: .json(memberships.map {
                 .init(
                     workspaceId: $0.workspaceID, name: $0.name, slug: $0.slug, role: $0.role,
-                    capabilities: $0.capabilities ?? Self.capabilities(of: $0.role)
+                    capabilities: $0.capabilities ?? Self.capabilities(of: $0.role), trainsHere: $0.role == .trainer
                 )
             })))
         case .unauthorized:

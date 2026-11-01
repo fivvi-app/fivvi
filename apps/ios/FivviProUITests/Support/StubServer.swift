@@ -288,7 +288,8 @@ private final class Responder: @unchecked Sendable {
         teamWorkspaceEntries.map {
             [
                 "workspaceId": Self.workspaceID($0.index), "name": $0.workspace.name, "slug": "workspace-\($0.index)",
-                "role": $0.workspace.role, "capabilities": Self.capabilities(ofRole: $0.workspace.role)
+                "role": $0.workspace.role, "capabilities": Self.capabilities(ofRole: $0.workspace.role),
+                "trainsHere": $0.workspace.role != "owner" // F005: a Trainer always trains
             ]
         }
     }

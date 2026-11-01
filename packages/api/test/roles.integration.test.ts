@@ -131,7 +131,9 @@ describe('F004 roles on every workspace route', () => {
     );
     expect(ownerRoutes.map(({ name }) => name).sort()).toEqual([
       'changeTeamMemberRole',
+      'deleteTrainerProfile',
       'listTeamMembers',
+      'putTrainerProfile',
       'removeTeamMember',
       'renameWorkspace',
     ]);
@@ -163,6 +165,7 @@ describe('F004 roles on every workspace route', () => {
       'getClient',
       'getWorkspace',
       'listClients',
+      'listTrainers',
       'updateClient',
     ]);
     const statuses = Object.fromEntries(
@@ -173,6 +176,7 @@ describe('F004 roles on every workspace route', () => {
     expect(statuses).toEqual({
       getWorkspace: 200,
       listClients: 200,
+      listTrainers: 200,
       addClient: 201,
       getClient: 200,
       updateClient: 200,

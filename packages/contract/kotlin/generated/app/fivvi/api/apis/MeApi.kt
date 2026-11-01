@@ -31,7 +31,7 @@ interface MeApi {
     /**
      * GET v1/me/workspaces
      * The workspaces the signed-in account is on the team of
-     * The workspaces where the account has a team role (Owner or Trainer), by name, each with that role: the list *My workspaces* of the profile shows and the apps use. Workspaces the account is only a client of are not listed. Empty when it has no team role.
+     * The workspaces where the account has a team role (Owner or Trainer), by name, each with that role and whether they train there (&#x60;trainsHere&#x60;): the list *My workspaces* of the profile shows and the apps use. Workspaces the account is only a client of are not listed. Empty when it has no team role.
      * Responses:
      *  - 200: The workspaces.
      *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
