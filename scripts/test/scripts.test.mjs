@@ -1701,6 +1701,36 @@ case " $* " in *" test "*)
   [ -z "$FAKE_MAESTRO_SLEEP" ] || { /bin/sleep "$FAKE_MAESTRO_SLEEP"; echo "maestro-run-ended" >>"${state}/calls.log"; }
   node -e "fetch('http://localhost:' + (Number(process.env.E2E_PORT) + 2000) + '/emails?to=owner@example.com').then((r) => r.json()).then((emails) => process.exit(Array.isArray(emails) ? 0 : 1), () => process.exit(1))" \
     && touch "${state}/brevo-answered"
+  # FAKE_MAESTRO_ERROR (#373): the first run in en (all of them with offline-always) leaves a failed report and the logs of
+  # its failed flows, as Maestro does: offline (a flow with the adb error, one after it with DeviceServerDiedException),
+  # assertion (a flow that failed its assertion) or mixed (the adb error and an assertion).
+  if [ -n "$FAKE_MAESTRO_ERROR" ]; then
+    out=""; dir=""; prev=""
+    for arg; do
+      [ "$prev" != --output ] || out="$arg"
+      [ "$prev" != --test-output-dir ] || dir="$arg"
+      prev="$arg"
+    done
+    en_runs=$(grep -c 'DEVICE_LANGUAGE=en ' "${state}/maestro.log")
+    if [ "$en_runs" -ge 1 ] && { [ "$en_runs" -eq 1 ] || [ "$FAKE_MAESTRO_ERROR" = offline-always ]; }; then
+      case "$FAKE_MAESTRO_ERROR" in
+        assertion) first="Assertion is false: 'Welcome' is visible"; second="" ;;
+        mixed) first="Command failed (host:transport:emulator-5554): device offline"; second="Assertion is false: 'Welcome' is visible" ;;
+        *) first="Command failed (host:transport:emulator-5554): device offline"; second="maestro.android.DeviceServerDiedException: Device server died during 'launchApp'" ;;
+      esac
+      mkdir -p "$dir/2099-01-01_000000/AC9 first/logs" "$dir/2099-01-01_000000/AC1 second/logs"
+      echo "[ERROR] CommandFailed: $first" >"$dir/2099-01-01_000000/AC9 first/logs/maestro.log"
+      echo "$second" >"$dir/2099-01-01_000000/AC1 second/logs/maestro.log"
+      {
+        echo '<testsuites><testsuite name="Test Suite" tests="3" failures="2">'
+        echo '<testcase id="AC9 first" name="AC9 first" file="e2e/maestro/profile-workspaces.yaml" status="ERROR"><failure>Unknown error</failure></testcase>'
+        if [ -n "$second" ]; then echo '<testcase id="AC1 second" name="AC1 second" file="e2e/maestro/hello.yaml" status="ERROR"><failure>Unknown error</failure></testcase>'; fi
+        echo '<testcase id="AC13 third" name="AC13 third" file="e2e/maestro/anonymous.yaml" status="SUCCESS"/>'
+        echo '</testsuite></testsuites>'
+      } >"$out"
+      exit 1
+    fi
+  fi
   ${outcome} ;; esac`,
     );
     script(
@@ -1708,7 +1738,19 @@ case " $* " in *" test "*)
       `echo "$*" >>"${state}/adb.log"
 echo "adb $*" >>"${state}/calls.log"
 case "$*" in
-  get-state) [ -e "${state}/booted" ] && echo device || exit 1 ;;
+  # FAKE_ADB_OFFLINE=<n> (#373): after the device language is set, the next n get-state calls say the device is offline;
+  # "adb reconnect offline" ends it, unless FAKE_ADB_RECONNECT=useless. adb-state lines in calls.log say what each get-state answered.
+  get-state)
+    left=$(cat "${state}/offline-left" 2>/dev/null || echo 0)
+    if [ "$left" -gt 0 ]; then
+      echo $((left - 1)) >"${state}/offline-left"
+      echo "adb-state offline" >>"${state}/calls.log"
+      echo "error: device offline" >&2; exit 1
+    fi
+    if [ -e "${state}/booted" ]; then echo "adb-state device" >>"${state}/calls.log"; echo device; else exit 1; fi ;;
+  "reconnect offline") [ "$FAKE_ADB_RECONNECT" = useless ] || echo 0 >"${state}/offline-left" ;;
+  "shell setprop"*) [ -z "$FAKE_ADB_OFFLINE" ] || echo "$FAKE_ADB_OFFLINE" >"${state}/offline-left" ;;
+  "shell pm path android") echo package:/system/framework/framework-res.apk ;;
   "shell getprop sys.boot_completed") [ -e "${state}/booted" ] && echo 1 || exit 1 ;;
   "shell getprop persist.sys.locale") echo en-US ;;
   "shell settings get global hide_error_dialogs") echo null ;;
@@ -3144,6 +3186,121 @@ esac`,
       gradleDaemonsStopped(fake);
     });
   }
+
+  // #373: CI's emulator dropped its adb connection ("device offline") for about half a second, while Maestro started or
+  // right after a language switch. adbd was not restarted; the host's adb server lost the device.
+  describe('#373: the adb connection of the emulator drops', () => {
+    const adbSteps = (fake) =>
+      fake
+        .log('calls')
+        .filter(
+          (call) =>
+            call.startsWith('adb-state ') || call === 'adb reconnect offline' || isFlow(call),
+        )
+        .map((call) => (isFlow(call) ? `flow ${call.match(/android-(\S+)\.xml/)[1]}` : call));
+
+    it('waits after the language switch until the device is online and answers several probes in a row, reconnecting it', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_ADB_OFFLINE: '3',
+        DEVICE_STABLE_PROBES: '3',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(run.output, /the device is offline; reconnecting it/);
+      const steps = adbSteps(fake).join('\n');
+      assert.match(steps, /adb-state offline\nadb reconnect offline\n/, steps);
+      // Before each language's flows: no offline answer in the last three probes, and at least three in a row.
+      for (const locale of ['nl-NL', 'en']) {
+        assert.match(
+          steps,
+          new RegExp(`(adb-state device\\n){3}(adb-state device\\n)*flow ${locale}(\\n|$)`),
+          steps,
+        );
+      }
+    });
+
+    it('stops without running Maestro when the device does not come back', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_ADB_OFFLINE: '100000',
+        FAKE_ADB_RECONNECT: 'useless',
+        DEVICE_READY_TIMEOUT: '5',
+      });
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(run.output, /the device is not ready after 5s/);
+      assert.equal(fake.log('calls').filter(isFlow).length, 0, fake.log('calls').join('\n'));
+    });
+
+    const tests = (fake) => fake.log('maestro').filter((call) => call.startsWith('test '));
+
+    it('re-runs once, and says so, only the flows that failed with the adb error, after the device is ready again', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /the adb connection dropped \(device offline\) in 2 flow\(s\) in en; re-running them once: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/hello\.yaml/,
+      );
+      const [nl, en, retry, ...more] = tests(fake);
+      assert.equal(more.length, 0, tests(fake).join('\n'));
+      assert.ok(nl.includes('android-nl-NL.xml') && en.includes('android-en.xml'));
+      assert.ok(
+        retry.includes('e2e/maestro/profile-workspaces.yaml') &&
+          retry.includes('e2e/maestro/hello.yaml') &&
+          !retry.includes('anonymous.yaml') &&
+          retry.includes('android-en-retry.xml') &&
+          retry.includes('--env DEVICE_LANGUAGE=en '),
+        retry,
+      );
+      // The device is probed again between the failed run and the re-run.
+      const steps = adbSteps(fake);
+      const failedRun = steps.lastIndexOf('flow en');
+      assert.ok(
+        steps.slice(failedRun).filter((s) => s === 'adb-state device').length >= 2,
+        steps.join('\n'),
+      );
+    });
+
+    for (const [name, error, runs] of [
+      ['a flow that failed an assertion', 'assertion', 2],
+      ['a flow that failed an assertion next to one with the adb error', 'mixed', 2],
+    ]) {
+      it(`does not re-run ${name}`, async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/maestro.sh', ['android'], {
+          FAKE_MAESTRO_ERROR: error,
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /Maestro failed in: en/);
+        assert.doesNotMatch(run.output, /re-running them once/);
+        assert.equal(tests(fake).length, runs, tests(fake).join('\n'));
+      });
+    }
+
+    it('re-runs only once: a second drop fails the locale', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline-always',
+      });
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /Maestro failed in: en/);
+      assert.equal(run.output.match(/re-running them once/g).length, 1, run.output);
+      assert.equal(tests(fake).length, 3, tests(fake).join('\n'));
+    });
+  });
 
   it('AC4: KEEP_DEVICE=1 leaves the emulator and the Gradle daemons pnpm test:android started running', async () => {
     const fake = checkout();

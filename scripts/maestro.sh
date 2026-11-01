@@ -25,6 +25,14 @@
 # When it ends, also on failure or Ctrl-C, it stops the emulator or simulator it booted and its Gradle daemons;
 # KEEP_DEVICE=1 leaves them running for the next run. On an emulator it didn't boot, it restores the language and the
 # error dialog setting.
+#
+# CI's emulator now and then lost its adb connection (#373): the host's adb server dropped it for about half a second
+# ("device offline", then "device 'emulator-5554' not found"), which fails the flow that happens to start in that window,
+# or the setprop of the next language switch. adbd itself keeps running (one pid in every log), so no restart is to blame:
+# the drop comes while the device is busy, right after the framework restart of a language switch and while Maestro
+# starts its driver. The runner therefore (1) waits after every switch until the host's adb server sees the device and
+# it answers several probes in a row, reconnecting an offline device, and (2) re-runs once, and says so, the flows that
+# failed with that exact transport error (ADB_DROP_ERROR below), never a flow that failed an assertion.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/_android.sh"
@@ -41,6 +49,11 @@ CLEAR_EVERY="${MAESTRO_CLEAR_EVERY:-20}"
 CLEARER_PID=""
 CLEARER_LOG=""
 DEVICE_LOCALE=""
+# Seconds to wait for the device to be usable again, and the number of probes (one a second) in a row it must answer.
+DEVICE_READY_TIMEOUT="${DEVICE_READY_TIMEOUT:-120}"
+DEVICE_STABLE_PROBES="${DEVICE_STABLE_PROBES:-5}"
+# Set to a function that makes the device usable again (Android: wait_for_device_ready) before a flow is re-run.
+DEVICE_RECOVER=""
 export MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
 
 # The catalog text of a dotted key, e.g. `catalog en hello.title`: what the screen should show. Fails, with the key and
@@ -155,15 +168,58 @@ warm_up_hello() {
   done
 }
 
+# True when the host's adb server lists the device as online, Android has booted and the package manager answers.
+device_answers() {
+  [ "$(adb get-state 2>/dev/null | tr -d '\r')" = device ] || return 1
+  [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] || return 1
+  adb shell pm path android >/dev/null 2>&1
+}
+
+# Returns once the device has answered DEVICE_STABLE_PROBES probes in a row (a drop of the adb connection resets the
+# count), or fails after DEVICE_READY_TIMEOUT seconds. An offline device is reconnected (`adb reconnect offline`); a
+# device the adb server doesn't list (yet) is waited for. Never kills the script itself: cleanup calls it too.
+wait_for_device_ready() {
+  local waited=0 steady=0 state
+  while [ "$steady" -lt "$DEVICE_STABLE_PROBES" ]; do
+    if device_answers; then
+      steady=$((steady + 1))
+    else
+      steady=0
+      state="$(adb get-state 2>&1 | tr -d '\r' || true)"
+      case "$state" in
+        *offline*) echo "maestro.sh: the device is offline; reconnecting it"; adb reconnect offline >/dev/null 2>&1 || true ;;
+      esac
+    fi
+    [ "$steady" -lt "$DEVICE_STABLE_PROBES" ] || break
+    if [ "$waited" -ge "$DEVICE_READY_TIMEOUT" ]; then
+      echo "maestro.sh: the device is not ready after ${DEVICE_READY_TIMEOUT}s (adb get-state: ${state:-device})" >&2
+      return 1
+    fi
+    sleep 1; waited=$((waited + 1))
+  done
+}
+
 # Root on the Google APIs emulator image, so the device language can be changed without a reboot: a framework restart.
+# The device must be online first (the adb connection may have dropped when the last Maestro run ended, #373), and after
+# the restart it must boot and then stay online.
 set_device_locale() {
+  wait_for_device_ready || return 1
   adb shell "setprop persist.sys.locale $1; setprop sys.boot_completed 0; setprop ctl.restart zygote"
   wait_for_boot
+  wait_for_device_ready
 }
 
 # After a framework restart Android delivers BOOT_COMPLETED to every app again, which takes a minute or more on CI's 2
-# cores. A flow that started during it once found System UI not responding, its dialog over the app (#89).
-settle_device() { adb shell am wait-for-broadcast-idle >/dev/null; }
+# cores. A flow that started during it once found System UI not responding, its dialog over the app (#89). And the
+# adb connection of a device that busy has dropped for half a second just as Maestro started (#373): wait until the
+# device is online and answering again, also after the broadcasts have settled.
+settle_device() {
+  adb shell am wait-for-broadcast-idle >/dev/null || {
+    echo "maestro.sh: waiting for Android to settle failed; waiting for the device and trying once more"
+    wait_for_device_ready && adb shell am wait-for-broadcast-idle >/dev/null
+  }
+  wait_for_device_ready
+}
 
 # A System UI that stops responding while Android settles would still show its dialog over the app; with error dialogs
 # hidden, Android restarts System UI instead. Applies at once. ERROR_DIALOGS keeps the device's own value (null: unset).
@@ -222,17 +278,71 @@ stop_clearing() {
   return "$status"
 }
 
+# The one error a flow may be re-run for: the adb server's answer when the connection to the emulator has dropped
+# (#373). A flow that failed otherwise (an assertion, a missing element) is never re-run. A flow that fails right after it,
+# when Maestro's driver has lost its adb forward (DeviceServerDiedException), is the same drop.
+ADB_DROP_ERROR='Command failed \(host:transport:[^)]*\): device offline'
+ADB_DROP_AFTERMATH='DeviceServerDiedException'
+
+# `adb_dropped_flows <junit report> <test output dir>`: prints the flow files of the report's failed flows, one per line,
+# when every failed flow shows ADB_DROP_ERROR in its Maestro log or its failure message (or ADB_DROP_AFTERMATH, with at
+# least one flow showing the error itself: a flow that starts after the drop only reports the dead driver). Prints nothing and fails when there is no failed flow or one of them failed otherwise.
+adb_dropped_flows() {
+  # shellcheck disable=SC2016 # JavaScript
+  node -e 'const fs = require("fs"), path = require("path");
+    const [report, dir, drop, aftermath] = process.argv.slice(1);
+    const unescape = (text) => text.replace(/&quot;/g, "\"").replace(/&apos;/g, "\x27").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+    const logs = [];
+    const walk = (current) => {
+      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+        const full = path.join(current, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.name === "maestro.log" && path.basename(path.dirname(full)) === "logs") logs.push(full);
+      }
+    };
+    if (fs.existsSync(dir)) walk(dir);
+    const failed = [...fs.readFileSync(report, "utf8").matchAll(/<testcase\b([^>]*)>\s*<failure[^>]*>([\s\S]*?)<\/failure>/g)].map((m) => {
+      const attr = (name) => unescape((m[1].match(new RegExp(`\\b${name}="([^"]*)"`)) || [])[1] || "");
+      return { name: attr("name"), file: attr("file"), message: unescape(m[2]) };
+    });
+    const drops = new RegExp(drop), aftermaths = new RegExp(aftermath);
+    let exact = 0;
+    for (const flow of failed) {
+      const text = flow.message + "\n" + logs.filter((log) => path.basename(path.dirname(path.dirname(log))) === flow.name).map((log) => fs.readFileSync(log, "utf8")).join("\n");
+      if (drops.test(text)) exact++;
+      else if (!aftermaths.test(text) || !flow.file) process.exit(1);
+    }
+    if (failed.length === 0 || exact === 0) process.exit(1);
+    console.log(failed.map((flow) => flow.file).join("\n"))' \
+    "$1" "$2" "$ADB_DROP_ERROR" "$ADB_DROP_AFTERMATH"
+}
+
 # `run_locale <locale> <report> <maestro command...>`: one `maestro test` for all flows of the locale, with the rate limits
-# cleared around it. A failing flow fails the locale (the status), and the run goes on to the next. Ctrl-C stops the whole
+# cleared around it. A failing flow fails the locale (the status), and the run goes on to the next. Flows that failed only
+# because the adb connection dropped (adb_dropped_flows) are re-run once, after the device is usable again; the run says so,
+# and the second run's report is next to the first (<report>-retry). Ctrl-C stops the whole
 # run (Maestro, a JVM, exits 130 on it, so bash doesn't see the signal itself).
 run_locale() {
-  local locale="$1" report="$2" status=0
+  local locale="$1" report="$2" status=0 flows file
+  local -a files=()
   shift 2
   # Both die: this runs as `run_locale … || failed=…`, where set -e is off, and a run without its texts is worthless.
   set_flow_env "$locale" || die "the i18n catalog lacks a text the $locale flows need (packages/i18n)"
   start_clearing
   "$@" test "$ROOT/e2e/maestro" "${FLOW_ENV[@]}" \
     --format junit --output "$REPORTS/$report.xml" --test-output-dir "$REPORTS/$report" || status=$?
+  if [ "$status" -ne 0 ] && [ "$status" -ne 130 ] && [ -f "$REPORTS/$report.xml" ] \
+    && flows="$(adb_dropped_flows "$REPORTS/$report.xml" "$REPORTS/$report")"; then
+    while IFS= read -r file; do files+=("$ROOT/$file"); done <<<"$flows"
+    echo "maestro.sh: the adb connection dropped (device offline) in ${#files[@]} flow(s) in $locale; re-running them once:$(printf ' %s' "${files[@]#"$ROOT"/}")"
+    status=0
+    if [ -z "$DEVICE_RECOVER" ] || "$DEVICE_RECOVER"; then
+      "$@" test "${files[@]}" "${FLOW_ENV[@]}" \
+        --format junit --output "$REPORTS/$report-retry.xml" --test-output-dir "$REPORTS/$report-retry" || status=$?
+    else
+      status=1
+    fi
+  fi
   stop_clearing || [ "$status" -ne 0 ] || status=1
   [ "$status" -ne 130 ] || exit 130
   return "$status"
@@ -267,6 +377,7 @@ cmd_android() {
   DEVICE_LOCALE="$(adb shell getprop persist.sys.locale | tr -d '\r')"
   [ -n "$DEVICE_LOCALE" ] || DEVICE_LOCALE="$(adb shell getprop ro.product.locale | tr -d '\r')"
   hide_error_dialogs
+  DEVICE_RECOVER=wait_for_device_ready
   if [ -n "$apk" ]; then
     [ -f "$apk" ] || die "no APK at $apk — run scripts/android.sh maestro-apk first"
     adb install -r -t "$apk"
