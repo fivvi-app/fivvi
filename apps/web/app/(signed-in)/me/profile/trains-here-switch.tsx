@@ -61,6 +61,7 @@ export function TrainsHereSwitch({
           id={id}
           type="checkbox"
           role="switch"
+          aria-checked={trains}
           className="size-5 accent-primary"
           checked={trains}
           disabled={!ready || pending}

@@ -124,7 +124,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
         `John</td>.*?${copy.roles.owner}.*?<span[^>]*data-slot="badge"[^>]*>${copy.team.badge.trainer}</span>.*?Joan</td>`,
       ),
     );
-    expect(html).toMatch(new RegExp(`Joan</td>(?:(?!data-slot="badge").)*?Sarah</td>`));
+    expect(html).toMatch(/Joan<\/td>(?:(?!data-slot="badge").)*?Sarah<\/td>/);
   });
 
   it('AC7: with nobody training there is no badge', () => {
