@@ -1703,7 +1703,10 @@ case " $* " in *" test "*)
     && touch "${state}/brevo-answered"
   # FAKE_MAESTRO_ERROR (#373): the first run in en (all of them with offline-always) leaves a failed report and the logs of
   # its failed flows, as Maestro does: offline (a flow with the adb error, one after it with DeviceServerDiedException),
-  # assertion (a flow that failed its assertion) or mixed (the adb error and an assertion).
+  # assertion (a flow that failed its assertion) or mixed (the adb error and an assertion). Three more are leaks of the logs:
+  # assertion-optional (the assertion fails, and its log also has the adb error of an optional step), element-aftermath (a
+  # real adb drop, and a flow that did not find an element and whose log mentions the dead driver) and aftermath-only (only
+  # the dead driver, in every failed flow, no flow with the error itself). no-file: offline, but the report has no file attributes.
   if [ -n "$FAKE_MAESTRO_ERROR" ]; then
     out=""; dir=""; prev=""
     for arg; do
@@ -1713,7 +1716,17 @@ case " $* " in *" test "*)
     done
     en_runs=$(grep -c 'DEVICE_LANGUAGE=en ' "${state}/maestro.log")
     if [ "$en_runs" -ge 1 ] && { [ "$en_runs" -eq 1 ] || [ "$FAKE_MAESTRO_ERROR" = offline-always ]; }; then
+      msg1="Unknown error"; msg2="Unknown error"
       case "$FAKE_MAESTRO_ERROR" in
+        assertion-optional)
+          first="Assertion is false: 'Welcome' is visible
+Command failed (host:transport:emulator-5554): device offline"; second=""
+          msg1="Assertion is false: &quot;Welcome&quot; is visible" ;;
+        element-aftermath)
+          first="Command failed (host:transport:emulator-5554): device offline"; second="maestro.android.DeviceServerDiedException: Device server died during 'launchApp'"
+          msg2="Element not found: Text matching regex: Welcome" ;;
+        aftermath-only)
+          first="maestro.android.DeviceServerDiedException: Device server died during 'launchApp'"; second="$first" ;;
         assertion) first="Assertion is false: 'Welcome' is visible"; second="" ;;
         mixed) first="Command failed (host:transport:emulator-5554): device offline"; second="Assertion is false: 'Welcome' is visible" ;;
         *) first="Command failed (host:transport:emulator-5554): device offline"; second="maestro.android.DeviceServerDiedException: Device server died during 'launchApp'" ;;
@@ -1723,11 +1736,11 @@ case " $* " in *" test "*)
       echo "$second" >"$dir/2099-01-01_000000/AC1 second/logs/maestro.log"
       {
         echo '<testsuites><testsuite name="Test Suite" tests="3" failures="2">'
-        echo '<testcase id="AC9 first" name="AC9 first" file="e2e/maestro/profile-workspaces.yaml" status="ERROR"><failure>Unknown error</failure></testcase>'
-        if [ -n "$second" ]; then echo '<testcase id="AC1 second" name="AC1 second" file="e2e/maestro/hello.yaml" status="ERROR"><failure>Unknown error</failure></testcase>'; fi
+        echo '<testcase id="AC9 first" name="AC9 first" file="e2e/maestro/profile-workspaces.yaml" status="ERROR"><failure>'"$msg1"'</failure></testcase>'
+        if [ -n "$second" ]; then echo '<testcase id="AC1 second" name="AC1 second" file="e2e/maestro/hello.yaml" status="ERROR"><failure>'"$msg2"'</failure></testcase>'; fi
         echo '<testcase id="AC13 third" name="AC13 third" file="e2e/maestro/anonymous.yaml" status="SUCCESS"/>'
         echo '</testsuite></testsuites>'
-      } >"$out"
+      } | { if [ "$FAKE_MAESTRO_ERROR" = no-file ]; then sed 's/ file="[^"]*"//'; else cat; fi; } >"$out"
       exit 1
     fi
   fi
@@ -3227,11 +3240,11 @@ esac`,
       const run = await fake.run('scripts/maestro.sh', ['android'], {
         FAKE_ADB_OFFLINE: '100000',
         FAKE_ADB_RECONNECT: 'useless',
-        DEVICE_READY_TIMEOUT: '5',
+        DEVICE_READY_TIMEOUT: '2',
       });
 
       assert.notEqual(run.status, 0, run.output);
-      assert.match(run.output, /the device is not ready after 5s/);
+      assert.match(run.output, /the device is not ready after 2s/);
       assert.equal(fake.log('calls').filter(isFlow).length, 0, fake.log('calls').join('\n'));
     });
 
@@ -3273,6 +3286,22 @@ esac`,
     for (const [name, error, runs] of [
       ['a flow that failed an assertion', 'assertion', 2],
       ['a flow that failed an assertion next to one with the adb error', 'mixed', 2],
+      [
+        'a failed assertion whose log also has the adb error of an optional step',
+        'assertion-optional',
+        2,
+      ],
+      [
+        'a flow that did not find an element, though its log mentions the dead driver, next to a real adb drop',
+        'element-aftermath',
+        2,
+      ],
+      [
+        'failures that only show the dead driver, with no flow showing the adb error itself',
+        'aftermath-only',
+        2,
+      ],
+      ['adb drops of flows the report gives no file for', 'no-file', 2],
     ]) {
       it(`does not re-run ${name}`, async () => {
         const fake = checkout();
@@ -3287,6 +3316,44 @@ esac`,
         assert.equal(tests(fake).length, runs, tests(fake).join('\n'));
       });
     }
+
+    it('reports the flows that pass only on the re-run as flaky, with a GitHub warning on CI only', async () => {
+      const flaky =
+        /flaky: 2 flow\(s\) in en failed with a dropped adb connection and passed on the re-run: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/hello\.yaml/;
+
+      const onCi = await checkout().run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline',
+        DEVICE_STABLE_PROBES: '2',
+        CI: 'true',
+      });
+      const local = await checkout().run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline',
+        DEVICE_STABLE_PROBES: '2',
+        CI: '',
+      });
+
+      assert.equal(onCi.status, 0, onCi.output);
+      assert.match(onCi.output, /maestro\.sh: flaky: /);
+      assert.match(
+        onCi.output,
+        new RegExp(`^::warning title=Flaky Maestro flows::${flaky.source}`, 'm'),
+      );
+      assert.equal(local.status, 0, local.output);
+      assert.match(local.output, flaky);
+      assert.doesNotMatch(local.output, /::warning/);
+    });
+
+    it('does not call a locale flaky when its re-run fails', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline-always',
+        CI: 'true',
+      });
+
+      assert.equal(run.status, 1, run.output);
+      assert.doesNotMatch(run.output, /flaky|::warning/);
+    });
 
     it('re-runs only once: a second drop fails the locale', async () => {
       const fake = checkout();

@@ -176,10 +176,10 @@ device_answers() {
 }
 
 # Returns once the device has answered DEVICE_STABLE_PROBES probes in a row (a drop of the adb connection resets the
-# count), or fails after DEVICE_READY_TIMEOUT seconds. An offline device is reconnected (`adb reconnect offline`); a
+# count), or fails once DEVICE_READY_TIMEOUT seconds (the clock, $SECONDS, not the passes: a slow adb call counts) have passed. An offline device is reconnected (`adb reconnect offline`); a
 # device the adb server doesn't list (yet) is waited for. Never kills the script itself: cleanup calls it too.
 wait_for_device_ready() {
-  local waited=0 steady=0 state
+  local started=$SECONDS steady=0 state
   while [ "$steady" -lt "$DEVICE_STABLE_PROBES" ]; do
     if device_answers; then
       steady=$((steady + 1))
@@ -191,11 +191,11 @@ wait_for_device_ready() {
       esac
     fi
     [ "$steady" -lt "$DEVICE_STABLE_PROBES" ] || break
-    if [ "$waited" -ge "$DEVICE_READY_TIMEOUT" ]; then
+    if [ "$((SECONDS - started))" -ge "$DEVICE_READY_TIMEOUT" ]; then
       echo "maestro.sh: the device is not ready after ${DEVICE_READY_TIMEOUT}s (adb get-state: ${state:-device})" >&2
       return 1
     fi
-    sleep 1; waited=$((waited + 1))
+    sleep 1
   done
 }
 
@@ -285,8 +285,13 @@ ADB_DROP_ERROR='Command failed \(host:transport:[^)]*\): device offline'
 ADB_DROP_AFTERMATH='DeviceServerDiedException'
 
 # `adb_dropped_flows <junit report> <test output dir>`: prints the flow files of the report's failed flows, one per line,
-# when every failed flow shows ADB_DROP_ERROR in its Maestro log or its failure message (or ADB_DROP_AFTERMATH, with at
-# least one flow showing the error itself: a flow that starts after the drop only reports the dead driver). Prints nothing and fails when there is no failed flow or one of them failed otherwise.
+# when every failed flow is an adb drop, decided from the failure itself: its junit text shows ADB_DROP_ERROR, or
+# ADB_DROP_AFTERMATH (a flow that starts after the drop only reports the dead driver; at least one flow must show the
+# error itself). Only when that text is exactly `Unknown error` (Maestro's text for a transport error that has no message)
+# is the flow's Maestro log read instead. Any other failure text (an assertion, a missing element) is not a drop,
+# whatever its log says: a log also holds the steps that are `optional`. A flow without a `file` attribute can't be re-run,
+# so it counts as not dropped.
+# Prints nothing and fails when there is no failed flow or one of them failed otherwise.
 adb_dropped_flows() {
   # shellcheck disable=SC2016 # JavaScript
   node -e 'const fs = require("fs"), path = require("path");
@@ -303,14 +308,17 @@ adb_dropped_flows() {
     if (fs.existsSync(dir)) walk(dir);
     const failed = [...fs.readFileSync(report, "utf8").matchAll(/<testcase\b([^>]*)>\s*<failure[^>]*>([\s\S]*?)<\/failure>/g)].map((m) => {
       const attr = (name) => unescape((m[1].match(new RegExp(`\\b${name}="([^"]*)"`)) || [])[1] || "");
-      return { name: attr("name"), file: attr("file"), message: unescape(m[2]) };
+      return { name: attr("name"), file: attr("file"), message: unescape(m[2]).trim() };
     });
     const drops = new RegExp(drop), aftermaths = new RegExp(aftermath);
     let exact = 0;
     for (const flow of failed) {
-      const text = flow.message + "\n" + logs.filter((log) => path.basename(path.dirname(path.dirname(log))) === flow.name).map((log) => fs.readFileSync(log, "utf8")).join("\n");
+      if (!flow.file) process.exit(1);
+      const text = flow.message === "Unknown error"
+        ? logs.filter((log) => path.basename(path.dirname(path.dirname(log))) === flow.name).map((log) => fs.readFileSync(log, "utf8")).join("\n")
+        : flow.message;
       if (drops.test(text)) exact++;
-      else if (!aftermaths.test(text) || !flow.file) process.exit(1);
+      else if (!aftermaths.test(text)) process.exit(1);
     }
     if (failed.length === 0 || exact === 0) process.exit(1);
     console.log(failed.map((flow) => flow.file).join("\n"))' \
@@ -320,10 +328,11 @@ adb_dropped_flows() {
 # `run_locale <locale> <report> <maestro command...>`: one `maestro test` for all flows of the locale, with the rate limits
 # cleared around it. A failing flow fails the locale (the status), and the run goes on to the next. Flows that failed only
 # because the adb connection dropped (adb_dropped_flows) are re-run once, after the device is usable again; the run says so,
-# and the second run's report is next to the first (<report>-retry). Ctrl-C stops the whole
+# and the second run's report is next to the first (<report>-retry). Flows that pass only on that re-run are reported as
+# flaky (TESTING.md §3): a line naming them, and on CI (CI set) a GitHub warning annotation. Ctrl-C stops the whole
 # run (Maestro, a JVM, exits 130 on it, so bash doesn't see the signal itself).
 run_locale() {
-  local locale="$1" report="$2" status=0 flows file
+  local locale="$1" report="$2" status=0 flows file flaky
   local -a files=()
   shift 2
   # Both die: this runs as `run_locale … || failed=…`, where set -e is off, and a run without its texts is worthless.
@@ -339,6 +348,11 @@ run_locale() {
     if [ -z "$DEVICE_RECOVER" ] || "$DEVICE_RECOVER"; then
       "$@" test "${files[@]}" "${FLOW_ENV[@]}" \
         --format junit --output "$REPORTS/$report-retry.xml" --test-output-dir "$REPORTS/$report-retry" || status=$?
+      if [ "$status" -eq 0 ]; then
+        flaky="flaky: ${#files[@]} flow(s) in $locale failed with a dropped adb connection and passed on the re-run:$(printf ' %s' "${files[@]#"$ROOT"/}")"
+        echo "maestro.sh: $flaky"
+        [ -z "${CI:-}" ] || echo "::warning title=Flaky Maestro flows::$flaky"
+      fi
     else
       status=1
     fi
