@@ -47,11 +47,12 @@ object HomeTags {
     const val OPEN_WEB = "home.openWeb"
     const val NO_ACCESS = "home.noAccess"
     const val OPEN_PROFILE = "home.openProfile"
+    const val OPEN_CLIENTS = "home.openClients"
 }
 
 /**
  * The signed-in home (a placeholder): the hello screen, the address of the signed-in account and the sign-out button,
- * which a progress indicator replaces while [signingOut].
+ * which a progress indicator replaces while [signingOut]. [onOpenClients] is `null` where the person may not see clients.
  */
 @Composable
 fun HomeScreen(
@@ -64,6 +65,7 @@ fun HomeScreen(
     onOpenWeb: () -> Unit,
     onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenClients: (() -> Unit)? = null,
 ) {
     // One scroll for the whole screen, so the account block can't squeeze the hello block at the largest font scale. The
     // spacers share what is left when both fit (the hello block centred above the account block) and give way when not.
@@ -106,6 +108,15 @@ fun HomeScreen(
                     Button(onClick = onRetryMe, modifier = Modifier.testTag(HomeTags.RETRY)) {
                         Text(stringResource(R.string.common_retry), textAlign = TextAlign.Center)
                     }
+                }
+            }
+            // Klanten (TM-02) is reached from here when the capability helper lists `clients.view` for the workspace shown.
+            if (me is MeState.Loaded && onOpenClients != null) {
+                OutlinedButton(
+                    onClick = onOpenClients,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.space12).testTag(HomeTags.OPEN_CLIENTS),
+                ) {
+                    Text(stringResource(R.string.clients_title), textAlign = TextAlign.Center)
                 }
             }
             // Profiel (TM-04) is reached from here once the account has answered; it lists the workspaces, whatever the home shows.

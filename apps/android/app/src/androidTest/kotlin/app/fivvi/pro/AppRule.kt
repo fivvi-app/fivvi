@@ -3,6 +3,7 @@ package app.fivvi.pro
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
+import app.fivvi.api.apis.ClientsApi
 import app.fivvi.api.apis.HelloApi
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.apis.SignInApi
@@ -10,6 +11,7 @@ import app.fivvi.api.apis.WorkspacesApi
 import app.fivvi.api.models.MeResponse
 import app.fivvi.pro.auth.InMemorySessionStore
 import app.fivvi.pro.auth.Session
+import app.fivvi.pro.clients.FakeClientsApi
 import app.fivvi.pro.home.FakeMeApi
 import app.fivvi.pro.home.FakeWorkspacesApi
 import app.fivvi.pro.signin.FakeSignInApi
@@ -31,6 +33,7 @@ class AppRule : ExternalResource() {
         signInApi: SignInApi = FakeSignInApi(),
         meApi: MeApi = FakeMeApi().apply { answerAccount() },
         workspacesApi: WorkspacesApi = FakeWorkspacesApi(),
+        clientsApi: ClientsApi = FakeClientsApi(),
         session: Session = Session(InMemorySessionStore("token-1")),
         signOutApi: (String) -> SignInApi = { signInApi },
         languageStore: LanguageStore = InMemoryLanguageStore(),
@@ -43,6 +46,7 @@ class AppRule : ExternalResource() {
             override val signInApi = signInApi
             override val meApi = meApi
             override val workspacesApi = workspacesApi
+            override val clientsApi = clientsApi
             override val session = session
 
             override fun signOutApi(token: String) = signOutApi(token)

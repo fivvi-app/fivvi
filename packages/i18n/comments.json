@@ -2,6 +2,7 @@
   "app.title": "Browser tab title (HTML <title>) of web pages that don't set their own. The product name, Fivvi, the same in both languages.",
   "app.name": "Name of the native app under its home-screen icon (iOS CFBundleDisplayName and CFBundleName, Android app label). The name of the trainer app, Fivvi Pro, the same in both languages.",
   "common.loading": "Accessibility label of the progress indicator while a screen loads (read by VoiceOver and TalkBack).",
+  "common.loadingSlow": "Line under a loading placeholder that is still waiting after 10 seconds.",
   "common.retry": "Button under an error message that tries the failed action again.",
   "hello.description": "Line under the title of the hello page, above the first-name field.",
   "hello.firstNameLabel": "Label of the first-name field on the hello page.",
@@ -104,5 +105,14 @@
   "team.removeDialog.cancel": "Dismiss button of the remove dialog. Closes it without removing anyone.",
   "team.removed": "Confirmation shown after a person was removed from the team. {name} is the person's name (or email address when they have no name).",
   "team.errors.noConnection": "Shown on the Trainers page when removing a person failed because there is no connection. Nothing changed.",
-  "team.errors.generic": "Shown on the Trainers page when removing a person failed for another reason. Nothing changed."
+  "team.errors.generic": "Shown on the Trainers page when removing a person failed for another reason. Nothing changed.",
+  "clients.title": "Title of the clients list (TM-02, TW-01) and the label of the way in to it.",
+  "clients.newClient": "Primary action of the native clients list (New client): opens the full-screen form that adds a client. Shown only to people who may manage clients.",
+  "clients.offline": "Banner above the cached clients list in the apps while there is no connection. {time} is a 24-hour time, e.g. '08:42', formatted in code in the workspace time zone.",
+  "clients.addDialog.close": "Accessibility label of the close button (x) of the new-client form in the apps.",
+  "clients.profile.back": "Accessibility label of the back button of the client profile in the apps.",
+  "clients.profile.edit": "Button on the client profile that opens the edit form for the overview (name, email address, language for emails).",
+  "clients.profile.editTitle": "Title of the form that edits a client in the apps.",
+  "clients.profile.save": "Button that saves the edited client.",
+  "clients.profile.saved": "Brief confirmation (snackbar) after the edited client was saved."
 }

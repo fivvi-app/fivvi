@@ -1,5 +1,6 @@
 package app.fivvi.pro.auth
 
+import app.fivvi.api.apis.ClientsApi
 import app.fivvi.api.apis.HelloApi
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.apis.SignInApi
@@ -25,6 +26,7 @@ class ApiServices(private val baseUrl: String, session: Session, private val net
     val signInApi: SignInApi by lazy { apiClient.createService(SignInApi::class.java) }
     val meApi: MeApi by lazy { apiClient.createService(MeApi::class.java) }
     val workspacesApi: WorkspacesApi by lazy { apiClient.createService(WorkspacesApi::class.java) }
+    val clientsApi: ClientsApi by lazy { apiClient.createService(ClientsApi::class.java) }
 
     /**
      * The sign-in API for one request that carries [token] instead of the session's: sign-out deletes the stored token
