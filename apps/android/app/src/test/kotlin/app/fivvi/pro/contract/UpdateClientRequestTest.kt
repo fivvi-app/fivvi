@@ -16,8 +16,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 // F006 AC7: the edit body of `PATCH /clients/{id}` as the generated Kotlin client writes it. The generated Json has
-// `encodeDefaults = true`, so a field the app did not set goes out as `null`. The contract reads `null` like a field
-// left out (keep), and clears only with `clearEmail` / `clearEmailLocale`; Swift leaves a `nil` field out. The
+// `explicitNulls = false` (#371), so a field the app did not set is left out, as the Swift client does. The contract
+// reads a field left out as "keep", and clears only with `clearEmail` / `clearEmailLocale`, never with a `null`. The
 // request goes through the real generated Retrofit service, with a fake network as the last interceptor.
 class UpdateClientRequestTest {
     private val network = FakeNetwork(json = """{"id":"$CLIENT","name":"Anna","email":null,"emailLocale":null}""")
@@ -37,18 +37,15 @@ class UpdateClientRequestTest {
         return Json.parseToJsonElement(network.bodies.single()).jsonObject
     }
 
-    /** What the server reads from [field]: nothing (keep) for a missing field or `null`, else the value. */
+    /** What the server reads from [field]: nothing (keep) for a missing field, else the value. */
     private fun JsonObject.value(field: String): JsonElement? = this[field]?.takeUnless { it is JsonNull }
 
     @Test
     fun F006_AC7_changingOnlyTheNameKeepsTheEmailAndTheLanguage() {
         val body = sent(UpdateClientRequest(name = "Anna Visser"))
 
-        // The Kotlin client writes `null` for what was not set ...
-        assertEquals(
-            """{"name":"Anna Visser","email":null,"clearEmail":null,"emailLocale":null,"clearEmailLocale":null}""",
-            network.bodies.single(),
-        )
+        // The Kotlin client leaves out what was not set ...
+        assertEquals("""{"name":"Anna Visser"}""", network.bodies.single())
         // ... which the contract reads as "keep": no value and no clear flag.
         assertEquals("Anna Visser", body.value("name")?.toString()?.trim('"'))
         for (field in listOf("email", "clearEmail", "emailLocale", "clearEmailLocale")) {
