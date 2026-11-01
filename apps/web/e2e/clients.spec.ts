@@ -411,12 +411,23 @@ test.describe('F006 clients on the web', () => {
     context,
     messages: copy,
   }) => {
-    const { john, slug } = await team();
+    const { john, mike, slug } = await team();
+    // A client of Fit Studio, which John's team can't see.
+    await signInWithSession(context, mike);
+    const studios = (await (await page.request.get('/api/v1/me/workspaces')).json()) as {
+      workspaceId: string;
+    }[];
+    const studioId = studios[0]?.workspaceId;
+    if (!studioId) throw new Error('No workspace for Mike.');
+    const stranger = await seed(page, studioId, { name: 'Piet Bakker' });
+
     await signInWithSession(context, john);
     await page.goto(`/w/${slug}`);
     const workspaceId = await gymId(page);
     const response = await page.goto(`/w/${slug}/clients/00000000-0000-4000-8000-000000000000`);
     expect(response?.status()).toBe(404);
+    const other = await page.goto(`/w/${slug}/clients/${stranger.id}`);
+    expect(other?.status()).toBe(404);
 
     // The workspace default is English: the options name it so.
     const set = await page.request.patch(`/api/v1/workspaces/${workspaceId}`, {

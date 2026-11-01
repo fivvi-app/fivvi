@@ -129,7 +129,7 @@ function AddClientDialogContent({
       return router.push(`/w/${slug}/clients/${result.client.id}?added=1` as Route);
     }
     if (result.reason === 'exists') {
-      const existing = await findExistingClient(workspaceId, result.clientId, email);
+      const existing = await findExistingClient(workspaceId, result.clientId);
       setPending(false);
       if (!existing) return setFailed(true);
       return setDuplicate({ id: existing.id, name: existing.name });

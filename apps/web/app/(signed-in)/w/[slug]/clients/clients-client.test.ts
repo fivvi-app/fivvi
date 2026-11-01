@@ -138,45 +138,22 @@ describe('F006 TW-01 clients client: add', () => {
 });
 
 describe('F006 TW-01 clients client: the client behind a duplicate address', () => {
-  it('AC3: finds the existing client by the address that was typed', async () => {
-    const other = { ...anna, id: 'c9', email: 'hanna@example.com' };
-    const fetchFn = reply(200, { items: [other, anna], total: 2 });
+  it('AC3: reads the existing client by the ID the 409 named', async () => {
+    const fetchFn = reply(200, anna);
 
-    expect(await findExistingClient('w1', 'c1', 'Anna@Example.com', fetchFn)).toEqual(anna);
-    expect(fetchFn.mock.calls[0]?.[0]).toBe(
-      '/api/v1/workspaces/w1/clients?search=Anna%40Example.com&pageSize=100',
-    );
-  });
-
-  it('reads the pages of the list when the search does not list that client (another account’s address, or one the search limit refuses)', async () => {
-    const other = { ...anna, id: 'c9', name: 'Sanne' };
-    const fetchFn = vi.fn<typeof fetch>((input) => {
-      const url = String(input);
-      if (url.includes('search=')) return Promise.resolve(Response.json({}, { status: 400 }));
-      return Promise.resolve(
-        Response.json(
-          url.includes('page=2') ? { items: [anna], total: 101 } : { items: [other], total: 101 },
-        ),
-      );
-    });
-
-    expect(await findExistingClient('w1', 'c1', 'x'.repeat(130), fetchFn)).toEqual(anna);
+    expect(await findExistingClient('w1', 'c1', fetchFn)).toEqual(anna);
     expect(fetchFn.mock.calls.map(([url]) => String(url))).toEqual([
-      expect.stringContaining('search='),
-      '/api/v1/workspaces/w1/clients?pageSize=100&page=1',
-      '/api/v1/workspaces/w1/clients?pageSize=100&page=2',
+      '/api/v1/workspaces/w1/clients/c1',
     ]);
   });
 
-  it('is null when not even the list has that client, or the list can’t be read', async () => {
-    expect(
-      await findExistingClient('w1', 'c1', 'a@example.com', reply(200, { items: [], total: 0 })),
-    ).toBeNull();
-    const offline = vi.fn<typeof fetch>(() => Promise.reject(new TypeError('offline')));
-    expect(await findExistingClient('w1', 'c1', 'a@example.com', offline)).toBeNull();
+  it.each([401, 403, 404, 500])('is null when the client can’t be read (a %s)', async (status) => {
+    expect(await findExistingClient('w1', 'c1', reply(status))).toBeNull();
   });
 
-  it('is null when the search is refused for this person', async () => {
-    expect(await findExistingClient('w1', 'c1', 'a@example.com', reply(403))).toBeNull();
+  it('is null when there is no connection or the answer is no client', async () => {
+    const offline = vi.fn<typeof fetch>(() => Promise.reject(new TypeError('offline')));
+    expect(await findExistingClient('w1', 'c1', offline)).toBeNull();
+    expect(await findExistingClient('w1', 'c1', reply(200, null))).toBeNull();
   });
 });

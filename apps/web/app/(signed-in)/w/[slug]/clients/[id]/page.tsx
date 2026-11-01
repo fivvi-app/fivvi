@@ -6,8 +6,6 @@ import { apiClient } from '../../../../../../server/api';
 import { workspaceOf } from '../../../../../../server/workspace-of';
 import { NoPermission } from '../../settings/general/no-permission';
 import { ClientProfile } from '../client-profile';
-import { PAGE_SIZE } from '../clients-client';
-import { findClient } from '../find-client';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('clients.profile');
@@ -17,8 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * TW-02 Klantprofiel (`/w/{slug}/clients/{id}`, F006): the plain profile a quick add opens. A
  * person without `clients.view` sees the no-permission page; a client the workspace doesn't have is
- * a 404. The client is read from the workspace's client list (`findClient`) until the read API for
- * one client is in the contract, so the page shows what the API holds.
+ * a 404 (the API answers 404 for a client of another workspace too).
  */
 export default async function ClientProfilePage({
   params,
@@ -29,15 +26,13 @@ export default async function ClientProfilePage({
   if (!capabilities.includes('clients.view')) return <NoPermission workspace={name} />;
   const cookie = (await headers()).get('cookie');
   const authorization = cookie ? { cookie } : {};
-  const client = await findClient(clientId, async (page) => {
-    const { data } = await apiClient.GET('/v1/workspaces/{workspaceId}/clients', {
-      params: { path: { workspaceId: id }, query: { pageSize: PAGE_SIZE, page } },
-      headers: authorization,
-    });
-    if (!data) throw new Error('GET /v1/workspaces/{workspaceId}/clients did not answer.');
-    return data;
-  });
-  if (!client) notFound();
+  const { data: client, response } = await apiClient.GET(
+    '/v1/workspaces/{workspaceId}/clients/{clientId}',
+    { params: { path: { workspaceId: id, clientId } }, headers: authorization },
+  );
+  if (response.status === 404) notFound();
+  if (!client)
+    throw new Error('GET /v1/workspaces/{workspaceId}/clients/{clientId} did not answer.');
   const workspace = await apiClient.GET('/v1/workspaces/{workspaceId}', {
     params: { path: { workspaceId: id } },
     headers: authorization,
