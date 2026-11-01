@@ -1559,6 +1559,25 @@ esac`;
     ]) {
       cpSync(join(SCRIPTS, '..', path), join(repo, path), { recursive: true });
     }
+    // FAKE_BREVO_LISTEN_DELAY_MS=<ms> (#379): the copy of the fake Brevo server starts to listen only after that long, as a
+    // process that is slow to start under load does. The real file is not changed; the copy must still have these two lines.
+    const brevoFile = join(repo, 'apps/web/e2e/fake-brevo.ts');
+    const brevoSource = readFileSync(brevoFile, 'utf8');
+    const create = 'createServer(async (request, response) => {';
+    const listen = "}).listen(port, 'localhost');";
+    assert.ok(
+      brevoSource.includes(create) && brevoSource.includes(listen),
+      'fake-brevo.ts still creates the server and then listens on port, localhost',
+    );
+    writeFileSync(
+      brevoFile,
+      brevoSource
+        .replace(create, `const server = ${create}`)
+        .replace(
+          listen,
+          `});\nsetTimeout(() => server.listen(port, 'localhost'), Number(process.env.FAKE_BREVO_LISTEN_DELAY_MS || 0));`,
+        ),
+    );
     // The web server maestro.sh starts: it runs until it's stopped, and records its environment.
     mkdirSync(join(repo, 'apps/web/.next/standalone/apps/web'), { recursive: true });
     writeFileSync(
@@ -1685,10 +1704,18 @@ fi
 exit 0`,
     );
     // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_HELLO=fail: GET /api/v1/hello fails.
+    // The fake Brevo server is a real process (#379), so a GET to its port (E2E_PORT + 2000) succeeds only once it answers,
+    // like curl in maestro.sh's wait_for would, which the fake sleep cannot do: it polls for up to 20 s, then fails.
     script(
       join(bin, 'curl'),
       `echo "curl $*" >>"${state}/calls.log"
 case "$*" in *"/api/v1/hello"*) [ "$FAKE_HELLO" != fail ] || exit 22 ;; esac
+case "$*" in *"localhost:$((E2E_PORT + 2000))/"*)
+  exec node -e "
+    const url = process.argv[1], end = Date.now() + 20000;
+    const poll = () => fetch(url).then((r) => process.exit(r.ok ? 0 : 22), () => Date.now() < end ? setTimeout(poll, 50) : process.exit(7));
+    poll();
+  " "\${@: -1}" ;; esac
 exit 0`,
     );
     script(
@@ -3870,7 +3897,7 @@ esac`,
         const run = await fake.run(
           'scripts/maestro.sh',
           args,
-          { FAKE_RESULT: result },
+          { FAKE_RESULT: result, FAKE_BREVO_LISTEN_DELAY_MS: '3000' },
           { interrupt: result === 'hang' },
         );
 
