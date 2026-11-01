@@ -112,11 +112,13 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
 
     const johns = switchOf(html, "John's Gym");
     expect(johns).not.toBeNull();
-    expect(html).toMatch(new RegExp(`<input[^>]*id="${johns?.[1]}"[^>]*role="switch"[^>]*checked`));
+    expect(html).toMatch(
+      new RegExp(`<input[^>]*id="${johns?.[1]}"[^>]*role="switch"[^>]*\\schecked=""`),
+    );
     const sarahs = switchOf(html, 'Sarah Personal Training');
     expect(sarahs).not.toBeNull();
     expect(html).toMatch(new RegExp(`<input[^>]*id="${sarahs?.[1]}"[^>]*role="switch"`));
-    expect(html).not.toMatch(new RegExp(`<input[^>]*id="${sarahs?.[1]}"[^>]*checked`));
+    expect(html).not.toMatch(new RegExp(`<input[^>]*id="${sarahs?.[1]}"[^>]*\\schecked=""`));
   });
 
   it('AC5: no switch for a workspace where the person is a Trainer', () => {
