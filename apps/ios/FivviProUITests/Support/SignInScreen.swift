@@ -55,14 +55,11 @@ struct SignInScreen {
         XCTAssertTrue(code.waitUntilExists(timeout: timeout), "the code step opens")
     }
 
-    /// Waits until `element` has stopped moving: its frame is the same at two checks in a row.
+    /// Waits until `element` has stopped moving: its frame is the same at three reads in a row. The deadline is long
+    /// because a slow simulator stretches the keyboard and the layout changes; it only ends the wait for an element that
+    /// never comes to rest (#385).
     func settle(_ element: XCUIElement) {
-        var previous: CGRect?
-        let settled = Polling.until(timeout: 3, interval: 0.2) {
-            let frame = element.frame
-            defer { previous = frame }
-            return frame == previous
-        }
+        let settled = Polling.settled(timeout: 30) { element.frame }
         XCTAssertTrue(settled, "\(element.identifier) keeps moving")
     }
 

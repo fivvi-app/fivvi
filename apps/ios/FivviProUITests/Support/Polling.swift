@@ -24,4 +24,30 @@ enum Polling {
         }
         return true
     }
+
+    /// Whether the value `read` returns stayed the same for `reads` reads in a row within `timeout` seconds, reading
+    /// every `interval` seconds; reads once more at the deadline. For an element that moves into place (a frame during
+    /// a layout change or an animation). The deadline is generous on purpose: it only ends the wait when something
+    /// keeps moving for good, and a slow simulator stretches an animation far beyond the 3 s it once had (#385). A
+    /// still element costs `reads - 1` intervals.
+    static func settled<Value: Equatable>(
+        timeout: TimeInterval,
+        interval: TimeInterval = 0.2,
+        reads: Int = 3,
+        now: () -> Date = Date.init,
+        wait: (TimeInterval) -> Void = { RunLoop.current.run(until: Date().addingTimeInterval($0)) },
+        read: () -> Value
+    ) -> Bool {
+        let deadline = now().addingTimeInterval(timeout)
+        var previous: Value?
+        var inARow = 0
+        while true {
+            let value = read()
+            inARow = value == previous ? inARow + 1 : 1
+            previous = value
+            if inARow >= reads { return true }
+            guard now() < deadline else { return false }
+            wait(interval)
+        }
+    }
 }
