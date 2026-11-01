@@ -28,7 +28,8 @@ enum class TrainsHereChange { Idle, Saving, Saved, NoConnection, Failed }
 
 /**
  * One workspace of *Profiel*: [slug] only tells the rows apart (test tags). [trainsHere] is what the API said (F005): always
- * true for a Trainer, the Owner's own switch for an Owner.
+ * true for a Trainer, the Owner's own switch for an Owner. [canSwitchTrainsHere] is whether the API lists `team.manage` for
+ * the account in this workspace (F004 AC10); the role is only the label and decides nothing.
  */
 data class ProfileWorkspace(
     val id: UUID,
@@ -36,11 +37,9 @@ data class ProfileWorkspace(
     val name: String,
     val role: ProfileRole,
     val trainsHere: Boolean,
+    val canSwitchTrainsHere: Boolean,
     val change: TrainsHereChange = TrainsHereChange.Idle,
-) {
-    /** Only an Owner has the switch (F005 AC5); a Trainer always trains. The API refuses the rest with 403 anyway. */
-    val canSwitchTrainsHere: Boolean get() = role == ProfileRole.Owner
-}
+)
 
 sealed interface ProfileState {
     data object Loading : ProfileState
@@ -97,7 +96,17 @@ class ProfileViewModel(private val me: MeApi, private val trainers: TrainersApi)
             val loaded = fetch()
             if (loaded != null) {
                 _state.update { current ->
-                    loaded.copy(nameSaved = (current as? ProfileState.Loaded)?.nameSaved == true)
+                    val before = current as? ProfileState.Loaded
+                    // A switch that is being saved stays so until the API has answered it (the answer sets the row).
+                    val saving = before?.workspaces.orEmpty()
+                        .filter { it.change == TrainsHereChange.Saving }
+                        .map { it.id }
+                    loaded.copy(
+                        workspaces = loaded.workspaces.map {
+                            if (it.id in saving) it.copy(change = TrainsHereChange.Saving) else it
+                        },
+                        nameSaved = before?.nameSaved == true,
+                    )
                 }
             } else if (_state.value is ProfileState.Loading) {
                 _state.value = ProfileState.Failed
@@ -128,6 +137,7 @@ class ProfileViewModel(private val me: MeApi, private val trainers: TrainersApi)
             MyWorkspace.Role.TRAINER -> ProfileRole.Trainer
         },
         trainsHere = trainsHere,
+        canSwitchTrainsHere = MyWorkspace.Capabilities.TEAM_PERIOD_MANAGE in capabilities,
     )
 
     /** The name row was tapped: the dialog opens with the name as it is. */
@@ -189,7 +199,7 @@ class ProfileViewModel(private val me: MeApi, private val trainers: TrainersApi)
     /**
      * The Owner's switch: [on] puts the trainer profile, off deletes it (F005 AC4). The switch follows what the API
      * accepted: until then it shows the old state, and a failed save leaves it so, with a message. A refusal (403, or 404
-     * when the person lost their place) reads the list again. A Trainer has no switch (AC5), so nothing is sent for one.
+     * when the person lost their place) reads the list again. Where the API does not list `team.manage` (a Trainer, AC5) there is no switch, so nothing is sent for one.
      */
     fun setTrainsHere(workspaceId: UUID, on: Boolean) {
         val workspace = (_state.value as? ProfileState.Loaded)?.workspaces?.firstOrNull { it.id == workspaceId }

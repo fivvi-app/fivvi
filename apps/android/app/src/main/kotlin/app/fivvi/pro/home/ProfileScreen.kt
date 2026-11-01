@@ -94,14 +94,19 @@ class ProfileActions(
 /**
  * *Profiel* / *Profile* (TM-04): the section *Jouw gegevens* / *Your details* has the name, which opens the full-screen
  * dialog [NameEditorScreen] when tapped, and the email address (read-only, F005); the section *Mijn werkruimtes* /
- * *My workspaces* lists each workspace with the role label of the account on its team and, for an Owner, the switch
- * *Ik geef zelf ook trainingen in …* (F003 AC9, F005 AC4, AC5). Back is the system's back (it closes the dialog first).
+ * *My workspaces* lists each workspace with the role label of the account on its team and, for an account that may manage the team (an Owner), the switch
+ * *Ik geef zelf ook trainingen in …* (F003 AC9, F005 AC4, AC5). Back is the system's back (it closes the dialog first, and does nothing while a save is under way).
  * No switching of workspaces (F012); F010 adds *Taal* (the language list, saved on the account).
  */
 @Composable
 fun ProfileScreen(state: ProfileState, editor: NameEditor?, actions: ProfileActions, modifier: Modifier = Modifier) {
+    // While a switch is being saved back does nothing: leaving would hide how it went. The handler enters the composition
+    // then (a later handler wins over the one that leaves Profiel; toggling `enabled` would keep the older order).
+    val savingSwitch = state is ProfileState.Loaded && state.workspaces.any { it.change == TrainsHereChange.Saving }
+    if (savingSwitch) BackHandler {}
     if (editor != null) {
-        BackHandler(enabled = !editor.saving, onBack = actions.onCancelName)
+        // While the name is being saved back does nothing either; otherwise it closes the dialog.
+        BackHandler { if (!editor.saving) actions.onCancelName() }
         NameEditorScreen(editor, actions, modifier)
         return
     }
@@ -168,17 +173,18 @@ private fun Details(state: ProfileState.Loaded, onEditName: () -> Unit) {
         modifier = Modifier.testTag(ProfileTags.DETAILS_TITLE).semantics { heading() },
         style = MaterialTheme.typography.title2,
     )
+    val editName = stringResource(R.string.my_profile_edit_name)
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.space1)) {
         Text(text = stringResource(R.string.my_profile_name_label), style = MaterialTheme.typography.subhead)
         // The name itself is the button, so the node that opens the dialog carries both the tag and the name as its text (a
         // Material button keeps its text on a child, and Maestro matches an id and a text on one node); without a name it
         // offers the change.
         Text(
-            text = state.name ?: stringResource(R.string.my_profile_edit_name),
+            text = state.name ?: editName,
             modifier = Modifier
                 .heightIn(min = Spacing.space12)
                 .testTag(ProfileTags.NAME)
-                .clickable(role = Role.Button, onClick = onEditName)
+                .clickable(onClickLabel = editName, role = Role.Button, onClick = onEditName)
                 .wrapContentHeight(Alignment.CenterVertically),
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.body,

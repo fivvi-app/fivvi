@@ -1,7 +1,9 @@
 package app.fivvi.pro.home
 
+import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.MyWorkspace.Role
 import java.io.IOException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -32,8 +34,13 @@ class ProfileViewModelTest {
 
     private fun viewModel() = ProfileViewModel(api, trainers)
 
-    private fun workspace(name: String, slug: String, role: ProfileRole, trainsHere: Boolean = false) =
-        ProfileWorkspace(workspaceIdOf(name), slug, name, role, trainsHere)
+    private fun workspace(
+        name: String,
+        slug: String,
+        role: ProfileRole,
+        trainsHere: Boolean = false,
+        canSwitchTrainsHere: Boolean = role == ProfileRole.Owner,
+    ) = ProfileWorkspace(workspaceIdOf(name), slug, name, role, trainsHere, canSwitchTrainsHere)
 
     // F003 AC9: Sarah is Trainer of John's Gym and Owner of Sarah Personal Training; both are listed, each with its role.
     // The label of each role, in both locales, is checked in ProfileScreenTest.
@@ -60,6 +67,7 @@ class ProfileViewModelTest {
     @Test
     fun test_F003_AC9_offlineShowsRetry() {
         api.answerAccount()
+        api.answerAccount()
         api.workspaceAnswers += { throw IOException("offline") }
         api.answerWorkspaces(gym)
         val viewModel = viewModel()
@@ -76,6 +84,7 @@ class ProfileViewModelTest {
     @Test
     fun test_F003_AC9_foregroundReadsTheListAgainAndKeepsItWhileItLoads() {
         api.answerAccount()
+        api.answerAccount()
         api.answerWorkspaces(gym, personalTraining)
         api.answerWorkspaces(personalTraining)
         val viewModel = viewModel()
@@ -91,6 +100,7 @@ class ProfileViewModelTest {
 
     @Test
     fun test_F003_AC9_noConnectionOnForegroundKeepsTheList() {
+        api.answerAccount()
         api.answerAccount()
         api.answerWorkspaces(gym)
         api.workspaceAnswers += { throw IOException("offline") }
@@ -208,6 +218,7 @@ class ProfileViewModelTest {
         val viewModel = openWithSarah()
         viewModel.startEditingName()
         viewModel.onNameInput("Sarah de")
+        api.answerAccount()
         api.answerWorkspaces(gym, personalTraining)
 
         viewModel.refresh()
@@ -279,7 +290,8 @@ class ProfileViewModelTest {
         assertEquals(TrainsHereChange.Failed, workspace.change)
     }
 
-    // F005 AC5: only an Owner has the switch; where the person is Trainer there is none, and the app never asks for it.
+    // F005 AC5: the switch follows the capability team.manage the API lists, never the role: where it is not listed (the
+    // Trainer of John's Gym) there is no switch and the app never asks for it.
     @Test
     fun test_F005_AC5_noSwitchWhereIAmTrainer() {
         api.answerAccount()
@@ -297,9 +309,63 @@ class ProfileViewModelTest {
         assertTrue(trainers.switches.isEmpty())
     }
 
+    // F004 AC10: an Owner the API lists without team.manage has no switch, a Trainer with it has one: the role decides nothing.
+    @Test
+    fun test_F004_AC10_theSwitchFollowsTheCapabilityNotTheRole() {
+        api.answerAccount()
+        api.answerWorkspaces(
+            trainingOwners = emptySet(),
+            gym,
+            personalTraining,
+            capabilities = mapOf(
+                "John's Gym" to listOf(MyWorkspace.Capabilities.TEAM_PERIOD_MANAGE),
+                "Sarah Personal Training" to listOf(MyWorkspace.Capabilities.TEAM_PERIOD_VIEW),
+            ),
+        )
+        val viewModel = viewModel()
+
+        val rows = (viewModel.state.value as ProfileState.Loaded).workspaces.associate {
+            it.slug to it.canSwitchTrainsHere
+        }
+        assertEquals(mapOf("johns-gym" to true, "sarah-personal-training" to false), rows)
+
+        viewModel.setTrainsHere(workspaceIdOf("Sarah Personal Training"), on = true)
+        assertTrue(trainers.switches.isEmpty())
+
+        viewModel.setTrainsHere(workspaceIdOf("John's Gym"), on = false)
+        assertEquals(listOf(workspaceIdOf("John's Gym") to false), trainers.switches)
+    }
+
+    // A foreground read while a switch is being saved keeps the row saving (switch disabled) until the API has answered.
+    @Test
+    fun test_F005_AC4_foregroundDuringASwitchSaveKeepsItSaving() {
+        api.answerAccount()
+        api.answerAccount()
+        api.answerWorkspaces(gym, personalTraining)
+        api.answerWorkspaces(gym, personalTraining)
+        val viewModel = viewModel()
+        val gate = CompletableDeferred<Unit>()
+        trainers.gate = gate
+        val id = workspaceIdOf("Sarah Personal Training")
+        viewModel.setTrainsHere(id, on = true)
+
+        viewModel.refresh()
+
+        fun row() = (viewModel.state.value as ProfileState.Loaded).workspaces.single { it.id == id }
+        assertEquals(TrainsHereChange.Saving, row().change)
+        viewModel.setTrainsHere(id, on = false)
+        assertEquals(listOf(id to true), trainers.switches)
+
+        gate.complete(Unit)
+
+        assertEquals(TrainsHereChange.Saved, row().change)
+        assertTrue(row().trainsHere)
+    }
+
     // F005 AC5: the API refuses a Trainer's switch (403) or a lost place (404): the list is read again.
     @Test
     fun test_F005_AC5_aRefusedSwitchReadsTheListAgain() {
+        api.answerAccount()
         api.answerAccount()
         api.answerWorkspaces(gym, personalTraining)
         api.answerWorkspaces(gym)

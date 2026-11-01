@@ -4,6 +4,7 @@ import app.fivvi.api.apis.TrainersApi
 import app.fivvi.api.models.Trainer
 import app.fivvi.api.models.TrainerProfile
 import java.util.UUID
+import kotlinx.coroutines.CompletableDeferred
 import okhttp3.ResponseBody.Companion.toResponseBody
 import retrofit2.Response
 
@@ -20,10 +21,14 @@ class FakeTrainersApi : TrainersApi {
         failure = { throw RefusedException(status) }
     }
 
+    /** When set, a switch call waits for this before it answers, so a test can act while the save is under way. */
+    var gate: CompletableDeferred<Unit>? = null
+
     class RefusedException(val status: Int) : Exception()
 
     override suspend fun putTrainerProfile(workspaceId: UUID): Response<TrainerProfile> {
         switches += workspaceId to true
+        gate?.await()
         try {
             failure?.invoke()
         } catch (refused: RefusedException) {
@@ -34,6 +39,7 @@ class FakeTrainersApi : TrainersApi {
 
     override suspend fun deleteTrainerProfile(workspaceId: UUID): Response<Unit> {
         switches += workspaceId to false
+        gate?.await()
         try {
             failure?.invoke()
         } catch (refused: RefusedException) {

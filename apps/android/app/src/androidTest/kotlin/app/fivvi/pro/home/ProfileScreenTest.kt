@@ -1,6 +1,7 @@
 package app.fivvi.pro.home
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextEquals
@@ -9,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
+import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.MyWorkspace.Role
 import app.fivvi.pro.AppLanguage
 import app.fivvi.pro.AppRule
@@ -18,6 +20,7 @@ import app.fivvi.pro.appLanguageParameters
 import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.waitUntilTagExists
+import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -51,13 +54,19 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     private val johnsGym = Triple("John's Gym", "johns-gym", Role.TRAINER)
     private val sarahPersonalTraining = Triple("Sarah Personal Training", "sarah-personal-training", Role.OWNER)
 
-    private fun openProfileAsSarah(trainingOwners: Set<String> = emptySet()) {
-        me.answerAccount(
-            name = "Sarah",
-            email = "trainer@example.com",
-            workspaces = listOf("John's Gym", "Sarah Personal Training"),
-        )
-        me.answerWorkspaces(trainingOwners, johnsGym, sarahPersonalTraining)
+    // The home reads the account on opening and Profiel reads it again when it opens.
+    private fun openProfileAsSarah(
+        trainingOwners: Set<String> = emptySet(),
+        capabilities: Map<String, List<MyWorkspace.Capabilities>> = emptyMap(),
+    ) {
+        repeat(2) {
+            me.answerAccount(
+                name = "Sarah",
+                email = "trainer@example.com",
+                workspaces = listOf("John's Gym", "Sarah Personal Training"),
+            )
+        }
+        me.answerWorkspaces(trainingOwners, johnsGym, sarahPersonalTraining, capabilities = capabilities)
         launch()
         compose.waitUntilTagExists(HomeTags.OPEN_PROFILE)
         compose.onNodeWithTag(HomeTags.OPEN_PROFILE).performClick()
@@ -68,6 +77,7 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
     @Test
     fun test_F003_AC9_profileListsWorkspacesWithRole() {
+        me.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
         me.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
         me.answerWorkspaces(
             Triple("John's Gym", "johns-gym", Role.TRAINER),
@@ -97,6 +107,7 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     @Test
     fun test_F004_AC8_roleLabelsPerWorkspace() {
         me.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        me.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
         me.answerWorkspaces(
             Triple("John's Gym", "johns-gym", Role.TRAINER),
             Triple("Sarah Personal Training", "sarah-personal-training", Role.OWNER),
@@ -115,7 +126,7 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
     @Test
     fun test_F003_AC9_openingTheProfileAgainReadsTheListAgain() {
-        me.answerAccount()
+        repeat(3) { me.answerAccount() }
         me.answerWorkspaces(Triple("John's Gym", "johns-gym", Role.OWNER))
         me.answerWorkspaces(Triple("Sarah Personal Training", "sarah-personal-training", Role.OWNER))
         launch()
@@ -133,7 +144,7 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
     @Test
     fun test_F003_AC9_backLeavesTheProfile() {
-        me.answerAccount()
+        repeat(2) { me.answerAccount() }
         me.answerWorkspaces(Triple("John's Gym", "johns-gym", Role.OWNER))
         launch()
         compose.waitUntilTagExists(HomeTags.OPEN_PROFILE)
@@ -301,6 +312,43 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         ).assertTextEquals(string(R.string.roles_trainer))
         compose.onNodeWithTag("${ProfileTags.TRAINS_HERE}.johns-gym").assertDoesNotExist()
         compose.onNodeWithText(string(R.string.profile_trains_here_label, "John's Gym")).assertDoesNotExist()
+    }
+
+    // F004 AC10 (NL, EN): the switch follows the capability team.manage the API lists, not the role label.
+    @Test
+    fun test_F004_AC10_theSwitchFollowsTheCapabilityNotTheRole() {
+        openProfileAsSarah(
+            capabilities = mapOf(
+                "John's Gym" to listOf(MyWorkspace.Capabilities.TEAM_PERIOD_MANAGE),
+                "Sarah Personal Training" to listOf(MyWorkspace.Capabilities.TEAM_PERIOD_VIEW),
+            ),
+        )
+
+        compose.onNodeWithTag("${ProfileTags.WORKSPACE_ROLE}.sarah-personal-training")
+            .assertTextEquals(string(R.string.roles_owner))
+        compose.onNodeWithTag("${ProfileTags.TRAINS_HERE}.sarah-personal-training").assertDoesNotExist()
+        compose.onNodeWithTag("${ProfileTags.TRAINS_HERE}.johns-gym").assertIsDisplayed()
+    }
+
+    // F005 AC4: back does nothing while a switch is being saved, so the person sees how it went.
+    @Test
+    fun test_F005_AC4_backDoesNothingWhileASwitchIsSaving() {
+        openProfileAsSarah()
+        val own = "${ProfileTags.TRAINS_HERE}.sarah-personal-training"
+        val gate = CompletableDeferred<Unit>()
+        trainers.gate = gate
+        compose.onNodeWithTag(own).performClick()
+        // The row is disabled once the screen shows that it is saving.
+        compose.waitUntil(UI_TIMEOUT_MILLIS) {
+            runCatching { compose.onNodeWithTag(own).assertIsNotEnabled() }.isSuccess
+        }
+
+        app.pressBack()
+
+        compose.onNodeWithTag(own).assertIsDisplayed().assertIsNotEnabled()
+        gate.complete(Unit)
+        compose.waitUntilTagExists("${ProfileTags.TRAINS_HERE_SAVED}.sarah-personal-training")
+        compose.onNodeWithTag(own).assertIsOn()
     }
 
     companion object {

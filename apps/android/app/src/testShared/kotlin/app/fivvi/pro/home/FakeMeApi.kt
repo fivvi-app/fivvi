@@ -20,17 +20,10 @@ class FakeMeApi : MeApi {
     val answers = ArrayDeque<suspend () -> Response<MeResponse>>()
     var calls = 0
         private set
-    private var lastAnswer: (suspend () -> Response<MeResponse>)? = null
 
-    /**
-     * Answers with the next queued answer. When none is left it repeats the last one, so a screen that reads the account
-     * again (Profiel does, on opening and on foreground) needs no answer queued for it unless the test is about that read.
-     */
     override suspend fun getMe(): Response<MeResponse> {
         calls++
-        val answer = answers.removeFirstOrNull()?.also { lastAnswer = it } ?: lastAnswer
-            ?: error("FakeMeApi.getMe has no answer: call answerAccount first")
-        return answer()
+        return answers.removeFirst()()
     }
 
     /** Every `PATCH /v1/me` body received, in order. */
@@ -85,8 +78,16 @@ class FakeMeApi : MeApi {
     fun answerWorkspaces(vararg workspaces: Triple<String, String, MyWorkspace.Role>) =
         answerWorkspaces(trainingOwners = emptySet(), *workspaces)
 
-    /** The same, and the Owners of the workspaces named in [trainingOwners] train there (an Owner's switch is on). */
-    fun answerWorkspaces(trainingOwners: Set<String>, vararg workspaces: Triple<String, String, MyWorkspace.Role>) {
+    /**
+     * The same, and the Owners of the workspaces named in [trainingOwners] train there (an Owner's switch is on). A
+     * workspace named in [capabilities] lists exactly those capabilities, whatever the role; the others list what the
+     * permission matrix gives their role.
+     */
+    fun answerWorkspaces(
+        trainingOwners: Set<String>,
+        vararg workspaces: Triple<String, String, MyWorkspace.Role>,
+        capabilities: Map<String, List<MyWorkspace.Capabilities>> = emptyMap(),
+    ) {
         workspaceAnswers += {
             Response.success(
                 workspaces.map { (name, slug, role) ->
@@ -95,7 +96,7 @@ class FakeMeApi : MeApi {
                         name,
                         slug,
                         role,
-                        capabilitiesOf(role),
+                        capabilities[name] ?: capabilitiesOf(role),
                         // A Trainer always trains; an Owner here has not switched it on (F005).
                         trainsHere = role == MyWorkspace.Role.TRAINER || name in trainingOwners,
                     )
