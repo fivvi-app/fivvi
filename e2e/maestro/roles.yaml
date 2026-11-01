@@ -1,0 +1,32 @@
+# F004 native roles (spec #172, AC10 of the native tickets), against the local stack: Sarah (the seeded
+# trainer@example.com) is Trainer of John's Gym and Owner of Sarah Personal Training, and Profiel shows the role label of
+# the device language for each workspace, from the API's role. The actions themselves follow the capabilities the API
+# lists (the helper's unit tests); no action is visible yet, F006's *+ Nieuwe klant* is the first. The sign-in is the
+# shared sub-flow; elements are found by id: the Android testTag and the iOS accessibilityIdentifier, the same on both
+# apps (the row ids end in the workspace's slug).
+# ROLE_OWNER and ROLE_TRAINER, set by scripts/maestro.sh: roles.owner and roles.trainer from packages/i18n in the device
+# language. They have no default here: a flow's own env default would win over the value maestro.sh passes.
+appId: ${APP_ID}
+name: AC10 Profiel shows my role per workspace
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # Sarah: seeded (packages/database/src/seed.ts).
+  EMAIL: trainer@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+- tapOn:
+    id: home\.openProfile
+- extendedWaitUntil:
+    visible:
+      id: profile\.workspaceRole\.johns-gym
+    timeout: 20000
+- assertVisible:
+    id: profile\.workspaceRole\.johns-gym
+    text: ${ROLE_TRAINER}
+- assertVisible:
+    id: profile\.workspaceRole\.sarah-personal-training
+    text: ${ROLE_OWNER}

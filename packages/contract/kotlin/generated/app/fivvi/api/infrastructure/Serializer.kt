@@ -6,6 +6,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.util.UUID
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import kotlinx.serialization.modules.SerializersModule
@@ -50,12 +51,14 @@ object Serializer {
 
     private var isJsonInitialized = false
 
+    @OptIn(ExperimentalSerializationApi::class)
     @JvmStatic
     val kotlinxSerializationJson: Json by lazy {
         isJsonInitialized = true
         Json {
             serializersModule = kotlinxSerializationAdapters
             encodeDefaults = true
+            explicitNulls = false
             ignoreUnknownKeys = true
             isLenient = true
 

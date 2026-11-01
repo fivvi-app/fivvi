@@ -49,6 +49,18 @@ const ContractMeResponse = z.fromJSONSchema(
   ),
 );
 
+/**
+ * The body of the Android language save as the generated Kotlin client writes it (apps/android:
+ * `UpdateMeRequestTest` asserts the same literal). An unset field is left out of the body (#371).
+ */
+const ANDROID_LANGUAGE_SAVE = '{"preferredLocale":"en","surface":"android"}';
+
+/**
+ * The same save as the Kotlin client wrote it before #371 (`encodeDefaults = true`): the unset `name` as `null`. The API
+ * reads `null` as a value, not as "left out", so it refuses the body; the client must not write it.
+ */
+const ANDROID_LANGUAGE_SAVE_WITH_NULL = '{"name":null,"preferredLocale":"en","surface":"android"}';
+
 describe('GET /v1/me', () => {
   let database: TestDatabase;
   let client: DatabaseClient;
@@ -295,6 +307,43 @@ describe('GET /v1/me', () => {
 
       await patch(cookie, { preferredLocale: 'nl-NL' });
       expect(await storedLocale(id)).toBe('nl-NL');
+    });
+
+    it('#371: the body the Kotlin client writes for the Android language save stores the language', async () => {
+      const { id, cookie } = await accountSignedIn('android@allowed.test', 'Andy');
+      const posthog = createProductEventCaptureTransport();
+      const productEvents = createProductEvents({
+        env: { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' },
+        transport: posthog,
+        errorReporter: createErrorReporter({ env: {} }),
+      });
+      const token = decodeURIComponent(/session_token=([^;]+)/.exec(cookie)?.[1] ?? '');
+
+      // Exactly what `UpdateMeRequest(preferredLocale = EN, surface = ANDROID)` is on the wire through the
+      // generated Retrofit service (apps/android: UpdateMeRequestTest); the same literal is asserted there.
+      const res = await api(client.db, productEvents).request('/v1/me', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: ANDROID_LANGUAGE_SAVE,
+      });
+
+      expect(res.status).toBe(200);
+      expect(await storedLocale(id)).toBe('en');
+      expect(posthog.events[0]?.properties).toMatchObject({ locale: 'en', surface: 'android' });
+    });
+
+    it('#371: an unset field written as null is refused, so a client must leave it out', async () => {
+      const { id, cookie } = await accountSignedIn('android-null@allowed.test', 'Andy');
+      const token = decodeURIComponent(/session_token=([^;]+)/.exec(cookie)?.[1] ?? '');
+
+      const res = await api(client.db).request('/v1/me', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: ANDROID_LANGUAGE_SAVE_WITH_NULL,
+      });
+
+      expect(res.status).toBe(400);
+      expect(await storedLocale(id)).toBeNull();
     });
 
     it('AC1: changes only the signed-in account', async () => {

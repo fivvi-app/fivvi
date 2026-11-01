@@ -103,9 +103,52 @@ export async function generateKotlin(specFile: string, outRoot: string): Promise
     // Android build; E008 compiles these sources in its own module.
     const dir = await resetDir(join(outRoot, GENERATED_PATHS.kotlin));
     await cp(join(staging, 'src/main/kotlin'), dir, { recursive: true });
+    const serializer = join(dir, KOTLIN_SERIALIZER);
+    await writeFile(serializer, leaveUnsetFieldsOut(await readFile(serializer, 'utf8')));
   } finally {
     await rm(staging, { recursive: true, force: true });
   }
+}
+
+/** The generated Kotlin `Json` configuration, relative to the Kotlin output directory. */
+export const KOTLIN_SERIALIZER = 'app/fivvi/api/infrastructure/Serializer.kt';
+
+const KOTLIN_ENCODE_DEFAULTS = '            encodeDefaults = true\n';
+const KOTLIN_JSON_PROPERTY = '    @JvmStatic\n    val kotlinxSerializationJson: Json by lazy {';
+const KOTLIN_JSON_IMPORT = 'import kotlinx.serialization.json.Json\n';
+
+/**
+ * The generator's `Json` has `encodeDefaults = true`, which writes every unset optional field as `null`. The API
+ * reads `null` as a value and refuses it (`400`), where the Swift client leaves a `nil` field out (#371). With
+ * `explicitNulls = false` the Kotlin client leaves it out too, so a request carries only what the app set; an
+ * explicit "clear" is a flag of the contract (`clearEmail`), never a `null`. Throws when the generator's output no
+ * longer has one of the lines it adjusts (the setting, the property it annotates or the import), so a new generator
+ * version fails here and not later as a Gradle warning or with the `null`s back.
+ */
+export function leaveUnsetFieldsOut(source: string): string {
+  const anchors: [string, string][] = [
+    [KOTLIN_ENCODE_DEFAULTS, 'the `encodeDefaults = true` line'],
+    [KOTLIN_JSON_PROPERTY, 'the `kotlinxSerializationJson` property'],
+    [KOTLIN_JSON_IMPORT, 'the `Json` import'],
+  ];
+  for (const [anchor, what] of anchors) {
+    if (!source.includes(anchor)) {
+      throw new Error(`The Kotlin Serializer has no ${what} to adjust (${KOTLIN_SERIALIZER})`);
+    }
+  }
+  return source
+    .replace(
+      KOTLIN_JSON_PROPERTY,
+      `    @OptIn(ExperimentalSerializationApi::class)\n${KOTLIN_JSON_PROPERTY}`,
+    )
+    .replace(
+      KOTLIN_JSON_IMPORT,
+      `import kotlinx.serialization.ExperimentalSerializationApi\n${KOTLIN_JSON_IMPORT}`,
+    )
+    .replace(
+      KOTLIN_ENCODE_DEFAULTS,
+      `${KOTLIN_ENCODE_DEFAULTS}            explicitNulls = false\n`,
+    );
 }
 
 /** Generates the spec and every client into `outRoot`. */

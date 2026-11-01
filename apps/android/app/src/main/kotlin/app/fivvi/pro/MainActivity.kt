@@ -34,6 +34,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fivvi.pro.capabilities.WorkspaceCapabilities
 import app.fivvi.pro.hello.HelloViewModel
 import app.fivvi.pro.home.HomeScreen
 import app.fivvi.pro.home.HomeViewModel
@@ -164,8 +165,11 @@ class MainActivity : ComponentActivity() {
         val hello = viewModel(key = "hello-$key-${language.tag}") {
             HelloViewModel(dependencies.helloApi, language.apiLocale)
         }
+        // What the API lists per workspace (F004 AC10), the one helper that decides which actions show. `GET /v1/me` fills
+        // it on opening and on foreground; no screen guards an action yet (F006's *+ Nieuwe klant*, M4, is the first).
+        val capabilities = viewModel(key = "capabilities-$key") { WorkspaceCapabilities(dependencies.meApi) }
         val languages = viewModel(key = "language-$key") {
-            LanguageViewModel(dependencies.meApi, dependencies.languagePreference)
+            LanguageViewModel(dependencies.meApi, dependencies.languagePreference, capabilities::replace)
         }
         val me = viewModel(key = "home-$key") {
             HomeViewModel(
@@ -175,6 +179,7 @@ class MainActivity : ComponentActivity() {
                 dependencies::signOutApi,
                 onAccount = Observability::setUser,
                 onPreferredLocale = languages::onStored,
+                onWorkspaces = capabilities::replace,
             )
         }
         val helloState by hello.state.collectAsStateWithLifecycle()

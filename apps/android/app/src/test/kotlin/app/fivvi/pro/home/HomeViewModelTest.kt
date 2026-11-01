@@ -1,6 +1,7 @@
 package app.fivvi.pro.home
 
 import app.fivvi.api.models.MeResponse
+import app.fivvi.api.models.MeWorkspace
 import app.fivvi.pro.auth.AuthState
 import app.fivvi.pro.auth.InMemorySessionStore
 import app.fivvi.pro.auth.Session
@@ -60,6 +61,9 @@ class HomeViewModelTest {
     private val identified = mutableListOf<String>()
     private var clears = 0
 
+    // The workspaces the screen passed on to the capabilities helper (F004 AC10).
+    private val listed = mutableListOf<List<MeWorkspace>>()
+
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
 
@@ -76,6 +80,7 @@ class HomeViewModelTest {
         },
         onAccount = { identified += it },
         io = dispatcher,
+        onWorkspaces = { listed += it },
     )
 
     @Test
@@ -171,6 +176,17 @@ class HomeViewModelTest {
         viewModel.refresh()
 
         assertEquals(OWNER_IN_WORKSPACE, viewModel.state.value)
+    }
+
+    // F004 AC10: what GET /v1/me lists per workspace goes to the capabilities helper, as the API answered it.
+    @Test
+    fun test_F004_AC10_passesTheWorkspacesWithTheirCapabilitiesOn() {
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+
+        viewModel()
+
+        assertEquals(listOf("John's Gym", "Sarah Personal Training"), listed.single().map { it.name })
+        assertEquals(MeWorkspace.Capabilities.entries, listed.single().first().capabilities)
     }
 
     @Test
