@@ -105,7 +105,7 @@ final class StubServer: Sendable {
 private final class Responder: @unchecked Sendable {
     private let lock = NSLock()
     private let signIn: StubServer.SignIn
-    private let clientRoutes = StubClientRoutes()
+    private let clientRoutes: StubClientRoutes
     private var currentAnswer: StubServer.Answer
     private var received: [StubServer.Request] = []
     private var held: [(connection: NWConnection, locale: String?)] = []
@@ -118,6 +118,7 @@ private final class Responder: @unchecked Sendable {
     init(_ answer: StubServer.Answer, signIn: StubServer.SignIn) {
         currentAnswer = answer
         self.signIn = signIn
+        clientRoutes = StubClientRoutes(empty: signIn.hasNoClients)
         storedLocale = signIn.preferredLocale
     }
 
@@ -274,16 +275,23 @@ private final class Responder: @unchecked Sendable {
         teamWorkspaceEntries.map {
             [
                 "workspaceId": Self.workspaceID($0.index), "name": $0.workspace.name, "slug": "workspace-\($0.index)",
-                "role": $0.workspace.role, "capabilities": Self.capabilities(ofRole: $0.workspace.role)
+                "role": $0.workspace.role, "capabilities": capabilities(ofWorkspace: $0.index, role: $0.workspace.role)
             ]
         }
     }
 
+    /// The first workspace's capabilities may be set by the test; any other follows the matrix.
+    private func capabilities(ofWorkspace index: Int, role: String) -> [String] {
+        (index == 0 ? signIn.capabilities : nil) ?? Self.capabilities(ofRole: role)
+    }
+
     /// The permission matrix of `packages/domain` (F004): what a role may do, as the API sends it.
     private static func capabilities(ofRole role: String) -> [String] {
-        role == "owner"
-            ? ["workspace.manage", "team.view", "team.manage", "trainers.view", "clients.view", "clients.manage"]
-            : ["trainers.view", "clients.view", "clients.manage"]
+        switch role {
+        case "owner":
+            ["workspace.manage", "team.view", "team.manage", "trainers.view", "clients.view", "clients.manage"]
+        default: ["trainers.view", "clients.view", "clients.manage"]
+        }
     }
 
     /// `GET /api/v1/me`'s answer for the one account.

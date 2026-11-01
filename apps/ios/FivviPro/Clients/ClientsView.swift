@@ -22,7 +22,7 @@ struct ClientRoute: Hashable, Identifiable {
 }
 
 /// *Klanten* / *Clients* (TM-02, F006): a large title, the search field, the clients sorted by name, pull to refresh
-/// and *+ Nieuwe klant* in the bar when the capability helper allows `clients.manage`. A row opens TM-03. Skeleton rows
+/// and *+ Nieuwe klant*, a floating button, when the capability helper allows `clients.manage`. A row opens TM-03. Skeleton rows
 /// load, a failure says so with *Opnieuw proberen*, and a phone without a connection keeps the list it has with its age.
 struct ClientsView: View {
     let model: ClientsViewModel
@@ -38,7 +38,10 @@ struct ClientsView: View {
 
     var body: some View {
         List { content }
+            .accessibilityIdentifier("clients.list")
             .listStyle(.plain)
+            // Scrolling puts the keyboard of the search field away at once; a tap elsewhere would open a row.
+            .scrollDismissesKeyboard(.immediately)
             .scrollContentBackground(.hidden)
             .background(Tokens.Colors.bgCanvas)
             .navigationTitle(catalog[.clientsTitle])
@@ -47,13 +50,15 @@ struct ClientsView: View {
                 text: $searchText, placement: .navigationBarDrawer(displayMode: .always),
                 prompt: catalog[.clientsSearchPlaceholder]
             )
-            .toolbar {
-                if capabilities.allows(.clients_manage) {
-                    ToolbarItem(placement: .primaryAction) { newClientButton }
-                }
+            .searchFieldIdentifier("clients.search")
+            // Not in the navigation bar: while the search is active iOS replaces the bar with the search field, and the
+            // action stays at hand, as the floating button of the Android app.
+            .safeAreaInset(edge: .bottom, alignment: .trailing) {
+                if capabilities.allows(.clients_manage) { newClientButton }
             }
             .refreshable { await model.refresh() }
             .task(id: searchText) { await searchChanged() }
+            .task(id: model.state == .loading) { await model.watchSlowLoading() }
             .onReturnToForeground { await model.refresh() }
             .onChange(of: language.catalog) { _, catalog in model.use(catalog) }
             .sheet(item: $newClient, onDismiss: openClientAfterSheet) { form in
@@ -61,7 +66,11 @@ struct ClientsView: View {
                     .presentationDetents([.large])
             }
             .navigationDestination(item: $opened) { route in
-                ClientProfileScreen(model: model, route: route, language: language, capabilities: capabilities)
+                ClientProfileScreen(
+                    model: model, route: route, language: language, capabilities: capabilities,
+                    onOpenExisting: { opened = ClientRoute(id: $0) }
+                )
+                .id(route.id)
             }
             .environment(\.locale, catalog.formattingLocale)
     }
@@ -79,17 +88,19 @@ struct ClientsView: View {
         Button {
             newClient = model.newClientForm()
         } label: {
-            Image(systemName: "plus")
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(Rectangle())
+            Label(catalog[.clientsNewClient], systemImage: "plus")
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .accessibilityLabel(catalog[.clientsNewClient])
-        .accessibilityIdentifier("clients.new")
+        .buttonStyle(.primaryAction)
+        .padding(Tokens.Spacing.gutter)
+        .accessibilityIdentifier("clients.add")
     }
 
     private func newClientForm(_ form: ClientFormViewModel) -> some View {
         ClientFormView(
-            model: form, title: catalog[.clientsNewClient], submitTitle: catalog[.clientsSubmit],
+            model: form, idPrefix: "clients.add", submitID: "submit", title: catalog[.clientsNewClient],
+            submitTitle: catalog[.clientsSubmit],
             onSaved: { client in
                 model.didAdd(client)
                 afterSheet = ClientRoute(client: client, justAdded: true)
@@ -117,6 +128,9 @@ struct ClientsView: View {
         case .loading:
             ClientSkeletonRows(label: catalog[.commonLoading], id: "clients.loading")
                 .listRowSeparator(.hidden)
+            if model.loadingSlow {
+                ClientMessage(text: catalog[.commonLoadingSlow], kind: .info, id: "clients.loadingSlow")
+            }
         case .failed:
             failure
         case .noPermission:
@@ -173,17 +187,6 @@ struct ClientsView: View {
                     .foregroundStyle(Tokens.Colors.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("clients.empty")
-                if capabilities.allows(.clients_manage) {
-                    Button {
-                        newClient = model.newClientForm()
-                    } label: {
-                        Text(catalog[.clientsNewClient])
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .buttonStyle(.primaryAction)
-                    .accessibilityIdentifier("clients.emptyAdd")
-                }
             }
         } else {
             Text(catalog[.clientsNoResults])
@@ -205,12 +208,14 @@ struct ClientsView: View {
                         .foregroundStyle(Tokens.Colors.textPrimary)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("clients.rowName.\(client.id)")
                     if let email = client.email {
                         Text(email)
                             .font(.system(Tokens.TextStyle.label))
                             .foregroundStyle(Tokens.Colors.textSecondary)
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("clients.rowEmail.\(client.id)")
                     }
                 }
                 Spacer()
@@ -222,7 +227,7 @@ struct ClientsView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("clients.row")
+        .accessibilityIdentifier("clients.row.\(client.id)")
         .task { await model.loadMore(after: client) }
     }
 }

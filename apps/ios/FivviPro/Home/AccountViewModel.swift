@@ -116,10 +116,13 @@ final class AccountViewModel {
         for workspace in account.workspaces {
             switch try await api.getWorkspace(.init(path: .init(workspaceId: workspace.id))) {
             case let .ok(found):
-                let defaultLocale = try found.body.json.defaultLocale
+                let details = try found.body.json
                 return (
                     .workspace(name: workspace.name),
-                    CurrentWorkspace(id: workspace.id, name: workspace.name, defaultLocale: defaultLocale)
+                    CurrentWorkspace(
+                        id: workspace.id, name: workspace.name, defaultLocale: details.defaultLocale,
+                        timeZone: TimeZone(identifier: details.timeZone) ?? CurrentWorkspace.defaultTimeZone
+                    )
                 )
             case .notFound: continue
             default: throw URLError(.badServerResponse)
@@ -172,6 +175,11 @@ struct CurrentWorkspace: Equatable, Sendable {
     let name: String
     /// The workspace's default communication language: the language of a client's emails until one is chosen (ADR-017).
     let defaultLocale: Components.Schemas.Locale
+    /// The workspace's time zone: times the app shows for it (the age of an offline list) are in it.
+    let timeZone: TimeZone
+
+    /// Europe/Amsterdam, the default of a workspace (`AGENTS.md`).
+    static let defaultTimeZone = TimeZone(identifier: "Europe/Amsterdam") ?? .current
 }
 
 /// Resumes its continuation with the first answer only and cancels the timer; the request, if it lost, goes on.

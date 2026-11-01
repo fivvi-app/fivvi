@@ -32,6 +32,7 @@ final class StubClients: @unchecked Sendable {
     private var stored: [Client] = []
     private var failures: [Route: Failure] = [:]
     private var defaultLocale = Components.Schemas.Locale.nlNL
+    private var timeZone = "Europe/Amsterdam"
     private var nextNumber = 1
     private var searchesSent: [String?] = []
     private var pagesSent: [Int] = []
@@ -43,6 +44,12 @@ final class StubClients: @unchecked Sendable {
     var workspaceDefaultLocale: Components.Schemas.Locale {
         get { lock.withLock { defaultLocale } }
         set { lock.withLock { defaultLocale = newValue } }
+    }
+
+    /// The workspace's IANA time zone, as `GET /workspaces/{id}` answers it.
+    var workspaceTimeZone: String {
+        get { lock.withLock { timeZone } }
+        set { lock.withLock { timeZone = newValue } }
     }
 
     /// The clients now, in the order they were added.

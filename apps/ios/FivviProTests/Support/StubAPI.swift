@@ -304,7 +304,7 @@ extension StubAPI {
         }
         return .ok(.init(body: .json(.init(
             id: input.path.workspaceId, name: "Workspace", slug: "workspace",
-            defaultLocale: clients.workspaceDefaultLocale, timeZone: "Europe/Amsterdam"
+            defaultLocale: clients.workspaceDefaultLocale, timeZone: clients.workspaceTimeZone
         ))))
     }
 

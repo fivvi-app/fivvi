@@ -91,7 +91,8 @@ enum StringKey: String {
     case signInErrorsInvalidOrExpiredCode = "signIn.errors.invalidOrExpiredCode"
     case signInErrorsNoConnection = "signIn.errors.noConnection"
     case signInErrorsGeneric = "signIn.errors.generic"
-    case commonOffline = "common.offline"
+    case commonLoadingSlow = "common.loadingSlow"
+    case clientsOffline = "clients.offline"
     case noPermissionTitle = "noPermission.title"
     case noPermissionBody = "noPermission.body"
     case clientsTitle = "clients.title"
@@ -125,6 +126,8 @@ enum StringKey: String {
     case clientProfileNoEmail = "clients.profile.noEmail"
     case clientProfileLocaleLabel = "clients.profile.localeLabel"
     case clientProfileEdit = "clients.profile.edit"
+    case clientProfileEditTitle = "clients.profile.editTitle"
+    case clientProfileBack = "clients.profile.back"
     case clientProfileSave = "clients.profile.save"
     case clientProfileSaved = "clients.profile.saved"
 }

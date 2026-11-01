@@ -9,7 +9,10 @@ import XCTest
 final class ClientFormViewModelTests: XCTestCase {
     private let language = InterfaceLanguage.resolve(.system())
     private func workspace(_ defaultLocale: ClientLocale = .nlNL) -> CurrentWorkspace {
-        .init(id: "7c1d2e3f-0000-4000-8000-000000000001", name: "John's Gym", defaultLocale: defaultLocale)
+        .init(
+            id: "7c1d2e3f-0000-4000-8000-000000000001", name: "John's Gym", defaultLocale: defaultLocale,
+            timeZone: CurrentWorkspace.defaultTimeZone
+        )
     }
 
     private func johnsGym() -> StubAPI {

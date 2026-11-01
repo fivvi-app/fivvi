@@ -6,7 +6,7 @@
   "common": {
     "loading": "Laden…",
     "retry": "Opnieuw proberen",
-    "offline": "Je bent offline. Laatst bijgewerkt om {time}."
+    "loadingSlow": "Dit duurt langer dan normaal…"
   },
   "hello": {
     "title": "Welkom bij Fivvi",
@@ -219,11 +219,16 @@
   "clients": {
     "title": "Klanten",
     "searchPlaceholder": "Zoek klant…",
-    "newClient": "Nieuwe klant",
+    "add": "Klant toevoegen",
+    "listLabel": "Klanten",
     "empty": "Nog geen klanten. Voeg je eerste klant toe.",
     "noResults": "Geen klanten gevonden.",
+    "loading": "Klanten laden…",
     "loadError": "Er ging iets mis bij het laden.",
+    "partial": "{shown} van {total} klanten getoond. Zoek om de rest te vinden.",
     "addDialog": {
+      "title": "Klant toevoegen",
+      "description": "Alleen een naam is nodig. E-mailadres en taal kunnen later.",
       "nameLabel": "Naam",
       "emailLabel": "E-mailadres (optioneel)",
       "localeLabel": "Taal voor e-mails",
@@ -240,7 +245,8 @@
         "nameTooLong": "Deze naam is te lang. Gebruik maximaal 120 tekens.",
         "emailInvalid": "Vul een geldig e-mailadres in.",
         "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw."
-      }
+      },
+      "close": "Sluiten"
     },
     "languageNames": {
       "nl": "Nederlands",
@@ -254,9 +260,13 @@
       "emailLabel": "E-mailadres",
       "noEmail": "Geen e-mailadres",
       "localeLabel": "Taal voor e-mails",
+      "back": "Terug",
       "edit": "Bewerken",
+      "editTitle": "Klant bewerken",
       "save": "Opslaan",
       "saved": "Opgeslagen."
-    }
+    },
+    "newClient": "Nieuwe klant",
+    "offline": "Je bent offline. Laatst bijgewerkt om {time}."
   }
 }

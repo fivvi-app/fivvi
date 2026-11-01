@@ -37,6 +37,23 @@
         }
       }
     },
+    "clients.add" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add client"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klant toevoegen"
+          }
+        }
+      }
+    },
     "clients.addDialog.cancel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -50,6 +67,41 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Annuleren"
+          }
+        }
+      }
+    },
+    "clients.addDialog.close" : {
+      "comment" : "Accessibility label of the close button (x) of the new-client form in the apps.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sluiten"
+          }
+        }
+      }
+    },
+    "clients.addDialog.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only a name is needed. Email address and language can follow."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alleen een naam is nodig. E-mailadres en taal kunnen later."
           }
         }
       }
@@ -292,6 +344,23 @@
         }
       }
     },
+    "clients.addDialog.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add client"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klant toevoegen"
+          }
+        }
+      }
+    },
     "clients.empty" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -343,6 +412,23 @@
         }
       }
     },
+    "clients.listLabel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clients"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klanten"
+          }
+        }
+      }
+    },
     "clients.loadError" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -360,8 +446,25 @@
         }
       }
     },
+    "clients.loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading clients…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klanten laden…"
+          }
+        }
+      }
+    },
     "clients.newClient" : {
-      "comment" : "The + action on the native Clients screen (iOS: button in the navigation bar; Android: button), and the title of the sheet or dialog for adding a client. Name only is required.",
+      "comment" : "Primary action of the native clients list (New client): opens the full-screen form that adds a client. Shown only to people who may manage clients.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -395,6 +498,41 @@
         }
       }
     },
+    "clients.offline" : {
+      "comment" : "Banner above the cached clients list in the apps while there is no connection. {time} is a 24-hour time, e.g. '08:42', formatted in code in the workspace time zone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're offline. Last updated at %1$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent offline. Laatst bijgewerkt om %1$@."
+          }
+        }
+      }
+    },
+    "clients.partial" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Showing %1$@ of %2$@ clients. Search to find the rest."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ van %2$@ klanten getoond. Zoek om de rest te vinden."
+          }
+        }
+      }
+    },
     "clients.profile.added" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -412,8 +550,26 @@
         }
       }
     },
+    "clients.profile.back" : {
+      "comment" : "Accessibility label of the back button of the client profile in the apps.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terug"
+          }
+        }
+      }
+    },
     "clients.profile.edit" : {
-      "comment" : "Button on the client profile that opens the form to change the name, email address and language for emails, and the title of that form.",
+      "comment" : "Button on the client profile that opens the edit form for the overview (name, email address, language for emails).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -426,6 +582,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bewerken"
+          }
+        }
+      }
+    },
+    "clients.profile.editTitle" : {
+      "comment" : "Title of the form that edits a client in the apps.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit client"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klant bewerken"
           }
         }
       }
@@ -516,7 +690,7 @@
       }
     },
     "clients.profile.save" : {
-      "comment" : "Save button of the form that edits a client.",
+      "comment" : "Button that saves the edited client.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -534,7 +708,7 @@
       }
     },
     "clients.profile.saved" : {
-      "comment" : "Short confirmation under the overview after a client's changes were saved.",
+      "comment" : "Brief confirmation (snackbar) after the edited client was saved.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -586,6 +760,7 @@
       }
     },
     "clients.title" : {
+      "comment" : "Title of the clients list (TM-02, TW-01) and the label of the way in to it.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -620,20 +795,20 @@
         }
       }
     },
-    "common.offline" : {
-      "comment" : "Banner at the top of a native screen that shows saved data because the phone can't reach Fivvi. {time} is the 24-hour time of the last update, e.g. '08:42', formatted in code in the workspace time zone.",
+    "common.loadingSlow" : {
+      "comment" : "Line under a loading placeholder that is still waiting after 10 seconds.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You're offline. Last updated at %1$@."
+            "value" : "This is taking longer than usual…"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Je bent offline. Laatst bijgewerkt om %1$@."
+            "value" : "Dit duurt langer dan normaal…"
           }
         }
       }

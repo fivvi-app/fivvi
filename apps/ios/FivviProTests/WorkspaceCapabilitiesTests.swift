@@ -116,16 +116,24 @@ final class WorkspaceCapabilitiesTests: XCTestCase {
         XCTAssertTrue(account.capabilities.allows(.team_manage), "the next workspace is the current one")
     }
 
-    func test_F006_AC1_theHomeKnowsTheWorkspaceAndItsDefaultLanguageForClientEmails() async {
+    func test_F006_AC1_theHomeKnowsTheWorkspaceItsDefaultLanguageForClientEmailsAndItsTimeZone() async {
         let api = StubAPI()
         api.clients.workspaceDefaultLocale = .en
+        api.clients.workspaceTimeZone = "Europe/Lisbon"
         await answerAsSarah(api)
         let account = account(api)
         XCTAssertNil(account.workspace)
 
         await account.load()
 
-        XCTAssertEqual(account.workspace, CurrentWorkspace(id: johnsGym, name: "John's Gym", defaultLocale: .en))
+        XCTAssertEqual(
+            account.workspace,
+            CurrentWorkspace(
+                id: johnsGym, name: "John's Gym", defaultLocale: .en,
+                timeZone: TimeZone(identifier: "Europe/Lisbon") ?? .current
+            ),
+            "its ID, name, default language and time zone"
+        )
         await api.removeFromTeam(of: johnsGym)
         await account.refresh()
         XCTAssertEqual(account.workspace?.id, sarahTraining, "the next workspace is the current one")

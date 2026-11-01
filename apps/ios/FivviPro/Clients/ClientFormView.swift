@@ -5,17 +5,21 @@ import FivviDesignTokens
 extension ClientFormViewModel: Identifiable {}
 
 /// The form of a sheet that adds a client (*+ Nieuwe klant*) or edits one (*Bewerken*): *Naam* (focused, required),
-/// *E-mailadres (optioneel)*, *Taal voor e-mails* with *Standaard (Nederlands)* preselected, and the button (F006 AC1 to
-/// AC3, AC7). Field messages sit under their field; a failed save keeps the input; a duplicate email address offers the
-/// existing client. Text wraps, every control keeps a 44 pt touch target.
+/// *E-mailadres (optioneel)*, *Taal voor e-mails* with *Standaard (Nederlands)* preselected, and *Annuleren* and the
+/// save button in the bar (F006 AC1 to AC3, AC7), where the keyboard doesn't cover them. Field messages sit under their
+/// field; a failed save keeps the input; a duplicate email address offers the existing client. Text wraps, every control
+/// keeps a 44 pt touch target. The test ids start with `idPrefix` (`clients.add` or `clientProfile.edit`), as on Android.
 struct ClientFormView: View {
     @Bindable var model: ClientFormViewModel
+    let idPrefix: String
+    /// The end of the save button's id: `submit` when adding, `save` when editing (as on Android).
+    let submitID: String
     let title: String
     let submitTitle: String
     /// The API saved the client.
     let onSaved: (Components.Schemas.Client) -> Void
-    /// *Anna de Vries openen*: the person wants the existing client instead. Nil: the form doesn't offer it.
-    let onOpenExisting: ((String) -> Void)?
+    /// *Anna de Vries openen*: the person wants the existing client instead.
+    let onOpenExisting: (String) -> Void
     let onCancel: () -> Void
     @FocusState private var nameFocused: Bool
 
@@ -27,12 +31,11 @@ struct ClientFormView: View {
                 if let offer = model.existsText { existingOffer(offer) }
                 localeChoice
                 if let failed = model.saveFailedText {
-                    ClientMessage(text: failed, kind: .error, id: "clientForm.notSaved")
+                    ClientMessage(text: failed, kind: .error, id: "\(idPrefix).failed")
                 }
                 if model.noPermission {
-                    ClientMessage(text: model.noPermissionText, kind: .error, id: "clientForm.noPermission")
+                    ClientMessage(text: model.noPermissionText, kind: .error, id: "\(idPrefix).noPermission")
                 }
-                submit
             }
             .padding(Tokens.Spacing.gutter)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -43,10 +46,17 @@ struct ClientFormView: View {
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(title)
+                    .font(.headline)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("\(idPrefix).title")
+            }
             ToolbarItem(placement: .cancellationAction) {
                 Button(model.catalog[.clientsCancel], action: onCancel)
-                    .accessibilityIdentifier("clientForm.cancel")
+                    .accessibilityIdentifier("\(idPrefix).close")
             }
+            ToolbarItem(placement: .confirmationAction) { submit }
         }
         .environment(\.locale, model.catalog.formattingLocale)
         .onAppear { if model.mode == .add { nameFocused = true } }
@@ -61,8 +71,8 @@ struct ClientFormView: View {
                 .accessibilityLabel(model.catalog[.clientsNameLabel])
                 .focused($nameFocused)
                 .textFieldFrame()
-                .accessibilityIdentifier("clientForm.name")
-            fieldError(model.nameErrorText, id: "clientForm.nameError")
+                .accessibilityIdentifier("\(idPrefix).name")
+            fieldError(model.nameErrorText, id: "\(idPrefix).nameError")
         }
     }
 
@@ -76,8 +86,8 @@ struct ClientFormView: View {
                 .autocorrectionDisabled()
                 .accessibilityLabel(model.catalog[.clientsEmailLabel])
                 .textFieldFrame()
-                .accessibilityIdentifier("clientForm.email")
-            fieldError(model.emailErrorText, id: "clientForm.emailError")
+                .accessibilityIdentifier("\(idPrefix).email")
+            fieldError(model.emailErrorText, id: "\(idPrefix).emailError")
         }
     }
 
@@ -85,8 +95,8 @@ struct ClientFormView: View {
     /// is created.
     private func existingOffer(_ text: String) -> some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space3) {
-            ClientMessage(text: text, kind: .info, id: "clientForm.exists")
-            if let open = model.openExistingText, let existing = model.existing, let onOpenExisting {
+            ClientMessage(text: text, kind: .info, id: "\(idPrefix).duplicate")
+            if let open = model.openExistingText, let existing = model.existing {
                 Button {
                     onOpenExisting(existing.id)
                 } label: {
@@ -95,7 +105,7 @@ struct ClientFormView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .buttonStyle(.secondaryAction)
-                .accessibilityIdentifier("clientForm.openExisting")
+                .accessibilityIdentifier("\(idPrefix).openExisting")
             }
             Button {
                 model.useAnotherEmail()
@@ -105,7 +115,7 @@ struct ClientFormView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .buttonStyle(.secondaryAction)
-            .accessibilityIdentifier("clientForm.otherEmail")
+            .accessibilityIdentifier("\(idPrefix).otherEmail")
         }
     }
 
@@ -120,7 +130,6 @@ struct ClientFormView: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("clientForm.locale")
     }
 
     private func localeOption(_ text: String, locale: ClientLocale?, id: String) -> some View {
@@ -145,26 +154,21 @@ struct ClientFormView: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(model.locale == locale ? .isSelected : [])
-        .accessibilityIdentifier("clientForm.locale.\(id)")
+        .accessibilityIdentifier("\(idPrefix).language.\(id)")
     }
 
     @ViewBuilder private var submit: some View {
         if model.isSaving {
             ProgressView()
                 .tint(Tokens.Colors.textSecondary)
-                .frame(maxWidth: .infinity)
                 .accessibilityLabel(model.catalog[.commonLoading])
-                .accessibilityIdentifier("clientForm.saving")
+                .accessibilityIdentifier("\(idPrefix).pending")
         } else {
-            Button {
+            Button(submitTitle) {
                 Task { if let client = await model.submit() { onSaved(client) } }
-            } label: {
-                Text(submitTitle)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            .buttonStyle(.primaryAction)
-            .accessibilityIdentifier("clientForm.submit")
+            .fontWeight(.semibold)
+            .accessibilityIdentifier("\(idPrefix).\(submitID)")
         }
     }
 

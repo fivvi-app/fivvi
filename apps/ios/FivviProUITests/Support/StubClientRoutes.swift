@@ -6,12 +6,17 @@ import Foundation
 /// address (`409` with the existing client's ID), the edit body's "keep" and "clear" fields.
 final class StubClientRoutes: @unchecked Sendable {
     private let lock = NSLock()
-    private var clients: [[String: Any]] = [
-        StubClientRoutes.client(1, "Anna de Vries", "anna@example.com", "en"),
-        StubClientRoutes.client(2, "Mark Jansen", nil, nil),
-        StubClientRoutes.client(3, "Sophie Bakker", "sophie.bakker@example.com", nil)
-    ]
+    private var clients: [[String: Any]]
     private var nextNumber = 4
+
+    /// `empty`: a workspace without clients, for the empty state.
+    init(empty: Bool = false) {
+        clients = empty ? [] : [
+            StubClientRoutes.client(1, "Anna de Vries", "anna@example.com", "en"),
+            StubClientRoutes.client(2, "Mark Jansen", nil, nil),
+            StubClientRoutes.client(3, "Sophie Bakker", "sophie.bakker@example.com", nil)
+        ]
+    }
 
     private static func client(_ number: Int, _ name: String, _ email: String?, _ locale: String?) -> [String: Any] {
         [

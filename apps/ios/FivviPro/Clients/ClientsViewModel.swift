@@ -30,12 +30,16 @@ final class ClientsViewModel {
     private(set) var query = ""
     /// A request failed while the list is shown, but not for lack of a connection: the screen says so above the list.
     private(set) var loadFailed = false
+    /// The skeleton rows have been shown for `slowAfter` (10 s): the screen adds "Dit duurt langer dan normaal…"
+    /// (`information-architecture.md §9.5`).
+    private(set) var loadingSlow = false
     private(set) var catalog: Catalog
     let workspace: CurrentWorkspace
     private let api: any APIProtocol
     private let pageSize: Int
     private let now: () -> Date
-    private let timeZone: TimeZone
+    private let clock: any Clock<Duration>
+    private let slowAfter: Duration
     private let onForbidden: @MainActor (WorkspaceCapabilities.Capability) async -> Void
     /// When the list on screen was last read, and whether the phone couldn't reach the API since.
     private var updatedAt: Date?
@@ -46,11 +50,11 @@ final class ClientsViewModel {
     private var pagesLoaded = 0
 
     /// `onForbidden` is told the capability the API refused with `403`; the app's capability helper then hides the
-    /// action. Times are shown in `timeZone`, the workspace's time zone (Europe/Amsterdam by default).
+    /// action. Times are shown in the workspace's time zone. `clock` times the "this is taking longer" line.
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, catalog: Catalog, pageSize: Int = 50,
-        now: @escaping () -> Date = Date.init,
-        timeZone: TimeZone = TimeZone(identifier: "Europe/Amsterdam") ?? .current,
+        now: @escaping () -> Date = Date.init, clock: any Clock<Duration> = ContinuousClock(),
+        slowAfter: Duration = .seconds(10),
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) {
         self.api = api
@@ -58,7 +62,8 @@ final class ClientsViewModel {
         self.catalog = catalog
         self.pageSize = pageSize
         self.now = now
-        self.timeZone = timeZone
+        self.clock = clock
+        self.slowAfter = slowAfter
         self.onForbidden = onForbidden
     }
 
@@ -70,13 +75,22 @@ final class ClientsViewModel {
         guard offline, let updatedAt else { return nil }
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_GB")
-        formatter.timeZone = timeZone
+        formatter.timeZone = workspace.timeZone
         formatter.dateFormat = "HH:mm"
-        return catalog.string(.commonOffline, formatter.string(from: updatedAt))
+        return catalog.string(.clientsOffline, formatter.string(from: updatedAt))
     }
 
     /// *Je hebt geen toegang tot deze pagina. Vraag de eigenaar van John's Gym.*
     var noPermissionText: String { catalog.string(.noPermissionBody, workspace.name) }
+
+    /// Runs while the screen shows the skeleton rows: after `slowAfter` it sets `loadingSlow`. Cancelled, or started when
+    /// nothing is loading, it clears it.
+    func watchSlowLoading() async {
+        loadingSlow = false
+        guard state == .loading else { return }
+        guard (try? await clock.sleep(for: slowAfter)) != nil, state == .loading else { return }
+        loadingSlow = true
+    }
 
     /// Starts again, with skeleton rows: the first read, and *Opnieuw proberen*.
     func load() async {

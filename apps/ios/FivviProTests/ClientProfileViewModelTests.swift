@@ -9,7 +9,8 @@ import XCTest
 final class ClientProfileViewModelTests: XCTestCase {
     private let language = InterfaceLanguage.resolve(.system())
     private let workspace = CurrentWorkspace(
-        id: "7c1d2e3f-0000-4000-8000-000000000001", name: "John's Gym", defaultLocale: .nlNL
+        id: "7c1d2e3f-0000-4000-8000-000000000001", name: "John's Gym", defaultLocale: .nlNL,
+        timeZone: TimeZone(identifier: "Europe/Amsterdam") ?? .current
     )
 
     private func johnsGym() -> StubAPI {
@@ -48,6 +49,28 @@ final class ClientProfileViewModelTests: XCTestCase {
             String(format: catalog["clients.addDialog.localeDefault"], catalog["clients.languageNames.nl"]),
             "Standaard (Nederlands) until someone sets one"
         )
+    }
+
+    func test_F006_AC12_aReadThatTakesTenSecondsSaysSoUntilTheClientIsThere() async {
+        let clock = ManualClock()
+        let api = johnsGym()
+        let anna = ClientProfileViewModel(
+            api: api, workspace: workspace, clientID: api.clients.id(of: "Anna de Vries") ?? "",
+            catalog: Catalog(locale: language), clock: clock
+        )
+        XCTAssertFalse(anna.loadingSlow)
+
+        let watching = Task { await anna.watchSlowLoading() }
+        await clock.untilSleeping()
+        clock.advance(by: .seconds(9))
+        XCTAssertFalse(anna.loadingSlow, "not yet")
+        clock.advance(by: .seconds(1))
+        await watching.value
+        XCTAssertTrue(anna.loadingSlow, "after 10 seconds")
+
+        await anna.load()
+        await anna.watchSlowLoading()
+        XCTAssertFalse(anna.loadingSlow, "the client is there")
     }
 
     func test_F006_AC12_aClientAtHandShowsAtOnceAndAClientJustAddedSaysSo() {

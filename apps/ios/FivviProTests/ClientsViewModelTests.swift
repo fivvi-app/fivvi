@@ -10,7 +10,8 @@ import XCTest
 final class ClientsViewModelTests: XCTestCase {
     private let language = InterfaceLanguage.resolve(.system())
     private let workspace = CurrentWorkspace(
-        id: "7c1d2e3f-0000-4000-8000-000000000001", name: "John's Gym", defaultLocale: .nlNL
+        id: "7c1d2e3f-0000-4000-8000-000000000001", name: "John's Gym", defaultLocale: .nlNL,
+        timeZone: TimeZone(identifier: "Europe/Amsterdam") ?? .current
     )
 
     /// John's Gym (synthetic): Anna and Sophie have an email address, Mark has none.
@@ -26,11 +27,12 @@ final class ClientsViewModelTests: XCTestCase {
 
     private func model(
         _ api: StubAPI, pageSize: Int = 50, now: @escaping () -> Date = Date.init,
+        in workspace: CurrentWorkspace? = nil, clock: any Clock<Duration> = ContinuousClock(),
         forbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) -> ClientsViewModel {
         ClientsViewModel(
-            api: api, workspace: workspace, catalog: Catalog(locale: language), pageSize: pageSize, now: now,
-            onForbidden: forbidden
+            api: api, workspace: workspace ?? self.workspace, catalog: Catalog(locale: language), pageSize: pageSize,
+            now: now, clock: clock, onForbidden: forbidden
         )
     }
 
@@ -121,11 +123,58 @@ final class ClientsViewModelTests: XCTestCase {
 
         XCTAssertEqual(model.state, .loaded)
         XCTAssertEqual(model.clients.count, 3, "the list that was shown stays")
-        XCTAssertEqual(model.offlineText, String(format: TestCatalog(language)["common.offline"], "08:42"))
+        XCTAssertEqual(model.offlineText, String(format: TestCatalog(language)["clients.offline"], "08:42"))
 
         api.clients.fail(.list, with: nil)
         await model.refresh()
         XCTAssertNil(model.offlineText, "the banner goes once the API answers")
+    }
+
+    func test_F006_AC12_theOfflineTimeIsInTheWorkspacesTimeZone() async {
+        let api = johnsGym()
+        let tokyo = CurrentWorkspace(
+            id: workspace.id, name: "Tokyo Gym", defaultLocale: .en,
+            timeZone: TimeZone(identifier: "Asia/Tokyo") ?? .current
+        )
+        let updated = ISO8601DateFormatter().date(from: "2026-11-01T07:42:00Z") ?? .distantPast
+        let model = model(api, now: { updated }, in: tokyo)
+        await model.load()
+        api.clients.fail(.list, with: .offline)
+        await model.refresh()
+
+        XCTAssertEqual(model.offlineText, String(format: TestCatalog(language)["clients.offline"], "16:42"))
+    }
+
+    func test_F006_AC12_aLoadThatTakesTenSecondsSaysSoUntilTheListIsThere() async {
+        let clock = ManualClock()
+        let model = model(johnsGym(), clock: clock)
+        XCTAssertEqual(model.state, .loading)
+        XCTAssertFalse(model.loadingSlow)
+
+        let watching = Task { await model.watchSlowLoading() }
+        await clock.untilSleeping()
+        clock.advance(by: .seconds(9))
+        XCTAssertFalse(model.loadingSlow, "not yet")
+        clock.advance(by: .seconds(1))
+        await watching.value
+        XCTAssertTrue(model.loadingSlow, "after 10 seconds")
+        XCTAssertEqual(Catalog(locale: language)[.commonLoadingSlow], TestCatalog(language)["common.loadingSlow"])
+
+        await model.load()
+        await model.watchSlowLoading()
+        XCTAssertFalse(model.loadingSlow, "the list is there")
+    }
+
+    func test_F006_AC12_aLoadThatEndsBeforeTenSecondsSaysNothing() async {
+        let clock = ManualClock()
+        let model = model(johnsGym(), clock: clock)
+        let watching = Task { await model.watchSlowLoading() }
+        await clock.untilSleeping()
+
+        watching.cancel()
+        await watching.value
+
+        XCTAssertFalse(model.loadingSlow)
     }
 
     func test_F006_AC12_aFailedSearchOrRefreshThatIsNotAConnectionKeepsTheListAndSaysSo() async {
@@ -147,7 +196,7 @@ final class ClientsViewModelTests: XCTestCase {
         XCTAssertEqual(model.clients.map(\.name), ["Anna de Vries"])
     }
 
-    func test_F006_AC10_noAccessShowsTheNoPermissionStateAndHidesTheActions() async {
+    func test_F006_AC10_noAccessShowsTheNoPermissionStateAndTellsTheHelperToHideTheAction() async {
         let api = johnsGym()
         var forbidden: [WorkspaceCapabilities.Capability] = []
         let model = model(api, forbidden: { forbidden.append($0) })

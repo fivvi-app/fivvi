@@ -11,6 +11,11 @@ extension StubServer {
         var workspaceName: String? = "John's Gym"
         /// The role in that workspace (`owner` or `trainer`).
         var role = "owner"
+        /// What the first workspace's role may do instead of the permission matrix's answer, or nil for the matrix: the
+        /// API has no role that sees the clients without managing them, so a test says so to prove the actions hide.
+        var capabilities: [String]?
+        /// Whether the workspace has no clients yet (the empty state of Klanten, F006).
+        var hasNoClients = false
         /// More workspaces the account is on the team of, after the first (F003).
         var otherWorkspaces: [Workspace] = []
         /// Whether `GET /api/v1/me` says the account may create a workspace.

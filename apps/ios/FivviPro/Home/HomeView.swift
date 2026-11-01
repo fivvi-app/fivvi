@@ -78,15 +78,16 @@ struct HomeView: View {
         .task {
             await language.save()
             await account.load()
-            useWorkspace(account.workspace)
         }
         // Coming back to the app asks again: a workspace the person lost access to meanwhile is noticed (F003 AC6), and
         // a language changed on the web is adopted (F010 AC2).
         .onReturnToForeground {
             await language.save()
             await account.refresh()
-            useWorkspace(account.workspace)
         }
+        // The clients' model follows the workspace the account shows: a new workspace is a new list (F012 will let the
+        // person switch), none is no list.
+        .onChange(of: account.workspace, initial: true) { _, workspace in useWorkspace(workspace) }
         .onChange(of: language.catalog) { _, catalog in
             hello.use(catalog)
             profile.use(catalog)

@@ -16,10 +16,22 @@ final class ClientsUITests: SignInUITestCase {
         return (SignInScreen.launch(against: server, session: .signedIn), server)
     }
 
-    /// The row of the client called `name`: its label starts with the name, then the email address.
+    /// An account whose capabilities include `clients.view` but not `clients.manage` (the matrix has no such role yet).
+    private func launchAsViewer(hasNoClients: Bool = false) throws -> (SignInScreen, StubServer) {
+        let server = try StubServer(
+            .greeting(key: "hello.title"),
+            signIn: StubServer.SignIn(
+                email: "viewer@example.com", workspaceName: "John's Gym", role: "trainer",
+                capabilities: ["trainers.view", "clients.view"], hasNoClients: hasNoClients
+            )
+        )
+        return (SignInScreen.launch(against: server, session: .signedIn), server)
+    }
+
+    /// The row of the client called `name`: `clients.row.<id>`, its label starts with the name, then the email address.
     private func row(_ name: String, in app: XCUIApplication) -> XCUIElement {
         app.buttons.matching(
-            NSPredicate(format: "identifier == 'clients.row' AND label BEGINSWITH %@", name)
+            NSPredicate(format: "identifier BEGINSWITH 'clients.row.' AND label BEGINSWITH %@", name)
         ).firstMatch
     }
 
@@ -53,8 +65,16 @@ final class ClientsUITests: SignInUITestCase {
         XCTAssertEqual(row("Anna de Vries", in: app).label, "Anna de Vries, anna@example.com")
         XCTAssertEqual(server.requests(to: clientsPath).first?.authorization, "Bearer stub-session-token")
 
+        XCTAssertTrue(app.descendants(matching: .any)["clients.list"].exists, "the list has the id Maestro looks for")
+        let anyElement = { (prefix: String) in
+            app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", prefix)).firstMatch
+        }
+        XCTAssertTrue(anyElement("clients.rowName.").exists, "the name of a row has its id")
+        XCTAssertTrue(anyElement("clients.rowEmail.").exists, "and so has the email address")
+
         // Search: part of a name, whatever the case.
-        let search = app.searchFields.firstMatch
+        let search = app.searchFields["clients.search"]
+        XCTAssertTrue(search.exists, "the search field has the id Maestro looks for")
         search.tap()
         search.typeText("VRIE")
         XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.3) { !row("Mark Jansen", in: app).exists })
@@ -66,20 +86,20 @@ final class ClientsUITests: SignInUITestCase {
         XCTAssertTrue(app.staticTexts["clientProfile.name"].waitUntilExists(timeout: timeout))
         XCTAssertEqual(app.staticTexts["clientProfile.name"].label, "Anna de Vries")
         XCTAssertEqual(app.staticTexts["clientProfile.email"].label, "anna@example.com")
-        XCTAssertEqual(app.staticTexts["clientProfile.locale"].label, catalog["clients.addDialog.localeEn"])
+        XCTAssertEqual(app.staticTexts["clientProfile.language"].label, catalog["clients.addDialog.localeEn"])
         XCTAssertTrue(app.staticTexts["clientProfile.overview"].exists)
 
         // Edit: the change shows in the overview and on the list.
         app.buttons["clientProfile.edit"].tap()
-        let name = app.textFields["clientForm.name"]
+        let name = app.textFields["clientProfile.edit.name"]
         XCTAssertTrue(name.waitUntilExists(timeout: timeout))
         replaceText(in: name, with: "Anna de Vries-Smit")
-        app.buttons["clientForm.submit"].tap()
+        app.buttons["clientProfile.edit.save"].tap()
         XCTAssertTrue(app.staticTexts["clientProfile.saved"].waitUntilExists(timeout: timeout))
         XCTAssertEqual(app.staticTexts["clientProfile.name"].label, "Anna de Vries-Smit")
         XCTAssertEqual(app.staticTexts["clientProfile.saved"].label, catalog["clients.profile.saved"])
         XCTAssertTrue(server.requests.contains { $0.method == "PATCH" && $0.body == ["name": "Anna de Vries-Smit"] })
-        app.navigationBars.buttons.firstMatch.tap()
+        app.buttons["clientProfile.back"].tap()
         XCTAssertTrue(row("Anna de Vries-Smit", in: app).waitUntilExists(timeout: timeout))
     }
 
@@ -88,23 +108,23 @@ final class ClientsUITests: SignInUITestCase {
         let (screen, server) = try launchAsSarah()
         let app = screen.app
         openClients(screen)
-        let add = app.buttons["clients.new"]
+        let add = app.buttons["clients.add"]
         XCTAssertTrue(add.waitUntilExists(timeout: timeout))
-        // The system draws a bar button 36 pt high; its hit area is the system's, so no touch-target check here.
+        try assertTouchTarget(add, on: screen)
         XCTAssertEqual(add.label, catalog["clients.newClient"])
 
         add.tap()
-        let name = app.textFields["clientForm.name"]
+        let name = app.textFields["clients.add.name"]
         XCTAssertTrue(name.waitUntilExists(timeout: timeout))
-        XCTAssertEqual(app.buttons["clientForm.submit"].label, catalog["clients.addDialog.submit"])
+        XCTAssertEqual(app.buttons["clients.add.submit"].label, catalog["clients.addDialog.submit"])
         XCTAssertEqual(
-            app.buttons["clientForm.locale.default"].label,
+            app.buttons["clients.add.language.default"].label,
             String(format: catalog["clients.addDialog.localeDefault"], catalog["clients.languageNames.nl"]),
             "Standaard (Nederlands) is offered first"
         )
-        XCTAssertTrue(app.buttons["clientForm.locale.default"].isSelected, "and preselected")
+        XCTAssertTrue(app.buttons["clients.add.language.default"].isSelected, "and preselected")
         name.typeText("Bram Visser")
-        app.buttons["clientForm.submit"].tap()
+        app.buttons["clients.add.submit"].tap()
 
         let added = app.staticTexts["clientProfile.added"]
         XCTAssertTrue(added.waitUntilExists(timeout: timeout))
@@ -112,13 +132,13 @@ final class ClientsUITests: SignInUITestCase {
         XCTAssertEqual(app.staticTexts["clientProfile.name"].label, "Bram Visser")
         XCTAssertEqual(app.staticTexts["clientProfile.email"].label, catalog["clients.profile.noEmail"])
         XCTAssertEqual(
-            app.staticTexts["clientProfile.locale"].label,
+            app.staticTexts["clientProfile.language"].label,
             String(format: catalog["clients.addDialog.localeDefault"], catalog["clients.languageNames.nl"])
         )
         let posts = server.requests.filter { $0.method == "POST" && $0.path == clientsPath }
         let sent = [["name": "Bram Visser", "surface": "ios"]]
         XCTAssertEqual(posts.map(\.body), sent, "a name alone, from the iPhone app")
-        app.navigationBars.buttons.firstMatch.tap()
+        app.buttons["clientProfile.back"].tap()
         XCTAssertTrue(row("Bram Visser", in: app).waitUntilExists(timeout: timeout))
     }
 
@@ -127,22 +147,22 @@ final class ClientsUITests: SignInUITestCase {
         let (screen, server) = try launchAsSarah()
         let app = screen.app
         openClients(screen)
-        app.buttons["clients.new"].tap()
-        XCTAssertTrue(app.textFields["clientForm.name"].waitUntilExists(timeout: timeout))
-        screen.type("Anna de Vries-Smit", into: app.textFields["clientForm.name"])
-        screen.type("ANNA@example.com", into: app.textFields["clientForm.email"])
-        app.buttons["clientForm.submit"].tap()
+        app.buttons["clients.add"].tap()
+        XCTAssertTrue(app.textFields["clients.add.name"].waitUntilExists(timeout: timeout))
+        screen.type("Anna de Vries-Smit", into: app.textFields["clients.add.name"])
+        screen.type("ANNA@example.com", into: app.textFields["clients.add.email"])
+        app.buttons["clients.add.submit"].tap()
 
-        let exists = app.staticTexts["clientForm.exists"]
+        let exists = app.staticTexts["clients.add.duplicate"]
         XCTAssertTrue(exists.waitUntilExists(timeout: timeout))
         XCTAssertEqual(exists.label, String(format: catalog["clients.addDialog.exists"], "Anna de Vries"))
         XCTAssertEqual(
-            app.buttons["clientForm.openExisting"].label,
+            app.buttons["clients.add.openExisting"].label,
             String(format: catalog["clients.addDialog.openExisting"], "Anna de Vries")
         )
-        XCTAssertEqual(app.buttons["clientForm.otherEmail"].label, catalog["clients.addDialog.otherEmail"])
+        XCTAssertEqual(app.buttons["clients.add.otherEmail"].label, catalog["clients.addDialog.otherEmail"])
 
-        app.buttons["clientForm.openExisting"].tap()
+        app.buttons["clients.add.openExisting"].tap()
 
         XCTAssertTrue(app.staticTexts["clientProfile.name"].waitUntilExists(timeout: timeout))
         XCTAssertEqual(app.staticTexts["clientProfile.name"].label, "Anna de Vries")
@@ -156,22 +176,79 @@ final class ClientsUITests: SignInUITestCase {
         let (screen, server) = try launchAsSarah()
         let app = screen.app
         openClients(screen)
-        app.buttons["clients.new"].tap()
-        XCTAssertTrue(app.buttons["clientForm.submit"].waitUntilExists(timeout: timeout))
+        app.buttons["clients.add"].tap()
+        XCTAssertTrue(app.buttons["clients.add.submit"].waitUntilExists(timeout: timeout))
 
-        app.buttons["clientForm.submit"].tap()
-        let nameError = app.staticTexts["clientForm.nameError"]
+        app.buttons["clients.add.submit"].tap()
+        let nameError = app.staticTexts["clients.add.nameError"]
         XCTAssertTrue(nameError.waitUntilExists(timeout: timeout))
         XCTAssertEqual(nameError.label, catalog["clients.addDialog.errors.nameRequired"])
 
-        screen.type("Eva Smit", into: app.textFields["clientForm.name"])
-        screen.type("not-an-address", into: app.textFields["clientForm.email"])
-        app.buttons["clientForm.submit"].tap()
-        let emailError = app.staticTexts["clientForm.emailError"]
+        screen.type("Eva Smit", into: app.textFields["clients.add.name"])
+        screen.type("not-an-address", into: app.textFields["clients.add.email"])
+        app.buttons["clients.add.submit"].tap()
+        let emailError = app.staticTexts["clients.add.emailError"]
         XCTAssertTrue(emailError.waitUntilExists(timeout: timeout))
         XCTAssertEqual(emailError.label, catalog["clients.addDialog.errors.emailInvalid"])
-        XCTAssertFalse(app.staticTexts["clientForm.nameError"].exists)
+        XCTAssertFalse(app.staticTexts["clients.add.nameError"].exists)
         XCTAssertTrue(server.requests.filter { $0.method == "POST" }.isEmpty, "nothing is sent")
+    }
+
+    func test_F006_AC7_anEmailAddressOfAnotherClientOffersThatClientOnEditToo() throws {
+        let catalog = TestCatalog.configured
+        let (screen, server) = try launchAsSarah()
+        let app = screen.app
+        openClients(screen)
+        XCTAssertTrue(row("Mark Jansen", in: app).waitUntilExists(timeout: timeout))
+        row("Mark Jansen", in: app).tap()
+        XCTAssertTrue(app.buttons["clientProfile.edit"].waitUntilExists(timeout: timeout))
+        app.buttons["clientProfile.edit"].tap()
+        XCTAssertEqual(app.staticTexts["clientProfile.edit.title"].label, catalog["clients.profile.editTitle"])
+        screen.type("Anna@Example.com", into: app.textFields["clientProfile.edit.email"])
+        app.buttons["clientProfile.edit.save"].tap()
+
+        let duplicate = app.staticTexts["clientProfile.edit.duplicate"]
+        XCTAssertTrue(duplicate.waitUntilExists(timeout: timeout))
+        XCTAssertEqual(duplicate.label, String(format: catalog["clients.addDialog.exists"], "Anna de Vries"))
+        let open = app.buttons["clientProfile.edit.openExisting"]
+        XCTAssertEqual(open.label, String(format: catalog["clients.addDialog.openExisting"], "Anna de Vries"))
+        XCTAssertTrue(app.buttons["clientProfile.edit.otherEmail"].exists)
+        open.tap()
+
+        let name = app.staticTexts["clientProfile.name"]
+        XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.3) { name.exists && name.label == "Anna de Vries" })
+        XCTAssertFalse(app.textFields["clientProfile.edit.name"].exists, "the sheet is gone")
+        XCTAssertEqual(app.staticTexts["clientProfile.title"].label, "Anna de Vries")
+        XCTAssertEqual(app.staticTexts["clientProfile.email"].label, "anna@example.com")
+        XCTAssertTrue(server.requests.contains { $0.method == "PATCH" && $0.body == ["email": "Anna@Example.com"] })
+        app.buttons["clientProfile.back"].tap()
+        XCTAssertTrue(row("Mark Jansen", in: app).waitUntilExists(timeout: timeout))
+        XCTAssertFalse(app.staticTexts["clientProfile.name"].exists, "back goes to the list")
+    }
+
+    func test_F004_AC10_withoutClientsManageNoAddOrEditActionShows() throws {
+        let (screen, server) = try launchAsViewer()
+        let app = screen.app
+        openClients(screen)
+
+        XCTAssertTrue(row("Anna de Vries", in: app).waitUntilExists(timeout: timeout), "they may still see the clients")
+        XCTAssertFalse(app.buttons["clients.add"].exists, "no + Nieuwe klant")
+        row("Anna de Vries", in: app).tap()
+        XCTAssertTrue(app.staticTexts["clientProfile.name"].waitUntilExists(timeout: timeout))
+        XCTAssertFalse(app.buttons["clientProfile.edit"].exists, "no Bewerken on the profile")
+        withExtendedLifetime(server) {}
+    }
+
+    func test_F004_AC10_withoutClientsManageTheEmptyStateOffersNoAddAction() throws {
+        let catalog = TestCatalog.configured
+        let (screen, server) = try launchAsViewer(hasNoClients: true)
+        openClients(screen)
+
+        let empty = screen.app.staticTexts["clients.empty"]
+        XCTAssertTrue(empty.waitUntilExists(timeout: timeout))
+        XCTAssertEqual(empty.label, catalog["clients.empty"])
+        XCTAssertFalse(screen.app.buttons["clients.add"].exists)
+        withExtendedLifetime(server) {}
     }
 
     func test_F006_AC12_aFailedLoadShowsTheErrorAndRetryRecovers() throws {
