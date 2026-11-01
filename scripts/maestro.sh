@@ -200,6 +200,23 @@ wait_for_device_ready() {
   done
 }
 
+# `adb root` restarts adbd as root, and the host's adb server can lose the transport while it does: "unable to connect for
+# root: closed" or "device offline" (#373). Then the device is waited for and root is asked once more; any other error, or
+# a second failure, fails the script. After it adbd has restarted, so wait until the device is online and answering.
+root_device() {
+  local out
+  if ! out="$(adb root 2>&1)"; then
+    case "$out" in
+      *"unable to connect for root: closed"*|*"device offline"*) ;;
+      *) echo "$out" >&2; die "adb root failed" ;;
+    esac
+    echo "maestro.sh: adb root lost the connection to the device ($out); waiting for the device and trying once more"
+    wait_for_device_ready || die "the device did not come back after adb root failed"
+    out="$(adb root 2>&1)" || { echo "$out" >&2; die "adb root failed twice"; }
+  fi
+  wait_for_device_ready || die "the device did not come back after adb root"
+}
+
 # Root on the Google APIs emulator image, so the device language can be changed without a reboot: a framework restart.
 # The device must be online first (the adb connection may have dropped when the last Maestro run ended, #373), and after
 # the restart it must boot and then stay online.
@@ -387,7 +404,7 @@ cmd_android() {
   on_exit cleanup
   start_stack
   start_emulator
-  adb root >/dev/null
+  root_device
   wait_for_boot
   DEVICE_LOCALE="$(adb shell getprop persist.sys.locale | tr -d '\r')"
   [ -n "$DEVICE_LOCALE" ] || DEVICE_LOCALE="$(adb shell getprop ro.product.locale | tr -d '\r')"

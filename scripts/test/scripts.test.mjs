@@ -1768,6 +1768,15 @@ case "$*" in
       echo "error: device offline" >&2; exit 1
     fi
     if [ -e "${state}/booted" ]; then echo "adb-state device" >>"${state}/calls.log"; echo device; else exit 1; fi ;;
+  # FAKE_ADB_ROOT=closed-once|closed-twice|other (#373): "adb root" fails with the closed transport once, twice, or with another error.
+  root)
+    n=$(( $(cat "${state}/root-calls" 2>/dev/null || echo 0) + 1 )); echo "$n" >"${state}/root-calls"
+    echo "adb-root $n" >>"${state}/calls.log"
+    case "$FAKE_ADB_ROOT:$n" in
+      closed-once:1|closed-twice:1|closed-twice:2) echo "adb: unable to connect for root: closed" >&2; exit 1 ;;
+      other:*) echo "adb: unable to connect for root: insufficient permissions" >&2; exit 1 ;;
+    esac
+    echo "restarting adbd as root" ;;
   "reconnect offline") [ "$FAKE_ADB_RECONNECT" = useless ] || echo 0 >"${state}/offline-left" ;;
   "shell setprop"*) [ -z "$FAKE_ADB_OFFLINE" ] || echo "$FAKE_ADB_OFFLINE" >"${state}/offline-left" ;;
   "shell pm path android") echo package:/system/framework/framework-res.apk ;;
@@ -3253,6 +3262,58 @@ esac`,
       assert.notEqual(run.status, 0, run.output);
       assert.match(run.output, /the device is not ready after 2s/);
       assert.equal(fake.log('calls').filter(isFlow).length, 0, fake.log('calls').join('\n'));
+    });
+
+    it('waits for the device and asks for root once more when adb root loses the connection, and goes on', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_ADB_ROOT: 'closed-once',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /adb root lost the connection to the device \(adb: unable to connect for root: closed\)/,
+      );
+      assert.deepEqual(
+        fake.log('calls').filter((call) => call.startsWith('adb-root ')),
+        ['adb-root 1', 'adb-root 2'],
+      );
+      assert.equal(fake.log('calls').filter(isFlow).length, 2, fake.log('calls').join('\n'));
+    });
+
+    it('fails at once when adb root fails with another error', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], { FAKE_ADB_ROOT: 'other' });
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(run.output, /insufficient permissions/);
+      assert.match(run.output, /adb root failed/);
+      assert.deepEqual(
+        fake.log('calls').filter((call) => call.startsWith('adb-root ')),
+        ['adb-root 1'],
+      );
+      assert.equal(fake.log('calls').filter(isFlow).length, 0);
+    });
+
+    it('fails when adb root loses the connection twice', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_ADB_ROOT: 'closed-twice',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(run.output, /adb root failed twice/);
+      assert.deepEqual(
+        fake.log('calls').filter((call) => call.startsWith('adb-root ')),
+        ['adb-root 1', 'adb-root 2'],
+      );
+      assert.equal(fake.log('calls').filter(isFlow).length, 0);
     });
 
     const tests = (fake) => fake.log('maestro').filter((call) => call.startsWith('test '));
