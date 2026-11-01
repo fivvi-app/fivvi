@@ -1,0 +1,126 @@
+# F005 native Profiel (spec #173, AC1, AC4, AC5), against the local stack: Sarah (the seeded trainer@example.com) is Trainer of
+# John's Gym and Owner of Sarah Personal Training.
+#   AC5  Profiel has the switch "I also train at …" for Sarah Personal Training, where she is Owner, and none for John's Gym.
+#   AC1  She changes her name in the name dialog and saves; Profiel shows it, and so does the next sign-in (the name is
+#        stored on the account, which the web reads on its next load).
+#   AC4  She switches training off or on for Sarah Personal Training, and back; the switch only moves when the API accepted it.
+# The local database is never emptied between runs (#381), so the flow starts from whatever an earlier run left: it sets the
+# name to fixed values and ends with the seeded one ("Sarah"), and it turns the switch to the other state whichever state it
+# finds, then back. Elements are found by id: the Android testTag and the iOS accessibilityIdentifier, the same on both
+# apps; the texts asserted are the person's own data, so the flow needs no catalog text. The switch is a node with a
+# checked state (Android: Role.Switch, iOS: a Toggle).
+appId: ${APP_ID}
+name: AC1 AC4 AC5 Profiel changes my name and the I also train here switch
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # Sarah: seeded (packages/database/src/seed.ts).
+  EMAIL: trainer@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+- tapOn:
+    id: home\.openProfile
+- extendedWaitUntil:
+    visible:
+      id: profile\.trainsHere\.sarah-personal-training
+    timeout: 20000
+# AC5: Sarah is Trainer of John's Gym (listed), so no switch there; she is Owner of her own workspace, so the switch is there.
+- assertVisible:
+    id: profile\.workspaceName\.johns-gym
+- assertNotVisible:
+    id: profile\.trainsHere\.johns-gym
+- assertVisible:
+    id: profile\.email
+    text: trainer@example\.com
+# AC1: change the name in the dialog.
+- tapOn:
+    id: profile\.name
+- extendedWaitUntil:
+    visible:
+      id: profile\.nameInput
+    timeout: 20000
+- tapOn:
+    id: profile\.nameInput
+- eraseText
+- inputText: Sarah Maestro
+- tapOn:
+    id: profile\.nameSave
+- extendedWaitUntil:
+    visible:
+      id: profile\.name
+      text: Sarah Maestro
+    timeout: 20000
+# Stored on the account, not only kept in the app: start again with no state of the app and sign in.
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+- tapOn:
+    id: home\.openProfile
+- extendedWaitUntil:
+    visible:
+      id: profile\.name
+      text: Sarah Maestro
+    timeout: 20000
+# AC4: whichever state the switch is in, turn it to the other one, wait until the API accepted it, and turn it back.
+- runFlow:
+    when:
+      visible:
+        id: profile\.trainsHere\.sarah-personal-training
+        checked: true
+    commands:
+      - tapOn:
+          id: profile\.trainsHere\.sarah-personal-training
+      - extendedWaitUntil:
+          visible:
+            id: profile\.trainsHere\.sarah-personal-training
+            checked: false
+          timeout: 20000
+      - tapOn:
+          id: profile\.trainsHere\.sarah-personal-training
+      - extendedWaitUntil:
+          visible:
+            id: profile\.trainsHere\.sarah-personal-training
+            checked: true
+          timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: profile\.trainsHere\.sarah-personal-training
+        checked: false
+    commands:
+      - tapOn:
+          id: profile\.trainsHere\.sarah-personal-training
+      - extendedWaitUntil:
+          visible:
+            id: profile\.trainsHere\.sarah-personal-training
+            checked: true
+          timeout: 20000
+      - tapOn:
+          id: profile\.trainsHere\.sarah-personal-training
+      - extendedWaitUntil:
+          visible:
+            id: profile\.trainsHere\.sarah-personal-training
+            checked: false
+          timeout: 20000
+# Back to the seeded name, so the account ends as it started.
+- tapOn:
+    id: profile\.name
+- extendedWaitUntil:
+    visible:
+      id: profile\.nameInput
+    timeout: 20000
+- tapOn:
+    id: profile\.nameInput
+- eraseText
+- inputText: Sarah
+- tapOn:
+    id: profile\.nameSave
+- extendedWaitUntil:
+    visible:
+      id: profile\.name
+      text: Sarah
+    timeout: 20000

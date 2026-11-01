@@ -49,7 +49,8 @@ class LanguageSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
 
     @Test
     fun test_F010_AC3_inAppSwitchRerendersAndSaves() {
-        me.answerAccount()
+        // The home reads the account on opening and Profiel reads it again when it opens.
+        repeat(2) { me.answerAccount() }
         me.answerWorkspaces()
         app.launch(hello, device = listOf(phone.tag), meApi = me)
         openProfile()
