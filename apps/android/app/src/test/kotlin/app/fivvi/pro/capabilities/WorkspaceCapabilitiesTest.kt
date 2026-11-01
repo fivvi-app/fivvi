@@ -8,10 +8,10 @@ import app.fivvi.api.models.MeWorkspace.Capabilities.WORKSPACE_PERIOD_MANAGE
 import app.fivvi.api.models.MeWorkspace.Role
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.pro.home.FakeMeApi
+import app.fivvi.pro.home.FakeTrainersApi
 import app.fivvi.pro.home.ProfileRole
 import app.fivvi.pro.home.ProfileState
 import app.fivvi.pro.home.ProfileViewModel
-import app.fivvi.pro.home.ProfileWorkspace
 import app.fivvi.pro.home.workspaceIdOf
 import java.io.IOException
 import java.util.UUID
@@ -114,11 +114,12 @@ class WorkspaceCapabilitiesTest {
     // and the helper answers for each workspace on its own, with no role name in the app.
     @Test
     fun test_F004_AC8_roleLabelsPerWorkspace() {
+        api.answerAccount()
         api.answerWorkspaces(
             Triple("John's Gym", "johns-gym", MyWorkspace.Role.TRAINER),
             Triple("Sarah Personal Training", "sarah-personal-training", MyWorkspace.Role.OWNER),
         )
-        val profile = ProfileViewModel(api)
+        val profile = ProfileViewModel(api, FakeTrainersApi())
 
         helper.replace(
             listOf(
@@ -134,13 +135,11 @@ class WorkspaceCapabilitiesTest {
         )
 
         assertEquals(
-            ProfileState.Loaded(
-                listOf(
-                    ProfileWorkspace("johns-gym", "John's Gym", ProfileRole.Trainer),
-                    ProfileWorkspace("sarah-personal-training", "Sarah Personal Training", ProfileRole.Owner),
-                ),
+            listOf(
+                Triple("johns-gym", "John's Gym", ProfileRole.Trainer),
+                Triple("sarah-personal-training", "Sarah Personal Training", ProfileRole.Owner),
             ),
-            profile.state.value,
+            (profile.state.value as ProfileState.Loaded).workspaces.map { Triple(it.slug, it.name, it.role) },
         )
         assertTrue(helper.mayShow(personalTraining, WORKSPACE_PERIOD_MANAGE))
         assertFalse(helper.mayShow(johnsGym, WORKSPACE_PERIOD_MANAGE))

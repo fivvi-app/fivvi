@@ -3,6 +3,7 @@
 <resources>
     <string name="app_name">Fivvi Pro</string>
     <string name="app_title">Fivvi</string>
+    <string name="common_cancel">Cancel</string>
     <string name="common_loading">Loading…</string>
     <string name="common_retry">Try again</string>
     <string name="hello_continue">Continue</string>
@@ -22,6 +23,7 @@
     <string name="home_set_up_on_web">Set up your workspace on the web.</string>
     <string name="home_signed_in_as">Signed in as %1$s</string>
     <string name="my_profile_details_title">Your details</string>
+    <string name="my_profile_edit_name">Change name</string>
     <string name="my_profile_email_label">Email address</string>
     <string name="my_profile_errors_generic">Something went wrong. Try again.</string>
     <string name="my_profile_errors_name_required">Enter your name.</string>
@@ -41,6 +43,10 @@
     <string name="profile_error">Your workspaces couldn\'t be loaded.</string>
     <string name="profile_language">Language</string>
     <string name="profile_title">Profile</string>
+    <string name="profile_trains_here_errors_generic">Something went wrong. Try again.</string>
+    <string name="profile_trains_here_errors_no_connection">No connection. Check your internet and try again.</string>
+    <string name="profile_trains_here_label">I also train at %1$s</string>
+    <string name="profile_trains_here_saved">Saved.</string>
     <string name="roles_owner">Owner</string>
     <string name="roles_trainer">Trainer</string>
     <string name="settings_general_errors_generic">Something went wrong. Try again.</string>

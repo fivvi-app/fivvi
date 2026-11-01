@@ -104,5 +104,11 @@
   "team.removeDialog.cancel": "Dismiss button of the remove dialog. Closes it without removing anyone.",
   "team.removed": "Confirmation shown after a person was removed from the team. {name} is the person's name (or email address when they have no name).",
   "team.errors.noConnection": "Shown on the Trainers page when removing a person failed because there is no connection. Nothing changed.",
-  "team.errors.generic": "Shown on the Trainers page when removing a person failed for another reason. Nothing changed."
+  "team.errors.generic": "Shown on the Trainers page when removing a person failed for another reason. Nothing changed.",
+  "common.cancel": "Button that leaves a form or dialog without saving, e.g. the native full-screen dialog that changes the person's name.",
+  "myProfile.editName": "Title of the native dialog (iOS sheet, Android full-screen dialog) in which the person changes their name on Profile (TM-04), and the action of the name row that opens it.",
+  "profile.trainsHere.label": "Label of the switch on the profile (web My profile TW-09, iOS and Android Profile TM-04), one per workspace where the person is Owner. On means they also train there and show as a trainer (F005). {workspace} is the workspace name, e.g. John's Gym. It talks about training, never about profiles.",
+  "profile.trainsHere.saved": "Confirmation shown after the switch was saved.",
+  "profile.trainsHere.errors.noConnection": "Shown next to the switch when saving failed because there is no connection. The switch is back as it was.",
+  "profile.trainsHere.errors.generic": "Shown next to the switch when saving failed for another reason. The switch is back as it was."
 }
