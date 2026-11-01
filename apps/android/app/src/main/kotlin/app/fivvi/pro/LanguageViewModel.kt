@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.models.MeResponse
+import app.fivvi.api.models.MeWorkspace
 import app.fivvi.api.models.UpdateMeRequest
 import java.io.IOException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,8 +19,15 @@ import kotlinx.serialization.SerializationException
  * came to the foreground) take what `GET /api/v1/me` says: a choice that the account does not have yet (made on the
  * sign-in screen) is saved, otherwise the stored preference is adopted and replaces the older local choice. The app has
  * no language rule of its own beyond the order of [AppLanguage.resolve].
+ *
+ * The foreground read of `GET /api/v1/me` also hands the account's workspaces to [onWorkspaces] (F004 AC10), so the
+ * capabilities are refreshed on foreground without a second request.
  */
-class LanguageViewModel(private val api: MeApi, private val preference: LanguagePreference) : ViewModel() {
+class LanguageViewModel(
+    private val api: MeApi,
+    private val preference: LanguagePreference,
+    private val onWorkspaces: (List<MeWorkspace>) -> Unit = {},
+) : ViewModel() {
     val language: StateFlow<AppLanguage> = preference.language
 
     private val _saveFailed = MutableStateFlow(false)
@@ -54,6 +62,7 @@ class LanguageViewModel(private val api: MeApi, private val preference: Language
             } catch (_: SerializationException) {
                 null
             }
+            account?.let { onWorkspaces(it.workspaces) }
             // An answer that left before a choice (or while it is being saved) must not undo that choice.
             if (choices != seen || saves > 0) return@launch
             account?.preferredLocale?.toAppLanguage()?.let { reconcile(it) }

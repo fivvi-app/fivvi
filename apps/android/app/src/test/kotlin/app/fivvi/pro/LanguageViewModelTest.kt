@@ -1,6 +1,7 @@
 package app.fivvi.pro
 
 import app.fivvi.api.models.MeResponse
+import app.fivvi.api.models.MeWorkspace
 import app.fivvi.api.models.UpdateMeRequest
 import app.fivvi.pro.home.FakeMeApi
 import java.io.IOException
@@ -69,6 +70,19 @@ class LanguageViewModelTest {
         assertEquals(AppLanguage.DUTCH, viewModel.language.value)
         assertEquals(2, api.updates.size)
         assertFalse(viewModel.saveFailed.value)
+    }
+
+    // F004 AC10: the foreground read of GET /v1/me also refreshes the capabilities, with no second request.
+    @Test
+    fun test_F004_AC10_foregroundPassesTheWorkspacesOn() {
+        val listed = mutableListOf<List<MeWorkspace>>()
+        val model = LanguageViewModel(api, preference, onWorkspaces = { listed += it })
+        api.answerAccount(workspaces = listOf("John's Gym"))
+
+        model.refresh()
+
+        assertEquals(1, api.calls)
+        assertEquals(listOf("John's Gym"), listed.single().map { it.name })
     }
 
     @Test
