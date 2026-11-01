@@ -260,6 +260,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/clients/{clientId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A client of a workspace
+         * @description One client of the workspace (the Owner and every Trainer): name, email address and language for emails. A client ID of another workspace, or one that does not exist, answers `404`.
+         */
+        get: operations["getClient"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit a client
+         * @description Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out, or `null`, stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address is cleared with `clearEmail: true`, the language with `clearEmailLocale: true`. An address another client of the workspace has answers `409` with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.
+         */
+        patch: operations["updateClient"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -536,6 +560,25 @@ export interface components {
              * @enum {string}
              */
             surface?: "ios" | "android";
+        };
+        /** @description The fields of a client to change. A field left out, or `null`, stays as it is; the email address and the language are cleared with `clearEmail` and `clearEmailLocale`. The same body reads alike in every client: Swift leaves a `nil` out, Kotlin writes `null`. */
+        UpdateClientRequest: {
+            /** @description The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out, or send `null`, to keep it. Empty, blank or longer answers `400` with a field error. */
+            name?: string | null;
+            /**
+             * Format: email
+             * @description The new email address; stored lower case. Leave it out, or send `null`, to keep it. To clear the address, send `clearEmail: true` instead. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
+             */
+            email?: string | null;
+            /** @description `true` clears the email address (and the link to an account with it). `false`, `null` or left out does not. Together with an `email` it answers `400`. */
+            clearEmail?: boolean | null;
+            /**
+             * @description The new language for the client’s emails: `nl-NL` or `en`. Leave it out, or send `null`, to keep it. To follow the workspace’s default language again, send `clearEmailLocale: true` instead. Any other value answers `400`.
+             * @enum {string|null}
+             */
+            emailLocale?: "nl-NL" | "en" | null;
+            /** @description `true` makes the client follow the workspace’s default language for emails. `false`, `null` or left out does not. Together with an `emailLocale` it answers `400`. */
+            clearEmailLocale?: boolean | null;
         };
     };
     responses: never;
@@ -1435,6 +1478,159 @@ export interface operations {
                 };
             };
             /** @description A client of the workspace already has the email address; nothing was added. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientExists"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getClient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The client ID, from the client list. */
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The client. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Client"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    updateClient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The client ID, from the client list. */
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateClientRequest"];
+            };
+        };
+        responses: {
+            /** @description The client as saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Client"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Another client of the workspace already has the email address; nothing changed. */
             409: {
                 headers: {
                     [name: string]: unknown;

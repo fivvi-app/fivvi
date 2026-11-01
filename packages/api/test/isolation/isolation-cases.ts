@@ -86,6 +86,13 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // it once per client of the workspace), the add takes the only field it needs.
   listClients: { seed: theClient },
   addClient: { body: { name: 'Mark Jansen' } },
+  // One client: the read shows the seeded client it names, the edit renames it (F006).
+  getClient: { seed: theClient, params: { clientId: 'client' } },
+  updateClient: {
+    seed: theClient,
+    params: { clientId: 'client' },
+    body: { name: 'Renamed Client' },
+  },
 
   // The probe routes of the test app (`probe-routes.ts`), one per kind of access.
   probeOwner: { seed: theWorkspace },

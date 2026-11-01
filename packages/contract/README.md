@@ -90,6 +90,7 @@ Every generator version is pinned, so the output only changes when the API or a 
 - `kotlin` generator with `jvm-retrofit2`, `kotlinx_serialization` and coroutines (`suspend` functions). This stack is common on Android, and kotlinx.serialization needs no reflection.
 - Package `app.fivvi.api`. Change it in `config/kotlin.json` if E008 picks a different application ID, then regenerate.
 - Only `src/main/kotlin` is kept. The generator's Gradle files, docs and test stubs are dropped; E008 compiles `kotlin/generated` in its own Gradle module with retrofit 3, okhttp and kotlinx-serialization-json.
+- The generator's `Json` writes every unset optional field as `null` (`encodeDefaults = true`), and the API refuses `null` where Swift would leave the field out (#371). `leaveUnsetFieldsOut` in `scripts/pipeline.ts` adds `explicitNulls = false` to the generated `Serializer.kt` (the step fails when the line it adjusts is gone), so the Kotlin client sends only what the app set, as the Swift client does. A "clear" is an explicit flag of the contract (`clearEmail`), never a `null`.
 - openapi-generator runs on Java, from the jar on Maven Central, verified against the pinned SHA-256. Set `JAVA_HOME`, or have `java` on the `PATH`.
 
 ## Upgrading a generator

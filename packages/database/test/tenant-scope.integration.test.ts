@@ -12,6 +12,7 @@ import {
   listClients,
   listMyWorkspaces,
   type Place,
+  updateClient,
   type WorkspaceScope,
 } from '../src/index.ts';
 import * as schema from '../src/schema/index.ts';
@@ -391,6 +392,38 @@ describe('E011 the tenant scope of a request transaction', () => {
 
       expect(result.stored).toEqual([a]);
       expect(result.listed).toHaveLength(1);
+    });
+  });
+
+  describe('updateClient and a unique email address', () => {
+    // F006 AC7: the unique index fires on the edit, and the savepoint keeps the request's
+    // transaction usable, so the route can look the other client up and answer 409. No
+    // parallel requests: the address is already there, so the index fires every time.
+    it('answers taken for an address another client has, and the transaction goes on', async () => {
+      const entry = await enter(people.ownerA.id, a, teamOnly, async (scope) => {
+        const first = await createClient(scope, { name: 'Bram', email: 'taken@example.com' });
+        const second = await createClient(scope, { name: 'Carla' });
+        if (!first || !second) throw new Error('The clients were not added.');
+
+        const refused = await updateClient(scope, second.id, {
+          name: 'Carla Visser',
+          email: 'taken@example.com',
+        });
+        // The same transaction answers again: it was not aborted by the refusal.
+        const carla = await findClient(scope, second.id);
+        const saved = await updateClient(scope, second.id, { email: 'free@example.com' });
+        return { refused, carla, saved };
+      });
+
+      expect(entry).toMatchObject({
+        status: 'entered',
+        value: {
+          refused: 'taken',
+          // Nothing of the refused edit was saved, not even the name.
+          carla: { name: 'Carla', email: null },
+          saved: { name: 'Carla', email: 'free@example.com' },
+        },
+      });
     });
   });
 });

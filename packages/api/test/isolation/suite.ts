@@ -60,19 +60,27 @@ function clientOf(table: string, row: Record<string, unknown>): string | undefin
   return table === 'clients' ? String(row.id) : undefined;
 }
 
-/** Every row of every table that holds a workspace's data, read as the privileged role. */
+/**
+ * Every row of every table that holds a workspace's data, read as the privileged role, in one
+ * statement: one round trip and one snapshot, however many tables there are. A run is a few
+ * hundred calls in a row, each waiting on the database, so the round trips decide how long it
+ * takes when the machine is busy (#369).
+ */
 async function readRows(world: World, tables: readonly string[]): Promise<StoredRow[]> {
-  const rows: StoredRow[] = [];
-  for (const table of tables) {
-    const { rows: found } = await world.admin.db.execute(
-      sql`select to_jsonb(t) as row from ${sql.identifier(table)} t`,
-    );
-    for (const { row } of found as { row: Record<string, unknown> }[]) {
-      const workspaceId = (table === 'organizations' ? row.id : row.organization_id) as string;
-      rows.push({ table, workspaceId, row });
-    }
-  }
-  return rows;
+  if (tables.length === 0) return [];
+  const query = sql.join(
+    tables.map(
+      (table) =>
+        sql`select ${table}::text as t, to_jsonb(x) as row from ${sql.identifier(table)} x`,
+    ),
+    sql` union all `,
+  );
+  const { rows: found } = await world.admin.db.execute(query);
+  return (found as { t: string; row: Record<string, unknown> }[]).map(({ t, row }) => ({
+    table: t,
+    workspaceId: (t === 'organizations' ? row.id : row.organization_id) as string,
+    row,
+  }));
 }
 
 /** `organizations` and every table in `public` with an `organization_id`, including probe tables. */
@@ -286,6 +294,17 @@ export async function runIsolationSuite(
     const access = operation.access as XAccess;
     const hasRecords = Object.keys(isolationCase.params ?? {}).length > 0;
 
+    // What is stored after the last call or the seeds, so a call can start from it instead of
+    // reading the tables again. Invariant: it is valid only while nothing but JavaScript ran since
+    // it was read. Every seed of this operation therefore goes through `seed`, which forgets it;
+    // a write that did not would leave the next call judged against rows that no longer exist.
+    let stored: StoredRow[] | undefined;
+    const seed = async (workspaceId: string, clientId: string): Promise<Record<string, string>> => {
+      const values = (await isolationCase.seed?.(world.admin.db, { workspaceId, clientId })) ?? {};
+      stored = undefined;
+      return values;
+    };
+
     // The route's records in A and B, for every client of each.
     const seeded = new Map<string, Record<string, string>>();
     for (const [workspaceId, clientIds] of [
@@ -294,10 +313,7 @@ export async function runIsolationSuite(
       [scenario.c, Object.values(scenario.clients.c)],
     ] as const) {
       for (const clientId of clientIds) {
-        seeded.set(
-          `${workspaceId} ${clientId}`,
-          (await isolationCase.seed?.(world.admin.db, { workspaceId, clientId })) ?? {},
-        );
+        seeded.set(`${workspaceId} ${clientId}`, await seed(workspaceId, clientId));
       }
     }
 
@@ -305,7 +321,9 @@ export async function runIsolationSuite(
     // without a word: report it. Account routes (`getMe` reads `auth_*`, which holds no workspace
     // data) may seed nothing; a GET of a workspace must seed something it can show.
     const seedValues = [...new Set([...seeded.values()].flatMap((v) => Object.values(v)))];
-    const known = buildLedger(await readRows(world, tables), scenario);
+    // What is stored once the seeds ran: the state the first call of the operation starts from.
+    stored = await readRows(world, tables);
+    const known = buildLedger(stored, scenario);
     for (const value of seedValues.filter((v) => !known.has(v))) {
       failures.push(
         `${operation.name}: its seed returns ${value}, which is no id or marker of a stored record; return the id of a row it made, or a \`uniqueMarker\` in one.`,
@@ -337,10 +355,7 @@ export async function runIsolationSuite(
       // next actor is judged on a record that exists, not on a 404 for the one removed before.
       if (planned.records && operation.method.toLowerCase() === 'delete') {
         const [workspaceId, clientId] = planned.records;
-        seeded.set(
-          planned.records.join(' '),
-          (await isolationCase.seed?.(world.admin.db, { workspaceId, clientId })) ?? {},
-        );
+        seeded.set(planned.records.join(' '), await seed(workspaceId, clientId));
       }
       const values = planned.records ? (seeded.get(planned.records.join(' ')) ?? {}) : {};
       const path = operation.path
@@ -365,7 +380,9 @@ export async function runIsolationSuite(
         access.type === 'account' ? '' : ` in ${scenario.labels[planned.workspaceId] ?? '?'}`;
       const label = `${operation.name} as ${planned.actor.name}${where}${planned.kind === 'none' ? '' : ` (${planned.kind} record)`}`;
 
-      const rows = await readRows(world, tables);
+      // The rows after the last call (or the seeds) are the rows before this one: nothing but
+      // JavaScript ran in between, so they are read again only when a seed changed them.
+      const rows = stored ?? (await readRows(world, tables));
       const before = snapshots(rows);
       const ledger = buildLedger(rows, scenario);
       const response = await world.request(planned.actor.account, path, {
@@ -374,7 +391,8 @@ export async function runIsolationSuite(
         ...(isolationCase.body !== undefined ? { body: isolationCase.body } : {}),
       });
       const text = await response.text();
-      const after = snapshots(await readRows(world, tables));
+      stored = await readRows(world, tables);
+      const after = snapshots(stored);
       result.calls += 1;
 
       // 1. The status, and a refusal's body.

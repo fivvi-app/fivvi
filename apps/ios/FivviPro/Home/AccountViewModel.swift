@@ -34,6 +34,8 @@ final class AccountViewModel {
     private(set) var destination: Destination?
     /// A sign-out is under way: the home shows it and ignores another tap.
     private(set) var isSigningOut = false
+    /// What the account may do in each workspace, from the same answer; the app's one helper for showing actions.
+    let capabilities = WorkspaceCapabilities()
     private let api: any APIProtocol
     private let store: any SessionStore
     private let clock: any Clock<Duration>
@@ -62,6 +64,7 @@ final class AccountViewModel {
         self.onAccount = onAccount
         self.onSignedOut = onSignedOut
         self.onPreferredLocale = onPreferredLocale
+        capabilities.reload = { [weak self] in await self?.refresh() }
     }
 
     func load() async {
@@ -89,9 +92,10 @@ final class AccountViewModel {
         if !Task.isCancelled, store.token != nil {
             storedLocaleRead(account.preferredLocale.flatMap { Components.Schemas.Locale(rawValue: $0.rawValue) })
         }
-        let destination = try await destination(of: account)
+        let (destination, current) = try await destination(of: account)
         state = .loaded(email: account.email)
         self.destination = destination
+        capabilities.replace(with: account.workspaces, current: current)
         // An answer that arrives after the sign-out (the token is gone) or once the screen has gone (its task is
         // cancelled) must not set the account that was just cleared as the error-reporting user (#266).
         if !Task.isCancelled, store.token != nil { onAccount(account.id) }
@@ -100,16 +104,19 @@ final class AccountViewModel {
     /// With more than one workspace (F012) the last one used will decide; until then the first one the API still lets
     /// the person into is the home. A `404` for a workspace means the team access is gone (F003 AC6): the next one is
     /// tried, and with none left the no-access text shows. Any other failure is a failure of the screen, not a verdict.
-    private func destination(of account: Components.Schemas.MeResponse) async throws -> Destination {
+    /// Also tells which workspace that is (its ID), the one the capabilities are read for.
+    private func destination(
+        of account: Components.Schemas.MeResponse
+    ) async throws -> (Destination, workspaceID: String?) {
         for workspace in account.workspaces {
             switch try await api.getWorkspace(.init(path: .init(workspaceId: workspace.id))) {
-            case .ok: return .workspace(name: workspace.name)
+            case .ok: return (.workspace(name: workspace.name), workspace.id)
             case .notFound: continue
             default: throw URLError(.badServerResponse)
             }
         }
-        if account.workspaces.isEmpty, account.canCreateWorkspace { return .setUpOnWeb }
-        return .noAccess
+        if account.workspaces.isEmpty, account.canCreateWorkspace { return (.setUpOnWeb, nil) }
+        return (.noAccess, nil)
     }
 
     /// Ends this phone's sign-in session. The token is deleted first, so a phone that is switched off or an app that

@@ -13,11 +13,13 @@ export {
   locales,
 } from './config.ts';
 export {
+  type ClientCommunicationLanguageSources,
   type CommunicationLanguageSources,
   type InterfaceLanguageSources,
   isLocale,
   matchLocale,
   parseAcceptLanguage,
+  resolveClientCommunicationLanguage,
   resolveCommunicationLanguage,
   resolveInterfaceLanguage,
   resolveSignInCommunicationLanguage,

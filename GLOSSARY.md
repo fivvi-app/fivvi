@@ -9,11 +9,11 @@ This glossary says what a concept **is**, in English. How each term is worded in
 ### Workspaces, people and roles
 
 **Fivvi**:
-The product and its brand (domain fivvi.app; the working name was Trainer Hub). The client app of Release 1.2 is also called Fivvi.
+The product and its brand (domain fivvi.app; the working name was Trainer Hub). The client app, at go-live next to the client web, is also called Fivvi.
 _Avoid_: Trainer Hub (retired working name), FIVVI, Fivvi App
 
 **Fivvi Pro**:
-The business app for owners and trainers, on iOS and Android. Separate from the client app, **Fivvi** (Release 1.2).
+The business app for owners and trainers, on iOS and Android. Separate from the client app, **Fivvi**.
 _Avoid_: trainer app (in user-facing text)
 
 **Workspace**:

@@ -6,6 +6,7 @@ import app.fivvi.api.apis.MeApi
 import app.fivvi.api.apis.SignInApi
 import app.fivvi.api.apis.WorkspacesApi
 import app.fivvi.api.models.MeResponse
+import app.fivvi.api.models.MeWorkspace
 import app.fivvi.pro.auth.Session
 import java.io.IOException
 import java.net.HttpURLConnection.HTTP_NOT_FOUND
@@ -62,7 +63,8 @@ sealed interface HomeDestination {
  * dispatcher, so tests set it with virtual time. Storing and deleting the token is file I/O, so it runs on [io].
  * [onAccount] is told the account's ID (a UUID) once `GET /api/v1/me` has answered: the app sets it as the error-reporting
  * user (F001 AC2, #266) unless the sign-in has ended meanwhile; [Session] clears it again on sign-out.
- * [onPreferredLocale] is told the account's stored language at the same time (F010 AC2, AC5).
+ * [onPreferredLocale] is told the account's stored language at the same time (F010 AC2, AC5), and [onWorkspaces] its
+ * workspaces with their capabilities (F004 AC10: the app's one helper for which actions show).
  */
 class HomeViewModel(
     private val api: MeApi,
@@ -73,6 +75,7 @@ class HomeViewModel(
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val signOutTimeout: Duration = SIGN_OUT_TIMEOUT,
     private val onPreferredLocale: (MeResponse.PreferredLocale?) -> Unit = {},
+    private val onWorkspaces: (List<MeWorkspace>) -> Unit = {},
 ) : ViewModel() {
     private val _state = MutableStateFlow<MeState>(MeState.Loading)
     val state: StateFlow<MeState> = _state.asStateFlow()
@@ -144,6 +147,7 @@ class HomeViewModel(
         }
         val account = response.body()?.takeIf { response.isSuccessful }
         return account?.let {
+            onWorkspaces(it.workspaces)
             if (stillSignedIn()) {
                 onAccount(it.id.toString())
                 onPreferredLocale(it.preferredLocale)

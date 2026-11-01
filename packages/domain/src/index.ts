@@ -1,4 +1,9 @@
 export {
+  type ClientEditDecision,
+  type ClientEditFacts,
+  decideClientEdit,
+} from './clients/edit-client.ts';
+export {
   CLIENT_NAME_MAX_LENGTH,
   decideNewClient,
   type NewClientDecision,

@@ -63,6 +63,26 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
             .assertTextEquals(string(R.string.roles_owner))
     }
 
+    // F004 AC8: Sarah sees Eigenaar / Owner for Sarah Personal Training and Trainer for John's Gym, in both languages.
+    @Test
+    fun test_F004_AC8_roleLabelsPerWorkspace() {
+        me.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        me.answerWorkspaces(
+            Triple("John's Gym", "johns-gym", Role.TRAINER),
+            Triple("Sarah Personal Training", "sarah-personal-training", Role.OWNER),
+        )
+        launch()
+        compose.waitUntilTagExists(HomeTags.OPEN_PROFILE)
+
+        compose.onNodeWithTag(HomeTags.OPEN_PROFILE).performClick()
+
+        compose.waitUntilTagExists("${ProfileTags.WORKSPACE_ROLE}.johns-gym")
+        compose.onNodeWithTag("${ProfileTags.WORKSPACE_ROLE}.johns-gym")
+            .assertTextEquals(string(R.string.roles_trainer))
+        compose.onNodeWithTag("${ProfileTags.WORKSPACE_ROLE}.sarah-personal-training")
+            .assertTextEquals(string(R.string.roles_owner))
+    }
+
     @Test
     fun test_F003_AC9_openingTheProfileAgainReadsTheListAgain() {
         me.answerAccount()

@@ -198,6 +198,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     findClient: 'repository of clients, takes a workspace scope',
     listClients: 'repository of clients, takes a workspace scope',
     searchClients: 'repository of clients, takes a workspace scope (F006)',
+    updateClient: 'repository of clients, takes a workspace scope (F006)',
     findClientByEmail: 'repository of clients, takes a workspace scope (F006)',
     findClientOfAccount: 'repository of clients, takes a workspace scope (F006)',
     findAccountIdByEmail: 'repository of accounts, takes a scope; reads an account ID only (F006)',
@@ -231,6 +232,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     // Constants and types.
     HELLO_GREETING: 'a constant of the system data',
     RateLimitRule: 'type',
+    ClientChanges: 'type',
     ClientPage: 'type',
     NewClient: 'type',
     SystemGreetingView: 'type',
