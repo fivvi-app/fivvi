@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import app.fivvi.api.apis.ClientsApi
 import app.fivvi.api.models.AddClientRequest
 import app.fivvi.api.models.Client
-import app.fivvi.api.models.Locale
 import java.io.IOException
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,13 +35,11 @@ data class AddClientState(
  * `android` so the API records `client_added`. Only the name is required, and nothing is checked in the app: the API's
  * answer words the field messages, a refused form keeps what was typed, and a 409 offers the client that has the address.
  * An empty address or a default language is left out of the request, so the client follows the workspace's default.
- * [workspaceDefault] is only the language named in *Standaard (…)*. [onNotAllowed] is told a 403 or 404 for the capability
- * helper (F004 AC10).
+ * [onNotAllowed] is told a 403 or 404 for the capability helper (F004 AC10).
  */
 class AddClientViewModel(
     private val api: ClientsApi,
     private val workspaceId: UUID,
-    val workspaceDefault: Locale,
     private val onNotAllowed: (Response<*>) -> Unit = {},
 ) : ViewModel() {
     private val _state = MutableStateFlow(AddClientState())
@@ -74,14 +71,11 @@ class AddClientViewModel(
             failed = false,
         )
         val form = current.form
-        viewModelScope.launch {
-            val outcome = send(form)
-            // What was typed meanwhile stays; only the outcome of the add is applied.
-            _state.update { outcome(it.copy(pending = false)) }
-        }
+        // What was typed meanwhile stays; only the outcome of the add is applied.
+        viewModelScope.launch { send(form) }
     }
 
-    private suspend fun send(form: ClientForm): (AddClientState) -> AddClientState {
+    private suspend fun send(form: ClientForm) {
         val request = AddClientRequest(
             name = form.name,
             email = form.email.trim().ifEmpty { null },
@@ -91,40 +85,30 @@ class AddClientViewModel(
         val response = try {
             api.addClient(workspaceId, request)
         } catch (_: IOException) {
-            return patch { it.copy(failed = true) }
+            return finish { it.copy(failed = true) }
         } catch (_: SerializationException) {
-            return patch { it.copy(failed = true) }
+            return finish { it.copy(failed = true) }
         }
         val client = response.body()?.takeIf { response.isSuccessful }
-        if (client != null) return patch { it.copy(added = client) }
-        return when (val refusal = response.refusal()) {
-            is Refusal.Fields -> patch { it.copy(nameError = refusal.name, emailError = refusal.email) }
+        if (client != null) return finish { it.copy(added = client) }
+        when (val refusal = response.refusal()) {
+            is Refusal.Fields -> finish { it.copy(nameError = refusal.name, emailError = refusal.email) }
 
             is Refusal.Exists -> {
-                val duplicate = existing(refusal.clientId)
-                if (duplicate != null) patch { it.copy(duplicate = duplicate) } else patch { it.copy(failed = true) }
+                val duplicate = api.existing(workspaceId, refusal.clientId)
+                finish { if (duplicate != null) it.copy(duplicate = duplicate) else it.copy(failed = true) }
             }
 
             Refusal.NotAllowed -> {
                 onNotAllowed(response)
-                patch { it.copy(notAllowed = true) }
+                finish { it.copy(notAllowed = true) }
             }
 
-            Refusal.Failed -> patch { it.copy(failed = true) }
+            Refusal.Failed -> finish { it.copy(failed = true) }
         }
     }
 
-    private fun patch(change: (AddClientState) -> AddClientState): (AddClientState) -> AddClientState = change
-
-    // The 409 names only the ID; the client is this workspace's own, so it can be read (`GET .../clients/{id}`).
-    private suspend fun existing(clientId: UUID): Duplicate? {
-        val response = try {
-            api.getClient(workspaceId, clientId)
-        } catch (_: IOException) {
-            return null
-        } catch (_: SerializationException) {
-            return null
-        }
-        return response.body()?.takeIf { response.isSuccessful }?.let { Duplicate(it.id, it.name) }
+    private fun finish(outcome: (AddClientState) -> AddClientState) = _state.update {
+        outcome(it.copy(pending = false))
     }
 }

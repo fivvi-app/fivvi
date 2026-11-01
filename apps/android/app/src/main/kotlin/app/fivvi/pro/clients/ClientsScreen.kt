@@ -81,7 +81,7 @@ object ClientsTags {
 }
 
 /** How long the skeleton waits before it says that it takes longer than usual (`information-architecture.md §9.5`). */
-private const val SLOW_AFTER_MILLIS = 10_000L
+internal const val SLOW_AFTER_MILLIS = 10_000L
 
 /** What the list asks of its host. */
 data class ClientsActions(
@@ -240,7 +240,7 @@ private fun Skeleton() {
 }
 
 @Composable
-private fun Modifier.placeholder(): Modifier =
+internal fun Modifier.placeholder(): Modifier =
     background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(Spacing.space1))
 
 private const val SKELETON_ROWS = 6

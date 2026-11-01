@@ -2,7 +2,6 @@ package app.fivvi.pro.clients
 
 import app.fivvi.api.models.AddClientRequest
 import app.fivvi.api.models.Client
-import app.fivvi.api.models.Locale
 import app.fivvi.pro.home.workspaceIdOf
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
@@ -33,8 +32,7 @@ class AddClientViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() =
-        AddClientViewModel(api, workspace, Locale.NL_NL, onNotAllowed = { notAllowed += it.code() })
+    private fun viewModel() = AddClientViewModel(api, workspace, onNotAllowed = { notAllowed += it.code() })
 
     // AC1: only a name; the language follows the workspace's default, so the request carries none.
     @Test

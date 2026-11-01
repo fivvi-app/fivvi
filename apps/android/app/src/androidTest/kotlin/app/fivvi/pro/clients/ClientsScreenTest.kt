@@ -301,6 +301,28 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         compose.onNodeWithText(string(R.string.clients_profile_saved)).assertIsDisplayed()
     }
 
+    // AC10, AC12: the API refuses the save (403): the edit closes, as the add form does, and Bewerken is hidden.
+    @Test
+    fun test_F006_AC12_aSaveTheApiRefusesClosesTheEditAndHidesBewerken() {
+        launch()
+        openClients()
+        compose.onNodeWithTag("${ClientsTags.ROW}.${mark.id}").performClick()
+        compose.waitUntilTagExists(ClientProfileTags.EDIT)
+        compose.onNodeWithTag(ClientProfileTags.EDIT).performClick()
+        compose.waitUntilTagExists("${ClientProfileTags.EDIT_PREFIX}.name")
+        compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.name").performTextReplacement("Mark Visser")
+        // The refusal makes the capability helper read the account again.
+        me.answerAccount(capabilities = listOf(MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW))
+        clients.updateAnswers += { _, _ -> clients.status(403) }
+
+        compose.onNodeWithTag(ClientProfileTags.EDIT_SAVE).performClick()
+
+        compose.waitUntilTagExists(ClientProfileTags.NAME)
+        compose.onNodeWithTag(ClientProfileTags.NAME).assertTextEquals("Mark Jansen")
+        compose.onNodeWithTag(ClientProfileTags.EDIT_SAVE).assertDoesNotExist()
+        compose.onNodeWithTag(ClientProfileTags.EDIT).assertDoesNotExist()
+    }
+
     @Test
     fun test_F006_AC7_backFromTheEditLeavesWithoutSaving() {
         launch()

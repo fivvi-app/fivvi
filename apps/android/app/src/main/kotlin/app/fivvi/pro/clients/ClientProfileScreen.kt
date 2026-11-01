@@ -1,9 +1,11 @@
 package app.fivvi.pro.clients
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -22,7 +24,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -39,12 +44,14 @@ import app.fivvi.designtokens.body
 import app.fivvi.designtokens.footnote
 import app.fivvi.designtokens.title2
 import app.fivvi.pro.R
+import kotlinx.coroutines.delay
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows; the edit form's are `clientProfile.edit.*`. */
 object ClientProfileTags {
     const val TITLE = "clientProfile.title"
     const val BACK = "clientProfile.back"
     const val LOADING = "clientProfile.loading"
+    const val LOADING_SLOW = "clientProfile.loadingSlow"
     const val ERROR = "clientProfile.error"
     const val RETRY = "clientProfile.retry"
     const val NO_PERMISSION = "clientProfile.noPermission"
@@ -137,23 +144,50 @@ fun ClientProfileScreen(
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(Spacing.space4)) {
             when (state) {
-                ClientProfileState.Loading -> {
-                    val label = stringResource(R.string.clients_loading)
-                    CircularProgressIndicator(
-                        Modifier.align(Alignment.CenterHorizontally).testTag(ClientProfileTags.LOADING)
-                            .semantics { contentDescription = label },
-                    )
-                }
-
+                ClientProfileState.Loading -> Skeleton()
                 ClientProfileState.Failed -> Failed(actions.onRetry)
-
                 ClientProfileState.NoAccess -> NoPermission(workspaceName)
-
                 is ClientProfileState.Loaded -> Overview(state.client, workspaceDefault)
             }
         }
     }
 }
+
+// Skeleton in the shape of the overview (name, address, language); after 10 s a line says that it takes longer than usual
+// (`information-architecture.md §9.5`).
+@Composable
+private fun Skeleton() {
+    var slow by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(SLOW_AFTER_MILLIS)
+        slow = true
+    }
+    val label = stringResource(R.string.clients_loading)
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag(ClientProfileTags.LOADING).semantics { contentDescription = label },
+        verticalArrangement = Arrangement.spacedBy(Spacing.space4),
+    ) {
+        Box(Modifier.fillMaxWidth(OVERVIEW_SHARE).height(Spacing.space5).placeholder())
+        repeat(SKELETON_FIELDS) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.space2)) {
+                Box(Modifier.fillMaxWidth(LABEL_SHARE).height(Spacing.space3).placeholder())
+                Box(Modifier.fillMaxWidth(VALUE_SHARE).height(Spacing.space4).placeholder())
+            }
+        }
+        if (slow) {
+            Text(
+                text = stringResource(R.string.common_loading_slow),
+                modifier = Modifier.testTag(ClientProfileTags.LOADING_SLOW),
+                style = MaterialTheme.typography.body,
+            )
+        }
+    }
+}
+
+private const val SKELETON_FIELDS = 3
+private const val OVERVIEW_SHARE = 0.4f
+private const val LABEL_SHARE = 0.25f
+private const val VALUE_SHARE = 0.6f
 
 @Composable
 private fun Failed(onRetry: () -> Unit) {

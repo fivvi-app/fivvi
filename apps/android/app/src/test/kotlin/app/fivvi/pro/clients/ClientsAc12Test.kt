@@ -50,7 +50,7 @@ class ClientsAc12Test {
         assertEquals(listOf("Anna de Vries"), (list.state.value as ClientsState.Loaded).clients.map(Client::name))
 
         // Add one with a name only (AC1), then the same address again (AC3).
-        val add = AddClientViewModel(api, workspace, app.fivvi.api.models.Locale.NL_NL)
+        val add = AddClientViewModel(api, workspace)
         add.onNameChange("Carla Bos")
         add.onEmailChange("Carla@Example.com")
         add.submit()
@@ -58,7 +58,7 @@ class ClientsAc12Test {
         val carla = add.state.value.added!!
         assertEquals("carla@example.com", carla.email)
         api.addAnswers += { api.exists(carla.id) }
-        val again = AddClientViewModel(api, workspace, app.fivvi.api.models.Locale.NL_NL)
+        val again = AddClientViewModel(api, workspace)
         again.onNameChange("Carla")
         again.onEmailChange("carla@example.com")
         again.submit()

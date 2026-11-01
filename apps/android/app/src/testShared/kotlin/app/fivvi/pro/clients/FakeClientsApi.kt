@@ -45,6 +45,9 @@ class FakeClientsApi : ClientsApi {
     /** While set, the read of one client answers with this status. */
     var getStatus: Int? = null
 
+    /** The workspace each list call asked for, in order. */
+    val listed = mutableListOf<UUID>()
+
     /** The pages the list was asked for, in order. */
     val pages = mutableListOf<Int?>()
 
@@ -58,6 +61,7 @@ class FakeClientsApi : ClientsApi {
         page: Int?,
     ): Response<ClientList> {
         listCalls++
+        listed += workspaceId
         searches += search
         pages += page
         failure?.let { throw it }

@@ -1,15 +1,18 @@
 package app.fivvi.pro.clients
 
+import app.fivvi.api.apis.ClientsApi
 import app.fivvi.api.infrastructure.Serializer
 import app.fivvi.api.models.AddClientRequest
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.ClientExists
 import app.fivvi.api.models.ValidationError
+import java.io.IOException
 import java.net.HttpURLConnection.HTTP_BAD_REQUEST
 import java.net.HttpURLConnection.HTTP_CONFLICT
 import java.net.HttpURLConnection.HTTP_FORBIDDEN
 import java.net.HttpURLConnection.HTTP_NOT_FOUND
 import java.util.UUID
+import kotlinx.serialization.SerializationException
 import retrofit2.Response
 
 /** The language for a client's emails as the form offers it: the workspace default, or one of the two languages. */
@@ -95,4 +98,16 @@ fun Client.EmailLocale?.toChoice(): EmailLanguageChoice = when (this) {
     null -> EmailLanguageChoice.Default
     Client.EmailLocale.NL_NL -> EmailLanguageChoice.Dutch
     Client.EmailLocale.EN -> EmailLanguageChoice.English
+}
+
+/** The 409 names only the ID; the client is this workspace's own, so it can be read (`GET .../clients/{id}`). */
+internal suspend fun ClientsApi.existing(workspaceId: UUID, clientId: UUID): Duplicate? {
+    val response = try {
+        getClient(workspaceId, clientId)
+    } catch (_: IOException) {
+        return null
+    } catch (_: SerializationException) {
+        return null
+    }
+    return response.body()?.takeIf { response.isSuccessful }?.let { Duplicate(it.id, it.name) }
 }

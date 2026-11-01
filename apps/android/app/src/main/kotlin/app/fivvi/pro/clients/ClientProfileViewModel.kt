@@ -151,9 +151,9 @@ class ClientProfileViewModel(
         val response = try {
             api.updateClient(workspaceId, clientId, request)
         } catch (_: IOException) {
-            return editChange { it.copy(pending = false, failed = true) }
+            return updateEdit { it.copy(pending = false, failed = true) }
         } catch (_: SerializationException) {
-            return editChange { it.copy(pending = false, failed = true) }
+            return updateEdit { it.copy(pending = false, failed = true) }
         }
         val client = response.body()?.takeIf { response.isSuccessful }
         if (client != null) {
@@ -161,11 +161,11 @@ class ClientProfileViewModel(
         }
         when (val refusal = response.refusal()) {
             is Refusal.Fields ->
-                editChange { it.copy(pending = false, nameError = refusal.name, emailError = refusal.email) }
+                updateEdit { it.copy(pending = false, nameError = refusal.name, emailError = refusal.email) }
 
             is Refusal.Exists -> {
-                val duplicate = existing(refusal.clientId)
-                editChange {
+                val duplicate = api.existing(workspaceId, refusal.clientId)
+                updateEdit {
                     if (duplicate !=
                         null
                     ) {
@@ -178,23 +178,11 @@ class ClientProfileViewModel(
 
             Refusal.NotAllowed -> {
                 onNotAllowed(response)
-                editChange { it.copy(pending = false, notAllowed = true) }
+                updateEdit { it.copy(pending = false, notAllowed = true) }
             }
 
-            Refusal.Failed -> editChange { it.copy(pending = false, failed = true) }
+            Refusal.Failed -> updateEdit { it.copy(pending = false, failed = true) }
         }
-    }
-
-    // The 409 names only the ID; the other client is this workspace's own, so it can be read.
-    private suspend fun existing(otherId: UUID): Duplicate? {
-        val response = try {
-            api.getClient(workspaceId, otherId)
-        } catch (_: IOException) {
-            return null
-        } catch (_: SerializationException) {
-            return null
-        }
-        return response.body()?.takeIf { response.isSuccessful }?.let { Duplicate(it.id, it.name) }
     }
 
     // Only what changed; null when nothing did. The address is the same in another case (the API stores it lowercase).
@@ -218,8 +206,6 @@ class ClientProfileViewModel(
 
     private fun updateEdit(change: (ClientEdit) -> ClientEdit) =
         updateLoaded { shown -> shown.edit?.let { shown.copy(edit = change(it)) } ?: shown }
-
-    private fun editChange(change: (ClientEdit) -> ClientEdit) = updateEdit(change)
 
     private fun EmailLanguageChoice.toUpdateLocale(): UpdateClientRequest.EmailLocale? = when (this) {
         EmailLanguageChoice.Default -> null

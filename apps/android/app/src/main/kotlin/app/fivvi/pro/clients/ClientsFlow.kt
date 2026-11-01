@@ -32,7 +32,8 @@ private object Screen {
  * *Klanten* and what it opens (F006, M4): the list (TM-02), the full-screen *+ Nieuwe klant* and the profile (TM-03), one
  * level of navigation each, so at most two pushes from the home (`information-architecture.md §5.1`). System back goes one
  * step: out of an edit, from the profile or the form to the list, from the list to [onClose]. [sessionKey] belongs to one
- * sign-in, so the list read in memory is dropped with it. *+ Nieuwe klant* and *Bewerken* show only while
+ * sign-in, so the list read in memory is dropped with it; the view models are also keyed by [workspaceId], so the home
+ * showing another workspace after the foreground read (F003 AC6) lists that workspace, not the one before. *+ Nieuwe klant* and *Bewerken* show only while
  * [capabilities] lists `clients.manage` for the workspace (F004 AC10); the helper is the only thing that decides it.
  */
 @Composable
@@ -52,7 +53,7 @@ fun ClientsFlow(
     var openings by rememberSaveable { mutableIntStateOf(0) }
     val snapshot by capabilities.capabilities.collectAsStateWithLifecycle()
     val mayManage = snapshot.mayShow(workspaceId, MeWorkspace.Capabilities.CLIENTS_PERIOD_MANAGE)
-    val list = viewModel(key = "clients-$sessionKey") {
+    val list = viewModel(key = "clients-$sessionKey-$workspaceId") {
         ClientsViewModel(
             clientsApi,
             workspacesApi,
@@ -77,11 +78,10 @@ fun ClientsFlow(
 
     when (screen) {
         Screen.ADD -> {
-            val add = viewModel(key = "addClient-$sessionKey-$openings") {
+            val add = viewModel(key = "addClient-$sessionKey-$workspaceId-$openings") {
                 AddClientViewModel(
                     clientsApi,
                     workspaceId,
-                    workspace.defaultLocale,
                     onNotAllowed = {
                         capabilities.onResponse(it, workspaceId, MeWorkspace.Capabilities.CLIENTS_PERIOD_MANAGE)
                     },
@@ -114,7 +114,7 @@ fun ClientsFlow(
 
         Screen.PROFILE -> {
             val id = UUID.fromString(profileId)
-            val profile = viewModel(key = "clientProfile-$sessionKey-$id-$openings") {
+            val profile = viewModel(key = "clientProfile-$sessionKey-$workspaceId-$id-$openings") {
                 ClientProfileViewModel(
                     clientsApi,
                     workspaceId,
@@ -125,7 +125,10 @@ fun ClientsFlow(
                 )
             }
             val state by profile.state.collectAsStateWithLifecycle()
-            val editing = (state as? ClientProfileState.Loaded)?.edit != null
+            val edit = (state as? ClientProfileState.Loaded)?.edit
+            val editing = edit != null
+            // The API refused the save (403, 404): the action is hidden now, so the edit closes, as the form does.
+            LaunchedEffect(edit?.notAllowed) { if (edit?.notAllowed == true) profile.cancelEdit() }
             BackHandler { if (editing) profile.cancelEdit() else showList() }
             // On foreground the client is read again: a change made elsewhere shows (AC7).
             OnForeground(profile::refresh)
