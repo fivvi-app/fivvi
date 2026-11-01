@@ -6,6 +6,7 @@ import app.fivvi.api.models.MeWorkspace
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.UpdateMeRequest
 import java.util.UUID
+import kotlinx.coroutines.CompletableDeferred
 import okhttp3.ResponseBody.Companion.toResponseBody
 import retrofit2.Response
 
@@ -23,7 +24,9 @@ class FakeMeApi : MeApi {
 
     override suspend fun getMe(): Response<MeResponse> {
         calls++
-        return answers.removeFirst()()
+        val answer = answers.removeFirstOrNull()
+            ?: error("FakeMeApi.getMe has no answer: the app asked for call $calls")
+        return answer()
     }
 
     /** Every `PATCH /v1/me` body received, in order. */
@@ -32,8 +35,12 @@ class FakeMeApi : MeApi {
     /** What `PATCH /v1/me` answers; it fails with this exception when set. */
     var updateFailure: Exception? = null
 
+    /** When set, `PATCH /v1/me` waits for this before it answers, so a test can act while the save is under way. */
+    var updateGate: CompletableDeferred<Unit>? = null
+
     override suspend fun updateMe(updateMeRequest: UpdateMeRequest): Response<MeResponse> {
         updates += updateMeRequest
+        updateGate?.await()
         updateFailure?.let { throw it }
         updateAnswers.removeFirstOrNull()?.let { return it() }
         return Response.success(
@@ -71,7 +78,9 @@ class FakeMeApi : MeApi {
 
     override suspend fun listMyWorkspaces(): Response<List<MyWorkspace>> {
         workspaceCalls++
-        return workspaceAnswers.removeFirst()()
+        val answer = workspaceAnswers.removeFirstOrNull()
+            ?: error("FakeMeApi.listMyWorkspaces has no answer: the app asked for call $workspaceCalls")
+        return answer()
     }
 
     /** `GET /v1/me/workspaces` answers with these workspaces: name to slug to role. */

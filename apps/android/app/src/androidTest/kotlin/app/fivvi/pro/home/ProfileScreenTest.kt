@@ -261,6 +261,29 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         assertTrue(me.updates.isEmpty())
     }
 
+    // F005 AC1: back does nothing while the name is being saved, so the person sees how it went.
+    @Test
+    fun test_F005_AC1_backDoesNothingWhileTheNameIsSaving() {
+        openProfileAsSarah()
+        compose.onNodeWithTag(ProfileTags.NAME).performClick()
+        compose.waitUntilTagExists(ProfileTags.NAME_INPUT)
+        val gate = CompletableDeferred<Unit>()
+        me.updateGate = gate
+        compose.onNodeWithTag(ProfileTags.NAME_INPUT).performTextReplacement("Sarah de Vries")
+        compose.onNodeWithTag(ProfileTags.NAME_SAVE).performClick()
+        // The dialog is disabled once the screen shows that it is saving.
+        compose.waitUntil(UI_TIMEOUT_MILLIS) {
+            runCatching { compose.onNodeWithTag(ProfileTags.NAME_SAVE).assertIsNotEnabled() }.isSuccess
+        }
+
+        app.pressBack()
+
+        compose.onNodeWithTag(ProfileTags.NAME_INPUT).assertIsDisplayed()
+        gate.complete(Unit)
+        compose.waitUntilTagExists(ProfileTags.NAME_SAVED)
+        compose.onNodeWithTag(ProfileTags.NAME).assertTextEquals("Sarah de Vries")
+    }
+
     // F005 AC4 (NL, EN): an Owner switches training off and on for the workspace.
     @Test
     fun test_F005_AC4_ownerSwitchesTrainingOffAndOn() {

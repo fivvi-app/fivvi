@@ -63,7 +63,7 @@ data class NameEditor(val input: String, val saving: Boolean = false, val error:
 
 /**
  * *Profiel* (TM-04): the person's name (editable) and email address (F005), and the workspaces the account is on the team of
- * with its role (F003 AC9), each Owner workspace with the *I also train here* switch (F005 AC4, AC5). It reads
+ * with its role (F003 AC9), each workspace where the API lists `team.manage` for the account with the *I also train here* switch (F005 AC4, AC5). It reads
  * `GET /api/v1/me` and `GET /api/v1/me/workspaces` on opening ([init]) and on foreground ([refresh]), saves the name with
  * `PATCH /api/v1/me` and the switch with `PUT` / `DELETE /api/v1/workspaces/{id}/trainer-profile`, all through the
  * generated clients. The app has no rule of its own about the name (the API words a refusal) or about who is on which
