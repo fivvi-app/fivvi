@@ -1783,7 +1783,8 @@ case "$*" in
   "shell getprop sys.boot_completed") [ -e "${state}/booted" ] && echo 1 || exit 1 ;;
   "shell getprop persist.sys.locale") echo en-US ;;
   "shell settings get global hide_error_dialogs") echo null ;;
-  "emu kill") kill "$(cat "${state}/pid")"; rm -f "${state}/booted" ;;
+  # As the real one: "OK" at once, and the emulator exits a moment later (0.3 s here), not before the command returns.
+  "emu kill") (/bin/sleep 0.3; kill "$(cat "${state}/pid")"; rm -f "${state}/booted") </dev/null >/dev/null 2>&1 & ;;
 esac
 exit 0`,
     );
