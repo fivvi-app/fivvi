@@ -45,7 +45,7 @@ flowchart TD
   ws -- "werkruimte-scope (web)" --> client
   ws -- "persoonlijke scope (app, Mijn agenda)" --> client["PS-02 Klant kiezen"]
   client -- "klant bepaalt werkruimte" --> when["Datum · begin · duur"]
-  client -- "+ Nieuwe klant" --> newc["Naam (+ e-mail, taal)"] --> when
+  client -- "+ Nieuwe klant" --> newc["Naam + e-mail (+ taal)"] --> when
   when --> dst{"Tijd geldig?"}
   dst -- "bestaat niet (28 mrt 2027 02:30)" --> fixtime["Melding: kies een andere tijd"] --> when
   dst -- "dubbel (25 okt 2026 02:30)" --> amb["Eerste keer (zomertijd) + uitleg"] --> trainer
@@ -61,7 +61,7 @@ flowchart TD
   conflict -- "ja" --> ps07["PS-07 Waarschuwing<br/>Toch opslaan / Terug"]
   conflict -- "nee" --> save["Opslaan"]
   ps07 --> save
-  save --> mail{"Klant informeren?<br/>(klant heeft e-mail)"}
+  save --> mail{"Klant informeren?"}
   mail -- "ja" --> em11["EM-11 in taal van klant ⚑"]
   mail -- "nee" --> done["Sessie in agenda's<br/>(werkruimte + trainer)"]
   em11 --> done
@@ -112,7 +112,7 @@ flowchart TD
 - **Trainer** defaults to *me* if I have a trainer profile here; the owner can pick any trainer in the workspace. Changing the trainer re-runs inference.
 - **Location** always shows the *reason* (table above). *Wijzigen* opens PS-03.
 - **Training**: choose a template (F041) to assign as this session's workout (F042). Leave it empty to decide at the session.
-- **Confirmation email** ⚑ [Q26](../open-questions.md#q26), [QE02](../open-questions.md#qe02): shown only if the client has an email; the note tells which language it'll be in.
+- **Confirmation email** ⚑ [Q26](../open-questions.md#q26), [QE02](../open-questions.md#qe02): always shown, because every client has an email; the note tells which language it'll be in.
 - **Unsaved changes**: closing asks *Wijzigingen weggooien?*
 
 | Element | NL | EN |
@@ -161,7 +161,7 @@ flowchart TD
 ┌──────────────────────────────────────────────────────────┐
 │ Naam                                                     │
 │ [ Anne Jansen                                          ] │
-│ E-mailadres (optioneel)                                  │
+│ E-mailadres                                              │
 │ [                                                      ] │
 │ Taal voor e-mails                                        │
 │ ● Nederlands   ○ English                                 │

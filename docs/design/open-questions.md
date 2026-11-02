@@ -140,7 +140,7 @@ Should a class cancellation offer a custom message to booked clients? **Proposal
 Decide whether the substitute-trainer email (EM-10) belongs in F049/F024. `PRODUCT.md §51` does not list it. If approved, add it to the feature specification and both language catalogs before implementation.
 
 ### QE02
-Decide whether private-session creation email (EM-11) belongs in F049/F020 and what happens when the client has no email. `PRODUCT.md §51` lists schedule changes and cancellations but does not explicitly list a new private-session email. Since 2 November 2026 every client has an email (owner, `PRODUCT.md §34`), so only the first part is open.
+Decide whether private-session creation email (EM-11) belongs in F049/F020. `PRODUCT.md §51` lists schedule changes and cancellations but does not explicitly list a new private-session email. Every client has an email since 2 November 2026 (owner, `PRODUCT.md §34`), so there is no case without one.
 
 ### QE03
 **Resolved by the owner-approved glossary v0.2:** English uses en-GB formatting, day-month dates and 24-hour time. The catalog remains `en`. Keep this entry as the record for older flow references; no further pilot decision is needed.

@@ -1165,7 +1165,7 @@ QR should lead to responsive bilingual pages. A QR code of a booking link only h
 
 A client can be added wherever a client is chosen (new session, the client list, the app's **+**). A name and an email address are required; the language for emails is optional (a default training location follows after go-live, §14). Every client has an email address, because every client signs in (owner, 2 November 2026). A matching email in the same workspace offers the existing client instead of a duplicate. The workspace sends the client an invitation to sign in (§26); the Owner also approves the join requests of clients who found the join link themselves (a list on Clients).
 
-**The email address belongs to the client** (owner, 2 November 2026). Before the client has joined, the team can correct a typo in it, so the invitation reaches them; the team can never clear it. Once the client has joined, only they change it, and the change shows in every workspace they have joined. The team still edits the name and the language for emails.
+**The email address belongs to the client** (owner, 2 November 2026). Before the client has joined (signed in after the invitation, or had their join request approved, §26), the team can correct a typo in it, so the invitation reaches them; the team can never clear it. Once the client has joined, only they change it, and the change shows in every workspace they have joined. The team still edits the name and the language for emails.
 
 Contains:
 

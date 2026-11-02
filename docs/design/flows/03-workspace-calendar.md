@@ -287,7 +287,7 @@ Privésessie                                    Groepsles (les op datum)
 
 - Always asks for confirmation. Nothing moves on drop alone.
 - The scope radio shows only for recurring classes. *Deze en alle volgende* changes the series from that date (ADR-012). Bookings on later dates move along, and those participants are informed too.
-- The notify checkbox shows only when someone would be notified: participants with bookings (EM-04), or the private client if they have an email. It's on by default.
+- The notify checkbox shows only when someone would be notified: participants with bookings (EM-04), or the private client. It's on by default.
 - Moving into the past is blocked for classes with bookings. For private sessions it's allowed with a warning (logging a session afterwards).
 - The keyboard/form alternative is *Verplaatsen* in the quick view (→ PS-05 / CO-04).
 
