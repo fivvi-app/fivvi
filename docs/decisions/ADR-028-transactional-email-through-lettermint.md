@@ -29,7 +29,7 @@ The results are in [`research/ADR-028-email-providers.md`](research/ADR-028-emai
 - documented to add no `List-Unsubscribe` to transactional mail
 - honouring the idempotency key our `sendEmail` already sends
 
-Of the others, only Bird has an idempotency key, and it has US and UK sub-processors. The deeper check and a live trial on 2 November 2026 are in [`research/ADR-028-lettermint.md`](research/ADR-028-lettermint.md). The trial showed:
+Of the other four, only Bird has an idempotency key, and it has US and UK sub-processors. The deeper check and a live trial on 2 November 2026 are in [`research/ADR-028-lettermint.md`](research/ADR-028-lettermint.md). The trial showed:
 - the sign-in link arrives byte for byte, with no pixel
 - no `List-Unsubscribe` header
 - DKIM, SPF and DMARC pass for `fivvi.app` at Zoho and Gmail
@@ -46,7 +46,7 @@ Of the others, only Bird has an idempotency key, and it has US and UK sub-proces
   - "Hide email content" is on for the sign-in route.
 - **Environments:**
   - **On Free (one project allowed):** one project, `Fivvi`, with the two routes, and a separate send-only token per environment: one for `production`, one for `development`, which previews inherit. Both share the routes and the 300-email quota.
-  - **On Starter:** a project per environment, plus a sandbox project for CI and previews.
+  - **On Starter:** a project per environment, plus a sandbox project for CI. Previews keep inheriting the `development` values (ENVIRONMENTS.md); whether they move to the sandbox is the migration spec's call.
   - Tokens are set by the owner in Railway (`preserve()`); the production token is never used outside production.
   - Outside production, `@example.com` mail stays in the server log (unchanged), so development uses the quota only for real addresses.
 - **The transport is plain `fetch`** against `POST https://api.lettermint.co/v1/send` with the `Idempotency-Key` header, like the Brevo transport: no SDK, so no new dependency.
