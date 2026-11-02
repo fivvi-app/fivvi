@@ -78,6 +78,9 @@ function standaloneServer(
       // Synthetic: the fake Brevo server accepts any key, and `.test` never resolves.
       BREVO_API_URL: brevoServer.apiUrl,
       BREVO_API_KEY: 'e2e-synthetic-brevo-key',
+      // A token in the developer's shell must never send e2e mail through real Lettermint; the fake Brevo
+      // server keeps it until #403.
+      LETTERMINT_API_TOKEN: '',
       EMAIL_FROM_ADDRESS: 'noreply@fivvi.e2e.test',
       EMAIL_FROM_NAME: 'Fivvi',
       // Closed sign-up (F001): only this domain gets an account at its first sign-in.
