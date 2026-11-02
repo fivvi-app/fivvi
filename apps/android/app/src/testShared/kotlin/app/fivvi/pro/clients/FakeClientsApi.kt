@@ -73,7 +73,11 @@ class FakeClientsApi : ClientsApi {
     private fun Client.matches(part: String) =
         name.contains(part, ignoreCase = true) || email?.contains(part, ignoreCase = true) == true
 
+    /** The client of each single read, in order. */
+    val read = mutableListOf<UUID>()
+
     override suspend fun getClient(workspaceId: UUID, clientId: UUID): Response<Client> {
+        read += clientId
         failure?.let { throw it }
         getStatus?.let { return Response.error(it, "{}".toResponseBody(JSON)) }
         val client = clients.firstOrNull { it.id == clientId }

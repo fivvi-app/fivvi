@@ -67,7 +67,10 @@ private fun ClientsFlowContent(
     var screen by rememberSaveable { mutableStateOf(Screen.LIST) }
     var profileId by rememberSaveable { mutableStateOf<String?>(null) }
     var justAdded by rememberSaveable { mutableStateOf<String?>(null) }
-    // Each opening of the form or a profile gets a new view model, so a form starts empty.
+    // Each opening of the form or a profile gets a new view model, so a form starts empty. The counter restarts with
+    // every composition of the flow (a workspace switch, closing Klanten), so [visit], which is new each time and
+    // never repeats, keeps the keys of an earlier visit's view models (which live as long as the activity) apart.
+    val visit = rememberSaveable { UUID.randomUUID().toString() }
     var openings by rememberSaveable { mutableIntStateOf(0) }
     val snapshot by capabilities.capabilities.collectAsStateWithLifecycle()
     val mayManage = snapshot.mayShow(workspaceId, MeWorkspace.Capabilities.CLIENTS_PERIOD_MANAGE)
@@ -96,7 +99,7 @@ private fun ClientsFlowContent(
 
     when (screen) {
         Screen.ADD -> {
-            val add = viewModel(key = "addClient-$sessionKey-$workspaceId-$openings") {
+            val add = viewModel(key = "addClient-$sessionKey-$workspaceId-$visit-$openings") {
                 AddClientViewModel(
                     clientsApi,
                     workspaceId,
@@ -132,7 +135,7 @@ private fun ClientsFlowContent(
 
         Screen.PROFILE -> {
             val id = UUID.fromString(profileId)
-            val profile = viewModel(key = "clientProfile-$sessionKey-$workspaceId-$id-$openings") {
+            val profile = viewModel(key = "clientProfile-$sessionKey-$workspaceId-$visit-$id-$openings") {
                 ClientProfileViewModel(
                     clientsApi,
                     workspaceId,

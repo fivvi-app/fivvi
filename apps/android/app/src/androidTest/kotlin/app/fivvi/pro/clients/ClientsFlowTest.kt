@@ -1,8 +1,12 @@
 package app.fivvi.pro.clients
 
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -21,6 +25,7 @@ import app.fivvi.pro.localizedString
 import app.fivvi.pro.showAtLargestFontScale
 import app.fivvi.pro.waitUntilTagExists
 import java.io.IOException
+import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -171,6 +176,113 @@ class ClientsFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
         compose.waitUntilTagExists(ClientsTags.LIST)
         compose.onNodeWithTag(ClientProfileTags.NAME).assertDoesNotExist()
         assertEquals(studio, clients.listed.last())
+    }
+
+    // The view model of a form is never reused by a later opening: after a client was added, a workspace switch and back
+    // (F003 AC6), or closing and reopening Klanten, *+ Nieuwe klant* shows an empty form, not the earlier client's profile.
+    @Test
+    fun test_F006_AC12_newClientIsAnEmptyFormAfterAWorkspaceSwitchAndBack() {
+        val shown = mutableStateOf(gym)
+        showFlow(shown = shown)
+        addCarla()
+
+        shown.value = studio
+        compose.waitUntil(UI_WAIT) { clients.listed.last() == studio }
+        shown.value = gym
+        compose.waitForIdle()
+        compose.waitUntilTagExists(ClientsTags.LIST)
+
+        assertNewClientFormIsEmpty()
+    }
+
+    @Test
+    fun test_F006_AC12_newClientIsAnEmptyFormAfterClosingAndReopeningKlanten() {
+        val open = mutableStateOf(true)
+        showFlow(open = open)
+        addCarla()
+
+        open.value = false
+        compose.waitUntil(UI_WAIT) { compose.onAllNodesWithTag(ClientProfileTags.NAME).fetchSemanticsNodes().isEmpty() }
+        open.value = true
+        compose.waitUntilTagExists(ClientsTags.LIST)
+
+        assertNewClientFormIsEmpty()
+    }
+
+    // A profile opened again after the same client was open before is read again (AC7), not served from the old model.
+    @Test
+    fun test_F006_AC12_aProfileOpenedAgainAfterReopeningKlantenIsReadAgain() {
+        val anna = clientOf("Anna de Vries", "anna@example.com")
+        clients.clients += anna
+        val open = mutableStateOf(true)
+        showFlow(open = open)
+        compose.waitUntilTagExists("${ClientsTags.ROW}.${anna.id}")
+        compose.onNodeWithTag("${ClientsTags.ROW}.${anna.id}").performClick()
+        compose.waitUntilTagExists(ClientProfileTags.NAME)
+        val reads = clients.read.count { it == anna.id }
+
+        open.value = false
+        compose.waitUntil(UI_WAIT) { compose.onAllNodesWithTag(ClientProfileTags.NAME).fetchSemanticsNodes().isEmpty() }
+        open.value = true
+        compose.waitUntilTagExists("${ClientsTags.ROW}.${anna.id}")
+        compose.onNodeWithTag("${ClientsTags.ROW}.${anna.id}").performClick()
+
+        compose.waitUntil(UI_WAIT) { clients.read.count { it == anna.id } > reads }
+    }
+
+    private fun showFlow(
+        shown: MutableState<UUID> = mutableStateOf(gym),
+        open: MutableState<Boolean> = mutableStateOf(true),
+    ) {
+        compose.showAtLargestFontScale(language) {
+            val capabilities = viewModel(key = "capabilities") { WorkspaceCapabilities(FakeMeApi()) }
+            if (open.value) {
+                ClientsFlow(
+                    clients,
+                    FakeWorkspacesApi(),
+                    capabilities,
+                    shown.value,
+                    "Workspace",
+                    sessionKey = "token-1",
+                    onClose = {},
+                )
+            }
+            LaunchedEffect(Unit) {
+                capabilities.replace(
+                    listOf(gym, studio).map {
+                        MeWorkspace(
+                            it,
+                            "Workspace",
+                            "slug",
+                            MeWorkspace.Role.OWNER,
+                            listOf(
+                                MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW,
+                                MeWorkspace.Capabilities.CLIENTS_PERIOD_MANAGE,
+                            ),
+                        )
+                    },
+                )
+            }
+        }
+    }
+
+    private fun addCarla() {
+        compose.waitUntilTagExists(ClientsTags.ADD)
+        compose.onNodeWithTag(ClientsTags.ADD).performClick()
+        compose.waitUntilTagExists("${AddClientTags.PREFIX}.name")
+        compose.onNodeWithTag("${AddClientTags.PREFIX}.name").performTextReplacement("Carla Bos")
+        compose.onNodeWithTag(AddClientTags.SUBMIT).performClick()
+        compose.waitUntilTagExists(ClientProfileTags.NAME)
+    }
+
+    private fun assertNewClientFormIsEmpty() {
+        compose.waitUntilTagExists(ClientsTags.ADD)
+        compose.onNodeWithTag(ClientsTags.ADD).performClick()
+        compose.waitUntilTagExists("${AddClientTags.PREFIX}.name")
+        compose.onNodeWithTag(ClientProfileTags.NAME).assertDoesNotExist()
+        val typed = compose.onNodeWithTag("${AddClientTags.PREFIX}.name").fetchSemanticsNode()
+            .config[SemanticsProperties.EditableText].text
+        assertEquals("", typed)
     }
 
     companion object {
