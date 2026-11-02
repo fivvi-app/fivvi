@@ -223,6 +223,9 @@
     "roleChanged": {
       "owner": "{name} is now an owner.",
       "trainer": "{name} is now a trainer."
+    },
+    "badge": {
+      "trainer": "Trainer"
     }
   }
 }

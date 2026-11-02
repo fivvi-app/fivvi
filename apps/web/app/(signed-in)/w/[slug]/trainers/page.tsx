@@ -16,8 +16,9 @@ export async function generateMetadata(): Promise<Metadata> {
  * TW-06 Trainers (`/w/{slug}/trainers`, F003, F004): a person with `team.view` sees the team, and
  * with `team.manage` changes roles and removes a trainer. A person without `team.view` sees the
  * no-permission page naming the workspace (AC3); the API answers their team-list request with 403
- * as well. The team is read from `GET /v1/workspaces/{workspaceId}/team-members`,
- * so the page shows what the API holds.
+ * as well. The team is read from `GET /v1/workspaces/{workspaceId}/team-members` and who trains from
+ * `GET /v1/workspaces/{workspaceId}/trainers` (F005, the trainer badge), so the page shows what
+ * the API holds.
  */
 export default async function TrainersPage({ params }: PageProps<'/w/[slug]/trainers'>) {
   const { id, name, capabilities } = await workspaceOf((await params).slug);
@@ -28,6 +29,11 @@ export default async function TrainersPage({ params }: PageProps<'/w/[slug]/trai
     headers: cookie ? { cookie } : {},
   });
   if (!data) throw new Error('GET /v1/workspaces/{workspaceId}/team-members did not answer.');
+  const { data: trainers } = await apiClient.GET('/v1/workspaces/{workspaceId}/trainers', {
+    params: { path: { workspaceId: id } },
+    headers: cookie ? { cookie } : {},
+  });
+  if (!trainers) throw new Error('GET /v1/workspaces/{workspaceId}/trainers did not answer.');
   const { email } = await currentMe();
   return (
     <TeamList
@@ -35,6 +41,7 @@ export default async function TrainersPage({ params }: PageProps<'/w/[slug]/trai
       workspaceName={name}
       members={data}
       canManage={capabilities.includes('team.manage')}
+      trainerIds={trainers.map(({ id: teamMemberId }) => teamMemberId)}
       currentEmail={email}
     />
   );

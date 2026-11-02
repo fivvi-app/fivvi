@@ -97,6 +97,7 @@
     <string name="sign_out_error">Signing out didn\'t work. Try again.</string>
     <string name="sign_out_label">Sign out</string>
     <string name="team_actions_column">Actions</string>
+    <string name="team_badge_trainer">Trainer</string>
     <string name="team_email_column">Email address</string>
     <string name="team_errors_generic">Something went wrong. Try again.</string>
     <string name="team_errors_last_owner">%1$s needs at least one owner.</string>

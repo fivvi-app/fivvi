@@ -1691,6 +1691,24 @@
         }
       }
     },
+    "team.badge.trainer" : {
+      "comment" : "Badge on a team member of the Trainers page (TW-06) who trains in the workspace, next to their role label. The word for the role Trainer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
+          }
+        }
+      }
+    },
     "team.emailColumn" : {
       "comment" : "Column header of the email address in the team list.",
       "extractionState" : "manual",

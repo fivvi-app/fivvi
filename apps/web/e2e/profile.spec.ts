@@ -88,3 +88,89 @@ test.describe('F005 my name', () => {
     }
   });
 });
+
+// F005 AC4, AC5 (spec #173): an Owner switches whether they train in a workspace on My profile;
+// a Trainer has no switch for a workspace where they are one.
+const PERSONAL = 'Sarah Personal Training';
+
+interface Trainer {
+  id: string;
+  name: string;
+}
+
+test.describe('F005 I also train here', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders(clientIpHeaders());
+  });
+
+  test('AC4: John switches training off in his gym and on again; the trainers of the API follow', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const john = newAddress('john');
+    await createAccount(john, undefined, 'John');
+    await createGymWithTrainer(john, GYM, 'owner');
+    await signInWithSession(context, john);
+    const workspaceId = (
+      (await (await page.request.get('/api/v1/me/workspaces')).json()) as { workspaceId: string }[]
+    )[0]?.workspaceId;
+    const trainers = async () =>
+      (await (
+        await page.request.get(`/api/v1/workspaces/${workspaceId}/trainers`)
+      ).json()) as Trainer[];
+
+    await page.goto('/me/profile');
+    const label = copy.profile.trainsHere.label.replace('{workspace}', GYM);
+    const trainsHere = page.getByRole('switch', { name: label });
+    // The gym's creator trains from the start.
+    await expect(trainsHere).toBeChecked();
+    expect((await trainers()).map(({ name }) => name)).toEqual(['John']);
+    await expectNoAxeViolations(page, `TW-09 with the switch in ${appLocale}`);
+
+    await trainsHere.uncheck();
+    await expect(page.getByRole('status')).toHaveText(copy.profile.trainsHere.saved);
+    // The data path: the API no longer lists John, and the switch stays off after a reload.
+    expect(await trainers()).toEqual([]);
+    await page.reload();
+    await expect(trainsHere).not.toBeChecked();
+    // Nothing else about John changed.
+    expect(((await (await page.request.get('/api/v1/me')).json()) as { name: string }).name).toBe(
+      'John',
+    );
+    await expectNoAxeViolations(page, `TW-09 with the switch off in ${appLocale}`);
+
+    await trainsHere.check();
+    await expect(page.getByRole('status')).toHaveText(copy.profile.trainsHere.saved);
+    expect((await trainers()).map(({ name }) => name)).toEqual(['John']);
+    await page.reload();
+    await expect(trainsHere).toBeChecked();
+  });
+
+  test("AC5: Sarah has no switch for John's Gym, where she is a Trainer, and one for her own", async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const sarah = newAddress('sarah');
+    await createAccount(sarah, undefined, 'Sarah');
+    await createGymWithTrainer(sarah, GYM, 'trainer');
+    await createGymWithTrainer(sarah, PERSONAL, 'owner', false);
+    await signInWithSession(context, sarah);
+
+    await page.goto('/me/profile');
+
+    await expect(page.getByRole('switch')).toHaveCount(1);
+    await expect(
+      page.getByRole('switch', {
+        name: copy.profile.trainsHere.label.replace('{workspace}', PERSONAL),
+      }),
+    ).not.toBeChecked();
+    await expect(
+      page.getByRole('switch', { name: copy.profile.trainsHere.label.replace('{workspace}', GYM) }),
+    ).toHaveCount(0);
+    await expectNoAxeViolations(page, `TW-09 of a Trainer and Owner in ${appLocale}`);
+  });
+});
