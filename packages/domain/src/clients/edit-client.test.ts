@@ -6,13 +6,6 @@ describe('F006 AC7, AC8: whether a client edit is saved, and which account the c
     expect(decideClientEdit({ clientId: 'anna' })).toEqual({ outcome: 'update' });
   });
 
-  it('clearing the email address is allowed and removes the link', () => {
-    expect(decideClientEdit({ clientId: 'anna', email: null })).toEqual({
-      outcome: 'update',
-      accountId: null,
-    });
-  });
-
   it('links the client to the account of the new email address', () => {
     expect(
       decideClientEdit({ clientId: 'anna', email: 'new@example.com', accountId: 'account-new' }),

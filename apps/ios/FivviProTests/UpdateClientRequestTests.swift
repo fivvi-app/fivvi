@@ -4,8 +4,9 @@ import OpenAPIRuntime
 import XCTest
 
 /// F006 AC7: the edit body of `PATCH /clients/{id}` as the generated Swift client writes it. The synthesized `Codable`
-/// leaves out a field that is `nil`; the contract reads a missing field, like a `null`, as "keep", and clears only with
-/// `clearEmail` / `clearEmailLocale` (a `nil` email can never mean "clear" here). The request goes through the real
+/// leaves out a field that is `nil`; the contract reads a missing field, like a `null`, as "keep", and resets the
+/// language only with `clearEmailLocale`. The email address has no clear flag: every client has one (spec #174,
+/// decision 5), so a `nil` email can never mean "clear". The request goes through the real
 /// generated `Client` and its JSON encoding, with a transport that records the body in place of the network.
 final class UpdateClientRequestTests: XCTestCase {
     private let workspace = "0b6d3c1e-5f0a-4c2b-9a41-7a1f2d3e4b50"
@@ -44,7 +45,7 @@ final class UpdateClientRequestTests: XCTestCase {
     /// The body the client sends for `request`, parsed as the server reads it.
     private func sent(_ request: Components.Schemas.UpdateClientRequest) async throws -> [String: Any] {
         let transport = BodyTransport(
-            answeringWith: #"{"id":"\#(client)","name":"Anna","email":null,"emailLocale":null}"#
+            answeringWith: #"{"id":"\#(client)","name":"Anna","email":"anna@example.com","emailLocale":null}"#
         )
         let api = Client(serverURL: URL(string: "https://example.com/api")!, transport: transport)
 
@@ -71,7 +72,7 @@ final class UpdateClientRequestTests: XCTestCase {
         XCTAssertEqual(Set(body.keys), ["name"])
         // ... which the contract reads as "keep": no value and no clear flag.
         XCTAssertEqual(body["name"] as? String, "Anna Visser")
-        for field in ["email", "clearEmail", "emailLocale", "clearEmailLocale"] {
+        for field in ["email", "emailLocale", "clearEmailLocale"] {
             XCTAssertNil(value(field, in: body), field)
         }
     }
@@ -82,24 +83,21 @@ final class UpdateClientRequestTests: XCTestCase {
 
         XCTAssertNil(body["email"])
         XCTAssertNil(body["emailLocale"])
-        XCTAssertNil(value("clearEmail", in: body))
         XCTAssertNil(value("clearEmailLocale", in: body))
     }
 
-    func test_F006_AC7_clearingTheEmailIsTheClearFlagAndNoEmail() async throws {
-        let body = try await sent(.init(clearEmail: true))
+    func test_F006_AC7_theEmailAddressHasNoClearFlag() {
+        // The generated request has no way to clear the email address (decision 5, 2 November 2026).
+        let fields = Mirror(reflecting: Components.Schemas.UpdateClientRequest()).children.compactMap(\.label)
 
-        XCTAssertEqual(body["clearEmail"] as? Bool, true)
-        for field in ["name", "email", "emailLocale", "clearEmailLocale"] {
-            XCTAssertNil(value(field, in: body), field)
-        }
+        XCTAssertEqual(Set(fields), ["name", "email", "emailLocale", "clearEmailLocale"])
     }
 
     func test_F006_AC7_resettingTheLanguageIsTheClearFlagAndNoLanguage() async throws {
         let body = try await sent(.init(clearEmailLocale: true))
 
         XCTAssertEqual(body["clearEmailLocale"] as? Bool, true)
-        for field in ["name", "email", "emailLocale", "clearEmail"] {
+        for field in ["name", "email", "emailLocale"] {
             XCTAssertNil(value(field, in: body), field)
         }
     }
@@ -109,7 +107,7 @@ final class UpdateClientRequestTests: XCTestCase {
 
         XCTAssertEqual(body["email"] as? String, "anna@example.com")
         XCTAssertEqual(body["emailLocale"] as? String, "nl-NL")
-        for field in ["name", "clearEmail", "clearEmailLocale"] {
+        for field in ["name", "clearEmailLocale"] {
             XCTAssertNil(value(field, in: body), field)
         }
     }

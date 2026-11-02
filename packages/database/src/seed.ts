@@ -113,18 +113,13 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
     .values(trainers.map(({ id, organizationId }) => ({ organizationId, teamMemberId: id })))
     .onConflictDoNothing({ target: trainerProfiles.teamMemberId });
   // Idempotent without fixed IDs: a client is there already when its email address is used in
-  // the workspace, or, for the one without an address, when its name is.
+  // the workspace.
   const existing = await db
-    .select({ name: clients.name, email: clients.email })
+    .select({ email: clients.email })
     .from(clients)
     .where(eq(clients.organizationId, gym));
   const missing = SEED_CLIENTS.filter(
-    (client) =>
-      !existing.some((row) =>
-        client.email === null
-          ? row.email === null && row.name === client.name
-          : row.email === client.email,
-      ),
+    (client) => !existing.some((row) => row.email === client.email),
   );
   if (missing.length > 0) {
     await db
@@ -134,9 +129,9 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
   }
 }
 
-/** The synthetic clients of John's Gym (F006 AC15): `@example.com` addresses, one without. */
+/** The synthetic clients of John's Gym (F006 AC15): `@example.com` addresses, every one with an email. */
 const SEED_CLIENTS = [
   { name: 'Anna de Vries', email: 'anna@example.com', emailLocale: 'en' as const },
-  { name: 'Mark Jansen', email: null, emailLocale: null },
+  { name: 'Mark Jansen', email: 'mark@example.com', emailLocale: null },
   { name: 'Sophie Bakker', email: 'sophie.bakker@example.com', emailLocale: null },
 ];

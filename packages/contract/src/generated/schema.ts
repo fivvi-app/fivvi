@@ -295,7 +295,7 @@ export interface paths {
         put?: never;
         /**
          * Add a client
-         * @description Adds a client to the workspace (the Owner and every Trainer). Only the name is required. Adding a client never sends an email and never creates an account. If an account has the email address, the client is linked to it; the answer is the same either way. A client of the workspace with the same address (in any case) makes the answer `409` with that client’s ID, and nothing is added. Two clients without an email address may share a name.
+         * @description Adds a client to the workspace (the Owner and every Trainer). The name and the email address are required. Adding a client never sends an email and never creates an account. If an account has the email address, the client is linked to it; the answer is the same either way. A client of the workspace with the same address (in any case) makes the answer `409` with that client’s ID, and nothing is added. Two clients with different email addresses may share a name.
          */
         post: operations["addClient"];
         delete?: never;
@@ -323,7 +323,7 @@ export interface paths {
         head?: never;
         /**
          * Edit a client
-         * @description Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out, or `null`, stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address is cleared with `clearEmail: true`, the language with `clearEmailLocale: true`. An address another client of the workspace has answers `409` with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.
+         * @description Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out, or `null`, stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address can’t be cleared (an empty one answers `400`); the language goes back to the default with `clearEmailLocale: true`. An address another client of the workspace has answers `409` with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.
          */
         patch: operations["updateClient"];
         trace?: never;
@@ -591,9 +591,9 @@ export interface components {
             name: string;
             /**
              * Format: email
-             * @description The email address, lower case; `null` when none was given.
+             * @description The email address, lower case. Every client has one.
              */
-            email: string | null;
+            email: string;
             /**
              * @description The language for the client’s emails the team set: `nl-NL` or `en`. `null` follows the workspace’s default language.
              * @enum {string|null}
@@ -610,15 +610,15 @@ export interface components {
              */
             clientId: string;
         };
-        /** @description A client to add. Only the name is required. */
+        /** @description A client to add. The name and the email address are required. */
         AddClientRequest: {
             /** @description The client’s name: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error. */
             name: string;
             /**
              * Format: email
-             * @description The client’s email address; stored lower case. Leave it out to add the client with a name only. An address that is no email address answers `400`. If a client of the workspace has it already, nothing is added and the answer is `409`.
+             * @description The client’s email address; required, stored lower case. A missing, `null` or invalid address answers `400` with a field error, and nothing is added. If a client of the workspace has it already, nothing is added and the answer is `409`.
              */
-            email?: string;
+            email: string;
             /**
              * @description The language for the client’s emails: `nl-NL` or `en`. Leave it out to follow the workspace’s default language. Any other value answers `400`.
              * @enum {string}
@@ -630,17 +630,15 @@ export interface components {
              */
             surface?: "ios" | "android";
         };
-        /** @description The fields of a client to change. A field left out, or `null`, stays as it is; the email address and the language are cleared with `clearEmail` and `clearEmailLocale`. The same body reads alike in every client: Swift leaves a `nil` out, Kotlin writes `null`. */
+        /** @description The fields of a client to change. A field left out, or `null`, stays as it is; the language goes back to the default with `clearEmailLocale`. The email address can be changed, never cleared. The same body reads alike in every client: Swift leaves a `nil` out, Kotlin writes `null`. */
         UpdateClientRequest: {
             /** @description The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out, or send `null`, to keep it. Empty, blank or longer answers `400` with a field error. */
             name?: string | null;
             /**
              * Format: email
-             * @description The new email address; stored lower case. Leave it out, or send `null`, to keep it. To clear the address, send `clearEmail: true` instead. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
+             * @description The new email address; stored lower case. Leave it out, or send `null`, to keep it. The address can't be cleared: an empty one, or one that is no email address, answers `400` with a field error; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
              */
             email?: string | null;
-            /** @description `true` clears the email address (and the link to an account with it). `false`, `null` or left out does not. Together with an `email` it answers `400`. */
-            clearEmail?: boolean | null;
             /**
              * @description The new language for the client’s emails: `nl-NL` or `en`. Leave it out, or send `null`, to keep it. To follow the workspace’s default language again, send `clearEmailLocale: true` instead. Any other value answers `400`.
              * @enum {string|null}

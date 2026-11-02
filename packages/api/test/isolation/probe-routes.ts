@@ -73,7 +73,13 @@ export function registerProbeRoutes(app: OpenAPIHono): void {
     defineRoute({ ...workspace('/probe/clients', 'probeCreateClient'), method: 'post' }, team),
     async (c) =>
       c.json(
-        { client: (await createClient(c.get('scope'), { name: 'Probe client' })) ?? null },
+        {
+          client:
+            (await createClient(c.get('scope'), {
+              name: 'Probe client',
+              email: `${crypto.randomUUID()}@example.com`,
+            })) ?? null,
+        },
         200,
       ),
   );
@@ -160,7 +166,10 @@ export function registerRollbackProbe(app: OpenAPIHono): void {
       team,
     ),
     async (c) => {
-      await createClient(c.get('scope'), { name: 'Probe client' });
+      await createClient(c.get('scope'), {
+        name: 'Probe client',
+        email: `${crypto.randomUUID()}@example.com`,
+      });
       return c.json(NOT_FOUND, 404);
     },
   );
