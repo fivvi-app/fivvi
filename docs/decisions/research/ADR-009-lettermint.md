@@ -268,3 +268,43 @@ Free plan first (no card); Starter only if the owner approves the €10/month.
 14. **Dashboard:** turn on "Hide email content" for the sign-in route; check whether "content redaction" appears; enforce MFA for the team.
 15. **Token IP allowlist:** check whether Railway gives our service a stable egress IP; if so, pin the production token.
 16. **Ask support (one ticket):** warm-up or per-hour limits for new teams; deferral retry window; Dutch-language support and response times; whether the AUP postal-address rule applies to transactional mail; Postmastery's access to message content; pentest summary; when custom retention ships.
+
+---
+
+## Trial results (2 November 2026)
+
+Free plan, team "Fivvi", project "Fivvi trial", sender domain `fivvi.app`. Sent only to the team mailbox and the `lettermint.dev` test addresses. All content synthetic.
+
+- **Setup (checks 1, 2, 14):**
+  - Lettermint asked for three CNAMEs: `lm-bounces` → `bounces.lmta.net`, and `lm1._domainkey` / `lm2._domainkey` → `lm1`/`lm2.<id>.dkim.lmta.net`. They are in Cloudflare as DNS only. Our existing DMARC record verified as it is.
+  - DKIM keys are managed and rotate every 6 months.
+  - The verification form asks for business name, address, type of mail, website, estimated volume and how recipients opt in or out. Submitted on 2 November 2026; approval still pending.
+  - Two transactional routes, Sign-in and Bookings. Slugs are generated from the name and can't be changed afterwards.
+  - Open and click tracking are off by default on both routes.
+  - "Hide email content" is available per route on Free and is on for Sign-in.
+- **Idempotency (check 10):**
+  - The same key and body twice returned `202` with the same `message_id`, and only one email went out.
+  - The same key with a different body returned `409`: "This idempotency key has already been used on a request with a different payload".
+- **Validation:** `text` must be at least 3 characters (`422` otherwise). Our emails always have a longer text part.
+- **Test addresses and suppressions (checks 6, 12):**
+  - `spamcomplaint@` and `hardbounce@lettermint.dev` produce the "Spam complaint" and "Hard bounce" statuses, but **create no suppression records**. `GET /v1/suppressions` stayed empty.
+  - A second send to the complaint address was processed again on both routes.
+  - So suppression scope can't be tested with test addresses. The documented scopes (§7) stand until a real complaint or a manual suppression shows otherwise.
+- **Link rewriting (check 5):** the sign-in link arrived in the inbox byte for byte as sent, with no redirect domain: `https://fivvi.app/login/confirm?token=…&returnTo=%2Fbookings`.
+- **Inbox placement:** delivered to the Inbox in Zoho Mail, not Spam. Zoho shows "Verified domain. Sender couldn't be verified". Zoho shows this for mail that claims our own hosted domain but comes from outside Zoho.
+- **Authentication (check 3)** in Zoho's `Authentication-Results`: `dkim=pass`; `spf=pass`, because `lm-bounces.fivvi.app` designates `155.254.62.128` (`smtp-out-b-128.nl-ams.lmta.net`); `dmarc=pass` (p=none) with `header.from=fivvi.app`.
+  - The Return-Path is `feedback-<message id>@lm-bounces.fivvi.app`.
+  - The Message-ID is `<message id>@lmta.net`.
+- **Raw headers (checks 3, 4, 5)** of the sign-in email, from Zoho's "Show original":
+  - **No `List-Unsubscribe` and no `List-Unsubscribe-Post`.** This is Brevo's second problem, and it's gone on the transactional route.
+  - Two DKIM signatures: `d=fivvi.app; s=lm1`, which aligns with From and is the one DMARC uses, and `d=bounces.lmta.net; s=lm1` for Lettermint's feedback loop.
+  - Feedback headers: `CFBL-Address: feedback@bounces.lmta.net; report=arf` (RFC 9477), `Feedback-ID: <ids>:lettermint` (Gmail's feedback loop), and `X-Complaints-To: abuse@lettermint.co`.
+  - `X-Lettermint-Pool: transactional-0` confirms the transactional IP pool.
+  - `X-LM-Trace` is base64 JSON with the message id, the **recipient address** and the team id (`team_…`). Only the recipient sees it, and it holds their own address, so it isn't a leak, but it is there.
+  - No open-tracking image in the HTML part. The link is unchanged in both the HTML and text parts.
+  - No `Auto-Submitted` or `Precedence` header, because "Suppress auto-responders" was off. Turn it on for both routes in production, so out-of-office replies don't come back to `noreply@`.
+
+**Trial verdict:** both of Brevo's problems are solved on the Free plan. Links aren't rewritten and there's no pixel, and no `List-Unsubscribe` is added to transactional mail. Authentication passes and the mail lands in the inbox. Still open:
+- the Gmail and Outlook inbox check after account approval
+- a support question on suppression scope, because test addresses don't create suppressions
+- the Starter behaviour with overage billing
