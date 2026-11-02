@@ -141,6 +141,10 @@ export default defineRailway((ctx) => {
       DATABASE_URL: db.env.DATABASE_URL,
       // The DSN of the Sentry `cron` project (E009), set in the dashboard. Empty turns it off.
       SENTRY_DSN: preserve(),
+      // A read-only Lettermint Team API token (`read:team`, ADR-028), set in the dashboard in
+      // production only. The daily job warns at 70% of the plan's monthly email volume (R14).
+      // Empty skips the check.
+      LETTERMINT_TEAM_TOKEN: preserve(),
     },
   });
 
