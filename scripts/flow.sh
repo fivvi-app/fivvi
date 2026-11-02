@@ -10,13 +10,18 @@
 #                                           gate refused, PRs GitHub removed from the merge queue (not those that wait
 #                                           for their bug or are to be re-queued after it, ADR-025), unanswered
 #                                           questions; last, what the owner may read: the high-risk PRs agents merged
-#                                           in the last 7 days (ADR-021)
+#                                           in the last 7 days (ADR-021). It also labels the open PRs on GitHub to match
+#                                           that list: `Merge PR #n` gets owner-queue, `Decide on PR #n` gets
+#                                           owner-decide, and every other open PR loses both (writes only on a
+#                                           difference; a missing label is created from .github/repo-settings.json; a
+#                                           failed read or write is a warning on stderr that changes neither the
+#                                           output nor the exit code)
 #   flow.sh idle                            exit 0 and "idle: nothing for an agent" (plus what waits on the owner) when no
 #                                           agent has anything to do: nothing under "Ready for an agent" in `next` and no
 #                                           issue assigned to you in a phase an agent acts on; exit 1 and what there is
 #                                           otherwise; exit 2 on every error (a bad argument and a missing tool
 #                                           included), never a false idle. A cheap check for the scheduled factory run,
-#                                           right after `lock acquire`
+#                                           right after `lock acquire`. When idle it syncs the PR labels like `next`
 #   flow.sh start <n> [--type <t>] [--force]  claim a ready ticket and create its <type>/<n>-<slug> worktree and notes;
 #                                           no limit on the tickets in progress, unless FIVVI_MAX_TICKETS (a positive
 #                                           integer) sets one: then it refuses at that many (--force to override)
@@ -315,6 +320,7 @@ cmd_next() {
   echo "== Waiting on the owner"
   owner="$(owner_items "$specs" "$questions" "$removals")" || exit 1
   grep . <<<"$owner" || echo "(none)"
+  sync_owner_labels "$owner"
   echo "== For the owner to read"
   read_items="$(agent_merged_items)" || exit 1
   grep . <<<"$read_items" || echo "(none)"
@@ -363,6 +369,7 @@ idle_scan() {
     echo idle
     echo "== Waiting on the owner"
     grep . <<<"$owner" || echo "(none)"
+    sync_owner_labels "$owner"
   fi
 }
 
@@ -470,6 +477,62 @@ owner_items() {
       <<<"$refusal" || die "could not read the refusal of PR #$pr"
   done <<<"$prs"
   jq -r 'select(.answered | not) | "Answer #\(.number) \(.title) (needs-info)"' <<<"$2"
+}
+
+# The labels that show on GitHub which open PRs wait on the owner (spec #407), kept in step with the PR lines of
+# owner_items ($1): `Merge PR #n` is owner-queue, `Decide on PR #n` is owner-decide. Each listed PR gets its label and
+# loses the other one; every other open PR (drafts included) loses both. A PR is written only when its labels differ,
+# so a sync with nothing to change makes no writes. A label GitHub lacks is created from .github/repo-settings.json
+# first. Nothing here changes what the caller prints on stdout or its exit status: a failed read or write is a warning
+# on stderr that names the PR, and the sync always returns 0.
+OWNER_QUEUE_LABEL="owner-queue"
+OWNER_DECIDE_LABEL="owner-decide"
+
+# Creates label $1 from the settings when GitHub lacks it. Reads the label list once per sync: `labels_read` and
+# `labels_on_github` are locals of sync_owner_labels. Returns 1 on any failure.
+ensure_label() {
+  local label="$1" color description
+  if ! $labels_read; then
+    labels_on_github="$(gh label list --repo "$REPO" --limit 200 --json name --jq '.[].name')" || return 1
+    labels_read=true
+  fi
+  if grep -qxF "$label" <<<"$labels_on_github"; then return 0; fi
+  IFS=$'\t' read -r color description < <(jq -r --arg name "$label" \
+    '.labels[] | select(.name == $name) | [.color, .description] | @tsv' "$ROOT/.github/repo-settings.json") || return 1
+  [ -n "$color" ] || return 1
+  gh label create "$label" --repo "$REPO" --color "$color" --description "$description" >/dev/null || return 1
+  labels_on_github+=$'\n'"$label"
+}
+
+sync_owner_labels() {
+  local items="$1" wanted open pr have want label carries listed
+  local add=() remove=() labels_read=false labels_on_github=''
+  wanted="$(sed -nE "s/^Merge PR #([0-9]+) .*/\1\t$OWNER_QUEUE_LABEL/p; s/^Decide on PR #([0-9]+) .*/\1\t$OWNER_DECIDE_LABEL/p" <<<"$items")"
+  if ! open="$(gh pr list --repo "$REPO" --state open --limit 100 --json number,labels \
+      --jq '.[] | [.number, ([(.labels // [])[].name] | join(","))] | @tsv')"; then
+    listed="$(awk -F'\t' '{ printf "%s#%s", sep, $1; sep = ", " }' <<<"$wanted")"
+    echo "warning: could not read the labels of the open PRs; the owner labels are not synced${listed:+ (PR $listed)}" >&2
+    return 0
+  fi
+  while IFS=$'\t' read -r pr have; do
+    [ -n "$pr" ] || continue
+    want="$(awk -F'\t' -v pr="$pr" '$1 == pr { print $2; exit }' <<<"$wanted")"
+    add=() remove=()
+    for label in "$OWNER_QUEUE_LABEL" "$OWNER_DECIDE_LABEL"; do
+      case ",$have," in *",$label,"*) carries=true ;; *) carries=false ;; esac
+      if [ "$want" = "$label" ] && ! $carries; then add+=(--add-label "$label")
+      elif [ "$want" != "$label" ] && $carries; then remove+=(--remove-label "$label")
+      fi
+    done
+    [ ${#add[@]} -gt 0 ] || [ ${#remove[@]} -gt 0 ] || continue
+    if [ ${#add[@]} -gt 0 ] && ! ensure_label "$want"; then
+      echo "warning: could not create the label $want for PR #$pr" >&2
+      continue
+    fi
+    gh pr edit "$pr" --repo "$REPO" ${add[@]+"${add[@]}"} ${remove[@]+"${remove[@]}"} >/dev/null \
+      || echo "warning: could not update the owner labels of PR #$pr" >&2
+  done <<<"$open"
+  return 0
 }
 
 # The most tickets in progress at once, if the session sets a limit (ADR-021): FIVVI_MAX_TICKETS, a positive integer.

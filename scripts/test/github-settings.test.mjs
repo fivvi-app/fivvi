@@ -20,6 +20,15 @@ describe('the versioned GitHub settings', () => {
     }
   });
 
+  it('#407 declare the labels that show which PRs wait on the owner, with a colour and a description', () => {
+    for (const name of ['owner-queue', 'owner-decide']) {
+      const label = SETTINGS.labels.find((candidate) => candidate.name === name);
+      assert.ok(label, `${name} is declared`);
+      assert.match(label.color, /^[0-9a-f]{6}$/);
+      assert.ok(label.description.length > 0);
+    }
+  });
+
   it('require exactly the five CI jobs of WORKFLOW.md §7 as checks on main', () => {
     const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
     const jobs = [...ci.matchAll(/^ {4}name: (.+)$/gm)].map((match) => match[1]);
@@ -145,7 +154,7 @@ describe('github-settings.sh apply', () => {
     assert.deepEqual(JSON.parse(repo.input), SETTINGS.merge);
   });
 
-  it('creates or updates the spec-approved, owner-merge, owner-only, run-native and owner-task labels', () => {
+  it('creates or updates the spec-approved, owner-merge, owner-only, owner-queue, owner-decide, run-native and owner-task labels', () => {
     const labels = apply([]).filter((call) => call.args[0] === 'label');
     assert.deepEqual(
       labels.map((call) => [call.args[2], call.args.includes('--force')]),
@@ -153,6 +162,8 @@ describe('github-settings.sh apply', () => {
         ['spec-approved', true],
         ['owner-merge', true],
         ['owner-only', true],
+        ['owner-queue', true],
+        ['owner-decide', true],
         ['run-native', true],
         ['prio-high', true],
         ['prio-medium', true],

@@ -85,7 +85,7 @@ GitHub issues via `scripts/issue.sh`: spec = issue labelled `spec`, ticket = sub
 
 ### Triage labels
 
-The five defaults (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) plus `spec`, `spec-approved`, `owner-merge` (high-risk work, agent-queueable) and `owner-only` (only the owner merges). See `docs/agents/triage-labels.md`.
+The five defaults (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) plus `spec`, `spec-approved`, `owner-merge` (high-risk work, agent-queueable), `owner-only` (only the owner merges) and, on PRs, `owner-queue` and `owner-decide` (what waits on the owner; `flow.sh` sets and removes them, never by hand). See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

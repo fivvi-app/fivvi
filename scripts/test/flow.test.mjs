@@ -78,12 +78,21 @@ describe('flow.sh next', () => {
   const refusal = (sha) =>
     `Closes #63\n\n**Merge gate:** refused on \`${sha}\`: self-review clean (no self-review record in the PR body)`;
 
-  const next = (failing = [], now = NOW) =>
+  // carrying: the owner labels each open PR carries already (number -> names); onGitHub: the labels the repository has.
+  const next = (
+    failing = [],
+    now = NOW,
+    carrying = {},
+    onGitHub = ['owner-queue', 'owner-decide'],
+  ) =>
     spawnSync(join(SCRIPTS, 'flow.sh'), ['next'], {
       encoding: 'utf8',
       env: {
         ...gh.env([
           ...failing.map((match) => ({ match, out: '', status: 1 })),
+          { match: '^label list ', out: onGitHub.map((name) => ({ name })) },
+          { match: '^label create ', out: '' },
+          { match: '^pr edit ', out: '' },
           { match: '^issue list .*--assignee @me', out: [] },
           {
             match: '^issue list .*--label spec ',
@@ -155,7 +164,7 @@ describe('flow.sh next', () => {
                 headRefOid: HEAD,
               },
               { number: 69, title: '[F031] Risk unreadable', isDraft: false, headRefOid: HEAD },
-            ],
+            ].map((pr) => ({ ...pr, labels: labels(...(carrying[pr.number] ?? [])) })),
           },
           queueRule(64, { removed: true }),
           queueRule(65, { queued: true }),
@@ -394,6 +403,144 @@ describe('flow.sh next', () => {
       assert.match(result.stderr, /^error: could not read/m, what);
       assert.doesNotMatch(result.stdout, /\(none\)\n$/, what);
     }
+  });
+
+  describe('#407 the owner labels', () => {
+    // What waits on the owner in the fixture: #60 and #69 to queue; #63, #64 and #68 to decide.
+    const MATCHING = {
+      60: ['owner-queue'],
+      63: ['owner-decide'],
+      64: ['owner-decide'],
+      68: ['owner-decide'],
+      69: ['owner-queue'],
+    };
+    // The `gh pr edit` calls as {pr, add, remove}.
+    const edits = () =>
+      gh
+        .calls()
+        .filter(({ args }) => args[0] === 'pr' && args[1] === 'edit')
+        .map(({ args }) => {
+          const all = (flag) => args.flatMap((arg, i) => (args[i - 1] === flag ? [arg] : []));
+          return { pr: Number(args[2]), add: all('--add-label'), remove: all('--remove-label') };
+        });
+    const editOf = (pr) => edits().find((edit) => edit.pr === pr);
+
+    it('AC1: adds owner-queue to an owner-only PR that is ready for review, and to one whose risk is unknown', () => {
+      const result = next();
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(editOf(60), { pr: 60, add: ['owner-queue'], remove: [] });
+      assert.deepEqual(editOf(69), { pr: 69, add: ['owner-queue'], remove: [] });
+    });
+
+    it('AC2: adds owner-decide to a PR the queue removed and to one the gate refused on its head commit', () => {
+      const result = next();
+      assert.equal(result.status, 0, result.stderr);
+      for (const pr of [63, 64, 68]) {
+        assert.deepEqual(editOf(pr), { pr, add: ['owner-decide'], remove: [] });
+      }
+    });
+
+    it('AC1, AC2: swaps the label of a PR that carries the other one', () => {
+      const result = next([], NOW, { ...MATCHING, 60: ['owner-decide'], 64: ['owner-queue'] });
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(edits(), [
+        { pr: 60, add: ['owner-queue'], remove: ['owner-decide'] },
+        { pr: 64, add: ['owner-decide'], remove: ['owner-queue'] },
+      ]);
+    });
+
+    it('AC3: removes both labels from every open PR that no longer waits on the owner', () => {
+      // #61: refused on an older commit, #62: a draft, #65 and #66: in the merge queue, #67: not owner-only.
+      const result = next([], NOW, {
+        ...MATCHING,
+        61: ['owner-decide'],
+        62: ['owner-queue'],
+        65: ['owner-queue', 'owner-decide'],
+        66: ['owner-decide', 'owner-queue', 'run-native'],
+        67: ['owner-queue'],
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(
+        edits().map((edit) => ({ ...edit, remove: [...edit.remove].sort() })),
+        [
+          { pr: 61, add: [], remove: ['owner-decide'] },
+          { pr: 62, add: [], remove: ['owner-queue'] },
+          { pr: 65, add: [], remove: ['owner-decide', 'owner-queue'] },
+          { pr: 66, add: [], remove: ['owner-decide', 'owner-queue'] },
+          { pr: 67, add: [], remove: ['owner-queue'] },
+        ],
+      );
+    });
+
+    it('AC4: writes nothing when the labels already match, and creates no label', () => {
+      const result = next([], NOW, MATCHING);
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(edits(), []);
+      assert.deepEqual(
+        gh.calls().filter(({ args }) => args[0] === 'label' && args[1] === 'create'),
+        [],
+      );
+    });
+
+    it('AC6: warns on stderr with the PR number when a label write fails, and changes neither output nor exit code', () => {
+      const plain = next();
+      const failed = next(['^pr edit 64 ']);
+      assert.equal(failed.status, plain.status);
+      assert.equal(failed.stdout, plain.stdout);
+      assert.match(failed.stderr, /^warning: .*PR #64\b/m);
+      assert.doesNotMatch(plain.stderr, /warning/);
+      // The other PRs are still labelled.
+      assert.deepEqual(
+        edits()
+          .map(({ pr }) => pr)
+          .sort(),
+        [60, 63, 64, 68, 69],
+      );
+    });
+
+    it("AC6: warns when the labels of the open PRs can't be read, and changes neither output nor exit code", () => {
+      const plain = next();
+      // The owner items read the open PRs with --jq; the label read asks for the labels.
+      const failed = next(['^pr list .*--json number,labels ']);
+      assert.equal(failed.status, plain.status);
+      assert.equal(failed.stdout, plain.stdout);
+      assert.match(failed.stderr, /^warning: .*labels.*PR #60/m);
+      assert.deepEqual(edits(), []);
+    });
+
+    it('AC6: warns when the label list or its creation fails, and still prints the same', () => {
+      const plain = next();
+      for (const [failing, onGitHub] of [
+        [['^label list '], ['owner-queue', 'owner-decide']],
+        [['^label create '], []],
+      ]) {
+        const failed = next(failing, NOW, {}, onGitHub);
+        assert.equal(failed.status, plain.status);
+        assert.equal(failed.stdout, plain.stdout);
+        assert.match(failed.stderr, /^warning: .*PR #60\b/m);
+      }
+    });
+
+    it('AC7: creates a missing label from .github/repo-settings.json before it adds it', () => {
+      const settings = JSON.parse(
+        readFileSync(join(SCRIPTS, '../.github/repo-settings.json'), 'utf8'),
+      );
+      const result = next([], NOW, {}, ['owner-decide']);
+      assert.equal(result.status, 0, result.stderr);
+      const calls = gh.calls().map(({ args }) => args);
+      const created = calls.filter((args) => args[0] === 'label' && args[1] === 'create');
+      assert.equal(created.length, 1, 'once, not for every PR');
+      const [create] = created;
+      const flagValue = (flag) => create[create.indexOf(flag) + 1];
+      const declared = settings.labels.find((label) => label.name === 'owner-queue');
+      assert.equal(create[2], 'owner-queue');
+      assert.equal(flagValue('--color'), declared.color);
+      assert.equal(flagValue('--description'), declared.description);
+      const firstAdd = calls.findIndex(
+        (args) => args[0] === 'pr' && args[1] === 'edit' && args.includes('owner-queue'),
+      );
+      assert.ok(calls.indexOf(create) < firstAdd, 'created before it is added');
+    });
   });
 });
 
@@ -1055,6 +1202,12 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
     // The scripts run from their own checkout (its .work/ holds the notes), with a branch for each issue below.
     repo = realpathSync(mkdtempSync(join(tmpdir(), 'flow-idle-')));
     cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+    // The owner labels are created from the settings when GitHub lacks them.
+    mkdirSync(join(repo, '.github'));
+    cpSync(
+      join(SCRIPTS, '../.github/repo-settings.json'),
+      join(repo, '.github/repo-settings.json'),
+    );
     const git = (...args) =>
       execFileSync(
         'git',
@@ -1160,12 +1313,16 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       env = {},
       openPrs = [],
       blockers = [],
+      onGitHub = ['owner-queue', 'owner-decide'],
     } = scenario;
     return spawnSync(join(repo, 'scripts/flow.sh'), [command, ...args], {
       encoding: 'utf8',
       env: {
         ...gh.env([
           ...failing.map((match) => ({ match, out: '', status: 1 })),
+          { match: '^label list ', out: onGitHub.map((name) => ({ name })) },
+          { match: '^label create ', out: '' },
+          { match: '^pr edit ', out: '' },
           { match: '^api user', out: { login: 'thekeyvan' } },
           {
             match: '^issue list .*--assignee @me',
@@ -1306,6 +1463,79 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
           '',
         ].join('\n'),
       );
+    });
+
+    describe('#407 the owner labels', () => {
+      const openPr = (number, branch, labelNames = [], extra = {}) => ({
+        number,
+        title: `[F031] PR ${number}`,
+        isDraft: false,
+        headRefOid: HEAD,
+        headRefName: branch,
+        labels: labels(...labelNames),
+        ...extra,
+      });
+      const edits = () =>
+        gh
+          .calls()
+          .filter(({ args }) => args[0] === 'pr' && args[1] === 'edit')
+          .map(({ args }) => ({
+            pr: Number(args[2]),
+            add: args.filter((arg, i) => args[i - 1] === '--add-label'),
+            remove: args.filter((arg, i) => args[i - 1] === '--remove-label'),
+          }));
+
+      it('AC5: syncs the labels with its "Waiting on the owner" list when it is idle', () => {
+        // #91 was removed from the queue and #93 refused on its head commit: both to decide. #92 is in the merge queue.
+        const result = run('idle', {
+          others: [removed, queued, refused],
+          openPrs: [
+            openPr(91, 'chore/9001-removed'),
+            openPr(92, 'chore/9002-queued', ['owner-decide']),
+            openPr(93, 'chore/9003-refused', ['owner-queue']),
+          ],
+        });
+        assert.equal(result.status, 0, result.stderr);
+        assert.match(result.stdout, /^Decide on PR #91 /m);
+        assert.match(result.stdout, /^Decide on PR #93 /m);
+        assert.deepEqual(edits(), [
+          { pr: 91, add: ['owner-decide'], remove: [] },
+          { pr: 92, add: [], remove: ['owner-decide'] },
+          { pr: 93, add: ['owner-decide'], remove: ['owner-queue'] },
+        ]);
+      });
+
+      it('AC6: a failed label write warns on stderr and leaves the output and the exit code of idle alone', () => {
+        const openPrs = [openPr(91, 'chore/9001-removed')];
+        const others = [removed];
+        const plain = run('idle', { others, openPrs });
+        const failed = run('idle', { others, openPrs, failing: ['^pr edit 91 '] });
+        assert.equal(failed.status, 0, failed.stderr);
+        assert.equal(failed.status, plain.status);
+        assert.equal(failed.stdout, plain.stdout);
+        assert.match(failed.stderr, /^warning: .*PR #91\b/m);
+      });
+
+      it('AC7: creates a missing label from the settings before it adds it', () => {
+        const result = run('idle', {
+          others: [removed],
+          openPrs: [openPr(91, 'chore/9001-removed')],
+          onGitHub: [],
+        });
+        assert.equal(result.status, 0, result.stderr);
+        const calls = gh.calls().map(({ args }) => args.slice(0, 2).join(' '));
+        assert.ok(calls.indexOf('label create') >= 0);
+        assert.ok(calls.indexOf('label create') < calls.indexOf('pr edit'));
+      });
+
+      it('does not label while there is work for an agent', () => {
+        const result = run('idle', {
+          tickets: [issue(180, '[F003] Add a client', ['ready-for-agent'])],
+          openPrs: [openPr(93, 'chore/9003-refused', ['owner-queue'])],
+        });
+        assert.equal(result.status, 1, result.stderr);
+        assert.deepEqual(edits(), []);
+      });
     });
 
     it('exits 0 when nothing is assigned or ready', () => {
