@@ -13,6 +13,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
@@ -1503,6 +1504,49 @@ const iPhone = (udid, model, runtime, state = 'Shutdown') => ({
   runtime: `com.apple.CoreSimulator.SimRuntime.iOS-${runtime}`,
 });
 
+// E008 #383: the web server port of a run of the native test commands and, 2000 above it, that of the fake Brevo
+// server. Picked at random, and only where both are free now, so two runs on one machine (two worktrees running
+// check.sh, which also runs web e2e tests on E2E_PORT) don't take the same ports. A port is free when nothing listens
+// on it at 'localhost' (the host fake-brevo.ts binds, which on macOS is not the wildcard address: another process can
+// hold the port there while the wildcard check passes) nor at the wildcard address (where the web server listens).
+// `first` are ports to try before random ones (a test uses them). The pairs handed out by this process are skipped
+// (each is closed again after the check, so two checkouts in a row could draw the same one). A port is checked in a
+// process of its own, because this one may not block on it.
+const handedOut = new Set();
+const freePorts = (first = []) => {
+  const found = execFileSync(
+    process.execPath,
+    [
+      '-e',
+      `const { createServer } = require('node:net');
+const [first, skipped] = JSON.parse(process.argv[1]);
+const freeAt = (port, host) => new Promise((resolve) => {
+  const server = createServer();
+  server.on('error', () => resolve(false));
+  server.listen(port, host, () => server.close(() => resolve(true)));
+});
+const free = async (port) => {
+  for (const host of ['localhost', undefined]) if (!(await freeAt(port, host))) return false;
+  return true;
+};
+(async () => {
+  const candidates = [...first];
+  for (;;) {
+    const port = candidates.shift() ?? 20000 + Math.floor(Math.random() * 25000);
+    if (skipped.includes(port) || skipped.includes(port + 2000) || skipped.includes(port - 2000)) continue;
+    if ((await free(port)) && (await free(port + 2000))) return console.log(port);
+  }
+})();`,
+      JSON.stringify([first, [...handedOut]]),
+    ],
+    { encoding: 'utf8' },
+  );
+  const port = Number(found);
+  handedOut.add(port);
+  handedOut.add(port + 2000);
+  return { port, brevoPort: port + 2000 };
+};
+
 // The native test commands in a copy of the repo with fake toolchains: simctl above, an emulator that records its pid,
 // and an xcodebuild, gradlew, adb and Maestro that log their arguments. FAKE_RESULT makes each command's last step
 // pass, fail or hang (until a Ctrl-C to the whole process group, as in a terminal), so a test can check what the
@@ -1526,6 +1570,7 @@ describe('E008 #71 native test commands clean up after themselves', () => {
   const checkout = ({ simulatorBooted = false, emulatorRunning = false } = {}) => {
     const base = realpathSync(mkdtempSync(join(tmpdir(), 'native-')));
     dirs.push(base);
+    const { port, brevoPort } = freePorts();
     const repo = join(base, 'repo');
     const state = join(base, 'state');
     const bin = join(base, 'bin');
@@ -1845,7 +1890,7 @@ esac`,
             ANDROID_HOME: sdk,
             JAVA_HOME: join(base, 'jdk'),
             EMULATOR_LOG: join(base, 'emulator.log'),
-            E2E_PORT: '3999',
+            E2E_PORT: String(port),
             IOS_SIM_SETTLE: '0',
             ...extraEnv,
           },
@@ -1892,7 +1937,19 @@ esac`,
       execFileSync('git', ['-C', repo, 'worktree', 'add', '--quiet', '-b', branch, path]);
       return path;
     };
-    return { repo, run, log, webEnv, brevoAnswered, simulators, simulator, emulator, worktree };
+    return {
+      repo,
+      port,
+      brevoPort,
+      run,
+      log,
+      webEnv,
+      brevoAnswered,
+      simulators,
+      simulator,
+      emulator,
+      worktree,
+    };
   };
 
   const endings = [
@@ -3166,12 +3223,13 @@ esac`,
       const run = await fake.run('scripts/android.sh', ['maestro-apk']);
 
       assert.equal(run.status, 0, run.output);
-      assert.match(
-        gradleTasks(fake),
-        /assembleDebug -Pfivvi\.apiBaseUrl=http:\/\/10\.0\.2\.2:3999\/api\//,
+      const apiBaseUrl = `fivvi.apiBaseUrl=http://10.0.2.2:${fake.port}/api/`;
+      assert.ok(
+        gradleTasks(fake).includes(`assembleDebug -P${apiBaseUrl}`),
+        `${apiBaseUrl}: ${gradleTasks(fake)}`,
       );
       const apk = join(fake.repo, 'apps/android/build/maestro/app-debug.apk');
-      assert.match(readFileSync(apk, 'utf8'), /fivvi\.apiBaseUrl=http:\/\/10\.0\.2\.2:3999\/api\//);
+      assert.ok(readFileSync(apk, 'utf8').includes(apiBaseUrl), apiBaseUrl);
     });
 
     it('maestro.sh android --apk installs that APK and does not run Gradle', async () => {
@@ -3713,7 +3771,7 @@ esac`,
   // GET /api/v1/hello?locale=<its language>, and the flow started while Android was still busy after the framework
   // restart that sets the device language (System UI stopped responding and its dialog covered the app).
   const isFlow = (call) => / test /.test(` ${call} `) && call.startsWith('maestro ');
-  const hello = (locale) => `http://127.0.0.1:3999/api/v1/hello?locale=${locale}`;
+  const hello = (fake, locale) => `http://127.0.0.1:${fake.port}/api/v1/hello?locale=${locale}`;
 
   for (const [name, args] of [
     ['maestro.sh android', ['android']],
@@ -3731,11 +3789,11 @@ esac`,
       assert.ok(firstFlow > 0, calls.join('\n'));
       for (const locale of ['nl-NL', 'en']) {
         const warmUp = calls.findIndex(
-          (call) => call.startsWith('curl ') && call.includes(` ${hello(locale)}`),
+          (call) => call.startsWith('curl ') && call.includes(` ${hello(fake, locale)}`),
         );
         assert.ok(
           health < warmUp && warmUp < firstFlow,
-          `GET ${hello(locale)} after the health check, before the first flow:\n${calls.join('\n')}`,
+          `GET ${hello(fake, locale)} after the health check, before the first flow:\n${calls.join('\n')}`,
         );
       }
     });
@@ -3818,7 +3876,7 @@ esac`,
 
       assert.equal(run.status, 0, run.output);
       for (const flow of fake.log('maestro').filter((call) => / test /.test(` ${call} `))) {
-        assert.ok(flow.includes('--env BREVO_URL=http://localhost:5999 '), flow);
+        assert.ok(flow.includes(`--env BREVO_URL=http://localhost:${fake.brevoPort} `), flow);
       }
     });
 
@@ -3829,18 +3887,18 @@ esac`,
 
       assert.equal(run.status, 0, run.output);
       const calls = fake.log('calls');
-      const brevo = calls.indexOf('curl -fsS http://localhost:5999/');
+      const brevo = calls.indexOf(`curl -fsS http://localhost:${fake.brevoPort}/`);
       const health = calls.findIndex((call) =>
-        call.includes('http://127.0.0.1:3999/api/v1/health'),
+        call.includes(`http://127.0.0.1:${fake.port}/api/v1/health`),
       );
       assert.ok(brevo >= 0, `the fake Brevo server is waited for:\n${calls.join('\n')}`);
       assert.ok(brevo < health, `before the web server's health check:\n${calls.join('\n')}`);
       const env = fake.webEnv();
       // The same variables as the web e2e's servers (playwright.config.ts); every value synthetic.
-      assert.equal(env.BREVO_API_URL, 'http://localhost:5999/v3/smtp/email');
+      assert.equal(env.BREVO_API_URL, `http://localhost:${fake.brevoPort}/v3/smtp/email`);
       assert.ok(env.BREVO_API_KEY && env.EMAIL_FROM_ADDRESS && env.EMAIL_FROM_NAME);
       assert.ok(env.BETTER_AUTH_SECRET?.length >= 32, 'a secret of at least 32 characters');
-      assert.equal(env.BETTER_AUTH_URL, 'http://127.0.0.1:3999');
+      assert.equal(env.BETTER_AUTH_URL, `http://127.0.0.1:${fake.port}`);
       assert.match(env.SIGN_UP_ALLOWED_EMAILS, /@example\.com/);
       // Outside production, mail to @example.com (the seeded owner@example.com) is logged, never sent, unless this
       // opt-in sends it through Brevo, here the fake one. The server is not the production environment: it would
@@ -4044,10 +4102,100 @@ esac`,
           fake.brevoAnswered(),
           'the fake Brevo server answered GET /emails during the run',
         );
-        await assert.rejects(fetch('http://localhost:5999/'), 'nothing answers on its port');
+        await assert.rejects(
+          fetch(`http://localhost:${fake.brevoPort}/`),
+          'nothing answers on its port',
+        );
       });
     }
   }
+
+  // E008 #383: the ports of a run were fixed (3999 and 5999), so two runs on one machine (two worktrees running
+  // check.sh) took the same ports and their fake servers answered each other's calls. Each run has its own pair.
+  it('#383: each run has its own ports, the second the Brevo port 2000 above the first', () => {
+    const [first, second] = [checkout(), checkout()];
+
+    assert.notEqual(first.port, second.port);
+    for (const { port, brevoPort } of [first, second]) {
+      assert.ok(Number.isInteger(port) && port > 1024, `a port: ${port}`);
+      assert.equal(brevoPort, port + 2000);
+    }
+  });
+
+  it('#383: ports held at localhost (where the fake Brevo server binds) are skipped, on both sides of the pair', async () => {
+    const hold = (port) =>
+      new Promise((resolve, reject) => {
+        const server = createServer((socket) => socket.destroy());
+        server.on('error', reject);
+        server.listen(port, 'localhost', () => resolve(server));
+      });
+    // Two candidates for the web port, one held itself and one whose Brevo port (2000 above) is held.
+    const held = await hold(0);
+    const heldAt = held.address().port;
+    const brevoHeld = await hold(0);
+    const brevoHeldAt = brevoHeld.address().port;
+    try {
+      const { port, brevoPort } = freePorts([heldAt, brevoHeldAt - 2000]);
+
+      assert.notEqual(port, heldAt);
+      assert.notEqual(port, brevoHeldAt - 2000);
+      assert.notEqual(brevoPort, heldAt);
+      assert.notEqual(brevoPort, brevoHeldAt);
+    } finally {
+      held.close();
+      brevoHeld.close();
+    }
+  });
+
+  it('#383: many checkouts in one process never share a port', () => {
+    const ports = Array.from({ length: 20 }, () => checkout()).flatMap(({ port, brevoPort }) => [
+      port,
+      brevoPort,
+    ]);
+
+    assert.equal(new Set(ports).size, ports.length);
+  });
+
+  it('#383: a run works while another process holds the ports the tests used to fix (3999, 5999)', async () => {
+    const holders = await Promise.all(
+      [3999, 5999].map(
+        (port) =>
+          new Promise((resolve) => {
+            const server = createServer((socket) => socket.destroy());
+            // Taken already, by another worktree's run: as good a holder.
+            server.on('error', () => resolve(undefined));
+            server.listen(port, 'localhost', () => resolve(server));
+          }),
+      ),
+    );
+    try {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android']);
+
+      assert.equal(run.status, 0, run.output);
+      assert.ok(fake.brevoAnswered(), 'its own fake Brevo server answered');
+    } finally {
+      for (const server of holders) server?.close();
+    }
+  });
+
+  it('#383: two runs at the same time each reach their own fake Brevo server', async () => {
+    const [one, two] = [checkout(), checkout()];
+
+    const runs = await Promise.all(
+      [one, two].map((fake) =>
+        fake.run('scripts/maestro.sh', ['android'], {
+          FAKE_MAESTRO_SLEEP: '1',
+          FAKE_BREVO_LISTEN_DELAY_MS: '500',
+        }),
+      ),
+    );
+
+    for (const [index, run] of runs.entries())
+      assert.equal(run.status, 0, `${index}: ${run.output}`);
+    assert.ok(one.brevoAnswered() && two.brevoAnswered(), 'both answered');
+  });
 
   it('#89: maestro.sh android waits for Android to deliver its broadcasts after each language change, before the flow', async () => {
     const fake = checkout();
