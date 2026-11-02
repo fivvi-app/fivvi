@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   createLettermintTransport,
   lettermintApiUrl,
@@ -159,6 +159,24 @@ describe('E006 Lettermint transport', () => {
     ).toEqual(['"Doe, \\"Jo\\" <x@y.test> Bcc: z" <a@gym.test>']);
   });
 
+  it('sends a non-ASCII display name as plain text, never MIME-encoded', () => {
+    const base = {
+      from: { email: 'noreply@fivvi.app', name: 'Zoë Ünal' },
+      to: { email: 'a@gym.test', name: 'Zoë Ünal' },
+      subject: 's',
+      html: 'h',
+      text: 'text',
+      locale: 'en',
+      template: 'hello',
+      idempotencyKey: key,
+    } as const;
+
+    expect(lettermintRequestBody(base, { signIn: 's', mail: 'm' })).toMatchObject({
+      from: 'Zoë Ünal <noreply@fivvi.app>',
+      to: ['Zoë Ünal <a@gym.test>'],
+    });
+  });
+
   it('retries a 5xx with backoff and the same idempotency key', async () => {
     const { requests, waits, retries, send } = setup(
       json(500, { error: { code: 'INTERNAL_ERROR', message: 'Oops' } }),
@@ -198,6 +216,21 @@ describe('E006 Lettermint transport', () => {
 
     expect((await send()).attempts).toBe(3);
     expect(waits).toEqual([1_000, 2_000]);
+  });
+
+  it('reads Retry-After given as an HTTP date', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2030-01-01T00:00:00Z'));
+      const { send } = setup(
+        json(429, {}, { 'retry-after': new Date('2030-01-01T00:01:00Z').toUTCString() }),
+      );
+
+      const error = await failure(send());
+      expect(error.retryAfterMs).toBe(60_000);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('gives up at once when a 429 asks to wait longer than the budget', async () => {
@@ -261,7 +294,7 @@ describe('E006 Lettermint transport', () => {
     expect(requests).toHaveLength(1);
   });
 
-  it('treats a 409 on a retry as sent: the lost first attempt got through', async () => {
+  it('treats a 409 on a retry as maybe sent: the failed first attempt may have got through', async () => {
     const { requests, send } = setup(new TypeError('fetch failed'), json(409, { message: 'used' }));
 
     expect(await send()).toEqual({ attempts: 2 });

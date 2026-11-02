@@ -63,36 +63,24 @@ export function readEmailConfig(
   const routeMail = env.LETTERMINT_ROUTE_MAIL?.trim();
   const address = env.EMAIL_FROM_ADDRESS?.trim();
   const name = env.EMAIL_FROM_NAME?.trim();
-  const missing = (
-    lettermintToken
-      ? [
-          !routeSignIn && 'LETTERMINT_ROUTE_SIGN_IN',
-          !routeMail && 'LETTERMINT_ROUTE_MAIL',
-          !address && 'EMAIL_FROM_ADDRESS',
-          !name && 'EMAIL_FROM_NAME',
-        ]
-      : [
-          !brevoApiKey && 'BREVO_API_KEY',
-          !address && 'EMAIL_FROM_ADDRESS',
-          !name && 'EMAIL_FROM_NAME',
-        ]
-  ).filter(Boolean);
-  if (missing.length > 0 || !address || !name) {
-    throw new Error(
-      `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} not set. For local development, see "Configuration" in packages/email/README.md.`,
-    );
-  }
-  if (!EMAIL.test(address)) {
-    throw new Error('EMAIL_FROM_ADDRESS is not an email address.');
-  }
+  // The sender variables are the same for both providers; each provider adds its own list in front.
+  const senderMissing = [!address && 'EMAIL_FROM_ADDRESS', !name && 'EMAIL_FROM_NAME'];
 
-  if (lettermintToken && routeSignIn && routeMail) {
+  if (lettermintToken) {
+    if (!routeSignIn || !routeMail || !address || !name) {
+      throw notSet([
+        !routeSignIn && 'LETTERMINT_ROUTE_SIGN_IN',
+        !routeMail && 'LETTERMINT_ROUTE_MAIL',
+        ...senderMissing,
+      ]);
+    }
+    const sender = senderOf(address, name);
     const apiUrl = env.LETTERMINT_API_URL?.trim();
     if (apiUrl && !URL.canParse(apiUrl)) {
       throw new Error('LETTERMINT_API_URL is not a URL.');
     }
     return {
-      sender: { email: address, name },
+      sender,
       lettermint: {
         apiToken: lettermintToken,
         routes: { signIn: routeSignIn, mail: routeMail },
@@ -101,10 +89,27 @@ export function readEmailConfig(
     };
   }
 
+  if (!brevoApiKey || !address || !name) {
+    throw notSet([!brevoApiKey && 'BREVO_API_KEY', ...senderMissing]);
+  }
+  const sender = senderOf(address, name);
   const brevoApiUrl = env.BREVO_API_URL?.trim();
   if (brevoApiUrl && !URL.canParse(brevoApiUrl)) {
     throw new Error('BREVO_API_URL is not a URL.');
   }
-  if (!brevoApiKey) throw new Error('BREVO_API_KEY is not set.');
-  return { sender: { email: address, name }, brevoApiKey, ...(brevoApiUrl && { brevoApiUrl }) };
+  return { sender, brevoApiKey, ...(brevoApiUrl && { brevoApiUrl }) };
+}
+
+function notSet(names: (string | false)[]): Error {
+  const missing = names.filter(Boolean);
+  return new Error(
+    `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} not set. For local development, see "Configuration" in packages/email/README.md.`,
+  );
+}
+
+function senderOf(address: string, name: string): EmailAddress {
+  if (!EMAIL.test(address)) {
+    throw new Error('EMAIL_FROM_ADDRESS is not an email address.');
+  }
+  return { email: address, name };
 }

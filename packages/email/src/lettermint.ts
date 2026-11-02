@@ -81,8 +81,9 @@ export function createLettermintTransport({
         detail: typeof message === 'string' ? message : undefined,
         retryable: status === 429 || status >= 500,
         retryAfterMs: status === 429 ? retryAfterMs(response.headers) : undefined,
-        // The key was used before: with this body (an earlier attempt got through) or with
-        // another one (our mistake). `createSendEmail` tells them apart by the attempt.
+        // The key was used before. The same key with the same body answers 202 again, so a 409
+        // on a retry (after a 5xx or timeout of unknown outcome) means "maybe sent" (ADR-028);
+        // on the first attempt it is our own mistake. `createSendEmail` tells them apart by the attempt.
         duplicate: status === 409,
       });
     },
