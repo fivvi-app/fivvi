@@ -16,7 +16,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [006](ADR-006-tenant-isolation.md) | Tenant isolation: org-scoped data layer + Postgres RLS + cross-tenant tests | Accepted |
 | [007](ADR-007-authentication.md) | Authentication: Better Auth with magic link + 6-digit code, bearer tokens for native; the organization plugin for workspaces amended by ADR-022 | Accepted |
 | [008](ADR-008-localization.md) | Localization: ICU catalogs in `packages/i18n`, exported to native catalogs | Accepted |
-| [009](ADR-009-transactional-email.md) | Transactional email: React Email + Brevo | Accepted; provider selected |
+| [009](ADR-009-transactional-email.md) | Transactional email: React Email + Brevo; the provider is amended by ADR-028 | Accepted; provider selected |
 | [010](ADR-010-background-jobs.md) | Background jobs: lazy expiry + daily cron, no job runner; the hold expiry ends with ADR-026 and the daily-only cron is amended by ADR-027 | Accepted |
 | [011](ADR-011-hosting-and-environments.md) | Hosting & environments: Railway EU West (Amsterdam) for web, API, Postgres and cron | Accepted (re-evaluated; replaces Vercel + Neon) |
 | [012](ADR-012-time-and-recurrence.md) | Time & recurrence: UTC `timestamptz` + IANA zones, RRULE in wall-clock time, materialized occurrences | Accepted |
@@ -35,6 +35,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [025](ADR-025-requeue-after-a-fix.md) | A PR the merge queue removed for a cause outside it is re-queued once after the fix (`pr.sh merge --after <bug>`) instead of waiting on the owner; amends ADR-018 | Proposed |
 | [026](ADR-026-clients-sign-in-and-are-approved-to-book.md) | Clients sign in and are approved to book: anyone can create an account, a client joins a workspace by its join link or an invitation and the Owner approves, nothing is public, booking is immediate (no holds, no email step), booking needs an agreement from M11; Sign in with Apple and Google planned (F063); reverses `PRODUCT.md` §23–§26 as written | Proposed |
 | [027](ADR-027-a-cron-every-5-minutes.md) | A cron every 5 minutes (Railway's minimum) for the waitlist's closing-time email; the daily work stays daily; amends ADR-010 | Proposed |
+| [028](ADR-028-transactional-email-through-lettermint.md) | Transactional email through Lettermint (Dutch, EU-only) instead of Brevo: tracking off and no `List-Unsubscribe` on transactional mail; two routes (sign-in, other), Free until pilot setup then Starter, Scaleway TEM as fallback; amends ADR-009 | Proposed |
 
 ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. ADR-011 was re-evaluated during the write-up and accepted in its new form (Railway) the same day. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
 
