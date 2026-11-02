@@ -274,6 +274,71 @@ describe('E004 migrations', () => {
     }
   });
 
+  it('gives only the seed’s own email-less client its address, so the seeded development database migrates (F006)', async () => {
+    const emailRequired = '0015_clients_email_required';
+    const journal = await readJournal(migrationsFolder);
+    const index = journal.entries.findIndex((entry) => entry.tag === emailRequired);
+    expect(index).toBeGreaterThanOrEqual(0);
+
+    const previous = await mkdtemp(join(tmpdir(), 'fivvi-migrations-'));
+    try {
+      await cp(migrationsFolder, previous, { recursive: true });
+      const previousJournal = { ...journal, entries: journal.entries.slice(0, index) };
+      await writeFile(join(previous, 'meta', '_journal.json'), JSON.stringify(previousJournal));
+
+      const insertWorkspace = (db: Parameters<typeof rows>[0], slug: string) =>
+        rows<{ id: string }>(
+          db,
+          sql`insert into organizations (name, slug, default_locale, time_zone)
+              values (${slug}, ${slug}, 'nl-NL', 'Europe/Amsterdam') returning id`,
+        );
+
+      await withFreshDatabase(async (client) => {
+        await migrate(client.db, { migrationsFolder: previous });
+        const [gym] = await insertWorkspace(client.db, 'johns-gym');
+        const [other] = await insertWorkspace(client.db, 'other-gym');
+        // The seed of an older version: Mark Jansen of John's Gym without an address.
+        await client.db.execute(
+          sql`insert into clients (organization_id, name) values (${gym?.id}, 'Mark Jansen')`,
+        );
+        // Not the seed's row: same name in another workspace, and another name in the seed's.
+        const [stranger] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into clients (organization_id, name)
+              values (${other?.id}, 'Mark Jansen') returning id`,
+        );
+        const [sophie] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into clients (organization_id, name)
+              values (${gym?.id}, 'Sophie Bakker') returning id`,
+        );
+
+        // Any other row without an address still stops the migration: no address is made up.
+        await expect(runMigrations(client.db)).rejects.toThrow();
+        await client.db.execute(
+          sql`update clients set email = 'a@example.com' where id = ${stranger?.id}`,
+        );
+        await expect(runMigrations(client.db)).rejects.toThrow();
+        await client.db.execute(
+          sql`update clients set email = 'b@example.com' where id = ${sophie?.id}`,
+        );
+
+        await runMigrations(client.db);
+        expect(
+          await rows(
+            client.db,
+            sql`select name, email from clients where organization_id = ${gym?.id} order by name`,
+          ),
+        ).toEqual([
+          { name: 'Mark Jansen', email: 'mark@example.com' },
+          { name: 'Sophie Bakker', email: 'b@example.com' },
+        ]);
+      });
+    } finally {
+      await rm(previous, { recursive: true, force: true });
+    }
+  });
+
   it('is a no-op when run again', async () => {
     await withFreshDatabase(async (client) => {
       await runMigrations(client.db);

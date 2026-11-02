@@ -630,7 +630,7 @@ export interface components {
              */
             surface?: "ios" | "android";
         };
-        /** @description The fields of a client to change. A field left out, or `null`, stays as it is; the language goes back to the default with `clearEmailLocale`. The email address can be changed, never cleared. The same body reads alike in every client: Swift leaves a `nil` out, Kotlin writes `null`. */
+        /** @description The fields of a client to change. A field left out, or `null`, stays as it is; the language goes back to the default with `clearEmailLocale`. The email address can be changed, never cleared. The same body reads alike in every client: Swift and Kotlin leave an unset field out, and any caller may send `null` for "keep". */
         UpdateClientRequest: {
             /** @description The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out, or send `null`, to keep it. Empty, blank or longer answers `400` with a field error. */
             name?: string | null;

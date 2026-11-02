@@ -29,7 +29,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * The fields of a client to change. A field left out, or `null`, stays as it is; the language goes back to the default with `clearEmailLocale`. The email address can be changed, never cleared. The same body reads alike in every client: Swift leaves a `nil` out, Kotlin writes `null`.
+ * The fields of a client to change. A field left out, or `null`, stays as it is; the language goes back to the default with `clearEmailLocale`. The email address can be changed, never cleared. The same body reads alike in every client: Swift and Kotlin leave an unset field out, and any caller may send `null` for \"keep\".
  *
  * @param name The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out, or send `null`, to keep it. Empty, blank or longer answers `400` with a field error.
  * @param email The new email address; stored lower case. Leave it out, or send `null`, to keep it. The address can't be cleared: an empty one, or one that is no email address, answers `400` with a field error; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.

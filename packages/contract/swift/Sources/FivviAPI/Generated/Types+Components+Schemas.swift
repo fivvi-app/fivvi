@@ -1042,7 +1042,7 @@ extension Components {
                 case surface
             }
         }
-        /// The fields of a client to change. A field left out, or `null`, stays as it is; the language goes back to the default with `clearEmailLocale`. The email address can be changed, never cleared. The same body reads alike in every client: Swift leaves a `nil` out, Kotlin writes `null`.
+        /// The fields of a client to change. A field left out, or `null`, stays as it is; the language goes back to the default with `clearEmailLocale`. The email address can be changed, never cleared. The same body reads alike in every client: Swift and Kotlin leave an unset field out, and any caller may send `null` for "keep".
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateClientRequest`.
         public struct UpdateClientRequest: Codable, Hashable, Sendable {

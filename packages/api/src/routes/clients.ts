@@ -121,9 +121,10 @@ const AddClientBodySchema = z
   });
 
 // The three states of a field in an edit (keep, set, clear) in a body that the generated clients
-// send alike. Swift leaves out a field that is `nil`; Kotlin writes `null` for a field the app
-// did not set. So `null` and a missing field both mean "keep", and clearing the language is a flag
-// of its own (`clearEmailLocale`) that no client sends by accident. The email address has no
+// send alike. Swift leaves out a field that is `nil`, and Kotlin leaves out an unset field too
+// (`explicitNulls = false`, packages/contract README), but any other caller may send `null`. So
+// `null` and a missing field both mean "keep", and clearing the language is a flag of its own
+// (`clearEmailLocale`) that no client sends by accident. The email address has no
 // clearing: every client has one.
 const KEEP = 'Leave it out, or send `null`, to keep it.';
 
@@ -184,7 +185,8 @@ const UpdateClientBodySchema = z
       'The fields of a client to change. A field left out, or `null`, stays as it is; the ' +
       'language goes back to the default with `clearEmailLocale`. The email address can be ' +
       'changed, never cleared. ' +
-      'The same body reads alike in every client: Swift leaves a `nil` out, Kotlin writes `null`.',
+      'The same body reads alike in every client: Swift and Kotlin leave an unset field out, and ' +
+      'any caller may send `null` for "keep".',
   });
 
 const WorkspaceParamsSchema = z.object({
