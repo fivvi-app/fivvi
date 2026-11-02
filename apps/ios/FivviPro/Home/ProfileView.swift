@@ -221,7 +221,8 @@ struct ProfileView: View {
         .disabled(entry.change == .saving)
         // A tap on the label moves the switch too (SwiftUI's `Toggle` on iOS only takes the control itself), so the whole
         // row is the touch target. A tap on the control is the `Toggle`'s own; a second change while one is saving is
-        // ignored by the model.
+        // ignored by the model. At least 44 pt high, like the other rows.
+        .frame(minHeight: 44)
         .contentShape(Rectangle())
         .onTapGesture { Task { await model.setTrainsHere(!entry.trainsHere, in: entry.id) } }
         .accessibilityIdentifier("profile.trainsHere.\(entry.slug)")

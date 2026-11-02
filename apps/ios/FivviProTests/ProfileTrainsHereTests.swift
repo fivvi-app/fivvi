@@ -119,6 +119,24 @@ final class ProfileTrainsHereTests: XCTestCase {
         }
     }
 
+    func test_F005_AC4_theSavedAndErrorLinesAreAnnounced() async {
+        let catalog = TestCatalog(InterfaceLanguage.resolve(.system()))
+        let answers: [(ProfileScript.Answer, String)] = [
+            (.accepted, "profile.trainsHere.saved"), (.offline, "profile.trainsHere.errors.noConnection"),
+            (.status(500), "profile.trainsHere.errors.generic")
+        ]
+        for (answer, key) in answers {
+            let announcements = Announcements()
+            let api = StubAPI()
+            let model = await ProfileFixtures.loadedModel(api, ownerTrainsHere: true, announcements: announcements)
+            await api.answerTrainerProfile(with: answer)
+
+            await model.setTrainsHere(false, in: own)
+
+            XCTAssertEqual(announcements.texts, [catalog[key]], "\(answer)")
+        }
+    }
+
     func test_F005_AC4_aRefusalReadsTheListAgain() async {
         for answer in [ProfileScript.Answer.forbidden, .notFound] {
             let api = StubAPI()

@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 import FivviAPI
 import OpenAPIRuntime
 
@@ -68,6 +69,9 @@ final class ProfileViewModel {
     private(set) var editor: NameEditor?
     private(set) var catalog: Catalog
     private let api: any APIProtocol
+    /// Tells a screen reader about a line that appears (*Saved.*, a failure): the app posts an accessibility
+    /// announcement, tests record the texts. The same as Android's polite live region.
+    private let announce: @MainActor (String) -> Void
     /// What the API listed last, so the roles can be labelled again when the language changes.
     private var memberships: [Components.Schemas.MyWorkspace]?
     private var changes: [String: TrainsHereChange] = [:]
@@ -79,9 +83,13 @@ final class ProfileViewModel {
     private var switchOverrides: [String: (trainsHere: Bool, after: Int)] = [:]
     private var nameOverride: (name: String?, after: Int)?
 
-    init(api: any APIProtocol, catalog: Catalog) {
+    init(
+        api: any APIProtocol, catalog: Catalog,
+        announce: @escaping @MainActor (String) -> Void = { AccessibilityNotification.Announcement($0).post() }
+    ) {
         self.api = api
         self.catalog = catalog
+        self.announce = announce
     }
 
     /// A save is under way, of the name or of a switch: leaving Profiel would hide how it went, so back does nothing.
@@ -198,6 +206,7 @@ final class ProfileViewModel {
                 account = Account(name: saved.name, email: saved.email)
                 nameSaved = true
                 self.editor = nil
+                announce(catalog[.myProfileSaved])
             case let .badRequest(refusal):
                 failName(Self.nameError(of: try refusal.body.json))
             default:
@@ -211,6 +220,7 @@ final class ProfileViewModel {
     private func failName(_ error: NameError) {
         editor?.saving = false
         editor?.error = error
+        if let message = nameMessage { announce(message) }
     }
 
     /// `400 validation_failed` names the refused field: `too_small` is an empty or blank name, `too_big` a long one.
@@ -240,16 +250,20 @@ final class ProfileViewModel {
             switchOverrides[workspaceID] = (trains, readsStarted)
             changes[workspaceID] = .saved
             relabel()
+            announce(catalog[.profileTrainsHereSaved])
         case .refused:
             changes[workspaceID] = .failed
             relabel()
+            announce(catalog[.profileTrainsHereErrorsGeneric])
             await refresh()
         case .noConnection:
             changes[workspaceID] = .noConnection
             relabel()
+            announce(catalog[.profileTrainsHereErrorsNoConnection])
         case .failed:
             changes[workspaceID] = .failed
             relabel()
+            announce(catalog[.profileTrainsHereErrorsGeneric])
         }
     }
 

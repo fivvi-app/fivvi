@@ -20,11 +20,15 @@ enum ProfileFixtures {
     /// A model for Sarah, loaded: the account `sarah@example.com` named "Sarah" and her two workspaces.
     @MainActor
     static func loadedModel(
-        _ api: StubAPI, ownerTrainsHere: Bool = true, name: String? = "Sarah"
+        _ api: StubAPI, ownerTrainsHere: Bool = true, name: String? = "Sarah",
+        announcements: Announcements = Announcements()
     ) async -> ProfileViewModel {
         await api.answerMe(with: .account(email: "sarah@example.com", name: name))
         await api.answerMyWorkspaces(with: .workspaces(sarah(ownerTrainsHere: ownerTrainsHere)))
-        let model = ProfileViewModel(api: api, catalog: Catalog(locale: InterfaceLanguage.resolve(.system())))
+        let model = ProfileViewModel(
+            api: api, catalog: Catalog(locale: InterfaceLanguage.resolve(.system())),
+            announce: { announcements.record($0) }
+        )
         await model.load()
         return model
     }

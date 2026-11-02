@@ -36,6 +36,28 @@ final class ProfileNameTests: XCTestCase {
         XCTAssertNil(model.editor, "the sheet closes once the API accepted")
     }
 
+    func test_F005_AC1_theSavedLineAndTheFieldMessageAreAnnounced() async {
+        let catalog = TestCatalog(language)
+        let announcements = Announcements()
+        let api = StubAPI()
+        let model = await ProfileFixtures.loadedModel(api, announcements: announcements)
+        XCTAssertEqual(announcements.texts, [], "loading says nothing")
+
+        await api.answerUpdateMe(with: .refused(path: "name", code: "too_small"))
+        model.startEditingName()
+        await model.saveName()
+        XCTAssertEqual(announcements.texts, [catalog["myProfile.errors.nameRequired"]], "a refusal is read out")
+
+        await api.answerUpdateMe(with: .offline)
+        await model.saveName()
+        XCTAssertEqual(announcements.texts.last, catalog["myProfile.errors.noConnection"])
+
+        await api.answerUpdateMe(with: .accepted)
+        await model.saveName()
+        XCTAssertEqual(announcements.texts.last, catalog["myProfile.saved"], "the saved line is read out")
+        XCTAssertEqual(announcements.texts.count, 3)
+    }
+
     func test_F005_AC1_editingAgainClearsTheConfirmation() async {
         let model = await ProfileFixtures.loadedModel(StubAPI())
         model.startEditingName()

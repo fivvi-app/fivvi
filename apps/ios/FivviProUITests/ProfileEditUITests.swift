@@ -149,9 +149,8 @@ final class ProfileEditUITests: SignInUITestCase {
         )
         XCTAssertTrue(app.staticTexts["profile.workspaceName.workspace-0"].exists)
         XCTAssertFalse(app.switches["profile.trainsHere.workspace-0"].exists, "none where the person is Trainer")
-        // The whole row is the control (label and switch), so a tap anywhere on it moves the switch; its two-line label
-        // makes the element 42 pt high, and the cell around it is taller than 44 pt.
-        XCTAssertGreaterThanOrEqual(own.frame.width, TouchTarget.minimum)
+        // The whole row is the control (label and switch), so a tap anywhere on it moves the switch: 44 pt at least.
+        try assertTouchTarget(own, on: screen)
         XCTAssertTrue(server.requests.filter { $0.path.hasSuffix("/trainer-profile") }.isEmpty)
     }
 
