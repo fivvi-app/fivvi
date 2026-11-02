@@ -332,6 +332,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       [
         'iOS build',
         'iOS tests (${{ matrix.locale }})',
+        'iOS parts',
+        'iOS tests retry (${{ matrix.locale }})',
         'Android build',
         'Android tests',
         'Android Maestro',
@@ -835,7 +837,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
 
   it('#293 AC17: the required checks iOS and Android are gates that need their parts and report the combined result', () => {
     for (const [gate, native, needs] of [
-      ['ios', 'ios', '[changes, ios-build, ios-tests]'],
+      ['ios', 'ios', '[changes, ios-build, ios-tests, ios-parts, ios-retry]'],
       ['android', 'android', '[changes, android-build, android-tests, android-maestro]'],
     ]) {
       const section = job(gate);
@@ -847,8 +849,20 @@ describe('E002 #91 the native jobs in ci.yml', () => {
         section.includes(`if: always() && needs.changes.outputs.${native} == 'true'`),
         `${gate} runs after its parts, also when one failed`,
       );
-      assert.match(section, /RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}/);
-      assert.match(section, new RegExp(`run: scripts/native-gate\\.sh ${name} true \\$RESULTS\n`));
+      if (native === 'android') {
+        assert.match(section, /RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}/);
+        assert.match(
+          section,
+          new RegExp(`run: scripts/native-gate\\.sh ${name} true \\$RESULTS\n`),
+        );
+      } else {
+        // iOS (#413): each part's state comes from "iOS parts" (a result, or unacquired), with the retry's result.
+        assert.match(section, /scripts\/native-gate\.sh iOS true/);
+        for (const part of ['iOS build=$BUILD', 'iOS tests (nl)=$NL', 'iOS tests (en)=$EN']) {
+          assert.ok(section.includes(`"${part}:$RETRY"`), part);
+        }
+        assert.match(section, /RETRY: \$\{\{ needs\.ios-retry\.result \}\}/);
+      }
     }
   });
 
@@ -911,7 +925,8 @@ describe('E002 #290 upload-artifact skips hidden folders unless include-hidden-f
     const ios = uploads.filter((upload) =>
       upload.paths.includes('apps/ios/.build/TestResults-*.xcresult'),
     );
-    assert.deepEqual(ios.map((upload) => upload.file).sort(), ['ci.yml', 'release.yml']);
+    // ci.yml twice: "iOS tests" and the retry on macos-15-intel (#413).
+    assert.deepEqual(ios.map((upload) => upload.file).sort(), ['ci.yml', 'ci.yml', 'release.yml']);
     for (const upload of ios)
       assert.match(upload.step, /^ +include-hidden-files: true$/m, upload.file);
     // release.yml uploads the build log with the results; ci.yml has its build job upload it, and the test bundle (#293).
@@ -5044,5 +5059,60 @@ describe('wt.sh done', () => {
     assert.equal(git(repo, 'ls-remote', '--heads', 'origin', 'feature/57-hold'), '');
     assert.deepEqual(simulators(), ['SHARED']);
     assert.match(result.stdout, /deleted simulator 'Fivvi feature-57-hold'/);
+  });
+});
+
+describe('#413 the iOS retry on another runner pool in ci.yml', () => {
+  const text = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
+  const section = (id) => {
+    const start = text.indexOf(`\n  ${id}:\n`);
+    assert.ok(start >= 0, id);
+    const rest = text.slice(start + 1);
+    return rest.slice(0, rest.search(/\n {2}[a-z][a-z0-9-]*:\n|\n {2}# /) + 1 || undefined);
+  };
+
+  it('retries on macos-15-intel with the same Xcode as the first try, and the same two commands', () => {
+    const retry = section('ios-retry');
+    assert.match(retry, /runs-on: macos-15-intel\n/);
+    assert.match(retry, /DEVELOPER_DIR: \/Applications\/Xcode_26\.3\.app\/Contents\/Developer/);
+    assert.match(section('ios-build'), /runs-on: macos-15\n/);
+    assert.match(section('ios-tests'), /runs-on: macos-15\n/);
+    assert.match(retry, /run: scripts\/test-ios\.sh build\n/);
+    assert.match(retry, /run: scripts\/test-ios\.sh test \$\{\{ matrix\.locale \}\}\n/);
+  });
+
+  it('retries only the languages "iOS parts" lists, and never when the run is cancelled', () => {
+    const retry = section('ios-retry');
+    assert.match(retry, /needs: ios-parts\n/);
+    assert.match(retry, /locale: \$\{\{ fromJSON\(needs\.ios-parts\.outputs\.locales\) \}\}/);
+    assert.match(retry, /!cancelled\(\)/);
+    assert.match(retry, /needs\.ios-parts\.outputs\.locales != '\[\]'/);
+    assert.match(retry, /fail-fast: false/);
+  });
+
+  it("keeps the retry's build cache apart from the arm64 one", () => {
+    const retry = section('ios-retry');
+    assert.match(retry, /key: ios-retry-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-/);
+  });
+
+  it('reads the run through scripts/ios-parts.sh, which --force drives from the ios_retry input', () => {
+    const parts = section('ios-parts');
+    assert.match(parts, /actions: read/);
+    assert.match(
+      parts,
+      /run: scripts\/ios-parts\.sh \$\{IOS_RETRY:\+--force\} >> "\$GITHUB_OUTPUT"/,
+    );
+    assert.match(parts, /IOS_RETRY: \$\{\{ inputs\.ios_retry == true && 'true' \|\| '' \}\}/);
+    assert.match(
+      text,
+      /^ {2}workflow_dispatch:\n +inputs:\n +ios_retry:\n(?: +.+\n)*? +type: boolean\n +default: false/m,
+    );
+  });
+
+  it('skips the macos-15 build (and so its tests) in a run forced onto the retry, and in no other', () => {
+    assert.match(
+      section('ios-build'),
+      /if: needs\.changes\.outputs\.ios == 'true' && inputs\.ios_retry != true\n/,
+    );
   });
 });

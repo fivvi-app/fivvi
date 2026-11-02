@@ -38,3 +38,78 @@ describe('#293 AC17 native-gate.sh: the result of the iOS and Android checks', (
     assert.notEqual(gate().status, 0);
   });
 });
+
+// #413: a part that no hosted runner picked up is tried again on another pool; the gate counts the retry in its place
+// and says in its error which kind of failure each part had.
+describe('#413 native-gate.sh: parts that had no runner, and their retry', () => {
+  const parts = (build, nl, en) => [
+    `iOS build=${build}`,
+    `iOS tests (nl)=${nl}`,
+    `iOS tests (en)=${en}`,
+  ];
+  const iOS = (...args) => gate('iOS', 'true', ...args);
+
+  it('passes when every part succeeded, whatever its label', () => {
+    const result = iOS(...parts('success', 'success', 'success'));
+    assert.equal(result.status, 0, result.stdout);
+    assert.match(result.stdout, /iOS: every part succeeded/);
+  });
+
+  it('passes when the part had no runner and its retry succeeded, and says so', () => {
+    const result = iOS(...parts('success', 'unacquired:success', 'success'));
+    assert.equal(result.status, 0, result.stdout);
+    assert.match(result.stdout, /iOS tests \(nl\): no runner picked it up; the retry passed/);
+    assert.match(result.stdout, /iOS: every part succeeded/);
+  });
+
+  it('passes when the build had no runner and the retry (which builds itself) succeeded for both languages', () => {
+    const result = iOS(...parts('unacquired:success', 'unacquired:success', 'unacquired:success'));
+    assert.equal(result.status, 0, result.stdout);
+  });
+
+  it('fails, naming the retry, when the part had no runner and the retry failed', () => {
+    const result = iOS(...parts('success', 'unacquired:failure', 'success'));
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /::error::iOS failed: 1 of 3 parts did not succeed/);
+    assert.match(
+      result.stdout,
+      /iOS tests \(nl\): no runner picked it up, and the retry failed \(build or test failure on the retry\)/,
+    );
+  });
+
+  it('fails when the part had no runner and the retry did not run or was cancelled', () => {
+    for (const retry of ['skipped', 'cancelled', '']) {
+      const result = iOS(...parts('success', 'success', `unacquired:${retry}`));
+      assert.equal(result.status, 1, retry);
+      assert.match(result.stdout, /iOS tests \(en\): no runner picked it up/);
+      assert.match(result.stdout, /the retry did not pass/);
+    }
+  });
+
+  it('fails as a build or test failure, not as a missing runner, when a runner picked the part up', () => {
+    const result = iOS(...parts('success', 'failure', 'cancelled'));
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stdout,
+      /iOS tests \(nl\): failed on a runner \(failure\): a build or test failure/,
+    );
+    assert.match(result.stdout, /iOS tests \(en\): cancelled on a runner/);
+    assert.doesNotMatch(result.stdout, /no runner picked it up/);
+  });
+
+  it('does not let a retry make up for a failure on a runner', () => {
+    const result = iOS(...parts('failure', 'skipped', 'skipped:success'));
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /iOS build: failed on a runner \(failure\)/);
+    assert.match(result.stdout, /iOS tests \(nl\): did not run \(skipped\)/);
+  });
+
+  it('keeps the plain-result form and the summary line of the results for the other gates', () => {
+    const result = iOS('success', 'unacquired:failure', 'cancelled');
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stdout,
+      /iOS failed: 2 of 3 parts did not succeed \(unacquired:failure cancelled\)/,
+    );
+  });
+});

@@ -25,7 +25,15 @@ on:
   merge_group:
     types: [checks_requested]
     branches: [main]
+  # On demand (`gh workflow run CI --ref <branch>`). ios_retry proves the iOS retry path (see the iOS jobs below): it
+  # skips the macos-15 jobs and runs the retry on macos-15-intel for both languages, as if no arm64 runner had picked
+  # them up (`gh workflow run CI --ref <branch> -f ios_retry=true`).
   workflow_dispatch:
+    inputs:
+      ios_retry:
+        description: Run iOS on the retry pool (macos-15-intel) only, as if no macos-15 runner had picked the jobs up (#413)
+        type: boolean
+        default: false
 
 # A new push to a PR cancels the run for the previous push. Runs on main are never cancelled, so every merged commit
 # keeps its own result; nor are runs of merge groups, which the queue waits for.
@@ -300,11 +308,12 @@ jobs:
           if-no-files-found: ignore
 
 
-  # iOS (E008, E002, #293). Three parts and the gate "iOS": one job builds once and packs the test bundle, two jobs run
-  # the Dutch and the English test pass from it at the same time, each on its own simulator (a cold run was 16 of 21
-  # minutes of tests in a row). They start only when the app, its generated inputs or its own scripts changed (in a PR, a
-  # merge group or a push to main), or on demand (scripts/native-jobs.sh), to keep PR feedback fast. The UI tests run in
-  # both languages on every push. The image and Xcode are pinned, so a runner update doesn't change the toolchain.
+  # iOS (E008, E002, #293, #413). Three parts, a retry and the gate "iOS": one job builds once and packs the test bundle,
+  # two jobs run the Dutch and the English test pass from it at the same time, each on its own simulator (a cold run
+  # was 16 of 21 minutes of tests in a row). They start only when the app, its generated inputs or its own scripts
+  # changed (in a PR, a merge group or a push to main), or on demand (scripts/native-jobs.sh), to keep PR feedback
+  # fast. The UI tests run in both languages on every push. The image and Xcode are pinned, so a runner update doesn't
+  # change the toolchain.
   #
   # The image (E002 #242): macos-15, not macos-26, whose runners queued about 10 minutes in two runs. The app needs
   # no Xcode 26: Swift 6.0 mode, swift-tools-version 6.0 packages, project format 77 and iOS 17 as the deployment
@@ -312,10 +321,25 @@ jobs:
   # macos-26 has), so this takes 26.3, the newest, to stay on the Xcode 26 line of local runs (iOS 26.2 simulator
   # instead of 26.5). If the job fails here but not on macos-26, or its queue isn't shorter, go back to macos-26 and
   # Xcode_26.6.
+  #
+  # No runner (#413): GitHub's hosted macOS arm64 capacity runs short at times. A job that no runner picks up is
+  # cancelled after about 15 minutes ("The job was not acquired by Runner of type hosted even after multiple
+  # attempts"), with no runner and no step, and used to fail the required check although no test ran. "iOS parts"
+  # reads the run's jobs (scripts/ios-parts.sh) and tells that apart from a timeout or a failure: the part is tried
+  # again on macos-15-intel, a pool with its own capacity (x64; the same Xcode 26.3 and iOS 26.2 simulator, per the
+  # runner-images readme), as "iOS tests retry (<language>)": it builds for itself (a bundle built on arm64 doesn't
+  # run on x64) and runs the same tests of that language. When the build had no runner both languages are retried.
+  # The gate counts the retry's result in place of the missing one and says in its error whether a runner never picked
+  # a part up or a build or test failed (scripts/native-gate.sh). A build or test that fails on a runner is never
+  # retried. Nothing is skipped: every language still runs the same tests on every push.
+  #
+  # Forced run: `gh workflow run CI --ref <branch> -f ios_retry=true` skips ios-build and ios-tests and runs only the
+  # retry for both languages, to prove that path in CI (#413 AC2).
   ios-build:
     name: iOS build
     needs: changes
-    if: needs.changes.outputs.ios == 'true'
+    # ios_retry (workflow_dispatch) runs only the retry pool; it is empty on any other event.
+    if: needs.changes.outputs.ios == 'true' && inputs.ios_retry != true
     runs-on: macos-15
     timeout-minutes: 25
     permissions:
@@ -404,8 +428,10 @@ jobs:
     needs: ios-build
     runs-on: macos-15
     # A healthy run takes 10-16 min (the simulator settle is about 2.5). A test that hangs fails after its own allowance
-    # (scripts/test-ios.sh), so this is the backstop. Detect changes (5) + iOS build (25) + this + the report job (2) stay
-    # under the merge queue's check timeout of 60 (ADR-018).
+    # (scripts/test-ios.sh), so this is the backstop. Without a retry, Detect changes (5) + iOS build (25) + this + the
+    # report job (2) stay under the merge queue's check timeout of 60 (ADR-018). A job that no runner picks up waits
+    # about 15 minutes (GitHub's limit, not this timeout) and the retry follows it: see "iOS tests retry" for that
+    # chain, which can pass 60 minutes by timeouts and needs the queue's check timeout raised (#413).
     timeout-minutes: 25
     permissions:
       contents: read
@@ -453,11 +479,128 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/step-timings.sh
 
-  # The required check "iOS": the combined result of the build and both test passes (AC17); skipped, and so passing,
-  # when the native decision says the app's inputs didn't change.
+  # What became of the iOS parts (#413): which of them no hosted runner picked up. Cheap, on Linux, and always runs
+  # (not when the run is cancelled), so the retry and the gate read the same answer.
+  ios-parts:
+    name: iOS parts
+    needs: [changes, ios-build, ios-tests]
+    if: ${{ !cancelled() && needs.changes.outputs.ios == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      contents: read
+      actions: read # scripts/ios-parts.sh reads this run's jobs
+    outputs:
+      build: ${{ steps.parts.outputs.build }}
+      nl: ${{ steps.parts.outputs.nl }}
+      en: ${{ steps.parts.outputs.en }}
+      locales: ${{ steps.parts.outputs.locales }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - id: parts
+        name: Parts that no runner picked up
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Set only by the run on demand with ios_retry; empty otherwise.
+          IOS_RETRY: ${{ inputs.ios_retry == true && 'true' || '' }}
+        run: scripts/ios-parts.sh ${IOS_RETRY:+--force} >> "$GITHUB_OUTPUT"
+
+  # The retry of the parts that no runner picked up (#413), on macos-15-intel: a separate pool of hosted runners, so
+  # the capacity that ran out for arm64 is not the one it waits for. It builds for itself, as `scripts/test-ios.sh
+  # build` and then `test <language>` do in the two jobs above, so a language needs no bundle from another architecture.
+  # Runs only for the languages "iOS parts" lists (none in a normal run, which skips this job).
+  #
+  # The budget against the merge queue's check timeout of 60 minutes (ADR-018): Detect changes (5) + the wait for a
+  # runner that never comes (about 15, GitHub's) + iOS parts (2) + this + the gate (2). A build that finds no runner
+  # leaves 36 minutes for this job: its timeout is 35. When the tests find none after a build (about 4 to 10 minutes) the
+  # chain by timeout is longer; the measured times of the forced run are in the PR of #413. If they don't fit, raise
+  # check_response_timeout_minutes of the merge_queue rule in .github/rulesets/main.json (the owner applies it with
+  # scripts/github-settings.sh apply).
+  ios-retry:
+    name: iOS tests retry (${{ matrix.locale }})
+    needs: ios-parts
+    if: ${{ !cancelled() && needs.ios-parts.result == 'success' && needs.ios-parts.outputs.locales != '[]' }}
+    runs-on: macos-15-intel
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      actions: read # scripts/step-timings.sh reads this run's step durations
+    strategy:
+      # Both languages always run: a failing one doesn't hide the other's result.
+      fail-fast: false
+      matrix:
+        locale: ${{ fromJSON(needs.ios-parts.outputs.locales) }}
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - id: xcode
+        name: Xcode version
+        run: echo "version=$(xcodebuild -version | tr -s ' \n' '--' | sed 's/-$//')" >> "$GITHUB_OUTPUT"
+
+      # As in "iOS build", with a key of its own: a build for x64 is not one for arm64. It is written only by a retry
+      # (rare), and GitHub removes a cache not read for 7 days, so most retries build cold. Both languages save the
+      # same key; the second one finds it taken and goes on.
+      - name: Cache the iOS build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            apps/ios/.build/DerivedData
+            apps/ios/.build/SourcePackages
+            apps/ios/.build/source-mtimes.json
+            !apps/ios/.build/DerivedData/Logs
+            !apps/ios/.build/DerivedData/Index.noindex
+          key: ios-retry-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ios-retry-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-
+            ios-retry-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.version }}-
+
+      - name: Restore the sources' modification times
+        run: node scripts/ios-mtimes.mjs restore
+
+      - name: SwiftLint, checks and build for testing
+        run: scripts/test-ios.sh build
+
+      - name: Record the sources' modification times
+        run: node scripts/ios-mtimes.mjs save
+
+      # The same command as "iOS tests", from the bundle this job just built.
+      - name: Unit and UI tests (${{ matrix.locale }})
+        run: scripts/test-ios.sh test ${{ matrix.locale }}
+
+      # Only on failure, or when the timeout cancels the job (#305) in a run that nothing supersedes.
+      - name: Upload test results
+        if: failure() || (cancelled() && github.event_name != 'pull_request')
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-retry-test-results-${{ matrix.locale }}
+          path: |
+            apps/ios/.build/TestResults-*.xcresult
+            apps/ios/.build/build-for-testing.log
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Step durations
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/step-timings.sh
+
+  # The required check "iOS": the combined result of the build and both test passes (AC17), with the retry's result in
+  # place of a part that no runner picked up (#413); skipped, and so passing, when the native decision says the app's
+  # inputs didn't change. A part's state comes from "iOS parts" (its result, or unacquired); if that job failed, the
+  # plain results of the jobs are used, and an unacquired part then fails the check.
   ios:
     name: iOS
-    needs: [changes, ios-build, ios-tests]
+    needs: [changes, ios-build, ios-tests, ios-parts, ios-retry]
     if: always() && needs.changes.outputs.ios == 'true'
     runs-on: ubuntu-24.04
     # Only reads the results of the jobs it needs; short, so the chain of a native check stays under the queue timeout.
@@ -469,8 +612,15 @@ jobs:
 
       - name: Combined result of the iOS jobs
         env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
-        run: scripts/native-gate.sh iOS true $RESULTS
+          BUILD: ${{ needs.ios-parts.outputs.build || needs.ios-build.result }}
+          NL: ${{ needs.ios-parts.outputs.nl || needs.ios-tests.result }}
+          EN: ${{ needs.ios-parts.outputs.en || needs.ios-tests.result }}
+          RETRY: ${{ needs.ios-retry.result }}
+        run: |
+          scripts/native-gate.sh iOS true \
+            "iOS build=$BUILD:$RETRY" \
+            "iOS tests (nl)=$NL:$RETRY" \
+            "iOS tests (en)=$EN:$RETRY"
 
   # Android (E008, #293). The same commands as locally (TESTING.md §7.2), in three jobs and the gate "Android": "Android
   # build" (ktlint and the other checks, the debug build, and the debug app for Maestro, uploaded), "Android tests" (unit

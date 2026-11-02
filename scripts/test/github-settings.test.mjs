@@ -53,6 +53,8 @@ describe('the versioned GitHub settings', () => {
       [
         'iOS build',
         'iOS tests (${{ matrix.locale }})',
+        'iOS parts',
+        'iOS tests retry (${{ matrix.locale }})',
         'Android build',
         'Android tests',
         'Android Maestro',
