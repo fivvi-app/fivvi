@@ -411,8 +411,10 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 - If the "native may trail the web by one milestone" lever is used (§6, scope levers), the native items of this milestone move to the next milestone's exit criteria.
 - Email is ready for real names (`docs/legal/sub-processors.md §4`):
   - [ ] Transactional email goes out through Lettermint (ADR-028, #398), with no link rewriting, no tracking pixel and no `List-Unsubscribe` on transactional mail, checked on a production email's raw headers (R1). Brevo couldn't do this below Enterprise (#160).
-  - [x] A PDF of the Brevo terms and DPA (Appendix 3) in force on that day is saved.
-  - [x] R18 in `docs/legal/retention-policy.md` records that Brevo deletes delivery logs after 1 month, the minimum it allows and up to a day over the 30-day maximum (owner approves the wording).
+  - [ ] A PDF of the Lettermint terms of service and DPA in force on that day is saved, with the date recorded in `sub-processors.md` §4.
+  - [ ] R18 in `docs/legal/retention-policy.md` records the Lettermint exception (email content, recipients and delivery events 28 days; analytics events 90 days), and `sub-processors.md` §4 lists Lettermint in place of Brevo (owner approves the wording).
+  - [x] A PDF of the Brevo terms and DPA (Appendix 3) in force on that day is saved. *(Brevo; replaced by the Lettermint items above, ADR-028.)*
+  - [x] R18 in `docs/legal/retention-policy.md` records that Brevo deletes delivery logs after 1 month, the minimum it allows and up to a day over the 30-day maximum (owner approves the wording). *(Brevo; replaced by the Lettermint items above, ADR-028.)*
 - Production releases need the owner's approval: once real names are in production, an agent merge to `main` no longer releases by itself. The release step is built before G2, so it is in place long before real names enter at pilot setup (ADR-016).
 - Agent queueing of high-risk PRs does not end here: it ends at pilot setup, before real personal data enters production (ADR-023; §7, pilot setup checklist).
 
