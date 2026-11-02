@@ -19,7 +19,9 @@
 #                         AVD_SNAPSHOT=1 (CI) it boots from a saved snapshot, or cold when there is none or it
 #                         doesn't load, and then saves one
 #   android.sh stop       stop the emulator and wait for it to exit (CI, before it saves the AVD cache), within
-#                         EMULATOR_STOP_TIMEOUT seconds (30)
+#                         EMULATOR_STOP_TIMEOUT seconds (30); fails when it doesn't. The cleanup of the test commands
+#                         (test, maestro.sh android) waits for the emulator they started within the same time, and only
+#                         warns when it doesn't exit: the exit status stays the run's
 #   android.sh avd-key    the cache key suffix for CI's cached AVD: system image, emulator and AVD settings
 #
 # test is build and verify. When test ends, also on failure or Ctrl-C, it kills the emulator it booted and stops its Gradle daemons; KEEP_DEVICE=1

@@ -20,7 +20,11 @@ import { addClient, addTeamRole, createAccount, createWorkspace } from '../src/t
 // The repository functions that create a workspace (F002, #277, ADR-022) as the app role: RLS
 // applies, so a create has to put the new workspace in the request's context before it inserts.
 
-const DEFAULTS = { defaultLocale: 'nl-NL', timeZone: 'Europe/Amsterdam' } as const;
+const DEFAULTS = {
+  defaultLocale: 'nl-NL',
+  timeZone: 'Europe/Amsterdam',
+  ownerTrains: false,
+} as const;
 
 describe('F002 creating a workspace', () => {
   let database: TestDatabase;
@@ -201,10 +205,32 @@ describe('F002 creating a workspace', () => {
     );
 
     const [row] = await admin.db.select().from(organizations).where(eq(organizations.id, owned.id));
-    expect(listed).toEqual([{ id: owned.id, name: row?.name, slug: row?.slug, role: 'owner' }]);
+    expect(listed).toEqual([
+      { id: owned.id, name: row?.name, slug: row?.slug, role: 'owner', trainsHere: false },
+    ]);
     expect(fromAny).toEqual(listed);
     expect(JSON.stringify([listed, fromAny])).not.toContain(stranger.id);
     expect(JSON.stringify([listed, fromAny])).not.toContain(clientOf.id);
+  });
+
+  it('F005 AC3: the Owner of a new workspace has a trainer profile when the creator trains, and lists it', async () => {
+    const account = await createAccount(admin.db, { label: 'john' });
+
+    await scopes().inAccountScope({ accountId: account.id, workspaces: 'team' }, async (scope) => {
+      await claimWorkspaceCreation(scope);
+      await createWorkspaceWithOwner(scope, {
+        ...DEFAULTS,
+        name: "John's Gym",
+        slug: 'johns-gym-trains',
+        ownerTrains: true,
+      });
+    });
+    const listed = await scopes().inAccountScope(
+      { accountId: account.id, workspaces: 'team' },
+      (scope) => listTeamWorkspaces(scope),
+    );
+
+    expect(listed.map(({ trainsHere }) => trainsHere)).toEqual([true]);
   });
 
   it('AC11: an account without a team role has an empty list', async () => {

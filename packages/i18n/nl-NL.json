@@ -6,7 +6,8 @@
   "common": {
     "loading": "Laden…",
     "retry": "Opnieuw proberen",
-    "loadingSlow": "Dit duurt langer dan normaal…"
+    "loadingSlow": "Dit duurt langer dan normaal…",
+    "cancel": "Annuleren"
   },
   "hello": {
     "title": "Welkom bij Fivvi",
@@ -172,12 +173,21 @@
       "nameTooLong": "Deze naam is te lang. Gebruik een kortere naam.",
       "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
       "generic": "Er ging iets mis. Probeer het opnieuw."
-    }
+    },
+    "editName": "Naam wijzigen"
   },
   "profile": {
     "title": "Profiel",
     "error": "Je werkruimtes konden niet worden geladen.",
-    "language": "Taal"
+    "language": "Taal",
+    "trainsHere": {
+      "label": "Ik geef zelf ook trainingen in {workspace}",
+      "saved": "Opgeslagen.",
+      "errors": {
+        "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+        "generic": "Er ging iets mis. Probeer het opnieuw."
+      }
+    }
   },
   "team": {
     "title": "Trainers",
@@ -214,6 +224,9 @@
     "roleChanged": {
       "owner": "{name} is nu eigenaar.",
       "trainer": "{name} is nu trainer."
+    },
+    "badge": {
+      "trainer": "Trainer"
     }
   },
   "clients": {

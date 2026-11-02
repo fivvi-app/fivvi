@@ -2,7 +2,7 @@
 
 Dutch-first, bilingual (nl-NL + en) platform for personal trainers and small gyms. Next.js web + API (Hono + zod-openapi, REST), native iOS (Swift + SwiftUI) and Android (Kotlin + Jetpack Compose), PostgreSQL (Drizzle), Better Auth. Free tiers until real clients arrive.
 
-The product is **Fivvi** (domain `fivvi.app`: web app, booking pages and the API under `/api`). The native app for owners and trainers is **Fivvi Pro** (`apps/ios`, `apps/android`, app ID `app.fivvi.pro`); the client app (Release 1.2) will be Fivvi (`app.fivvi`). The npm scope is `@fivvi/*`.
+The product is **Fivvi** (domain `fivvi.app`: web app, booking pages and the API under `/api`). The native app for owners and trainers is **Fivvi Pro** (`apps/ios`, `apps/android`, app ID `app.fivvi.pro`); the client app, at go-live next to the client web, is Fivvi (`app.fivvi`). The npm scope is `@fivvi/*`.
 
 This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI) and Codex read it directly, Claude Code through `CLAUDE.md`.
 
@@ -85,7 +85,7 @@ GitHub issues via `scripts/issue.sh`: spec = issue labelled `spec`, ticket = sub
 
 ### Triage labels
 
-The five defaults (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) plus `spec`, `spec-approved`, `owner-merge` (high-risk work, agent-queueable) and `owner-only` (only the owner merges). See `docs/agents/triage-labels.md`.
+The five defaults (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) plus `spec`, `spec-approved`, `owner-merge` (high-risk work, agent-queueable), `owner-only` (only the owner merges) and, on PRs, `owner-queue` and `owner-decide` (what waits on the owner; `flow.sh` sets and removes them, never by hand). See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

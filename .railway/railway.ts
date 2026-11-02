@@ -78,7 +78,12 @@ export default defineRailway((ctx) => {
       PORT: '3000',
       // Transactional email (E006, packages/email). Values are set in the dashboard, never
       // here: production gets the real Brevo key, development (and so previews) a test key.
+      // Lettermint (ADR-028) takes over as soon as its token is set; without it, Brevo sends.
+      // The route slugs differ per environment (the owner creates them in Lettermint).
       BREVO_API_KEY: preserve(),
+      LETTERMINT_API_TOKEN: preserve(),
+      LETTERMINT_ROUTE_SIGN_IN: preserve(),
+      LETTERMINT_ROUTE_MAIL: preserve(),
       EMAIL_FROM_ADDRESS: preserve(),
       EMAIL_FROM_NAME: 'Fivvi',
       // Sign-in (F001, packages/auth). Signs and hashes sign-in sessions, links and codes: a
@@ -136,6 +141,10 @@ export default defineRailway((ctx) => {
       DATABASE_URL: db.env.DATABASE_URL,
       // The DSN of the Sentry `cron` project (E009), set in the dashboard. Empty turns it off.
       SENTRY_DSN: preserve(),
+      // A read-only Lettermint Team API token (`read:team`, ADR-028), set in the dashboard in
+      // production only. The daily job warns at 70% of the plan's monthly email volume (R14).
+      // Empty skips the check.
+      LETTERMINT_TEAM_TOKEN: preserve(),
     },
   });
 

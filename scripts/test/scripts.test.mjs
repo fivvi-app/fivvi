@@ -13,6 +13,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
@@ -1467,8 +1468,10 @@ describe('E002 #91 android.sh avd-key', () => {
 const fakeSimctl = (
   state,
 ) => `# xcresulttool prints the canned test results of the bundle in --path: <FAKE_XCRESULT_DIR>/<bundle name>.json when
-# that exists, else the file FAKE_XCRESULT names (nothing without it).
+# that exists, else the file FAKE_XCRESULT names (nothing without it). Its \`activities\` command prints the file
+# FAKE_XCRESULT_ACTIVITIES names (nothing without it) for any test.
 if [ "$1" = xcresulttool ]; then
+  case "$*" in *" activities "*) [ -z "$FAKE_XCRESULT_ACTIVITIES" ] || cat "$FAKE_XCRESULT_ACTIVITIES"; exit 0 ;; esac
   bundle=; while [ $# -gt 0 ]; do [ "$1" != --path ] || bundle="$2"; shift; done
   by_bundle="$FAKE_XCRESULT_DIR/$(basename "$bundle").json"
   if [ -n "$FAKE_XCRESULT_DIR" ] && [ -f "$by_bundle" ]; then cat "$by_bundle"
@@ -1501,6 +1504,49 @@ const iPhone = (udid, model, runtime, state = 'Shutdown') => ({
   runtime: `com.apple.CoreSimulator.SimRuntime.iOS-${runtime}`,
 });
 
+// E008 #383: the web server port of a run of the native test commands and, 2000 above it, that of the fake Brevo
+// server. Picked at random, and only where both are free now, so two runs on one machine (two worktrees running
+// check.sh, which also runs web e2e tests on E2E_PORT) don't take the same ports. A port is free when nothing listens
+// on it at 'localhost' (the host fake-brevo.ts binds, which on macOS is not the wildcard address: another process can
+// hold the port there while the wildcard check passes) nor at the wildcard address (where the web server listens).
+// `first` are ports to try before random ones (a test uses them). The pairs handed out by this process are skipped
+// (each is closed again after the check, so two checkouts in a row could draw the same one). A port is checked in a
+// process of its own, because this one may not block on it.
+const handedOut = new Set();
+const freePorts = (first = []) => {
+  const found = execFileSync(
+    process.execPath,
+    [
+      '-e',
+      `const { createServer } = require('node:net');
+const [first, skipped] = JSON.parse(process.argv[1]);
+const freeAt = (port, host) => new Promise((resolve) => {
+  const server = createServer();
+  server.on('error', () => resolve(false));
+  server.listen(port, host, () => server.close(() => resolve(true)));
+});
+const free = async (port) => {
+  for (const host of ['localhost', undefined]) if (!(await freeAt(port, host))) return false;
+  return true;
+};
+(async () => {
+  const candidates = [...first];
+  for (;;) {
+    const port = candidates.shift() ?? 20000 + Math.floor(Math.random() * 25000);
+    if (skipped.includes(port) || skipped.includes(port + 2000) || skipped.includes(port - 2000)) continue;
+    if ((await free(port)) && (await free(port + 2000))) return console.log(port);
+  }
+})();`,
+      JSON.stringify([first, [...handedOut]]),
+    ],
+    { encoding: 'utf8' },
+  );
+  const port = Number(found);
+  handedOut.add(port);
+  handedOut.add(port + 2000);
+  return { port, brevoPort: port + 2000 };
+};
+
 // The native test commands in a copy of the repo with fake toolchains: simctl above, an emulator that records its pid,
 // and an xcodebuild, gradlew, adb and Maestro that log their arguments. FAKE_RESULT makes each command's last step
 // pass, fail or hang (until a Ctrl-C to the whole process group, as in a terminal), so a test can check what the
@@ -1524,6 +1570,7 @@ describe('E008 #71 native test commands clean up after themselves', () => {
   const checkout = ({ simulatorBooted = false, emulatorRunning = false } = {}) => {
     const base = realpathSync(mkdtempSync(join(tmpdir(), 'native-')));
     dirs.push(base);
+    const { port, brevoPort } = freePorts();
     const repo = join(base, 'repo');
     const state = join(base, 'state');
     const bin = join(base, 'bin');
@@ -1559,6 +1606,25 @@ esac`;
     ]) {
       cpSync(join(SCRIPTS, '..', path), join(repo, path), { recursive: true });
     }
+    // FAKE_BREVO_LISTEN_DELAY_MS=<ms> (#379): the copy of the fake Brevo server starts to listen only after that long, as a
+    // process that is slow to start under load does. The real file is not changed; the copy must still have these two lines.
+    const brevoFile = join(repo, 'apps/web/e2e/fake-brevo.ts');
+    const brevoSource = readFileSync(brevoFile, 'utf8');
+    const create = 'createServer(async (request, response) => {';
+    const listen = "}).listen(port, 'localhost');";
+    assert.ok(
+      brevoSource.includes(create) && brevoSource.includes(listen),
+      'fake-brevo.ts still creates the server and then listens on port, localhost',
+    );
+    writeFileSync(
+      brevoFile,
+      brevoSource
+        .replace(create, `const server = ${create}`)
+        .replace(
+          listen,
+          `});\nsetTimeout(() => server.listen(port, 'localhost'), Number(process.env.FAKE_BREVO_LISTEN_DELAY_MS || 0));`,
+        ),
+    );
     // The web server maestro.sh starts: it runs until it's stopped, and records its environment.
     mkdirSync(join(repo, 'apps/web/.next/standalone/apps/web'), { recursive: true });
     writeFileSync(
@@ -1685,10 +1751,19 @@ fi
 exit 0`,
     );
     // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_HELLO=fail: GET /api/v1/hello fails.
+    // The fake Brevo server is a real process (#379), so a GET to its port (E2E_PORT + 2000) succeeds only once it answers,
+    // like curl in maestro.sh's wait_for would, which the fake sleep cannot do: a call polls for up to 1 s (the skipped
+    // sleep 1) and then fails, so wait_for's 61 tries still end near its real 60 s when the server never answers.
     script(
       join(bin, 'curl'),
       `echo "curl $*" >>"${state}/calls.log"
 case "$*" in *"/api/v1/hello"*) [ "$FAKE_HELLO" != fail ] || exit 22 ;; esac
+case "$*" in *"localhost:$((E2E_PORT + 2000))/"*)
+  exec node -e "
+    const url = process.argv[1], end = Date.now() + 1000;
+    const poll = () => fetch(url).then((r) => process.exit(r.ok ? 0 : 22), () => Date.now() < end ? setTimeout(poll, 50) : process.exit(7));
+    poll();
+  " "\${@: -1}" ;; esac
 exit 0`,
     );
     script(
@@ -1701,6 +1776,57 @@ case " $* " in *" test "*)
   [ -z "$FAKE_MAESTRO_SLEEP" ] || { /bin/sleep "$FAKE_MAESTRO_SLEEP"; echo "maestro-run-ended" >>"${state}/calls.log"; }
   node -e "fetch('http://localhost:' + (Number(process.env.E2E_PORT) + 2000) + '/emails?to=owner@example.com').then((r) => r.json()).then((emails) => process.exit(Array.isArray(emails) ? 0 : 1), () => process.exit(1))" \
     && touch "${state}/brevo-answered"
+  # FAKE_MAESTRO_ERROR (#373): the first run in en (all of them with offline-always) leaves a failed report and the logs of
+  # its failed flows, as Maestro does: offline (a flow with the adb error, one after it with DeviceServerDiedException),
+  # assertion (a flow that failed its assertion) or mixed (the adb error and an assertion). Three more are leaks of the logs:
+  # assertion-optional (the assertion fails, and its log also has the adb error of an optional step), element-aftermath (a
+  # real adb drop, and a flow that did not find an element and whose log mentions the dead driver) and aftermath-only (only
+  # the dead driver, in every failed flow, no flow with the error itself). no-file: offline, but the report has no file attributes.
+  # died-text: as in a real report, the junit text (not the log, which has no adb error) of the first flow is the
+  # DeviceServerDiedException stack whose Caused by has the adb error, and that of the second flow the dead driver only.
+  if [ -n "$FAKE_MAESTRO_ERROR" ]; then
+    out=""; dir=""; prev=""
+    for arg; do
+      [ "$prev" != --output ] || out="$arg"
+      [ "$prev" != --test-output-dir ] || dir="$arg"
+      prev="$arg"
+    done
+    en_runs=$(grep -c 'DEVICE_LANGUAGE=en ' "${state}/maestro.log")
+    if [ "$en_runs" -ge 1 ] && { [ "$en_runs" -eq 1 ] || [ "$FAKE_MAESTRO_ERROR" = offline-always ]; }; then
+      msg1="Unknown error"; msg2="Unknown error"
+      case "$FAKE_MAESTRO_ERROR" in
+        assertion-optional)
+          first="Assertion is false: 'Welcome' is visible
+Command failed (host:transport:emulator-5554): device offline"; second=""
+          msg1="Assertion is false: &quot;Welcome&quot; is visible" ;;
+        element-aftermath)
+          first="Command failed (host:transport:emulator-5554): device offline"; second="maestro.android.DeviceServerDiedException: Device server died during 'launchApp'"
+          msg2="Element not found: Text matching regex: Welcome" ;;
+        died-text)
+          first="[ERROR] nothing about the device here"; second="[ERROR] nothing about the device here either"
+          msg1="maestro.android.DeviceServerDiedException: Device server died during 'launchApp' on emulator-5554
+	at maestro.android.AndroidDeviceConnection.execute(AndroidDeviceConnection.kt:122)
+Caused by: java.io.IOException: Command failed (host:transport:emulator-5554): device offline"
+          msg2="maestro.android.DeviceServerDiedException: Device server died during 'launchApp' on emulator-5554" ;;
+        aftermath-only)
+          first="maestro.android.DeviceServerDiedException: Device server died during 'launchApp'"; second="$first" ;;
+        assertion) first="Assertion is false: 'Welcome' is visible"; second="" ;;
+        mixed) first="Command failed (host:transport:emulator-5554): device offline"; second="Assertion is false: 'Welcome' is visible" ;;
+        *) first="Command failed (host:transport:emulator-5554): device offline"; second="maestro.android.DeviceServerDiedException: Device server died during 'launchApp'" ;;
+      esac
+      mkdir -p "$dir/2099-01-01_000000/AC9 first/logs" "$dir/2099-01-01_000000/AC1 second/logs"
+      echo "[ERROR] CommandFailed: $first" >"$dir/2099-01-01_000000/AC9 first/logs/maestro.log"
+      echo "$second" >"$dir/2099-01-01_000000/AC1 second/logs/maestro.log"
+      {
+        echo '<testsuites><testsuite name="Test Suite" tests="3" failures="2">'
+        echo '<testcase id="AC9 first" name="AC9 first" file="e2e/maestro/profile-workspaces.yaml" status="ERROR"><failure>'"$msg1"'</failure></testcase>'
+        if [ -n "$second" ]; then echo '<testcase id="AC1 second" name="AC1 second" file="e2e/maestro/hello.yaml" status="ERROR"><failure>'"$msg2"'</failure></testcase>'; fi
+        echo '<testcase id="AC13 third" name="AC13 third" file="e2e/maestro/anonymous.yaml" status="SUCCESS"/>'
+        echo '</testsuite></testsuites>'
+      } | { if [ "$FAKE_MAESTRO_ERROR" = no-file ]; then sed 's/ file="[^"]*"//'; else cat; fi; } >"$out"
+      exit 1
+    fi
+  fi
   ${outcome} ;; esac`,
     );
     script(
@@ -1708,11 +1834,38 @@ case " $* " in *" test "*)
       `echo "$*" >>"${state}/adb.log"
 echo "adb $*" >>"${state}/calls.log"
 case "$*" in
-  get-state) [ -e "${state}/booted" ] && echo device || exit 1 ;;
+  # FAKE_ADB_OFFLINE=<n> (#373): after the device language is set, the next n get-state calls say the device is offline;
+  # "adb reconnect offline" ends it, unless FAKE_ADB_RECONNECT=useless. adb-state lines in calls.log say what each get-state answered.
+  get-state)
+    left=$(cat "${state}/offline-left" 2>/dev/null || echo 0)
+    if [ "$left" -gt 0 ]; then
+      echo $((left - 1)) >"${state}/offline-left"
+      echo "adb-state offline" >>"${state}/calls.log"
+      echo "error: device offline" >&2; exit 1
+    fi
+    if [ -e "${state}/booted" ]; then echo "adb-state device" >>"${state}/calls.log"; echo device; else exit 1; fi ;;
+  # FAKE_ADB_ROOT=closed-once|closed-twice|offline-once|other (#373): "adb root" fails with the closed transport once or twice,
+  # with "device offline" once, or with another error. FAKE_ADB_ROOT_OFFLINE=<n>: as adbd restarts, the next n get-state calls
+  # after each "adb root" (failed or not) say the device is offline.
+  root)
+    n=$(( $(cat "${state}/root-calls" 2>/dev/null || echo 0) + 1 )); echo "$n" >"${state}/root-calls"
+    echo "adb-root $n" >>"${state}/calls.log"
+    [ -z "$FAKE_ADB_ROOT_OFFLINE" ] || echo "$FAKE_ADB_ROOT_OFFLINE" >"${state}/offline-left"
+    case "$FAKE_ADB_ROOT:$n" in
+      closed-once:1|closed-twice:1|closed-twice:2) echo "adb: unable to connect for root: closed" >&2; exit 1 ;;
+      offline-once:1) echo "adb: device offline" >&2; exit 1 ;;
+      other:*) echo "adb: unable to connect for root: insufficient permissions" >&2; exit 1 ;;
+    esac
+    echo "restarting adbd as root" ;;
+  "reconnect offline") [ "$FAKE_ADB_RECONNECT" = useless ] || echo 0 >"${state}/offline-left" ;;
+  "shell setprop"*) [ -z "$FAKE_ADB_OFFLINE" ] || echo "$FAKE_ADB_OFFLINE" >"${state}/offline-left" ;;
+  "shell pm path android") echo package:/system/framework/framework-res.apk ;;
   "shell getprop sys.boot_completed") [ -e "${state}/booted" ] && echo 1 || exit 1 ;;
   "shell getprop persist.sys.locale") echo en-US ;;
   "shell settings get global hide_error_dialogs") echo null ;;
-  "emu kill") kill "$(cat "${state}/pid")"; rm -f "${state}/booted" ;;
+  # As the real one: "OK" at once, and the emulator exits a moment later (0.3 s here), not before the command returns.
+  # FAKE_STOP=hang (#373): the emulator ignores it and keeps running.
+  "emu kill") [ "$FAKE_STOP" = hang ] || (/bin/sleep 0.3; rm -f "${state}/booted"; kill "$(cat "${state}/pid")") </dev/null >/dev/null 2>&1 & ;;
 esac
 exit 0`,
     );
@@ -1737,7 +1890,7 @@ esac`,
             ANDROID_HOME: sdk,
             JAVA_HOME: join(base, 'jdk'),
             EMULATOR_LOG: join(base, 'emulator.log'),
-            E2E_PORT: '3999',
+            E2E_PORT: String(port),
             IOS_SIM_SETTLE: '0',
             ...extraEnv,
           },
@@ -1784,7 +1937,19 @@ esac`,
       execFileSync('git', ['-C', repo, 'worktree', 'add', '--quiet', '-b', branch, path]);
       return path;
     };
-    return { repo, run, log, webEnv, brevoAnswered, simulators, simulator, emulator, worktree };
+    return {
+      repo,
+      port,
+      brevoPort,
+      run,
+      log,
+      webEnv,
+      brevoAnswered,
+      simulators,
+      simulator,
+      emulator,
+      worktree,
+    };
   };
 
   const endings = [
@@ -2675,6 +2840,127 @@ esac`,
       assert.doesNotMatch(run.output, /Failed tests:/);
     });
 
+    describe('#388: a UI test that started the app again is reported as flaky (TESTING.md §8)', () => {
+      const warning =
+        '::warning::flaky: app unreadable after start, starting it again (start 2 of 2)';
+      const uiTests = (fake) => {
+        const tests = join(fake.repo, '..', 'tests.json');
+        writeFileSync(
+          tests,
+          JSON.stringify({
+            testNodes: [
+              {
+                nodeType: 'Test Case',
+                nodeIdentifier: 'SignInRecoveryUITests/test_lostConnection()',
+                nodeIdentifierURL:
+                  'test://com.apple.xcode/FivviPro/FivviProUITests/SignInRecoveryUITests/test_lostConnection',
+                durationInSeconds: 5,
+              },
+            ],
+          }),
+        );
+        return tests;
+      };
+      const activities = (fake, titles) => {
+        const file = join(fake.repo, '..', 'activities.json');
+        writeFileSync(
+          file,
+          JSON.stringify({
+            testRuns: [
+              {
+                testPlanConfiguration: { configurationName: 'en' },
+                activities: [
+                  { title: 'Set Up' },
+                  {
+                    title: 'Open app.fivvi.pro',
+                    childActivities: titles.map((title) => ({ title })),
+                  },
+                ],
+              },
+            ],
+          }),
+        );
+        return file;
+      };
+
+      it('prints the test and its locale as a ::warning:: line and puts it in the job summary; the run still passes', async () => {
+        const fake = checkout();
+        const summary = join(fake.repo, '..', 'summary.md');
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: activities(fake, [warning]),
+          GITHUB_STEP_SUMMARY: summary,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(
+          run.output,
+          /^::warning::flaky: app unreadable after start, starting it again \(start 2 of 2\) in SignInRecoveryUITests\/test_lostConnection\(\) \(en\)$/m,
+        );
+        assert.match(
+          readFileSync(summary, 'utf8'),
+          /### Flaky iOS tests\n[\s\S]*SignInRecoveryUITests\/test_lostConnection\(\)[\s\S]*\(en\)/,
+        );
+      });
+
+      it('also reports it when the run fails', async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          FAKE_RESULT: 'fail',
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: activities(fake, [warning]),
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /::warning::flaky: .* in SignInRecoveryUITests\//);
+      });
+
+      it('prints nothing for a test that never started the app again', async () => {
+        const fake = checkout();
+        const summary = join(fake.repo, '..', 'summary.md');
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: activities(fake, ['Tap "Continue"']),
+          GITHUB_STEP_SUMMARY: summary,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.doesNotMatch(run.output, /::warning::flaky/);
+        assert.doesNotMatch(readFileSync(summary, 'utf8'), /Flaky iOS tests/);
+      });
+
+      it('test <locale> from the packed bundle reports it too', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'en'], {
+          IOS_SIM_SETTLE: '0',
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: activities(fake, [warning]),
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(run.output, /^::warning::flaky: .* in SignInRecoveryUITests\/.*\(en\)$/m);
+      });
+
+      it('a bundle that cannot be read does not fail the run', async () => {
+        const fake = checkout();
+        const bad = join(fake.repo, '..', 'bad.json');
+        writeFileSync(bad, 'this is not JSON');
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: bad,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.doesNotMatch(run.output, /::warning::flaky/);
+      });
+    });
+
     it('A: a bundle of one locale (IOS_PARALLEL=1) is reported for that locale', async () => {
       const fake = checkout();
       const result = join(fake.repo, '..', 'results.json');
@@ -2937,12 +3223,13 @@ esac`,
       const run = await fake.run('scripts/android.sh', ['maestro-apk']);
 
       assert.equal(run.status, 0, run.output);
-      assert.match(
-        gradleTasks(fake),
-        /assembleDebug -Pfivvi\.apiBaseUrl=http:\/\/10\.0\.2\.2:3999\/api\//,
+      const apiBaseUrl = `fivvi.apiBaseUrl=http://10.0.2.2:${fake.port}/api/`;
+      assert.ok(
+        gradleTasks(fake).includes(`assembleDebug -P${apiBaseUrl}`),
+        `${apiBaseUrl}: ${gradleTasks(fake)}`,
       );
       const apk = join(fake.repo, 'apps/android/build/maestro/app-debug.apk');
-      assert.match(readFileSync(apk, 'utf8'), /fivvi\.apiBaseUrl=http:\/\/10\.0\.2\.2:3999\/api\//);
+      assert.ok(readFileSync(apk, 'utf8').includes(apiBaseUrl), apiBaseUrl);
     });
 
     it('maestro.sh android --apk installs that APK and does not run Gradle', async () => {
@@ -3133,6 +3420,38 @@ esac`,
       });
     }
 
+    // #373: a real `adb emu kill` can leave the emulator running (it once did, on CI); the command must not wait for ever.
+    for (const [ending, result, status] of endings.slice(0, 2)) {
+      it(`AC2: ${name} warns and ends within EMULATOR_STOP_TIMEOUT, with the same status, when the emulator ignores adb emu kill and the run ${ending}`, async () => {
+        const fake = checkout();
+        const message = /The emulator didn't exit in 1s after 'adb emu kill'/;
+
+        const local = await fake.run(command, args, {
+          FAKE_RESULT: result,
+          FAKE_STOP: 'hang',
+          EMULATOR_STOP_TIMEOUT: '1',
+          CI: '',
+        });
+        const onCi = await checkout().run(command, args, {
+          FAKE_RESULT: result,
+          FAKE_STOP: 'hang',
+          EMULATOR_STOP_TIMEOUT: '1',
+          CI: 'true',
+        });
+
+        assert.equal(local.status, status, local.output);
+        assert.match(local.output, message);
+        assert.doesNotMatch(local.output, /::warning/);
+        assert.ok(running(fake.emulator().pid), 'the fake emulator ignored adb emu kill');
+        gradleDaemonsStopped(fake); // the cleanup went on after the warning
+        assert.equal(onCi.status, status, onCi.output);
+        assert.match(
+          onCi.output,
+          /^::warning::The emulator didn't exit in 1s after 'adb emu kill'/m,
+        );
+      });
+    }
+
     it(`AC2: ${name} leaves an emulator that was already running, and still stops its Gradle daemons`, async () => {
       const fake = checkout({ emulatorRunning: true });
 
@@ -3144,6 +3463,298 @@ esac`,
       gradleDaemonsStopped(fake);
     });
   }
+
+  // #373: CI's emulator dropped its adb connection ("device offline") for about half a second, while Maestro started or
+  // right after a language switch. adbd was not restarted; the host's adb server lost the device.
+  describe('#373: the adb connection of the emulator drops', () => {
+    const adbSteps = (fake) =>
+      fake
+        .log('calls')
+        .filter(
+          (call) =>
+            call.startsWith('adb-state ') || call === 'adb reconnect offline' || isFlow(call),
+        )
+        .map((call) => (isFlow(call) ? `flow ${call.match(/android-(\S+)\.xml/)[1]}` : call));
+
+    it('waits after the language switch until the device is online and answers several probes in a row, reconnecting it', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_ADB_OFFLINE: '3',
+        DEVICE_STABLE_PROBES: '3',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(run.output, /the device is offline; reconnecting it/);
+      const steps = adbSteps(fake).join('\n');
+      assert.match(steps, /adb-state offline\nadb reconnect offline\n/, steps);
+      // Before each language's flows: no offline answer in the last three probes, and at least three in a row.
+      for (const locale of ['nl-NL', 'en']) {
+        assert.match(
+          steps,
+          new RegExp(`(adb-state device\\n){3}(adb-state device\\n)*flow ${locale}(\\n|$)`),
+          steps,
+        );
+      }
+    });
+
+    it('stops without running Maestro when the device does not come back', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_ADB_OFFLINE: '100000',
+        FAKE_ADB_RECONNECT: 'useless',
+        DEVICE_READY_TIMEOUT: '2',
+      });
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(run.output, /the device is not ready after 2s/);
+      assert.equal(fake.log('calls').filter(isFlow).length, 0, fake.log('calls').join('\n'));
+    });
+
+    it('waits for the device and asks for root once more when adb root loses the connection, and goes on', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_ADB_ROOT: 'closed-once',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /adb root lost the connection to the device \(adb: unable to connect for root: closed\)/,
+      );
+      assert.deepEqual(
+        fake.log('calls').filter((call) => call.startsWith('adb-root ')),
+        ['adb-root 1', 'adb-root 2'],
+      );
+      assert.equal(fake.log('calls').filter(isFlow).length, 2, fake.log('calls').join('\n'));
+    });
+
+    it('waits for the device and asks for root once more when adb root says the device is offline', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_ADB_ROOT: 'offline-once',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /adb root lost the connection to the device \(adb: device offline\)/,
+      );
+      assert.deepEqual(
+        fake.log('calls').filter((call) => call.startsWith('adb-root ')),
+        ['adb-root 1', 'adb-root 2'],
+      );
+      assert.equal(fake.log('calls').filter(isFlow).length, 2, fake.log('calls').join('\n'));
+    });
+
+    it('waits for the device to be online and answering after each adb root, as adbd restarts', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_ADB_ROOT: 'closed-once',
+        FAKE_ADB_ROOT_OFFLINE: '3',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      const steps = fake
+        .log('calls')
+        .filter(
+          (call) =>
+            call.startsWith('adb-root ') ||
+            call.startsWith('adb-state ') ||
+            call === 'adb shell getprop persist.sys.locale',
+        )
+        .join('\n');
+      // Between the two roots, and after the last one before anything else asks the device: it was offline, then answered
+      // at least twice in a row.
+      assert.match(
+        steps,
+        /adb-root 1\n(adb-state offline\n)+(adb-state device\n){2,}adb-root 2\n(adb-state offline\n)+(adb-state device\n){2,}adb shell getprop persist\.sys\.locale/,
+        steps,
+      );
+    });
+
+    it('fails at once when adb root fails with another error', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], { FAKE_ADB_ROOT: 'other' });
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(run.output, /insufficient permissions/);
+      assert.match(run.output, /adb root failed/);
+      assert.deepEqual(
+        fake.log('calls').filter((call) => call.startsWith('adb-root ')),
+        ['adb-root 1'],
+      );
+      assert.equal(fake.log('calls').filter(isFlow).length, 0);
+    });
+
+    it('fails when adb root loses the connection twice', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_ADB_ROOT: 'closed-twice',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(run.output, /adb root failed twice/);
+      assert.deepEqual(
+        fake.log('calls').filter((call) => call.startsWith('adb-root ')),
+        ['adb-root 1', 'adb-root 2'],
+      );
+      assert.equal(fake.log('calls').filter(isFlow).length, 0);
+    });
+
+    const tests = (fake) => fake.log('maestro').filter((call) => call.startsWith('test '));
+
+    it('re-runs once, and says so, only the flows that failed with the adb error, after the device is ready again', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /the adb connection dropped \(device offline\) in 2 flow\(s\) in en; re-running them once: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/hello\.yaml/,
+      );
+      const [nl, en, retry, ...more] = tests(fake);
+      assert.equal(more.length, 0, tests(fake).join('\n'));
+      assert.ok(nl.includes('android-nl-NL.xml') && en.includes('android-en.xml'));
+      assert.ok(
+        retry.includes('e2e/maestro/profile-workspaces.yaml') &&
+          retry.includes('e2e/maestro/hello.yaml') &&
+          !retry.includes('anonymous.yaml') &&
+          retry.includes('android-en-retry.xml') &&
+          retry.includes('--env DEVICE_LANGUAGE=en '),
+        retry,
+      );
+      // The device is probed again between the failed run and the re-run.
+      const steps = adbSteps(fake);
+      const failedRun = steps.lastIndexOf('flow en');
+      assert.ok(
+        steps.slice(failedRun).filter((s) => s === 'adb-state device').length >= 2,
+        steps.join('\n'),
+      );
+    });
+
+    it('re-runs flows whose junit failure text, not their log, has the adb error (the dead-driver stack caused by it)', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'died-text',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /the adb connection dropped \(device offline\) in 2 flow\(s\) in en; re-running them once: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/hello\.yaml/,
+      );
+      const [, , retry, ...more] = tests(fake);
+      assert.equal(more.length, 0, tests(fake).join('\n'));
+      assert.ok(
+        retry.includes('e2e/maestro/profile-workspaces.yaml') &&
+          retry.includes('e2e/maestro/hello.yaml') &&
+          !retry.includes('anonymous.yaml'),
+        retry,
+      );
+    });
+
+    for (const [name, error, runs] of [
+      ['a flow that failed an assertion', 'assertion', 2],
+      ['a flow that failed an assertion next to one with the adb error', 'mixed', 2],
+      [
+        'a failed assertion whose log also has the adb error of an optional step',
+        'assertion-optional',
+        2,
+      ],
+      [
+        'a flow that did not find an element, though its log mentions the dead driver, next to a real adb drop',
+        'element-aftermath',
+        2,
+      ],
+      [
+        'failures that only show the dead driver, with no flow showing the adb error itself',
+        'aftermath-only',
+        2,
+      ],
+      ['adb drops of flows the report gives no file for', 'no-file', 2],
+    ]) {
+      it(`does not re-run ${name}`, async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/maestro.sh', ['android'], {
+          FAKE_MAESTRO_ERROR: error,
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /Maestro failed in: en/);
+        assert.doesNotMatch(run.output, /re-running them once/);
+        assert.equal(tests(fake).length, runs, tests(fake).join('\n'));
+      });
+    }
+
+    it('reports the flows that pass only on the re-run as flaky, with a GitHub warning on CI only', async () => {
+      const flaky =
+        /flaky: 2 flow\(s\) in en failed with a dropped adb connection and passed on the re-run: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/hello\.yaml/;
+
+      const onCi = await checkout().run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline',
+        DEVICE_STABLE_PROBES: '2',
+        CI: 'true',
+      });
+      const local = await checkout().run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline',
+        DEVICE_STABLE_PROBES: '2',
+        CI: '',
+      });
+
+      assert.equal(onCi.status, 0, onCi.output);
+      assert.match(onCi.output, /maestro\.sh: flaky: /);
+      assert.match(
+        onCi.output,
+        new RegExp(`^::warning title=Flaky Maestro flows::${flaky.source}`, 'm'),
+      );
+      assert.equal(local.status, 0, local.output);
+      assert.match(local.output, flaky);
+      assert.doesNotMatch(local.output, /::warning/);
+    });
+
+    it('does not call a locale flaky when its re-run fails', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline-always',
+        CI: 'true',
+      });
+
+      assert.equal(run.status, 1, run.output);
+      assert.doesNotMatch(run.output, /flaky|::warning/);
+    });
+
+    it('re-runs only once: a second drop fails the locale', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline-always',
+      });
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /Maestro failed in: en/);
+      assert.equal(run.output.match(/re-running them once/g).length, 1, run.output);
+      assert.equal(tests(fake).length, 3, tests(fake).join('\n'));
+    });
+  });
 
   it('AC4: KEEP_DEVICE=1 leaves the emulator and the Gradle daemons pnpm test:android started running', async () => {
     const fake = checkout();
@@ -3160,7 +3771,7 @@ esac`,
   // GET /api/v1/hello?locale=<its language>, and the flow started while Android was still busy after the framework
   // restart that sets the device language (System UI stopped responding and its dialog covered the app).
   const isFlow = (call) => / test /.test(` ${call} `) && call.startsWith('maestro ');
-  const hello = (locale) => `http://127.0.0.1:3999/api/v1/hello?locale=${locale}`;
+  const hello = (fake, locale) => `http://127.0.0.1:${fake.port}/api/v1/hello?locale=${locale}`;
 
   for (const [name, args] of [
     ['maestro.sh android', ['android']],
@@ -3178,11 +3789,11 @@ esac`,
       assert.ok(firstFlow > 0, calls.join('\n'));
       for (const locale of ['nl-NL', 'en']) {
         const warmUp = calls.findIndex(
-          (call) => call.startsWith('curl ') && call.includes(` ${hello(locale)}`),
+          (call) => call.startsWith('curl ') && call.includes(` ${hello(fake, locale)}`),
         );
         assert.ok(
           health < warmUp && warmUp < firstFlow,
-          `GET ${hello(locale)} after the health check, before the first flow:\n${calls.join('\n')}`,
+          `GET ${hello(fake, locale)} after the health check, before the first flow:\n${calls.join('\n')}`,
         );
       }
     });
@@ -3265,7 +3876,7 @@ esac`,
 
       assert.equal(run.status, 0, run.output);
       for (const flow of fake.log('maestro').filter((call) => / test /.test(` ${call} `))) {
-        assert.ok(flow.includes('--env BREVO_URL=http://localhost:5999 '), flow);
+        assert.ok(flow.includes(`--env BREVO_URL=http://localhost:${fake.brevoPort} `), flow);
       }
     });
 
@@ -3276,24 +3887,37 @@ esac`,
 
       assert.equal(run.status, 0, run.output);
       const calls = fake.log('calls');
-      const brevo = calls.indexOf('curl -fsS http://localhost:5999/');
+      const brevo = calls.indexOf(`curl -fsS http://localhost:${fake.brevoPort}/`);
       const health = calls.findIndex((call) =>
-        call.includes('http://127.0.0.1:3999/api/v1/health'),
+        call.includes(`http://127.0.0.1:${fake.port}/api/v1/health`),
       );
       assert.ok(brevo >= 0, `the fake Brevo server is waited for:\n${calls.join('\n')}`);
       assert.ok(brevo < health, `before the web server's health check:\n${calls.join('\n')}`);
       const env = fake.webEnv();
       // The same variables as the web e2e's servers (playwright.config.ts); every value synthetic.
-      assert.equal(env.BREVO_API_URL, 'http://localhost:5999/v3/smtp/email');
+      assert.equal(env.BREVO_API_URL, `http://localhost:${fake.brevoPort}/v3/smtp/email`);
       assert.ok(env.BREVO_API_KEY && env.EMAIL_FROM_ADDRESS && env.EMAIL_FROM_NAME);
       assert.ok(env.BETTER_AUTH_SECRET?.length >= 32, 'a secret of at least 32 characters');
-      assert.equal(env.BETTER_AUTH_URL, 'http://127.0.0.1:3999');
+      assert.equal(env.BETTER_AUTH_URL, `http://127.0.0.1:${fake.port}`);
       assert.match(env.SIGN_UP_ALLOWED_EMAILS, /@example\.com/);
       // Outside production, mail to @example.com (the seeded owner@example.com) is logged, never sent, unless this
       // opt-in sends it through Brevo, here the fake one. The server is not the production environment: it would
       // tag Sentry and PostHog "production" and drop invalid product events instead of throwing.
       assert.equal(env.EMAIL_SEND_EXAMPLE_DOMAIN, '1');
       assert.equal(env.RAILWAY_ENVIRONMENT_NAME, undefined);
+    });
+
+    // E006 (#400): a token in the developer's shell must never send the flows' mail through real Lettermint; they
+    // keep the fake Brevo server until #403.
+    it(`E006: ${name} keeps Lettermint off the web server even when the shell has a token`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args, {
+        LETTERMINT_API_TOKEN: 'shell-synthetic-token',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(fake.webEnv().LETTERMINT_API_TOKEN, '');
     });
 
     it(`F001: ${name} clears the sign-in rate limits before the flows of each locale`, async () => {
@@ -3468,7 +4092,7 @@ esac`,
         const run = await fake.run(
           'scripts/maestro.sh',
           args,
-          { FAKE_RESULT: result },
+          { FAKE_RESULT: result, FAKE_BREVO_LISTEN_DELAY_MS: '2000' },
           { interrupt: result === 'hang' },
         );
 
@@ -3478,10 +4102,100 @@ esac`,
           fake.brevoAnswered(),
           'the fake Brevo server answered GET /emails during the run',
         );
-        await assert.rejects(fetch('http://localhost:5999/'), 'nothing answers on its port');
+        await assert.rejects(
+          fetch(`http://localhost:${fake.brevoPort}/`),
+          'nothing answers on its port',
+        );
       });
     }
   }
+
+  // E008 #383: the ports of a run were fixed (3999 and 5999), so two runs on one machine (two worktrees running
+  // check.sh) took the same ports and their fake servers answered each other's calls. Each run has its own pair.
+  it('#383: each run has its own ports, the second the Brevo port 2000 above the first', () => {
+    const [first, second] = [checkout(), checkout()];
+
+    assert.notEqual(first.port, second.port);
+    for (const { port, brevoPort } of [first, second]) {
+      assert.ok(Number.isInteger(port) && port > 1024, `a port: ${port}`);
+      assert.equal(brevoPort, port + 2000);
+    }
+  });
+
+  it('#383: ports held at localhost (where the fake Brevo server binds) are skipped, on both sides of the pair', async () => {
+    const hold = (port) =>
+      new Promise((resolve, reject) => {
+        const server = createServer((socket) => socket.destroy());
+        server.on('error', reject);
+        server.listen(port, 'localhost', () => resolve(server));
+      });
+    // Two candidates for the web port, one held itself and one whose Brevo port (2000 above) is held.
+    const held = await hold(0);
+    const heldAt = held.address().port;
+    const brevoHeld = await hold(0);
+    const brevoHeldAt = brevoHeld.address().port;
+    try {
+      const { port, brevoPort } = freePorts([heldAt, brevoHeldAt - 2000]);
+
+      assert.notEqual(port, heldAt);
+      assert.notEqual(port, brevoHeldAt - 2000);
+      assert.notEqual(brevoPort, heldAt);
+      assert.notEqual(brevoPort, brevoHeldAt);
+    } finally {
+      held.close();
+      brevoHeld.close();
+    }
+  });
+
+  it('#383: many checkouts in one process never share a port', () => {
+    const ports = Array.from({ length: 20 }, () => checkout()).flatMap(({ port, brevoPort }) => [
+      port,
+      brevoPort,
+    ]);
+
+    assert.equal(new Set(ports).size, ports.length);
+  });
+
+  it('#383: a run works while another process holds the ports the tests used to fix (3999, 5999)', async () => {
+    const holders = await Promise.all(
+      [3999, 5999].map(
+        (port) =>
+          new Promise((resolve) => {
+            const server = createServer((socket) => socket.destroy());
+            // Taken already, by another worktree's run: as good a holder.
+            server.on('error', () => resolve(undefined));
+            server.listen(port, 'localhost', () => resolve(server));
+          }),
+      ),
+    );
+    try {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android']);
+
+      assert.equal(run.status, 0, run.output);
+      assert.ok(fake.brevoAnswered(), 'its own fake Brevo server answered');
+    } finally {
+      for (const server of holders) server?.close();
+    }
+  });
+
+  it('#383: two runs at the same time each reach their own fake Brevo server', async () => {
+    const [one, two] = [checkout(), checkout()];
+
+    const runs = await Promise.all(
+      [one, two].map((fake) =>
+        fake.run('scripts/maestro.sh', ['android'], {
+          FAKE_MAESTRO_SLEEP: '1',
+          FAKE_BREVO_LISTEN_DELAY_MS: '500',
+        }),
+      ),
+    );
+
+    for (const [index, run] of runs.entries())
+      assert.equal(run.status, 0, `${index}: ${run.output}`);
+    assert.ok(one.brevoAnswered() && two.brevoAnswered(), 'both answered');
+  });
 
   it('#89: maestro.sh android waits for Android to deliver its broadcasts after each language change, before the flow', async () => {
     const fake = checkout();

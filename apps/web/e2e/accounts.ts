@@ -5,6 +5,7 @@ import {
   createDatabase,
   organizations,
   teamMembers,
+  trainerProfiles,
 } from '@fivvi/database';
 import type { Locale } from '@fivvi/i18n';
 import { databaseUrl } from '@fivvi/testing/database/server';
@@ -73,12 +74,15 @@ export async function createAccount(
  * Makes `email` (an existing account, see `createAccount`) a Trainer (or, with `role`, the Owner)
  * of a new workspace named `name`, on the e2e app server's database, and returns the workspace's
  * URL name. With the default role the workspace has no Owner: the spec is about what a Trainer
- * sees. The URL name is made unique, so specs and retries never share a workspace.
+ * sees. The URL name is made unique, so specs and retries never share a workspace. Like the API
+ * (F005), a Trainer and the Owner who creates a workspace train there: they get a trainer
+ * profile, which `trains: false` leaves out for an Owner.
  */
 export async function createGymWithTrainer(
   email: string,
   name: string,
   role: 'owner' | 'trainer' = 'trainer',
+  trains = true,
 ): Promise<string> {
   const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
   try {
@@ -90,9 +94,15 @@ export async function createGymWithTrainer(
       .values({ name, slug, defaultLocale: 'nl-NL', timeZone: 'Europe/Amsterdam' })
       .returning({ id: organizations.id });
     if (!gym) throw new Error('The workspace was not created.');
-    await client.db
+    const [member] = await client.db
       .insert(teamMembers)
-      .values({ organizationId: gym.id, accountId: user.id, role });
+      .values({ organizationId: gym.id, accountId: user.id, role })
+      .returning({ id: teamMembers.id });
+    if (member && (role === 'trainer' || trains)) {
+      await client.db
+        .insert(trainerProfiles)
+        .values({ organizationId: gym.id, teamMemberId: member.id });
+    }
     return slug;
   } finally {
     await client.close();
@@ -101,12 +111,14 @@ export async function createGymWithTrainer(
 
 /**
  * Puts the existing account `email` on the team of the workspace with the URL name `slug`, on
- * the e2e app server's database (the team page lists it; inviting people is F011).
+ * the e2e app server's database (the team page lists it; inviting people is F011). A Trainer
+ * trains there (F005) and gets a trainer profile; an Owner only with `trains: true`.
  */
 export async function joinTeam(
   email: string,
   slug: string,
   role: 'owner' | 'trainer' = 'trainer',
+  trains = role === 'trainer',
 ): Promise<void> {
   const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
   try {
@@ -116,9 +128,15 @@ export async function joinTeam(
       await client.db.select().from(organizations).where(eq(organizations.slug, slug))
     )[0];
     if (!gym) throw new Error(`No workspace ${slug} on the e2e database.`);
-    await client.db
+    const [member] = await client.db
       .insert(teamMembers)
-      .values({ organizationId: gym.id, accountId: user.id, role });
+      .values({ organizationId: gym.id, accountId: user.id, role })
+      .returning({ id: teamMembers.id });
+    if (member && trains) {
+      await client.db
+        .insert(trainerProfiles)
+        .values({ organizationId: gym.id, teamMemberId: member.id });
+    }
   } finally {
     await client.close();
   }

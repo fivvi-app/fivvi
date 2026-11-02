@@ -8,6 +8,7 @@ import {
   canCreateWorkspace,
   NAME_MAX_LENGTH,
   slugCandidates,
+  startsWithTrainerProfile,
   WORKSPACE_DEFAULTS,
 } from '@fivvi/domain';
 import { OpenAPIHono, type RouteConfig, type RouteHandler, z } from '@hono/zod-openapi';
@@ -84,7 +85,8 @@ const createWorkspaceRoute = defineRoute(
     description:
       'Creates a workspace and makes the caller its Owner, in one transaction: the workspace ' +
       '(Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a ' +
-      'number added when taken), the Owner’s team role and, when given, the account’s name. ' +
+      'number added when taken), the Owner’s team role with a trainer profile (the creator ' +
+      'trains in the workspace they set up) and, when given, the account’s name. ' +
       'Only an account on the sign-up allowlist with no team role in any workspace may: ' +
       'anyone else gets `403` and nothing is created.',
     security: SIGNED_IN,
@@ -230,6 +232,8 @@ export function registerWorkspaces(app: OpenAPIHono) {
         ...WORKSPACE_DEFAULTS,
         name,
         slug,
+        // The creator is the Owner and trains in the gym they set up (F005 AC3).
+        ownerTrains: startsWithTrainerProfile('owner', { creator: true }),
         ...(personName === undefined ? {} : { ownerName: personName }),
       });
       if (!workspace) continue;

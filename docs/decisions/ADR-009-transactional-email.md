@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted (2026-09-22); Brevo selected (2026-09-22) |
+| **Status** | Accepted (2026-09-22); Brevo selected (2026-09-22); the provider is replaced by Lettermint in [ADR-028](ADR-028-transactional-email-through-lettermint.md) (2026-11-02) |
 | **Date** | 2026-09-22 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | PRODUCT.md §3, §51, §74; ROADMAP.md M1, M5, §12, §13 (R1, R14); ADR-007, ADR-008, ADR-010; E006, F049, F050 |

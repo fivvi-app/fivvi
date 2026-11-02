@@ -187,6 +187,21 @@ failed_tests() {
     | unique[]' 2>/dev/null || true
 }
 
+# The UI tests of the result bundle $1 that reported a flaky start, one line each: the `::warning::flaky…` activity the
+# test recorded, then ` in <test> (<test-plan configuration>)` (#388). `xcodebuild -quiet` drops what the tests print, so
+# the activities of the bundle are the only place the warning survives. Nothing when the bundle can't be read.
+flaky_tests() {
+  local id
+  while IFS= read -r id; do
+    xcrun xcresulttool get test-results activities --path "$1" --test-id "$id" --compact 2>/dev/null | jq -r --arg id "$id" '
+      .testRuns[]? | (.testPlanConfiguration.configurationName // "") as $config
+      | [.. | objects | select(.title? | strings | startswith("::warning::flaky")) | .title] | unique[]
+      | "\(.) in \($id)\(if $config == "" then "" else " (\($config))" end)"' 2>/dev/null || true
+  done < <(xcrun xcresulttool get test-results tests --path "$1" --compact 2>/dev/null | jq -r '
+    [.. | objects | select(.nodeType? == "Test Case" and ((.nodeIdentifierURL // "") | contains("/FivviProUITests/")))
+      | .nodeIdentifier] | unique[]' 2>/dev/null || true)
+}
+
 # Deletes the simulator of the worktree in $1; nothing on a machine without Xcode.
 delete_worktree_simulator() {
   local name udid

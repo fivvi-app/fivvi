@@ -1,12 +1,13 @@
-// Sends the hello test email through Brevo (G1 check, E006).
+// Sends the hello test email through the configured provider (G1 check, E006): Lettermint when
+// LETTERMINT_API_TOKEN is set, otherwise Brevo.
 // Usage: pnpm email:send-test --to you@example.com [--locale nl-NL|en] [--name Anna]
 //        [--time-zone Europe/Amsterdam]
-// Reads BREVO_API_KEY, EMAIL_FROM_ADDRESS and EMAIL_FROM_NAME from the environment or from
-// packages/email/.env (see the README). Never prints the API key.
+// Reads the variables of the provider (see the README) from the environment or from
+// packages/email/.env. Never prints the API key or token.
 import { parseArgs } from 'node:util';
 import { defaultLocale, defaultTimeZone, isLocale, locales } from '@fivvi/i18n';
 import {
-  createBrevoTransport,
+  createConfiguredTransport,
   createSendEmail,
   EmailSendError,
   helloEmail,
@@ -38,8 +39,9 @@ try {
   console.error((error as Error).message);
   process.exit(1);
 }
+const provider = config.lettermint ? 'Lettermint' : 'Brevo';
 const sendEmail = createSendEmail({
-  transport: createBrevoTransport({ apiKey: config.brevoApiKey }),
+  transport: createConfiguredTransport(config),
   sender: config.sender,
   onRetry: ({ attempt, delayMs, error }) => {
     console.warn(`Attempt ${attempt} failed (${error.message}); retrying in ${delayMs} ms.`);
@@ -56,12 +58,12 @@ try {
   });
   console.log(
     `Sent "${helloEmail.id}" (${values.locale}) to ${values.to} in ${result.attempts} attempt(s). ` +
-      `Brevo message id: ${result.messageId ?? '(none: an earlier attempt was accepted)'}`,
+      `${provider} message id: ${result.messageId ?? '(none: an earlier attempt was accepted)'}`,
   );
 } catch (error) {
   if (error instanceof EmailSendError) {
     console.error(`Send failed after ${error.attempts} attempt(s): ${error.message}`);
-    if (error.detail) console.error(`Brevo says: ${error.detail}`);
+    if (error.detail) console.error(`${provider} says: ${error.detail}`);
     process.exitCode = 1;
   } else {
     throw error;
