@@ -37,6 +37,24 @@
         }
       }
     },
+    "common.cancel" : {
+      "comment" : "Button that leaves a form or dialog without saving, e.g. the native full-screen dialog that changes the person's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuleren"
+          }
+        }
+      }
+    },
     "common.loading" : {
       "comment" : "Accessibility label of the progress indicator while a screen loads (read by VoiceOver and TalkBack).",
       "extractionState" : "manual",
@@ -362,6 +380,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jouw gegevens"
+          }
+        }
+      }
+    },
+    "myProfile.editName" : {
+      "comment" : "Title of the native dialog (iOS sheet, Android full-screen dialog) in which the person changes their name on Profile (TM-04), and the action of the name row that opens it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change name"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naam wijzigen"
           }
         }
       }

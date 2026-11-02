@@ -5,7 +5,8 @@
   },
   "common": {
     "loading": "Loading…",
-    "retry": "Try again"
+    "retry": "Try again",
+    "cancel": "Cancel"
   },
   "hello": {
     "title": "Welcome to Fivvi",
@@ -171,7 +172,8 @@
       "nameTooLong": "This name is too long. Use a shorter one.",
       "noConnection": "No connection. Check your internet and try again.",
       "generic": "Something went wrong. Try again."
-    }
+    },
+    "editName": "Change name"
   },
   "profile": {
     "title": "Profile",

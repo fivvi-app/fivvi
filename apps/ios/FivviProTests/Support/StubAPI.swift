@@ -34,7 +34,7 @@ actor StubAPI: APIProtocol {
     enum MeAnswer: Sendable {
         case account(
             email: String, id: String = StubAPI.accountID, workspaces: [String] = [], canCreateWorkspace: Bool = false,
-            preferredLocale: Components.Schemas.Locale? = nil, team: [Membership] = []
+            preferredLocale: Components.Schemas.Locale? = nil, team: [Membership] = [], name: String? = "Owner"
         )
         case unauthorized
         case status(Int)
@@ -53,6 +53,8 @@ actor StubAPI: APIProtocol {
         let role: Components.Schemas.MyWorkspace.RolePayload
         /// What the API lists for the role unless a test gives other capabilities (the matrix of `packages/domain`).
         var capabilities: [Components.Schemas.MyWorkspace.CapabilitiesPayloadPayload]?
+        /// What the API says about training there unless a test gives it: a Trainer always trains, an Owner does not.
+        var trainsHere: Bool?
     }
 
     /// What `listMyWorkspaces` answers.
@@ -66,6 +68,10 @@ actor StubAPI: APIProtocol {
     /// What `updateMe` answers.
     enum UpdateMeAnswer: Sendable {
         case accepted
+        /// `400 validation_failed` naming one field, as the API refuses a name (`too_small`, `too_big`).
+        case refused(path: String, code: String)
+        /// No answer until the test calls `releaseHangingUpdateMes()`, then accepted.
+        case hang
         case status(Int)
         case offline
     }
@@ -98,6 +104,11 @@ actor StubAPI: APIProtocol {
     private(set) var savedLocales: [Components.Schemas.Locale?] = []
     /// The `surface` of every `updateMe`, in order.
     private(set) var savedSurfaces: [Components.Schemas.UpdateMeRequest.SurfacePayload?] = []
+    /// The `name` of every `updateMe`, in order (F005), and what the trainer-profile calls did (`StubAPI+Profile`).
+    private(set) var savedNames: [String?] = []
+    /// The address `getMe` last answered with, which `updateMe` answers with too.
+    private var accountEmail = "owner@example.com"
+    var trainers = ProfileScript()
     private(set) var myWorkspacesCalls = 0
     /// The IDs `getWorkspace` was asked for, in order.
     private(set) var requestedWorkspaces: [String] = []
@@ -187,37 +198,16 @@ actor StubAPI: APIProtocol {
         }
     }
 
-    func getHealth(_ input: Operations.GetHealth.Input) async throws -> Operations.GetHealth.Output {
-        fatalError("The hello screen doesn't call getHealth")
-    }
-
-    func createWorkspace(_ input: Operations.CreateWorkspace.Input) async throws -> Operations.CreateWorkspace.Output {
-        fatalError("The app doesn't call createWorkspace yet")
-    }
-
-    func renameWorkspace(_ input: Operations.RenameWorkspace.Input) async throws -> Operations.RenameWorkspace.Output {
-        fatalError("The app doesn't call renameWorkspace yet")
-    }
-
-    func listTeamMembers(_ input: Operations.ListTeamMembers.Input) async throws -> Operations.ListTeamMembers.Output {
-        fatalError("The app doesn't call listTeamMembers yet")
-    }
-
-    func removeTeamMember(
-        _ input: Operations.RemoveTeamMember.Input
-    ) async throws -> Operations.RemoveTeamMember.Output {
-        fatalError("The app doesn't call removeTeamMember yet")
-    }
-
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
         meCalls += 1
         let asked = meAnswer
         switch asked {
-        case let .account(email, id, workspaces, canCreateWorkspace, preferredLocale, team):
+        case let .account(email, id, workspaces, canCreateWorkspace, preferredLocale, team, name):
+            accountEmail = email
             return .ok(.init(body: .json(
                 Self.me(
                     id: id, email: email, workspaces: workspaces, canCreateWorkspace: canCreateWorkspace,
-                    preferredLocale: preferredLocale, team: team
+                    preferredLocale: preferredLocale, team: team, name: name
                 )
             )))
         case .unauthorized:
@@ -305,10 +295,16 @@ extension StubAPI {
         if case let .json(body) = input.body {
             savedLocales.append(body.preferredLocale.flatMap { Components.Schemas.Locale(rawValue: $0.rawValue) })
             savedSurfaces.append(body.surface)
+            savedNames.append(body.name)
         }
+        if case .hang = updateMeAnswer { await holdUpdateMe() }
         switch updateMeAnswer {
-        case .accepted:
-            return .ok(.init(body: .json(Self.me(id: Self.accountID, email: "owner@example.com"))))
+        case .accepted, .hang:
+            let name = savedNames.last.flatMap { $0 } ?? "Owner"
+            return .ok(.init(body: .json(Self.me(id: Self.accountID, email: accountEmail, name: name))))
+        case let .refused(path, code):
+            let issue = Components.Schemas.ValidationError.IssuesPayloadPayload(path: path, code: code)
+            return .badRequest(.init(body: .json(.init(code: .validationFailed, issues: [issue]))))
         case let .status(code):
             return .undocumented(statusCode: code, .init())
         case .offline:
@@ -337,7 +333,8 @@ extension StubAPI {
             return .ok(.init(body: .json(memberships.map {
                 .init(
                     workspaceId: $0.workspaceID, name: $0.name, slug: $0.slug, role: $0.role,
-                    capabilities: $0.capabilities ?? Self.capabilities(of: $0.role), trainsHere: $0.role == .trainer
+                    capabilities: $0.capabilities ?? Self.capabilities(of: $0.role),
+                    trainsHere: $0.trainsHere ?? ($0.role == .trainer)
                 )
             })))
         case .unauthorized:
@@ -353,12 +350,12 @@ extension StubAPI {
 extension StubAPI {
     /// The account `getMe` answers with: a workspace of each name in `workspaces` (synthetic IDs and slugs, the
     /// account an owner of each), or the `team` when a test gives one.
-    private static func me(
+    static func me(
         id: String, email: String, workspaces: [String] = [], canCreateWorkspace: Bool = false,
-        preferredLocale: Components.Schemas.Locale? = nil, team: [Membership] = []
+        preferredLocale: Components.Schemas.Locale? = nil, team: [Membership] = [], name: String? = "Owner"
     ) -> Components.Schemas.MeResponse {
         .init(
-            id: id, email: email, name: "Owner",
+            id: id, email: email, name: name,
             preferredLocale: preferredLocale.flatMap { .init(rawValue: $0.rawValue) },
             canCreateWorkspace: canCreateWorkspace,
             workspaces: team.isEmpty

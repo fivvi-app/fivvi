@@ -5,6 +5,8 @@
     <string name="app_name">Fivvi Pro</string>
     <!-- Browser tab title (HTML <title>) of web pages that don't set their own. The product name, Fivvi, the same in both languages. -->
     <string name="app_title">Fivvi</string>
+    <!-- Button that leaves a form or dialog without saving, e.g. the native full-screen dialog that changes the person's name. -->
+    <string name="common_cancel">Annuleren</string>
     <!-- Accessibility label of the progress indicator while a screen loads (read by VoiceOver and TalkBack). -->
     <string name="common_loading">Laden…</string>
     <!-- Button under an error message that tries the failed action again. -->
@@ -37,6 +39,8 @@
     <!-- Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner. -->
     <string name="home_signed_in_as">Ingelogd als %1$s</string>
     <string name="my_profile_details_title">Jouw gegevens</string>
+    <!-- Title of the native dialog (iOS sheet, Android full-screen dialog) in which the person changes their name on Profile (TM-04), and the action of the name row that opens it. -->
+    <string name="my_profile_edit_name">Naam wijzigen</string>
     <string name="my_profile_email_label">E-mailadres</string>
     <string name="my_profile_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
     <string name="my_profile_errors_name_required">Vul je naam in.</string>

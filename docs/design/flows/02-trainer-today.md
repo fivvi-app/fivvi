@@ -315,13 +315,13 @@ flowchart TD
 
 **Features:** F006, F045, F046
 
-- **TM-02** lists the clients the user can see, **grouped per workspace** (the same person at two workspaces is two profiles, `§10–11`). Each row shows the email (or *geen e-mailadres*) and the last session date. Search matches name and email and ignores accents and case.
+- **TM-02** lists the clients the user can see, **grouped per workspace** (the same person at two workspaces is two profiles, `§10–11`). Each row shows the email and the last session date. Search matches name and email and ignores accents and case.
 - **TM-03** shows workspace, email, language for emails, trainer-only client notes (and, after go-live, the default training location), then the workout history (name or *Training zonder schema*, date, exercise count, trainer).
 - Two actions: **Nu training starten** creates a private session that starts now and opens WL-01 (flow 05). **Sessie plannen** opens PS-04 with the client filled in.
 
 | Element | NL | EN |
 |---|---|---|
-| Row meta | {email} / geen e-mailadres · laatste sessie {date} / nog geen sessies | {email} / no email · last session {date} / no sessions yet |
+| Row meta | {email} · laatste sessie {date} / nog geen sessies | {email} · last session {date} / no sessions yet |
 | Actions | Nu training starten · Sessie plannen | Start workout now · Plan session |
 | History | Trainingen · Nog geen trainingen bijgehouden. | Workouts · No workouts logged yet. |
 
