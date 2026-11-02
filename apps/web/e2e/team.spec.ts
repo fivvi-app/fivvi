@@ -133,6 +133,38 @@ test.describe('F003 my workspaces and the role in the header', () => {
     await expectNoAxeViolations(page, `TW-06 in ${appLocale}`);
   });
 
+  test('F005 AC7: the trainer badge shows for John and Sarah, and for Sarah only after John switches training off', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    const workspaceId = (
+      (await (await page.request.get('/api/v1/me/workspaces')).json()) as { workspaceId: string }[]
+    )[0]?.workspaceId;
+
+    await page.goto(`/w/${slug}/trainers`);
+    const rows = page.getByRole('row');
+    const badge = copy.team.badge.trainer;
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(1).locator('[data-slot="badge"]')).toHaveText(badge);
+    await expect(rows.nth(2).locator('[data-slot="badge"]')).toHaveText(badge);
+    await expectNoAxeViolations(page, `TW-06 with trainer badges in ${appLocale}`);
+
+    // The data path: John switches off in the API; the page then follows what the API lists.
+    expect(
+      (await page.request.delete(`/api/v1/workspaces/${workspaceId}/trainer-profile`)).status(),
+    ).toBe(204);
+    await page.reload();
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(1).locator('[data-slot="badge"]')).toHaveCount(0);
+    await expect(rows.nth(1)).toContainText(`John${john}${copy.roles.owner}`);
+    await expect(rows.nth(2).locator('[data-slot="badge"]')).toHaveText(badge);
+    await expectNoAxeViolations(page, `TW-06 with John not training in ${appLocale}`);
+  });
+
   test('AC3: Sarah has no Trainers in her navigation and the URL shows the no-permission page', async ({
     page,
     context,

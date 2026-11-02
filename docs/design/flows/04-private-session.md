@@ -45,7 +45,7 @@ flowchart TD
   ws -- "werkruimte-scope (web)" --> client
   ws -- "persoonlijke scope (app, Mijn agenda)" --> client["PS-02 Klant kiezen"]
   client -- "klant bepaalt werkruimte" --> when["Datum · begin · duur"]
-  client -- "+ Nieuwe klant" --> newc["Naam (+ e-mail, taal)"] --> when
+  client -- "+ Nieuwe klant" --> newc["Naam + e-mail (+ taal)"] --> when
   when --> dst{"Tijd geldig?"}
   dst -- "bestaat niet (28 mrt 2027 02:30)" --> fixtime["Melding: kies een andere tijd"] --> when
   dst -- "dubbel (25 okt 2026 02:30)" --> amb["Eerste keer (zomertijd) + uitleg"] --> trainer
@@ -61,7 +61,7 @@ flowchart TD
   conflict -- "ja" --> ps07["PS-07 Waarschuwing<br/>Toch opslaan / Terug"]
   conflict -- "nee" --> save["Opslaan"]
   ps07 --> save
-  save --> mail{"Klant informeren?<br/>(klant heeft e-mail)"}
+  save --> mail{"Klant informeren?"}
   mail -- "ja" --> em11["EM-11 in taal van klant ⚑"]
   mail -- "nee" --> done["Sessie in agenda's<br/>(werkruimte + trainer)"]
   em11 --> done
@@ -112,7 +112,7 @@ flowchart TD
 - **Trainer** defaults to *me* if I have a trainer profile here; the owner can pick any trainer in the workspace. Changing the trainer re-runs inference.
 - **Location** always shows the *reason* (table above). *Wijzigen* opens PS-03.
 - **Training**: choose a template (F041) to assign as this session's workout (F042). Leave it empty to decide at the session.
-- **Confirmation email** ⚑ [Q26](../open-questions.md#q26), [QE02](../open-questions.md#qe02): shown only if the client has an email; the note tells which language it'll be in.
+- **Confirmation email** ⚑ [Q26](../open-questions.md#q26), [QE02](../open-questions.md#qe02): always shown, because every client has an email; the note tells which language it'll be in.
 - **Unsaved changes**: closing asks *Wijzigingen weggooien?*
 
 | Element | NL | EN |
@@ -152,7 +152,7 @@ flowchart TD
 │ anna@example.com · laatste sessie di 15 sep                │
 │──────────────────────────────────────────────────────────│
 │ Annemiek Bos                                             │
-│ geen e-mailadres · nog geen sessies                      │
+│ annemiek@example.com · nog geen sessies                  │
 │──────────────────────────────────────────────────────────│
 │ + Nieuwe klant "ann"                                     │
 └──────────────────────────────────────────────────────────┘
@@ -161,7 +161,7 @@ flowchart TD
 ┌──────────────────────────────────────────────────────────┐
 │ Naam                                                     │
 │ [ Anne Jansen                                          ] │
-│ E-mailadres (optioneel)                                  │
+│ E-mailadres                                              │
 │ [                                                      ] │
 │ Taal voor e-mails                                        │
 │ ● Nederlands   ○ English                                 │
@@ -174,15 +174,15 @@ flowchart TD
 - Search matches name and email, and ignores accents and case ("anne" finds "Anné").
 - **Recent clients first** when the field is empty: the trainer's last 5 clients.
 - **Personal scope (app)**: results come from every workspace the trainer can create in, each with a workspace label. The same person at two workspaces appears twice, because they're separate client profiles (`§10, §11`).
-- **New client inline**: only a name is required; email is optional (a private client may not have given one). *Taal voor e-mails* defaults to the workspace default.
+- **New client inline**: a name and an email are required (every client has an email, owner, 2 November 2026). *Taal voor e-mails* defaults to the workspace default.
 - Duplicate check on email: *Er is al een klant met dit e-mailadres: Anna de Vries.* [ *Die gebruiken* ].
 
 | Element | NL | EN |
 |---|---|---|
 | Search placeholder | Zoek op naam of e-mail | Search by name or email |
-| Result meta | laatste sessie {date} · nog geen sessies · geen e-mailadres | last session {date} · no sessions yet · no email |
+| Result meta | laatste sessie {date} · nog geen sessies | last session {date} · no sessions yet |
 | New | + Nieuwe klant "{query}" | + New client "{query}" |
-| New client labels | Naam · E-mailadres (optioneel) · Taal voor e-mails · Standaard trainingslocatie (optioneel) | Name · Email (optional) · Language for emails · Default location (optional) |
+| New client labels | Naam · E-mailadres · Taal voor e-mails · Standaard trainingslocatie (optioneel) | Name · Email · Language for emails · Default location (optional) |
 | Add | Klant toevoegen | Add client |
 | Duplicate | Er is al een klant met dit e-mailadres: {name}. [ Die gebruiken ] | There's already a client with this email: {name}. [ Use them ] |
 | No results | Geen klanten gevonden. | No clients found. |
@@ -375,7 +375,6 @@ iOS: sheet                                  Android: full-screen dialog
 | **Duration across a DST change** | Duration is elapsed time; the end is shown in wall-clock time (01:30 + 90 min on 25 Oct → *Eindigt om 02:00*) | PS-01 |
 | **Past midnight** | Allowed; *Eindigt om 00:30 (volgende dag)* | PS-01 |
 | **Planning in the past** (logging afterwards) | Allowed with a warning; no email | PS-01 |
-| **Client without email** | The email option is hidden; the save message says the client wasn't informed | PS-01, PS-05, PS-06 |
 | **Client prefers English** | EM-11/EM-04 in English. The note under the checkbox says so, so the trainer isn't surprised | PS-01, PS-05 |
 | **Same person in two workspaces** | Two separate client profiles; picking one fixes the workspace; nothing crosses over | PS-02 |
 | **Location inference changes while editing** | Automatic → updates with a highlight; manual → kept, with a hint | PS-03 |

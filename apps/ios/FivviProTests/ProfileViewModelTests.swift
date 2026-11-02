@@ -13,6 +13,10 @@ final class ProfileViewModelTests: XCTestCase {
         ProfileViewModel(api: api, catalog: Catalog(locale: language))
     }
 
+    private func answerMe(_ api: StubAPI) async {
+        await api.answerMe(with: .account(email: "sarah@example.com", name: "Sarah"))
+    }
+
     /// Sarah (synthetic): Trainer of John's Gym, Owner of Sarah Personal Training.
     private func answerAsSarah(_ api: StubAPI) async {
         await api.answerMyWorkspaces(with: .workspaces([
@@ -32,6 +36,7 @@ final class ProfileViewModelTests: XCTestCase {
         XCTAssertEqual(language, TestCatalog.configuredLocale, "the test plan's language reaches the app")
         let api = StubAPI()
         await answerAsSarah(api)
+        await answerMe(api)
         let model = model(api)
         XCTAssertEqual(model.state, .loading)
 
@@ -41,11 +46,12 @@ final class ProfileViewModelTests: XCTestCase {
         XCTAssertEqual(model.state, .loaded([
             .init(
                 id: "7c1d2e3f-0000-4000-8000-000000000001", name: "John's Gym", slug: "johns-gym",
-                role: catalog["roles.trainer"]
+                role: catalog["roles.trainer"], trainsHere: true, canSwitchTrainsHere: false, change: .idle
             ),
             .init(
                 id: "7c1d2e3f-0000-4000-8000-000000000002", name: "Sarah Personal Training",
-                slug: "sarah-personal-training", role: catalog["roles.owner"]
+                slug: "sarah-personal-training", role: catalog["roles.owner"], trainsHere: false,
+                canSwitchTrainsHere: true, change: .idle
             )
         ]))
         let calls = await api.myWorkspacesCalls
@@ -74,15 +80,31 @@ final class ProfileViewModelTests: XCTestCase {
             XCTAssertEqual(model.state, .failed, "\(answer)")
         }
         await answerAsSarah(api)
+        await answerMe(api)
         let model = model(api)
         await model.load()
         guard case let .loaded(entries) = model.state else { return XCTFail("\(model.state)") }
         XCTAssertEqual(entries.map(\.name), ["John's Gym", "Sarah Personal Training"])
     }
 
+    func test_F005_aFailedAccountReadShowsTheErrorEvenWhenTheWorkspacesCame() async {
+        let api = StubAPI()
+        await answerAsSarah(api)
+        for answer in [StubAPI.MeAnswer.offline, .status(503), .unauthorized] {
+            await api.answerMe(with: answer)
+            let model = model(api)
+
+            await model.load()
+
+            XCTAssertEqual(model.state, .failed, "\(answer)")
+            XCTAssertNil(model.account)
+        }
+    }
+
     func test_F003_AC9_aReloadKeepsTheListOnScreenUntilTheNewOneArrives() async {
         let api = StubAPI()
         await answerAsSarah(api)
+        await answerMe(api)
         let model = model(api)
         await model.load()
         await api.answerMyWorkspaces(with: .workspaces([
@@ -102,6 +124,7 @@ final class ProfileViewModelTests: XCTestCase {
     func test_F003_AC9_aFailedReloadKeepsWhatWasShown() async {
         let api = StubAPI()
         await answerAsSarah(api)
+        await answerMe(api)
         let model = model(api)
         await model.load()
         await api.answerMyWorkspaces(with: .offline)

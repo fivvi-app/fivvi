@@ -6,7 +6,8 @@
   "common": {
     "loading": "Loading…",
     "retry": "Try again",
-    "loadingSlow": "This is taking longer than usual…"
+    "loadingSlow": "This is taking longer than usual…",
+    "cancel": "Cancel"
   },
   "hello": {
     "title": "Welcome to Fivvi",
@@ -176,12 +177,21 @@
       "nameTooLong": "This name is too long. Use a shorter one.",
       "noConnection": "No connection. Check your internet and try again.",
       "generic": "Something went wrong. Try again."
-    }
+    },
+    "editName": "Change name"
   },
   "profile": {
     "title": "Profile",
     "error": "Your workspaces couldn't be loaded.",
-    "language": "Language"
+    "language": "Language",
+    "trainsHere": {
+      "label": "I also train at {workspace}",
+      "saved": "Saved.",
+      "errors": {
+        "noConnection": "No connection. Check your internet and try again.",
+        "generic": "Something went wrong. Try again."
+      }
+    }
   },
   "team": {
     "title": "Trainers",
@@ -218,6 +228,9 @@
     "roleChanged": {
       "owner": "{name} is now an owner.",
       "trainer": "{name} is now a trainer."
+    },
+    "badge": {
+      "trainer": "Trainer"
     }
   },
   "clients": {

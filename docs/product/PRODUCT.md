@@ -710,7 +710,7 @@ Primary daily operational interface:
 A **+** action creates what the user's role allows, without switching to web:
 
 - private session (every trainer, for their own sessions)
-- client (name only; email and language can follow)
+- client (name and email; language can follow)
 - group class, one-off or repeating every week (owner only)
 - Open Gym (owner only)
 
@@ -1015,7 +1015,7 @@ Your booking is confirmed.
 
 Anyone can create an account (§27), and an account on its own shows **nothing of any workspace**. There are two ways in as a client (owner, 31 October 2026, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)):
 
-1. **The workspace adds the client** (§34) with their email, and the client gets an **invitation email**. They are in once they sign in. A client added without an email can't sign in; the team manages them.
+1. **The workspace adds the client** (§34) with their email, and the client gets an **invitation email**. They are in once they sign in. Every client has an email address (owner, 2 November 2026).
 2. **The client asks to join.** They open the workspace's **join link** or scan its QR code (§32, §33), sign in or sign up, and send a **join request**. They see "waiting for the studio" until the Owner decides.
 
 There is **no workspace search**, at least for the beginning: a later candidate, not planned.
@@ -1163,7 +1163,9 @@ QR should lead to responsive bilingual pages. A QR code of a booking link only h
 
 # 34. Client profile
 
-A client can be added wherever a client is chosen (new session, the client list, the app's **+**). Only a name is required; email and language for emails are optional (a default training location follows after go-live, §14). A matching email in the same workspace offers the existing client instead of a duplicate. With an email, the workspace can send the client an invitation to sign in (§26); the Owner also approves the join requests of clients who found the join link themselves (a list on Clients).
+A client can be added wherever a client is chosen (new session, the client list, the app's **+**). A name and an email address are required; the language for emails is optional (a default training location follows after go-live, §14). Every client has an email address, because every client signs in (owner, 2 November 2026). A matching email in the same workspace offers the existing client instead of a duplicate. The workspace sends the client an invitation to sign in (§26); the Owner also approves the join requests of clients who found the join link themselves (a list on Clients).
+
+**The email address belongs to the client** (owner, 2 November 2026). Before the client has joined (signed in after the invitation, or had their join request approved, §26), the team can correct a typo in it, so the invitation reaches them; the team can never clear it. Once the client has joined, only they change it, and the change shows in every workspace they have joined. The team still edits the name and the language for emails.
 
 Contains:
 

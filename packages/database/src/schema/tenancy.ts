@@ -1,6 +1,15 @@
 import type { Locale } from '@fivvi/i18n';
 import { sql } from 'drizzle-orm';
-import { check, index, pgEnum, text, unique, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  foreignKey,
+  index,
+  pgEnum,
+  text,
+  unique,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { authUsers } from './auth.ts';
 import { businessTable } from './business-table.ts';
 import { timestamps } from './columns.ts';
@@ -82,5 +91,28 @@ export const clients = businessTable(
   { accountColumn: 'accountId', clientColumn: 'id' },
 );
 
+/**
+ * Who trains in a workspace (F005): a row means "this team member trains here", and holds nothing
+ * else in M2. Every Trainer has one; an Owner has one when they also train, and only they switch it.
+ * The composite foreign key removes it with the team-member record (F003's removal), so the account
+ * and its name stay and nothing of a removed person's training is left behind.
+ */
+export const trainerProfiles = businessTable(
+  'trainer_profiles',
+  {
+    teamMemberId: uuid('team_member_id').notNull(),
+    ...timestamps(),
+  },
+  (table) => [
+    unique('trainer_profiles_team_member_id_unique').on(table.teamMemberId),
+    foreignKey({
+      name: 'trainer_profiles_team_member_fk',
+      columns: [table.organizationId, table.teamMemberId],
+      foreignColumns: [teamMembers.organizationId, teamMembers.id],
+    }).onDelete('cascade'),
+  ],
+);
+
 export type TeamMember = typeof teamMembers.$inferSelect;
 export type Client = typeof clients.$inferSelect;
+export type TrainerProfile = typeof trainerProfiles.$inferSelect;

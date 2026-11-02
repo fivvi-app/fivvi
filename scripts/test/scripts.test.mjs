@@ -13,6 +13,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
@@ -1467,8 +1468,10 @@ describe('E002 #91 android.sh avd-key', () => {
 const fakeSimctl = (
   state,
 ) => `# xcresulttool prints the canned test results of the bundle in --path: <FAKE_XCRESULT_DIR>/<bundle name>.json when
-# that exists, else the file FAKE_XCRESULT names (nothing without it).
+# that exists, else the file FAKE_XCRESULT names (nothing without it). Its \`activities\` command prints the file
+# FAKE_XCRESULT_ACTIVITIES names (nothing without it) for any test.
 if [ "$1" = xcresulttool ]; then
+  case "$*" in *" activities "*) [ -z "$FAKE_XCRESULT_ACTIVITIES" ] || cat "$FAKE_XCRESULT_ACTIVITIES"; exit 0 ;; esac
   bundle=; while [ $# -gt 0 ]; do [ "$1" != --path ] || bundle="$2"; shift; done
   by_bundle="$FAKE_XCRESULT_DIR/$(basename "$bundle").json"
   if [ -n "$FAKE_XCRESULT_DIR" ] && [ -f "$by_bundle" ]; then cat "$by_bundle"
@@ -1501,6 +1504,49 @@ const iPhone = (udid, model, runtime, state = 'Shutdown') => ({
   runtime: `com.apple.CoreSimulator.SimRuntime.iOS-${runtime}`,
 });
 
+// E008 #383: the web server port of a run of the native test commands and, 2000 above it, that of the fake Brevo
+// server. Picked at random, and only where both are free now, so two runs on one machine (two worktrees running
+// check.sh, which also runs web e2e tests on E2E_PORT) don't take the same ports. A port is free when nothing listens
+// on it at 'localhost' (the host fake-brevo.ts binds, which on macOS is not the wildcard address: another process can
+// hold the port there while the wildcard check passes) nor at the wildcard address (where the web server listens).
+// `first` are ports to try before random ones (a test uses them). The pairs handed out by this process are skipped
+// (each is closed again after the check, so two checkouts in a row could draw the same one). A port is checked in a
+// process of its own, because this one may not block on it.
+const handedOut = new Set();
+const freePorts = (first = []) => {
+  const found = execFileSync(
+    process.execPath,
+    [
+      '-e',
+      `const { createServer } = require('node:net');
+const [first, skipped] = JSON.parse(process.argv[1]);
+const freeAt = (port, host) => new Promise((resolve) => {
+  const server = createServer();
+  server.on('error', () => resolve(false));
+  server.listen(port, host, () => server.close(() => resolve(true)));
+});
+const free = async (port) => {
+  for (const host of ['localhost', undefined]) if (!(await freeAt(port, host))) return false;
+  return true;
+};
+(async () => {
+  const candidates = [...first];
+  for (;;) {
+    const port = candidates.shift() ?? 20000 + Math.floor(Math.random() * 25000);
+    if (skipped.includes(port) || skipped.includes(port + 2000) || skipped.includes(port - 2000)) continue;
+    if ((await free(port)) && (await free(port + 2000))) return console.log(port);
+  }
+})();`,
+      JSON.stringify([first, [...handedOut]]),
+    ],
+    { encoding: 'utf8' },
+  );
+  const port = Number(found);
+  handedOut.add(port);
+  handedOut.add(port + 2000);
+  return { port, brevoPort: port + 2000 };
+};
+
 // The native test commands in a copy of the repo with fake toolchains: simctl above, an emulator that records its pid,
 // and an xcodebuild, gradlew, adb and Maestro that log their arguments. FAKE_RESULT makes each command's last step
 // pass, fail or hang (until a Ctrl-C to the whole process group, as in a terminal), so a test can check what the
@@ -1524,6 +1570,7 @@ describe('E008 #71 native test commands clean up after themselves', () => {
   const checkout = ({ simulatorBooted = false, emulatorRunning = false } = {}) => {
     const base = realpathSync(mkdtempSync(join(tmpdir(), 'native-')));
     dirs.push(base);
+    const { port, brevoPort } = freePorts();
     const repo = join(base, 'repo');
     const state = join(base, 'state');
     const bin = join(base, 'bin');
@@ -1559,6 +1606,25 @@ esac`;
     ]) {
       cpSync(join(SCRIPTS, '..', path), join(repo, path), { recursive: true });
     }
+    // FAKE_BREVO_LISTEN_DELAY_MS=<ms> (#379): the copy of the fake Brevo server starts to listen only after that long, as a
+    // process that is slow to start under load does. The real file is not changed; the copy must still have these two lines.
+    const brevoFile = join(repo, 'apps/web/e2e/fake-brevo.ts');
+    const brevoSource = readFileSync(brevoFile, 'utf8');
+    const create = 'createServer(async (request, response) => {';
+    const listen = "}).listen(port, 'localhost');";
+    assert.ok(
+      brevoSource.includes(create) && brevoSource.includes(listen),
+      'fake-brevo.ts still creates the server and then listens on port, localhost',
+    );
+    writeFileSync(
+      brevoFile,
+      brevoSource
+        .replace(create, `const server = ${create}`)
+        .replace(
+          listen,
+          `});\nsetTimeout(() => server.listen(port, 'localhost'), Number(process.env.FAKE_BREVO_LISTEN_DELAY_MS || 0));`,
+        ),
+    );
     // The web server maestro.sh starts: it runs until it's stopped, and records its environment.
     mkdirSync(join(repo, 'apps/web/.next/standalone/apps/web'), { recursive: true });
     writeFileSync(
@@ -1685,10 +1751,19 @@ fi
 exit 0`,
     );
     // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_HELLO=fail: GET /api/v1/hello fails.
+    // The fake Brevo server is a real process (#379), so a GET to its port (E2E_PORT + 2000) succeeds only once it answers,
+    // like curl in maestro.sh's wait_for would, which the fake sleep cannot do: a call polls for up to 1 s (the skipped
+    // sleep 1) and then fails, so wait_for's 61 tries still end near its real 60 s when the server never answers.
     script(
       join(bin, 'curl'),
       `echo "curl $*" >>"${state}/calls.log"
 case "$*" in *"/api/v1/hello"*) [ "$FAKE_HELLO" != fail ] || exit 22 ;; esac
+case "$*" in *"localhost:$((E2E_PORT + 2000))/"*)
+  exec node -e "
+    const url = process.argv[1], end = Date.now() + 1000;
+    const poll = () => fetch(url).then((r) => process.exit(r.ok ? 0 : 22), () => Date.now() < end ? setTimeout(poll, 50) : process.exit(7));
+    poll();
+  " "\${@: -1}" ;; esac
 exit 0`,
     );
     script(
@@ -1815,7 +1890,7 @@ esac`,
             ANDROID_HOME: sdk,
             JAVA_HOME: join(base, 'jdk'),
             EMULATOR_LOG: join(base, 'emulator.log'),
-            E2E_PORT: '3999',
+            E2E_PORT: String(port),
             IOS_SIM_SETTLE: '0',
             ...extraEnv,
           },
@@ -1862,7 +1937,19 @@ esac`,
       execFileSync('git', ['-C', repo, 'worktree', 'add', '--quiet', '-b', branch, path]);
       return path;
     };
-    return { repo, run, log, webEnv, brevoAnswered, simulators, simulator, emulator, worktree };
+    return {
+      repo,
+      port,
+      brevoPort,
+      run,
+      log,
+      webEnv,
+      brevoAnswered,
+      simulators,
+      simulator,
+      emulator,
+      worktree,
+    };
   };
 
   const endings = [
@@ -2753,6 +2840,127 @@ esac`,
       assert.doesNotMatch(run.output, /Failed tests:/);
     });
 
+    describe('#388: a UI test that started the app again is reported as flaky (TESTING.md §8)', () => {
+      const warning =
+        '::warning::flaky: app unreadable after start, starting it again (start 2 of 2)';
+      const uiTests = (fake) => {
+        const tests = join(fake.repo, '..', 'tests.json');
+        writeFileSync(
+          tests,
+          JSON.stringify({
+            testNodes: [
+              {
+                nodeType: 'Test Case',
+                nodeIdentifier: 'SignInRecoveryUITests/test_lostConnection()',
+                nodeIdentifierURL:
+                  'test://com.apple.xcode/FivviPro/FivviProUITests/SignInRecoveryUITests/test_lostConnection',
+                durationInSeconds: 5,
+              },
+            ],
+          }),
+        );
+        return tests;
+      };
+      const activities = (fake, titles) => {
+        const file = join(fake.repo, '..', 'activities.json');
+        writeFileSync(
+          file,
+          JSON.stringify({
+            testRuns: [
+              {
+                testPlanConfiguration: { configurationName: 'en' },
+                activities: [
+                  { title: 'Set Up' },
+                  {
+                    title: 'Open app.fivvi.pro',
+                    childActivities: titles.map((title) => ({ title })),
+                  },
+                ],
+              },
+            ],
+          }),
+        );
+        return file;
+      };
+
+      it('prints the test and its locale as a ::warning:: line and puts it in the job summary; the run still passes', async () => {
+        const fake = checkout();
+        const summary = join(fake.repo, '..', 'summary.md');
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: activities(fake, [warning]),
+          GITHUB_STEP_SUMMARY: summary,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(
+          run.output,
+          /^::warning::flaky: app unreadable after start, starting it again \(start 2 of 2\) in SignInRecoveryUITests\/test_lostConnection\(\) \(en\)$/m,
+        );
+        assert.match(
+          readFileSync(summary, 'utf8'),
+          /### Flaky iOS tests\n[\s\S]*SignInRecoveryUITests\/test_lostConnection\(\)[\s\S]*\(en\)/,
+        );
+      });
+
+      it('also reports it when the run fails', async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          FAKE_RESULT: 'fail',
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: activities(fake, [warning]),
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /::warning::flaky: .* in SignInRecoveryUITests\//);
+      });
+
+      it('prints nothing for a test that never started the app again', async () => {
+        const fake = checkout();
+        const summary = join(fake.repo, '..', 'summary.md');
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: activities(fake, ['Tap "Continue"']),
+          GITHUB_STEP_SUMMARY: summary,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.doesNotMatch(run.output, /::warning::flaky/);
+        assert.doesNotMatch(readFileSync(summary, 'utf8'), /Flaky iOS tests/);
+      });
+
+      it('test <locale> from the packed bundle reports it too', async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'en'], {
+          IOS_SIM_SETTLE: '0',
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: activities(fake, [warning]),
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(run.output, /^::warning::flaky: .* in SignInRecoveryUITests\/.*\(en\)$/m);
+      });
+
+      it('a bundle that cannot be read does not fail the run', async () => {
+        const fake = checkout();
+        const bad = join(fake.repo, '..', 'bad.json');
+        writeFileSync(bad, 'this is not JSON');
+
+        const run = await fake.run('scripts/test-ios.sh', [], {
+          FAKE_XCRESULT: uiTests(fake),
+          FAKE_XCRESULT_ACTIVITIES: bad,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.doesNotMatch(run.output, /::warning::flaky/);
+      });
+    });
+
     it('A: a bundle of one locale (IOS_PARALLEL=1) is reported for that locale', async () => {
       const fake = checkout();
       const result = join(fake.repo, '..', 'results.json');
@@ -3015,12 +3223,13 @@ esac`,
       const run = await fake.run('scripts/android.sh', ['maestro-apk']);
 
       assert.equal(run.status, 0, run.output);
-      assert.match(
-        gradleTasks(fake),
-        /assembleDebug -Pfivvi\.apiBaseUrl=http:\/\/10\.0\.2\.2:3999\/api\//,
+      const apiBaseUrl = `fivvi.apiBaseUrl=http://10.0.2.2:${fake.port}/api/`;
+      assert.ok(
+        gradleTasks(fake).includes(`assembleDebug -P${apiBaseUrl}`),
+        `${apiBaseUrl}: ${gradleTasks(fake)}`,
       );
       const apk = join(fake.repo, 'apps/android/build/maestro/app-debug.apk');
-      assert.match(readFileSync(apk, 'utf8'), /fivvi\.apiBaseUrl=http:\/\/10\.0\.2\.2:3999\/api\//);
+      assert.ok(readFileSync(apk, 'utf8').includes(apiBaseUrl), apiBaseUrl);
     });
 
     it('maestro.sh android --apk installs that APK and does not run Gradle', async () => {
@@ -3562,7 +3771,7 @@ esac`,
   // GET /api/v1/hello?locale=<its language>, and the flow started while Android was still busy after the framework
   // restart that sets the device language (System UI stopped responding and its dialog covered the app).
   const isFlow = (call) => / test /.test(` ${call} `) && call.startsWith('maestro ');
-  const hello = (locale) => `http://127.0.0.1:3999/api/v1/hello?locale=${locale}`;
+  const hello = (fake, locale) => `http://127.0.0.1:${fake.port}/api/v1/hello?locale=${locale}`;
 
   for (const [name, args] of [
     ['maestro.sh android', ['android']],
@@ -3580,11 +3789,11 @@ esac`,
       assert.ok(firstFlow > 0, calls.join('\n'));
       for (const locale of ['nl-NL', 'en']) {
         const warmUp = calls.findIndex(
-          (call) => call.startsWith('curl ') && call.includes(` ${hello(locale)}`),
+          (call) => call.startsWith('curl ') && call.includes(` ${hello(fake, locale)}`),
         );
         assert.ok(
           health < warmUp && warmUp < firstFlow,
-          `GET ${hello(locale)} after the health check, before the first flow:\n${calls.join('\n')}`,
+          `GET ${hello(fake, locale)} after the health check, before the first flow:\n${calls.join('\n')}`,
         );
       }
     });
@@ -3667,7 +3876,7 @@ esac`,
 
       assert.equal(run.status, 0, run.output);
       for (const flow of fake.log('maestro').filter((call) => / test /.test(` ${call} `))) {
-        assert.ok(flow.includes('--env BREVO_URL=http://localhost:5999 '), flow);
+        assert.ok(flow.includes(`--env BREVO_URL=http://localhost:${fake.brevoPort} `), flow);
       }
     });
 
@@ -3678,24 +3887,37 @@ esac`,
 
       assert.equal(run.status, 0, run.output);
       const calls = fake.log('calls');
-      const brevo = calls.indexOf('curl -fsS http://localhost:5999/');
+      const brevo = calls.indexOf(`curl -fsS http://localhost:${fake.brevoPort}/`);
       const health = calls.findIndex((call) =>
-        call.includes('http://127.0.0.1:3999/api/v1/health'),
+        call.includes(`http://127.0.0.1:${fake.port}/api/v1/health`),
       );
       assert.ok(brevo >= 0, `the fake Brevo server is waited for:\n${calls.join('\n')}`);
       assert.ok(brevo < health, `before the web server's health check:\n${calls.join('\n')}`);
       const env = fake.webEnv();
       // The same variables as the web e2e's servers (playwright.config.ts); every value synthetic.
-      assert.equal(env.BREVO_API_URL, 'http://localhost:5999/v3/smtp/email');
+      assert.equal(env.BREVO_API_URL, `http://localhost:${fake.brevoPort}/v3/smtp/email`);
       assert.ok(env.BREVO_API_KEY && env.EMAIL_FROM_ADDRESS && env.EMAIL_FROM_NAME);
       assert.ok(env.BETTER_AUTH_SECRET?.length >= 32, 'a secret of at least 32 characters');
-      assert.equal(env.BETTER_AUTH_URL, 'http://127.0.0.1:3999');
+      assert.equal(env.BETTER_AUTH_URL, `http://127.0.0.1:${fake.port}`);
       assert.match(env.SIGN_UP_ALLOWED_EMAILS, /@example\.com/);
       // Outside production, mail to @example.com (the seeded owner@example.com) is logged, never sent, unless this
       // opt-in sends it through Brevo, here the fake one. The server is not the production environment: it would
       // tag Sentry and PostHog "production" and drop invalid product events instead of throwing.
       assert.equal(env.EMAIL_SEND_EXAMPLE_DOMAIN, '1');
       assert.equal(env.RAILWAY_ENVIRONMENT_NAME, undefined);
+    });
+
+    // E006 (#400): a token in the developer's shell must never send the flows' mail through real Lettermint; they
+    // keep the fake Brevo server until #403.
+    it(`E006: ${name} keeps Lettermint off the web server even when the shell has a token`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args, {
+        LETTERMINT_API_TOKEN: 'shell-synthetic-token',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(fake.webEnv().LETTERMINT_API_TOKEN, '');
     });
 
     it(`F001: ${name} clears the sign-in rate limits before the flows of each locale`, async () => {
@@ -3870,7 +4092,7 @@ esac`,
         const run = await fake.run(
           'scripts/maestro.sh',
           args,
-          { FAKE_RESULT: result },
+          { FAKE_RESULT: result, FAKE_BREVO_LISTEN_DELAY_MS: '2000' },
           { interrupt: result === 'hang' },
         );
 
@@ -3880,10 +4102,100 @@ esac`,
           fake.brevoAnswered(),
           'the fake Brevo server answered GET /emails during the run',
         );
-        await assert.rejects(fetch('http://localhost:5999/'), 'nothing answers on its port');
+        await assert.rejects(
+          fetch(`http://localhost:${fake.brevoPort}/`),
+          'nothing answers on its port',
+        );
       });
     }
   }
+
+  // E008 #383: the ports of a run were fixed (3999 and 5999), so two runs on one machine (two worktrees running
+  // check.sh) took the same ports and their fake servers answered each other's calls. Each run has its own pair.
+  it('#383: each run has its own ports, the second the Brevo port 2000 above the first', () => {
+    const [first, second] = [checkout(), checkout()];
+
+    assert.notEqual(first.port, second.port);
+    for (const { port, brevoPort } of [first, second]) {
+      assert.ok(Number.isInteger(port) && port > 1024, `a port: ${port}`);
+      assert.equal(brevoPort, port + 2000);
+    }
+  });
+
+  it('#383: ports held at localhost (where the fake Brevo server binds) are skipped, on both sides of the pair', async () => {
+    const hold = (port) =>
+      new Promise((resolve, reject) => {
+        const server = createServer((socket) => socket.destroy());
+        server.on('error', reject);
+        server.listen(port, 'localhost', () => resolve(server));
+      });
+    // Two candidates for the web port, one held itself and one whose Brevo port (2000 above) is held.
+    const held = await hold(0);
+    const heldAt = held.address().port;
+    const brevoHeld = await hold(0);
+    const brevoHeldAt = brevoHeld.address().port;
+    try {
+      const { port, brevoPort } = freePorts([heldAt, brevoHeldAt - 2000]);
+
+      assert.notEqual(port, heldAt);
+      assert.notEqual(port, brevoHeldAt - 2000);
+      assert.notEqual(brevoPort, heldAt);
+      assert.notEqual(brevoPort, brevoHeldAt);
+    } finally {
+      held.close();
+      brevoHeld.close();
+    }
+  });
+
+  it('#383: many checkouts in one process never share a port', () => {
+    const ports = Array.from({ length: 20 }, () => checkout()).flatMap(({ port, brevoPort }) => [
+      port,
+      brevoPort,
+    ]);
+
+    assert.equal(new Set(ports).size, ports.length);
+  });
+
+  it('#383: a run works while another process holds the ports the tests used to fix (3999, 5999)', async () => {
+    const holders = await Promise.all(
+      [3999, 5999].map(
+        (port) =>
+          new Promise((resolve) => {
+            const server = createServer((socket) => socket.destroy());
+            // Taken already, by another worktree's run: as good a holder.
+            server.on('error', () => resolve(undefined));
+            server.listen(port, 'localhost', () => resolve(server));
+          }),
+      ),
+    );
+    try {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android']);
+
+      assert.equal(run.status, 0, run.output);
+      assert.ok(fake.brevoAnswered(), 'its own fake Brevo server answered');
+    } finally {
+      for (const server of holders) server?.close();
+    }
+  });
+
+  it('#383: two runs at the same time each reach their own fake Brevo server', async () => {
+    const [one, two] = [checkout(), checkout()];
+
+    const runs = await Promise.all(
+      [one, two].map((fake) =>
+        fake.run('scripts/maestro.sh', ['android'], {
+          FAKE_MAESTRO_SLEEP: '1',
+          FAKE_BREVO_LISTEN_DELAY_MS: '500',
+        }),
+      ),
+    );
+
+    for (const [index, run] of runs.entries())
+      assert.equal(run.status, 0, `${index}: ${run.output}`);
+    assert.ok(one.brevoAnswered() && two.brevoAnswered(), 'both answered');
+  });
 
   it('#89: maestro.sh android waits for Android to deliver its broadcasts after each language change, before the flow', async () => {
     const fake = checkout();

@@ -4,8 +4,9 @@ import {
   findTeamMember,
   listTeamMembers,
   lockOwners,
+  setTrainerProfile,
 } from '@fivvi/database';
-import { canChangeRole, canRemoveTeamMember, ROLES } from '@fivvi/domain';
+import { canChangeRole, canRemoveTeamMember, ROLES, startsWithTrainerProfile } from '@fivvi/domain';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
 import {
@@ -124,8 +125,9 @@ const changeTeamMemberRoleRoute = defineRoute(
     description:
       'Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is ' +
       'replaced on the same team-member record, so a person never has two roles in a ' +
-      'workspace. It takes effect on the person’s next request. A workspace keeps at least one ' +
-      'Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other ' +
+      'workspace. It takes effect on the person’s next request. A new Trainer gets a trainer ' +
+      'profile (a Trainer always trains); a new Owner keeps the one they had. A workspace keeps ' +
+      'at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other ' +
       'than `owner` or `trainer` (`admin` included) answers `400`.',
     security: SIGNED_IN,
     request: {
@@ -191,6 +193,9 @@ export function registerTeamMembers(app: OpenAPIHono) {
     if (!canChangeRole(team, teamMember.id, role)) return c.json(LAST_OWNER, 409);
     const changed = await changeTeamMemberRole(scope, teamMember.id, role);
     if (!changed) return c.json(NOT_FOUND, 404);
+    // A Trainer always trains (F005 AC2): becoming one creates the trainer profile (setting it is
+    // idempotent), becoming an Owner keeps what the person had.
+    if (startsWithTrainerProfile(role)) await setTrainerProfile(scope, teamMember.id, true);
     return c.json(changed, 200);
   });
   app.route('/', team);

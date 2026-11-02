@@ -8,6 +8,7 @@ import {
   organizations,
   type SignedInAccount,
   teamMembers,
+  trainerProfiles,
 } from '@fivvi/database';
 import { addClient, addTeamRole } from '@fivvi/database/testing';
 import { capabilitiesOf } from '@fivvi/domain';
@@ -144,6 +145,53 @@ describe('F002 POST /v1/workspaces', () => {
       await admin.db.select().from(teamMembers).where(eq(teamMembers.accountId, sarah.id)),
     ).toEqual([expect.objectContaining({ organizationId: body.id, role: 'owner' })]);
     expect(await nameOf(sarah.id)).toBe('Sarah');
+  });
+
+  it('AC3 (F005): the creator gets a trainer profile, in the same transaction, and no one else does', async () => {
+    const john = await account();
+
+    const response = await create(john, { name: "John's Training Gym" });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as WorkspaceBody;
+    const profiles = await admin.db
+      .select({ teamMemberId: trainerProfiles.teamMemberId })
+      .from(trainerProfiles)
+      .where(eq(trainerProfiles.organizationId, body.id));
+    const [owner] = await admin.db
+      .select({ id: teamMembers.id })
+      .from(teamMembers)
+      .where(eq(teamMembers.organizationId, body.id));
+    expect(profiles).toEqual([{ teamMemberId: owner?.id }]);
+    // The apps see it at once: the creator trains in the workspace they just made.
+    const listed = (await (
+      await api().request('/v1/me/workspaces', { headers: { 'x-test-account': john.id } })
+    ).json()) as { workspaceId: string; role: string; trainsHere: boolean }[];
+    expect(listed).toEqual([
+      expect.objectContaining({ workspaceId: body.id, role: 'owner', trainsHere: true }),
+    ]);
+  });
+
+  it('AC3 (F005): a failure in the request leaves no trainer profile behind', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const unlucky = await account();
+    const before = await admin.db.$count(trainerProfiles);
+    const failing: ProductEvents = {
+      enabled: true,
+      track: () => {
+        throw new Error('the event failed');
+      },
+      flush: () => Promise.resolve(),
+    };
+
+    const response = await create(
+      unlucky,
+      { name: 'Unlucky Gym 2' },
+      api({ productEvents: failing }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(await admin.db.$count(trainerProfiles)).toBe(before);
   });
 
   it('AC2: defaults nl-NL and Europe/Amsterdam', async () => {

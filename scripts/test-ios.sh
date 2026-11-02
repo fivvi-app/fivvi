@@ -470,6 +470,17 @@ report_failed() { # <bundle> [locale]
   }
 }
 
+# The UI tests that started the app again, as `::warning::` lines (GitHub shows them as annotations) and in the job
+# summary: a test that only passes on a retry is reported as flaky (#388, TESTING.md §8). Once per result bundle.
+report_flaky() { # <bundle>
+  local rows
+  rows="$(flaky_tests "$1")"
+  [ -z "$rows" ] || {
+    echo "$rows"
+    summary "### Flaky iOS tests" "" "$(sed -e 's/^::warning:://' -e 's/^/- /' <<<"$rows")" ""
+  }
+}
+
 udid="$(ios_simulator)"
 [ -n "$udid" ] || die "no iPhone simulator${IOS_SIMULATOR:+ named $IOS_SIMULATOR} — run scripts/bootstrap.sh --mobile"
 # on_exit holds one command: catalog_sync's restore ran and cleared it above, so this doesn't replace a live one.
@@ -509,6 +520,7 @@ if [ "$MODE" = test ]; then
   tests=0
   run_tests "$udid" "$ONLY_LOCALE" || tests=1
   report_slowest ".build/TestResults-$ONLY_LOCALE.xcresult" "$ONLY_LOCALE"
+  report_flaky ".build/TestResults-$ONLY_LOCALE.xcresult"
   if [ "$tests" != 0 ]; then
     report_failed ".build/TestResults-$ONLY_LOCALE.xcresult" "$ONLY_LOCALE"
     exit 1
@@ -550,7 +562,9 @@ for locale in $LOCALES; do
   bundle="$RESULTS"
   ! $per_locale || bundle=".build/TestResults-$locale.xcresult"
   report_slowest "$bundle" "$locale"
+  ! $per_locale || report_flaky "$bundle"
 done
+$per_locale || report_flaky "$RESULTS"
 if [ "$tests" != 0 ]; then
   if $per_locale; then
     for locale in $LOCALES; do report_failed ".build/TestResults-$locale.xcresult" "$locale"; done

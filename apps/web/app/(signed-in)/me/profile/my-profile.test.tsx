@@ -1,5 +1,6 @@
 import { locales, messages } from '@fivvi/i18n';
 import { describe, expect, it, vi } from 'vitest';
+import { OWNER, TRAINER } from '../../../../test/capabilities';
 import { escapeHtml, render } from '../../../../test/render';
 import { MyProfile } from './my-profile';
 
@@ -23,6 +24,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
             slug: 'johns-gym',
             role: 'trainer',
             capabilities: [],
+            trainsHere: true,
           },
           {
             workspaceId: 'w2',
@@ -30,6 +32,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
             slug: 'sarah',
             role: 'owner',
             capabilities: [],
+            trainsHere: false,
           },
         ]}
       />,
@@ -74,5 +77,66 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
     );
 
     expect(html).toMatch(/<input[^>]*name="name"[^>]*value=""/);
+  });
+
+  const johnsGym = {
+    workspaceId: 'w1',
+    name: "John's Gym",
+    slug: 'johns-gym',
+    role: 'owner',
+    capabilities: OWNER,
+    trainsHere: true,
+  } as const;
+  const sarahsGym = {
+    workspaceId: 'w2',
+    name: 'Sarah Personal Training',
+    slug: 'sarah',
+    role: 'owner',
+    capabilities: OWNER,
+    trainsHere: false,
+  } as const;
+
+  /** The switch of a workspace: the input named by its label. */
+  const switchOf = (html: string, workspace: string) =>
+    html.match(
+      new RegExp(
+        `<label[^>]*for="([^"]+)"[^>]*>${escapeHtml(copy.profile.trainsHere.label.replace('{workspace}', workspace))}</label>`,
+      ),
+    );
+
+  it('AC4: an Owner has the switch "I also train at {workspace}", on when they train', () => {
+    const html = render(
+      locale,
+      <MyProfile name="John" email="john@example.com" workspaces={[johnsGym, sarahsGym]} />,
+    );
+
+    const johns = switchOf(html, "John's Gym");
+    expect(johns).not.toBeNull();
+    expect(html).toMatch(
+      new RegExp(`<input[^>]*id="${johns?.[1]}"[^>]*role="switch"[^>]*\\schecked=""`),
+    );
+    const sarahs = switchOf(html, 'Sarah Personal Training');
+    expect(sarahs).not.toBeNull();
+    expect(html).toMatch(new RegExp(`<input[^>]*id="${sarahs?.[1]}"[^>]*role="switch"`));
+    expect(html).not.toMatch(new RegExp(`<input[^>]*id="${sarahs?.[1]}"[^>]*\\schecked=""`));
+  });
+
+  it('AC5: no switch for a workspace where the person is a Trainer', () => {
+    const html = render(
+      locale,
+      <MyProfile
+        name="Sarah"
+        email="sarah@example.com"
+        workspaces={[{ ...johnsGym, role: 'trainer', capabilities: TRAINER }, sarahsGym]}
+      />,
+    );
+
+    expect(switchOf(html, "John's Gym")).toBeNull();
+    expect(switchOf(html, 'Sarah Personal Training')).not.toBeNull();
+    expect(html.match(/role="switch"/g)).toHaveLength(1);
+  });
+
+  it('the switch talks about training, never about profiles', () => {
+    expect(copy.profile.trainsHere.label).not.toMatch(/profiel|profile/i);
   });
 });
