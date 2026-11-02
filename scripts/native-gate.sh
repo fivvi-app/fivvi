@@ -8,7 +8,8 @@
 #       <part>...  one per job the gate needs: [<label>=]<result>[:<retry>]
 #           <result>  success, failure, cancelled or skipped (GitHub's needs.*.result), or unacquired: no hosted runner
 #                     picked the job up, so no step ran (scripts/ios-parts.sh finds that out, #413)
-#           <retry>   the result of the retry of that part on a pool with other capacity; read only for unacquired
+#           <retry>   the result of the retry of that part on a pool with other capacity; read only for unacquired. Several
+#                     (the build is retried once per language) are joined with +, as success+failure: all must succeed
 #       Passes when the decision is false (the parts were skipped, the check passes as skipped) or every part succeeded,
 #       or had no runner and its retry succeeded. Otherwise fails, naming the parts that did not: a part that failed,
 #       was cancelled or never ran fails the check. The error says for each part whether no runner picked it up (and
@@ -36,7 +37,14 @@ for part in "$@"; do
   case "$result" in
     success) continue ;;
     unacquired)
-      if [ "$retry" = success ]; then
+      # More than one retry (the build, retried once per language): all of them must pass.
+      all_passed=true
+      IFS='+' read -ra retry_results <<<"$retry"
+      [ "${#retry_results[@]}" -gt 0 ] || all_passed=false
+      for retry_result in ${retry_results[@]+"${retry_results[@]}"}; do
+        [ "$retry_result" = success ] || all_passed=false
+      done
+      if $all_passed; then
         retried+="$name: $label: no runner picked it up; the retry passed."$'\n'
         continue
       fi

@@ -86,6 +86,33 @@ describe('#413 native-gate.sh: parts that had no runner, and their retry', () =>
     }
   });
 
+  it('counts every retry of the build when it had no runner: all must pass (the build is retried per language)', () => {
+    const ok = iOS(
+      ...parts('unacquired:success+success', 'unacquired:success', 'unacquired:success'),
+    );
+    assert.equal(ok.status, 0, ok.stdout);
+    const bad = iOS(
+      ...parts('unacquired:success+failure', 'unacquired:success', 'unacquired:failure'),
+    );
+    assert.equal(bad.status, 1);
+    assert.match(
+      bad.stdout,
+      /iOS build: no runner picked it up, and the retry did not pass \(success\+failure\)/,
+    );
+    assert.match(bad.stdout, /iOS tests \(en\): no runner picked it up, and the retry failed/);
+    assert.doesNotMatch(bad.stdout, /::error::iOS tests \(nl\)/);
+  });
+
+  it('keeps one language apart from the other: a retry that passed for nl does not cover en', () => {
+    const result = iOS(...parts('success', 'unacquired:success', 'unacquired:skipped'));
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stdout,
+      /iOS tests \(en\): no runner picked it up, and the retry did not pass \(skipped\)/,
+    );
+    assert.match(result.stdout, /iOS tests \(nl\): no runner picked it up; the retry passed/);
+  });
+
   it('fails as a build or test failure, not as a missing runner, when a runner picked the part up', () => {
     const result = iOS(...parts('success', 'failure', 'cancelled'));
     assert.equal(result.status, 1);
