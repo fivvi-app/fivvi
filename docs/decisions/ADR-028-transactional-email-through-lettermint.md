@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed |
+| **Status** | Accepted (2026-11-02) |
 | **Date** | 2026-11-02 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | Amends ADR-009 (the provider only); `ROADMAP.md` M4 exit criteria, §12, §13 (R1, R14); `docs/legal/sub-processors.md` §4, `retention-policy.md` R18; ADR-007, ADR-010, ADR-011; E006, #160 |
