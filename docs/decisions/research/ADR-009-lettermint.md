@@ -287,7 +287,7 @@ Free plan, team "Fivvi", project "Fivvi trial", sender domain `fivvi.app`. Sent 
   - The same key with a different body returned `409`: "This idempotency key has already been used on a request with a different payload".
 - **Validation:** `text` must be at least 3 characters (`422` otherwise). Our emails always have a longer text part.
 - **Test addresses and suppressions (checks 6, 12):**
-  - `spamcomplaint@` and `hardbounce@lettermint.dev` produce the "Spam complaint" and "Hard bounce" statuses, but **create no suppression records**. `GET /v1/suppressions` stayed empty.
+  - The `spamcomplaint` and `hardbounce` test addresses on `lettermint.dev` produce the "Spam complaint" and "Hard bounce" statuses, but **create no suppression records**. `GET /v1/suppressions` stayed empty.
   - A second send to the complaint address was processed again on both routes.
   - So suppression scope can't be tested with test addresses. The documented scopes (§7) stand until a real complaint or a manual suppression shows otherwise.
 - **Link rewriting (check 5):** the sign-in link arrived in the inbox byte for byte as sent, with no redirect domain: `https://fivvi.app/login/confirm?token=…&returnTo=%2Fbookings`.
@@ -298,7 +298,7 @@ Free plan, team "Fivvi", project "Fivvi trial", sender domain `fivvi.app`. Sent 
 - **Raw headers (checks 3, 4, 5)** of the sign-in email, from Zoho's "Show original":
   - **No `List-Unsubscribe` and no `List-Unsubscribe-Post`.** This is Brevo's second problem, and it's gone on the transactional route.
   - Two DKIM signatures: `d=fivvi.app; s=lm1`, which aligns with From and is the one DMARC uses, and `d=bounces.lmta.net; s=lm1` for Lettermint's feedback loop.
-  - Feedback headers: `CFBL-Address: feedback@bounces.lmta.net; report=arf` (RFC 9477), `Feedback-ID: <ids>:lettermint` (Gmail's feedback loop), and `X-Complaints-To: abuse@lettermint.co`.
+  - Feedback headers: `CFBL-Address` (RFC 9477, an ARF report address on `bounces.lmta.net`), `Feedback-ID: <ids>:lettermint` (Gmail's feedback loop), and `X-Complaints-To` (Lettermint's abuse address).
   - `X-Lettermint-Pool: transactional-0` confirms the transactional IP pool.
   - `X-LM-Trace` is base64 JSON with the message id, the **recipient address** and the team id (`team_…`). Only the recipient sees it, and it holds their own address, so it isn't a leak, but it is there.
   - No open-tracking image in the HTML part. The link is unchanged in both the HTML and text parts.
