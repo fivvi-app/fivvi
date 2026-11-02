@@ -1504,29 +1504,44 @@ const iPhone = (udid, model, runtime, state = 'Shutdown') => ({
 
 // E008 #383: the web server port of a run of the native test commands and, 2000 above it, that of the fake Brevo
 // server. Picked at random, and only where both are free now, so two runs on one machine (two worktrees running
-// check.sh, which also runs web e2e tests on E2E_PORT) don't take the same ports. A port is checked in a process of
-// its own, because this one may not block on it.
-const freePorts = () => {
+// check.sh, which also runs web e2e tests on E2E_PORT) don't take the same ports. A port is free when nothing listens
+// on it at 'localhost' (the host fake-brevo.ts binds, which on macOS is not the wildcard address: another process can
+// hold the port there while the wildcard check passes) nor at the wildcard address (where the web server listens).
+// `first` are ports to try before random ones (a test uses them). The pairs handed out by this process are skipped
+// (each is closed again after the check, so two checkouts in a row could draw the same one). A port is checked in a
+// process of its own, because this one may not block on it.
+const handedOut = new Set();
+const freePorts = (first = []) => {
   const found = execFileSync(
     process.execPath,
     [
       '-e',
       `const { createServer } = require('node:net');
-const free = (port) => new Promise((resolve) => {
+const [first, skipped] = JSON.parse(process.argv[1]);
+const freeAt = (port, host) => new Promise((resolve) => {
   const server = createServer();
   server.on('error', () => resolve(false));
-  server.listen(port, () => server.close(() => resolve(true)));
+  server.listen(port, host, () => server.close(() => resolve(true)));
 });
+const free = async (port) => {
+  for (const host of ['localhost', undefined]) if (!(await freeAt(port, host))) return false;
+  return true;
+};
 (async () => {
+  const candidates = [...first];
   for (;;) {
-    const port = 20000 + Math.floor(Math.random() * 25000);
+    const port = candidates.shift() ?? 20000 + Math.floor(Math.random() * 25000);
+    if (skipped.includes(port) || skipped.includes(port + 2000) || skipped.includes(port - 2000)) continue;
     if ((await free(port)) && (await free(port + 2000))) return console.log(port);
   }
 })();`,
+      JSON.stringify([first, [...handedOut]]),
     ],
     { encoding: 'utf8' },
   );
   const port = Number(found);
+  handedOut.add(port);
+  handedOut.add(port + 2000);
   return { port, brevoPort: port + 2000 };
 };
 
@@ -3969,6 +3984,40 @@ esac`,
       assert.ok(Number.isInteger(port) && port > 1024, `a port: ${port}`);
       assert.equal(brevoPort, port + 2000);
     }
+  });
+
+  it('#383: ports held at localhost (where the fake Brevo server binds) are skipped, on both sides of the pair', async () => {
+    const hold = (port) =>
+      new Promise((resolve, reject) => {
+        const server = createServer((socket) => socket.destroy());
+        server.on('error', reject);
+        server.listen(port, 'localhost', () => resolve(server));
+      });
+    // Two candidates for the web port, one held itself and one whose Brevo port (2000 above) is held.
+    const held = await hold(0);
+    const heldAt = held.address().port;
+    const brevoHeld = await hold(0);
+    const brevoHeldAt = brevoHeld.address().port;
+    try {
+      const { port, brevoPort } = freePorts([heldAt, brevoHeldAt - 2000]);
+
+      assert.notEqual(port, heldAt);
+      assert.notEqual(port, brevoHeldAt - 2000);
+      assert.notEqual(brevoPort, heldAt);
+      assert.notEqual(brevoPort, brevoHeldAt);
+    } finally {
+      held.close();
+      brevoHeld.close();
+    }
+  });
+
+  it('#383: many checkouts in one process never share a port', () => {
+    const ports = Array.from({ length: 20 }, () => checkout()).flatMap(({ port, brevoPort }) => [
+      port,
+      brevoPort,
+    ]);
+
+    assert.equal(new Set(ports).size, ports.length);
   });
 
   it('#383: a run works while another process holds the ports the tests used to fix (3999, 5999)', async () => {
