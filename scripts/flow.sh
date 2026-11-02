@@ -12,10 +12,12 @@
 #                                           questions; last, what the owner may read: the high-risk PRs agents merged
 #                                           in the last 7 days (ADR-021). It also labels the open PRs on GitHub to match
 #                                           that list: `Merge PR #n` gets owner-queue, `Decide on PR #n` gets
-#                                           owner-decide, and every other open PR loses both (writes only on a
-#                                           difference; a missing label is created from .github/repo-settings.json; a
-#                                           failed read or write is a warning on stderr that changes neither the
-#                                           output nor the exit code)
+#                                           owner-decide (`Blocked PR #n`, an owner-only PR whose issue has an open
+#                                           blocker, gets neither: it can't be queued yet), and every other open PR
+#                                           loses both (writes only on a difference; a missing label is created from
+#                                           .github/repo-settings.json; a failed read or write is a warning on stderr
+#                                           that changes neither the output nor the exit code). A failed read of the
+#                                           blockers is an error
 #   flow.sh idle                            exit 0 and "idle: nothing for an agent" (plus what waits on the owner) when no
 #                                           agent has anything to do: nothing under "Ready for an agent" in `next` and no
 #                                           issue assigned to you in a phase an agent acts on; exit 1 and what there is
@@ -431,7 +433,15 @@ agent_merged_items() {
     || die "could not read the merged PRs"
 }
 
-# Specs to approve, owner-only PRs (scripts/risk.sh; an unknown risk counts as owner-only), PRs GitHub removed from the
+# The open blockers of issue $1 as `#m, #n` (empty when none), read like `facts` reads blockedBy. Fails when the read
+# fails or does not answer a blocker list: never "no blockers".
+open_blockers() {
+  gh issue view "$1" --repo "$REPO" --json blockedBy \
+    --jq '[.blockedBy.nodes[] | select(.state == "OPEN") | "#\(.number)"] | join(", ")'
+}
+
+# Specs to approve, owner-only PRs (scripts/risk.sh; an unknown risk counts as owner-only; one whose issue, named in its
+# branch, has an open blocker reads `Blocked PR #n … (waits for #m; …)` instead of `Merge PR #n`, #411), PRs GitHub removed from the
 # merge queue (scripts/pr.sh queue), low-risk and high-risk PRs the merge gate refused on their head commit
 # (scripts/pr.sh refusal) and unanswered needs-info questions ($2, from cmd_next). $3 is removal_items: a removed PR that
 # waits for its bug or is to be re-queued (ADR-025) is the factory's, not listed. A PR in the merge queue waits on
@@ -439,7 +449,7 @@ agent_merged_items() {
 # complete, and not still needs-spec (no tickets, not ready-for-agent, and needs-triage or no body). Dies when a read
 # fails, so an empty list means nothing waits.
 owner_items() {
-  local prs pr title head risk refusal queue
+  local prs pr title head branch issue blockers risk refusal queue
   jq -r --arg approved "$APPROVED_LABEL" --arg ready "$READY_LABEL" '.[]
     | [.labels[].name] as $labels
     | ((.body // "") | gsub("\\s"; "") | length > 0) as $described
@@ -448,9 +458,9 @@ owner_items() {
     | select((.subIssuesSummary.total == 0 and ($labels | index($ready) | not)
         and (($labels | index("needs-triage")) or ($described | not))) | not)
     | "Approve spec #\(.number) \(.title) (add \($approved))"' <<<"$1" || die "could not read the open specs"
-  prs="$(gh pr list --repo "$REPO" --state open --limit 100 --json number,title,isDraft,headRefOid \
-    --jq '.[] | select(.isDraft | not) | [.number, .title, .headRefOid] | @tsv')" || die "could not read the open PRs"
-  while IFS=$'\t' read -r pr title head; do
+  prs="$(gh pr list --repo "$REPO" --state open --limit 100 --json number,title,isDraft,headRefOid,headRefName \
+    --jq '.[] | select(.isDraft | not) | [.number, .title, .headRefOid, .headRefName // ""] | @tsv')" || die "could not read the open PRs"
+  while IFS=$'\t' read -r pr title head branch; do
     [ -n "$pr" ] || continue
     queue="$("$ROOT/scripts/pr.sh" queue "$pr")" || die "could not read the merge queue state of PR #$pr"
     case "$(jq -r '.state // ""' <<<"$queue")" in
@@ -465,8 +475,14 @@ owner_items() {
     esac
     risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || risk='{"risk": "owner", "reasons": ["risk unknown"]}'
     if [ "$(jq -r .risk <<<"$risk")" = owner ]; then
-      jq -r --arg pr "$pr" --arg title "$title" \
-        '"Merge PR #\($pr) \($title) (owner-only: \(.reasons[:3] | join("; "))\(if (.reasons | length) > 3 then "; +\(.reasons | length - 3) more" else "" end))"' <<<"$risk" \
+      # An owner-only PR whose issue still has an open blocker can't be queued yet (#411): `Blocked PR`, not `Merge PR`.
+      blockers=""
+      issue="$(branch_issue "$branch")"
+      if [ -n "$issue" ]; then blockers="$(open_blockers "$issue")" || die "could not read the blockers of #$issue"; fi
+      jq -r --arg pr "$pr" --arg title "$title" --arg blockers "$blockers" \
+        '((.reasons[:3] | join("; ")) + (if (.reasons | length) > 3 then "; +\(.reasons | length - 3) more" else "" end)) as $why
+         | if $blockers == "" then "Merge PR #\($pr) \($title) (owner-only: \($why))"
+           else "Blocked PR #\($pr) \($title) (waits for \($blockers); owner-only: \($why))" end' <<<"$risk" \
         || die "could not read the risk of PR #$pr"
       continue
     fi
@@ -480,7 +496,8 @@ owner_items() {
 }
 
 # The labels that show on GitHub which open PRs wait on the owner (spec #407), kept in step with the PR lines of
-# owner_items ($1): `Merge PR #n` is owner-queue, `Decide on PR #n` is owner-decide. Each listed PR gets its label and
+# owner_items ($1): `Merge PR #n` is owner-queue, `Decide on PR #n` is owner-decide; `Blocked PR #n` (an owner-only PR
+# that waits for an open blocker, #411) gets neither, and loses owner-queue. Each listed PR gets its label and
 # loses the other one; every other open PR (drafts included) loses both. A PR is written only when its labels differ,
 # so a sync with nothing to change makes no writes. A label GitHub lacks is created from .github/repo-settings.json
 # first. Nothing here changes what the caller prints on stdout or its exit status: a failed read or write is a warning
