@@ -1,6 +1,6 @@
 # Transactional email providers for Fivvi: tracking, unsubscribe, EU residency, DPA, pricing
 
-> Source notes for [ADR-009](../ADR-009-transactional-email.md), gathered by a research agent from primary sources on 1 November 2026. Provider terms and prices change; re-check before relying on a figure.
+> Source notes for [ADR-028](../ADR-028-transactional-email-through-lettermint.md), which amends [ADR-009](../ADR-009-transactional-email.md), gathered by a research agent from primary sources on 1 November 2026. Provider terms and prices change; re-check before relying on a figure.
 
 Research date: 2026-11-01 (all pages accessed then). Primary sources only: each provider's own pricing pages, docs, API references, help centres, legal pages (DPA, sub-processors) and the npm registry for SDK packages. Comparison blogs were used only to find candidates. Quotes are short and exact. Items marked **[NOT CONFIRMED]** are inferences or gaps. Some sites block automated reading (Scaleway's website, Brevo's help centre, parts of Mailjet's help centre); where that happened, the note says which source was used instead. Prices exclude VAT unless stated.
 
@@ -261,7 +261,7 @@ This section is analysis, not source notes. It weighs the sourced facts above ag
 | A+. Same, plus the new `contactPixelTrackingConsent: false` flag | €0 | as A | Only if Brevo confirms links are no longer rewritten **[NOT CONFIRMED]** | No | One field in `brevoRequestBody` |
 | B. Brevo Professional | €499/month | €499/month | Yes (support ticket only) | No | None |
 | C. Brevo Enterprise | Custom price | Custom price | Yes | Yes | None |
-| D. Lettermint | €10/month Starter (Free stops hard at 300/month, see `ADR-009-lettermint.md` §4) | €40/month | Yes, off by default | Yes, header only on broadcast | New transport like `brevo.ts` with idempotency, DKIM records, sub-processor and ADR update |
+| D. Lettermint | €10/month Starter (Free stops hard at 300/month, see `ADR-028-lettermint.md` §4) | €40/month | Yes, off by default | Yes, header only on broadcast | New transport like `brevo.ts` with idempotency, DKIM records, sub-processor and ADR update |
 | E. Scaleway TEM | ~€0.68 | ~€12.43 (quota raise) | Yes (no tracking feature) | Probably **[NOT CONFIRMED]** | New transport without idempotency (a retry could send twice), DKIM, docs |
 | F. Amazon SES (EU) | ~$0.30 | ~$5 | Yes, off unless configured | Yes, header only on request | Most setup (sandbox exit, IAM, events), no idempotency; US company |
 
@@ -269,12 +269,12 @@ This section is analysis, not source notes. It weighs the sourced facts above ag
 - B and C don't make sense at our volume: €499/month buys half a fix.
 - A costs nothing, but it leaves the token in a third party's click data and a one-click way for a user to lose sign-in. The owner already accepted the header risk on 30 October 2026, when it wasn't yet known that it blocks sign-in.
 - D, E and F fix both issues for €0–€40/month. The paid email plan was already planned for go-live (`ROADMAP.md` M9), so the extra cost over staying on Brevo is a few euros a month.
-- The swap is small because `sendEmail` hides the provider (ADR-009). We already send an idempotency key, and Lettermint is the only shortlisted provider that honours one.
+- The swap is small because `sendEmail` hides the provider (ADR-009). We already send an idempotency key, and of the shortlist only Lettermint and Bird honour one; Bird has US and UK sub-processors and a $15 monthly minimum.
 
 **Suggested choice: D (Lettermint), with E (Scaleway TEM) as the written fallback.**
 - Lettermint: Dutch company, EU-only processing, DPA in the terms, tracking off by default, no List-Unsubscribe on transactional email, idempotency, and an official Node SDK.
 - Its main risk is the company: it is young and small (Chamber of Commerce number 99337711). That is why a fallback is kept.
-- Before deciding, do one test send from a Lettermint trial to a Gmail inbox. Check the raw headers for no `List-Unsubscribe` and the links for no rewriting. The deeper study, with suppression scopes, quota behaviour, terms and a trial checklist, is in [ADR-009-lettermint.md](ADR-009-lettermint.md).
+- Before deciding, do one test send from a Lettermint trial to a Gmail inbox. Check the raw headers for no `List-Unsubscribe` and the links for no rewriting. The deeper study, with suppression scopes, quota behaviour, terms and a trial checklist, is in [ADR-028-lettermint.md](ADR-028-lettermint.md).
 
 **If the owner prefers to stay on Brevo,** do A+ only after Brevo confirms that the consent flag stops link rewriting. Add a separate sign-in sender address on `fivvi.app`, so an unsubscribe from a booking email can't block sign-in. Add a support runbook for lifting unsubscribe blocks.
 

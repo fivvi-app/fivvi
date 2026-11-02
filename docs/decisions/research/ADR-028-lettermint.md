@@ -1,8 +1,8 @@
 # Lettermint for Fivvi: company, reliability, deliverability, quota, security, legal and API fit
 
-> Source notes for [ADR-009](../ADR-009-transactional-email.md), gathered by a research agent from primary sources on 2 November 2026. They go deeper than [ADR-009-email-providers.md](ADR-009-email-providers.md) §2.8 and §6, and do not repeat them. Provider terms and prices change; re-check before relying on a figure.
+> Source notes for [ADR-028](../ADR-028-transactional-email-through-lettermint.md), gathered by a research agent from primary sources on 2 November 2026. They go deeper than [ADR-028-email-providers.md](ADR-028-email-providers.md) §2.8 and §6, and do not repeat them. Provider terms and prices change; re-check before relying on a figure.
 
-Research date: 2026-11-02 (all pages accessed then). Method: Lettermint's own pages, read as their `.md` versions listed in https://lettermint.co/llms.txt (with `last_updated` noted where it matters); the docs, read through https://lettermint.co/docs/llms.txt and https://lettermint.co/docs/llms-full.txt; the Sending API OpenAPI spec; the changelog, roadmap and legal pages; the status page (incident.io) and its RSS feed; the Trust Center (Vanta, JavaScript only, read in a browser); RIPE NCC data (RIPEstat and the RIPE Database) for AS213427; the npm registry and the `lettermint` GitHub org. One vendor case study (KumoMTA) linked from Lettermint's own `llms.txt` is used and marked as such. Quotes are short and exact. Items marked **[NOT CONFIRMED]** are inferences or gaps. Blocked or unreadable: the Dutch KvK search (JavaScript app, no data returned) and Postmastery's case study (HTTP 403). Nothing was signed up for, sent or requested.
+Research date: 2026-11-02 (all pages accessed then). Method: Lettermint's own pages, read as their `.md` versions listed in https://lettermint.co/llms.txt (with `last_updated` noted where it matters); the docs, read through https://lettermint.co/docs/llms.txt and https://lettermint.co/docs/llms-full.txt; the Sending API OpenAPI spec; the changelog, roadmap and legal pages; the status page (incident.io) and its RSS feed; the Trust Center (Vanta, JavaScript only, read in a browser); RIPE NCC data (RIPEstat and the RIPE Database) for AS213427; the npm registry and the `lettermint` GitHub org. One vendor case study (KumoMTA) linked from Lettermint's own `llms.txt` is used and marked as such. Quotes are short and exact. Items marked **[NOT CONFIRMED]** are inferences or gaps. Blocked or unreadable: the Dutch KvK search (JavaScript app, no data returned) and Postmastery's case study (HTTP 403). The research sections (1–9) used public sources only; the trial at the end used a Free account the owner created.
 
 ---
 
@@ -28,7 +28,7 @@ Research date: 2026-11-02 (all pages accessed then). Method: Lettermint's own pa
 - It may discontinue the service with at least 30 days' notice and "is not liable for any damage resulting from such discontinuation". Same page, §8.6.
 - Force majeure explicitly includes "illness of employees and/or absence of employees who are crucial" to the service; under force majeure Lettermint may cancel "with immediate effect". §17.2, §17.4. This is a written bus-factor clause.
 - After termination the customer has 30 days to retrieve data; then Lettermint may delete it, and may charge for help with retrieval. §19.9.3; DPA §11.2–11.4 (export "in a commonly used, machine-readable format"). https://lettermint.co/dpa.md
-- What matters for us is small: messages and events are kept only 28 days anyway, and we keep our own copy of what we send. The real continuity risk is losing sending at 30 days' notice, which the `sendEmail` seam and a written fallback (ADR-009 §6) cover.
+- What matters for us is small: messages and events are kept only 28 days anyway, and we keep our own copy of what we send. The real continuity risk is losing sending at 30 days' notice, which the `sendEmail` seam and a written fallback (providers note §6) cover.
 
 ## 2. Reliability
 
@@ -71,7 +71,7 @@ Research date: 2026-11-02 (all pages accessed then). Method: Lettermint's own pa
 - Both IPv4 /24s are **PA space assigned to Lettermint from UK LIRs** ("ASSIGNED PA" inside SYN LTD's block; "SUB-ALLOCATED PA" inside Chillishot Ltd's block). They are leased, not Lettermint's own allocation. https://stat.ripe.net/data/whois/data.json?resource=155.254.62.0/24, https://stat.ripe.net/data/whois/data.json?resource=212.74.55.0/24
 - Their SPF names exactly these two /24s: `spf.lmta.net` = `v=spf1 ip4:155.254.62.0/24 ip4:212.74.55.0/24 -all` (DNS lookup). So all outbound mail, every customer and both pools, comes from 512 IPv4 addresses.
 
-**Shared vs dedicated.** Managed (shared) IP pools on every plan. Dedicated IP is a €50/month add-on only on Pro from 300,000 emails/month; BYOIP is Enterprise. https://lettermint.co/pricing.md. Transactional and broadcast use separate pools (ADR-009 §2.8); the status page lists them as separate components.
+**Shared vs dedicated.** Managed (shared) IP pools on every plan. Dedicated IP is a €50/month add-on only on Pro from 300,000 emails/month; BYOIP is Enterprise. https://lettermint.co/pricing.md. Transactional and broadcast use separate pools (providers note §2.8); the status page lists them as separate components.
 
 **Postmastery.** Listed as a sub-processor that "Monitors deliverability and IP reputation" and "Handles your emails" (NL). https://lettermint.co/subprocessors.md. Engaged from autumn 2025 (vendor case study). Postmastery's own case study returned HTTP 403 and was not read. Why a monitoring firm needs email access, and how much it sees **[NOT CONFIRMED]**.
 
@@ -147,7 +147,7 @@ Terms: https://lettermint.co/terms-of-service.md (last updated 2026-04-08). DPA:
 - Envelope: `id` (for dedup), `event`, `timestamp`, `sandbox`, `context` (team/project/route IDs), `data` with `message_id`, `subject`, `recipient`, `metadata`, `headers`, `tag(s)`. Payloads carry the subject and the recipient address.
 - Scope: team, project(s) or route(s). Retries: 12 attempts over about 14 hours; 30-second timeout; disabled after 72 hours of failures, and events during that time are lost.
 
-**Suppressions: default scopes** (the open gap from ADR-009). https://lettermint.co/docs/platform/emails/suppressions.md
+**Suppressions: default scopes** (the open gap from the providers note §2.8). https://lettermint.co/docs/platform/emails/suppressions.md
 
 | Trigger | Scope | Blocks |
 |---|---|---|
@@ -193,7 +193,7 @@ This section is analysis, not source notes. Some facts in it were checked direct
 - **RIPE:** both sending /24s are registered to `ORG-LB245-RIPE` (netname `LETTERMINT`, NL), as `ASSIGNED PA` and `SUB-ALLOCATED PA`. The API host `api.lettermint.co` sits on UpCloud (AS202053) in Amsterdam.
 - **Blocklists:** none of the 508 IPv4 addresses in those two /24s is listed on Spamhaus ZEN. The lookups were checked against Spamhaus's test entry first.
 
-**Lettermint is a good choice, with five conditions.** It is the only provider found that meets all four hard requirements:
+**Lettermint is a good choice, with five conditions.** Lettermint, Scaleway TEM, Amazon SES, Bird and (with gaps) Mailgun meet all four hard requirements as published. Lettermint is the one that also is an EU company with EU-only sub-processors, documents that transactional mail gets no `List-Unsubscribe`, and honours an idempotency key. The four:
 - tracking off
 - EU-only processing, backed by RIPE and DNS data
 - a DPA that names the processor chain we are in
@@ -202,14 +202,14 @@ This section is analysis, not source notes. Some facts in it were checked direct
 It also has the idempotency our `sendEmail` already relies on. The risks found are real but manageable, and most of them apply to Brevo too, which has no SLA below its top plans either.
 
 1. **Two transactional routes:** one for sign-in, one for bookings and other mail. A spam complaint blocks only its own route, and only Lettermint support can lift it. With one route, a "spam" click on a booking email would stop sign-in codes. Hard bounces stay team-wide, which is right.
-2. **Starter (€10/month) from the switch, with overage billing left on.** Free stops hard at 300 a month, and so does a paid plan with "Disable overages". Add our own usage alert through the Team API (R14). A paid plan needs the owner's approval. It replaces the Brevo paid plan already planned for go-live.
+2. **Starter (€10/month) by pilot setup, with overage billing left on.** (This note first said "from the switch". After the trial the owner chose Free for the internal alpha: outside production `@example.com` mail is only logged, so few real emails go out. ADR-028 records that.) Free stops hard at 300 a month, and so does a paid plan with "Disable overages". Add our own usage alert through the Team API (R14). A paid plan needs the owner's approval. It replaces the Brevo paid plan already planned for go-live.
 3. **A transport that maps Lettermint's answers:**
    - `429` and `5xx` are retryable, using `Retry-After`.
    - A `409` after a `5xx` means "maybe sent" (our `duplicate` flag); a `409` with a different body is a bug.
    - `401`, `403` and `422` are final.
 
    This is a plain `fetch` transport like `brevo.ts`, plus a fake server for e2e like `BREVO_API_URL`. No SDK is needed, so no new dependency.
-4. **Content retention and R18.** Lettermint keeps content, recipients and events for 28 days, which is within R18's 30-day maximum, so the Brevo exception can go. Analytics events are kept 90 days, so R18 needs a line on those. Lettermint, unlike Brevo with previews off, does store the email content. So turn on "Hide email content" for the sign-in route if our plan has it. The plan is **[NOT CONFIRMED]**: ask in the trial. Either way the stored sign-in link expires after 15 minutes. `retention-policy.md` R18 and `sub-processors.md` §4 change, which makes that PR owner-only.
+4. **Content retention and R18.** Lettermint keeps content, recipients and events for 28 days, which is within R18's 30-day maximum. But analytics events are kept 90 days, over the maximum, and R18 now says the provider keeps no email content; so R18 needs a new Lettermint exception for both. Lettermint, unlike Brevo with previews off, does store the email content. So turn on "Hide email content" for the sign-in route if our plan has it. The plan is **[NOT CONFIRMED]**: ask in the trial. Either way the stored sign-in link expires after 15 minutes. `retention-policy.md` R18 and `sub-processors.md` §4 change, which makes that PR owner-only.
 5. **A written fallback.** The company is two founders and 17 months old. It may end the service on 30 days' notice, and its terms treat losing "crucial" staff as force majeure. Keep Scaleway TEM as the documented fallback, and keep the transport swap small enough to do within that notice.
 
 **Also needed, already planned:** Turnstile on the sign-up and sign-in forms (E013). The AUP allows suspension without notice above 0.1% complaints, so bot sign-ups with real addresses are a bigger risk here than on Brevo.
