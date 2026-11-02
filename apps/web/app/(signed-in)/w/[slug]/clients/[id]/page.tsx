@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * TW-02 Klantprofiel (`/w/{slug}/clients/{id}`, F006): the plain profile a quick add opens. A
  * person without `clients.view` sees the no-permission page; a client the workspace doesn't have is
- * a 404 (the API answers 404 for a client of another workspace too).
+ * a 404 (the API answers 404 for a client of another workspace too; an id that is no UUID too).
  */
 export default async function ClientProfilePage({
   params,
@@ -30,7 +30,8 @@ export default async function ClientProfilePage({
     '/v1/workspaces/{workspaceId}/clients/{clientId}',
     { params: { path: { workspaceId: id, clientId } }, headers: authorization },
   );
-  if (response.status === 404) notFound();
+  // 404: no such client here; 400: the id is no UUID. Either way there is no such page.
+  if (response.status === 404 || response.status === 400) notFound();
   if (!client)
     throw new Error('GET /v1/workspaces/{workspaceId}/clients/{clientId} did not answer.');
   const workspace = await apiClient.GET('/v1/workspaces/{workspaceId}', {

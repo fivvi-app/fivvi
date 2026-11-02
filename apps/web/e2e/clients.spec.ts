@@ -428,6 +428,9 @@ test.describe('F006 clients on the web', () => {
     expect(response?.status()).toBe(404);
     const other = await page.goto(`/w/${slug}/clients/${stranger.id}`);
     expect(other?.status()).toBe(404);
+    // An id that is no UUID is a 404 too, not an error page.
+    const malformed = await page.goto(`/w/${slug}/clients/not-a-uuid`);
+    expect(malformed?.status()).toBe(404);
 
     // The workspace default is English: the options name it so.
     const set = await page.request.patch(`/api/v1/workspaces/${workspaceId}`, {
