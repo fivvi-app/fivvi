@@ -3726,6 +3726,19 @@ esac`,
       assert.equal(env.RAILWAY_ENVIRONMENT_NAME, undefined);
     });
 
+    // E006 (#400): a token in the developer's shell must never send the flows' mail through real Lettermint; they
+    // keep the fake Brevo server until #403.
+    it(`E006: ${name} keeps Lettermint off the web server even when the shell has a token`, async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', args, {
+        LETTERMINT_API_TOKEN: 'shell-synthetic-token',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(fake.webEnv().LETTERMINT_API_TOKEN, '');
+    });
+
     it(`F001: ${name} clears the sign-in rate limits before the flows of each locale`, async () => {
       const fake = checkout();
 

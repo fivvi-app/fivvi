@@ -124,6 +124,7 @@ start_stack() {
     BETTER_AUTH_SECRET=maestro-secret-that-is-at-least-thirty-two-characters-long \
     BETTER_AUTH_URL="$auth_url" \
     BREVO_API_URL="http://localhost:$BREVO_PORT/v3/smtp/email" BREVO_API_KEY=maestro-synthetic-brevo-key \
+    LETTERMINT_API_TOKEN='' \
     EMAIL_FROM_ADDRESS=noreply@fivvi.maestro.test EMAIL_FROM_NAME=Fivvi \
     SIGN_UP_ALLOWED_EMAILS=@example.com \
     exec node --env-file=../../packages/database/.env .next/standalone/apps/web/server.js) >"$REPORTS/web.log" 2>&1 &
