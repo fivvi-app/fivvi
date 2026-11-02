@@ -78,7 +78,12 @@ export default defineRailway((ctx) => {
       PORT: '3000',
       // Transactional email (E006, packages/email). Values are set in the dashboard, never
       // here: production gets the real Brevo key, development (and so previews) a test key.
+      // Lettermint (ADR-028) takes over as soon as its token is set; without it, Brevo sends.
+      // The route slugs differ per environment (the owner creates them in Lettermint).
       BREVO_API_KEY: preserve(),
+      LETTERMINT_API_TOKEN: preserve(),
+      LETTERMINT_ROUTE_SIGN_IN: preserve(),
+      LETTERMINT_ROUTE_MAIL: preserve(),
       EMAIL_FROM_ADDRESS: preserve(),
       EMAIL_FROM_NAME: 'Fivvi',
       // Sign-in (F001, packages/auth). Signs and hashes sign-in sessions, links and codes: a
