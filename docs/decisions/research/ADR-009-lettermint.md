@@ -304,7 +304,15 @@ Free plan, team "Fivvi", project "Fivvi trial", sender domain `fivvi.app`. Sent 
   - No open-tracking image in the HTML part. The link is unchanged in both the HTML and text parts.
   - No `Auto-Submitted` or `Precedence` header, because "Suppress auto-responders" was off. Turn it on for both routes in production, so out-of-office replies don't come back to `noreply@`.
 
+- **Approval:** verification submitted at about 15:02 and approved at 15:24 on 2 November 2026 (ticket T-4DF7E4AB). Lettermint warned that mail from a domain less than 30 days old may land in junk at first.
+- **Gmail (check 4)**, sent after approval to the owner's Gmail, read through the Gmail API:
+  - Placed in the **Inbox** (labels `INBOX`, `IMPORTANT`, `CATEGORY_UPDATES`), not Spam.
+  - `Authentication-Results: mx.google.com`: dkim=pass for `@fivvi.app` and for `@bounces.lmta.net`; spf=pass for `lm-bounces.fivvi.app` (`155.254.62.129`); dmarc=pass with `header.from=fivvi.app`.
+  - **No `List-Unsubscribe` or `List-Unsubscribe-Post` header**, so Gmail has nothing to build an Unsubscribe button from.
+  - The link is unchanged, and the HTML has no image.
+  - The header set matches the Zoho copy.
+
 **Trial verdict:** both of Brevo's problems are solved on the Free plan. Links aren't rewritten and there's no pixel, and no `List-Unsubscribe` is added to transactional mail. Authentication passes and the mail lands in the inbox. Still open:
-- the Gmail and Outlook inbox check after account approval
+- Outlook.com and iCloud placement (optional)
 - a support question on suppression scope, because test addresses don't create suppressions
 - the Starter behaviour with overage billing
