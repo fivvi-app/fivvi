@@ -39,7 +39,6 @@
     <string name="clients_profile_email_label">Email address</string>
     <string name="clients_profile_locale_label">Language for emails</string>
     <string name="clients_profile_name_label">Name</string>
-    <string name="clients_profile_no_email">No email address</string>
     <string name="clients_profile_overview">Overview</string>
     <string name="clients_profile_save">Save</string>
     <string name="clients_profile_saved">Saved.</string>

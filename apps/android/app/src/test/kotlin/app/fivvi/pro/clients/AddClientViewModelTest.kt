@@ -34,9 +34,9 @@ class AddClientViewModelTest {
 
     private fun viewModel() = AddClientViewModel(api, workspace, onNotAllowed = { notAllowed += it.code() })
 
-    // AC1: only a name; the language follows the workspace's default, so the request carries none.
+    // AC1: a name and an email address; the language follows the workspace's default, so the request carries none.
     @Test
-    fun test_F006_AC1_addsAClientWithOnlyANameOnTheAndroidSurface() {
+    fun test_F006_AC1_addsAClientWithANameAndAnEmailOnTheAndroidSurface() {
         val viewModel = viewModel()
         viewModel.onNameChange("Mark Jansen")
         viewModel.onEmailChange("mark@example.com")

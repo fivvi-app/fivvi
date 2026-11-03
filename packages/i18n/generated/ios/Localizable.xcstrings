@@ -655,23 +655,6 @@
         }
       }
     },
-    "clients.profile.noEmail" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No email address"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geen e-mailadres"
-          }
-        }
-      }
-    },
     "clients.profile.overview" : {
       "extractionState" : "manual",
       "localizations" : {

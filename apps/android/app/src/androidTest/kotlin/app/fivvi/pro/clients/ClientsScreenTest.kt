@@ -130,9 +130,9 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         compose.onNodeWithTag(ClientsTags.ADD).assertIsDisplayed()
     }
 
-    // AC1: only a name; the profile opens with a confirmation, and the language is the workspace's default, named.
+    // AC1: a name and an email address; the profile opens with a confirmation, and the language is the workspace's default, named.
     @Test
-    fun test_F006_AC1_newClientWithOnlyANameOpensTheProfile() {
+    fun test_F006_AC1_newClientWithANameAndAnEmailOpensTheProfile() {
         launch()
         openClients()
 

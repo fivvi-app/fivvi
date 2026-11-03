@@ -42,7 +42,7 @@ data class AddClientActions(val onClose: () -> Unit, val onSubmit: () -> Unit, v
 
 /**
  * *+ Nieuwe klant* (F006 AC1 to AC3, AC12) as a full-screen dialog (`information-architecture.md §5.2`): ✕ and *Toevoegen*
- * in the bar, then *Naam* (focused), *E-mailadres (optioneel)* and *Taal voor e-mails*. It is a full-screen surface in the
+ * in the bar, then *Naam* (focused), *E-mailadres* (required) and *Taal voor e-mails*. It is a full-screen surface in the
  * app's own hierarchy, not a second window, so the keyboard, TalkBack and Maestro treat it as the rest of the app. A
  * refused or failed add keeps the input.
  */
