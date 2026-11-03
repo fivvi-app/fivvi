@@ -847,8 +847,22 @@ describe('E002 #91 the native jobs in ci.yml', () => {
         section.includes(`if: always() && needs.changes.outputs.${native} == 'true'`),
         `${gate} runs after its parts, also when one failed`,
       );
-      assert.match(section, /RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}/);
-      assert.match(section, new RegExp(`run: scripts/native-gate\\.sh ${name} true \\$RESULTS\n`));
+      if (native === 'android') {
+        assert.match(section, /RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}/);
+        assert.match(
+          section,
+          new RegExp(`run: scripts/native-gate\\.sh ${name} true \\$RESULTS\n`),
+        );
+      } else {
+        // iOS (#413): scripts/ios-parts.sh turns a cancelled part that no runner picked up into "unacquired" and passes
+        // the other results on; the gate reads the run's jobs, so it needs actions: read, and it works without them.
+        assert.match(section, /^ {6}actions: read/m);
+        assert.match(section, /BUILD: \$\{\{ needs\.ios-build\.result \}\}/);
+        assert.match(section, /TESTS: \$\{\{ needs\.ios-tests\.result \}\}/);
+        assert.match(section, /GH_TOKEN: \$\{\{ github\.token \}\}/);
+        assert.match(section, /scripts\/ios-parts\.sh "\$BUILD" "\$TESTS"/);
+        assert.match(section, /scripts\/native-gate\.sh iOS true "\$\{PARTS\[@\]\}"/);
+      }
     }
   });
 
@@ -5044,5 +5058,37 @@ describe('wt.sh done', () => {
     assert.equal(git(repo, 'ls-remote', '--heads', 'origin', 'feature/57-hold'), '');
     assert.deepEqual(simulators(), ['SHARED']);
     assert.match(result.stdout, /deleted simulator 'Fivvi feature-57-hold'/);
+  });
+});
+
+describe('#413 the iOS gate says when no hosted runner picked a part up, and has no fallback runner', () => {
+  const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
+  const workflow = readFileSync(join(SCRIPTS, '../docs/engineering/WORKFLOW.md'), 'utf8');
+
+  it('has no fallback job, no workflow_dispatch input to force one, and no runner pool other than macos-15', () => {
+    const code = ci.replace(/^ *#.*$/gm, ''); // the comments say why the retry was dropped
+    assert.doesNotMatch(code, /macos-15-intel|ios_retry|ios-retry/);
+    assert.doesNotMatch(code, /^ {2}workflow_dispatch:\n +inputs:/m);
+    assert.deepEqual(
+      [...code.matchAll(/runs-on: (macos-[\w-]+)/g)].map((m) => m[1]),
+      ['macos-15', 'macos-15'],
+    );
+  });
+
+  it('keeps the job set of the iOS parts: a build and a matrix of tests, with their names', () => {
+    assert.match(ci, /^ {2}ios-build:\n {4}name: iOS build$/m);
+    assert.match(ci, /^ {2}ios-tests:\n {4}name: iOS tests \(\$\{\{ matrix\.locale \}\}\)$/m);
+    assert.doesNotMatch(ci, /^ {2}ios-(tests-|parts)/m);
+  });
+
+  it('describes the no-runner message and re-queuing in ci.yml and WORKFLOW.md', () => {
+    for (const [file, text] of [
+      ['ci.yml', ci],
+      ['WORKFLOW.md', workflow],
+    ]) {
+      assert.match(text, /no hosted runner picked/i, file);
+      assert.match(text, /re-queu/i, file);
+      assert.match(text, /#413/, file);
+    }
   });
 });
