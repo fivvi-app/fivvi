@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { addClient, findExistingClient, searchClients } from './clients-client';
+import { addClient, findExistingClient, searchClients, updateClient } from './clients-client';
 
 const reply = (status: number, body: unknown = {}) =>
   vi.fn<typeof fetch>(() => Promise.resolve(Response.json(body, { status })));
@@ -201,5 +201,123 @@ describe('F006 TW-01 clients client: the client behind a duplicate address', () 
     const offline = vi.fn<typeof fetch>(() => Promise.reject(new TypeError('offline')));
     expect(await findExistingClient('w1', 'c1', offline)).toBeNull();
     expect(await findExistingClient('w1', 'c1', reply(200, null))).toBeNull();
+  });
+});
+
+describe('F006 TW-02 clients client: edit', () => {
+  const edit = { name: 'Anna de Vries', email: 'anna@example.com', emailLocale: '' } as const;
+  const sent = (fetchFn: ReturnType<typeof reply>) => {
+    const [url, init] = fetchFn.mock.calls[0] ?? [];
+    return { url, init, body: JSON.parse(String(init?.body)) };
+  };
+
+  it('AC7: patches the client’s route with the name and the email address that changed', async () => {
+    const saved = { ...anna, name: 'Anna Bakker', email: 'anna.bakker@example.com' };
+    const fetchFn = reply(200, saved);
+
+    const result = await updateClient(
+      'w1',
+      anna,
+      { name: 'Anna Bakker', email: ' Anna.Bakker@Example.com ', emailLocale: '' },
+      fetchFn,
+    );
+
+    expect(result).toEqual({ ok: true, client: saved });
+    const { url, init, body } = sent(fetchFn);
+    expect(url).toBe('/api/v1/workspaces/w1/clients/c1');
+    expect(init?.method).toBe('PATCH');
+    expect(new Headers(init?.headers).get('content-type')).toBe('application/json');
+    expect(body).toEqual({ name: 'Anna Bakker', email: 'Anna.Bakker@Example.com' });
+  });
+
+  it('AC7: leaves the email address out when it is the one the client has (any case, any padding)', async () => {
+    const fetchFn = reply(200, anna);
+
+    await updateClient('w1', anna, { ...edit, email: ' ANNA@example.com ' }, fetchFn);
+
+    expect(sent(fetchFn).body).toEqual({ name: 'Anna de Vries' });
+  });
+
+  it('AC7: a language is sent as chosen; the default again is clearEmailLocale, never null', async () => {
+    const english = { ...anna, emailLocale: 'en' as const };
+    const chosen = reply(200, english);
+    await updateClient('w1', anna, { ...edit, emailLocale: 'en' }, chosen);
+    expect(sent(chosen).body).toEqual({ name: 'Anna de Vries', emailLocale: 'en' });
+
+    const cleared = reply(200, anna);
+    await updateClient('w1', english, edit, cleared);
+    expect(sent(cleared).body).toEqual({ name: 'Anna de Vries', clearEmailLocale: true });
+
+    // A client that follows the default and still does: nothing is sent about the language.
+    const kept = reply(200, anna);
+    await updateClient('w1', anna, edit, kept);
+    expect(sent(kept).body).toEqual({ name: 'Anna de Vries' });
+  });
+
+  it.each(['', '   '])(
+    'AC7: the email address can’t be cleared: %j is refused before anything is asked, and the name with it',
+    async (email) => {
+      const fetchFn = reply(200, anna);
+
+      expect(await updateClient('w1', anna, { ...edit, email }, fetchFn)).toEqual({
+        ok: false,
+        reason: 'fields',
+        email: 'emailRequired',
+      });
+      expect(await updateClient('w1', anna, { ...edit, name: '  ', email }, fetchFn)).toEqual({
+        ok: false,
+        reason: 'fields',
+        name: 'nameRequired',
+        email: 'emailRequired',
+      });
+      expect(fetchFn).not.toHaveBeenCalled();
+    },
+  );
+
+  it('AC7: words the API’s refused fields like a quick add does', async () => {
+    const refuse = (...issues: { path: string; code: string }[]) =>
+      reply(400, { code: 'validation_failed', issues });
+
+    expect(
+      await updateClient(
+        'w1',
+        anna,
+        { ...edit, email: 'x@example.com' },
+        refuse({ path: 'name', code: 'too_big' }, { path: 'email', code: 'invalid_format' }),
+      ),
+    ).toEqual({ ok: false, reason: 'fields', name: 'nameTooLong', email: 'emailInvalid' });
+  });
+
+  it('AC7: a 409 client_exists carries the other client’s ID', async () => {
+    expect(
+      await updateClient(
+        'w1',
+        anna,
+        { ...edit, email: 'mark@example.com' },
+        reply(409, { code: 'client_exists', clientId: 'c2' }),
+      ),
+    ).toEqual({ ok: false, reason: 'exists', clientId: 'c2' });
+  });
+
+  it.each([401, 403, 404])(
+    'a %s means this person may not edit clients (any more)',
+    async (status) => {
+      expect(await updateClient('w1', anna, edit, reply(status))).toEqual({
+        ok: false,
+        reason: 'home',
+      });
+    },
+  );
+
+  it('a 500 is a generic failure, and no connection is its own', async () => {
+    expect(await updateClient('w1', anna, edit, reply(500))).toEqual({
+      ok: false,
+      reason: 'generic',
+    });
+    const offline = vi.fn<typeof fetch>(() => Promise.reject(new TypeError('offline')));
+    expect(await updateClient('w1', anna, edit, offline)).toEqual({
+      ok: false,
+      reason: 'noConnection',
+    });
   });
 });

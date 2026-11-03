@@ -10,8 +10,7 @@ import {
 } from './accounts';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 
-// F006 (spec #174): TW-01 Klanten (list, search, quick add) and the plain profile a quick add
-// opens. Copy comes from the catalogs. Each spec has accounts and workspaces of its own (see
+// F006 (spec #174): TW-01 Klanten (list, search, quick add) and TW-02 Klantprofiel (overview, edit). Copy comes from the catalogs. Each spec has accounts and workspaces of its own (see
 // language.spec.ts): John owns John's Gym, Sarah is a Trainer there, Mike owns Fit Studio. The
 // clients are synthetic: Anna de Vries (anna@example.com) and Mark Jansen (mark@example.com);
 // every client has an email address (#174, decision 5).
@@ -274,6 +273,186 @@ test.describe('F006 clients on the web', () => {
     await expect(page.getByRole('status')).toHaveCount(0);
     await expect(page).toHaveTitle(copy.clients.profile.title);
     expect(await stored(page, workspaceId)).toHaveLength(1);
+  });
+
+  for (const person of ['owner', 'trainer'] as const) {
+    test(`AC7: ${person === 'owner' ? 'John' : 'Sarah'} edits Anna's name, email address and language, and the profile shows it on the next load`, async ({
+      page,
+      context,
+      appLocale,
+      messages: copy,
+    }) => {
+      const { john, sarah, slug } = await team();
+      await signInWithSession(context, person === 'owner' ? john : sarah);
+      await page.goto(`/w/${slug}`);
+      const workspaceId = await gymId(page);
+      const anna = await seed(page, workspaceId, {
+        name: 'Anna de Vries',
+        email: 'anna@example.com',
+      });
+
+      await page.goto(`/w/${slug}/clients/${anna.id}`);
+      await expect(page.getByRole('heading', { level: 1, name: 'Anna de Vries' })).toBeVisible();
+      // No placeholder tabs: the overview is all there is.
+      await expect(page.getByRole('tab')).toHaveCount(0);
+      await expect(page.getByRole('heading', { level: 2 })).toHaveText(
+        copy.clients.profile.overview,
+      );
+      await expect(page.getByText(defaultLanguage(copy, 'nl'))).toBeVisible();
+      await expectNoAxeViolations(page, `TW-02 with Edit in ${appLocale}`);
+
+      await page.getByRole('button', { name: copy.clients.profile.edit }).click();
+      const dialog = page.getByRole('dialog', { name: copy.clients.profile.editTitle });
+      await expect(dialog).toBeVisible();
+      // The form starts with what the client has now.
+      const name = dialog.getByLabel(copy.clients.addDialog.nameLabel);
+      const email = dialog.getByLabel(copy.clients.addDialog.emailLabel);
+      const language = dialog.getByLabel(copy.clients.addDialog.localeLabel);
+      await expect(name).toBeFocused();
+      await expect(name).toHaveValue('Anna de Vries');
+      await expect(email).toHaveValue('anna@example.com');
+      await expect(language).toHaveValue('');
+      await expectNoAxeViolations(page, `the edit dialog in ${appLocale}`);
+
+      await name.fill('Anna Bakker');
+      await email.fill('Anna.Bakker@Example.com');
+      await language.selectOption('en');
+      await dialog.getByRole('button', { name: copy.clients.profile.save }).click();
+
+      await expect(dialog).toHaveCount(0);
+      await expect(page.getByRole('status')).toHaveText(copy.clients.profile.saved);
+      await expect(page.getByRole('heading', { level: 1, name: 'Anna Bakker' })).toBeVisible();
+      await expect(page.getByText('anna.bakker@example.com')).toBeVisible();
+      await expect(page.getByText(copy.clients.addDialog.localeEn, { exact: true })).toBeVisible();
+      await expectNoAxeViolations(page, `TW-02 after a save in ${appLocale}`);
+
+      // The data path: the API holds the change, and the next load shows it.
+      expect(await stored(page, workspaceId)).toEqual([
+        {
+          id: anna.id,
+          name: 'Anna Bakker',
+          email: 'anna.bakker@example.com',
+          emailLocale: 'en',
+        },
+      ]);
+      await page.reload();
+      await expect(page.getByRole('heading', { level: 1, name: 'Anna Bakker' })).toBeVisible();
+      await expect(page.getByText('anna.bakker@example.com')).toBeVisible();
+      await expect(page.getByText(copy.clients.addDialog.localeEn, { exact: true })).toBeVisible();
+
+      // Back to the workspace's default language.
+      await page.getByRole('button', { name: copy.clients.profile.edit }).click();
+      await dialog.getByLabel(copy.clients.addDialog.localeLabel).selectOption('');
+      await dialog.getByRole('button', { name: copy.clients.profile.save }).click();
+      await expect(page.getByText(defaultLanguage(copy, 'nl'))).toBeVisible();
+      expect((await stored(page, workspaceId))[0]?.emailLocale).toBeNull();
+    });
+  }
+
+  test('AC7: the email address can not be cleared, and a duplicate new address offers the other client', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page);
+    const anna = await seed(page, workspaceId, {
+      name: 'Anna de Vries',
+      email: 'anna@example.com',
+    });
+    const mark = await seed(page, workspaceId, { name: 'Mark Jansen', email: 'mark@example.com' });
+
+    await page.goto(`/w/${slug}/clients/${anna.id}`);
+    await page.getByRole('button', { name: copy.clients.profile.edit }).click();
+    const dialog = page.getByRole('dialog', { name: copy.clients.profile.editTitle });
+    const name = dialog.getByLabel(copy.clients.addDialog.nameLabel);
+    const email = dialog.getByLabel(copy.clients.addDialog.emailLabel);
+    const save = dialog.getByRole('button', { name: copy.clients.profile.save });
+
+    // Cleared: refused with the field message, the name that was typed stays, nothing is saved.
+    await name.fill('Anna Bakker');
+    await email.fill('');
+    await save.click();
+    await page.mouse.move(0, 0);
+    await expect(dialog.getByText(copy.clients.addDialog.errors.emailRequired)).toBeVisible();
+    await expect(email).toHaveAttribute('aria-invalid', 'true');
+    await expect(name).toHaveValue('Anna Bakker');
+    await expectNoAxeViolations(page, `the edit dialog with a message in ${appLocale}`);
+    await email.fill('not-an-address');
+    await save.click();
+    await expect(dialog.getByText(copy.clients.addDialog.errors.emailInvalid)).toBeVisible();
+    await name.fill('x'.repeat(121));
+    await save.click();
+    await expect(dialog.getByText(copy.clients.addDialog.errors.nameTooLong)).toBeVisible();
+    expect(await stored(page, workspaceId)).toEqual([anna, mark]);
+
+    // Mark's address (any case): the same offer as a quick add, and nothing changes.
+    await name.fill('Anna Bakker');
+    await email.fill('MARK@example.com');
+    await save.click();
+    const exists = copy.clients.addDialog.exists.replace('{name}', 'Mark Jansen');
+    await page.mouse.move(0, 0);
+    await expect(dialog.getByText(exists)).toBeVisible();
+    await expect(email).toHaveAttribute('aria-invalid', 'true');
+    await expectNoAxeViolations(page, `the edit dialog with a duplicate in ${appLocale}`);
+    expect(await stored(page, workspaceId)).toEqual([anna, mark]);
+
+    // Another address: the message goes, the address is selected, the name stays.
+    await dialog.getByRole('button', { name: copy.clients.addDialog.otherEmail }).click();
+    await expect(dialog.getByText(exists)).toHaveCount(0);
+    await expect(email).toBeFocused();
+    await expect(name).toHaveValue('Anna Bakker');
+
+    // Open the other client: Mark's profile.
+    await save.click();
+    await dialog
+      .getByRole('button', {
+        name: copy.clients.addDialog.openExisting.replace('{name}', 'Mark Jansen'),
+      })
+      .click();
+    await expect(page).toHaveURL(`/w/${slug}/clients/${mark.id}`);
+    await expect(page.getByRole('heading', { level: 1, name: 'Mark Jansen' })).toBeVisible();
+    expect(await stored(page, workspaceId)).toEqual([anna, mark]);
+  });
+
+  test('AC7: "Not saved" keeps what was typed in the edit form, and saving again works', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const { john, slug } = await team();
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaceId = await gymId(page);
+    const anna = await seed(page, workspaceId, {
+      name: 'Anna de Vries',
+      email: 'anna@example.com',
+    });
+
+    await page.goto(`/w/${slug}/clients/${anna.id}`);
+    await page.getByRole('button', { name: copy.clients.profile.edit }).click();
+    const dialog = page.getByRole('dialog', { name: copy.clients.profile.editTitle });
+    const name = dialog.getByLabel(copy.clients.addDialog.nameLabel);
+    await name.fill('Anna Bakker');
+    await dialog.getByLabel(copy.clients.addDialog.localeLabel).selectOption('en');
+
+    const patches = /\/api\/v1\/workspaces\/[^/]+\/clients\/[^/]+$/;
+    await page.route(patches, (route) =>
+      route.request().method() === 'PATCH' ? route.abort('failed') : route.continue(),
+    );
+    await dialog.getByRole('button', { name: copy.clients.profile.save }).click();
+    await expect(dialog.getByText(copy.clients.addDialog.errors.notSaved)).toBeVisible();
+    await expect(name).toHaveValue('Anna Bakker');
+    await expect(dialog.getByLabel(copy.clients.addDialog.localeLabel)).toHaveValue('en');
+    expect(await stored(page, workspaceId)).toEqual([anna]);
+
+    await page.unroute(patches);
+    await dialog.getByRole('button', { name: copy.clients.profile.save }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Anna Bakker' })).toBeVisible();
+    expect((await stored(page, workspaceId))[0]?.name).toBe('Anna Bakker');
   });
 
   for (const person of ['owner', 'trainer'] as const) {

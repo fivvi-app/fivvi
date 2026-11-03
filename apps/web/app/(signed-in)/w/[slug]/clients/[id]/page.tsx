@@ -43,7 +43,9 @@ export default async function ClientProfilePage({
   return (
     <ClientProfile
       client={client}
+      workspaceId={id}
       slug={slug}
+      canEdit={capabilities.includes('clients.manage')}
       defaultLocale={workspace.data.defaultLocale}
       added={added === '1'}
     />

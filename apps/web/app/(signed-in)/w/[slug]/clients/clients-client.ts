@@ -49,6 +49,9 @@ export interface AddClientInput {
 export type NameErrorKey = 'nameRequired' | 'nameTooLong';
 export type EmailErrorKey = 'emailRequired' | 'emailInvalid';
 
+/** The result of an edit is the one of an add: the same fields are refused in the same words. */
+export type SaveClientResult = AddClientResult;
+
 export type AddClientResult =
   | { ok: true; client: Client }
   /** The API refused a field: the form shows the message under it and keeps the input. */
@@ -73,23 +76,70 @@ export async function addClient(
   { name, email, emailLocale }: AddClientInput,
   fetchFn: typeof fetch = fetch,
 ): Promise<AddClientResult> {
+  const blank = blankFields({ name, email });
+  if (blank) return blank;
+  const body: Schemas['AddClientRequest'] = { name, email: email.trim() };
+  if (emailLocale) body.emailLocale = emailLocale;
+  return await send(`/api/v1/workspaces/${workspaceId}/clients`, 'POST', body, 201, fetchFn);
+}
+
+/**
+ * Saves the edit of a client (`PATCH /api/v1/workspaces/{workspaceId}/clients/{clientId}`, F006
+ * AC7): the same fields, rules and messages as adding, and the same result. The email address can
+ * never be cleared (#174, decision 6), so a blank one is refused here, with no request. It is
+ * sent only when it is another address than the client has now: the team can't change the address
+ * of a client who has joined, and a save that leaves it alone must not ask for that. The language
+ * goes back to the workspace's default with `clearEmailLocale` (the generated clients of the apps
+ * can't send `null`, and this one sends what they send).
+ */
+export async function updateClient(
+  workspaceId: string,
+  current: Client,
+  { name, email, emailLocale }: AddClientInput,
+  fetchFn: typeof fetch = fetch,
+): Promise<SaveClientResult> {
+  const blank = blankFields({ name, email });
+  if (blank) return blank;
+  const body: Schemas['UpdateClientRequest'] = { name };
+  if (email.trim().toLowerCase() !== current.email) body.email = email.trim();
+  if (emailLocale) body.emailLocale = emailLocale;
+  else if (current.emailLocale !== null) body.clearEmailLocale = true;
+  return await send(
+    `/api/v1/workspaces/${workspaceId}/clients/${current.id}`,
+    'PATCH',
+    body,
+    200,
+    fetchFn,
+  );
+}
+
+/** The refusal of a blank name or email address, before any request; `null` when both are filled. */
+function blankFields({ name, email }: { name: string; email: string }): AddClientResult | null {
   const blank: AddClientResult & { reason: 'fields' } = { ok: false, reason: 'fields' };
   if (!name.trim()) blank.name = 'nameRequired';
   if (!email.trim()) blank.email = 'emailRequired';
-  if (blank.name || blank.email) return blank;
-  const body: Schemas['AddClientRequest'] = { name, email: email.trim() };
-  if (emailLocale) body.emailLocale = emailLocale;
+  return blank.name || blank.email ? blank : null;
+}
+
+/** Sends the add or the edit and words the answer: shared, because both forms are the same one. */
+async function send(
+  url: string,
+  method: 'POST' | 'PATCH',
+  body: Schemas['AddClientRequest'] | Schemas['UpdateClientRequest'],
+  successStatus: 200 | 201,
+  fetchFn: typeof fetch,
+): Promise<AddClientResult> {
   let response: Response;
   try {
-    response = await fetchFn(`/api/v1/workspaces/${workspaceId}/clients`, {
-      method: 'POST',
+    response = await fetchFn(url, {
+      method,
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
     });
   } catch {
     return { ok: false, reason: 'noConnection' };
   }
-  if (response.status === 201) {
+  if (response.status === successStatus) {
     const client = (await response.json().catch(() => null)) as Client | null;
     return client ? { ok: true, client } : { ok: false, reason: 'generic' };
   }
