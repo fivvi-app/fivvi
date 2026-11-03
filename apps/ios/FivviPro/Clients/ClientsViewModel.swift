@@ -6,7 +6,7 @@ import FivviAPI
 /// generated client (F006 AC6, AC12). The server sorts them by name, searches them (part of a name or an email address,
 /// case and accents ignored) and pages them; the app holds no rule about who may see what, the answers do. What was
 /// shown stays when a later request fails, with the age of the list when the phone is offline
-/// (`information-architecture .md §9.5`). The list is kept in memory only: no client data is written to the phone.
+/// (`information-architecture.md §9.5`). The list is kept in memory only: no client data is written to the phone.
 @MainActor
 @Observable
 final class ClientsViewModel {
