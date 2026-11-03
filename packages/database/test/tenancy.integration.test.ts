@@ -51,18 +51,25 @@ describe('E011 tenancy core tables', () => {
       const workspaceB = await workspace(tx);
       const add = (values: Partial<typeof clients.$inferInsert>, workspaceId = workspaceA) =>
         tx.transaction((inner) =>
-          inner
-            .insert(clients)
-            .values({ organizationId: workspaceId, name: 'Anna de Vries', ...values }),
+          inner.insert(clients).values({
+            organizationId: workspaceId,
+            name: 'Anna de Vries',
+            email: 'anna@example.com',
+            ...values,
+          }),
         );
 
-      // The same address in another workspace is another client; none at all may repeat.
-      await add({ email: 'anna@example.com' });
-      await add({ email: 'anna@example.com' }, workspaceB);
+      // The same address in another workspace is another client; in one workspace it can't
+      // repeat. Two clients with different addresses may share a name (AC3).
       await add({});
-      await add({});
-      await expect(add({ email: 'anna@example.com' })).rejects.toMatchObject({
+      await add({}, workspaceB);
+      await add({ email: 'anna2@example.com' });
+      await expect(add({})).rejects.toMatchObject({
         cause: { code: '23505', constraint: 'clients_organization_id_email_unique' },
+      });
+      // Every client has an email address (spec #174, decision 5): a missing one is refused.
+      await expect(add({ email: null as never })).rejects.toMatchObject({
+        cause: { code: '23502', column: 'email' },
       });
 
       // The name is there, not blank and at most 120 characters; the address is lower case; the
@@ -73,7 +80,7 @@ describe('E011 tenancy core tables', () => {
       await expect(add({ name: 'x'.repeat(121) })).rejects.toMatchObject({
         cause: { code: '23514', constraint: 'clients_name_valid' },
       });
-      await add({ name: 'x'.repeat(120) });
+      await add({ name: 'x'.repeat(120), email: 'long@example.com' });
       await expect(add({ email: 'Anna2@Example.com' })).rejects.toMatchObject({
         cause: { code: '23514', constraint: 'clients_email_lowercase' },
       });
@@ -94,7 +101,12 @@ describe('E011 tenancy core tables', () => {
       await tx
         .insert(teamMembers)
         .values({ organizationId: workspaceA, accountId: sam, role: 'trainer' });
-      await tx.insert(clients).values({ organizationId: workspaceA, accountId: sam, name: 'Sam' });
+      await tx.insert(clients).values({
+        organizationId: workspaceA,
+        accountId: sam,
+        name: 'Sam',
+        email: 'sam@example.com',
+      });
       expect(await tx.$count(teamMembers)).toBe(1);
       expect(await tx.$count(clients)).toBe(1);
 
@@ -112,7 +124,12 @@ describe('E011 tenancy core tables', () => {
       // Not a second client relationship in the same workspace.
       await expect(
         tx.transaction((inner) =>
-          inner.insert(clients).values({ organizationId: workspaceA, accountId: sam, name: 'Sam' }),
+          inner.insert(clients).values({
+            organizationId: workspaceA,
+            accountId: sam,
+            name: 'Sam',
+            email: 'sam2@example.com',
+          }),
         ),
       ).rejects.toMatchObject({
         cause: { code: '23505', constraint: 'clients_organization_id_account_id_unique' },
@@ -124,10 +141,11 @@ describe('E011 tenancy core tables', () => {
         .values({ organizationId: workspaceB, accountId: sam, role: 'owner' });
       expect(await tx.$count(teamMembers)).toBe(2);
 
-      // Clients added by hand have no account yet (PRODUCT.md §34), and there can be many.
+      // Clients added by hand have no account yet (PRODUCT.md §34), and there can be many; they
+      // may share a name when their addresses differ.
       await tx.insert(clients).values([
-        { organizationId: workspaceA, name: 'Mark Jansen' },
-        { organizationId: workspaceA, name: 'Mark Jansen' },
+        { organizationId: workspaceA, name: 'Mark Jansen', email: 'mark@example.com' },
+        { organizationId: workspaceA, name: 'Mark Jansen', email: 'mark2@example.com' },
       ]);
       expect(await tx.$count(clients)).toBe(3);
 

@@ -15,7 +15,7 @@ export interface ClientView {
   readonly id: string;
   readonly workspaceId: string;
   readonly name: string;
-  readonly email: string | null;
+  readonly email: string;
   readonly emailLocale: Locale | null;
 }
 
@@ -44,7 +44,7 @@ function likePattern(text: string): string {
 function matches(search: string): SQL {
   const pattern = likePattern(search);
   return sql`(lower(unaccent(${clients.name})) like lower(unaccent(${pattern}))
-    or lower(unaccent(coalesce(${clients.email}, ''))) like lower(unaccent(${pattern})))`;
+    or lower(unaccent(${clients.email})) like lower(unaccent(${pattern})))`;
 }
 
 export interface ClientPage {
@@ -129,7 +129,8 @@ export async function findClientOfAccount(
 
 export interface NewClient {
   readonly name: string;
-  readonly email?: string | null;
+  /** The email address, lower case: every client has one. */
+  readonly email: string;
   readonly emailLocale?: Locale | null;
   /** The account the client is linked to; leave it out for none. */
   readonly accountId?: string | null;
@@ -155,8 +156,8 @@ export async function createClient(
 
 export interface ClientChanges {
   readonly name?: string;
-  /** The new email address (lower case); `null` clears it. */
-  readonly email?: string | null;
+  /** The new email address (lower case). It can't be cleared. */
+  readonly email?: string;
   /** The new language for emails; `null` follows the workspace default. */
   readonly emailLocale?: Locale | null;
   /** The account the client is linked to; `null` removes the link. Leave it out to keep the link. */

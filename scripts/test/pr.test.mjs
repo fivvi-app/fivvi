@@ -1664,15 +1664,15 @@ describe('E002 #107 pr.sh ship', () => {
     assert.ok(!result.calls.some((call) => /^pr ready/.test(call)));
   });
 
-  it('E002 #107 AC2: waits up to 45 minutes when iOS or Android run, 20 otherwise', () => {
+  it('E002 #107 AC2: waits up to 60 minutes when iOS or Android run, 20 otherwise', () => {
     const native = ship();
-    assert.match(native.stdout, /up to 45 min/);
+    assert.match(native.stdout, /up to 60 min/);
     const rollup = ['Detect changes', 'Checks (Linux)', 'E2E (Linux)'].map((name) =>
       checkRun(name),
     );
     const linux = ship({ ci: checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']), rollup });
     assert.match(linux.stdout, /up to 20 min/);
-    assert.doesNotMatch(linux.stdout, /up to 45 min/);
+    assert.doesNotMatch(linux.stdout, /up to 60 min/);
   });
 
   it('E002 #107 AC2: keeps the 20-minute wait when the native jobs are skipped, as they are in most PRs', () => {
@@ -1683,7 +1683,57 @@ describe('E002 #107 pr.sh ship', () => {
     const result = ship({ ci });
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /up to 20 min/);
-    assert.doesNotMatch(result.stdout, /up to 45 min/);
+    assert.doesNotMatch(result.stdout, /up to 60 min/);
+  });
+
+  describe('E002 #416 the limit rises on the native parts, not only on the gate', () => {
+    const base = checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']);
+    const limit = (result, job) => {
+      const line = result.stdout.match(new RegExp(`${job} run: waiting up to (\\d+) min`));
+      return line && Number(line[1]);
+    };
+
+    it('AC1: raises the limit when only a part such as iOS build is pending, before the gate is listed', () => {
+      const result = ship({ ci: [...base, ...checks(['iOS build'], 'pending')] });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /waiting up to 20 min for CI on/);
+      assert.ok(limit(result, 'iOS') > 20, result.stdout);
+    });
+
+    it('AC1: also raises it for iOS tests (nl) and Android Maestro, and names the job', () => {
+      const ios = ship({ ci: [...base, ...checks(['iOS tests (nl)'], 'pending')] });
+      assert.ok(limit(ios, 'iOS') > 20, ios.stdout);
+      const android = ship({ ci: [...base, ...checks(['Android Maestro'], 'pending')] });
+      assert.ok(limit(android, 'Android') > 20, android.stdout);
+      assert.equal(limit(android, 'iOS'), null);
+    });
+
+    it('AC1: still raises it for the gate itself', () => {
+      const result = ship({ ci: [...base, ...checks(['Android'])] });
+      assert.ok(limit(result, 'Android') > 20, result.stdout);
+    });
+
+    it('AC2: keeps the 20-minute wait when every native part is skipping', () => {
+      const ci = [
+        ...base,
+        ...checks(['iOS', 'iOS build', 'iOS tests (nl)', 'Android', 'Android Maestro'], 'skipping'),
+      ];
+      const result = ship({ ci });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /waiting up to 20 min for CI on/);
+      assert.doesNotMatch(result.stdout, /iOS run|Android run/);
+    });
+
+    it('AC3: a name that only contains the word does not count', () => {
+      const ci = [
+        ...base,
+        ...checks(['Checks (iOS-free)', 'Android-free', 'Not iOS build'], 'pending'),
+      ];
+      const result = ship({ ci });
+      assert.equal(result.status, 0, result.stderr);
+      assert.doesNotMatch(result.stdout, /iOS run|Android run/);
+      assert.match(result.stdout, /waiting up to 20 min for CI on/);
+    });
   });
 
   it('E002 #107 AC2: lets --timeout choose the wait', () => {

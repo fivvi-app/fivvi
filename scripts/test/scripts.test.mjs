@@ -742,16 +742,41 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.match(iosBuild, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/build-for-testing\.log/);
   });
 
-  it('E002 #305: the iOS test job leaves room above a healthy run, and the chain stays under the merge queue timeout', () => {
+  it('E002 #305 #393: the iOS timeouts fit the measured jobs, the deadline sits inside the tests job, and the chain stays under the merge queue timeout', () => {
     const minutes = (section) => Number(section.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
     const queue = Number(
       readFileSync(join(SCRIPTS, '../.github/rulesets/main.json'), 'utf8').match(
         /"check_response_timeout_minutes": (\d+)/,
       )[1],
     );
-    assert.ok(minutes(iosTests) >= 22, 'a healthy run takes up to 16 minutes, with the settle');
-    // Detect changes (5) + build + tests + the report job (2) must end before the queue gives up on the check.
-    assert.ok(5 + minutes(iosBuild) + minutes(iosTests) + 2 < queue, 'under the queue timeout');
+    const script = readFileSync(join(SCRIPTS, 'test-ios.sh'), 'utf8');
+    const deadline = Number(script.match(/^TEST_DEADLINE=\$\{IOS_TEST_DEADLINE:-(\d+)\}$/m)[1]);
+    const grace = Number(
+      script.match(/^TEST_DEADLINE_GRACE=\$\{IOS_TEST_DEADLINE_GRACE:-(\d+)\}$/m)[1],
+    );
+    // Measured on the 10 last green runs that ran iOS (#393): the longest "iOS build" took 322 s; outside the deadline a
+    // tests job spent at most 245 s on the simulator boot and settle, 33 s on its other steps, and 15 s uploading the
+    // results of a failed run; after the grace of a run that hit the deadline, the reports and the cleanup took 17 s more
+    // (job 125842050556: the deadline error at 10:08:53, the step over at 10:10:10, 77 s = 60 s grace + 17 s).
+    const longestBuild = 322;
+    const longestOverhead = 245 + 33 + 15 + 17;
+    assert.ok(deadline >= 1300, 'the deadline is at least 1300 s (#393)');
+    assert.ok(
+      minutes(iosBuild) * 60 >= 2 * longestBuild,
+      'the build timeout is at least twice the longest build',
+    );
+    assert.ok(
+      minutes(iosTests) * 60 >= deadline + grace + longestOverhead + 120,
+      'the tests timeout holds the deadline, the grace, the overhead outside the deadline and 2 minutes',
+    );
+    // Detect changes (5) + build + tests + the gate job (2) must end before the queue gives up on the check.
+    const chain = 5 + minutes(iosBuild) + minutes(iosTests) + minutes(job('ios'));
+    assert.ok(chain <= 57, 'the chain is at most 57 minutes');
+    assert.ok(chain < queue, 'under the queue timeout');
+    // pr.sh wait must outlast the chain, or it gives up on a run that still passes.
+    const pr = readFileSync(join(SCRIPTS, 'pr.sh'), 'utf8');
+    const waitNative = Number(pr.match(/^WAIT_MINUTES_NATIVE=(\d+)$/m)[1]);
+    assert.ok(waitNative > chain, 'pr.sh wait outlasts the longest native chain by timeouts');
   });
 
   it('E002 #242: the iOS jobs run on macos-15 with an Xcode that image has, and say why in a comment', () => {
@@ -847,8 +872,22 @@ describe('E002 #91 the native jobs in ci.yml', () => {
         section.includes(`if: always() && needs.changes.outputs.${native} == 'true'`),
         `${gate} runs after its parts, also when one failed`,
       );
-      assert.match(section, /RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}/);
-      assert.match(section, new RegExp(`run: scripts/native-gate\\.sh ${name} true \\$RESULTS\n`));
+      if (native === 'android') {
+        assert.match(section, /RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}/);
+        assert.match(
+          section,
+          new RegExp(`run: scripts/native-gate\\.sh ${name} true \\$RESULTS\n`),
+        );
+      } else {
+        // iOS (#413): scripts/ios-parts.sh turns a cancelled part that no runner picked up into "unacquired" and passes
+        // the other results on; the gate reads the run's jobs, so it needs actions: read, and it works without them.
+        assert.match(section, /^ {6}actions: read/m);
+        assert.match(section, /BUILD: \$\{\{ needs\.ios-build\.result \}\}/);
+        assert.match(section, /TESTS: \$\{\{ needs\.ios-tests\.result \}\}/);
+        assert.match(section, /GH_TOKEN: \$\{\{ github\.token \}\}/);
+        assert.match(section, /scripts\/ios-parts\.sh "\$BUILD" "\$TESTS"/);
+        assert.match(section, /scripts\/native-gate\.sh iOS true "\$\{PARTS\[@\]\}"/);
+      }
     }
   });
 
@@ -5044,5 +5083,37 @@ describe('wt.sh done', () => {
     assert.equal(git(repo, 'ls-remote', '--heads', 'origin', 'feature/57-hold'), '');
     assert.deepEqual(simulators(), ['SHARED']);
     assert.match(result.stdout, /deleted simulator 'Fivvi feature-57-hold'/);
+  });
+});
+
+describe('#413 the iOS gate says when no hosted runner picked a part up, and has no fallback runner', () => {
+  const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
+  const workflow = readFileSync(join(SCRIPTS, '../docs/engineering/WORKFLOW.md'), 'utf8');
+
+  it('has no fallback job, no workflow_dispatch input to force one, and no runner pool other than macos-15', () => {
+    const code = ci.replace(/^ *#.*$/gm, ''); // the comments say why the retry was dropped
+    assert.doesNotMatch(code, /macos-15-intel|ios_retry|ios-retry/);
+    assert.doesNotMatch(code, /^ {2}workflow_dispatch:\n +inputs:/m);
+    assert.deepEqual(
+      [...code.matchAll(/runs-on: (macos-[\w-]+)/g)].map((m) => m[1]),
+      ['macos-15', 'macos-15'],
+    );
+  });
+
+  it('keeps the job set of the iOS parts: a build and a matrix of tests, with their names', () => {
+    assert.match(ci, /^ {2}ios-build:\n {4}name: iOS build$/m);
+    assert.match(ci, /^ {2}ios-tests:\n {4}name: iOS tests \(\$\{\{ matrix\.locale \}\}\)$/m);
+    assert.doesNotMatch(ci, /^ {2}ios-(tests-|parts)/m);
+  });
+
+  it('describes the no-runner message and re-queuing in ci.yml and WORKFLOW.md', () => {
+    for (const [file, text] of [
+      ['ci.yml', ci],
+      ['WORKFLOW.md', workflow],
+    ]) {
+      assert.match(text, /no hosted runner picked/i, file);
+      assert.match(text, /re-queu/i, file);
+      assert.match(text, /#413/, file);
+    }
   });
 });
