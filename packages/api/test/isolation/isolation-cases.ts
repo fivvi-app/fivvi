@@ -89,9 +89,18 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   deleteTrainerProfile: {},
 
   // The clients of a workspace (F006): the list shows every client the seed made (the suite calls
-  // it once per client of the workspace), the add takes the only field it needs.
+  // it once per client of the workspace), the add takes a name and an email address. Every call
+  // needs an address of its own (one per workspace), so the getter makes a new one each time the
+  // body is written to JSON.
   listClients: { seed: theClient },
-  addClient: { body: { name: 'Mark Jansen' } },
+  addClient: {
+    body: {
+      name: 'Mark Jansen',
+      get email() {
+        return `${crypto.randomUUID()}@example.com`;
+      },
+    },
+  },
   // One client: the read shows the seeded client it names, the edit renames it (F006).
   getClient: { seed: theClient, params: { clientId: 'client' } },
   updateClient: {

@@ -121,7 +121,7 @@ const KOTLIN_JSON_IMPORT = 'import kotlinx.serialization.json.Json\n';
  * The generator's `Json` has `encodeDefaults = true`, which writes every unset optional field as `null`. The API
  * reads `null` as a value and refuses it (`400`), where the Swift client leaves a `nil` field out (#371). With
  * `explicitNulls = false` the Kotlin client leaves it out too, so a request carries only what the app set; an
- * explicit "clear" is a flag of the contract (`clearEmail`), never a `null`. Throws when the generator's output no
+ * explicit "clear" is a flag of the contract (`clearEmailLocale`), never a `null`. Throws when the generator's output no
  * longer has one of the lines it adjusts (the setting, the property it annotates or the import), so a new generator
  * version fails here and not later as a Gradle warning or with the `null`s back.
  */

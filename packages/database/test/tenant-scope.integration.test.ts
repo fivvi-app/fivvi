@@ -220,7 +220,8 @@ describe('E011 the tenant scope of a request transaction', () => {
         const scopesOnOne = createTenantScopes(() => single.db);
         const entry = await scopesOnOne.inWorkspaceScope(
           { accountId: people.ownerA.id, workspaceId: a, admit: teamOnly },
-          async (scope) => createClient(scope, { name: 'Synthetic client' }),
+          async (scope) =>
+            createClient(scope, { name: 'Synthetic client', email: 'synthetic@example.com' }),
         );
         expect(entry.status).toBe('entered');
 
@@ -241,7 +242,7 @@ describe('E011 the tenant scope of a request transaction', () => {
 
       await expect(
         enter(people.ownerA.id, a, teamOnly, async (scope) => {
-          await createClient(scope, { name: 'Synthetic client' });
+          await createClient(scope, { name: 'Synthetic client', email: 'synthetic@example.com' });
           throw new Error('the handler failed');
         }),
       ).rejects.toThrow('the handler failed');
@@ -331,7 +332,10 @@ describe('E011 the tenant scope of a request transaction', () => {
 
     it('writes into the scope’s workspace, whatever the caller asks', async () => {
       const entry = await enter(people.ownerA.id, a, teamOnly, async (scope) => {
-        const created = await createClient(scope, { name: 'Synthetic client' });
+        const created = await createClient(scope, {
+          name: 'Synthetic client',
+          email: 'synthetic-ctx@example.com',
+        });
         throw Object.assign(new Error('rollback'), { created });
       }).catch((error: { created: { workspaceId: string } }) => error);
 
@@ -402,7 +406,7 @@ describe('E011 the tenant scope of a request transaction', () => {
     it('answers taken for an address another client has, and the transaction goes on', async () => {
       const entry = await enter(people.ownerA.id, a, teamOnly, async (scope) => {
         const first = await createClient(scope, { name: 'Bram', email: 'taken@example.com' });
-        const second = await createClient(scope, { name: 'Carla' });
+        const second = await createClient(scope, { name: 'Carla', email: 'carla@example.com' });
         if (!first || !second) throw new Error('The clients were not added.');
 
         const refused = await updateClient(scope, second.id, {
@@ -420,7 +424,7 @@ describe('E011 the tenant scope of a request transaction', () => {
         value: {
           refused: 'taken',
           // Nothing of the refused edit was saved, not even the name.
-          carla: { name: 'Carla', email: null },
+          carla: { name: 'Carla', email: 'carla@example.com' },
           saved: { name: 'Carla', email: 'free@example.com' },
         },
       });

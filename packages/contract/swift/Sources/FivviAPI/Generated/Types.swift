@@ -139,7 +139,7 @@ public protocol APIProtocol: Sendable {
     func listClients(_ input: Operations.ListClients.Input) async throws -> Operations.ListClients.Output
     /// Add a client
     ///
-    /// Adds a client to the workspace (the Owner and every Trainer). Only the name is required. Adding a client never sends an email and never creates an account. If an account has the email address, the client is linked to it; the answer is the same either way. A client of the workspace with the same address (in any case) makes the answer `409` with that client’s ID, and nothing is added. Two clients without an email address may share a name.
+    /// Adds a client to the workspace (the Owner and every Trainer). The name and the email address are required. Adding a client never sends an email and never creates an account. If an account has the email address, the client is linked to it; the answer is the same either way. A client of the workspace with the same address (in any case) makes the answer `409` with that client’s ID, and nothing is added. Two clients with different email addresses may share a name.
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/clients`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/post(addClient)`.
@@ -153,7 +153,7 @@ public protocol APIProtocol: Sendable {
     func getClient(_ input: Operations.GetClient.Input) async throws -> Operations.GetClient.Output
     /// Edit a client
     ///
-    /// Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out, or `null`, stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address is cleared with `clearEmail: true`, the language with `clearEmailLocale: true`. An address another client of the workspace has answers `409` with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.
+    /// Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out, or `null`, stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address can’t be cleared (an empty one answers `400`); the language goes back to the default with `clearEmailLocale: true`. An address another client of the workspace has answers `409` with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.
     ///
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/clients/{clientId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/patch(updateClient)`.
@@ -416,7 +416,7 @@ extension APIProtocol {
     }
     /// Add a client
     ///
-    /// Adds a client to the workspace (the Owner and every Trainer). Only the name is required. Adding a client never sends an email and never creates an account. If an account has the email address, the client is linked to it; the answer is the same either way. A client of the workspace with the same address (in any case) makes the answer `409` with that client’s ID, and nothing is added. Two clients without an email address may share a name.
+    /// Adds a client to the workspace (the Owner and every Trainer). The name and the email address are required. Adding a client never sends an email and never creates an account. If an account has the email address, the client is linked to it; the answer is the same either way. A client of the workspace with the same address (in any case) makes the answer `409` with that client’s ID, and nothing is added. Two clients with different email addresses may share a name.
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/clients`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/post(addClient)`.
@@ -448,7 +448,7 @@ extension APIProtocol {
     }
     /// Edit a client
     ///
-    /// Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out, or `null`, stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address is cleared with `clearEmail: true`, the language with `clearEmailLocale: true`. An address another client of the workspace has answers `409` with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.
+    /// Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out, or `null`, stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address can’t be cleared (an empty one answers `400`); the language goes back to the default with `clearEmailLocale: true`. An address another client of the workspace has answers `409` with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.
     ///
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/clients/{clientId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/patch(updateClient)`.

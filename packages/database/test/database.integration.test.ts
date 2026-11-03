@@ -222,6 +222,123 @@ describe('E004 migrations', () => {
     }
   });
 
+  it('makes the client email required, and fails rather than invent an address (F006, spec #174 decision 5)', async () => {
+    const emailRequired = '0015_clients_email_required';
+    const journal = await readJournal(migrationsFolder);
+    const index = journal.entries.findIndex((entry) => entry.tag === emailRequired);
+    expect(index).toBeGreaterThanOrEqual(0);
+
+    const previous = await mkdtemp(join(tmpdir(), 'fivvi-migrations-'));
+    try {
+      await cp(migrationsFolder, previous, { recursive: true });
+      const previousJournal = { ...journal, entries: journal.entries.slice(0, index) };
+      await writeFile(join(previous, 'meta', '_journal.json'), JSON.stringify(previousJournal));
+
+      await withFreshDatabase(async (client) => {
+        await migrate(client.db, { migrationsFolder: previous });
+        const [workspace] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into organizations (name, slug, default_locale, time_zone)
+              values ('Email Gym', 'email-gym', 'nl-NL', 'Europe/Amsterdam') returning id`,
+        );
+        await client.db.execute(
+          sql`insert into clients (organization_id, name, email)
+              values (${workspace?.id}, 'Anna de Vries', 'anna@example.com')`,
+        );
+        const [withoutEmail] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into clients (organization_id, name)
+              values (${workspace?.id}, 'Mark Jansen') returning id`,
+        );
+
+        // A client without an email address stops the migration: no address is made up.
+        await expect(runMigrations(client.db)).rejects.toThrow();
+        expect(
+          await rows(client.db, sql`select email from clients where id = ${withoutEmail?.id}`),
+        ).toEqual([{ email: null }]);
+
+        // With the address filled in by hand, the migration goes through, and the column is
+        // required from then on.
+        await client.db.execute(
+          sql`update clients set email = 'mark@example.com' where id = ${withoutEmail?.id}`,
+        );
+        await runMigrations(client.db);
+        await expect(
+          client.db.execute(
+            sql`insert into clients (organization_id, name) values (${workspace?.id}, 'Sophie')`,
+          ),
+        ).rejects.toMatchObject({ cause: { code: '23502', column: 'email' } });
+      });
+    } finally {
+      await rm(previous, { recursive: true, force: true });
+    }
+  });
+
+  it('gives only the seed’s own email-less client its address, so the seeded development database migrates (F006)', async () => {
+    const emailRequired = '0015_clients_email_required';
+    const journal = await readJournal(migrationsFolder);
+    const index = journal.entries.findIndex((entry) => entry.tag === emailRequired);
+    expect(index).toBeGreaterThanOrEqual(0);
+
+    const previous = await mkdtemp(join(tmpdir(), 'fivvi-migrations-'));
+    try {
+      await cp(migrationsFolder, previous, { recursive: true });
+      const previousJournal = { ...journal, entries: journal.entries.slice(0, index) };
+      await writeFile(join(previous, 'meta', '_journal.json'), JSON.stringify(previousJournal));
+
+      const insertWorkspace = (db: Parameters<typeof rows>[0], slug: string) =>
+        rows<{ id: string }>(
+          db,
+          sql`insert into organizations (name, slug, default_locale, time_zone)
+              values (${slug}, ${slug}, 'nl-NL', 'Europe/Amsterdam') returning id`,
+        );
+
+      await withFreshDatabase(async (client) => {
+        await migrate(client.db, { migrationsFolder: previous });
+        const [gym] = await insertWorkspace(client.db, 'johns-gym');
+        const [other] = await insertWorkspace(client.db, 'other-gym');
+        // The seed of an older version: Mark Jansen of John's Gym without an address.
+        await client.db.execute(
+          sql`insert into clients (organization_id, name) values (${gym?.id}, 'Mark Jansen')`,
+        );
+        // Not the seed's row: same name in another workspace, and another name in the seed's.
+        const [stranger] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into clients (organization_id, name)
+              values (${other?.id}, 'Mark Jansen') returning id`,
+        );
+        const [sophie] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into clients (organization_id, name)
+              values (${gym?.id}, 'Sophie Bakker') returning id`,
+        );
+
+        // Any other row without an address still stops the migration: no address is made up.
+        await expect(runMigrations(client.db)).rejects.toThrow();
+        await client.db.execute(
+          sql`update clients set email = 'a@example.com' where id = ${stranger?.id}`,
+        );
+        await expect(runMigrations(client.db)).rejects.toThrow();
+        await client.db.execute(
+          sql`update clients set email = 'b@example.com' where id = ${sophie?.id}`,
+        );
+
+        await runMigrations(client.db);
+        expect(
+          await rows(
+            client.db,
+            sql`select name, email from clients where organization_id = ${gym?.id} order by name`,
+          ),
+        ).toEqual([
+          { name: 'Mark Jansen', email: 'mark@example.com' },
+          { name: 'Sophie Bakker', email: 'b@example.com' },
+        ]);
+      });
+    } finally {
+      await rm(previous, { recursive: true, force: true });
+    }
+  });
+
   it('is a no-op when run again', async () => {
     await withFreshDatabase(async (client) => {
       await runMigrations(client.db);
@@ -294,7 +411,7 @@ describe('E004 database', () => {
   });
 
   describe('F006 seed clients', () => {
-    it('AC15: gives John’s Gym a few synthetic clients, one without an email address, once', async () => {
+    it('AC15: gives John’s Gym a few synthetic clients, every one with an @example.com email address, once', async () => {
       await withRollback(db, async (tx) => {
         await seed(tx);
         await seed(tx);
@@ -313,9 +430,8 @@ describe('E004 database', () => {
           'Mark Jansen',
           'Sophie Bakker',
         ]);
-        expect(seeded.filter(({ email }) => email === null)).toHaveLength(1);
         for (const { email } of seeded) {
-          if (email !== null) expect(email).toMatch(/^[a-z.]+@example\.com$/);
+          expect(email).toMatch(/^[a-z.]+@example\.com$/);
         }
         // Adding a client links nobody: the seed has no account for them (F006 AC4).
         expect(seeded.every(({ accountId }) => accountId === null)).toBe(true);

@@ -498,7 +498,7 @@ describe('E011 RLS as the app role', () => {
       await refused(tx, (inner) => addClient(inner, { workspaceId: scenario.a }));
       await refused(tx, (inner) =>
         inner.execute(
-          sql`insert into clients (organization_id, name) values (${scenario.a}, 'Synthetic client')`,
+          sql`insert into clients (organization_id, name, email) values (${scenario.a}, 'Synthetic client', 'synthetic@example.com')`,
         ),
       );
       expect(
@@ -531,7 +531,7 @@ describe('E011 RLS as the app role', () => {
       ).toHaveLength(1);
       await expect(
         tx.execute(
-          sql`insert into clients (organization_id, name) values (${scenario.a}, 'Synthetic client')`,
+          sql`insert into clients (organization_id, name, email) values (${scenario.a}, 'Synthetic client', 'synthetic@example.com')`,
         ),
       ).resolves.toBeDefined();
     });
