@@ -275,8 +275,10 @@ cmd_status() {
 
 # Waits for the CI workflow run of the PR's head commit (.github/workflows/ci.yml), not for whatever checks exist yet:
 # right after a push, the jobs behind "Detect changes" don't exist, so "nothing pending" is not "passed". The timeout is
-# $WAIT_MINUTES, or $WAIT_MINUTES_NATIVE once a native job (iOS, Android) is among the checks and not skipped (they are
-# required checks, so they exist, skipped, in most PRs); --timeout fixes it.
+# $WAIT_MINUTES, or $WAIT_MINUTES_NATIVE once a native check is among the checks and not skipped: the gate (iOS, Android)
+# or one of its parts, a name that starts with the gate and a space (iOS build, iOS tests (nl), Android Maestro). The
+# parts are listed while they run, the gate only once they are all done (#416). The gates are required checks, so they
+# exist, skipped, in most PRs; --timeout fixes the limit.
 cmd_wait() {
   local timeout="" limit="$WAIT_MINUTES" pr head start run checks failed native job
   while [ $# -gt 0 ]; do
@@ -299,7 +301,7 @@ cmd_wait() {
     if [ -z "$timeout" ] && [ "$limit" -lt "$WAIT_MINUTES_NATIVE" ]; then
       native=""
       for job in "${NATIVE_JOBS[@]}"; do
-        ! jq -e --arg job "$job" 'any(.[]?; .name == $job and .bucket != "skipping")' <<<"${checks:-[]}" >/dev/null 2>&1 || native="${native:+$native, }$job"
+        ! jq -e --arg job "$job" 'any(.[]?; (.name == $job or (.name | startswith($job + " "))) and .bucket != "skipping")' <<<"${checks:-[]}" >/dev/null 2>&1 || native="${native:+$native, }$job"
       done
       if [ -n "$native" ]; then
         limit="$WAIT_MINUTES_NATIVE"
