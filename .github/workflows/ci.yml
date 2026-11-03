@@ -408,9 +408,9 @@ jobs:
     runs-on: macos-15
     # A healthy run takes 14-21 min (#393), of which the simulator boot and settle is up to 4 min (xcodebuild 11-17). A test that hangs fails
     # after its own allowance (scripts/test-ios.sh), so this is the backstop for the whole job: the deadline there
-    # (1800 s, counted from the start of xcodebuild) + its grace (60 s) + what the job spends outside the deadline (at
-    # most 245 s boot and settle, 33 s other steps, 15 s uploading the results: 293 s measured) + 2 min = 2273 s,
-    # so 38 min. Detect changes (5) + iOS build (12) + this (38) + the report job (2) = 57, under the merge queue's
+    # (1790 s, counted from the start of xcodebuild) + its grace (60 s) + what the job spends outside the deadline (at
+    # most 245 s boot and settle, 33 s other steps, 15 s uploading the results, 17 s reports and cleanup after the
+    # grace: 310 s measured) + 2 min = 2280 s, so 38 min. Detect changes (5) + iOS build (12) + this (38) + the report job (2) = 57, under the merge queue's
     # check timeout of 60 (ADR-018). Raising the deadline further means raising this, and a test fails when the
     # numbers no longer fit.
     timeout-minutes: 38

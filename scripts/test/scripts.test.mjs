@@ -756,9 +756,10 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     );
     // Measured on the 10 last green runs that ran iOS (#393): the longest "iOS build" took 322 s; outside the deadline a
     // tests job spent at most 245 s on the simulator boot and settle, 33 s on its other steps, and 15 s uploading the
-    // results of a failed run.
+    // results of a failed run; after the grace of a run that hit the deadline, the reports and the cleanup took 17 s more
+    // (job 125842050556: the deadline error at 10:08:53, the step over at 10:10:10, 77 s = 60 s grace + 17 s).
     const longestBuild = 322;
-    const longestOverhead = 245 + 33 + 15;
+    const longestOverhead = 245 + 33 + 15 + 17;
     assert.ok(deadline >= 1300, 'the deadline is at least 1300 s (#393)');
     assert.ok(
       minutes(iosBuild) * 60 >= 2 * longestBuild,
@@ -772,6 +773,10 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     const chain = 5 + minutes(iosBuild) + minutes(iosTests) + minutes(job('ios'));
     assert.ok(chain <= 57, 'the chain is at most 57 minutes');
     assert.ok(chain < queue, 'under the queue timeout');
+    // pr.sh wait must outlast the chain, or it gives up on a run that still passes.
+    const pr = readFileSync(join(SCRIPTS, 'pr.sh'), 'utf8');
+    const waitNative = Number(pr.match(/^WAIT_MINUTES_NATIVE=(\d+)$/m)[1]);
+    assert.ok(waitNative > chain, 'pr.sh wait outlasts the longest native chain by timeouts');
   });
 
   it('E002 #242: the iOS jobs run on macos-15 with an Xcode that image has, and say why in a comment', () => {
