@@ -120,7 +120,11 @@
     "settingsGeneral": "Algemeen",
     "settingsLanguage": "Taal",
     "workspaceWithRole": "{name} · {role}",
-    "trainers": "Trainers"
+    "trainers": "Trainers",
+    "clients": "Klanten",
+    "new": "Nieuw",
+    "newMenu": "Nieuw maken",
+    "newClient": "Klant"
   },
   "signOut": {
     "label": "Uitloggen",
@@ -256,6 +260,7 @@
       "errors": {
         "nameRequired": "Vul een naam in.",
         "nameTooLong": "Deze naam is te lang. Gebruik maximaal 120 tekens.",
+        "emailRequired": "Vul een e-mailadres in.",
         "emailInvalid": "Vul een geldig e-mailadres in.",
         "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw."
       },

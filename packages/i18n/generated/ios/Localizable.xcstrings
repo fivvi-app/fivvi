@@ -140,6 +140,23 @@
         }
       }
     },
+    "clients.addDialog.errors.emailRequired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter an email address."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul een e-mailadres in."
+          }
+        }
+      }
+    },
     "clients.addDialog.errors.nameRequired" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3212,6 +3229,23 @@
         }
       }
     },
+    "workspaceNav.clients" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clients"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klanten"
+          }
+        }
+      }
+    },
     "workspaceNav.label" : {
       "comment" : "Accessible name of the navigation of a workspace's pages, read by screen readers.",
       "extractionState" : "manual",
@@ -3226,6 +3260,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hoofdnavigatie"
+          }
+        }
+      }
+    },
+    "workspaceNav.new" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieuw"
+          }
+        }
+      }
+    },
+    "workspaceNav.newClient" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klant"
+          }
+        }
+      }
+    },
+    "workspaceNav.newMenu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create new"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieuw maken"
           }
         }
       }

@@ -1,20 +1,25 @@
 import type { Schemas } from '@fivvi/contract';
+import type { Locale } from '@fivvi/i18n';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import { AddClientProvider } from './clients/add-client-dialog';
+import { NewMenu } from './new-menu';
 import { UserMenu } from './user-menu';
 
 /**
  * The frame of every page of a workspace (`information-architecture.md §4.1`): a sidebar whose
  * header shows the workspace name and the person's role in it (F003; a plain label, switching
  * comes with F012), and the navigation. A section is in it only when the API lists its
- * capability for this person in this workspace (F004, `information-architecture.md §3.2`): Trainers
- * (F003) with `team.view`, Settings with `workspace.manage` and its pages General and Language
+ * capability for this person in this workspace (F004, `information-architecture.md §3.2`): Clients
+ * (F006) with `clients.view`, Trainers (F003) with `team.view`, Settings with `workspace.manage` and its pages General and Language
  * (F010). A section a person can't use is absent, not greyed out, and nothing here decides from the
  * role name: the role is only the label in the header. The user menu with
  * the language switch is below them (F010), and the sidebar footer shows the person's name as
- * entered (F005). The rest of the navigation comes with F013/F014.
+ * entered (F005). With `clients.manage` (`quickAdd`) the top bar has **+ Nieuw** → *Klant*, which
+ * opens the quick-add dialog (F006) that the list's *Klant toevoegen* opens as well. The rest of
+ * the navigation comes with F013/F014.
  */
 export function WorkspaceFrame({
   name,
@@ -22,6 +27,7 @@ export function WorkspaceFrame({
   teamRole,
   capabilities,
   personName,
+  quickAdd,
   children,
 }: {
   name: string;
@@ -31,6 +37,8 @@ export function WorkspaceFrame({
   capabilities: Schemas['MyWorkspace']['capabilities'];
   /** The person's own name as entered; null until they have one. */
   personName: string | null;
+  /** The workspace to add clients to; given only to a person with `clients.manage` (F006). */
+  quickAdd?: { workspaceId: string; defaultLocale: Locale };
   children: ReactNode;
 }) {
   const t = useTranslations('workspaceNav');
@@ -43,6 +51,11 @@ export function WorkspaceFrame({
         </p>
         <nav aria-label={t('label')}>
           <div className="grid gap-1">
+            {capabilities.includes('clients.view') ? (
+              <Link href={`/w/${slug}/clients` as Route} className="underline">
+                {t('clients')}
+              </Link>
+            ) : null}
             {capabilities.includes('team.view') ? (
               <Link href={`/w/${slug}/trainers` as Route} className="underline">
                 {t('trainers')}
@@ -74,7 +87,22 @@ export function WorkspaceFrame({
           <footer className="text-sm text-muted-foreground">{personName}</footer>
         ) : null}
       </aside>
-      <div className="flex flex-1 flex-col">{children}</div>
+      <div className="flex flex-1 flex-col">
+        {quickAdd ? (
+          <AddClientProvider
+            workspaceId={quickAdd.workspaceId}
+            slug={slug}
+            defaultLocale={quickAdd.defaultLocale}
+          >
+            <div className="flex justify-end border-b p-2">
+              <NewMenu />
+            </div>
+            {children}
+          </AddClientProvider>
+        ) : (
+          children
+        )}
+      </div>
     </div>
   );
 }

@@ -12,6 +12,7 @@
     <string name="clients_add_dialog_description">Vul een naam en een e-mailadres in. De taal kan later.</string>
     <string name="clients_add_dialog_email_label">E-mailadres</string>
     <string name="clients_add_dialog_errors_email_invalid">Vul een geldig e-mailadres in.</string>
+    <string name="clients_add_dialog_errors_email_required">Vul een e-mailadres in.</string>
     <string name="clients_add_dialog_errors_name_required">Vul een naam in.</string>
     <string name="clients_add_dialog_errors_name_too_long">Deze naam is te lang. Gebruik maximaal 120 tekens.</string>
     <string name="clients_add_dialog_errors_not_saved">Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.</string>
@@ -291,8 +292,12 @@
     <string name="welcome_workspace_name_label">Naam van je sportschool of bedrijf</string>
     <!-- Line under the workspace name on the placeholder home of a workspace, until the owner dashboard and the trainer's day arrive. -->
     <string name="workspace_home_description">Hier komt binnenkort het overzicht van je sportschool of bedrijf.</string>
+    <string name="workspace_nav_clients">Klanten</string>
     <!-- Accessible name of the navigation of a workspace's pages, read by screen readers. -->
     <string name="workspace_nav_label">Hoofdnavigatie</string>
+    <string name="workspace_nav_new">Nieuw</string>
+    <string name="workspace_nav_new_client">Klant</string>
+    <string name="workspace_nav_new_menu">Nieuw maken</string>
     <!-- Navigation link to Settings (Instellingen). Shown to the Owner only (GLOSSARY §4.8). -->
     <string name="workspace_nav_settings">Instellingen</string>
     <string name="workspace_nav_settings_general">Algemeen</string>

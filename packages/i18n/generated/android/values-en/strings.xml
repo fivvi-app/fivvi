@@ -9,6 +9,7 @@
     <string name="clients_add_dialog_description">Enter a name and an email address. The language can follow.</string>
     <string name="clients_add_dialog_email_label">Email address</string>
     <string name="clients_add_dialog_errors_email_invalid">Enter a valid email address.</string>
+    <string name="clients_add_dialog_errors_email_required">Enter an email address.</string>
     <string name="clients_add_dialog_errors_name_required">Enter a name.</string>
     <string name="clients_add_dialog_errors_name_too_long">This name is too long. Use at most 120 characters.</string>
     <string name="clients_add_dialog_errors_not_saved">Not saved. Check your connection and try again.</string>
@@ -184,7 +185,11 @@
     <string name="welcome_workspace_name_hint">For example John\'s Gym</string>
     <string name="welcome_workspace_name_label">Name of your gym or business</string>
     <string name="workspace_home_description">The overview of your gym or business will appear here soon.</string>
+    <string name="workspace_nav_clients">Clients</string>
     <string name="workspace_nav_label">Main navigation</string>
+    <string name="workspace_nav_new">New</string>
+    <string name="workspace_nav_new_client">Client</string>
+    <string name="workspace_nav_new_menu">Create new</string>
     <string name="workspace_nav_settings">Settings</string>
     <string name="workspace_nav_settings_general">General</string>
     <string name="workspace_nav_settings_language">Language</string>

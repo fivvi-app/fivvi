@@ -120,7 +120,11 @@
     "settingsGeneral": "General",
     "settingsLanguage": "Language",
     "workspaceWithRole": "{name} · {role}",
-    "trainers": "Trainers"
+    "trainers": "Trainers",
+    "clients": "Clients",
+    "new": "New",
+    "newMenu": "Create new",
+    "newClient": "Client"
   },
   "signOut": {
     "label": "Sign out",
@@ -256,6 +260,7 @@
       "errors": {
         "nameRequired": "Enter a name.",
         "nameTooLong": "This name is too long. Use at most 120 characters.",
+        "emailRequired": "Enter an email address.",
         "emailInvalid": "Enter a valid email address.",
         "notSaved": "Not saved. Check your connection and try again."
       },
