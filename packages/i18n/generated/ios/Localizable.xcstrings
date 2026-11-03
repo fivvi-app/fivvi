@@ -71,6 +71,24 @@
         }
       }
     },
+    "clients.addDialog.close" : {
+      "comment" : "Accessibility label of the close button (x) of the new-client form in the apps.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sluiten"
+          }
+        }
+      }
+    },
     "clients.addDialog.description" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -462,6 +480,24 @@
         }
       }
     },
+    "clients.newClient" : {
+      "comment" : "Primary action of the native clients list (New client): opens the full-screen form that adds a client. Shown only to people who may manage clients.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New client"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieuwe klant"
+          }
+        }
+      }
+    },
     "clients.noResults" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -475,6 +511,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Geen klanten gevonden."
+          }
+        }
+      }
+    },
+    "clients.offline" : {
+      "comment" : "Banner above the cached clients list in the apps while there is no connection. {time} is a 24-hour time, e.g. '08:42', formatted in code in the workspace time zone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're offline. Last updated at %1$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent offline. Laatst bijgewerkt om %1$@."
           }
         }
       }
@@ -509,6 +563,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ is toegevoegd."
+          }
+        }
+      }
+    },
+    "clients.profile.back" : {
+      "comment" : "Accessibility label of the back button of the client profile in the apps.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terug"
+          }
+        }
+      }
+    },
+    "clients.profile.edit" : {
+      "comment" : "Button on the client profile that opens the edit form for the overview (name, email address, language for emails).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewerken"
+          }
+        }
+      }
+    },
+    "clients.profile.editTitle" : {
+      "comment" : "Title of the form that edits a client in the apps.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit client"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klant bewerken"
           }
         }
       }
@@ -581,6 +689,42 @@
         }
       }
     },
+    "clients.profile.save" : {
+      "comment" : "Button that saves the edited client.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opslaan"
+          }
+        }
+      }
+    },
+    "clients.profile.saved" : {
+      "comment" : "Brief confirmation (snackbar) after the edited client was saved.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opgeslagen."
+          }
+        }
+      }
+    },
     "clients.profile.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -616,6 +760,7 @@
       }
     },
     "clients.title" : {
+      "comment" : "Title of the clients list (TM-02, TW-01) and the label of the way in to it.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

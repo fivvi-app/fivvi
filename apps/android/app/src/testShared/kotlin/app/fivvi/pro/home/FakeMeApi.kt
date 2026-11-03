@@ -129,6 +129,7 @@ class FakeMeApi : MeApi {
         workspaces: List<String> = listOf("John's Gym"),
         canCreateWorkspace: Boolean = false,
         preferredLocale: MeResponse.PreferredLocale? = null,
+        capabilities: List<MeWorkspace.Capabilities> = MeWorkspace.Capabilities.values().toList(),
     ) {
         answers += {
             Response.success(
@@ -144,7 +145,7 @@ class FakeMeApi : MeApi {
                             it,
                             "slug",
                             MeWorkspace.Role.OWNER,
-                            MeWorkspace.Capabilities.values().toList(),
+                            capabilities,
                         )
                     },
                 ),

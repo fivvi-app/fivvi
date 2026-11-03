@@ -263,7 +263,8 @@
         "emailRequired": "Enter an email address.",
         "emailInvalid": "Enter a valid email address.",
         "notSaved": "Not saved. Check your connection and try again."
-      }
+      },
+      "close": "Close"
     },
     "languageNames": {
       "nl": "Dutch",
@@ -275,7 +276,14 @@
       "overview": "Overview",
       "nameLabel": "Name",
       "emailLabel": "Email address",
-      "localeLabel": "Language for emails"
-    }
+      "localeLabel": "Language for emails",
+      "back": "Back",
+      "edit": "Edit",
+      "editTitle": "Edit client",
+      "save": "Save",
+      "saved": "Saved."
+    },
+    "newClient": "New client",
+    "offline": "You're offline. Last updated at {time}."
   }
 }

@@ -263,7 +263,8 @@
         "emailRequired": "Vul een e-mailadres in.",
         "emailInvalid": "Vul een geldig e-mailadres in.",
         "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw."
-      }
+      },
+      "close": "Sluiten"
     },
     "languageNames": {
       "nl": "Nederlands",
@@ -275,7 +276,14 @@
       "overview": "Overzicht",
       "nameLabel": "Naam",
       "emailLabel": "E-mailadres",
-      "localeLabel": "Taal voor e-mails"
-    }
+      "localeLabel": "Taal voor e-mails",
+      "back": "Terug",
+      "edit": "Bewerken",
+      "editTitle": "Klant bewerken",
+      "save": "Opslaan",
+      "saved": "Opgeslagen."
+    },
+    "newClient": "Nieuwe klant",
+    "offline": "Je bent offline. Laatst bijgewerkt om {time}."
   }
 }
