@@ -5,10 +5,63 @@
     <string name="app_name">Fivvi Pro</string>
     <!-- Browser tab title (HTML <title>) of web pages that don't set their own. The product name, Fivvi, the same in both languages. -->
     <string name="app_title">Fivvi</string>
+    <string name="clients_add">Klant toevoegen</string>
+    <string name="clients_add_dialog_cancel">Annuleren</string>
+    <!-- Accessibility label of the close button (x) of the new-client form in the apps. -->
+    <string name="clients_add_dialog_close">Sluiten</string>
+    <string name="clients_add_dialog_description">Vul een naam en een e-mailadres in. De taal kan later.</string>
+    <string name="clients_add_dialog_email_label">E-mailadres</string>
+    <string name="clients_add_dialog_errors_email_invalid">Vul een geldig e-mailadres in.</string>
+    <string name="clients_add_dialog_errors_name_required">Vul een naam in.</string>
+    <string name="clients_add_dialog_errors_name_too_long">Deze naam is te lang. Gebruik maximaal 120 tekens.</string>
+    <string name="clients_add_dialog_errors_not_saved">Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="clients_add_dialog_exists">%1$s gebruikt dit e-mailadres al.</string>
+    <string name="clients_add_dialog_locale_default">Standaard (%1$s)</string>
+    <string name="clients_add_dialog_locale_en">English</string>
+    <string name="clients_add_dialog_locale_label">Taal voor e-mails</string>
+    <string name="clients_add_dialog_locale_nl">Nederlands</string>
+    <string name="clients_add_dialog_name_label">Naam</string>
+    <string name="clients_add_dialog_open_existing">%1$s openen</string>
+    <string name="clients_add_dialog_other_email">Ander e-mailadres</string>
+    <string name="clients_add_dialog_submit">Toevoegen</string>
+    <string name="clients_add_dialog_title">Klant toevoegen</string>
+    <string name="clients_empty">Nog geen klanten. Voeg je eerste klant toe.</string>
+    <string name="clients_language_names_en">Engels</string>
+    <string name="clients_language_names_nl">Nederlands</string>
+    <string name="clients_list_label">Klanten</string>
+    <string name="clients_load_error">Er ging iets mis bij het laden.</string>
+    <string name="clients_loading">Klanten laden…</string>
+    <!-- Primary action of the native clients list (New client): opens the full-screen form that adds a client. Shown only to people who may manage clients. -->
+    <string name="clients_new_client">Nieuwe klant</string>
+    <string name="clients_no_results">Geen klanten gevonden.</string>
+    <!-- Banner above the cached clients list in the apps while there is no connection. {time} is a 24-hour time, e.g. '08:42', formatted in code in the workspace time zone. -->
+    <string name="clients_offline">Je bent offline. Laatst bijgewerkt om %1$s.</string>
+    <string name="clients_partial">%1$s van %2$s klanten getoond. Zoek om de rest te vinden.</string>
+    <string name="clients_profile_added">%1$s is toegevoegd.</string>
+    <!-- Accessibility label of the back button of the client profile in the apps. -->
+    <string name="clients_profile_back">Terug</string>
+    <!-- Button on the client profile that opens the edit form for the overview (name, email address, language for emails). -->
+    <string name="clients_profile_edit">Bewerken</string>
+    <!-- Title of the form that edits a client in the apps. -->
+    <string name="clients_profile_edit_title">Klant bewerken</string>
+    <string name="clients_profile_email_label">E-mailadres</string>
+    <string name="clients_profile_locale_label">Taal voor e-mails</string>
+    <string name="clients_profile_name_label">Naam</string>
+    <string name="clients_profile_overview">Overzicht</string>
+    <!-- Button that saves the edited client. -->
+    <string name="clients_profile_save">Opslaan</string>
+    <!-- Brief confirmation (snackbar) after the edited client was saved. -->
+    <string name="clients_profile_saved">Opgeslagen.</string>
+    <string name="clients_profile_title">Klantprofiel</string>
+    <string name="clients_search_placeholder">Zoek klant…</string>
+    <!-- Title of the clients list (TM-02, TW-01) and the label of the way in to it. -->
+    <string name="clients_title">Klanten</string>
     <!-- Button that leaves a form or dialog without saving, e.g. the native full-screen dialog that changes the person's name. -->
     <string name="common_cancel">Annuleren</string>
     <!-- Accessibility label of the progress indicator while a screen loads (read by VoiceOver and TalkBack). -->
     <string name="common_loading">Laden…</string>
+    <!-- Line under a loading placeholder that is still waiting after 10 seconds. -->
+    <string name="common_loading_slow">Dit duurt langer dan normaal…</string>
     <!-- Button under an error message that tries the failed action again. -->
     <string name="common_retry">Opnieuw proberen</string>
     <!-- Submit button of the first-name form on the hello page. Shows hello.formGreeting with the name entered. -->
