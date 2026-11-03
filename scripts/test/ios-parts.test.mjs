@@ -17,7 +17,7 @@ const ran = (name, conclusion) => ({
 const unacquired = (name) => ({ name, conclusion: 'cancelled', runner_name: '', steps: [] });
 const skipped = (name) => ({ name, conclusion: 'skipped', runner_name: '', steps: [] });
 
-describe('#413 ios-parts.sh <language>: did a hosted runner pick up the build and that language', () => {
+describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
   const gh = fakeGh();
   after(() => gh.cleanup());
 
@@ -27,123 +27,100 @@ describe('#413 ios-parts.sh <language>: did a hosted runner pick up the build an
     GITHUB_RUN_ID: '123',
     GITHUB_RUN_ATTEMPT: '2',
   });
-  const run = (locale, jobs, args = []) => {
-    const result = spawnSync(join(ROOT, 'scripts/ios-parts.sh'), [locale, ...args], {
+  const JOBS = '^api repos/owner/repo/actions/runs/123/attempts/2/jobs';
+  const run = (results, rules) => {
+    const result = spawnSync(join(ROOT, 'scripts/ios-parts.sh'), results, {
       encoding: 'utf8',
-      env: env([
-        { match: '^api repos/owner/repo/actions/runs/123/attempts/2/jobs', out: { jobs } },
-      ]),
+      env: env(rules),
     });
-    const output = Object.fromEntries(
-      result.stdout
-        .split('\n')
-        .filter(Boolean)
-        .map((line) => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]),
-    );
-    return { ...result, output };
+    return { ...result, parts: result.stdout.split('\n').filter(Boolean) };
   };
+  const calls = () => gh.calls();
+  const jobs = (...list) => [{ match: JOBS, out: { jobs: list } }];
 
-  it('reports success and no retry when the build and the tests of the language ran and passed', () => {
-    for (const locale of ['nl', 'en']) {
-      const result = run(locale, [
+  it('prints the parts for native-gate.sh, as given, when all succeeded, without reading the jobs', () => {
+    const result = run(['success', 'success'], [{ match: '^api ', status: 1 }]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.parts, [
+      'iOS build=success',
+      'iOS tests (nl)=success',
+      'iOS tests (en)=success',
+    ]);
+    assert.equal(calls().length, 0, 'nothing that succeeded can be a missing runner');
+  });
+
+  it('marks a language cancelled with no runner and no step as unacquired, and not the other', () => {
+    const result = run(
+      ['success', 'cancelled'],
+      jobs(
         ran('iOS build', 'success'),
         ran('iOS tests (nl)', 'success'),
-        ran('iOS tests (en)', 'success'),
-      ]);
-      assert.equal(result.status, 0, result.stderr);
-      assert.deepEqual(
-        result.output,
-        { build: 'success', tests: 'success', retry: 'false' },
-        locale,
-      );
-    }
-  });
-
-  it('marks a test job cancelled with no runner and no step as unacquired, and retries only that language', () => {
-    const jobs = [
-      ran('iOS build', 'success'),
-      ran('iOS tests (nl)', 'success'),
-      unacquired('iOS tests (en)'),
-    ];
-    const en = run('en', jobs);
-    assert.equal(en.status, 0, en.stderr);
-    assert.deepEqual(en.output, { build: 'success', tests: 'unacquired', retry: 'true' });
-    assert.match(en.stderr, /iOS tests \(en\): no hosted runner picked it up/);
-    // The other language reads only its own job: it does not retry, and does not wait for the one that has no runner.
-    const nl = run('nl', jobs);
-    assert.deepEqual(nl.output, { build: 'success', tests: 'success', retry: 'false' });
-  });
-
-  it('retries a language whose build had no runner, because its tests never started', () => {
-    for (const locale of ['nl', 'en']) {
-      const result = run(locale, [
-        unacquired('iOS build'),
-        skipped('iOS tests (nl)'),
-        skipped('iOS tests (en)'),
-      ]);
-      assert.equal(result.status, 0, result.stderr);
-      assert.deepEqual(
-        result.output,
-        { build: 'unacquired', tests: 'unacquired', retry: 'true' },
-        locale,
-      );
-      assert.match(result.stderr, /iOS build: no hosted runner picked it up/);
-    }
-  });
-
-  it('does not mistake a cancel after the job started (a timeout) for a missing runner', () => {
-    const jobs = [
-      ran('iOS build', 'success'),
-      ran('iOS tests (nl)', 'cancelled'),
-      ran('iOS tests (en)', 'failure'),
-    ];
-    assert.deepEqual(run('nl', jobs).output, {
-      build: 'success',
-      tests: 'cancelled',
-      retry: 'false',
-    });
-    assert.deepEqual(run('en', jobs).output, {
-      build: 'success',
-      tests: 'failure',
-      retry: 'false',
-    });
-  });
-
-  it('does not retry a failed build, and reports the tests that never started as skipped', () => {
-    const result = run('nl', [
-      ran('iOS build', 'failure'),
-      skipped('iOS tests (nl)'),
-      skipped('iOS tests (en)'),
+        unacquired('iOS tests (en)'),
+      ),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.parts, [
+      'iOS build=success',
+      'iOS tests (nl)=success',
+      'iOS tests (en)=unacquired',
     ]);
-    assert.deepEqual(result.output, { build: 'failure', tests: 'skipped', retry: 'false' });
+    assert.match(result.stderr, /iOS tests \(en\): no hosted runner picked it up/);
   });
 
-  it('--force reports the build and the language as unacquired, so a run on demand exercises the retry', () => {
-    for (const locale of ['nl', 'en']) {
-      const result = run(
-        locale,
-        [skipped('iOS build'), skipped('iOS tests (nl)'), skipped('iOS tests (en)')],
-        ['--force'],
-      );
-      assert.equal(result.status, 0, result.stderr);
-      assert.deepEqual(result.output, { build: 'unacquired', tests: 'unacquired', retry: 'true' });
-      assert.match(result.stderr, /forced/);
-    }
+  it('marks the build unacquired, and leaves the tests that never started as skipped', () => {
+    const result = run(['cancelled', 'skipped'], jobs(unacquired('iOS build')));
+    assert.deepEqual(result.parts, [
+      'iOS build=unacquired',
+      'iOS tests (nl)=skipped',
+      'iOS tests (en)=skipped',
+    ]);
   });
 
-  it("fails, printing nothing, when the run's jobs cannot be read: the retry never starts on a guess", () => {
-    const result = spawnSync(join(ROOT, 'scripts/ios-parts.sh'), ['nl'], {
-      encoding: 'utf8',
-      env: env([{ match: '^api ', status: 1 }]),
-    });
-    assert.notEqual(result.status, 0);
-    assert.equal(result.stdout, '');
+  it('does not mistake a cancel after the job started (a timeout) for a missing runner, and reads each language apart', () => {
+    const result = run(
+      ['success', 'failure'],
+      jobs(
+        ran('iOS build', 'success'),
+        ran('iOS tests (nl)', 'cancelled'),
+        ran('iOS tests (en)', 'failure'),
+      ),
+    );
+    assert.deepEqual(result.parts, [
+      'iOS build=success',
+      'iOS tests (nl)=cancelled',
+      'iOS tests (en)=failure',
+    ]);
+  });
+
+  it('never turns a build that did not end cancelled into unacquired, whatever the jobs say', () => {
+    const result = run(['failure', 'skipped'], jobs(unacquired('iOS build')));
+    assert.equal(result.parts[0], 'iOS build=failure');
+  });
+
+  it("falls back to the results as given, exiting 0, when the run's jobs cannot be read", () => {
+    const result = run(['success', 'cancelled'], [{ match: '^api ', status: 1 }]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.parts, ['iOS build=success', 'iOS tests (nl, en)=cancelled']);
     assert.match(result.stderr, /could not read the run's jobs/);
   });
 
-  it('refuses a missing or unknown language and an unknown argument', () => {
-    assert.notEqual(run('', []).status, 0);
-    assert.notEqual(run('fr', []).status, 0);
-    assert.notEqual(run('nl', [], ['--nope']).status, 0);
+  it('falls back the same way when the answer is not the jobs list', () => {
+    const result = run(['cancelled', 'skipped'], [{ match: JOBS, out: 'not json' }]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.parts, ['iOS build=cancelled', 'iOS tests (nl, en)=skipped']);
+  });
+
+  it('keeps a result as given when its job is missing from the list', () => {
+    const result = run(['cancelled', 'cancelled'], jobs());
+    assert.deepEqual(result.parts, [
+      'iOS build=cancelled',
+      'iOS tests (nl)=cancelled',
+      'iOS tests (en)=cancelled',
+    ]);
+  });
+
+  it('refuses a wrong number of arguments', () => {
+    assert.notEqual(run([], []).status, 0);
+    assert.notEqual(run(['success', 'success', 'success'], []).status, 0);
   });
 });

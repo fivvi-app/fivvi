@@ -1,66 +1,61 @@
 #!/usr/bin/env bash
-# What became of the iOS build and of the tests of one language, for CI's "iOS parts (<language>)" jobs (#413). GitHub's
-# hosted macOS arm64 runners are short of capacity at times: a job that no runner picks up is cancelled after about 15
-# minutes with an empty runner_name and no step ("The job was not acquired by Runner of type hosted even after multiple
-# attempts"), and `needs.<job>.result` says only "cancelled", like a timeout. This reads the jobs of the run and tells
-# the two apart, so the language can be tried again on a pool with other capacity (the retry job of that language in
-# .github/workflows/ci.yml) and the gate (scripts/native-gate.sh) can say which kind of failure each part had.
+# What became of the iOS jobs, for CI's gate "iOS" (#413). GitHub's hosted macOS arm64 runners are short of capacity at
+# times: a job that no runner picks up is cancelled after about 15 minutes with an empty runner_name and no step ("The
+# job was not acquired by Runner of type hosted even after multiple attempts"), and `needs.<job>.result` says only
+# "cancelled", like a timeout. This reads the jobs of the run and tells the two apart, so scripts/native-gate.sh can say
+# whether a part failed because no runner picked it up (re-queue the PR) or on a runner (a build or test failure). The
+# two languages' tests are one matrix job, whose needs result is the aggregate of both, so their own results are read too.
 #
-#   ios-parts.sh <nl|en> [--force]
-#       reads the run's jobs from the GitHub API (GH_TOKEN, GITHUB_REPOSITORY, GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT; the
-#       job needs `actions: read`) and prints, in the format of $GITHUB_OUTPUT:
-#         build=   the conclusion of "iOS build" (success, failure, cancelled, skipped, ...), or unacquired
-#         tests=   the same for "iOS tests (<language>)"; unacquired too when the build was, because the tests never started
-#         retry=   true when the build or the tests of this language had no runner (the retry builds for itself, on the
-#                  other pool), false otherwise
-#       with the reason on stderr. It reads only the build and this language's job, so a language's retry never waits for
-#       the other language's tests. --force reports both as unacquired and reads nothing: the run on demand
-#       (workflow_dispatch input ios_retry) that proves the retry path without waiting for GitHub's capacity to run out
-#       Fails, printing nothing, when the jobs can't be read: the retry never starts on a guess.
+#   ios-parts.sh <build> <tests>
+#       the needs.<job>.result of "iOS build" and of the matrix "iOS tests". Prints one part per line for
+#       native-gate.sh, `iOS build=<result>`, `iOS tests (nl)=<result>` and `iOS tests (en)=<result>`:
+#         build   the result it was given, except that cancelled becomes unacquired when the run's jobs show the build was
+#                 cancelled with no runner and no step
+#         tests   success for both when the aggregate was success; otherwise each language's own job: unacquired when it
+#                 was cancelled with no runner and no step, else its conclusion; the aggregate when the job is not in
+#                 the list (a matrix that never started is not listed under its language)
+#       A part is turned into unacquired or into the conclusion of its own job, so this can only name a failure, never turn
+#       one into a pass: the jobs of the run are read only when the build was cancelled or the tests did not succeed.
+#       They come from the GitHub API (GH_TOKEN, GITHUB_REPOSITORY, GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT; the job needs
+#       `actions: read`). When they can't be read it says so on stderr, still exits 0 and prints the results as given (the
+#       plain message of before #413), the tests as one part, `iOS tests (nl, en)`.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
-[ $# -ge 1 ] || usage_of "$0"
-LOCALE="$1"
-shift
-case "$LOCALE" in nl | en) ;; *) usage_of "$0" ;; esac
-FORCE=false
-case "${1:-}" in
-  "") ;;
-  --force) FORCE=true; [ $# -eq 1 ] || usage_of "$0" ;;
-  *) usage_of "$0" ;;
-esac
+[ $# -eq 2 ] || usage_of "$0"
 need_cmd jq
+build="$1" tests="$2"
 
-if $FORCE; then
-  echo "iOS build, iOS tests ($LOCALE): forced onto the retry path (ios_retry); both are reported as unacquired." >&2
-  jobs_json='{"jobs":[]}'
-else
-  jobs_json="$(gh api "repos/${GITHUB_REPOSITORY:?}/actions/runs/${GITHUB_RUN_ID:?}/attempts/${GITHUB_RUN_ATTEMPT:-1}/jobs?per_page=100")" \
-    || die "could not read the run's jobs"
+if [ "$build" != cancelled ] && [ "$tests" = success ]; then
+  printf '%s\n' "iOS build=$build" "iOS tests (nl)=success" "iOS tests (en)=success"
+  exit 0
 fi
 
-out="$(jq -r --argjson force "$FORCE" --arg locale "$LOCALE" '
-  # A job no hosted runner picked up: cancelled, with no runner and not one step. A job missing from the list was skipped.
-  def state($name):
-    ([.jobs[] | select(.name == $name)] | first) as $job
-    | if $force then "unacquired"
-      elif $job == null then "skipped"
-      elif $job.conclusion == "cancelled" and (($job.runner_name // "") == "") and (($job.steps // []) | length) == 0
-        then "unacquired"
-      else ($job.conclusion // "unknown") end;
-  state("iOS build") as $build
-  | (if $build == "unacquired" then "unacquired" else state("iOS tests (\($locale))") end) as $tests
-  | "build=\($build)", "tests=\($tests)",
-    "retry=\(if $build == "unacquired" or $tests == "unacquired" then "true" else "false" end)"
-' <<<"$jobs_json")" || die "could not read the run's jobs"
+# The results as given, when the jobs can't be read.
+as_given() {
+  echo "could not read the run's jobs; the parts are reported as the jobs' results say (a cancelled one stays cancelled)." >&2
+  printf '%s\n' "iOS build=$build" "iOS tests (nl, en)=$tests"
+  exit 0
+}
 
-$FORCE || while IFS='=' read -r key value; do
-  [ "$value" = unacquired ] || continue
-  case "$key" in
-    build) echo "iOS build: no hosted runner picked it up (cancelled, no runner, no step); the tests of $LOCALE never started, so they are retried on the other pool." >&2 ;;
-    tests) grep -q '^build=unacquired$' <<<"$out" \
-      || echo "iOS tests ($LOCALE): no hosted runner picked it up (cancelled, no runner, no step); retried on the other pool." >&2 ;;
-  esac
-done <<<"$out"
-echo "$out"
+jobs_json="$(gh api "repos/${GITHUB_REPOSITORY:-}/actions/runs/${GITHUB_RUN_ID:-}/attempts/${GITHUB_RUN_ATTEMPT:-1}/jobs?per_page=100" 2>/dev/null)" \
+  || as_given
+parts="$(jq -r --arg build "$build" --arg tests "$tests" '
+  # A job no hosted runner picked up: cancelled, with no runner and not one step.
+  def unacquired: .conclusion == "cancelled" and ((.runner_name // "") == "") and ((.steps // []) | length) == 0;
+  def job($name): [.jobs[] | select(.name == $name)] | first;
+  def tests($name):
+    job($name) as $job
+    | if $tests == "success" or $job == null then $tests
+      elif $job | unacquired then "unacquired"
+      else ($job.conclusion // $tests) end;
+  (if $build == "cancelled" and (job("iOS build") | . != null and unacquired) then "unacquired" else $build end) as $b
+  | "iOS build=\($b)", "iOS tests (nl)=\(tests("iOS tests (nl)"))", "iOS tests (en)=\(tests("iOS tests (en)"))"
+' <<<"$jobs_json" 2>/dev/null)" || as_given
+
+while IFS='=' read -r name result; do
+  if [ "$result" = unacquired ]; then
+    echo "$name: no hosted runner picked it up (cancelled, no runner, no step)." >&2
+  fi
+done <<<"$parts"
+echo "$parts"

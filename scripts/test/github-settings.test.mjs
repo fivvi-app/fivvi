@@ -52,12 +52,7 @@ describe('the versioned GitHub settings', () => {
       jobs.filter((name) => !required.includes(name)),
       [
         'iOS build',
-        'iOS tests (nl)',
-        'iOS tests (en)',
-        'iOS parts (nl)',
-        'iOS parts (en)',
-        'iOS tests retry (nl)',
-        'iOS tests retry (en)',
+        'iOS tests (${{ matrix.locale }})',
         'Android build',
         'Android tests',
         'Android Maestro',
@@ -109,7 +104,7 @@ describe('the versioned GitHub settings', () => {
     // iOS: the build, then the tests, then the gate. Android: the tests next to the build, then Maestro after the build,
     // then the gate (#293).
     const longestNative = Math.max(
-      timeout('ios-build') + timeout('ios-tests-nl') + timeout('ios'),
+      timeout('ios-build') + timeout('ios-tests') + timeout('ios'),
       timeout('android-tests') + timeout('android'),
       timeout('android-build') + timeout('android-maestro') + timeout('android'),
     );
