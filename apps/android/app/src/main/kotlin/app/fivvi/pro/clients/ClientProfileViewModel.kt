@@ -44,10 +44,11 @@ sealed interface ClientProfileState {
 
 /**
  * *Klantprofiel* (TM-03, F006 AC7, AC12): the overview (name, address, language for emails) from
- * `GET /workspaces/{id}/clients/{clientId}`, and the edit through `PATCH` with only the fields that changed. An address
- * that is cleared is `clearEmail`, a language set back to the default `clearEmailLocale`: the Kotlin client writes no
- * `null`, which the contract reads as "keep" (`UpdateClientRequestTest`). The rules of adding apply (the API words the
- * field messages and answers 409 for an address another client has); nothing is checked here. The profile reads the client
+ * `GET /workspaces/{id}/clients/{clientId}`, and the edit through `PATCH` with only the fields that changed. A language
+ * set back to the default is `clearEmailLocale`: the Kotlin client writes no `null`, which the contract reads as "keep"
+ * (`UpdateClientRequestTest`). The address can be changed, never cleared: an emptied field is sent as it is and the API
+ * refuses it with a field message (`400`). The rules of adding apply (the API words the field messages and answers 409
+ * for an address another client has); nothing is checked here. The profile reads the client
  * again on opening and on [refresh]; a read that fails leaves the client on screen. [onNotAllowed] is told a 403 or 404 of
  * the read (`clients.view`), [onSaveNotAllowed] a 403 of the save (`clients.manage`), for the capability helper (F004 AC10).
  */
@@ -110,7 +111,7 @@ class ClientProfileViewModel(
     fun startEdit() = updateLoaded { shown ->
         val client = shown.client
         shown.copy(
-            edit = ClientEdit(ClientForm(client.name, client.email.orEmpty(), client.emailLocale.toChoice())),
+            edit = ClientEdit(ClientForm(client.name, client.email, client.emailLocale.toChoice())),
             saved = false,
         )
     }
@@ -190,13 +191,12 @@ class ClientProfileViewModel(
     private fun changes(client: Client, form: ClientForm): UpdateClientRequest? {
         val email = form.email.trim()
         val nameChanged = form.name != client.name
-        val emailChanged = !email.equals(client.email.orEmpty(), ignoreCase = true)
+        val emailChanged = !email.equals(client.email, ignoreCase = true)
         val languageChanged = form.language != client.emailLocale.toChoice()
         if (!nameChanged && !emailChanged && !languageChanged) return null
         return UpdateClientRequest(
             name = form.name.takeIf { nameChanged },
-            email = email.takeIf { emailChanged && it.isNotEmpty() },
-            clearEmail = true.takeIf { emailChanged && email.isEmpty() },
+            email = email.takeIf { emailChanged },
             emailLocale = form.language.toUpdateLocale().takeIf { languageChanged },
             clearEmailLocale = true.takeIf { languageChanged && form.language == EmailLanguageChoice.Default },
         )

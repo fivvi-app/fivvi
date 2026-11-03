@@ -13,8 +13,12 @@ import retrofit2.Response
 /** The ID the fakes give the client of this name, so a test can name it without keeping it. */
 fun clientIdOf(name: String): UUID = UUID.nameUUIDFromBytes("client:$name".toByteArray())
 
-fun clientOf(name: String, email: String? = null, locale: Client.EmailLocale? = null) =
-    Client(clientIdOf(name), name, email, locale)
+/** Every client has an email address; a test that does not care gets a synthetic one from the name. */
+fun clientOf(
+    name: String,
+    email: String = "${name.lowercase().replace(' ', '.')}@example.com",
+    locale: Client.EmailLocale? = null,
+) = Client(clientIdOf(name), name, email, locale)
 
 private val JSON = "application/json".toMediaType()
 
@@ -22,7 +26,7 @@ private val JSON = "application/json".toMediaType()
  * The generated client's own API interface for tests. It holds [clients] and answers a list, a search and a read from
  * them (the server's sorting and matching are the API's own and tested there; here a search is a plain, case-insensitive
  * part of the name or the address). An add and an edit answer with the next queued answer, or, without one, accept what
- * was sent. A queued [failure] makes the next call fail with that exception (no connection).
+ * was sent (an empty address is refused with a `400` on `email`, as the API does). A queued [failure] makes the next call fail with that exception (no connection).
  */
 class FakeClientsApi : ClientsApi {
     val clients = mutableListOf<Client>()
@@ -71,7 +75,7 @@ class FakeClientsApi : ClientsApi {
     }
 
     private fun Client.matches(part: String) =
-        name.contains(part, ignoreCase = true) || email?.contains(part, ignoreCase = true) == true
+        name.contains(part, ignoreCase = true) || email.contains(part, ignoreCase = true)
 
     /** The client of each single read, in order. */
     val read = mutableListOf<UUID>()
@@ -89,10 +93,12 @@ class FakeClientsApi : ClientsApi {
         added += addClientRequest
         failure?.let { throw it }
         if (addAnswers.isNotEmpty()) return addAnswers.removeFirst()(addClientRequest)
+        // As the API: a missing or empty address is a `400` on `email` (every client has one), and nothing is saved.
+        if (addClientRequest.email.isBlank()) return refused("email" to "invalid_format")
         val client = Client(
             UUID.randomUUID(),
             addClientRequest.name.trim(),
-            addClientRequest.email?.lowercase(),
+            addClientRequest.email.lowercase(),
             addClientRequest.emailLocale?.let {
                 if (it ==
                     AddClientRequest.EmailLocale.EN
@@ -115,11 +121,13 @@ class FakeClientsApi : ClientsApi {
         updated += clientId to updateClientRequest
         failure?.let { throw it }
         if (updateAnswers.isNotEmpty()) return updateAnswers.removeFirst()(clientId, updateClientRequest)
+        // As the API: an address can be changed, never cleared; an empty one is a `400` on `email`.
+        if (updateClientRequest.email?.isBlank() == true) return refused("email" to "invalid_format")
         val old = clients.first { it.id == clientId }
         val changed = Client(
             old.id,
             updateClientRequest.name ?: old.name,
-            if (updateClientRequest.clearEmail == true) null else updateClientRequest.email?.lowercase() ?: old.email,
+            updateClientRequest.email?.lowercase() ?: old.email,
             if (updateClientRequest.clearEmailLocale == true) {
                 null
             } else {

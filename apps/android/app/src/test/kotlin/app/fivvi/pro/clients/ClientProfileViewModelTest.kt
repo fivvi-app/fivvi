@@ -55,10 +55,10 @@ class ClientProfileViewModelTest {
     }
 
     @Test
-    fun test_F006_AC1_aClientWithoutAddressOrLanguageIsShownAsSuch() {
+    fun test_F006_AC1_aClientWithoutALanguageIsShownWithItsAddressAndTheDefault() {
         val viewModel = viewModel(mark)
 
-        assertNull(viewModel.loaded().client.email)
+        assertEquals(mark.email, viewModel.loaded().client.email)
         assertNull(viewModel.loaded().client.emailLocale)
     }
 
@@ -133,17 +133,34 @@ class ClientProfileViewModelTest {
         assertEquals("anna.visser@example.com", viewModel.loaded().client.email)
     }
 
-    // AC7: clearing the address is allowed, and it is the clear flag, never a null.
+    // AC7: the address can't be cleared. An emptied field is sent as it is (the API refuses it with a field message,
+    // `400`), the form stays open with that message, and the client keeps its address.
     @Test
-    fun test_F006_AC7_clearingTheAddressSendsTheClearFlag() {
+    fun test_F006_AC7_anEmptiedAddressIsRefusedWithAFieldMessageAndTheClientKeepsIt() {
+        api.updateAnswers += { _, _ -> api.refused("email" to "invalid_format") }
         val viewModel = viewModel()
         viewModel.startEdit()
         viewModel.onEmailChange("  ")
 
         viewModel.save()
 
-        assertEquals(UpdateClientRequest(clearEmail = true), api.updated.single().second)
-        assertNull(viewModel.loaded().client.email)
+        assertEquals(UpdateClientRequest(email = ""), api.updated.single().second)
+        assertEquals(EmailError.Invalid, viewModel.loaded().edit?.emailError)
+        assertFalse(viewModel.loaded().edit?.pending ?: true)
+        assertEquals("anna@example.com", viewModel.loaded().client.email)
+    }
+
+    // AC7: a name or language edit leaves the address out of the request; the address is never sent as null or cleared.
+    @Test
+    fun test_F006_AC7_anEditThatKeepsTheAddressLeavesItOutOfTheRequest() {
+        val viewModel = viewModel()
+        viewModel.startEdit()
+        viewModel.onNameChange("Anna de Vries-Smit")
+
+        viewModel.save()
+
+        assertEquals(UpdateClientRequest(name = "Anna de Vries-Smit"), api.updated.single().second)
+        assertEquals("anna@example.com", viewModel.loaded().client.email)
     }
 
     @Test

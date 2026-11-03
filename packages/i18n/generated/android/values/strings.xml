@@ -9,8 +9,8 @@
     <string name="clients_add_dialog_cancel">Annuleren</string>
     <!-- Accessibility label of the close button (x) of the new-client form in the apps. -->
     <string name="clients_add_dialog_close">Sluiten</string>
-    <string name="clients_add_dialog_description">Alleen een naam is nodig. E-mailadres en taal kunnen later.</string>
-    <string name="clients_add_dialog_email_label">E-mailadres (optioneel)</string>
+    <string name="clients_add_dialog_description">Vul een naam en een e-mailadres in. De taal kan later.</string>
+    <string name="clients_add_dialog_email_label">E-mailadres</string>
     <string name="clients_add_dialog_errors_email_invalid">Vul een geldig e-mailadres in.</string>
     <string name="clients_add_dialog_errors_name_required">Vul een naam in.</string>
     <string name="clients_add_dialog_errors_name_too_long">Deze naam is te lang. Gebruik maximaal 120 tekens.</string>

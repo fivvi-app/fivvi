@@ -32,9 +32,10 @@ data class AddClientState(
 
 /**
  * *+ Nieuwe klant* (F006 AC1–AC3, AC12): `POST /workspaces/{id}/clients` through the generated client, with surface
- * `android` so the API records `client_added`. Only the name is required, and nothing is checked in the app: the API's
- * answer words the field messages, a refused form keeps what was typed, and a 409 offers the client that has the address.
- * An empty address or a default language is left out of the request, so the client follows the workspace's default.
+ * `android` so the API records `client_added`. The name and the address are required, and nothing is checked in the app:
+ * an empty address is sent as it is, the API's `400` words the field messages, a refused form keeps what was typed, and a
+ * 409 offers the client that has the address. A default language is left out of the request, so the client follows the
+ * workspace's default.
  * [onNotAllowed] is told a 403 or 404 for the capability helper (F004 AC10).
  */
 class AddClientViewModel(
@@ -78,7 +79,7 @@ class AddClientViewModel(
     private suspend fun send(form: ClientForm) {
         val request = AddClientRequest(
             name = form.name,
-            email = form.email.trim().ifEmpty { null },
+            email = form.email.trim(),
             emailLocale = form.language.toAddLocale(),
             surface = AddClientRequest.Surface.ANDROID,
         )

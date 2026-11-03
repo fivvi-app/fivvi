@@ -6,8 +6,8 @@
     <string name="clients_add">Add client</string>
     <string name="clients_add_dialog_cancel">Cancel</string>
     <string name="clients_add_dialog_close">Close</string>
-    <string name="clients_add_dialog_description">Only a name is needed. Email address and language can follow.</string>
-    <string name="clients_add_dialog_email_label">Email address (optional)</string>
+    <string name="clients_add_dialog_description">Enter a name and an email address. The language can follow.</string>
+    <string name="clients_add_dialog_email_label">Email address</string>
     <string name="clients_add_dialog_errors_email_invalid">Enter a valid email address.</string>
     <string name="clients_add_dialog_errors_name_required">Enter a name.</string>
     <string name="clients_add_dialog_errors_name_too_long">This name is too long. Use at most 120 characters.</string>

@@ -18,7 +18,7 @@ import retrofit2.Response
 /** The language for a client's emails as the form offers it: the workspace default, or one of the two languages. */
 enum class EmailLanguageChoice { Default, Dutch, English }
 
-/** What the add and the edit form hold; an empty address is none, and nothing is checked here (the API words the errors). */
+/** What the add and the edit form hold; nothing is checked here, an empty address included (the API words the errors). */
 data class ClientForm(
     val name: String = "",
     val email: String = "",

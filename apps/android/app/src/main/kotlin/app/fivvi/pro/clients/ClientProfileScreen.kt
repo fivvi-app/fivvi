@@ -221,7 +221,7 @@ private fun Overview(client: Client, workspaceDefault: Locale) {
         Field(R.string.clients_profile_name_label, client.name, ClientProfileTags.NAME)
         Field(
             R.string.clients_profile_email_label,
-            client.email ?: stringResource(R.string.clients_profile_no_email),
+            client.email,
             ClientProfileTags.EMAIL,
         )
         Field(

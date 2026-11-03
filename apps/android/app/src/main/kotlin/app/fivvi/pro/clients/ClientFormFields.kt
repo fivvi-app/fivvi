@@ -57,7 +57,7 @@ data class ClientFormActions(
 )
 
 /**
- * The three fields of quick add and of the overview's edit: *Naam* (required, focused), *E-mailadres (optioneel)* and
+ * The three fields of quick add and of the overview's edit: *Naam* (required, focused), *E-mailadres* (required) and
  * *Taal voor e-mails* with the workspace default named and preselected. [tag] is the prefix of the test tags (`clients.add`
  * or `clientProfile.edit`): `.name`, `.email`, `.nameError`, `.emailError`, `.language.default|nl-NL|en`, `.duplicate`,
  * `.openExisting`, `.otherEmail`, `.failed`. The messages are the web's (`clients.addDialog.errors.*`).

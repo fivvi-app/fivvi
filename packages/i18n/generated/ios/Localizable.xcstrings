@@ -95,13 +95,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Only a name is needed. Email address and language can follow."
+            "value" : "Enter a name and an email address. The language can follow."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alleen een naam is nodig. E-mailadres en taal kunnen later."
+            "value" : "Vul een naam en een e-mailadres in. De taal kan later."
           }
         }
       }
@@ -112,13 +112,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Email address (optional)"
+            "value" : "Email address"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "E-mailadres (optioneel)"
+            "value" : "E-mailadres"
           }
         }
       }

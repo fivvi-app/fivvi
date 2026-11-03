@@ -39,11 +39,12 @@ class AddClientViewModelTest {
     fun test_F006_AC1_addsAClientWithOnlyANameOnTheAndroidSurface() {
         val viewModel = viewModel()
         viewModel.onNameChange("Mark Jansen")
+        viewModel.onEmailChange("mark@example.com")
 
         viewModel.submit()
 
         assertEquals(
-            listOf(AddClientRequest("Mark Jansen", null, null, AddClientRequest.Surface.ANDROID)),
+            listOf(AddClientRequest("Mark Jansen", "mark@example.com", null, AddClientRequest.Surface.ANDROID)),
             api.added,
         )
         assertEquals("Mark Jansen", viewModel.state.value.added?.name)
@@ -77,6 +78,7 @@ class AddClientViewModelTest {
     fun test_F006_AC2_theDutchChoiceIsSentAsNlNl() {
         val viewModel = viewModel()
         viewModel.onNameChange("Mark")
+        viewModel.onEmailChange("mark@example.com")
         viewModel.onLanguageChange(EmailLanguageChoice.Dutch)
 
         viewModel.submit()
@@ -108,6 +110,7 @@ class AddClientViewModelTest {
         api.addAnswers += { api.refused("name" to "too_big") }
         val viewModel = viewModel()
         viewModel.onNameChange("x".repeat(121))
+        viewModel.onEmailChange("mark@example.com")
 
         viewModel.submit()
 
@@ -126,6 +129,38 @@ class AddClientViewModelTest {
 
         viewModel.onEmailChange("mark@example.com")
         assertNull(viewModel.state.value.emailError)
+    }
+
+    // AC1, AC2: the address is required. Without one the request carries an empty address (nothing is checked in the
+    // app), the API refuses it with a field message, and nothing is added. The typed name stays.
+    @Test
+    fun test_F006_AC2_aMissingAddressIsRefusedByTheApiAndWordedAsInvalid() {
+        val viewModel = viewModel()
+        viewModel.onNameChange("Mark Jansen")
+
+        viewModel.submit()
+
+        val state = viewModel.state.value
+        assertEquals(listOf(""), api.added.map { it.email })
+        assertEquals(EmailError.Invalid, state.emailError)
+        assertNull(state.nameError)
+        assertNull(state.added)
+        assertFalse(state.pending)
+        assertEquals("Mark Jansen", state.form.name)
+        assertTrue(api.clients.isEmpty())
+    }
+
+    @Test
+    fun test_F006_AC2_anAddressOfOnlySpacesIsSentEmptyAndRefused() {
+        val viewModel = viewModel()
+        viewModel.onNameChange("Mark Jansen")
+        viewModel.onEmailChange("   ")
+
+        viewModel.submit()
+
+        assertEquals(listOf(""), api.added.map { it.email })
+        assertEquals(EmailError.Invalid, viewModel.state.value.emailError)
+        assertNull(viewModel.state.value.added)
     }
 
     // AC3: the 409 names a client of this workspace; the form offers to open it and creates nothing.
@@ -239,6 +274,7 @@ class AddClientViewModelTest {
     fun test_F006_AC12_theFormIsOnlySentOnceWhileItIsPending() {
         val viewModel = viewModel()
         viewModel.onNameChange("Mark")
+        viewModel.onEmailChange("mark@example.com")
         viewModel.submit()
         // The first add is done; a second submit of an added form sends nothing.
         viewModel.submit()

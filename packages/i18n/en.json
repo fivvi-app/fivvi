@@ -241,9 +241,9 @@
     "partial": "Showing {shown} of {total} clients. Search to find the rest.",
     "addDialog": {
       "title": "Add client",
-      "description": "Only a name is needed. Email address and language can follow.",
+      "description": "Enter a name and an email address. The language can follow.",
       "nameLabel": "Name",
-      "emailLabel": "Email address (optional)",
+      "emailLabel": "Email address",
       "localeLabel": "Language for emails",
       "localeDefault": "Default ({language})",
       "localeNl": "Nederlands",

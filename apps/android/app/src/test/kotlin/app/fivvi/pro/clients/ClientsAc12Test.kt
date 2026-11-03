@@ -49,7 +49,7 @@ class ClientsAc12Test {
         scheduler.runCurrent()
         assertEquals(listOf("Anna de Vries"), (list.state.value as ClientsState.Loaded).clients.map(Client::name))
 
-        // Add one with a name only (AC1), then the same address again (AC3).
+        // Add one with a name and an address (AC1), then the same address again (AC3).
         val add = AddClientViewModel(api, workspace)
         add.onNameChange("Carla Bos")
         add.onEmailChange("Carla@Example.com")

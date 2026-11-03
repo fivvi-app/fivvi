@@ -271,6 +271,7 @@ class ClientsFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
         compose.onNodeWithTag(ClientsTags.ADD).performClick()
         compose.waitUntilTagExists("${AddClientTags.PREFIX}.name")
         compose.onNodeWithTag("${AddClientTags.PREFIX}.name").performTextReplacement("Carla Bos")
+        compose.onNodeWithTag("${AddClientTags.PREFIX}.email").performTextReplacement("carla@example.com")
         compose.onNodeWithTag(AddClientTags.SUBMIT).performClick()
         compose.waitUntilTagExists(ClientProfileTags.NAME)
     }

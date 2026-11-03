@@ -308,13 +308,11 @@ private fun ClientRow(client: Client, onOpen: (UUID) -> Unit) {
             modifier = Modifier.testTag("${ClientsTags.ROW_NAME}.${client.id}"),
             style = MaterialTheme.typography.body,
         )
-        client.email?.let {
-            Text(
-                text = it,
-                modifier = Modifier.testTag("${ClientsTags.ROW_EMAIL}.${client.id}"),
-                style = MaterialTheme.typography.subhead,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(
+            text = client.email,
+            modifier = Modifier.testTag("${ClientsTags.ROW_EMAIL}.${client.id}"),
+            style = MaterialTheme.typography.subhead,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

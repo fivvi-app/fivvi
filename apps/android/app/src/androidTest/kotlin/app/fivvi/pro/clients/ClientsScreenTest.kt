@@ -27,6 +27,7 @@ import app.fivvi.pro.home.FakeWorkspacesApi
 import app.fivvi.pro.home.HomeTags
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.waitUntilTagExists
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,7 +49,7 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     private val clients = FakeClientsApi()
     private val workspaces = FakeWorkspacesApi()
     private val anna = clientOf("Anna de Vries", "anna@example.com", Client.EmailLocale.EN)
-    private val mark = clientOf("Mark Jansen")
+    private val mark = clientOf("Mark Jansen", "mark.jansen@example.com")
 
     private fun launch(vararg capabilities: MeWorkspace.Capabilities) {
         me.answerAccount(capabilities = capabilities.toList().ifEmpty { MeWorkspace.Capabilities.values().toList() })
@@ -85,7 +86,10 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
             "${ClientsTags.ROW_NAME}.${mark.id}",
             useUnmergedTree = true,
         ).assertTextEquals("Mark Jansen")
-        compose.onNodeWithTag("${ClientsTags.ROW_EMAIL}.${mark.id}", useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithTag(
+            "${ClientsTags.ROW_EMAIL}.${mark.id}",
+            useUnmergedTree = true,
+        ).assertTextEquals("mark.jansen@example.com")
         compose.onNodeWithText(string(R.string.clients_search_placeholder)).assertIsDisplayed()
     }
 
@@ -141,12 +145,13 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
             )
         compose.onNodeWithTag("${AddClientTags.PREFIX}.language.default").assertIsSelected()
         type("${AddClientTags.PREFIX}.name", "Carla Bos")
+        type("${AddClientTags.PREFIX}.email", "carla@example.com")
         compose.onNodeWithTag(AddClientTags.SUBMIT).performClick()
 
         compose.waitUntilTagExists(ClientProfileTags.TITLE)
         compose.onNodeWithTag(ClientProfileTags.TITLE).assertTextEquals("Carla Bos")
         compose.onNodeWithTag(ClientProfileTags.NAME).assertTextEquals("Carla Bos")
-        compose.onNodeWithTag(ClientProfileTags.EMAIL).assertTextEquals(string(R.string.clients_profile_no_email))
+        compose.onNodeWithTag(ClientProfileTags.EMAIL).assertTextEquals("carla@example.com")
         compose.onNodeWithTag(ClientProfileTags.LANGUAGE).assertTextEquals(
             string(R.string.clients_add_dialog_locale_default, string(R.string.clients_language_names_nl)),
         )
@@ -186,6 +191,27 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         compose.onNodeWithTag("${AddClientTags.PREFIX}.nameError", useUnmergedTree = true)
             .assertTextEquals(string(R.string.clients_add_dialog_errors_name_too_long))
         compose.onNodeWithTag("${AddClientTags.PREFIX}.name").assertTextContains("x".repeat(121))
+    }
+
+    // AC1, AC2: the address is required. Left empty, the API refuses the add (400 on `email`), the form says so under the
+    // field, keeps the name, and no client is added.
+    @Test
+    fun test_F006_AC2_aMissingAddressIsRefusedWithAFieldMessageAndNothingIsAdded() {
+        launch()
+        openClients()
+        val before = clients.clients.size
+        compose.onNodeWithTag(ClientsTags.ADD).performClick()
+        compose.waitUntilTagExists("${AddClientTags.PREFIX}.name")
+        type("${AddClientTags.PREFIX}.name", "Carla Bos")
+
+        compose.onNodeWithTag(AddClientTags.SUBMIT).performClick()
+
+        compose.waitUntilUnmergedTagExists("${AddClientTags.PREFIX}.emailError")
+        compose.onNodeWithTag("${AddClientTags.PREFIX}.emailError", useUnmergedTree = true)
+            .assertTextEquals(string(R.string.clients_add_dialog_errors_email_invalid))
+        compose.onNodeWithTag("${AddClientTags.PREFIX}.name").assertTextContains("Carla Bos")
+        compose.onNodeWithTag(ClientProfileTags.TITLE).assertDoesNotExist()
+        assertEquals(before, clients.clients.size)
     }
 
     @Test
@@ -287,7 +313,7 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
             ClientProfileTags.EDIT_TITLE,
         ).assertTextEquals(string(R.string.clients_profile_edit_title))
         compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.name").performTextReplacement("Mark Visser")
-        type("${ClientProfileTags.EDIT_PREFIX}.email", "mark@example.com")
+        compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.email").performTextReplacement("mark@example.com")
         compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.language.en").performClick()
         compose.onNodeWithTag(ClientProfileTags.EDIT_SAVE).performClick()
 
@@ -299,6 +325,27 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         ).assertTextEquals(string(R.string.clients_add_dialog_locale_en))
         compose.waitUntilTagExists(ClientProfileTags.SNACKBAR)
         compose.onNodeWithText(string(R.string.clients_profile_saved)).assertIsDisplayed()
+    }
+
+    // AC7: the address can't be cleared. Emptied, the save is refused by the API (400 on `email`), the edit stays open with
+    // the field message, and the overview keeps the address.
+    @Test
+    fun test_F006_AC7_anEmptiedAddressIsRefusedWithAFieldMessageAndTheOverviewKeepsIt() {
+        launch()
+        openClients()
+        compose.onNodeWithTag("${ClientsTags.ROW}.${mark.id}").performClick()
+        compose.waitUntilTagExists(ClientProfileTags.EDIT)
+        compose.onNodeWithTag(ClientProfileTags.EDIT).performClick()
+        compose.waitUntilTagExists("${ClientProfileTags.EDIT_PREFIX}.email")
+        compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.email").performTextReplacement("")
+
+        compose.onNodeWithTag(ClientProfileTags.EDIT_SAVE).performClick()
+
+        compose.waitUntilUnmergedTagExists("${ClientProfileTags.EDIT_PREFIX}.emailError")
+        compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.emailError", useUnmergedTree = true)
+            .assertTextEquals(string(R.string.clients_add_dialog_errors_email_invalid))
+        compose.onNodeWithTag(ClientProfileTags.EDIT_SAVE).assertExists()
+        assertEquals("mark.jansen@example.com", clients.clients.first { it.id == mark.id }.email)
     }
 
     // AC10, AC12: the API refuses the save (403): the edit closes, as the add form does, and Bewerken is hidden.
