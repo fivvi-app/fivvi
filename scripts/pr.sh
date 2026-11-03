@@ -16,7 +16,7 @@
 #                                                 prints the step durations of the native jobs (iOS, Android) that ran
 #   pr.sh status                                  state, review, checks and open threads
 #   pr.sh wait [--timeout <minutes>]              wait for CI: exit 0 passed, 1 failed, 2 still running at the timeout
-#                                                 (default 20 minutes, 45 once an iOS or Android check exists)
+#                                                 (default 20 minutes, 60 once an iOS or Android check exists)
 #   pr.sh threads                                 open review threads with their ids
 #   pr.sh reply <thread-id> (--body <md>|--body-file <f|->) [--resolve]
 #   pr.sh smoke [--timeout <minutes>]             smoke-check the Railway preview and record the result for the PR's head
@@ -74,9 +74,11 @@ RAILWAY_SERVICE="web"
 # the PR touches no watch pattern (the status is then green, but there is no preview).
 PREVIEW_CHECK="$RAILWAY_PROJECT_NAME - $RAILWAY_SERVICE"
 PREVIEW_SKIPPED="No deployment needed"
-# How long wait waits for CI, in minutes: the cold iOS run took 24.5 min, so the jobs of the native apps get longer.
+# How long wait waits for CI, in minutes. The native jobs get longer: a passing iOS run can take, by the timeouts in
+# ci.yml (the "iOS tests" comment), Detect changes 5 + iOS build 12 + iOS tests 38 + the gate job 2 = 57 min, and Android
+# the same by its own (5 + 20 + 30 + 2); 60 outlasts both, so wait does not give up on a run that still passes.
 WAIT_MINUTES=20
-WAIT_MINUTES_NATIVE=45
+WAIT_MINUTES_NATIVE=60
 # The gates are the required checks iOS and Android; their parts (iOS build, iOS tests (nl), Android Maestro, ...) start with the
 # same word (#293).
 NATIVE_JOBS=(iOS Android)
