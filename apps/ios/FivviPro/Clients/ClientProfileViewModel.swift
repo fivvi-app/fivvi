@@ -75,7 +75,7 @@ final class ClientProfileViewModel {
     var title: String { client?.name ?? catalog[.clientProfileTitle] }
     var addedText: String? { justAdded ? client.map { catalog.string(.clientProfileAdded, $0.name) } : nil }
     var savedText: String? { saved ? catalog[.clientProfileSaved] : nil }
-    var emailText: String { client?.email ?? catalog[.clientProfileNoEmail] }
+    var emailText: String { client?.email ?? "" }
     var localeText: String {
         client.map { catalog.emailLanguage(of: $0, workspaceDefault: workspace.defaultLocale) } ?? ""
     }

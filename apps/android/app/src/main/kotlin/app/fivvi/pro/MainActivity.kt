@@ -38,6 +38,7 @@ import app.fivvi.pro.capabilities.WorkspaceCapabilities
 import app.fivvi.pro.hello.HelloViewModel
 import app.fivvi.pro.home.HomeScreen
 import app.fivvi.pro.home.HomeViewModel
+import app.fivvi.pro.home.ProfileActions
 import app.fivvi.pro.home.ProfileScreen
 import app.fivvi.pro.home.ProfileViewModel
 import app.fivvi.pro.home.WebLinks
@@ -139,15 +140,30 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Profiel (TM-04): opened from the home; it lists the workspaces on opening and on foreground (F003 AC9).
+    // Profiel (TM-04): opened from the home; it reads the name, the email address and the workspaces on opening and on
+    // foreground (F003 AC9, F005).
     @Composable
     private fun Profile(dependencies: AppDependencies, key: String, opening: Int, languages: LanguageViewModel) {
-        val profile = viewModel(key = "profile-$key-$opening") { ProfileViewModel(dependencies.meApi) }
+        val profile = viewModel(key = "profile-$key-$opening") {
+            ProfileViewModel(dependencies.meApi, dependencies.trainersApi)
+        }
         val state by profile.state.collectAsStateWithLifecycle()
+        val editor by profile.editor.collectAsStateWithLifecycle()
         val language by languages.language.collectAsStateWithLifecycle()
         val saveFailed by languages.saveFailed.collectAsStateWithLifecycle()
         OnForeground(profile::refresh)
-        ProfileScreen(state, onRetry = profile::retry, language, saveFailed, onChooseLanguage = languages::choose)
+        val actions = ProfileActions(
+            onRetry = profile::retry,
+            onEditName = profile::startEditingName,
+            onNameInput = profile::onNameInput,
+            onSaveName = profile::saveName,
+            onCancelName = profile::cancelEditingName,
+            onSetTrainsHere = profile::setTrainsHere,
+            language = language,
+            languageSaveFailed = saveFailed,
+            onChooseLanguage = languages::choose,
+        )
+        ProfileScreen(state, editor, actions)
     }
 
     // Runs [action] each time the app comes back to the foreground, not at the start that composing this already covers

@@ -1,7 +1,7 @@
 import XCTest
 
 /// *Klanten* / *Clients*, *Klantprofiel* and *+ Nieuwe klant* (F006 AC1 to AC3, AC6, AC7, AC12), in nl and en: the list
-/// and its search, quick add with a name only, the offer of an existing client for a duplicate email address, and the
+/// and its search, quick add with a name and an email address, the offer of an existing client for a duplicate email address, and the
 /// overview with its edit. The stub server starts with Anna de Vries, Mark Jansen and Sophie Bakker (synthetic).
 @MainActor
 final class ClientsUITests: SignInUITestCase {
@@ -58,7 +58,7 @@ final class ClientsUITests: SignInUITestCase {
         try assertTouchTarget(open, on: screen)
         open.tap()
 
-        // The list: every client of the workspace, with the email address when there is one.
+        // The list: every client of the workspace, with its email address.
         XCTAssertTrue(row("Anna de Vries", in: app).waitUntilExists(timeout: timeout))
         XCTAssertTrue(row("Mark Jansen", in: app).exists)
         XCTAssertTrue(row("Sophie Bakker", in: app).exists)
@@ -103,7 +103,7 @@ final class ClientsUITests: SignInUITestCase {
         XCTAssertTrue(row("Anna de Vries-Smit", in: app).waitUntilExists(timeout: timeout))
     }
 
-    func test_F006_AC1_aNameAloneAddsAClientAndOpensTheProfile() throws {
+    func test_F006_AC1_aNameAndAnEmailAddressAddAClientAndOpenTheProfile() throws {
         let catalog = TestCatalog.configured
         let (screen, server) = try launchAsSarah()
         let app = screen.app
@@ -124,20 +124,21 @@ final class ClientsUITests: SignInUITestCase {
         )
         XCTAssertTrue(app.buttons["clients.add.language.default"].isSelected, "and preselected")
         name.typeText("Bram Visser")
+        screen.type("bram@example.com", into: app.textFields["clients.add.email"])
         app.buttons["clients.add.submit"].tap()
 
         let added = app.staticTexts["clientProfile.added"]
         XCTAssertTrue(added.waitUntilExists(timeout: timeout))
         XCTAssertEqual(added.label, String(format: catalog["clients.profile.added"], "Bram Visser"))
         XCTAssertEqual(app.staticTexts["clientProfile.name"].label, "Bram Visser")
-        XCTAssertEqual(app.staticTexts["clientProfile.email"].label, catalog["clients.profile.noEmail"])
+        XCTAssertEqual(app.staticTexts["clientProfile.email"].label, "bram@example.com")
         XCTAssertEqual(
             app.staticTexts["clientProfile.language"].label,
             String(format: catalog["clients.addDialog.localeDefault"], catalog["clients.languageNames.nl"])
         )
         let posts = server.requests.filter { $0.method == "POST" && $0.path == clientsPath }
-        let sent = [["name": "Bram Visser", "surface": "ios"]]
-        XCTAssertEqual(posts.map(\.body), sent, "a name alone, from the iPhone app")
+        let sent = [["name": "Bram Visser", "email": "bram@example.com", "surface": "ios"]]
+        XCTAssertEqual(posts.map(\.body), sent, "a name and an email address, from the iPhone app")
         app.buttons["clientProfile.back"].tap()
         XCTAssertTrue(row("Bram Visser", in: app).waitUntilExists(timeout: timeout))
     }
@@ -171,7 +172,7 @@ final class ClientsUITests: SignInUITestCase {
         XCTAssertEqual(posts.count, 1)
     }
 
-    func test_F006_AC2_aMissingNameAndAnInvalidEmailAddressAreRefusedWithAFieldMessage() throws {
+    func test_F006_AC2_aMissingNameAndAMissingOrInvalidEmailAddressAreRefusedWithAFieldMessage() throws {
         let catalog = TestCatalog.configured
         let (screen, server) = try launchAsSarah()
         let app = screen.app
@@ -185,6 +186,12 @@ final class ClientsUITests: SignInUITestCase {
         XCTAssertEqual(nameError.label, catalog["clients.addDialog.errors.nameRequired"])
 
         screen.type("Eva Smit", into: app.textFields["clients.add.name"])
+        app.buttons["clients.add.submit"].tap()
+        let missing = app.staticTexts["clients.add.emailError"]
+        XCTAssertTrue(missing.waitUntilExists(timeout: timeout), "a name alone is not enough")
+        XCTAssertEqual(missing.label, catalog["clients.addDialog.errors.emailInvalid"])
+        XCTAssertFalse(app.staticTexts["clients.add.nameError"].exists)
+
         screen.type("not-an-address", into: app.textFields["clients.add.email"])
         app.buttons["clients.add.submit"].tap()
         let emailError = app.staticTexts["clients.add.emailError"]
@@ -204,7 +211,7 @@ final class ClientsUITests: SignInUITestCase {
         XCTAssertTrue(app.buttons["clientProfile.edit"].waitUntilExists(timeout: timeout))
         app.buttons["clientProfile.edit"].tap()
         XCTAssertEqual(app.staticTexts["clientProfile.edit.title"].label, catalog["clients.profile.editTitle"])
-        screen.type("Anna@Example.com", into: app.textFields["clientProfile.edit.email"])
+        replaceText(in: app.textFields["clientProfile.edit.email"], with: "Anna@Example.com")
         app.buttons["clientProfile.edit.save"].tap()
 
         let duplicate = app.staticTexts["clientProfile.edit.duplicate"]
@@ -224,6 +231,26 @@ final class ClientsUITests: SignInUITestCase {
         app.buttons["clientProfile.back"].tap()
         XCTAssertTrue(row("Mark Jansen", in: app).waitUntilExists(timeout: timeout))
         XCTAssertFalse(app.staticTexts["clientProfile.name"].exists, "back goes to the list")
+    }
+
+    func test_F006_AC7_anEmptiedEmailAddressIsRefusedAndTheClientKeepsIt() throws {
+        let catalog = TestCatalog.configured
+        let (screen, server) = try launchAsSarah()
+        let app = screen.app
+        openClients(screen)
+        XCTAssertTrue(row("Anna de Vries", in: app).waitUntilExists(timeout: timeout))
+        row("Anna de Vries", in: app).tap()
+        XCTAssertTrue(app.buttons["clientProfile.edit"].waitUntilExists(timeout: timeout))
+        app.buttons["clientProfile.edit"].tap()
+        replaceText(in: app.textFields["clientProfile.edit.email"], with: "")
+        app.buttons["clientProfile.edit.save"].tap()
+
+        let emailError = app.staticTexts["clientProfile.edit.emailError"]
+        XCTAssertTrue(emailError.waitUntilExists(timeout: timeout))
+        XCTAssertEqual(emailError.label, catalog["clients.addDialog.errors.emailInvalid"])
+        XCTAssertTrue(server.requests.filter { $0.method == "PATCH" }.isEmpty, "nothing is sent")
+        app.buttons["clientProfile.edit.close"].tap()
+        XCTAssertEqual(app.staticTexts["clientProfile.email"].label, "anna@example.com")
     }
 
     func test_F004_AC10_withoutClientsManageNoAddOrEditActionShows() throws {

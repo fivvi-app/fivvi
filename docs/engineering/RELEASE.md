@@ -136,7 +136,7 @@ Only the owner does these. Agents never do them or ask for the secrets. Each ste
 
 ## 9. Store requirements for the public release
 
-Public App Store and Google Play listings are **not needed for go-live**; pilot trainers use TestFlight and Play internal testing ([`ROADMAP.md`](../product/ROADMAP.md) M8, M9). They are recorded here so later specs can plan for them. *Internal* is internal TestFlight and Play internal testing; *external* is external TestFlight (Beta App Review); *public* is the App Store and Play production listing. The stores change their rules: check the current store documentation when you reach a step.
+Public App Store and Google Play listings are **not needed for the trainer app Fivvi Pro at go-live**; pilot trainers use TestFlight and Play internal testing ([`ROADMAP.md`](../product/ROADMAP.md) M8, M9). The client app **Fivvi** (`app.fivvi`) does need them **before G4** (v1.31), without gating G4: go-live doesn't wait for the store review, and if Fivvi isn't approved in time, clients use the client web. The requirements below apply to Fivvi's public listings as they do to a later Fivvi Pro listing, and are recorded here so specs can plan for them. *Internal* is internal TestFlight and Play internal testing; *external* is external TestFlight (Beta App Review); *public* is the App Store and Play production listing. The stores change their rules: check the current store documentation when you reach a step.
 
 | Requirement | Needed | Delivered by | Notes |
 |---|---|---|---|

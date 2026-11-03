@@ -29,10 +29,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * A client to add. Only the name is required.
+ * A client to add. The name and the email address are required.
  *
  * @param name The client’s name: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error.
- * @param email The client’s email address; stored lower case. Leave it out to add the client with a name only. An address that is no email address answers `400`. If a client of the workspace has it already, nothing is added and the answer is `409`.
+ * @param email The client’s email address; required, stored lower case. A missing, `null` or invalid address answers `400` with a field error, and nothing is added. If a client of the workspace has it already, nothing is added and the answer is `409`.
  * @param emailLocale The language for the client’s emails: `nl-NL` or `en`. Leave it out to follow the workspace’s default language. Any other value answers `400`.
  * @param surface The app that sends the request: `ios` or `android`. A request with a bearer token records the `client_added` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
  */
@@ -44,9 +44,9 @@ data class AddClientRequest (
     @SerialName(value = "name")
     val name: kotlin.String,
 
-    /* The client’s email address; stored lower case. Leave it out to add the client with a name only. An address that is no email address answers `400`. If a client of the workspace has it already, nothing is added and the answer is `409`. */
+    /* The client’s email address; required, stored lower case. A missing, `null` or invalid address answers `400` with a field error, and nothing is added. If a client of the workspace has it already, nothing is added and the answer is `409`. */
     @SerialName(value = "email")
-    val email: kotlin.String? = null,
+    val email: kotlin.String,
 
     /* The language for the client’s emails: `nl-NL` or `en`. Leave it out to follow the workspace’s default language. Any other value answers `400`. */
     @SerialName(value = "emailLocale")

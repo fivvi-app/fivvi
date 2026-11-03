@@ -36,6 +36,7 @@ import kotlinx.serialization.Contextual
  * @param slug The URL name: `/w/{slug}` on the web.
  * @param role What the account is on the team; shown as a label, never decided on.
  * @param capabilities What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
+ * @param trainsHere Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner.
  */
 @Serializable
 
@@ -59,7 +60,11 @@ data class MyWorkspace (
 
     /* What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
     @SerialName(value = "capabilities")
-    val capabilities: kotlin.collections.List<MyWorkspace.Capabilities>
+    val capabilities: kotlin.collections.List<MyWorkspace.Capabilities>,
+
+    /* Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
+    @SerialName(value = "trainsHere")
+    val trainsHere: kotlin.Boolean
 
 ) {
 

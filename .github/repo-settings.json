@@ -22,6 +22,16 @@
       "description": "Only the owner merges this issue's PRs, or all tickets of this spec (legal, money, agent rules)"
     },
     {
+      "name": "owner-queue",
+      "color": "fbca04",
+      "description": "PR: owner-only and ready, the owner adds it to the merge queue (flow.sh sets and removes it)"
+    },
+    {
+      "name": "owner-decide",
+      "color": "d93f0b",
+      "description": "PR: GitHub removed it from the merge queue or the merge gate refused it; the owner decides"
+    },
+    {
       "name": "run-native",
       "color": "1d76db",
       "description": "Run the iOS and Android CI jobs on this PR, whatever changed (read on its pushes)"

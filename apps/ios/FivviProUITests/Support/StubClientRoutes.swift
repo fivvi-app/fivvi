@@ -3,7 +3,8 @@ import Foundation
 /// The client routes of the stub server (F006): `GET` and `POST /api/v1/workspaces/{id}/clients`, `GET` and `PATCH` one
 /// client. It starts with the three clients of John's Gym (synthetic) and follows the API's rules that the screens
 /// depend on: sorted by name, search by part of a name or an email address without regard to case, one client per email
-/// address (`409` with the existing client's ID), the edit body's "keep" and "clear" fields.
+/// address (`409` with the existing client's ID), a missing or blank address refused (`400` on `email`: it is required and
+/// never cleared) and the edit body's "keep" and "clear" fields.
 final class StubClientRoutes: @unchecked Sendable {
     private let lock = NSLock()
     private var clients: [[String: Any]]
@@ -13,15 +14,15 @@ final class StubClientRoutes: @unchecked Sendable {
     init(empty: Bool = false) {
         clients = empty ? [] : [
             StubClientRoutes.client(1, "Anna de Vries", "anna@example.com", "en"),
-            StubClientRoutes.client(2, "Mark Jansen", nil, nil),
+            StubClientRoutes.client(2, "Mark Jansen", "mark@example.com", nil),
             StubClientRoutes.client(3, "Sophie Bakker", "sophie.bakker@example.com", nil)
         ]
     }
 
-    private static func client(_ number: Int, _ name: String, _ email: String?, _ locale: String?) -> [String: Any] {
+    private static func client(_ number: Int, _ name: String, _ email: String, _ locale: String?) -> [String: Any] {
         [
             "id": String(format: "3f0b1c2e-8a54-4b51-9a42-%012d", number), "name": name,
-            "email": email.map { $0 as Any } ?? NSNull(), "emailLocale": locale.map { $0 as Any } ?? NSNull()
+            "email": email, "emailLocale": locale.map { $0 as Any } ?? NSNull()
         ]
     }
 
@@ -67,8 +68,9 @@ final class StubClientRoutes: @unchecked Sendable {
     private func add(_ body: [String: Any]) -> (Int, [String: Any]) {
         let name = (body["name"] as? String ?? "").trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty, name.count <= 120 else { return invalid("name") }
-        let email = (body["email"] as? String)?.lowercased()
-        if let email, let existing = clients.first(where: { $0["email"] as? String == email }) {
+        let email = (body["email"] as? String ?? "").trimmingCharacters(in: .whitespaces).lowercased()
+        guard !email.isEmpty else { return invalid("email") }
+        if let existing = clients.first(where: { $0["email"] as? String == email }) {
             return (409, ["code": "client_exists", "clientId": existing["id"] as Any])
         }
         let client = StubClientRoutes.client(nextNumber, name, email, body["emailLocale"] as? String)
@@ -80,9 +82,8 @@ final class StubClientRoutes: @unchecked Sendable {
     private func update(_ id: String, _ body: [String: Any]) -> (Int, [String: Any]) {
         guard var client = find(id) else { return (404, ["code": "not_found"]) }
         if let name = body["name"] as? String { client["name"] = name }
-        if body["clearEmail"] as? Bool == true {
-            client["email"] = NSNull()
-        } else if let email = (body["email"] as? String)?.lowercased() {
+        if let email = (body["email"] as? String)?.trimmingCharacters(in: .whitespaces).lowercased() {
+            guard !email.isEmpty else { return invalid("email") }
             if let other = clients.first(where: { $0["email"] as? String == email && $0["id"] as? String != id }) {
                 return (409, ["code": "client_exists", "clientId": other["id"] as Any])
             }

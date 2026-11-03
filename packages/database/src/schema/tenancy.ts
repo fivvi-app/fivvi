@@ -1,6 +1,15 @@
 import type { Locale } from '@fivvi/i18n';
 import { sql } from 'drizzle-orm';
-import { check, index, pgEnum, text, unique, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  foreignKey,
+  index,
+  pgEnum,
+  text,
+  unique,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { authUsers } from './auth.ts';
 import { businessTable } from './business-table.ts';
 import { timestamps } from './columns.ts';
@@ -46,8 +55,9 @@ export const teamMembers = businessTable(
  * whose email address belongs to an account is linked to it (`PRODUCT.md §2.9`). At most one
  * client relationship per account and workspace, and one client per email address and workspace.
  *
- * `email` is lower case (the API stores it so, the check holds the line) and may be empty: two
- * clients without one may share a name. `email_locale` is the language for emails the team set;
+ * `email` is required (every client has one, spec #174 decision 5, 2 November 2026) and lower
+ * case (the API stores it so, the check holds the line): two clients with different addresses
+ * may share a name. `email_locale` is the language for emails the team set;
  * empty follows the workspace default (ADR-017).
  */
 export const clients = businessTable(
@@ -55,24 +65,19 @@ export const clients = businessTable(
   {
     accountId: uuid('account_id').references(() => authUsers.id),
     name: text('name').notNull(),
-    email: text('email'),
+    email: text('email').notNull(),
     emailLocale: text('email_locale').$type<Locale>(),
     ...timestamps(),
   },
   (table) => [
     unique('clients_organization_id_account_id_unique').on(table.organizationId, table.accountId),
-    uniqueIndex('clients_organization_id_email_unique')
-      .on(table.organizationId, table.email)
-      .where(sql`${table.email} IS NOT NULL`),
+    uniqueIndex('clients_organization_id_email_unique').on(table.organizationId, table.email),
     index('clients_account_id_idx').on(table.accountId),
     check(
       'clients_name_valid',
       sql`btrim(${table.name}) <> '' AND char_length(${table.name}) <= 120`,
     ),
-    check(
-      'clients_email_lowercase',
-      sql`${table.email} IS NULL OR ${table.email} = lower(${table.email})`,
-    ),
+    check('clients_email_lowercase', sql`${table.email} = lower(${table.email})`),
     check(
       'clients_email_locale_supported',
       sql`${table.emailLocale} IS NULL OR ${table.emailLocale} IN ('nl-NL', 'en')`,
@@ -82,5 +87,28 @@ export const clients = businessTable(
   { accountColumn: 'accountId', clientColumn: 'id' },
 );
 
+/**
+ * Who trains in a workspace (F005): a row means "this team member trains here", and holds nothing
+ * else in M2. Every Trainer has one; an Owner has one when they also train, and only they switch it.
+ * The composite foreign key removes it with the team-member record (F003's removal), so the account
+ * and its name stay and nothing of a removed person's training is left behind.
+ */
+export const trainerProfiles = businessTable(
+  'trainer_profiles',
+  {
+    teamMemberId: uuid('team_member_id').notNull(),
+    ...timestamps(),
+  },
+  (table) => [
+    unique('trainer_profiles_team_member_id_unique').on(table.teamMemberId),
+    foreignKey({
+      name: 'trainer_profiles_team_member_fk',
+      columns: [table.organizationId, table.teamMemberId],
+      foreignColumns: [teamMembers.organizationId, teamMembers.id],
+    }).onDelete('cascade'),
+  ],
+);
+
 export type TeamMember = typeof teamMembers.$inferSelect;
 export type Client = typeof clients.$inferSelect;
+export type TrainerProfile = typeof trainerProfiles.$inferSelect;

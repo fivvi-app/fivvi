@@ -6,6 +6,8 @@ import app.fivvi.api.models.MeWorkspace
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.UpdateMeRequest
 import java.util.UUID
+import kotlinx.coroutines.CompletableDeferred
+import okhttp3.ResponseBody.Companion.toResponseBody
 import retrofit2.Response
 
 /** The ID the fakes give the workspace of this name, so a test can name it without keeping it. */
@@ -22,7 +24,9 @@ class FakeMeApi : MeApi {
 
     override suspend fun getMe(): Response<MeResponse> {
         calls++
-        return answers.removeFirst()()
+        val answer = answers.removeFirstOrNull()
+            ?: error("FakeMeApi.getMe has no answer: the app asked for call $calls")
+        return answer()
     }
 
     /** Every `PATCH /v1/me` body received, in order. */
@@ -31,14 +35,19 @@ class FakeMeApi : MeApi {
     /** What `PATCH /v1/me` answers; it fails with this exception when set. */
     var updateFailure: Exception? = null
 
+    /** When set, `PATCH /v1/me` waits for this before it answers, so a test can act while the save is under way. */
+    var updateGate: CompletableDeferred<Unit>? = null
+
     override suspend fun updateMe(updateMeRequest: UpdateMeRequest): Response<MeResponse> {
         updates += updateMeRequest
+        updateGate?.await()
         updateFailure?.let { throw it }
+        updateAnswers.removeFirstOrNull()?.let { return it() }
         return Response.success(
             MeResponse(
                 id = UUID.randomUUID(),
                 email = "owner@example.com",
-                name = "Owner",
+                name = updateMeRequest.name ?: "Owner",
                 preferredLocale = if (updateMeRequest.preferredLocale == UpdateMeRequest.PreferredLocale.EN) {
                     MeResponse.PreferredLocale.EN
                 } else {
@@ -50,21 +59,56 @@ class FakeMeApi : MeApi {
         )
     }
 
+    /** Answers for `PATCH /v1/me`, used before the default answer (the account with the changed name and language). */
+    val updateAnswers = ArrayDeque<suspend () -> Response<MeResponse>>()
+
+    /** `PATCH /v1/me` refuses the next change with `400 validation_failed` on [path] with the issue [code] (`too_small`, `too_big`). */
+    fun refuseNextUpdate(path: String = "name", code: String) {
+        updateAnswers += {
+            Response.error(
+                400,
+                """{"code":"validation_failed","issues":[{"path":"$path","code":"$code"}]}""".toResponseBody(),
+            )
+        }
+    }
+
     val workspaceAnswers = ArrayDeque<suspend () -> Response<List<MyWorkspace>>>()
     var workspaceCalls = 0
         private set
 
     override suspend fun listMyWorkspaces(): Response<List<MyWorkspace>> {
         workspaceCalls++
-        return workspaceAnswers.removeFirst()()
+        val answer = workspaceAnswers.removeFirstOrNull()
+            ?: error("FakeMeApi.listMyWorkspaces has no answer: the app asked for call $workspaceCalls")
+        return answer()
     }
 
     /** `GET /v1/me/workspaces` answers with these workspaces: name to slug to role. */
-    fun answerWorkspaces(vararg workspaces: Triple<String, String, MyWorkspace.Role>) {
+    fun answerWorkspaces(vararg workspaces: Triple<String, String, MyWorkspace.Role>) =
+        answerWorkspaces(trainingOwners = emptySet(), *workspaces)
+
+    /**
+     * The same, and the Owners of the workspaces named in [trainingOwners] train there (an Owner's switch is on). A
+     * workspace named in [capabilities] lists exactly those capabilities, whatever the role; the others list what the
+     * permission matrix gives their role.
+     */
+    fun answerWorkspaces(
+        trainingOwners: Set<String>,
+        vararg workspaces: Triple<String, String, MyWorkspace.Role>,
+        capabilities: Map<String, List<MyWorkspace.Capabilities>> = emptyMap(),
+    ) {
         workspaceAnswers += {
             Response.success(
                 workspaces.map { (name, slug, role) ->
-                    MyWorkspace(workspaceIdOf(name), name, slug, role, capabilitiesOf(role))
+                    MyWorkspace(
+                        workspaceIdOf(name),
+                        name,
+                        slug,
+                        role,
+                        capabilities[name] ?: capabilitiesOf(role),
+                        // A Trainer always trains; an Owner here has not switched it on (F005).
+                        trainsHere = role == MyWorkspace.Role.TRAINER || name in trainingOwners,
+                    )
                 },
             )
         }
@@ -80,6 +124,7 @@ class FakeMeApi : MeApi {
     /** The account has a workspace by default, so the screens that don't care which state they are in show the home. */
     fun answerAccount(
         email: String = "owner@example.com",
+        name: String? = "Owner",
         id: UUID = UUID.randomUUID(),
         workspaces: List<String> = listOf("John's Gym"),
         canCreateWorkspace: Boolean = false,
@@ -90,7 +135,7 @@ class FakeMeApi : MeApi {
                 MeResponse(
                     id = id,
                     email = email,
-                    name = "Owner",
+                    name = name,
                     preferredLocale = preferredLocale ?: defaultPreferredLocale,
                     canCreateWorkspace = canCreateWorkspace,
                     workspaces = workspaces.map {

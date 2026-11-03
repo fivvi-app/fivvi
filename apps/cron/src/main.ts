@@ -13,7 +13,14 @@ console.log('Daily cron started.');
 try {
   const { db, close } = openPrivilegedDatabase('daily-cron');
   try {
-    await runDailyJobs({ db, log: (message) => console.log(message) });
+    await runDailyJobs({
+      db,
+      log: (message) => console.log(message),
+      errorReporter,
+      // Production only: a read-only Lettermint Team API token (ADR-028, R14).
+      lettermintTeamToken: process.env.LETTERMINT_TEAM_TOKEN,
+      lettermintTeamApiUrl: process.env.LETTERMINT_TEAM_API_URL,
+    });
   } finally {
     await close();
   }

@@ -3,8 +3,8 @@ import Observation
 import FivviAPI
 
 /// The form that adds a client (*+ Nieuwe klant*, a sheet) or edits one (the overview's *Bewerken*): name, email
-/// address and language for emails, with the rules and messages of the web (F006 AC1 to AC3, AC7, AC12). Only the name
-/// is required. The API decides in the end; the checks here only spare a request. Adding and editing need a connection:
+/// address and language for emails, with the rules and messages of the web (F006 AC1 to AC3, AC7, AC12). The name and
+/// the email address are required. The API decides in the end; the checks here only spare a request. Adding and editing need a connection:
 /// a failed save keeps the input and says so (`information-architecture.md §9.5`).
 @MainActor
 @Observable
@@ -61,7 +61,7 @@ final class ClientFormViewModel {
             email = ""
         case let .edit(client):
             name = client.name
-            email = client.email ?? ""
+            email = client.email
             locale = client.chosenLocale
         }
     }
@@ -135,7 +135,7 @@ final class ClientFormViewModel {
         } else if name.count > Self.nameLimit {
             nameError = .tooLong
         }
-        if !email.isEmpty, email.range(of: #"^[^@\s]+@[^@\s]+\.[^@\s]+$"#, options: .regularExpression) == nil {
+        if email.range(of: #"^[^@\s]+@[^@\s]+\.[^@\s]+$"#, options: .regularExpression) == nil {
             emailInvalid = true
         }
         return nameError == nil && !emailInvalid
@@ -145,7 +145,7 @@ final class ClientFormViewModel {
         let output = try await api.addClient(.init(
             path: .init(workspaceId: workspace.id),
             body: .json(.init(
-                name: name, email: email.isEmpty ? nil : email,
+                name: name, email: email,
                 emailLocale: locale.flatMap { .init(rawValue: $0.rawValue) }, surface: .ios
             ))
         ))
@@ -177,14 +177,12 @@ final class ClientFormViewModel {
         return nil
     }
 
-    /// The edit body: only what differs from `client`. A field left out, like a `nil`, means "keep"; the address and the
-    /// language are cleared with their own flags (the contract's `clearEmail` and `clearEmailLocale`).
+    /// The edit body: only what differs from `client`. A field left out, like a `nil`, means "keep"; the language is
+    /// cleared with its own flag (the contract's `clearEmailLocale`). The address is never cleared: it is required.
     private func changes(of client: Client, name: String, email: String) -> Components.Schemas.UpdateClientRequest {
         var body = Components.Schemas.UpdateClientRequest()
         if name != client.name { body.name = name }
-        if email.lowercased() != (client.email ?? "") {
-            if email.isEmpty { body.clearEmail = true } else { body.email = email }
-        }
+        if email.lowercased() != client.email { body.email = email }
         if locale != client.chosenLocale {
             if let locale { body.emailLocale = .init(rawValue: locale.rawValue) } else { body.clearEmailLocale = true }
         }

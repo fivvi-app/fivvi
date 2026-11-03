@@ -4,7 +4,8 @@ import FivviAPI
 /// The clients of the stub workspace and what the client routes answer (F006), behind a lock: `StubAPI` is an actor
 /// and calls it from its routes. It follows the API's rules where a test depends on them: sorted by name, search by part
 /// of a name or an email address without regard to case and accents, pages, an email address lower case, one client per
-/// address (`409` with the existing client), and the edit body's "keep" and "clear" fields.
+/// address (`409` with the existing client), a missing or blank address refused (`400` on `email`: it is required, never
+/// cleared) and the edit body's "keep" and "clear" fields.
 final class StubClients: @unchecked Sendable {
     typealias Client = Components.Schemas.Client
 
@@ -75,10 +76,10 @@ final class StubClients: @unchecked Sendable {
     /// A client to put in the workspace.
     struct Seed {
         let name: String
-        let email: String?
+        let email: String
         let locale: Components.Schemas.Locale?
 
-        init(_ name: String, _ email: String? = nil, _ locale: Components.Schemas.Locale? = nil) {
+        init(_ name: String, _ email: String, _ locale: Components.Schemas.Locale? = nil) {
             self.name = name
             self.email = email
             self.locale = locale
@@ -101,7 +102,7 @@ final class StubClients: @unchecked Sendable {
             if let output: Operations.ListClients.Output = try failure(.list) { return output }
             let needle = Self.fold(search ?? "")
             let matching = stored
-                .filter { needle.isEmpty || Self.fold($0.name + " " + ($0.email ?? "")).contains(needle) }
+                .filter { needle.isEmpty || Self.fold($0.name + " " + $0.email).contains(needle) }
                 .sorted { Self.fold($0.name) < Self.fold($1.name) }
             let start = min((page - 1) * pageSize, matching.count)
             let items = Array(matching[start ..< min(start + pageSize, matching.count)])
@@ -113,8 +114,9 @@ final class StubClients: @unchecked Sendable {
         try lock.withLock {
             addsSent.append(body)
             if let output: Operations.AddClient.Output = try failure(.add) { return output }
-            let email = body.email?.lowercased()
-            if let email, let existing = stored.first(where: { $0.email == email }) {
+            let email = body.email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if email.isEmpty { return .badRequest(.init(body: .json(issues(["email"])))) }
+            if let existing = stored.first(where: { $0.email == email }) {
                 return .conflict(.init(body: .json(.init(code: .clientExists, clientId: existing.id))))
             }
             let client = makeClient(
@@ -143,9 +145,8 @@ final class StubClients: @unchecked Sendable {
             }
             var client = stored[index]
             if let name = body.name { client.name = name }
-            if body.clearEmail == true {
-                client.email = nil
-            } else if let email = body.email?.lowercased() {
+            if let email = body.email?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+                if email.isEmpty { return .badRequest(.init(body: .json(issues(["email"])))) }
                 if let other = stored.first(where: { $0.email == email && $0.id != id }) {
                     return .conflict(.init(body: .json(.init(code: .clientExists, clientId: other.id))))
                 }
@@ -163,10 +164,10 @@ final class StubClients: @unchecked Sendable {
 
     // MARK: Helpers
 
-    private func makeClient(name: String, email: String?, locale: Components.Schemas.Locale?) -> Client {
+    private func makeClient(name: String, email: String, locale: Components.Schemas.Locale?) -> Client {
         defer { nextNumber += 1 }
         return .init(
-            id: String(format: "3f0b1c2e-8a54-4b51-9a42-%012d", nextNumber), name: name, email: email?.lowercased(),
+            id: String(format: "3f0b1c2e-8a54-4b51-9a42-%012d", nextNumber), name: name, email: email.lowercased(),
             emailLocale: locale.flatMap { .init(rawValue: $0.rawValue) }
         )
     }

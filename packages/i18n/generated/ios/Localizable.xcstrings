@@ -95,13 +95,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Only a name is needed. Email address and language can follow."
+            "value" : "Enter a name and an email address. The language can follow."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alleen een naam is nodig. E-mailadres en taal kunnen later."
+            "value" : "Vul een naam en een e-mailadres in. De taal kan later."
           }
         }
       }
@@ -112,13 +112,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Email address (optional)"
+            "value" : "Email address"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "E-mailadres (optioneel)"
+            "value" : "E-mailadres"
           }
         }
       }
@@ -655,23 +655,6 @@
         }
       }
     },
-    "clients.profile.noEmail" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No email address"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geen e-mailadres"
-          }
-        }
-      }
-    },
     "clients.profile.overview" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -773,6 +756,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Klanten"
+          }
+        }
+      }
+    },
+    "common.cancel" : {
+      "comment" : "Button that leaves a form or dialog without saving, e.g. the native full-screen dialog that changes the person's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuleren"
           }
         }
       }
@@ -1124,6 +1125,24 @@
         }
       }
     },
+    "myProfile.editName" : {
+      "comment" : "Title of the native dialog (iOS sheet, Android full-screen dialog) in which the person changes their name on Profile (TM-04), and the action of the name row that opens it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change name"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naam wijzigen"
+          }
+        }
+      }
+    },
     "myProfile.emailLabel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1449,6 +1468,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Profiel"
+          }
+        }
+      }
+    },
+    "profile.trainsHere.errors.generic" : {
+      "comment" : "Shown next to the switch when saving failed for another reason. The switch is back as it was.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er ging iets mis. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "profile.trainsHere.errors.noConnection" : {
+      "comment" : "Shown next to the switch when saving failed because there is no connection. The switch is back as it was.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No connection. Check your internet and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen verbinding. Controleer je internet en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "profile.trainsHere.label" : {
+      "comment" : "Label of the switch on the profile (web My profile TW-09, iOS and Android Profile TM-04), one per workspace where the person is Owner. On means they also train there and show as a trainer (F005). {workspace} is the workspace name, e.g. John's Gym. It talks about training, never about profiles.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I also train at %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ik geef zelf ook trainingen in %1$@"
+          }
+        }
+      }
+    },
+    "profile.trainsHere.saved" : {
+      "comment" : "Confirmation shown after the switch was saved.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opgeslagen."
           }
         }
       }
@@ -2337,6 +2428,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Acties"
+          }
+        }
+      }
+    },
+    "team.badge.trainer" : {
+      "comment" : "Badge on a team member of the Trainers page (TW-06) who trains in the workspace, next to their role label. The word for the role Trainer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
           }
         }
       }

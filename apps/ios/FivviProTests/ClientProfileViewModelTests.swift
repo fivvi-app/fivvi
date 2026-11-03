@@ -15,7 +15,9 @@ final class ClientProfileViewModelTests: XCTestCase {
 
     private func johnsGym() -> StubAPI {
         let api = StubAPI()
-        api.clients.seed([.init("Anna de Vries", "anna@example.com", .en), .init("Mark Jansen", nil, nil)])
+        api.clients.seed([
+            .init("Anna de Vries", "anna@example.com", .en), .init("Mark Jansen", "mark@example.com", nil)
+        ])
         return api
     }
 
@@ -43,7 +45,7 @@ final class ClientProfileViewModelTests: XCTestCase {
 
         let mark = profile(api, id: api.clients.id(of: "Mark Jansen"))
         await mark.load()
-        XCTAssertEqual(mark.emailText, catalog["clients.profile.noEmail"])
+        XCTAssertEqual(mark.emailText, "mark@example.com", "every client has an address")
         XCTAssertEqual(
             mark.localeText,
             String(format: catalog["clients.addDialog.localeDefault"], catalog["clients.languageNames.nl"]),
@@ -93,7 +95,7 @@ final class ClientProfileViewModelTests: XCTestCase {
         await model.load()
         let form = try XCTUnwrap(model.editForm())
         form.name = "Anna Visser"
-        form.email = ""
+        form.email = "anna.visser@example.com"
 
         let savedResult = await form.submit()
 
@@ -101,14 +103,14 @@ final class ClientProfileViewModelTests: XCTestCase {
         model.didSave(saved)
 
         XCTAssertEqual(model.title, "Anna Visser")
-        XCTAssertEqual(model.emailText, TestCatalog(language)["clients.profile.noEmail"])
+        XCTAssertEqual(model.emailText, "anna.visser@example.com")
         XCTAssertEqual(model.savedText, TestCatalog(language)["clients.profile.saved"])
         XCTAssertEqual(changed.last?.name, "Anna Visser", "the list row follows")
         // Another device reads the same.
         let other = profile(api, id: id)
         await other.load()
         XCTAssertEqual(other.title, "Anna Visser")
-        XCTAssertEqual(other.client?.email, nil)
+        XCTAssertEqual(other.client?.email, "anna.visser@example.com")
     }
 
     func test_F006_AC12_aFailedReadShowsTheErrorAndLoadingAgainRecovers() async {

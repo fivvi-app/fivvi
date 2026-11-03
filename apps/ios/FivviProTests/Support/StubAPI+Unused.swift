@@ -2,12 +2,6 @@ import FivviAPI
 
 /// Operations the app doesn't call yet. In an extension of its own file so `StubAPI.swift` stays within SwiftLint's length limit.
 extension StubAPI {
-    func changeTeamMemberRole(
-        _ input: Operations.ChangeTeamMemberRole.Input
-    ) async throws -> Operations.ChangeTeamMemberRole.Output {
-        fatalError("The app doesn't call changeTeamMemberRole yet")
-    }
-
     func getHealth(_ input: Operations.GetHealth.Input) async throws -> Operations.GetHealth.Output {
         fatalError("The hello screen doesn't call getHealth")
     }
@@ -28,5 +22,15 @@ extension StubAPI {
         _ input: Operations.RemoveTeamMember.Input
     ) async throws -> Operations.RemoveTeamMember.Output {
         fatalError("The app doesn't call removeTeamMember yet")
+    }
+
+    func changeTeamMemberRole(
+        _ input: Operations.ChangeTeamMemberRole.Input
+    ) async throws -> Operations.ChangeTeamMemberRole.Output {
+        fatalError("The app doesn't call changeTeamMemberRole yet")
+    }
+
+    func listTrainers(_ input: Operations.ListTrainers.Input) async throws -> Operations.ListTrainers.Output {
+        fatalError("The app doesn't call listTrainers yet")
     }
 }

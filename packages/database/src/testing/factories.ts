@@ -1,7 +1,13 @@
 import { randomBytes } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
-import { authUsers, clients, organizations, teamMembers } from '../schema/index.ts';
+import {
+  authUsers,
+  clients,
+  organizations,
+  teamMembers,
+  trainerProfiles,
+} from '../schema/index.ts';
 
 // Test factories for the tenancy core (TESTING.md §5.2). Each creates a valid record with
 // sensible defaults, so a test states only what matters to it, and each takes the executor it
@@ -10,7 +16,7 @@ import { authUsers, clients, organizations, teamMembers } from '../schema/index.
 //
 // Every record carries something unique to search for: the markers below where the record has a
 // text column (an account's email and name, a workspace's name and slug, a client's name), the record's own uuid
-// where it has none (a team role). A test that asks
+// where it has none (a team role or a trainer profile). A test that asks
 // "does this body contain anything of workspace A" searches for A's ids and markers.
 
 /** A short unique string for a record: `<label>-<8 hex digits>`. Lower case, safe in an email. */
@@ -59,21 +65,49 @@ export async function createAccount(
   return { id: row.id, email, marker };
 }
 
-/** The team role (Owner or Trainer, default Trainer) of an account in a workspace. */
+/**
+ * The team role (Owner or Trainer, default Trainer) of an account in a workspace. A Trainer has a
+ * trainer profile from the start (F005), as the API makes it; an Owner has none unless the test
+ * says `trainsHere: true`, and a test can leave a Trainer's out with `trainsHere: false`.
+ */
 export async function addTeamRole(
   db: Executor,
-  options: { workspaceId: string; accountId: string; role?: 'owner' | 'trainer' },
+  options: {
+    workspaceId: string;
+    accountId: string;
+    role?: 'owner' | 'trainer';
+    trainsHere?: boolean;
+  },
 ): Promise<{ id: string }> {
-  return first(
+  const role = options.role ?? 'trainer';
+  const teamMember = first(
     await db
       .insert(teamMembers)
       .values({
         organizationId: options.workspaceId,
         accountId: options.accountId,
-        role: options.role ?? 'trainer',
+        role,
       })
       .returning({ id: teamMembers.id }),
     'team role',
+  );
+  if (options.trainsHere ?? role === 'trainer') {
+    await addTrainerProfile(db, { workspaceId: options.workspaceId, teamMemberId: teamMember.id });
+  }
+  return teamMember;
+}
+
+/** The trainer profile of a team member: "trains in this workspace" (F005). */
+export async function addTrainerProfile(
+  db: Executor,
+  options: { workspaceId: string; teamMemberId: string },
+): Promise<{ id: string }> {
+  return first(
+    await db
+      .insert(trainerProfiles)
+      .values({ organizationId: options.workspaceId, teamMemberId: options.teamMemberId })
+      .returning({ id: trainerProfiles.id }),
+    'trainer profile',
   );
 }
 
@@ -100,7 +134,7 @@ export async function endTeamRole(
 
 /**
  * A client of a workspace, linked to an account or (a quick-added client) to none. Its name is a
- * unique marker unless the test gives one; it has no email address unless the test gives one.
+ * unique marker unless the test gives one; its email address is a unique marker at example.com unless the test gives one (every client has one).
  */
 export async function addClient(
   db: Executor,
@@ -119,7 +153,7 @@ export async function addClient(
         organizationId: options.workspaceId,
         accountId: options.accountId ?? null,
         name: options.name ?? uniqueMarker('client'),
-        email: options.email ?? null,
+        email: options.email ?? `${uniqueMarker('client')}@example.com`,
         emailLocale: options.emailLocale ?? null,
       })
       .returning({ id: clients.id, name: clients.name }),

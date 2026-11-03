@@ -310,6 +310,10 @@
               ]
             },
             "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
+          },
+          "trainsHere": {
+            "type": "boolean",
+            "description": "Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner."
           }
         },
         "required": [
@@ -317,7 +321,8 @@
           "name",
           "slug",
           "role",
-          "capabilities"
+          "capabilities",
+          "trainsHere"
         ],
         "description": "A workspace the account is on the team of."
       },
@@ -548,6 +553,47 @@
         ],
         "description": "The role a team member gets."
       },
+      "Trainer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The team-member ID: this person’s place on this team."
+          },
+          "name": {
+            "type": "string",
+            "description": "The account’s name; empty when the person has not given one."
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "description": "A team member who trains in the workspace."
+      },
+      "TrainerProfile": {
+        "type": "object",
+        "properties": {
+          "teamMemberId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The caller’s team-member ID."
+          },
+          "trainsHere": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "The caller trains in the workspace."
+          }
+        },
+        "required": [
+          "teamMemberId",
+          "trainsHere"
+        ],
+        "description": "The caller’s own trainer profile: they train in this workspace."
+      },
       "ClientList": {
         "type": "object",
         "properties": {
@@ -582,12 +628,9 @@
             "description": "The name as the team wrote it."
           },
           "email": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": "string",
             "format": "email",
-            "description": "The email address, lower case; `null` when none was given."
+            "description": "The email address, lower case. Every client has one."
           },
           "emailLocale": {
             "type": [
@@ -643,7 +686,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "description": "The client’s email address; stored lower case. Leave it out to add the client with a name only. An address that is no email address answers `400`. If a client of the workspace has it already, nothing is added and the answer is `409`."
+            "description": "The client’s email address; required, stored lower case. A missing, `null` or invalid address answers `400` with a field error, and nothing is added. If a client of the workspace has it already, nothing is added and the answer is `409`."
           },
           "emailLocale": {
             "type": "string",
@@ -663,9 +706,10 @@
           }
         },
         "required": [
-          "name"
+          "name",
+          "email"
         ],
-        "description": "A client to add. Only the name is required."
+        "description": "A client to add. The name and the email address are required."
       },
       "UpdateClientRequest": {
         "type": "object",
@@ -685,14 +729,7 @@
               "null"
             ],
             "format": "email",
-            "description": "The new email address; stored lower case. Leave it out, or send `null`, to keep it. To clear the address, send `clearEmail: true` instead. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes."
-          },
-          "clearEmail": {
-            "type": [
-              "boolean",
-              "null"
-            ],
-            "description": "`true` clears the email address (and the link to an account with it). `false`, `null` or left out does not. Together with an `email` it answers `400`."
+            "description": "The new email address; stored lower case. Leave it out, or send `null`, to keep it. The address can't be cleared: an empty one, or one that is no email address, answers `400` with a field error; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes."
           },
           "emailLocale": {
             "type": [
@@ -714,7 +751,7 @@
             "description": "`true` makes the client follow the workspace’s default language for emails. `false`, `null` or left out does not. Together with an `emailLocale` it answers `400`."
           }
         },
-        "description": "The fields of a client to change. A field left out, or `null`, stays as it is; the email address and the language are cleared with `clearEmail` and `clearEmailLocale`. The same body reads alike in every client: Swift leaves a `nil` out, Kotlin writes `null`."
+        "description": "The fields of a client to change. A field left out, or `null`, stays as it is; the language goes back to the default with `clearEmailLocale`. The email address can be changed, never cleared. The same body reads alike in every client: Swift and Kotlin leave an unset field out, and any caller may send `null` for \"keep\"."
       }
     },
     "parameters": {}
@@ -947,7 +984,7 @@
           "me"
         ],
         "summary": "The workspaces the signed-in account is on the team of",
-        "description": "The workspaces where the account has a team role (Owner or Trainer), by name, each with that role: the list *My workspaces* of the profile shows and the apps use. Workspaces the account is only a client of are not listed. Empty when it has no team role.",
+        "description": "The workspaces where the account has a team role (Owner or Trainer), by name, each with that role and whether they train there (`trainsHere`): the list *My workspaces* of the profile shows and the apps use. Workspaces the account is only a client of are not listed. Empty when it has no team role.",
         "security": [
           {
             "cookieAuth": []
@@ -1164,7 +1201,7 @@
           "workspaces"
         ],
         "summary": "Create the caller’s workspace",
-        "description": "Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.",
+        "description": "Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.",
         "security": [
           {
             "cookieAuth": []
@@ -1681,7 +1718,7 @@
           "team"
         ],
         "summary": "Change a team member’s role",
-        "description": "Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A workspace keeps at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other than `owner` or `trainer` (`admin` included) answers `400`.",
+        "description": "Makes a team member of the workspace an Owner or a Trainer (the Owner only). The role is replaced on the same team-member record, so a person never has two roles in a workspace. It takes effect on the person’s next request. A new Trainer gets a trainer profile (a Trainer always trains); a new Owner keeps the one they had. A workspace keeps at least one Owner: making the last Owner a Trainer answers `409` and changes nothing. A role other than `owner` or `trainer` (`admin` included) answers `400`.",
         "security": [
           {
             "cookieAuth": []
@@ -1789,6 +1826,307 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LastOwner"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/trainers": {
+      "get": {
+        "operationId": "listTrainers",
+        "tags": [
+          "trainers"
+        ],
+        "summary": "The trainers of a workspace",
+        "description": "The team members who train in the workspace, by name: every Trainer, and each Owner who also trains. Each has the team-member ID and the name. Both roles may read it; a client of the workspace gets `403`, a person with no place in it `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "trainers.view",
+          "roles": [
+            "owner",
+            "trainer"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The trainers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Trainer"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/trainer-profile": {
+      "put": {
+        "operationId": "putTrainerProfile",
+        "tags": [
+          "trainers"
+        ],
+        "summary": "Switch on that the caller trains here",
+        "description": "Gives the caller their own trainer profile in the workspace: they train here and show in the list of trainers from their next request. The Owner only; a Trainer always has one and gets `403`. It acts on the caller alone: there is no way to name another team member. Idempotent: switching on twice keeps one trainer profile.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "team.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller trains in the workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainerProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTrainerProfile",
+        "tags": [
+          "trainers"
+        ],
+        "summary": "Switch off that the caller trains here",
+        "description": "Takes the caller’s own trainer profile away: they no longer show in the list of trainers from their next request, and nothing else about them changes. The Owner only; a Trainer always has one and gets `403`. It acts on the caller alone: there is no way to name another team member. Idempotent: switching off when it is off answers `204` too.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "team.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The caller does not train in the workspace."
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
                 }
               }
             }
@@ -1952,7 +2290,7 @@
           "clients"
         ],
         "summary": "Add a client",
-        "description": "Adds a client to the workspace (the Owner and every Trainer). Only the name is required. Adding a client never sends an email and never creates an account. If an account has the email address, the client is linked to it; the answer is the same either way. A client of the workspace with the same address (in any case) makes the answer `409` with that client’s ID, and nothing is added. Two clients without an email address may share a name.",
+        "description": "Adds a client to the workspace (the Owner and every Trainer). The name and the email address are required. Adding a client never sends an email and never creates an account. If an account has the email address, the client is linked to it; the answer is the same either way. A client of the workspace with the same address (in any case) makes the answer `409` with that client’s ID, and nothing is added. Two clients with different email addresses may share a name.",
         "security": [
           {
             "cookieAuth": []
@@ -2187,7 +2525,7 @@
           "clients"
         ],
         "summary": "Edit a client",
-        "description": "Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out, or `null`, stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address is cleared with `clearEmail: true`, the language with `clearEmailLocale: true`. An address another client of the workspace has answers `409` with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.",
+        "description": "Changes the name, email address or language for emails of a client (the Owner and every Trainer); fields left out, or `null`, stay as they are. The rules of adding apply: a trimmed name of at most 120 characters, a valid email address stored lower case. The email address can’t be cleared (an empty one answers `400`); the language goes back to the default with `clearEmailLocale: true`. An address another client of the workspace has answers `409` with that client’s ID, and nothing changes. If the email address changes, the client’s link to an account follows it: to the account that has the new address, otherwise to none. The answer is the same either way, and the team never changes the account itself.",
         "security": [
           {
             "cookieAuth": []

@@ -426,6 +426,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MyWorkspace/capabilities`.
             public var capabilities: Components.Schemas.MyWorkspace.CapabilitiesPayload
+            /// Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/trainsHere`.
+            public var trainsHere: Swift.Bool
             /// Creates a new `MyWorkspace`.
             ///
             /// - Parameters:
@@ -434,18 +438,21 @@ extension Components {
             ///   - slug: The URL name: `/w/{slug}` on the web.
             ///   - role: What the account is on the team; shown as a label, never decided on.
             ///   - capabilities: What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
+            ///   - trainsHere: Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner.
             public init(
                 workspaceId: Swift.String,
                 name: Swift.String,
                 slug: Swift.String,
                 role: Components.Schemas.MyWorkspace.RolePayload,
-                capabilities: Components.Schemas.MyWorkspace.CapabilitiesPayload
+                capabilities: Components.Schemas.MyWorkspace.CapabilitiesPayload,
+                trainsHere: Swift.Bool
             ) {
                 self.workspaceId = workspaceId
                 self.name = name
                 self.slug = slug
                 self.role = role
                 self.capabilities = capabilities
+                self.trainsHere = trainsHere
             }
             public enum CodingKeys: String, CodingKey {
                 case workspaceId
@@ -453,6 +460,7 @@ extension Components {
                 case slug
                 case role
                 case capabilities
+                case trainsHere
             }
         }
         /// What to change on the signed-in account. Fields left out stay as they are.
@@ -804,6 +812,64 @@ extension Components {
                 case role
             }
         }
+        /// A team member who trains in the workspace.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Trainer`.
+        public struct Trainer: Codable, Hashable, Sendable {
+            /// The team-member ID: this person’s place on this team.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Trainer/id`.
+            public var id: Swift.String
+            /// The account’s name; empty when the person has not given one.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Trainer/name`.
+            public var name: Swift.String
+            /// Creates a new `Trainer`.
+            ///
+            /// - Parameters:
+            ///   - id: The team-member ID: this person’s place on this team.
+            ///   - name: The account’s name; empty when the person has not given one.
+            public init(
+                id: Swift.String,
+                name: Swift.String
+            ) {
+                self.id = id
+                self.name = name
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+            }
+        }
+        /// The caller’s own trainer profile: they train in this workspace.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TrainerProfile`.
+        public struct TrainerProfile: Codable, Hashable, Sendable {
+            /// The caller’s team-member ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerProfile/teamMemberId`.
+            public var teamMemberId: Swift.String
+            /// The caller trains in the workspace.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerProfile/trainsHere`.
+            public var trainsHere: Swift.Bool
+            /// Creates a new `TrainerProfile`.
+            ///
+            /// - Parameters:
+            ///   - teamMemberId: The caller’s team-member ID.
+            ///   - trainsHere: The caller trains in the workspace.
+            public init(
+                teamMemberId: Swift.String,
+                trainsHere: Swift.Bool
+            ) {
+                self.teamMemberId = teamMemberId
+                self.trainsHere = trainsHere
+            }
+            public enum CodingKeys: String, CodingKey {
+                case teamMemberId
+                case trainsHere
+            }
+        }
         /// One page of the clients of a workspace.
         ///
         /// - Remark: Generated from `#/components/schemas/ClientList`.
@@ -845,10 +911,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/Client/name`.
             public var name: Swift.String
-            /// The email address, lower case; `null` when none was given.
+            /// The email address, lower case. Every client has one.
             ///
             /// - Remark: Generated from `#/components/schemas/Client/email`.
-            public var email: Swift.String?
+            public var email: Swift.String
             /// The language for the client’s emails the team set: `nl-NL` or `en`. `null` follows the workspace’s default language.
             ///
             /// - Remark: Generated from `#/components/schemas/Client/emailLocale`.
@@ -866,12 +932,12 @@ extension Components {
             /// - Parameters:
             ///   - id: The client ID: this person’s record in this workspace.
             ///   - name: The name as the team wrote it.
-            ///   - email: The email address, lower case; `null` when none was given.
+            ///   - email: The email address, lower case. Every client has one.
             ///   - emailLocale: The language for the client’s emails the team set: `nl-NL` or `en`. `null` follows the workspace’s default language.
             public init(
                 id: Swift.String,
                 name: Swift.String,
-                email: Swift.String? = nil,
+                email: Swift.String,
                 emailLocale: Components.Schemas.Client.EmailLocalePayload? = nil
             ) {
                 self.id = id
@@ -917,7 +983,7 @@ extension Components {
                 case clientId
             }
         }
-        /// A client to add. Only the name is required.
+        /// A client to add. The name and the email address are required.
         ///
         /// - Remark: Generated from `#/components/schemas/AddClientRequest`.
         public struct AddClientRequest: Codable, Hashable, Sendable {
@@ -925,10 +991,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/AddClientRequest/name`.
             public var name: Swift.String
-            /// The client’s email address; stored lower case. Leave it out to add the client with a name only. An address that is no email address answers `400`. If a client of the workspace has it already, nothing is added and the answer is `409`.
+            /// The client’s email address; required, stored lower case. A missing, `null` or invalid address answers `400` with a field error, and nothing is added. If a client of the workspace has it already, nothing is added and the answer is `409`.
             ///
             /// - Remark: Generated from `#/components/schemas/AddClientRequest/email`.
-            public var email: Swift.String?
+            public var email: Swift.String
             /// The language for the client’s emails: `nl-NL` or `en`. Leave it out to follow the workspace’s default language. Any other value answers `400`.
             ///
             /// - Remark: Generated from `#/components/schemas/AddClientRequest/emailLocale`.
@@ -955,12 +1021,12 @@ extension Components {
             ///
             /// - Parameters:
             ///   - name: The client’s name: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error.
-            ///   - email: The client’s email address; stored lower case. Leave it out to add the client with a name only. An address that is no email address answers `400`. If a client of the workspace has it already, nothing is added and the answer is `409`.
+            ///   - email: The client’s email address; required, stored lower case. A missing, `null` or invalid address answers `400` with a field error, and nothing is added. If a client of the workspace has it already, nothing is added and the answer is `409`.
             ///   - emailLocale: The language for the client’s emails: `nl-NL` or `en`. Leave it out to follow the workspace’s default language. Any other value answers `400`.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `client_added` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 name: Swift.String,
-                email: Swift.String? = nil,
+                email: Swift.String,
                 emailLocale: Components.Schemas.AddClientRequest.EmailLocalePayload? = nil,
                 surface: Components.Schemas.AddClientRequest.SurfacePayload? = nil
             ) {
@@ -976,7 +1042,7 @@ extension Components {
                 case surface
             }
         }
-        /// The fields of a client to change. A field left out, or `null`, stays as it is; the email address and the language are cleared with `clearEmail` and `clearEmailLocale`. The same body reads alike in every client: Swift leaves a `nil` out, Kotlin writes `null`.
+        /// The fields of a client to change. A field left out, or `null`, stays as it is; the language goes back to the default with `clearEmailLocale`. The email address can be changed, never cleared. The same body reads alike in every client: Swift and Kotlin leave an unset field out, and any caller may send `null` for "keep".
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateClientRequest`.
         public struct UpdateClientRequest: Codable, Hashable, Sendable {
@@ -984,14 +1050,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateClientRequest/name`.
             public var name: Swift.String?
-            /// The new email address; stored lower case. Leave it out, or send `null`, to keep it. To clear the address, send `clearEmail: true` instead. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
+            /// The new email address; stored lower case. Leave it out, or send `null`, to keep it. The address can't be cleared: an empty one, or one that is no email address, answers `400` with a field error; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateClientRequest/email`.
             public var email: Swift.String?
-            /// `true` clears the email address (and the link to an account with it). `false`, `null` or left out does not. Together with an `email` it answers `400`.
-            ///
-            /// - Remark: Generated from `#/components/schemas/UpdateClientRequest/clearEmail`.
-            public var clearEmail: Swift.Bool?
             /// The new language for the client’s emails: `nl-NL` or `en`. Leave it out, or send `null`, to keep it. To follow the workspace’s default language again, send `clearEmailLocale: true` instead. Any other value answers `400`.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateClientRequest/emailLocale`.
@@ -1012,27 +1074,23 @@ extension Components {
             ///
             /// - Parameters:
             ///   - name: The new name: trimmed, at least one and at most 120 characters, as when adding. Leave it out, or send `null`, to keep it. Empty, blank or longer answers `400` with a field error.
-            ///   - email: The new email address; stored lower case. Leave it out, or send `null`, to keep it. To clear the address, send `clearEmail: true` instead. An address that is no email address answers `400`; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
-            ///   - clearEmail: `true` clears the email address (and the link to an account with it). `false`, `null` or left out does not. Together with an `email` it answers `400`.
+            ///   - email: The new email address; stored lower case. Leave it out, or send `null`, to keep it. The address can't be cleared: an empty one, or one that is no email address, answers `400` with a field error; one that another client of the workspace has answers `409`. The client’s link to an account, if any, follows the address; the answer is the same either way, and the account itself never changes.
             ///   - emailLocale: The new language for the client’s emails: `nl-NL` or `en`. Leave it out, or send `null`, to keep it. To follow the workspace’s default language again, send `clearEmailLocale: true` instead. Any other value answers `400`.
             ///   - clearEmailLocale: `true` makes the client follow the workspace’s default language for emails. `false`, `null` or left out does not. Together with an `emailLocale` it answers `400`.
             public init(
                 name: Swift.String? = nil,
                 email: Swift.String? = nil,
-                clearEmail: Swift.Bool? = nil,
                 emailLocale: Components.Schemas.UpdateClientRequest.EmailLocalePayload? = nil,
                 clearEmailLocale: Swift.Bool? = nil
             ) {
                 self.name = name
                 self.email = email
-                self.clearEmail = clearEmail
                 self.emailLocale = emailLocale
                 self.clearEmailLocale = clearEmailLocale
             }
             public enum CodingKeys: String, CodingKey {
                 case name
                 case email
-                case clearEmail
                 case emailLocale
                 case clearEmailLocale
             }

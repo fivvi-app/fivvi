@@ -6,7 +6,8 @@
   "common": {
     "loading": "Laden…",
     "retry": "Opnieuw proberen",
-    "loadingSlow": "Dit duurt langer dan normaal…"
+    "loadingSlow": "Dit duurt langer dan normaal…",
+    "cancel": "Annuleren"
   },
   "hello": {
     "title": "Welkom bij Fivvi",
@@ -172,12 +173,21 @@
       "nameTooLong": "Deze naam is te lang. Gebruik een kortere naam.",
       "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
       "generic": "Er ging iets mis. Probeer het opnieuw."
-    }
+    },
+    "editName": "Naam wijzigen"
   },
   "profile": {
     "title": "Profiel",
     "error": "Je werkruimtes konden niet worden geladen.",
-    "language": "Taal"
+    "language": "Taal",
+    "trainsHere": {
+      "label": "Ik geef zelf ook trainingen in {workspace}",
+      "saved": "Opgeslagen.",
+      "errors": {
+        "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+        "generic": "Er ging iets mis. Probeer het opnieuw."
+      }
+    }
   },
   "team": {
     "title": "Trainers",
@@ -214,6 +224,9 @@
     "roleChanged": {
       "owner": "{name} is nu eigenaar.",
       "trainer": "{name} is nu trainer."
+    },
+    "badge": {
+      "trainer": "Trainer"
     }
   },
   "clients": {
@@ -228,9 +241,9 @@
     "partial": "{shown} van {total} klanten getoond. Zoek om de rest te vinden.",
     "addDialog": {
       "title": "Klant toevoegen",
-      "description": "Alleen een naam is nodig. E-mailadres en taal kunnen later.",
+      "description": "Vul een naam en een e-mailadres in. De taal kan later.",
       "nameLabel": "Naam",
-      "emailLabel": "E-mailadres (optioneel)",
+      "emailLabel": "E-mailadres",
       "localeLabel": "Taal voor e-mails",
       "localeDefault": "Standaard ({language})",
       "localeNl": "Nederlands",
@@ -258,7 +271,6 @@
       "overview": "Overzicht",
       "nameLabel": "Naam",
       "emailLabel": "E-mailadres",
-      "noEmail": "Geen e-mailadres",
       "localeLabel": "Taal voor e-mails",
       "back": "Terug",
       "edit": "Bewerken",

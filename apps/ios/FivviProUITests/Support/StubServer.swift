@@ -83,6 +83,30 @@ final class StubServer: Sendable {
         set { responder.preferredLocale = newValue }
     }
 
+    /// The account's name, as `PATCH /api/v1/me` from the app or a change on the web leaves it (F005).
+    var name: String? {
+        get { responder.name }
+        set { responder.name = newValue }
+    }
+
+    /// Whether the Owner's switch of workspace number `index` is on (F005): what `PUT` / `DELETE` left, or what the API
+    /// says before: a Trainer trains, an Owner does not.
+    func trainsHere(workspace index: Int) -> Bool {
+        let role = responder.teamWorkspaceEntries.first { $0.index == index }?.workspace.role
+        return responder.trainsOverride(at: index) ?? (role != "owner")
+    }
+
+    /// While true, `PUT` / `DELETE` of a trainer profile get no answer, so the saving state stays on screen; setting it
+    /// to false answers the calls held.
+    func holdTrainerProfileRequests(_ hold: Bool) {
+        responder.holdTrainerProfileRequests(hold)
+    }
+
+    /// From now on every trainer-profile call is answered with this status and changes nothing; nil answers normally.
+    func answerTrainerProfile(withStatus status: Int?) {
+        responder.trainerStatus = status
+    }
+
     /// While offline, every request is cut off without an answer, as a lost connection would (it is still recorded in
     /// `requests`).
     func setOffline(_ offline: Bool) {
@@ -98,300 +122,5 @@ final class StubServer: Sendable {
     /// Answers from now on, and answers the requests on hold (unless the new answer is `.hold` too).
     func answer(with answer: Answer) {
         responder.answer(with: answer)
-    }
-}
-
-/// Reads requests and answers them; shared with Network's callbacks, so its state is behind a lock.
-private final class Responder: @unchecked Sendable {
-    private let lock = NSLock()
-    private let signIn: StubServer.SignIn
-    private let clientRoutes: StubClientRoutes
-    private var currentAnswer: StubServer.Answer
-    private var received: [StubServer.Request] = []
-    private var held: [(connection: NWConnection, locale: String?)] = []
-    private var offline = false
-    private var lost: Set<Int> = []
-    private var storedLocale: String?
-    private var holdsSignIn = false
-    private var heldSignIn: [NWConnection] = []
-
-    init(_ answer: StubServer.Answer, signIn: StubServer.SignIn) {
-        currentAnswer = answer
-        self.signIn = signIn
-        clientRoutes = StubClientRoutes(empty: signIn.hasNoClients)
-        storedLocale = signIn.preferredLocale
-    }
-
-    var preferredLocale: String? {
-        get { lock.withLock { storedLocale } }
-        set { lock.withLock { storedLocale = newValue } }
-    }
-
-    var requests: [StubServer.Request] { lock.withLock { received } }
-
-    var requestedLocales: [String?] {
-        lock.withLock { received.filter { $0.path == "/api/v1/hello" }.map(\.locale) }
-    }
-
-    func setOffline(_ value: Bool) {
-        lock.withLock { offline = value }
-    }
-
-    func removeFromTeam(workspace index: Int) {
-        lock.withLock { _ = lost.insert(index) }
-    }
-
-    func holdSignInRequests(_ hold: Bool) {
-        let waiting: [NWConnection] = lock.withLock {
-            holdsSignIn = hold
-            defer { if !hold { heldSignIn = [] } }
-            return hold ? [] : heldSignIn
-        }
-        waiting.forEach { send($0, status: 202, json: nil) }
-    }
-
-    func answer(with answer: StubServer.Answer) {
-        let waiting: [(connection: NWConnection, locale: String?)] = lock.withLock {
-            currentAnswer = answer
-            if case .hold = answer { return [] }
-            defer { held = [] }
-            return held
-        }
-        waiting.forEach { respond($0.connection, locale: $0.locale, with: answer) }
-    }
-
-    func accept(_ connection: NWConnection, on queue: DispatchQueue) {
-        connection.start(queue: queue)
-        receive(connection, buffer: Data())
-    }
-
-    /// Reads until the head and as many body bytes as its `Content-Length` says have arrived.
-    private func receive(_ connection: NWConnection, buffer: Data) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 65_536) { data, _, isComplete, error in
-            var buffer = buffer
-            if let data { buffer.append(data) }
-            if let end = buffer.range(of: Data("\r\n\r\n".utf8)) {
-                let head = String(bytes: buffer[..<end.lowerBound], encoding: .utf8) ?? ""
-                let body = buffer[end.upperBound...]
-                if body.count >= (Int(Self.header("content-length", in: head) ?? "") ?? 0) {
-                    self.handle(connection, head: head, body: Data(body))
-                    return
-                }
-            }
-            if isComplete || error != nil {
-                connection.cancel()
-            } else {
-                self.receive(connection, buffer: buffer)
-            }
-        }
-    }
-
-    private static func header(_ name: String, in head: String) -> String? {
-        for line in head.split(separator: "\r\n").dropFirst() {
-            let parts = line.split(separator: ":", maxSplits: 1)
-            if parts.count == 2, parts[0].lowercased() == name {
-                return parts[1].trimmingCharacters(in: .whitespaces)
-            }
-        }
-        return nil
-    }
-
-    private func handle(_ connection: NWConnection, head: String, body: Data) {
-        // Request line: GET /api/v1/hello?locale=en HTTP/1.1
-        let line = head.split(separator: "\r\n").first?.split(separator: " ").map(String.init) ?? []
-        let method = line.first ?? ""
-        let request = line.dropFirst().first.flatMap { URLComponents(string: $0) }
-        let path = request?.path ?? ""
-        let query = Dictionary(request?.queryItems?.map { ($0.name, $0.value ?? "") } ?? [], uniquingKeysWith: { $1 })
-        let locale = query["locale"]
-        let json = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any] ?? [:]
-        let authorization = Self.header("authorization", in: head)
-        let stringFields = json.compactMapValues { $0 as? String }
-        let (answer, isOffline, holdsSignInRequest) = lock.withLock {
-            received.append(.init(
-                method: method, path: path, locale: locale, authorization: authorization, body: stringFields
-            ))
-            if path == "/api/v1/hello", case .hold = currentAnswer { held.append((connection, locale)) }
-            let holdsSignInRequest = path == "/api/v1/sign-in/request" && holdsSignIn
-            if holdsSignInRequest { heldSignIn.append(connection) }
-            return (currentAnswer, offline, holdsSignInRequest)
-        }
-        if isOffline {
-            connection.cancel()
-            return
-        }
-        if holdsSignInRequest { return }
-        switch (method, path) {
-        case ("GET", "/api/v1/hello"):
-            respond(connection, locale: locale, with: answer)
-        case ("POST", "/api/v1/sign-in/request"):
-            send(connection, status: 202, json: nil)
-        case ("POST", "/api/v1/sign-in/token"):
-            let works = stringFields["email"] == signIn.email && stringFields["code"] == signIn.code
-            send(connection, status: works ? 200 : 401, json: works ? ["token": signIn.token] : Self.unauthorized)
-        case ("POST", "/api/v1/sign-out"):
-            let works = authorization == "Bearer \(signIn.token)"
-            send(connection, status: works ? 204 : 401, json: works ? nil : Self.unauthorized)
-        case (_, _) where Self.isAccountRoute(method: method, path: path):
-            respondToAccountRoute(
-                connection, method: method, path: path, authorization: authorization,
-                preferredLocale: stringFields["preferredLocale"]
-            )
-        default:
-            let reply = clientReply(method: method, path: path, query: query, body: json, authorization: authorization)
-            send(connection, status: reply.status, json: reply.json)
-        }
-    }
-
-    /// The client routes (F006) for a signed-in caller; any other path is unknown.
-    private func clientReply(
-        method: String, path: String, query: [String: String], body: [String: Any], authorization: String?
-    ) -> (status: Int, json: [String: Any]?) {
-        guard authorization == "Bearer \(signIn.token)" else { return (path.contains("/clients") ? 401 : 404, nil) }
-        return clientRoutes.respond(method: method, path: path, query: query, body: body) ?? (404, nil)
-    }
-
-    private static var unauthorized: [String: Any] { ["code": "unauthorized"] }
-    private static var notSignedIn: [String: Any] { ["code": "not_signed_in"] }
-
-    /// The account's workspaces in the order of the list, with the number each one has (0 for the first); the ones it
-    /// lost its team access to are not in it.
-    private var teamWorkspaceEntries: [(index: Int, workspace: StubServer.Workspace)] {
-        let lostNumbers: Set<Int> = lock.withLock { self.lost }
-        var all: [StubServer.Workspace] = []
-        if let name = signIn.workspaceName { all.append(StubServer.Workspace(name: name, role: signIn.role)) }
-        all.append(contentsOf: signIn.otherWorkspaces)
-        var entries: [(index: Int, workspace: StubServer.Workspace)] = []
-        for (number, workspace) in all.enumerated() where !lostNumbers.contains(number) {
-            entries.append((index: number, workspace: workspace))
-        }
-        return entries
-    }
-
-    private static func workspaceID(_ index: Int) -> String { "7c1d2e3f-0000-4000-8000-00000000000\(index)" }
-
-    /// `GET /api/v1/me/workspaces`: the list.
-    private var teamWorkspaces: [[String: Any]] {
-        teamWorkspaceEntries.map {
-            [
-                "workspaceId": Self.workspaceID($0.index), "name": $0.workspace.name, "slug": "workspace-\($0.index)",
-                "role": $0.workspace.role, "capabilities": capabilities(ofWorkspace: $0.index, role: $0.workspace.role)
-            ]
-        }
-    }
-
-    /// The first workspace's capabilities may be set by the test; any other follows the matrix.
-    private func capabilities(ofWorkspace index: Int, role: String) -> [String] {
-        (index == 0 ? signIn.capabilities : nil) ?? Self.capabilities(ofRole: role)
-    }
-
-    /// The permission matrix of `packages/domain` (F004): what a role may do, as the API sends it.
-    private static func capabilities(ofRole role: String) -> [String] {
-        switch role {
-        case "owner":
-            ["workspace.manage", "team.view", "team.manage", "trainers.view", "clients.view", "clients.manage"]
-        default: ["trainers.view", "clients.view", "clients.manage"]
-        }
-    }
-
-    /// `GET /api/v1/me`'s answer for the one account.
-    private var account: [String: Any] {
-        [
-            "id": "2f6a1f0e-0000-4000-8000-000000000001", "email": signIn.email, "name": "Owner",
-            "preferredLocale": preferredLocale.map { $0 as Any } ?? NSNull(),
-            "canCreateWorkspace": signIn.canCreateWorkspace,
-            "workspaces": teamWorkspaces.map { entry in
-                ["id": entry["workspaceId"] as Any, "name": entry["name"] as Any, "slug": entry["slug"] as Any,
-                 "role": entry["role"] as Any, "capabilities": entry["capabilities"] as Any]
-            }
-        ]
-    }
-
-    private static func isAccountRoute(method: String, path: String) -> Bool {
-        if method == "PATCH" { return path == "/api/v1/me" }
-        return method == "GET"
-            && (path == "/api/v1/me" || path == "/api/v1/me/workspaces" || isWorkspaceRoute(path))
-    }
-
-    private static func isWorkspaceRoute(_ path: String) -> Bool {
-        path.hasPrefix("/api/v1/workspaces/") && !path.contains("/clients")
-    }
-
-    /// `GET /api/v1/me`, `GET /api/v1/me/workspaces` and `GET /api/v1/workspaces/{id}`.
-    private func respondToAccountRoute(
-        _ connection: NWConnection, method: String, path: String, authorization: String?, preferredLocale: String?
-    ) {
-        if method == "PATCH" {
-            updateMe(connection, authorization: authorization, preferredLocale: preferredLocale)
-            return
-        }
-        if path == "/api/v1/me" {
-            respondToMe(connection, authorization: authorization)
-            return
-        }
-        guard authorization == "Bearer \(signIn.token)" else {
-            send(connection, status: 401, json: Self.notSignedIn)
-            return
-        }
-        if path == "/api/v1/me/workspaces" {
-            send(connection, status: 200, json: ["_": teamWorkspaces])
-        } else {
-            respondToWorkspace(connection, id: String(path.dropFirst("/api/v1/workspaces/".count)))
-        }
-    }
-
-    /// `GET /api/v1/workspaces/{id}`: the workspace for a team member, `404` for anyone else.
-    private func respondToWorkspace(_ connection: NWConnection, id: String) {
-        guard let entry = teamWorkspaceEntries.first(where: { Self.workspaceID($0.index) == id }) else {
-            send(connection, status: 404, json: ["code": "not_found"])
-            return
-        }
-        send(connection, status: 200, json: [
-            "id": id, "name": entry.workspace.name, "slug": "workspace-\(entry.index)", "defaultLocale": "nl-NL",
-            "timeZone": "Europe/Amsterdam"
-        ])
-    }
-
-    /// `PATCH /api/v1/me`: stores the language and answers with the account, as the API does.
-    private func updateMe(_ connection: NWConnection, authorization: String?, preferredLocale locale: String?) {
-        guard authorization == "Bearer \(signIn.token)" else {
-            send(connection, status: 401, json: Self.notSignedIn)
-            return
-        }
-        guard let locale, ["nl-NL", "en"].contains(locale) else {
-            send(connection, status: 400, json: ["code": "validation_failed", "issues": []])
-            return
-        }
-        preferredLocale = locale
-        send(connection, status: 200, json: account)
-    }
-
-    private func respondToMe(_ connection: NWConnection, authorization: String?) {
-        if let status = signIn.meStatus {
-            send(connection, status: status, json: nil)
-            return
-        }
-        let works = authorization == "Bearer \(signIn.token)"
-        send(connection, status: works ? 200 : 401, json: works ? account : Self.notSignedIn)
-    }
-
-    private func respond(_ connection: NWConnection, locale: String?, with answer: StubServer.Answer) {
-        switch answer {
-        case .hold:
-            return
-        case let .greeting(key):
-            send(connection, status: 200, json: ["greetingKey": key, "locale": locale ?? "en"])
-        case let .status(code):
-            send(connection, status: code, json: nil)
-        }
-    }
-
-    private func send(_ connection: NWConnection, status: Int, json: [String: Any]?) {
-        // A list is sent as a JSON array: `["_": list]` stands for the list itself.
-        let value: Any? = json.flatMap { $0.count == 1 ? $0["_"] : nil } ?? json
-        let body = value.flatMap { try? JSONSerialization.data(withJSONObject: $0) } ?? Data()
-        let head = "HTTP/1.1 \(status) Stub\r\nContent-Type: application/json\r\n"
-            + "Content-Length: \(body.count)\r\nConnection: close\r\n\r\n"
-        connection.send(content: Data(head.utf8) + body, completion: .contentProcessed { _ in connection.cancel() })
     }
 }

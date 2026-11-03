@@ -10,13 +10,20 @@
 #                                           gate refused, PRs GitHub removed from the merge queue (not those that wait
 #                                           for their bug or are to be re-queued after it, ADR-025), unanswered
 #                                           questions; last, what the owner may read: the high-risk PRs agents merged
-#                                           in the last 7 days (ADR-021)
+#                                           in the last 7 days (ADR-021). It also labels the open PRs on GitHub to match
+#                                           that list: `Merge PR #n` gets owner-queue, `Decide on PR #n` gets
+#                                           owner-decide (`Blocked PR #n`, an owner-only PR whose issue has an open
+#                                           blocker, gets neither: it can't be queued yet), and every other open PR
+#                                           loses both (writes only on a difference; a missing label is created from
+#                                           .github/repo-settings.json; a failed read or write is a warning on stderr
+#                                           that changes neither the output nor the exit code). A failed read of the
+#                                           blockers is an error
 #   flow.sh idle                            exit 0 and "idle: nothing for an agent" (plus what waits on the owner) when no
 #                                           agent has anything to do: nothing under "Ready for an agent" in `next` and no
 #                                           issue assigned to you in a phase an agent acts on; exit 1 and what there is
 #                                           otherwise; exit 2 on every error (a bad argument and a missing tool
 #                                           included), never a false idle. A cheap check for the scheduled factory run,
-#                                           right after `lock acquire`
+#                                           right after `lock acquire`. When idle it syncs the PR labels like `next`
 #   flow.sh start <n> [--type <t>] [--force]  claim a ready ticket and create its <type>/<n>-<slug> worktree and notes;
 #                                           no limit on the tickets in progress, unless FIVVI_MAX_TICKETS (a positive
 #                                           integer) sets one: then it refuses at that many (--force to override)
@@ -315,6 +322,7 @@ cmd_next() {
   echo "== Waiting on the owner"
   owner="$(owner_items "$specs" "$questions" "$removals")" || exit 1
   grep . <<<"$owner" || echo "(none)"
+  sync_owner_labels "$owner"
   echo "== For the owner to read"
   read_items="$(agent_merged_items)" || exit 1
   grep . <<<"$read_items" || echo "(none)"
@@ -363,6 +371,7 @@ idle_scan() {
     echo idle
     echo "== Waiting on the owner"
     grep . <<<"$owner" || echo "(none)"
+    sync_owner_labels "$owner"
   fi
 }
 
@@ -424,7 +433,15 @@ agent_merged_items() {
     || die "could not read the merged PRs"
 }
 
-# Specs to approve, owner-only PRs (scripts/risk.sh; an unknown risk counts as owner-only), PRs GitHub removed from the
+# The open blockers of issue $1 as `#m, #n` (empty when none), read like `facts` reads blockedBy. Fails when the read
+# fails or does not answer a blocker list: never "no blockers".
+open_blockers() {
+  gh issue view "$1" --repo "$REPO" --json blockedBy \
+    --jq '[.blockedBy.nodes[] | select(.state == "OPEN") | "#\(.number)"] | join(", ")'
+}
+
+# Specs to approve, owner-only PRs (scripts/risk.sh; an unknown risk counts as owner-only; one whose issue, named in its
+# branch, has an open blocker reads `Blocked PR #n … (waits for #m; …)` instead of `Merge PR #n`, #411), PRs GitHub removed from the
 # merge queue (scripts/pr.sh queue), low-risk and high-risk PRs the merge gate refused on their head commit
 # (scripts/pr.sh refusal) and unanswered needs-info questions ($2, from cmd_next). $3 is removal_items: a removed PR that
 # waits for its bug or is to be re-queued (ADR-025) is the factory's, not listed. A PR in the merge queue waits on
@@ -432,7 +449,7 @@ agent_merged_items() {
 # complete, and not still needs-spec (no tickets, not ready-for-agent, and needs-triage or no body). Dies when a read
 # fails, so an empty list means nothing waits.
 owner_items() {
-  local prs pr title head risk refusal queue
+  local prs pr title head branch issue blockers risk refusal queue
   jq -r --arg approved "$APPROVED_LABEL" --arg ready "$READY_LABEL" '.[]
     | [.labels[].name] as $labels
     | ((.body // "") | gsub("\\s"; "") | length > 0) as $described
@@ -441,9 +458,9 @@ owner_items() {
     | select((.subIssuesSummary.total == 0 and ($labels | index($ready) | not)
         and (($labels | index("needs-triage")) or ($described | not))) | not)
     | "Approve spec #\(.number) \(.title) (add \($approved))"' <<<"$1" || die "could not read the open specs"
-  prs="$(gh pr list --repo "$REPO" --state open --limit 100 --json number,title,isDraft,headRefOid \
-    --jq '.[] | select(.isDraft | not) | [.number, .title, .headRefOid] | @tsv')" || die "could not read the open PRs"
-  while IFS=$'\t' read -r pr title head; do
+  prs="$(gh pr list --repo "$REPO" --state open --limit 100 --json number,title,isDraft,headRefOid,headRefName \
+    --jq '.[] | select(.isDraft | not) | [.number, .title, .headRefOid, .headRefName // ""] | @tsv')" || die "could not read the open PRs"
+  while IFS=$'\t' read -r pr title head branch; do
     [ -n "$pr" ] || continue
     queue="$("$ROOT/scripts/pr.sh" queue "$pr")" || die "could not read the merge queue state of PR #$pr"
     case "$(jq -r '.state // ""' <<<"$queue")" in
@@ -458,8 +475,14 @@ owner_items() {
     esac
     risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || risk='{"risk": "owner", "reasons": ["risk unknown"]}'
     if [ "$(jq -r .risk <<<"$risk")" = owner ]; then
-      jq -r --arg pr "$pr" --arg title "$title" \
-        '"Merge PR #\($pr) \($title) (owner-only: \(.reasons[:3] | join("; "))\(if (.reasons | length) > 3 then "; +\(.reasons | length - 3) more" else "" end))"' <<<"$risk" \
+      # An owner-only PR whose issue still has an open blocker can't be queued yet (#411): `Blocked PR`, not `Merge PR`.
+      blockers=""
+      issue="$(branch_issue "$branch")"
+      if [ -n "$issue" ]; then blockers="$(open_blockers "$issue")" || die "could not read the blockers of #$issue"; fi
+      jq -r --arg pr "$pr" --arg title "$title" --arg blockers "$blockers" \
+        '((.reasons[:3] | join("; ")) + (if (.reasons | length) > 3 then "; +\(.reasons | length - 3) more" else "" end)) as $why
+         | if $blockers == "" then "Merge PR #\($pr) \($title) (owner-only: \($why))"
+           else "Blocked PR #\($pr) \($title) (waits for \($blockers); owner-only: \($why))" end' <<<"$risk" \
         || die "could not read the risk of PR #$pr"
       continue
     fi
@@ -470,6 +493,63 @@ owner_items() {
       <<<"$refusal" || die "could not read the refusal of PR #$pr"
   done <<<"$prs"
   jq -r 'select(.answered | not) | "Answer #\(.number) \(.title) (needs-info)"' <<<"$2"
+}
+
+# The labels that show on GitHub which open PRs wait on the owner (spec #407), kept in step with the PR lines of
+# owner_items ($1): `Merge PR #n` is owner-queue, `Decide on PR #n` is owner-decide; `Blocked PR #n` (an owner-only PR
+# that waits for an open blocker, #411) gets neither, and loses owner-queue. Each listed PR gets its label and
+# loses the other one; every other open PR (drafts included) loses both. A PR is written only when its labels differ,
+# so a sync with nothing to change makes no writes. A label GitHub lacks is created from .github/repo-settings.json
+# first. Nothing here changes what the caller prints on stdout or its exit status: a failed read or write is a warning
+# on stderr that names the PR, and the sync always returns 0.
+OWNER_QUEUE_LABEL="owner-queue"
+OWNER_DECIDE_LABEL="owner-decide"
+
+# Creates label $1 from the settings when GitHub lacks it. Reads the label list once per sync: `labels_read` and
+# `labels_on_github` are locals of sync_owner_labels. Returns 1 on any failure.
+ensure_label() {
+  local label="$1" color description
+  if ! $labels_read; then
+    labels_on_github="$(gh label list --repo "$REPO" --limit 200 --json name --jq '.[].name')" || return 1
+    labels_read=true
+  fi
+  if grep -qxF "$label" <<<"$labels_on_github"; then return 0; fi
+  IFS=$'\t' read -r color description < <(jq -r --arg name "$label" \
+    '.labels[] | select(.name == $name) | [.color, .description] | @tsv' "$ROOT/.github/repo-settings.json") || return 1
+  [ -n "$color" ] || return 1
+  gh label create "$label" --repo "$REPO" --color "$color" --description "$description" >/dev/null || return 1
+  labels_on_github+=$'\n'"$label"
+}
+
+sync_owner_labels() {
+  local items="$1" wanted open pr have want label carries listed
+  local add=() remove=() labels_read=false labels_on_github=''
+  wanted="$(sed -nE "s/^Merge PR #([0-9]+) .*/\1\t$OWNER_QUEUE_LABEL/p; s/^Decide on PR #([0-9]+) .*/\1\t$OWNER_DECIDE_LABEL/p" <<<"$items")"
+  if ! open="$(gh pr list --repo "$REPO" --state open --limit 100 --json number,labels \
+      --jq '.[] | [.number, ([(.labels // [])[].name] | join(","))] | @tsv')"; then
+    listed="$(awk -F'\t' '{ printf "%s#%s", sep, $1; sep = ", " }' <<<"$wanted")"
+    echo "warning: could not read the labels of the open PRs; the owner labels are not synced${listed:+ (PR $listed)}" >&2
+    return 0
+  fi
+  while IFS=$'\t' read -r pr have; do
+    [ -n "$pr" ] || continue
+    want="$(awk -F'\t' -v pr="$pr" '$1 == pr { print $2; exit }' <<<"$wanted")"
+    add=() remove=()
+    for label in "$OWNER_QUEUE_LABEL" "$OWNER_DECIDE_LABEL"; do
+      case ",$have," in *",$label,"*) carries=true ;; *) carries=false ;; esac
+      if [ "$want" = "$label" ] && ! $carries; then add+=(--add-label "$label")
+      elif [ "$want" != "$label" ] && $carries; then remove+=(--remove-label "$label")
+      fi
+    done
+    [ ${#add[@]} -gt 0 ] || [ ${#remove[@]} -gt 0 ] || continue
+    if [ ${#add[@]} -gt 0 ] && ! ensure_label "$want"; then
+      echo "warning: could not create the label $want for PR #$pr" >&2
+      continue
+    fi
+    gh pr edit "$pr" --repo "$REPO" ${add[@]+"${add[@]}"} ${remove[@]+"${remove[@]}"} >/dev/null \
+      || echo "warning: could not update the owner labels of PR #$pr" >&2
+  done <<<"$open"
+  return 0
 }
 
 # The most tickets in progress at once, if the session sets a limit (ADR-021): FIVVI_MAX_TICKETS, a positive integer.

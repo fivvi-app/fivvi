@@ -24,6 +24,8 @@ extension StubServer {
         var meStatus: Int?
         /// The account's stored language (`nl-NL` or `en`) at the start, or nil for none (F010).
         var preferredLocale: String?
+        /// The account's name at the start, or nil for none (F005).
+        var name: String? = "Owner"
     }
 
     /// A workspace of the account (synthetic).

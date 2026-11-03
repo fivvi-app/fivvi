@@ -23,6 +23,7 @@ import {
   pingDatabase,
   systemGreetings,
   teamMembers,
+  trainerProfiles,
 } from '../src/index.ts';
 import { migrationsFolder, runMigrations } from '../src/migrate.ts';
 import { release } from '../src/release.ts';
@@ -109,6 +110,235 @@ describe('E004 migrations', () => {
     }
   });
 
+  it('backfills trainer profiles for the Trainers and first Owners of an older database (F005 AC2, AC3)', async () => {
+    const trainerProfilesBackfill = '0014_trainer_profiles_backfill';
+    const journal = await readJournal(migrationsFolder);
+    const backfillIndex = journal.entries.findIndex(
+      (entry) => entry.tag === trainerProfilesBackfill,
+    );
+    expect(backfillIndex).toBeGreaterThanOrEqual(0);
+
+    const previous = await mkdtemp(join(tmpdir(), 'fivvi-migrations-'));
+    try {
+      await cp(migrationsFolder, previous, { recursive: true });
+      // The journal cut just before the backfill, so only that migration is applied after it.
+      const previousJournal = { ...journal, entries: journal.entries.slice(0, backfillIndex) };
+      await writeFile(join(previous, 'meta', '_journal.json'), JSON.stringify(previousJournal));
+
+      await withFreshDatabase(async (client) => {
+        // The database as it was before the backfill: members, no profiles.
+        await migrate(client.db, { migrationsFolder: previous });
+        // F002 inserts a workspace and its first Owner in one transaction, so both get the same
+        // created_at (now()). The test sets that value on the workspace and its creator by hand.
+        const created = {
+          gym: '2026-01-01T10:00:00Z',
+          studio: '2026-04-01T10:00:00Z',
+          orphan: '2026-05-01T10:00:00Z',
+        };
+        const [workspace] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into organizations (name, slug, default_locale, time_zone, created_at)
+              values ('Backfill Gym', 'backfill-gym', 'nl-NL', 'Europe/Amsterdam', ${created.gym})
+              returning id`,
+        );
+        const [other] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into organizations (name, slug, default_locale, time_zone, created_at)
+              values ('Backfill Studio', 'backfill-studio', 'en', 'Europe/Amsterdam', ${created.studio})
+              returning id`,
+        );
+        // A workspace whose creator Owner was removed (F003): only a later Owner is left.
+        const [orphan] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into organizations (name, slug, default_locale, time_zone, created_at)
+              values ('Backfill Orphan', 'backfill-orphan', 'nl-NL', 'Europe/Amsterdam', ${created.orphan})
+              returning id`,
+        );
+        const member = async (
+          organizationId: string | undefined,
+          email: string,
+          role: 'owner' | 'trainer',
+          createdAt: string,
+        ): Promise<string> => {
+          const [account] = await rows<{ id: string }>(
+            client.db,
+            sql`insert into auth_users (email) values (${email}) returning id`,
+          );
+          const [created] = await rows<{ id: string }>(
+            client.db,
+            sql`insert into team_members (organization_id, account_id, role, created_at)
+                values (${organizationId}, ${account?.id}, ${role}, ${createdAt}) returning id`,
+          );
+          return created?.id ?? '';
+        };
+        const firstOwner = await member(workspace?.id, 'first@example.com', 'owner', created.gym);
+        const secondOwner = await member(
+          workspace?.id,
+          'second@example.com',
+          'owner',
+          '2026-02-01T10:00:00Z',
+        );
+        const trainer = await member(
+          workspace?.id,
+          'trainer@example.com',
+          'trainer',
+          '2026-03-01T10:00:00Z',
+        );
+        const otherOwner = await member(other?.id, 'studio@example.com', 'owner', created.studio);
+        const laterOwner = await member(
+          orphan?.id,
+          'later@example.com',
+          'owner',
+          '2026-06-01T10:00:00Z',
+        );
+
+        const profiled = async (): Promise<string[]> =>
+          (
+            await rows<{ team_member_id: string }>(
+              client.db,
+              sql`select team_member_id from trainer_profiles order by team_member_id`,
+            )
+          ).map((row) => row.team_member_id);
+
+        expect(await profiled()).toEqual([]);
+
+        await runMigrations(client.db);
+        const afterMigration = await profiled();
+        expect(afterMigration).toEqual([firstOwner, trainer, otherOwner].sort());
+        expect(afterMigration).not.toContain(secondOwner);
+        expect(afterMigration).not.toContain(laterOwner);
+
+        // Running the migration's SQL again changes nothing.
+        const statements = (
+          await readFile(join(migrationsFolder, `${trainerProfilesBackfill}.sql`), 'utf8')
+        ).split('--> statement-breakpoint');
+        for (const statement of statements) {
+          await client.db.execute(sql.raw(statement));
+        }
+        expect(await profiled()).toEqual(afterMigration);
+      });
+    } finally {
+      await rm(previous, { recursive: true, force: true });
+    }
+  });
+
+  it('makes the client email required, and fails rather than invent an address (F006, spec #174 decision 5)', async () => {
+    const emailRequired = '0015_clients_email_required';
+    const journal = await readJournal(migrationsFolder);
+    const index = journal.entries.findIndex((entry) => entry.tag === emailRequired);
+    expect(index).toBeGreaterThanOrEqual(0);
+
+    const previous = await mkdtemp(join(tmpdir(), 'fivvi-migrations-'));
+    try {
+      await cp(migrationsFolder, previous, { recursive: true });
+      const previousJournal = { ...journal, entries: journal.entries.slice(0, index) };
+      await writeFile(join(previous, 'meta', '_journal.json'), JSON.stringify(previousJournal));
+
+      await withFreshDatabase(async (client) => {
+        await migrate(client.db, { migrationsFolder: previous });
+        const [workspace] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into organizations (name, slug, default_locale, time_zone)
+              values ('Email Gym', 'email-gym', 'nl-NL', 'Europe/Amsterdam') returning id`,
+        );
+        await client.db.execute(
+          sql`insert into clients (organization_id, name, email)
+              values (${workspace?.id}, 'Anna de Vries', 'anna@example.com')`,
+        );
+        const [withoutEmail] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into clients (organization_id, name)
+              values (${workspace?.id}, 'Mark Jansen') returning id`,
+        );
+
+        // A client without an email address stops the migration: no address is made up.
+        await expect(runMigrations(client.db)).rejects.toThrow();
+        expect(
+          await rows(client.db, sql`select email from clients where id = ${withoutEmail?.id}`),
+        ).toEqual([{ email: null }]);
+
+        // With the address filled in by hand, the migration goes through, and the column is
+        // required from then on.
+        await client.db.execute(
+          sql`update clients set email = 'mark@example.com' where id = ${withoutEmail?.id}`,
+        );
+        await runMigrations(client.db);
+        await expect(
+          client.db.execute(
+            sql`insert into clients (organization_id, name) values (${workspace?.id}, 'Sophie')`,
+          ),
+        ).rejects.toMatchObject({ cause: { code: '23502', column: 'email' } });
+      });
+    } finally {
+      await rm(previous, { recursive: true, force: true });
+    }
+  });
+
+  it('gives only the seed’s own email-less client its address, so the seeded development database migrates (F006)', async () => {
+    const emailRequired = '0015_clients_email_required';
+    const journal = await readJournal(migrationsFolder);
+    const index = journal.entries.findIndex((entry) => entry.tag === emailRequired);
+    expect(index).toBeGreaterThanOrEqual(0);
+
+    const previous = await mkdtemp(join(tmpdir(), 'fivvi-migrations-'));
+    try {
+      await cp(migrationsFolder, previous, { recursive: true });
+      const previousJournal = { ...journal, entries: journal.entries.slice(0, index) };
+      await writeFile(join(previous, 'meta', '_journal.json'), JSON.stringify(previousJournal));
+
+      const insertWorkspace = (db: Parameters<typeof rows>[0], slug: string) =>
+        rows<{ id: string }>(
+          db,
+          sql`insert into organizations (name, slug, default_locale, time_zone)
+              values (${slug}, ${slug}, 'nl-NL', 'Europe/Amsterdam') returning id`,
+        );
+
+      await withFreshDatabase(async (client) => {
+        await migrate(client.db, { migrationsFolder: previous });
+        const [gym] = await insertWorkspace(client.db, 'johns-gym');
+        const [other] = await insertWorkspace(client.db, 'other-gym');
+        // The seed of an older version: Mark Jansen of John's Gym without an address.
+        await client.db.execute(
+          sql`insert into clients (organization_id, name) values (${gym?.id}, 'Mark Jansen')`,
+        );
+        // Not the seed's row: same name in another workspace, and another name in the seed's.
+        const [stranger] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into clients (organization_id, name)
+              values (${other?.id}, 'Mark Jansen') returning id`,
+        );
+        const [sophie] = await rows<{ id: string }>(
+          client.db,
+          sql`insert into clients (organization_id, name)
+              values (${gym?.id}, 'Sophie Bakker') returning id`,
+        );
+
+        // Any other row without an address still stops the migration: no address is made up.
+        await expect(runMigrations(client.db)).rejects.toThrow();
+        await client.db.execute(
+          sql`update clients set email = 'a@example.com' where id = ${stranger?.id}`,
+        );
+        await expect(runMigrations(client.db)).rejects.toThrow();
+        await client.db.execute(
+          sql`update clients set email = 'b@example.com' where id = ${sophie?.id}`,
+        );
+
+        await runMigrations(client.db);
+        expect(
+          await rows(
+            client.db,
+            sql`select name, email from clients where organization_id = ${gym?.id} order by name`,
+          ),
+        ).toEqual([
+          { name: 'Mark Jansen', email: 'mark@example.com' },
+          { name: 'Sophie Bakker', email: 'b@example.com' },
+        ]);
+      });
+    } finally {
+      await rm(previous, { recursive: true, force: true });
+    }
+  });
+
   it('is a no-op when run again', async () => {
     await withFreshDatabase(async (client) => {
       await runMigrations(client.db);
@@ -181,7 +411,7 @@ describe('E004 database', () => {
   });
 
   describe('F006 seed clients', () => {
-    it('AC15: gives John’s Gym a few synthetic clients, one without an email address, once', async () => {
+    it('AC15: gives John’s Gym a few synthetic clients, every one with an @example.com email address, once', async () => {
       await withRollback(db, async (tx) => {
         await seed(tx);
         await seed(tx);
@@ -200,9 +430,8 @@ describe('E004 database', () => {
           'Mark Jansen',
           'Sophie Bakker',
         ]);
-        expect(seeded.filter(({ email }) => email === null)).toHaveLength(1);
         for (const { email } of seeded) {
-          if (email !== null) expect(email).toMatch(/^[a-z.]+@example\.com$/);
+          expect(email).toMatch(/^[a-z.]+@example\.com$/);
         }
         // Adding a client links nobody: the seed has no account for them (F006 AC4).
         expect(seeded.every(({ accountId }) => accountId === null)).toBe(true);
@@ -317,6 +546,27 @@ describe('E004 database', () => {
           .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
           .where(and(eq(teamMembers.organizationId, gym?.id ?? ''), eq(teamMembers.role, 'owner')));
         expect(owner).toEqual({ role: 'owner', email: 'owner@example.com' });
+      });
+    });
+
+    it('F005: John and Sarah train in John’s Gym and Sarah in her own workspace, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
+
+        const training = await tx
+          .select({ slug: organizations.slug, email: authUsers.email, role: teamMembers.role })
+          .from(trainerProfiles)
+          .innerJoin(teamMembers, eq(teamMembers.id, trainerProfiles.teamMemberId))
+          .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+          .innerJoin(organizations, eq(organizations.id, trainerProfiles.organizationId));
+        expect(
+          training.toSorted((a, b) => `${a.slug}${a.email}`.localeCompare(`${b.slug}${b.email}`)),
+        ).toEqual([
+          { slug: 'johns-gym', email: 'owner@example.com', role: 'owner' },
+          { slug: 'johns-gym', email: 'trainer@example.com', role: 'trainer' },
+          { slug: 'sarah-personal-training', email: 'trainer@example.com', role: 'owner' },
+        ]);
       });
     });
 

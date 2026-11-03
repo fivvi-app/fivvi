@@ -14,12 +14,12 @@ final class ClientsViewModelTests: XCTestCase {
         timeZone: TimeZone(identifier: "Europe/Amsterdam") ?? .current
     )
 
-    /// John's Gym (synthetic): Anna and Sophie have an email address, Mark has none.
+    /// John's Gym (synthetic): every client has an email address.
     private func johnsGym() -> StubAPI {
         let api = StubAPI()
         api.clients.seed([
             .init("Sophie Bakker", "sophie.bakker@example.com", nil),
-            .init("Mark Jansen", nil, nil),
+            .init("Mark Jansen", "mark@example.com", nil),
             .init("Anna de Vries", "anna@example.com", .en)
         ])
         return api
@@ -46,7 +46,9 @@ final class ClientsViewModelTests: XCTestCase {
 
         XCTAssertEqual(model.state, .loaded)
         XCTAssertEqual(model.clients.map(\.name), ["Anna de Vries", "Mark Jansen", "Sophie Bakker"])
-        XCTAssertEqual(model.clients.map(\.email), ["anna@example.com", nil, "sophie.bakker@example.com"])
+        XCTAssertEqual(
+            model.clients.map(\.email), ["anna@example.com", "mark@example.com", "sophie.bakker@example.com"]
+        )
         XCTAssertEqual(model.total, 3)
         XCTAssertNil(model.offlineText)
         XCTAssertFalse(model.hasMore)
@@ -76,7 +78,7 @@ final class ClientsViewModelTests: XCTestCase {
 
     func test_F006_AC6_aLongListComesInPages() async {
         let api = StubAPI()
-        api.clients.seed((1 ... 5).map { .init("Klant \($0)", nil, nil) })
+        api.clients.seed((1 ... 5).map { .init("Klant \($0)", "klant\($0)@example.com", nil) })
         let model = model(api, pageSize: 2)
 
         await model.load()
@@ -221,7 +223,7 @@ final class ClientsViewModelTests: XCTestCase {
         let model = model(api)
         await model.load()
 
-        model.didAdd(.init(id: "new", name: "Bram Visser"))
+        model.didAdd(.init(id: "new", name: "Bram Visser", email: "bram@example.com"))
         XCTAssertEqual(model.clients.map(\.name), ["Anna de Vries", "Bram Visser", "Mark Jansen", "Sophie Bakker"])
         XCTAssertEqual(model.total, 4)
 

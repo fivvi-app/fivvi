@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { DatabaseExecutor } from './client.ts';
-import { authUsers, clients, organizations, teamMembers } from './schema/index.ts';
+import { authUsers, clients, organizations, teamMembers, trainerProfiles } from './schema/index.ts';
 
 export interface SeedOptions {
   /**
@@ -27,7 +27,8 @@ export function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env): b
  * create route does (`WORKSPACE_DEFAULTS` of packages/domain) by hand: this package can't
  * import the domain. And the account `trainer@example.com` ("Sarah", F003): Trainer of John's
  * Gym and Owner of a second workspace, "Sarah Personal Training" (`sarah-personal-training`),
- * so previews and tests have the multi-workspace and two-role cases of `PRODUCT.md §9`. Rows that
+ * so previews and tests have the multi-workspace and two-role cases of `PRODUCT.md §9`. John and
+ * Sarah train in John's Gym and Sarah in her own workspace (trainer profiles, F005). Rows that
  * every environment needs, like the `hello` greeting, are data migrations instead
  * (`src/system-data.ts`).
  */
@@ -97,19 +98,28 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
       { organizationId: personalTraining, accountId: sarah, role: 'owner' },
     ])
     .onConflictDoNothing({ target: [teamMembers.organizationId, teamMembers.accountId] });
+  // Who trains (F005): John (the creator) and Sarah in John's Gym, Sarah in her own workspace.
+  const trainers = await db
+    .select({ id: teamMembers.id, organizationId: teamMembers.organizationId })
+    .from(teamMembers)
+    .where(
+      and(
+        inArray(teamMembers.organizationId, [gym, personalTraining]),
+        inArray(teamMembers.accountId, [owner, sarah]),
+      ),
+    );
+  await db
+    .insert(trainerProfiles)
+    .values(trainers.map(({ id, organizationId }) => ({ organizationId, teamMemberId: id })))
+    .onConflictDoNothing({ target: trainerProfiles.teamMemberId });
   // Idempotent without fixed IDs: a client is there already when its email address is used in
-  // the workspace, or, for the one without an address, when its name is.
+  // the workspace.
   const existing = await db
-    .select({ name: clients.name, email: clients.email })
+    .select({ email: clients.email })
     .from(clients)
     .where(eq(clients.organizationId, gym));
   const missing = SEED_CLIENTS.filter(
-    (client) =>
-      !existing.some((row) =>
-        client.email === null
-          ? row.email === null && row.name === client.name
-          : row.email === client.email,
-      ),
+    (client) => !existing.some((row) => row.email === client.email),
   );
   if (missing.length > 0) {
     await db
@@ -119,9 +129,9 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
   }
 }
 
-/** The synthetic clients of John's Gym (F006 AC15): `@example.com` addresses, one without. */
+/** The synthetic clients of John's Gym (F006 AC15): `@example.com` addresses, every one with an email. */
 const SEED_CLIENTS = [
   { name: 'Anna de Vries', email: 'anna@example.com', emailLocale: 'en' as const },
-  { name: 'Mark Jansen', email: null, emailLocale: null },
+  { name: 'Mark Jansen', email: 'mark@example.com', emailLocale: null },
   { name: 'Sophie Bakker', email: 'sophie.bakker@example.com', emailLocale: null },
 ];

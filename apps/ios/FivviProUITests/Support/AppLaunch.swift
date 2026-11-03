@@ -57,7 +57,7 @@ enum AppLaunch {
             app.launchArguments += ["-UITestAppearance", appearance]
         }
         app.launchEnvironment["TZ"] = "Europe/Amsterdam"
-        app.launch()
+        ReachableLaunch.launch(app)
         return app
     }
 }

@@ -46,13 +46,15 @@ const displayName = (member: TeamMember) => member.name || member.email;
  * making yourself a Trainer; making another Owner a Trainer asks nothing. The last Owner's row has
  * neither the menu nor the action (F003 AC7, F004 AC5), and there is no add button (invitations
  * are F011). After a change the page asks the server again, so the list is what the API holds.
- * "You" is the row with the address of the signed-in account.
+ * A team member who trains here (F005: every Trainer, and an Owner who also trains) has the
+ * trainer badge next to their role. "You" is the row with the address of the signed-in account.
  */
 export function TeamList({
   workspaceId,
   workspaceName,
   members,
   canManage,
+  trainerIds,
   currentEmail,
 }: {
   workspaceId: string;
@@ -60,6 +62,8 @@ export function TeamList({
   members: readonly TeamMember[];
   /** Whether the API lists `team.manage` for this person in this workspace. */
   canManage: boolean;
+  /** The team-member IDs of the people who train here (`GET …/trainers`, F005). */
+  trainerIds: readonly string[];
   /** The address the signed-in account signs in with. */
   currentEmail: string;
 }) {
@@ -75,6 +79,7 @@ export function TeamList({
 
   useEffect(() => setReady(true), []);
 
+  const trainers = new Set(trainerIds);
   const owners = members.filter(({ role }) => role === 'owner').length;
 
   const isYou = (member: TeamMember) => member.email.toLowerCase() === currentEmail.toLowerCase();
@@ -160,22 +165,32 @@ export function TeamList({
                 <td className="p-2">{displayName(member)}</td>
                 <td className="p-2">{member.email}</td>
                 <td className="p-2">
-                  {canManage && !(member.role === 'owner' && owners <= 1) ? (
-                    <NativeSelect
-                      aria-label={t('roleMenu', { name: displayName(member) })}
-                      value={member.role}
-                      disabled={!ready || pending}
-                      onChange={(event) => chooseRole(member, event.target.value as Role)}
-                    >
-                      {ROLES.map((role) => (
-                        <NativeSelectOption key={role} value={role}>
-                          {roles(role)}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                  ) : (
-                    roles(member.role)
-                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {canManage && !(member.role === 'owner' && owners <= 1) ? (
+                      <NativeSelect
+                        aria-label={t('roleMenu', { name: displayName(member) })}
+                        value={member.role}
+                        disabled={!ready || pending}
+                        onChange={(event) => chooseRole(member, event.target.value as Role)}
+                      >
+                        {ROLES.map((role) => (
+                          <NativeSelectOption key={role} value={role}>
+                            {roles(role)}
+                          </NativeSelectOption>
+                        ))}
+                      </NativeSelect>
+                    ) : (
+                      roles(member.role)
+                    )}
+                    {trainers.has(member.id) ? (
+                      <span
+                        data-slot="badge"
+                        className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+                      >
+                        {t('badge.trainer')}
+                      </span>
+                    ) : null}
+                  </div>
                 </td>
                 <td className="p-2 text-end">
                   {canManage && !(member.role === 'owner' && owners <= 1) ? (

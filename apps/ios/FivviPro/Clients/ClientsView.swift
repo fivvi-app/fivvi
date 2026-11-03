@@ -209,14 +209,12 @@ struct ClientsView: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("clients.rowName.\(client.id)")
-                    if let email = client.email {
-                        Text(email)
-                            .font(.system(Tokens.TextStyle.label))
-                            .foregroundStyle(Tokens.Colors.textSecondary)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityIdentifier("clients.rowEmail.\(client.id)")
-                    }
+                    Text(client.email)
+                        .font(.system(Tokens.TextStyle.label))
+                        .foregroundStyle(Tokens.Colors.textSecondary)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("clients.rowEmail.\(client.id)")
                 }
                 Spacer()
                 Image(systemName: "chevron.right")

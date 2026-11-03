@@ -11,7 +11,11 @@ const sarah = { id: 't2', name: 'Sarah', email: 'sarah@example.com', role: 'trai
 // Expected copy is read from the catalogs, never hard-coded (TESTING.md §5.4).
 describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
   const copy = messages[locale];
-  const list = (members: Parameters<typeof TeamList>[0]['members'], canManage = true) =>
+  const list = (
+    members: Parameters<typeof TeamList>[0]['members'],
+    canManage = true,
+    trainerIds: readonly string[] = [],
+  ) =>
     render(
       locale,
       <TeamList
@@ -19,6 +23,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
         workspaceName="John's Gym"
         members={members}
         canManage={canManage}
+        trainerIds={trainerIds}
         currentEmail="john@example.com"
       />,
     );
@@ -37,7 +42,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
     // John is the last Owner: a plain label. Sarah's role is in her menu (below).
     expect(html).toMatch(
       new RegExp(
-        `John</td><td[^>]*>john@example.com</td><td[^>]*>${copy.roles.owner}</td>.*Sarah</td><td[^>]*>sarah@example.com</td>`,
+        `John</td><td[^>]*>john@example.com</td><td[^>]*>(?:<div[^>]*>)?${copy.roles.owner}(?:</div>)?</td>.*Sarah</td><td[^>]*>sarah@example.com</td>`,
       ),
     );
   });
@@ -100,6 +105,30 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
     const html = list([john, { ...sarah, name: '' }]);
 
     expect(html.match(/sarah@example\.com/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  /** The badge of a row: the text after the role cell of the person. */
+  const badges = (html: string) =>
+    html.match(
+      new RegExp(`<span[^>]*data-slot="badge"[^>]*>${copy.team.badge.trainer}</span>`, 'g'),
+    );
+
+  it('AC7: a trainer badge on each team member with a trainer profile, not on an Owner who does not train', () => {
+    const joan = { ...john, id: 't3', name: 'Joan', email: 'joan@example.com' };
+
+    const html = list([john, joan, sarah], true, ['t1', 't2']);
+
+    expect(badges(html)).toHaveLength(2);
+    expect(html).toMatch(
+      new RegExp(
+        `John</td>.*?${copy.roles.owner}.*?<span[^>]*data-slot="badge"[^>]*>${copy.team.badge.trainer}</span>.*?Joan</td>`,
+      ),
+    );
+    expect(html).toMatch(/Joan<\/td>(?:(?!data-slot="badge").)*?Sarah<\/td>/);
+  });
+
+  it('AC7: with nobody training there is no badge', () => {
+    expect(badges(list([john, sarah]))).toBeNull();
   });
 
   it('the copy has none of the forbidden words', () => {

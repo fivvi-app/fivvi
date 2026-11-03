@@ -32,6 +32,12 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   team_member_removed: {
     workspace_id: property.uuid(),
   },
+  // F005: an Owner switched their own training on or off. The workspace ID and on/off only (the
+  // Owner's account UUID is the distinct ID): not the name or email address of anyone.
+  trainer_profile_changed: {
+    workspace_id: property.uuid(),
+    trains_here: property.boolean(),
+  },
   // F006: a team member added a client. The workspace ID and the surface only (the team member's
   // account UUID is the distinct ID): no client ID, name, email address or language.
   client_added: {
