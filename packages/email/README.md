@@ -1,11 +1,11 @@
 # @fivvi/email
 
-Transactional email (ADR-009): React Email templates, localized from `packages/i18n`, sent through Lettermint (ADR-028) or Brevo (ADR-009) behind a small `sendEmail` interface. Server-side only.
+Transactional email (ADR-009): React Email templates, localized from `packages/i18n`, sent through Lettermint (ADR-028) behind a small `sendEmail` interface. Server-side only.
 
 ```ts
 import { createConfiguredTransport, createSendEmail, helloEmail, readEmailConfig } from '@fivvi/email';
 
-// Lettermint when LETTERMINT_API_TOKEN is set, otherwise Brevo (BREVO_API_KEY)
+// Lettermint: LETTERMINT_API_TOKEN, both routes and the sender are required
 const config = readEmailConfig();
 const sendEmail = createSendEmail({
   transport: createConfiguredTransport(config),
@@ -28,8 +28,7 @@ await sendEmail({
 | `src/render.tsx` | `renderEmail()` and the per-locale context (`t`, `formatDateTime`) |
 | `src/send.ts` | `createSendEmail()`: render, send, inline retry |
 | `src/lettermint.ts` | Lettermint transport (`POST /v1/send`), the route per template |
-| `src/brevo.ts` | Brevo transport (`POST /v3/smtp/email`), used while `LETTERMINT_API_TOKEN` is not set |
-| `src/provider.ts` | `createConfiguredTransport()`: the transport of the provider `readEmailConfig` chose |
+| `src/provider.ts` | `createConfiguredTransport()`: the Lettermint transport for the config `readEmailConfig` read |
 | `src/log.ts`, `src/environment.ts` | Log transport and the per-environment choice of transport (`createEnvironmentSendEmail`) |
 | `src/memory.ts` | In-memory capture transport for tests and local development |
 | `scripts/` | Preview server and the test-send CLI |
@@ -53,42 +52,39 @@ Adding a template: write `src/templates/<type>.tsx`, add the keys to both catalo
 | Failure | Retried? |
 |---|---|
 | Network error, timeout (5 s per attempt) | Yes |
-| HTTP 429 | Yes, after `Retry-After` (Brevo: or `x-sib-ratelimit-reset`); gives up at once if that is more than 2 s |
+| HTTP 429 | Yes, after `Retry-After`; gives up at once if that is more than 2 s |
 | HTTP 5xx | Yes |
-| Other 4xx (invalid address, 401 wrong key or unauthorized IP, out of credits, Lettermint 403 and 422, …) | No |
+| Other 4xx (invalid address, 401 wrong token, 403, 422, …) | No |
 
-- At most **3 attempts**, full-jitter exponential backoff (≤ 250 ms, then ≤ 500 ms), so the waits add at most 0.75 s. The worst case, three timeouts, holds the request for about 16 s; Brevo normally answers well within a second.
-- Every send gets a UUID **idempotency key**, reused on each retry. Brevo processes a key once within 30 minutes, so a retry after a lost response doesn't send twice. A `duplicate_parameter` answer on a retry counts as sent. Checked against the live API on 3 October 2026: a second request with the same key gets HTTP 400 `duplicate_parameter` ("Email for the idempotency key has already been processed") and no second email.
-- Lettermint (ADR-028) keeps a key for 24 hours: the same key and body return the same `message_id` (`202`), and the same key with another body is `409` (`duplicate`; on a retry it counts as maybe sent, like Brevo's). Checked against the live API on 2 November 2026. Its `409` also covers a `5xx` whose outcome was unknown, so after one a retry may count as sent when the email was not: the user can ask for a new email, which gets a new key. `422` (for example `text` under 3 characters) and `401` and `403` are final.
+- At most **3 attempts**, full-jitter exponential backoff (≤ 250 ms, then ≤ 500 ms), so the waits add at most 0.75 s. The worst case, three timeouts, holds the request for about 16 s; Lettermint normally answers well within a second.
+- Every send gets a UUID **idempotency key**, reused on each retry. Lettermint (ADR-028) keeps a key for 24 hours: the same key and body return the same `message_id` (`202`), and the same key with another body is `409` (`duplicate`; on a retry it counts as maybe sent). Checked against the live API on 2 November 2026. Its `409` also covers a `5xx` whose outcome was unknown, so after one a retry may count as sent when the email was not: the user can ask for a new email, which gets a new key. `422` (for example `text` under 3 characters) and `401` and `403` are final.
 - After the last attempt it throws `EmailSendError`. Its `message` holds only the provider, status and error code (never the recipient, content or API key), so it is safe to log and to report to Sentry (E009). The provider's own message is in `detail`.
 - `onRetry` is called before each retry, for logging.
 
-Transports implement `EmailTransport` (`send(email) → { messageId }`, one attempt). Swapping Brevo for another provider means writing one transport; templates and callers don't change.
+Transports implement `EmailTransport` (`send(email) → { messageId }`, one attempt). Swapping Lettermint for another provider means writing one transport; templates and callers don't change.
 
-**Tests** use `createMemoryTransport()`: it records every email (to, locale, template, subject, HTML, text and the `links` in it) and can fail the next sends with `failNext(error)`. Never call Brevo from a test.
+**Tests** use `createMemoryTransport()`: it records every email (to, locale, template, subject, HTML, text and the `links` in it) and can fail the next sends with `failNext(error)`. Never call Lettermint from a test.
 
 ## Configuration
 
-**Which provider:** Lettermint as soon as `LETTERMINT_API_TOKEN` is set (then both route variables and the sender are required; the Brevo variables are ignored); otherwise Brevo, exactly as before. Production with neither configured throws.
+**Which provider:** Lettermint (ADR-028). The token, both route variables and the sender are required; production without them throws.
 
 | Variable | Example | Notes |
 |---|---|---|
-| `LETTERMINT_API_TOKEN` | `lm-…` | Lettermint → project → API token. **Secret.** Setting it switches sending to Lettermint |
-| `LETTERMINT_ROUTE_SIGN_IN` | `sign-in` | Slug of the Lettermint route for sign-in emails (the `sign-in` template). Required with the token. The slug is generated from the route's name and can't be changed |
-| `LETTERMINT_ROUTE_MAIL` | `bookings` | Slug of the route for every other template. Required with the token |
-| `LETTERMINT_API_URL` | `http://localhost:4010/v1/send` | Optional. Sends the requests here instead of to Lettermint, for tests. Leave it unset everywhere else |
-| `BREVO_API_KEY` | `xkeysib-…` | Brevo → Settings → SMTP & API → API keys. **Secret.** Used only while `LETTERMINT_API_TOKEN` is not set |
-| `EMAIL_FROM_ADDRESS` | `noreply@fivvi.app` | Must be a verified sender in Brevo (Settings → Senders, domains & dedicated IPs), or on a domain verified in Lettermint |
+| `LETTERMINT_API_TOKEN` | `lm-…` | Lettermint → project → API token. **Secret** |
+| `LETTERMINT_ROUTE_SIGN_IN` | `sign-in` | Slug of the Lettermint route for sign-in emails (the `sign-in` template). Required. The slug is generated from the route's name and can't be changed |
+| `LETTERMINT_ROUTE_MAIL` | `bookings` | Slug of the route for every other template. Required |
+| `LETTERMINT_API_URL` | `http://localhost:4010/v1/send` | Optional. Sends the requests here instead of to Lettermint, for tests and for the e2e and Maestro runs against a fake Lettermint server. Leave it unset everywhere else |
+| `EMAIL_FROM_ADDRESS` | `noreply@fivvi.app` | Must be on a domain verified in Lettermint |
 | `EMAIL_FROM_NAME` | `Fivvi` | Display name of the sender |
-| `BREVO_API_URL` | `http://localhost:4010/v3/smtp/email` | Optional. Sends the requests here instead of to Brevo, for e2e runs against a fake Brevo server. Leave it unset everywhere else |
-| `EMAIL_SEND_EXAMPLE_DOMAIN` | `1` | Optional. Outside production, sends `@example.com` mail through Brevo (here `BREVO_API_URL`) instead of writing it to the log. Only the Maestro run sets it (`scripts/maestro.sh`: its fake Brevo server holds the sign-in codes). Leave it unset everywhere else; production ignores it |
+| `EMAIL_SEND_EXAMPLE_DOMAIN` | `1` | Optional. Outside production, sends `@example.com` mail through Lettermint (here `LETTERMINT_API_URL`) instead of writing it to the log. Only the Maestro run sets it (`scripts/maestro.sh`: its fake Lettermint server holds the sign-in codes). Leave it unset everywhere else; production ignores it |
 
 `createEnvironmentSendEmail()` is the `sendEmail` the server uses (F001): **production** always sends through the provider and never logs an email; **outside production**, mail to an `@example.com` address is written to the server log instead (the whole text, so the sign-in code and link can be read from it), and all other mail goes through the provider (`EMAIL_SEND_EXAMPLE_DOMAIN=1` sends `@example.com` mail through it too). "Production" is the Railway environment named `production` (`RAILWAY_ENVIRONMENT_NAME`). Outside production the provider's variables may be missing while only `@example.com` mail is sent.
 
 The log transport is the one known place where a sign-in link is printed as it is, with the page asked for (`returnTo`, #207) next to the token and code (F001 AC15). That is acceptable because it never runs in production and only for `@example.com` addresses; everywhere else the page asked for is not logged (`packages/auth/README.md`).
 
-- **Local:** put the variables in `packages/email/.env` (git-ignored; every worktree needs its own). The `send:test` script loads it. For Brevo: `BREVO_API_KEY` plus the sender (`EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`). For Lettermint: `LETTERMINT_API_TOKEN`, `LETTERMINT_ROUTE_SIGN_IN` and `LETTERMINT_ROUTE_MAIL` plus the sender.
-- **Preview and production:** Railway variables on `web`, declared in `.railway/railway.ts` (`preserve()` for the keys, routes and address, so the file holds no value) and listed in [`docs/engineering/ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). The owner sets the values: the real key only in `production`, a separate test key in `development` (every preview copies it). Never commit a key; rotate it in Brevo if it leaks.
+- **Local:** put the variables in `packages/email/.env` (git-ignored; every worktree needs its own). The `send:test` script loads it. It needs `LETTERMINT_API_TOKEN`, `LETTERMINT_ROUTE_SIGN_IN` and `LETTERMINT_ROUTE_MAIL` plus the sender (`EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`).
+- **Preview and production:** Railway variables on `web`, declared in `.railway/railway.ts` (`preserve()` for the keys, routes and address, so the file holds no value) and listed in [`docs/engineering/ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). The owner sets the values: the production token only in `production`, a separate token in `development` (every preview copies it). Never commit a token; rotate it in Lettermint if it leaks.
 - The sender comes from config, not code, because it changes when the own domain arrives (before M5).
 
 ## Scripts
@@ -100,29 +96,15 @@ pnpm email:send-test --to you@example.com --locale en [--name Anna] [--time-zone
 ```
 
 - **Preview** renders every template in both locales with its `previewProps`, as HTML and as plain text (`/hello/nl-NL`, `/hello/en.txt`). It restarts when a file changes; reload the page. We don't use React Email's `email dev`: it installs `@react-email/ui` and a separate Next.js app with npm at run time, outside our lockfile and pnpm's release-age check.
-- **Send test** sends the `hello` template through Brevo to one address and prints the Brevo message id. It is the G1 delivery check; it counts against the daily limit.
+- **Send test** sends the `hello` template through Lettermint to one address and prints the Lettermint message id. It is the G1 delivery check; it counts against the monthly limit.
 
 ## TypeScript 7
 
 Nothing here needs the TypeScript compiler API. React Email 6 (`react-email`: components + `render`) and `use-intl` ship plain JS, and `tsx` (esbuild) runs the scripts, because Node's type stripping doesn't handle JSX. No separate TypeScript 5 package is needed, unlike `packages/contract/tools/typescript-generator`.
 
-## Brevo
+## History
 
-Checked on 29 September 2026. Terms change often; re-check before G2 and G4. The legal side is in [`docs/legal/sub-processors.md`](../../docs/legal/sub-processors.md).
-
-| Topic | Finding | Action |
-|---|---|---|
-| Free plan | **300 emails per day**, shared by transactional and marketing email; transactional API, SMTP and webhooks included; no expiry. API rate limit 1,000 requests/s (not a concern) | Stay on Free until G4. The daily cap would block sign-in and booking emails (R14): add a usage alert, and have a paid plan ready before G4 |
-| Sender | Verified sender on a free mailbox domain, so Brevo rewrites the From address to `@brevosend.com` | Own domain with SPF, DKIM and DMARC before M5 (ADR-009), then change `EMAIL_FROM_ADDRESS` |
-| Authorized IPs | Brevo blocks API calls from unknown IPs after its 30-day learning phase. Railway has no fixed egress IPs | **Done (3 October 2026):** IP blocking is deactivated for API keys (Settings → Security → Authorized IPs → "Deactivate for API keys"), so calls from any IP work. A leaked key therefore works from anywhere: keep it in `.env` and Railway variables only, use separate dev and production keys, and rotate on any leak. Revisit at G4 if the paid Railway plan has fixed outbound IPs. A block would show up as HTTP 401 `unauthorized` (not retried) |
-| Open and click tracking | Brevo adds an open pixel and rewrites links through its own redirect domain on transactional emails. Free and Starter plans can't switch it off in the UI; you can anonymise it, or ask support to disable it for the account | We don't need tracking. **Done (3 October 2026):** anonymous tracking on. Before real emails (G2): Brevo support disables open and click tracking, so sign-in and confirmation links aren't rewritten. Asked on 22 October 2026, waiting for Brevo (`docs/legal/sub-processors.md §4`) |
-| Logs and email previews | Kept **indefinitely** by default, including the full content. Configurable from 1 month to 5 years | **Done (3 October 2026):** "Never store previews" (no email content kept), and logs deleted after **1 month**, the minimum (retention policy R18). Setting: Transactional → Email retention rules |
-| G1 delivery check (3 October 2026) | NL and EN test emails to Gmail: all delivered, none in spam. From shown as an address on `brevosend.com`. No Brevo logo or footer. Gmail hid "images": the only image is Brevo's open-tracking pixel. Gmail showed "Unsubscribe" next to the sender on two of the three, so Brevo apparently adds an unsubscribe header | Second mailbox (Outlook or a Dutch ISP) later; full deliverability tests in M5. Brevo can't remove the unsubscribe header (22 October 2026); the owner accepted it (`docs/legal/sub-processors.md §4`) |
-| DPA | Appendix 3 of the Brevo terms (version of 1 October 2025), part of the agreement you accept with the terms; no separate signature. Lists the sub-processors; SCCs for transfers | **Done (30 October 2026):** the owner saved a PDF of the terms and DPA, outside the repo |
-| Data location | Stored in the EU: OVH in France and Germany, Google Cloud in Belgium (backups) | — |
-| Access from outside the EU | Group companies in the US and India have support and operations access; some optional features use US sub-processors | Recorded in the sub-processor list. Don't enable Brevo's AI features |
-
-Sources: [Brevo pricing](https://www.brevo.com/pricing/), [send transactional email API](https://developers.brevo.com/reference/sendtransacemail), [rate limits](https://developers.brevo.com/docs/api-limits), [rate-limit headers](https://developers.brevo.com/docs/limit-headers), [idempotency](https://developers.brevo.com/docs/heterogenous-versions-batch-emails), [data storage location](https://help.brevo.com/hc/en-us/articles/360001005510-Data-storage-location), [log retention](https://help.brevo.com/hc/en-us/articles/4415743225746-Manage-the-retention-period-of-transactional-logs-and-email-previews), [anonymous tracking](https://help.brevo.com/hc/en-us/articles/11643306229906-Can-I-anonymize-the-tracking-of-opens-and-clicks-for-my-emails), [tracking thread](https://community.brevo.com/t/no-way-to-disable-by-option-tracking-in-transactional-e-mail/201), [terms and DPA (Appendix 3)](https://www.brevo.com/legal/termsofuse/), [EU storage vs access](https://www.hejlsvigconsulting.com/articles/brevo/).
+Until ADR-028 (November 2026), transactional email went through Brevo (ADR-009), whose click tracking rewrote the sign-in link and whose `List-Unsubscribe` header could block sign-in codes. Its transport, tests, fake e2e server and variables were removed in #403. The findings and the trial are in [`docs/decisions/research/ADR-028-email-providers.md`](../../docs/decisions/research/ADR-028-email-providers.md); the legal side is in [`docs/legal/sub-processors.md`](../../docs/legal/sub-processors.md).
 
 ## Tests
 
@@ -133,7 +115,6 @@ pnpm --filter @fivvi/email test
 | File | Proves |
 |---|---|
 | `src/templates/templates.test.ts` | Every template renders in nl-NL and en with no missing keys or placeholders; hello: subject, preview, text and HTML from the catalog, Europe/Amsterdam dates in both locales (summer, winter, around midnight), escaping of user content |
-| `src/brevo.test.ts` | The Brevo request (mocked HTTP client), retry with backoff on 5xx, network errors, timeouts and 429, no retry on 400/401, same idempotency key per retry, no secrets or recipient in errors |
 | `src/send.test.ts` | `sendEmail` with the memory transport: locale, idempotency keys, retry decisions, link capture |
 | `src/lettermint.test.ts` | The Lettermint request (mocked HTTP client): route per template, sender and recipient format, tag, idempotency key; retry on 5xx, network errors, timeouts and 429 with `Retry-After`; `409` as duplicate; no retry on 401, 403 and 422; no token or recipient in errors |
 | `src/retry.test.ts`, `src/config.test.ts` | Backoff maths; config validation without leaking the key |

@@ -174,8 +174,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'e2e/maestro/sign-in.yaml',
       'e2e/maestro/shared/sign-in.yaml',
       'e2e/maestro/shared/newest-code.js',
-      // What the sign-in flow reads its code from: the fake Brevo server and the email whose code it parses (EM-08).
-      'apps/web/e2e/fake-brevo.ts',
+      // What the sign-in flow reads its code from: the fake Lettermint server and the email whose code it parses (EM-08).
+      'apps/web/e2e/fake-lettermint.ts',
       'packages/email/src/templates/sign-in.tsx',
       // The Maestro sign-in flow clears the rate limits (db:reset-rate-limits) and reads its environment (EM-08).
       'packages/email/src/environment.ts',
@@ -192,7 +192,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'packages/design-tokens/generated/web/tokens.css',
       'packages/design-tokens/FivviDesignTokens/Sources/FivviDesignTokens/Generated/Colors.swift',
       'packages/i18n/generated/ios/Localizable.xcstrings',
-      'apps/web/e2e/brevo.ts',
+      'apps/web/e2e/lettermint.ts',
       'packages/email/src/templates/hello.tsx',
     ]) {
       assert.ok(!runs('android', path), path);
@@ -1504,10 +1504,10 @@ const iPhone = (udid, model, runtime, state = 'Shutdown') => ({
   runtime: `com.apple.CoreSimulator.SimRuntime.iOS-${runtime}`,
 });
 
-// E008 #383: the web server port of a run of the native test commands and, 2000 above it, that of the fake Brevo
+// E008 #383: the web server port of a run of the native test commands and, 2000 above it, that of the fake Lettermint
 // server. Picked at random, and only where both are free now, so two runs on one machine (two worktrees running
 // check.sh, which also runs web e2e tests on E2E_PORT) don't take the same ports. A port is free when nothing listens
-// on it at 'localhost' (the host fake-brevo.ts binds, which on macOS is not the wildcard address: another process can
+// on it at 'localhost' (the host fake-lettermint.ts binds, which on macOS is not the wildcard address: another process can
 // hold the port there while the wildcard check passes) nor at the wildcard address (where the web server listens).
 // `first` are ports to try before random ones (a test uses them). The pairs handed out by this process are skipped
 // (each is closed again after the check, so two checkouts in a row could draw the same one). A port is checked in a
@@ -1544,7 +1544,7 @@ const free = async (port) => {
   const port = Number(found);
   handedOut.add(port);
   handedOut.add(port + 2000);
-  return { port, brevoPort: port + 2000 };
+  return { port, lettermintPort: port + 2000 };
 };
 
 // The native test commands in a copy of the repo with fake toolchains: simctl above, an emulator that records its pid,
@@ -1570,7 +1570,7 @@ describe('E008 #71 native test commands clean up after themselves', () => {
   const checkout = ({ simulatorBooted = false, emulatorRunning = false } = {}) => {
     const base = realpathSync(mkdtempSync(join(tmpdir(), 'native-')));
     dirs.push(base);
-    const { port, brevoPort } = freePorts();
+    const { port, lettermintPort } = freePorts();
     const repo = join(base, 'repo');
     const state = join(base, 'state');
     const bin = join(base, 'bin');
@@ -1601,28 +1601,28 @@ esac`;
       'packages/i18n/nl-NL.json',
       'packages/i18n/en.json',
       'packages/i18n/generated/ios',
-      // The fake Brevo server (F001, #131), which maestro.sh runs as it is.
-      'apps/web/e2e/fake-brevo.ts',
+      // The fake Lettermint server (F001, #131), which maestro.sh runs as it is.
+      'apps/web/e2e/fake-lettermint.ts',
     ]) {
       cpSync(join(SCRIPTS, '..', path), join(repo, path), { recursive: true });
     }
-    // FAKE_BREVO_LISTEN_DELAY_MS=<ms> (#379): the copy of the fake Brevo server starts to listen only after that long, as a
+    // FAKE_LETTERMINT_LISTEN_DELAY_MS=<ms> (#379): the copy of the fake Lettermint server starts to listen only after that long, as a
     // process that is slow to start under load does. The real file is not changed; the copy must still have these two lines.
-    const brevoFile = join(repo, 'apps/web/e2e/fake-brevo.ts');
-    const brevoSource = readFileSync(brevoFile, 'utf8');
+    const lettermintFile = join(repo, 'apps/web/e2e/fake-lettermint.ts');
+    const lettermintSource = readFileSync(lettermintFile, 'utf8');
     const create = 'createServer(async (request, response) => {';
     const listen = "}).listen(port, 'localhost');";
     assert.ok(
-      brevoSource.includes(create) && brevoSource.includes(listen),
-      'fake-brevo.ts still creates the server and then listens on port, localhost',
+      lettermintSource.includes(create) && lettermintSource.includes(listen),
+      'fake-lettermint.ts still creates the server and then listens on port, localhost',
     );
     writeFileSync(
-      brevoFile,
-      brevoSource
+      lettermintFile,
+      lettermintSource
         .replace(create, `const server = ${create}`)
         .replace(
           listen,
-          `});\nsetTimeout(() => server.listen(port, 'localhost'), Number(process.env.FAKE_BREVO_LISTEN_DELAY_MS || 0));`,
+          `});\nsetTimeout(() => server.listen(port, 'localhost'), Number(process.env.FAKE_LETTERMINT_LISTEN_DELAY_MS || 0));`,
         ),
     );
     // The web server maestro.sh starts: it runs until it's stopped, and records its environment.
@@ -1751,7 +1751,7 @@ fi
 exit 0`,
     );
     // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_HELLO=fail: GET /api/v1/hello fails.
-    // The fake Brevo server is a real process (#379), so a GET to its port (E2E_PORT + 2000) succeeds only once it answers,
+    // The fake Lettermint server is a real process (#379), so a GET to its port (E2E_PORT + 2000) succeeds only once it answers,
     // like curl in maestro.sh's wait_for would, which the fake sleep cannot do: a call polls for up to 1 s (the skipped
     // sleep 1) and then fails, so wait_for's 61 tries still end near its real 60 s when the server never answers.
     script(
@@ -1770,12 +1770,12 @@ exit 0`,
       join(home, '.maestro/bin/maestro'),
       `echo "$*" >>"${state}/maestro.log"
 echo "maestro $*" >>"${state}/calls.log"
-# A flow run reads the sign-in emails from the fake Brevo server (e2e/maestro/shared): record that it answered.
+# A flow run reads the sign-in emails from the fake Lettermint server (e2e/maestro/shared): record that it answered.
 case " $* " in *" test "*)
   # FAKE_MAESTRO_SLEEP=<seconds>: the run lasts that long (the real sleep, the one in PATH is a fake).
   [ -z "$FAKE_MAESTRO_SLEEP" ] || { /bin/sleep "$FAKE_MAESTRO_SLEEP"; echo "maestro-run-ended" >>"${state}/calls.log"; }
   node -e "fetch('http://localhost:' + (Number(process.env.E2E_PORT) + 2000) + '/emails?to=owner@example.com').then((r) => r.json()).then((emails) => process.exit(Array.isArray(emails) ? 0 : 1), () => process.exit(1))" \
-    && touch "${state}/brevo-answered"
+    && touch "${state}/lettermint-answered"
   # FAKE_MAESTRO_ERROR (#373): the first run in en (all of them with offline-always) leaves a failed report and the logs of
   # its failed flows, as Maestro does: offline (a flow with the adb error, one after it with DeviceServerDiedException),
   # assertion (a flow that failed its assertion) or mixed (the adb error and an assertion). Three more are leaks of the logs:
@@ -1922,7 +1922,7 @@ esac`,
             .filter(Boolean)
         : [];
     const webEnv = () => JSON.parse(readFileSync(join(state, 'web-env.json'), 'utf8'));
-    const brevoAnswered = () => existsSync(join(state, 'brevo-answered'));
+    const lettermintAnswered = () => existsSync(join(state, 'lettermint-answered'));
     const simulators = () =>
       readdirSync(join(state, 'devices')).map((udid) =>
         JSON.parse(readFileSync(join(state, 'devices', udid), 'utf8')),
@@ -1940,11 +1940,11 @@ esac`,
     return {
       repo,
       port,
-      brevoPort,
+      lettermintPort,
       run,
       log,
       webEnv,
-      brevoAnswered,
+      lettermintAnswered,
       simulators,
       simulator,
       emulator,
@@ -3868,56 +3868,67 @@ esac`,
       }
     });
 
-    // F001 (#216): the flows sign in with a code read from the fake Brevo server on the host, no real inbox.
-    it(`F001: ${name} gives each flow the address of the fake Brevo server`, async () => {
+    // F001 (#216): the flows sign in with a code read from the fake Lettermint server on the host, no real inbox.
+    it(`F001: ${name} gives each flow the address of the fake Lettermint server`, async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/maestro.sh', args);
 
       assert.equal(run.status, 0, run.output);
       for (const flow of fake.log('maestro').filter((call) => / test /.test(` ${call} `))) {
-        assert.ok(flow.includes(`--env BREVO_URL=http://localhost:${fake.brevoPort} `), flow);
+        assert.ok(
+          flow.includes(`--env LETTERMINT_URL=http://localhost:${fake.lettermintPort} `),
+          flow,
+        );
       }
     });
 
-    it(`F001: ${name} starts the fake Brevo server before the web server and points the web server at it`, async () => {
+    it(`F001: ${name} starts the fake Lettermint server before the web server and points the web server at it`, async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/maestro.sh', args);
 
       assert.equal(run.status, 0, run.output);
       const calls = fake.log('calls');
-      const brevo = calls.indexOf(`curl -fsS http://localhost:${fake.brevoPort}/`);
+      const lettermint = calls.indexOf(`curl -fsS http://localhost:${fake.lettermintPort}/`);
       const health = calls.findIndex((call) =>
         call.includes(`http://127.0.0.1:${fake.port}/api/v1/health`),
       );
-      assert.ok(brevo >= 0, `the fake Brevo server is waited for:\n${calls.join('\n')}`);
-      assert.ok(brevo < health, `before the web server's health check:\n${calls.join('\n')}`);
+      assert.ok(lettermint >= 0, `the fake Lettermint server is waited for:\n${calls.join('\n')}`);
+      assert.ok(lettermint < health, `before the web server's health check:\n${calls.join('\n')}`);
       const env = fake.webEnv();
       // The same variables as the web e2e's servers (playwright.config.ts); every value synthetic.
-      assert.equal(env.BREVO_API_URL, `http://localhost:${fake.brevoPort}/v3/smtp/email`);
-      assert.ok(env.BREVO_API_KEY && env.EMAIL_FROM_ADDRESS && env.EMAIL_FROM_NAME);
+      assert.equal(env.LETTERMINT_API_URL, `http://localhost:${fake.lettermintPort}/v1/send`);
+      assert.ok(
+        env.LETTERMINT_API_TOKEN && env.LETTERMINT_ROUTE_SIGN_IN && env.LETTERMINT_ROUTE_MAIL,
+      );
+      assert.ok(env.EMAIL_FROM_ADDRESS && env.EMAIL_FROM_NAME);
       assert.ok(env.BETTER_AUTH_SECRET?.length >= 32, 'a secret of at least 32 characters');
       assert.equal(env.BETTER_AUTH_URL, `http://127.0.0.1:${fake.port}`);
       assert.match(env.SIGN_UP_ALLOWED_EMAILS, /@example\.com/);
       // Outside production, mail to @example.com (the seeded owner@example.com) is logged, never sent, unless this
-      // opt-in sends it through Brevo, here the fake one. The server is not the production environment: it would
+      // opt-in sends it through Lettermint, here the fake one. The server is not the production environment: it would
       // tag Sentry and PostHog "production" and drop invalid product events instead of throwing.
       assert.equal(env.EMAIL_SEND_EXAMPLE_DOMAIN, '1');
       assert.equal(env.RAILWAY_ENVIRONMENT_NAME, undefined);
     });
 
-    // E006 (#400): a token in the developer's shell must never send the flows' mail through real Lettermint; they
-    // keep the fake Brevo server until #403.
-    it(`E006: ${name} keeps Lettermint off the web server even when the shell has a token`, async () => {
+    // E006 (#403): a token and an address in the developer's shell must never send the flows' mail through real
+    // Lettermint; the run sets its own, synthetic token and the address of the fake server.
+    it(`E006: ${name} keeps real Lettermint off the web server even when the shell has a token`, async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/maestro.sh', args, {
         LETTERMINT_API_TOKEN: 'shell-synthetic-token',
+        LETTERMINT_API_URL: 'https://lettermint.example.com/v1/send',
       });
 
       assert.equal(run.status, 0, run.output);
-      assert.equal(fake.webEnv().LETTERMINT_API_TOKEN, '');
+      assert.notEqual(fake.webEnv().LETTERMINT_API_TOKEN, 'shell-synthetic-token');
+      assert.equal(
+        fake.webEnv().LETTERMINT_API_URL,
+        `http://localhost:${fake.lettermintPort}/v1/send`,
+      );
     });
 
     it(`F001: ${name} clears the sign-in rate limits before the flows of each locale`, async () => {
@@ -4086,24 +4097,24 @@ esac`,
     ['maestro.sh ios', ['ios']],
   ]) {
     for (const [ending, result, status] of endings) {
-      it(`F001: ${name} stops the fake Brevo server when it ${ending}`, async () => {
+      it(`F001: ${name} stops the fake Lettermint server when it ${ending}`, async () => {
         const fake = checkout({ emulatorRunning: true, simulatorBooted: true });
 
         const run = await fake.run(
           'scripts/maestro.sh',
           args,
-          { FAKE_RESULT: result, FAKE_BREVO_LISTEN_DELAY_MS: '2000' },
+          { FAKE_RESULT: result, FAKE_LETTERMINT_LISTEN_DELAY_MS: '2000' },
           { interrupt: result === 'hang' },
         );
 
         assert.equal(run.status, status, run.output);
         // It answered while the flows ran (a server that never started would pass the next line too).
         assert.ok(
-          fake.brevoAnswered(),
-          'the fake Brevo server answered GET /emails during the run',
+          fake.lettermintAnswered(),
+          'the fake Lettermint server answered GET /emails during the run',
         );
         await assert.rejects(
-          fetch(`http://localhost:${fake.brevoPort}/`),
+          fetch(`http://localhost:${fake.lettermintPort}/`),
           'nothing answers on its port',
         );
       });
@@ -4112,46 +4123,45 @@ esac`,
 
   // E008 #383: the ports of a run were fixed (3999 and 5999), so two runs on one machine (two worktrees running
   // check.sh) took the same ports and their fake servers answered each other's calls. Each run has its own pair.
-  it('#383: each run has its own ports, the second the Brevo port 2000 above the first', () => {
+  it('#383: each run has its own ports, the second the Lettermint port 2000 above the first', () => {
     const [first, second] = [checkout(), checkout()];
 
     assert.notEqual(first.port, second.port);
-    for (const { port, brevoPort } of [first, second]) {
+    for (const { port, lettermintPort } of [first, second]) {
       assert.ok(Number.isInteger(port) && port > 1024, `a port: ${port}`);
-      assert.equal(brevoPort, port + 2000);
+      assert.equal(lettermintPort, port + 2000);
     }
   });
 
-  it('#383: ports held at localhost (where the fake Brevo server binds) are skipped, on both sides of the pair', async () => {
+  it('#383: ports held at localhost (where the fake Lettermint server binds) are skipped, on both sides of the pair', async () => {
     const hold = (port) =>
       new Promise((resolve, reject) => {
         const server = createServer((socket) => socket.destroy());
         server.on('error', reject);
         server.listen(port, 'localhost', () => resolve(server));
       });
-    // Two candidates for the web port, one held itself and one whose Brevo port (2000 above) is held.
+    // Two candidates for the web port, one held itself and one whose Lettermint port (2000 above) is held.
     const held = await hold(0);
     const heldAt = held.address().port;
-    const brevoHeld = await hold(0);
-    const brevoHeldAt = brevoHeld.address().port;
+    const lettermintHeld = await hold(0);
+    const lettermintHeldAt = lettermintHeld.address().port;
     try {
-      const { port, brevoPort } = freePorts([heldAt, brevoHeldAt - 2000]);
+      const { port, lettermintPort } = freePorts([heldAt, lettermintHeldAt - 2000]);
 
       assert.notEqual(port, heldAt);
-      assert.notEqual(port, brevoHeldAt - 2000);
-      assert.notEqual(brevoPort, heldAt);
-      assert.notEqual(brevoPort, brevoHeldAt);
+      assert.notEqual(port, lettermintHeldAt - 2000);
+      assert.notEqual(lettermintPort, heldAt);
+      assert.notEqual(lettermintPort, lettermintHeldAt);
     } finally {
       held.close();
-      brevoHeld.close();
+      lettermintHeld.close();
     }
   });
 
   it('#383: many checkouts in one process never share a port', () => {
-    const ports = Array.from({ length: 20 }, () => checkout()).flatMap(({ port, brevoPort }) => [
-      port,
-      brevoPort,
-    ]);
+    const ports = Array.from({ length: 20 }, () => checkout()).flatMap(
+      ({ port, lettermintPort }) => [port, lettermintPort],
+    );
 
     assert.equal(new Set(ports).size, ports.length);
   });
@@ -4174,27 +4184,27 @@ esac`,
       const run = await fake.run('scripts/maestro.sh', ['android']);
 
       assert.equal(run.status, 0, run.output);
-      assert.ok(fake.brevoAnswered(), 'its own fake Brevo server answered');
+      assert.ok(fake.lettermintAnswered(), 'its own fake Lettermint server answered');
     } finally {
       for (const server of holders) server?.close();
     }
   });
 
-  it('#383: two runs at the same time each reach their own fake Brevo server', async () => {
+  it('#383: two runs at the same time each reach their own fake Lettermint server', async () => {
     const [one, two] = [checkout(), checkout()];
 
     const runs = await Promise.all(
       [one, two].map((fake) =>
         fake.run('scripts/maestro.sh', ['android'], {
           FAKE_MAESTRO_SLEEP: '1',
-          FAKE_BREVO_LISTEN_DELAY_MS: '500',
+          FAKE_LETTERMINT_LISTEN_DELAY_MS: '500',
         }),
       ),
     );
 
     for (const [index, run] of runs.entries())
       assert.equal(run.status, 0, `${index}: ${run.output}`);
-    assert.ok(one.brevoAnswered() && two.brevoAnswered(), 'both answered');
+    assert.ok(one.lettermintAnswered() && two.lettermintAnswered(), 'both answered');
   });
 
   it('#89: maestro.sh android waits for Android to deliver its broadcasts after each language change, before the flow', async () => {
@@ -4663,8 +4673,8 @@ describe('Maestro flows', () => {
   });
 
   // F001 AC1, AC3: the sub-flow types the address, asks for the email, reads the code of the newest email to that
-  // address from the fake Brevo server (counting the emails first, so an older one is never taken) and types it.
-  it('F001: the shared sub-flow reads the newest code for the address from the fake Brevo server', () => {
+  // address from the fake Lettermint server (counting the emails first, so an older one is never taken) and types it.
+  it('F001: the shared sub-flow reads the newest code for the address from the fake Lettermint server', () => {
     const subFlow = readFileSync(join(flows, 'shared/sign-in.yaml'), 'utf8');
     const at = (pattern, from = 0) => {
       const found = subFlow.slice(from).match(pattern);
@@ -4681,7 +4691,7 @@ describe('Maestro flows', () => {
     const read = at(/- runScript:\n\s+file: newest-code\.js\n/, codeStep);
     at(/- inputText: \$\{output\.code\}\n/, read);
     at(/- extendedWaitUntil:\n\s+visible:\n\s+id: home\\\.signedInAs\n/, read);
-    assert.doesNotMatch(subFlow, /^\s+BREVO_URL:/m, 'maestro.sh passes the server address');
+    assert.doesNotMatch(subFlow, /^\s+LETTERMINT_URL:/m, 'maestro.sh passes the server address');
   });
 
   // Maestro scripts can't sleep (no host access, no setTimeout), so the flow does the waiting: it asks newest-code.js
@@ -4746,7 +4756,7 @@ describe('Maestro flows', () => {
     };
     // A fixed clock (TESTING.md §3): the helper only reads Date.now().
     const clock = { now: () => now };
-    const run = new Function('http', 'json', 'output', 'BREVO_URL', 'EMAIL', 'Date', source);
+    const run = new Function('http', 'json', 'output', 'LETTERMINT_URL', 'EMAIL', 'Date', source);
     const thrown = (() => {
       try {
         run(http, JSON.parse, output, 'http://localhost:5999', to, clock);
@@ -4760,7 +4770,7 @@ describe('Maestro flows', () => {
   const signInText = (code) =>
     `Your sign-in code\n\n${code}\n\nThe code works for 15 minutes. Or open https://fivvi.example.com/login/confirm?token=t123456\n`;
 
-  it('F001: start-wait.js counts the emails the fake Brevo server holds for the address', () => {
+  it('F001: start-wait.js counts the emails the fake Lettermint server holds for the address', () => {
     const { urls, output, thrown } = runHelper('start-wait.js', {
       emails: [email(signInText('111111')), email(signInText('222222'))],
       to: 'o+x@example.com',

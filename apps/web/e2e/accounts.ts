@@ -20,7 +20,7 @@ import {
 
 /**
  * A new synthetic address for one spec. Not `@example.com`: outside production that mail goes to
- * the server log, while this one is sent through Brevo, i.e. to the fake Brevo server. The default
+ * the server log, while this one is sent through Lettermint, i.e. to the fake Lettermint server. The default
  * domain is not on the e2e server's sign-up allowlist, so it needs `createAccount`; `newAllowedAddress` is on it.
  */
 export function newAddress(label: string, domain = UNLISTED_SIGN_UP_DOMAIN): string {

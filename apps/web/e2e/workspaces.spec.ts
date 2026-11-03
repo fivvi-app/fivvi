@@ -13,7 +13,7 @@ import { holdBackPageTitle } from './streamed-title';
 
 // F002, TW-11 `/welcome`, the signed-in home and the no-access page. Copy comes from the
 // catalogs. Sign-in works as in sign-in.spec.ts: each spec has an address of its own and a visitor
-// IP address of its own, and reads the code from the fake Brevo server. The e2e database holds the
+// IP address of its own, and reads the code from the fake Lettermint server. The e2e database holds the
 // seed: the account owner@example.com (signed in with a session, not a code: see
 // `signInWithSession`) owns the workspace John's Gym (`johns-gym`), so a workspace
 // that a spec creates under that name gets a number (`johns-gym-2`, …).

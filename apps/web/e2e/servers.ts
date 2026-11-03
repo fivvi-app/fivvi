@@ -31,18 +31,18 @@ export const TEST_POSTHOG_HOST = 'https://posthog.e2e.test';
  */
 export const analyticsServer = server(port + 1000);
 
-const brevoPort = port + 2000;
+const lettermintPort = port + 2000;
 
 /**
- * The fake Brevo server (F001): the app sends its emails to it (`BREVO_API_URL`) instead of to
- * Brevo, and the specs read the sign-in code and link from it (e2e/brevo.ts). 2000 up, outside
+ * The fake Lettermint server (F001, E006): the app sends its emails to it (`LETTERMINT_API_URL`)
+ * instead of to Lettermint, and the specs read the sign-in code and link from it (e2e/lettermint.ts). 2000 up, outside
  * the range of every worktree's own E2E_PORT and of the analytics server.
  */
-export const brevoServer = {
-  port: brevoPort,
-  baseURL: `http://localhost:${brevoPort}`,
-  /** Where the app posts emails, like Brevo's `POST /v3/smtp/email`. */
-  apiUrl: `http://localhost:${brevoPort}/v3/smtp/email`,
+export const lettermintServer = {
+  port: lettermintPort,
+  baseURL: `http://localhost:${lettermintPort}`,
+  /** Where the app posts emails, like Lettermint's `POST /v1/send`. */
+  apiUrl: `http://localhost:${lettermintPort}/v1/send`,
 };
 
 function server(serverPort: number) {

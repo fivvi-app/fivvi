@@ -168,7 +168,7 @@ describe('E009 scrubber', () => {
       message: `POST ${EMAIL}`,
       data: {
         method: 'POST',
-        url: `https://api.brevo.com/v3/smtp/email?to=${EMAIL}`,
+        url: `https://api.lettermint.co/v1/send?to=${EMAIL}`,
         status_code: 201,
         body: NOTE,
         recipient: CLIENT_NAME,
@@ -180,7 +180,7 @@ describe('E009 scrubber', () => {
       category: 'fetch',
       level: 'info',
       timestamp: 1_759_999_999,
-      data: { method: 'POST', url: 'https://api.brevo.com/v3/smtp/email', status_code: 201 },
+      data: { method: 'POST', url: 'https://api.lettermint.co/v1/send', status_code: 201 },
     });
   });
 

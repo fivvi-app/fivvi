@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
-import { brevoServer } from './servers';
+import { lettermintServer } from './servers';
 
-/** An email the app handed to the fake Brevo server (e2e/fake-brevo.ts). */
+/** An email the app handed to the fake Lettermint server (e2e/fake-lettermint.ts). */
 export interface ReceivedEmail {
   to: string;
   subject: string;
@@ -9,9 +9,11 @@ export interface ReceivedEmail {
   html: string;
 }
 
-/** The emails the fake Brevo server received for `address`, oldest first. */
+/** The emails the fake Lettermint server received for `address`, oldest first. */
 export async function emailsTo(address: string): Promise<ReceivedEmail[]> {
-  const response = await fetch(`${brevoServer.baseURL}/emails?to=${encodeURIComponent(address)}`);
+  const response = await fetch(
+    `${lettermintServer.baseURL}/emails?to=${encodeURIComponent(address)}`,
+  );
   return (await response.json()) as ReceivedEmail[];
 }
 

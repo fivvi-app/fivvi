@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The Maestro flows in e2e/maestro against the local stack, once per catalog locale (E008, TESTING.md §7.2).
 #
-#   maestro.sh android [--apk [<file>]]   start Postgres (migrated and seeded), the fake Brevo server (the one of the web e2e, on E2E_PORT +
+#   maestro.sh android [--apk [<file>]]   start Postgres (migrated and seeded), the fake Lettermint server (the one of the web e2e, on E2E_PORT +
 #                        2000) and the web server on E2E_PORT, install the debug app on
 #                        the emulator (booted for the run when none is connected), then run every flow with the
 #                        emulator's language set to nl-NL and to en, each once Android has settled after the change
@@ -14,7 +14,7 @@
 #                        to save macOS CI minutes)
 #
 # The app starts on its sign-in (F001), so the flows sign in as the seeded owner@example.com: the web server sends its
-# emails to the fake Brevo server, and the flows read the newest sign-in code from it (`GET /emails?to=`), so no real
+# emails to the fake Lettermint server, and the flows read the newest sign-in code from it (`GET /emails?to=`), so no real
 # inbox is involved. Several flows sign in as the same seeded address, and 3 emails per address in 15 minutes would stop
 # the fourth, or the second run. So the sign-in rate limits are cleared before each locale's run (`maestro test
 # e2e/maestro`, one Maestro process for all its flows: a new one per flow made CI's emulator drop its adb connection, #363)
@@ -43,8 +43,8 @@ LOCALES="nl-NL en"
 PORT="${E2E_PORT:-$(e2e_port "$ROOT")}"
 REPORTS="$ROOT/e2e/maestro/build"
 SERVER_PID=""
-BREVO_PID=""
-BREVO_PORT=$((PORT + 2000))
+LETTERMINT_PID=""
+LETTERMINT_PORT=$((PORT + 2000))
 CLEAR_EVERY="${MAESTRO_CLEAR_EVERY:-20}"
 CLEARER_PID=""
 CLEARER_LOG=""
@@ -99,7 +99,7 @@ set_flow_env() {
     --env "DEVICE_LANGUAGE=$1"
     --env "LANGUAGE_THIS=$1"
     --env "LANGUAGE_OTHER=$other"
-    --env "BREVO_URL=http://localhost:$BREVO_PORT"
+    --env "LETTERMINT_URL=http://localhost:$LETTERMINT_PORT"
   )
 }
 
@@ -111,20 +111,20 @@ start_stack() {
   pnpm db:seed >/dev/null
   pnpm turbo run build --filter=@fivvi/web --output-logs=errors-only
   mkdir -p "$REPORTS"
-  # The fake Brevo server of the web e2e (apps/web/e2e/fake-brevo.ts): it keeps the emails the web server sends.
-  (cd apps/web && PORT="$BREVO_PORT" exec node e2e/fake-brevo.ts) >"$REPORTS/brevo.log" 2>&1 &
-  BREVO_PID=$!
-  wait_for "http://localhost:$BREVO_PORT/" "the fake Brevo server" "brevo.log"
-  # Every value is synthetic: the fake Brevo server accepts any key. EMAIL_SEND_EXAMPLE_DOMAIN=1 sends @example.com mail,
-  # the seeded owner@example.com, through Brevo (here the fake server) instead of writing it to the log (packages/email);
+  # The fake Lettermint server of the web e2e (apps/web/e2e/fake-lettermint.ts): it keeps the emails the web server sends.
+  (cd apps/web && PORT="$LETTERMINT_PORT" exec node e2e/fake-lettermint.ts) >"$REPORTS/lettermint.log" 2>&1 &
+  LETTERMINT_PID=$!
+  wait_for "http://localhost:$LETTERMINT_PORT/" "the fake Lettermint server" "lettermint.log"
+  # Every value is synthetic: the fake Lettermint server accepts any token. EMAIL_SEND_EXAMPLE_DOMAIN=1 sends @example.com mail,
+  # the seeded owner@example.com, through Lettermint (here the fake server) instead of writing it to the log (packages/email);
   # the server isn't the production environment, which would also tag Sentry and PostHog as production.
   local auth_url="http://127.0.0.1:$PORT"
   (cd apps/web && PORT="$PORT" HOSTNAME=127.0.0.1 \
     EMAIL_SEND_EXAMPLE_DOMAIN=1 \
     BETTER_AUTH_SECRET=maestro-secret-that-is-at-least-thirty-two-characters-long \
     BETTER_AUTH_URL="$auth_url" \
-    BREVO_API_URL="http://localhost:$BREVO_PORT/v3/smtp/email" BREVO_API_KEY=maestro-synthetic-brevo-key \
-    LETTERMINT_API_TOKEN='' \
+    LETTERMINT_API_URL="http://localhost:$LETTERMINT_PORT/v1/send" LETTERMINT_API_TOKEN=maestro-synthetic-lettermint-token \
+    LETTERMINT_ROUTE_SIGN_IN=maestro-sign-in LETTERMINT_ROUTE_MAIL=maestro-mail \
     EMAIL_FROM_ADDRESS=noreply@fivvi.maestro.test EMAIL_FROM_NAME=Fivvi \
     SIGN_UP_ALLOWED_EMAILS=@example.com \
     exec node --env-file=../../packages/database/.env .next/standalone/apps/web/server.js) >"$REPORTS/web.log" 2>&1 &
@@ -142,10 +142,10 @@ wait_for() {
   done
 }
 
-# Stops the web server and the fake Brevo server, and waits until they are gone.
+# Stops the web server and the fake Lettermint server, and waits until they are gone.
 stop_stack() {
   local pid
-  for pid in "$SERVER_PID" "$BREVO_PID"; do
+  for pid in "$SERVER_PID" "$LETTERMINT_PID"; do
     [ -z "$pid" ] || kill "$pid" 2>/dev/null || true
     [ -z "$pid" ] || wait "$pid" 2>/dev/null || true
   done

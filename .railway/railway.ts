@@ -77,10 +77,9 @@ export default defineRailway((ctx) => {
       // Dockerfile), so pin it: a mismatch passes the health check but answers 502 publicly.
       PORT: '3000',
       // Transactional email (E006, packages/email). Values are set in the dashboard, never
-      // here: production gets the real Brevo key, development (and so previews) a test key.
-      // Lettermint (ADR-028) takes over as soon as its token is set; without it, Brevo sends.
+      // here: production gets the production Lettermint token (ADR-028), development (and so
+      // previews) a separate one. Production without the token fails at start.
       // The route slugs differ per environment (the owner creates them in Lettermint).
-      BREVO_API_KEY: preserve(),
       LETTERMINT_API_TOKEN: preserve(),
       LETTERMINT_ROUTE_SIGN_IN: preserve(),
       LETTERMINT_ROUTE_MAIL: preserve(),
