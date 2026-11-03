@@ -1,13 +1,15 @@
 # F006 native Klanten (spec #174, AC1 and AC12), against the local stack: John (the seeded owner@example.com) opens
 # Klanten of John's Gym, sees the seeded synthetic clients (AC15), searches by part of a name, adds a client with only a
-# name (AC1: the profile opens and the language for emails is the workspace default, named), is offered Anna instead of a
-# second client when he adds her address (AC3), and edits the new client in the overview (AC7). The sign-in is the shared
-# sub-flow. Elements are found by id: the Android testTag and the iOS accessibilityIdentifier, the same on both apps
-# (clients.*, clients.add.*, clientProfile.*, clientProfile.edit.*; the row ids end in the client's ID, so rows are found
-# by their text). Text is matched where the Text carries the id; a button's label sits on a child in the Compose tree, so
-# buttons are found by id alone. The language line is checked by what both languages share, "Nederlands" or "Dutch":
-# scripts/maestro.sh passes no client texts, and the exact wording is proven in the Compose tests in both languages.
-# The run adds clients to the seeded database in each locale, so the flow adds a name no seeded client has.
+# name and an email address (AC1: the profile opens and the language for emails is the workspace default, named), is
+# offered Anna instead of a second client when he adds her address (AC3), and edits the new client in the overview (AC7).
+# The sign-in is the shared sub-flow. Elements are found by id: the Android testTag and the iOS accessibilityIdentifier,
+# the same on both apps (clients.*, clients.add.*, clientProfile.*, clientProfile.edit.*; the row ids end in the
+# client's ID, so rows are found by their text). Text is matched where the Text carries the id; a button's label sits on
+# a child in the Compose tree, so buttons are found by id alone. The language line is checked by what both languages
+# share, "Nederlands" or "Dutch": scripts/maestro.sh passes no client texts, and the exact wording is proven in the
+# Compose tests in both languages. The run adds clients to the seeded database in each locale, and every client needs an
+# email address that is new to the workspace (the same one answers 409, AC3), so the flow adds an address of its own for
+# each run: the time is in it.
 appId: ${APP_ID}
 name: AC1 AC12 Klanten list, search, add, profile and edit
 env:
@@ -51,7 +53,9 @@ env:
     timeout: 20000
 # The keyboard of the search field would cover the primary action.
 - hideKeyboard
-# AC1: only a name is needed; the profile opens, and the language for emails is the workspace default (named).
+# AC1: a name and an email address are needed; the profile opens, and the language for emails is the workspace default
+# (named).
+- evalScript: ${output.carlaEmail = 'carla.' + Date.now() + '@example.com'}
 - tapOn:
     id: clients\.add
 - extendedWaitUntil:
@@ -62,6 +66,9 @@ env:
     id: clients\.add\.name
 - inputText: Carla Bos
 - tapOn:
+    id: clients\.add\.email
+- inputText: ${output.carlaEmail}
+- tapOn:
     id: clients\.add\.submit
 - extendedWaitUntil:
     visible:
@@ -71,6 +78,9 @@ env:
 - assertVisible:
     id: clientProfile\.name
     text: Carla Bos
+- assertVisible:
+    id: clientProfile\.email
+    text: ${output.carlaEmail}
 - assertVisible:
     id: clientProfile\.language
     text: .*(Nederlands|Dutch).*

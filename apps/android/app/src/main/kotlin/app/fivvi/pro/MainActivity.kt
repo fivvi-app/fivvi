@@ -34,10 +34,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fivvi.api.models.MeWorkspace
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
+import app.fivvi.pro.clients.ClientsFlow
 import app.fivvi.pro.hello.HelloViewModel
+import app.fivvi.pro.home.HomeDestination
 import app.fivvi.pro.home.HomeScreen
 import app.fivvi.pro.home.HomeViewModel
+import app.fivvi.pro.home.MeState
 import app.fivvi.pro.home.ProfileActions
 import app.fivvi.pro.home.ProfileScreen
 import app.fivvi.pro.home.ProfileViewModel
@@ -182,7 +186,7 @@ class MainActivity : ComponentActivity() {
             HelloViewModel(dependencies.helloApi, language.apiLocale)
         }
         // What the API lists per workspace (F004 AC10), the one helper that decides which actions show. `GET /v1/me` fills
-        // it on opening and on foreground; no screen guards an action yet (F006's *+ Nieuwe klant*, M4, is the first).
+        // it on opening and on foreground; *Klanten* and *+ Nieuwe klant* (F006, M4) show from it, and nothing else decides.
         val capabilities = viewModel(key = "capabilities-$key") { WorkspaceCapabilities(dependencies.meApi) }
         val languages = viewModel(key = "language-$key") {
             LanguageViewModel(dependencies.meApi, dependencies.languagePreference, capabilities::replace)
@@ -202,6 +206,11 @@ class MainActivity : ComponentActivity() {
         val meState by me.state.collectAsStateWithLifecycle()
         val signingOut by me.signingOut.collectAsStateWithLifecycle()
         var showsProfile by rememberSaveable { mutableStateOf(false) }
+        var showsClients by rememberSaveable { mutableStateOf(false) }
+        val shown = (meState as? MeState.Loaded)?.destination as? HomeDestination.Workspace
+        val allowed by capabilities.capabilities.collectAsStateWithLifecycle()
+        // Klanten (TM-02) of the workspace shown: only while the API lists `clients.view` there (F004 AC10).
+        val mayViewClients = shown != null && allowed.mayShow(shown.id, MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW)
         // Each opening of Profiel gets a new view model, so it reads the list again (F003 AC9).
         var profileOpenings by rememberSaveable { mutableIntStateOf(0) }
 
@@ -210,6 +219,18 @@ class MainActivity : ComponentActivity() {
         // On foreground the stored language is read again: a change made elsewhere is adopted (F010 AC2).
         OnForeground(languages::refresh)
 
+        if (showsClients && shown != null) {
+            ClientsFlow(
+                dependencies.clientsApi,
+                dependencies.workspacesApi,
+                capabilities,
+                shown.id,
+                shown.name,
+                sessionKey = key,
+                onClose = { showsClients = false },
+            )
+            return
+        }
         if (showsProfile) {
             BackHandler { showsProfile = false }
             Profile(dependencies, key, profileOpenings, languages)
@@ -227,6 +248,7 @@ class MainActivity : ComponentActivity() {
                 profileOpenings++
                 showsProfile = true
             },
+            onOpenClients = if (mayViewClients) ({ showsClients = true }) else null,
         )
     }
 }
