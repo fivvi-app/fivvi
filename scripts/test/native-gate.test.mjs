@@ -61,7 +61,7 @@ describe('#413 native-gate.sh: parts that had no runner', () => {
     assert.match(result.stdout, /::error::iOS failed: 1 of 3 parts did not succeed/);
     assert.match(
       result.stdout,
-      /::error::iOS tests \(nl\): no hosted runner picked it up, so nothing ran .*Re-queue the PR/,
+      /::error::iOS tests \(nl\): no hosted runner picked it up, or the run was cancelled before one did, so nothing ran .*If nobody cancelled the run, re-queue the PR/,
     );
     assert.doesNotMatch(result.stdout, /failed on a runner/);
     assert.doesNotMatch(result.stdout, /iOS tests \(en\):/, 'only the part that had no runner');
@@ -70,7 +70,7 @@ describe('#413 native-gate.sh: parts that had no runner', () => {
   it('names the build when it had no runner, and the tests that never started as not run', () => {
     const result = iOS(...parts('unacquired', 'skipped', 'skipped'));
     assert.equal(result.status, 1);
-    assert.match(result.stdout, /iOS build: no hosted runner picked it up.*Re-queue the PR/);
+    assert.match(result.stdout, /iOS build: no hosted runner picked it up.*re-queue the PR/);
     assert.match(result.stdout, /iOS tests \(nl\): did not run \(skipped\)/);
     assert.match(result.stdout, /iOS tests \(en\): did not run \(skipped\)/);
   });
@@ -84,7 +84,7 @@ describe('#413 native-gate.sh: parts that had no runner', () => {
     );
     assert.match(result.stdout, /iOS tests \(en\): cancelled on a runner/);
     assert.doesNotMatch(result.stdout, /no hosted runner picked it up/);
-    assert.doesNotMatch(result.stdout, /Re-queue/);
+    assert.doesNotMatch(result.stdout, /re-queue/i);
   });
 
   it('says both kinds at once when one part had no runner and another failed', () => {
@@ -98,6 +98,18 @@ describe('#413 native-gate.sh: parts that had no runner', () => {
     const result = iOS(...parts('success', 'unacquired:success', 'success'));
     assert.equal(result.status, 1);
     assert.match(result.stdout, /iOS tests \(nl\): ended as unacquired:success, not success/);
+  });
+
+  it('makes no claim about a runner for bare results, as ios-parts.sh prints when it cannot read the jobs', () => {
+    const result = iOS('success', 'cancelled');
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /::error::iOS failed: 1 of 2 parts did not succeed \(cancelled\)/);
+    assert.doesNotMatch(result.stdout, /on a runner|no hosted runner|re-queue/i);
+    assert.equal(
+      result.stdout.match(/::error::/g).length,
+      1,
+      'the summary line only, no reason lines',
+    );
   });
 
   it('keeps the plain-result form and the summary line of the results for the other gates', () => {

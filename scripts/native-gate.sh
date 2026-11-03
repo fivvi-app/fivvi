@@ -10,7 +10,8 @@
 #                     picked the job up, so no step ran (scripts/ios-parts.sh finds that out, #413)
 #       Passes when the decision is false (the parts were skipped, the check passes as skipped) or every part succeeded;
 #       fails, naming the parts that did not, otherwise: a part that failed, was cancelled or never ran fails the check.
-#       The error says for each labelled part whether no runner picked it up (nothing ran: re-queuing the PR is enough)
+#       The error says for each labelled part whether no runner picked it up (nothing ran, or the run was cancelled before
+#       one did: if nobody cancelled it, re-queuing the PR is enough)
 #       or a runner ran it and it failed, was cancelled (a timeout, or a person) or never ran. A part without a label
 #       (Android's) is named by its result only.
 set -euo pipefail
@@ -34,7 +35,7 @@ for part in "$@"; do
   bad+=("$part")
   [ -n "$label" ] || continue
   case "$result" in
-    unacquired) reasons+="$label: no hosted runner picked it up, so nothing ran (GitHub's capacity, not a build or test failure, #413). Re-queue the PR."$'\n' ;;
+    unacquired) reasons+="$label: no hosted runner picked it up, or the run was cancelled before one did, so nothing ran (GitHub's capacity, not a build or test failure, #413). If nobody cancelled the run, re-queue the PR."$'\n' ;;
     failure) reasons+="$label: failed on a runner ($result): a build or test failure."$'\n' ;;
     cancelled) reasons+="$label: cancelled on a runner (a timeout, or a person cancelled the run)."$'\n' ;;
     skipped) reasons+="$label: did not run ($result): the part before it did not succeed."$'\n' ;;

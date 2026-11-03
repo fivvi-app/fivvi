@@ -65,6 +65,7 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
       'iOS tests (en)=unacquired',
     ]);
     assert.match(result.stderr, /iOS tests \(en\): no hosted runner picked it up/);
+    assert.match(result.stderr, /cancelled before one did/);
   });
 
   it('marks the build unacquired, and leaves the tests that never started as skipped', () => {
@@ -100,14 +101,15 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
   it("falls back to the results as given, exiting 0, when the run's jobs cannot be read", () => {
     const result = run(['success', 'cancelled'], [{ match: '^api ', status: 1 }]);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.parts, ['iOS build=success', 'iOS tests (nl, en)=cancelled']);
+    // Bare results: the gate then claims neither a runner nor the lack of one.
+    assert.deepEqual(result.parts, ['success', 'cancelled']);
     assert.match(result.stderr, /could not read the run's jobs/);
   });
 
   it('falls back the same way when the answer is not the jobs list', () => {
     const result = run(['cancelled', 'skipped'], [{ match: JOBS, out: 'not json' }]);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.parts, ['iOS build=cancelled', 'iOS tests (nl, en)=skipped']);
+    assert.deepEqual(result.parts, ['cancelled', 'skipped']);
   });
 
   it('keeps a result as given when its job is missing from the list', () => {

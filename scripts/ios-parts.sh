@@ -3,8 +3,8 @@
 # times: a job that no runner picks up is cancelled after about 15 minutes with an empty runner_name and no step ("The
 # job was not acquired by Runner of type hosted even after multiple attempts"), and `needs.<job>.result` says only
 # "cancelled", like a timeout. This reads the jobs of the run and tells the two apart, so scripts/native-gate.sh can say
-# whether a part failed because no runner picked it up (re-queue the PR) or on a runner (a build or test failure). The
-# two languages' tests are one matrix job, whose needs result is the aggregate of both, so their own results are read too.
+# whether a part had no runner (or was cancelled before one picked it up: if nobody cancelled the run, re-queue the PR)
+# or failed on a runner (a build or test failure). The two languages' tests are one matrix job, whose needs result is the aggregate of both, so their own results are read too.
 #
 #   ios-parts.sh <build> <tests>
 #       the needs.<job>.result of "iOS build" and of the matrix "iOS tests". Prints one part per line for
@@ -17,8 +17,9 @@
 #       A part is turned into unacquired or into the conclusion of its own job, so this can only name a failure, never turn
 #       one into a pass: the jobs of the run are read only when the build was cancelled or the tests did not succeed.
 #       They come from the GitHub API (GH_TOKEN, GITHUB_REPOSITORY, GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT; the job needs
-#       `actions: read`). When they can't be read it says so on stderr, still exits 0 and prints the results as given (the
-#       plain message of before #413), the tests as one part, `iOS tests (nl, en)`.
+#       `actions: read`). When they can't be read it says so on stderr, still exits 0 and prints the bare results
+#       as given, `<build>` and `<tests>`, without labels: native-gate.sh then prints only its summary line and makes no
+#       claim about a runner (the plain message of before #413).
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -34,7 +35,7 @@ fi
 # The results as given, when the jobs can't be read.
 as_given() {
   echo "could not read the run's jobs; the parts are reported as the jobs' results say (a cancelled one stays cancelled)." >&2
-  printf '%s\n' "iOS build=$build" "iOS tests (nl, en)=$tests"
+  printf '%s\n' "$build" "$tests"
   exit 0
 }
 
@@ -55,7 +56,7 @@ parts="$(jq -r --arg build "$build" --arg tests "$tests" '
 
 while IFS='=' read -r name result; do
   if [ "$result" = unacquired ]; then
-    echo "$name: no hosted runner picked it up (cancelled, no runner, no step)." >&2
+    echo "$name: no hosted runner picked it up, or the run was cancelled before one did (cancelled, no runner, no step)." >&2
   fi
 done <<<"$parts"
 echo "$parts"
