@@ -10,7 +10,8 @@ import {
 } from './accounts';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 
-// F006 (spec #174): TW-01 Klanten (list, search, quick add) and TW-02 Klantprofiel (overview, edit). Copy comes from the catalogs. Each spec has accounts and workspaces of its own (see
+// F006 (spec #174): TW-01 Klanten (list, search, quick add) and TW-02 Klantprofiel (overview, edit).
+// Copy comes from the catalogs. Each spec has accounts and workspaces of its own (see
 // language.spec.ts): John owns John's Gym, Sarah is a Trainer there, Mike owns Fit Studio. The
 // clients are synthetic: Anna de Vries (anna@example.com) and Mark Jansen (mark@example.com);
 // every client has an email address (#174, decision 5).
@@ -321,6 +322,13 @@ test.describe('F006 clients on the web', () => {
 
       await expect(dialog).toHaveCount(0);
       await expect(page.getByRole('status')).toHaveText(copy.clients.profile.saved);
+      // The status sits next to Edit, in one element, so Edit stays at the end of the header row.
+      await expect(
+        page
+          .getByRole('status')
+          .locator('..')
+          .getByRole('button', { name: copy.clients.profile.edit }),
+      ).toBeVisible();
       await expect(page.getByRole('heading', { level: 1, name: 'Anna Bakker' })).toBeVisible();
       await expect(page.getByText('anna.bakker@example.com')).toBeVisible();
       await expect(page.getByText(copy.clients.addDialog.localeEn, { exact: true })).toBeVisible();

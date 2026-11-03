@@ -8,8 +8,8 @@ import { EditClient } from './edit-client';
 /**
  * TW-02 Klantprofiel (F006): the header with the client's name and the *Overzicht* with name,
  * email address and language for emails. A client without a language of their own follows the
- * workspace's default, so the line says *Standaard (Nederlands)*, naming it. This is the plain
- * profile's other parts come with the features that own them; none shows as an empty tab. *Bewerken*
+ * workspace's default, so the line says *Standaard (Nederlands)*, naming it. The profile's other
+ * parts come with the features that own them; none shows as an empty tab. *Bewerken*
  * (TW-02, AC7) is shown to a person who may edit clients (`clients.manage`) and opens the
  * quick-add form with the client's values. `added` is the short confirmation after a quick add.
  */

@@ -19,15 +19,15 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
-  type AddClientInput,
-  type AddClientResult,
   type Client,
+  type ClientFormInput,
   type EmailErrorKey,
   findExistingClient,
   type NameErrorKey,
+  type SaveClientResult,
 } from './clients-client';
 
-type FormLocale = AddClientInput['emailLocale'];
+type FormLocale = ClientFormInput['emailLocale'];
 
 /** A client of the workspace that has the address that was typed. */
 type Duplicate = Pick<Client, 'id' | 'name'>;
@@ -56,12 +56,12 @@ export function ClientFormDialogContent({
   slug: string;
   defaultLocale: Locale;
   /** What the form starts with: empty for an add, the client for an edit. */
-  initial: AddClientInput;
+  initial: ClientFormInput;
   title: string;
   /** The line under the title; none for an edit. */
   description?: string;
   submitLabel: string;
-  save: (input: AddClientInput) => Promise<AddClientResult>;
+  save: (input: ClientFormInput) => Promise<SaveClientResult>;
   saved: (client: Client) => void;
   close: () => void;
 }) {
@@ -116,51 +116,51 @@ export function ClientFormDialogContent({
   const emailMessage = duplicate ? 'duplicate' : emailError;
 
   return (
-    <DialogContent aria-describedby={description ? 'add-client-description' : undefined}>
+    <DialogContent aria-describedby={description ? 'client-form-description' : undefined}>
       <form noValidate onSubmit={submit} className="grid gap-4">
         <DialogHeader>
           <DialogTitle className="font-display">{title}</DialogTitle>
           {description ? (
-            <DialogDescription id="add-client-description">{description}</DialogDescription>
+            <DialogDescription id="client-form-description">{description}</DialogDescription>
           ) : null}
         </DialogHeader>
         <div className="grid gap-2">
-          <Label htmlFor="add-client-name">{t('nameLabel')}</Label>
+          <Label htmlFor="client-form-name">{t('nameLabel')}</Label>
           <Input
-            id="add-client-name"
+            id="client-form-name"
             name="name"
             value={name}
             autoComplete="off"
             onChange={(event) => setName(event.target.value)}
             aria-invalid={nameError ? true : undefined}
-            aria-describedby={nameError ? 'add-client-name-error' : undefined}
+            aria-describedby={nameError ? 'client-form-name-error' : undefined}
           />
           {nameError ? (
-            <p id="add-client-name-error" role="alert" className="text-status-danger-fg">
+            <p id="client-form-name-error" role="alert" className="text-status-danger-fg">
               {t(`errors.${nameError}`)}
             </p>
           ) : null}
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="add-client-email">{t('emailLabel')}</Label>
+          <Label htmlFor="client-form-email">{t('emailLabel')}</Label>
           <Input
             ref={emailInput}
-            id="add-client-email"
+            id="client-form-email"
             name="email"
             type="email"
             value={email}
             autoComplete="off"
             onChange={(event) => setEmail(event.target.value)}
             aria-invalid={emailMessage ? true : undefined}
-            aria-describedby={emailMessage ? 'add-client-email-message' : undefined}
+            aria-describedby={emailMessage ? 'client-form-email-message' : undefined}
           />
           {emailError ? (
-            <p id="add-client-email-message" role="alert" className="text-status-danger-fg">
+            <p id="client-form-email-message" role="alert" className="text-status-danger-fg">
               {t(`errors.${emailError}`)}
             </p>
           ) : null}
           {duplicate ? (
-            <div id="add-client-email-message" role="alert" className="grid gap-2">
+            <div id="client-form-email-message" role="alert" className="grid gap-2">
               <p className="text-status-danger-fg">{t('exists', { name: duplicate.name })}</p>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -182,9 +182,9 @@ export function ClientFormDialogContent({
           ) : null}
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="add-client-locale">{t('localeLabel')}</Label>
+          <Label htmlFor="client-form-locale">{t('localeLabel')}</Label>
           <NativeSelect
-            id="add-client-locale"
+            id="client-form-locale"
             name="emailLocale"
             value={emailLocale}
             className="w-full"

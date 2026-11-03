@@ -38,8 +38,8 @@ export async function searchClients(
   return { ok: true, items: body.items, total: body.total };
 }
 
-/** What the quick-add form holds: empty strings are fields left empty. */
-export interface AddClientInput {
+/** What the client form (quick add and edit) holds: empty strings are fields left empty. */
+export interface ClientFormInput {
   name: string;
   email: string;
   emailLocale: 'nl-NL' | 'en' | '';
@@ -49,10 +49,8 @@ export interface AddClientInput {
 export type NameErrorKey = 'nameRequired' | 'nameTooLong';
 export type EmailErrorKey = 'emailRequired' | 'emailInvalid';
 
-/** The result of an edit is the one of an add: the same fields are refused in the same words. */
-export type SaveClientResult = AddClientResult;
-
-export type AddClientResult =
+/** The result of a save, an add or an edit: the same fields are refused in the same words. */
+export type SaveClientResult =
   | { ok: true; client: Client }
   /** The API refused a field: the form shows the message under it and keeps the input. */
   | { ok: false; reason: 'fields'; name?: NameErrorKey; email?: EmailErrorKey }
@@ -73,9 +71,9 @@ export type AddClientResult =
  */
 export async function addClient(
   workspaceId: string,
-  { name, email, emailLocale }: AddClientInput,
+  { name, email, emailLocale }: ClientFormInput,
   fetchFn: typeof fetch = fetch,
-): Promise<AddClientResult> {
+): Promise<SaveClientResult> {
   const blank = blankFields({ name, email });
   if (blank) return blank;
   const body: Schemas['AddClientRequest'] = { name, email: email.trim() };
@@ -95,7 +93,7 @@ export async function addClient(
 export async function updateClient(
   workspaceId: string,
   current: Client,
-  { name, email, emailLocale }: AddClientInput,
+  { name, email, emailLocale }: ClientFormInput,
   fetchFn: typeof fetch = fetch,
 ): Promise<SaveClientResult> {
   const blank = blankFields({ name, email });
@@ -114,8 +112,8 @@ export async function updateClient(
 }
 
 /** The refusal of a blank name or email address, before any request; `null` when both are filled. */
-function blankFields({ name, email }: { name: string; email: string }): AddClientResult | null {
-  const blank: AddClientResult & { reason: 'fields' } = { ok: false, reason: 'fields' };
+function blankFields({ name, email }: { name: string; email: string }): SaveClientResult | null {
+  const blank: SaveClientResult & { reason: 'fields' } = { ok: false, reason: 'fields' };
   if (!name.trim()) blank.name = 'nameRequired';
   if (!email.trim()) blank.email = 'emailRequired';
   return blank.name || blank.email ? blank : null;
@@ -128,7 +126,7 @@ async function send(
   body: Schemas['AddClientRequest'] | Schemas['UpdateClientRequest'],
   successStatus: 200 | 201,
   fetchFn: typeof fetch,
-): Promise<AddClientResult> {
+): Promise<SaveClientResult> {
   let response: Response;
   try {
     response = await fetchFn(url, {
@@ -154,7 +152,7 @@ async function send(
   }
   if (response.status === 400) {
     const refused = refusedFields(problem);
-    const failure: AddClientResult & { reason: 'fields' } = { ok: false, reason: 'fields' };
+    const failure: SaveClientResult & { reason: 'fields' } = { ok: false, reason: 'fields' };
     if (refused.name) failure.name = refused.name === 'tooLong' ? 'nameTooLong' : 'nameRequired';
     const refusedEmail = problem?.issues?.filter(({ path }) => path === 'email');
     if (refusedEmail?.length) {

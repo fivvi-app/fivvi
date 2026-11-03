@@ -36,7 +36,7 @@ export function EditClient({
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
   return (
-    <>
+    <div className="flex flex-wrap items-center gap-2">
       <Button
         type="button"
         variant="outline"
@@ -75,6 +75,6 @@ export function EditClient({
           />
         ) : null}
       </Dialog>
-    </>
+    </div>
   );
 }
