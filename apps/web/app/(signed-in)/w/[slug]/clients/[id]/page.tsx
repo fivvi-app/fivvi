@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * TW-02 Klantprofiel (`/w/{slug}/clients/{id}`, F006): the plain profile a quick add opens. A
+ * TW-02 Klantprofiel (`/w/{slug}/clients/{id}`, F006): the profile a quick add opens, with *Bewerken* to edit the client. A
  * person without `clients.view` sees the no-permission page; a client the workspace doesn't have is
  * a 404 (the API answers 404 for a client of another workspace too; an id that is no UUID too).
  */
@@ -43,7 +43,9 @@ export default async function ClientProfilePage({
   return (
     <ClientProfile
       client={client}
+      workspaceId={id}
       slug={slug}
+      canEdit={capabilities.includes('clients.manage')}
       defaultLocale={workspace.data.defaultLocale}
       added={added === '1'}
     />

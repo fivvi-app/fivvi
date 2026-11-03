@@ -8,7 +8,7 @@ import { ClientList } from './client-list';
 import { ClientProfile } from './client-profile';
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: () => {}, refresh: () => {} }),
+  useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
 }));
 
 const anna: Schemas['Client'] = {
@@ -109,12 +109,15 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
     client: Schemas['Client'],
     added = false,
     defaultLocale: 'nl-NL' | 'en' = 'nl-NL',
+    canEdit = true,
   ) =>
     render(
       locale,
       <ClientProfile
         client={client}
+        workspaceId="w1"
         slug="johns-gym"
+        canEdit={canEdit}
         defaultLocale={defaultLocale}
         added={added}
       />,
@@ -145,6 +148,24 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
       escapeHtml(copy.clients.profile.added.replace('{name}', 'Anna de Vries')),
     );
     expect(profile(anna)).not.toContain('role="status"');
+  });
+
+  it('AC7: the profile has Edit for a person who may edit clients, and for no one else', () => {
+    const edit = new RegExp(`<button[^>]*>${escapeHtml(copy.clients.profile.edit)}</button>`);
+
+    expect(profile(anna)).toMatch(edit);
+    expect(copy.clients.profile.edit).not.toBe(copy.clients.profile.save);
+    expect(profile(anna, false, 'nl-NL', false)).not.toMatch(edit);
+    // The overview stays for a person who may only view.
+    expect(profile(anna, false, 'nl-NL', false)).toContain(escapeHtml('anna@example.com'));
+  });
+
+  it('no placeholder tabs: the profile has the overview only', () => {
+    const html = profile(anna);
+
+    expect(html).not.toContain('role="tab"');
+    expect(html).not.toContain('role="tablist"');
+    expect(html.match(/<h2/g)).toHaveLength(1);
   });
 
   it('AC2: the email address is a required field in the copy, with a message for a missing one', () => {
