@@ -39,8 +39,8 @@ struct ClientMessage: View {
     }
 }
 
-/// Grey rows in the shape of the list while it loads (`information-architecture.md §9.5`: skeleton rows, no spinner-only
-/// screen). Read as one loading indicator by VoiceOver.
+/// Grey rows in the shape of the list while it loads (`information-architecture.md §9.5`: skeleton rows, no
+/// spinner-only screen). Read as one loading indicator by VoiceOver.
 struct ClientSkeletonRows: View {
     let label: String
     let id: String

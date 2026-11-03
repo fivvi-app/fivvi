@@ -1,8 +1,9 @@
 import XCTest
 
 /// *Klanten* / *Clients*, *Klantprofiel* and *+ Nieuwe klant* (F006 AC1 to AC3, AC6, AC7, AC12), in nl and en: the list
-/// and its search, quick add with a name and an email address, the offer of an existing client for a duplicate email address, and the
-/// overview with its edit. The stub server starts with Anna de Vries, Mark Jansen and Sophie Bakker (synthetic).
+/// and its search, quick add with a name and an email address, the offer of an existing client for a duplicate email
+/// address, and the overview with its edit. The stub server starts with Anna de Vries, Mark Jansen and Sophie Bakker
+/// (synthetic).
 @MainActor
 final class ClientsUITests: SignInUITestCase {
     private let clientsPath = "/api/v1/workspaces/7c1d2e3f-0000-4000-8000-000000000000/clients"

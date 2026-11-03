@@ -1,6 +1,7 @@
 import XCTest
 
-/// Going back from the *Klantprofiel* (F006, IA §5.2: edge swipe and a back button with the previous title), in nl and en.
+/// Going back from the *Klantprofiel* (F006, IA §5.2: edge swipe and a back button with the previous title), in nl and
+/// en.
 @MainActor
 final class ClientProfileBackUITests: SignInUITestCase {
     private func row(_ name: String) -> XCUIElement {

@@ -7,8 +7,9 @@ extension ClientFormViewModel: Identifiable {}
 /// The form of a sheet that adds a client (*+ Nieuwe klant*) or edits one (*Bewerken*): *Naam* (focused, required),
 /// *E-mailadres (optioneel)*, *Taal voor e-mails* with *Standaard (Nederlands)* preselected, and *Annuleren* and the
 /// save button in the bar (F006 AC1 to AC3, AC7), where the keyboard doesn't cover them. Field messages sit under their
-/// field; a failed save keeps the input; a duplicate email address offers the existing client. Text wraps, every control
-/// keeps a 44 pt touch target. The test ids start with `idPrefix` (`clients.add` or `clientProfile.edit`), as on Android.
+/// field; a failed save keeps the input; a duplicate email address offers the existing client. Text wraps, every
+/// control keeps a 44 pt touch target. The test ids start with `idPrefix` (`clients.add` or `clientProfile.edit`), as
+/// on Android.
 struct ClientFormView: View {
     @Bindable var model: ClientFormViewModel
     let idPrefix: String
@@ -91,8 +92,8 @@ struct ClientFormView: View {
         }
     }
 
-    /// "Anna de Vries gebruikt dit e-mailadres al." with *Anna de Vries openen* and *Ander e-mailadres*: no second client
-    /// is created.
+    /// "Anna de Vries gebruikt dit e-mailadres al." with *Anna de Vries openen* and *Ander e-mailadres*: no second
+    /// client is created.
     private func existingOffer(_ text: String) -> some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space3) {
             ClientMessage(text: text, kind: .info, id: "\(idPrefix).duplicate")

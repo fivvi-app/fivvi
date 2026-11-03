@@ -3,7 +3,8 @@ import XCTest
 
 @testable import FivviPro
 
-/// What the tests of the client form share: John's Gym (synthetic), a form on it and an edit form of one of its clients.
+/// What the tests of the client form share: John's Gym (synthetic), a form on it and an edit form of one of its
+/// clients.
 @MainActor
 class ClientFormTestCase: XCTestCase {
     let language = InterfaceLanguage.resolve(.system())

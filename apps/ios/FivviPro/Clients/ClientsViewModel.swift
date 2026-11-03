@@ -5,8 +5,8 @@ import FivviAPI
 /// *Klanten* / *Clients* (TM-02): the workspace's clients from `GET /api/v1/workspaces/{id}/clients` through the
 /// generated client (F006 AC6, AC12). The server sorts them by name, searches them (part of a name or an email address,
 /// case and accents ignored) and pages them; the app holds no rule about who may see what, the answers do. What was
-/// shown stays when a later request fails, with the age of the list when the phone is offline (`information-architecture
-/// .md §9.5`). The list is kept in memory only: no client data is written to the phone.
+/// shown stays when a later request fails, with the age of the list when the phone is offline
+/// (`information-architecture .md §9.5`). The list is kept in memory only: no client data is written to the phone.
 @MainActor
 @Observable
 final class ClientsViewModel {
@@ -70,7 +70,8 @@ final class ClientsViewModel {
     /// More clients match than are listed.
     var hasMore: Bool { clients.count < total }
 
-    /// *Je bent offline. Laatst bijgewerkt om 08:42.* while the list shown couldn't be refreshed for lack of a connection.
+    /// *Je bent offline. Laatst bijgewerkt om 08:42.* while the list shown couldn't be refreshed for lack of a
+    /// connection.
     var offlineText: String? {
         guard offline, let updatedAt else { return nil }
         let formatter = DateFormatter()
@@ -83,8 +84,8 @@ final class ClientsViewModel {
     /// *Je hebt geen toegang tot deze pagina. Vraag de eigenaar van John's Gym.*
     var noPermissionText: String { catalog.string(.noPermissionBody, workspace.name) }
 
-    /// Runs while the screen shows the skeleton rows: after `slowAfter` it sets `loadingSlow`. Cancelled, or started when
-    /// nothing is loading, it clears it.
+    /// Runs while the screen shows the skeleton rows: after `slowAfter` it sets `loadingSlow`. Cancelled, or started
+    /// when nothing is loading, it clears it.
     func watchSlowLoading() async {
         loadingSlow = false
         guard state == .loading else { return }

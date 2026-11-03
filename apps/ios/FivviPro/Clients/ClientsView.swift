@@ -22,8 +22,9 @@ struct ClientRoute: Hashable, Identifiable {
 }
 
 /// *Klanten* / *Clients* (TM-02, F006): a large title, the search field, the clients sorted by name, pull to refresh
-/// and *+ Nieuwe klant*, a floating button, when the capability helper allows `clients.manage`. A row opens TM-03. Skeleton rows
-/// load, a failure says so with *Opnieuw proberen*, and a phone without a connection keeps the list it has with its age.
+/// and *+ Nieuwe klant*, a floating button, when the capability helper allows `clients.manage`. A row opens TM-03.
+/// Skeleton rows load, a failure says so with *Opnieuw proberen*, and a phone without a connection keeps the list it
+/// has with its age.
 struct ClientsView: View {
     let model: ClientsViewModel
     let language: AppLanguage

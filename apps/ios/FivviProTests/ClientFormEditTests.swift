@@ -54,7 +54,7 @@ final class ClientFormEditTests: ClientFormTestCase {
         XCTAssertEqual(api.clients.all.first { $0.name == "Anna de Vries" }?.email, "anna@example.com")
     }
 
-    func test_F006_AC7_theApiRefusingAnEmptiedEmailAddressShowsItInline() async {
+    func test_F006_AC7_theApisBadRequestOnTheEmailShowsItInlineAndTheClientKeepsIt() async {
         let api = johnsGym()
         let form = editForm(api, "Anna de Vries")
         form.email = "anna.de.vries@example.com"

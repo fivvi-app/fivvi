@@ -84,9 +84,12 @@ final class ClientFormViewModelTests: ClientFormTestCase {
         form.name = "Eva"
         form.email = "eva@example.com"
         api.clients.fail(.add, with: .badRequest(["email"]))
-        _ = await form.submit()
+        let added = await form.submit()
+        XCTAssertNil(added)
         XCTAssertEqual(form.emailErrorText, catalog["clients.addDialog.errors.emailInvalid"])
         XCTAssertNil(form.nameErrorText)
+        XCTAssertNil(form.saveFailedText)
+        XCTAssertEqual(api.clients.all.count, 2, "nothing was added")
 
         api.clients.fail(.add, with: .badRequest(["name"]))
         _ = await form.submit()
@@ -122,21 +125,6 @@ final class ClientFormViewModelTests: ClientFormTestCase {
         form.email = "anna.visser@example.com"
         let second = await form.submit()
         XCTAssertEqual(second?.email, "anna.visser@example.com")
-    }
-
-    func test_F006_AC2_theApiRefusingABlankEmailAddressShowsItInlineAndAddsNothing() async {
-        let api = johnsGym()
-        let form = form(api)
-        form.name = "Eva"
-        form.email = "eva@example.com"
-        api.clients.fail(.add, with: .badRequest(["email"]))
-
-        let added = await form.submit()
-
-        XCTAssertNil(added)
-        XCTAssertEqual(form.emailErrorText, TestCatalog(language)["clients.addDialog.errors.emailInvalid"])
-        XCTAssertNil(form.saveFailedText)
-        XCTAssertEqual(api.clients.all.count, 2, "nothing was added")
     }
 
     func test_F006_AC3_twoClientsWithDifferentEmailAddressesMayShareAName() async throws {

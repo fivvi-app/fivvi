@@ -1,11 +1,11 @@
 import Foundation
 import FivviAPI
 
-/// The clients of the stub workspace and what the client routes answer (F006), behind a lock: `StubAPI` is an actor
-/// and calls it from its routes. It follows the API's rules where a test depends on them: sorted by name, search by part
-/// of a name or an email address without regard to case and accents, pages, an email address lower case, one client per
-/// address (`409` with the existing client), a missing or blank address refused (`400` on `email`: it is required, never
-/// cleared) and the edit body's "keep" and "clear" fields.
+/// The clients of the stub workspace and what the client routes answer (F006), behind a lock: `StubAPI` is an actor and
+/// calls it from its routes. It follows the API's rules where a test depends on them: sorted by name, search by part of
+/// a name or an email address without regard to case and accents, pages, an email address lower case, one client per
+/// address (`409` with the existing client), a missing or blank address refused (`400` on `email`: it is required,
+/// never cleared) and the edit body's "keep" and "clear" fields.
 final class StubClients: @unchecked Sendable {
     typealias Client = Components.Schemas.Client
 

@@ -3,8 +3,8 @@ import Foundation
 /// The client routes of the stub server (F006): `GET` and `POST /api/v1/workspaces/{id}/clients`, `GET` and `PATCH` one
 /// client. It starts with the three clients of John's Gym (synthetic) and follows the API's rules that the screens
 /// depend on: sorted by name, search by part of a name or an email address without regard to case, one client per email
-/// address (`409` with the existing client's ID), a missing or blank address refused (`400` on `email`: it is required and
-/// never cleared) and the edit body's "keep" and "clear" fields.
+/// address (`409` with the existing client's ID), a missing or blank address refused (`400` on `email`: it is required
+/// and never cleared) and the edit body's "keep" and "clear" fields.
 final class StubClientRoutes: @unchecked Sendable {
     private let lock = NSLock()
     private var clients: [[String: Any]]
@@ -66,9 +66,9 @@ final class StubClientRoutes: @unchecked Sendable {
     }
 
     private func add(_ body: [String: Any]) -> (Int, [String: Any]) {
-        let name = (body["name"] as? String ?? "").trimmingCharacters(in: .whitespaces)
+        let name = (body["name"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, name.count <= 120 else { return invalid("name") }
-        let email = (body["email"] as? String ?? "").trimmingCharacters(in: .whitespaces).lowercased()
+        let email = (body["email"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !email.isEmpty else { return invalid("email") }
         if let existing = clients.first(where: { $0["email"] as? String == email }) {
             return (409, ["code": "client_exists", "clientId": existing["id"] as Any])
@@ -82,7 +82,7 @@ final class StubClientRoutes: @unchecked Sendable {
     private func update(_ id: String, _ body: [String: Any]) -> (Int, [String: Any]) {
         guard var client = find(id) else { return (404, ["code": "not_found"]) }
         if let name = body["name"] as? String { client["name"] = name }
-        if let email = (body["email"] as? String)?.trimmingCharacters(in: .whitespaces).lowercased() {
+        if let email = (body["email"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
             guard !email.isEmpty else { return invalid("email") }
             if let other = clients.first(where: { $0["email"] as? String == email && $0["id"] as? String != id }) {
                 return (409, ["code": "client_exists", "clientId": other["id"] as Any])

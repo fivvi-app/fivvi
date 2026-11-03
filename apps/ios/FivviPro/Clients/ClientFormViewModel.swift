@@ -4,8 +4,8 @@ import FivviAPI
 
 /// The form that adds a client (*+ Nieuwe klant*, a sheet) or edits one (the overview's *Bewerken*): name, email
 /// address and language for emails, with the rules and messages of the web (F006 AC1 to AC3, AC7, AC12). The name and
-/// the email address are required. The API decides in the end; the checks here only spare a request. Adding and editing need a connection:
-/// a failed save keeps the input and says so (`information-architecture.md §9.5`).
+/// the email address are required. The API decides in the end; the checks here only spare a request. Adding and editing
+/// need a connection: a failed save keeps the input and says so (`information-architecture.md §9.5`).
 @MainActor
 @Observable
 final class ClientFormViewModel {

@@ -31,8 +31,8 @@ struct ClientProfileScreen: View {
 /// *Klantprofiel* / *Client profile* (TM-03, F006): the client's name as the title, the section *Overzicht* with name,
 /// email address and language for emails, and *Bewerken* in the bar for whoever may manage clients (the capability
 /// helper decides). The other parts of the profile come with the features that own them; no empty placeholders. The
-/// bar's back button is our own (`clientProfile.back`, the id the Maestro flow taps; SwiftUI can't give the system's one
-/// an id): the chevron and the title of the list, as the system's shows (IA §5.2), with the swipe back kept.
+/// bar's back button is our own (`clientProfile.back`, the id the Maestro flow taps; SwiftUI can't give the system's
+/// one an id): the chevron and the title of the list, as the system's shows (IA §5.2), with the swipe back kept.
 struct ClientProfileView: View {
     let model: ClientProfileViewModel
     let language: AppLanguage

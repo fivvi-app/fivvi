@@ -2,8 +2,8 @@ import SwiftUI
 import UIKit
 
 extension View {
-    /// Gives the field of `.searchable` an accessibility identifier, which SwiftUI offers no way to set (the Maestro flow
-    /// and the UI tests find it as `clients.search`, as on Android).
+    /// Gives the field of `.searchable` an accessibility identifier, which SwiftUI offers no way to set (the Maestro
+    /// flow and the UI tests find it as `clients.search`, as on Android).
     func searchFieldIdentifier(_ id: String) -> some View {
         background(SearchFieldIdentifier(id: id))
     }
