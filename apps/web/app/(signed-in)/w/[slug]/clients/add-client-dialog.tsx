@@ -83,9 +83,10 @@ type Duplicate = Pick<Client, 'id' | 'name'>;
 type FormLocale = '' | 'nl-NL' | 'en';
 
 /**
- * The form: *Naam* (required, focused), *E-mailadres (optioneel)*, *Taal voor e-mails* with the
- * workspace default named and preselected, *Toevoegen*. Nothing is checked here: the API's answer
- * words the field messages, and a refused form keeps what was typed. A 409 offers the client that
+ * The form: *Naam* (required, focused), *E-mailadres* (required), *Taal voor e-mails* with the
+ * workspace default named and preselected, *Toevoegen*. A blank name or email is refused before
+ * anything is sent, the rest by the API; the field messages sit under the fields, and a refused
+ * form keeps what was typed. A 409 offers the client that
  * has the address instead, in the same form, and creates nothing. After an add the dialog closes
  * and the new client's profile opens with a short confirmation.
  */

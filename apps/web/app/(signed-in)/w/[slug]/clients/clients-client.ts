@@ -47,7 +47,7 @@ export interface AddClientInput {
 
 /** The `clients.addDialog.errors.*` catalog keys that word a refused field. */
 export type NameErrorKey = 'nameRequired' | 'nameTooLong';
-export type EmailErrorKey = 'emailInvalid';
+export type EmailErrorKey = 'emailRequired' | 'emailInvalid';
 
 export type AddClientResult =
   | { ok: true; client: Client }
@@ -60,20 +60,24 @@ export type AddClientResult =
   | { ok: false; reason: 'noConnection' | 'generic' };
 
 /**
- * Adds a client (`POST /api/v1/workspaces/{workspaceId}/clients`, F006 AC1–AC3). Only the name is
- * required; an empty address or language is left out of the request, so the client follows the
- * workspace's default. Like the other forms, it checks nothing before it asks: the API's
- * validation codes word the field errors (`too_small` an empty or blank name, `too_big` a long
- * one, and any issue on `email` an address that is none), and its 409 `client_exists` names the
- * client that has the address.
+ * Adds a client (`POST /api/v1/workspaces/{workspaceId}/clients`, F006 AC1–AC3). The name and the
+ * email address are both required (#174, decision 5): a blank one is refused here, with no
+ * request, so the form shows its message at once. An empty language is left out of the request, so
+ * the client follows the workspace's default. The rest is the API's call, and its validation codes
+ * word the field errors (`too_small` an empty or blank name, `too_big` a long one, `invalid_type`
+ * a missing address and any other issue on `email` an address that is none); its 409
+ * `client_exists` names the client that has the address.
  */
 export async function addClient(
   workspaceId: string,
   { name, email, emailLocale }: AddClientInput,
   fetchFn: typeof fetch = fetch,
 ): Promise<AddClientResult> {
-  const body: Schemas['AddClientRequest'] = { name };
-  if (email.trim()) body.email = email.trim();
+  const blank: AddClientResult & { reason: 'fields' } = { ok: false, reason: 'fields' };
+  if (!name.trim()) blank.name = 'nameRequired';
+  if (!email.trim()) blank.email = 'emailRequired';
+  if (blank.name || blank.email) return blank;
+  const body: Schemas['AddClientRequest'] = { name, email: email.trim() };
   if (emailLocale) body.emailLocale = emailLocale;
   let response: Response;
   try {
@@ -93,7 +97,7 @@ export async function addClient(
   const problem = (await response.json().catch(() => null)) as {
     code?: string;
     clientId?: string;
-    issues?: { path?: unknown }[];
+    issues?: { path?: unknown; code?: unknown }[];
   } | null;
   if (response.status === 409 && problem?.code === 'client_exists' && problem.clientId) {
     return { ok: false, reason: 'exists', clientId: problem.clientId };
@@ -102,7 +106,12 @@ export async function addClient(
     const refused = refusedFields(problem);
     const failure: AddClientResult & { reason: 'fields' } = { ok: false, reason: 'fields' };
     if (refused.name) failure.name = refused.name === 'tooLong' ? 'nameTooLong' : 'nameRequired';
-    if (problem?.issues?.some(({ path }) => path === 'email')) failure.email = 'emailInvalid';
+    const refusedEmail = problem?.issues?.filter(({ path }) => path === 'email');
+    if (refusedEmail?.length) {
+      failure.email = refusedEmail.some(({ code }) => code === 'invalid_type')
+        ? 'emailRequired'
+        : 'emailInvalid';
+    }
     if (failure.name || failure.email) return failure;
   }
   return { ok: false, reason: 'generic' };

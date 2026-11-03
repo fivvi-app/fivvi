@@ -5,9 +5,10 @@
     <string name="app_title">Fivvi</string>
     <string name="clients_add">Add client</string>
     <string name="clients_add_dialog_cancel">Cancel</string>
-    <string name="clients_add_dialog_description">Only a name is needed. Email address and language can follow.</string>
-    <string name="clients_add_dialog_email_label">Email address (optional)</string>
+    <string name="clients_add_dialog_description">Enter a name and an email address. The language can follow.</string>
+    <string name="clients_add_dialog_email_label">Email address</string>
     <string name="clients_add_dialog_errors_email_invalid">Enter a valid email address.</string>
+    <string name="clients_add_dialog_errors_email_required">Enter an email address.</string>
     <string name="clients_add_dialog_errors_name_required">Enter a name.</string>
     <string name="clients_add_dialog_errors_name_too_long">This name is too long. Use at most 120 characters.</string>
     <string name="clients_add_dialog_errors_not_saved">Not saved. Check your connection and try again.</string>
@@ -33,7 +34,6 @@
     <string name="clients_profile_email_label">Email address</string>
     <string name="clients_profile_locale_label">Language for emails</string>
     <string name="clients_profile_name_label">Name</string>
-    <string name="clients_profile_no_email">No email address</string>
     <string name="clients_profile_overview">Overview</string>
     <string name="clients_profile_title">Client profile</string>
     <string name="clients_search_placeholder">Search client…</string>

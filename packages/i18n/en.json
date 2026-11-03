@@ -245,9 +245,9 @@
     "partial": "Showing {shown} of {total} clients. Search to find the rest.",
     "addDialog": {
       "title": "Add client",
-      "description": "Only a name is needed. Email address and language can follow.",
+      "description": "Enter a name and an email address. The language can follow.",
       "nameLabel": "Name",
-      "emailLabel": "Email address (optional)",
+      "emailLabel": "Email address",
       "localeLabel": "Language for emails",
       "localeDefault": "Default ({language})",
       "localeNl": "Nederlands",
@@ -260,6 +260,7 @@
       "errors": {
         "nameRequired": "Enter a name.",
         "nameTooLong": "This name is too long. Use at most 120 characters.",
+        "emailRequired": "Enter an email address.",
         "emailInvalid": "Enter a valid email address.",
         "notSaved": "Not saved. Check your connection and try again."
       }
@@ -274,7 +275,6 @@
       "overview": "Overview",
       "nameLabel": "Name",
       "emailLabel": "Email address",
-      "noEmail": "No email address",
       "localeLabel": "Language for emails"
     }
   }

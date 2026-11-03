@@ -51,7 +51,7 @@ export function ClientProfile({
             </div>
             <div>
               <dt className="text-muted-foreground">{t('profile.emailLabel')}</dt>
-              <dd>{client.email ?? t('profile.noEmail')}</dd>
+              <dd>{client.email}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">{t('profile.localeLabel')}</dt>

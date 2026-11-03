@@ -245,9 +245,9 @@
     "partial": "{shown} van {total} klanten getoond. Zoek om de rest te vinden.",
     "addDialog": {
       "title": "Klant toevoegen",
-      "description": "Alleen een naam is nodig. E-mailadres en taal kunnen later.",
+      "description": "Vul een naam en een e-mailadres in. De taal kan later.",
       "nameLabel": "Naam",
-      "emailLabel": "E-mailadres (optioneel)",
+      "emailLabel": "E-mailadres",
       "localeLabel": "Taal voor e-mails",
       "localeDefault": "Standaard ({language})",
       "localeNl": "Nederlands",
@@ -260,6 +260,7 @@
       "errors": {
         "nameRequired": "Vul een naam in.",
         "nameTooLong": "Deze naam is te lang. Gebruik maximaal 120 tekens.",
+        "emailRequired": "Vul een e-mailadres in.",
         "emailInvalid": "Vul een geldig e-mailadres in.",
         "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw."
       }
@@ -274,7 +275,6 @@
       "overview": "Overzicht",
       "nameLabel": "Naam",
       "emailLabel": "E-mailadres",
-      "noEmail": "Geen e-mailadres",
       "localeLabel": "Taal voor e-mails"
     }
   }

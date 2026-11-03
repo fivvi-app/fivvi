@@ -7,9 +7,10 @@
     <string name="app_title">Fivvi</string>
     <string name="clients_add">Klant toevoegen</string>
     <string name="clients_add_dialog_cancel">Annuleren</string>
-    <string name="clients_add_dialog_description">Alleen een naam is nodig. E-mailadres en taal kunnen later.</string>
-    <string name="clients_add_dialog_email_label">E-mailadres (optioneel)</string>
+    <string name="clients_add_dialog_description">Vul een naam en een e-mailadres in. De taal kan later.</string>
+    <string name="clients_add_dialog_email_label">E-mailadres</string>
     <string name="clients_add_dialog_errors_email_invalid">Vul een geldig e-mailadres in.</string>
+    <string name="clients_add_dialog_errors_email_required">Vul een e-mailadres in.</string>
     <string name="clients_add_dialog_errors_name_required">Vul een naam in.</string>
     <string name="clients_add_dialog_errors_name_too_long">Deze naam is te lang. Gebruik maximaal 120 tekens.</string>
     <string name="clients_add_dialog_errors_not_saved">Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.</string>
@@ -35,7 +36,6 @@
     <string name="clients_profile_email_label">E-mailadres</string>
     <string name="clients_profile_locale_label">Taal voor e-mails</string>
     <string name="clients_profile_name_label">Naam</string>
-    <string name="clients_profile_no_email">Geen e-mailadres</string>
     <string name="clients_profile_overview">Overzicht</string>
     <string name="clients_profile_title">Klantprofiel</string>
     <string name="clients_search_placeholder">Zoek klant…</string>

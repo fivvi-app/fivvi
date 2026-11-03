@@ -28,7 +28,7 @@ type State = ({ status: 'ready' } & Shown) | { status: 'loading' } | { status: '
 /**
  * TW-01 Klanten (F006): the workspace's clients sorted by name as the API gives them, with the
  * search field that matches name and email as you type (the API does the matching, ignoring case
- * and accents), and the add action. Each row is the name and, when there is one, the email address,
+ * and accents), and the add action. Each row is the name and the email address,
  * linking to the profile. States (`information-architecture.md §9.5`): skeleton rows while it
  * loads (and, after 10 s, a line that it takes longer than usual), the empty state with the add
  * action, an error with *Opnieuw proberen* that keeps the list that was already shown.
@@ -161,13 +161,9 @@ export function ClientList({
                     className="grid gap-0.5 rounded-lg border p-3 hover:bg-muted"
                   >
                     <span className="font-medium">{client.name}</span>
-                    {client.email ? (
-                      <>
-                        {/* A pause between the name and the address in the link's spoken name. */}
-                        <span className="sr-only">, </span>
-                        <span className="text-muted-foreground">{client.email}</span>
-                      </>
-                    ) : null}
+                    {/* A pause between the name and the address in the link's spoken name. */}
+                    <span className="sr-only">, </span>
+                    <span className="text-muted-foreground">{client.email}</span>
                   </Link>
                 </li>
               ))}

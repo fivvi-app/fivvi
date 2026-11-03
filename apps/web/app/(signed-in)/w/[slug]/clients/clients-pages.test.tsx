@@ -17,7 +17,12 @@ const anna: Schemas['Client'] = {
   email: 'anna@example.com',
   emailLocale: null,
 };
-const mark: Schemas['Client'] = { id: 'c2', name: 'Mark Jansen', email: null, emailLocale: null };
+const mark: Schemas['Client'] = {
+  id: 'c2',
+  name: 'Mark Jansen',
+  email: 'mark@example.com',
+  emailLocale: null,
+};
 
 // Expected copy is read from the catalogs, never hard-coded (TESTING.md §5.4).
 describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
@@ -71,7 +76,7 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
   const list = (items: Schemas['Client'][], total = items.length) =>
     render(locale, <ClientList workspaceId="w1" slug="johns-gym" initial={{ items, total }} />);
 
-  it('AC6: the list shows each client’s name and, when there is one, the email address, linking to the profile', () => {
+  it('AC6: the list shows each client’s name and email address, linking to the profile', () => {
     const html = list([anna, mark]);
 
     expect(html).toMatch(new RegExp(`<h1[^>]*>${escapeHtml(copy.clients.title)}</h1>`));
@@ -79,7 +84,7 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
       /<a[^>]*href="\/w\/johns-gym\/clients\/c1"[^>]*><span[^>]*>Anna de Vries<\/span><span class="sr-only">, <\/span><span[^>]*>anna@example\.com<\/span><\/a>/,
     );
     expect(html).toMatch(
-      /<a[^>]*href="\/w\/johns-gym\/clients\/c2"[^>]*><span[^>]*>Mark Jansen<\/span><\/a>/,
+      /<a[^>]*href="\/w\/johns-gym\/clients\/c2"[^>]*><span[^>]*>Mark Jansen<\/span><span class="sr-only">, <\/span><span[^>]*>mark@example\.com<\/span><\/a>/,
     );
     expect(html).toContain(`placeholder="${escapeHtml(copy.clients.searchPlaceholder)}"`);
   });
@@ -129,7 +134,7 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
         copy.clients.addDialog.localeDefault.replace('{language}', copy.clients.languageNames.en),
       ),
     );
-    expect(dutch).toContain(escapeHtml(copy.clients.profile.noEmail));
+    expect(dutch).toContain(escapeHtml('mark@example.com'));
   });
 
   it('shows a language the team set, and the confirmation after an add', () => {
@@ -140,6 +145,14 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
       escapeHtml(copy.clients.profile.added.replace('{name}', 'Anna de Vries')),
     );
     expect(profile(anna)).not.toContain('role="status"');
+  });
+
+  it('AC2: the email address is a required field in the copy, with a message for a missing one', () => {
+    expect(copy.clients.addDialog.emailLabel).not.toMatch(/optio/i);
+    expect(copy.clients.addDialog.description).not.toMatch(/alleen een naam|only a name/i);
+    expect(copy.clients.addDialog.errors.emailRequired).not.toBe(
+      copy.clients.addDialog.errors.emailInvalid,
+    );
   });
 
   it('the copy has none of the forbidden words', () => {

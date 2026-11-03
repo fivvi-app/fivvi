@@ -13,13 +13,14 @@ import { expect, expectNoAxeViolations, test } from './fixtures';
 // F006 (spec #174): TW-01 Klanten (list, search, quick add) and the plain profile a quick add
 // opens. Copy comes from the catalogs. Each spec has accounts and workspaces of its own (see
 // language.spec.ts): John owns John's Gym, Sarah is a Trainer there, Mike owns Fit Studio. The
-// clients are synthetic: Anna de Vries (anna@example.com) and Mark Jansen (no email address).
+// clients are synthetic: Anna de Vries (anna@example.com) and Mark Jansen (mark@example.com);
+// every client has an email address (#174, decision 5).
 const GYM = "John's Gym";
 
 interface ClientBody {
   id: string;
   name: string;
-  email: string | null;
+  email: string;
   emailLocale: string | null;
 }
 
@@ -73,7 +74,7 @@ test.describe('F006 clients on the web', () => {
     );
 
   for (const person of ['owner', 'trainer'] as const) {
-    test(`AC1: ${person === 'owner' ? 'John' : 'Sarah'} adds Mark Jansen with a name only and the profile opens with the default language`, async ({
+    test(`AC1: ${person === 'owner' ? 'John' : 'Sarah'} adds Mark Jansen with a name and an email address and the profile opens with the default language`, async ({
       page,
       context,
       appLocale,
@@ -103,7 +104,9 @@ test.describe('F006 clients on the web', () => {
       await expect(dialog).toBeVisible();
       const name = dialog.getByLabel(copy.clients.addDialog.nameLabel);
       await expect(name).toBeFocused();
-      await expect(dialog.getByLabel(copy.clients.addDialog.emailLabel)).toBeVisible();
+      const email = dialog.getByLabel(copy.clients.addDialog.emailLabel);
+      await expect(email).toBeVisible();
+      await expect(dialog.getByText(/optio/i)).toHaveCount(0);
       // The workspace's default language is named and preselected.
       const language = dialog.getByLabel(copy.clients.addDialog.localeLabel);
       await expect(language).toHaveValue('');
@@ -116,6 +119,7 @@ test.describe('F006 clients on the web', () => {
       await expectNoAxeViolations(page, `the quick-add dialog in ${appLocale}`);
 
       await name.fill('Mark Jansen');
+      await email.fill('mark@example.com');
       await dialog.getByRole('button', { name: copy.clients.addDialog.submit }).click();
 
       await expect(page).toHaveURL(new RegExp(`/w/${slug}/clients/[0-9a-f-]{36}\\?added=1$`));
@@ -124,14 +128,19 @@ test.describe('F006 clients on the web', () => {
         copy.clients.profile.added.replace('{name}', 'Mark Jansen'),
       );
       await expect(page.getByText(defaultLanguage(copy, 'nl'))).toBeVisible();
-      await expect(page.getByText(copy.clients.profile.noEmail)).toBeVisible();
+      await expect(page.getByText('mark@example.com')).toBeVisible();
       await expect(page).toHaveTitle(copy.clients.profile.title);
       await expectNoAxeViolations(page, `TW-02 in ${appLocale}`);
 
-      // The data path: the API holds Mark in John's Gym, with no email address and no language.
+      // The data path: the API holds Mark in John's Gym, with his email address and no language.
       const clients = await stored(page, await gymId(page));
       expect(clients).toEqual([
-        { id: expect.any(String), name: 'Mark Jansen', email: null, emailLocale: null },
+        {
+          id: expect.any(String),
+          name: 'Mark Jansen',
+          email: 'mark@example.com',
+          emailLocale: null,
+        },
       ]);
       expect(page.url()).toContain(`/clients/${clients[0]?.id}`);
 
@@ -141,7 +150,7 @@ test.describe('F006 clients on the web', () => {
     });
   }
 
-  test('AC2: field messages for an empty or too long name and an invalid email, keeping the input, and nothing is saved', async ({
+  test('AC2: field messages for an empty or too long name and a missing or invalid email, keeping the input, and nothing is saved', async ({
     page,
     context,
     appLocale,
@@ -164,10 +173,22 @@ test.describe('F006 clients on the web', () => {
     await page.mouse.move(0, 0);
     await expect(dialog.getByText(copy.clients.addDialog.errors.nameRequired)).toBeVisible();
     await expect(name).toHaveAttribute('aria-invalid', 'true');
+    // The email address is required too: a message under it, and no request was made.
+    await expect(dialog.getByText(copy.clients.addDialog.errors.emailRequired)).toBeVisible();
+    await expect(email).toHaveAttribute('aria-invalid', 'true');
     await expectNoAxeViolations(page, `the quick-add dialog with a name message in ${appLocale}`);
     await name.fill('   ');
     await submit.click();
     await expect(dialog.getByText(copy.clients.addDialog.errors.nameRequired)).toBeVisible();
+
+    // A name without an email address (and a blank one) is refused with the email message alone.
+    await name.fill('Mark Jansen');
+    await email.fill('   ');
+    await submit.click();
+    await expect(dialog.getByText(copy.clients.addDialog.errors.emailRequired)).toBeVisible();
+    await expect(dialog.getByText(copy.clients.addDialog.errors.nameRequired)).toHaveCount(0);
+    await expect(name).toHaveValue('Mark Jansen');
+    expect(await stored(page, workspaceId)).toEqual([]);
 
     // A name of 121 characters, and an address that is none; the input stays as typed.
     const tooLong = 'x'.repeat(121);
@@ -266,17 +287,17 @@ test.describe('F006 clients on the web', () => {
       await signInWithSession(context, person === 'owner' ? john : sarah);
       await page.goto(`/w/${slug}`);
       const workspaceId = await gymId(page);
-      await seed(page, workspaceId, { name: 'Mark Jansen' });
+      await seed(page, workspaceId, { name: 'Mark Jansen', email: 'mark@example.com' });
       await seed(page, workspaceId, { name: 'Anna de Vries', email: 'anna@example.com' });
       await seed(page, workspaceId, { name: 'Bram Visser', email: 'bram@example.com' });
 
       await page.goto(`/w/${slug}/clients`);
       const list = page.getByRole('list', { name: copy.clients.listLabel });
-      // Sorted by name; a client with an email address shows it, one without shows the name alone.
+      // Sorted by name; every client shows the name and the email address.
       await expect(list.getByRole('listitem')).toHaveText([
         'Anna de Vries, anna@example.com',
         'Bram Visser, bram@example.com',
-        'Mark Jansen',
+        'Mark Jansen, mark@example.com',
       ]);
       await expectNoAxeViolations(page, `TW-01 in ${appLocale}`);
 
@@ -317,7 +338,7 @@ test.describe('F006 clients on the web', () => {
     await signInWithSession(context, john);
     await page.goto(`/w/${slug}`);
     const workspaceId = await gymId(page);
-    await seed(page, workspaceId, { name: 'Mark Jansen' });
+    await seed(page, workspaceId, { name: 'Mark Jansen', email: 'mark@example.com' });
     await seed(page, workspaceId, { name: 'Anna de Vries', email: 'anna@example.com' });
     await page.goto(`/w/${slug}/clients`);
     const list = page.getByRole('list', { name: copy.clients.listLabel });
@@ -336,7 +357,7 @@ test.describe('F006 clients on the web', () => {
     await expect(error).toBeVisible();
     await expect(list.getByRole('listitem')).toHaveText([
       'Anna de Vries, anna@example.com',
-      'Mark Jansen',
+      'Mark Jansen, mark@example.com',
     ]);
 
     // Try again asks the same search once more.
@@ -419,7 +440,7 @@ test.describe('F006 clients on the web', () => {
     }[];
     const studioId = studios[0]?.workspaceId;
     if (!studioId) throw new Error('No workspace for Mike.');
-    const stranger = await seed(page, studioId, { name: 'Piet Bakker' });
+    const stranger = await seed(page, studioId, { name: 'Piet Bakker', email: 'piet@example.com' });
 
     await signInWithSession(context, john);
     await page.goto(`/w/${slug}`);
