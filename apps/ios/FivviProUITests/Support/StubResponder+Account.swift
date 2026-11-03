@@ -28,11 +28,16 @@ extension Responder {
         teamWorkspaceEntries.map {
             [
                 "workspaceId": Self.workspaceID($0.index), "name": $0.workspace.name, "slug": "workspace-\($0.index)",
-                "role": $0.workspace.role, "capabilities": Self.capabilities(ofRole: $0.workspace.role),
+                "role": $0.workspace.role, "capabilities": capabilities(ofWorkspace: $0.index, role: $0.workspace.role),
                 // F005: a Trainer always trains; an Owner trains once the switch was put on
                 "trainsHere": trainsOverride(at: $0.index) ?? ($0.workspace.role != "owner")
             ]
         }
+    }
+
+    /// The first workspace's capabilities may be set by the test; any other follows the matrix.
+    func capabilities(ofWorkspace index: Int, role: String) -> [String] {
+        (index == 0 ? signIn.capabilities : nil) ?? Self.capabilities(ofRole: role)
     }
 
     /// The permission matrix of `packages/domain` (F004): what a role may do, as the API sends it.
@@ -60,7 +65,11 @@ extension Responder {
         if method == "PATCH" { return path == "/api/v1/me" }
         if method == "PUT" || method == "DELETE" { return isTrainerProfile(path) }
         return method == "GET"
-            && (path == "/api/v1/me" || path == "/api/v1/me/workspaces" || path.hasPrefix("/api/v1/workspaces/"))
+            && (path == "/api/v1/me" || path == "/api/v1/me/workspaces" || isWorkspaceRoute(path))
+    }
+
+    static func isWorkspaceRoute(_ path: String) -> Bool {
+        path.hasPrefix("/api/v1/workspaces/") && !path.contains("/clients")
     }
 
     /// `GET /api/v1/me`, `PATCH /api/v1/me`, `GET /api/v1/me/workspaces`, `GET /api/v1/workspaces/{id}` and the trainer

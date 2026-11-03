@@ -34,6 +34,9 @@ final class AccountViewModel {
     private(set) var destination: Destination?
     /// A sign-out is under way: the home shows it and ignores another tap.
     private(set) var isSigningOut = false
+    /// The workspace the home shows (its ID, name and default communication language), or nil while there is none.
+    /// Screens of a workspace (Clients, F006) are built for it.
+    private(set) var workspace: CurrentWorkspace?
     /// What the account may do in each workspace, from the same answer; the app's one helper for showing actions.
     let capabilities = WorkspaceCapabilities()
     private let api: any APIProtocol
@@ -70,6 +73,7 @@ final class AccountViewModel {
     func load() async {
         state = .loading
         destination = nil
+        workspace = nil
         do {
             try await fetch()
         } catch {
@@ -95,7 +99,8 @@ final class AccountViewModel {
         let (destination, current) = try await destination(of: account)
         state = .loaded(email: account.email)
         self.destination = destination
-        capabilities.replace(with: account.workspaces, current: current)
+        workspace = current
+        capabilities.replace(with: account.workspaces, current: current?.id)
         // An answer that arrives after the sign-out (the token is gone) or once the screen has gone (its task is
         // cancelled) must not set the account that was just cleared as the error-reporting user (#266).
         if !Task.isCancelled, store.token != nil { onAccount(account.id) }
@@ -104,13 +109,21 @@ final class AccountViewModel {
     /// With more than one workspace (F012) the last one used will decide; until then the first one the API still lets
     /// the person into is the home. A `404` for a workspace means the team access is gone (F003 AC6): the next one is
     /// tried, and with none left the no-access text shows. Any other failure is a failure of the screen, not a verdict.
-    /// Also tells which workspace that is (its ID), the one the capabilities are read for.
+    /// Also tells which workspace that is, the one the capabilities are read for.
     private func destination(
         of account: Components.Schemas.MeResponse
-    ) async throws -> (Destination, workspaceID: String?) {
+    ) async throws -> (Destination, workspace: CurrentWorkspace?) {
         for workspace in account.workspaces {
             switch try await api.getWorkspace(.init(path: .init(workspaceId: workspace.id))) {
-            case .ok: return (.workspace(name: workspace.name), workspace.id)
+            case let .ok(found):
+                let details = try found.body.json
+                return (
+                    .workspace(name: workspace.name),
+                    CurrentWorkspace(
+                        id: workspace.id, name: workspace.name, defaultLocale: details.defaultLocale,
+                        timeZone: TimeZone(identifier: details.timeZone) ?? CurrentWorkspace.defaultTimeZone
+                    )
+                )
             case .notFound: continue
             default: throw URLError(.badServerResponse)
             }
@@ -154,6 +167,19 @@ final class AccountViewModel {
             })
         }
     }
+}
+
+/// The workspace the app is showing: what its screens are built for.
+struct CurrentWorkspace: Equatable, Sendable {
+    let id: String
+    let name: String
+    /// The workspace's default communication language: the language of a client's emails until one is chosen (ADR-017).
+    let defaultLocale: Components.Schemas.Locale
+    /// The workspace's time zone: times the app shows for it (the age of an offline list) are in it.
+    let timeZone: TimeZone
+
+    /// Europe/Amsterdam, the default of a workspace (`AGENTS.md`).
+    static let defaultTimeZone = TimeZone(identifier: "Europe/Amsterdam") ?? .current
 }
 
 /// Resumes its continuation with the first answer only and cancels the timer; the request, if it lost, goes on.

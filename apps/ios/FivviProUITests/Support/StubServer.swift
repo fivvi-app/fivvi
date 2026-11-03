@@ -3,9 +3,9 @@ import Network
 
 /// A tiny HTTP server in the UI-test runner that stands in for the API. The app reaches it on the simulator's
 /// loopback interface (the Debug build allows plain HTTP), so UI tests can assert what the app requested. It answers
-/// the hello route as the test says (`Answer`) and the sign-in routes, `POST /api/v1/sign-out` and `GET /api/v1/me`
-/// like the API does for one account (`SignIn`). A test can also cut the connection (`setOffline`) or hold the
-/// sign-in email request to keep the loading state on screen (`holdSignInRequests`).
+/// the hello route as the test says (`Answer`), the sign-in routes, `POST /api/v1/sign-out`, `GET /api/v1/me` like the
+/// API does for one account (`SignIn`) and the client routes (`StubClientRoutes`). A test can also cut the connection
+/// (`setOffline`) or hold the sign-in email request to keep the loading state on screen (`holdSignInRequests`).
 final class StubServer: Sendable {
     enum Answer: Sendable {
         /// `200` with this greeting key.
@@ -14,33 +14,6 @@ final class StubServer: Sendable {
         case status(Int)
         /// No answer until `answer(with:)` gives one, so the loading state stays on screen.
         case hold
-    }
-
-    /// The account the sign-in routes know: its address, the code that works and the token that code is exchanged for.
-    struct SignIn: Sendable {
-        var email = "owner@example.com"
-        var code = "123456"
-        var token = "stub-session-token"
-        /// The name of the account's one workspace, or nil for none (F002).
-        var workspaceName: String? = "John's Gym"
-        /// The role in that workspace (`owner` or `trainer`).
-        var role = "owner"
-        /// More workspaces the account is on the team of, after the first (F003).
-        var otherWorkspaces: [Workspace] = []
-        /// Whether `GET /api/v1/me` says the account may create a workspace.
-        var canCreateWorkspace = false
-        /// An error status for `GET /api/v1/me`, or nil to answer as the API does.
-        var meStatus: Int?
-        /// The account's stored language (`nl-NL` or `en`) at the start, or nil for none (F010).
-        var preferredLocale: String?
-        /// The account's name at the start, or nil for none (F005).
-        var name: String? = "Owner"
-    }
-
-    /// A workspace of the account (synthetic).
-    struct Workspace: Sendable, Equatable {
-        let name: String
-        let role: String
     }
 
     /// A request the app sent: its target, bearer token and JSON body (strings only).

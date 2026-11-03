@@ -5,12 +5,16 @@ import FivviDesignTokens
 /// The signed-in home, a placeholder until the tab bar arrives. `GET /api/v1/me` decides what it shows (F002 AC10): the
 /// workspace's name with the hello block, the text to set a workspace up on the web with a button that opens trainer
 /// web in the browser, or the no-access text. Under it always sit the address of the account that is signed in and the
-/// sign-out button; above it the button *Profiel* opens TM-04, the person's workspaces with their roles (F003).
+/// sign-out button; above it the button *Klanten* opens TM-02 when the capability helper allows `clients.view` (F006),
+/// and the button *Profiel* opens TM-04, the person's workspaces with their roles (F003).
 struct HomeView: View {
     @Environment(\.openURL) private var openURL
     @State private var hello: HelloViewModel
     @State private var account: AccountViewModel
     @State private var profile: ProfileViewModel
+    /// The clients of the workspace on screen, kept while the home lives so the list stays at hand (F006).
+    @State private var clients: ClientsViewModel?
+    private let api: any APIProtocol
     private let language: AppLanguage
     private let welcomeURL: URL
 
@@ -31,6 +35,7 @@ struct HomeView: View {
             api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut,
             onPreferredLocale: { language.startRead() }
         ))
+        self.api = api
         self.language = language
         self.welcomeURL = welcomeURL
     }
@@ -52,6 +57,7 @@ struct HomeView: View {
                     Spacer(minLength: 0)
                     VStack(spacing: Tokens.Spacing.space4) {
                         destination
+                        clientsLink
                         profileLink
                         // One hello block in one place, so it loads once whether /me is loading, failed or answered
                         // with a workspace; the other states have their own text instead.
@@ -79,9 +85,13 @@ struct HomeView: View {
             await language.save()
             await account.refresh()
         }
+        // The clients' model follows the workspace the account shows: a new workspace is a new list (F012 will let the
+        // person switch), none is no list.
+        .onChange(of: account.workspace, initial: true) { _, workspace in useWorkspace(workspace) }
         .onChange(of: language.catalog) { _, catalog in
             hello.use(catalog)
             profile.use(catalog)
+            clients?.use(catalog)
         }
     }
 
@@ -155,6 +165,36 @@ struct HomeView: View {
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("home.account")
+    }
+
+    /// The clients' model is for the workspace on screen: kept while it is the same, new when it changes (F012 will let
+    /// the person switch).
+    private func useWorkspace(_ workspace: CurrentWorkspace?) {
+        guard let workspace else {
+            clients = nil
+            return
+        }
+        guard clients?.workspace != workspace else { return }
+        let capabilities = account.capabilities
+        clients = ClientsViewModel(
+            api: api, workspace: workspace, catalog: language.catalog,
+            onForbidden: { await capabilities.forbidden($0) }
+        )
+    }
+
+    /// *Klanten* (TM-02): the workspace's clients, for whoever the helper lets see them.
+    @ViewBuilder private var clientsLink: some View {
+        if let clients, account.capabilities.allows(.clients_view) {
+            NavigationLink {
+                ClientsView(model: clients, language: language, capabilities: account.capabilities)
+            } label: {
+                Text(catalog[.clientsTitle])
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .buttonStyle(.secondaryAction)
+            .accessibilityIdentifier("home.openClients")
+        }
     }
 
     /// *Profiel* (TM-04): the person's workspaces with their role.
