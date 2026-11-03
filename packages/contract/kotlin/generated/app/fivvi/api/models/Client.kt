@@ -33,7 +33,7 @@ import kotlinx.serialization.Contextual
  *
  * @param id The client ID: this person’s record in this workspace.
  * @param name The name as the team wrote it.
- * @param email The email address, lower case; `null` when none was given.
+ * @param email The email address, lower case. Every client has one.
  * @param emailLocale The language for the client’s emails the team set: `nl-NL` or `en`. `null` follows the workspace’s default language.
  */
 @Serializable
@@ -48,9 +48,9 @@ data class Client (
     @SerialName(value = "name")
     val name: kotlin.String,
 
-    /* The email address, lower case; `null` when none was given. */
+    /* The email address, lower case. Every client has one. */
     @SerialName(value = "email")
-    val email: kotlin.String?,
+    val email: kotlin.String,
 
     /* The language for the client’s emails the team set: `nl-NL` or `en`. `null` follows the workspace’s default language. */
     @SerialName(value = "emailLocale")

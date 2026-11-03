@@ -156,27 +156,29 @@ describe('F006 add, list, read and edit clients', () => {
   const stored = (workspaceId: string) =>
     admin.db.select().from(clients).where(eq(clients.organizationId, workspaceId));
 
-  it('AC1: Owner and Trainer add a client with a name only; no language for emails is set', async () => {
+  it('AC1: quick add with a name and an email; Owner and Trainer add; no language for emails is set', async () => {
     const { gym, john, sarah } = await world();
     const before = (await stored(gym.id)).length;
 
-    const byJohn = await post(gym.id, { name: 'Mark Jansen' }, john);
-    const bySarah = await post(gym.id, { name: 'Mark Jansen' }, sarah);
+    const byJohn = await post(gym.id, { name: 'Mark Jansen', email: 'mark@example.com' }, john);
+    const bySarah = await post(gym.id, { name: 'Mark Jansen', email: 'mark2@example.com' }, sarah);
 
     expect(byJohn.status).toBe(201);
     expect(await byJohn.json()).toEqual({
       id: expect.any(String),
       name: 'Mark Jansen',
-      email: null,
+      email: 'mark@example.com',
       emailLocale: null,
     });
-    // Two clients without an email address may share a name (AC3).
+    // Two clients with different email addresses may share a name (AC3).
     expect(bySarah.status).toBe(201);
     const marks = (await stored(gym.id)).filter(({ name }) => name === 'Mark Jansen');
     expect(marks).toHaveLength(2);
-    expect(
-      marks.every(({ email, emailLocale, accountId }) => !email && !emailLocale && !accountId),
-    ).toBe(true);
+    expect(marks.map(({ email }) => email).toSorted()).toEqual([
+      'mark2@example.com',
+      'mark@example.com',
+    ]);
+    expect(marks.every(({ emailLocale, accountId }) => !emailLocale && !accountId)).toBe(true);
     expect(marks.every(({ organizationId }) => organizationId === gym.id)).toBe(true);
     expect((await stored(gym.id)).length).toBe(before + 2);
   });
@@ -202,14 +204,20 @@ describe('F006 add, list, read and edit clients', () => {
 
     const before = (await stored(gym.id)).length;
     const refusals: [unknown, string][] = [
-      [{ name: '' }, 'name'],
-      [{ name: '   ' }, 'name'],
-      [{ name: 'x'.repeat(121) }, 'name'],
-      [{}, 'name'],
+      [{ name: '', email: 'bram@example.com' }, 'name'],
+      [{ name: '   ', email: 'bram@example.com' }, 'name'],
+      [{ name: 'x'.repeat(121), email: 'bram@example.com' }, 'name'],
+      [{ email: 'bram@example.com' }, 'name'],
+      // The email address is required: missing, null, empty and invalid are all refused.
+      [{ name: 'Bram' }, 'email'],
+      [{ name: 'Bram', email: null }, 'email'],
+      [{ name: 'Bram', email: '' }, 'email'],
+      [{ name: 'Bram', email: '   ' }, 'email'],
+      [{}, 'email'],
       [{ name: 'Bram', email: 'not-an-address' }, 'email'],
       [{ name: 'Bram', email: 'bram@' }, 'email'],
-      [{ name: 'Bram', emailLocale: 'de' }, 'emailLocale'],
-      [{ name: 'Bram', emailLocale: 'en-GB' }, 'emailLocale'],
+      [{ name: 'Bram', email: 'bram@example.com', emailLocale: 'de' }, 'emailLocale'],
+      [{ name: 'Bram', email: 'bram@example.com', emailLocale: 'en-GB' }, 'emailLocale'],
     ];
     for (const [body, field] of refusals) {
       const response = await post(gym.id, body, john);
@@ -223,7 +231,9 @@ describe('F006 add, list, read and edit clients', () => {
     }
     // Nothing was saved by any refusal, and a name of exactly 120 characters is fine.
     expect((await stored(gym.id)).length).toBe(before);
-    expect((await post(gym.id, { name: 'x'.repeat(120) }, john)).status).toBe(201);
+    expect(
+      (await post(gym.id, { name: 'x'.repeat(120), email: 'long@example.com' }, john)).status,
+    ).toBe(201);
   });
 
   it('AC3: the same email in the workspace gives 409 with the existing client', async () => {
@@ -334,7 +344,7 @@ describe('F006 add, list, read and edit clients', () => {
     const accounts = (await admin.db.select({ id: authUsers.id }).from(authUsers)).length;
     const verifications = (await admin.db.select().from(authVerifications)).length;
 
-    await post(gym.id, { name: 'Mark Jansen' }, john, server);
+    await post(gym.id, { name: 'Mark Jansen', email: 'mark@example.com' }, john, server);
     await post(gym.id, { name: 'Bram', email: 'bram@example.com' }, john, server);
     await post(gym.id, { name: 'Bram', email: 'bram@example.com' }, john, server);
 
@@ -347,7 +357,7 @@ describe('F006 add, list, read and edit clients', () => {
   it('AC6: Owner and Trainer list and search the whole workspace', async () => {
     const { gym, john, sarah } = await world();
     await post(gym.id, { name: 'Anna de Vries', email: 'anna@example.com' }, john);
-    await post(gym.id, { name: 'Mark Jansen' }, john);
+    await post(gym.id, { name: 'Mark Jansen', email: 'mark@example.com' }, john);
     await post(gym.id, { name: 'Zoë Émile', email: 'zoe.emile@example.com' }, sarah);
 
     for (const who of [john, sarah]) {
@@ -369,7 +379,7 @@ describe('F006 add, list, read and edit clients', () => {
   it('AC6: search ignores case and accents and matches the email address too', async () => {
     const { gym, john } = await world();
     await post(gym.id, { name: 'Zoë Émile', email: 'zoe.emile@example.com' }, john);
-    await post(gym.id, { name: 'Mark Jansen' }, john);
+    await post(gym.id, { name: 'Mark Jansen', email: 'mark@example.com' }, john);
     const names = async (query: string) =>
       ((await (await list(gym.id, john, query)).json()) as ClientListBody).items.map(
         ({ name }) => name,
@@ -389,7 +399,9 @@ describe('F006 add, list, read and edit clients', () => {
 
   it('AC6: the list is paginated, in the same order', async () => {
     const { gym, john } = await world();
-    for (const name of ['Bram', 'Carla', 'Dirk', 'Els']) await post(gym.id, { name }, john);
+    for (const name of ['Bram', 'Carla', 'Dirk', 'Els']) {
+      await post(gym.id, { name, email: `${name.toLowerCase()}@example.com` }, john);
+    }
 
     const first = (await (await list(gym.id, john, '?pageSize=2')).json()) as ClientListBody;
     const second = (await (
@@ -479,11 +491,13 @@ describe('F006 add, list, read and edit clients', () => {
       [{ name: '   ' }, 'name'],
       [{ name: 'x'.repeat(121) }, 'name'],
       [{ name: 5 }, 'name'],
-      [{ clearEmail: 'yes' }, 'clearEmail'],
       [{ clearEmailLocale: 1 }, 'clearEmailLocale'],
       // Setting and clearing in one request is no request: the field is named.
-      [{ email: 'anna@example.com', clearEmail: true }, 'clearEmail'],
       [{ emailLocale: 'en', clearEmailLocale: true }, 'clearEmailLocale'],
+      // The email address can't be cleared: an empty one is refused with a field message.
+      [{ email: '' }, 'email'],
+      [{ email: '   ' }, 'email'],
+      [{ name: 'Anna Visser', email: '' }, 'email'],
       [{ email: 'not-an-address' }, 'email'],
       [{ email: 'anna@' }, 'email'],
       [{ emailLocale: 'de' }, 'emailLocale'],
@@ -548,14 +562,16 @@ describe('F006 add, list, read and edit clients', () => {
   it('AC7: the same address is a client of another workspace, not a duplicate', async () => {
     const { gym, other, john, mike } = await world();
     await post(other.id, { name: 'Anna de Vries', email: 'anna@example.com' }, mike);
-    const mark = (await (await post(gym.id, { name: 'Mark Jansen' }, john)).json()) as ClientBody;
+    const mark = (await (
+      await post(gym.id, { name: 'Mark Jansen', email: 'mark@example.com' }, john)
+    ).json()) as ClientBody;
 
     const edited = await edit(gym.id, mark.id, { email: 'anna@example.com' }, john);
 
     expect(edited.status).toBe(200);
   });
 
-  it('AC7: clearing the email address or the language is allowed', async () => {
+  it('AC7: the email address can’t be cleared; the language goes back to Default', async () => {
     const { gym, john } = await world();
     const anna = (await (
       await post(
@@ -565,15 +581,25 @@ describe('F006 add, list, read and edit clients', () => {
       )
     ).json()) as ClientBody;
 
-    const cleared = await edit(gym.id, anna.id, { clearEmail: true, clearEmailLocale: true }, john);
+    // `clearEmail` is not part of the contract any more: it changes nothing, and no body can
+    // remove the address.
+    const flag = await edit(gym.id, anna.id, { clearEmail: true }, john);
+    const empty = await edit(gym.id, anna.id, { email: '' }, john);
+    const cleared = await edit(gym.id, anna.id, { clearEmailLocale: true }, john);
 
+    expect(flag.status).toBe(200);
+    expect(empty.status).toBe(400);
+    expect(((await empty.json()) as { issues: { path: string }[] }).issues[0]?.path).toBe('email');
     expect(cleared.status).toBe(200);
-    const expected = { id: anna.id, name: 'Anna de Vries', email: null, emailLocale: null };
+    const expected = {
+      id: anna.id,
+      name: 'Anna de Vries',
+      email: 'anna@example.com',
+      emailLocale: null,
+    };
     expect(await cleared.json()).toEqual(expected);
     expect(await (await read(gym.id, anna.id, john)).json()).toEqual(expected);
-    // The address is free again for another client.
-    const mark = (await (await post(gym.id, { name: 'Mark Jansen' }, john)).json()) as ClientBody;
-    expect((await edit(gym.id, mark.id, { email: 'anna@example.com' }, john)).status).toBe(200);
+    expect((await stored(gym.id)).find(({ id }) => id === anna.id)?.email).toBe('anna@example.com');
   });
 
   it('AC7: null and a flag that is false are the same as a field left out: nothing changes', async () => {
@@ -589,12 +615,11 @@ describe('F006 add, list, read and edit clients', () => {
     const kotlinRename = {
       name: 'Anna Visser',
       email: null,
-      clearEmail: null,
       emailLocale: null,
       clearEmailLocale: null,
     };
     // And what an app writes when it sends the whole form with nothing to clear.
-    const noClear = { name: 'Anna Jansen', clearEmail: false, clearEmailLocale: false };
+    const noClear = { name: 'Anna Jansen', clearEmailLocale: false };
 
     const renamed = await edit(gym.id, anna.id, kotlinRename, john);
     const again = await edit(gym.id, anna.id, noClear, john);
@@ -609,7 +634,7 @@ describe('F006 add, list, read and edit clients', () => {
     });
   });
 
-  it('AC7: clearing one field leaves the other, and the flag clears a field when the value is null', async () => {
+  it('AC7: clearing the language leaves the email address, also when the language is null', async () => {
     const { gym, john } = await world();
     const anna = (await (
       await post(
@@ -631,20 +656,17 @@ describe('F006 add, list, read and edit clients', () => {
       email: 'anna@example.com',
       emailLocale: null,
     });
-    const noEmail = await edit(gym.id, anna.id, { email: null, clearEmail: true }, john);
-    expect(await noEmail.json()).toEqual({
-      id: anna.id,
-      name: 'Anna de Vries',
-      email: null,
-      emailLocale: null,
-    });
   });
 
   it('AC7: two parallel edits to one address save one and answer one 409', async () => {
     const { gym, john, sarah } = await world();
     const server = api();
-    const first = (await (await post(gym.id, { name: 'Bram' }, john)).json()) as ClientBody;
-    const second = (await (await post(gym.id, { name: 'Carla' }, john)).json()) as ClientBody;
+    const first = (await (
+      await post(gym.id, { name: 'Bram', email: 'bram@example.com' }, john)
+    ).json()) as ClientBody;
+    const second = (await (
+      await post(gym.id, { name: 'Carla', email: 'carla@example.com' }, john)
+    ).json()) as ClientBody;
 
     const answers = await Promise.all([
       edit(gym.id, first.id, { email: 'new@example.com' }, john, server),
@@ -657,7 +679,7 @@ describe('F006 add, list, read and edit clients', () => {
     );
   });
 
-  it('AC8: the link follows a changed or cleared email address, invisibly', async () => {
+  it('AC8: the link follows a corrected email address, invisibly', async () => {
     const { gym, john } = await world();
     const first = await createAccount(admin.db, { label: 'first-account' });
     const second = await createAccount(admin.db, { label: 'second-account' });
@@ -694,9 +716,11 @@ describe('F006 add, list, read and edit clients', () => {
       ).json()) as ClientBody,
     );
     expect(await linkOf()).toBe(first.id);
-    // Cleared: no link.
+    // An address no account has again: no link.
     answers.push(
-      (await (await edit(gym.id, anna.id, { clearEmail: true }, john)).json()) as ClientBody,
+      (await (
+        await edit(gym.id, anna.id, { email: 'typo-fixed@example.com' }, john)
+      ).json()) as ClientBody,
     );
     expect(await linkOf()).toBe(null);
 
@@ -734,7 +758,7 @@ describe('F006 add, list, read and edit clients', () => {
       { name: 'Anna Visser', emailLocale: 'en', email: 'elsewhere@example.com' },
       john,
     );
-    await edit(gym.id, anna.id, { clearEmail: true }, john);
+    await edit(gym.id, anna.id, { email: 'nobody@example.com' }, john);
     await edit(gym.id, anna.id, { email: account.email, name: 'Anna Again' }, john);
 
     // Not a column of the account changed, and the account's preference is not the client's language.
@@ -745,7 +769,9 @@ describe('F006 add, list, read and edit clients', () => {
   it('AC8: an account another client of the workspace is linked to gives 409 with that client', async () => {
     const { gym, john, annaAccount } = await world();
     const existing = (await stored(gym.id)).find(({ accountId }) => accountId === annaAccount.id);
-    const mark = (await (await post(gym.id, { name: 'Mark Jansen' }, john)).json()) as ClientBody;
+    const mark = (await (
+      await post(gym.id, { name: 'Mark Jansen', email: 'mark@example.com' }, john)
+    ).json()) as ClientBody;
 
     const response = await edit(gym.id, mark.id, { email: annaAccount.email }, john);
 
@@ -762,12 +788,12 @@ describe('F006 add, list, read and edit clients', () => {
     });
     const server = api({ requestSignIn });
     const mark = (await (
-      await post(gym.id, { name: 'Mark Jansen' }, john, server)
+      await post(gym.id, { name: 'Mark Jansen', email: 'mark@example.com' }, john, server)
     ).json()) as ClientBody;
     const accounts = (await admin.db.select({ id: authUsers.id }).from(authUsers)).length;
 
-    await edit(gym.id, mark.id, { email: 'mark@example.com' }, john, server);
-    await edit(gym.id, mark.id, { clearEmail: true }, john, server);
+    await edit(gym.id, mark.id, { email: 'mark.jansen@example.com' }, john, server);
+    await edit(gym.id, mark.id, { name: 'Mark Visser', emailLocale: 'en' }, john, server);
 
     expect(mail.sent).toEqual([]);
     expect(requestSignIn).not.toHaveBeenCalled();
@@ -794,7 +820,7 @@ describe('F006 add, list, read and edit clients', () => {
       await post(gym.id, { name: 'Zoë Émile', email: 'zoe@example.com' }, john, server)
     ).json()) as ClientBody;
     const bram = (await (
-      await post(gym.id, { name: 'Bram Visser' }, john, server)
+      await post(gym.id, { name: 'Bram Visser', email: 'bram.v@example.com' }, john, server)
     ).json()) as ClientBody;
     posthog.events.length = 0;
     lines.length = 0;
@@ -813,6 +839,7 @@ describe('F006 add, list, read and edit clients', () => {
       'Émile',
       'zoe@example.com',
       'smit@example.com',
+      'bram.v@example.com',
       'Smit',
       'Bram',
     ]) {
@@ -831,7 +858,9 @@ describe('F006 add, list, read and edit clients', () => {
     expect(record).toMatchObject({ name: 'Sarah as a client', email: sarah.email });
     // Her team role is as it was: still a Trainer, and she still lists and adds as one.
     expect((await list(gym.id, sarah)).status).toBe(200);
-    expect((await post(gym.id, { name: 'Another' }, sarah)).status).toBe(201);
+    expect(
+      (await post(gym.id, { name: 'Another', email: 'another@example.com' }, sarah)).status,
+    ).toBe(201);
     // The client record gives her no extra rights: a Trainer still can't use an Owner route.
     const team = await api().request(`/v1/workspaces/${gym.id}/team-members`, {
       headers: { 'x-test-account': sarah.id },
@@ -839,14 +868,14 @@ describe('F006 add, list, read and edit clients', () => {
     expect(team.status).toBe(403);
   });
 
-  it('AC10: another workspace, a client-only account and anonymous are denied', async () => {
+  it('AC10: another workspace gives 404, a client-only account 403, anonymous 401', async () => {
     const { gym, mike, annaAccount } = await world();
     const before = (await stored(gym.id)).length;
     const [theClient] = await stored(gym.id);
     const clientId = theClient?.id ?? '';
     const asks = async (who?: { id: string }) => [
       (await list(gym.id, who)).status,
-      (await post(gym.id, { name: 'Intruder' }, who)).status,
+      (await post(gym.id, { name: 'Intruder', email: 'intruder@example.com' }, who)).status,
       (await read(gym.id, clientId, who)).status,
       (await edit(gym.id, clientId, { name: 'Intruder' }, who)).status,
     ];
@@ -956,7 +985,7 @@ describe('F006 add, list, read and edit clients', () => {
     // is a flag, which has no `null` state to lose. The Swift and Kotlin tests prove the encoding.
     expect(body.required).toBeUndefined();
     expect(Object.keys(body.properties).toSorted()).toEqual(
-      ['clearEmail', 'clearEmailLocale', 'email', 'emailLocale', 'name'].toSorted(),
+      ['clearEmailLocale', 'email', 'emailLocale', 'name'].toSorted(),
     );
     for (const property of Object.values(body.properties) as { type: string[] }[]) {
       expect(property.type).toContain('null');
@@ -981,7 +1010,8 @@ describe('F006 add, list, read and edit clients', () => {
     const server = api({ productEvents });
 
     // A refusal, a duplicate and a validation error record nothing.
-    await post(gym.id, { name: '' }, john, server);
+    await post(gym.id, { name: '', email: 'empty@example.com' }, john, server);
+    await post(gym.id, { name: 'No Email' }, john, server);
     await post(gym.id, { name: 'Anna', email: 'anna@example.com' }, john, server);
     const afterFirst = posthog.events.length;
     await post(gym.id, { name: 'Anna', email: 'anna@example.com' }, john, server);
@@ -995,12 +1025,16 @@ describe('F006 add, list, read and edit clients', () => {
       john,
       server,
     );
-    await post(gym.id, { name: 'Bram Visser' }, john, server, {
+    await post(gym.id, { name: 'Bram Visser', email: 'bram@example.com' }, john, server, {
       authorization: 'Bearer token',
     });
-    await post(gym.id, { name: 'Carla Smit', surface: 'ios' }, john, server, {
-      authorization: 'Bearer token',
-    });
+    await post(
+      gym.id,
+      { name: 'Carla Smit', email: 'carla@example.com', surface: 'ios' },
+      john,
+      server,
+      { authorization: 'Bearer token' },
+    );
 
     expect(posthog.events.map(({ event }) => event)).toEqual(['client_added', 'client_added']);
     expect(posthog.events[0]?.distinct_id).toBe(john.id);

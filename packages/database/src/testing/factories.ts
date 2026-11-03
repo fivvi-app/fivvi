@@ -134,7 +134,7 @@ export async function endTeamRole(
 
 /**
  * A client of a workspace, linked to an account or (a quick-added client) to none. Its name is a
- * unique marker unless the test gives one; it has no email address unless the test gives one.
+ * unique marker unless the test gives one; its email address is a unique marker at example.com unless the test gives one (every client has one).
  */
 export async function addClient(
   db: Executor,
@@ -153,7 +153,7 @@ export async function addClient(
         organizationId: options.workspaceId,
         accountId: options.accountId ?? null,
         name: options.name ?? uniqueMarker('client'),
-        email: options.email ?? null,
+        email: options.email ?? `${uniqueMarker('client')}@example.com`,
         emailLocale: options.emailLocale ?? null,
       })
       .returning({ id: clients.id, name: clients.name }),
