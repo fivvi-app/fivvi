@@ -23,6 +23,8 @@ export const APP_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]>
   auth_sessions: ALL,
   auth_users: ALL,
   auth_verifications: ALL,
+  // Platform data of the cron (E012): read and written on the privileged connection only.
+  job_runs: [],
   // System data: read by every workspace, changed only by migrations.
   system_greetings: ['SELECT'],
   // Tenancy core and business tables: reached through RLS (the policies decide which rows).

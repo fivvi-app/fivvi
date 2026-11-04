@@ -25,6 +25,11 @@ export interface ErrorContext {
   route?: string;
   /** Defaults to `error`. A `warning` is for something that went wrong without failing the request. */
   level?: 'error' | 'warning';
+  /**
+   * Tags to put on the event. Only the tags of the scrubber's allow-list are sent (`cron.task`,
+   * `cron.run_id`); every other name is dropped, so a tag can never carry personal data.
+   */
+  tags?: Readonly<Record<string, string>>;
 }
 
 export interface ErrorReporter {
@@ -68,7 +73,8 @@ export function createErrorReporter(options: ErrorReporterOptions = {}): ErrorRe
     captureError: (error, context = {}) => {
       const eventScope = scope.clone();
       if (context.level) eventScope.setLevel(context.level);
-      const { request, route } = context;
+      const { request, route, tags } = context;
+      for (const [name, value] of Object.entries(tags ?? {})) eventScope.setTag(name, value);
       if (route) {
         eventScope.setTag('route', route);
         eventScope.setTransactionName(request ? `${request.method} ${route}` : route);

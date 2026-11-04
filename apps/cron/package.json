@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@fivvi/database": "workspace:*",
-    "@fivvi/observability": "workspace:*"
+    "@fivvi/observability": "workspace:*",
+    "drizzle-orm": "catalog:"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
