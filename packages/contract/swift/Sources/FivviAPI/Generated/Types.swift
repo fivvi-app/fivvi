@@ -137,6 +137,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/trainer-profile`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-profile/delete(deleteTrainerProfile)`.
     func deleteTrainerProfile(_ input: Operations.DeleteTrainerProfile.Input) async throws -> Operations.DeleteTrainerProfile.Output
+    /// The locations of a workspace
+    ///
+    /// The workspace’s locations, the default first. At go-live that is the one location of the gym, marked `isDefault`. Every team member may read it (sessions show it); a client of the workspace gets `403`, a person with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/locations`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/locations/get(listLocations)`.
+    func listLocations(_ input: Operations.ListLocations.Input) async throws -> Operations.ListLocations.Output
+    /// Change a location’s name or address
+    ///
+    /// Changes the name and/or the address of one location of the workspace (the Owner only; a Trainer gets `403`). The name is trimmed, not blank and at most 120 characters. The address is Dutch and all or nothing: a half-filled one, or a postcode that is not Dutch, answers `400` and nothing changes; `"1234ab"` is stored as `"1234 AB"`; `null` removes the address. A location of another workspace answers `404`.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/locations/{locationId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/locations/{locationId}/patch(updateLocation)`.
+    func updateLocation(_ input: Operations.UpdateLocation.Input) async throws -> Operations.UpdateLocation.Output
     /// The clients of a workspace
     ///
     /// The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. `search` matches part of a name or an email address in the server, ignoring case and accents.
@@ -419,6 +433,38 @@ extension APIProtocol {
         try await deleteTrainerProfile(Operations.DeleteTrainerProfile.Input(
             path: path,
             headers: headers
+        ))
+    }
+    /// The locations of a workspace
+    ///
+    /// The workspace’s locations, the default first. At go-live that is the one location of the gym, marked `isDefault`. Every team member may read it (sessions show it); a client of the workspace gets `403`, a person with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/locations`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/locations/get(listLocations)`.
+    public func listLocations(
+        path: Operations.ListLocations.Input.Path,
+        headers: Operations.ListLocations.Input.Headers = .init()
+    ) async throws -> Operations.ListLocations.Output {
+        try await listLocations(Operations.ListLocations.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Change a location’s name or address
+    ///
+    /// Changes the name and/or the address of one location of the workspace (the Owner only; a Trainer gets `403`). The name is trimmed, not blank and at most 120 characters. The address is Dutch and all or nothing: a half-filled one, or a postcode that is not Dutch, answers `400` and nothing changes; `"1234ab"` is stored as `"1234 AB"`; `null` removes the address. A location of another workspace answers `404`.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/locations/{locationId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/locations/{locationId}/patch(updateLocation)`.
+    public func updateLocation(
+        path: Operations.UpdateLocation.Input.Path,
+        headers: Operations.UpdateLocation.Input.Headers = .init(),
+        body: Operations.UpdateLocation.Input.Body
+    ) async throws -> Operations.UpdateLocation.Output {
+        try await updateLocation(Operations.UpdateLocation.Input(
+            path: path,
+            headers: headers,
+            body: body
         ))
     }
     /// The clients of a workspace

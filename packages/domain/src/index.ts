@@ -11,6 +11,23 @@ export {
   normalizeEmail,
 } from './clients/new-client.ts';
 export {
+  ADDRESS_ADDITION_MAX_LENGTH,
+  ADDRESS_TEXT_MAX_LENGTH,
+  type Address,
+  type AddressDecision,
+  type AddressField,
+  type AddressInput,
+  type AddressIssue,
+  decideAddress,
+  normalizePostcode,
+} from './locations/address.ts';
+export {
+  defaultLocation,
+  LOCATION_NAME_MAX_LENGTH,
+  LOCATION_TYPES,
+  type LocationType,
+} from './locations/default-location.ts';
+export {
   CAPABILITIES,
   type Capability,
   capabilitiesOf,

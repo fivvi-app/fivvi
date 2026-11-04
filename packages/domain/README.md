@@ -18,6 +18,8 @@ for (const slug of slugCandidates("John's Gym")) {
 | `src/team/last-owner.ts` | A workspace keeps at least one Owner: whether a removal (F004: a role change) leaves one | F003 AC7 |
 | `src/clients/new-client.ts` | A new client: the email address stored lower case, whether it is a duplicate of a client of the workspace, and which account it is linked to | F006 AC2–AC4, AC9 |
 | `src/clients/edit-client.ts` | An edited client: whether the new email address is a duplicate of another client of the workspace, and which account the link follows | F006 AC7, AC8 |
+| `src/locations/address.ts` | A location's address: the Dutch postcode normalized to `1234 AB`, the house number of one to five digits, all or nothing | F015 AC15 |
+| `src/locations/default-location.ts` | The location types of `PRODUCT.md §12`, the 120-character name limit and `defaultLocation(workspace)`, the one location every session takes | F015, F016 |
 | `src/workspaces/defaults.ts` | What a new workspace starts with (`nl-NL`, `Europe/Amsterdam`) and the 80-character name limit | F002 AC2, AC3 |
 
 Tests: `pnpm --filter @fivvi/domain test` (Vitest, `*.test.ts` next to the code).

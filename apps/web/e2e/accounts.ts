@@ -3,6 +3,7 @@ import {
   authSessions,
   authUsers,
   createDatabase,
+  locations,
   organizations,
   teamMembers,
   trainerProfiles,
@@ -94,6 +95,13 @@ export async function createGymWithTrainer(
       .values({ name, slug, defaultLocale: 'nl-NL', timeZone: 'Europe/Amsterdam' })
       .returning({ id: organizations.id });
     if (!gym) throw new Error('The workspace was not created.');
+    // Like the API (F015): a workspace never exists without its one location.
+    await client.db.insert(locations).values({
+      organizationId: gym.id,
+      name,
+      type: 'organization_location',
+      isDefault: true,
+    });
     const [member] = await client.db
       .insert(teamMembers)
       .values({ organizationId: gym.id, accountId: user.id, role })

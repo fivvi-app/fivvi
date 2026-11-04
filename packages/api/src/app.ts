@@ -13,6 +13,7 @@ import {
 import { registerClients } from './routes/clients.ts';
 import { registerHealth } from './routes/health.ts';
 import { registerHello } from './routes/hello.ts';
+import { registerLocations } from './routes/locations.ts';
 import { registerMe } from './routes/me.ts';
 import { registerSignIn } from './routes/sign-in.ts';
 import { registerTeamMembers } from './routes/team-members.ts';
@@ -67,6 +68,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerWorkspaces(app);
   registerTeamMembers(app);
   registerTrainers(app);
+  registerLocations(app);
   registerClients(app);
   return app;
 }

@@ -382,6 +382,8 @@ describe('E011 route access', () => {
       'patch /v1/workspaces/{workspaceId}': 'workspace',
       'put /v1/workspaces/{workspaceId}/trainer-profile': 'workspace',
       'get /v1/workspaces/{workspaceId}/trainers': 'workspace',
+      'get /v1/workspaces/{workspaceId}/locations': 'workspace',
+      'patch /v1/workspaces/{workspaceId}/locations/{locationId}': 'workspace',
       'post /v1/workspaces': 'account',
     });
   });

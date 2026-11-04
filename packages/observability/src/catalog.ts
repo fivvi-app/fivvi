@@ -38,6 +38,11 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     trains_here: property.boolean(),
   },
+  // F015: an Owner changed their workspace's location. The workspace ID only (the Owner's account
+  // UUID is the distinct ID): not the location's name or its address, which are free text.
+  location_updated: {
+    workspace_id: property.uuid(),
+  },
   // F006: a team member added a client. The workspace ID and the surface only (the team member's
   // account UUID is the distinct ID): no client ID, name, email address or language.
   client_added: {

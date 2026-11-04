@@ -300,6 +300,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The locations of a workspace
+         * @description The workspace’s locations, the default first. At go-live that is the one location of the gym, marked `isDefault`. Every team member may read it (sessions show it); a client of the workspace gets `403`, a person with no place in it `404`.
+         */
+        get: operations["listLocations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/locations/{locationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a location’s name or address
+         * @description Changes the name and/or the address of one location of the workspace (the Owner only; a Trainer gets `403`). The name is trimmed, not blank and at most 120 characters. The address is Dutch and all or nothing: a half-filled one, or a postcode that is not Dutch, answers `400` and nothing changes; `"1234ab"` is stored as `"1234 AB"`; `null` removes the address. A location of another workspace answers `404`.
+         */
+        patch: operations["updateLocation"];
+        trace?: never;
+    };
     "/v1/workspaces/{workspaceId}/clients": {
         parameters: {
             query?: never;
@@ -444,7 +484,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage")[];
         };
         /** @description A workspace the account is on the team of. */
         MyWorkspace: {
@@ -463,7 +503,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage")[];
             /** @description Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
             trainsHere: boolean;
         };
@@ -601,6 +641,55 @@ export interface components {
              */
             trainsHere: true;
         };
+        /** @description A place where sessions of the workspace take place. */
+        Location: {
+            /**
+             * Format: uuid
+             * @description The location ID.
+             */
+            id: string;
+            /** @description The name sessions show, up to 120 characters. */
+            name: string;
+            type: components["schemas"]["LocationType"];
+            address: components["schemas"]["LocationAddress"];
+            /** @description Whether this is the workspace’s default location, the one every new session takes. */
+            isDefault: boolean;
+        };
+        /**
+         * @description The kind of location. Every workspace has one `organization_location` (its own) at go-live; the other kinds exist in the model for later and are not written yet.
+         * @enum {string}
+         */
+        LocationType: "organization_location" | "external_gym" | "client_home" | "outdoor" | "online" | "other";
+        /** @description The address, or `null` when the location has none. */
+        LocationAddress: {
+            /** @description A Dutch postcode, stored as `1234 AB`. */
+            postcode: string;
+            /** @description One to five digits. */
+            houseNumber: string;
+            /** @description For example `A` or `2 hoog`; `null` when there is none. */
+            houseNumberAddition: string | null;
+            street: string;
+            city: string;
+        } | null;
+        /** @description Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. `address: null` removes the address; leave `address` out to keep it as it is. The type and which location is the default never change. Other fields are ignored. */
+        UpdateLocationRequest: {
+            /** @description The new name: trimmed, not blank, at most 120 characters. */
+            name?: string;
+            address?: components["schemas"]["LocationAddressInput"];
+        };
+        /** @description An address as typed. All or nothing: with any field filled, the postcode, house number, street and city are required. */
+        LocationAddressInput: {
+            /** @description A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`. */
+            postcode: string;
+            /** @description One to five digits. */
+            houseNumber: string;
+            /** @description For example `A` or `2 hoog`; optional, at most 10 characters. */
+            houseNumberAddition?: string | null;
+            /** @description At most 120 characters. */
+            street: string;
+            /** @description At most 120 characters. */
+            city: string;
+        } | null;
         /** @description One page of the clients of a workspace. */
         ClientList: {
             /** @description This page of clients, sorted by name. */
@@ -1660,6 +1749,148 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listLocations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The locations. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Location"][];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    updateLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The location ID. */
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLocationRequest"];
+            };
+        };
+        responses: {
+            /** @description The location with its changes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Location"];
+                };
             };
             /** @description The request did not match the contract. */
             400: {

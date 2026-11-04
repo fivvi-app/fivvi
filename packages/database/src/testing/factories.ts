@@ -4,6 +4,7 @@ import type { DatabaseExecutor } from '../client.ts';
 import {
   authUsers,
   clients,
+  locations,
   organizations,
   teamMembers,
   trainerProfiles,
@@ -32,10 +33,14 @@ function first<T>(rows: T[], what: string): T {
   return row;
 }
 
-/** A workspace whose name and slug are one unique marker, in the defaults of a new workspace. */
+/**
+ * A workspace whose name and slug are one unique marker, in the defaults of a new workspace. It
+ * has its one location (F015), named with the same marker and without an address, as the API
+ * makes it; a test of the location itself leaves it out with `location: false`.
+ */
 export async function createWorkspace(
   db: Executor,
-  options: { label?: string } = {},
+  options: { label?: string; location?: boolean } = {},
 ): Promise<{ id: string; marker: string }> {
   const marker = uniqueMarker(options.label ?? 'workspace');
   const row = first(
@@ -45,6 +50,14 @@ export async function createWorkspace(
       .returning({ id: organizations.id }),
     'workspace',
   );
+  if (options.location !== false) {
+    await db.insert(locations).values({
+      organizationId: row.id,
+      name: marker,
+      type: 'organization_location',
+      isDefault: true,
+    });
+  }
   return { id: row.id, marker };
 }
 

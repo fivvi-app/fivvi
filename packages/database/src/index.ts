@@ -45,6 +45,13 @@ export {
   searchClients,
   updateClient,
 } from './repositories/clients.ts';
+export {
+  type LocationAddress,
+  type LocationChanges,
+  type LocationView,
+  listLocations,
+  updateLocation,
+} from './repositories/locations.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
 export {
   changeTeamMemberRole,

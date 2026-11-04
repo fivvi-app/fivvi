@@ -53,7 +53,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F015 | Locations | PLANNED | Must | M3 (one location; more after G4) (+ iOS/Android: shown) | F002 | ⬜ | ⬜ | §12 (go-live: one location per workspace; after go-live: more locations and the other types) |
+| F015 | Locations | IN PROGRESS | Must | M3 (one location; more after G4) (+ iOS/Android: shown) | F002 | ⬜ | ⬜ | §12 (go-live: one location per workspace; after go-live: more locations and the other types) |
 | F016 | Organization Default Location | PLANNED | Must | M3 (+ iOS/Android: shown) | F015 | ⬜ | ⬜ | §13 (the workspace's one location) |
 | F017 | Trainer Locations | PLANNED | Must | After G4, with M7 (+ iOS/Android) | F005, F015 | ⬜ | ⬜ | §13 |
 | F018 | Client Preferred Location | PLANNED | Must | After G4, with M7 (+ iOS/Android) | F006, F015 | ⬜ | ⬜ | §14 |

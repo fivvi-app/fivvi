@@ -5,6 +5,7 @@ import {
   createDatabase,
   createTenantScopes,
   type DatabaseClient,
+  locations,
   organizations,
   type SignedInAccount,
   teamMembers,
@@ -192,6 +193,81 @@ describe('F002 POST /v1/workspaces', () => {
 
     expect(response.status).toBe(500);
     expect(await admin.db.$count(trainerProfiles)).toBe(before);
+  });
+
+  it('AC2 (F015): creating a workspace ("Pilot Two Studio") creates its one location, named like it, with no address', async () => {
+    const pilot = await account();
+
+    const response = await create(pilot, { name: 'Pilot Two Studio' });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as WorkspaceBody;
+    expect(
+      await admin.db.select().from(locations).where(eq(locations.organizationId, body.id)),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'Pilot Two Studio',
+        type: 'organization_location',
+        isDefault: true,
+        postcode: null,
+        houseNumber: null,
+        houseNumberAddition: null,
+        street: null,
+        city: null,
+      }),
+    ]);
+    // The first read of the new workspace's locations shows it.
+    const listed = await api().request(`/v1/workspaces/${body.id}/locations`, {
+      headers: { 'x-test-account': pilot.id },
+    });
+    expect(await listed.json()).toEqual([
+      expect.objectContaining({ name: 'Pilot Two Studio', address: null, isDefault: true }),
+    ]);
+  });
+
+  it('AC1 (F015): a failure in the request leaves no workspace and no location behind', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const unlucky = await account();
+    const before = {
+      workspaces: await admin.db.$count(organizations),
+      locations: await admin.db.$count(locations),
+    };
+    const failing: ProductEvents = {
+      enabled: true,
+      track: () => {
+        throw new Error('the event failed');
+      },
+      flush: () => Promise.resolve(),
+    };
+
+    const response = await create(
+      unlucky,
+      { name: 'Unlucky Gym 3' },
+      api({ productEvents: failing }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(await admin.db.$count(organizations)).toBe(before.workspaces);
+    expect(await admin.db.$count(locations)).toBe(before.locations);
+  });
+
+  it('AC9 (F015): renaming the workspace keeps the location’s name', async () => {
+    const owner = await account();
+    const created = (await (await create(owner, { name: "John's Gym" })).json()) as WorkspaceBody;
+
+    const renamed = await api().request(`/v1/workspaces/${created.id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', 'x-test-account': owner.id },
+      body: JSON.stringify({ name: "John's Gym Centrum" }),
+    });
+
+    expect(renamed.status).toBe(200);
+    expect(await renamed.json()).toMatchObject({ name: "John's Gym Centrum" });
+    const [location] = await admin.db
+      .select({ name: locations.name })
+      .from(locations)
+      .where(eq(locations.organizationId, created.id));
+    expect(location?.name).toBe("John's Gym");
   });
 
   it('AC2: defaults nl-NL and Europe/Amsterdam', async () => {
