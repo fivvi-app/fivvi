@@ -1,19 +1,11 @@
 'use client';
 
-import type { Locale } from '@fivvi/i18n';
 import { Button } from '@fivvi/ui/components/button';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { catalogLocale } from '../../../../i18n/config';
-import { saveLanguage } from './language-client';
-
-/** The options, each written in its own language (`packages/i18n/GLOSSARY.md` §4.8). */
-const OPTIONS = [
-  { locale: 'nl-NL', lang: 'nl', name: 'languageNl' },
-  { locale: 'en', lang: 'en', name: 'languageEn' },
-] as const satisfies readonly { locale: Locale; lang: string; name: string }[];
+import { LanguageOptions, languageNameKey } from '../../language/language-options';
 
 /**
  * The user menu of a workspace's frame (`information-architecture.md §4.1`, F010): *Taal:
@@ -25,12 +17,9 @@ const OPTIONS = [
  */
 export function UserMenu({ initiallyOpen = false }: { initiallyOpen?: boolean }) {
   const t = useTranslations('userMenu');
-  const router = useRouter();
   const current = catalogLocale(useLocale());
   const [open, setOpen] = useState(initiallyOpen);
   const [choosing, setChoosing] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [pending, setPending] = useState(false);
   // The buttons wait for the page to hydrate: a click before that would be lost.
   const [ready, setReady] = useState(false);
   const container = useRef<HTMLDivElement>(null);
@@ -57,18 +46,7 @@ export function UserMenu({ initiallyOpen = false }: { initiallyOpen?: boolean })
     if (event.key === 'Escape' && open) close();
   }
 
-  async function choose(locale: Locale) {
-    if (locale === current) return close();
-    setPending(true);
-    setFailed(false);
-    const { ok } = await saveLanguage(locale);
-    setPending(false);
-    if (!ok) return setFailed(true);
-    close();
-    router.refresh();
-  }
-
-  const currentName = t(OPTIONS.find((option) => option.locale === current)?.name ?? 'languageNl');
+  const currentName = t(languageNameKey(current));
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: Escape closes the open menu; the controls inside are buttons.
@@ -108,40 +86,7 @@ export function UserMenu({ initiallyOpen = false }: { initiallyOpen?: boolean })
           >
             {t('language', { language: currentName })}
           </Button>
-          {choosing ? (
-            <ul id="user-menu-languages" className="grid gap-1">
-              {OPTIONS.map(({ locale, lang, name }) => (
-                <li key={locale}>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="w-full justify-start gap-2"
-                    lang={lang}
-                    aria-pressed={locale === current}
-                    disabled={pending}
-                    onClick={() => choose(locale)}
-                  >
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className={locale === current ? '' : 'invisible'}
-                    >
-                      <path d="M3 8.5l3 3 7-7" />
-                    </svg>
-                    {t(name)}
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          {failed ? (
-            <p role="alert" className="px-2 py-1 text-sm text-status-danger-fg">
-              {t('error')}
-            </p>
-          ) : null}
+          {choosing ? <LanguageOptions id="user-menu-languages" onDone={close} /> : null}
         </div>
       ) : null}
     </div>

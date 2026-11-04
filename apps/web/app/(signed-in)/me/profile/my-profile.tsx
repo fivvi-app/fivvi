@@ -1,6 +1,7 @@
 import type { Schemas } from '@fivvi/contract';
 import { Card, CardHeader, CardTitle } from '@fivvi/ui/components/card';
 import { useTranslations } from 'next-intl';
+import { LanguageRow } from './language-row';
 import { NameForm } from './name-form';
 import { TrainsHereSwitch } from './trains-here-switch';
 
@@ -10,7 +11,8 @@ export type MyWorkspace = Schemas['MyWorkspace'];
 /**
  * TW-09 My profile (`/me/profile`, F003): the section *Mijn werkruimtes* / *My workspaces*, each
  * workspace with the person's role in it as a plain label (no switching, F012), and the name
- * (editable) and email address (read-only) of the person (F005); F010 adds the language row.
+ * (editable) and email address (read-only) of the person (F005), and the *Taal* / *Language* row
+ * (F010).
  * For each workspace where the person may manage the team (the Owner) there is the switch
  * *I also train at …* (F005); a Trainer has none, because they always train.
  */
@@ -32,6 +34,7 @@ export function MyProfile({
       <div className="grid w-full max-w-lg content-start gap-4">
         <h1 className="font-display text-2xl font-semibold">{t('title')}</h1>
         <NameForm name={name} email={email} />
+        <LanguageRow />
         <Card>
           <CardHeader>
             <CardTitle>

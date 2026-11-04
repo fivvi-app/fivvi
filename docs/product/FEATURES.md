@@ -37,7 +37,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | F007 | Localization Infrastructure | PLANNED | Must | M1–M2 | E005 | ⬜ | ⬜ | §3, §73 |
 | F008 | Dutch UI | PLANNED | Must | continuous | F007 | ⬜ | — | §2.2 |
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |
-| F010 | Locale Preference | IN PROGRESS | Must | M2 (+ iOS/Android; + Fivvi iOS/Android from M5) | F001, F007 | ⬜ | ⬜ | §3 |
+| [F010](https://github.com/fivvi-app/fivvi/issues/175) | Locale Preference: choose Dutch or English in the user menu and on My profile (web) and under Profiel → Taal (iOS, Android), saved on the account and followed by every browser and app; the switch on the sign-in screens; the Owner's default communication language in Settings → Language; every M2 screen complete in both languages | IMPLEMENTED | Must | M2 (+ iOS/Android; + Fivvi iOS/Android from M5) | F001, F007 | ✅ | ✅ | §3 |
 | F063 | Sign in with Apple and Google: a second way to sign in, on the web first (clients and team members), then Fivvi Pro and Fivvi (App Store guideline 4.8: Sign in with Apple when an app offers Google). Owner steps later: an Apple Services ID and a Google OAuth client | PLANNED | **Should** | M5 (web first; Fivvi Pro and Fivvi after) | F001 | ⬜ | ⬜ | §27, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) |
 
 ### Trainers
