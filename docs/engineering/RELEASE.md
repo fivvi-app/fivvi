@@ -136,13 +136,13 @@ Only the owner does these. Agents never do them or ask for the secrets. Each ste
 
 **Fivvi (`app.fivvi`)**
 
-The client app's store records exist ([#447](https://github.com/fivvi-app/fivvi/issues/447)); its release lane comes in M5 (`ROADMAP.md` M8).
+The client app's store records exist ([#447](https://github.com/fivvi-app/fivvi/issues/447)); its release lane comes in M5 ([`ROADMAP.md`](../product/ROADMAP.md) M8).
 
 | | Step | Unlocks |
 |---|---|---|
 | ☑ | Register the App ID `app.fivvi` and create the App Store Connect app *Fivvi* (name free, primary language Dutch, an SKU) | The bundle ID and the store name |
 | ☑ | Create the TestFlight internal group and add yourself | Installing on your iPhone |
-| ☐ | Create the App Store provisioning profile for `app.fivvi` and put it in the release secrets (the lane ticket extends `release-secrets.sh ios`) | Signing in the Fivvi iOS lane |
+| ☐ | Create the App Store provisioning profile for `app.fivvi` and put it in the release secrets (with the lane ticket) | Signing in the Fivvi iOS lane |
 | ☑ | Create the app *Fivvi* in Play Console (name free, default language Dutch, free, an app) | The store name |
 | ☑ | Use the existing internal testers list on Fivvi's internal testing track | Installing from the internal-test link |
 | ☑ | Give the release service account the same release rights on Fivvi as on Fivvi Pro | The lane can publish Fivvi to internal testing |
