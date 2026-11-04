@@ -313,6 +313,9 @@ importers:
       '@fivvi/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.3(@types/pg@8.23.1)(kysely@0.29.7)(pg@8.23.0)
     devDependencies:
       '@biomejs/biome':
         specifier: 'catalog:'

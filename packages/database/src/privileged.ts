@@ -10,7 +10,7 @@ import { PRIVILEGED_DATABASE_URL_VARIABLE, readDatabaseConfig } from './env.ts';
 export const PRIVILEGED_USES = {
   release: 'the release step: migrations, the app role and the seed',
   'local-setup': 'local development setup: db:migrate and db:seed',
-  'daily-cron': 'the daily cron job (a connectivity check until the jobs of E012)',
+  'daily-cron': 'the cron job: its tasks and the record of their runs (E012)',
 } as const;
 
 export type PrivilegedReason = keyof typeof PRIVILEGED_USES;

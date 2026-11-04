@@ -93,4 +93,23 @@ describe('E009 error reporter', () => {
       'Error',
     ]);
   });
+
+  it('E012 AC5: tags an error with the cron task and run, and drops every other tag', async () => {
+    const transport = createCaptureTransport();
+    const reporter = createErrorReporter({ env: ENV, transport });
+
+    reporter.captureError(new Error('Job failed'), {
+      tags: {
+        'cron.task': 'lettermint-usage',
+        'cron.run_id': '3f2e1d0c-9b8a-4765-8432-10fedcba9876',
+        client_name: 'Anna',
+      },
+    });
+    await reporter.flush();
+
+    expect(transport.events[0]?.tags).toEqual({
+      'cron.task': 'lettermint-usage',
+      'cron.run_id': '3f2e1d0c-9b8a-4765-8432-10fedcba9876',
+    });
+  });
 });
