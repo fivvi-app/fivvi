@@ -9,9 +9,8 @@
 # share, "Nederlands" or "Dutch": scripts/maestro.sh passes no client texts, and the exact wording is proven in the
 # Compose tests in both languages. The run adds clients to the seeded database in each locale, and every client needs an
 # email address that is new to the workspace (the same one answers 409, AC3), so the flow adds an address of its own for
-# each run: the time is in it. The database is never emptied between runs (#381), so the list grows by a Carla Bos-Smit per
-# run, between Anna and Mark: the flow scrolls to the seeded clients (scrollUntilVisible) rather than expecting them on the
-# first screen.
+# each run: the time is in it. The database is never emptied between runs (#381), so each run in a locale adds a Carla Bos
+# or Carla Bos-Smit to the list, which no step may depend on being short.
 appId: ${APP_ID}
 name: AC1 AC12 Klanten list, search, add, profile and edit
 env:
@@ -38,43 +37,51 @@ env:
 - extendedWaitUntil:
     visible: .*Anna de Vries.*
     timeout: 20000
-# The list is sorted by name and every run adds a Carla Bos-Smit, between Anna and Mark: after a few runs on the same
-# database Mark and Sophie are below the screen, so the flow scrolls to them (the list loads the next page as it nears
-# its end) instead of finding them on the first screen.
-- scrollUntilVisible:
-    element: .*Mark Jansen.*
-    direction: DOWN
-    timeout: 60000
-- scrollUntilVisible:
-    element: .*Sophie Bakker.*
-    direction: DOWN
-    timeout: 60000
-# AC6 and AC12: the search finds part of a name (case does not matter). Only Anna matches, so none of the other clients
-# stays: the list shows at least one of them at its top, Carla Bos-Smit once an earlier run has added her, else Mark.
-- scrollUntilVisible:
-    element: .*Anna de Vries.*
-    direction: UP
-    timeout: 60000
-- assertVisible: .*(Carla Bos-Smit|Mark Jansen).*
+# AC6 and AC12: the search finds part of a name (case does not matter) and filters the list: Anna is on the first screen
+# until a search that does not match her removes her. The seeded clients are found by searching for them, not by
+# scrolling: the list is sorted by name and the apps show its first page only (Android has no second page), so with
+# enough clients added by earlier runs Mark and Sophie are not in it.
 - tapOn:
     id: clients\.search
+- inputText: BAKK
+- extendedWaitUntil:
+    visible: .*Sophie Bakker.*
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible: .*Anna de Vries.*
+    timeout: 20000
+- assertNotVisible: .*Mark Jansen.*
+- eraseText: 4
+- extendedWaitUntil:
+    visible: .*Anna de Vries.*
+    timeout: 20000
+- inputText: mark
+- extendedWaitUntil:
+    visible: .*Mark Jansen.*
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible: .*Anna de Vries.*
+    timeout: 20000
+- assertNotVisible: .*Sophie Bakker.*
+- eraseText: 4
+- extendedWaitUntil:
+    visible: .*Anna de Vries.*
+    timeout: 20000
 - inputText: VRIE
 - extendedWaitUntil:
-    notVisible: .*(Carla Bos-Smit|Mark Jansen).*
+    notVisible: .*(Mark Jansen|Sophie Bakker).*
     timeout: 20000
 - assertVisible: .*Anna de Vries.*
 - assertNotVisible: .*Mark Jansen.*
 - assertNotVisible: .*Sophie Bakker.*
 - eraseText: 4
+# The list is back when a client other than Anna is on the first screen: Carla Bos once an earlier run has added her
+# (she sorts between Anna and Mark), else Mark.
 - extendedWaitUntil:
-    visible: .*(Carla Bos-Smit|Mark Jansen).*
+    visible: .*(Carla Bos|Mark Jansen).*
     timeout: 20000
 # The keyboard of the search field would cover the primary action.
 - hideKeyboard
-- scrollUntilVisible:
-    element: .*Sophie Bakker.*
-    direction: DOWN
-    timeout: 60000
 # AC1: a name and an email address are needed; the profile opens, and the language for emails is the workspace default
 # (named).
 - evalScript: ${output.carlaEmail = 'carla.' + Date.now() + '@example.com'}
