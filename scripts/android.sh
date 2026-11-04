@@ -69,10 +69,11 @@ sdk_packages_missing() {
 
 # install_sdk_packages SDKMANAGER HOME PACKAGE...: a download that comes back corrupt (GitHub's runners, #515: "Error on
 # ZipFile unknown archive") leaves a package missing, with or without a failing exit status. Try again, at most
-# SDK_INSTALL_ATTEMPTS times (3), SDK_INSTALL_RETRY_DELAY seconds (5) apart, after removing what the failed attempt left in
-# the SDK's .temp folder and the half-installed packages; one attempt when nothing is missing after it.
+# SDK_INSTALL_ATTEMPTS times (3), SDK_INSTALL_RETRY_DELAY seconds (5) apart, after clearing what the failed attempt left
+# in the SDK's download areas (.temp, .downloadIntermediates). Never removes a package folder: a missing package has none,
+# and sdkmanager can fail (offline) with every package installed. One attempt when nothing is missing after it.
 install_sdk_packages() {
-  local sdkmanager="$1" home="$2" attempt=1 attempts="${SDK_INSTALL_ATTEMPTS:-3}" ok package
+  local sdkmanager="$1" home="$2" attempt=1 attempts="${SDK_INSTALL_ATTEMPTS:-3}" ok
   shift 2
   while :; do
     ok=true
@@ -82,8 +83,7 @@ install_sdk_packages() {
     [ -n "$SDK_STILL_MISSING" ] || SDK_STILL_MISSING="$*"
     [ "$attempt" -lt "$attempts" ] || return 1
     echo "⚠️  sdkmanager left packages missing (attempt $attempt of $attempts): $SDK_STILL_MISSING; trying again" >&2
-    for package in $SDK_STILL_MISSING; do rm -rf "${home:?}/${package//;//}"; done
-    rm -rf "${home:?}/.temp"
+    rm -rf "${home:?}/.temp" "${home:?}/.downloadIntermediates"
     sleep "${SDK_INSTALL_RETRY_DELAY:-5}"
     attempt=$((attempt + 1))
   done

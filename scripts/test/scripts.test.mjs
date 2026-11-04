@@ -1050,24 +1050,26 @@ describe('android.sh setup', () => {
     for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
   });
 
-  const fakeSdk = ({ cmdlineTools = true, emulatorFindsAvds = true } = {}) => {
+  const fakeSdk = ({ cmdlineTools = true, emulatorFindsAvds = true, sdkName = 'sdk' } = {}) => {
     const base = realpathSync(mkdtempSync(join(tmpdir(), 'android-setup-')));
     dirs.push(base);
     const home = join(base, 'home');
-    const sdk = join(base, 'sdk');
+    const sdk = join(base, sdkName);
     const log = join(base, 'sdkmanager.log');
     const avdmanager = `dir="\${ANDROID_AVD_HOME:-$HOME/.android/avd}"
 while [ $# -gt 0 ]; do [ "$1" = --name ] && name="$2"; shift; done
 mkdir -p "$dir/$name.avd" && touch "$dir/$name.ini"
 printf "%s\\n" "disk.dataPartition.path=<temp>" "disk.dataPartition.size=6G" "hw.cpu.ncore=4" >"$dir/$name.avd/config.ini"`;
     // FAKE_SDK_FAIL_ATTEMPTS=n: the first n installs leave the system image missing (a corrupt download: a half-unpacked
-    // download in .temp, a warning, exit status 0); FAKE_SDK_FAIL_EXIT=1 makes them exit non-zero as well.
+    // download in .temp and .downloadIntermediates, a warning, exit status 0); FAKE_SDK_FAIL_EXIT=1 makes them exit
+    // non-zero as well. FAKE_SDK_ALWAYS_FAIL=1: every call exits 1 at once, installing nothing (offline).
     const sdkmanager = `echo "$*" >>"${log}"
+[ -z "\${FAKE_SDK_ALWAYS_FAIL:-}" ] || { echo "Error: could not fetch the repository" >&2; exit 1; }
 for arg; do case "$arg" in --sdk_root=*) root="\${arg#--sdk_root=}" ;; esac; done
 attempt=$(grep -c "system-images;" "${log}")
 for arg; do case "$arg" in --*) ;; *)
   dir="$root/$(printf %s "$arg" | tr ';' /)"
-  case "$arg" in system-images*) [ "$attempt" -le "\${FAKE_SDK_FAIL_ATTEMPTS:-0}" ] && { mkdir -p "$root/.temp/PackageOperation01"; touch "$root/.temp/PackageOperation01/partial.zip"; echo "Warning: An error occurred while preparing SDK package $arg: Error on ZipFile unknown archive." >&2; [ -z "\${FAKE_SDK_FAIL_EXIT:-}" ] || exit 1; continue; } ;; esac
+  case "$arg" in system-images*) [ "$attempt" -le "\${FAKE_SDK_FAIL_ATTEMPTS:-0}" ] && { mkdir -p "$root/.temp/PackageOperation01" "$root/.downloadIntermediates"; touch "$root/.temp/PackageOperation01/partial.zip" "$root/.downloadIntermediates/partial2.zip"; echo "Warning: An error occurred while preparing SDK package $arg: Error on ZipFile unknown archive." >&2; [ -z "\${FAKE_SDK_FAIL_EXIT:-}" ] || exit 1; continue; } ;; esac
   mkdir -p "$dir" ;;
 esac; done
 case " $* " in *" cmdline-tools;latest "*)
@@ -1211,14 +1213,36 @@ exit 0`
     assert.match(image.stdout, /google_apis/);
   });
 
-  it('#515: removes the broken partial package before it tries again', () => {
+  it('#515: clears the partial downloads (.temp and .downloadIntermediates) before it tries again', () => {
     const { setup, sdk } = fakeSdk();
     const result = setup({ FAKE_SDK_FAIL_ATTEMPTS: '1' });
 
     assert.equal(result.status, 0, result.stdout + result.stderr);
-    const partials = spawnSync('find', [sdk, '-name', 'partial.zip'], { encoding: 'utf8' });
+    const partials = spawnSync('find', [sdk, '-name', 'partial*.zip'], { encoding: 'utf8' });
     assert.equal(partials.stdout, '');
   });
+
+  // A laptop's sdkmanager can fail with every package installed (offline, repository fetch): nothing installed goes.
+  for (const sdkName of ['sdk', 'my sdk']) {
+    it(`#515: keeps the installed packages when sdkmanager keeps failing (SDK folder "${sdkName}")`, () => {
+      const { setup, sdk } = fakeSdk({ sdkName });
+      assert.equal(setup().status, 0);
+      const keep = join(sdk, 'platform-tools', 'adb-marker');
+      const folders = ['platform-tools', 'cmdline-tools/latest'].map((dir) => join(sdk, dir));
+      writeFileSync(keep, 'installed');
+
+      const result = setup({ FAKE_SDK_ALWAYS_FAIL: '1' });
+
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /Android SDK packages:/);
+      for (const folder of folders) assert.ok(existsSync(folder), `${folder} was removed`);
+      assert.equal(readFileSync(keep, 'utf8'), 'installed');
+      assert.ok(
+        existsSync(join(sdk, 'system-images')),
+        'the installed system image folder was removed',
+      );
+    });
+  }
 
   it('#515: retries when sdkmanager also exits non-zero', () => {
     const { setup, installed } = fakeSdk();
