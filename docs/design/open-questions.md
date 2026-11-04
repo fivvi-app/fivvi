@@ -301,7 +301,7 @@ The walkthrough with the pilot gym owner (29–31 October 2026) led the product 
 
 ## Product-owner decisions: clients sign in and are approved to book (31 October 2026)
 
-Decided by the product owner in a grilling session on 31 October 2026 and recorded in [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) and [ADR-027](../decisions/ADR-027-a-cron-every-5-minutes.md) (both Proposed), `PRODUCT.md §2.3–§2.4, §21–§27, §51` and `ROADMAP.md` v1.30. They resolve Q10, Q12, QE06 and QE17, replace the account rule of Q16 and partly resolve QE05 (see above).
+Decided by the product owner in a grilling session on 31 October 2026 and recorded in [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) and [ADR-027](../decisions/ADR-027-a-cron-every-5-minutes.md) (ADR-026 accepted on 4 November 2026, ADR-027 Proposed), `PRODUCT.md §2.3–§2.4, §21–§27, §51` and `ROADMAP.md` v1.30. They resolve Q10, Q12, QE06 and QE17, replace the account rule of Q16 and partly resolve QE05 (see above).
 
 1. Anyone can create an account (email now; Apple and Google later as F063). An account on its own shows nothing of any workspace.
 2. A client gets in when the workspace adds them (an invitation email) or when the Owner approves their join request, made through the workspace's join link or QR code. No workspace search, at least for the beginning.
