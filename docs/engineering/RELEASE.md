@@ -1,6 +1,6 @@
 # Releasing the native apps
 
-How a build of **Fivvi Pro** (`apps/ios`, `apps/android`, app ID `app.fivvi.pro`) gets to testers, what the owner does and approves, and what the stores require before a public release (E017, [spec #169](https://github.com/fivvi-app/fivvi/issues/169)). Native apps have no over-the-air updates ([`ROADMAP.md`](../product/ROADMAP.md) R15): every fix for a tester is a new build, so building and shipping one is a single, repeatable step.
+How a build of **Fivvi Pro** (`apps/ios`, `apps/android`, app ID `app.fivvi.pro`) gets to testers, what the owner does and approves, and what the stores require before a public release (E017, [spec #169](https://github.com/fivvi-app/fivvi/issues/169)). Native apps have no over-the-air updates ([`ROADMAP.md`](../product/ROADMAP.md) R15): every fix for a tester is a new build, so building and shipping one is a single, repeatable step. The client app **Fivvi** (`app.fivvi`) gets its own lane in M5; its store records and owner steps are in §8.
 
 Status: the `release` environment, the secret scripts and this document are in place ([#189](https://github.com/fivvi-app/fivvi/issues/189)), and so are the iOS lane to TestFlight ([#190](https://github.com/fivvi-app/fivvi/issues/190)) and the Android lane to Play internal testing ([#191](https://github.com/fivvi-app/fivvi/issues/191)), both in `.github/workflows/release.yml`. They have not run for real yet: the first approved run is the owner check ([#192](https://github.com/fivvi-app/fivvi/issues/192)). Where this document and the spec differ, the spec issue wins until the lanes are built; then fix this document.
 
@@ -133,6 +133,21 @@ Only the owner does these. Agents never do them or ask for the secrets. Each ste
 |---|---|---|
 | ☑ | `scripts/github-settings.sh apply` | The `release` environment with your approval and `main`-only deployments |
 | ☑ | Create a Sentry organisation auth token for symbol uploads (`org:ci`: releases and debug files; it carries the organisation and the region, which `sentry-cli` needs here), run `scripts/release-secrets.sh sentry` | Symbolicated crashes from tester builds |
+
+**Fivvi (`app.fivvi`)**
+
+The client app's store records exist ([#447](https://github.com/fivvi-app/fivvi/issues/447)); its release lane comes in M5 ([`ROADMAP.md`](../product/ROADMAP.md) M8).
+
+| | Step | Unlocks |
+|---|---|---|
+| ☑ | Register the App ID `app.fivvi` and create the App Store Connect app *Fivvi* (name free, primary language Dutch, an SKU) | The bundle ID and the store name |
+| ☑ | Create the TestFlight internal group and add yourself | Installing on your iPhone |
+| ☐ | Create the App Store provisioning profile for `app.fivvi` and put it in the release secrets (with the lane ticket) | Signing in the Fivvi iOS lane |
+| ☑ | Create the app *Fivvi* in Play Console (name free, default language Dutch, free, an app) | The store name |
+| ☑ | Use the existing internal testers list on Fivvi's internal testing track | Installing from the internal-test link |
+| ☑ | Give the release service account the same release rights on Fivvi as on Fivvi Pro | The lane can publish Fivvi to internal testing |
+| ☐ | Decide whether Fivvi reuses Fivvi Pro's upload key or gets its own (the lane ticket) | The upload key the Fivvi lane signs with |
+| ☐ | Upload Fivvi's first App Bundle by hand and roll it out to internal testing, as for Fivvi Pro above | The package name `app.fivvi` and every later release through the API |
 
 ## 9. Store requirements for the public release
 
