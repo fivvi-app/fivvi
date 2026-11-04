@@ -130,6 +130,7 @@ class FakeMeApi : MeApi {
         canCreateWorkspace: Boolean = false,
         preferredLocale: MeResponse.PreferredLocale? = null,
         capabilities: List<MeWorkspace.Capabilities> = MeWorkspace.Capabilities.values().toList(),
+        capabilitiesByWorkspace: Map<String, List<MeWorkspace.Capabilities>> = emptyMap(),
     ) {
         answers += {
             Response.success(
@@ -145,7 +146,7 @@ class FakeMeApi : MeApi {
                             it,
                             "slug",
                             MeWorkspace.Role.OWNER,
-                            capabilities,
+                            capabilitiesByWorkspace[it] ?: capabilities,
                         )
                     },
                 ),

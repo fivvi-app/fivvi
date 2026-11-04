@@ -31,6 +31,9 @@ private val JSON = "application/json".toMediaType()
 class FakeClientsApi : ClientsApi {
     val clients = mutableListOf<Client>()
 
+    /** Clients per workspace: a workspace named here lists only these; any other lists [clients]. */
+    val clientsOfWorkspace = mutableMapOf<UUID, List<Client>>()
+
     /** Every `search` parameter received by the list call, in order. */
     val searches = mutableListOf<String?>()
     var listCalls = 0
@@ -70,7 +73,8 @@ class FakeClientsApi : ClientsApi {
         pages += page
         failure?.let { throw it }
         listStatus?.let { return Response.error(it, "{}".toResponseBody(JSON)) }
-        val found = clients.filter { search.isNullOrBlank() || it.matches(search.trim()) }.sortedBy { it.name }
+        val held = clientsOfWorkspace[workspaceId] ?: clients
+        val found = held.filter { search.isNullOrBlank() || it.matches(search.trim()) }.sortedBy { it.name }
         return Response.success(ClientList(found, total ?: found.size))
     }
 
