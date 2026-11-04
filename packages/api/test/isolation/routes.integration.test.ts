@@ -47,7 +47,7 @@ describe('F002 the route that creates a workspace, in the isolation suite', () =
       .from(teamMembers)
       .where(eq(teamMembers.accountId, accountId));
 
-  it('makes a workspace of their own for an account without a team role, and none for a team member', async () => {
+  it('makes a workspace of their own for every allowlisted account, whatever team roles it has (F012)', async () => {
     const scenario = await seedActors(world);
     const { clientA, outsider, ownerA, sam } = scenario.actors;
     const before = await world.admin.db.$count(organizations);
@@ -58,16 +58,16 @@ describe('F002 the route that creates a workspace, in the isolation suite', () =
     });
 
     expect(result.failures).toEqual([]);
-    // Two accounts with no team role (a client of A and an outsider) made one each, under RLS.
-    expect(await world.admin.db.$count(organizations)).toBe(before + 2);
+    // Four accounts made one each, under RLS.
+    expect(await world.admin.db.$count(organizations)).toBe(before + 4);
     for (const actor of [clientA, outsider]) {
       expect(await workspaces(actor.account?.id ?? '')).toEqual([
         { workspaceId: expect.any(String), role: 'owner' },
       ]);
     }
-    // A's owner and Sam have team roles already: refused, nothing added.
-    expect(await workspaces(ownerA.account?.id ?? '')).toHaveLength(1);
-    expect(await workspaces(sam.account?.id ?? '')).toHaveLength(2);
+    // A's owner and Sam have team roles already and now an Owner role in a workspace of their own.
+    expect(await workspaces(ownerA.account?.id ?? '')).toHaveLength(2);
+    expect(await workspaces(sam.account?.id ?? '')).toHaveLength(3);
   });
 });
 
@@ -131,7 +131,8 @@ describe('E011 account routes', () => {
       email: `${s.sam.id}@example.com`,
       name: null,
       preferredLocale: null,
-      canCreateWorkspace: false,
+      // On the harness's allowlist (`@example.com`), so allowed although Sam has two workspaces (F012).
+      canCreateWorkspace: true,
       workspaces: expect.arrayContaining(listed),
     });
     expect(JSON.parse(body).workspaces).toHaveLength(2);

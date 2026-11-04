@@ -1,7 +1,7 @@
 /**
- * Who may create a workspace: the operator-approved (the sign-up allowlist of F001, so closed
- * sign-up stays closed) who have no team role yet. One workspace per account in the MVP; more
- * come with self-serve onboarding or on request through the operator (F002, owner decision 1).
+ * Who may create a workspace: the operator-approved, that is the sign-up allowlist of F001, so
+ * closed sign-up stays closed. An allowlisted account may create another workspace when it has one
+ * already (F012, spec #423); until self-serve onboarding (Release 2.0) nobody else may.
  */
 
 /**
@@ -17,14 +17,8 @@ export interface CanCreateWorkspaceInput {
   /** The address the account signs in with. */
   email: string;
   signUpAllowlist: SignUpAllowlist;
-  /** Whether the account has a team role (Owner or Trainer) in any workspace. */
-  hasTeamRole: boolean;
 }
 
-export function canCreateWorkspace({
-  email,
-  signUpAllowlist,
-  hasTeamRole,
-}: CanCreateWorkspaceInput): boolean {
-  return signUpAllowlist.allows(email) && !hasTeamRole;
+export function canCreateWorkspace({ email, signUpAllowlist }: CanCreateWorkspaceInput): boolean {
+  return signUpAllowlist.allows(email);
 }

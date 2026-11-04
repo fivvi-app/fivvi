@@ -63,13 +63,11 @@ export {
   type TrainerView,
 } from './repositories/trainer-profiles.ts';
 export {
-  claimWorkspaceCreation,
   createWorkspaceWithOwner,
   findWorkspace,
   listTeamWorkspaces,
   type NewWorkspace,
   updateWorkspace,
-  type WorkspaceCreationClaim,
   type WorkspaceSummary,
   type WorkspaceView,
 } from './repositories/workspaces.ts';

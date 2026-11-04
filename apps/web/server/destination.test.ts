@@ -38,7 +38,7 @@ describe('F002 where the signed-in home sends a person', () => {
     expect(pathOf(destination)).toBe('/w/johns-gym');
   });
 
-  it('a workspace wins over the right to create one (the API never says both)', () => {
+  it('F012: a workspace wins over the right to create one: an allowlisted account that has a workspace never sees the first-run screen', () => {
     expect(destinationOf({ canCreateWorkspace: true, workspaces: [gym] })).toEqual({
       to: 'workspace',
       slug: 'johns-gym',

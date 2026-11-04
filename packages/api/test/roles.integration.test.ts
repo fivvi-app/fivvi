@@ -162,13 +162,15 @@ describe('F004 roles on every workspace route', () => {
         access?.type === 'workspace' && (access.roles as readonly string[]).includes('trainer'),
     );
 
-    // The clients (F006) are the Trainer's too: `clients.view` and `clients.manage`.
+    // The clients (F006) are the Trainer's too: `clients.view` and `clients.manage`; so is the
+    // report of a switch to the workspace (F012), which any team member may send.
     expect(trainerRoutes.map(({ name }) => name).toSorted()).toEqual([
       'addClient',
       'getClient',
       'getWorkspace',
       'listClients',
       'listTrainers',
+      'recordWorkspaceSwitch',
       'updateClient',
     ]);
     const statuses = Object.fromEntries(
@@ -180,6 +182,7 @@ describe('F004 roles on every workspace route', () => {
       getWorkspace: 200,
       listClients: 200,
       listTrainers: 200,
+      recordWorkspaceSwitch: 204,
       addClient: 201,
       getClient: 200,
       updateClient: 200,

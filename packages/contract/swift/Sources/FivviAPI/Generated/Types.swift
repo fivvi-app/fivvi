@@ -27,7 +27,7 @@ public protocol APIProtocol: Sendable {
     func getHello(_ input: Operations.GetHello.Input) async throws -> Operations.GetHello.Output
     /// The signed-in account
     ///
-    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`).
+    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already).
     ///
     /// - Remark: HTTP `GET /v1/me`.
     /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
@@ -69,7 +69,7 @@ public protocol APIProtocol: Sendable {
     func signOut(_ input: Operations.SignOut.Input) async throws -> Operations.SignOut.Output
     /// Create the caller’s workspace
     ///
-    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.
+    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist may, also when it has a workspace already: anyone else gets `403` and nothing is created.
     ///
     /// - Remark: HTTP `POST /v1/workspaces`.
     /// - Remark: Generated from `#/paths//v1/workspaces/post(createWorkspace)`.
@@ -88,6 +88,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/patch(renameWorkspace)`.
     func renameWorkspace(_ input: Operations.RenameWorkspace.Input) async throws -> Operations.RenameWorkspace.Output
+    /// Report that the caller switched to this workspace
+    ///
+    /// Records the product event `workspace_switched` with the workspace ID and the surface (`web`, `ios` or `android`) and nothing else, so that the use of more than one workspace can be counted without personal data (F012). Nothing about the current workspace is stored: the choice stays on the device. The body is optional; the web sends none and is recorded as `web`. A request with a bearer token records the `surface` it names in the body and, naming none, records nothing. Any team member of the workspace may call it.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/switched`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/switched/post(recordWorkspaceSwitch)`.
+    func recordWorkspaceSwitch(_ input: Operations.RecordWorkspaceSwitch.Input) async throws -> Operations.RecordWorkspaceSwitch.Output
     /// The team of a workspace
     ///
     /// The people on the team of the workspace (the Owner only), sorted by name: team-member ID, name, email address and role. Clients of the workspace are not on the team.
@@ -188,7 +195,7 @@ extension APIProtocol {
     }
     /// The signed-in account
     ///
-    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`).
+    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already).
     ///
     /// - Remark: HTTP `GET /v1/me`.
     /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
@@ -260,7 +267,7 @@ extension APIProtocol {
     }
     /// Create the caller’s workspace
     ///
-    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.
+    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist may, also when it has a workspace already: anyone else gets `403` and nothing is created.
     ///
     /// - Remark: HTTP `POST /v1/workspaces`.
     /// - Remark: Generated from `#/paths//v1/workspaces/post(createWorkspace)`.
@@ -300,6 +307,23 @@ extension APIProtocol {
         body: Operations.RenameWorkspace.Input.Body
     ) async throws -> Operations.RenameWorkspace.Output {
         try await renameWorkspace(Operations.RenameWorkspace.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Report that the caller switched to this workspace
+    ///
+    /// Records the product event `workspace_switched` with the workspace ID and the surface (`web`, `ios` or `android`) and nothing else, so that the use of more than one workspace can be counted without personal data (F012). Nothing about the current workspace is stored: the choice stays on the device. The body is optional; the web sends none and is recorded as `web`. A request with a bearer token records the `surface` it names in the body and, naming none, records nothing. Any team member of the workspace may call it.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/switched`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/switched/post(recordWorkspaceSwitch)`.
+    public func recordWorkspaceSwitch(
+        path: Operations.RecordWorkspaceSwitch.Input.Path,
+        headers: Operations.RecordWorkspaceSwitch.Input.Headers = .init(),
+        body: Operations.RecordWorkspaceSwitch.Input.Body? = nil
+    ) async throws -> Operations.RecordWorkspaceSwitch.Output {
+        try await recordWorkspaceSwitch(Operations.RecordWorkspaceSwitch.Input(
             path: path,
             headers: headers,
             body: body

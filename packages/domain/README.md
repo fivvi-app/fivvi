@@ -5,7 +5,7 @@ Business rules (`docs/product/PRODUCT.md`), server-side and pure: no I/O, no fra
 ```ts
 import { canCreateWorkspace, slugCandidates, WORKSPACE_DEFAULTS } from '@fivvi/domain';
 
-canCreateWorkspace({ email, signUpAllowlist, hasTeamRole }); // F002: allowlisted and no team role
+canCreateWorkspace({ email, signUpAllowlist }); // F002, F012: on the sign-up allowlist
 for (const slug of slugCandidates("John's Gym")) {
   // 'johns-gym', 'johns-gym-2', … without the reserved words; take the first the database accepts
 }

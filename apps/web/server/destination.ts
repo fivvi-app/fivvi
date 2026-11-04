@@ -13,7 +13,8 @@ export type Destination =
 /**
  * The signed-in home's decision (F002, spec #170), from what the API says and nothing else: the
  * rule who may create a workspace lives in `packages/domain`, behind `canCreateWorkspace`. A
- * workspace first; none and allowed to create one: TW-11; neither: the no-access page. The
+ * workspace first (an account that may create another one, F012, still goes to its workspace);
+ * none and allowed to create one: TW-11; neither: the no-access page. The
  * first workspace by name stands in for "the last one used", which F012 adds with the switcher.
  */
 export function destinationOf({
