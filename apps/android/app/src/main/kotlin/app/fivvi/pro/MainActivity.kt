@@ -51,6 +51,7 @@ import app.fivvi.pro.signin.SignInActions
 import app.fivvi.pro.signin.SignInScreen
 import app.fivvi.pro.signin.SignInViewModel
 import app.fivvi.pro.theme.FivviTheme
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     // The resources follow the resolved language, not Android's own match: an unsupported device language would
@@ -147,7 +148,14 @@ class MainActivity : ComponentActivity() {
     // Profiel (TM-04): opened from the home; it reads the name, the email address and the workspaces on opening and on
     // foreground (F003 AC9, F005).
     @Composable
-    private fun Profile(dependencies: AppDependencies, key: String, opening: Int, languages: LanguageViewModel) {
+    private fun Profile(
+        dependencies: AppDependencies,
+        key: String,
+        opening: Int,
+        languages: LanguageViewModel,
+        currentWorkspace: UUID?,
+        onSelectWorkspace: (UUID) -> Unit,
+    ) {
         val profile = viewModel(key = "profile-$key-$opening") {
             ProfileViewModel(dependencies.meApi, dependencies.trainersApi)
         }
@@ -166,6 +174,8 @@ class MainActivity : ComponentActivity() {
             language = language,
             languageSaveFailed = saveFailed,
             onChooseLanguage = languages::choose,
+            currentWorkspace = currentWorkspace,
+            onSelectWorkspace = onSelectWorkspace,
         )
         ProfileScreen(state, editor, actions)
     }
@@ -196,6 +206,7 @@ class MainActivity : ComponentActivity() {
                 dependencies.meApi,
                 dependencies.workspacesApi,
                 dependencies.session,
+                dependencies.currentWorkspace,
                 dependencies::signOutApi,
                 onAccount = Observability::setUser,
                 onPreferredLocale = languages::onStored,
@@ -233,7 +244,19 @@ class MainActivity : ComponentActivity() {
         }
         if (showsProfile) {
             BackHandler { showsProfile = false }
-            Profile(dependencies, key, profileOpenings, languages)
+            Profile(
+                dependencies,
+                key,
+                profileOpenings,
+                languages,
+                currentWorkspace = shown?.id,
+                // A tap on another workspace switches to it; either way the app is back on the first tab (F012 AC6).
+                onSelectWorkspace = { id ->
+                    showsProfile = false
+                    showsClients = false
+                    me.switchWorkspace(id)
+                },
+            )
             return
         }
         HomeScreen(

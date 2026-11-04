@@ -6,6 +6,8 @@ import app.fivvi.pro.auth.AuthState
 import app.fivvi.pro.auth.InMemorySessionStore
 import app.fivvi.pro.auth.Session
 import app.fivvi.pro.signin.FakeSignInApi
+import app.fivvi.pro.workspace.CurrentWorkspace
+import app.fivvi.pro.workspace.InMemoryLastWorkspaceStore
 import java.io.IOException
 import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
@@ -48,6 +50,14 @@ class HomeViewModelTest {
     private val workspaces = FakeWorkspacesApi()
     private val signInApi = FakeSignInApi()
     private val store = InMemorySessionStore("tok-1")
+    private val lastWorkspace = InMemoryLastWorkspaceStore()
+    private var current = CurrentWorkspace(lastWorkspace)
+
+    // The device remembered [id] before the app started.
+    private fun rememberedBeforeStart(id: UUID) {
+        lastWorkspace.id = id
+        current = CurrentWorkspace(lastWorkspace)
+    }
     private val session = Session(store, onSignedOut = { clears++ })
 
     // The clock of the sign-out's wait: the test dispatcher's virtual time.
@@ -74,6 +84,7 @@ class HomeViewModelTest {
         api,
         workspaces,
         session,
+        current,
         signOutApi = { token ->
             signOutTokens += token
             signInApi
@@ -187,6 +198,124 @@ class HomeViewModelTest {
 
         assertEquals(listOf("John's Gym", "Sarah Personal Training"), listed.single().map { it.name })
         assertEquals(MeWorkspace.Capabilities.entries, listed.single().first().capabilities)
+    }
+
+    private fun shown(viewModel: HomeViewModel) =
+        ((viewModel.state.value as MeState.Loaded).destination as HomeDestination.Workspace).name
+
+    // F012 AC7: the app opens in the workspace used last on this device while the person is still on its team.
+    @Test
+    fun test_F012_AC7_opensInTheRememberedWorkspace() {
+        rememberedBeforeStart(workspaceIdOf("Sarah Personal Training"))
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+
+        assertEquals("Sarah Personal Training", shown(viewModel()))
+    }
+
+    // F012 AC5: Sarah was removed from the remembered workspace; the other one shows, without an error.
+    @Test
+    fun test_F012_AC5_aRememberedWorkspaceTheTeamAccessIsGoneFromFallsBackToTheOtherOne() {
+        rememberedBeforeStart(workspaceIdOf("Sarah Personal Training"))
+        api.answerAccount(workspaces = listOf("John's Gym"))
+
+        assertEquals("John's Gym", shown(viewModel()))
+    }
+
+    @Test
+    fun test_F012_AC5_withNoWorkspaceLeftTheNoAccessStateShows() {
+        rememberedBeforeStart(workspaceIdOf("Sarah Personal Training"))
+        api.answerAccount(workspaces = emptyList(), canCreateWorkspace = false)
+
+        assertEquals(HomeDestination.NoAccess, (viewModel().state.value as MeState.Loaded).destination)
+    }
+
+    @Test
+    fun test_F012_AC5_aRemovalFoundOnForegroundFallsBackToTheOtherWorkspace() {
+        rememberedBeforeStart(workspaceIdOf("Sarah Personal Training"))
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        api.answerAccount(workspaces = listOf("John's Gym"))
+        workspaces.answerGone()
+        val viewModel = viewModel()
+
+        viewModel.refresh()
+
+        assertEquals("John's Gym", shown(viewModel))
+    }
+
+    // F012 AC6: a switch remembers the workspace on this device and shows it, with the API's order untouched.
+    @Test
+    fun test_F012_AC6_switchingShowsTheOtherWorkspaceAndRemembersIt() {
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        val viewModel = viewModel()
+        assertEquals("John's Gym", shown(viewModel))
+
+        viewModel.switchWorkspace(workspaceIdOf("Sarah Personal Training"))
+
+        assertEquals("Sarah Personal Training", shown(viewModel))
+        assertEquals(workspaceIdOf("Sarah Personal Training"), lastWorkspace.id)
+        assertEquals(workspaceIdOf("Sarah Personal Training"), current.remembered.value)
+    }
+
+    @Test
+    fun test_F012_AC6_switchingToTheWorkspaceShownChangesNothing() {
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        val viewModel = viewModel()
+
+        viewModel.switchWorkspace(workspaceIdOf("John's Gym"))
+
+        assertEquals(1, api.calls)
+        assertEquals(null, lastWorkspace.id)
+    }
+
+    @Test
+    fun test_F012_AC6_aWorkspaceThePersonIsNotOnIsNotSwitchedTo() {
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        val viewModel = viewModel()
+
+        viewModel.switchWorkspace(workspaceIdOf("Someone Else's Gym"))
+
+        assertEquals("John's Gym", shown(viewModel))
+        assertEquals(1, api.calls)
+        assertEquals(null, lastWorkspace.id)
+    }
+
+    // F012 AC7: the workspace stays on this device across a sign-out and the next sign-in.
+    @Test
+    fun test_F012_AC7_aSignOutKeepsTheRememberedWorkspace() {
+        repeat(3) { api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training")) }
+        signInApi.answerSignedOut()
+        val first = viewModel()
+        first.switchWorkspace(workspaceIdOf("Sarah Personal Training"))
+
+        first.signOut()
+
+        assertEquals(workspaceIdOf("Sarah Personal Training"), lastWorkspace.id)
+        assertEquals("Sarah Personal Training", shown(viewModel()))
+    }
+
+    // F012 AC10: the choice stays on the device; the app asks the API for the account and nothing else changes there.
+    @Test
+    fun test_F012_AC10_switchingSendsNothingToTheServer() {
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        val viewModel = viewModel()
+
+        viewModel.switchWorkspace(workspaceIdOf("Sarah Personal Training"))
+
+        assertEquals(emptyList<Any>(), api.updates)
+    }
+
+    // F012 AC11: the capabilities handed on are those of the workspaces as the API lists them, again after a switch.
+    @Test
+    fun test_F012_AC11_aSwitchReadsTheCapabilitiesAgain() {
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        val viewModel = viewModel()
+
+        viewModel.switchWorkspace(workspaceIdOf("Sarah Personal Training"))
+
+        assertEquals(2, listed.size)
     }
 
     @Test
@@ -410,7 +539,7 @@ class HomeViewModelTest {
     fun F001N_AC10_signOutWithoutATokenSkipsTheRequest() {
         val empty = Session(InMemorySessionStore())
         api.answerAccount()
-        val viewModel = HomeViewModel(api, workspaces, empty, { signInApi }, { identified += it }, dispatcher)
+        val viewModel = HomeViewModel(api, workspaces, empty, current, { signInApi }, { identified += it }, dispatcher)
 
         viewModel.signOut()
 

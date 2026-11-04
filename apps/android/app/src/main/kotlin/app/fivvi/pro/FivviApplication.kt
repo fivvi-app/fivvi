@@ -12,6 +12,8 @@ import app.fivvi.pro.auth.ApiServices
 import app.fivvi.pro.auth.KeystoreSessionStore
 import app.fivvi.pro.auth.Session
 import app.fivvi.pro.observability.Observability
+import app.fivvi.pro.workspace.CurrentWorkspace
+import app.fivvi.pro.workspace.SharedPreferencesLastWorkspaceStore
 
 /** What the screens depend on. Instrumented tests replace it before an activity starts. */
 interface AppDependencies {
@@ -26,6 +28,9 @@ interface AppDependencies {
 
     /** The language shown and kept (F010). */
     val languagePreference: LanguagePreference
+
+    /** The workspace used last on this device, kept across sign-outs (F012). */
+    val currentWorkspace: CurrentWorkspace
 
     /** The sign-in API for the one sign-out request that carries [token] (AC10). */
     fun signOutApi(token: String): SignInApi
@@ -49,6 +54,9 @@ class DefaultAppDependencies(context: Context) : AppDependencies {
     override val languageSettings: LanguageSettings = SystemLanguageSettings(context)
     override val languagePreference: LanguagePreference by lazy {
         LanguagePreference(SharedPreferencesLanguageStore(context), languageSettings)
+    }
+    override val currentWorkspace: CurrentWorkspace by lazy {
+        CurrentWorkspace(SharedPreferencesLastWorkspaceStore(context))
     }
 }
 
