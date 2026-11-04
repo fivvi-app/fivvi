@@ -281,6 +281,7 @@ Each decision has a short ADR in [`docs/decisions/`](../decisions/README.md) wit
 - [x] Create the free-tier uptime-monitor account and configure checks in E009.
 - [x] Apple Developer Program: the owner reports an existing company membership. Verify active membership, team access and distribution setup in E017 at M2.
 - [x] Google Play Console: an organisation account, verified and active (owner, 27 October 2026); the app *Fivvi Pro* (`app.fivvi.pro`) and the internal testing testers list are created ([#149](https://github.com/fivvi-app/fivvi/issues/149)). The upload key, Play App Signing and the service account follow in E017.
+- [x] The client app **Fivvi** (`app.fivvi`): the App ID and the App Store Connect app *Fivvi* with an internal TestFlight group, and the Play Console app *Fivvi* with the internal testers list and the release service account's rights, created on 4 November 2026 ([#447](https://github.com/fivvi-app/fivvi/issues/447)). The provisioning profile, the upload key and the first Android upload follow with Fivvi's release lane in M5.
 
 The Sentry, Brevo and PostHog accounts currently belong to the owner's personal account; moving them to company ownership is planned later and does not block M0. Account creation does not complete E006, E009 or E017.
 
