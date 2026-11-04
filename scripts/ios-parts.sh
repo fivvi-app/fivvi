@@ -27,11 +27,15 @@
 #       and no step, else `<name>=<result>`. The jobs are read only when the result is cancelled; any other result is
 #       printed as given. When they can't be read it says so on stderr, still exits 0 and prints the bare <result>,
 #       without a label. Release's `runners` job uses it and hands the parts to `release.sh runners`.
-#       Only exactly three arguments with `job` first take this form; `ios-parts.sh job x` is the CI form.
+#       `job` as the first argument with any number of arguments but three is refused, not read as the CI form.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
-[ $# -eq 2 ] || { [ $# -eq 3 ] && [ "$1" = job ]; } || usage_of "$0"
+if [ "${1:-}" = job ]; then
+  [ $# -eq 3 ] || usage_of "$0"
+else
+  [ $# -eq 2 ] || usage_of "$0"
+fi
 need_cmd jq
 
 # The jobs of this run and attempt, from the GitHub API.
