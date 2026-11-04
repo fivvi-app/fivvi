@@ -8,8 +8,8 @@ import OpenAPIRuntime
 /// they are on the team of, each with their role, from `GET /api/v1/me/workspaces` (F003 AC9), all through the generated
 /// client. A workspace where the API lists `team.manage` for the person has the switch *I also train here* (F005 AC4,
 /// AC5): `PUT` / `DELETE /api/v1/workspaces/{id}/trainer-profile`. The app holds no rule about who may see what or about
-/// the name: the API's lists and refusals decide, and the role is only the label. No switching between workspaces yet
-/// (F012).
+/// the name: the API's lists and refusals decide, and the role is only the label. Switching between workspaces is the
+/// home's business (F012): `ProfileView` tells it which row was tapped.
 @MainActor
 @Observable
 final class ProfileViewModel {

@@ -12,7 +12,7 @@ final class WorkspaceCapabilities {
     typealias Capability = Components.Schemas.MeWorkspace.CapabilitiesPayloadPayload
 
     private var byWorkspace: [String: Set<Capability>] = [:]
-    /// With more than one workspace (F012) the last one used will decide; until then the workspace the home shows.
+    /// The workspace the home shows: the last one used on this phone, or the first by name (F012, `StartWorkspace`).
     private var currentWorkspaceID: String?
     /// Reads the capabilities again from the API; `AccountViewModel` sets it to its own refresh.
     @ObservationIgnored var reload: @MainActor () async -> Void = {}
@@ -23,6 +23,9 @@ final class WorkspaceCapabilities {
         guard let currentWorkspaceID else { return false }
         return allows(capability, in: currentWorkspaceID)
     }
+
+    /// Whether the API listed the workspace `workspaceID` for the person.
+    func knows(_ workspaceID: String) -> Bool { byWorkspace[workspaceID] != nil }
 
     /// Whether the action guarded by `capability` shows for the workspace `workspaceID`.
     func allows(_ capability: Capability, in workspaceID: String) -> Bool {
