@@ -1060,8 +1060,16 @@ describe('android.sh setup', () => {
 while [ $# -gt 0 ]; do [ "$1" = --name ] && name="$2"; shift; done
 mkdir -p "$dir/$name.avd" && touch "$dir/$name.ini"
 printf "%s\\n" "disk.dataPartition.path=<temp>" "disk.dataPartition.size=6G" "hw.cpu.ncore=4" >"$dir/$name.avd/config.ini"`;
+    // FAKE_SDK_FAIL_ATTEMPTS=n: the first n installs leave the system image missing (a corrupt download: a half-unpacked
+    // download in .temp, a warning, exit status 0); FAKE_SDK_FAIL_EXIT=1 makes them exit non-zero as well.
     const sdkmanager = `echo "$*" >>"${log}"
 for arg; do case "$arg" in --sdk_root=*) root="\${arg#--sdk_root=}" ;; esac; done
+attempt=$(grep -c "system-images;" "${log}")
+for arg; do case "$arg" in --*) ;; *)
+  dir="$root/$(printf %s "$arg" | tr ';' /)"
+  case "$arg" in system-images*) [ "$attempt" -le "\${FAKE_SDK_FAIL_ATTEMPTS:-0}" ] && { mkdir -p "$root/.temp/PackageOperation01"; touch "$root/.temp/PackageOperation01/partial.zip"; echo "Warning: An error occurred while preparing SDK package $arg: Error on ZipFile unknown archive." >&2; [ -z "\${FAKE_SDK_FAIL_EXIT:-}" ] || exit 1; continue; } ;; esac
+  mkdir -p "$dir" ;;
+esac; done
 case " $* " in *" cmdline-tools;latest "*)
   mkdir -p "$root/cmdline-tools/latest/bin" && printf '%s\\n' '#!/usr/bin/env bash' '${avdmanager.replaceAll("'", "'\\''")}' >"$root/cmdline-tools/latest/bin/avdmanager"
   chmod +x "$root/cmdline-tools/latest/bin/avdmanager" ;;
@@ -1094,11 +1102,14 @@ exit 0`
       ANDROID_HOME: sdk,
       JAVA_HOME: join(base, 'jdk'),
     };
-    const setup = () =>
-      spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], { encoding: 'utf8', env });
+    const setup = (extraEnv = {}) =>
+      spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], {
+        encoding: 'utf8',
+        env: { ...env, SDK_INSTALL_RETRY_DELAY: '0', ...extraEnv },
+      });
     const installed = () => readFileSync(log, 'utf8');
     const config = join(home, '.android/avd/fivvi.avd/config.ini');
-    return { env, setup, installed, config };
+    return { env, setup, installed, config, sdk };
   };
 
   it('creates an AVD that the emulator finds in later steps, also with XDG_CONFIG_HOME set', () => {
@@ -1168,6 +1179,63 @@ exit 0`
     assert.doesNotMatch(installed(), /system-images|emulator/);
     assert.doesNotMatch(result.stdout, /Maestro|emulator '/);
     assert.equal(spawnSync(join(SCRIPTS, 'android.sh'), ['setup', '--nope'], { env }).status, 1);
+  });
+
+  // #515: a corrupt system-image download on a hosted runner left the image missing and failed the job.
+  const imageRuns = (installed) =>
+    installed()
+      .split('\n')
+      .filter((line) => line.includes('system-images;')).length;
+
+  it('#515: installs once when nothing is missing afterwards', () => {
+    const { setup, installed } = fakeSdk();
+    const result = setup();
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(imageRuns(installed), 1);
+  });
+
+  it('#515: retries the install when a package is missing after it, and succeeds when a later attempt works', () => {
+    const { setup, installed, sdk } = fakeSdk();
+    const result = setup({ FAKE_SDK_FAIL_ATTEMPTS: '1' });
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(imageRuns(installed), 2);
+    const image = spawnSync(
+      'find',
+      [join(sdk, 'system-images'), '-type', 'd', '-name', 'google_apis'],
+      {
+        encoding: 'utf8',
+      },
+    );
+    assert.match(image.stdout, /google_apis/);
+  });
+
+  it('#515: removes the broken partial package before it tries again', () => {
+    const { setup, sdk } = fakeSdk();
+    const result = setup({ FAKE_SDK_FAIL_ATTEMPTS: '1' });
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const partials = spawnSync('find', [sdk, '-name', 'partial.zip'], { encoding: 'utf8' });
+    assert.equal(partials.stdout, '');
+  });
+
+  it('#515: retries when sdkmanager also exits non-zero', () => {
+    const { setup, installed } = fakeSdk();
+    const result = setup({ FAKE_SDK_FAIL_ATTEMPTS: '1', FAKE_SDK_FAIL_EXIT: '1' });
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(imageRuns(installed), 2);
+  });
+
+  it('#515: fails naming the package after a bounded number of attempts', () => {
+    const { setup, installed } = fakeSdk();
+    const result = setup({ FAKE_SDK_FAIL_ATTEMPTS: '99' });
+
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /Android toolchain incomplete; missing:/);
+    assert.match(result.stdout, /system-images;android-\d+(\.\d+)?;google_apis;\w+/);
+    assert.equal(imageRuns(installed), 3);
   });
 
   it('installs cmdline-tools only when the SDK has none', () => {

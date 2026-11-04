@@ -3,7 +3,8 @@
 #
 #   android.sh setup      install or check the JDK, the Android SDK, the emulator and its image, and Maestro
 #                         (scripts/bootstrap.sh --mobile runs this); --build-only: the JDK and the SDK platform and build
-#                         tools, for a build without an emulator
+#                         tools, for a build without an emulator. A package still missing after sdkmanager (a corrupt
+#                         download, #515) is installed again, SDK_INSTALL_ATTEMPTS times (3) in all
 #   android.sh test       ktlint with the literal-text, colour and Sentry checks, the release API address (HTTPS, not a
 #                         placeholder; the check must also reject an empty, plain-HTTP and .invalid one) and Sentry DSN
 #                         (EU region), build, unit tests (nl-NL and en; BuildInfoTest once more with build number 42),
@@ -55,6 +56,39 @@ find_sdkmanager() {
   return 1
 }
 
+# The packages of the arguments that are not in the SDK (package ids map to folders: a;b;c is a/b/c), in SDK_STILL_MISSING.
+sdk_packages_missing() {
+  local home="$1" package
+  shift
+  SDK_STILL_MISSING=""
+  for package in "$@"; do
+    [ -d "$home/${package//;//}" ] || SDK_STILL_MISSING="${SDK_STILL_MISSING:+$SDK_STILL_MISSING }$package"
+  done
+  [ -z "$SDK_STILL_MISSING" ]
+}
+
+# install_sdk_packages SDKMANAGER HOME PACKAGE...: a download that comes back corrupt (GitHub's runners, #515: "Error on
+# ZipFile unknown archive") leaves a package missing, with or without a failing exit status. Try again, at most
+# SDK_INSTALL_ATTEMPTS times (3), SDK_INSTALL_RETRY_DELAY seconds (5) apart, after removing what the failed attempt left in
+# the SDK's .temp folder and the half-installed packages; one attempt when nothing is missing after it.
+install_sdk_packages() {
+  local sdkmanager="$1" home="$2" attempt=1 attempts="${SDK_INSTALL_ATTEMPTS:-3}" ok package
+  shift 2
+  while :; do
+    ok=true
+    "$sdkmanager" --sdk_root="$home" "$@" >/dev/null || ok=false
+    sdk_packages_missing "$home" "$@" || ok=false
+    if $ok; then return 0; fi
+    [ -n "$SDK_STILL_MISSING" ] || SDK_STILL_MISSING="$*"
+    [ "$attempt" -lt "$attempts" ] || return 1
+    echo "⚠️  sdkmanager left packages missing (attempt $attempt of $attempts): $SDK_STILL_MISSING; trying again" >&2
+    for package in $SDK_STILL_MISSING; do rm -rf "${home:?}/${package//;//}"; done
+    rm -rf "${home:?}/.temp"
+    sleep "${SDK_INSTALL_RETRY_DELAY:-5}"
+    attempt=$((attempt + 1))
+  done
+}
+
 # setup_sdk [--build-only]: the SDK packages, the emulator image and the AVD; with --build-only only the packages a build
 # needs.
 setup_sdk() {
@@ -75,8 +109,8 @@ setup_sdk() {
   echo "Android SDK in $home, emulators in $ANDROID_AVD_HOME"
   yes | "$sdkmanager" --sdk_root="$home" --licenses >/dev/null 2>&1 || true
   # shellcheck disable=SC2086 # tools and packages are space-separated package ids without spaces
-  "$sdkmanager" --sdk_root="$home" $tools $packages ${image:+"$image"} >/dev/null || {
-    missing "Android SDK packages: $tools $packages $image"
+  install_sdk_packages "$sdkmanager" "$home" $tools $packages ${image:+"$image"} || {
+    missing "Android SDK packages: $SDK_STILL_MISSING"
     return 1
   }
   if $build_only; then
