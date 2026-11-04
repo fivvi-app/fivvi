@@ -1,6 +1,6 @@
 import { createCronDatabase } from '@fivvi/database';
 import { createErrorReporter } from '@fivvi/observability';
-import { CRON_MONITOR, isPreviewEnvironment } from './monitor.ts';
+import { isPreviewEnvironment, startMonitorCheckIn } from './monitor.ts';
 import { createRegistry } from './registry.ts';
 import { runCron } from './runner.ts';
 
@@ -19,8 +19,8 @@ if (isPreviewEnvironment(process.env)) {
 const started = performance.now();
 // Reports a failure to Sentry when SENTRY_DSN is set (E009); off otherwise.
 const errorReporter = createErrorReporter();
-// The monitor learns that the run started, and how it ended (E012, AC10).
-const checkIn = errorReporter.startCheckIn(CRON_MONITOR);
+// The monitor learns that the run started, and how it ended (E012, AC10); production only.
+const checkIn = startMonitorCheckIn(errorReporter, process.env);
 const runId = crypto.randomUUID();
 console.log(`Cron started: run ${runId}.`);
 try {

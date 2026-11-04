@@ -149,11 +149,10 @@ export default defineRailway((ctx) => {
     env: {
       // What the tasks connect with: the cron role on this environment's own Postgres, over the
       // private network. It owns nothing and can use only the tables the tasks declare. The
-      // privileged `DATABASE_URL` is not given to the cron any more (E012, ADR-006).
+      // password is `web`'s `CRON_DATABASE_PASSWORD`, set there once; the release step applies it
+      // to the role. The privileged `DATABASE_URL` is not given to the cron any more (E012, ADR-006).
       CRON_DATABASE_URL:
-        'postgresql://fivvi_cron:${{CRON_DATABASE_PASSWORD}}@${{postgres.RAILWAY_PRIVATE_DOMAIN}}:${{postgres.PGPORT}}/${{postgres.PGDATABASE}}',
-      // The role's password, from `web` (set there once; the release step applies it).
-      CRON_DATABASE_PASSWORD: '${{web.CRON_DATABASE_PASSWORD}}',
+        'postgresql://fivvi_cron:${{web.CRON_DATABASE_PASSWORD}}@${{postgres.RAILWAY_PRIVATE_DOMAIN}}:${{postgres.PGPORT}}/${{postgres.PGDATABASE}}',
       // The DSN of the Sentry `cron` project (E009), set in the dashboard. Empty turns it off.
       SENTRY_DSN: preserve(),
       // A read-only Lettermint Team API token (`read:team`, ADR-028), set in the dashboard in

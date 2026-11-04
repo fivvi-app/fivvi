@@ -117,7 +117,7 @@ Railway passes every variable to the Docker build too, but the build only sees t
 | Name | Services | `production` | `development` (and so previews) | Set by |
 |---|---|---|---|---|
 | `DATABASE_URL` | `web` (release step only) | Reference `${{postgres.DATABASE_URL}}` (private network): the **privileged** connection, the user that owns the tables | Same reference: each environment has its own Postgres | `.railway/railway.ts`. The running `web` never reads it; only the pre-deploy release step does, through the one privileged path (§7, "Database roles"). The `cron` no longer has it (E012) |
-| `CRON_DATABASE_PASSWORD` | `web` (set here), `cron` (a reference to it) | The password of the database role `fivvi_cron` (E012): a distinct generated value, 16 characters or more, **letters and digits only** (it goes into the URL below). The release step gives the role a login with it | A separate generated value, **never** the production one; previews copy it from `development` | Owner, on `web` (`preserve()` in `.railway/railway.ts`); `cron` reads `${{web.CRON_DATABASE_PASSWORD}}`, so it is set once |
+| `CRON_DATABASE_PASSWORD` | `web` (set here); the `cron`'s URL refers to it | The password of the database role `fivvi_cron` (E012): a distinct generated value, 16 characters or more, **letters and digits only** (it goes into the URL below). The release step gives the role a login with it | A separate generated value, **never** the production one; previews copy it from `development` | Owner, on `web` (`preserve()` in `.railway/railway.ts`); `CRON_DATABASE_URL` on `cron` contains `${{web.CRON_DATABASE_PASSWORD}}`, so it is set once and `cron` has no variable for it |
 | `CRON_DATABASE_URL` | `cron` | `postgresql://fivvi_cron:<CRON_DATABASE_PASSWORD>@<postgres private domain>:<port>/<database>`: what the cron's tasks connect with, as the cron role | Same template, built from the environment's own password and Postgres | `.railway/railway.ts` (references, no value) |
 | `APP_DATABASE_PASSWORD` | `web` | The password of the database role `fivvi_app` (E011): a distinct generated value, 16 characters or more, **letters and digits only** (it goes into the URL below). The release step gives the role a login with it | A separate generated value, **never** the production one; previews copy it from `development` | Owner (`preserve()` in `.railway/railway.ts`) |
 | `APP_DATABASE_URL` | `web` | `postgresql://fivvi_app:<APP_DATABASE_PASSWORD>@<postgres private domain>:<port>/<database>`: what the web **runtime** connects with, as the app role, so RLS applies | Same template, built from the environment's own `APP_DATABASE_PASSWORD` and Postgres | `.railway/railway.ts` (references, no value) |
@@ -167,9 +167,9 @@ Railway passes every variable to the Docker build too, but the build only sees t
 
 Rotating the password is the same: set a new value, redeploy; the release step updates the role.
 
-**Owner, once per environment (before the E012 cron role deploys).** The cron has no access to the database until its role has a password; set it on `web` only (`cron` reads it from there):
+**Owner, once per environment (around the merge of E012).** The cron has no access to the database until its role has a password; set it on `web` only (the `cron`'s `CRON_DATABASE_URL` refers to it as `${{web.CRON_DATABASE_PASSWORD}}`). The order matters: the password before the merge, the Railway configuration right after it.
 
-1. Generate a distinct value for each environment and set it on `web`, without printing it (never the same value in both):
+1. **Before the merge:** generate a distinct value for each environment and set it on `web`, without printing it (never the same value in both). The `web` still runs the old code, which ignores the variable:
 
    ```bash
    openssl rand -hex 24 | railway variable set CRON_DATABASE_PASSWORD --stdin --service web --environment development
@@ -179,8 +179,9 @@ Rotating the password is the same: set a new value, redeploy; the release step u
    openssl rand -hex 24 | railway variable set CRON_DATABASE_PASSWORD --stdin --service web --environment production
    ```
 
-2. Apply `.railway/railway.ts` to `development` and to `production` (§3): it declares `CRON_DATABASE_PASSWORD` on `web` (kept) and `CRON_DATABASE_URL` on `cron`, and changes the schedule to every 5 minutes.
-3. Redeploy `web` in each environment. The release step gives `fivvi_cron` its login and password (its log says `Cron role fivvi_cron: login enabled`). The next cron run connects as it; check `job_runs` ([OBSERVABILITY.md](OBSERVABILITY.md) §6).
+2. **Merge the PR.** The deploy of `web` runs the release step, which gives `fivvi_cron` its login and password. Check the release log of `web` in each environment for `Cron role fivvi_cron: login enabled`.
+3. **Right after the merge, before the next 03:00 UTC:** apply `.railway/railway.ts` to `development` and to `production` (§3). It adds `CRON_DATABASE_URL` to `cron`, takes `DATABASE_URL` away from it and changes the schedule to every 5 minutes. Until then the new cron code has no `CRON_DATABASE_URL`: every run exits 1 with "CRON_DATABASE_URL is not set" (an error in Sentry, nothing else is harmed). Applying the file before the merge is wrong the other way round: the cron of `main` still reads `DATABASE_URL`, which the file removes.
+4. **Only if the password was set after the merge's deploy** (step 1 skipped for an environment): redeploy `web` there, so the release step gives the role its login. Then check `job_runs` ([OBSERVABILITY.md](OBSERVABILITY.md) §6): the next run connects as `fivvi_cron`.
 
 Check that no environment has a template-text password, without printing values:
 

@@ -48,13 +48,12 @@ describe('E012 the cron schedule in .railway/railway.ts', () => {
     const { cron, web } = await services('production');
 
     expect(Object.keys(cron?.variables ?? {})).not.toContain('DATABASE_URL');
-    expect(JSON.stringify(cron?.variables?.CRON_DATABASE_URL)).toContain(
-      'postgresql://fivvi_cron:',
-    );
-    // The password is set once, on `web`, where the release step reads it.
+    // The password is set once, on `web`, where the release step reads it; the URL refers to it.
     expect(web?.variables?.CRON_DATABASE_PASSWORD).toEqual({ type: 'preserve' });
-    expect(JSON.stringify(cron?.variables?.CRON_DATABASE_PASSWORD)).toMatch(
-      /\$\{\{web\.CRON_DATABASE_PASSWORD\}\}/,
+    expect(JSON.stringify(cron?.variables?.CRON_DATABASE_URL)).toMatch(
+      /postgresql:\/\/fivvi_cron:\$\{\{web\.CRON_DATABASE_PASSWORD\}\}@/,
     );
+    // Nothing else on the cron holds the password.
+    expect(Object.keys(cron?.variables ?? {})).not.toContain('CRON_DATABASE_PASSWORD');
   });
 });

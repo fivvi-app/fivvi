@@ -130,6 +130,27 @@ describe('E012 cron entrypoint', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => {
     }
   });
 
+  it('AC10: development runs but checks in nothing: the plan has one monitor, for production', async () => {
+    const database = await cloneTemplateDatabase();
+    const sentry = await startFakeSentry();
+    try {
+      const result = await runMain(
+        {
+          CRON_DATABASE_URL: database.cronUrl,
+          SENTRY_DSN: sentry.dsn,
+          RAILWAY_ENVIRONMENT_NAME: 'development',
+        },
+        { now: NOTHING_DUE },
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('Database reachable.');
+      expect(sentry.checkIns).toEqual([]);
+    } finally {
+      await Promise.all([database.drop(), sentry.close()]);
+    }
+  });
+
   it('AC1: a preview environment does nothing: no connection, no check-in', async () => {
     const sentry = await startFakeSentry();
     try {
@@ -205,7 +226,11 @@ describe('E012 cron entrypoint', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => {
           for each row execute function fail_job_run_delete()`);
 
       const result = await runMain(
-        { CRON_DATABASE_URL: database.cronUrl, SENTRY_DSN: sentry.dsn },
+        {
+          CRON_DATABASE_URL: database.cronUrl,
+          SENTRY_DSN: sentry.dsn,
+          RAILWAY_ENVIRONMENT_NAME: 'production',
+        },
         { now: EVERYTHING_DUE },
       );
 

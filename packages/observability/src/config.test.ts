@@ -11,6 +11,7 @@ import {
   readErrorReportingConfig,
   readPageViewsConfig,
   readProductEventsConfig,
+  readReportingEnvironment,
 } from './config.ts';
 import { createErrorReporter } from './reporter.ts';
 
@@ -91,6 +92,7 @@ describe('E009 error reporting config', () => {
     expect(
       readErrorReportingConfig({ SENTRY_DSN: DSN, RAILWAY_ENVIRONMENT_NAME: railway }).environment,
     ).toBe(environment);
+    expect(readReportingEnvironment({ RAILWAY_ENVIRONMENT_NAME: railway })).toBe(environment);
   });
 });
 
