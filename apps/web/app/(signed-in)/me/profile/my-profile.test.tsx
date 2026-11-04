@@ -152,6 +152,12 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
     expect(html).toMatch(
       new RegExp(`<button[^>]*aria-pressed="false"[^>]*>(?:<svg.*?</svg>)?${other}</button>`),
     );
+    // The two buttons are one group, named by the heading.
+    expect(html).toMatch(
+      new RegExp(
+        `<h2 id="([^"]+)">${escapeHtml(copy.profile.language)}</h2>[\\s\\S]*<fieldset[^>]*aria-labelledby="\\1"`,
+      ),
+    );
     expect(html).not.toContain('role="alert"');
   });
 

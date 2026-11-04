@@ -1,4 +1,4 @@
-import { type Locale, messages } from '@fivvi/i18n';
+import { formattingLocales, type Locale, messages } from '@fivvi/i18n';
 import {
   clientIpHeaders,
   createAccount,
@@ -228,6 +228,7 @@ test.describe('F010 language on My profile', () => {
     await expect(
       page.getByRole('button', { name: ownName(otherLocale), exact: true }),
     ).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('html')).toHaveAttribute('lang', formattingLocales[otherLocale]);
     expect(
       await page.evaluate(() => (window as unknown as { __notReloaded?: boolean }).__notReloaded),
     ).toBe(true);
@@ -235,5 +236,37 @@ test.describe('F010 language on My profile', () => {
     expect(await stored()).toBe(otherLocale);
     await expect(page).toHaveTitle(other.myProfile.title);
     await expectNoAxeViolations(page, `TW-09 after the switch to ${otherLocale}`);
+  });
+
+  test('a language that could not be saved stays as it was, and says so', async ({
+    page,
+    context,
+    appLocale,
+    otherLocale,
+    messages: copy,
+  }) => {
+    const john = newAddress('john');
+    await createAccount(john, undefined, 'John');
+    await createGymWithTrainer(john, GYM, 'owner');
+    await signInWithSession(context, john);
+    await page.goto('/me/profile');
+    await page.route('**/api/v1/me', (route) =>
+      route.request().method() === 'PATCH' ? route.abort() : route.continue(),
+    );
+    const ownName = (locale: Locale) =>
+      locale === 'en' ? messages.en.userMenu.languageEn : messages['nl-NL'].userMenu.languageNl;
+
+    await page.getByRole('button', { name: ownName(otherLocale), exact: true }).click();
+
+    await expect(page.getByRole('main').getByRole('alert')).toHaveText(copy.userMenu.error);
+    await expect(page.locator('html')).toHaveAttribute('lang', formattingLocales[appLocale]);
+    await expect(
+      page.getByRole('button', { name: ownName(appLocale), exact: true }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await page.unroute('**/api/v1/me');
+    const me = (await (await page.request.get('/api/v1/me')).json()) as {
+      preferredLocale: string | null;
+    };
+    expect(me.preferredLocale).toBeNull();
   });
 });
