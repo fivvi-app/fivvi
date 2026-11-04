@@ -7,6 +7,8 @@ export interface FakeSentry {
   dsn: string;
   /** Events the server received, after the reporter's scrubbing. */
   events: CaptureTransport['events'];
+  /** Cron monitor check-ins the server received, oldest first. */
+  checkIns: CaptureTransport['checkIns'];
   close(): Promise<void>;
 }
 
@@ -30,6 +32,7 @@ export async function startFakeSentry(): Promise<FakeSentry> {
   return {
     dsn: `http://public@127.0.0.1:${port}/1`,
     events: capture.events,
+    checkIns: capture.checkIns,
     close: () => new Promise((resolve) => server.close(() => resolve())),
   };
 }

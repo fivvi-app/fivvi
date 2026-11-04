@@ -363,16 +363,21 @@ describe('E003 release step', () => {
       await release(client.db, { seed: true }, (message) => logs.push(message));
 
       expect(await findSystemGreeting(client.db, 'hello')).toEqual(HELLO_GREETING);
-      // Each run migrates and reports the app role; the second also seeds. No password is set
-      // here, so the role is left as it is (E011).
-      const roleLog = expect.stringMatching(
+      // Each run migrates and reports the app role and the cron role; the second also seeds. No
+      // password is set here, so the roles are left as they are (E011, E012).
+      const appRoleLog = expect.stringMatching(
         /^App role fivvi_app: APP_DATABASE_PASSWORD is not set/,
+      );
+      const cronRoleLog = expect.stringMatching(
+        /^Cron role fivvi_cron: CRON_DATABASE_PASSWORD is not set/,
       );
       expect(logs).toEqual([
         'Migrations applied.',
-        roleLog,
+        appRoleLog,
+        cronRoleLog,
         'Migrations applied.',
-        roleLog,
+        appRoleLog,
+        cronRoleLog,
         'Seed data inserted.',
       ]);
     });
