@@ -36,9 +36,11 @@ final class AccountViewModel {
     private(set) var isSigningOut = false
     /// The workspace the home shows (its ID, name and default communication language), or nil while there is none.
     /// Screens of a workspace (Clients, F006) are built for it.
-    private(set) var workspace: CurrentWorkspace?
+    var workspace: CurrentWorkspace? { workspaces.current }
     /// What the account may do in each workspace, from the same answer; the app's one helper for showing actions.
     let capabilities = WorkspaceCapabilities()
+    /// The current workspace and the last one used on this phone (F012).
+    private let workspaces: CurrentWorkspaceStore
     private let api: any APIProtocol
     private let store: any SessionStore
     private let clock: any Clock<Duration>
@@ -58,7 +60,8 @@ final class AccountViewModel {
         signOutTimeout: Duration = .seconds(10),
         onAccount: @escaping (_ id: String) -> Void,
         onSignedOut: @escaping (_ afterRejection: Bool) -> Void,
-        onPreferredLocale: @escaping () -> StoredLocaleHandler = { { _ in } }
+        onPreferredLocale: @escaping () -> StoredLocaleHandler = { { _ in } },
+        workspaces: CurrentWorkspaceStore = CurrentWorkspaceStore()
     ) {
         self.api = api
         self.store = store
@@ -67,13 +70,14 @@ final class AccountViewModel {
         self.onAccount = onAccount
         self.onSignedOut = onSignedOut
         self.onPreferredLocale = onPreferredLocale
+        self.workspaces = workspaces
         capabilities.reload = { [weak self] in await self?.refresh() }
     }
 
     func load() async {
         state = .loading
         destination = nil
-        workspace = nil
+        workspaces.close()
         do {
             try await fetch()
         } catch {
@@ -99,21 +103,30 @@ final class AccountViewModel {
         let (destination, current) = try await destination(of: account)
         state = .loaded(email: account.email)
         self.destination = destination
-        workspace = current
+        if let current { workspaces.open(current) } else { workspaces.close() }
         capabilities.replace(with: account.workspaces, current: current?.id)
         // An answer that arrives after the sign-out (the token is gone) or once the screen has gone (its task is
         // cancelled) must not set the account that was just cleared as the error-reporting user (#266).
         if !Task.isCancelled, store.token != nil { onAccount(account.id) }
     }
 
-    /// With more than one workspace (F012) the last one used will decide; until then the first one the API still lets
-    /// the person into is the home. A `404` for a workspace means the team access is gone (F003 AC6): the next one is
+    /// Switches the app to the workspace `id` (F012, *Profiel* → *Mijn werkruimtes*): it is remembered on this phone and
+    /// read again as the current one, so every screen of a workspace follows. Nothing goes to the server. An `id` the
+    /// API did not list for the person does nothing.
+    func switchWorkspace(to id: String) async {
+        guard id != workspace?.id, capabilities.knows(id) else { return }
+        workspaces.remember(id)
+        await load()
+    }
+
+    /// The last workspace used on this phone decides (`StartWorkspace`), otherwise the first one the API lists (sorted by name); the first
+    /// one in that order the API still lets the person into is the home. A `404` for a workspace means the team access is gone (F003 AC6): the next one is
     /// tried, and with none left the no-access text shows. Any other failure is a failure of the screen, not a verdict.
     /// Also tells which workspace that is, the one the capabilities are read for.
     private func destination(
         of account: Components.Schemas.MeResponse
     ) async throws -> (Destination, workspace: CurrentWorkspace?) {
-        for workspace in account.workspaces {
+        for workspace in StartWorkspace.order(account.workspaces, remembered: workspaces.rememberedID) {
             switch try await api.getWorkspace(.init(path: .init(workspaceId: workspace.id))) {
             case let .ok(found):
                 let details = try found.body.json
