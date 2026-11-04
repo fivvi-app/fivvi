@@ -1,3 +1,4 @@
+import { type Locale, messages } from '@fivvi/i18n';
 import {
   clientIpHeaders,
   createAccount,
@@ -172,5 +173,67 @@ test.describe('F005 I also train here', () => {
       page.getByRole('switch', { name: copy.profile.trainsHere.label.replace('{workspace}', GYM) }),
     ).toHaveCount(0);
     await expectNoAxeViolations(page, `TW-09 of a Trainer and Owner in ${appLocale}`);
+  });
+});
+
+// F010: the Language row on My profile (TW-09), the same choice as in the user menu.
+test.describe('F010 language on My profile', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders(clientIpHeaders());
+  });
+
+  test('AC1: John chooses the other language on My profile; the page re-renders in place and the account stores it', async ({
+    page,
+    context,
+    appLocale,
+    otherLocale,
+    messages: copy,
+  }) => {
+    const john = newAddress('john');
+    await createAccount(john, undefined, 'John');
+    await createGymWithTrainer(john, GYM, 'owner');
+    await signInWithSession(context, john);
+    const stored = async () =>
+      ((await (await page.request.get('/api/v1/me')).json()) as { preferredLocale: string | null })
+        .preferredLocale;
+    const ownName = (locale: Locale) =>
+      locale === 'en' ? messages.en.userMenu.languageEn : messages['nl-NL'].userMenu.languageNl;
+
+    await page.goto('/me/profile');
+    await expect(
+      page.getByRole('heading', { level: 2, name: copy.profile.language }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: ownName(appLocale), exact: true }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await expect(
+      page.getByRole('button', { name: ownName(otherLocale), exact: true }),
+    ).toHaveAttribute('aria-pressed', 'false');
+    expect(await stored()).toBeNull();
+    await expectNoAxeViolations(page, `TW-09 with the Language row in ${appLocale}`);
+
+    // A navigation would reload the document; the marker below survives only a re-render.
+    await page.evaluate(() => {
+      (window as unknown as { __notReloaded: boolean }).__notReloaded = true;
+    });
+    await page.getByRole('button', { name: ownName(otherLocale), exact: true }).click();
+
+    const other = messages[otherLocale];
+    await expect(
+      page.getByRole('heading', { level: 1, name: other.myProfile.title }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 2, name: other.profile.language }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: ownName(otherLocale), exact: true }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      await page.evaluate(() => (window as unknown as { __notReloaded?: boolean }).__notReloaded),
+    ).toBe(true);
+    // The data path: the account stores it.
+    expect(await stored()).toBe(otherLocale);
+    await expect(page).toHaveTitle(other.myProfile.title);
+    await expectNoAxeViolations(page, `TW-09 after the switch to ${otherLocale}`);
   });
 });

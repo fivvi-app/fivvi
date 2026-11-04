@@ -136,6 +136,25 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
     expect(html.match(/role="switch"/g)).toHaveLength(1);
   });
 
+  it('F010 AC1: has the Language row with the two languages in their own language, the current one marked', () => {
+    const html = render(
+      locale,
+      <MyProfile name="Sarah" email="sarah@example.com" workspaces={[]} />,
+    );
+
+    // The row is named like the app's Profiel → Taal (`profile.language`).
+    expect(html).toContain(`>${escapeHtml(copy.profile.language)}<`);
+    const current = locale === 'en' ? copy.userMenu.languageEn : copy.userMenu.languageNl;
+    const other = locale === 'en' ? copy.userMenu.languageNl : copy.userMenu.languageEn;
+    expect(html).toMatch(
+      new RegExp(`<button[^>]*aria-pressed="true"[^>]*>(?:<svg.*?</svg>)?${current}</button>`),
+    );
+    expect(html).toMatch(
+      new RegExp(`<button[^>]*aria-pressed="false"[^>]*>(?:<svg.*?</svg>)?${other}</button>`),
+    );
+    expect(html).not.toContain('role="alert"');
+  });
+
   it('the switch talks about training, never about profiles', () => {
     expect(copy.profile.trainsHere.label).not.toMatch(/profiel|profile/i);
   });
