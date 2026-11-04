@@ -126,6 +126,9 @@
     "newMenu": "Nieuw maken",
     "newClient": "Klant"
   },
+  "workspaceSwitcher": {
+    "newWorkspace": "+ Nieuwe werkruimte"
+  },
   "signOut": {
     "label": "Uitloggen",
     "error": "Uitloggen is niet gelukt. Probeer het opnieuw."

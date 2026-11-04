@@ -45,10 +45,28 @@ describe('F002 where the signed-in home sends a person', () => {
     });
   });
 
-  it('with several workspaces it goes to the first, until F012 remembers the last one used', () => {
+  it('with several workspaces it goes to the first by name', () => {
     expect(destinationOf({ canCreateWorkspace: false, workspaces: [gym, studio] })).toEqual({
       to: 'workspace',
       slug: 'johns-gym',
+    });
+  });
+
+  it('F012 AC4: with several workspaces it goes to the remembered one', () => {
+    expect(
+      destinationOf({ canCreateWorkspace: false, workspaces: [gym, studio] }, 'studio-zuid'),
+    ).toEqual({ to: 'workspace', slug: 'studio-zuid' });
+  });
+
+  it('F012 AC5: a remembered workspace the account left goes to the first by name; with none left to the no-access page', () => {
+    expect(
+      destinationOf({ canCreateWorkspace: false, workspaces: [gym, studio] }, 'sarah-personal'),
+    ).toEqual({ to: 'workspace', slug: 'johns-gym' });
+    expect(destinationOf({ canCreateWorkspace: false, workspaces: [] }, 'sarah-personal')).toEqual({
+      to: 'no-access',
+    });
+    expect(destinationOf({ canCreateWorkspace: true, workspaces: [] }, 'sarah-personal')).toEqual({
+      to: 'welcome',
     });
   });
 });

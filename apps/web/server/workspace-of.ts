@@ -1,6 +1,5 @@
 import { cache } from 'react';
-import { destinationOf } from './destination';
-import { currentMe, redirectTo } from './signed-in';
+import { currentMe, homeDestination, redirectTo } from './signed-in';
 
 /**
  * The workspace of `/w/{slug}` for the signed-in person: one of the workspaces they have a team
@@ -13,6 +12,6 @@ import { currentMe, redirectTo } from './signed-in';
 export const workspaceOf = cache(async (slug: string) => {
   const me = await currentMe();
   const workspace = me.workspaces.find((candidate) => candidate.slug === slug);
-  if (!workspace) redirectTo(destinationOf(me));
+  if (!workspace) redirectTo(await homeDestination(me));
   return workspace;
 });

@@ -1,10 +1,11 @@
 import { SIGN_IN_PAGE } from '@fivvi/auth/return-path';
 import type { Route } from 'next';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
 import { apiClient } from './api';
-import { type Destination, type Me, pathOf } from './destination';
+import { type Destination, destinationOf, type Me, pathOf } from './destination';
+import { LAST_WORKSPACE_COOKIE } from './last-workspace';
 import { loadMe } from './me';
 
 /**
@@ -25,4 +26,13 @@ export const currentMe = cache(async (): Promise<Me> => {
  */
 export function redirectTo(destination: Destination): never {
   redirect(pathOf(destination) as Route);
+}
+
+/**
+ * Where the signed-in person belongs (F002, F012): their remembered workspace, else the first by
+ * name, TW-11 or the no-access page. The remembered workspace is the one last used in this
+ * browser (`fivvi_last_workspace`); one the person left is skipped.
+ */
+export async function homeDestination(me: Me): Promise<Destination> {
+  return destinationOf(me, (await cookies()).get(LAST_WORKSPACE_COOKIE)?.value);
 }
