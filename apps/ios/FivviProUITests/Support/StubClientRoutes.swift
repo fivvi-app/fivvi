@@ -1,23 +1,45 @@
 import Foundation
 
 /// The client routes of the stub server (F006): `GET` and `POST /api/v1/workspaces/{id}/clients`, `GET` and `PATCH` one
-/// client. It starts with the three clients of John's Gym (synthetic) and follows the API's rules that the screens
+/// client. Every workspace has clients of its own (F012): the first one, John's Gym, starts with three (synthetic), any
+/// other with two, and a route answers for the workspace in its path only. It follows the API's rules that the screens
 /// depend on: sorted by name, search by part of a name or an email address without regard to case, one client per email
 /// address (`409` with the existing client's ID), a missing or blank address refused (`400` on `email`: it is required
 /// and never cleared) and the edit body's "keep" and "clear" fields.
 final class StubClientRoutes: @unchecked Sendable {
     private let lock = NSLock()
-    private var clients: [[String: Any]]
-    private var nextNumber = 4
+    private var byWorkspace: [String: [[String: Any]]] = [:]
+    private var nextNumber = 10
+    private let firstWorkspaceIsEmpty: Bool
 
-    /// `empty`: a workspace without clients, for the empty state.
+    /// `empty`: a first workspace without clients, for the empty state.
     init(empty: Bool = false) {
-        clients = empty ? [] : [
-            StubClientRoutes.client(1, "Anna de Vries", "anna@example.com", "en"),
-            StubClientRoutes.client(2, "Mark Jansen", "mark@example.com", nil),
-            StubClientRoutes.client(3, "Sophie Bakker", "sophie.bakker@example.com", nil)
+        firstWorkspaceIsEmpty = empty
+    }
+
+    /// The clients a workspace starts with: John's Gym (the first workspace) the three of the seed, any other two
+    /// others, so a test can tell whose clients a list shows.
+    private func initialClients(ofWorkspace id: String) -> [[String: Any]] {
+        if id.hasSuffix("0") {
+            return firstWorkspaceIsEmpty ? [] : [
+                StubClientRoutes.client(1, "Anna de Vries", "anna@example.com", "en"),
+                StubClientRoutes.client(2, "Mark Jansen", "mark@example.com", nil),
+                StubClientRoutes.client(3, "Sophie Bakker", "sophie.bakker@example.com", nil)
+            ]
+        }
+        return [
+            StubClientRoutes.client(4, "Eva Visser", "eva@example.com", nil),
+            StubClientRoutes.client(5, "Daan Mulder", "daan@example.com", nil)
         ]
     }
+
+    private var clients: [[String: Any]] {
+        get { byWorkspace[workspace] ?? initialClients(ofWorkspace: workspace) }
+        set { byWorkspace[workspace] = newValue }
+    }
+
+    /// The workspace the route being answered is for.
+    private var workspace = ""
 
     private static func client(_ number: Int, _ name: String, _ email: String, _ locale: String?) -> [String: Any] {
         [
@@ -34,7 +56,8 @@ final class StubClientRoutes: @unchecked Sendable {
         guard parts.count >= 5, parts[0] == "api", parts[1] == "v1", parts[2] == "workspaces", parts[4] == "clients"
         else { return nil }
         return lock.withLock {
-            switch (method, parts.count) {
+            workspace = parts[3]
+            return switch (method, parts.count) {
             case ("GET", 5): list(query)
             case ("POST", 5): add(body)
             case ("GET", 6): find(parts[5]).map { (200, $0) } ?? (404, ["code": "not_found"])

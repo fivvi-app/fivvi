@@ -13,6 +13,8 @@ enum UITestSession {
             guard let value = defaults.string(forKey: key) else { return }
             // A test starts from a phone with no language choice either (F010).
             AppLanguage.forgetChoice(defaults: defaults)
+            // A test starts from a phone that remembers no workspace either (F012).
+            CurrentWorkspaceStore.forget(defaults: defaults)
             if value == signedOut {
                 store.deleteToken()
             } else {
