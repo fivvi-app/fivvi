@@ -268,7 +268,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/preferredLocale`.
             public var preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload?
-            /// Whether the account may set up a workspace: it is on the sign-up allowlist and has no team role in any workspace yet. The web and the apps show the first-run screen or the no-access page from this, never from rules of their own.
+            /// Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own.
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/canCreateWorkspace`.
             public var canCreateWorkspace: Swift.Bool
@@ -283,7 +283,7 @@ extension Components {
             ///   - email: The address the account signs in with.
             ///   - name: The person’s own name; null until one is given (TW-11 asks for it).
             ///   - preferredLocale: The language stored on the account; null until one is stored.
-            ///   - canCreateWorkspace: Whether the account may set up a workspace: it is on the sign-up allowlist and has no team role in any workspace yet. The web and the apps show the first-run screen or the no-access page from this, never from rules of their own.
+            ///   - canCreateWorkspace: Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own.
             ///   - workspaces: The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed.
             public init(
                 id: Swift.String,
@@ -711,6 +711,32 @@ extension Components {
             public enum CodingKeys: String, CodingKey {
                 case name
                 case defaultLocale
+            }
+        }
+        /// Who sent the report that the person switched workspace.
+        ///
+        /// - Remark: Generated from `#/components/schemas/WorkspaceSwitchedRequest`.
+        public struct WorkspaceSwitchedRequest: Codable, Hashable, Sendable {
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `workspace_switched` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceSwitchedRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `workspace_switched` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceSwitchedRequest/surface`.
+            public var surface: Components.Schemas.WorkspaceSwitchedRequest.SurfacePayload?
+            /// Creates a new `WorkspaceSwitchedRequest`.
+            ///
+            /// - Parameters:
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `workspace_switched` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(surface: Components.Schemas.WorkspaceSwitchedRequest.SurfacePayload? = nil) {
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case surface
             }
         }
         /// A person on the team of a workspace.

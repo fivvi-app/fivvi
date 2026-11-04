@@ -53,7 +53,7 @@ export interface paths {
         };
         /**
          * The signed-in account
-         * @description The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`).
+         * @description The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already).
          */
         get: operations["getMe"];
         put?: never;
@@ -159,7 +159,7 @@ export interface paths {
         put?: never;
         /**
          * Create the caller’s workspace
-         * @description Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.
+         * @description Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist may, also when it has a workspace already: anyone else gets `403` and nothing is created.
          */
         post: operations["createWorkspace"];
         delete?: never;
@@ -190,6 +190,26 @@ export interface paths {
          * @description Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.
          */
         patch: operations["renameWorkspace"];
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/switched": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report that the caller switched to this workspace
+         * @description Records the product event `workspace_switched` with the workspace ID and the surface (`web`, `ios` or `android`) and nothing else, so that the use of more than one workspace can be counted without personal data (F012). Nothing about the current workspace is stored: the choice stays on the device. The body is optional; the web sends none and is recorded as `web`. A request with a bearer token records the `surface` it names in the body and, naming none, records nothing. Any team member of the workspace may call it.
+         */
+        post: operations["recordWorkspaceSwitch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/workspaces/{workspaceId}/team-members": {
@@ -402,7 +422,7 @@ export interface components {
              * @enum {string|null}
              */
             preferredLocale: "nl-NL" | "en" | null;
-            /** @description Whether the account may set up a workspace: it is on the sign-up allowlist and has no team role in any workspace yet. The web and the apps show the first-run screen or the no-access page from this, never from rules of their own. */
+            /** @description Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own. */
             canCreateWorkspace: boolean;
             /** @description The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed. */
             workspaces: components["schemas"]["MeWorkspace"][];
@@ -516,6 +536,14 @@ export interface components {
             /** @description The new name, as the product shows it from now on. */
             name?: string;
             defaultLocale?: components["schemas"]["Locale"];
+        };
+        /** @description Who sent the report that the person switched workspace. */
+        WorkspaceSwitchedRequest: {
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `workspace_switched` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
         };
         /** @description A person on the team of a workspace. */
         TeamMember: {
@@ -1020,7 +1048,7 @@ export interface operations {
                     "application/json": components["schemas"]["NotSignedIn"];
                 };
             };
-            /** @description The account may not create a workspace: it is not on the sign-up allowlist, or it already has a team role in a workspace. */
+            /** @description The account may not create a workspace: it is not on the sign-up allowlist. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1132,6 +1160,76 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Workspace"];
                 };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    recordWorkspaceSwitch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceSwitchedRequest"];
+            };
+        };
+        responses: {
+            /** @description Recorded, or nothing to record. The body is empty. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description The request did not match the contract. */
             400: {

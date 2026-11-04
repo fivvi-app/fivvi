@@ -14,6 +14,12 @@ extension StubAPI {
         fatalError("The app doesn't call renameWorkspace yet")
     }
 
+    func recordWorkspaceSwitch(
+        _ input: Operations.RecordWorkspaceSwitch.Input
+    ) async throws -> Operations.RecordWorkspaceSwitch.Output {
+        fatalError("The app doesn't call recordWorkspaceSwitch yet")
+    }
+
     func listTeamMembers(_ input: Operations.ListTeamMembers.Input) async throws -> Operations.ListTeamMembers.Output {
         fatalError("The app doesn't call listTeamMembers yet")
     }

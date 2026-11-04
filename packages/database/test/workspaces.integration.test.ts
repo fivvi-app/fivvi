@@ -3,7 +3,6 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   authUsers,
-  claimWorkspaceCreation,
   createDatabase,
   createTenantScopes,
   createWorkspaceWithOwner,
@@ -51,18 +50,16 @@ describe('F002 creating a workspace', () => {
     const created = await scopes().inAccountScope(
       { accountId: account.id, workspaces: 'team' },
       async (scope) => {
-        const claim = await claimWorkspaceCreation(scope);
         const workspace = await createWorkspaceWithOwner(scope, {
           ...DEFAULTS,
           name: "John's Gym",
           slug: 'johns-gym',
           ownerName: 'Sarah',
         });
-        return { claim, workspace, places: await listMyWorkspaces(scope) };
+        return { workspace, places: await listMyWorkspaces(scope) };
       },
     );
 
-    expect(created.claim).toEqual({ hasTeamRole: false });
     expect(created.workspace).toEqual({
       id: expect.any(String),
       name: "John's Gym",
@@ -141,33 +138,37 @@ describe('F002 creating a workspace', () => {
     expect(user?.name).not.toBe('Gone');
   });
 
-  it('AC4: the claim sees a team role the account has in any workspace', async () => {
+  it('F012: an account that is on a team creates another workspace and is its Owner', async () => {
     const workspace = await createWorkspace(admin.db);
     const account = await createAccount(admin.db, { label: 'trainer' });
     await addTeamRole(admin.db, { workspaceId: workspace.id, accountId: account.id });
 
-    const claim = await scopes().inAccountScope(
+    const created = await scopes().inAccountScope(
       { accountId: account.id, workspaces: 'team' },
-      (scope) => claimWorkspaceCreation(scope),
+      (scope) => createWorkspaceWithOwner(scope, { ...DEFAULTS, name: 'Own', slug: 'own-two' }),
     );
 
-    expect(claim).toEqual({ hasTeamRole: true });
+    expect(created?.slug).toBe('own-two');
+    const roles = await admin.db
+      .select({ organizationId: teamMembers.organizationId, role: teamMembers.role })
+      .from(teamMembers)
+      .where(eq(teamMembers.accountId, account.id));
+    expect(roles).toHaveLength(2);
+    expect(roles).toContainEqual({ organizationId: workspace.id, role: 'trainer' });
+    expect(roles).toContainEqual({ organizationId: created?.id, role: 'owner' });
   });
 
-  it('AC4: two requests of one account at once create one workspace, not two', async () => {
+  it('F012: two requests of one account at once create two workspaces', async () => {
     const account = await createAccount(admin.db, { label: 'twice' });
     const attempt = (slug: string) =>
-      scopes().inAccountScope({ accountId: account.id, workspaces: 'team' }, async (scope) => {
-        const { hasTeamRole } = await claimWorkspaceCreation(scope);
-        if (hasTeamRole) return 'refused';
-        await createWorkspaceWithOwner(scope, { ...DEFAULTS, name: slug, slug });
-        return 'created';
-      });
+      scopes().inAccountScope({ accountId: account.id, workspaces: 'team' }, (scope) =>
+        createWorkspaceWithOwner(scope, { ...DEFAULTS, name: slug, slug }),
+      );
 
     const results = await Promise.all([attempt('twice-one'), attempt('twice-two')]);
 
-    expect(results.toSorted()).toEqual(['created', 'refused']);
-    expect(await admin.db.$count(teamMembers, eq(teamMembers.accountId, account.id))).toBe(1);
+    expect(results.map((result) => result?.slug).toSorted()).toEqual(['twice-one', 'twice-two']);
+    expect(await admin.db.$count(teamMembers, eq(teamMembers.accountId, account.id))).toBe(2);
   });
 
   it('two accounts that want the same slug at once: one gets it, the other is told it is taken', async () => {
@@ -217,7 +218,6 @@ describe('F002 creating a workspace', () => {
     const account = await createAccount(admin.db, { label: 'john' });
 
     await scopes().inAccountScope({ accountId: account.id, workspaces: 'team' }, async (scope) => {
-      await claimWorkspaceCreation(scope);
       await createWorkspaceWithOwner(scope, {
         ...DEFAULTS,
         name: "John's Gym",

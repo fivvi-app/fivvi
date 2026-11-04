@@ -44,6 +44,13 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F012: a team member switched to another workspace. The workspace ID and the surface only (the
+  // team member's account UUID is the distinct ID): no name, role, slug or email address. Nothing
+  // about the current workspace is stored; the event only counts switches.
+  workspace_switched: {
+    workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
   // F010: someone chose their interface language. The language and the surface only: the distinct
   // ID is random for each event (`anonymousDistinctId()`), so nothing leads to the account, and no
   // name or email address is recorded.

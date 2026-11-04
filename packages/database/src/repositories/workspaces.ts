@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Locale } from '@fivvi/i18n';
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import { authUsers, organizations, teamMembers, trainerProfiles } from '../schema/index.ts';
 import {
   executorOf,
@@ -48,31 +48,6 @@ export interface NewWorkspace {
   readonly ownerTrains: boolean;
 }
 
-export interface WorkspaceCreationClaim {
-  /** Whether the account has a team role (Owner or Trainer) in any workspace, as of now. */
-  readonly hasTeamRole: boolean;
-}
-
-/**
- * Claims the right to create a workspace for the scope's account, until the transaction ends:
- * takes a lock on the account, so two requests of one account at once can't both pass the
- * rule "no team role yet", and reads the account's team roles fresh (not from the context,
- * which a request built before the lock). The caller decides from `hasTeamRole`.
- */
-export async function claimWorkspaceCreation(scope: TenantScope): Promise<WorkspaceCreationClaim> {
-  const db = executorOf(scope);
-  const { accountId } = scope.context;
-  await db.execute(
-    sql`select pg_advisory_xact_lock(hashtextextended(${`workspace-creation:${accountId}`}, 0))`,
-  );
-  const [role] = await db
-    .select({ id: teamMembers.id })
-    .from(teamMembers)
-    .where(eq(teamMembers.accountId, accountId))
-    .limit(1);
-  return { hasTeamRole: role !== undefined };
-}
-
 /**
  * Creates the workspace, the account's Owner role in it (with a trainer profile when the creator
  * trains, F005) and, when given, the account's name, in
@@ -80,8 +55,8 @@ export async function claimWorkspaceCreation(scope: TenantScope): Promise<Worksp
  * the slug is taken (the caller tries the next one; a workspace of someone else can't be seen,
  * so the unique index decides), and then nothing was created.
  *
- * The caller has already decided the account may create a workspace (`claimWorkspaceCreation`
- * and the rule of `packages/domain`).
+ * The caller has already decided the account may create a workspace (the rule of
+ * `packages/domain`). An account may create several (F012), so nothing here limits the count.
  */
 export async function createWorkspaceWithOwner(
   scope: TenantScope,

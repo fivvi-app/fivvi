@@ -80,8 +80,8 @@ export async function createWorld(): Promise<World> {
   const api = createApp({
     ...NO_DEPENDENCIES,
     tenantScopes,
-    // The test accounts are `<id>@example.com`: all of them may sign up, so the rule "no team role"
-    // is what refuses a route that creates a workspace, not the allowlist.
+    // The test accounts are `<id>@example.com`: every harness account is on the allowlist, so the
+    // route that creates a workspace succeeds for every signed-in caller, team roles or not (F012).
     signUpAllowlist: parseSignUpAllowlist('@example.com'),
     findSignedInAccount: (headers) => {
       const id = headers.get('x-test-account');

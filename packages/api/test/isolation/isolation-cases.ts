@@ -35,11 +35,11 @@ export interface IsolationCase {
   /** A valid body, for a route that takes one. */
   body?: unknown;
   /**
-   * The route creates the caller's workspace (F002). Its business rule refuses an account with a
-   * team role in any workspace (`403`), and a call that succeeds adds one workspace of the
-   * caller's own, which the suite then counts among the caller's places. The only thing a case
-   * may say about the status or what changes; the flag cannot make a refusal weaker, because
-   * every account without a team role must still succeed (`expectations.ts`).
+   * The route creates the caller's workspace (F002). Its business rule is the sign-up allowlist
+   * alone (F012), and a call that succeeds adds one workspace of the caller's own, which the suite
+   * then counts among the caller's places. The only thing a case may say about what changes; the
+   * flag cannot make a refusal weaker, because every signed-in account of the harness's allowlist
+   * must succeed (`expectations.ts`).
    */
   createsWorkspace?: true;
 }
@@ -71,6 +71,8 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // The routes of one workspace (F002): a read shows its id, a rename takes a valid name.
   getWorkspace: { seed: theWorkspace },
   renameWorkspace: { seed: theWorkspace, body: { name: 'Renamed Gym' } },
+  // The report of a switch (F012) records a product event and changes no row.
+  recordWorkspaceSwitch: { body: {} },
 
   // The team of a workspace (F003): the list shows the seeded team member, the removal names it.
   listTeamMembers: { seed: aTeamMember },

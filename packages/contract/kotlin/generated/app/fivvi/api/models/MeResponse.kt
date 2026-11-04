@@ -36,7 +36,7 @@ import kotlinx.serialization.Contextual
  * @param email The address the account signs in with.
  * @param name The person’s own name; null until one is given (TW-11 asks for it).
  * @param preferredLocale The language stored on the account; null until one is stored.
- * @param canCreateWorkspace Whether the account may set up a workspace: it is on the sign-up allowlist and has no team role in any workspace yet. The web and the apps show the first-run screen or the no-access page from this, never from rules of their own.
+ * @param canCreateWorkspace Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own.
  * @param workspaces The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed.
  */
 @Serializable
@@ -59,7 +59,7 @@ data class MeResponse (
     @SerialName(value = "preferredLocale")
     val preferredLocale: MeResponse.PreferredLocale?,
 
-    /* Whether the account may set up a workspace: it is on the sign-up allowlist and has no team role in any workspace yet. The web and the apps show the first-run screen or the no-access page from this, never from rules of their own. */
+    /* Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own. */
     @SerialName(value = "canCreateWorkspace")
     val canCreateWorkspace: kotlin.Boolean,
 

@@ -374,6 +374,7 @@ describe('E011 route access', () => {
       'get /v1/workspaces/{workspaceId}': 'workspace',
       'get /v1/workspaces/{workspaceId}/clients': 'workspace',
       'post /v1/workspaces/{workspaceId}/clients': 'workspace',
+      'post /v1/workspaces/{workspaceId}/switched': 'workspace',
       'get /v1/workspaces/{workspaceId}/clients/{clientId}': 'workspace',
       'patch /v1/workspaces/{workspaceId}/clients/{clientId}': 'workspace',
       'get /v1/workspaces/{workspaceId}/team-members': 'workspace',
