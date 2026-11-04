@@ -15,7 +15,7 @@ describe('F012 the workspace the signed-in home opens', () => {
     expect(startWorkspace([gym, personal], undefined)).toBe(gym);
   });
 
-  it('AC5: a removed remembered workspace is skipped silently: the first by name', () => {
+  it('AC5: a removed remembered workspace falls back (skipped silently: the first by name)', () => {
     expect(startWorkspace([gym, studio], 'sarah-personal-training')).toBe(gym);
   });
 

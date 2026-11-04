@@ -41,7 +41,7 @@ test.describe('F012 the scope switcher on the web', () => {
 
   const switcher = (page: Page, label: string) => page.getByRole('button', { name: label });
 
-  test('AC1: the switcher lists my workspaces with my role, the current one checked', async ({
+  test('AC1: switcher lists my workspaces with my role', async ({
     page,
     context,
     appLocale,
@@ -97,7 +97,7 @@ test.describe('F012 the scope switcher on the web', () => {
     await expect(page).toHaveURL(`/w/${personalSlug}`);
   });
 
-  test("AC2, AC11: picking Sarah Personal Training opens its Owner home, with its navigation and only its data; John's Gym has no Trainers or Settings for Sarah", async ({
+  test("AC2: switching opens the role home with that workspace's data only; AC11: navigation follows each workspace's capabilities", async ({
     page,
     context,
     messages: copy,
@@ -148,10 +148,14 @@ test.describe('F012 the scope switcher on the web', () => {
     await expect(page.getByText('Mark Jansen')).toBeVisible();
     await expect(page.getByText('Anna de Vries')).toHaveCount(0);
     await nav.getByRole('link', { name: copy.workspaceNav.trainers }).click();
+    // Wait for the Trainers page of this workspace (Sarah's own row) before checking that
+    // John's Gym's Tom is not on it.
+    await expect(page).toHaveURL(`/w/${personalSlug}/trainers`);
+    await expect(page.getByRole('cell', { name: 'Sarah', exact: true })).toBeVisible();
     await expect(page.getByText('Tom')).toHaveCount(0);
   });
 
-  test('AC3: one workspace, not allowlisted: the header is a plain label with no menu', async ({
+  test('AC3: one workspace, not allowlisted: plain label', async ({
     page,
     context,
     messages: copy,
@@ -168,7 +172,7 @@ test.describe('F012 the scope switcher on the web', () => {
     await expect(page.getByRole('button', { name: `${GYM} · ${copy.roles.owner}` })).toHaveCount(0);
   });
 
-  test('AC4, AC10: after using Sarah Personal Training the signed-in home opens it again, and the interface language stays', async ({
+  test('AC4: home opens the last workspace; AC10: switching keeps the interface language', async ({
     page,
     context,
     messages: copy,
@@ -201,11 +205,7 @@ test.describe('F012 the scope switcher on the web', () => {
     );
   });
 
-  test('AC5: a remembered workspace Sarah was removed from is skipped silently; with none left, the no-access page', async ({
-    page,
-    context,
-    messages: copy,
-  }) => {
+  test('AC5: removed from the remembered workspace', async ({ page, context, messages: copy }) => {
     const { sarah, gymSlug, personalSlug } = await sarahOnTwoTeams();
     await signInWithSession(context, sarah);
     await page.goto(`/w/${personalSlug}`);
@@ -224,7 +224,7 @@ test.describe('F012 the scope switcher on the web', () => {
     await expect(page.getByRole('heading', { level: 1, name: copy.noAccess.title })).toBeVisible();
   });
 
-  test('AC8: Pilot sees New workspace, also with one workspace, and creates and opens Pilot Two', async ({
+  test('AC8: New workspace opens TW-11 and creates a second workspace', async ({
     page,
     context,
     appLocale,

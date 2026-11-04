@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { LAST_WORKSPACE_COOKIE } from '../../../../server/last-workspace';
+import { LAST_WORKSPACE_COOKIE } from '../../../last-workspace';
 import { rememberWorkspace, reportSwitch } from './workspace-client';
 
 describe('F012 reporting a switch', () => {

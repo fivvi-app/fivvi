@@ -3,9 +3,9 @@ import type { Route } from 'next';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
+import { LAST_WORKSPACE_COOKIE } from '../app/last-workspace';
 import { apiClient } from './api';
 import { type Destination, destinationOf, type Me, pathOf } from './destination';
-import { LAST_WORKSPACE_COOKIE } from './last-workspace';
 import { loadMe } from './me';
 
 /**

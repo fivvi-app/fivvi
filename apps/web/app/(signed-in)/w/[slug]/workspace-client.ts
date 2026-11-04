@@ -1,4 +1,4 @@
-import { LAST_WORKSPACE_COOKIE, LAST_WORKSPACE_MAX_AGE } from '../../../../server/last-workspace';
+import { LAST_WORKSPACE_COOKIE, LAST_WORKSPACE_MAX_AGE } from '../../../last-workspace';
 
 /**
  * Tells the API that the person switched to a workspace (F012):
