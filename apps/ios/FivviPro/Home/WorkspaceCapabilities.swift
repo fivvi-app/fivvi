@@ -12,7 +12,7 @@ final class WorkspaceCapabilities {
     typealias Capability = Components.Schemas.MeWorkspace.CapabilitiesPayloadPayload
 
     private var byWorkspace: [String: Set<Capability>] = [:]
-    /// The workspace the home shows: the last one used on this phone, or the first by name (F012, `StartWorkspace`).
+    /// The workspace the home shows: the last one used on this phone, or the first the API lists (F012, `StartWorkspace`).
     private var currentWorkspaceID: String?
     /// Reads the capabilities again from the API; `AccountViewModel` sets it to its own refresh.
     @ObservationIgnored var reload: @MainActor () async -> Void = {}

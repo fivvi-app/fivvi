@@ -13,42 +13,45 @@ final class StartWorkspaceTests: XCTestCase {
     private func names(_ workspaces: [Components.Schemas.MeWorkspace]) -> [String] { workspaces.map(\.name) }
 
     func test_F012_AC5_startWorkspaceFallsBack() {
-        let list = [workspace("Sarah Personal Training"), workspace("John's Gym")]
+        let list = [workspace("John's Gym"), workspace("Sarah Personal Training")]  // the API's order
 
         XCTAssertEqual(
-            StartWorkspace.pick(from: list, remembered: "id-gone")?.name, "John's Gym",
-            "a remembered workspace the person left: the first by name"
+            StartWorkspace.order(list, remembered: "id-gone").first?.name, "John's Gym",
+            "a remembered workspace the person left: the first the API listed"
         )
-        XCTAssertEqual(StartWorkspace.pick(from: [workspace("John's Gym")], remembered: "id-gone")?.name, "John's Gym")
-        XCTAssertNil(StartWorkspace.pick(from: [], remembered: "id-gone"), "none left: no workspace")
-        XCTAssertNil(StartWorkspace.pick(from: [], remembered: nil))
+        XCTAssertEqual(StartWorkspace.order([workspace("John's Gym")], remembered: "id-gone").first?.name, "John's Gym")
+        XCTAssertNil(StartWorkspace.order([], remembered: "id-gone").first, "none left: no workspace")
+        XCTAssertNil(StartWorkspace.order([], remembered: nil).first)
     }
 
     func test_F012_AC7_startWorkspaceIsTheRememberedOne() {
         let list = [workspace("John's Gym"), workspace("Sarah Personal Training")]
 
         XCTAssertEqual(
-            StartWorkspace.pick(from: list, remembered: "id-Sarah Personal Training")?.name, "Sarah Personal Training"
+            StartWorkspace.order(list, remembered: "id-Sarah Personal Training").first?.name, "Sarah Personal Training"
         )
-        XCTAssertEqual(StartWorkspace.pick(from: list, remembered: nil)?.name, "John's Gym", "nothing remembered")
+        XCTAssertEqual(StartWorkspace.order(list, remembered: nil).first?.name, "John's Gym", "nothing remembered")
     }
 
-    func test_F012_AC5_orderIsTheRememberedOneThenTheOthersByName() {
-        let list = [workspace("Zeta"), workspace("alpha"), workspace("Émile"), workspace("Beta")]
+    func test_F012_AC5_orderIsTheRememberedOneThenTheOthersInTheAPIsOrder() {
+        // The API sends the list sorted by name (`GET /api/v1/me`); the app keeps that order and only moves the
+        // remembered workspace to the front, so "the first by name" is the same on web, Android and iOS.
+        let list = [workspace("alpha"), workspace("Beta"), workspace("Zeta"), workspace("Émile")]
 
-        XCTAssertEqual(names(StartWorkspace.order(list, remembered: nil)), ["alpha", "Beta", "Émile", "Zeta"])
+        XCTAssertEqual(names(StartWorkspace.order(list, remembered: nil)), ["alpha", "Beta", "Zeta", "Émile"])
         XCTAssertEqual(
             names(StartWorkspace.order(list, remembered: "id-Zeta")), ["Zeta", "alpha", "Beta", "Émile"]
         )
         XCTAssertEqual(
-            names(StartWorkspace.order(list, remembered: "id-unknown")), ["alpha", "Beta", "Émile", "Zeta"],
+            names(StartWorkspace.order(list, remembered: "id-unknown")), ["alpha", "Beta", "Zeta", "Émile"],
             "an unknown ID changes nothing"
         )
     }
 
-    func test_F012_AC5_twoWorkspacesWithTheSameNameKeepAStableOrder() {
+    func test_F012_AC5_twoWorkspacesWithTheSameNameKeepTheAPIsOrder() {
         let list = [workspace("Gym", id: "b"), workspace("Gym", id: "a")]
 
-        XCTAssertEqual(StartWorkspace.order(list, remembered: nil).map(\.id), ["a", "b"])
+        XCTAssertEqual(StartWorkspace.order(list, remembered: nil).map(\.id), ["b", "a"])
+        XCTAssertEqual(StartWorkspace.order(list, remembered: "a").map(\.id), ["a", "b"])
     }
 }

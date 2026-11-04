@@ -119,7 +119,7 @@ final class AccountViewModel {
         await load()
     }
 
-    /// The last workspace used on this phone decides (`StartWorkspace`), otherwise the first one by name; the first
+    /// The last workspace used on this phone decides (`StartWorkspace`), otherwise the first one the API lists (sorted by name); the first
     /// one in that order the API still lets the person into is the home. A `404` for a workspace means the team access is gone (F003 AC6): the next one is
     /// tried, and with none left the no-access text shows. Any other failure is a failure of the screen, not a verdict.
     /// Also tells which workspace that is, the one the capabilities are read for.
