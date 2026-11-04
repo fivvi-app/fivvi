@@ -686,6 +686,82 @@ describe('flow phase of a spec', () => {
     assert.match(decision.next, /same files/);
   });
 
+  // #509: a spec closes through its tickets, so a merged PR on its own branch never makes it `merged`.
+  describe('#509: a merged branch of a spec', () => {
+    const merged = (overrides = {}) =>
+      branch(pr({ state: 'MERGED' }), {
+        name: 'docs/50-adr',
+        local: false,
+        worktree: null,
+        ...overrides,
+      });
+    const open = child(51);
+
+    it('is ignored: the phase follows the tickets', () => {
+      const children = [open, child(52, { state: 'CLOSED' })];
+      const building = decide(spec({ children, branches: [merged()] }));
+      assert.equal(building.phase, 'building');
+      assert.equal(building.closes_through_tickets, true);
+      assert.equal(
+        decide(spec({ children: [child(51, { state: 'CLOSED' })], branches: [merged()] })).phase,
+        'complete',
+      );
+      assert.equal(decide(spec({ branches: [merged()] })).phase, 'needs-tickets');
+      assert.equal(
+        decide(spec({ labels: ['spec'], branches: [merged()] })).phase,
+        'needs-approval',
+      );
+      assert.equal(decide(spec({ state: 'CLOSED', branches: [merged()] })).phase, 'done');
+    });
+
+    it('is ignored for an issue with sub-issues and no spec label', () => {
+      const decision = decide(spec({ labels: [], children: [open], branches: [merged()] }));
+      assert.equal(decision.phase, 'building');
+    });
+
+    it('while it still has a local branch or a worktree, Next says flow.sh finish cleans it up and keeps the spec open', () => {
+      for (const kept of [{ local: true }, { worktree: '.worktrees/docs-50-adr' }]) {
+        const decision = decide(spec({ children: [open], branches: [merged(kept)] }));
+        assert.equal(decision.phase, 'building');
+        assert.match(decision.next, /^1 of 1 tickets open\./);
+        assert.match(decision.next, /docs\/50-adr/);
+        assert.match(decision.next, /scripts\/flow\.sh finish 50/);
+        assert.match(decision.next, /spec open/);
+      }
+      const gone = decide(spec({ children: [open], branches: [merged()] }));
+      assert.doesNotMatch(gone.next, /finish/);
+    });
+
+    it('does not hide an open or draft PR of the spec branch: it still decides the phase', () => {
+      const open = branch(pr({ draft: true }), { name: 'docs/50-more' });
+      const decision = decide(spec({ children: [child(51)], branches: [merged(), open] }));
+      assert.equal(decision.phase, 'draft-pr');
+      assert.equal(
+        decide(spec({ branches: [branch(pr({ state: 'CLOSED' }))] })).phase,
+        'abandoned',
+      );
+    });
+
+    it('does not apply to a ticket, a bug or a spec built as its own ticket', () => {
+      const ticket = issue({ branches: [branch(pr({ state: 'MERGED' }))] });
+      assert.equal(decide(ticket).phase, 'merged');
+      const bug = issue({
+        labels: ['bug', 'ready-for-agent'],
+        parent: null,
+        branches: [branch(pr({ state: 'MERGED' }))],
+      });
+      assert.equal(decide(bug).phase, 'merged');
+      assert.equal(decide(bug).closes_through_tickets, undefined);
+      const own = spec({
+        labels: ['spec', 'spec-approved', 'ready-for-agent'],
+        branches: [branch(pr({ state: 'MERGED' }))],
+      });
+      assert.equal(decide(own).phase, 'merged');
+      assert.equal(decide(own).next, 'scripts/flow.sh finish 50');
+      assert.equal(decide(own).closes_through_tickets, undefined);
+    });
+  });
+
   it('treats an issue with sub-issues as a spec even without the label', () => {
     assert.equal(decide(issue({ labels: [], children: [child(52)] })).phase, 'building');
   });

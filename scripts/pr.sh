@@ -5,7 +5,10 @@
 #   pr.sh create [--title <t>] [--body-file <f|->] [--ready] [--full] [--no-check]
 #                                                 check, push, then open a draft PR (or update the open one, changing only
 #                                                 what you pass); a new PR's title defaults to the issue title, its body
-#                                                 gets "Closes #<issue>". Every push runs scripts/check.sh, the checks the
+#                                                 gets "Closes #<issue>", or "Refs #<issue>" for a spec that closes through
+#                                                 its tickets (labelled spec or with sub-issues, and not built as its
+#                                                 own ticket; flow.sh status says when it is complete); a body that
+#                                                 closes such a spec is refused (#509). Every push runs scripts/check.sh, the checks the
 #                                                 change can affect (#293); --full runs check.sh --all, everything
 #   pr.sh ready                                   mark the draft ready for review, only when for the head commit every
 #                                                 CI check passed (the merge gate's rule), the clean review is recorded
@@ -122,6 +125,18 @@ report_owner_only() {
   echo "   change, that PR goes first and this one waits on it. See docs/agents/build.md, Owner-only edits."
 }
 
+# Whether issue $1 closes through its tickets rather than through a PR (#509): it is labelled spec or has sub-issues,
+# and is not a spec built as its own ticket (no sub-issues, ready-for-agent). The same rule as flow-phase.jq. Dies when
+# the issue can't be read: a spec must never get "Closes" by mistake. A missing field counts as none.
+issue_closes_through_tickets() {
+  local out
+  out="$(gh issue view "$1" --repo "$REPO" --json labels,subIssues)" || die "could not read issue #$1"
+  jq -e '([.labels[]?.name] // []) as $l
+    | (.subIssues.totalCount // (.subIssues.nodes // [] | length) // 0) as $kids
+    | ((($l | index("spec")) != null or $kids > 0) and ($kids > 0 or (($l | index("ready-for-agent")) == null)))' \
+    <<<"$out" >/dev/null
+}
+
 cmd_create() {
   local title="" body="" body_set=false draft=true check=true full=false issue existing
   while [ $# -gt 0 ]; do
@@ -145,8 +160,15 @@ cmd_create() {
     [ -n "$issue" ] || die "branch has no issue number: pass --title"
     title="$(gh issue view "$issue" --repo "$REPO" --json title --jq .title)"
   fi
-  if [ -n "$issue" ] && ! grep -qiE "^(closes|fixes|resolves) #$issue([^0-9]|$)" <<<"$body"; then
-    body="${body:+$body$'\n\n'}Closes #$issue"
+  if [ -n "$issue" ] && { [ -z "$existing" ] || $body_set; }; then
+    if issue_closes_through_tickets "$issue"; then
+      # A spec closes through its tickets (flow.sh status: complete, then issue.sh close), never through a PR (#509).
+      ! grep -qiE "(^|[^[:alnum:]])(closes|fixes|resolves) #$issue([^0-9]|$)" <<<"$body" \
+        || die "spec #$issue closes through its tickets, not a PR: write Refs #$issue"
+      grep -qiE "(^|[^[:alnum:]])refs #$issue([^0-9]|$)" <<<"$body" || body="${body:+$body$'\n\n'}Refs #$issue"
+    elif ! grep -qiE "^(closes|fixes|resolves) #$issue([^0-9]|$)" <<<"$body"; then
+      body="${body:+$body$'\n\n'}Closes #$issue"
+    fi
   fi
 
   if $check; then

@@ -18,11 +18,17 @@
 # and with an open blocker waits for its fix (waiting-fix); once a blocker was closed as completed after the removal, it
 # is re-queued once (requeue). An owner-only or unknown-risk PR stays queue-removed, a refused one is merge-refused. answered is true
 # when there is a comment and the newest is not a triage note, i.e. someone replied to the needs-info question.
-# Output: {phase, next, hint}, and bug (the number of the fixed blocker to re-queue after) in the phase requeue
+# Output: {phase, next, hint}, and bug (the number of the fixed blocker to re-queue after) in the phase requeue.
+# A spec closes through its tickets (complete, then scripts/issue.sh close), not through a PR (#509): an issue that is
+# labelled spec or has sub-issues, and is not built as its own ticket (no sub-issues, ready-for-agent). For it a branch
+# whose PR is merged is ignored, so the phase follows the tickets, never merged; while that branch still has a local
+# branch or a worktree, next says that scripts/flow.sh finish removes it and leaves the spec open. closes_through_tickets
+# (true) is added only when such a branch was ignored; flow.sh finish reads it to leave the spec open.
 
 include "records" {search: "./"};
 
 def has($l): (.labels | index($l)) != null;
+def closes_through_tickets: (has("spec") or (.children | length) > 0) and ((.children | length) > 0 or (has("ready-for-agent") | not));
 def open: .state == "OPEN";
 # Only a spec needs the owner's approval before its tickets are cut and built (ADR-016).
 def unapproved_spec: has("spec") and (has("spec-approved") | not);
@@ -136,14 +142,18 @@ def ticket_phase($n):
 
 . as $f
 | $f.number as $n
-| ([$f.branches[] | code_phase($f) + {name, pr}] | sort_by(.rank)) as $code
+| ($f | closes_through_tickets) as $by_tickets
+| ([$f.branches[] | code_phase($f) + {name, pr, local, worktree}]) as $all
+| (if $by_tickets then [$all[] | select(.phase == "merged")] else [] end) as $ignored
+| ([$all[] | select(.phase != "merged" or ($by_tickets | not))] | sort_by(.rank)) as $code
+| ([$ignored[] | select(.local or .worktree != null) | .name]) as $cleanup
 # A needs-info question holds the issue, whatever its code, blockers or other labels say; merged work still gets
 # cleaned up.
 | (if ($f | open) and ($f | has("needs-info")) and ($code[0].phase != "merged") then
      if $f.answered then {phase: "answered", next: "The question on the issue was answered. Run the triage skill on it again with the answer."}
      else {phase: "waiting", next: "Waiting for the owner to answer the question on the issue (needs-info). Report and stop."} end
-   elif ($f.branches | length) > 0
-      and (($f | open) or any($f.branches[]; .local or .worktree != null) or any($f.branches[]; .pr.state == "OPEN"))
+   elif ($code | length) > 0
+      and (($f | open) or any($code[]; .local or .worktree != null) or any($code[]; .pr.state == "OPEN"))
    then {phase: $code[0].phase, next: ($code[0] | code_next($n))}
         + (if $code[0].bug != null then {bug: $code[0].bug} else {} end)
    elif ($f | open | not) then {phase: "done", next: "Nothing to do."}
@@ -177,3 +187,8 @@ def ticket_phase($n):
      $f | ticket_phase($n)
    end)
 | . + {hint: (if .phase | IN("ready", "in-progress") then ($f | features_hint) else "" end)}
+| if ($cleanup | length) > 0 then
+    ($cleanup | length == 1) as $one
+    | .next += " Merged \(if $one then "branch" else "branches" end) of the spec to clean up: \($cleanup | join(", ")); scripts/flow.sh finish \($n) removes \(if $one then "it" else "them" end)\(if .phase == "done" then "." else " and leaves the spec open, as a spec closes through its tickets." end)"
+  else . end
+| if ($ignored | length) > 0 then . + {closes_through_tickets: true} else . end
