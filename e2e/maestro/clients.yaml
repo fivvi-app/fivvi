@@ -9,8 +9,10 @@
 # share, "Nederlands" or "Dutch": scripts/maestro.sh passes no client texts, and the exact wording is proven in the
 # Compose tests in both languages. The run adds clients to the seeded database in each locale, and every client needs an
 # email address that is new to the workspace (the same one answers 409, AC3), so the flow adds an address of its own for
-# each run: the time is in it. The database is never emptied between runs (#381), so each run in a locale adds a Carla Bos
-# or Carla Bos-Smit to the list, which no step may depend on being short.
+# each run: the time is in it. The flow's own client is Tess, who sorts after the seeded Sophie, so the first screen of
+# the list starts with Anna, Mark and Sophie however many runs there were. The database is never emptied between runs
+# (#381): after this change start from a fresh one once, as the clients of the old flow (Carla Bos-Smit, sorting before
+# Mark) push Mark and Sophie off the screen.
 appId: ${APP_ID}
 name: AC1 AC12 Klanten list, search, add, profile and edit
 env:
@@ -37,54 +39,26 @@ env:
 - extendedWaitUntil:
     visible: .*Anna de Vries.*
     timeout: 20000
-# AC6 and AC12: the search finds part of a name (case does not matter) and filters the list: Anna is on the first screen
-# until a search that does not match her removes her. The seeded clients are found by searching for them, not by
-# scrolling: the list is sorted by name and the apps show its first page only (Android has no second page), so with
-# enough clients added by earlier runs Mark and Sophie are not in it.
+- assertVisible: .*Mark Jansen.*
+- assertVisible: .*Sophie Bakker.*
+# AC6 and AC12: the search finds part of a name (case does not matter).
 - tapOn:
     id: clients\.search
-- inputText: BAKK
-- extendedWaitUntil:
-    visible: .*Sophie Bakker.*
-    timeout: 20000
-- extendedWaitUntil:
-    notVisible: .*Anna de Vries.*
-    timeout: 20000
-- assertNotVisible: .*Mark Jansen.*
-- eraseText: 4
-- extendedWaitUntil:
-    visible: .*Anna de Vries.*
-    timeout: 20000
-- inputText: mark
-- extendedWaitUntil:
-    visible: .*Mark Jansen.*
-    timeout: 20000
-- extendedWaitUntil:
-    notVisible: .*Anna de Vries.*
-    timeout: 20000
-- assertNotVisible: .*Sophie Bakker.*
-- eraseText: 4
-- extendedWaitUntil:
-    visible: .*Anna de Vries.*
-    timeout: 20000
 - inputText: VRIE
 - extendedWaitUntil:
-    notVisible: .*(Mark Jansen|Sophie Bakker).*
+    notVisible: .*Sophie Bakker.*
     timeout: 20000
 - assertVisible: .*Anna de Vries.*
 - assertNotVisible: .*Mark Jansen.*
-- assertNotVisible: .*Sophie Bakker.*
 - eraseText: 4
-# The list is back when a client other than Anna is on the first screen: Carla Bos once an earlier run has added her
-# (she sorts between Anna and Mark), else Mark.
 - extendedWaitUntil:
-    visible: .*(Carla Bos|Mark Jansen).*
+    visible: .*Sophie Bakker.*
     timeout: 20000
 # The keyboard of the search field would cover the primary action.
 - hideKeyboard
 # AC1: a name and an email address are needed; the profile opens, and the language for emails is the workspace default
 # (named).
-- evalScript: ${output.carlaEmail = 'carla.' + Date.now() + '@example.com'}
+- evalScript: ${output.tessEmail = 'tess.' + Date.now() + '@example.com'}
 - tapOn:
     id: clients\.add
 - extendedWaitUntil:
@@ -93,23 +67,23 @@ env:
     timeout: 20000
 - tapOn:
     id: clients\.add\.name
-- inputText: Carla Bos
+- inputText: Tess Bos
 - tapOn:
     id: clients\.add\.email
-- inputText: ${output.carlaEmail}
+- inputText: ${output.tessEmail}
 - tapOn:
     id: clients\.add\.submit
 - extendedWaitUntil:
     visible:
       id: clientProfile\.title
-      text: Carla Bos
+      text: Tess Bos
     timeout: 20000
 - assertVisible:
     id: clientProfile\.name
-    text: Carla Bos
+    text: Tess Bos
 - assertVisible:
     id: clientProfile\.email
-    text: ${output.carlaEmail}
+    text: ${output.tessEmail}
 - assertVisible:
     id: clientProfile\.language
     text: .*(Nederlands|Dutch).*
@@ -123,13 +97,13 @@ env:
 - tapOn:
     id: clientProfile\.edit\.name
 - eraseText: 20
-- inputText: Carla Bos-Smit
+- inputText: Tess Bos-Smit
 - tapOn:
     id: clientProfile\.edit\.save
 - extendedWaitUntil:
     visible:
       id: clientProfile\.title
-      text: Carla Bos-Smit
+      text: Tess Bos-Smit
     timeout: 20000
 # AC3: the address of Anna offers Anna instead of a second client.
 - tapOn:
