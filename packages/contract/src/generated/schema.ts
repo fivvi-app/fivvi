@@ -671,24 +671,25 @@ export interface components {
             street: string;
             city: string;
         } | null;
-        /** @description Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. The type and which location is the default never change. Other fields are ignored. */
+        /** @description Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. `address: null` removes the address; leave `address` out to keep it as it is. The type and which location is the default never change. Other fields are ignored. */
         UpdateLocationRequest: {
             /** @description The new name: trimmed, not blank, at most 120 characters. */
             name?: string;
-            /** @description The new address, or `null` to remove it. Leave it out to keep the address as it is. */
-            address?: {
-                /** @description A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`. */
-                postcode: string;
-                /** @description One to five digits. */
-                houseNumber: string;
-                /** @description For example `A` or `2 hoog`; optional, at most 10 characters. */
-                houseNumberAddition?: string | null;
-                /** @description At most 120 characters. */
-                street: string;
-                /** @description At most 120 characters. */
-                city: string;
-            } | null;
+            address?: components["schemas"]["LocationAddressInput"];
         };
+        /** @description An address as typed. All or nothing: with any field filled, the postcode, house number, street and city are required. */
+        LocationAddressInput: {
+            /** @description A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`. */
+            postcode: string;
+            /** @description One to five digits. */
+            houseNumber: string;
+            /** @description For example `A` or `2 hoog`; optional, at most 10 characters. */
+            houseNumberAddition?: string | null;
+            /** @description At most 120 characters. */
+            street: string;
+            /** @description At most 120 characters. */
+            city: string;
+        } | null;
         /** @description One page of the clients of a workspace. */
         ClientList: {
             /** @description This page of clients, sorted by name. */

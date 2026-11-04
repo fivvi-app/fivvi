@@ -23,14 +23,14 @@
 
 package app.fivvi.api.models
 
-import app.fivvi.api.models.UpdateLocationRequestAddress
+import app.fivvi.api.models.LocationAddressInput
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. The type and which location is the default never change. Other fields are ignored.
+ * Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. `address: null` removes the address; leave `address` out to keep it as it is. The type and which location is the default never change. Other fields are ignored.
  *
  * @param name The new name: trimmed, not blank, at most 120 characters.
  * @param address 
@@ -44,7 +44,7 @@ data class UpdateLocationRequest (
     val name: kotlin.String? = null,
 
     @SerialName(value = "address")
-    val address: UpdateLocationRequestAddress? = null
+    val address: LocationAddressInput? = null
 
 ) {
 

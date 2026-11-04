@@ -1009,7 +1009,7 @@ extension Components {
                 case city
             }
         }
-        /// Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. The type and which location is the default never change. Other fields are ignored.
+        /// Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. `address: null` removes the address; leave `address` out to keep it as it is. The type and which location is the default never change. Other fields are ignored.
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest`.
         public struct UpdateLocationRequest: Codable, Hashable, Sendable {
@@ -1017,71 +1017,16 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/name`.
             public var name: Swift.String?
-            /// The new address, or `null` to remove it. Leave it out to keep the address as it is.
-            ///
             /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address`.
-            public struct AddressPayload: Codable, Hashable, Sendable {
-                /// A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`.
-                ///
-                /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address/postcode`.
-                public var postcode: Swift.String
-                /// One to five digits.
-                ///
-                /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address/houseNumber`.
-                public var houseNumber: Swift.String
-                /// For example `A` or `2 hoog`; optional, at most 10 characters.
-                ///
-                /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address/houseNumberAddition`.
-                public var houseNumberAddition: Swift.String?
-                /// At most 120 characters.
-                ///
-                /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address/street`.
-                public var street: Swift.String
-                /// At most 120 characters.
-                ///
-                /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address/city`.
-                public var city: Swift.String
-                /// Creates a new `AddressPayload`.
-                ///
-                /// - Parameters:
-                ///   - postcode: A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`.
-                ///   - houseNumber: One to five digits.
-                ///   - houseNumberAddition: For example `A` or `2 hoog`; optional, at most 10 characters.
-                ///   - street: At most 120 characters.
-                ///   - city: At most 120 characters.
-                public init(
-                    postcode: Swift.String,
-                    houseNumber: Swift.String,
-                    houseNumberAddition: Swift.String? = nil,
-                    street: Swift.String,
-                    city: Swift.String
-                ) {
-                    self.postcode = postcode
-                    self.houseNumber = houseNumber
-                    self.houseNumberAddition = houseNumberAddition
-                    self.street = street
-                    self.city = city
-                }
-                public enum CodingKeys: String, CodingKey {
-                    case postcode
-                    case houseNumber
-                    case houseNumberAddition
-                    case street
-                    case city
-                }
-            }
-            /// The new address, or `null` to remove it. Leave it out to keep the address as it is.
-            ///
-            /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address`.
-            public var address: Components.Schemas.UpdateLocationRequest.AddressPayload?
+            public var address: Components.Schemas.LocationAddressInput?
             /// Creates a new `UpdateLocationRequest`.
             ///
             /// - Parameters:
             ///   - name: The new name: trimmed, not blank, at most 120 characters.
-            ///   - address: The new address, or `null` to remove it. Leave it out to keep the address as it is.
+            ///   - address:
             public init(
                 name: Swift.String? = nil,
-                address: Components.Schemas.UpdateLocationRequest.AddressPayload? = nil
+                address: Components.Schemas.LocationAddressInput? = nil
             ) {
                 self.name = name
                 self.address = address
@@ -1089,6 +1034,59 @@ extension Components {
             public enum CodingKeys: String, CodingKey {
                 case name
                 case address
+            }
+        }
+        /// An address as typed. All or nothing: with any field filled, the postcode, house number, street and city are required.
+        ///
+        /// - Remark: Generated from `#/components/schemas/LocationAddressInput`.
+        public struct LocationAddressInput: Codable, Hashable, Sendable {
+            /// A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddressInput/postcode`.
+            public var postcode: Swift.String
+            /// One to five digits.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddressInput/houseNumber`.
+            public var houseNumber: Swift.String
+            /// For example `A` or `2 hoog`; optional, at most 10 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddressInput/houseNumberAddition`.
+            public var houseNumberAddition: Swift.String?
+            /// At most 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddressInput/street`.
+            public var street: Swift.String
+            /// At most 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddressInput/city`.
+            public var city: Swift.String
+            /// Creates a new `LocationAddressInput`.
+            ///
+            /// - Parameters:
+            ///   - postcode: A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`.
+            ///   - houseNumber: One to five digits.
+            ///   - houseNumberAddition: For example `A` or `2 hoog`; optional, at most 10 characters.
+            ///   - street: At most 120 characters.
+            ///   - city: At most 120 characters.
+            public init(
+                postcode: Swift.String,
+                houseNumber: Swift.String,
+                houseNumberAddition: Swift.String? = nil,
+                street: Swift.String,
+                city: Swift.String
+            ) {
+                self.postcode = postcode
+                self.houseNumber = houseNumber
+                self.houseNumberAddition = houseNumberAddition
+                self.street = street
+                self.city = city
+            }
+            public enum CodingKeys: String, CodingKey {
+                case postcode
+                case houseNumber
+                case houseNumberAddition
+                case street
+                case city
             }
         }
         /// One page of the clients of a workspace.

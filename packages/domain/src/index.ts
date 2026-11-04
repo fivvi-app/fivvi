@@ -26,7 +26,6 @@ export {
   LOCATION_NAME_MAX_LENGTH,
   LOCATION_TYPES,
   type LocationType,
-  OWN_LOCATION_TYPE,
 } from './locations/default-location.ts';
 export {
   CAPABILITIES,

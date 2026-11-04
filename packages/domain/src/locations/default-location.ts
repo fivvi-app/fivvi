@@ -13,9 +13,6 @@ export const LOCATION_TYPES = [
 ] as const;
 export type LocationType = (typeof LOCATION_TYPES)[number];
 
-/** The type every workspace's first location has. */
-export const OWN_LOCATION_TYPE = 'organization_location' satisfies LocationType;
-
 /** The longest location name, in characters. */
 export const LOCATION_NAME_MAX_LENGTH = 120;
 

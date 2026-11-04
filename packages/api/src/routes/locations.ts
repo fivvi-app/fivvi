@@ -1,5 +1,11 @@
 import { listLocations, updateLocation } from '@fivvi/database';
-import { decideAddress, LOCATION_NAME_MAX_LENGTH, LOCATION_TYPES } from '@fivvi/domain';
+import {
+  ADDRESS_ADDITION_MAX_LENGTH,
+  ADDRESS_TEXT_MAX_LENGTH,
+  decideAddress,
+  LOCATION_NAME_MAX_LENGTH,
+  LOCATION_TYPES,
+} from '@fivvi/domain';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
 import {
@@ -65,7 +71,7 @@ export const LocationSchema = z
   })
   .openapi('Location', { description: 'A place where sessions of the workspace take place.' });
 
-const AddressInputSchema = z
+const LocationAddressInputSchema = z
   .object({
     postcode: z.string().openapi({
       description:
@@ -93,7 +99,7 @@ const AddressInputSchema = z
  * reads them one way).
  */
 function checkAddress(
-  body: z.infer<typeof AddressInputSchema> | null | undefined,
+  body: z.infer<typeof LocationAddressInputSchema> | null | undefined,
   ctx: z.RefinementCtx,
 ) {
   const decision = decideAddress(body);
@@ -101,12 +107,14 @@ function checkAddress(
   for (const { field, problem } of decision.issues) {
     const path = ['address', field];
     const input = body?.[field] ?? '';
+    const maximum =
+      field === 'houseNumberAddition' ? ADDRESS_ADDITION_MAX_LENGTH : ADDRESS_TEXT_MAX_LENGTH;
     if (problem === 'missing') {
       ctx.addIssue({ code: 'too_small', origin: 'string', minimum: 1, path, input });
     } else if (problem === 'invalid') {
       ctx.addIssue({ code: 'invalid_format', format: 'regex', pattern: '', path, input });
     } else {
-      ctx.addIssue({ code: 'too_big', origin: 'string', maximum: 120, path, input });
+      ctx.addIssue({ code: 'too_big', origin: 'string', maximum, path, input });
     }
   }
 }
@@ -120,10 +128,9 @@ const UpdateLocationRequestSchema = z
       .max(LOCATION_NAME_MAX_LENGTH)
       .optional()
       .openapi({ description: 'The new name: trimmed, not blank, at most 120 characters.' }),
-    address: AddressInputSchema.nullable().optional().openapi({
-      description:
-        'The new address, or `null` to remove it. Leave it out to keep the address as it is.',
-    }),
+    // No `.openapi({ description })` after `.nullable().optional()`: it would inline the named
+    // component. What the field does is in the description of the request.
+    address: LocationAddressInputSchema.nullable().optional(),
   })
   // A body with neither changes nothing; it is refused on `name`, as for a workspace.
   .refine((body) => body.name !== undefined || body.address !== undefined, {
@@ -134,8 +141,9 @@ const UpdateLocationRequestSchema = z
   .openapi('UpdateLocationRequest', {
     description:
       'Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is ' +
-      'stored as `1234 AB`), or both. The type and which location is the default never change. ' +
-      'Other fields are ignored.',
+      'stored as `1234 AB`), or both. `address: null` removes the address; leave `address` out to ' +
+      'keep it as it is. The type and which location is the default never change. Other fields ' +
+      'are ignored.',
   });
 
 const listLocationsRoute = defineRoute(

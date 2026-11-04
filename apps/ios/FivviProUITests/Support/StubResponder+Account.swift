@@ -43,8 +43,9 @@ extension Responder {
     /// The permission matrix of `packages/domain` (F004): what a role may do, as the API sends it.
     static func capabilities(ofRole role: String) -> [String] {
         role == "owner"
-            ? ["workspace.manage", "team.view", "team.manage", "trainers.view", "clients.view", "clients.manage"]
-            : ["trainers.view", "clients.view", "clients.manage"]
+            ? ["workspace.manage", "team.view", "team.manage", "trainers.view", "clients.view", "clients.manage",
+               "location.read", "settings.manage"]
+            : ["trainers.view", "clients.view", "clients.manage", "location.read"]
     }
 
     /// `GET /api/v1/me`'s answer for the one account.

@@ -29,7 +29,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * The new address, or `null` to remove it. Leave it out to keep the address as it is.
+ * An address as typed. All or nothing: with any field filled, the postcode, house number, street and city are required.
  *
  * @param postcode A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`.
  * @param houseNumber One to five digits.
@@ -39,7 +39,7 @@ import kotlinx.serialization.Contextual
  */
 @Serializable
 
-data class UpdateLocationRequestAddress (
+data class LocationAddressInput (
 
     /* A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`. */
     @SerialName(value = "postcode")

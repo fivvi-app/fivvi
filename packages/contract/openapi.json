@@ -703,45 +703,48 @@
             "description": "The new name: trimmed, not blank, at most 120 characters."
           },
           "address": {
-            "type": [
-              "object",
-              "null"
-            ],
-            "properties": {
-              "postcode": {
-                "type": "string",
-                "description": "A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`."
-              },
-              "houseNumber": {
-                "type": "string",
-                "description": "One to five digits."
-              },
-              "houseNumberAddition": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "For example `A` or `2 hoog`; optional, at most 10 characters."
-              },
-              "street": {
-                "type": "string",
-                "description": "At most 120 characters."
-              },
-              "city": {
-                "type": "string",
-                "description": "At most 120 characters."
-              }
-            },
-            "required": [
-              "postcode",
-              "houseNumber",
-              "street",
-              "city"
-            ],
-            "description": "The new address, or `null` to remove it. Leave it out to keep the address as it is."
+            "$ref": "#/components/schemas/LocationAddressInput"
           }
         },
-        "description": "Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. The type and which location is the default never change. Other fields are ignored."
+        "description": "Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. `address: null` removes the address; leave `address` out to keep it as it is. The type and which location is the default never change. Other fields are ignored."
+      },
+      "LocationAddressInput": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "postcode": {
+            "type": "string",
+            "description": "A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`."
+          },
+          "houseNumber": {
+            "type": "string",
+            "description": "One to five digits."
+          },
+          "houseNumberAddition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "For example `A` or `2 hoog`; optional, at most 10 characters."
+          },
+          "street": {
+            "type": "string",
+            "description": "At most 120 characters."
+          },
+          "city": {
+            "type": "string",
+            "description": "At most 120 characters."
+          }
+        },
+        "required": [
+          "postcode",
+          "houseNumber",
+          "street",
+          "city"
+        ],
+        "description": "An address as typed. All or nothing: with any field filled, the postcode, house number, street and city are required."
       },
       "ClientList": {
         "type": "object",
