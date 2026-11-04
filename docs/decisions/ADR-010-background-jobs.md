@@ -29,7 +29,7 @@ A job runner or queue is another service to host, monitor and pay for. On free t
 - All cron work is **idempotent** (safe to run twice or late), and runs through an explicitly privileged path (ADR-006).
 - Add a queue (e.g. the Inngest free tier) **only when a real need appears**, such as reminders at exact times or email volume that makes inline sending slow.
 
-> **Amended (31 October 2026, both Proposed):** [ADR-026](ADR-026-clients-sign-in-and-are-approved-to-book.md) removes booking holds, so the lazy hold expiry and the hold cleanup no longer apply. [ADR-027](ADR-027-a-cron-every-5-minutes.md) runs the cron job every 5 minutes for the waitlist's closing-time email; the daily work stays daily. The rest of this ADR stands.
+> **Amended (31 October 2026; [ADR-026](ADR-026-clients-sign-in-and-are-approved-to-book.md) accepted on 4 November 2026, [ADR-027](ADR-027-a-cron-every-5-minutes.md) Proposed):** [ADR-026](ADR-026-clients-sign-in-and-are-approved-to-book.md) removes booking holds, so the lazy hold expiry and the hold cleanup no longer apply. [ADR-027](ADR-027-a-cron-every-5-minutes.md) runs the cron job every 5 minutes for the waitlist's closing-time email; the daily work stays daily. The rest of this ADR stands.
 
 ## Consequences
 

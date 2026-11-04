@@ -1731,7 +1731,7 @@ The client app is a separate app, **Fivvi** (app ID `app.fivvi`, iOS and Android
 - **Notifications:** emails only at go-live; push notifications follow in Release 1.1 (§54).
 - **Distribution:** public App Store and Google Play listings in Dutch and English before go-live, with in-app account deletion (§79), the privacy label and data safety form, and a review account. Go-live doesn't wait for the store review: if Fivvi isn't approved in time, clients use the client web.
 - **After go-live:** the client's workout history comes with M7, so the **Training** tab arrives then.
-- **Open for the first Fivvi spec:** how a client joins a workspace in the app (the join link and its QR code opening the app, or scanning the QR code in the app).
+- **Joining in the app (owner, 4 November 2026, [#469](https://github.com/fivvi-app/fivvi/issues/469)):** a client joins a workspace in Fivvi through the join link or the client invitation link (`fivvi.app/j/…`, `fivvi.app/i/…`). When Fivvi is installed the link opens it (Universal Links on iOS, verified App Links on Android), otherwise the web. There is no QR scanner in the app: the desk QR code holds the join link, so the phone's camera opens it.
 
 Launch:
 

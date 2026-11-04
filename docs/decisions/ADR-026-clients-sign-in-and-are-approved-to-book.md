@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed |
+| **Status** | Accepted (2026-11-04) |
 | **Date** | 2026-10-31 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | Reverses `PRODUCT.md` §23–§26 as written on 23 September 2026 (anonymous booking with a hold and a magic link; a client account at the first booking); `PRODUCT.md` §2.3, §2.4, §21–§27, §30, §32, §33, §51, §95; `ROADMAP.md` M5, M6, M11, v1.30; ADR-007, ADR-010 (amended by ADR-027), ADR-019, ADR-022; F027–F038, F062, F063; `open-questions.md` QE06 |
