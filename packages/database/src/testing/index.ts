@@ -2,6 +2,7 @@ export { readTenantContext, type StoredContext, selectEverythingInScope } from '
 export {
   addClient,
   addTeamRole,
+  addTrainerInvitation,
   addTrainerProfile,
   createAccount,
   createWorkspace,

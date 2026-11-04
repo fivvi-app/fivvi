@@ -384,6 +384,10 @@ describe('E011 route access', () => {
       'get /v1/workspaces/{workspaceId}/trainers': 'workspace',
       'get /v1/workspaces/{workspaceId}/locations': 'workspace',
       'patch /v1/workspaces/{workspaceId}/locations/{locationId}': 'workspace',
+      'get /v1/workspaces/{workspaceId}/trainer-invitations': 'workspace',
+      'post /v1/workspaces/{workspaceId}/trainer-invitations': 'workspace',
+      'post /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend': 'workspace',
+      'delete /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}': 'workspace',
       'post /v1/workspaces': 'account',
     });
   });

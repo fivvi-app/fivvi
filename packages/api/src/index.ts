@@ -5,7 +5,11 @@ export {
   type WorkspaceEnv,
 } from './access.ts';
 export { API_BASE_PATH, createApiHandler, createApp } from './app.ts';
-export { type ApiDependencies, NO_DEPENDENCIES } from './dependencies.ts';
+export {
+  type ApiDependencies,
+  NO_DEPENDENCIES,
+  type TrainerInvitationMail,
+} from './dependencies.ts';
 export {
   INTERNAL_SERVER_ERROR,
   type ValidationError,

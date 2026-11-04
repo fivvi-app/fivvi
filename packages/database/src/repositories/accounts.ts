@@ -43,3 +43,20 @@ export async function findAccountIdByEmail(
     .limit(1);
   return row?.id;
 }
+
+/**
+ * The language the account with the email address (lower case) chose for its emails, if there is
+ * such an account and it chose one (F011 AC2). Only the language is read, and only to pick the
+ * language of an email: nothing else of the account is read, so nothing of it can reach an answer.
+ */
+export async function findPreferredLocaleByEmail(
+  scope: TenantScope,
+  email: string,
+): Promise<Locale | undefined> {
+  const [row] = await executorOf(scope)
+    .select({ preferredLocale: authUsers.preferredLocale })
+    .from(authUsers)
+    .where(eq(authUsers.email, email))
+    .limit(1);
+  return row?.preferredLocale ?? undefined;
+}

@@ -134,6 +134,13 @@
       "when": 1793824660941,
       "tag": "0018_locations_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793833793610,
+      "tag": "0019_trainer_invitations",
+      "breakpoints": true
     }
   ]
 }

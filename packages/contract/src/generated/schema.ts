@@ -256,6 +256,70 @@ export interface paths {
         patch: operations["changeTeamMemberRole"];
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/trainer-invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The pending invitations of a workspace
+         * @description The invitations that are still pending (the Owner only), the latest sent first. One whose `expiresAt` has passed is still listed, so the Owner can send it again. Accepted, declined and withdrawn invitations are not listed.
+         */
+        get: operations["listTrainerInvitations"];
+        put?: never;
+        /**
+         * Invite a trainer
+         * @description Invites a person to join the team as a Trainer (the Owner only) and emails them the invitation (EM-09) in the chosen language, else the language of the account with that address, else the workspace’s default. The invitation works for seven days. An address that is on the team answers `409` `already_on_team`; one with a pending invitation `409` `invitation_pending` with that invitation’s ID, and no second one is made. A workspace makes at most 20 invitations in 24 hours: the next answers `429`. If the email can not be sent the answer is `500` and nothing is stored.
+         */
+        post: operations["createTrainerInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send an invitation again
+         * @description Emails a pending invitation again (the Owner only) with a new link and a new seven-day expiry; the old link stops working. An invitation that is not pending, or not found in the workspace, answers `404`. If the email can not be sent the answer is `500` and the old link keeps working.
+         */
+        post: operations["resendTrainerInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Withdraw an invitation
+         * @description Withdraws a pending invitation (the Owner only): its link stops working and it leaves the list. An invitation that is not pending, or not found in the workspace, answers `404`. The address can be invited again.
+         */
+        delete: operations["withdrawTrainerInvitation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspaceId}/trainers": {
         parameters: {
             query?: never;
@@ -484,7 +548,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite")[];
         };
         /** @description A workspace the account is on the team of. */
         MyWorkspace: {
@@ -503,7 +567,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite")[];
             /** @description Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
             trainsHere: boolean;
         };
@@ -617,6 +681,66 @@ export interface components {
              * @enum {string}
              */
             role: "owner" | "trainer";
+        };
+        /** @description A pending invitation to join the team as a Trainer. The link’s token is only in the email; it is never part of an answer. */
+        TrainerInvitation: {
+            /**
+             * Format: uuid
+             * @description The invitation ID.
+             */
+            id: string;
+            /** @description The name the Owner typed for the person. */
+            name: string;
+            /**
+             * Format: email
+             * @description The address the invitation went to, lower case.
+             */
+            email: string;
+            /**
+             * @description The language the Owner chose for the email: `nl-NL` or `en`. `null` follows the language of the account with that address, then the workspace’s default.
+             * @enum {string|null}
+             */
+            emailLocale: "nl-NL" | "en" | null;
+            /**
+             * Format: date-time
+             * @description When the invitation was last sent: it moves forward when it is sent again.
+             */
+            sentAt: string;
+            /**
+             * Format: date-time
+             * @description When the link stops working: seven days after it was sent. A pending invitation can be past it; the Owner then sends it again.
+             */
+            expiresAt: string;
+        };
+        /** @description Nothing was sent. `already_on_team`: an account with the address has a team role in the workspace. `invitation_pending`: the address has a pending invitation. Contains no user-facing text. */
+        TrainerInvitationConflict: {
+            /** @enum {string} */
+            code: "already_on_team" | "invitation_pending";
+            /**
+             * Format: uuid
+             * @description With `invitation_pending`: the ID of the invitation that exists, which the Owner can send again.
+             */
+            invitationId?: string;
+        };
+        /** @description The workspace made 20 invitations in the last 24 hours; nothing was sent. Contains no user-facing text. */
+        TooManyInvitations: {
+            /** @enum {string} */
+            code: "too_many_invitations";
+        };
+        /** @description The person to invite to the team as a Trainer. */
+        CreateTrainerInvitationRequest: {
+            /** @description The person’s name: trimmed, at least one and at most 120 characters. It becomes the account’s name only when the account has none. */
+            name: string;
+            /**
+             * Format: email
+             * @description The person’s email address, stored lower case. Invalid answers `400`.
+             */
+            email: string;
+            /**
+             * @description The language of the email: `nl-NL` or `en`. Leave it out, or send `null`, to follow the language of the account with that address, then the workspace’s default. Any other value answers `400`.
+             * @enum {string|null}
+             */
+            emailLocale?: "nl-NL" | "en" | null;
         };
         /** @description A team member who trains in the workspace. */
         Trainer: {
@@ -1582,6 +1706,302 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LastOwner"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listTrainerInvitations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pending invitations. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerInvitation"][];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    createTrainerInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTrainerInvitationRequest"];
+            };
+        };
+        responses: {
+            /** @description The invitation was made and emailed. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerInvitation"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The address is on the team or has a pending invitation; nothing was sent. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerInvitationConflict"];
+                };
+            };
+            /** @description The workspace reached its 20 invitations of the day; nothing was sent. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TooManyInvitations"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    resendTrainerInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The invitation ID, from the list of pending invitations. */
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The invitation with its new sending time and expiry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerInvitation"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    withdrawTrainerInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The invitation ID, from the list of pending invitations. */
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The invitation was withdrawn. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

@@ -158,6 +158,14 @@
       "linkButton": "Inloggen",
       "validity": "De code en de inloglink werken {minutes, plural, one {# minuut} other {# minuten}}.",
       "ignore": "Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren."
+    },
+    "trainerInvitation": {
+      "subject": "{inviter} nodigt je uit voor {workspace}",
+      "preview": "Je bent uitgenodigd om trainer te worden bij {workspace}.",
+      "intro": "{inviter} nodigt je uit om trainer te worden bij {workspace}.",
+      "button": "Uitnodiging bekijken",
+      "validity": "Deze uitnodiging is geldig tot {date}.",
+      "ignore": "Verwacht je deze e-mail niet? Dan kun je hem negeren."
     }
   },
   "roles": {

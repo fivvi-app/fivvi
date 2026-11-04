@@ -43,6 +43,12 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   location_updated: {
     workspace_id: property.uuid(),
   },
+  // F011: an Owner invited a trainer. The workspace ID only (the Owner's account UUID is the
+  // distinct ID): not the invitation's ID, the person's name, email address or language, and never
+  // the token.
+  trainer_invited: {
+    workspace_id: property.uuid(),
+  },
   // F006: a team member added a client. The workspace ID and the surface only (the team member's
   // account UUID is the distinct ID): no client ID, name, email address or language.
   client_added: {

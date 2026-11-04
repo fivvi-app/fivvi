@@ -192,6 +192,7 @@ describe('F004 capabilities on GET /v1/me/workspaces', () => {
       'clients.manage',
       'location.read',
       'settings.manage',
+      'team.invite',
     ]);
     expect(capabilitiesIn(gym.id)).toEqual([
       'trainers.view',

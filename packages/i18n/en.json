@@ -158,6 +158,14 @@
       "linkButton": "Sign in",
       "validity": "The code and the sign-in link work for {minutes, plural, one {# minute} other {# minutes}}.",
       "ignore": "Didn't ask for this? You can ignore this email."
+    },
+    "trainerInvitation": {
+      "subject": "{inviter} invited you to {workspace}",
+      "preview": "You're invited to become a trainer at {workspace}.",
+      "intro": "{inviter} invited you to become a trainer at {workspace}.",
+      "button": "View invitation",
+      "validity": "This invitation is valid until {date}.",
+      "ignore": "Not expecting this email? You can ignore it."
     }
   },
   "roles": {

@@ -1,7 +1,8 @@
 import { createApiHandler } from '@fivvi/api';
 import { createTenantScopes, findSystemGreeting, pingDatabase } from '@fivvi/database';
+import { createEnvironmentSendEmail, createTrainerInvitationSender } from '@fivvi/email';
 import { inProcessApiClient } from './api-client';
-import { auth, signUpAllowlist } from './auth';
+import { auth, readAuthConfig, signUpAllowlist } from './auth';
 import { database } from './database';
 import { errorReporter } from './error-reporter';
 import { productEvents } from './product-events';
@@ -9,6 +10,23 @@ import { productEvents } from './product-events';
 // packages/api with the real dependencies. Routes, validation and the contract live in
 // packages/api; this file only wires in the database and observability.
 // Unhandled route errors go to the shared error reporter (Sentry when SENTRY_DSN is set, E009).
+
+let invitationSender: ReturnType<typeof createTrainerInvitationSender> | undefined;
+
+/**
+ * EM-09, the trainer invitation (F011): sent through the provider of the environment (Lettermint,
+ * Brevo, or the log for `@example.com` outside production), linking to the invitation page of
+ * this app. Created on first use, so `next build` runs without the email settings.
+ */
+function sendTrainerInvitation(
+  ...[mail]: Parameters<ReturnType<typeof createTrainerInvitationSender>>
+) {
+  invitationSender ??= createTrainerInvitationSender({
+    sendEmail: createEnvironmentSendEmail(),
+    appBaseUrl: () => readAuthConfig(process.env).baseURL,
+  });
+  return invitationSender(mail);
+}
 
 /** The API, served under `/api` by app/api/[[...route]]/route.ts. */
 export const apiHandler = createApiHandler({
@@ -22,6 +40,10 @@ export const apiHandler = createApiHandler({
   signOutBearer: (headers) => auth().signOutBearer(headers),
   // Who may create a workspace builds on who may sign up (F002): the allowlist sign-in parsed.
   signUpAllowlist: { allows: (email) => signUpAllowlist().allows(email) },
+  // Emails the trainer invitation (F011).
+  sendTrainerInvitation,
+  // Where "now" comes from: the expiry and the daily limit of an invitation (F011).
+  clock: { now: () => new Date() },
   // The request transaction of workspace and account routes, with its tenant context (E011).
   tenantScopes: createTenantScopes(database),
   errorReporter,
