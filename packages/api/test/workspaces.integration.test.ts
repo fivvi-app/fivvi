@@ -344,7 +344,7 @@ describe('F002 POST /v1/workspaces', () => {
     expect(roles).toContainEqual({ organizationId: id, role: 'owner' });
   });
 
-  it('AC9: an account that is not allowlisted and owns a workspace gets 403 and nothing is created', async () => {
+  it('AC9: a non-allowlisted account cannot create a workspace', async () => {
     const john = await account({ allowed: false, name: 'John' });
     const gym = await createWorkspace(admin.db, { label: 'johns-own-gym' });
     await addTeamRole(admin.db, { workspaceId: gym.id, accountId: john.id, role: 'owner' });

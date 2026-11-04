@@ -13,7 +13,7 @@ for (const slug of slugCandidates("John's Gym")) {
 
 | Module | What | Spec |
 |---|---|---|
-| `src/workspaces/can-create.ts` | Who may create a workspace: on the sign-up allowlist (F001) and no team role in any workspace | F002 AC4, AC5 |
+| `src/workspaces/can-create.ts` | Who may create a workspace: on the sign-up allowlist (F001) alone, also with a workspace already (F012) | F002 AC5, F012 AC8, AC9 |
 | `src/workspaces/slug.ts` | The URL name from a workspace name: transliterate, lower case, hyphens, a number when taken, reserved words skipped | F002 AC2 |
 | `src/team/last-owner.ts` | A workspace keeps at least one Owner: whether a removal (F004: a role change) leaves one | F003 AC7 |
 | `src/clients/new-client.ts` | A new client: the email address stored lower case, whether it is a duplicate of a client of the workspace, and which account it is linked to | F006 AC2–AC4, AC9 |

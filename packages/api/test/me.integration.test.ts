@@ -202,7 +202,7 @@ describe('GET /v1/me', () => {
     expect(me).toMatchObject({ name: 'Cleo', canCreateWorkspace: false, workspaces: [] });
   });
 
-  it('F012 AC8: an allowlisted account with a team role may create another, and lists its workspace', async () => {
+  it('AC8: allowlisted accounts can create a workspace whether or not they have one', async () => {
     const { id, cookie } = await accountSignedIn('second@allowed.test', 'Sam');
     const workspace = await createWorkspace(client.db, { label: 'sam-gym' });
     await addTeamRole(client.db, { workspaceId: workspace.id, accountId: id });

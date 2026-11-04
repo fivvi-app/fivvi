@@ -118,7 +118,7 @@ describe('F012 workspace_switched', () => {
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
 
-  it('AC12: workspace_switched carries the workspace ID and the surface only', async () => {
+  it('AC12: workspace_switched carries no personal data', async () => {
     const { posthog, lines, productEvents, restore } = capture();
     const { gym, own, sarah } = await world();
     const server = api(productEvents);
