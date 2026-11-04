@@ -65,9 +65,10 @@ tests() {
 }
 
 # A job that no hosted macOS runner picked up reads as a failed build in the run, so the error says what happened (#437).
-# $1 is the job's name, $2 what is left of the run for that job and $3 an extra clause.
+# $1 is the job's name, $2 what is left of the run for that job, $3 an extra clause and $4 a hedge for the job that waits
+# for approval, which also ends cancelled with no runner when the owner cancels the run.
 no_runner() {
-  local message="$1 got no GitHub-hosted macOS runner; $2; start a new Release run (not Re-run)$3"
+  local message="$1 got no GitHub-hosted macOS runner$4; $2; start a new Release run (not Re-run)$3"
   echo "::error::$message"
   if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then echo "$message" >>"$GITHUB_STEP_SUMMARY"; fi
 }
@@ -77,11 +78,11 @@ runners() {
   for part in "$@"; do
     case "$part" in
       "iOS tests=unacquired")
-        no_runner "iOS tests" "nothing was built or uploaded" ""
+        no_runner "iOS tests" "nothing was built or uploaded" "" ""
         missing=1
         ;;
       "iOS release=unacquired")
-        no_runner "iOS release" "nothing was signed or uploaded for iOS" "; an Android build of this run may already be out, so the new run can leave Android off"
+        no_runner "iOS release" "nothing was signed or uploaded for iOS" "; an Android build of this run may already be out, so the new run can leave Android off" " (if nobody cancelled the run)"
         missing=1
         ;;
     esac

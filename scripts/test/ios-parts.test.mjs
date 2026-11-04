@@ -121,6 +121,17 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
     ]);
   });
 
+  it('reads `job` with two arguments as the CI form (build, tests), not as the job form', () => {
+    const result = run(['job', 'success'], [{ match: '^api ', status: 1 }]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stderr, '');
+    assert.deepEqual(result.parts, [
+      'iOS build=job',
+      'iOS tests (nl)=success',
+      'iOS tests (en)=success',
+    ]);
+  });
+
   it('refuses a wrong number of arguments', () => {
     assert.notEqual(run([], []).status, 0);
     assert.notEqual(run(['success', 'success', 'success'], []).status, 0);

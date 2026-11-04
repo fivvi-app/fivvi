@@ -856,7 +856,7 @@ describe('#437 E017: a job that got no hosted macOS runner is named as that', ()
   const NO_TESTS =
     'iOS tests got no GitHub-hosted macOS runner; nothing was built or uploaded; start a new Release run (not Re-run)';
   const NO_RELEASE =
-    'iOS release got no GitHub-hosted macOS runner; nothing was signed or uploaded for iOS; start a new Release run (not Re-run)';
+    'iOS release got no GitHub-hosted macOS runner (if nobody cancelled the run); nothing was signed or uploaded for iOS; start a new Release run (not Re-run)';
 
   it('iOS tests=unacquired: the error says no runner and to start a new run, and the run fails', () => {
     const result = run(RELEASE, ['runners', 'iOS tests=unacquired', 'iOS release=skipped']);

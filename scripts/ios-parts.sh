@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# What became of the iOS jobs, for CI's gate "iOS" (#413). GitHub's hosted macOS arm64 runners are short of capacity at
+# What became of the iOS jobs, for CI's gate "iOS" (#413) and for Release's last job (#437). GitHub's hosted macOS arm64 runners are short of capacity at
 # times: a job that no runner picks up is cancelled after about 15 minutes with an empty runner_name and no step ("The
 # job was not acquired by Runner of type hosted even after multiple attempts"), and `needs.<job>.result` says only
 # "cancelled", like a timeout. This reads the jobs of the run and tells the two apart, so scripts/native-gate.sh can say
 # whether a part had no runner (or was cancelled before one picked it up: if nobody cancelled the run, re-queue the PR)
 # or failed on a runner (a build or test failure). The two languages' tests are one matrix job, whose needs result is the aggregate of both, so their own results are read too.
 #
-#   ios-parts.sh <build> <tests>
+#   ios-parts.sh <build> <tests>     (CI)
 #       the needs.<job>.result of "iOS build" and of the matrix "iOS tests". Prints one part per line for
 #       native-gate.sh, `iOS build=<result>`, `iOS tests (nl)=<result>` and `iOS tests (en)=<result>`:
 #         build   the result it was given, except that cancelled becomes unacquired when the run's jobs show the build was
@@ -20,6 +20,14 @@
 #       `actions: read`). When they can't be read it says so on stderr, still exits 0 and prints the bare results
 #       as given, `<build>` and `<tests>`, without labels: native-gate.sh then prints only its summary line and makes no
 #       claim about a runner (the plain message of before #413).
+#
+#   ios-parts.sh job <name> <result>     (Release, #437)
+#       one job of the run: <name> is its name ("iOS tests", "iOS release") and <result> its needs.<job>.result. Prints
+#       `<name>=unacquired` when the result is cancelled and the run's jobs show that job was cancelled with no runner
+#       and no step, else `<name>=<result>`. The jobs are read only when the result is cancelled; any other result is
+#       printed as given. When they can't be read it says so on stderr, still exits 0 and prints the bare <result>,
+#       without a label. Release's `runners` job uses it and hands the parts to `release.sh runners`.
+#       Only exactly three arguments with `job` first take this form; `ios-parts.sh job x` is the CI form.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -38,7 +46,7 @@ JQ_DEFS='
   def job($name): [.jobs[] | select(.name == $name)] | first;
 '
 
-if [ "$1" = job ]; then
+if [ $# -eq 3 ] && [ "$1" = job ]; then
   name="$2" result="$3"
   if [ "$result" != cancelled ]; then
     echo "$name=$result"
