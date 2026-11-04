@@ -9,7 +9,9 @@
 # share, "Nederlands" or "Dutch": scripts/maestro.sh passes no client texts, and the exact wording is proven in the
 # Compose tests in both languages. The run adds clients to the seeded database in each locale, and every client needs an
 # email address that is new to the workspace (the same one answers 409, AC3), so the flow adds an address of its own for
-# each run: the time is in it.
+# each run: the time is in it. The database is never emptied between runs (#381), so the list grows by a Carla Bos-Smit per
+# run, between Anna and Mark: the flow scrolls to the seeded clients (scrollUntilVisible) rather than expecting them on the
+# first screen.
 appId: ${APP_ID}
 name: AC1 AC12 Klanten list, search, add, profile and edit
 env:
@@ -36,23 +38,43 @@ env:
 - extendedWaitUntil:
     visible: .*Anna de Vries.*
     timeout: 20000
-- assertVisible: .*Mark Jansen.*
-- assertVisible: .*Sophie Bakker.*
-# AC6 and AC12: the search finds part of a name (case does not matter).
+# The list is sorted by name and every run adds a Carla Bos-Smit, between Anna and Mark: after a few runs on the same
+# database Mark and Sophie are below the screen, so the flow scrolls to them (the list loads the next page as it nears
+# its end) instead of finding them on the first screen.
+- scrollUntilVisible:
+    element: .*Mark Jansen.*
+    direction: DOWN
+    timeout: 60000
+- scrollUntilVisible:
+    element: .*Sophie Bakker.*
+    direction: DOWN
+    timeout: 60000
+# AC6 and AC12: the search finds part of a name (case does not matter). Only Anna matches, so none of the other clients
+# stays: the list shows at least one of them at its top, Carla Bos-Smit once an earlier run has added her, else Mark.
+- scrollUntilVisible:
+    element: .*Anna de Vries.*
+    direction: UP
+    timeout: 60000
+- assertVisible: .*(Carla Bos-Smit|Mark Jansen).*
 - tapOn:
     id: clients\.search
 - inputText: VRIE
 - extendedWaitUntil:
-    notVisible: .*Sophie Bakker.*
+    notVisible: .*(Carla Bos-Smit|Mark Jansen).*
     timeout: 20000
 - assertVisible: .*Anna de Vries.*
 - assertNotVisible: .*Mark Jansen.*
+- assertNotVisible: .*Sophie Bakker.*
 - eraseText: 4
 - extendedWaitUntil:
-    visible: .*Sophie Bakker.*
+    visible: .*(Carla Bos-Smit|Mark Jansen).*
     timeout: 20000
 # The keyboard of the search field would cover the primary action.
 - hideKeyboard
+- scrollUntilVisible:
+    element: .*Sophie Bakker.*
+    direction: DOWN
+    timeout: 60000
 # AC1: a name and an email address are needed; the profile opens, and the language for emails is the workspace default
 # (named).
 - evalScript: ${output.carlaEmail = 'carla.' + Date.now() + '@example.com'}
