@@ -205,7 +205,7 @@ class HomeViewModelTest {
 
     // F012 AC7: the app opens in the workspace used last on this device while the person is still on its team.
     @Test
-    fun test_F012_AC7_opensInTheRememberedWorkspace() {
+    fun test_F012_AC7_appOpensLastWorkspace() {
         rememberedBeforeStart(workspaceIdOf("Sarah Personal Training"))
         api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
 
@@ -217,6 +217,19 @@ class HomeViewModelTest {
     fun test_F012_AC5_aRememberedWorkspaceTheTeamAccessIsGoneFromFallsBackToTheOtherOne() {
         rememberedBeforeStart(workspaceIdOf("Sarah Personal Training"))
         api.answerAccount(workspaces = listOf("John's Gym"))
+
+        assertEquals("John's Gym", shown(viewModel()))
+    }
+
+    // F012 AC7: the workspace the app opens is the one remembered, also the one it fell back to; adding Sarah's back later
+    // doesn't take the app there.
+    @Test
+    fun test_F012_AC7_theWorkspaceFallenBackToIsTheOneRemembered() {
+        rememberedBeforeStart(workspaceIdOf("Sarah Personal Training"))
+        api.answerAccount(workspaces = listOf("John's Gym"))
+        api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
+        assertEquals("John's Gym", shown(viewModel()))
+        assertEquals(workspaceIdOf("John's Gym"), lastWorkspace.id)
 
         assertEquals("John's Gym", shown(viewModel()))
     }
@@ -265,7 +278,7 @@ class HomeViewModelTest {
         viewModel.switchWorkspace(workspaceIdOf("John's Gym"))
 
         assertEquals(1, api.calls)
-        assertEquals(null, lastWorkspace.id)
+        assertEquals(workspaceIdOf("John's Gym"), lastWorkspace.id)
     }
 
     @Test
@@ -277,7 +290,7 @@ class HomeViewModelTest {
 
         assertEquals("John's Gym", shown(viewModel))
         assertEquals(1, api.calls)
-        assertEquals(null, lastWorkspace.id)
+        assertEquals(workspaceIdOf("John's Gym"), lastWorkspace.id)
     }
 
     // F012 AC7: the workspace stays on this device across a sign-out and the next sign-in.

@@ -33,9 +33,10 @@ class SharedPreferencesLastWorkspaceStore(context: Context) : LastWorkspaceStore
 }
 
 /**
- * The one store of the workspace the app is in (F012): every tab reads it, today the home with *Klanten*. [remembered] is
- * the workspace used last on this device; [StartWorkspace] picks from the account's list with it, and a switch in Profiel
- * calls [remember]. It is kept across sign-outs and never goes to the server.
+ * The workspace used last on this device (F012): the holder of its [LastWorkspaceStore]. [remembered] is what
+ * [StartWorkspace] picks from the account's list with; the home remembers every workspace it opens, a switch in Profiel
+ * and a fall back after a removal too. The workspace the app shows now lives in the home's state (`HomeViewModel.state`),
+ * which every tab reads. It is kept across sign-outs and never goes to the server.
  */
 class CurrentWorkspace(private val store: LastWorkspaceStore) {
     private val _remembered = MutableStateFlow(store.id)

@@ -27,7 +27,7 @@ class StartWorkspaceTest {
     }
 
     @Test
-    fun test_F012_AC5_aRememberedWorkspaceThePersonIsNoLongerOnFallsBackToTheFirstOne() {
+    fun test_F012_AC5_startWorkspaceFallsBack() {
         assertEquals(johnsGym, StartWorkspace.pick(listOf(johnsGym, sarah), remembered = GONE))
     }
 

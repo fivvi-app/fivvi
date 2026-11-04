@@ -69,7 +69,7 @@ sealed interface HomeDestination {
  * workspaces with their capabilities (F004 AC10: the app's one helper for which actions show).
  *
  * The workspace shown is the one used last on this device while the person is still on its team, otherwise the first the
- * API lists ([StartWorkspace], F012 AC5, AC7); [switchWorkspace] changes it and remembers it in [current] (AC6).
+ * API lists ([StartWorkspace], F012 AC5, AC7); whichever it opens, it remembers in [current]; [switchWorkspace] changes it (AC6).
  */
 class HomeViewModel(
     private val api: MeApi,
@@ -180,6 +180,8 @@ class HomeViewModel(
 
     private fun destination(account: MeResponse): HomeDestination {
         val start = StartWorkspace.pick(account.workspaces, current.remembered.value)
+        // Every workspace the app opens is the one reopened next time, also the one it fell back to after a removal (AC7).
+        if (start != null && current.remembered.value != start.id) current.remember(start.id)
         return when {
             start != null -> HomeDestination.Workspace(start.name, start.id)
             account.canCreateWorkspace -> HomeDestination.SetUpOnWeb

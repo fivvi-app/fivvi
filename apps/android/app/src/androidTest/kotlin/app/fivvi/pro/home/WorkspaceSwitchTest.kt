@@ -3,6 +3,7 @@ package app.fivvi.pro.home
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -27,7 +28,6 @@ import app.fivvi.pro.localizedString
 import app.fivvi.pro.waitUntilTagExists
 import app.fivvi.pro.workspace.InMemoryLastWorkspaceStore
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -149,9 +149,22 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
 
         headerShows(JOHNS_GYM)
         compose.onNodeWithTag(ProfileTags.TITLE).assertDoesNotExist()
-        assertNull(lastWorkspace.id)
+        assertEquals(workspaceIdOf(JOHNS_GYM), lastWorkspace.id)
         // The home's read and Profiel's own: a tap on the current workspace reads nothing more.
         assertEquals(2, me.calls)
+    }
+
+    // TalkBack reads the row as the name and the role of the workspace, as the merged row of a button would.
+    @Test
+    fun test_F012_AC6_theRowReadsTheNameAndTheRoleToTalkBack() {
+        answerAccountAsSarah(2)
+        answerProfileAsSarah(1)
+        launch()
+        headerShows(JOHNS_GYM)
+        openProfile()
+
+        sarahRow().assertContentDescriptionEquals("$SARAH_PT, ${string(R.string.roles_owner)}")
+        johnsRow().assertContentDescriptionEquals("$JOHNS_GYM, ${string(R.string.roles_trainer)}")
     }
 
     @Test
@@ -169,7 +182,7 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
     }
 
     @Test
-    fun test_F012_AC7_theAppReopensInTheLastWorkspace() {
+    fun test_F012_AC7_appOpensLastWorkspace() {
         answerAccountAsSarah(4)
         answerProfileAsSarah(1)
         launch()
@@ -226,7 +239,7 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
     // AC11: the actions follow what the API lists for the workspace the app is in. Sarah is a Trainer in John's Gym, with
     // no right to add clients there.
     @Test
-    fun test_F012_AC11_actionsFollowTheWorkspaceRole() {
+    fun test_F012_AC11_actionsFollowWorkspaceRole() {
         answerAccountAsSarah(
             3,
             capabilitiesByWorkspace = mapOf(JOHNS_GYM to listOf(MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW)),
