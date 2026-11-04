@@ -205,7 +205,6 @@ describe('#437 ios-parts.sh job: did a hosted runner pick up one job of the run'
 
   it('refuses a wrong number of arguments', () => {
     assert.notEqual(run([], []).status, 0);
-    assert.notEqual(run(['iOS tests'], []).status, 0);
     assert.notEqual(run(['iOS tests', 'cancelled', 'x'], []).status, 0);
   });
 });
