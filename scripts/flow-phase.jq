@@ -23,12 +23,13 @@
 # labelled spec or has sub-issues, and is not built as its own ticket (no sub-issues, ready-for-agent). For it a branch
 # whose PR is merged is ignored, so the phase follows the tickets, never merged; while that branch still has a local
 # branch or a worktree, next says that scripts/flow.sh finish removes it and leaves the spec open. closes_through_tickets
-# (true) is added only when such a branch was ignored; flow.sh finish reads it to leave the spec open.
+# (true) is added only when such a branch was ignored; flow.sh finish reads it to leave the spec open. The rule
+# closes_through_tickets is in scripts/closing.jq, shared with scripts/pr.sh.
 
 include "records" {search: "./"};
+include "closing" {search: "./"};
 
 def has($l): (.labels | index($l)) != null;
-def closes_through_tickets: (has("spec") or (.children | length) > 0) and ((.children | length) > 0 or (has("ready-for-agent") | not));
 def open: .state == "OPEN";
 # Only a spec needs the owner's approval before its tickets are cut and built (ADR-016).
 def unapproved_spec: has("spec") and (has("spec-approved") | not);

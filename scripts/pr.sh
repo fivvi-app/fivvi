@@ -125,16 +125,23 @@ report_owner_only() {
   echo "   change, that PR goes first and this one waits on it. See docs/agents/build.md, Owner-only edits."
 }
 
-# Whether issue $1 closes through its tickets rather than through a PR (#509): it is labelled spec or has sub-issues,
-# and is not a spec built as its own ticket (no sub-issues, ready-for-agent). The same rule as flow-phase.jq. Dies when
-# the issue can't be read: a spec must never get "Closes" by mistake. A missing field counts as none.
+# Whether issue $1 closes through its tickets rather than through a PR (#509); the rule is closes_through_tickets in
+# scripts/closing.jq, which scripts/flow-phase.jq shares. Dies when the issue can't be read: a spec must never get
+# "Closes" by mistake. A missing field counts as none.
 issue_closes_through_tickets() {
   local out
   out="$(gh issue view "$1" --repo "$REPO" --json labels,subIssues)" || die "could not read issue #$1"
-  jq -e '([.labels[]?.name] // []) as $l
-    | (.subIssues.totalCount // (.subIssues.nodes // [] | length) // 0) as $kids
-    | ((($l | index("spec")) != null or $kids > 0) and ($kids > 0 or (($l | index("ready-for-agent")) == null)))' \
-    <<<"$out" >/dev/null
+  jq -e -L "$ROOT/scripts" 'include "closing";
+    {labels: [.labels[]?.name],
+     children: [range(0; (.subIssues.totalCount // (.subIssues.nodes // [] | length) // 0))]}
+    | closes_through_tickets' <<<"$out" >/dev/null
+}
+
+# Whether the text on stdin closes issue $1 when its PR merges: every keyword GitHub knows (close, closes, closed, fix,
+# fixes, fixed, resolve, resolves, resolved; any case; an optional colon) before #n, <owner>/<repo>#n or the issue URL.
+body_closes_issue() {
+  local repo_re="${REPO//./[.]}"
+  grep -qiE "(^|[^[:alnum:]])(close[sd]?|fix(e[sd])?|resolve[sd]?):?[[:space:]]+(${repo_re}#|https://github[.]com/${repo_re}/issues/|#)$1([^0-9]|$)"
 }
 
 cmd_create() {
@@ -163,10 +170,10 @@ cmd_create() {
   if [ -n "$issue" ] && { [ -z "$existing" ] || $body_set; }; then
     if issue_closes_through_tickets "$issue"; then
       # A spec closes through its tickets (flow.sh status: complete, then issue.sh close), never through a PR (#509).
-      ! grep -qiE "(^|[^[:alnum:]])(closes|fixes|resolves) #$issue([^0-9]|$)" <<<"$body" \
+      ! body_closes_issue "$issue" <<<"$body" \
         || die "spec #$issue closes through its tickets, not a PR: write Refs #$issue"
       grep -qiE "(^|[^[:alnum:]])refs #$issue([^0-9]|$)" <<<"$body" || body="${body:+$body$'\n\n'}Refs #$issue"
-    elif ! grep -qiE "^(closes|fixes|resolves) #$issue([^0-9]|$)" <<<"$body"; then
+    elif ! body_closes_issue "$issue" <<<"$body"; then
       body="${body:+$body$'\n\n'}Closes #$issue"
     fi
   fi

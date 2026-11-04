@@ -13,7 +13,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { after, before, beforeEach, describe, it } from 'node:test';
+import { after, afterEach, before, beforeEach, describe, it } from 'node:test';
 import { fakeGh } from './fake-gh.mjs';
 
 const SCRIPTS = join(import.meta.dirname, '..');
@@ -980,10 +980,10 @@ describe('#509 flow.sh finish of a spec whose own branch was merged', () => {
     mkdirSync(join(repo, '.work/9999'), { recursive: true });
     writeFileSync(join(repo, '.work/9999/notes.md'), 'notes');
   });
-  after(() => {
-    gh.cleanup();
+  afterEach(() => {
     rmSync(base, { recursive: true, force: true });
   });
+  after(() => gh.cleanup());
 
   const finish = ({ labelNames, children = [] }) =>
     spawnSync(join(repo, 'scripts/flow.sh'), ['finish', '9999'], {
@@ -1057,6 +1057,16 @@ describe('#509 flow.sh finish of a spec whose own branch was merged', () => {
     assert.equal(result.status, 0, result.stderr);
     assert.equal(closed(), false);
     assert.match(result.stdout, /stays open/);
+  });
+
+  it('fails closed when the phase of the issue cannot be decided: nothing removed, nothing closed', () => {
+    writeFileSync(join(repo, 'scripts/flow-phase.jq'), 'error("boom")\n');
+    const result = finish({ labelNames: ['spec', 'spec-approved'], children: [9001] });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /could not decide whether #9999 closes through its tickets/);
+    assert.equal(closed(), false);
+    assert.notEqual(git('branch', '--list', 'docs/9999-adr'), '');
+    assert.equal(existsSync(join(repo, '.work/9999')), true);
   });
 
   it('still closes a ticket, a bug and a spec built as its own ticket', () => {

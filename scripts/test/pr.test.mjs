@@ -1443,8 +1443,22 @@ describe('pr.sh create: which local check runs before the push', () => {
     });
 
     it('refuses a body that closes the spec, naming Refs, before it pushes anything', () => {
-      for (const keyword of ['Closes', 'fixes', 'RESOLVES']) {
-        const result = createWith(view(['spec']), { body: `Body.\n\n${keyword} #57` });
+      for (const keyword of [
+        'Closes #57',
+        'fixes #57',
+        'RESOLVES #57',
+        'Fixed #57',
+        'Closes: #57',
+        'close #57',
+        'Resolved #57',
+        'closed #57',
+        'fix #57',
+        'resolve #57',
+        'Closes example/fivvi#57',
+        'fixes: example/fivvi#57',
+        'Closes https://github.com/example/fivvi/issues/57',
+      ]) {
+        const result = createWith(view(['spec']), { body: `Body.\n\n${keyword}` });
         assert.equal(result.status, 1, keyword);
         assert.match(
           result.stderr,
@@ -1452,8 +1466,29 @@ describe('pr.sh create: which local check runs before the push', () => {
         );
         assert.equal(result.created, undefined, keyword);
       }
-      const other = createWith(view(['spec']), { body: 'Closes #570 and Refs #57' });
-      assert.equal(other.status, 0, other.stderr);
+      for (const body of [
+        'Closes #570 and Refs #57',
+        'Closes other/repo#57 and Refs #57',
+        'disclose #57',
+      ]) {
+        const other = createWith(view(['spec']), { body });
+        assert.equal(other.status, 0, `${body}: ${other.stderr}`);
+      }
+    });
+
+    it('adds no second Closes to a ticket whose body closes it in any form GitHub knows', () => {
+      for (const keyword of [
+        'Fixed #57',
+        'Closes: #57',
+        'close #57',
+        'Resolved #57',
+        'Closes example/fivvi#57',
+      ]) {
+        const body = `Body.\n\n${keyword}`;
+        const result = createWith(view(['ready-for-agent']), { body });
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(result.created, body, keyword);
+      }
     });
 
     it('still writes Closes #n for a ticket, a bug and a spec built as its own ticket', () => {

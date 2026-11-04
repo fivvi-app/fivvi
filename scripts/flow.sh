@@ -629,6 +629,13 @@ cmd_finish() {
   ! jq -e 'any(.branches[].pr; .state == "OPEN" and .queue.state == "removed")' <<<"$f" >/dev/null \
     || die "#$n: GitHub removed its PR from the merge queue, so nothing is merged yet (scripts/flow.sh status $n)"
   jq -e '[.branches[].pr.state] | all(. == "MERGED")' <<<"$f" >/dev/null || die "#$n: not every branch has a merged PR"
+  # A spec closes through its tickets (complete, then issue.sh close), not through a merged PR on its own branch (#509).
+  # Decided before anything is removed, and fail closed: an answer that is not true or false stops the finish, so a
+  # spec is never closed because the phase could not be read.
+  local undecided="#$n: could not decide whether #$n closes through its tickets (scripts/flow.sh status $n)"
+  d="$(jq -f "$PHASE_JQ" <<<"$f")" || die "$undecided"
+  by_tickets="$(jq -r '.closes_through_tickets // false' <<<"$d")" || die "$undecided"
+  case "$by_tickets" in true|false) ;; *) die "$undecided" ;; esac
 
   for branch in $(jq -r '.branches[].name' <<<"$f"); do
     wt="$(worktree_of "$branch")"
@@ -639,8 +646,6 @@ cmd_finish() {
   done
   for branch in $(jq -r '.branches[].name' <<<"$f"); do "$ROOT/scripts/wt.sh" "done" "$branch"; done
 
-  # A spec closes through its tickets (complete, then issue.sh close), not through a merged PR on its own branch (#509).
-  by_tickets="$(jq -r '.closes_through_tickets // false' <<<"$(jq -f "$PHASE_JQ" <<<"$f")")"
   if [ "$(gh issue view "$n" --repo "$REPO" --json state --jq .state)" != OPEN ]; then
     rm -rf "${NOTES_DIR:?}/$n"
     echo "✅ #$n done"
