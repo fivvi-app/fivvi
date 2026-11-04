@@ -10,8 +10,15 @@
 #   release.sh tests ios|android   runs the native suites of the platform on this commit, in both locales, as TESTING.md §7
 #                                  requires: pnpm test:ios; pnpm test:android, then pnpm test:maestro. Stops at the first
 #                                  failure; a job that needs this one never starts, so nothing is uploaded
+#   release.sh runners <part>...   the last job of a run (#437). The parts are the lines of `ios-parts.sh job`, `<job>=<result>`,
+#                                  for "iOS tests" and "iOS release". Says, as an error and in the run's summary, that a job
+#                                  got no GitHub-hosted macOS runner (`<job>=unacquired`: cancelled with no runner and no
+#                                  step), so nothing ran and a new run is the remedy, not a timeout or a test failure. Exits 1
+#                                  then; otherwise prints one plain line and exits 0, and says nothing about runners for a
+#                                  bare result (the jobs could not be read) or any other result
 #
-# Reads GITHUB_EVENT_NAME, GITHUB_REF, GITHUB_RUN_NUMBER and GITHUB_RUN_ATTEMPT, which GitHub Actions sets.
+# Reads GITHUB_EVENT_NAME, GITHUB_REF, GITHUB_RUN_NUMBER and GITHUB_RUN_ATTEMPT, which GitHub Actions sets, and appends to
+# the file GITHUB_STEP_SUMMARY names, when it is set (`runners`).
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -57,6 +64,32 @@ tests() {
   esac
 }
 
+# A job that no hosted macOS runner picked up reads as a failed build in the run, so the error says what happened (#437).
+# $1 is the job's name, $2 what is left of the run for that job and $3 an extra clause.
+no_runner() {
+  local message="$1 got no GitHub-hosted macOS runner; $2; start a new Release run (not Re-run)$3"
+  echo "::error::$message"
+  if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then echo "$message" >>"$GITHUB_STEP_SUMMARY"; fi
+}
+
+runners() {
+  local part missing=0
+  for part in "$@"; do
+    case "$part" in
+      "iOS tests=unacquired")
+        no_runner "iOS tests" "nothing was built or uploaded" ""
+        missing=1
+        ;;
+      "iOS release=unacquired")
+        no_runner "iOS release" "nothing was signed or uploaded for iOS" "; an Android build of this run may already be out, so the new run can leave Android off"
+        missing=1
+        ;;
+    esac
+  done
+  [ "$missing" = 0 ] || exit 1
+  echo "No iOS job reported a missing GitHub-hosted macOS runner."
+}
+
 command="${1:-}"
 [ $# -eq 0 ] || shift
 cd "$ROOT"
@@ -64,5 +97,6 @@ case "$command" in
   guard) [ $# -eq 0 ] || usage; guard ;;
   build-number) [ $# -eq 0 ] || usage; build_number ;;
   tests) [ $# -eq 1 ] || usage; tests "$1" ;;
+  runners) [ $# -ge 1 ] || usage; runners "$@" ;;
   *) usage ;;
 esac

@@ -23,8 +23,42 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
-[ $# -eq 2 ] || usage_of "$0"
+[ $# -eq 2 ] || { [ $# -eq 3 ] && [ "$1" = job ]; } || usage_of "$0"
 need_cmd jq
+
+# The jobs of this run and attempt, from the GitHub API.
+read_jobs() {
+  gh api "repos/${GITHUB_REPOSITORY:-}/actions/runs/${GITHUB_RUN_ID:-}/attempts/${GITHUB_RUN_ATTEMPT:-1}/jobs?per_page=100" 2>/dev/null
+}
+
+# jq definitions shared by both forms. A job no hosted runner picked up: cancelled, with no runner and not one step.
+# shellcheck disable=SC2016 # jq code, not shell
+JQ_DEFS='
+  def unacquired: .conclusion == "cancelled" and ((.runner_name // "") == "") and ((.steps // []) | length) == 0;
+  def job($name): [.jobs[] | select(.name == $name)] | first;
+'
+
+if [ "$1" = job ]; then
+  name="$2" result="$3"
+  if [ "$result" != cancelled ]; then
+    echo "$name=$result"
+    exit 0
+  fi
+  if ! jobs_json="$(read_jobs)" \
+    || ! label="$(jq -r --arg name "$name" "$JQ_DEFS"'
+         job($name) as $job | if $job != null and ($job | unacquired) then "unacquired" else "cancelled" end
+       ' <<<"$jobs_json" 2>/dev/null)"; then
+    echo "could not read the run's jobs; $name is reported as its result says (a cancelled one stays cancelled)." >&2
+    echo "$result"
+    exit 0
+  fi
+  if [ "$label" = unacquired ]; then
+    echo "$name: no hosted runner picked it up, or the run was cancelled before one did (cancelled, no runner, no step)." >&2
+  fi
+  echo "$name=$label"
+  exit 0
+fi
+
 build="$1" tests="$2"
 
 if [ "$build" != cancelled ] && [ "$tests" = success ]; then
@@ -39,12 +73,8 @@ as_given() {
   exit 0
 }
 
-jobs_json="$(gh api "repos/${GITHUB_REPOSITORY:-}/actions/runs/${GITHUB_RUN_ID:-}/attempts/${GITHUB_RUN_ATTEMPT:-1}/jobs?per_page=100" 2>/dev/null)" \
-  || as_given
-parts="$(jq -r --arg build "$build" --arg tests "$tests" '
-  # A job no hosted runner picked up: cancelled, with no runner and not one step.
-  def unacquired: .conclusion == "cancelled" and ((.runner_name // "") == "") and ((.steps // []) | length) == 0;
-  def job($name): [.jobs[] | select(.name == $name)] | first;
+jobs_json="$(read_jobs)" || as_given
+parts="$(jq -r --arg build "$build" --arg tests "$tests" "$JQ_DEFS"'
   def tests($name):
     job($name) as $job
     | if $tests == "success" or $job == null then $tests

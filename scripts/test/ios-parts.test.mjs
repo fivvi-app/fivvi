@@ -126,3 +126,75 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
     assert.notEqual(run(['success', 'success', 'success'], []).status, 0);
   });
 });
+
+describe('#437 ios-parts.sh job: did a hosted runner pick up one job of the run', () => {
+  const gh = fakeGh();
+  after(() => gh.cleanup());
+
+  const JOBS = '^api repos/owner/repo/actions/runs/123/attempts/2/jobs';
+  const run = (args, rules) =>
+    spawnSync(join(ROOT, 'scripts/ios-parts.sh'), ['job', ...args], {
+      encoding: 'utf8',
+      env: {
+        ...gh.env(rules),
+        GITHUB_REPOSITORY: 'owner/repo',
+        GITHUB_RUN_ID: '123',
+        GITHUB_RUN_ATTEMPT: '2',
+      },
+    });
+  const jobs = (...list) => [{ match: JOBS, out: { jobs: list } }];
+
+  it('labels a cancelled job with no runner and no step as unacquired, and says so on stderr', () => {
+    const result = run(
+      ['iOS tests', 'cancelled'],
+      jobs(unacquired('iOS tests'), ran('iOS release', 'success')),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, 'iOS tests=unacquired\n');
+    assert.match(result.stderr, /iOS tests: no hosted runner picked it up/);
+  });
+
+  it('reads the job of its own name', () => {
+    const list = jobs(ran('iOS tests', 'success'), unacquired('iOS release'));
+    assert.equal(run(['iOS release', 'cancelled'], list).stdout, 'iOS release=unacquired\n');
+    assert.equal(run(['iOS tests', 'cancelled'], list).stdout, 'iOS tests=cancelled\n');
+  });
+
+  it('does not mistake a cancel after the job started (a timeout) for a missing runner', () => {
+    const result = run(['iOS tests', 'cancelled'], jobs(ran('iOS tests', 'cancelled')));
+    assert.equal(result.stdout, 'iOS tests=cancelled\n');
+    assert.equal(result.stderr, '');
+  });
+
+  it('keeps cancelled when its job is not in the list', () => {
+    assert.equal(run(['iOS tests', 'cancelled'], jobs()).stdout, 'iOS tests=cancelled\n');
+  });
+
+  it('prints any other result as given, without reading the jobs', () => {
+    for (const result of ['success', 'failure', 'skipped']) {
+      const answer = run(['iOS release', result], [{ match: '^api ', status: 1 }]);
+      assert.equal(answer.status, 0, answer.stderr);
+      assert.equal(answer.stdout, `iOS release=${result}\n`);
+      assert.equal(
+        gh.calls().length,
+        0,
+        'nothing that did not end cancelled can be a missing runner',
+      );
+    }
+  });
+
+  it("prints the bare result, exiting 0, when the run's jobs cannot be read", () => {
+    const result = run(['iOS tests', 'cancelled'], [{ match: '^api ', status: 1 }]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, 'cancelled\n');
+    assert.match(result.stderr, /could not read the run's jobs/);
+    const notJobs = run(['iOS tests', 'cancelled'], [{ match: JOBS, out: 'not json' }]);
+    assert.equal(notJobs.stdout, 'cancelled\n');
+  });
+
+  it('refuses a wrong number of arguments', () => {
+    assert.notEqual(run([], []).status, 0);
+    assert.notEqual(run(['iOS tests'], []).status, 0);
+    assert.notEqual(run(['iOS tests', 'cancelled', 'x'], []).status, 0);
+  });
+});
