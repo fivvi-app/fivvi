@@ -1,5 +1,6 @@
-import type { DatabaseExecutor } from '@fivvi/database';
+import { type DatabaseExecutor, locations } from '@fivvi/database';
 import { addTeamRole, createAccount } from '@fivvi/database/testing';
+import { eq } from 'drizzle-orm';
 
 // The isolation cases (E011, AC11, AC14): one per workspace and account operation, by operation
 // ID, holding only the data the isolation suite needs to call the route. The suite derives the
@@ -52,6 +53,16 @@ const theClient: IsolationCase['seed'] = (_db, { clientId }) =>
 const theWorkspace: IsolationCase['seed'] = (_db, { workspaceId }) =>
   Promise.resolve({ workspace: workspaceId });
 
+/** The one location of the workspace the seed was called for: what the location routes list and name (F015). */
+const theLocation: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  const [location] = await db
+    .select({ id: locations.id })
+    .from(locations)
+    .where(eq(locations.organizationId, workspaceId));
+  if (!location) throw new Error('The workspace has no location.');
+  return { location: location.id };
+};
+
 /** A Trainer of the workspace the seed was called for: what the team routes list and remove (F003). */
 const aTeamMember: IsolationCase['seed'] = async (db, { workspaceId }) => {
   const account = await createAccount(db, { label: 'team-member' });
@@ -89,6 +100,15 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   listTrainers: { seed: aTeamMember },
   putTrainerProfile: {},
   deleteTrainerProfile: {},
+
+  // The locations of a workspace (F015): the list shows the workspace's own location (made with it:
+  // `createWorkspace()` gives it its marker as the name), and the update names it and renames it.
+  listLocations: { seed: theLocation },
+  updateLocation: {
+    seed: theLocation,
+    params: { locationId: 'location' },
+    body: { name: 'Renamed Location' },
+  },
 
   // The clients of a workspace (F006): the list shows every client the seed made (the suite calls
   // it once per client of the workspace), the add takes a name and an email address. Every call

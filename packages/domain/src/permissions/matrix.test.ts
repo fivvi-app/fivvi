@@ -12,10 +12,11 @@ const TRAINER_CAPABILITIES: readonly Capability[] = [
   'trainers.view',
   'clients.view',
   'clients.manage',
+  'location.read',
 ];
 
 describe('F004 permission matrix', () => {
-  it('AC1: Owner has every capability, Trainer only trainers.view, clients.view and clients.manage', () => {
+  it('AC1: Owner has every capability, Trainer only trainers.view, clients.view, clients.manage and location.read', () => {
     expect(ROLES).toEqual(['owner', 'trainer']);
     expect(CAPABILITIES).toEqual([
       'workspace.manage',
@@ -24,6 +25,8 @@ describe('F004 permission matrix', () => {
       'trainers.view',
       'clients.view',
       'clients.manage',
+      'location.read',
+      'settings.manage',
     ]);
     expect(capabilitiesOf('owner')).toEqual(CAPABILITIES);
     expect(capabilitiesOf('trainer')).toEqual(TRAINER_CAPABILITIES);
@@ -41,6 +44,9 @@ describe('F004 permission matrix', () => {
     expect(rolesWith('workspace.manage')).toEqual(['owner']);
     expect(rolesWith('clients.view')).toEqual(['owner', 'trainer']);
     expect(rolesWith('trainers.view')).toEqual(['owner', 'trainer']);
+    // F015: every team member reads the workspace's location, only the Owner changes it.
+    expect(rolesWith('location.read')).toEqual(['owner', 'trainer']);
+    expect(rolesWith('settings.manage')).toEqual(['owner']);
   });
 
   it('AC9: has no admin role', () => {

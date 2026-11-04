@@ -344,6 +344,8 @@ extension Components {
                 case trainers_view = "trainers.view"
                 case clients_view = "clients.view"
                 case clients_manage = "clients.manage"
+                case location_read = "location.read"
+                case settings_manage = "settings.manage"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -417,6 +419,8 @@ extension Components {
                 case trainers_view = "trainers.view"
                 case clients_view = "clients.view"
                 case clients_manage = "clients.manage"
+                case location_read = "location.read"
+                case settings_manage = "settings.manage"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -894,6 +898,197 @@ extension Components {
             public enum CodingKeys: String, CodingKey {
                 case teamMemberId
                 case trainsHere
+            }
+        }
+        /// A place where sessions of the workspace take place.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Location`.
+        public struct Location: Codable, Hashable, Sendable {
+            /// The location ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Location/id`.
+            public var id: Swift.String
+            /// The name sessions show, up to 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Location/name`.
+            public var name: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Location/type`.
+            public var _type: Components.Schemas.LocationType
+            /// - Remark: Generated from `#/components/schemas/Location/address`.
+            public var address: Components.Schemas.LocationAddress?
+            /// Whether this is the workspace’s default location, the one every new session takes.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Location/isDefault`.
+            public var isDefault: Swift.Bool
+            /// Creates a new `Location`.
+            ///
+            /// - Parameters:
+            ///   - id: The location ID.
+            ///   - name: The name sessions show, up to 120 characters.
+            ///   - _type:
+            ///   - address:
+            ///   - isDefault: Whether this is the workspace’s default location, the one every new session takes.
+            public init(
+                id: Swift.String,
+                name: Swift.String,
+                _type: Components.Schemas.LocationType,
+                address: Components.Schemas.LocationAddress? = nil,
+                isDefault: Swift.Bool
+            ) {
+                self.id = id
+                self.name = name
+                self._type = _type
+                self.address = address
+                self.isDefault = isDefault
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case _type = "type"
+                case address
+                case isDefault
+            }
+        }
+        /// The kind of location. Every workspace has one `organization_location` (its own) at go-live; the other kinds exist in the model for later and are not written yet.
+        ///
+        /// - Remark: Generated from `#/components/schemas/LocationType`.
+        @frozen public enum LocationType: String, Codable, Hashable, Sendable, CaseIterable {
+            case organizationLocation = "organization_location"
+            case externalGym = "external_gym"
+            case clientHome = "client_home"
+            case outdoor = "outdoor"
+            case online = "online"
+            case other = "other"
+        }
+        /// The address, or `null` when the location has none.
+        ///
+        /// - Remark: Generated from `#/components/schemas/LocationAddress`.
+        public struct LocationAddress: Codable, Hashable, Sendable {
+            /// A Dutch postcode, stored as `1234 AB`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/postcode`.
+            public var postcode: Swift.String
+            /// One to five digits.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/houseNumber`.
+            public var houseNumber: Swift.String
+            /// For example `A` or `2 hoog`; `null` when there is none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/houseNumberAddition`.
+            public var houseNumberAddition: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/street`.
+            public var street: Swift.String
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/city`.
+            public var city: Swift.String
+            /// Creates a new `LocationAddress`.
+            ///
+            /// - Parameters:
+            ///   - postcode: A Dutch postcode, stored as `1234 AB`.
+            ///   - houseNumber: One to five digits.
+            ///   - houseNumberAddition: For example `A` or `2 hoog`; `null` when there is none.
+            ///   - street:
+            ///   - city:
+            public init(
+                postcode: Swift.String,
+                houseNumber: Swift.String,
+                houseNumberAddition: Swift.String? = nil,
+                street: Swift.String,
+                city: Swift.String
+            ) {
+                self.postcode = postcode
+                self.houseNumber = houseNumber
+                self.houseNumberAddition = houseNumberAddition
+                self.street = street
+                self.city = city
+            }
+            public enum CodingKeys: String, CodingKey {
+                case postcode
+                case houseNumber
+                case houseNumberAddition
+                case street
+                case city
+            }
+        }
+        /// Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. The type and which location is the default never change. Other fields are ignored.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest`.
+        public struct UpdateLocationRequest: Codable, Hashable, Sendable {
+            /// The new name: trimmed, not blank, at most 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/name`.
+            public var name: Swift.String?
+            /// The new address, or `null` to remove it. Leave it out to keep the address as it is.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address`.
+            public struct AddressPayload: Codable, Hashable, Sendable {
+                /// A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`.
+                ///
+                /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address/postcode`.
+                public var postcode: Swift.String
+                /// One to five digits.
+                ///
+                /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address/houseNumber`.
+                public var houseNumber: Swift.String
+                /// For example `A` or `2 hoog`; optional, at most 10 characters.
+                ///
+                /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address/houseNumberAddition`.
+                public var houseNumberAddition: Swift.String?
+                /// At most 120 characters.
+                ///
+                /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address/street`.
+                public var street: Swift.String
+                /// At most 120 characters.
+                ///
+                /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address/city`.
+                public var city: Swift.String
+                /// Creates a new `AddressPayload`.
+                ///
+                /// - Parameters:
+                ///   - postcode: A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`.
+                ///   - houseNumber: One to five digits.
+                ///   - houseNumberAddition: For example `A` or `2 hoog`; optional, at most 10 characters.
+                ///   - street: At most 120 characters.
+                ///   - city: At most 120 characters.
+                public init(
+                    postcode: Swift.String,
+                    houseNumber: Swift.String,
+                    houseNumberAddition: Swift.String? = nil,
+                    street: Swift.String,
+                    city: Swift.String
+                ) {
+                    self.postcode = postcode
+                    self.houseNumber = houseNumber
+                    self.houseNumberAddition = houseNumberAddition
+                    self.street = street
+                    self.city = city
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case postcode
+                    case houseNumber
+                    case houseNumberAddition
+                    case street
+                    case city
+                }
+            }
+            /// The new address, or `null` to remove it. Leave it out to keep the address as it is.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address`.
+            public var address: Components.Schemas.UpdateLocationRequest.AddressPayload?
+            /// Creates a new `UpdateLocationRequest`.
+            ///
+            /// - Parameters:
+            ///   - name: The new name: trimmed, not blank, at most 120 characters.
+            ///   - address: The new address, or `null` to remove it. Leave it out to keep the address as it is.
+            public init(
+                name: Swift.String? = nil,
+                address: Components.Schemas.UpdateLocationRequest.AddressPayload? = nil
+            ) {
+                self.name = name
+                self.address = address
+            }
+            public enum CodingKeys: String, CodingKey {
+                case name
+                case address
             }
         }
         /// One page of the clients of a workspace.

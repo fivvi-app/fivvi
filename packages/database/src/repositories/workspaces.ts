@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { Locale } from '@fivvi/i18n';
 import { and, asc, eq, inArray } from 'drizzle-orm';
-import { authUsers, organizations, teamMembers, trainerProfiles } from '../schema/index.ts';
+import {
+  authUsers,
+  locations,
+  organizations,
+  teamMembers,
+  trainerProfiles,
+} from '../schema/index.ts';
 import {
   executorOf,
   setContext,
@@ -49,8 +55,8 @@ export interface NewWorkspace {
 }
 
 /**
- * Creates the workspace, the account's Owner role in it (with a trainer profile when the creator
- * trains, F005) and, when given, the account's name, in
+ * Creates the workspace, its one location (F015), the account's Owner role in it (with a trainer
+ * profile when the creator trains, F005) and, when given, the account's name, in
  * the scope's transaction: a failure later in the request rolls all of it back. `undefined` when
  * the slug is taken (the caller tries the next one; a workspace of someone else can't be seen,
  * so the unique index decides), and then nothing was created.
@@ -88,6 +94,14 @@ export async function createWorkspaceWithOwner(
     await setContext(db, { accountId, workspaceIds });
     return undefined;
   }
+  // The workspace's one location, named after it, without an address (F015 AC1, AC2): in this
+  // transaction, so a workspace never exists without one.
+  await db.insert(locations).values({
+    organizationId: id,
+    name: workspace.name,
+    type: 'organization_location',
+    isDefault: true,
+  });
   const [owner] = await db
     .insert(teamMembers)
     .values({ organizationId: id, accountId, role: 'owner' })

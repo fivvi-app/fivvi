@@ -120,6 +120,20 @@
       "when": 1793814844030,
       "tag": "0016_job_runs",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793824600826,
+      "tag": "0017_locations",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793824660941,
+      "tag": "0018_locations_backfill",
+      "breakpoints": true
     }
   ]
 }

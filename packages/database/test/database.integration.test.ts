@@ -19,6 +19,7 @@ import {
   type DatabaseExecutor,
   findSystemGreeting,
   HELLO_GREETING,
+  locations,
   organizations,
   pingDatabase,
   systemGreetings,
@@ -408,6 +409,83 @@ describe('E004 database', () => {
     database = await cloneTemplateDatabase();
     client = createDatabase({ url: database.url, maxConnections: 2 });
     db = client.db;
+  });
+
+  describe('F015 seed locations', () => {
+    const ADDRESS = {
+      postcode: '1234 AB',
+      houseNumber: '1',
+      houseNumberAddition: null,
+      street: 'Voorbeeldstraat',
+      city: 'Amsterdam',
+    };
+
+    it('AC12: gives every seeded workspace its one location and John’s Gym a synthetic address, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
+
+        const seeded = await tx
+          .select({
+            workspace: organizations.slug,
+            name: locations.name,
+            type: locations.type,
+            isDefault: locations.isDefault,
+            postcode: locations.postcode,
+            houseNumber: locations.houseNumber,
+            houseNumberAddition: locations.houseNumberAddition,
+            street: locations.street,
+            city: locations.city,
+          })
+          .from(locations)
+          .innerJoin(organizations, eq(organizations.id, locations.organizationId))
+          .orderBy(organizations.slug);
+        expect(seeded).toEqual([
+          {
+            workspace: 'johns-gym',
+            name: "John's Gym",
+            type: 'organization_location',
+            isDefault: true,
+            ...ADDRESS,
+          },
+          {
+            workspace: 'sarah-personal-training',
+            name: 'Sarah Personal Training',
+            type: 'organization_location',
+            isDefault: true,
+            postcode: null,
+            houseNumber: null,
+            houseNumberAddition: null,
+            street: null,
+            city: null,
+          },
+        ]);
+      });
+    });
+
+    it('AC12: gives the location the backfill made (no address) its synthetic address, and keeps a name changed since', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await tx
+          .update(locations)
+          .set({ name: 'Renamed', postcode: null, houseNumber: null, street: null, city: null })
+          .where(eq(locations.name, "John's Gym"));
+
+        await seed(tx);
+
+        const [gym] = await tx.select().from(locations).where(eq(locations.name, 'Renamed'));
+        expect(gym).toMatchObject(ADDRESS);
+        expect(await tx.$count(locations)).toBe(2);
+      });
+    });
+
+    it('AC12: seeds no location in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true });
+
+        expect(await tx.$count(locations)).toBe(0);
+      });
+    });
   });
 
   describe('F006 seed clients', () => {

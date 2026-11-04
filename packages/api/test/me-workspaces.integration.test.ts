@@ -190,8 +190,15 @@ describe('F004 capabilities on GET /v1/me/workspaces', () => {
       'trainers.view',
       'clients.view',
       'clients.manage',
+      'location.read',
+      'settings.manage',
     ]);
-    expect(capabilitiesIn(gym.id)).toEqual(['trainers.view', 'clients.view', 'clients.manage']);
+    expect(capabilitiesIn(gym.id)).toEqual([
+      'trainers.view',
+      'clients.view',
+      'clients.manage',
+      'location.read',
+    ]);
   });
 
   it('AC9: capabilities match the matrix', async () => {

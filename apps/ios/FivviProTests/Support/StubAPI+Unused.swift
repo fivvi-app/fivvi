@@ -39,4 +39,12 @@ extension StubAPI {
     func listTrainers(_ input: Operations.ListTrainers.Input) async throws -> Operations.ListTrainers.Output {
         fatalError("The app doesn't call listTrainers yet")
     }
+
+    func listLocations(_ input: Operations.ListLocations.Input) async throws -> Operations.ListLocations.Output {
+        fatalError("The app doesn't call listLocations yet")
+    }
+
+    func updateLocation(_ input: Operations.UpdateLocation.Input) async throws -> Operations.UpdateLocation.Output {
+        fatalError("The app doesn't call updateLocation yet")
+    }
 }

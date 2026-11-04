@@ -1,6 +1,13 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from './client.ts';
-import { authUsers, clients, organizations, teamMembers, trainerProfiles } from './schema/index.ts';
+import {
+  authUsers,
+  clients,
+  locations,
+  organizations,
+  teamMembers,
+  trainerProfiles,
+} from './schema/index.ts';
 
 export interface SeedOptions {
   /**
@@ -28,7 +35,8 @@ export function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env): b
  * import the domain. And the account `trainer@example.com` ("Sarah", F003): Trainer of John's
  * Gym and Owner of a second workspace, "Sarah Personal Training" (`sarah-personal-training`),
  * so previews and tests have the multi-workspace and two-role cases of `PRODUCT.md §9`. John and
- * Sarah train in John's Gym and Sarah in her own workspace (trainer profiles, F005). Rows that
+ * Sarah train in John's Gym and Sarah in her own workspace (trainer profiles, F005). Each
+ * workspace has its one location (F015), John's Gym's with a synthetic address. Rows that
  * every environment needs, like the `hello` greeting, are data migrations instead
  * (`src/system-data.ts`).
  */
@@ -112,6 +120,31 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
     .insert(trainerProfiles)
     .values(trainers.map(({ id, organizationId }) => ({ organizationId, teamMemberId: id })))
     .onConflictDoNothing({ target: trainerProfiles.teamMemberId });
+  // The one location of each workspace (F015), named after it, as the API makes it. Created only
+  // when the workspace has none: a seed after the backfill or after an Owner's rename leaves the
+  // name alone. John's Gym's has a synthetic address, so previews show the filled-in card (AC12);
+  // given only while it has none, so what an Owner typed since stays.
+  await db.execute(sql`
+    insert into locations (organization_id, name, type, is_default)
+    select o.id, o.name, 'organization_location', true
+    from organizations o
+    where o.id in (${gym}, ${personalTraining})
+      and not exists (select 1 from locations l where l.organization_id = o.id and l.is_default)`);
+  await db
+    .update(locations)
+    .set({
+      postcode: '1234 AB',
+      houseNumber: '1',
+      street: 'Voorbeeldstraat',
+      city: 'Amsterdam',
+    })
+    .where(
+      and(
+        eq(locations.organizationId, gym),
+        eq(locations.isDefault, true),
+        isNull(locations.postcode),
+      ),
+    );
   // Idempotent without fixed IDs: a client is there already when its email address is used in
   // the workspace.
   const existing = await db

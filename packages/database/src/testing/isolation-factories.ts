@@ -1,5 +1,5 @@
 import type { DatabaseExecutor } from '../client.ts';
-import { organizations } from '../schema/index.ts';
+import { locations, organizations } from '../schema/index.ts';
 import {
   addClient,
   addTeamRole,
@@ -65,6 +65,18 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
         role: 'owner',
       });
       return addTrainerProfile(db, { workspaceId, teamMemberId: teamMember.id });
+    },
+  },
+  // A second location, not the default (the default is the workspace's own, made with it).
+  locations: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const [row] = await db
+        .insert(locations)
+        .values({ organizationId: workspaceId, name: uniqueMarker('location'), type: 'other' })
+        .returning({ id: locations.id });
+      if (!row) throw new Error('location was not created.');
+      return row;
     },
   },
 };

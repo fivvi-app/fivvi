@@ -4,6 +4,7 @@ import {
   createDatabase,
   createTenantScopes,
   type DatabaseClient,
+  locations,
   organizations,
   type SignedInAccount,
   teamMembers,
@@ -79,11 +80,20 @@ describe('F004 roles on every workspace route', () => {
     });
     await addTeamRole(admin.db, { workspaceId: other.id, accountId: mike.id, role: 'owner' });
     const annaClient = await addClient(admin.db, { workspaceId: gym.id, accountId: anna.id });
-    return { gym, other, john, sarah, mike, anna, sarahRole, annaClient };
+    const [location] = await admin.db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(eq(locations.organizationId, gym.id));
+    return { gym, other, john, sarah, mike, anna, sarahRole, annaClient, locationId: location?.id };
   }
 
   /** Every workspace operation of the contract, with a path that names John's Gym. */
-  function workspaceCalls(workspaceId: string, teamMemberId: string, clientId = ANY_ID) {
+  function workspaceCalls(
+    workspaceId: string,
+    teamMemberId: string,
+    clientId = ANY_ID,
+    locationId = ANY_ID,
+  ) {
     return describeOperations(contract)
       .filter(({ access }) => access?.type === 'workspace')
       .map(({ name, method, path, access }) => ({
@@ -94,6 +104,7 @@ describe('F004 roles on every workspace route', () => {
           .replace('{workspaceId}', workspaceId)
           .replace('{teamMemberId}', teamMemberId)
           .replace('{clientId}', clientId)
+          .replace('{locationId}', locationId)
           .replace(/\{[^}]+\}/g, ANY_ID),
       }));
   }
@@ -139,6 +150,7 @@ describe('F004 roles on every workspace route', () => {
       'putTrainerProfile',
       'removeTeamMember',
       'renameWorkspace',
+      'updateLocation',
     ]);
 
     for (const route of ownerRoutes) {
@@ -169,6 +181,7 @@ describe('F004 roles on every workspace route', () => {
       'getClient',
       'getWorkspace',
       'listClients',
+      'listLocations',
       'listTrainers',
       'recordWorkspaceSwitch',
       'updateClient',
@@ -181,6 +194,7 @@ describe('F004 roles on every workspace route', () => {
     expect(statuses).toEqual({
       getWorkspace: 200,
       listClients: 200,
+      listLocations: 200,
       listTrainers: 200,
       recordWorkspaceSwitch: 204,
       addClient: 201,
@@ -190,8 +204,8 @@ describe('F004 roles on every workspace route', () => {
   });
 
   it('AC3: Owner is admitted to every workspace route', async () => {
-    const { gym, john, sarahRole, annaClient } = await world();
-    for (const route of workspaceCalls(gym.id, sarahRole.id, annaClient.id)) {
+    const { gym, john, sarahRole, annaClient, locationId } = await world();
+    for (const route of workspaceCalls(gym.id, sarahRole.id, annaClient.id, locationId)) {
       // 400 for the body the probe sends is fine: the Owner got past the access check.
       expect([200, 201, 204, 400], route.name).toContain((await call(route, john)).status);
     }
