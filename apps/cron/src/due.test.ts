@@ -12,11 +12,27 @@ describe('E012 isDailyTaskDue', () => {
     expect(isDailyTaskDue(lastSuccess, at('2026-11-03T03:10:00Z'))).toBe(false);
     expect(isDailyTaskDue(lastSuccess, at('2026-11-03T09:00:00Z'))).toBe(false);
     expect(isDailyTaskDue(lastSuccess, at('2026-11-03T23:55:00Z'))).toBe(false);
-    // The next day: not before the last success is more than 24 hours old, then on the first run.
-    expect(isDailyTaskDue(lastSuccess, at('2026-11-04T03:00:00Z'))).toBe(false);
-    expect(isDailyTaskDue(lastSuccess, at('2026-11-04T03:05:00Z'))).toBe(false);
-    expect(isDailyTaskDue(lastSuccess, at('2026-11-04T03:05:01Z'))).toBe(true);
+    // Before 03:00 UTC the next day: not yet.
+    expect(isDailyTaskDue(lastSuccess, at('2026-11-04T00:00:00Z'))).toBe(false);
+    expect(isDailyTaskDue(lastSuccess, at('2026-11-04T02:59:59.999Z'))).toBe(false);
+    // The next day: the first run at or after 03:00 UTC runs it, however early it comes.
+    expect(isDailyTaskDue(lastSuccess, at('2026-11-04T03:00:00Z'))).toBe(true);
+    expect(isDailyTaskDue(lastSuccess, at('2026-11-04T03:00:30Z'))).toBe(true);
+    expect(isDailyTaskDue(lastSuccess, at('2026-11-04T03:05:00Z'))).toBe(true);
     expect(isDailyTaskDue(lastSuccess, at('2026-11-04T03:10:00Z'))).toBe(true);
+  });
+
+  it('AC3: the daily slot does not drift later with the jitter of a run', () => {
+    // A success at 03:55 (a late run) is still before tomorrow's 03:00 boundary.
+    const late = at('2026-11-03T03:55:00Z');
+    expect(isDailyTaskDue(late, at('2026-11-04T03:00:00Z'))).toBe(true);
+    // A success exactly on the boundary belongs to that day.
+    const onBoundary = at('2026-11-04T03:00:00Z');
+    expect(isDailyTaskDue(onBoundary, at('2026-11-04T03:05:00Z'))).toBe(false);
+    expect(isDailyTaskDue(onBoundary, at('2026-11-04T23:55:00Z'))).toBe(false);
+    expect(isDailyTaskDue(onBoundary, at('2026-11-05T03:00:00Z'))).toBe(true);
+    // A success before 03:00 UTC (not produced by the runner, but harmless) is from the day before.
+    expect(isDailyTaskDue(at('2026-11-04T02:59:00Z'), at('2026-11-04T03:00:00Z'))).toBe(true);
   });
 
   it('AC3: after a day of downtime it is due on the first run, and that run is the only one', () => {
@@ -49,7 +65,8 @@ describe('E012 isDailyTaskDue', () => {
       const lastSuccess = at(`${day}T03:05:00Z`);
 
       expect(isDailyTaskDue(lastSuccess, at(`${day}T23:55:00Z`))).toBe(false);
-      expect(isDailyTaskDue(lastSuccess, at(`${next}T03:05:00Z`))).toBe(false);
+      expect(isDailyTaskDue(lastSuccess, at(`${next}T02:59:00Z`))).toBe(false);
+      expect(isDailyTaskDue(lastSuccess, at(`${next}T03:00:30Z`))).toBe(true);
       expect(isDailyTaskDue(lastSuccess, at(`${next}T03:06:00Z`))).toBe(true);
     }
     // 03:00 UTC is 04:00 or 05:00 in Amsterdam depending on the date: local time is never read.

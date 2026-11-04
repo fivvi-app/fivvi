@@ -16,7 +16,8 @@ let close: () => Promise<void>;
 
 beforeEach(async () => {
   database = await cloneTemplateDatabase();
-  // Three connections: a run that holds a daily task's transaction, a second run, and a read.
+  // Five connections: a run that holds a daily task's transaction, a second run, a read, and room
+  // for the pool's own overhead.
   ({ db, close } = createDatabase({ url: database.url, maxConnections: 5 }));
 });
 
@@ -123,7 +124,7 @@ describe('E012 cron runner', () => {
     ]);
   });
 
-  it('AC3: a daily task that succeeded at 03:05 runs again only after 24 hours, once', async () => {
+  it('AC3: a daily task that succeeded at 03:05 runs again at the first run from 03:00 UTC the next day, once', async () => {
     const { cron, clock } = setup('2026-11-04T03:05:00Z');
     const calls: string[] = [];
     const tasks = [task('daily-one', 'daily', calls)];
@@ -135,7 +136,11 @@ describe('E012 cron runner', () => {
     }
     expect(calls).toEqual(['daily-one']);
 
-    clock.set('2026-11-05T03:10:00Z');
+    clock.set('2026-11-05T02:55:00Z');
+    await cron(tasks);
+    expect(calls).toEqual(['daily-one']);
+
+    clock.set('2026-11-05T03:00:30Z');
     await cron(tasks);
     await cron(tasks);
     expect(calls).toEqual(['daily-one', 'daily-one']);
@@ -307,7 +312,7 @@ describe('E012 cron runner', () => {
   });
 
   it('AC6: the retention task removes rows older than 90 days and keeps the rest', async () => {
-    const { cron, clock } = setup('2026-11-04T09:00:00Z');
+    const { cron } = setup('2026-11-04T09:00:00Z');
     const row = (taskName: string, startedAt: string) => ({
       runId: RUN_B,
       taskName,
@@ -315,13 +320,13 @@ describe('E012 cron runner', () => {
       finishedAt: new Date(startedAt),
       outcome: 'succeeded' as const,
     });
-    await db
-      .insert(jobRuns)
-      .values([
-        row('old', '2026-08-04T08:59:59Z'),
-        row('edge', '2026-08-06T09:00:00Z'),
-        row('recent', '2026-11-03T09:00:00Z'),
-      ]);
+    await db.insert(jobRuns).values([
+      // The cutoff is 2026-08-06T09:00:00Z (90 days before now): just past it goes, just inside stays.
+      row('old', '2026-08-06T08:59:59Z'),
+      row('edge', '2026-08-06T09:00:00Z'),
+      row('inside', '2026-08-06T09:00:01Z'),
+      row('recent', '2026-11-03T09:00:00Z'),
+    ]);
 
     const registry = createRegistry({});
     expect(registry.map(({ name, kind }) => ({ name, kind }))).toContainEqual({
@@ -332,8 +337,9 @@ describe('E012 cron runner', () => {
 
     const names = (await runs()).map((run) => run.taskName);
     expect(names).not.toContain('old');
-    expect(names).toEqual(expect.arrayContaining(['edge', 'recent', 'job-runs-retention']));
-    expect(clock.now().toISOString()).toBe('2026-11-04T09:00:00.000Z');
+    expect(names).toEqual(
+      expect.arrayContaining(['edge', 'inside', 'recent', 'job-runs-retention']),
+    );
   });
 
   it('AC8: the Lettermint usage check runs as a daily task through the registry', async () => {
