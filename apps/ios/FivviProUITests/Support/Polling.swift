@@ -29,8 +29,9 @@ enum Polling {
     /// says the action can still be done (the button is still there), does it again, at most `attempts` times in all.
     /// For a tap a slow simulator dropped: the screen on show stayed as it was for the whole wait, the way it did in
     /// two of the three en failures of #596 (nothing in the recording moved after the tap), and a person taps again.
-    /// Each try has the whole `timeout`, so a tap that is only slow is not done twice. `now` and `wait` are as in
-    /// `until`.
+    /// Each try has the whole `timeout`, so a tap that is only slow is not done twice. `report(attempt, attempts)` runs
+    /// just before every repeated action: a tap that only works on the second try is a flaky test and must show as one
+    /// (`TESTING.md §8`). `now` and `wait` are as in `until`.
     static func acting(
         attempts: Int = 2,
         timeout: TimeInterval,
@@ -39,14 +40,24 @@ enum Polling {
         wait: (TimeInterval) -> Void = { RunLoop.current.run(until: Date().addingTimeInterval($0)) },
         action: () -> Void,
         canRepeat: () -> Bool,
+        report: (_ attempt: Int, _ attempts: Int) -> Void,
         until reached: () -> Bool
     ) -> Bool {
         for attempt in 1...max(attempts, 1) {
-            if attempt > 1, !canRepeat() { return false }
+            if attempt > 1 {
+                if !canRepeat() { return false }
+                report(attempt, attempts)
+            }
             action()
             if until(timeout: timeout, interval: interval, now: now, wait: wait, condition: reached) { return true }
         }
         return false
+    }
+
+    /// The title of the activity a repeated tap leaves in the test's result, which `scripts/test-ios.sh` reports as
+    /// flaky like a repeated start (`ReachableLaunch.warning`).
+    static func warning(identifier: String, attempt: Int, of attempts: Int) -> String {
+        "::warning::flaky: tap on \(identifier) had no effect, tapping again (tap \(attempt) of \(attempts))"
     }
 
     /// Whether the value `read` returns stayed the same for `reads` reads in a row within `timeout` seconds, reading
