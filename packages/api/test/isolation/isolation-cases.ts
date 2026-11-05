@@ -1,5 +1,6 @@
 import { type DatabaseExecutor, locations, trainerProfiles } from '@fivvi/database';
 import {
+  addGroupClass,
   addSession,
   addTeamRole,
   addTrainerInvitation,
@@ -34,6 +35,12 @@ export interface IsolationCase {
     db: DatabaseExecutor,
     input: { workspaceId: string; clientId: string },
   ): Promise<Record<string, string>>;
+  /**
+   * The route changes the record it names (a date edit raises its version): the seed runs again
+   * before every call, so each call starts from a record it may change. Like a `DELETE`, which is
+   * always seeded again.
+   */
+  reseedForEachCall?: true;
   /** Path parameters other than `workspaceId`: the parameter's name, and the seeded value to put there. */
   params?: Readonly<Record<string, string>>;
   /** A valid query string, with its `?`. */
@@ -101,6 +108,18 @@ const anInvitation: IsolationCase['seed'] = async (db, { workspaceId }) => {
 /** A session of the workspace the seed was called for, with the client it was called for in it: what the session read shows (F020). */
 const aSession: IsolationCase['seed'] = async (db, { workspaceId, clientId }) => {
   const { id } = await addSession(db, { workspaceId, clientId });
+  return { session: id };
+};
+
+/** A class of the workspace the seed was called for: what the class routes list, read, change and put on a date (F021). */
+const aClass: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  const { id } = await addGroupClass(db, { workspaceId });
+  return { class: id };
+};
+
+/** A class on a date of the workspace the seed was called for: what the session read shows and the date edit changes (F021). */
+const aGroupDate: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  const { id } = await addSession(db, { workspaceId, type: 'group', participant: false });
   return { session: id };
 };
 
@@ -207,6 +226,27 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     }),
   },
   getSession: { seed: aSession, params: { sessionId: 'session' } },
+
+  // The group classes of a workspace (F021): the list shows the seeded class, the read, the change
+  // and the scheduling name it. The create takes a valid class of its own; the date edit names the
+  // seeded group session and the version it starts at.
+  listGroupClasses: { seed: aClass },
+  createGroupClass: {
+    body: { nameNl: 'Kracht', capacity: 8, durationMinutes: 60 },
+  },
+  getGroupClass: { seed: aClass, params: { classId: 'class' } },
+  updateGroupClass: { seed: aClass, params: { classId: 'class' }, body: { capacity: 9 } },
+  scheduleGroupClassDate: {
+    seed: aClass,
+    params: { classId: 'class' },
+    body: { localDate: '2026-10-06', localStart: '18:00' },
+  },
+  updateGroupClassDate: {
+    seed: aGroupDate,
+    reseedForEachCall: true,
+    params: { sessionId: 'session' },
+    body: { version: 1, capacity: 9 },
+  },
 
   // The trainers of a workspace (F005): the list shows the seeded Trainer. The two switch routes
   // act on the caller's own trainer profile, so they name no record.

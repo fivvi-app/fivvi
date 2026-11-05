@@ -1,6 +1,12 @@
 import { AMSTERDAM, dstTransitions, zonedTime } from '@fivvi/testing/clock';
 import { describe, expect, it } from 'vitest';
-import { addDays, localDateOf, localDayBounds, wallClockToInstant } from './zoned-time.ts';
+import {
+  addDays,
+  instantToWallClock,
+  localDateOf,
+  localDayBounds,
+  wallClockToInstant,
+} from './zoned-time.ts';
 
 describe('ADR-012 wall-clock time to an instant', () => {
   it('reads a summer time in Amsterdam as UTC+2', () => {
@@ -71,6 +77,38 @@ describe('ADR-012 wall-clock time to an instant', () => {
     ['2026-09-24', '', 'time'],
   ])('says the input is invalid for %s %s: the %s', (date, time, field) => {
     expect(wallClockToInstant(date, time, AMSTERDAM)).toEqual({ outcome: 'invalid', field });
+  });
+});
+
+describe('ADR-012 an instant to the wall clock', () => {
+  it('reads a summer instant in Amsterdam as UTC+2 and a winter instant as UTC+1', () => {
+    expect(instantToWallClock(new Date('2026-10-06T16:30:00.000Z'), AMSTERDAM)).toEqual({
+      date: '2026-10-06',
+      time: '18:30',
+    });
+    expect(instantToWallClock(new Date('2026-12-01T08:00:00.000Z'), AMSTERDAM)).toEqual({
+      date: '2026-12-01',
+      time: '09:00',
+    });
+  });
+
+  it('moves to the next local day past midnight', () => {
+    expect(instantToWallClock(new Date('2026-09-24T22:30:00.000Z'), AMSTERDAM)).toEqual({
+      date: '2026-09-25',
+      time: '00:30',
+    });
+  });
+
+  it('gives back what wallClockToInstant took, also in the repeated hour', () => {
+    for (const [date, time] of [
+      ['2026-09-24', '09:00'],
+      ['2026-10-25', '02:30'],
+      ['2027-03-28', '03:00'],
+    ] as const) {
+      const result = wallClockToInstant(date, time, AMSTERDAM);
+      if (result.outcome !== 'instant') throw new Error('the time exists');
+      expect(instantToWallClock(result.instant, AMSTERDAM)).toEqual({ date, time });
+    }
   });
 });
 

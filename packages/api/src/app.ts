@@ -12,6 +12,7 @@ import {
 } from './errors.ts';
 import { registerAddressLookup } from './routes/address-lookup.ts';
 import { registerClients } from './routes/clients.ts';
+import { registerGroupClasses } from './routes/group-classes.ts';
 import { registerHealth } from './routes/health.ts';
 import { registerHello } from './routes/hello.ts';
 import { registerInvitations } from './routes/invitations.ts';
@@ -79,6 +80,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerLocations(app);
   registerAddressLookup(app);
   registerSessions(app);
+  registerGroupClasses(app);
   registerClients(app);
   return app;
 }

@@ -43,6 +43,17 @@ export {
   rolesWith,
 } from './permissions/matrix.ts';
 export {
+  decideGroupDateEdit,
+  GROUP_CLASS_LIMITS,
+  type GroupDateEditDecision,
+  type GroupDateEditFacts,
+  type GroupDateEditRefusal,
+  type ScheduleClassOnDateDecision,
+  type ScheduleClassOnDateFacts,
+  type ScheduleClassOnDateRefusal,
+  scheduleClassOnDate,
+} from './scheduling/group-class.ts';
+export {
   decidePersonalRange,
   mergePersonalDay,
   orderPersonalSessions,
@@ -63,6 +74,7 @@ export {
 } from './scheduling/private-session.ts';
 export {
   addDays,
+  instantToWallClock,
   localDateOf,
   localDayBounds,
   type WallClockInstant,

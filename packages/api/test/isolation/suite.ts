@@ -362,7 +362,12 @@ export async function runIsolationSuite(
     for (const planned of calls) {
       // A call that deletes its record consumes it: seed a fresh one for every such call, so the
       // next actor is judged on a record that exists, not on a 404 for the one removed before.
-      if (planned.records && operation.method.toLowerCase() === 'delete') {
+      // A route whose case says `reseedForEachCall` (it changes the record's version) is seeded
+      // again for each call.
+      if (
+        planned.records &&
+        (operation.method.toLowerCase() === 'delete' || isolationCase.reseedForEachCall)
+      ) {
         const [workspaceId, clientId] = planned.records;
         seeded.set(planned.records.join(' '), await seed(workspaceId, clientId));
       }

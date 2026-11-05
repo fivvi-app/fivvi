@@ -18,6 +18,7 @@ import {
 } from '../src/index.ts';
 import {
   addClient,
+  addGroupClass,
   addSession,
   addTeamRole,
   createAccount,
@@ -87,6 +88,29 @@ describe('F020 sessions and session participants tables', () => {
     if (!profile) throw new Error('Sarah has no trainer profile.');
     return { gym, sarah, profileId: profile.id };
   }
+
+  it('AC9: a group session needs its class; the other kinds do not', async () => {
+    const { gym } = await gymWithSarah();
+    const insert = (type: 'private' | 'group' | 'open_gym', groupClassId: string | null) =>
+      violated((tx) =>
+        addSession(tx, { workspaceId: gym.id, type, groupClassId, participant: false }),
+      );
+
+    expect(await insert('group', null)).toBe('sessions_group_has_class');
+    expect(
+      await violated(async (tx) => {
+        const kracht = await addGroupClass(tx, { workspaceId: gym.id });
+        await addSession(tx, {
+          workspaceId: gym.id,
+          type: 'group',
+          groupClassId: kracht.id,
+          participant: false,
+        });
+      }),
+    ).toBeUndefined();
+    expect(await insert('private', null)).toBeUndefined();
+    expect(await insert('open_gym', null)).toBeUndefined();
+  });
 
   it('AC12: a session has a type, a status, a version and its UTC instants; a participant is booked by default', async () => {
     const { gym, profileId } = await gymWithSarah();
@@ -181,8 +205,16 @@ describe('F020 sessions and session participants tables', () => {
       'sessions_capacity_positive',
     );
     expect(await violated(insert({ version: 0 }))).toBe('sessions_version_positive');
-    // A group class holds more than one.
-    expect(await violated(insert({ type: 'group', capacity: 12 }))).toBeUndefined();
+    // A group class holds more than one, and is a class on a date (F021).
+    expect(
+      await violated(async (tx) =>
+        insert({
+          type: 'group',
+          capacity: 12,
+          groupClassId: (await addGroupClass(tx, { workspaceId: gym.id })).id,
+        })(tx),
+      ),
+    ).toBeUndefined();
   });
 
   it('AC12: a client has one place per session', async () => {

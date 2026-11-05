@@ -21,6 +21,8 @@ export const CAPABILITIES = [
   'team.invite',
   'session.private.manage.own',
   'session.private.manage.any',
+  'class.manage',
+  'class.read',
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
@@ -32,6 +34,7 @@ const MATRIX: Readonly<Record<Role, readonly Capability[]>> = {
     'clients.manage',
     'location.read',
     'session.private.manage.own',
+    'class.read',
   ],
 };
 

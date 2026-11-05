@@ -50,6 +50,20 @@ export {
   updateClient,
 } from './repositories/clients.ts';
 export {
+  type ClassDateChanges,
+  type ClassDateUpdate,
+  createClassDate,
+  createGroupClass,
+  findGroupClass,
+  type GroupClassChanges,
+  type GroupClassView,
+  listGroupClasses,
+  type NewClassDate,
+  type NewGroupClass,
+  updateClassDate,
+  updateGroupClass,
+} from './repositories/group-classes.ts';
+export {
   findLocation,
   type LocationAddress,
   type LocationChanges,
@@ -71,6 +85,7 @@ export {
   createPrivateSession,
   findSession,
   type NewPrivateSession,
+  type SessionGroupClassView,
   type SessionParticipantView,
   type SessionStatus,
   type SessionTrainerView,

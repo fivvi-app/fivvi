@@ -5,6 +5,7 @@ import { FIXTURE_INVITATION_VALIDITY_MS } from '../invitation-validity.ts';
 import {
   authUsers,
   clients,
+  groupClasses,
   locations,
   organizations,
   sessionParticipants,
@@ -221,11 +222,47 @@ export async function addTrainerInvitation(
 }
 
 /**
+ * A group class of a workspace (F021): "Kracht", 8 places, 60 minutes, no usual trainer, with a
+ * Dutch name that carries a unique marker, unless the test says otherwise.
+ */
+export async function addGroupClass(
+  db: Pick<DatabaseExecutor, 'insert'>,
+  options: {
+    workspaceId: string;
+    nameNl?: string;
+    nameEn?: string | null;
+    descriptionNl?: string | null;
+    descriptionEn?: string | null;
+    defaultTrainerProfileId?: string | null;
+    capacity?: number;
+    durationMinutes?: number;
+  },
+): Promise<{ id: string; nameNl: string }> {
+  return first(
+    await db
+      .insert(groupClasses)
+      .values({
+        organizationId: options.workspaceId,
+        nameNl: options.nameNl ?? uniqueMarker('kracht'),
+        nameEn: options.nameEn ?? null,
+        descriptionNl: options.descriptionNl ?? null,
+        descriptionEn: options.descriptionEn ?? null,
+        defaultTrainerProfileId: options.defaultTrainerProfileId ?? null,
+        capacity: options.capacity ?? 8,
+        durationMinutes: options.durationMinutes ?? 60,
+      })
+      .returning({ id: groupClasses.id, nameNl: groupClasses.nameNl }),
+    'group class',
+  );
+}
+
+/**
  * A private session of a workspace (F020) with one participant, a client of it. Unless the test
  * says otherwise: at the workspace's default location, for the given trainer profile (none when
  * not given), planned by nobody, an hour long, starting at the given instant (default: a week
  * from now), `scheduled`, version 1, with the client `booked`. A test that needs the client
- * gives one (`clientId`); a group or Open Gym session passes `participant: false`.
+ * gives one (`clientId`); a group or Open Gym session passes `participant: false`. A group
+ * session (F021) is a class on a date: it points at `groupClassId`, or at a class made for it.
  */
 export async function addSession(
   db: Pick<DatabaseExecutor, 'insert' | 'select'>,
@@ -237,6 +274,7 @@ export async function addSession(
     createdByTeamMemberId?: string | null;
     locationId?: string;
     type?: 'private' | 'group' | 'open_gym';
+    groupClassId?: string | null;
     status?: 'scheduled' | 'cancelled';
     startsAt?: Date;
     durationMinutes?: number;
@@ -256,6 +294,12 @@ export async function addSession(
       'default location',
     ).id;
   const type = options.type ?? 'private';
+  const groupClassId =
+    options.groupClassId === undefined
+      ? type === 'group'
+        ? (await addGroupClass(db, { workspaceId: options.workspaceId })).id
+        : null
+      : options.groupClassId;
   const startsAt = options.startsAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const endsAt = new Date(startsAt.getTime() + (options.durationMinutes ?? 60) * 60_000);
   const session = first(
@@ -267,6 +311,7 @@ export async function addSession(
         status: options.status ?? 'scheduled',
         trainerProfileId: options.trainerProfileId ?? null,
         locationId,
+        groupClassId,
         startsAt,
         endsAt,
         capacity: options.capacity ?? (type === 'private' ? 1 : 10),

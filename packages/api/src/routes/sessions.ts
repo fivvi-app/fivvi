@@ -67,7 +67,22 @@ const SessionParticipantSchema = z
   })
   .openapi('SessionParticipant', { description: 'A client’s place in a session.' });
 
-const SessionTrainerSchema = z
+const SessionGroupClassSchema = z
+  .object({
+    id: z.uuid().openapi({ description: 'The class ID.' }),
+    nameNl: z.string().openapi({ description: 'The class’s Dutch name.' }),
+    nameEn: z
+      .string()
+      .nullable()
+      .openapi({
+        description:
+          'The class’s English name, `null` without one. Show it to a viewer whose language is ' +
+          'English, else the Dutch name (`pickContentLanguage`).',
+      }),
+  })
+  .openapi('SessionGroupClass', { description: 'The class a class date was scheduled from.' });
+
+export const SessionTrainerSchema = z
   .object({
     id: z.uuid().openapi({ description: 'The trainer’s team-member ID, as in `GET …/trainers`.' }),
     name: z.string().openapi({ description: 'The account’s name; empty when it has none.' }),
@@ -78,7 +93,9 @@ export const SessionSchema = z
   .object({
     id: z.uuid().openapi({ description: 'The session ID.' }),
     type: z.enum(['private', 'group', 'open_gym']).openapi({
-      description: 'The kind of session. Private sessions are planned here; the others come later.',
+      description:
+        'The kind of session. Private sessions are planned here, class dates are a class on ' +
+        'a date (`…/group-classes/{classId}/dates`); Open Gym comes later.',
     }),
     status: z.enum(['scheduled', 'cancelled']).openapi({
       description: 'Whether the session still takes place. A session is never deleted.',
@@ -90,7 +107,9 @@ export const SessionSchema = z
         'The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it ' +
         '(ADR-012).',
     }),
-    capacity: z.number().int().openapi({ description: '1 for a private session.' }),
+    capacity: z.number().int().openapi({
+      description: '1 for a private session; the date’s own capacity for a class date.',
+    }),
     version: z.number().int().openapi({
       description: 'Raised by every change; a change says the version it read. Starts at 1.',
     }),
@@ -100,9 +119,13 @@ export const SessionSchema = z
     trainer: SessionTrainerSchema.optional().openapi({
       description: 'Left out when the session has no trainer (the trainer’s profile ended).',
     }),
+    groupClass: SessionGroupClassSchema.optional().openapi({
+      description: 'The class of a class date (F021); left out for the other kinds.',
+    }),
     participants: z.array(SessionParticipantSchema).openapi({
       description:
-        'The clients in the session, in the order they were added. One for a private session.',
+        'The clients in the session, in the order they were added. One for a private session; ' +
+        'none for a class date until bookings exist (M5).',
     }),
   })
   .openapi('Session', {
@@ -263,11 +286,12 @@ const getSessionRoute = defineRoute(
 );
 
 /** What the answer shows of a session: instants as ISO text and the workspace's zone; no `trainer` key without one. */
-function shown(session: SessionView, timeZone: string) {
-  const { startsAt, endsAt, trainer, ...rest } = session;
+export function shown(session: SessionView, timeZone: string) {
+  const { startsAt, endsAt, trainer, groupClass, ...rest } = session;
   return {
     ...rest,
     ...(trainer ? { trainer } : {}),
+    ...(groupClass ? { groupClass } : {}),
     startsAt: startsAt.toISOString(),
     endsAt: endsAt.toISOString(),
     timeZone,

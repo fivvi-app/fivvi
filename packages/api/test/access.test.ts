@@ -475,6 +475,12 @@ describe('E011 route access', () => {
       'delete /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}': 'workspace',
       'post /v1/workspaces/{workspaceId}/sessions/private': 'workspace',
       'get /v1/workspaces/{workspaceId}/sessions/{sessionId}': 'workspace',
+      'patch /v1/workspaces/{workspaceId}/sessions/{sessionId}': 'workspace',
+      'get /v1/workspaces/{workspaceId}/group-classes': 'workspace',
+      'post /v1/workspaces/{workspaceId}/group-classes': 'workspace',
+      'get /v1/workspaces/{workspaceId}/group-classes/{classId}': 'workspace',
+      'patch /v1/workspaces/{workspaceId}/group-classes/{classId}': 'workspace',
+      'post /v1/workspaces/{workspaceId}/group-classes/{classId}/dates': 'workspace',
       'post /v1/workspaces': 'account',
     });
   });

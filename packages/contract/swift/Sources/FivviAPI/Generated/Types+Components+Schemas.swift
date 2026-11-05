@@ -349,6 +349,8 @@ extension Components {
                 case team_invite = "team.invite"
                 case session_private_manage_own = "session.private.manage.own"
                 case session_private_manage_any = "session.private.manage.any"
+                case class_manage = "class.manage"
+                case class_read = "class.read"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -427,6 +429,8 @@ extension Components {
                 case team_invite = "team.invite"
                 case session_private_manage_own = "session.private.manage.own"
                 case session_private_manage_any = "session.private.manage.any"
+                case class_manage = "class.manage"
+                case class_read = "class.read"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -1828,7 +1832,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/Session/id`.
             public var id: Swift.String
-            /// The kind of session. Private sessions are planned here; the others come later.
+            /// The kind of session. Private sessions are planned here, class dates are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
             ///
             /// - Remark: Generated from `#/components/schemas/Session/type`.
             @frozen public enum _TypePayload: String, Codable, Hashable, Sendable, CaseIterable {
@@ -1836,7 +1840,7 @@ extension Components {
                 case group = "group"
                 case openGym = "open_gym"
             }
-            /// The kind of session. Private sessions are planned here; the others come later.
+            /// The kind of session. Private sessions are planned here, class dates are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
             ///
             /// - Remark: Generated from `#/components/schemas/Session/type`.
             public var _type: Components.Schemas.Session._TypePayload
@@ -1863,7 +1867,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/Session/timeZone`.
             public var timeZone: Swift.String
-            /// 1 for a private session.
+            /// 1 for a private session; the date’s own capacity for a class date.
             ///
             /// - Remark: Generated from `#/components/schemas/Session/capacity`.
             public var capacity: Swift.Int
@@ -1875,7 +1879,9 @@ extension Components {
             public var location: Components.Schemas.Location
             /// - Remark: Generated from `#/components/schemas/Session/trainer`.
             public var trainer: Components.Schemas.SessionTrainer?
-            /// The clients in the session, in the order they were added. One for a private session.
+            /// - Remark: Generated from `#/components/schemas/Session/groupClass`.
+            public var groupClass: Components.Schemas.SessionGroupClass?
+            /// The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
             ///
             /// - Remark: Generated from `#/components/schemas/Session/participants`.
             public var participants: [Components.Schemas.SessionParticipant]
@@ -1883,16 +1889,17 @@ extension Components {
             ///
             /// - Parameters:
             ///   - id: The session ID.
-            ///   - _type: The kind of session. Private sessions are planned here; the others come later.
+            ///   - _type: The kind of session. Private sessions are planned here, class dates are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
             ///   - status: Whether the session still takes place. A session is never deleted.
             ///   - startsAt: The start, a UTC instant.
             ///   - endsAt: The end, a UTC instant.
             ///   - timeZone: The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012).
-            ///   - capacity: 1 for a private session.
+            ///   - capacity: 1 for a private session; the date’s own capacity for a class date.
             ///   - version: Raised by every change; a change says the version it read. Starts at 1.
             ///   - location:
             ///   - trainer:
-            ///   - participants: The clients in the session, in the order they were added. One for a private session.
+            ///   - groupClass:
+            ///   - participants: The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
             public init(
                 id: Swift.String,
                 _type: Components.Schemas.Session._TypePayload,
@@ -1904,6 +1911,7 @@ extension Components {
                 version: Swift.Int,
                 location: Components.Schemas.Location,
                 trainer: Components.Schemas.SessionTrainer? = nil,
+                groupClass: Components.Schemas.SessionGroupClass? = nil,
                 participants: [Components.Schemas.SessionParticipant]
             ) {
                 self.id = id
@@ -1916,6 +1924,7 @@ extension Components {
                 self.version = version
                 self.location = location
                 self.trainer = trainer
+                self.groupClass = groupClass
                 self.participants = participants
             }
             public enum CodingKeys: String, CodingKey {
@@ -1929,6 +1938,7 @@ extension Components {
                 case version
                 case location
                 case trainer
+                case groupClass
                 case participants
             }
         }
@@ -1959,6 +1969,43 @@ extension Components {
             public enum CodingKeys: String, CodingKey {
                 case id
                 case name
+            }
+        }
+        /// The class of a class date (F021); left out for the other kinds.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SessionGroupClass`.
+        public struct SessionGroupClass: Codable, Hashable, Sendable {
+            /// The class ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionGroupClass/id`.
+            public var id: Swift.String
+            /// The class’s Dutch name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionGroupClass/nameNl`.
+            public var nameNl: Swift.String
+            /// The class’s English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage`).
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionGroupClass/nameEn`.
+            public var nameEn: Swift.String?
+            /// Creates a new `SessionGroupClass`.
+            ///
+            /// - Parameters:
+            ///   - id: The class ID.
+            ///   - nameNl: The class’s Dutch name.
+            ///   - nameEn: The class’s English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage`).
+            public init(
+                id: Swift.String,
+                nameNl: Swift.String,
+                nameEn: Swift.String? = nil
+            ) {
+                self.id = id
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case nameNl
+                case nameEn
             }
         }
         /// A client’s place in a session.
@@ -2081,6 +2128,486 @@ extension Components {
                 case durationMinutes
                 case notify
                 case surface
+            }
+        }
+        /// A class of the workspace: what it is called, who usually teaches it, how many people fit and how long it lasts. It is not a point in time; a class on a date is a `group` session.
+        ///
+        /// - Remark: Generated from `#/components/schemas/GroupClass`.
+        public struct GroupClass: Codable, Hashable, Sendable {
+            /// The class ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/id`.
+            public var id: Swift.String
+            /// The Dutch name: always there.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/nameNl`.
+            public var nameNl: Swift.String
+            /// The English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage` of @fivvi/i18n).
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/nameEn`.
+            public var nameEn: Swift.String?
+            /// The Dutch description, or `null`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/descriptionNl`.
+            public var descriptionNl: Swift.String?
+            /// The English description, or `null`: shown only to English viewers.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/descriptionEn`.
+            public var descriptionEn: Swift.String?
+            /// How many people fit: 1 to 100.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/capacity`.
+            public var capacity: Swift.Int
+            /// How long a date of the class lasts: 15 to 240 minutes in steps of 5.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/durationMinutes`.
+            public var durationMinutes: Swift.Int
+            /// - Remark: Generated from `#/components/schemas/GroupClass/defaultTrainer`.
+            public struct DefaultTrainerPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/GroupClass/defaultTrainer/value1`.
+                public var value1: Components.Schemas.SessionTrainer
+                /// The usual trainer. Left out for *Trainer nodig* (none).
+                ///
+                /// - Remark: Generated from `#/components/schemas/GroupClass/defaultTrainer/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `DefaultTrainerPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The usual trainer. Left out for *Trainer nodig* (none).
+                public init(
+                    value1: Components.Schemas.SessionTrainer,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/GroupClass/defaultTrainer`.
+            public var defaultTrainer: Components.Schemas.GroupClass.DefaultTrainerPayload?
+            /// Creates a new `GroupClass`.
+            ///
+            /// - Parameters:
+            ///   - id: The class ID.
+            ///   - nameNl: The Dutch name: always there.
+            ///   - nameEn: The English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage` of @fivvi/i18n).
+            ///   - descriptionNl: The Dutch description, or `null`.
+            ///   - descriptionEn: The English description, or `null`: shown only to English viewers.
+            ///   - capacity: How many people fit: 1 to 100.
+            ///   - durationMinutes: How long a date of the class lasts: 15 to 240 minutes in steps of 5.
+            ///   - defaultTrainer:
+            public init(
+                id: Swift.String,
+                nameNl: Swift.String,
+                nameEn: Swift.String? = nil,
+                descriptionNl: Swift.String? = nil,
+                descriptionEn: Swift.String? = nil,
+                capacity: Swift.Int,
+                durationMinutes: Swift.Int,
+                defaultTrainer: Components.Schemas.GroupClass.DefaultTrainerPayload? = nil
+            ) {
+                self.id = id
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+                self.descriptionNl = descriptionNl
+                self.descriptionEn = descriptionEn
+                self.capacity = capacity
+                self.durationMinutes = durationMinutes
+                self.defaultTrainer = defaultTrainer
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case nameNl
+                case nameEn
+                case descriptionNl
+                case descriptionEn
+                case capacity
+                case durationMinutes
+                case defaultTrainer
+            }
+        }
+        /// The class that was created, with its first date when the request had one.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CreatedGroupClass`.
+        public struct CreatedGroupClass: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/groupClass`.
+            public var groupClass: Components.Schemas.GroupClass
+            /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/firstDate`.
+            public struct FirstDatePayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/firstDate/value1`.
+                public var value1: Components.Schemas.Session
+                /// The first date, when the request had a `firstDate`.
+                ///
+                /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/firstDate/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `FirstDatePayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The first date, when the request had a `firstDate`.
+                public init(
+                    value1: Components.Schemas.Session,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/firstDate`.
+            public var firstDate: Components.Schemas.CreatedGroupClass.FirstDatePayload?
+            /// Creates a new `CreatedGroupClass`.
+            ///
+            /// - Parameters:
+            ///   - groupClass:
+            ///   - firstDate:
+            public init(
+                groupClass: Components.Schemas.GroupClass,
+                firstDate: Components.Schemas.CreatedGroupClass.FirstDatePayload? = nil
+            ) {
+                self.groupClass = groupClass
+                self.firstDate = firstDate
+            }
+            public enum CodingKeys: String, CodingKey {
+                case groupClass
+                case firstDate
+            }
+        }
+        /// A class to create: the Dutch name, optionally an English one, descriptions, the usual trainer, capacity and duration, and optionally its first date.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest`.
+        public struct CreateGroupClassRequest: Codable, Hashable, Sendable {
+            /// The Dutch name: trimmed, 1 to 80 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/nameNl`.
+            public var nameNl: Swift.String
+            /// The English name: trimmed, at most 80 characters. A blank text means none (and, in a change, clears it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/nameEn`.
+            public var nameEn: Swift.String?
+            /// The Dutch description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/descriptionNl`.
+            public var descriptionNl: Swift.String?
+            /// The English description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/descriptionEn`.
+            public var descriptionEn: Swift.String?
+            /// The usual trainer’s team-member ID, from `GET …/trainers`. Leave it out, or send `null`, for *Trainer nodig*. A team member who does not train in the workspace answers `404`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/trainerId`.
+            public var trainerId: Swift.String?
+            /// 1 to 100 people.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/capacity`.
+            public var capacity: Swift.Int
+            /// 15 to 240 minutes in steps of 5; any other value answers `400` on `durationMinutes`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/durationMinutes`.
+            public var durationMinutes: Swift.Int
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/firstDate`.
+            public var firstDate: Components.Schemas.FirstGroupClassDate?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/surface`.
+            public var surface: Components.Schemas.CreateGroupClassRequest.SurfacePayload?
+            /// Creates a new `CreateGroupClassRequest`.
+            ///
+            /// - Parameters:
+            ///   - nameNl: The Dutch name: trimmed, 1 to 80 characters.
+            ///   - nameEn: The English name: trimmed, at most 80 characters. A blank text means none (and, in a change, clears it).
+            ///   - descriptionNl: The Dutch description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///   - descriptionEn: The English description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///   - trainerId: The usual trainer’s team-member ID, from `GET …/trainers`. Leave it out, or send `null`, for *Trainer nodig*. A team member who does not train in the workspace answers `404`.
+            ///   - capacity: 1 to 100 people.
+            ///   - durationMinutes: 15 to 240 minutes in steps of 5; any other value answers `400` on `durationMinutes`.
+            ///   - firstDate:
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                nameNl: Swift.String,
+                nameEn: Swift.String? = nil,
+                descriptionNl: Swift.String? = nil,
+                descriptionEn: Swift.String? = nil,
+                trainerId: Swift.String? = nil,
+                capacity: Swift.Int,
+                durationMinutes: Swift.Int,
+                firstDate: Components.Schemas.FirstGroupClassDate? = nil,
+                surface: Components.Schemas.CreateGroupClassRequest.SurfacePayload? = nil
+            ) {
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+                self.descriptionNl = descriptionNl
+                self.descriptionEn = descriptionEn
+                self.trainerId = trainerId
+                self.capacity = capacity
+                self.durationMinutes = durationMinutes
+                self.firstDate = firstDate
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case nameNl
+                case nameEn
+                case descriptionNl
+                case descriptionEn
+                case trainerId
+                case capacity
+                case durationMinutes
+                case firstDate
+                case surface
+            }
+        }
+        /// Puts the new class on one date in the same request (the apps’ quick create, TD-05): class and date are stored together or not at all. A refused date (`400` on `firstDate.localDate` or `firstDate.localStart`) leaves no class behind.
+        ///
+        /// - Remark: Generated from `#/components/schemas/FirstGroupClassDate`.
+        public struct FirstGroupClassDate: Codable, Hashable, Sendable {
+            /// The date in the workspace’s time zone: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FirstGroupClassDate/localDate`.
+            public var localDate: Swift.String
+            /// The start in the workspace’s time zone: `HH:mm`, 24 hours.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FirstGroupClassDate/localStart`.
+            public var localStart: Swift.String
+            /// Creates a new `FirstGroupClassDate`.
+            ///
+            /// - Parameters:
+            ///   - localDate: The date in the workspace’s time zone: `YYYY-MM-DD`.
+            ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours.
+            public init(
+                localDate: Swift.String,
+                localStart: Swift.String
+            ) {
+                self.localDate = localDate
+                self.localStart = localStart
+            }
+            public enum CodingKeys: String, CodingKey {
+                case localDate
+                case localStart
+            }
+        }
+        /// Changes a class: every field left out stays as it is. Dates already planned keep their own trainer, capacity and times (they were copied when they were planned). Other fields are ignored.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest`.
+        public struct UpdateGroupClassRequest: Codable, Hashable, Sendable {
+            /// The new Dutch name: trimmed, 1 to 80 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/nameNl`.
+            public var nameNl: Swift.String?
+            /// The new English name: trimmed, at most 80 characters. A blank text means none (and, in a change, clears it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/nameEn`.
+            public var nameEn: Swift.String?
+            /// The new Dutch description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/descriptionNl`.
+            public var descriptionNl: Swift.String?
+            /// The new English description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/descriptionEn`.
+            public var descriptionEn: Swift.String?
+            /// The new usual trainer’s team-member ID; `null` makes the class *Trainer nodig*; left out keeps it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/trainerId`.
+            public var trainerId: Swift.String?
+            /// The new capacity, 1 to 100.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/capacity`.
+            public var capacity: Swift.Int?
+            /// The new duration, 15 to 240 minutes in steps of 5.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/durationMinutes`.
+            public var durationMinutes: Swift.Int?
+            /// Creates a new `UpdateGroupClassRequest`.
+            ///
+            /// - Parameters:
+            ///   - nameNl: The new Dutch name: trimmed, 1 to 80 characters.
+            ///   - nameEn: The new English name: trimmed, at most 80 characters. A blank text means none (and, in a change, clears it).
+            ///   - descriptionNl: The new Dutch description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///   - descriptionEn: The new English description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///   - trainerId: The new usual trainer’s team-member ID; `null` makes the class *Trainer nodig*; left out keeps it.
+            ///   - capacity: The new capacity, 1 to 100.
+            ///   - durationMinutes: The new duration, 15 to 240 minutes in steps of 5.
+            public init(
+                nameNl: Swift.String? = nil,
+                nameEn: Swift.String? = nil,
+                descriptionNl: Swift.String? = nil,
+                descriptionEn: Swift.String? = nil,
+                trainerId: Swift.String? = nil,
+                capacity: Swift.Int? = nil,
+                durationMinutes: Swift.Int? = nil
+            ) {
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+                self.descriptionNl = descriptionNl
+                self.descriptionEn = descriptionEn
+                self.trainerId = trainerId
+                self.capacity = capacity
+                self.durationMinutes = durationMinutes
+            }
+            public enum CodingKeys: String, CodingKey {
+                case nameNl
+                case nameEn
+                case descriptionNl
+                case descriptionEn
+                case trainerId
+                case capacity
+                case durationMinutes
+            }
+        }
+        /// A class on a date: a local date and start; the end follows from the class’s duration.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest`.
+        public struct ScheduleGroupClassDateRequest: Codable, Hashable, Sendable {
+            /// The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/localDate`.
+            public var localDate: Swift.String
+            /// The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/localStart`.
+            public var localStart: Swift.String
+            /// The trainer of this date, a team-member ID from `GET …/trainers`. Leave it out for the class’s usual trainer; `null` plans the date as *Trainer nodig*.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/trainerId`.
+            public var trainerId: Swift.String?
+            /// The capacity of this date, 1 to 100. Leave it out for the class’s.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/capacity`.
+            public var capacity: Swift.Int?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/surface`.
+            public var surface: Components.Schemas.ScheduleGroupClassDateRequest.SurfacePayload?
+            /// Creates a new `ScheduleGroupClassDateRequest`.
+            ///
+            /// - Parameters:
+            ///   - localDate: The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`.
+            ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
+            ///   - trainerId: The trainer of this date, a team-member ID from `GET …/trainers`. Leave it out for the class’s usual trainer; `null` plans the date as *Trainer nodig*.
+            ///   - capacity: The capacity of this date, 1 to 100. Leave it out for the class’s.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                localDate: Swift.String,
+                localStart: Swift.String,
+                trainerId: Swift.String? = nil,
+                capacity: Swift.Int? = nil,
+                surface: Components.Schemas.ScheduleGroupClassDateRequest.SurfacePayload? = nil
+            ) {
+                self.localDate = localDate
+                self.localStart = localStart
+                self.trainerId = trainerId
+                self.capacity = capacity
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case localDate
+                case localStart
+                case trainerId
+                case capacity
+                case surface
+            }
+        }
+        /// The date was changed since the version in the request; nothing was written. `session` is the date as it is now, to show the reloaded values. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ClassDateChanged`.
+        public struct ClassDateChanged: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/ClassDateChanged/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case classDateChanged = "class_date_changed"
+            }
+            /// - Remark: Generated from `#/components/schemas/ClassDateChanged/code`.
+            public var code: Components.Schemas.ClassDateChanged.CodePayload
+            /// - Remark: Generated from `#/components/schemas/ClassDateChanged/session`.
+            public var session: Components.Schemas.Session
+            /// Creates a new `ClassDateChanged`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            ///   - session:
+            public init(
+                code: Components.Schemas.ClassDateChanged.CodePayload,
+                session: Components.Schemas.Session
+            ) {
+                self.code = code
+                self.session = session
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case session
+            }
+        }
+        /// Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest`.
+        public struct UpdateGroupClassDateRequest: Codable, Hashable, Sendable {
+            /// The version of the date the change was made from (`Session.version`). If the date changed since, the answer is `409` and nothing is written.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/version`.
+            public var version: Swift.Int
+            /// The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/localStart`.
+            public var localStart: Swift.String?
+            /// The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/localEnd`.
+            public var localEnd: Swift.String?
+            /// The new capacity of this date, 1 to 100. Leave it out to keep it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/capacity`.
+            public var capacity: Swift.Int?
+            /// Creates a new `UpdateGroupClassDateRequest`.
+            ///
+            /// - Parameters:
+            ///   - version: The version of the date the change was made from (`Session.version`). If the date changed since, the answer is `409` and nothing is written.
+            ///   - localStart: The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it.
+            ///   - localEnd: The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
+            ///   - capacity: The new capacity of this date, 1 to 100. Leave it out to keep it.
+            public init(
+                version: Swift.Int,
+                localStart: Swift.String? = nil,
+                localEnd: Swift.String? = nil,
+                capacity: Swift.Int? = nil
+            ) {
+                self.version = version
+                self.localStart = localStart
+                self.localEnd = localEnd
+                self.capacity = capacity
+            }
+            public enum CodingKeys: String, CodingKey {
+                case version
+                case localStart
+                case localEnd
+                case capacity
             }
         }
         /// One page of the clients of a workspace.

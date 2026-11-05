@@ -98,6 +98,42 @@ extension StubAPI {
         fatalError("The app doesn't call getSession yet")
     }
 
+    func listGroupClasses(
+        _ input: Operations.ListGroupClasses.Input
+    ) async throws -> Operations.ListGroupClasses.Output {
+        fatalError("The app doesn't call listGroupClasses yet")
+    }
+
+    func createGroupClass(
+        _ input: Operations.CreateGroupClass.Input
+    ) async throws -> Operations.CreateGroupClass.Output {
+        fatalError("The app doesn't call createGroupClass yet")
+    }
+
+    func getGroupClass(
+        _ input: Operations.GetGroupClass.Input
+    ) async throws -> Operations.GetGroupClass.Output {
+        fatalError("The app doesn't call getGroupClass yet")
+    }
+
+    func updateGroupClass(
+        _ input: Operations.UpdateGroupClass.Input
+    ) async throws -> Operations.UpdateGroupClass.Output {
+        fatalError("The app doesn't call updateGroupClass yet")
+    }
+
+    func scheduleGroupClassDate(
+        _ input: Operations.ScheduleGroupClassDate.Input
+    ) async throws -> Operations.ScheduleGroupClassDate.Output {
+        fatalError("The app doesn't call scheduleGroupClassDate yet")
+    }
+
+    func updateGroupClassDate(
+        _ input: Operations.UpdateGroupClassDate.Input
+    ) async throws -> Operations.UpdateGroupClassDate.Output {
+        fatalError("The app doesn't call updateGroupClassDate yet")
+    }
+
     func getInvitation(
         _ input: Operations.GetInvitation.Input
     ) async throws -> Operations.GetInvitation.Output {

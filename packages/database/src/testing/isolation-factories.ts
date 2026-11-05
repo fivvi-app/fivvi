@@ -3,6 +3,7 @@ import type { DatabaseExecutor } from '../client.ts';
 import { locations, organizations, sessionParticipants, trainerProfiles } from '../schema/index.ts';
 import {
   addClient,
+  addGroupClass,
   addSession,
   addTeamRole,
   addTrainerInvitation,
@@ -93,6 +94,11 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
       });
       return addTrainerInvitation(db, { workspaceId, inviterTeamMemberId: inviter.id });
     },
+  },
+  // A class with no usual trainer (the trainer profile is its own row, covered by `trainer_profiles`).
+  group_classes: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addGroupClass(db, { workspaceId }),
   },
   // A private session with a trainer of the workspace, planned by an Owner of it, and its one client.
   sessions: {

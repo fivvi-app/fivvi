@@ -18,6 +18,7 @@ import {
   type DatabaseClient,
   type DatabaseExecutor,
   findSystemGreeting,
+  groupClasses,
   HELLO_GREETING,
   locations,
   organizations,
@@ -684,8 +685,8 @@ describe('E004 database', () => {
           });
           expect(session.minutes % 5).toBe(0);
         }
-        // Besides the week: Tuesday 22 September 2026 of the personal calendar (F013): six sessions, four with a client.
-        expect(await tx.$count(sessions)).toBe(week.length + 6);
+        // Besides the week: Tuesday 22 September 2026 of the personal calendar (F013): four private sessions, each with a client (and two group sessions).
+        expect(await tx.$count(sessions, eq(sessions.type, 'private'))).toBe(week.length + 4);
         expect(await tx.$count(sessionParticipants)).toBe(week.length + 4);
       });
     });
@@ -754,6 +755,141 @@ describe('E004 database', () => {
 
         expect(await tx.$count(sessions)).toBe(0);
         expect(await tx.$count(sessionParticipants)).toBe(0);
+      });
+    });
+  });
+
+  describe('F021 seed group classes', () => {
+    // Wednesday 4 November 2026: the week of Monday 2 November, in Amsterdam (CET, UTC+1).
+    const WEDNESDAY = new Date('2026-11-04T12:00:00Z');
+
+    function seededClasses(tx: DatabaseExecutor) {
+      return rows<{
+        name: string;
+        nameEn: string | null;
+        trainer: string | null;
+        capacity: number;
+        minutes: number;
+      }>(
+        tx,
+        sql`select gc.name_nl as name, gc.name_en as "nameEn", u.name as trainer, gc.capacity,
+                   gc.duration_minutes as minutes
+            from group_classes gc
+            join organizations o on o.id = gc.organization_id and o.slug = 'johns-gym'
+            left join trainer_profiles tp on tp.id = gc.default_trainer_profile_id
+            left join team_members tm on tm.id = tp.team_member_id
+            left join auth_users u on u.id = tm.account_id
+            order by gc.name_nl`,
+      );
+    }
+
+    function seededDates(tx: DatabaseExecutor) {
+      return rows<{
+        name: string;
+        day: string;
+        time: string;
+        minutes: number;
+        trainer: string | null;
+        capacity: number;
+        type: string;
+        location: string;
+      }>(
+        tx,
+        sql`select gc.name_nl as name,
+                   to_char(s.starts_at at time zone 'Europe/Amsterdam', 'YYYY-MM-DD') as day,
+                   to_char(s.starts_at at time zone 'Europe/Amsterdam', 'HH24:MI') as time,
+                   (extract(epoch from s.ends_at - s.starts_at) / 60)::int as minutes,
+                   u.name as trainer, s.capacity, s.type, l.name as location
+            from sessions s
+            join group_classes gc on gc.id = s.group_class_id
+            join locations l on l.id = s.location_id and l.is_default
+            left join trainer_profiles tp on tp.id = s.trainer_profile_id
+            left join team_members tm on tm.id = tp.team_member_id
+            left join auth_users u on u.id = tm.account_id
+            -- the dates of the synthetic weeks, not the two of the personal calendar's day (F013)
+            where s.starts_at >= '2026-11-01'
+            order by s.starts_at`,
+      );
+    }
+
+    it('AC12: gives John’s Gym three classes, one with an English name and one that needs a trainer', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+        await seed(tx, { now: WEDNESDAY });
+
+        const classes = await seededClasses(tx);
+        expect(classes).toHaveLength(3);
+        expect(classes.filter(({ nameEn }) => nameEn !== null)).toHaveLength(1);
+        expect(classes.filter(({ trainer }) => trainer === null)).toHaveLength(1);
+        expect(classes.find(({ nameEn }) => nameEn !== null)).toMatchObject({
+          name: 'Kracht',
+          nameEn: 'Strength',
+          trainer: 'Sarah',
+          capacity: 8,
+          minutes: 60,
+        });
+      });
+    });
+
+    it('AC12: schedules them in the synthetic week at the default location, copying the class', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+        await seed(tx, { now: WEDNESDAY });
+
+        const dates = await seededDates(tx);
+        expect(dates.length).toBeGreaterThanOrEqual(3);
+        for (const date of dates) {
+          expect(date).toMatchObject({ type: 'group', location: "John's Gym" });
+          expect(date.day >= '2026-11-02' && date.day <= '2026-11-06').toBe(true);
+        }
+        expect(new Set(dates.map(({ name }) => name)).size).toBe(3);
+        // Every date copied its class: the trainer, the capacity and the length.
+        const classes = await seededClasses(tx);
+        for (const date of dates) {
+          const own = classes.find(({ name }) => name === date.name);
+          expect(date).toMatchObject({
+            trainer: own?.trainer,
+            capacity: own?.capacity,
+            minutes: own?.minutes,
+          });
+        }
+        // A class that needs a trainer is scheduled without one.
+        expect(dates.some(({ trainer }) => trainer === null)).toBe(true);
+        // Wall-clock times, local to the workspace: Kracht at 18:00.
+        expect(dates.find(({ name }) => name === 'Kracht')?.time).toBe('18:00');
+      });
+    });
+
+    it('AC12: seeds the dates of the next week when the seed runs in it, once per week, and the classes once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+        const first = (await seededDates(tx)).length;
+        await seed(tx, { now: new Date('2026-11-11T12:00:00Z') });
+        await seed(tx, { now: new Date('2026-11-11T12:00:00Z') });
+
+        expect((await seededDates(tx)).length).toBe(first * 2);
+        expect(await seededClasses(tx)).toHaveLength(3);
+      });
+    });
+
+    it('AC12: leaves a class an Owner renamed alone and does not make it again', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+        await tx
+          .update(groupClasses)
+          .set({ capacity: 20 })
+          .where(eq(groupClasses.nameNl, 'Kracht'));
+        await seed(tx, { now: WEDNESDAY });
+
+        expect((await seededClasses(tx)).find(({ name }) => name === 'Kracht')?.capacity).toBe(20);
+      });
+    });
+
+    it('AC12: seeds no class in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true, now: WEDNESDAY });
+
+        expect(await tx.$count(groupClasses)).toBe(0);
       });
     });
   });

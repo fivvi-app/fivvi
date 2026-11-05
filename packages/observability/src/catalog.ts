@@ -56,6 +56,16 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F021: an Owner created a class, or put one on a date. The workspace ID only (the account's
+  // UUID is the distinct ID): no class or session ID, name, description, trainer, date or time.
+  class_created: {
+    workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
+  class_scheduled: {
+    workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
   // F011: the invited person accepted, or declined, the invitation. The workspace ID only (the
   // account's UUID is the distinct ID): not the invitation's ID, the person's name or email
   // address, the Owner who invited, and never the token.
