@@ -71,13 +71,10 @@ use_xcode || die "Xcode not found — run scripts/bootstrap.sh --mobile"
 cd "$IOS_DIR"
 
 # Every line of a fixture marked `// expect: <rule>` must fail SwiftLint with that rule, naming the file and line; no
-# other line may fail with it.
-lint_fixture() {
-  local fixture=$1 rule=$2 out expected actual
-  if out="$("$SWIFTLINT" lint --strict --quiet "$fixture" 2>&1)"; then
-    echo "SwiftLint passed $fixture, which breaks $rule"
-    return 1
-  fi
+# other line may fail with it. `lint_fixture` lints the fixture by path; `fixture_lines_match` compares a fixture with the
+# output of a lint run that may cover more files.
+fixture_lines_match() {
+  local fixture=$1 rule=$2 out=$3 expected actual
   expected="$(grep -n "// expect: $rule\$" "$fixture" | cut -d: -f1)"
   actual="$(grep "($rule)" <<<"$out" | grep -oE "$(basename "$fixture"):[0-9]+" | cut -d: -f2 | sort -nu)"
   [ "$expected" = "$actual" ] && return
@@ -86,30 +83,47 @@ lint_fixture() {
   return 1
 }
 
+lint_fixture() {
+  local fixture=$1 rule=$2 out
+  if out="$("$SWIFTLINT" lint --strict --quiet "$fixture" 2>&1)"; then
+    echo "SwiftLint passed $fixture, which breaks $rule"
+    return 1
+  fi
+  fixture_lines_match "$fixture" "$rule" "$out"
+}
+
 # E017 #500: the lint rules apply to the code both apps share (apps/ios/Packages), not only to the app target. Each fixture
-# is copied into a package target folder as a throwaway probe and linted there: the literal-text, colour and Sentry rules
-# must flag it, and the Observability target, the one place that talks to Sentry, must not be flagged for the Sentry
-# fixture. The probes and the folders that held only them are removed again.
+# is copied into a package target folder as a throwaway probe, and the configuration's own lint (`included:` in
+# .swiftlint.yml, no path given: SwiftLint ignores `included:` for a path it is given) must flag it: the literal-text,
+# colour and Sentry rules in FivviUI, and in FivviObservability, the one target that may import Sentry, the Sentry rule
+# must not fire (a literal text line there proves the config does lint that folder). The probes are removed on exit.
+PACKAGE_PROBES=""
 lint_packages() {
   local sources=Packages/FivviShared/Sources ui observability out rc=0
   ui="$sources/FivviUI"
   observability="$sources/FivviObservability"
-  mkdir -p "$ui" "$observability"
+  [ -d "$ui" ] && [ -d "$observability" ] || { echo "$ui and $observability must exist"; return 1; }
+  PACKAGE_PROBES="$ui/ZzProbe*.swift $observability/ZzProbe*.swift"
+  # shellcheck disable=SC2016 # expanded when the trap runs
+  on_exit 'rm -f $PACKAGE_PROBES'
   cp lint/fixtures/LiteralText.swift "$ui/ZzProbeLiteralText.swift"
   cp lint/fixtures/ColourLiteral.swift "$ui/ZzProbeColourLiteral.swift"
   cp lint/fixtures/DirectSentry.swift "$ui/ZzProbeDirectSentry.swift"
-  sed 's# // expect: .*$##' lint/fixtures/DirectSentry.swift >"$observability/ZzProbeSentry.swift"
-  lint_fixture "$ui/ZzProbeLiteralText.swift" no_literal_text || rc=1
-  lint_fixture "$ui/ZzProbeColourLiteral.swift" no_colour_literal || rc=1
-  lint_fixture "$ui/ZzProbeDirectSentry.swift" no_direct_sentry || rc=1
-  out="$("$SWIFTLINT" lint --strict --quiet "$observability/ZzProbeSentry.swift" 2>&1 || true)"
-  if grep -q "(no_direct_sentry)" <<<"$out"; then
+  { sed 's# // expect: .*$##' lint/fixtures/DirectSentry.swift; echo 'let probe = Text("x") // expect: no_literal_text'; } \
+    >"$observability/ZzProbeSentry.swift"
+  out="$("$SWIFTLINT" lint --strict --quiet 2>&1 || true)"
+  fixture_lines_match "$ui/ZzProbeLiteralText.swift" no_literal_text "$out" || rc=1
+  fixture_lines_match "$ui/ZzProbeColourLiteral.swift" no_colour_literal "$out" || rc=1
+  fixture_lines_match "$ui/ZzProbeDirectSentry.swift" no_direct_sentry "$out" || rc=1
+  fixture_lines_match "$observability/ZzProbeSentry.swift" no_literal_text "$out" || rc=1
+  if grep -F ZzProbeSentry.swift <<<"$out" | grep -q "(no_direct_sentry)"; then
     echo "SwiftLint flags the Sentry import in FivviObservability, the one target that may have it:"
     echo "$out"
     rc=1
   fi
-  rm -f "$ui"/ZzProbe*.swift "$observability"/ZzProbe*.swift
-  rmdir "$ui" "$observability" "$sources" Packages/FivviShared Packages 2>/dev/null || true
+  # shellcheck disable=SC2086 # the probe paths, split on purpose
+  rm -f $PACKAGE_PROBES
+  ON_EXIT=""
   return "$rc"
 }
 

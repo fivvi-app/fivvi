@@ -1676,12 +1676,23 @@ setInterval(() => {}, 1000);\n`,
     const swiftlint = readFileSync(join(SCRIPTS, '_ios.sh'), 'utf8').match(
       /^SWIFTLINT_VERSION=(\S+)/m,
     )[1];
-    // SwiftLint flags exactly the fixture lines marked `// expect: <rule>`, as the real rules must.
+    // The folders of the shared package that the lint probe of test-ios.sh (E017 #500) drops its files into.
+    for (const target of ['FivviUI', 'FivviObservability']) {
+      const folder = join(repo, 'apps/ios/Packages/FivviShared/Sources', target);
+      mkdirSync(folder, { recursive: true });
+      writeFileSync(join(folder, '.gitkeep'), ''); // git keeps no empty folder, and a worktree is made from a commit
+    }
+    // SwiftLint flags exactly the fixture lines marked `// expect: <rule>`, as the real rules must: in the files it is
+    // given, or, given none, in the files of the configuration's `included:` that the probe uses (Packages).
     script(
       join(repo, `apps/ios/.build/swiftlint-${swiftlint}/swiftlint`),
-      `for arg; do case "$arg" in *.swift)
-  grep -n '// expect: [a-z_]*$' "$arg" | while IFS=: read -r line text; do echo "$arg:$line:1: error: (\${text##*expect: })"; done
-  exit 2 ;; esac; done`,
+      `files=""
+for arg; do case "$arg" in *.swift) files="$files $arg" ;; esac; done
+[ -n "$files" ] || files="$(find Packages -name '*.swift')"
+for file in $files; do
+  grep -n '// expect: [a-z_]*$' "$file" | while IFS=: read -r line text; do echo "$file:$line:1: error: (\${text##*expect: })"; done
+done
+[ -z "$files" ] || exit 2`,
     );
     script(
       join(repo, 'apps/android/gradlew'),

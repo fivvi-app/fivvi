@@ -6,11 +6,11 @@ import PackageDescription
 // API client (packages/contract/swift), the design tokens (packages/design-tokens/FivviDesignTokens) and the string
 // catalogs (packages/i18n). See apps/ios/README.md, "Packages".
 //
-// Dependencies run one way: FivviStrings <- FivviSession <- FivviLanguage <- FivviUI <- FivviSignIn; FivviObservability
-// stands alone, and is the only target that imports Sentry (SwiftLint's `no_direct_sentry`).
+// Dependencies run one way: FivviStrings is the base; FivviLanguage builds on FivviStrings and FivviSession, FivviUI on
+// FivviStrings, and FivviSignIn on all four; FivviObservability stands alone, and is the only target that imports Sentry
+// (SwiftLint's `no_direct_sentry`).
 let package = Package(
     name: "FivviShared",
-    defaultLocalization: "nl",
     platforms: [.iOS(.v17)],
     products: [
         .library(name: "FivviStrings", targets: ["FivviStrings"]),
@@ -41,7 +41,6 @@ let package = Package(
         .target(
             name: "FivviSession",
             dependencies: [
-                "FivviStrings",
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
                 .product(name: "HTTPTypes", package: "swift-http-types")
             ]

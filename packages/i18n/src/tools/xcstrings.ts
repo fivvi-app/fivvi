@@ -67,7 +67,7 @@ export function renderStringCatalogsPackage(): string {
     'let package = Package(',
     '    name: "FivviStringCatalogs",',
     '    defaultLocalization: "nl",',
-    '    platforms: [.iOS(.v17), .macOS(.v14)],',
+    '    platforms: [.iOS(.v17)],',
     '    products: [',
     '        .library(name: "FivviStringCatalogs", targets: ["FivviStringCatalogs"])',
     '    ],',

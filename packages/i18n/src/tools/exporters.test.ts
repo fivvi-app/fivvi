@@ -364,6 +364,7 @@ describe('E008 iOS InfoPlist String Catalog exporter', () => {
       const manifest = files.get('generated/ios/Package.swift');
       expect(manifest).toBe(renderStringCatalogsPackage());
       expect(manifest).toContain('defaultLocalization: "nl"');
+      expect(manifest).toContain('platforms: [.iOS(.v17)],');
       expect(manifest).toContain('.library(name: "FivviStringCatalogs"');
       expect(manifest).toContain('path: "."');
       expect(manifest).toContain('sources: ["FivviStringCatalogs.swift"]');
