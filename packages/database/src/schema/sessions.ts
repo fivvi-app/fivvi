@@ -42,9 +42,9 @@ export const attendanceStatus = pgEnum('attendance_status', [
  *   blocked by their sessions. Reassigning is the Owner's call (F026 follow-up).
  * - `created_by_team_member_id` is who planned it, cleared the same way when that team member is
  *   removed.
- * - `updated_by_team_member_id` is who changed it last: the planner at first, then whoever
- *   reschedules it (AC8: a stale save is told who changed the session meanwhile). Cleared the same
- *   way when that team member is removed.
+ * - `updated_by_team_member_id` is who changed a private session last: the planner at first, then
+ *   whoever reschedules it (AC8: a stale save is told who changed the session meanwhile). Group
+ *   dates don't set it. Cleared the same way when that team member is removed.
  * - `group_class_id` is the class of a group session (F021: required for `type = group`, a check)
  *   and empty for the other kinds. The date keeps its own trainer, capacity, start and end.
  * - `series_id` is empty here; recurring series (F022) point it at their series without a

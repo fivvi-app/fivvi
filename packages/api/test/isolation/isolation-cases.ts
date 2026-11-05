@@ -37,10 +37,10 @@ export interface IsolationCase {
   ): Promise<Record<string, string>>;
   /**
    * The route changes the record it names, or what the caller may do with it depends on the caller
-   * (a Trainer reschedules only their own session, F020; a date edit raises its version, F021): the seed runs again before every call,
-   * for that call's caller (`callerAccountId`, left out for the anonymous caller and for the first
-   * round of seeds), so each call starts from a record it may change. Like a `DELETE`, which is
-   * always seeded again.
+   * (a Trainer reschedules only their own session, F020; a date edit raises its version, F021): the
+   * seed runs again before every call, for that call's caller (`callerAccountId`, left out for the
+   * anonymous caller and for the first round of seeds), so each call starts from a record it may
+   * change. Like a `DELETE`, which is always seeded again.
    */
   reseedForEachCall?: true;
   /** Path parameters other than `workspaceId`: the parameter's name, and the seeded value to put there. */
