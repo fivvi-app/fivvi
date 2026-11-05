@@ -566,8 +566,9 @@
         h += e.sets.map(function (s, si) {
           var vals = lay.inp.map(function (fd) { return '<input class="' + fd[2] + '" inputmode="' + fd[1] + '" value="' + esc(s.v[fd[0]]) + '" data-ls="' + ei + "," + si + "," + fd[0] + '" aria-label="' + esc(e.name) + ", set " + (si + 1) + ", " + fd[4] + '"' + (s.done ? " readonly" : "") + ">" + (fd[3] ? '<span class="sep">' + fd[3] + "</span>" : ""); }).join("");
           var canRemove = !s.done && e.sets.length > 1;
-          return '<div class="set c ' + (s.done ? "done" : "") + '">' + (canRemove ? '<button class="sn" data-a="set-remove-ask" data-e="' + ei + '" data-s="' + si + '" aria-label="Set ' + (si + 1) + ' verwijderen">' + (si + 1) + "</button>" : '<span class="sn">' + (si + 1) + "</span>") +
-            '<span class="pv">' + (e.prev[si] ? esc(e.prev[si]) : "–") + '</span><span class="vals">' + vals + '</span><button class="tick ' + (s.done ? "on" : "") + '" data-a="tick" data-e="' + ei + '" data-s="' + si + '" aria-label="' + esc(e.name) + ", set " + (si + 1) + (s.done ? " weer openzetten" : " klaar") + '">' + ic("check") + "</button></div>";
+          return '<div class="sw-row' + (canRemove ? " can" : "") + '" data-e="' + ei + '" data-s="' + si + '">' + (canRemove ? '<button class="sw-del" data-a="do-remove-set-now" data-e="' + ei + '" data-s="' + si + '" tabindex="-1">Verwijderen</button>' : "") +
+            '<div class="set c ' + (s.done ? "done" : "") + '">' + (canRemove ? '<button class="sn" data-a="set-remove-ask" data-e="' + ei + '" data-s="' + si + '" aria-label="Set ' + (si + 1) + ' verwijderen">' + (si + 1) + "</button>" : '<span class="sn">' + (si + 1) + "</span>") +
+            '<span class="pv">' + (e.prev[si] ? esc(e.prev[si]) : "–") + '</span><span class="vals">' + vals + '</span><button class="tick ' + (s.done ? "on" : "") + '" data-a="tick" data-e="' + ei + '" data-s="' + si + '" aria-label="' + esc(e.name) + ", set " + (si + 1) + (s.done ? " weer openzetten" : " klaar") + '">' + ic("check") + "</button></div></div>";
         }).join("");
         h += '<div class="lg-f">' + btn("Set", { k: "ghost", sm: true, a: "set-add", d: { e: ei }, i: "plus" }) + '<div class="diff" role="group" aria-label="Hoe ging het?">' + [["e", "😌", "Makkelijk"], ["n", "🙂", "Normaal"], ["h", "🥵", "Zwaar"]].map(function (x) { return '<button class="' + (e.diff === x[0] ? "on" : "") + '" data-a="diff" data-e="' + ei + '" data-v="' + x[0] + '" aria-label="' + x[2] + '" aria-pressed="' + (e.diff === x[0]) + '" title="' + x[2] + '"><span aria-hidden="true">' + x[1] + "</span></button>"; }).join("") + '<button class="info" data-a="info" data-n="diff" aria-label="Wat betekent dit?">' + ic("info") + "</button></div></div></div>";
         return h;
@@ -829,6 +830,7 @@
     },
     "set-add": function (d) { var e = S.log.ex[d.e], last = e.sets[e.sets.length - 1]; e.sets.push({ v: last.v.slice(), done: false }); if (S.log.tpl) S.log.changed = true; render(); },
     "set-remove-ask": function (d) { S.alert = { n: "removeSet", e: d.e, s: d.s }; render(); },
+    "do-remove-set-now": function (d) { removeSet(d.e, d.s); },
     "do-remove-set": function () { S.log.ex[S.alert.e].sets.splice(+S.alert.s, 1); if (S.log.tpl) S.log.changed = true; S.alert = null; render(); },
     "set-remove": function (d) { S.log.ex[d.e].sets.splice(+d.s, 1); if (S.log.tpl) S.log.changed = true; render(); },
     "ex-remove": function (d) { var e = S.log.ex[d.e]; if (e.sets.some(function (s) { return s.done; })) { S.alert = { n: "removeEx", e: d.e }; render(); return; } S.log.ex.splice(+d.e, 1); if (S.log.tpl) S.log.changed = true; render(); },
@@ -839,10 +841,12 @@
     "add-ex": function (d) { var e = D.library.filter(function (l) { return l.n === d.n; })[0]; S.log.ex.push(mkEx(e)); if (S.log.tpl) S.log.changed = true; S.log.step = "log"; S.scrollBottom = true; render(); },
     "add-ex-new": function () { var n = S.exq.trim() || "Nieuwe oefening"; S.log.ex.push(mkEx({ n: n.charAt(0).toUpperCase() + n.slice(1), ty: "wr" })); if (S.log.tpl) S.log.changed = true; S.log.step = "log"; S.scrollBottom = true; toast("Oefening aangemaakt. Je vindt hem voortaan onder Jouw oefeningen."); }
   };
+  function removeSet(e, s) { S.log.ex[e].sets.splice(+s, 1); if (S.log.tpl) S.log.changed = true; render(); }
   function finishLog() { var L = S.log, it = findItem(L.item).it; it.wstate = "done"; it.att = "yes"; delete S.logs[L.item]; L.step = "share"; S.anim = null; render(); if (L.saveTpl) toast("Training opgeslagen. Schema " + (L.tplName || "nieuw") + " staat klaar."); }
 
   /* ---------- Events ---------- */
   function onClick(e) {
+    if (swDragged) { e.preventDefault(); return; }
     var el = e.target.closest("[data-a]");
     if (!el || el.disabled) return;
     if (el.closest(".panel")) return;
@@ -870,6 +874,37 @@
       render();
     }
     if (t.dataset.f === "date" && S.sheet === "newClass") render();
+  }
+  var sw = null, swDragged = false, SW_OPEN = 104;
+  function swClose(except) { dev.querySelectorAll(".sw-row.open").forEach(function (o) { if (o !== except) { o.classList.remove("open"); o.querySelector(".set").style.transform = ""; } }); }
+  function onSwDown(e) {
+    var r = e.target.closest(".sw-row"); swClose(r);
+    if (!r || !r.classList.contains("can") || e.target.closest(".sw-del")) return;
+    sw = { r: r, x: e.clientX, y: e.clientY, base: r.classList.contains("open") ? -SW_OPEN : 0, dx: 0, on: false, id: e.pointerId };
+  }
+  function onSwMove(e) {
+    if (!sw) return;
+    var dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+    if (!sw.on) {
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) { sw.on = true; sw.r.classList.add("dragging"); try { sw.r.setPointerCapture(sw.id); } catch (x) { /* not capturable */ } }
+      else if (Math.abs(dy) > 8) { sw = null; return; } else return;
+    }
+    sw.dx = Math.min(0, sw.base + dx);
+    sw.r.querySelector(".set").style.transform = "translateX(" + sw.dx + "px)";
+    sw.r.classList.toggle("full-swipe", sw.dx < -sw.r.offsetWidth * 0.6);
+    e.preventDefault();
+  }
+  function onSwUp() {
+    if (!sw) return;
+    var r = sw.r, row = r.querySelector(".set");
+    r.classList.remove("dragging", "full-swipe");
+    if (sw.on) {
+      swDragged = true; setTimeout(function () { swDragged = false; }, 60);
+      if (sw.dx < -r.offsetWidth * 0.6) removeSet(r.dataset.e, r.dataset.s);
+      else if (sw.dx < -48) { r.classList.add("open"); row.style.transform = "translateX(" + -SW_OPEN + "px)"; }
+      else { r.classList.remove("open"); row.style.transform = ""; }
+    }
+    sw = null;
   }
   var lastY = 0;
   function onScroll(e) {
@@ -955,6 +990,10 @@
     dev.addEventListener("input", onInput);
     dev.addEventListener("change", onChange);
     dev.addEventListener("scroll", onScroll, true);
+    dev.addEventListener("pointerdown", onSwDown);
+    dev.addEventListener("pointermove", onSwMove);
+    dev.addEventListener("pointerup", onSwUp);
+    dev.addEventListener("pointercancel", onSwUp);
     dev.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && e.target.getAttribute("role") === "button") { e.preventDefault(); e.target.click(); } });
     setInterval(function () {
       if (S.log) dev.querySelectorAll("[data-timer]").forEach(function (t) { t.textContent = elapsed(); });

@@ -528,3 +528,11 @@ input:focus,select:focus,textarea:focus{outline:none}
 .card.desc p{margin:0;font-size:16px;line-height:22px}
 .card.desc p.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .card.desc .btn{padding:0;height:34px}
+/* Swipe a set left to delete (iOS swipe action; Compose SwipeToDismissBox on Android) */
+.sw-row{position:relative;overflow:hidden}
+.sw-row .set{position:relative;z-index:1;background:var(--card);transition:transform .22s cubic-bezier(.2,.8,.2,1);touch-action:pan-y}
+.android .sw-row .set{background:var(--m-c)}
+.sw-row.dragging .set{transition:none}
+.sw-del{position:absolute;top:4px;bottom:4px;right:8px;width:92px;border:0;border-radius:14px;background:var(--danger);color:#fff;font-weight:600;font-size:14px;transition:width .15s}
+.sw-row.full-swipe .sw-del{width:calc(100% - 16px)}
+.android .sw-del{border-radius:12px;background:#BA1A1A}
