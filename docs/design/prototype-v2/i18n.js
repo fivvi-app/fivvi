@@ -14,6 +14,8 @@ window.FIVVI_I18N = (function () {
     [/^(.+) krijgt een e-mail met de nieuwe tijd\.$/, "$1 will get an email with the new time."],
     [/^De (\d+) geboekte klanten krijgen een e-mail\. Je kunt er een bericht bij zetten op het web\.$/, "The $1 booked clients will get an email. You can add a message on the web."],
     [/^(.+) heeft (\d+) gelogde sets?\. Toch verwijderen\?$/, function (m, a, n) { return P(a) + " has " + n + (n === "1" ? " logged set" : " logged sets") + ". Remove it anyway?"; }],
+    [/^Set (\d+) verwijderen\?$/, "Remove set $1?"],
+    [/^(.+) houdt (\d+) sets?\.$/, function (m, a, n) { return P(a) + " keeps " + n + (n === "1" ? " set." : " sets."); }],
     [/^(.+) verwijderen\?$/, function (m, a) { return "Remove " + P(a) + "?"; }],
     [/^(.+) verwijderen$/, function (m, a) { return "Remove " + P(a); }],
     [/^Alleen trainers van (.+) zien dit\. De klant niet\.$/, "Only trainers at $1 see this. The client doesn't."],
@@ -38,7 +40,7 @@ window.FIVVI_I18N = (function () {
     [/^Bezig · gestart om (.+)$/, "In progress · started at $1"],
     [/^Elke week op (\S+)$/, function (m, d) { return "Every week on " + P(d); }],
     [/^Training opgeslagen\. Schema (.+) staat klaar\.$/, "Workout saved. Template $1 is ready."],
-    [/^(\d+) oefeningen · (\d+) sets klaar$/, "$1 exercises · $2 sets done"],
+    [/^(\d+) oefeningen · (\d+) (sets?) klaar$/, "$1 exercises · $2 $3 done"],
     [/^Voeg de eerste oefening toe\. Wat (.+) eerder deed, staat bovenaan\.$/, "Add the first exercise. What $1 did before is at the top."],
     [/^(.+) \(aangepast\)$/, "$1 (edited)"],
     [/^(.+) blijft zoals het was\.$/, "$1 stays as it was."],
@@ -53,6 +55,10 @@ window.FIVVI_I18N = (function () {
   /* Phrases and words, replaced on letter boundaries, longest first. */
   var PH = {
     /* app frame */
+    "Beschrijving in het Engels": "Description in English", "Beschrijving": "Description", "Minder": "Less",
+    "Wat doe je in deze les? Dit zien klanten op je boekingspagina.": "What happens in this class? Clients see this on your booking page.",
+    "Zonder Engelse tekst zien Engelstalige klanten de Nederlandse. Studio Fit, Kerkstraat 12. Een vaste reeks beheer je op het web.": "Without English text, English-speaking clients see the Dutch. Studio Fit, Kerkstraat 12. A series is managed on the web.",
+    "Vorige": "Previous", "tijd": "time", "Set": "Set",
     "Je dag in ringen": "Your day in rings", "Jouw sessies van vandaag.": "Your sessions today.",
     "Privésessies die al voorbij zijn, van het totaal vandaag.": "Private sessions that are already over, out of today's total.",
     "klaar": "done", "plekken": "spots",

@@ -499,3 +499,32 @@ input:focus,select:focus,textarea:focus{outline:none}
 .android .acc-go{background:var(--m-primary);color:var(--m-on-primary)}
 .android.has-acc .fab{bottom:162px}
 .acc-t small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ---------- Compact logger: one row per set ---------- */
+.lg-ex{padding:12px 0 8px}
+.lg-h{padding:0 14px 6px;gap:10px;align-items:center}
+.lg-h .no{width:26px;height:26px;font-size:13px;margin-top:0}
+.lg-h .m b{font-size:17px}
+.lg-h .m span{font-size:13px}
+.lg-h .x{padding:2px}
+.lg-cols,.set.c{display:grid;grid-template-columns:30px minmax(0,1fr) auto 44px;gap:8px;align-items:center;padding:0 14px}
+.lg-cols{font-size:11px;font-weight:600;color:var(--label2);text-transform:uppercase;letter-spacing:.03em;padding-top:2px;padding-bottom:2px}
+.lg-cols .vals,.set.c .vals{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.lg-cols .vals span{text-align:center}
+.set.c{min-height:50px;padding-top:3px;padding-bottom:3px}
+.set.c .sn{width:30px;height:30px;border-radius:50%;border:0;background:none;font-weight:700;color:var(--label2);font-variant-numeric:tabular-nums;display:grid;place-items:center;padding:0;font-size:15px}
+.set.c button.sn{background:var(--fill)}
+.set.c .pv{font-size:14px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.set.c input{height:42px;border-radius:12px;font-size:18px;padding:0}
+.w{width:64px}.n{width:48px}.s{width:40px}.ts{width:94px}
+.set.c input.w{width:64px}.set.c input.n{width:48px}.set.c input.s{width:40px}
+.set.c .sep{color:var(--label2);font-weight:700;margin:0 -3px}
+.set.c .tick{width:44px;height:44px}
+.set.c .tick svg{width:22px;height:22px}
+.lg-f{padding-top:6px}
+.diff button:not(.info){width:42px;height:42px;font-size:21px}
+.diff .info{width:40px;height:40px}
+.android .set.c button.sn{background:var(--m-c-high);border-radius:10px}
+.card.desc{padding:14px 16px 6px}
+.card.desc p{margin:0;font-size:16px;line-height:22px}
+.card.desc p.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card.desc .btn{padding:0;height:34px}

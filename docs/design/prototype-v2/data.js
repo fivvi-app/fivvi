@@ -67,6 +67,16 @@ window.FIVVI_DATA = (function () {
     [["group", "10:00", "11:00", "Mobility", 14, 6]]
   ];
 
+  /* Class descriptions, typed by the owner in Dutch with an optional English version (PRODUCT.md §18). */
+  var descriptions = {
+    Strength: { nl: "Krachttraining in een kleine groep. We werken aan squat, deadlift en drukken, met aandacht voor techniek. Voor elk niveau: je kiest zelf je gewicht.", en: "Strength training in a small group. We work on squat, deadlift and pressing, with attention to technique. For every level: you choose your own weight." },
+    HIIT: { nl: "Korte, intensieve intervallen met je eigen lichaamsgewicht en kettlebells. Pittig, maar je bepaalt zelf het tempo.", en: "Short, intense intervals with bodyweight and kettlebells. Tough, but you set your own pace." },
+    Kracht: { nl: "Kracht opbouwen met vrije gewichten. Rustig tempo, veel aandacht voor houding.", en: "" },
+    Spinning: { nl: "45 minuten fietsen op muziek, met heuvels en sprints.", en: "45 minutes of cycling to music, with hills and sprints." },
+    Bootcamp: { nl: "Buiten trainen in het park als het droog is, binnen als het regent. Neem water mee.", en: "Outdoor training in the park when it's dry, indoors when it rains. Bring water." },
+    Mobility: { nl: "Rustige les voor soepele heupen, schouders en rug. Fijn naast krachttraining.", en: "A calm class for supple hips, shoulders and back. A good match for strength training." }
+  };
+
   var templates = { anna: ["Upper A", "Lower A"], other: ["Full body", "Upper B", "Lower B", "Core & conditie"] };
 
   /* Library: n = Dutch, en = English alias, ty = wr (weight × reps), r (reps), t (time), dt (distance + time). */
@@ -94,10 +104,10 @@ window.FIVVI_DATA = (function () {
       { name: "Kabel roeien", ty: "wr", target: "Doel: 3 × 10", prev: ["45 × 10", "45 × 10", "45 × 10"], sets: [["47,5", "10"], ["47,5", "10"], ["47,5", "10"]] },
       { name: "Dumbbell schouderdrukken", ty: "wr", target: "Doel: 2 × 10", prev: ["14 × 10", "14 × 10"], sets: [["14", "10"], ["14", "10"]] },
       { name: "Plank", ty: "t", target: "Doel: 3 × 0:45", prev: ["0:45", "0:45", "0:40"], sets: [["0", "45"], ["0", "45"], ["0", "45"]] },
-      { name: "Roeien", ty: "dt", target: "Doel: 1 × 500 m", prev: ["500 m · 1:52"], sets: [["500", "1", "50"]] }
+      { name: "Roeien", ty: "dt", target: "Doel: 1 × 500 m", prev: ["500 · 1:52"], sets: [["500", "1", "50"]] }
     ];
   }
 
   return { me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history,
-    progress: progress, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
+    progress: progress, descriptions: descriptions, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
 })();
