@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fivvi Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,400..800&family=Nunito:wght@700..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="board">
+  <aside class="panel" id="panel" aria-label="Prototype-instellingen">
+    <div class="brand">Fivvi prototype<small>Ronde 1: de Fivvi Pro-app · fictieve gegevens · nu is do 5 nov, 10:05</small></div>
+    <div class="ctl"><span>Platform</span><div class="bseg"><button data-pref="plat" data-v="ios">iOS</button><button data-pref="plat" data-v="android">Android</button></div></div>
+    <div class="ctl"><span>Accent</span><div class="sw" id="sw"></div></div>
+    <div class="ctl"><span>Weergave</span><div class="bseg"><button data-pref="mode" data-v="light">Licht</button><button data-pref="mode" data-v="dark">Donker</button></div></div>
+    <div class="ctl"><span>Glas (iOS)</span><div class="bseg"><button data-pref="glass" data-v="clear">Helder</button><button data-pref="glass" data-v="regular">Normaal</button><button data-pref="glass" data-v="tinted">Getint</button></div></div>
+    <div class="ctl"><span>Rol bij Studio Fit</span><div class="bseg"><button data-pref="role" data-v="owner">Eigenaar</button><button data-pref="role" data-v="trainer">Trainer</button></div></div>
+    <button class="reset" data-reset>Opnieuw beginnen</button>
+    <p class="note">Tik door de app zoals op je telefoon. Alles wat je toevoegt of wijzigt, blijft tot je opnieuw begint. Ga direct naar een scherm:</p>
+    <div class="idx" id="idx"></div>
+  </aside>
+  <main class="stage mk" id="mk" data-mode="light"><div class="dev ios" id="dev" aria-live="polite"></div></main>
+  <button class="mobile-fab" id="mfab" aria-label="Prototype-instellingen">⚙</button>
+</div>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
