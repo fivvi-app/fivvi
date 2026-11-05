@@ -750,10 +750,11 @@
     var ds = it.type === "group" ? desc(it.title) : null, sp = spots ? '<span class="c-spots' + (spotsLeft(it) <= 2 || spots === "Vol" ? " low" : "") + '">' + spots + "</span>" : "";
     /* Android: the shaped avatar per session type, as in Fivvi Pro; the time moves into the line */
     if (F.PREF.plat === "android") return K.row({ a: "c-open", d: { id: it.id }, style: "--c:" + F.CV[it.type], lead: K.shape(K.SHAPE[it.type], F.CV[it.type], it.type === "priv" ? F.initials(cwho(it)) : it.type === "gym" ? "OG" : it.title[0]),
-      title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title) + F.lvlTag(it, true), sub: it.s + "–" + it.e + " · " + (it.type === "priv" ? "met " + esc(cwho(it).split(" ")[0]) : esc(cwho(it))), small: sp, tr: tr, cls: "c-row" + (spots != null ? " c-act" : "") });
+      title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title) + F.lvlTag(it, true), sub: it.s + "–" + it.e, small: (it.type === "priv" ? "met " + esc(cwho(it).split(" ")[0]) : esc(cwho(it))) + (sp ? "<br>" + sp : ""), tr: tr, cls: "c-row" + (spots != null ? " c-act" : "") });
     return K.row({ a: "c-open", d: { id: it.id }, style: "--c:" + F.CV[it.type], lead: '<div class="t"><b>' + it.s + "</b><span>" + it.e + '</span></div><i class="bar"></i>',
       title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title) + F.lvlTag(it, true), sub: it.type === "priv" ? "Met " + esc(cwho(it).split(" ")[0]) + (it.duo ? " · samen met " + esc(F.CLIENT[mate(it)].name.split(" ")[0]) : " · " + esc(shortLoc(it.loc))) : esc(cwho(it)),
-      small: sp + (sp && ds ? " · " : "") + (ds ? '<span translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</span>" : ""), tr: tr, cls: "c-row" + (spots != null ? " c-act" : ""), chev: spots == null });
+      /* no description in a list: cut to one line it ends in "…"; the class page shows it whole (owner, 5 Nov 2026) */
+      small: sp, tr: tr, cls: "c-row" + (spots != null ? " c-act" : ""), chev: spots == null });
   }
   function mate(it) { return it.client === C().who ? it.duo : it.client; }
   function dayName(k) { var d = F.parse(k), t = F.key(F.add(F.NOW, 1)); return k === F.TODAY ? "Vandaag" : k === t ? "Morgen" : F.longDate(d); }
@@ -817,7 +818,7 @@
     var h = '<div class="c-me">' + K.avatar(me.name, anna ? me.c : "var(--priv)", "lg") + "<h1>" + esc(me.name) + "</h1><p>" + esc(me.email) + "</p></div>";
     if (anna) {
       h += tegoedParts();
-      h += K.sh("Facturen", "", "small") + '<div class="pad">' + K.grp(D.billing.anna.payments.map(function (p) { return K.row({ a: "w-toast", d: { m: "Factuur gedownload" }, title: esc(p[1]), sub: esc(p[0]) + " · " + esc(p[3]), tr: '<b class="num c-amt">' + esc(p[2]) + "</b>" + ic("down", "c-dl") }); })) + "</div>";
+      h += K.sh("Facturen", "", "small") + '<div class="pad">' + K.grp(D.billing.anna.payments.map(function (p) { return K.row({ a: "w-toast", d: { m: "Factuur gedownload" }, cls: "c-row", title: esc(p[1]), sub: esc(p[0]) + " · " + esc(p[3]), tr: '<b class="num c-amt">' + esc(p[2]) + "</b>" + ic("down", "c-dl") }); })) + "</div>";
       if (!APP) h += K.sh("Mijn trainingen", "", "small") + '<div class="pad">' + K.grp((D.history.anna || []).slice(0, 3).map(function (x, i) { return K.row({ a: "c-workout", d: { v: i }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("dumb") + "</span>", title: esc(x.name), sub: esc(x.d) + " · met " + esc(x.by) }); }), "--inset:60px") + "</div>";
     } else h += '<div class="pad"><div class="card empty">Nog geen abonnement of credits.<div style="margin-top:14px">' + K.btn("Aanbod bekijken", { k: "sec", a: "c-offers" }) + "</div></div></div>";
     if (APP) h += K.sh("Studio", "", "small") + '<div class="pad">' + K.grp([K.row({ lead: '<span class="c-mark" style="width:36px;height:36px">' + F.initials(wsName()) + "</span>", title: esc(wsName()), sub: esc(shortLoc(D.workspaces.sf.location)) })], "--inset:64px") + "</div>";
@@ -977,7 +978,7 @@
       '<div class="tile c-tile" style="--c:var(--ok)"><span class="ink">Op rij</span><b class="num">5</b><em>weken achter elkaar</em><span class="wkdots" aria-hidden="true">' + wk.map(function (x) { return '<i class="' + (x ? "on" : "") + '"></i>'; }).join("") + "</span></div></div></div>";
     b += K.sh("Recent", "", "small") + '<div class="pad">' + K.grp(xs.map(function (x) {
       return K.row({ a: x.w != null ? "c-workout" : null, d: x.w != null ? { v: x.w } : null, lead: '<span class="dc-ic" style="--c:' + F.CV[x.type] + '">' + ic(x.w != null ? "dumb" : x.type === "gym" ? "door" : "group") + "</span>",
-        title: esc(x.title), sub: esc(x.d) + " · " + esc(x.sub), tr: x.w != null ? '<span class="pill tint" style="--c:var(--accent)">Details</span>' : "", cls: "dc" });
+        title: esc(x.title), sub: esc(x.d) + " · " + esc(x.sub), tr: x.w != null ? '<span class="pill tint" style="--c:var(--accent)">Details</span>' : "", cls: "dc c-row" });
     }), "--inset:60px") + "</div>" + K.foot("Wat je trainer met je deelt, open je hier met alle details.");
     return { title: "Activiteit", body: b };
   };

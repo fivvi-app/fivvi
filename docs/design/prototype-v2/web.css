@@ -457,3 +457,7 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .c-row .tr .btn.sm{height:34px;padding:0 14px;font-size:14px}
 .row .m small .c-spots{color:var(--label2);font-weight:600}
 .row .m small .c-spots.low{color:var(--accent-text)}
+/* client lists: a long name wraps to a second line instead of ending in "…" (owner, 5 Nov 2026) */
+.c-row .m b{white-space:normal}
+.c-row .m small{white-space:normal}
+.c-row .m small{display:block;-webkit-line-clamp:unset;overflow:visible}
