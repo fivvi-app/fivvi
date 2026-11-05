@@ -217,17 +217,21 @@ describe('F004 roles on every workspace route', () => {
 
     // The clients (F006) are the Trainer's too: `clients.view` and `clients.manage`; so is the
     // report of a switch to the workspace (F012), which any team member may send, and the planning
-    // and reading of sessions (F020: `session.private.manage.own`, and `clients.view`).
+    // and reading of sessions (F020: `session.private.manage.own`, and `clients.view`), the
+    // reschedule (`session.private.manage.own`; the handler asks whether it is theirs) and a
+    // client's upcoming sessions (`clients.view`).
     expect(trainerRoutes.map(({ name }) => name).toSorted()).toEqual([
       'addClient',
       'createPrivateSession',
       'getClient',
       'getSession',
       'getWorkspace',
+      'listClientUpcomingSessions',
       'listClients',
       'listLocations',
       'listTrainers',
       'recordWorkspaceSwitch',
+      'reschedulePrivateSession',
       'updateClient',
     ]);
     const statuses = Object.fromEntries(
@@ -247,6 +251,8 @@ describe('F004 roles on every workspace route', () => {
       // Past the access check: the probe body is no session, and the ID names none.
       createPrivateSession: 400,
       getSession: 404,
+      reschedulePrivateSession: 400,
+      listClientUpcomingSessions: 200,
     });
   });
 

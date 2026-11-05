@@ -139,7 +139,7 @@ export interface ReschedulePrivateSessionFacts {
 }
 
 export type ReschedulePrivateSessionRefusal =
-  | PlanPrivateSessionRefusal
+  | Exclude<PlanPrivateSessionRefusal, 'unknown-trainer'>
   /** The session was cancelled (F026): a cancelled session stays as it is. */
   | 'not-scheduled'
   /** Someone changed the session after the version the person saw (AC8). */

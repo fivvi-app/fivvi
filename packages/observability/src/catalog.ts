@@ -56,6 +56,13 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F020: a team member rescheduled a private session. The workspace ID and the surface only, as
+  // for `private_session_created`: no session or client ID, name, email address, trainer, or the
+  // old or new date or time.
+  private_session_rescheduled: {
+    workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
   // F011: the invited person accepted, or declined, the invitation. The workspace ID only (the
   // account's UUID is the distinct ID): not the invitation's ID, the person's name or email
   // address, the Owner who invited, and never the token.

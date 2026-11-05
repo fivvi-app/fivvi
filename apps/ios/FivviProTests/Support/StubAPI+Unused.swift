@@ -84,6 +84,18 @@ extension StubAPI {
         fatalError("The app doesn't call getSession yet")
     }
 
+    func reschedulePrivateSession(
+        _ input: Operations.ReschedulePrivateSession.Input
+    ) async throws -> Operations.ReschedulePrivateSession.Output {
+        fatalError("The app doesn't call reschedulePrivateSession yet")
+    }
+
+    func listClientUpcomingSessions(
+        _ input: Operations.ListClientUpcomingSessions.Input
+    ) async throws -> Operations.ListClientUpcomingSessions.Output {
+        fatalError("The app doesn't call listClientUpcomingSessions yet")
+    }
+
     func getInvitation(
         _ input: Operations.GetInvitation.Input
     ) async throws -> Operations.GetInvitation.Output {

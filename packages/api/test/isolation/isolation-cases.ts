@@ -32,8 +32,16 @@ export interface IsolationCase {
    */
   seed?(
     db: DatabaseExecutor,
-    input: { workspaceId: string; clientId: string },
+    input: { workspaceId: string; clientId: string; callerAccountId?: string },
   ): Promise<Record<string, string>>;
+  /**
+   * The route changes the record it names, or what the caller may do with it depends on the caller
+   * (a Trainer reschedules only their own session, F020): the seed runs again before every call,
+   * for that call's caller (`callerAccountId`, left out for the anonymous caller and for the first
+   * round of seeds), so each call starts from a record it may change. Like a `DELETE`, which is
+   * always seeded again.
+   */
+  reseedForEachCall?: true;
   /** Path parameters other than `workspaceId`: the parameter's name, and the seeded value to put there. */
   params?: Readonly<Record<string, string>>;
   /** A valid query string, with its `?`. */
@@ -114,6 +122,48 @@ const theClientAndATeamThatTrains: IsolationCase['seed'] = async (
   return { client: clientId };
 };
 
+/**
+ * A session of the workspace the seed was called for, with the client it was called for in it, for
+ * a route that changes it (F020 reschedule). The session's trainer is the caller when the caller is
+ * on the workspace's team (given a trainer profile if they have none), so a Trainer's call is on
+ * their own session and succeeds, and an Owner may move any; for a caller without a place the
+ * session has no trainer. Version 1, as the call's body says.
+ */
+const aSessionOfTheCaller: IsolationCase['seed'] = async (
+  db,
+  { workspaceId, clientId, callerAccountId },
+) => {
+  let trainerProfileId: string | null = null;
+  if (callerAccountId) {
+    const [member] = (
+      await db.execute(
+        sql`select id from team_members
+            where organization_id = ${workspaceId} and account_id = ${callerAccountId}`,
+      )
+    ).rows as { id: string }[];
+    if (member) {
+      const { rows } = await db.execute(
+        sql`insert into trainer_profiles (organization_id, team_member_id)
+            values (${workspaceId}, ${member.id})
+            on conflict (team_member_id) do update set team_member_id = excluded.team_member_id
+            returning id`,
+      );
+      trainerProfileId = (rows[0] as { id: string }).id;
+    }
+  }
+  const { id } = await addSession(db, { workspaceId, clientId, trainerProfileId });
+  return { session: id };
+};
+
+/**
+ * The client the seed was called for with one coming private session, so the listing shows it. The
+ * session has no trainer: the listing is the same for every team member.
+ */
+const aClientWithASession: IsolationCase['seed'] = async (db, { workspaceId, clientId }) => {
+  const { id } = await addSession(db, { workspaceId, clientId });
+  return { client: clientId, session: id };
+};
+
 export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // Account routes.
   getMe: {},
@@ -173,6 +223,21 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     }),
   },
   getSession: { seed: aSession, params: { sessionId: 'session' } },
+  // The move names the seeded session at the version it has, and asks for a time that exists.
+  reschedulePrivateSession: {
+    seed: aSessionOfTheCaller,
+    reseedForEachCall: true,
+    params: { sessionId: 'session' },
+    body: {
+      localDate: '2026-09-25',
+      localStart: '10:00',
+      durationMinutes: 60,
+      notify: false,
+      version: 1,
+    },
+  },
+  // The listing names the client and shows the client's coming session.
+  listClientUpcomingSessions: { seed: aClientWithASession, params: { clientId: 'client' } },
 
   // The trainers of a workspace (F005): the list shows the seeded Trainer. The two switch routes
   // act on the caller's own trainer profile, so they name no record.
