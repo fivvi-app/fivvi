@@ -109,6 +109,8 @@
     search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 20 20"/>',
     chevL: '<path d="M15 5l-7 7 7 7" stroke-width="2.3"/>',
     chevR: '<path d="M9 5l7 7-7 7" stroke-width="2.3"/>',
+    chevD: '<path d="M6 9.5l6 6 6-6" stroke-width="2.3"/>',
+    updown: '<path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4" stroke-width="2.2"/>',
     more: '<circle cx="5" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.8" fill="currentColor" stroke="none"/>',
     moreV: '<circle cx="12" cy="5" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.8" fill="currentColor" stroke="none"/>',
     pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 1 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',

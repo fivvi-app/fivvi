@@ -208,10 +208,30 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 
 /* ---------- Client web on a phone (ADR-026): the app's look, as a website ---------- */
 .dev.client{font-family:var(--f-ui);font-size:17px}
-.c-studio{gap:8px;padding:0 14px 0 6px;max-width:220px}
+/* the studio switcher (owner, 5 Nov 2026: a client can train at more than one studio or PT) */
+.c-studio{gap:8px;padding:0 12px 0 6px;max-width:250px;border:0;font:inherit;color:var(--label);cursor:pointer}
 .c-studio b{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.c-mark{width:32px;height:32px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:var(--f-num);font-weight:800;font-size:12px;color:var(--on-accent);
-  background:linear-gradient(160deg,color-mix(in oklab,var(--accent) 72%,#fff),var(--accent))}
+.c-studio .c-ud{width:15px;height:15px;flex:none;color:var(--label2)}
+/* the studio's mark: a rounded square, like an app icon, in the studio's colour */
+.c-mark{--wc:var(--accent);width:32px;height:32px;border-radius:10px;flex:none;display:grid;place-items:center;font-family:var(--f-num);font-weight:800;font-size:12px;color:var(--on-accent);
+  background:linear-gradient(160deg,color-mix(in oklab,var(--wc) 82%,#fff),var(--wc))}
+.c-mark.yl{--wc:#0B7266;color:#fff;background:linear-gradient(160deg,color-mix(in oklab,var(--wc) 90%,#fff),var(--wc))}
+.c-mark.xs{width:22px;height:22px;border-radius:7px;font-size:9px}
+.c-mark.sm{width:26px;height:26px;border-radius:8px;font-size:10px}
+.c-mark.lg{width:42px;height:42px;border-radius:12px;font-size:15px}
+.c-mark.add{background:var(--fill);color:var(--accent-text)}
+.c-mark.add svg{width:20px;height:20px}
+.c-wsrow{margin:-2px 0 10px}
+.c-wschip{display:inline-flex;align-items:center;gap:8px;height:40px;max-width:100%;padding:0 10px 0 7px;border-radius:12px;border:1px solid var(--sep);background:color-mix(in oklab,var(--accent) 9%,transparent);color:var(--label);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.c-wschip b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-wschip svg{width:18px;height:18px;flex:none;color:var(--label2)}
+.c-cur{display:grid;place-items:center;color:var(--accent-text)}
+.c-cur svg{width:22px;height:22px}
+.c-addws{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:6px 8px 14px}
+.c-addws p{margin:0;color:var(--label2);font-size:15px;line-height:1.4}
+.c-balline + .c-balline{margin-top:6px}
+.c-balline > .c-mark{flex:none;margin-right:2px}
+.c-balline span b{display:block;font-weight:600;color:var(--label)}
 .c-lng{padding:4px;gap:2px}
 .c-lng button{border:0;background:none;color:var(--label2);font-size:13px;font-weight:700;height:36px;min-width:40px;border-radius:999px}
 .c-lng button.on{background:var(--fill);color:var(--label)}
@@ -448,7 +468,7 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .c-hl small{font-size:13px;color:var(--label2)}
 .c-hl-n{font-size:30px;line-height:32px;color:var(--accent-text);min-width:44px;text-align:center}
 .c-balline{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;color:var(--label2);font-size:14px;padding:12px 6px 0;text-align:left}
-.c-balline span{flex:1}
+.c-balline span:not(.c-mark){flex:1}
 .c-balline svg{width:16px;height:16px;flex:none}
 .c-balline svg:first-child{color:color-mix(in oklab,var(--ok) 78%,var(--ev-ink))}
 .c-balline svg:last-child{width:9px;color:var(--label3)}
@@ -461,3 +481,4 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .c-row .m b{white-space:normal}
 .c-row .m small{white-space:normal}
 .c-row .m small{display:block;-webkit-line-clamp:unset;overflow:visible}
+.c-wsheet .row .m > span{white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:unset;display:block}

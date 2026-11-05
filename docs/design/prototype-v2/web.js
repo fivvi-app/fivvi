@@ -16,6 +16,48 @@
     return its.sort(function (a, b) { return F.mins(a.s) - F.mins(b.s); });
   }
   function shortLoc(l) { return String(l || "").split(",")[0]; }
+  /* A client can train at more than one studio or PT with one account (PRODUCT §2.9, ADR-026; owner, 5 Nov 2026).
+     Home, Mijn agenda and Activiteit show every studio together; Boeken and Tegoed are per studio, with a switcher.
+     Yoga Loft is a fictional second studio for the prototype. */
+  var YL = { name: "Yoga Loft", location: "Yoga Loft, Oostelijke Handelskade 8", trainer: "Lotte Smit" }, YLC = {};
+  function ylItems(k) {
+    if (!YLC[k]) {
+      var w = (F.parse(k).getDay() + 6) % 7, pat = w === 6 ? [["10:00", "11:15", "Yoga voor beginners", 12, 5]] : [["07:00", "08:00", "Vinyasa flow", 12, 8], ["12:15", "13:00", "Yin yoga", 10, 10], ["19:30", "20:30", "Power yoga", 14, 9]];
+      YLC[k] = pat.map(function (p, i) { var ppl = []; while (ppl.length < p[4]) ppl.push("yg" + ppl.length); return { id: "yl-" + k + "-" + i, ws: "yl", type: "group", s: p[0], e: p[1], title: p[2], cap: p[3], people: ppl, trainer: YL.trainer, loc: YL.location }; });
+    }
+    return YLC[k];
+  }
+  function cfind(id) { if (String(id).indexOf("yl-") === 0) { var k = id.slice(3, 13), it = ylItems(k).filter(function (x) { return x.id === id; })[0]; return it ? { it: it, day: k } : null; } return F.findItem(id); }
+  function studios() { return C().studios || ["sf"]; }
+  function multi() { return studios().length > 1; }
+  function cws() { return C().cws || "sf"; }
+  function sName(ws) { return ws === "yl" ? YL.name : wsName(); }
+  function ylbal() { var c = C(); return c.ylbal || (c.ylbal = { left: 6, total: 10, used: 4, planned: 0 }); }
+  function sMark(ws, sz) { return '<span class="c-mark ' + (ws || "sf") + (sz ? " " + sz : "") + '" aria-hidden="true">' + F.initials(sName(ws)) + "</span>"; }
+  /* what the client has left at a studio, in the words of the Home line */
+  function balText(ws) {
+    if (C().who !== "anna") return null;
+    if (ws === "yl") return "Tegoed: " + ylbal().left + " groepscredits over";
+    return "Tegoed: " + D.bsum("anna").balances.map(function (x) { return x.left + " " + (x.left === 1 ? x.label[0] : x.label[1]); }).join(" · ") + " over";
+  }
+  /* the studio switcher: a glass button in the iOS navigation bar, a tonal dropdown chip under the Android app bar */
+  function wsSwitch(chip) {
+    var ws = cws(), n = esc(sName(ws));
+    if (chip) return '<div class="pad c-wsrow"><button class="c-wschip" data-a="c-wsheet" aria-haspopup="dialog" aria-label="Studio: ' + n + '">' + sMark(ws, "sm") + "<b>" + n + "</b>" + ic("chevD") + "</button></div>";
+    return '<button class="gb glass c-studio" data-a="c-wsheet" aria-haspopup="dialog" aria-label="Studio: ' + n + '">' + sMark(ws) + "<b>" + n + "</b>" + ic("updown", "c-ud") + "</button>";
+  }
+  /* "Je studio's": switch, or add one through its link (no search for studios, ADR-026) */
+  function wsSheet() {
+    var c = C(), add = c.wsheet === "add", t = add ? "Studio toevoegen" : "Je studio's", body;
+    if (add) body = '<div class="c-addws">' + '<span class="c-mark lg add" aria-hidden="true">' + ic("plus") + "</span><p>Vraag je studio of trainer om hun Fivvi-link, of scan de QR-code bij de balie. Je vraagt dan om mee te doen. Zodra ze je goedkeuren, staat de studio hier.</p></div>" +
+      (multi() ? "" : '<div class="card c-proto"><b>Prototype</b><span>Doe alsof je de link van Yoga Loft opent en wordt goedgekeurd:</span>' + cbtn("Yoga Loft toevoegen", "c-wsjoin", { k: "sec" }) + "</div>") +
+      '<div style="margin-top:12px">' + K.btn("Klaar", { k: "ghost", blk: true, a: "c-wsclose" }) + "</div>";
+    else body = K.grp(studios().map(function (ws) { var on = ws === cws(); return K.row({ a: "c-ws", d: { v: ws }, lead: sMark(ws, "lg"), title: esc(sName(ws)), sub: esc(balText(ws) || shortLoc(ws === "yl" ? YL.location : D.workspaces.sf.location)), tr: on ? '<span class="c-cur" aria-label="Gekozen">' + ic("check") + "</span>" : "", chev: false, cls: "c-row" }); })
+      .concat([K.row({ a: "c-wsheet", d: { v: "add" }, lead: '<span class="c-mark lg add" aria-hidden="true">' + ic("plus") + "</span>", title: "Studio toevoegen", sub: "Met de link of QR-code van je studio", cls: "c-row" })]), "--inset:68px") +
+      K.foot("Boeken en tegoed zijn per studio. Home, je agenda en Activiteit tonen alles samen.");
+    var bar = andr() ? '<div class="sbar"><h3 style="padding-left:12px">' + t + "</h3></div>" : '<div class="sbar"><button class="gb glass" data-a="c-wsclose" aria-label="Sluiten">' + ic("x") + "</button><h3>" + t + '</h3><span style="width:44px"></span></div>';
+    return '<div class="scrim anim-fade" data-a="c-wsclose"></div><div class="sheet anim-up c-wsheet" role="dialog" aria-label="' + t + '"><div class="grab"></div>' + bar + '<div class="sbody">' + body + "</div></div>";
+  }
   function badge(t, c, cls) { return '<span class="w-badge ' + (cls || "") + '"' + (c ? ' style="--c:' + c + '"' : "") + ">" + t + "</span>"; }
   function btn(t, a, o) { o = o || {}; return '<button class="w-btn ' + (o.k || "") + '" data-a="' + a + '"' + dat(o.d) + (o.dis ? " disabled" : "") + ">" + (o.i ? ic(o.i) : "") + t + "</button>"; }
   function dat(d) { var s = ""; for (var k in d || {}) s += " data-" + k + '="' + esc(d[k]) + '"'; return s; }
@@ -690,11 +732,11 @@
     var lang = '<div class="gb glass c-lng" translate="no">' + ["nl", "en"].map(function (l) { return '<button class="' + (F.PREF.lang === l ? "on" : "") + '" data-a="c-lang" data-v="' + l + '" aria-pressed="' + (F.PREF.lang === l) + '">' + l.toUpperCase() + "</button>"; }).join("") + "</div>";
     if (c.step !== "app") return '<div class="screen"><div class="nb"><span class="sp"></span>' + lang + '</div><div class="content c-body" style="padding-top:calc(var(--top) + 20px)">' + (CSTEP[c.step] || CSTEP.link)() + "</div></div>";
     var p = CSTEP.app(), sub = c.detail || c.workout != null;
-    var lead = sub ? '<button class="gb glass back" data-a="c-back" aria-label="Terug">' + ic("chevL") + "</button>"
-      : '<span class="gb glass c-studio"><span class="c-mark">' + F.initials(wsName()) + "</span><b>" + esc(wsName()) + "</b></span>";
+    var lead = sub ? '<button class="gb glass back" data-a="c-back" aria-label="Terug">' + ic("chevL") + "</button>" : c.tab === "rooster" ? wsSwitch() : "";
     var h = '<div class="screen root c-web"><div class="nb">' + lead + '<span class="sp"></span>' + lang + '<div class="t">' + esc(p.title) + '</div></div><div class="content c-body">' + p.body + "</div></div>";
     h += '<div class="fade-b"></div><nav class="tabbar" aria-label="Tabs"><div class="tabs glass">' + [["rooster", "Rooster", "cal"], ["agenda", "Mijn agenda", "today"], ["profiel", "Profiel", "me"]].map(function (t) { var on = c.tab === t[0]; return '<button class="tab ' + (on ? "on" : "") + '" data-a="c-tab" data-v="' + t[0] + '" aria-current="' + (on ? "page" : "false") + '">' + ic(t[2]) + "<span>" + t[1] + "</span></button>"; }).join("") + "</div></nav>";
     if (c.web) h += browser();
+    if (c.wsheet) h += wsSheet();
     if (c.dialog) h += cdialog();
     return h;
   }
@@ -724,7 +766,7 @@
       '<div class="pad"><div class="card c-proto"><b>Prototype</b><span>Doe alsof de eigenaar je verzoek goedkeurt:</span>' + cbtn("Eigenaar keurt goed", "c-approved", { k: "sec" }) + "</div></div>";
   };
   /* the client timetable: the studio's classes and Open Gym, never a cancelled one */
-  function timetable(k) { var its = F.dayItems(k).filter(function (i) { return i.ws === "sf" && i.type !== "priv" && !i.cancelled; }); if (k === F.TODAY && !F.SOLO()) its = its.concat(F.extra().filter(function (i) { return i.type !== "priv"; })); return its.sort(function (a, b) { return F.mins(a.s) - F.mins(b.s); }); }
+  function timetable(k, ws) { if ((ws || cws()) === "yl") return ylItems(k).slice(); var its = F.dayItems(k).filter(function (i) { return i.ws === "sf" && i.type !== "priv" && !i.cancelled; }); if (k === F.TODAY && !F.SOLO()) its = its.concat(F.extra().filter(function (i) { return i.type !== "priv"; })); return its.sort(function (a, b) { return F.mins(a.s) - F.mins(b.s); }); }
   function cState(it) { var c = C(); if (!it.people) return "priv"; if (c.booked[it.id]) return "booked"; if (c.wl[it.id]) return "wl"; return it.people.length >= it.cap ? "full" : "open"; }
   function spotsLeft(it) { return it.people ? it.cap - it.people.length - (C().booked[it.id] ? 1 : 0) : 0; }
   function statePill(it) {
@@ -735,7 +777,7 @@
     return '<span class="pill' + (left <= 2 ? ' tint" style="--c:var(--accent)' : "") + '">' + (left === 1 ? "Nog 1 plek" : "Nog " + left + " plekken") + "</span>";
   }
   /* which credit a booking uses (kinds never mix, §91), and whether the client has one left */
-  function creditFor(it) { var c = C(), ck = it.type === "gym" ? "gym" : "groep", bal = c.who === "anna" ? D.bsum("anna").balances.filter(function (x) { return x.credit === ck; })[0] : null; return { ck: ck, bal: bal, no: c.who === "anna" && (!bal || bal.left <= 0) }; }
+  function creditFor(it) { if (it.ws === "yl") return { ck: "groep", bal: C().who === "anna" ? ylbal() : null, no: C().who === "anna" && ylbal().left <= 0 }; var c = C(), ck = it.type === "gym" ? "gym" : "groep", bal = c.who === "anna" ? D.bsum("anna").balances.filter(function (x) { return x.credit === ck; })[0] : null; return { ck: ck, bal: bal, no: c.who === "anna" && (!bal || bal.left <= 0) }; }
   function spotsText(it) { var st = cState(it), left = spotsLeft(it); return st === "full" ? "Vol" : st === "booked" || st === "wl" ? "" : left === 1 ? "nog 1 plek" : "nog " + left + " plekken"; }
   /* the row's action: Boeken, Wachtlijst, or what you have; without a matching credit it opens the class page, which explains */
   function rowAction(it) {
@@ -747,12 +789,13 @@
   }
   function cwho(it) { return it.type === "gym" ? "Zelf trainen" : it.trainer || (it.trainer === "" ? "Trainer volgt nog" : ME()); }
   function crow(it, k, tr, spots) {
+    var at = multi() && spots == null ? " · " + esc(sName(it.ws === "yl" ? "yl" : "sf")) : "";
     var ds = it.type === "group" ? desc(it.title) : null, sp = spots ? '<span class="c-spots' + (spotsLeft(it) <= 2 || spots === "Vol" ? " low" : "") + '">' + spots + "</span>" : "";
     /* Android: the shaped avatar per session type, as in Fivvi Pro; the time moves into the line */
     if (F.PREF.plat === "android") return K.row({ a: "c-open", d: { id: it.id }, style: "--c:" + F.CV[it.type], lead: K.shape(K.SHAPE[it.type], F.CV[it.type], it.type === "priv" ? F.initials(cwho(it)) : it.type === "gym" ? "OG" : it.title[0]),
-      title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title) + F.lvlTag(it, true), sub: it.s + "–" + it.e, small: (it.type === "priv" ? "met " + esc(cwho(it).split(" ")[0]) : esc(cwho(it))) + (sp ? "<br>" + sp : ""), tr: tr, cls: "c-row" + (spots != null ? " c-act" : "") });
+      title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title) + F.lvlTag(it, true), sub: it.s + "–" + it.e, small: (it.type === "priv" ? "met " + esc(cwho(it).split(" ")[0]) : esc(cwho(it))) + at + (sp ? "<br>" + sp : ""), tr: tr, cls: "c-row" + (spots != null ? " c-act" : "") });
     return K.row({ a: "c-open", d: { id: it.id }, style: "--c:" + F.CV[it.type], lead: '<div class="t"><b>' + it.s + "</b><span>" + it.e + '</span></div><i class="bar"></i>',
-      title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title) + F.lvlTag(it, true), sub: it.type === "priv" ? "Met " + esc(cwho(it).split(" ")[0]) + (it.duo ? " · samen met " + esc(F.CLIENT[mate(it)].name.split(" ")[0]) : " · " + esc(shortLoc(it.loc))) : esc(cwho(it)),
+      title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title) + F.lvlTag(it, true), sub: it.type === "priv" ? "Met " + esc(cwho(it).split(" ")[0]) + (it.duo ? " · samen met " + esc(F.CLIENT[mate(it)].name.split(" ")[0]) : " · " + esc(shortLoc(it.loc))) : esc(cwho(it)) + at,
       /* no description in a list: cut to one line it ends in "…"; the class page shows it whole (owner, 5 Nov 2026) */
       small: sp, tr: tr, cls: "c-row" + (spots != null ? " c-act" : ""), chev: spots == null });
   }
@@ -761,7 +804,7 @@
   /* the client's next booking: the same gradient card as Volgende on Vandaag in the app */
   function upcoming() {
     var c = C(), rows = [];
-    for (var i = 0; i <= 7; i++) { var k = F.key(F.add(F.NOW, i)); timetable(k).forEach(function (it) { if (c.booked[it.id] || c.wl[it.id]) rows.push([k, it]); }); if (c.who === "anna") F.dayItems(k).forEach(function (it) { if (it.type === "priv" && it.client === "anna") rows.push([k, it]); }); }
+    for (var i = 0; i <= 7; i++) { var k = F.key(F.add(F.NOW, i)); studios().forEach(function (ws) { timetable(k, ws).forEach(function (it) { if (c.booked[it.id] || c.wl[it.id]) rows.push([k, it]); }); }); if (c.who === "anna") F.dayItems(k).forEach(function (it) { if (it.type === "priv" && it.client === "anna") rows.push([k, it]); }); }
     return rows.filter(function (r) { return !(r[0] === F.TODAY && F.isPast(r[1], r[0])); }).sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : F.mins(a[1].s) - F.mins(b[1].s); });
   }
   function nextHero(r, cap) {
@@ -773,9 +816,10 @@
     if (c.workout != null) return workoutView();
     if (c.detail) return detailView();
     if (c.tab === "rooster") {
-      var types = []; if (F.HAS("group")) types.push(["group", "Groepslessen"]); if (F.HAS("gym")) types.push(["gym", "Open Gym"]);
+      var types = []; if (cws() === "yl") types.push(["group", "Groepslessen"]); else { if (F.HAS("group")) types.push(["group", "Groepslessen"]); if (F.HAS("gym")) types.push(["gym", "Open Gym"]); }
       var tt = APP ? "Boeken" : "Rooster", b = K.lt(F.longDate(F.NOW), tt, "");
-      if (!types.length) return { title: tt, body: b + '<div class="pad"><div class="card empty">' + esc(wsName()) + " heeft geen lessen om te boeken. Je trainer plant je privésessies; die zie je in Mijn agenda.</div></div>" };
+      if (APP && andr()) b += wsSwitch(true);
+      if (!types.length) return { title: tt, body: b + '<div class="pad"><div class="card empty">' + esc(sName(cws())) + " heeft geen lessen om te boeken. Je trainer plant je privésessies; die zie je in Mijn agenda.</div></div>" };
       var nx = upcoming().filter(function (r) { return r[1].type !== "priv" && c.booked[r[1].id]; })[0];
       if (nx && !APP) b += nextHero(nx, "Je volgende les");
       /* the week strip from Agenda: one dot per class that day */
@@ -821,7 +865,8 @@
       h += K.sh("Facturen", "", "small") + '<div class="pad">' + K.grp(D.billing.anna.payments.map(function (p) { return K.row({ a: "w-toast", d: { m: "Factuur gedownload" }, cls: "c-row", title: esc(p[1]), sub: esc(p[0]) + " · " + esc(p[3]), tr: '<b class="num c-amt">' + esc(p[2]) + "</b>" + ic("down", "c-dl") }); })) + "</div>";
       if (!APP) h += K.sh("Mijn trainingen", "", "small") + '<div class="pad">' + K.grp((D.history.anna || []).slice(0, 3).map(function (x, i) { return K.row({ a: "c-workout", d: { v: i }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("dumb") + "</span>", title: esc(x.name), sub: esc(x.d) + " · met " + esc(x.by) }); }), "--inset:60px") + "</div>";
     } else h += '<div class="pad"><div class="card empty">Nog geen abonnement of credits.<div style="margin-top:14px">' + K.btn("Aanbod bekijken", { k: "sec", a: "c-offers" }) + "</div></div></div>";
-    if (APP) h += K.sh("Studio", "", "small") + '<div class="pad">' + K.grp([K.row({ lead: '<span class="c-mark" style="width:36px;height:36px">' + F.initials(wsName()) + "</span>", title: esc(wsName()), sub: esc(shortLoc(D.workspaces.sf.location)) })], "--inset:64px") + "</div>";
+    if (APP) h += K.sh("Je studio's", "", "small") + '<div class="pad">' + K.grp(studios().map(function (ws) { return K.row({ lead: sMark(ws, "lg"), title: esc(sName(ws)), sub: esc(ws === "yl" ? "Oostelijke Handelskade 8" : shortLoc(D.workspaces.sf.location)) }); })
+      .concat([K.row({ a: "c-wsheet", d: { v: "add" }, lead: '<span class="c-mark lg add" aria-hidden="true">' + ic("plus") + "</span>", title: "Studio toevoegen", cls: "c-row" })]), "--inset:68px") + "</div>";
     h += K.sh("Taal", "", "small") + '<div class="pad" translate="no">' + K.seg([["nl", "Nederlands"], ["en", "English"]], F.PREF.lang, "c-lang") + "</div>";
     h += '<div class="pad" style="margin-top:22px">' + cbtn("Uitloggen", APP ? "a-signout" : "c-signout", { k: "sec" }) + "</div>";
     if (APP) h += '<div class="pad" style="margin-top:10px">' + K.btn("Account verwijderen", { k: "ghost", blk: true, a: "a-delask" }) + "</div>" + K.foot("Je account en je gegevens worden verwijderd. Facturen bewaart de studio zo lang als de wet vraagt.");
@@ -829,7 +874,7 @@
   }
   function kv(t, v) { return K.row({ title: t, tr: v, cls: "kv" }); }
   function detailView() {
-    var c = C(), f = F.findItem(c.detail), it = f.it, k = f.day, st = cState(it), ds = it.type === "group" ? desc(it.title) : null, left = spotsLeft(it), when = dayName(k) + " · " + it.s + "–" + it.e;
+    var c = C(), f = cfind(c.detail), it = f.it, k = f.day, st = cState(it), ds = it.type === "group" ? desc(it.title) : null, left = spotsLeft(it), when = dayName(k) + " · " + it.s + "–" + it.e;
     if (it.type === "priv") return { title: it.duo ? "Duosessie" : "Privésessie", body: K.lt(it.duo ? "Duosessie" : "Privésessie", "Met " + esc(cwho(it).split(" ")[0]), when) + '<div class="pad">' + K.grp([kv("Trainer", esc(cwho(it)))].concat(it.duo ? [kv("Samen met", esc(F.CLIENT[mate(it)].name))] : []).concat([kv("Locatie", esc(it.loc))])) + "</div>" + (it.duo ? K.foot("Je traint samen met " + esc(F.CLIENT[mate(it)].name.split(" ")[0]) + ". Je trainer houdt ieders training apart bij.") : "") + K.foot("Verzetten of afzeggen? Neem contact op met je trainer.") };
     var b = K.lt(F.TYPE[it.type], esc(it.title), when) + '<div class="pad stack">';
     if (ds) b += '<div class="card"><p class="c-desc" translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</p></div>";
@@ -858,7 +903,7 @@
   function cdialog() {
     var cd = C().dialog;
     if (cd === "book" || cd === "wl") {
-      var f = F.findItem(C().dlgId), it = f.it, cr = creditFor(it), lines = [dayName(f.day) + " · " + it.s + "–" + it.e + (it.type === "gym" ? "" : " · " + cwho(it))];
+      var f = cfind(C().dlgId), it = f.it, cr = creditFor(it), lines = [dayName(f.day) + " · " + it.s + "–" + it.e + (it.type === "gym" ? "" : " · " + cwho(it))];
       if (cd === "wl") lines.push("Je wordt nummer " + ((it.waitlist || 0) + 1) + ". Komt er een plek vrij, dan word je automatisch geboekt en krijg je een e-mail.");
       if (cr.bal) lines.push("Je gebruikt 1 " + D.CREDIT[cr.ck][0] + "; je hebt er nog " + cr.bal.left + ".");
       lines.push("Gratis annuleren tot 12 uur voor de start.");
@@ -866,7 +911,7 @@
         '<div class="btns">' + K.btn(cd === "book" ? "Boeken" : "Op de wachtlijst", { a: cd === "book" ? "c-bookok" : "c-wlok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
     }
     if (C().dialog === "delete") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Account verwijderen"><h3>Account verwijderen?</h3><p>Je account en je gegevens worden verwijderd en je wordt uitgelogd. Facturen bewaart de studio zo lang als de wet vraagt.</p><div class="btns">' + K.btn("Account verwijderen", { k: "dng", a: "a-delete" }) + K.btn("Annuleren", { k: "sec", a: "c-dclose" }) + "</div></div>";
-    var it = F.findItem(C().detail).it;
+    var it = cfind(C().detail).it;
     return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Annuleren"><h3>' + esc(it.title) + " annuleren?</h3><p>Het is meer dan 12 uur voor de start, dus de les telt niet als gebruikt.</p><div class=\"btns\">" + K.btn("Ja, annuleren", { k: "dng", a: "c-cancel-ok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
   }
   /* ================= Client app Fivvi (PRODUCT §55) =================
@@ -891,11 +936,13 @@
         h = '<div class="screen root"><div class="ab ' + (sub ? "" : "root") + '">' + (sub ? '<button class="ib" data-a="c-back" aria-label="Terug">' + ic("back") + "</button>" : "") + '<div class="t">' + esc(p.title) + '</div></div><div class="content c-body">' + p.body + "</div></div>";
         h += '<nav class="navb" aria-label="Navigatie">' + ATABS.map(function (t) { var on = (c.atab || "home") === t[0]; return '<button class="' + (on ? "on" : "") + '" data-a="c-atab" data-v="' + t[0] + '"><i>' + ic(t[2]) + "</i>" + t[1] + "</button>"; }).join("") + "</nav>";
       } else {
-        var lead = sub ? '<button class="gb glass back" data-a="c-back" aria-label="Terug">' + ic("chevL") + "</button>" : '<span class="gb glass c-studio"><span class="c-mark">' + F.initials(wsName()) + "</span><b>" + esc(wsName()) + "</b></span>";
+        /* the header: back on a sub page; on Boeken the studio switcher; elsewhere only the large title (owner, 5 Nov 2026) */
+        var lead = sub ? '<button class="gb glass back" data-a="c-back" aria-label="Terug">' + ic("chevL") + "</button>" : (c.atab || "home") === "boeken" ? wsSwitch() : "";
         h = '<div class="screen root c-web"><div class="nb">' + lead + '<span class="sp"></span><div class="t">' + esc(p.title) + '</div></div><div class="content c-body">' + p.body + "</div></div>";
         h += '<div class="fade-b"></div><nav class="tabbar" aria-label="Tabs"><div class="tabs glass">' + ATABS.map(function (t) { var on = (c.atab || "home") === t[0]; return '<button class="tab ' + (on ? "on" : "") + '" data-a="c-atab" data-v="' + t[0] + '" aria-current="' + (on ? "page" : "false") + '">' + ic(t[2]) + "<span>" + t[1] + "</span></button>"; }).join("") + "</div></nav>";
       }
       if (c.web) h += browser();
+      if (c.wsheet) h += wsSheet();
       if (c.dialog) h += cdialog();
       return h;
     } finally { APP = false; }
@@ -933,8 +980,7 @@
     var b = K.lt(F.longDate(F.NOW), "Hoi " + esc(first), "");
     if (up.length) b += nextHero(up[0], up[0][1].type === "priv" ? "Je volgende sessie" : "Je volgende les");
     if (anna) {
-      var s = D.bsum("anna"), parts = s.balances.map(function (x) { return x.left + " " + (x.left === 1 ? x.label[0] : x.label[1]); });
-      b += '<div class="pad" style="margin-top:14px">' + weekCard(up) + '<button class="c-balline" data-a="c-page" data-v="tegoed">' + ic("check") + "<span>Tegoed: " + parts.join(" · ") + " over</span>" + ic("chevR") + "</button></div>";
+      b += '<div class="pad" style="margin-top:14px">' + weekCard(up) + studios().map(function (ws) { return '<button class="c-balline" data-a="c-page" data-v="tegoed" data-ws="' + ws + '">' + (multi() ? sMark(ws, "xs") : ic("check")) + "<span>" + (multi() ? "<b>" + esc(sName(ws)) + "</b>" : "") + balText(ws) + "</span>" + ic("chevR") + "</button>"; }).join("") + "</div>";
     } else b += '<div class="pad" style="margin-top:14px"><div class="card empty">Nog geen abonnement of credits.<div style="margin-top:14px">' + K.btn("Aanbod bekijken", { k: "sec", a: "c-offers" }) + "</div></div></div>";
     var rest = up.slice(1, 7);
     if (rest.length) {
@@ -960,8 +1006,14 @@
     return '<div class="card c-week"><div class="c-week-h"><div><span class="eb">Deze week</span>' + (nw || !np ? '<b class="num">' + nw + '<small>× geweest</small></b><em>' + (np ? (np === 1 ? "nog 1 gepland" : "nog " + np + " gepland") : "niets meer gepland") + "</em>"
       : '<b class="num">' + np + '<small>× gepland</small></b><em>De eerste: ' + dayName(up[0][0]).toLowerCase() + " " + up[0][1].s + "</em>") + '</div><span class="c-streak">🔥 5 weken op rij</span></div><div class="c-days7">' + days + "</div>" + hl + "</div>";
   }
+  function ylTegoed() {
+    var y = ylbal();
+    return '<div class="pad"><div class="tiles two"><div class="tile c-tile" style="--c:var(--group)"><span class="ink">Groepscredits</span><b class="num">' + y.left + "<small>/" + y.total + "</small></b><em>over · " + y.planned + " gepland · " + y.used + ' gebruikt</em><div class="abar"><i style="width:' + (y.used / y.total * 100) + '%"></i><i class="p" style="width:' + (y.planned / y.total * 100) + '%"></i></div></div></div></div>' +
+      K.sh("Abonnement en credits", "", "small") + '<div class="pad">' + K.grp([K.row({ lead: '<span class="dc-ic" style="--c:var(--group)">' + ic("check") + "</span>", title: "10-rittenkaart yoga", sub: "€ 150 · eenmalig", small: "Geldig tot 1 maart 2027" })], "--inset:60px") + "</div>";
+  }
   function tegoedView() {
-    return { title: "Tegoed", body: K.lt("", "Tegoed", "") + tegoedParts().replace(K.sh("Tegoed", "", "small"), "") + '<div class="pad" style="margin-top:16px">' + K.btn("Aanbod bekijken", { k: "sec", blk: true, a: "c-offers" }) + "</div>" + K.foot("Betalingen en facturen staan in Profiel.") };
+    var two = multi(), sw = two ? '<div class="pad" style="margin-bottom:6px">' + K.seg(studios().map(function (ws) { return [ws, sName(ws)]; }), cws(), "c-ws") + "</div>" : "";
+    return { title: "Tegoed", body: K.lt("", "Tegoed", "") + sw + (cws() === "yl" ? ylTegoed() : tegoedParts().replace(K.sh("Tegoed", "", "small"), "")) + '<div class="pad" style="margin-top:16px">' + K.btn("Aanbod bekijken", { k: "sec", blk: true, a: "c-offers" }) + "</div>" + K.foot("Betalingen en facturen staan in Profiel.") };
   }
   ATAB.boeken = function () { var c = C(), t = c.tab; c.tab = "rooster"; var p = CSTEP.app(); c.tab = t; return p; };
   /* Training: the workouts the trainer shared (F045, arrives with M7) */
@@ -994,6 +1046,7 @@
   ATAB.profiel = function () { return { title: "Profiel", body: profile() }; };
   /* Paying happens on the web (§53, QC16): the app opens the studio's offer page in a browser sheet */
   function browser() {
+    if (cws() === "yl") return ylBrowser();
     var url = "fivvi.app/" + slug() + "/aanbod", offers = D.offerList.filter(function (o) { return o.on && offerFits(o) && o.kind !== "single" && !o.intro; });
     var bar = andr() ? '<div class="c-brbar"><button class="ib" data-a="c-webclose" aria-label="Sluiten">' + ic("x") + '</button><div><b>Aanbod</b><span translate="no">' + url + "</span></div></div>"
       : '<div class="c-brbar ios"><button class="c-done" data-a="c-webclose">Klaar</button><div class="c-url glass"><i>🔒</i><span translate="no">' + url + "</span></div></div>";
@@ -1003,6 +1056,13 @@
       }).join("") + "</div>" + K.foot("Na de betaling krijg je de factuur per e-mail en kun je meteen boeken.") + "</div></div>";
   }
 
+  function ylBrowser() {
+    var url = "fivvi.app/yoga-loft/aanbod", offers = [["10-rittenkaart yoga", "150", "eenmalig", ["10 groepscredits", "1 jaar geldig"]], ["Onbeperkt yoga", "89", "per maand", ["Elke les", "Maandelijks opzegbaar"]]];
+    var bar = andr() ? '<div class="c-brbar"><button class="ib" data-a="c-webclose" aria-label="Sluiten">' + ic("x") + '</button><div><b>Aanbod</b><span translate="no">' + url + "</span></div></div>"
+      : '<div class="c-brbar ios"><button class="c-done" data-a="c-webclose">Klaar</button><div class="c-url glass"><i>🔒</i><span translate="no">' + url + "</span></div></div>";
+    return '<div class="scrim anim-fade" data-a="c-webclose"></div><div class="sheet large anim-up c-browser" role="dialog" aria-label="Aanbod">' + bar + '<div class="sbody">' + K.lt("", "Aanbod van Yoga Loft", "Kies wat bij je past. Je betaalt met iDEAL.") + '<div class="pad stack">' +
+      offers.map(function (o) { return '<div class="card c-offer"><div><b>' + o[0] + '</b><span class="num">€ ' + o[1] + " <small>" + o[2] + "</small></span></div><ul>" + o[3].map(function (t) { return "<li>" + t + "</li>"; }).join("") + "</ul>" + K.btn("Kiezen", { blk: true, a: "c-buy", d: { v: o[0] } }) + "</div>"; }).join("") + "</div>" + K.foot("Na de betaling krijg je de factuur per e-mail en kun je meteen boeken.") + "</div></div>";
+  }
   A["c-qbook"] = function (d) { var c = C(); c.dialog = "book"; c.dlgId = d.id; R(); };
   A["c-qwl"] = function (d) { var c = C(); c.dialog = "wl"; c.dlgId = d.id; R(); };
   A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.web = null; c.page = null; R(); };
@@ -1030,18 +1090,22 @@
   A["c-tfilter"] = function (d) { C().typeFilter = d.v; R(); };
   A["c-open"] = function (d) { C().detail = d.id; R(); };
   A["c-back"] = function () { var c = C(); if (c.detail || c.workout != null) { c.detail = null; c.workout = null; } else c.page = null; R(); };
-  A["c-page"] = function (d) { C().page = d.v; R(); };
+  A["c-page"] = function (d) { var c = C(); c.page = d.v; if (d.ws) c.cws = d.ws; R(); };
+  A["c-wsheet"] = function (d) { C().wsheet = d.v || "list"; R(); };
+  A["c-wsclose"] = function () { C().wsheet = null; R(); };
+  A["c-ws"] = function (d) { var c = C(); c.cws = d.v; c.wsheet = null; c.detail = null; R(); };
+  A["c-wsjoin"] = function () { var c = C(); c.studios = studios().concat(["yl"]); c.cws = "yl"; c.wsheet = null; F.toast("Yoga Loft heeft je goedgekeurd"); };
   /* booking and joining the waitlist always ask first (owner, 5 Nov 2026), from the list and from the class page */
   A["c-book"] = function () { var c = C(); c.dialog = "book"; c.dlgId = c.detail; R(); };
   A["c-wl"] = function () { var c = C(); c.dialog = "wl"; c.dlgId = c.detail; R(); };
   /* a booking plans one credit of its kind; cancelling in time gives it back (§92) */
-  function planCredit(it, n) { if (C().who !== "anna") return; var ck = creditFor(it).ck, a = D.billing.anna.agreements.filter(function (x) { return x.credit === ck && x.status !== "expired" && x.total - x.used - x.planned >= (n > 0 ? 1 : -99); })[0]; if (a) a.planned = Math.max(0, a.planned + n); }
-  A["c-bookok"] = function () { var c = C(), it = F.findItem(c.dlgId).it; c.booked[c.dlgId] = true; planCredit(it, 1); c.dialog = null; F.toast("Geboekt: " + it.title + " " + it.s + ". Je krijgt een bevestiging per e-mail."); };
-  A["c-wlok"] = function () { var c = C(), it = F.findItem(c.dlgId).it; it.waitlist = (it.waitlist || 0) + 1; c.wl[c.dlgId] = it.waitlist; c.dialog = null; F.toast("Je staat op de wachtlijst: nummer " + it.waitlist); };
-  A["c-wl-leave"] = function () { var c = C(), it = F.findItem(c.detail).it; it.waitlist = Math.max(0, (it.waitlist || 1) - 1); delete c.wl[c.detail]; F.toast("Je staat niet meer op de wachtlijst"); };
+  function planCredit(it, n) { if (C().who !== "anna") return; if (it.ws === "yl") { var y = ylbal(); y.left -= n; y.planned = Math.max(0, y.planned + n); return; } var ck = creditFor(it).ck, a = D.billing.anna.agreements.filter(function (x) { return x.credit === ck && x.status !== "expired" && x.total - x.used - x.planned >= (n > 0 ? 1 : -99); })[0]; if (a) a.planned = Math.max(0, a.planned + n); }
+  A["c-bookok"] = function () { var c = C(), it = cfind(c.dlgId).it; c.booked[c.dlgId] = true; planCredit(it, 1); c.dialog = null; F.toast("Geboekt: " + it.title + " " + it.s + ". Je krijgt een bevestiging per e-mail."); };
+  A["c-wlok"] = function () { var c = C(), it = cfind(c.dlgId).it; it.waitlist = (it.waitlist || 0) + 1; c.wl[c.dlgId] = it.waitlist; c.dialog = null; F.toast("Je staat op de wachtlijst: nummer " + it.waitlist); };
+  A["c-wl-leave"] = function () { var c = C(), it = cfind(c.detail).it; it.waitlist = Math.max(0, (it.waitlist || 1) - 1); delete c.wl[c.detail]; F.toast("Je staat niet meer op de wachtlijst"); };
   A["c-cancel"] = function () { C().dialog = true; R(); };
   A["c-dclose"] = function () { C().dialog = null; R(); };
-  A["c-cancel-ok"] = function () { var c = C(); if (c.booked[c.detail]) planCredit(F.findItem(c.detail).it, -1); delete c.booked[c.detail]; c.dialog = null; F.toast("Geannuleerd"); };
+  A["c-cancel-ok"] = function () { var c = C(); if (c.booked[c.detail]) planCredit(cfind(c.detail).it, -1); delete c.booked[c.detail]; c.dialog = null; F.toast("Geannuleerd"); };
   A["c-workout"] = function (d) { C().workout = +d.v; R(); };
   A["c-signout"] = function () { var s = S(); s.c = null; C().step = "link"; R(); };
 
@@ -1115,8 +1179,15 @@
     ["Gedeelde training", "F045", goApp("app", { who: "anna", atab: "training", workout: 0 })],
     ["Profiel en tegoed", "F033", goApp("app", { who: "anna", atab: "profiel" })],
     ["Account verwijderen", "§79", goApp("app", { who: "anna", atab: "profiel", dialog: "delete" })],
-    ["Nieuwe klant zonder tegoed", "F033", goApp("app", { who: "new", name: "Kim de Graaf", email: "kim@example.com", atab: "home" })]
+    ["Nieuwe klant zonder tegoed", "F033", goApp("app", { who: "new", name: "Kim de Graaf", email: "kim@example.com", atab: "home" })],
+    ["Twee studio's: Home", "QE05", goApp("app", { who: "anna", atab: "home" }, twoStudios)],
+    ["Twee studio's: studio wisselen", "QE05", goApp("app", { who: "anna", atab: "boeken", wsheet: "list" }, twoStudios)],
+    ["Twee studio's: boeken bij Yoga Loft", "QE05", goApp("app", { who: "anna", atab: "boeken", cws: "yl" }, twoStudios)],
+    ["Twee studio's: tegoed", "QE05", goApp("app", { who: "anna", atab: "home", page: "tegoed" }, twoStudios)],
+    ["Studio toevoegen", "#469", goApp("app", { who: "anna", atab: "boeken", wsheet: "add" })]
   ]]);
+  /* Anna also takes yoga at Yoga Loft, with one class booked there tomorrow evening */
+  function twoStudios(c) { c.studios = ["sf", "yl"]; var t = ylItems(F.key(F.add(F.NOW, 1)))[2]; if (t) { c.booked[t.id] = true; ylbal().left -= 1; ylbal().planned += 1; } }
   F.INDEX.push(["Klantweb", [
     ["Meedoen via de link", "F029", goClient("link")],
     ["Wachten op goedkeuring", "F029", goClient("waiting", { name: "Kim de Graaf", email: "kim@example.com" })],

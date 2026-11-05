@@ -431,6 +431,14 @@ window.FIVVI_I18N = (function () {
     "Je account en je gegevens worden verwijderd. Facturen bewaart de studio zo lang als de wet vraagt.": "Your account and your data are deleted. The studio keeps invoices as long as the law requires.",
     "Je account en je gegevens worden verwijderd en je wordt uitgelogd. Facturen bewaart de studio zo lang als de wet vraagt.": "Your account and your data are deleted and you're signed out. The studio keeps invoices as long as the law requires.",
     "Je account is verwijderd": "Your account has been deleted", "App (iOS en Android)": "App (iOS and Android)", "Fivvi (klant)": "Fivvi (client)", "Fivvi (klant-app)": "Fivvi (client app)",
+    /* more than one studio (owner, 5 Nov 2026) */
+    "Je studio's": "Your studios", "Studio toevoegen": "Add a studio", "Met de link of QR-code van je studio": "With your studio's link or QR code", "Gekozen": "Selected",
+    "Boeken en tegoed zijn per studio. Home, je agenda en Activiteit tonen alles samen.": "Booking and balance are per studio. Home, your schedule and Activity show everything together.",
+    "Vraag je studio of trainer om hun Fivvi-link, of scan de QR-code bij de balie. Je vraagt dan om mee te doen. Zodra ze je goedkeuren, staat de studio hier.": "Ask your studio or trainer for their Fivvi link, or scan the QR code at the front desk. You then ask to join. Once they approve you, the studio shows up here.",
+    "Doe alsof je de link van Yoga Loft opent en wordt goedgekeurd:": "Pretend you open Yoga Loft's link and get approved:", "Yoga Loft toevoegen": "Add Yoga Loft", "Yoga Loft heeft je goedgekeurd": "Yoga Loft approved you",
+    "Yoga voor beginners": "Yoga for beginners", "10-rittenkaart yoga": "10-class yoga pass", "€ 150 · eenmalig": "€150 · one-off", "Geldig tot 1 maart 2027": "Valid until 1 March 2027",
+    "10 groepscredits": "10 group credits", "1 jaar geldig": "Valid for 1 year", "Elke les": "Every class", "Maandelijks opzegbaar": "Cancel any month", "Onbeperkt yoga": "Unlimited yoga",
+    "Twee studio's: Home": "Two studios: Home", "Twee studio's: studio wisselen": "Two studios: switch studio", "Twee studio's: boeken bij Yoga Loft": "Two studios: book at Yoga Loft", "Twee studio's: tegoed": "Two studios: balance",
     "Welkom en inloggen": "Welcome and sign in", "Link geopend: meedoen": "Link opened: join", "Geen credits: aanbod op het web": "No credits: offers on the web", "Nieuwe klant zonder tegoed": "New client without a balance",
     /* dates */
     "maandag": "Monday", "dinsdag": "Tuesday", "woensdag": "Wednesday", "donderdag": "Thursday", "vrijdag": "Friday", "zaterdag": "Saturday", "zondag": "Sunday",

@@ -280,6 +280,17 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
   - *Uitloggen*;
   - **Account verwijderen**, with a confirmation that says invoices stay with the studio as long as the law requires (`§79`).
 - **No push notifications:** they come in Release 1.1 (`§54`).
+- **The header** (owner, 5 November 2026: "this header can be better"):
+  - *Home*, *Activiteit* and *Profiel* show only the large title with the date above it, without a studio badge.
+  - *Boeken* shows the **studio switcher**: on iOS a glass button in the navigation bar (the studio's mark, its name, ⌃⌄); on Android a tonal dropdown chip under the app bar.
+  - The studio's mark is a rounded square in the studio's colour, like an app icon.
+- **More than one studio or PT** (owner, 5 November 2026). One account per person (`PRODUCT.md §2.9`, ADR-026); every studio approves the client separately.
+  - **Per studio:** *Boeken*, *Tegoed* and the offers page. Credits never cross studios (`§91`).
+  - **Together:** *Home*, *Mijn agenda* and *Activiteit*. With two studios each row names its studio, and Home has one *Tegoed* line per studio.
+  - The switcher opens ***Je studio's***: each studio with its balance, a check on the current one, and ***Studio toevoegen***. Adding a studio explains the link or QR code, because there is no search for studios (ADR-026).
+  - *Tegoed* has a segmented switch per studio; *Profiel* lists the studios.
+  - The client web works the same way: the switcher on *Rooster*.
+  - Screens: the index entries *Twee studio's* and *Studio toevoegen*, with the fictional second studio Yoga Loft.
 
 **Question for the owner:** should the client web move to the same four tabs as the app? It has *Rooster | Mijn agenda | Profiel* now, and the app has *Home | Boeken | Training | Profiel*. One layout would mean clients find things in the same place everywhere.
 
@@ -319,6 +330,7 @@ The prototype had to choose something for these. They are **not decided**; each 
    - a workspace may have more than one owner;
    - the handover covers the next 2 weeks.
 9. **Reordering and bulk attendance:** the prototype shows reordering sets and exercises, and *Iedereen aanwezig* on class attendance. Both are `PRODUCT.md §53` exclusions ("workout reordering", "bulk attendance"), so the MVP builds without them unless the owner moves them into the MVP.
+10. **More than one studio:** *Home* and *Mijn agenda* combine every studio. QE05 leaves this to the F033 spec; the prototype assumes it.
 
 ## 8. What this changes in existing documents
 
