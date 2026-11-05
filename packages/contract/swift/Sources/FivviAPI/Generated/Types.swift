@@ -179,6 +179,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/locations/{locationId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/locations/{locationId}/patch(updateLocation)`.
     func updateLocation(_ input: Operations.UpdateLocation.Input) async throws -> Operations.UpdateLocation.Output
+    /// Plan a private session
+    ///
+    /// Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/private`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/private/post(createPrivateSession)`.
+    func createPrivateSession(_ input: Operations.CreatePrivateSession.Input) async throws -> Operations.CreatePrivateSession.Output
+    /// One session
+    ///
+    /// A session of the workspace with its location, trainer and participants, for any team member who may see the workspace’s clients. A session that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/get(getSession)`.
+    func getSession(_ input: Operations.GetSession.Input) async throws -> Operations.GetSession.Output
     /// The clients of a workspace
     ///
     /// The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. `search` matches part of a name or an email address in the server, ignoring case and accents.
@@ -555,6 +569,38 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// Plan a private session
+    ///
+    /// Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/private`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/private/post(createPrivateSession)`.
+    public func createPrivateSession(
+        path: Operations.CreatePrivateSession.Input.Path,
+        headers: Operations.CreatePrivateSession.Input.Headers = .init(),
+        body: Operations.CreatePrivateSession.Input.Body
+    ) async throws -> Operations.CreatePrivateSession.Output {
+        try await createPrivateSession(Operations.CreatePrivateSession.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// One session
+    ///
+    /// A session of the workspace with its location, trainer and participants, for any team member who may see the workspace’s clients. A session that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/get(getSession)`.
+    public func getSession(
+        path: Operations.GetSession.Input.Path,
+        headers: Operations.GetSession.Input.Headers = .init()
+    ) async throws -> Operations.GetSession.Output {
+        try await getSession(Operations.GetSession.Input(
+            path: path,
+            headers: headers
         ))
     }
     /// The clients of a workspace

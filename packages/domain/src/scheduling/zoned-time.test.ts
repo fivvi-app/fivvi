@@ -60,14 +60,16 @@ describe('ADR-012 wall-clock time to an instant', () => {
   });
 
   it.each([
-    ['2026-02-30', '09:00'],
-    ['2026-13-01', '09:00'],
-    ['24-09-2026', '09:00'],
-    ['2026-09-24', '24:00'],
-    ['2026-09-24', '9:00'],
-    ['2026-09-24', '09:60'],
-    ['', ''],
-  ])('says the input is invalid for %s %s', (date, time) => {
-    expect(wallClockToInstant(date, time, AMSTERDAM)).toEqual({ outcome: 'invalid' });
+    ['2026-02-30', '09:00', 'date'],
+    ['2026-13-01', '09:00', 'date'],
+    ['2026-00-10', '09:00', 'date'],
+    ['24-09-2026', '09:00', 'date'],
+    ['', '', 'date'],
+    ['2026-09-24', '24:00', 'time'],
+    ['2026-09-24', '9:00', 'time'],
+    ['2026-09-24', '09:60', 'time'],
+    ['2026-09-24', '', 'time'],
+  ])('says the input is invalid for %s %s: the %s', (date, time, field) => {
+    expect(wallClockToInstant(date, time, AMSTERDAM)).toEqual({ outcome: 'invalid', field });
   });
 });

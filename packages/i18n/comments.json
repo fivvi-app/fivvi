@@ -127,5 +127,11 @@
   "email.trainerInvitation.intro": "The one sentence of EM-09. {inviter} is the name of the Owner who invites, {workspace} the name of the workspace; the person is invited to join its team as a trainer.",
   "email.trainerInvitation.button": "Label of the button that opens the invitation page, where the person accepts or declines.",
   "email.trainerInvitation.validity": "{date} is the last day the invitation works, a weekday and date with year, e.g. 'vrijdag 13 november 2026', in the workspace's time zone.",
-  "email.trainerInvitation.ignore": "Last line of EM-09: the person can ignore the email when it is unexpected."
+  "email.trainerInvitation.ignore": "Last line of EM-09: the person can ignore the email when it is unexpected.",
+  "email.privateSession.subject": "Subject of EM-11, the email that confirms a new private session to the client. {date} is the weekday and date without year, e.g. 'donderdag 24 september', {time} the start time, e.g. '09:00'. 'Afspraak' is used in this subject only; everywhere else the product says 'privésessie'.",
+  "email.privateSession.preview": "Preview text that inbox lists show next to the subject. {date} is the weekday and date without year, {time} the start time.",
+  "email.privateSession.intro": "First sentence of EM-11. {workspace} is the name of the workspace (the gym) where the session is planned.",
+  "email.privateSession.when": "Line of EM-11 with the time of the session. {date} is the weekday and date with year, e.g. 'donderdag 24 september 2026'; {start} and {end} are the start and end time, e.g. '09:00' and '10:00'.",
+  "email.privateSession.where": "Line of EM-11 with the place. {location} is the name of the location, followed by its address when it has one.",
+  "email.privateSession.trainer": "Line of EM-11 with the trainer. {trainer} is the trainer's name. Left out when the trainer has no name."
 }

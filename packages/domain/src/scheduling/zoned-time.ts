@@ -6,8 +6,8 @@ export type WallClockInstant =
   | { readonly outcome: 'instant'; readonly instant: Date; readonly repeated: boolean }
   /** The time is skipped when the clocks go forward (02:30 on 28 March 2027 in Amsterdam). */
   | { readonly outcome: 'does-not-exist' }
-  /** The date or the time is not a calendar date (`YYYY-MM-DD`) or a time of day (`HH:mm`). */
-  | { readonly outcome: 'invalid' };
+  /** The date is no calendar date (`YYYY-MM-DD`), or the time no time of day (`HH:mm`); `field` says which. */
+  | { readonly outcome: 'invalid'; readonly field: 'date' | 'time' };
 
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const TIME = /^(\d{2}):(\d{2})$/;
@@ -56,21 +56,21 @@ function offsetAt(time: number, timeZone: string): number {
  */
 export function wallClockToInstant(date: string, time: string, timeZone: string): WallClockInstant {
   const day = DATE.exec(date);
-  const clock = TIME.exec(time);
-  if (!day || !clock) return { outcome: 'invalid' };
+  if (!day) return { outcome: 'invalid', field: 'date' };
   const [year, month, dayOfMonth] = [Number(day[1]), Number(day[2]), Number(day[3])];
-  const [hour, minute] = [Number(clock[1]), Number(clock[2])];
-  if (hour > 23 || minute > 59) return { outcome: 'invalid' };
-  const asUtc = Date.UTC(year, month - 1, dayOfMonth, hour, minute);
   // `Date.UTC` rolls 30 February over to March; the round trip catches it.
-  const rolled = new Date(asUtc);
+  const rolled = new Date(Date.UTC(year, month - 1, dayOfMonth));
   if (
     rolled.getUTCFullYear() !== year ||
     rolled.getUTCMonth() !== month - 1 ||
     rolled.getUTCDate() !== dayOfMonth
   ) {
-    return { outcome: 'invalid' };
+    return { outcome: 'invalid', field: 'date' };
   }
+  const clock = TIME.exec(time);
+  const [hour, minute] = [Number(clock?.[1]), Number(clock?.[2])];
+  if (!clock || hour > 23 || minute > 59) return { outcome: 'invalid', field: 'time' };
+  const asUtc = Date.UTC(year, month - 1, dayOfMonth, hour, minute);
 
   // The offsets a day either side cover any single transition near this time.
   const offsets = [

@@ -175,14 +175,14 @@ describe('F020 plan a private session', () => {
     );
   });
 
-  it('refuses a date or a time that is not one', () => {
+  it('refuses a date that is none, and a start that is none, and says which', () => {
     expect(planPrivateSession(facts({ localDate: '2026-02-30' }))).toEqual({
       outcome: 'refused',
-      reason: 'invalid-date-or-time',
+      reason: 'invalid-date',
     });
     expect(planPrivateSession(facts({ localStart: '25:00' }))).toEqual({
       outcome: 'refused',
-      reason: 'invalid-date-or-time',
+      reason: 'invalid-time',
     });
   });
 

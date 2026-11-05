@@ -71,4 +71,16 @@ extension StubAPI {
     ) async throws -> Operations.WithdrawTrainerInvitation.Output {
         fatalError("The app doesn't call withdrawTrainerInvitation yet")
     }
+
+    func createPrivateSession(
+        _ input: Operations.CreatePrivateSession.Input
+    ) async throws -> Operations.CreatePrivateSession.Output {
+        fatalError("The app doesn't call createPrivateSession yet")
+    }
+
+    func getSession(
+        _ input: Operations.GetSession.Input
+    ) async throws -> Operations.GetSession.Output {
+        fatalError("The app doesn't call getSession yet")
+    }
 }

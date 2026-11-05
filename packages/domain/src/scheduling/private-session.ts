@@ -47,8 +47,10 @@ export type PlanPrivateSessionRefusal =
   /** The team member named as trainer does not train in the workspace. */
   | 'unknown-trainer'
   | 'invalid-duration'
-  /** The date or the start is not a real date or time of day. */
-  | 'invalid-date-or-time'
+  /** The date is no calendar date. */
+  | 'invalid-date'
+  /** The start is no time of day. */
+  | 'invalid-time'
   /** The start does not exist because the clocks skip it (daylight saving time starts). */
   | 'time-does-not-exist';
 
@@ -95,7 +97,9 @@ export function planPrivateSession(facts: PlanPrivateSessionFacts): PlanPrivateS
     return { outcome: 'refused', reason: 'invalid-duration' };
   }
   const start = wallClockToInstant(facts.localDate, facts.localStart, facts.timeZone);
-  if (start.outcome === 'invalid') return { outcome: 'refused', reason: 'invalid-date-or-time' };
+  if (start.outcome === 'invalid') {
+    return { outcome: 'refused', reason: start.field === 'date' ? 'invalid-date' : 'invalid-time' };
+  }
   if (start.outcome === 'does-not-exist') {
     return { outcome: 'refused', reason: 'time-does-not-exist' };
   }

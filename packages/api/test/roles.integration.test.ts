@@ -216,10 +216,13 @@ describe('F004 roles on every workspace route', () => {
     );
 
     // The clients (F006) are the Trainer's too: `clients.view` and `clients.manage`; so is the
-    // report of a switch to the workspace (F012), which any team member may send.
+    // report of a switch to the workspace (F012), which any team member may send, and the planning
+    // and reading of sessions (F020: `session.private.manage.own`, and `clients.view`).
     expect(trainerRoutes.map(({ name }) => name).toSorted()).toEqual([
       'addClient',
+      'createPrivateSession',
       'getClient',
+      'getSession',
       'getWorkspace',
       'listClients',
       'listLocations',
@@ -241,6 +244,9 @@ describe('F004 roles on every workspace route', () => {
       addClient: 201,
       getClient: 200,
       updateClient: 200,
+      // Past the access check: the probe body is no session, and the ID names none.
+      createPrivateSession: 400,
+      getSession: 404,
     });
   });
 
@@ -256,9 +262,11 @@ describe('F004 roles on every workspace route', () => {
         : undefined;
       const url = invitation ? route.url.replace(INVITATION_ID, invitation.id) : route.url;
       // 400 for the body the probe sends is fine: the Owner got past the access check.
-      expect([200, 201, 204, 400], route.name).toContain(
-        (await call({ ...route, url }, john)).status,
-      );
+      // The read of a session answers 404 for the ID the probe invented: the Owner got past access.
+      expect(
+        [200, 201, 204, 400, ...(route.name === 'getSession' ? [404] : [])],
+        route.name,
+      ).toContain((await call({ ...route, url }, john)).status);
     }
   });
 

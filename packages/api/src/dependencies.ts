@@ -1,5 +1,6 @@
 import type { SignedInAccount, SystemGreetingView, TenantScopes } from '@fivvi/database';
 import type { SignUpAllowlist } from '@fivvi/domain';
+import type { PrivateSessionMail } from '@fivvi/email/private-session-mail';
 import type { TrainerInvitationMail } from '@fivvi/email/trainer-invitation-mail';
 import type { Locale } from '@fivvi/i18n';
 import {
@@ -52,7 +53,14 @@ export interface ApiDependencies {
    * nothing stored.
    */
   sendTrainerInvitation(mail: TrainerInvitationMail): Promise<void>;
-  /** Where "now" comes from: the expiry and the daily limit of an invitation (F011). Tests pass a manual clock. */
+  /**
+   * Emails EM-11 to the client of a private session (F020): the template and the sending are the
+   * email package's (`createPrivateSessionSender`, wired by apps/web); the route decides whether,
+   * to whom, in which language and with which key. It runs after the request's transaction has
+   * committed; a failed send is reported and does not fail the request (the session is stored).
+   */
+  sendPrivateSession(mail: PrivateSessionMail): Promise<void>;
+  /** Where "now" comes from: the expiry and the daily limit of an invitation (F011), the past of a session (F020). Tests pass a manual clock. */
   clock: { now(): Date };
   /** Reports unhandled route errors to Sentry (E009). Off without a DSN. */
   errorReporter: ErrorReporter;
@@ -78,6 +86,7 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   signOutBearer: () => Promise.resolve(false),
   // Nothing is sent.
   sendTrainerInvitation: () => Promise.reject(new Error('No email configured.')),
+  sendPrivateSession: () => Promise.reject(new Error('No email configured.')),
   clock: { now: () => new Date() },
   tenantScopes: {
     inAccountScope: () => Promise.reject(new Error('No database configured.')),
