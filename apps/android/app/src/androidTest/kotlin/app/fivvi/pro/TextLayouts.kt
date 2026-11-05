@@ -24,7 +24,8 @@ import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
-import app.fivvi.pro.theme.FivviTheme
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.theme.FivviTheme
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 

@@ -29,7 +29,10 @@
 #                                           integer) sets one: then it refuses at that many (--force to override)
 #   flow.sh finish <n>                      after its PR is merged (it says so when the PR is still in
 #                                           the merge queue, or GitHub removed it): remove worktree, branches and the
-#                                           worktree's iOS simulator, close the issue, report what the spec needs next
+#                                           worktree's iOS simulator, close the issue, report what the spec needs next;
+#                                           a spec that closes through its tickets (labelled spec or with sub-issues,
+#                                           not built as its own ticket) stays open: it only cleans up, says so and
+#                                           prints the spec's phase and next step (#509)
 #   flow.sh lock acquire|status             the run lock of the factory (work skill, Factory): one run at a time. A file
 #   flow.sh lock refresh|release <run-id>   under the main checkout's .work/ (outside git, shared by all worktrees;
 #                                           FIVVI_RUN_LOCK overrides the path), expiring 3 hours after it was taken or
@@ -617,7 +620,7 @@ cmd_start() {
 cmd_finish() {
   [ $# -eq 1 ] || usage
   is_number "$1"
-  local n="$1" f branch wt pr parent
+  local n="$1" f branch wt pr parent by_tickets d
   f="$(facts "$n")"
   [ "$(jq '.branches | length' <<<"$f")" -gt 0 ] || die "#$n has no branches"
   # GitHub merges a PR in the merge queue by itself, so the cleanup waits for it; a removal needs a decision first.
@@ -626,6 +629,13 @@ cmd_finish() {
   ! jq -e 'any(.branches[].pr; .state == "OPEN" and .queue.state == "removed")' <<<"$f" >/dev/null \
     || die "#$n: GitHub removed its PR from the merge queue, so nothing is merged yet (scripts/flow.sh status $n)"
   jq -e '[.branches[].pr.state] | all(. == "MERGED")' <<<"$f" >/dev/null || die "#$n: not every branch has a merged PR"
+  # A spec closes through its tickets (complete, then issue.sh close), not through a merged PR on its own branch (#509).
+  # Decided before anything is removed, and fail closed: an answer that is not true or false stops the finish, so a
+  # spec is never closed because the phase could not be read.
+  local undecided="#$n: could not decide whether #$n closes through its tickets (scripts/flow.sh status $n)"
+  d="$(jq -f "$PHASE_JQ" <<<"$f")" || die "$undecided"
+  by_tickets="$(jq -r '.closes_through_tickets // false' <<<"$d")" || die "$undecided"
+  case "$by_tickets" in true|false) ;; *) die "$undecided" ;; esac
 
   for branch in $(jq -r '.branches[].name' <<<"$f"); do
     wt="$(worktree_of "$branch")"
@@ -636,12 +646,21 @@ cmd_finish() {
   done
   for branch in $(jq -r '.branches[].name' <<<"$f"); do "$ROOT/scripts/wt.sh" "done" "$branch"; done
 
-  if [ "$(gh issue view "$n" --repo "$REPO" --json state --jq .state)" = OPEN ]; then
+  if [ "$(gh issue view "$n" --repo "$REPO" --json state --jq .state)" != OPEN ]; then
+    rm -rf "${NOTES_DIR:?}/$n"
+    echo "✅ #$n done"
+  elif [ "$by_tickets" = true ]; then
+    rm -rf "${NOTES_DIR:?}/$n"
+    echo "✅ #$n cleaned up. #$n stays open: a spec closes through its tickets (Phase complete, then scripts/issue.sh close $n)."
+    d="$(jq -f "$PHASE_JQ" <<<"$(facts "$n")")"
+    echo "Phase: $(jq -r .phase <<<"$d")"
+    echo "Next: $(jq -r .next <<<"$d")"
+  else
     pr="$(jq -r '[.branches[].pr.url] | join(", ")' <<<"$f")"
     "$ROOT/scripts/issue.sh" close "$n" --comment "Done in $pr."
+    rm -rf "${NOTES_DIR:?}/$n"
+    echo "✅ #$n done"
   fi
-  rm -rf "${NOTES_DIR:?}/$n"
-  echo "✅ #$n done"
 
   parent="$(jq -r '.parent.number // empty' <<<"$f")"
   [ -n "$parent" ] || return 0

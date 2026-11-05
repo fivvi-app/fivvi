@@ -20,6 +20,8 @@ describe.each(locales)('F010 user menu of the workspace frame in %s', (locale) =
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
+        workspaces={[]}
+        canCreateWorkspace={false}
         capabilities={TRAINER}
         personName={null}
       >
@@ -42,6 +44,8 @@ describe.each(locales)('F010 user menu of the workspace frame in %s', (locale) =
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
+        workspaces={[]}
+        canCreateWorkspace={false}
         capabilities={TRAINER}
         personName="Sarah de Vries"
       >

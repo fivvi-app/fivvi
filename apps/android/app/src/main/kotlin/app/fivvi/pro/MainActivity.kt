@@ -35,6 +35,13 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.api.models.MeWorkspace
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.LanguageViewModel
+import app.fivvi.core.observability.Observability
+import app.fivvi.core.signin.SignInActions
+import app.fivvi.core.signin.SignInScreen
+import app.fivvi.core.signin.SignInViewModel
+import app.fivvi.core.theme.FivviTheme
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
 import app.fivvi.pro.clients.ClientsFlow
 import app.fivvi.pro.hello.HelloViewModel
@@ -46,11 +53,6 @@ import app.fivvi.pro.home.ProfileActions
 import app.fivvi.pro.home.ProfileScreen
 import app.fivvi.pro.home.ProfileViewModel
 import app.fivvi.pro.home.WebLinks
-import app.fivvi.pro.observability.Observability
-import app.fivvi.pro.signin.SignInActions
-import app.fivvi.pro.signin.SignInScreen
-import app.fivvi.pro.signin.SignInViewModel
-import app.fivvi.pro.theme.FivviTheme
 import java.util.UUID
 
 class MainActivity : ComponentActivity() {

@@ -5,7 +5,11 @@ import {
   findSystemGreeting,
   pingDatabase,
 } from '@fivvi/database';
-import { createEnvironmentSendEmail, createTrainerInvitationSender } from '@fivvi/email';
+import {
+  createEnvironmentSendEmail,
+  createPrivateSessionSender,
+  createTrainerInvitationSender,
+} from '@fivvi/email';
 import { inProcessApiClient } from './api-client';
 import { auth, readAuthConfig, signUpAllowlist } from './auth';
 import { database } from './database';
@@ -33,6 +37,18 @@ function sendTrainerInvitation(
   return invitationSender(mail);
 }
 
+let privateSessionSender: ReturnType<typeof createPrivateSessionSender> | undefined;
+
+/**
+ * EM-11, the confirmation of a private session (F020): sent through the provider of the environment
+ * (Lettermint, Brevo, or the log for `@example.com` outside production). Created on first use, so
+ * `next build` runs without the email settings.
+ */
+function sendPrivateSession(...[mail]: Parameters<ReturnType<typeof createPrivateSessionSender>>) {
+  privateSessionSender ??= createPrivateSessionSender({ sendEmail: createEnvironmentSendEmail() });
+  return privateSessionSender(mail);
+}
+
 /** The API, served under `/api` by app/api/[[...route]]/route.ts. */
 export const apiHandler = createApiHandler({
   pingDatabase: () => pingDatabase(database()),
@@ -47,7 +63,9 @@ export const apiHandler = createApiHandler({
   signUpAllowlist: { allows: (email) => signUpAllowlist().allows(email) },
   // Emails the trainer invitation (F011).
   sendTrainerInvitation,
-  // Where "now" comes from: the expiry and the daily limit of an invitation (F011).
+  // Emails the confirmation of a private session (F020), after the session is committed.
+  sendPrivateSession,
+  // Where "now" comes from: the expiry and the daily limit of an invitation (F011), the past of a session (F020).
   clock: { now: () => new Date() },
   // The request transaction of workspace and account routes, with its tenant context (E011).
   tenantScopes: createTenantScopes(database),

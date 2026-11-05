@@ -9,7 +9,7 @@ Specs and tickets for this repo are GitHub issues in `fivvi-app/fivvi`. Use `scr
 | Ticket (`/to-tickets`) | Sub-issue of an approved spec, labelled `ready-for-agent` |
 | Bug report | Issue labelled `bug` and `needs-triage` |
 | Blocked by | Native issue dependency |
-| Closed | Closed by the merged PR (`Closes #<n>`), or `scripts/issue.sh close` |
+| Closed | A ticket or bug: closed by the merged PR (`Closes #<n>`). A spec closes through its tickets: `scripts/flow.sh status` says `complete` once they are all done, then `scripts/issue.sh close <n>`. A PR on a spec's own branch (labelled `spec` or with sub-issues, not built as its own ticket) gets `Refs #<n>`, never `Closes`, and `flow.sh finish` cleans it up and leaves the spec open. A spec with no sub-issues and `ready-for-agent` is its own ticket and is closed by its PR |
 
 ## Conventions
 

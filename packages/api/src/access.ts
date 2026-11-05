@@ -51,14 +51,34 @@ export type Access =
       readonly client: 'none' | 'own-records';
     };
 
+/**
+ * Work a route wants done once its request transaction has committed (an email to a client, a
+ * product event): `afterCommit(task)` queues it. The tasks run in order after the commit, before
+ * the response is returned; they never run when the request fails (status 400 and up, or an error),
+ * because the transaction rolled back. A task that throws is reported (`errorReporter`) and the
+ * response is not changed: the data is stored, so the request has succeeded; the sending does its
+ * own retrying (`@fivvi/email`).
+ */
+export type AfterCommit = (task: () => Promise<void> | void) => void;
+
 /** The context of a route behind an `account` access: the scope holds the caller's workspaces. */
 export interface AccessEnv {
-  Variables: { dependencies: ApiDependencies; account: SignedInAccount; scope: TenantScope };
+  Variables: {
+    dependencies: ApiDependencies;
+    account: SignedInAccount;
+    scope: TenantScope;
+    afterCommit: AfterCommit;
+  };
 }
 
 /** The context of a route behind a `workspace` access: the scope holds that one workspace. */
 export interface WorkspaceEnv {
-  Variables: { dependencies: ApiDependencies; account: SignedInAccount; scope: WorkspaceScope };
+  Variables: {
+    dependencies: ApiDependencies;
+    account: SignedInAccount;
+    scope: WorkspaceScope;
+    afterCommit: AfterCommit;
+  };
 }
 
 /** Puts the dependencies where the access middleware of every route can read them. */
@@ -95,13 +115,19 @@ export function admission(
 /**
  * Runs the rest of the request (validation, handler) inside the transaction that `open` starts,
  * with the scope set on the context. A failed request (status 400 and up, or an error) rolls the
- * transaction back; any other commits with the request, so the context never outlives it.
+ * transaction back; any other commits with the request, so the context never outlives it. The tasks
+ * a handler queued with `afterCommit` run once the transaction has committed, and are dropped
+ * when it rolled back.
  */
 async function withinRequest<S>(
   c: Context<AccessEnv>,
   next: Next,
   open: (run: (scope: S) => Promise<void>) => Promise<unknown>,
 ): Promise<void> {
+  const queued: (() => Promise<void> | void)[] = [];
+  c.set('afterCommit', (task) => {
+    queued.push(task);
+  });
   try {
     await open(async (scope) => {
       c.set('scope', scope as unknown as TenantScope);
@@ -110,6 +136,20 @@ async function withinRequest<S>(
     });
   } catch (error) {
     if (!(error instanceof RollBack)) throw error;
+    return;
+  }
+  // Committed. One task failing does not stop the next, nor change the answer.
+  for (const task of queued) {
+    try {
+      await task();
+    } catch (error) {
+      // The name only: the message of a failed send can quote an address.
+      console.error('After-commit task failed:', error instanceof Error ? error.name : 'unknown');
+      c.get('dependencies').errorReporter.captureError(error, {
+        request: c.req.raw,
+        route: c.req.routePath,
+      });
+    }
   }
 }
 

@@ -2,10 +2,12 @@ package app.fivvi.pro.home
 
 import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.MeWorkspace
-import app.fivvi.pro.auth.AuthState
-import app.fivvi.pro.auth.InMemorySessionStore
-import app.fivvi.pro.auth.Session
-import app.fivvi.pro.signin.FakeSignInApi
+import app.fivvi.core.auth.AuthState
+import app.fivvi.core.auth.InMemorySessionStore
+import app.fivvi.core.auth.Session
+import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.pro.workspace.CurrentWorkspace
 import app.fivvi.pro.workspace.InMemoryLastWorkspaceStore
 import java.io.IOException

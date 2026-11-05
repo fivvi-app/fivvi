@@ -43,14 +43,14 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.LanguageList
+import app.fivvi.core.R
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.subhead
 import app.fivvi.designtokens.title1
 import app.fivvi.designtokens.title2
-import app.fivvi.pro.AppLanguage
-import app.fivvi.pro.LanguageList
-import app.fivvi.pro.R
 import java.util.UUID
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */

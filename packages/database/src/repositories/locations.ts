@@ -75,6 +75,18 @@ export async function listLocations(scope: WorkspaceScope): Promise<LocationView
   return rows.map(toView);
 }
 
+/** One location of the scope's workspace; `undefined` when it has no such location (RLS shows no row of another). */
+export async function findLocation(
+  scope: WorkspaceScope,
+  locationId: string,
+): Promise<LocationView | undefined> {
+  const [row] = await executorOf(scope)
+    .select(columns)
+    .from(locations)
+    .where(and(eq(locations.organizationId, scope.workspaceId), eq(locations.id, locationId)));
+  return row ? toView(row) : undefined;
+}
+
 /**
  * Changes the name and/or the address of one location of the scope's workspace and nothing else:
  * not the type, not which one is the default. `undefined` when the workspace has no such location

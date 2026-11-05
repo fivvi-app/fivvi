@@ -102,6 +102,7 @@ describe('risk of a pull request', () => {
       'scripts/merge-gate.jq',
       'scripts/flow-phase.jq',
       'scripts/records.jq',
+      'scripts/closing.jq',
       'scripts/pr.sh',
       'scripts/flow.sh',
       'scripts/issue.sh',

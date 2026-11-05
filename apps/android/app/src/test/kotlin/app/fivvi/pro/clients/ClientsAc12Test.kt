@@ -1,8 +1,8 @@
 package app.fivvi.pro.clients
 
 import app.fivvi.api.models.Client
+import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.home.FakeWorkspacesApi
-import app.fivvi.pro.home.workspaceIdOf
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

@@ -16,13 +16,13 @@ import app.fivvi.api.models.Client
 import app.fivvi.api.models.Locale
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.api.models.Workspace
-import app.fivvi.pro.AppLanguage
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.R
+import app.fivvi.core.appLanguageParameters
+import app.fivvi.core.me.FakeMeApi
 import app.fivvi.pro.AppRule
-import app.fivvi.pro.R
 import app.fivvi.pro.UI_TIMEOUT_MILLIS
-import app.fivvi.pro.appLanguageParameters
 import app.fivvi.pro.hello.FakeHelloApi
-import app.fivvi.pro.home.FakeMeApi
 import app.fivvi.pro.home.FakeWorkspacesApi
 import app.fivvi.pro.home.HomeTags
 import app.fivvi.pro.localizedString
@@ -314,7 +314,10 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         ).assertTextEquals(string(R.string.clients_profile_edit_title))
         compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.name").performTextReplacement("Mark Visser")
         compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.email").performTextReplacement("mark@example.com")
+        // Typing shows the keyboard and its animation runs outside Compose's idling; tap the language once it is gone (#569).
+        app.hideKeyboard(compose)
         compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.language.en").performClick()
+        compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.language.en").assertIsSelected()
         compose.onNodeWithTag(ClientProfileTags.EDIT_SAVE).performClick()
 
         compose.waitUntilTagExists(ClientProfileTags.NAME)

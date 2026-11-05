@@ -347,6 +347,8 @@ extension Components {
                 case location_read = "location.read"
                 case settings_manage = "settings.manage"
                 case team_invite = "team.invite"
+                case session_private_manage_own = "session.private.manage.own"
+                case session_private_manage_any = "session.private.manage.any"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -423,6 +425,8 @@ extension Components {
                 case location_read = "location.read"
                 case settings_manage = "settings.manage"
                 case team_invite = "team.invite"
+                case session_private_manage_own = "session.private.manage.own"
+                case session_private_manage_any = "session.private.manage.any"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -1011,6 +1015,43 @@ extension Components {
                 case emailLocale
             }
         }
+        /// What the link of a valid invitation shows to anyone who holds it, signed in or not.
+        ///
+        /// - Remark: Generated from `#/components/schemas/InvitationPreview`.
+        public struct InvitationPreview: Codable, Hashable, Sendable {
+            /// The name of the workspace that invites.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/workspaceName`.
+            public var workspaceName: Swift.String
+            /// The name of the Owner who invited, `null` while they have given none. Never their address.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/inviterName`.
+            public var inviterName: Swift.String?
+            /// The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/maskedEmail`.
+            public var maskedEmail: Swift.String
+            /// Creates a new `InvitationPreview`.
+            ///
+            /// - Parameters:
+            ///   - workspaceName: The name of the workspace that invites.
+            ///   - inviterName: The name of the Owner who invited, `null` while they have given none. Never their address.
+            ///   - maskedEmail: The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
+            public init(
+                workspaceName: Swift.String,
+                inviterName: Swift.String? = nil,
+                maskedEmail: Swift.String
+            ) {
+                self.workspaceName = workspaceName
+                self.inviterName = inviterName
+                self.maskedEmail = maskedEmail
+            }
+            public enum CodingKeys: String, CodingKey {
+                case workspaceName
+                case inviterName
+                case maskedEmail
+            }
+        }
         /// A team member who trains in the workspace.
         ///
         /// - Remark: Generated from `#/components/schemas/Trainer`.
@@ -1327,6 +1368,312 @@ extension Components {
             }
             public enum CodingKeys: String, CodingKey {
                 case code
+            }
+        }
+        /// The private session that was planned, with what the trainer should be told.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PlannedPrivateSession`.
+        public struct PlannedPrivateSession: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/PlannedPrivateSession/session`.
+            public var session: Components.Schemas.Session
+            /// The session starts before now: it was saved, and no email goes out.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlannedPrivateSession/past`.
+            public var past: Swift.Bool
+            /// The start happens twice because the clocks went back; the first (summer time) was taken.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlannedPrivateSession/repeatedStart`.
+            public var repeatedStart: Swift.Bool
+            /// Whether the confirmation (EM-11) goes to the client: it was asked for and the session is not in the past. It is sent after the answer is decided; a failure is reported to error tracking and does not undo the session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlannedPrivateSession/confirmationEmail`.
+            public var confirmationEmail: Swift.Bool
+            /// Creates a new `PlannedPrivateSession`.
+            ///
+            /// - Parameters:
+            ///   - session:
+            ///   - past: The session starts before now: it was saved, and no email goes out.
+            ///   - repeatedStart: The start happens twice because the clocks went back; the first (summer time) was taken.
+            ///   - confirmationEmail: Whether the confirmation (EM-11) goes to the client: it was asked for and the session is not in the past. It is sent after the answer is decided; a failure is reported to error tracking and does not undo the session.
+            public init(
+                session: Components.Schemas.Session,
+                past: Swift.Bool,
+                repeatedStart: Swift.Bool,
+                confirmationEmail: Swift.Bool
+            ) {
+                self.session = session
+                self.past = past
+                self.repeatedStart = repeatedStart
+                self.confirmationEmail = confirmationEmail
+            }
+            public enum CodingKeys: String, CodingKey {
+                case session
+                case past
+                case repeatedStart
+                case confirmationEmail
+            }
+        }
+        /// A session of the workspace as the team sees it. It holds no email address or other contact detail of a client.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Session`.
+        public struct Session: Codable, Hashable, Sendable {
+            /// The session ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/id`.
+            public var id: Swift.String
+            /// The kind of session. Private sessions are planned here; the others come later.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/type`.
+            @frozen public enum _TypePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case _private = "private"
+                case group = "group"
+                case openGym = "open_gym"
+            }
+            /// The kind of session. Private sessions are planned here; the others come later.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/type`.
+            public var _type: Components.Schemas.Session._TypePayload
+            /// Whether the session still takes place. A session is never deleted.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/status`.
+            @frozen public enum StatusPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case scheduled = "scheduled"
+                case cancelled = "cancelled"
+            }
+            /// Whether the session still takes place. A session is never deleted.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/status`.
+            public var status: Components.Schemas.Session.StatusPayload
+            /// The start, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/startsAt`.
+            public var startsAt: Foundation.Date
+            /// The end, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/endsAt`.
+            public var endsAt: Foundation.Date
+            /// The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012).
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/timeZone`.
+            public var timeZone: Swift.String
+            /// 1 for a private session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/capacity`.
+            public var capacity: Swift.Int
+            /// Raised by every change; a change says the version it read. Starts at 1.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/version`.
+            public var version: Swift.Int
+            /// - Remark: Generated from `#/components/schemas/Session/location`.
+            public var location: Components.Schemas.Location
+            /// - Remark: Generated from `#/components/schemas/Session/trainer`.
+            public var trainer: Components.Schemas.SessionTrainer?
+            /// The clients in the session, in the order they were added. One for a private session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/participants`.
+            public var participants: [Components.Schemas.SessionParticipant]
+            /// Creates a new `Session`.
+            ///
+            /// - Parameters:
+            ///   - id: The session ID.
+            ///   - _type: The kind of session. Private sessions are planned here; the others come later.
+            ///   - status: Whether the session still takes place. A session is never deleted.
+            ///   - startsAt: The start, a UTC instant.
+            ///   - endsAt: The end, a UTC instant.
+            ///   - timeZone: The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012).
+            ///   - capacity: 1 for a private session.
+            ///   - version: Raised by every change; a change says the version it read. Starts at 1.
+            ///   - location:
+            ///   - trainer:
+            ///   - participants: The clients in the session, in the order they were added. One for a private session.
+            public init(
+                id: Swift.String,
+                _type: Components.Schemas.Session._TypePayload,
+                status: Components.Schemas.Session.StatusPayload,
+                startsAt: Foundation.Date,
+                endsAt: Foundation.Date,
+                timeZone: Swift.String,
+                capacity: Swift.Int,
+                version: Swift.Int,
+                location: Components.Schemas.Location,
+                trainer: Components.Schemas.SessionTrainer? = nil,
+                participants: [Components.Schemas.SessionParticipant]
+            ) {
+                self.id = id
+                self._type = _type
+                self.status = status
+                self.startsAt = startsAt
+                self.endsAt = endsAt
+                self.timeZone = timeZone
+                self.capacity = capacity
+                self.version = version
+                self.location = location
+                self.trainer = trainer
+                self.participants = participants
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case _type = "type"
+                case status
+                case startsAt
+                case endsAt
+                case timeZone
+                case capacity
+                case version
+                case location
+                case trainer
+                case participants
+            }
+        }
+        /// Left out when the session has no trainer (the trainer’s profile ended).
+        ///
+        /// - Remark: Generated from `#/components/schemas/SessionTrainer`.
+        public struct SessionTrainer: Codable, Hashable, Sendable {
+            /// The trainer’s team-member ID, as in `GET …/trainers`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionTrainer/id`.
+            public var id: Swift.String
+            /// The account’s name; empty when it has none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionTrainer/name`.
+            public var name: Swift.String
+            /// Creates a new `SessionTrainer`.
+            ///
+            /// - Parameters:
+            ///   - id: The trainer’s team-member ID, as in `GET …/trainers`.
+            ///   - name: The account’s name; empty when it has none.
+            public init(
+                id: Swift.String,
+                name: Swift.String
+            ) {
+                self.id = id
+                self.name = name
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+            }
+        }
+        /// A client’s place in a session.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SessionParticipant`.
+        public struct SessionParticipant: Codable, Hashable, Sendable {
+            /// The client ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionParticipant/clientId`.
+            public var clientId: Swift.String
+            /// The client’s name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionParticipant/name`.
+            public var name: Swift.String
+            /// What became of the client’s place: `booked` from the start; attendance and cancellations change it in later features.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionParticipant/attendanceStatus`.
+            @frozen public enum AttendanceStatusPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case booked = "booked"
+                case attended = "attended"
+                case cancelled = "cancelled"
+                case noShow = "no_show"
+            }
+            /// What became of the client’s place: `booked` from the start; attendance and cancellations change it in later features.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionParticipant/attendanceStatus`.
+            public var attendanceStatus: Components.Schemas.SessionParticipant.AttendanceStatusPayload
+            /// Creates a new `SessionParticipant`.
+            ///
+            /// - Parameters:
+            ///   - clientId: The client ID.
+            ///   - name: The client’s name.
+            ///   - attendanceStatus: What became of the client’s place: `booked` from the start; attendance and cancellations change it in later features.
+            public init(
+                clientId: Swift.String,
+                name: Swift.String,
+                attendanceStatus: Components.Schemas.SessionParticipant.AttendanceStatusPayload
+            ) {
+                self.clientId = clientId
+                self.name = name
+                self.attendanceStatus = attendanceStatus
+            }
+            public enum CodingKeys: String, CodingKey {
+                case clientId
+                case name
+                case attendanceStatus
+            }
+        }
+        /// A private session to plan: one client, one trainer, a local date, start and length.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest`.
+        public struct PlanPrivateSessionRequest: Codable, Hashable, Sendable {
+            /// The client of the workspace the session is for.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/clientId`.
+            public var clientId: Swift.String
+            /// The trainer’s team-member ID, from `GET …/trainers`. Leave it out to plan for yourself (the caller must train in the workspace). An Owner may plan for any trainer of the workspace, a Trainer only for themself (`403` otherwise).
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/trainerId`.
+            public var trainerId: Swift.String?
+            /// The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/localDate`.
+            public var localDate: Swift.String
+            /// The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/localStart`.
+            public var localStart: Swift.String
+            /// The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/durationMinutes`.
+            public var durationMinutes: Swift.Int
+            /// Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/notify`.
+            public var notify: Swift.Bool
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/surface`.
+            public var surface: Components.Schemas.PlanPrivateSessionRequest.SurfacePayload?
+            /// Creates a new `PlanPrivateSessionRequest`.
+            ///
+            /// - Parameters:
+            ///   - clientId: The client of the workspace the session is for.
+            ///   - trainerId: The trainer’s team-member ID, from `GET …/trainers`. Leave it out to plan for yourself (the caller must train in the workspace). An Owner may plan for any trainer of the workspace, a Trainer only for themself (`403` otherwise).
+            ///   - localDate: The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`.
+            ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
+            ///   - durationMinutes: The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`.
+            ///   - notify: Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                clientId: Swift.String,
+                trainerId: Swift.String? = nil,
+                localDate: Swift.String,
+                localStart: Swift.String,
+                durationMinutes: Swift.Int,
+                notify: Swift.Bool,
+                surface: Components.Schemas.PlanPrivateSessionRequest.SurfacePayload? = nil
+            ) {
+                self.clientId = clientId
+                self.trainerId = trainerId
+                self.localDate = localDate
+                self.localStart = localStart
+                self.durationMinutes = durationMinutes
+                self.notify = notify
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case clientId
+                case trainerId
+                case localDate
+                case localStart
+                case durationMinutes
+                case notify
+                case surface
             }
         }
         /// One page of the clients of a workspace.

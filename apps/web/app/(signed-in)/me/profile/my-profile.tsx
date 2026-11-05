@@ -1,5 +1,7 @@
 import type { Schemas } from '@fivvi/contract';
 import { Card, CardHeader, CardTitle } from '@fivvi/ui/components/card';
+import type { Route } from 'next';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { LanguageRow } from './language-row';
 import { NameForm } from './name-form';
@@ -10,7 +12,7 @@ export type MyWorkspace = Schemas['MyWorkspace'];
 
 /**
  * TW-09 My profile (`/me/profile`, F003): the section *Mijn werkruimtes* / *My workspaces*, each
- * workspace with the person's role in it as a plain label (no switching, F012), and the name
+ * workspace with the person's role in it, the name linking to the workspace (F012), and the name
  * (editable) and email address (read-only) of the person (F005), and the *Taal* / *Language* row
  * (F010).
  * For each workspace where the person may manage the team (the Owner) there is the switch
@@ -42,9 +44,11 @@ export function MyProfile({
             </CardTitle>
           </CardHeader>
           <ul className="grid gap-2 px-6 pb-6">
-            {workspaces.map(({ workspaceId, name, role }) => (
+            {workspaces.map(({ workspaceId, name, slug, role }) => (
               <li key={workspaceId} className="flex flex-wrap justify-between gap-2">
-                <span>{name}</span>
+                <Link href={`/w/${slug}` as Route} className="underline">
+                  {name}
+                </Link>
                 <span className="text-muted-foreground">{roles(role)}</span>
               </li>
             ))}

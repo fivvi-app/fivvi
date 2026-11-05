@@ -326,6 +326,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.2
+      railway:
+        specifier: 'catalog:'
+        version: 3.11.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -463,6 +466,9 @@ importers:
       '@fivvi/database':
         specifier: workspace:*
         version: link:../database
+      '@fivvi/domain':
+        specifier: workspace:*
+        version: link:../domain
       '@fivvi/email':
         specifier: workspace:*
         version: link:../email

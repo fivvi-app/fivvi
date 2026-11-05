@@ -15,6 +15,13 @@ const PROTOCOLS = new Set(['postgres:', 'postgresql:']);
 export const APP_DATABASE_URL_VARIABLE = 'APP_DATABASE_URL';
 
 /**
+ * The connection of the cron's tasks: the cron role `fivvi_cron`, which can use only the tables a
+ * task declares (E012, ADR-006, `cron-role.ts`). Railway builds it from `CRON_DATABASE_PASSWORD`
+ * (`.railway/railway.ts`); locally it is in `.env`. Only `createCronDatabase` reads it.
+ */
+export const CRON_DATABASE_URL_VARIABLE = 'CRON_DATABASE_URL';
+
+/**
  * The privileged connection (the user that owns the tables and runs the migrations). Only
  * `openPrivilegedDatabase` (`privileged.ts`) reads it; a check fails for any other source file
  * that mentions it (AC17).
@@ -23,6 +30,7 @@ export const PRIVILEGED_DATABASE_URL_VARIABLE = 'DATABASE_URL';
 
 export type DatabaseUrlVariable =
   | typeof APP_DATABASE_URL_VARIABLE
+  | typeof CRON_DATABASE_URL_VARIABLE
   | typeof PRIVILEGED_DATABASE_URL_VARIABLE;
 
 /**
@@ -61,4 +69,15 @@ export const APP_ROLE_PASSWORD_VARIABLE = 'APP_DATABASE_PASSWORD';
  */
 export function readAppRolePassword(env: NodeJS.ProcessEnv = process.env): string | undefined {
   return env[APP_ROLE_PASSWORD_VARIABLE]?.trim() || undefined;
+}
+
+/** The variable that holds the cron role's password in each environment (E012, `.railway/railway.ts`). */
+export const CRON_ROLE_PASSWORD_VARIABLE = 'CRON_DATABASE_PASSWORD';
+
+/**
+ * The cron role's password, or `undefined` when the environment has none yet (unset or blank).
+ * The release step then leaves the role as it is. Never log the value.
+ */
+export function readCronRolePassword(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  return env[CRON_ROLE_PASSWORD_VARIABLE]?.trim() || undefined;
 }

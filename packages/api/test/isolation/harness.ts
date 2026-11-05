@@ -18,6 +18,7 @@ import {
 } from '@fivvi/database/testing';
 import {
   createMemoryTransport,
+  createPrivateSessionSender,
   createSendEmail,
   createTrainerInvitationSender,
 } from '@fivvi/email';
@@ -82,6 +83,8 @@ export async function createWorld(): Promise<World> {
         });
         return run(scope);
       }),
+    // The routes by an invitation's token are public, not part of the isolation suite (F011).
+    inInvitationScope: (input, run) => real.inInvitationScope(input, run),
   };
   const api = createApp({
     ...NO_DEPENDENCIES,
@@ -95,6 +98,13 @@ export async function createWorld(): Promise<World> {
         sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
       }),
       appBaseUrl: () => 'https://fivvi.example.test',
+    }),
+    // The session routes email EM-11 (F020): into memory, never out.
+    sendPrivateSession: createPrivateSessionSender({
+      sendEmail: createSendEmail({
+        transport: createMemoryTransport(),
+        sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+      }),
     }),
     // The test accounts are `<id>@example.com`: every harness account is on the allowlist, so the
     // route that creates a workspace succeeds for every signed-in caller, team roles or not (F012).

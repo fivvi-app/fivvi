@@ -4,6 +4,7 @@ import android.app.LocaleManager
 import android.os.Build
 import android.os.LocaleList
 import androidx.test.core.app.ApplicationProvider
+import app.fivvi.core.SystemLanguageSettings
 import java.util.Locale
 import org.junit.After
 import org.junit.Assert.assertEquals

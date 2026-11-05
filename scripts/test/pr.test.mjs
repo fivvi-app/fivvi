@@ -1384,6 +1384,139 @@ describe('pr.sh create: which local check runs before the push', () => {
     assert.deepEqual(result.checks, []);
   });
 
+  // #509: a spec closes through its tickets (flow.sh complete, issue.sh close), so a PR on its own branch refers to it.
+  describe('#509: the issue reference of a PR on the branch of a spec', () => {
+    const view = (labels, subIssues = 0) => ({
+      match: '^issue view 57 .*--json labels',
+      out: {
+        labels: labels.map((name) => ({ name })),
+        subIssues: {
+          totalCount: subIssues,
+          nodes: Array.from({ length: subIssues }, (_, i) => ({ number: 100 + i })),
+        },
+      },
+    });
+    const createWith = (rule, { existing = false, body, args = [] } = {}) => {
+      const result = spawnSync(
+        join(repo, 'scripts/pr.sh'),
+        ['create', '--no-check', ...(body === undefined ? [] : ['--body-file', '-']), ...args],
+        {
+          cwd: repo,
+          encoding: 'utf8',
+          input: body ?? '',
+          env: gh.env([
+            rule,
+            { match: '^pr list ', out: existing ? [{ number: 60 }] : [] },
+            { match: '^issue view 57 ', out: { title: 'Hold a spot' } },
+            { match: '^pr create ', out: 'https://github.com/example/fivvi/pull/60' },
+            { match: '^pr edit ', out: '' },
+            { match: '^pr view 60 ', out: { url: 'https://github.com/example/fivvi/pull/60' } },
+          ]),
+        },
+      );
+      const arg = (name) => {
+        const call = gh.calls().find((c) => c.args[0] === 'pr' && c.args[1] === name);
+        return call?.args[call.args.indexOf('--body') + 1];
+      };
+      return { ...result, created: arg('create'), edited: arg('edit') };
+    };
+
+    it('writes Refs #n instead of Closes #n for a labelled spec', () => {
+      const result = createWith(view(['spec', 'spec-approved']), { body: '## Summary\n\nADR.' });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.created, '## Summary\n\nADR.\n\nRefs #57');
+    });
+
+    it('writes Refs #n for an issue with sub-issues and no spec label', () => {
+      const result = createWith(view([], 2), { body: 'Body.' });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.created, 'Body.\n\nRefs #57');
+    });
+
+    it('writes Refs #n when --body-file replaces the body of an open PR, and keeps a Refs already there', () => {
+      const first = createWith(view(['spec']), { existing: true, body: 'Body.' });
+      assert.equal(first.status, 0, first.stderr);
+      assert.equal(first.edited, 'Body.\n\nRefs #57');
+      const again = createWith(view(['spec']), { existing: true, body: 'Body.\n\nRefs #57' });
+      assert.equal(again.status, 0, again.stderr);
+      assert.equal(again.edited, 'Body.\n\nRefs #57');
+    });
+
+    it('refuses a body that closes the spec, naming Refs, before it pushes anything', () => {
+      for (const keyword of [
+        'Closes #57',
+        'fixes #57',
+        'RESOLVES #57',
+        'Fixed #57',
+        'Closes: #57',
+        'close #57',
+        'Resolved #57',
+        'closed #57',
+        'fix #57',
+        'resolve #57',
+        'Closes example/fivvi#57',
+        'fixes: example/fivvi#57',
+        'Closes https://github.com/example/fivvi/issues/57',
+      ]) {
+        const result = createWith(view(['spec']), { body: `Body.\n\n${keyword}` });
+        assert.equal(result.status, 1, keyword);
+        assert.match(
+          result.stderr,
+          /spec #57 closes through its tickets, not a PR: write Refs #57/,
+        );
+        assert.equal(result.created, undefined, keyword);
+      }
+      for (const body of [
+        'Closes #570 and Refs #57',
+        'Closes other/repo#57 and Refs #57',
+        'disclose #57',
+      ]) {
+        const other = createWith(view(['spec']), { body });
+        assert.equal(other.status, 0, `${body}: ${other.stderr}`);
+      }
+    });
+
+    it('adds no second Closes to a ticket whose body closes it in any form GitHub knows', () => {
+      for (const keyword of [
+        'Fixed #57',
+        'Closes: #57',
+        'close #57',
+        'Resolved #57',
+        'Closes example/fivvi#57',
+      ]) {
+        const body = `Body.\n\n${keyword}`;
+        const result = createWith(view(['ready-for-agent']), { body });
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(result.created, body, keyword);
+      }
+    });
+
+    it('still writes Closes #n for a ticket, a bug and a spec built as its own ticket', () => {
+      for (const rule of [
+        view(['ready-for-agent']),
+        view(['bug', 'ready-for-agent']),
+        view(['spec', 'spec-approved', 'ready-for-agent']),
+        { match: '^issue view 57 .*--json labels', out: { title: 'Hold a spot' } },
+      ]) {
+        const result = createWith(rule, { body: 'Body.' });
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(result.created, 'Body.\n\nCloses #57', JSON.stringify(rule.out));
+      }
+    });
+
+    it('a spec with sub-issues is not its own ticket even when ready-for-agent', () => {
+      const result = createWith(view(['spec', 'ready-for-agent'], 3), { body: 'Body.' });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.created, 'Body.\n\nRefs #57');
+    });
+
+    it('a new PR without --body-file gets Refs #n alone for a spec', () => {
+      const result = createWith(view(['spec']));
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.created, 'Refs #57');
+    });
+  });
+
   // #292 AC12: owner-only edits do not ride along in a ticket PR; the builder moves them to a PR of their own.
   describe('#292: names the owner-only reasons of a ticket PR after the push', () => {
     const riskRules = (files, ticketLabels = []) => [

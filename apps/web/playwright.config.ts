@@ -7,6 +7,8 @@ import {
   analyticsServer,
   appServer,
   brevoServer,
+  TEST_ANDROID_CERT_SHA256,
+  TEST_APPLE_TEAM_ID,
   TEST_POSTHOG_HOST,
   TEST_POSTHOG_KEY,
 } from './e2e/servers';
@@ -56,7 +58,11 @@ export default defineConfig<E2EOptions>({
       reuseExistingServer: !ci,
       timeout: 60_000,
     },
-    standaloneServer(appServer),
+    standaloneServer(appServer, {
+      // Like production: the app-link files are served (E017 AC5).
+      APPLE_TEAM_ID: TEST_APPLE_TEAM_ID,
+      ANDROID_CERT_SHA256: TEST_ANDROID_CERT_SHA256,
+    }),
     standaloneServer(analyticsServer, {
       NEXT_PUBLIC_POSTHOG_KEY: TEST_POSTHOG_KEY,
       POSTHOG_HOST: TEST_POSTHOG_HOST,
@@ -71,6 +77,10 @@ function standaloneServer(
   return {
     command: 'node e2e/serve.ts',
     env: {
+      // Empty unless the caller sets them, whatever the developer's shell holds: like a preview,
+      // a server serves no app-link files (E017 AC5).
+      APPLE_TEAM_ID: '',
+      ANDROID_CERT_SHA256: '',
       ...env,
       E2E_DATABASE: database,
       PORT: String(port),
