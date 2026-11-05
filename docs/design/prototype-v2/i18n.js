@@ -33,6 +33,9 @@ window.FIVVI_I18N = (function () {
 [/^Zelf gedaan · (\d+) sets$/, "On your own · $1 sets"],
 [/^(Gewicht|Herhalingen|Tijd|Waarde) set (\d+)$/, function (m, k, n) { return { Gewicht: "Weight", Herhalingen: "Reps", Tijd: "Time", Waarde: "Value" }[k] + " set " + n; }],
 [/^Set (\d+) gedaan$/, "Set $1 done"],
+[/^Door (.+) toegevoegd$/, "Added by $1"],
+[/^Overgeslagen: (.+)$/, function (m, x) { return "Skipped: " + x.split(", ").map(P).join(", "); }],
+[/^(.+) \(toegevoegd\)$/, function (m, x) { return P(x) + " (added)"; }],
 [/^Zonder trainer: (.+)$/, function (m, x) { return "Without trainer: " + P(x); }],
 [/^Jouw training: (.+)$/, "Your workout: $1"],
 [/^(.+) deed jouw training van (.+) zelf, zonder trainer\.$/, function (m, a, d) { return a + " did your workout of " + P(d) + " on their own, without a trainer."; }],
@@ -210,7 +213,12 @@ window.FIVVI_I18N = (function () {
     [/^Drukst (.+) · (\d+) tegelijk$/, "Busiest $1 · $2 at once"],
     [/^Vrij (.+)$/, "Free $1"],
     [/^Week (\d+) · (.+)$/, function (m, n, r) { return "Week " + n + " · " + P(r); }],
-    [/^We hebben een code gestuurd naar$/, "We sent a code to"]
+    [/^We hebben een code gestuurd naar$/, "We sent a code to"],
+    /* the client's own workout; "toegevoegd" only for exercise names, so other texts keep their own wording */
+    [/^(.+) weghalen\?$/, function (m, x) { return "Remove " + P(x) + "?"; }],
+    [/^(.+) weghalen$/, function (m, x) { return "Remove " + P(x); }],
+    [/^(.+) weggehaald$/, function (m, x) { return P(x) + " removed"; }],
+    [/^(.+) toegevoegd$/, function (m, x) { return isEx(x) ? P(x) + " added" : P(m); }]
   ];
 
   /* Phrases and words, replaced on letter boundaries, longest first. */
@@ -449,6 +457,9 @@ window.FIVVI_I18N = (function () {
     "Wat je hebt ingevuld, gaat verloren.": "What you filled in will be lost.", "Opgeslagen. Je trainer ziet je training.": "Saved. Your trainer sees your workout.", "Zelf gedaan": "On your own",
     "Pas het gewicht of de herhalingen aan als het anders ging. Je trainer ziet wat je hebt gedaan.": "Change the weight or reps if it went differently. Your trainer sees what you did.",
     "Gewicht × herhalingen": "Weight × reps",
+    "Door jou toegevoegd": "Added by you", "Set toevoegen": "Add set", "Geen oefeningen meer. Voeg er een toe.": "No exercises left. Add one.", "In training": "In workout",
+    "Wat je bij deze oefening hebt ingevuld, gaat verloren.": "What you filled in for this exercise will be lost.", "Wat je bij deze oefening hebt ingevuld, gaat verloren. Je trainer ziet dat je hem hebt overgeslagen.": "What you filled in for this exercise will be lost. Your trainer sees that you skipped it.",
+    "Overgeslagen": "Skipped", "Weghalen": "Remove", "Oefening weghalen": "Remove exercise", "Oefening toevoegen (zelf)": "Add an exercise (own workout)",
     "Training zelf doen": "Do a workout yourself", "Zonder trainer": "Without trainer", "zonder trainer": "without trainer",
     "Er is geen notitie en geen aanwezigheid.": "There's no note and no attendance.", "Zelf gedane training": "Workout done on your own",
     /* more than one studio (owner, 5 Nov 2026) */
@@ -470,6 +481,7 @@ window.FIVVI_I18N = (function () {
   function reEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
   var PHL = Object.keys(PH).sort(function (a, b) { return b.length - a.length; }).map(function (k) { return [new RegExp("(^|[^\\p{L}])" + reEsc(k) + "(?=$|[^\\p{L}])", "gu"), PH[k]]; });
 
+  function isEx(x) { var L = window.FIVVI_DATA && window.FIVVI_DATA.library; return !!L && L.some(function (e) { return e.n === x; }); }
   function P(s) {
     /* one pass per position: protect replaced text so "Agenda" → "Calendar" isn't touched again */
     var out = s.replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Bezig · gestart om /g, "In progress · started at "), marks = [];

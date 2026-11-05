@@ -285,6 +285,8 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
   - *Training afronden* asks for confirmation ("2 van 12 sets gedaan"). *Stoppen zonder opslaan* asks too. Back keeps the progress.
   - The finished workout appears in *Activiteit* as *Zelf gedaan* and ticks the day in *Deze week*.
   - No booking, no credit, no attendance: it isn't a session.
+  - **The client can add and remove exercises** (owner, 5 November 2026): *Oefening toevoegen* opens the exercise library (search in Dutch or English); a trash button per exercise asks *Plank weghalen?* first. *Set toevoegen* copies the last set. The trainer sees an added exercise as *Door Anna toegevoegd* and a removed one as *Overgeslagen*.
+  - **App only** (owner, 5 November 2026): not on the client web.
   - **The trainer sees it** (Fivvi Pro and the trainer web): a *Zonder trainer* row under *Vorige keer* on the session screen and the client profile, the workout marked *Zonder trainer* in *Trainingen*, and a screen with what the client did next to *Jouw training*.
 - **The header** (owner, 5 November 2026: "this header can be better"):
   - *Home*, *Activiteit* and *Profiel* show only the large title with the date above it, without a studio badge.
@@ -342,7 +344,8 @@ The prototype had to choose something for these. They are **not decided**; each 
     - the trainer sees it on the client's profile, marked *zelf gedaan*;
     - it belongs to the workspace whose trainer shared the workout;
     - it counts in *Deze week*, *Activiteit* and the weeks in a row;
-    - the client can only redo workouts the trainer shared, not build their own (`PRODUCT.md §40`: the trainer assigns workouts).
+    - the client starts only from a workout the trainer shared, not from an empty one (`PRODUCT.md §40`: the trainer assigns workouts); within it they add and remove exercises;
+    - the client adds exercises from the library only and can't create new ones.
 
 ## 8. What this changes in existing documents
 

@@ -478,7 +478,8 @@
     var c = CLIENT[r.id], h = D.selfLog[r.id][r.i], first = c.name.split(" ")[0];
     var body = lt(h.d + " · zonder trainer", esc(h.name), esc(c.name));
     body += '<div class="pad" style="margin-bottom:12px"><div class="banner" style="--c:var(--ok)">' + ic("info") + esc(first) + " deed jouw training van " + esc(h.from) + " zelf, zonder trainer.</div></div>";
-    body += '<div class="pad">' + grp(h.sets.map(function (s) { return row({ title: esc(s[0]), sub: esc(s[1]), small: "Jouw training: " + esc(s[2]), cls: "kv" }); })) + "</div>";
+    body += '<div class="pad">' + grp(h.sets.map(function (s) { return row({ title: esc(s[0]), sub: esc(s[1]), small: s[2] ? "Jouw training: " + esc(s[2]) : "Door " + esc(first) + " toegevoegd", cls: "kv" }); })
+      .concat((h.skipped || []).map(function (n) { return row({ title: esc(n), sub: "Overgeslagen", cls: "kv past" }); }))) + "</div>";
     body += foot(first + " vult dit zelf in. Er is geen notitie en geen aanwezigheid.");
     return { title: h.name, body: body };
   };
