@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import type { AddressLookup, AddressLookupResult } from './lookup.ts';
+import { type AddressLookup, type AddressLookupResult, normalizeAddition } from './lookup.ts';
 
 // The PDOK Locatieserver, free search (https://api.pdok.nl/bzk/locatieserver/search/v3_1/ui/,
 // checked 2026-11-05): no key, no sign-up, a public service of the Dutch government. It is asked for
@@ -27,23 +27,22 @@ type Fetch = (url: URL, init: RequestInit) => Promise<Response>;
 export interface PdokAddressLookupOptions {
   /** For tests: the real `fetch` otherwise. */
   fetch?: Fetch;
-  timeoutMs?: number;
+  /** For tests: the signal that ends a wait, given the limit in ms; `AbortSignal.timeout` otherwise. */
+  timeoutSignal?: (ms: number) => AbortSignal;
 }
 
 /**
- * The filter for the addition: a single letter is a house letter (`1A`), anything else a house
- * number addition (`1-3`, `2 hoog`). The query of the domain allows letters, digits, spaces and
- * hyphens only, so the quotes can't be left.
+ * The filter for the (normalized) addition: a single letter is a house letter (`1A`), anything else
+ * a house number addition (`1-3`, `2 hoog`). The query of the domain allows letters, digits, spaces
+ * and hyphens only, so the quotes can't be left.
  */
 function additionFilter(addition: string): string {
-  return /^[A-Za-z]$/.test(addition)
-    ? `huisletter:${addition.toUpperCase()}`
-    : `huisnummertoevoeging:"${addition}"`;
+  return /^[A-Z]$/.test(addition) ? `huisletter:${addition}` : `huisnummertoevoeging:"${addition}"`;
 }
 
 export function createPdokAddressLookup(options: PdokAddressLookupOptions = {}): AddressLookup {
   const send: Fetch = options.fetch ?? ((url, init) => fetch(url, init));
-  const timeoutMs = options.timeoutMs ?? ADDRESS_LOOKUP_TIMEOUT_MS;
+  const timeoutSignal = options.timeoutSignal ?? ((ms: number) => AbortSignal.timeout(ms));
   return {
     async lookup(postcode, houseNumber, houseNumberAddition): Promise<AddressLookupResult> {
       const url = new URL(PDOK_FREE_SEARCH_URL);
@@ -51,11 +50,15 @@ export function createPdokAddressLookup(options: PdokAddressLookupOptions = {}):
       url.searchParams.append('fq', 'type:adres');
       url.searchParams.append('fq', `postcode:${postcode.replace(/\s+/g, '')}`);
       url.searchParams.append('fq', `huisnummer:${houseNumber}`);
-      if (houseNumberAddition) url.searchParams.append('fq', additionFilter(houseNumberAddition));
+      const addition = normalizeAddition(houseNumberAddition);
+      if (addition) url.searchParams.append('fq', additionFilter(addition));
       url.searchParams.set('fl', 'straatnaam,woonplaatsnaam');
       url.searchParams.set('rows', '1');
       try {
-        const response = await send(url, { method: 'GET', signal: AbortSignal.timeout(timeoutMs) });
+        const response = await send(url, {
+          method: 'GET',
+          signal: timeoutSignal(ADDRESS_LOOKUP_TIMEOUT_MS),
+        });
         if (!response.ok) return 'unavailable';
         const answer = AnswerSchema.safeParse(await response.json());
         if (!answer.success) return 'unavailable';

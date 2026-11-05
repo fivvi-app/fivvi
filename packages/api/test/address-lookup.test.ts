@@ -2,135 +2,20 @@ import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ADDRESS_LOOKUP_CACHE_MS,
-  ADDRESS_LOOKUP_TIMEOUT_MS,
   type AddressLookup,
   cacheAddressLookup,
   createAddressLookup,
   createFakeAddressLookup,
-  createPdokAddressLookup,
 } from '../src/address-lookup/index.ts';
 
-// F015 (spec #424), AC14 and AC16: the PDOK adapter against recorded answers of the Locatieserver
-// (test/fixtures/pdok, a public address of the BAG), the fake, the cache and which one runs. No
-// test calls the network: `fetch` is always a stub.
+// F015 (spec #424), AC14 and AC16: the fake, the cache and which lookup runs (the PDOK adapter is
+// in pdok-adapter.test.ts). No test calls the network: `fetch` is always a stub.
 
 const fixture = (name: string) =>
   readFileSync(new URL(`./fixtures/pdok/${name}.json`, import.meta.url), 'utf8');
 
 const answer = (body: string, init?: ResponseInit) =>
   new Response(body, { status: 200, headers: { 'content-type': 'application/json' }, ...init });
-
-describe('F015 the PDOK address lookup', () => {
-  afterEach(() => vi.restoreAllMocks());
-
-  it('AC16: sends the postcode, the house number and the type of an address, and nothing else', async () => {
-    const fetch = vi.fn(async (..._args: [URL | string, RequestInit?]) => answer(fixture('found')));
-    const lookup = createPdokAddressLookup({ fetch });
-    await lookup.lookup('2513 AA', '1', null);
-
-    expect(fetch).toHaveBeenCalledTimes(1);
-    const [url, init] = fetch.mock.calls[0] ?? [];
-    const target = new URL(String(url));
-    expect(`${target.origin}${target.pathname}`).toBe(
-      'https://api.pdok.nl/bzk/locatieserver/search/v3_1/free',
-    );
-    expect([...target.searchParams.keys()].sort()).toEqual(['fl', 'fq', 'fq', 'fq', 'q', 'rows']);
-    expect(target.searchParams.get('q')).toBe('*');
-    expect(target.searchParams.getAll('fq').sort()).toEqual([
-      'huisnummer:1',
-      'postcode:2513AA',
-      'type:adres',
-    ]);
-    expect(target.searchParams.get('fl')).toBe('straatnaam,woonplaatsnaam');
-    // A plain GET: no body, no cookies, no custom headers (no workspace, no person, no client IP).
-    expect(init?.method ?? 'GET').toBe('GET');
-    expect(init?.body).toBeUndefined();
-    expect(init?.headers).toBeUndefined();
-    expect(init?.credentials).toBeUndefined();
-    expect(String(url)).not.toMatch(/workspace|email|@/i);
-  });
-
-  it('AC16: a single letter addition is a house letter filter, not a free text search', async () => {
-    const fetch = vi.fn(async (..._args: [URL | string, RequestInit?]) =>
-      answer(fixture('found-with-letter')),
-    );
-    await createPdokAddressLookup({ fetch }).lookup('2513 AA', '1', 'a');
-    const target = new URL(String(fetch.mock.calls[0]?.[0]));
-    expect(target.searchParams.getAll('fq').sort()).toEqual([
-      'huisletter:A',
-      'huisnummer:1',
-      'postcode:2513AA',
-      'type:adres',
-    ]);
-  });
-
-  it('AC16: any other addition is a house number addition filter, quoted', async () => {
-    const fetch = vi.fn(async (..._args: [URL | string, RequestInit?]) => answer(fixture('none')));
-    await createPdokAddressLookup({ fetch }).lookup('1012 AB', '19', '2 hoog');
-    const target = new URL(String(fetch.mock.calls[0]?.[0]));
-    expect(target.searchParams.getAll('fq')).toContain('huisnummertoevoeging:"2 hoog"');
-  });
-
-  it('AC14, AC16: parses the street and the city of a recorded answer', async () => {
-    const lookup = createPdokAddressLookup({ fetch: async () => answer(fixture('found')) });
-    expect(await lookup.lookup('2513 AA', '1', null)).toEqual({
-      street: 'Binnenhof',
-      city: "'s-Gravenhage",
-    });
-  });
-
-  it('AC14: an answer with no address is not-found', async () => {
-    const lookup = createPdokAddressLookup({ fetch: async () => answer(fixture('none')) });
-    expect(await lookup.lookup('9999 ZZ', '1', null)).toBe('not-found');
-  });
-
-  it.each([
-    ['a server error', () => answer('oops', { status: 500 })],
-    ['a rate limit', () => answer('{}', { status: 429 })],
-    ['text that is no JSON', () => answer('<html>maintenance</html>')],
-    ['JSON of another shape', () => answer('{"response":{"docs":[{"straatnaam":3}]}}')],
-    ['an address without a city', () => answer('{"response":{"docs":[{"straatnaam":"Weg"}]}}')],
-  ])('AC14: %s is unavailable', async (_name, respond) => {
-    const lookup = createPdokAddressLookup({ fetch: async () => respond() });
-    expect(await lookup.lookup('2513 AA', '1', null)).toBe('unavailable');
-  });
-
-  it('AC14: a network error is unavailable', async () => {
-    const lookup = createPdokAddressLookup({
-      fetch: () => Promise.reject(new TypeError('fetch failed')),
-    });
-    expect(await lookup.lookup('2513 AA', '1', null)).toBe('unavailable');
-  });
-
-  it('AC14: waits 3 seconds, then gives up with unavailable, and does not retry', async () => {
-    expect(ADDRESS_LOOKUP_TIMEOUT_MS).toBe(3000);
-    const fetch = vi.fn(
-      (_url: URL | string, init?: RequestInit) =>
-        new Promise<Response>((_resolve, reject) => {
-          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
-        }),
-    );
-    const lookup = createPdokAddressLookup({ fetch, timeoutMs: 20 });
-    expect(await lookup.lookup('2513 AA', '1', null)).toBe('unavailable');
-    expect(fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it('AC16: logs nothing, neither the query nor the answer, also when PDOK fails', async () => {
-    const spies = (['log', 'info', 'warn', 'error', 'debug'] as const).map((method) =>
-      vi.spyOn(console, method).mockImplementation(() => {}),
-    );
-    const failing = createPdokAddressLookup({
-      fetch: () => Promise.reject(new Error('fetch failed for 2513AA 1')),
-    });
-    await failing.lookup('2513 AA', '1', null);
-    await createPdokAddressLookup({ fetch: async () => answer(fixture('found')) }).lookup(
-      '2513 AA',
-      '1',
-      null,
-    );
-    for (const spy of spies) expect(spy).not.toHaveBeenCalled();
-  });
-});
 
 describe('F015 the fake address lookup', () => {
   it('answers from its entries, case and spacing as the normalized query', async () => {
@@ -165,6 +50,14 @@ describe('F015 the fake address lookup', () => {
     expect(await lookup.lookup('9999 ZZ', '1', null)).toBe('not-found');
   });
 
+  it('knows house number 3 with another street and city, for the form that refills the city (AC13)', async () => {
+    const lookup = createFakeAddressLookup();
+    expect(await lookup.lookup('1234 AB', '3', null)).toEqual({
+      street: 'Proeflaan',
+      city: 'Haarlem',
+    });
+  });
+
   it('answers unavailable for the postcode of the unavailable case, to try the screens of it', async () => {
     expect(await createFakeAddressLookup().lookup('1000 AA', '1', null)).toBe('unavailable');
   });
@@ -193,6 +86,24 @@ describe('F015 the address lookup cache', () => {
 
     now += 1;
     await cached.lookup('1234 AB', '1', 'A');
+    expect(inner.lookup).toHaveBeenCalledTimes(2);
+  });
+
+  it('keys on the addition as PDOK is asked for it: a house letter in any case is one entry', async () => {
+    const inner = counting(found);
+    const cached = cacheAddressLookup(inner, { now: () => 0 });
+    await cached.lookup('1234 AB', '1', 'a');
+    await cached.lookup('1234 AB', '1', 'A');
+    expect(inner.lookup).toHaveBeenCalledTimes(1);
+  });
+
+  it('keys other additions as written, so one casing never gets the other answer', async () => {
+    const inner = counting(found);
+    const cached = cacheAddressLookup(inner, { now: () => 0 });
+    await cached.lookup('1234 AB', '1', '2 hoog');
+    await cached.lookup('1234 AB', '1', '2 Hoog');
+    expect(inner.lookup).toHaveBeenCalledTimes(2);
+    await cached.lookup('1234 AB', '1', '2 hoog');
     expect(inner.lookup).toHaveBeenCalledTimes(2);
   });
 

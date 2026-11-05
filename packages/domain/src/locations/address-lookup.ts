@@ -2,7 +2,11 @@
 // optional addition, checked before anything leaves the server. Pure rules, no I/O: the API asks,
 // then hands the normalized query to whichever lookup is switched on.
 
-import { ADDRESS_ADDITION_MAX_LENGTH, type AddressIssue, normalizePostcode } from './address.ts';
+import {
+  ADDRESS_ADDITION_MAX_LENGTH,
+  type AddressIssue,
+  checkPostcodeAndHouseNumber,
+} from './address.ts';
 
 /** A lookup query as the API hands it on: the postcode as `1234 AB`, the addition trimmed. */
 export interface AddressLookupQuery {
@@ -21,7 +25,6 @@ export type AddressLookupDecision =
   | { readonly ok: true; readonly query: AddressLookupQuery }
   | { readonly ok: false; readonly issues: readonly AddressIssue[] };
 
-const HOUSE_NUMBER = /^[0-9]{1,5}$/;
 // Letters, digits, spaces and hyphens: what a house number addition is made of ("A", "2 hoog",
 // "1-3"), and nothing that has a meaning in a search query (quotes, colons, wildcards).
 const ADDITION = /^[A-Za-z0-9][A-Za-z0-9 -]*$/;
@@ -36,14 +39,7 @@ export function decideAddressLookup(input: AddressLookupInput): AddressLookupDec
   const houseNumber = input.houseNumber.trim();
   const addition = (input.houseNumberAddition ?? '').trim();
 
-  const issues: AddressIssue[] = [];
-  const normalized = postcode ? normalizePostcode(postcode) : undefined;
-  if (!postcode) issues.push({ field: 'postcode', problem: 'missing' });
-  else if (!normalized) issues.push({ field: 'postcode', problem: 'invalid' });
-  if (!houseNumber) issues.push({ field: 'houseNumber', problem: 'missing' });
-  else if (!HOUSE_NUMBER.test(houseNumber)) {
-    issues.push({ field: 'houseNumber', problem: 'invalid' });
-  }
+  const { postcode: normalized, issues } = checkPostcodeAndHouseNumber(postcode, houseNumber);
   if (addition.length > ADDRESS_ADDITION_MAX_LENGTH) {
     issues.push({ field: 'houseNumberAddition', problem: 'too-long' });
   } else if (addition && !ADDITION.test(addition)) {

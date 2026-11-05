@@ -1,6 +1,7 @@
 import { type AddressField, decideAddressLookup } from '@fivvi/domain';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
+import { addressIssueCode } from '../address-issues.ts';
 import {
   internalServerErrorResponse,
   NOT_FOUND,
@@ -132,12 +133,7 @@ export function registerAddressLookup(app: OpenAPIHono) {
           code: 'validation_failed' as const,
           issues: decision.issues.map(({ field, problem }) => ({
             path: PARAMETER[field],
-            code:
-              problem === 'missing'
-                ? 'too_small'
-                : problem === 'invalid'
-                  ? 'invalid_format'
-                  : 'too_big',
+            code: addressIssueCode(problem),
           })),
         },
         422,

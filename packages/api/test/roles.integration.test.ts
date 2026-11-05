@@ -208,8 +208,9 @@ describe('F004 roles on every workspace route', () => {
     const { gym, john, sarahRole, annaClient, locationId } = await world();
     for (const route of workspaceCalls(gym.id, sarahRole.id, annaClient.id, locationId)) {
       // 400 for the body the probe sends is fine: the Owner got past the access check. So is the
-      // 422 of the address lookup, which the probe calls without its query (F015).
-      expect([200, 201, 204, 400, 422], route.name).toContain((await call(route, john)).status);
+      // 422 of the address lookup alone, which the probe calls without its query (F015).
+      const allowed = route.name === 'lookupAddress' ? [422] : [200, 201, 204, 400];
+      expect(allowed, route.name).toContain((await call(route, john)).status);
     }
   });
 

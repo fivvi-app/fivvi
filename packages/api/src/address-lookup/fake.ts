@@ -18,6 +18,8 @@ export const FAKE_ADDRESSES: readonly FakeAddress[] = [
     street: 'Voorbeeldstraat',
     city: 'Amsterdam',
   },
+  // House number 3 has its own street and city, so a form can show that a new number refills both.
+  { postcode: '1234 AB', houseNumber: '3', street: 'Proeflaan', city: 'Haarlem' },
   { postcode: '5678 CD', houseNumber: '22', street: 'Proefplein', city: 'Utrecht' },
 ];
 

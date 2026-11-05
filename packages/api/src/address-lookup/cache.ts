@@ -1,4 +1,4 @@
-import type { AddressLookup, AddressLookupResult } from './lookup.ts';
+import { type AddressLookup, type AddressLookupResult, normalizeAddition } from './lookup.ts';
 
 /** How long an answer is kept: the BAG changes slowly, and a repeat is not a call to PDOK. */
 export const ADDRESS_LOOKUP_CACHE_MS = 24 * 60 * 60 * 1000;
@@ -14,7 +14,7 @@ export interface CacheOptions {
 
 /**
  * Keeps what a lookup found, and what it found nothing for, for a day, in memory, on the
- * normalized query (the same address spelled `a` or `A` is one entry). `unavailable` is not kept:
+ * query as the service is asked for it (`normalizeAddition`: a house letter `a` or `A` is one entry). `unavailable` is not kept:
  * the next lookup tries again. The cache holds the postcode, number and addition only for the
  * time of its entry, in this process, and never writes them anywhere.
  */
@@ -28,10 +28,11 @@ export function cacheAddressLookup(
   const entries = new Map<string, { until: number; result: AddressLookupResult }>();
   return {
     async lookup(postcode, houseNumber, houseNumberAddition) {
-      const addition = houseNumberAddition?.trim().toLowerCase() || null;
-      const key = [postcode.replace(/\s+/g, '').toUpperCase(), houseNumber.trim(), addition].join(
-        '|',
-      );
+      const key = [
+        postcode.replace(/\s+/g, '').toUpperCase(),
+        houseNumber.trim(),
+        normalizeAddition(houseNumberAddition),
+      ].join('|');
       const kept = entries.get(key);
       if (kept && kept.until > now()) return kept.result;
       entries.delete(key);
