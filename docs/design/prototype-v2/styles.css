@@ -595,3 +595,15 @@ input:focus,select:focus,textarea:focus{outline:none}
 .chip{border:0;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600;background:color-mix(in srgb,var(--gym) 16%,transparent);color:color-mix(in oklab,var(--gym) 55%,var(--ev-ink))}
 .android .chip{border-radius:8px}
 .row.dc .tr .btn{height:34px}
+/* Anything filled with the accent uses the accent's own text colour (the black-and-white accent is near-white in dark mode) */
+.dc-ic[style*="var(--accent)"],.av[style*="var(--accent)"]{color:var(--on-accent)}
+.acc-ic,.appicon{color:var(--on-accent)}
+/* Android single-choice toggles: the Material 3 segmented button, one outlined pill split into equal segments */
+.android .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:0;padding:0;background:none;border:1px solid var(--m-outline);border-radius:999px;overflow:hidden;min-height:40px}
+.android .seg button{height:auto;min-height:38px;border-radius:0;background:none;box-shadow:none;color:var(--m-on);font-size:14px;font-weight:500;border-left:1px solid var(--m-outline);padding:0 8px}
+.android .seg button:first-child,.android .seg button:last-child{border-radius:0}
+.android .seg button:first-child{border-left:0}
+.android .seg button.on{background:var(--m-sc);color:var(--m-on);border-radius:0;font-weight:600}
+.android .seg button[disabled]{color:color-mix(in srgb,var(--m-on) 38%,transparent)}
+.android .row .seg{min-height:0}
+.android .row .seg button{min-height:34px}
