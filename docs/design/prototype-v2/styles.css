@@ -271,7 +271,9 @@ input:focus,select:focus,textarea:focus{outline:none}
   background:var(--glass-strong);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);box-shadow:0 20px 60px rgba(0,0,0,.3)}
 .alert h3{margin:0 0 6px;font-size:17px;font-weight:600}
 .alert p{margin:0 0 18px;font-size:15px;color:var(--label2)}
-.alert .btns{flex-direction:column;gap:8px}
+.alert .btns{flex-direction:column;gap:10px}
+/* stacked buttons keep their own height: flex:1 (basis 0) would squash them to the text in a column */
+.alert .btns>.btn{flex:none}
 .alert .btn{height:48px}
 .menu{position:absolute;z-index:80;min-width:230px;border-radius:24px;padding:6px;background:var(--glass-strong);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);box-shadow:0 16px 48px rgba(0,0,0,.25)}
 .menu button{display:flex;width:100%;justify-content:space-between;align-items:center;gap:20px;border:0;background:none;padding:11px 14px;border-radius:16px;font-size:17px;text-align:left}
