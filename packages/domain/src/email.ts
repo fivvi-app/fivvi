@@ -1,3 +1,8 @@
+/** An email address as the workspace compares and stores it: no spaces around it, lower case. */
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 /**
  * `j***@example.com`: the first character of the part before the `@` and the whole domain, for
  * the confirm step, which must show which account the link signs in, and the invitation read,

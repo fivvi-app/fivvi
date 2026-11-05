@@ -116,7 +116,7 @@ describe('F011 trainer invitation rules', () => {
     });
   });
 
-  describe('AC6: whether the person holding a link may accept or decline', () => {
+  describe('AC6: expired, withdrawn, used and wrong-account invitations are refused', () => {
     const pending = {
       status: 'pending' as const,
       expiresAt: new Date('2026-11-12T10:00:00.000Z'),

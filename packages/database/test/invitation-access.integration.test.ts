@@ -52,6 +52,8 @@ describe('F011 reaching an invitation by its token or its address', () => {
     return { workspace, owner };
   }
 
+  const enter = () => 'enter' as const;
+
   describe('the scope of an invitation token', () => {
     it('opens the workspace of the invitation, and only that one, for a known token hash', async () => {
       const { workspace, owner } = await gym();
@@ -69,7 +71,7 @@ describe('F011 reaching an invitation by its token or its address', () => {
       });
 
       const entry = await createTenantScopes(() => app.db).inInvitationScope(
-        { tokenHash: 'token-hash-of-lisa', accountId: lisa.id },
+        { tokenHash: 'token-hash-of-lisa', accountId: lisa.id, admit: enter },
         async (scope, invitationId) => ({
           invitationId,
           workspaceId: scope.workspaceId,
@@ -96,7 +98,7 @@ describe('F011 reaching an invitation by its token or its address', () => {
       let ran = false;
 
       const entry = await createTenantScopes(() => app.db).inInvitationScope(
-        { tokenHash: 'a-hash-nobody-has' },
+        { tokenHash: 'a-hash-nobody-has', admit: enter },
         () => {
           ran = true;
           return Promise.resolve('ran');
@@ -109,6 +111,7 @@ describe('F011 reaching an invitation by its token or its address', () => {
 
     it('opens an invitation of any status: the caller decides what a closed one means', async () => {
       const { workspace, owner } = await gym();
+      const lisa = await createAccount(admin.db, { label: 'lisa-withdrawn' });
       await addTrainerInvitation(admin.db, {
         workspaceId: workspace.id,
         inviterTeamMemberId: owner.id,
@@ -117,11 +120,113 @@ describe('F011 reaching an invitation by its token or its address', () => {
       });
 
       const entry = await createTenantScopes(() => app.db).inInvitationScope(
-        { tokenHash: 'token-hash-withdrawn' },
+        { tokenHash: 'token-hash-withdrawn', accountId: lisa.id, admit: enter },
         (scope, invitationId) => lockInvitation(scope, invitationId),
       );
 
       expect(entry).toMatchObject({ status: 'entered', value: { status: 'withdrawn' } });
+    });
+
+    it('asks admit with the invitation and the account before the workspace is set, and runs only when it enters', async () => {
+      const { workspace, owner } = await gym();
+      const lisa = await createAccount(admin.db, { label: 'lisa-admit' });
+      const expiresAt = new Date('2026-11-12T10:00:00.000Z');
+      await addTrainerInvitation(admin.db, {
+        workspaceId: workspace.id,
+        inviterTeamMemberId: owner.id,
+        tokenHash: 'token-hash-admit',
+        email: 'lisa@example.com',
+        expiresAt,
+      });
+      const scopes = createTenantScopes(() => app.db);
+      const seen: unknown[] = [];
+      const ran: string[] = [];
+
+      const results = [];
+      for (const answer of ['enter', 'closed', 'refused'] as const) {
+        results.push(
+          await scopes.inInvitationScope(
+            {
+              tokenHash: 'token-hash-admit',
+              accountId: lisa.id,
+              admit: (facts) => {
+                seen.push(facts);
+                return answer;
+              },
+            },
+            () => {
+              ran.push(answer);
+              return Promise.resolve(answer);
+            },
+          ),
+        );
+      }
+
+      expect(results).toEqual([
+        { status: 'entered', value: 'enter' },
+        { status: 'closed' },
+        { status: 'refused' },
+      ]);
+      // A refused caller never reached `run`, so the workspace was never in its context.
+      expect(ran).toEqual(['enter']);
+      expect(seen[0]).toEqual({
+        invitation: { status: 'pending', expiresAt, email: 'lisa@example.com' },
+        account: { email: lisa.email, emailVerified: true },
+      });
+    });
+
+    it('does not ask admit, or run, for a hash no invitation has', async () => {
+      let asked = false;
+
+      const entry = await createTenantScopes(() => app.db).inInvitationScope(
+        {
+          tokenHash: 'another-hash-nobody-has',
+          admit: () => {
+            asked = true;
+            return 'enter';
+          },
+        },
+        () => Promise.resolve('ran'),
+      );
+
+      expect(entry).toEqual({ status: 'unknown' });
+      expect(asked).toBe(false);
+    });
+
+    it('answers closed, without running, for a signed-in account that does not exist', async () => {
+      const { workspace, owner } = await gym();
+      await addTrainerInvitation(admin.db, {
+        workspaceId: workspace.id,
+        inviterTeamMemberId: owner.id,
+        tokenHash: 'token-hash-no-account',
+      });
+
+      const entry = await createTenantScopes(() => app.db).inInvitationScope(
+        {
+          tokenHash: 'token-hash-no-account',
+          accountId: '00000000-0000-4000-8000-000000000000',
+          admit: enter,
+        },
+        () => Promise.resolve('ran'),
+      );
+
+      expect(entry).toEqual({ status: 'closed' });
+    });
+
+    it('reads without an account in a read-only transaction: a write there fails', async () => {
+      const { workspace, owner } = await gym();
+      await addTrainerInvitation(admin.db, {
+        workspaceId: workspace.id,
+        inviterTeamMemberId: owner.id,
+        tokenHash: 'token-hash-read-only',
+      });
+
+      await expect(
+        createTenantScopes(() => app.db).inInvitationScope(
+          { tokenHash: 'token-hash-read-only', admit: enter },
+          (scope, invitationId) => closeInvitation(scope, invitationId, 'declined'),
+        ),
+      ).rejects.toThrow();
     });
 
     it('lets the app role see no invitation without the token, whatever other settings hold', async () => {
@@ -142,6 +247,7 @@ describe('F011 reaching an invitation by its token or its address', () => {
 
     it('closes an invitation as accepted or declined, and a closed one stays closed', async () => {
       const { workspace, owner } = await gym();
+      const lisa = await createAccount(admin.db, { label: 'lisa-closing' });
       const invitation = await addTrainerInvitation(admin.db, {
         workspaceId: workspace.id,
         inviterTeamMemberId: owner.id,
@@ -150,11 +256,11 @@ describe('F011 reaching an invitation by its token or its address', () => {
       const scopes = createTenantScopes(() => app.db);
 
       const first = await scopes.inInvitationScope(
-        { tokenHash: 'token-hash-to-accept' },
+        { tokenHash: 'token-hash-to-accept', accountId: lisa.id, admit: enter },
         (scope, id) => closeInvitation(scope, id, 'accepted'),
       );
       const second = await scopes.inInvitationScope(
-        { tokenHash: 'token-hash-to-accept' },
+        { tokenHash: 'token-hash-to-accept', accountId: lisa.id, admit: enter },
         (scope, id) => closeInvitation(scope, id, 'declined'),
       );
 
@@ -180,8 +286,9 @@ describe('F011 reaching an invitation by its token or its address', () => {
       });
       const scopes = createTenantScopes(() => app.db);
       const inScope = <T>(accountId: string, run: (scope: WorkspaceScope) => Promise<T>) =>
-        scopes.inInvitationScope({ tokenHash: 'token-hash-naming', accountId }, (scope) =>
-          run(scope),
+        scopes.inInvitationScope(
+          { tokenHash: 'token-hash-naming', accountId, admit: enter },
+          (scope) => run(scope),
         );
 
       await inScope(unnamed.id, (scope) => nameAccountIfEmpty(scope, 'Lisa'));

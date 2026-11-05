@@ -25,6 +25,7 @@ import {
   createProductEventCaptureTransport,
   createProductEvents,
 } from '@fivvi/observability';
+import { fixedClock } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { and, count, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -45,6 +46,10 @@ const ORIGIN = 'http://localhost:3000';
 const NOT_FOUND = { code: 'not_found' };
 const NOT_SIGNED_IN = { code: 'not_signed_in' };
 const FORBIDDEN = { code: 'forbidden' };
+// "Now" of every request, and the instants invitations are made relative to.
+const NOW = new Date('2026-11-05T10:00:00.000Z');
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const clock = fixedClock(NOW);
 
 describe('F011 answering a trainer invitation', () => {
   let database: TestDatabase;
@@ -84,6 +89,7 @@ describe('F011 answering a trainer invitation', () => {
         return row satisfies SignedInAccount | undefined;
       },
       tenantScopes: createTenantScopes(() => app.db),
+      clock,
       ...overrides,
     });
   }
@@ -94,6 +100,7 @@ describe('F011 answering a trainer invitation', () => {
       db: app.db,
       secret: SECRET,
       baseURL: ORIGIN,
+      clock,
       signUpAllowlist: parseSignUpAllowlist(undefined),
       isInvitedEmail: (email, now) => hasPendingInvitation(app.db, email, now),
       runInBackground: (task) => pending.push(task),
@@ -146,7 +153,7 @@ describe('F011 answering a trainer invitation', () => {
       email: options.email ?? 'lisa@example.com',
       tokenHash: token.hash,
       ...(options.status ? { status: options.status } : {}),
-      ...(options.expiresAt ? { expiresAt: options.expiresAt } : {}),
+      expiresAt: options.expiresAt ?? new Date(NOW.getTime() + WEEK_MS),
     });
     return { id, token: token.token, hash: token.hash };
   }
@@ -266,7 +273,10 @@ describe('F011 answering a trainer invitation', () => {
     await invitation(w, { email: 'other@example.com' });
     await invitation(w, { email: 'withdrawn@example.com', status: 'withdrawn' });
     await invitation(w, { email: 'used@example.com', status: 'accepted' });
-    await invitation(w, { email: 'expired@example.com', expiresAt: new Date(Date.now() - 1000) });
+    await invitation(w, {
+      email: 'expired@example.com',
+      expiresAt: new Date(NOW.getTime() - 1000),
+    });
     const accountsBefore = await accountCount();
 
     for (const email of [
@@ -358,7 +368,7 @@ describe('F011 answering a trainer invitation', () => {
       const lisaAccount = await createAccount(admin.db, { label: 'lisa' });
       const email = lisaAccount.email;
       const tokens = {
-        expired: await invitation(w, { email, expiresAt: new Date(Date.now() - 1000) }),
+        expired: await invitation(w, { email, expiresAt: new Date(NOW.getTime() - 1000) }),
         withdrawn: await invitation(w, { email, status: 'withdrawn' }),
         used: await invitation(w, { email, status: 'accepted' }),
         declined: await invitation(w, { email, status: 'declined' }),

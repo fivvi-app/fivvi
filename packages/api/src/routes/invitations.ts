@@ -187,7 +187,11 @@ export function registerInvitations(app: OpenAPIHono, dependencies: ApiDependenc
   app.openapi(getInvitationRoute, async (c) => {
     const { token } = c.req.valid('param');
     const entry = await tenantScopes.inInvitationScope(
-      { tokenHash: hashInvitationToken(token) },
+      {
+        tokenHash: hashInvitationToken(token),
+        // The workspace is opened only for an invitation that can still be answered.
+        admit: ({ invitation }) => (isInvitationOpen(invitation, clock.now()) ? 'enter' : 'closed'),
+      },
       async (scope, invitationId) => {
         const invitation = await findInvitation(scope, invitationId);
         if (!invitation || !isInvitationOpen(invitation, clock.now())) return undefined;
@@ -203,7 +207,7 @@ export function registerInvitations(app: OpenAPIHono, dependencies: ApiDependenc
         };
       },
     );
-    if (entry.status === 'unknown' || !entry.value) return c.json(NOT_FOUND, 404);
+    if (entry.status !== 'entered' || !entry.value) return c.json(NOT_FOUND, 404);
     return c.json(entry.value, 200);
   });
 
@@ -223,8 +227,22 @@ export function registerInvitations(app: OpenAPIHono, dependencies: ApiDependenc
     const account = await dependencies.findSignedInAccount(headers);
     if (!account) return { kind: 'not-signed-in' as const };
     const entry = await tenantScopes.inInvitationScope(
-      { tokenHash: hashInvitationToken(token), accountId: account.id },
+      {
+        tokenHash: hashInvitationToken(token),
+        accountId: account.id,
+        // Decided before the workspace is opened: a caller who may not answer never gets it.
+        admit: (facts) => {
+          const decision = decideInvitationAnswer({
+            invitation: facts.invitation,
+            now: clock.now(),
+            account: facts.account ?? { email: '', emailVerified: false },
+          });
+          if (decision.outcome === 'allowed') return 'enter';
+          return decision.reason === 'not_valid' ? 'closed' : 'refused';
+        },
+      },
       async (scope, invitationId) => {
+        // Decided again on the locked row: two answers at once wait for each other here.
         const invitation = await lockInvitation(scope, invitationId);
         const accountFacts = await findAccountForInvitation(scope);
         if (!invitation || !accountFacts) return { kind: 'no-longer-valid' as const };
@@ -245,7 +263,8 @@ export function registerInvitations(app: OpenAPIHono, dependencies: ApiDependenc
         };
       },
     );
-    if (entry.status === 'unknown') return { kind: 'no-longer-valid' as const };
+    if (entry.status === 'refused') return { kind: 'wrong-account' as const };
+    if (entry.status !== 'entered') return { kind: 'no-longer-valid' as const };
     return { ...entry.value, account };
   }
 

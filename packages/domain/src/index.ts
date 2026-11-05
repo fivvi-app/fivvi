@@ -8,8 +8,8 @@ export {
   decideNewClient,
   type NewClientDecision,
   type NewClientFacts,
-  normalizeEmail,
 } from './clients/new-client.ts';
+export { maskEmail, normalizeEmail } from './email.ts';
 export {
   ADDRESS_ADDITION_MAX_LENGTH,
   ADDRESS_TEXT_MAX_LENGTH,
@@ -43,7 +43,6 @@ export {
   type TeamMemberRole,
   type TeamRole,
 } from './team/last-owner.ts';
-export { maskEmail } from './team/mask-email.ts';
 export {
   decideInvitationAnswer,
   decideNewInvitation,

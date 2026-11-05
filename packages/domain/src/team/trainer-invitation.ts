@@ -1,5 +1,5 @@
 import { type Locale, matchLocale, resolveCommunicationLanguage } from '@fivvi/i18n';
-import { normalizeEmail } from '../clients/new-client.ts';
+import { normalizeEmail } from '../email.ts';
 
 // Trainer invitations (F011, spec #422): the rules of inviting a trainer by email. Pure: the
 // route reads the facts, asks, and acts on the answer.
