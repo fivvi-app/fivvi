@@ -1,5 +1,9 @@
 package app.fivvi.pro
 
+import android.os.SystemClock
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -84,6 +88,31 @@ class AppRule : ExternalResource() {
         scenario?.moveToState(Lifecycle.State.RESUMED)
     }
 
+    /**
+     * Hides the soft keyboard and returns once it is gone and has stayed gone for a few polls. Typing into a field shows
+     * it, and each change of focus hides and shows it again: the insets animation (`imePadding`) runs outside Compose's
+     * idling, so a tap right after typing meets a layout that is still moving (#569). A test that goes on to a control
+     * below the fields calls this first.
+     */
+    fun hideKeyboard(timeoutMillis: Long = KEYBOARD_TIMEOUT_MILLIS) {
+        val deadline = SystemClock.uptimeMillis() + timeoutMillis
+        var gonePolls = 0
+        while (gonePolls < KEYBOARD_GONE_POLLS) {
+            var bottom = 0
+            scenario?.onActivity { activity ->
+                val decor = activity.window.decorView
+                val ime = WindowInsetsCompat.Type.ime()
+                if (ViewCompat.getRootWindowInsets(decor)?.isVisible(ime) == true) {
+                    WindowCompat.getInsetsController(activity.window, decor).hide(ime)
+                }
+                bottom = ViewCompat.getRootWindowInsets(decor)?.getInsets(ime)?.bottom ?: 0
+            }
+            gonePolls = if (bottom == 0) gonePolls + 1 else 0
+            check(SystemClock.uptimeMillis() < deadline) { "the soft keyboard did not go away in ${timeoutMillis}ms" }
+            Thread.sleep(KEYBOARD_POLL_MILLIS)
+        }
+    }
+
     /** Closes the activity, as when the person leaves the app; [launch] starts it again. */
     fun close() {
         scenario?.close()
@@ -103,3 +132,7 @@ private fun storedOf(tags: List<String>) =
     } else {
         MeResponse.PreferredLocale.EN
     }
+
+private const val KEYBOARD_TIMEOUT_MILLIS = 5_000L
+private const val KEYBOARD_GONE_POLLS = 5
+private const val KEYBOARD_POLL_MILLIS = 50L
