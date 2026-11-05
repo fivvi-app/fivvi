@@ -81,10 +81,11 @@ guardrails            *.xctestplan
 # preset, the CLI and tools of i18n, the CLI of the design tokens and its contrast check (contrast.ts holds the
 # pass/fail), the lint folders (i18n, ui, api, Android, iOS), the drift checks (the contract's check.ts and the
 # pipeline.ts that holds its drift comparison and the list it compares, the design tokens' check.ts), the Android build
-# files that wire the checks (the root and app build.gradle.kts hold the lint and release checks, settings.gradle.kts
-# picks the lint-rules folder), e2e/maestro/config.yaml (which flows CI runs), .shellcheckrc and
-# docs/engineering/TESTING.md. Other source inside packages, test helpers included, stays low and is covered by review
-# (the tenant-data rules above name E011's own files).
+# files that wire the checks (the root, app, core and client build.gradle.kts hold the lint, release and test checks,
+# the convention plugins in apps/android/gradle/*.gradle.kts share them, settings.gradle.kts picks the lint-rules
+# folder), e2e/maestro/config.yaml (which flows CI runs), .shellcheckrc and docs/engineering/TESTING.md. Other source
+# inside packages, test helpers included, stays low and is covered by review (the tenant-data rules above name E011's
+# own files).
 tooling               biome.json
 tooling               biome.jsonc
 tooling               /.shellcheckrc
@@ -102,6 +103,9 @@ tooling               /packages/api/lint
 tooling               /apps/android/lint
 tooling               /apps/android/build.gradle.kts
 tooling               /apps/android/app/build.gradle.kts
+tooling               /apps/android/core/build.gradle.kts
+tooling               /apps/android/client/build.gradle.kts
+tooling               /apps/android/gradle/*.gradle.kts
 tooling               /apps/android/settings.gradle.kts
 tooling               /e2e/maestro/config.yaml
 tooling               /apps/ios/lint
