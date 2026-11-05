@@ -37,6 +37,16 @@ export {
   rolesWith,
 } from './permissions/matrix.ts';
 export {
+  confirmationLanguage,
+  type PlanPrivateSessionDecision,
+  type PlanPrivateSessionFacts,
+  type PlanPrivateSessionRefusal,
+  PRIVATE_SESSION_DURATIONS,
+  planPrivateSession,
+  sendsConfirmation,
+} from './scheduling/private-session.ts';
+export { type WallClockInstant, wallClockToInstant } from './scheduling/zoned-time.ts';
+export {
   canChangeRole,
   canRemoveTeamMember,
   keepsAnOwner,

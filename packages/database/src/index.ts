@@ -47,6 +47,7 @@ export {
   updateClient,
 } from './repositories/clients.ts';
 export {
+  findLocation,
   type LocationAddress,
   type LocationChanges,
   type LocationView,
@@ -54,6 +55,17 @@ export {
   updateLocation,
 } from './repositories/locations.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
+export {
+  type AttendanceStatus,
+  createPrivateSession,
+  findSession,
+  type NewPrivateSession,
+  type SessionParticipantView,
+  type SessionStatus,
+  type SessionTrainerView,
+  type SessionType,
+  type SessionView,
+} from './repositories/sessions.ts';
 export {
   changeTeamMemberRole,
   deleteTeamMember,
@@ -78,10 +90,12 @@ export {
 } from './repositories/trainer-invitations.ts';
 export {
   findOwnTeamMember,
+  findTrainer,
   listTrainers,
   type OwnTeamMember,
   setTrainerProfile,
   type TrainerView,
+  type TrainerWithProfile,
 } from './repositories/trainer-profiles.ts';
 export {
   createWorkspaceWithOwner,

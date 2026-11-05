@@ -22,6 +22,8 @@ import {
   locations,
   organizations,
   pingDatabase,
+  sessionParticipants,
+  sessions,
   systemGreetings,
   teamMembers,
   trainerInvitations,
@@ -586,6 +588,144 @@ describe('E004 database', () => {
     });
   });
 
+  describe('F020 seed private sessions', () => {
+    // Wednesday 4 November 2026: the week of Monday 2 November, in Amsterdam (CET, UTC+1).
+    const WEDNESDAY = new Date('2026-11-04T12:00:00Z');
+
+    /** The seeded sessions of John's Gym as the calendar reads them: local day and time, trainer, client. */
+    function seededWeek(tx: DatabaseExecutor) {
+      return rows<{
+        day: string;
+        time: string;
+        minutes: number;
+        trainer: string;
+        client: string;
+        status: string;
+        type: string;
+        capacity: number;
+        location: string;
+      }>(
+        tx,
+        sql`select to_char(s.starts_at at time zone 'Europe/Amsterdam', 'YYYY-MM-DD') as day,
+                   to_char(s.starts_at at time zone 'Europe/Amsterdam', 'HH24:MI') as time,
+                   (extract(epoch from s.ends_at - s.starts_at) / 60)::int as minutes,
+                   u.name as trainer, c.name as client, s.status, s.type, s.capacity, l.name as location
+            from sessions s
+            join organizations o on o.id = s.organization_id and o.slug = 'johns-gym'
+            join trainer_profiles tp on tp.id = s.trainer_profile_id
+            join team_members tm on tm.id = tp.team_member_id
+            join auth_users u on u.id = tm.account_id
+            join session_participants sp on sp.session_id = s.id
+            join clients c on c.id = sp.client_id
+            join locations l on l.id = s.location_id and l.is_default
+            order by s.starts_at`,
+      );
+    }
+
+    it('AC15: gives John’s Gym a synthetic week of private sessions for John, Sarah and Tom with the seeded clients, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+        await seed(tx, { now: WEDNESDAY });
+
+        const week = await seededWeek(tx);
+        expect(week.length).toBeGreaterThanOrEqual(6);
+        expect(new Set(week.map(({ trainer }) => trainer))).toEqual(
+          new Set(['Owner', 'Sarah', 'Tom']),
+        );
+        expect(new Set(week.map(({ client }) => client))).toEqual(
+          new Set(['Anna de Vries', 'Mark Jansen', 'Sophie Bakker']),
+        );
+        // Monday to Friday of that week, local days; every one a one-to-one session at the gym.
+        const days = [...new Set(week.map(({ day }) => day))];
+        expect(days).toEqual([
+          '2026-11-02',
+          '2026-11-03',
+          '2026-11-04',
+          '2026-11-05',
+          '2026-11-06',
+        ]);
+        for (const session of week) {
+          expect(session).toMatchObject({
+            status: 'scheduled',
+            type: 'private',
+            capacity: 1,
+            location: "John's Gym",
+          });
+          expect(session.minutes % 5).toBe(0);
+        }
+        expect(await tx.$count(sessions)).toBe(week.length);
+        expect(await tx.$count(sessionParticipants)).toBe(week.length);
+      });
+    });
+
+    it('AC15: keeps the wall-clock times in summer time and in winter time (07:00 UTC and 08:00 UTC for 09:00)', async () => {
+      await withRollback(db, async (tx) => {
+        // The week of Monday 21 September 2026 is summer time, that of Monday 2 November winter time.
+        await seed(tx, { now: new Date('2026-09-23T12:00:00Z') });
+        await seed(tx, { now: WEDNESDAY });
+
+        const mondays = await rows<{ day: string; time: string; utc: string }>(
+          tx,
+          sql`select to_char(starts_at at time zone 'Europe/Amsterdam', 'YYYY-MM-DD') as day,
+                     to_char(starts_at at time zone 'Europe/Amsterdam', 'HH24:MI') as time,
+                     to_char(starts_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI') as utc
+              from sessions
+              where to_char(starts_at at time zone 'Europe/Amsterdam', 'HH24:MI') = '09:00'
+                and to_char(starts_at at time zone 'Europe/Amsterdam', 'YYYY-MM-DD') in ('2026-09-21', '2026-11-02')
+              order by starts_at`,
+        );
+        expect(mondays).toEqual([
+          { day: '2026-09-21', time: '09:00', utc: '2026-09-21T07:00' },
+          { day: '2026-11-02', time: '09:00', utc: '2026-11-02T08:00' },
+        ]);
+      });
+    });
+
+    it('AC15: adds the next week when the seed runs in it, and leaves a week alone that it has seeded', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+        const first = (await seededWeek(tx)).length;
+        await tx.update(sessions).set({ status: 'cancelled' });
+
+        await seed(tx, { now: WEDNESDAY });
+        expect((await seededWeek(tx)).length).toBe(first);
+        expect((await seededWeek(tx)).every(({ status }) => status === 'cancelled')).toBe(true);
+
+        await seed(tx, { now: new Date('2026-11-11T12:00:00Z') });
+        expect((await seededWeek(tx)).length).toBe(first * 2);
+      });
+    });
+
+    it('AC15: gives Tom an account and a trainer profile in John’s Gym', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+
+        const [tom] = await tx
+          .select()
+          .from(authUsers)
+          .where(eq(authUsers.email, 'tom@example.com'));
+        expect(tom).toMatchObject({ name: 'Tom' });
+        const [role] = await tx
+          .select({ id: teamMembers.id, role: teamMembers.role })
+          .from(teamMembers)
+          .where(eq(teamMembers.accountId, tom?.id ?? ''));
+        expect(role?.role).toBe('trainer');
+        expect(
+          await tx.$count(trainerProfiles, eq(trainerProfiles.teamMemberId, role?.id ?? '')),
+        ).toBe(1);
+      });
+    });
+
+    it('AC15: seeds no session in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true, now: WEDNESDAY });
+
+        expect(await tx.$count(sessions)).toBe(0);
+        expect(await tx.$count(sessionParticipants)).toBe(0);
+      });
+    });
+  });
+
   afterAll(async () => {
     await client?.close();
     await database?.drop();
@@ -616,7 +756,8 @@ describe('E004 database', () => {
         await resetRateLimits(tx);
 
         expect(await tx.$count(authRateLimits)).toBe(0);
-        expect(await tx.$count(authUsers)).toBe(2);
+        // The seeded accounts: John, Sarah and Tom.
+        expect(await tx.$count(authUsers)).toBe(3);
       });
     });
   });
@@ -655,7 +796,8 @@ describe('E004 database', () => {
         expect(await client.db.$count(authUsers)).toBe(0);
 
         await release(client.db, { seed: true }, () => {});
-        expect(await client.db.$count(authUsers)).toBe(2);
+        // John, Sarah and Tom.
+        expect(await client.db.$count(authUsers)).toBe(3);
       });
     });
   });
@@ -687,7 +829,7 @@ describe('E004 database', () => {
       });
     });
 
-    it('F005: John and Sarah train in John’s Gym and Sarah in her own workspace, once', async () => {
+    it('F005: John, Sarah and Tom train in John’s Gym and Sarah in her own workspace, once', async () => {
       await withRollback(db, async (tx) => {
         await seed(tx);
         await seed(tx);
@@ -702,6 +844,7 @@ describe('E004 database', () => {
           training.toSorted((a, b) => `${a.slug}${a.email}`.localeCompare(`${b.slug}${b.email}`)),
         ).toEqual([
           { slug: 'johns-gym', email: 'owner@example.com', role: 'owner' },
+          { slug: 'johns-gym', email: 'tom@example.com', role: 'trainer' },
           { slug: 'johns-gym', email: 'trainer@example.com', role: 'trainer' },
           { slug: 'sarah-personal-training', email: 'trainer@example.com', role: 'owner' },
         ]);
@@ -733,7 +876,8 @@ describe('E004 database', () => {
             timeZone: 'Europe/Amsterdam',
           }),
         );
-        expect(await tx.$count(teamMembers)).toBe(3);
+        // John, Sarah and Tom in John's Gym, and Sarah in her own workspace.
+        expect(await tx.$count(teamMembers)).toBe(4);
       });
     });
 

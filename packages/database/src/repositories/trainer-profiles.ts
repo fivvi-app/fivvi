@@ -13,6 +13,12 @@ export interface TrainerView {
   readonly name: string;
 }
 
+/** A person who trains in the workspace, with what a session points at: the trainer profile. */
+export interface TrainerWithProfile extends TrainerView {
+  /** The trainer profile: what `sessions.trainer_profile_id` holds. */
+  readonly trainerProfileId: string;
+}
+
 /** The caller's own team-member record in the scope's workspace. */
 export interface OwnTeamMember {
   readonly id: string;
@@ -82,4 +88,31 @@ export async function setTrainerProfile(
     )
     .returning({ id: trainerProfiles.id });
   return deleted.length > 0;
+}
+
+/**
+ * The trainer with that team-member ID in the scope's workspace, with the ID of their trainer
+ * profile (what a session stores). `undefined` when the team member does not train here, does not
+ * exist, or is another workspace's.
+ */
+export async function findTrainer(
+  scope: WorkspaceScope,
+  teamMemberId: string,
+): Promise<TrainerWithProfile | undefined> {
+  const [row] = await executorOf(scope)
+    .select({ id: teamMembers.id, name: authUsers.name, trainerProfileId: trainerProfiles.id })
+    .from(trainerProfiles)
+    .innerJoin(
+      teamMembers,
+      and(
+        eq(teamMembers.organizationId, trainerProfiles.organizationId),
+        eq(teamMembers.id, trainerProfiles.teamMemberId),
+      ),
+    )
+    .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+    .where(
+      and(eq(trainerProfiles.organizationId, scope.workspaceId), eq(teamMembers.id, teamMemberId)),
+    )
+    .limit(1);
+  return row;
 }
