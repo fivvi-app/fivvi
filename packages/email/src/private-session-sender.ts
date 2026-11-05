@@ -1,7 +1,7 @@
 import type { PrivateSessionMail } from './private-session-mail.ts';
 import type { SendEmail } from './send.ts';
-import { privateSessionMovedEmail } from './templates/private-session-moved.tsx';
 import { privateSessionEmail } from './templates/private-session.tsx';
+import { privateSessionMovedEmail } from './templates/private-session-moved.tsx';
 
 export interface PrivateSessionSenderOptions {
   sendEmail: SendEmail;

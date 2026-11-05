@@ -2,9 +2,9 @@ import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/databas
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  authUsers,
   createDatabase,
   createPrivateSession,
-  authUsers,
   createTenantScopes,
   type DatabaseClient,
   type DatabaseExecutor,
