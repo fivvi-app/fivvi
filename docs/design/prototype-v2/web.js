@@ -347,9 +347,27 @@
     }
     return h;
   };
+  /* The team (PRODUCT §9): Owner or Trainer per person. The owner changes roles and removes people; name and email
+     belong to the person's own account. Removing takes only the team rights: their own bookings as a client stay. */
+  if (!D.roles) D.roles = {};
+  if (!D.invited) D.invited = [];
+  function role(t) { return D.roles[t] || (t === ME() ? "owner" : "trainer"); }
+  function owners() { return D.trainers.sf.filter(function (t) { return role(t) === "owner"; }); }
+  function tmail(t) { return t.split(" ")[0].toLowerCase() + "@example.com"; }
+  /* what a trainer has in the coming two weeks, to hand over when they leave */
+  function upcomingOf(t) { var out = []; for (var i = 0; i <= 13; i++) { var k = F.key(F.add(F.NOW, i)); studioItems(k).forEach(function (it) { if (it.type !== "gym" && !it.cancelled && who(it) === t && !(k === F.TODAY && F.isPast(it, k))) out.push(it); }); } return out; }
   PAGES.trainers = function () {
-    return '<div class="w-row-between"><p class="w-muted">Iedereen die bij ' + esc(wsName()) + " traint.</p>" + btn("Trainer uitnodigen", "w-dlg", { i: "personPlus", d: { n: "invite" } }) + "</div>" +
-      card("", table(["Naam", "E-mail", "Rol", "Status"], D.trainers.sf.map(function (t) { return ['<span class="w-cell">' + av(t, t === ME() ? "var(--accent)" : null) + "<b>" + esc(t) + "</b></span>", esc(t.split(" ")[0].toLowerCase() + "@example.com"), t === ME() ? "Eigenaar · Trainer" : "Trainer", badge("Actief", "var(--ok)")]; })));
+    var rows = D.trainers.sf.map(function (t) {
+      var me = t === ME(), soleOwner = role(t) === "owner" && owners().length === 1;
+      return ['<span class="w-cell">' + av(t, me ? "var(--accent)" : null) + "<b>" + esc(t) + (me ? ' <span class="w-muted">(jij)</span>' : "") + "</b></span>", esc(tmail(t)),
+        role(t) === "owner" ? "Eigenaar" : "Trainer", badge("Actief", "var(--ok)"),
+        '<div class="w-hgroup end">' + btn("Rol wijzigen", "w-dlg", { k: "outline sm", d: { n: "trole", t: t } }) + (me || soleOwner ? "" : btn("Verwijderen", "w-dlg", { k: "ghost sm", d: { n: "tremove", t: t } })) + "</div>"];
+    }).concat(D.invited.map(function (x, i) {
+      return ['<span class="w-cell">' + av(x.email, "#8E8E93") + '<b class="w-muted">' + esc(x.email) + "</b></span>", esc(x.email), "Trainer", badge("Uitgenodigd", "", "outline"),
+        '<div class="w-hgroup end">' + btn("Opnieuw sturen", "w-toast", { k: "outline sm", d: { m: "Uitnodiging opnieuw verstuurd" } }) + btn("Intrekken", "w-dlg", { k: "ghost sm", d: { n: "tinvdel", i: i } }) + "</div>"];
+    }));
+    return '<div class="w-row-between"><p class="w-muted">Iedereen die bij ' + esc(wsName()) + " traint. Een eigenaar kan alles, ook betalingen, aanbod en instellingen; een trainer doet zijn eigen sessies, lessen en klanten.</p>" + btn("Trainer uitnodigen", "w-dlg", { i: "personPlus", d: { n: "invite" } }) + "</div>" +
+      card("", table(["Naam", "E-mail", "Rol", "Status", ""], rows)) + '<p class="w-muted" style="margin-top:10px">Naam en e-mailadres beheert ieder zelf, in het eigen profiel.</p>';
   };
   function qr(seed) {
     var n = 25, cells = "", r = 7;
@@ -498,6 +516,20 @@
           (del ? btn("Herstellen", "w-row-del", { k: "ghost sm", d: { i: i } }) : '<button class="w-icon" data-a="w-row-del" data-i="' + i + '" aria-label="' + esc(r[0]) + ' verwijderen">' + ic("x") + "</button>") + "</div>";
       }).join("") + "</div>" + btn("Oefening toevoegen", "w-row-add", { k: "outline sm", i: "plus" }) + "</div>" + '<p class="w-muted">Doorgestreepte oefeningen gaan er pas uit als je opslaat. Trainingen die al met dit schema zijn gelogd, veranderen niet.</p>'; ok = "Opslaan"; }
     else if (d.n === "tpldel") { t = "Schema verwijderen?"; b = "<p>" + esc(d.t) + " kun je daarna niet meer kiezen bij een training. Trainingen die al met dit schema zijn gelogd, blijven bewaard.</p>"; ok = "Verwijderen"; kind = "dng"; cancel = "Terug"; }
+    else if (d.n === "trole") {
+      var sole = role(d.t) === "owner" && owners().length === 1; t = "Rol van " + d.t; ok = "Opslaan";
+      b = fld("Rol", selF("role", [["trainer", "Trainer: eigen sessies, lessen en klanten"], ["owner", "Eigenaar: alles, ook betalingen, aanbod en instellingen"]])) +
+        (sole ? '<p class="w-muted">' + ic("warn") + " Er moet altijd een eigenaar zijn. Maak eerst iemand anders eigenaar.</p>" : '<p class="w-muted">' + esc(d.t.split(" ")[0]) + " krijgt een e-mail over de nieuwe rol.</p>");
+    }
+    else if (d.n === "tremove") {
+      var up = upcomingOf(d.t), nc = up.filter(function (x) { return x.type === "group"; }).length, np = up.length - nc, fn = d.t.split(" ")[0];
+      t = d.t + " verwijderen?"; ok = "Verwijderen"; kind = "dng"; cancel = "Terug";
+      b = "<p>" + esc(fn) + " kan niet meer inloggen bij " + esc(wsName()) + ". Eigen boekingen en afspraken als klant blijven.</p>" +
+        (up.length ? "<p><b>De komende 2 weken: " + (nc ? nc + (nc === 1 ? " groepsles" : " groepslessen") : "") + (nc && np ? " en " : "") + (np ? np + (np === 1 ? " privésessie" : " privésessies") : "") + ".</b></p>" +
+          fld("Overdragen aan", selF("to", D.trainers.sf.filter(function (x) { return x !== d.t; }).map(function (x) { return [x, x === ME() ? x + " (jij)" : x]; }).concat([["", "Niemand"]]))) +
+          '<p class="w-muted">Met niemand: lessen krijgen Trainer nodig, privésessies worden geannuleerd en die klanten krijgen een e-mail.</p>' : "");
+    }
+    else if (d.n === "tinvdel") { t = "Uitnodiging intrekken?"; b = "<p>De link in de e-mail aan " + esc(D.invited[d.i].email) + " werkt dan niet meer.</p>"; ok = "Intrekken"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "invite") { t = "Trainer uitnodigen"; b = fld("E-mail", inp("email", "email", "naam@voorbeeld.nl")) + fld("Taal van de uitnodiging", selF("lang", ["Nederlands", "English"])); ok = "Uitnodiging versturen"; }
     else if (d.n === "newpriv") { t = "Nieuwe privésessie"; var cl = D.clients.filter(function (c) { return F.WSS().indexOf(c.ws) >= 0; }).map(function (c) { return [c.id, c.name]; });
       b = '<div class="w-inline2">' + fld("Klant", selF("client", cl)) + fld("Tweede klant (duo)", selF("duo", [["", "Geen"]].concat(cl))) + "</div>" + '<div class="w-inline2">' + fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + fld("Duur", selF("dur", [["60", "1 uur"], ["45", "45 min"], ["30", "30 min"], ["90", "1,5 uur"]])) + "</div>" + fld("Locatie", selF("loc", D.locations)); ok = "Plannen"; }
@@ -552,6 +584,9 @@
       openDlg(d.n, { name: m.title, start: m.next ? m.next[1].s : "", end: m.next ? m.next[1].e : "", cap: String(m.cap), trainer: m.trainer, desc: ds.nl || "", descEn: ds.en || "" }, { t: d.t, future: m.future, booked: m.booked });
       return;
     }
+    if (d.n === "trole") { openDlg("trole", { role: role(d.t) }, { t: d.t }); return; }
+    if (d.n === "tremove") { openDlg("tremove", { to: D.trainers.sf.filter(function (x) { return x !== d.t; })[0] || "" }, { t: d.t }); return; }
+    if (d.n === "tinvdel") { openDlg("tinvdel", {}, { i: +d.i }); return; }
     if (d.n === "offer-edit") { openDlg("offer-edit", offerForm(d.id ? offerById(d.id) : { kind: F.HAS("group") ? "abo" : "pack", credit: F.HAS("group") ? "groep" : "prive" }), { id: d.id || "" }); return; }
     if (d.n === "offer-del") { openDlg("offer-del", {}, { id: d.id }); return; }
     if (d.n === "offer") { var ag = d.ag ? D.billing[W().cid].agreements.filter(function (x) { return x.id === d.ag; })[0] : null; openDlg("offer", { offer: ag ? ag.name : D.offerNames()[1], start: "after" }, { ag: d.ag || "" }); return; }
@@ -625,7 +660,17 @@
     else if (d.n === "tpldel") { delete D.tpl[d.t]; msg = "Schema verwijderd"; }
     else if (d.n === "renew") { w.linkCode = ["9XP4", "3MV8", "6TR1"][Math.floor(Math.random() * 3)]; msg = "Nieuwe link gemaakt. De oude werkt niet meer."; }
     else if (d.n === "decline") { D.requests = D.requests.filter(function (x) { return x.id !== d.id; }); msg = "Verzoek afgewezen"; }
-    else if (d.n === "invite") { if (!/.+@.+\..+/.test(f.email || "")) { bad("email", "Vul een geldig e-mailadres in"); return; } msg = "Uitnodiging verstuurd naar " + f.email; }
+    else if (d.n === "invite") { if (!/.+@.+\..+/.test(f.email || "")) { bad("email", "Vul een geldig e-mailadres in"); return; } D.invited.push({ email: f.email.trim(), lang: f.lang }); msg = "Uitnodiging verstuurd naar " + f.email; }
+    else if (d.n === "trole") {
+      if (f.role !== "owner" && role(d.t) === "owner" && owners().length === 1) { bad("role", "Er moet altijd een eigenaar zijn"); return; }
+      D.roles[d.t] = f.role; msg = d.t.split(" ")[0] + " is nu " + (f.role === "owner" ? "eigenaar" : "trainer");
+    }
+    else if (d.n === "tremove") {
+      upcomingOf(d.t).forEach(function (x) { if (f.to) x.trainer = f.to; else if (x.type === "group") x.trainer = ""; else x.cancelled = true; });
+      D.trainers.sf.splice(D.trainers.sf.indexOf(d.t), 1); delete D.roles[d.t];
+      msg = d.t.split(" ")[0] + " is verwijderd" + (f.to ? ". Sessies en lessen zijn overgedragen aan " + f.to.split(" ")[0] : "");
+    }
+    else if (d.n === "tinvdel") { D.invited.splice(d.i, 1); msg = "Uitnodiging ingetrokken"; }
     else if (d.n === "newpriv") { F.addItem(f.date, { id: "n" + Date.now(), ws: "sf", type: "priv", s: f.start, e: F.hm(F.mins(f.start) + +f.dur), client: f.client, duo: f.duo && f.duo !== f.client ? f.duo : undefined, loc: f.loc, att: null }); msg = f.duo && f.duo !== f.client ? "Duosessie gepland" : "Sessie gepland"; }
     else if (d.n === "newclient") { if (!(f.name || "").trim()) { bad("name", "Vul een naam in"); return; } if (!/.+@.+\..+/.test(f.email || "")) { bad("email", "Vul een geldig e-mailadres in"); return; } F.addClient({ id: "c" + Date.now(), ws: "sf", name: f.name.trim(), email: f.email.trim(), lang: f.lang, last: "Nog geen sessie", c: "#8E8E93" }); msg = "Klant toegevoegd. De uitnodiging is verstuurd."; }
     else if (d.n === "newclass") { if (!(f.name || "").trim()) { bad("name", "Vul een naam in"); return; } D.descriptions[f.name.trim()] = { nl: f.desc || "", en: f.descEn || "" }; F.addItem(F.key(F.add(F.NOW, 1)), { id: "n" + Date.now(), ws: "sf", type: "group", s: f.start, e: F.hm(F.mins(f.start) + 60), title: f.name.trim(), level: f.level || "", cap: +f.cap || 8, people: [], loc: D.workspaces.sf.location, trainer: f.trainer === "Trainer nodig" ? "" : f.trainer }); msg = "Les gemaakt"; }
