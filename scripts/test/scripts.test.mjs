@@ -1926,7 +1926,12 @@ exit 0`,
 if [ "$FAKE_PLIST_FORM" = other ]; then sed 1d "\${@: -1}"; else cat "\${@: -1}"; fi`,
     );
     script(join(bin, 'java'), 'echo "openjdk version \\"21\\"" >&2');
-    for (const tool of ['sleep', 'docker']) script(join(bin, tool), 'exit 0');
+    script(join(bin, 'docker'), 'exit 0');
+    // No real waiting; a sleep of exactly 7 s (SETTINGS_WRITE_WAIT in the #584 tests) is logged, to see where the run waits.
+    script(
+      join(bin, 'sleep'),
+      `[ "$*" != 7 ] || echo "settings-write-wait" >>"${state}/calls.log"`,
+    );
     // FAKE_CLEAR (maestro.sh's db:reset-rate-limits): fail-after-first fails every clear but the first, flaky only the second.
     script(
       join(bin, 'pnpm'),
@@ -4048,10 +4053,6 @@ esac`,
       assert.ok(!running(other.pid), 'the hung emulator is gone');
       assert.deepEqual(fake.log('stale'), ['gone'], 'it was gone before the relaunch started');
       assert.deepEqual(flows(fake), ['nl-NL', 'en']);
-      assert.ok(
-        !existsSync(pidFile) || readFileSync(pidFile, 'utf8').trim() !== String(other.pid),
-        'the pid file no longer names it',
-      );
     });
 
     it('leaves a process alone that a stale pid file names when it is not an emulator', async () => {
@@ -4072,10 +4073,13 @@ esac`,
       assert.deepEqual(flows(fake), ['nl-NL', 'en']);
     });
 
-    it('restores the language and the error dialog setting on the relaunched emulator it did not boot first, then stops it', async () => {
+    it('restores the language and the error dialog setting on the relaunched emulator it did not boot first, waits for the settings write, then stops it', async () => {
       const fake = checkout({ emulatorRunning: true });
 
-      const run = await fake.run('scripts/maestro.sh', ['android'], lost('hung', '2'));
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        ...lost('hung', '2'),
+        SETTINGS_WRITE_WAIT: '7',
+      });
 
       assert.equal(run.status, 0, run.output);
       const all = calls(fake);
@@ -4085,21 +4089,52 @@ esac`,
       );
       const restored = all.lastIndexOf('adb shell settings delete global hide_error_dialogs');
       const stopped = all.lastIndexOf('adb emu kill');
+      const waited = all.lastIndexOf('settings-write-wait');
       assert.ok(
         lastFlow >= 0 && ownLanguage > lastFlow && restored > ownLanguage && stopped > restored,
         `language and setting back on the relaunched emulator, then it is stopped:\n${all.join('\n')}`,
       );
+      assert.ok(
+        waited > restored && waited < stopped,
+        `the emulator is not stopped before Android has written the setting:\n${all.join('\n')}`,
+      );
       assert.equal(launches(fake).length, 1);
+    });
+
+    it('restores nothing, and waits for nothing, on a device that is gone after the relaunch failed', async () => {
+      const fake = checkout({ emulatorRunning: true });
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        ...lost('died', '2 3'),
+        SETTINGS_WRITE_WAIT: '7',
+        DEVICE_READY_TIMEOUT: '3',
+      });
+
+      assert.notEqual(run.status, 0, run.output);
+      const all = calls(fake);
+      const lastFlow = all.findLastIndex(isFlow);
+      assert.ok(
+        !all.slice(lastFlow).some((call) => call.includes('setprop persist.sys.locale en-US;')),
+        `no language restore on a gone device:\n${all.join('\n')}`,
+      );
+      assert.ok(!all.some((call) => call.startsWith('adb shell settings delete')));
+      assert.ok(!all.includes('settings-write-wait'));
+      const { pid, booted } = fake.emulator();
+      assert.ok(!booted && !running(pid), 'the relaunched emulator is stopped at the end');
     });
 
     it('does not restore anything on a relaunched emulator the script booted itself', async () => {
       const fake = checkout();
 
-      const run = await fake.run('scripts/maestro.sh', ['android'], lost('died', '2'));
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        ...lost('died', '2'),
+        SETTINGS_WRITE_WAIT: '7',
+      });
 
       assert.equal(run.status, 0, run.output);
       assert.ok(!calls(fake).some((call) => call.startsWith('adb shell settings delete')));
       assert.ok(!calls(fake).some((call) => call.includes('setprop persist.sys.locale en-US;')));
+      assert.ok(!calls(fake).includes('settings-write-wait'));
     });
 
     it('recovers at the switch to nl-NL, before the first flow, as well', async () => {

@@ -57,6 +57,11 @@ DEVICE_LOCALE=""
 # Whether this run booted the emulator it started with (EMULATOR_STARTED is also true after a relaunch of one it did not
 # boot, #584): cleanup restores the language and the error dialog setting on an emulator it did not boot.
 DEVICE_BOOTED_BY_US=false
+# True from a language switch the emulator did not come back from until the relaunch is set up (or for good when that
+# fails): the device is gone, so cleanup restores nothing on it instead of waiting DEVICE_READY_TIMEOUT for it (#584).
+DEVICE_LOST=false
+# Seconds Android gets to write a setting to disk (it does so a moment after the change) before the emulator is stopped.
+SETTINGS_WRITE_WAIT="${SETTINGS_WRITE_WAIT:-5}"
 # Seconds to wait for the device to be usable again, and the number of probes (one a second) in a row it must answer.
 DEVICE_READY_TIMEOUT="${DEVICE_READY_TIMEOUT:-120}"
 DEVICE_STABLE_PROBES="${DEVICE_STABLE_PROBES:-5}"
@@ -294,9 +299,11 @@ recover_emulator() {
 # the language again. Whole flows are never re-run for it.
 switch_device_locale() {
   set_device_locale "$1" && return 0
+  DEVICE_LOST=true
   [ "$EMULATOR_RECOVERED" = false ] || die "the emulator did not come back after the language switch to $1, even after it was relaunched"
   recover_emulator
   set_device_locale "$1" || die "the emulator did not come back after the language switch to $1, even after it was relaunched"
+  DEVICE_LOST=false
 }
 
 # After a framework restart Android delivers BOOT_COMPLETED to every app again, which takes a minute or more on CI's 2
@@ -457,10 +464,14 @@ cleanup() {
   stop_clearing || true
   stop_stack
   # Also on an emulator relaunched by recover_emulator, which stop_android then stops: the AVD keeps its userdata.
-  if [ "$DEVICE_BOOTED_BY_US" = false ]; then
+  # Nothing to restore on a device that is gone (a failed relaunch, or a second failed switch).
+  if [ "$DEVICE_BOOTED_BY_US" = false ] && [ "$DEVICE_LOST" = false ]; then
     # In this order: Android writes settings to disk a moment later, and the framework restart would lose the write.
     [ -z "$DEVICE_LOCALE" ] || set_device_locale "$DEVICE_LOCALE" || true
     restore_error_dialogs || true
+    # An emulator stopped next (EMULATOR_STARTED: a relaunched one) must not be killed before that write: the AVD keeps its
+    # userdata, and a lost write would leave the setting on for the next run. (The language restore waited for the boot.)
+    [ "$EMULATOR_STARTED" != true ] || sleep "$SETTINGS_WRITE_WAIT"
   fi
   stop_android
 }
