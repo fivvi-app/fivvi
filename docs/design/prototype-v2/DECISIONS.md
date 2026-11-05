@@ -247,7 +247,12 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch (*Fivvi Pro | Fivvi (klant)*) shows it on iOS and Android, and the index group *Fivvi (klant-app)* lists its screens. It shares its state with the client web, so a booking made in one shows in the other. **Not decided until the owner has clicked through it.**
 
 - **Tabs as in §55:**
-  - *Home*: hello, the next session or class, *Tegoed* at a glance, and what's coming up;
+  - *Home*: hello, the next session or class, a **"Deze week" card**, *Tegoed* as a small line, and what's coming up. The card is motivating and uses only facts Fivvi has (owner, 5 November 2026):
+    - the days of this week, visited ✓ and booked ○ in the session type's colour;
+    - how often so far and what's still planned; with no visit yet, what's planned and when the first one is;
+    - weeks in a row;
+    - one highlight: a lift the trainer logged (PT), or the month's count (pilates, yoga).
+    - It sets no goals Fivvi doesn't have;
   - *Boeken*: the timetable;
   - ***Activiteit*** instead of *Training* (owner, 5 November 2026: not every studio calls it training; a yoga or pilates studio doesn't log workouts):
     - what the client did: classes and sessions attended, newest first;

@@ -905,7 +905,7 @@
     if (up.length) b += nextHero(up[0], up[0][1].type === "priv" ? "Je volgende sessie" : "Je volgende les");
     if (anna) {
       var s = D.bsum("anna"), parts = s.balances.map(function (x) { return x.left + " " + (x.left === 1 ? x.label[0] : x.label[1]); });
-      b += '<div class="pad" style="margin-top:14px">' + K.grp([K.row({ a: "c-atab", d: { v: "profiel" }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("check") + "</span>", title: "Tegoed", sub: parts.join(" · ") + " over", cls: "dc" })], "--inset:60px") + "</div>";
+      b += '<div class="pad" style="margin-top:14px">' + weekCard(up) + '<button class="c-balline" data-a="c-atab" data-v="profiel">' + ic("check") + "<span>Tegoed: " + parts.join(" · ") + " over</span>" + ic("chevR") + "</button></div>";
     } else b += '<div class="pad" style="margin-top:14px"><div class="card empty">Nog geen abonnement of credits.<div style="margin-top:14px">' + K.btn("Aanbod bekijken", { k: "sec", a: "c-offers" }) + "</div></div></div>";
     var rest = up.slice(1, 7);
     if (rest.length) {
@@ -915,6 +915,22 @@
     } else if (!up.length) b += '<div class="pad" style="margin-top:12px"><div class="card empty">Nog niets gepland.<div style="margin-top:14px">' + K.btn("Les boeken", { k: "sec", a: "c-atab", d: { v: "boeken" } }) + "</div></div></div>";
     return { title: "Home", body: b };
   };
+  /* "Deze week" (owner, 5 Nov 2026: make this place motivating): only facts Fivvi has, no invented goals.
+     The days of this week (went ✓, booked ○), how often so far and what's still planned, weeks in a row,
+     and one highlight: a lift the trainer logged, or the month's count where nothing is logged. */
+  function weekCard(up) {
+    var mon = F.monday(F.NOW), went = {}, planned = {};
+    attended().forEach(function (x) { for (var i = 0; i < 7; i++) { var d = F.add(mon, i); if (x.d.indexOf(d.getDate() + " " + F.MS[d.getMonth()]) >= 0 && F.key(d) < F.TODAY) went[i] = x.type; } });
+    up.forEach(function (r) { var d = F.parse(r[0]), i = Math.round((d - mon) / 864e5); if (i >= 0 && i < 7 && went[i] == null) planned[i] = r[1].type; });
+    var nw = Object.keys(went).length, np = Object.keys(planned).length;
+    var days = [0, 1, 2, 3, 4, 5, 6].map(function (i) { var d = F.add(mon, i), k = F.key(d), st = went[i] != null ? "went" : planned[i] != null ? "planned" : "";
+      return '<div class="c-wd' + (k === F.TODAY ? " today" : "") + '"><span>' + F.DS[d.getDay()] + '</span><i class="' + st + '" style="--c:' + F.CV[went[i] || planned[i] || "group"] + '">' + (st === "went" ? ic("check") : "") + "</i></div>"; }).join("");
+    var L = F.HAS("priv") && F.PREF.setup !== "pilates" && D.lifts.anna, hl = "";
+    if (L) { var l = L[0], v = l[1], dv = v[v.length - 1] - v[0]; hl = '<div class="c-hl">' + D.spark(v, "var(--accent)") + "<span><b>" + esc(l[0]) + " " + String(v[v.length - 1]).replace(".", ",") + " kg</b><small>+" + String(dv).replace(".", ",") + " kg in 8 weken</small></span></div>"; }
+    else hl = '<div class="c-hl"><span class="c-hl-n num">' + (attended().length + 3) + "</span><span><b>keer in november</b><small>Zo vaak was je er deze maand</small></span></div>";
+    return '<div class="card c-week"><div class="c-week-h"><div><span class="eb">Deze week</span>' + (nw || !np ? '<b class="num">' + nw + '<small>× geweest</small></b><em>' + (np ? (np === 1 ? "nog 1 gepland" : "nog " + np + " gepland") : "niets meer gepland") + "</em>"
+      : '<b class="num">' + np + '<small>× gepland</small></b><em>De eerste: ' + dayName(up[0][0]).toLowerCase() + " " + up[0][1].s + "</em>") + '</div><span class="c-streak">🔥 5 weken op rij</span></div><div class="c-days7">' + days + "</div>" + hl + "</div>";
+  }
   ATAB.boeken = function () { var c = C(), t = c.tab; c.tab = "rooster"; var p = CSTEP.app(); c.tab = t; return p; };
   /* Training: the workouts the trainer shared (F045, arrives with M7) */
   /* Activiteit (owner, 5 Nov 2026: not every studio calls it training): what the client did, for every kind of studio.

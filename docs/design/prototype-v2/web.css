@@ -426,3 +426,29 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .c-offer ul{margin:0;padding-left:18px;font-size:14px;color:var(--label2);display:grid;gap:2px}
 .c-tile .wkdots{display:flex;gap:4px;margin-top:8px}
 .c-tile .wkdots i{display:block;width:10px;height:10px;flex:none}
+/* Client app Home: "Deze week" (Fitness-style, facts only) */
+.c-week{display:grid;gap:14px}
+.c-week-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.c-week-h .eb{display:block;font-size:13px;font-weight:600;color:var(--label2);text-transform:uppercase;letter-spacing:.02em}
+.c-week-h b.num{display:block;font-size:40px;line-height:44px;margin-top:2px}
+.c-week-h b.num small{font-size:17px;font-weight:700;color:var(--label2);margin-left:2px}
+.c-week-h em{font-style:normal;font-size:15px;color:var(--label2)}
+.c-streak{flex:none;font-size:13px;font-weight:700;padding:6px 10px;border-radius:999px;background:color-mix(in srgb,var(--gym) 14%,transparent);color:color-mix(in oklab,var(--gym) 60%,var(--ev-ink));white-space:nowrap}
+.c-days7{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.c-wd span{display:block;font-size:11px;font-weight:600;color:var(--label2);margin-bottom:5px}
+.c-wd.today span{color:var(--accent-text);font-weight:800}
+.c-wd i{width:30px;height:30px;border-radius:50%;margin:0 auto;display:grid;place-items:center;background:var(--fill);color:#fff}
+.c-wd i svg{width:16px;height:16px;stroke-width:2.6}
+.c-wd i.went{background:linear-gradient(160deg,color-mix(in oklab,var(--c) 85%,#000),color-mix(in oklab,var(--c) 75%,#000))}
+.c-wd i.planned{background:none;box-shadow:inset 0 0 0 2.5px var(--c)}
+.c-wd.today i:not(.went):not(.planned){box-shadow:inset 0 0 0 2px var(--accent-text);background:none}
+.c-hl{display:flex;align-items:center;gap:12px;border-top:.5px solid var(--sep);padding-top:12px}
+.c-hl span{display:grid}
+.c-hl b{font-size:15px}
+.c-hl small{font-size:13px;color:var(--label2)}
+.c-hl-n{font-size:30px;line-height:32px;color:var(--accent-text);min-width:44px;text-align:center}
+.c-balline{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;color:var(--label2);font-size:14px;padding:12px 6px 0;text-align:left}
+.c-balline span{flex:1}
+.c-balline svg{width:16px;height:16px;flex:none}
+.c-balline svg:first-child{color:color-mix(in oklab,var(--ok) 78%,var(--ev-ink))}
+.c-balline svg:last-child{width:9px;color:var(--label3)}
