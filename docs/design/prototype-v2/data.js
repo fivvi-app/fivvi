@@ -33,11 +33,11 @@ window.FIVVI_DATA = (function () {
   };
 
   /* Workout history per client, newest first. */
-  /* Workouts a client did on their own from a workout the trainer shared (owner, 5 Nov 2026: MVP, with M7).
-     Each set: exercise, what the client did, what the trainer's workout said. */
+  /* Workouts a client did on their own from a workout the trainer shared (owner, 5 Nov 2026: MVP, with M7, #602).
+     Private to the client: trainers never see them. Each set: exercise, what the client did, what the trainer's workout said. */
   var selfLog = {
     anna: [{ name: "Upper A", d: "di 3 nov", n: 5, from: "29 okt", by: "Sarah",
-      sets: [["Bankdrukken", "62,5 kg × 8, 8, 6", "60 kg × 8, 8, 7"], ["Kabel roeien", "45 kg × 10, 10, 10", "45 kg × 10, 10, 10"], ["Dumbbell schouderdrukken", "14 kg × 10, 8", "14 kg × 10, 10"], ["Roeien", "500 m · 1:58", "500 m · 1:52"], ["Hip thrust", "40 kg × 12, 12, 10"]], skipped: ["Plank"] }]
+      sets: [["Bankdrukken", "62,5 kg × 8, 8, 6", "60 kg × 8, 8, 7"], ["Kabel roeien", "45 kg × 10, 10, 10", "45 kg × 10, 10, 10"], ["Dumbbell schouderdrukken", "14 kg × 10, 8", "14 kg × 10, 10"], ["Roeien", "500 m · 1:58", "500 m · 1:52"], ["Hip thrust", "40 kg × 12, 12, 10"]] }]
   };
   var history = {
     anna: [

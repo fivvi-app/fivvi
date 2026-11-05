@@ -249,8 +249,7 @@
     var hard = h.sets.filter(function (x) { return x[2] === "h"; }).map(function (x) { return x[0]; });
     var rows = h.sets.map(function (x) { return row({ title: esc(x[0]), sub: esc(x[1]), tr: diffTag(x[2]), cls: "kv" }); });
     if (h.note) rows.push(row({ lead: '<span class="dc-ic" style="--c:#8E8E93">' + ic("note") + "</span>", title: '<span translate="no">' + esc(h.note) + "</span>", small: "Notitie van " + esc(h.by) + " · alleen voor trainers", cls: "wrap dc" }));
-    var sl = (D.selfLog[cid] || [])[0], solo = sl ? '<div class="pad" style="margin-bottom:10px">' + grp([row({ a: "open-self", d: { id: cid, i: 0 }, lead: '<span class="dc-ic" style="--c:var(--ok)">' + ic("dumb") + "</span>", title: "Zonder trainer: " + esc(sl.name), sub: esc(sl.d) + " · " + esc(sl.sets[0][0]) + " " + esc(sl.sets[0][1]), cls: "dc wrap" })], "--inset:60px") + "</div>" : "";
-    return sh("Vorige keer · " + h.d, '<button data-a="open-workout" data-id="' + cid + '" data-i="0">Details</button>', "small") + solo +
+    return sh("Vorige keer · " + h.d, '<button data-a="open-workout" data-id="' + cid + '" data-i="0">Details</button>', "small") +
       '<div class="pad"><p class="lastsum">' + esc(h.name) + (h.dur ? " · " + h.dur : "") + " · " + h.n + " oefeningen" + (hard.length ? ' · <span class="hard">' + diffTag("h") + "<span>Zwaar: " + hard.map(esc).join(", ") + "</span></span>" : "") + "</p>" + grp(rows) + "</div>";
   }
   function progressList(cid) {
@@ -469,20 +468,10 @@
     body += sh("Notities", '<button data-a="note" data-id="' + c.id + '">+ Notitie</button>', "small");
     body += '<div class="pad">' + (notes.length ? grp(notes.map(function (n) { return row({ title: '<span translate="no">' + esc(n.t) + "</span>", small: n.d + " · " + esc(n.by), cls: "wrap" }); })) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen notities.</span></div></div></div>') + "</div>" + foot("Alleen trainers van " + D.workspaces[c.ws].name + " zien notities.");
     body += sh("Trainingen", "", "small");
-    body += '<div class="pad">' + (hist.length ? grp((D.selfLog[c.id] || []).map(function (h, i) { return row({ a: "open-self", d: { id: c.id, i: i }, title: esc(h.name), sub: h.d + " · " + h.n + (h.n === 1 ? " oefening" : " oefeningen"), tr: '<span class="pill tint" style="--c:var(--ok)">Zonder trainer</span>' }); })
-      .concat(hist.map(function (h, i) { return row({ a: "open-workout", d: { id: c.id, i: i }, title: esc(h.name), sub: h.d + " · " + h.n + " oefeningen · " + esc(h.by) }); }))) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen trainingen.</span></div></div></div>') + "</div>";
+    body += '<div class="pad">' + (hist.length ? grp(hist.map(function (h, i) { return row({ a: "open-workout", d: { id: c.id, i: i }, title: esc(h.name), sub: h.d + " · " + h.n + " oefeningen · " + esc(h.by) }); })) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen trainingen.</span></div></div></div>') + "</div>";
     return { title: c.name, inline: true, body: body, trailing: [{ i: "pencil", a: "web-only", label: "Bewerken" }] };
   };
 
-  SCREENS.selfWorkout = function (r) {
-    var c = CLIENT[r.id], h = D.selfLog[r.id][r.i], first = c.name.split(" ")[0];
-    var body = lt(h.d + " · zonder trainer", esc(h.name), esc(c.name));
-    body += '<div class="pad" style="margin-bottom:12px"><div class="banner" style="--c:var(--ok)">' + ic("info") + esc(first) + " deed jouw training van " + esc(h.from) + " zelf, zonder trainer.</div></div>";
-    body += '<div class="pad">' + grp(h.sets.map(function (s) { return row({ title: esc(s[0]), sub: esc(s[1]), small: s[2] ? "Jouw training: " + esc(s[2]) : "Door " + esc(first) + " toegevoegd", cls: "kv" }); })
-      .concat((h.skipped || []).map(function (n) { return row({ title: esc(n), sub: "Overgeslagen", cls: "kv past" }); }))) + "</div>";
-    body += foot(first + " vult dit zelf in. Er is geen notitie en geen aanwezigheid.");
-    return { title: h.name, body: body };
-  };
   SCREENS.workout = function (r) {
     var c = CLIENT[r.id], h = D.history[r.id][r.i];
     var sets = h.sets || [["Squat", "60 kg × 8, 8, 8"], ["Bankdrukken", "57,5 kg × 8, 8, 6"], ["Plank", "0:45 × 3"]];
@@ -946,7 +935,6 @@
     "open-class": function (d) { push({ n: "klass", id: d.id }); },
     "open-client": function (d) { push({ n: "client", id: d.id }); },
     "open-workout": function (d) { push({ n: "workout", id: d.id, i: +d.i }); },
-    "open-self": function (d) { push({ n: "selfWorkout", id: d.id, i: +d.i }); },
     "open-att": function (d) { var it = findItem(d.id).it; it.attDraft = null; push({ n: "attendance", id: d.id }); },
     push: function (d) { push({ n: d.n }); },
     att: function (d) { var it = findItem(d.id).it; it.att = d.v; toast(d.v === "yes" ? CLIENT[it.client].name.split(" ")[0] + " was aanwezig" : "Genoteerd als niet verschenen"); },

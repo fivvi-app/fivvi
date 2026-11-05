@@ -91,12 +91,11 @@
   /* ---------- last time and progress ---------- */
   function nl(x) { return String(x).replace(".", ","); }
   function dtag(d) { return d ? '<span class="w-diff" role="img" aria-label="' + D.DIFF[d][1] + '" title="' + D.DIFF[d][1] + '">' + D.DIFF[d][0] + "</span>" : ""; }
-  function selfLine(cid) { var s = (D.selfLog[cid] || [])[0]; return s ? '<p class="w-self">' + badge("Zonder trainer", "", "secondary") + " <span>" + esc(s.d) + " · " + esc(s.name) + " · " + esc(s.sets[0][0]) + " " + esc(s.sets[0][1]) + "</span></p>" : ""; }
   function lastCard(cid, compact) {
     var h = (D.history[cid] || [])[0];
     if (!h || !h.sets) return compact ? '<p class="w-muted">Nog geen eerdere training.</p>' : card("Laatste training", '<p class="w-muted">Nog geen eerdere training.</p>');
     var hard = h.sets.filter(function (x) { return x[2] === "h"; }).map(function (x) { return x[0]; });
-    var body = '<p class="w-muted">' + esc(h.d) + " · " + esc(h.name) + (h.dur ? " · " + h.dur : "") + " · " + esc(h.by) + "</p>" + selfLine(cid) +
+    var body = '<p class="w-muted">' + esc(h.d) + " · " + esc(h.name) + (h.dur ? " · " + h.dur : "") + " · " + esc(h.by) + "</p>" +
       (hard.length ? '<p class="w-hard">' + dtag("h") + "<span>Zwaar: " + hard.map(esc).join(", ") + "</span></p>" : "") +
       '<ul class="w-last">' + h.sets.map(function (x) { return "<li><b>" + esc(x[0]) + '</b><span class="w-tnum">' + esc(x[1]) + "</span>" + dtag(x[2]) + "</li>"; }).join("") + "</ul>" +
       (h.note ? '<p class="w-note" translate="no">' + ic("note") + "<span>" + esc(h.note) + "</span></p>" : "");
@@ -322,7 +321,7 @@
     } else if (w.tab === "sessions") {
       h += card("", sess.length ? table(["Datum", "Tijd", "Locatie", "Trainer", "Aanwezigheid"], sess.map(function (x) { return [F.shortDate(F.parse(x[0])), '<span class="w-tnum">' + x[1].s + "–" + x[1].e + "</span>", esc(shortLoc(x[1].loc)), esc(who(x[1]) === ME() ? "Jij" : who(x[1])), x[1].att === "yes" ? badge("Aanwezig", "var(--ok)") : x[1].att === "no" ? badge("Niet verschenen", "var(--danger)") : badge(F.isPast(x[1], x[0]) ? "Nog invullen" : "Gepland", "", "secondary")]; })) : '<p class="w-muted">Geen privésessies in deze periode.</p>');
     } else if (w.tab === "workouts") {
-      h += card("", hist.length ? '<ul class="w-list plain">' + (D.selfLog[c.id] || []).map(function (x) { return "<li><div><b>" + esc(x.name) + "</b> " + badge("Zonder trainer", "", "secondary") + "<p>" + esc(x.d) + " · " + x.n + (x.n === 1 ? " oefening · " : " oefeningen · ") + esc(c.name.split(" ")[0]) + " deed jouw training van " + esc(x.from) + " zelf</p>" + '<p class="w-muted">' + x.sets.map(function (st) { return esc(st[0]) + " " + esc(st[1]) + (st[2] ? "" : " (toegevoegd)"); }).join(" · ") + "</p>" + (x.skipped && x.skipped.length ? '<p class="w-muted">Overgeslagen: ' + x.skipped.map(esc).join(", ") + "</p>" : "") + "</div></li>"; }).join("") + hist.map(function (x) { return "<li><div><b>" + esc(x.name) + "</b><p>" + esc(x.d) + " · " + x.n + " oefeningen · " + esc(x.by) + "</p>" + (x.sets ? '<p class="w-muted">' + x.sets.map(function (st) { return esc(st[0]) + " " + esc(st[1]) + " " + dtag(st[2]); }).join(" · ") + "</p>" : "") + (x.note ? '<p class="w-note" translate="no">' + ic("note") + "<span>" + esc(x.note) + "</span></p>" : "") + "</div>" + btn("Delen", "w-toast", { k: "outline sm", d: { m: "Gedeeld met " + c.name.split(" ")[0] } }) + "</li>"; }).join("") + "</ul>" : '<p class="w-muted">Nog geen trainingen.</p>');
+      h += card("", hist.length ? '<ul class="w-list plain">' + hist.map(function (x) { return "<li><div><b>" + esc(x.name) + "</b><p>" + esc(x.d) + " · " + x.n + " oefeningen · " + esc(x.by) + "</p>" + (x.sets ? '<p class="w-muted">' + x.sets.map(function (st) { return esc(st[0]) + " " + esc(st[1]) + " " + dtag(st[2]); }).join(" · ") + "</p>" : "") + (x.note ? '<p class="w-note" translate="no">' + ic("note") + "<span>" + esc(x.note) + "</span></p>" : "") + "</div>" + btn("Delen", "w-toast", { k: "outline sm", d: { m: "Gedeeld met " + c.name.split(" ")[0] } }) + "</li>"; }).join("") + "</ul>" : '<p class="w-muted">Nog geen trainingen.</p>');
     } else if (w.tab === "bookings") {
       h += card("", book.length ? table(["Datum", "Tijd", "Les", "Status"], book.map(function (x) { return [F.shortDate(F.parse(x[0])), '<span class="w-tnum">' + x[1].s + "</span>", esc(itemTitle(x[1])), badge(F.isPast(x[1], x[0]) ? "Geweest" : "Geboekt", "", "secondary")]; })) : '<p class="w-muted">Nog geen boekingen van groepslessen of Open Gym.</p>');
     } else if (w.tab === "notes") {
@@ -901,7 +900,7 @@
       '<div class="pad stack"><div class="card c-msg">' + K.avatar(x.by, "var(--accent)") + '<div><b>Bericht van ' + esc(x.by) + '</b><p translate="no">Goed gewerkt vandaag! Volgende keer gaan we naar 62,5 kg.</p></div></div></div>' +
       K.sh("Oefeningen · " + sets.length, "", "small") + '<div class="pad">' + K.grp(sets.map(function (s) { return K.row({ title: esc(s[0]), sub: esc(s[1]), tr: s[2] ? '<span class="diff-e" role="img" aria-label="' + D.DIFF[s[2]][1] + '">' + D.DIFF[s[2]][0] + "</span>" : "", cls: "kv" }); })) + "</div>" +
       /* the client redoes it on their own, in their own gym (owner, 5 Nov 2026; proposal) */
-      (APP && x.sets ? '<div class="pad" style="margin-top:18px">' + cbtn(c.self && c.self.w === c.workout ? "Verder met deze training" : "Deze training zelf doen", "c-self", { i: "play" }) + "</div>" + K.foot("Bijvoorbeeld in je eigen gym. Je trainer ziet wat je hebt gedaan.") : "") };
+      (APP && x.sets ? '<div class="pad" style="margin-top:18px">' + cbtn(c.self && c.self.w === c.workout ? "Verder met deze training" : "Deze training zelf doen", "c-self", { i: "play" }) + "</div>" + K.foot("Bijvoorbeeld in je eigen gym. Alleen jij ziet wat je zelf doet.") : "") };
   }
   /* "60 kg × 8, 8, 7" → three sets of 60 kg; "0:45 × 2, 0:40" → 0:45, 0:45, 0:40; anything else is one free value */
   function parseSets(v) {
@@ -914,10 +913,10 @@
     return out;
   }
   /* the client's own logger (owner, 5 Nov 2026, #602): the trainer's last values filled in; change them, tick each set,
-     add a set, add an exercise from the library or remove one (with confirmation) */
+     add a set, add an exercise from the library or remove one (with confirmation). Private: only the client sees it. */
   function selfStart(w) {
     var x = D.history.anna[w];
-    return { w: w, done: {}, v: {}, nx: x.sets.length, skipped: [], ex: x.sets.map(function (s, e) { var ps = parseSets(s[1]); return { id: "x" + e, name: s[0], prev: s[1], kind: ps[0].w != null ? "w" : ps[0].tm != null ? "tm" : "t", sets: ps }; }) };
+    return { w: w, done: {}, v: {}, nx: x.sets.length, ex: x.sets.map(function (s, e) { var ps = parseSets(s[1]); return { id: "x" + e, name: s[0], prev: s[1], kind: ps[0].w != null ? "w" : ps[0].tm != null ? "tm" : "t", sets: ps }; }) };
   }
   function exKind(n) { var l = D.library.filter(function (e) { return e.n === n; })[0], ty = l ? l.ty : "wr"; return ty === "wr" ? "w" : ty === "r" ? "r" : ty === "t" ? "tm" : "t"; }
   function blankSet(kind) { return kind === "w" ? { w: "", r: "" } : kind === "r" ? { r: "" } : kind === "tm" ? { tm: "" } : { t: "" }; }
@@ -940,7 +939,7 @@
     var top = K.lt("Vandaag", esc(x.name), "Van " + esc(x.by) + " · " + done + " van " + total + " sets") + '<div class="pad"><div class="c-prog" role="progressbar" aria-valuemin="0" aria-valuemax="' + Math.max(1, total) + '" aria-valuenow="' + done + '"><i style="width:' + (total ? done / total * 100 : 0) + '%"></i></div></div>';
     return { title: x.name, body: top + '<div class="pad stack c-exs">' + (h || '<div class="card empty">Geen oefeningen meer. Voeg er een toe.</div>') + K.btn("Oefening toevoegen", { k: "sec", blk: true, a: "c-exadd", i: "plus" }) + "</div>" +
       '<div class="pad stack" style="margin-top:18px">' + cbtn("Training afronden", "c-selfask", { dis: !done }) + K.btn("Stoppen zonder opslaan", { k: "ghost", blk: true, a: "c-selfstop" }) + "</div>" +
-      K.foot("Pas het gewicht of de herhalingen aan als het anders ging. Je trainer ziet wat je hebt gedaan.") };
+      K.foot("Pas het gewicht of de herhalingen aan als het anders ging. Alleen jij ziet deze training.") };
   }
   /* the library to add from: the same exercises as in Fivvi Pro, searchable in Dutch and English */
   function cexList() {
@@ -963,8 +962,8 @@
       return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="' + esc(it.title) + '"><h3>' + (cd === "book" ? esc(it.title) + " boeken?" : "Op de wachtlijst voor " + esc(it.title) + "?") + "</h3>" + lines.map(function (l) { return "<p>" + l + "</p>"; }).join("") +
         '<div class="btns">' + K.btn(cd === "book" ? "Boeken" : "Op de wachtlijst", { a: cd === "book" ? "c-bookok" : "c-wlok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
     }
-    if (cd === "selfdone") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Training afronden"><h3>Training afronden?</h3><p>' + C().self.n + " van " + C().self.total + " sets gedaan.</p><p>Je trainer ziet deze training bij je profiel.</p><div class=\"btns\">" + K.btn("Afronden", { a: "c-selfok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
-    if (cd === "exrm") { var ex = exById(C().dlgId); return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Oefening weghalen"><h3>' + esc(ex.name) + " weghalen?</h3><p>Wat je bij deze oefening hebt ingevuld, gaat verloren." + (ex.prev ? " Je trainer ziet dat je hem hebt overgeslagen." : "") + '</p><div class="btns">' + K.btn("Weghalen", { k: "dng", a: "c-exrmok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>"; }
+    if (cd === "selfdone") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Training afronden"><h3>Training afronden?</h3><p>' + C().self.n + " van " + C().self.total + " sets gedaan.</p><p>Je vindt hem terug in Activiteit. Alleen jij ziet hem.</p><div class=\"btns\">" + K.btn("Afronden", { a: "c-selfok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
+    if (cd === "exrm") { var ex = exById(C().dlgId); return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Oefening weghalen"><h3>' + esc(ex.name) + " weghalen?</h3><p>Wat je bij deze oefening hebt ingevuld, gaat verloren." + "" + '</p><div class="btns">' + K.btn("Weghalen", { k: "dng", a: "c-exrmok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>"; }
     if (cd === "selfstop") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Stoppen"><h3>Stoppen zonder opslaan?</h3><p>Wat je hebt ingevuld, gaat verloren.</p><div class="btns">' + K.btn("Stoppen", { k: "dng", a: "c-selfdrop" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
     if (C().dialog === "delete") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Account verwijderen"><h3>Account verwijderen?</h3><p>Je account en je gegevens worden verwijderd en je wordt uitgelogd. Facturen bewaart de studio zo lang als de wet vraagt.</p><div class="btns">' + K.btn("Account verwijderen", { k: "dng", a: "a-delete" }) + K.btn("Annuleren", { k: "sec", a: "c-dclose" }) + "</div></div>";
     var it = cfind(C().detail).it;
@@ -1154,7 +1153,7 @@
     /* a new set starts from the last one, with what the client typed there */
     for (var k in last) n[k] = v[li + "-" + k] != null ? v[li + "-" + k] : last[k]; ex.sets.push(n); R(); };
   A["c-exrm"] = function (d) { var c = C(); c.dialog = "exrm"; c.dlgId = d.v; R(); };
-  A["c-exrmok"] = function () { var c = C(), ex = exById(c.dlgId); c.self.ex = c.self.ex.filter(function (e) { return e !== ex; }); if (ex.prev) c.self.skipped.push(ex.name); c.dialog = null; F.toast(ex.name + " weggehaald"); };
+  A["c-exrmok"] = function () { var c = C(), ex = exById(c.dlgId); c.self.ex = c.self.ex.filter(function (e) { return e !== ex; }); c.dialog = null; F.toast(ex.name + " weggehaald"); };
   A["c-exadd"] = function () { var c = C(); c.exsheet = true; c.exq = ""; R(); };
   A["c-exclose"] = function () { C().exsheet = false; R(); };
   A["c-expick"] = function (d) { var c = C(), kind = exKind(d.v), id = "x" + (c.self.nx++); c.self.ex.push({ id: id, name: d.v, prev: null, kind: kind, sets: [blankSet(kind), blankSet(kind), blankSet(kind)] }); c.exsheet = false; F.toast(d.v + " toegevoegd"); };
@@ -1169,8 +1168,8 @@
       var done = ex.sets.map(function (p, i) { var id = ex.id + "-" + i; if (!c.self.done[id]) return null; function g(k) { return v[id + "-" + k] != null ? v[id + "-" + k] : p[k]; } return ex.kind === "w" ? [g("w"), g("r")] : [g(ex.kind === "r" ? "r" : ex.kind === "tm" ? "tm" : "t")]; }).filter(Boolean);
       if (done.length) sets.push([ex.name, ex.kind === "w" ? done[0][0] + " kg × " + done.map(function (z) { return z[1]; }).join(", ") : done.map(function (z) { return z[0]; }).join(", ") + (ex.kind === "r" ? " herh." : ""), ex.prev]);
     });
-    D.selfLog.anna.unshift({ name: x.name, d: F.DS[F.NOW.getDay()] + " " + F.NOW.getDate() + " " + F.MS[F.NOW.getMonth()], n: sets.length, from: x.d.replace(/^\S+ /, ""), by: x.by, sets: sets, skipped: c.self.skipped.slice() });
-    c.self = null; c.selfOn = false; c.workout = null; c.dialog = null; c.atab = "training"; F.toast("Opgeslagen. Je trainer ziet je training."); };
+    D.selfLog.anna.unshift({ name: x.name, d: F.DS[F.NOW.getDay()] + " " + F.NOW.getDate() + " " + F.MS[F.NOW.getMonth()], n: sets.length, from: x.d.replace(/^\S+ /, ""), by: x.by, sets: sets });
+    c.self = null; c.selfOn = false; c.workout = null; c.dialog = null; c.atab = "training"; F.toast("Opgeslagen in Activiteit"); };
   A["c-back"] = function () { var c = C(); if (c.selfOn) { c.selfOn = false; R(); return; } if (c.detail || c.workout != null) { c.detail = null; c.workout = null; } else c.page = null; R(); };
   A["c-page"] = function (d) { var c = C(); c.page = d.v; if (d.ws) c.cws = d.ws; R(); };
   A["c-wsheet"] = function (d) { C().wsheet = d.v || "list"; R(); };

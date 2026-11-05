@@ -285,9 +285,9 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
   - *Training afronden* asks for confirmation ("2 van 12 sets gedaan"). *Stoppen zonder opslaan* asks too. Back keeps the progress.
   - The finished workout appears in *Activiteit* as *Zelf gedaan* and ticks the day in *Deze week*.
   - No booking, no credit, no attendance: it isn't a session.
-  - **The client can add and remove exercises** (owner, 5 November 2026): *Oefening toevoegen* opens the exercise library (search in Dutch or English); a trash button per exercise asks *Plank weghalen?* first. *Set toevoegen* copies the last set. The trainer sees an added exercise as *Door Anna toegevoegd* and a removed one as *Overgeslagen*.
+  - **The client can add and remove exercises** (owner, 5 November 2026): *Oefening toevoegen* opens the exercise library (search in Dutch or English); a trash button per exercise asks *Plank weghalen?* first. *Set toevoegen* copies the last set.
   - **App only** (owner, 5 November 2026): not on the client web.
-  - **The trainer sees it** (Fivvi Pro and the trainer web): a *Zonder trainer* row under *Vorige keer* on the session screen and the client profile, the workout marked *Zonder trainer* in *Trainingen*, and a screen with what the client did next to *Jouw training*.
+  - **Private to the client** (owner, 5 November 2026): what the client does on their own is theirs only. Trainers never see it, not in Fivvi Pro and not on the trainer web. The client app says so: *Alleen jij ziet deze training*.
 - **The header** (owner, 5 November 2026: "this header can be better"):
   - *Home*, *Activiteit* and *Profiel* show only the large title with the date above it, without a studio badge.
   - *Boeken* shows the **studio switcher**: on iOS a glass button in the navigation bar (the studio's mark, its name, ⌃⌄); on Android a tonal dropdown chip under the app bar.
@@ -315,7 +315,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 | **Offers are made on the Aanbod page** | Web, owner only, also from *+ Nieuw* | [#468](https://github.com/fivvi-app/fivvi/issues/468) |
 | **Add, change, remove everything** | Every list (class series, own exercises, templates, offers, trainers) can be added to, changed and removed from. Every removal asks for confirmation | All specs |
 | **Trainers see the client's last workout and progress** | In the app and on the web. AI help is post-MVP (`§53`) | F044, F045 |
-| **Clients do a shared workout on their own: build it, MVP with M7** | Owner, 5 November 2026. The client logs a workout the trainer shared (F045), for example in their own gym; the trainer sees it on the client's profile | [#602](https://github.com/fivvi-app/fivvi/issues/602) |
+| **Clients do a shared workout on their own: build it, MVP with M7** | Owner, 5 November 2026. The client logs a workout the trainer shared (F045), for example in their own gym. **Private to the client:** trainers never see it. App only | [#602](https://github.com/fivvi-app/fivvi/issues/602) |
 | **Fixed groups** | Still open: should a client be enrolled in a weekly series? | [SCENARIOS.md](SCENARIOS.md) |
 
 ## 7. Assumptions still to confirm
@@ -341,8 +341,7 @@ The prototype had to choose something for these. They are **not decided**; each 
 9. **Reordering and bulk attendance:** the prototype shows reordering sets and exercises, and *Iedereen aanwezig* on class attendance. Both are `PRODUCT.md §53` exclusions ("workout reordering", "bulk attendance"), so the MVP builds without them unless the owner moves them into the MVP.
 10. **More than one studio:** *Home* and *Mijn agenda* combine every studio. QE05 leaves this to the F033 spec; the prototype assumes it.
 11. **Doing a shared workout on your own** (#602):
-    - the trainer sees it on the client's profile, marked *zelf gedaan*;
-    - it belongs to the workspace whose trainer shared the workout;
+    - it is stored under the workspace whose trainer shared the workout (`organization_id`), but only the client can read it: not the trainers and not the owner;
     - it counts in *Deze week*, *Activiteit* and the weeks in a row;
     - the client starts only from a workout the trainer shared, not from an empty one (`PRODUCT.md §40`: the trainer assigns workouts); within it they add and remove exercises;
     - the client adds exercises from the library only and can't create new ones.
