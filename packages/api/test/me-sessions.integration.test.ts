@@ -356,13 +356,13 @@ describe('F013 the personal day and sessions through the API', () => {
         trainerProfileId: sarahGym,
         startsAt: zonedTime('2026-09-22T19:00'),
       });
-      const namesFor = async (preferredLocale: 'nl-NL' | 'en' | null, headers = {}) => {
+      const namesFor = async (preferredLocale: 'nl-NL' | 'en') => {
         await admin.db
           .update(authUsers)
           .set({ preferredLocale })
           .where(eq(authUsers.id, w.sarah.id));
         const body = (await (
-          await get(api(), '/v1/me/day?date=2026-09-22', w.sarah, headers)
+          await get(api(), '/v1/me/day?date=2026-09-22', w.sarah)
         ).json()) as DayBody;
         return Object.fromEntries(body.items.map((item) => [item.sessionId, item.className]));
       };
@@ -398,6 +398,25 @@ describe('F013 the personal day and sessions through the API', () => {
       expect(await kracht({ 'accept-language': 'nl-BE,nl;q=0.9,en;q=0.5' })).toBe('Kracht');
       expect(await kracht({ 'accept-language': 'de-DE,en-GB;q=0.8' })).toBe('Strength');
       expect(await kracht({})).toBe('Strength');
+    });
+
+    it('AC1: a stored language beats a conflicting Accept-Language (ADR-017)', async () => {
+      const w = await world();
+      const kracht = async (preferredLocale: 'nl-NL' | 'en', acceptLanguage: string) => {
+        await admin.db
+          .update(authUsers)
+          .set({ preferredLocale })
+          .where(eq(authUsers.id, w.sarah.id));
+        const body = (await (
+          await get(api(), '/v1/me/day?date=2026-09-22', w.sarah, {
+            'accept-language': acceptLanguage,
+          })
+        ).json()) as DayBody;
+        return body.items.find((item) => item.sessionId === w.kracht.id)?.className;
+      };
+
+      expect(await kracht('nl-NL', 'en-GB,en;q=0.9')).toBe('Kracht');
+      expect(await kracht('en', 'nl-NL,nl;q=0.9')).toBe('Strength');
     });
 
     it('AC1: a private session has no className, whatever the language', async () => {

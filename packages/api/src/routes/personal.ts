@@ -401,7 +401,9 @@ async function readWorkspaces(
 
 /**
  * The language of the viewer (ADR-017): the account's stored language, else the first supported
- * language of the request's `Accept-Language` (an app sends its OS language there), else English.
+ * language of the request's `Accept-Language`, else English. Every explicit choice (in the app or
+ * per app) is stored on the account, so `Accept-Language` only decides for an account with no
+ * stored language.
  */
 function viewerLocaleOf(c: Context<AccessEnv>) {
   return resolveInterfaceLanguage({
