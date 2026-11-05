@@ -15,7 +15,7 @@ import { WorkspaceSwitcher } from './workspace-switcher';
  * a plain label with one workspace, otherwise a menu of the person's workspaces, and the
  * navigation. A section is in it only when the API lists its capability for this person in this workspace (F004, `information-architecture.md §3.2`): Clients
  * (F006) with `clients.view`, Trainers (F003) with `team.view`, Settings with `workspace.manage` and its pages General and Language
- * (F010). A section a person can't use is absent, not greyed out, and nothing here decides from the
+ * (F010), plus Location (F015) with `settings.manage`. A section a person can't use is absent, not greyed out, and nothing here decides from the
  * role name: the role is only the label in the header. The user menu with
  * the language switch is below them (F010), and the sidebar footer shows the person's name as
  * entered (F005). With `clients.manage` (`quickAdd`) the top bar has **+ Nieuw** → *Klant*, which
@@ -87,6 +87,13 @@ export function WorkspaceFrame({
                       {t('settingsLanguage')}
                     </Link>
                   </li>
+                  {capabilities.includes('settings.manage') ? (
+                    <li>
+                      <Link href={`/w/${slug}/settings/locations` as Route} className="underline">
+                        {t('settingsLocation')}
+                      </Link>
+                    </li>
+                  ) : null}
                 </ul>
               </>
             ) : null}

@@ -1930,6 +1930,541 @@
         }
       }
     },
+    "settingsLocation.additionLabel" : {
+      "comment" : "Label of the optional house number addition field on TW-08, e.g. \"A\" or \"2 hoog\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Addition"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toevoeging"
+          }
+        }
+      }
+    },
+    "settingsLocation.addressLegend" : {
+      "comment" : "Legend of the group of address fields on TW-08 (postcode, house number, addition, street, city). Optional: an address is all or nothing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adres"
+          }
+        }
+      }
+    },
+    "settingsLocation.cityLabel" : {
+      "comment" : "Label of the city field on TW-08. The address lookup fills it in; the person can still type it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "City"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plaats"
+          }
+        }
+      }
+    },
+    "settingsLocation.errors.addressIncomplete" : {
+      "comment" : "Under the address fields on TW-08 when some but not all of postcode, house number, street and city are filled in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fill in the whole address, or leave it empty."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul het hele adres in, of laat het leeg."
+          }
+        }
+      }
+    },
+    "settingsLocation.errors.generic" : {
+      "comment" : "Shown on TW-08 when saving failed for any other reason. Nothing was changed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er ging iets mis. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "settingsLocation.errors.houseNumberInvalid" : {
+      "comment" : "Under the house number field on TW-08 when it is not one to five digits.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a house number of 1 to 5 digits."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul een huisnummer in van 1 tot 5 cijfers."
+          }
+        }
+      }
+    },
+    "settingsLocation.errors.nameRequired" : {
+      "comment" : "Under the name field on TW-08 when it is empty or only spaces.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a name."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul een naam in."
+          }
+        }
+      }
+    },
+    "settingsLocation.errors.nameTooLong" : {
+      "comment" : "Under the name field on TW-08 when the name is over 120 characters. Same wording as the too-long workspace name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This name is too long. Use a shorter one."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze naam is te lang. Gebruik een kortere naam."
+          }
+        }
+      }
+    },
+    "settingsLocation.errors.noConnection" : {
+      "comment" : "Shown on TW-08 when the request to save could not reach the server. Nothing was changed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No connection. Check your internet and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen verbinding. Controleer je internet en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "settingsLocation.errors.postcodeInvalid" : {
+      "comment" : "Under the postcode field on TW-08 when it is not a Dutch postcode (four digits, an optional space, two letters).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a postcode like 1234 AB."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul een postcode in zoals 1234 AB."
+          }
+        }
+      }
+    },
+    "settingsLocation.errors.tooLong" : {
+      "comment" : "Under the addition, street or city field on TW-08 when the text is over its limit.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This text is too long. Use a shorter one."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze tekst is te lang. Gebruik een kortere tekst."
+          }
+        }
+      }
+    },
+    "settingsLocation.help" : {
+      "comment" : "Help text under the heading of the location card on TW-08: every session and class takes the workspace's one location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All sessions and classes take place here."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle sessies en lessen vinden hier plaats."
+          }
+        }
+      }
+    },
+    "settingsLocation.houseNumberLabel" : {
+      "comment" : "Label of the house number field on TW-08: one to five digits, no addition.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "House number"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Huisnummer"
+          }
+        }
+      }
+    },
+    "settingsLocation.lookup.busy" : {
+      "comment" : "Shown on TW-08 while the street and city are looked up from the postcode and house number. The form stays usable.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking up the address…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adres opzoeken…"
+          }
+        }
+      }
+    },
+    "settingsLocation.lookup.filled" : {
+      "comment" : "Note on TW-08 under the address fields when the street and/or city were filled in by the address lookup.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filled in from the postcode and house number."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingevuld op basis van postcode en huisnummer."
+          }
+        }
+      }
+    },
+    "settingsLocation.lookup.notFound" : {
+      "comment" : "Shown on TW-08 when the lookup knows no address for the postcode and house number. Street and city stay empty for typing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We can't find an address for this postcode and house number. Fill in the street and city yourself."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We vinden geen adres bij deze postcode en dit huisnummer. Vul straat en plaats zelf in."
+          }
+        }
+      }
+    },
+    "settingsLocation.lookup.unavailable" : {
+      "comment" : "Shown on TW-08 when the address lookup timed out, failed or is used up for the hour. Saving a hand-typed address still works.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We can't look up the address right now. Fill in the street and city yourself."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het adres opzoeken lukt nu niet. Vul straat en plaats zelf in."
+          }
+        }
+      }
+    },
+    "settingsLocation.nameLabel" : {
+      "comment" : "Label of the location name field on TW-08. It is prefilled with the workspace name when the workspace is created.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naam"
+          }
+        }
+      }
+    },
+    "settingsLocation.postcodeLabel" : {
+      "comment" : "Label of the Dutch postcode field on TW-08, written like 1234 AB.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postcode"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postcode"
+          }
+        }
+      }
+    },
+    "settingsLocation.save" : {
+      "comment" : "Button of TW-08 that saves the location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opslaan"
+          }
+        }
+      }
+    },
+    "settingsLocation.saved" : {
+      "comment" : "Confirmation shown next to the save button on TW-08 after the location was saved.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location saved."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locatie opgeslagen."
+          }
+        }
+      }
+    },
+    "settingsLocation.streetLabel" : {
+      "comment" : "Label of the street field on TW-08. The address lookup fills it in; the person can still type it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Street"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Straat"
+          }
+        }
+      }
+    },
+    "settingsLocation.title" : {
+      "comment" : "Heading and browser tab title of TW-08, Settings → Location (`/w/{slug}/settings/locations`, Owner only). Dutch: Locatie (GLOSSARY §4.3).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locatie"
+          }
+        }
+      }
+    },
+    "settingsLocation.typeLabel" : {
+      "comment" : "Label of the read-only location type on TW-08 (Eigen locatie / Own location).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soort"
+          }
+        }
+      }
+    },
+    "settingsLocation.types.clientHome" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client's home"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bij de klant thuis"
+          }
+        }
+      }
+    },
+    "settingsLocation.types.externalGym" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "External gym"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Externe sportschool"
+          }
+        }
+      }
+    },
+    "settingsLocation.types.online" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Online"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Online"
+          }
+        }
+      }
+    },
+    "settingsLocation.types.organizationLocation" : {
+      "comment" : "The type of the workspace's own location, shown read-only on TW-08 (GLOSSARY §4.3). The other types exist in the data model; they are not shown at go-live.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Own location"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eigen locatie"
+          }
+        }
+      }
+    },
+    "settingsLocation.types.other" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anders"
+          }
+        }
+      }
+    },
+    "settingsLocation.types.outdoor" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outdoors"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buiten"
+          }
+        }
+      }
+    },
     "signIn.changeEmail" : {
       "comment" : "Button on the second step that goes back to the email field.",
       "extractionState" : "manual",
@@ -3363,6 +3898,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Taal"
+          }
+        }
+      }
+    },
+    "workspaceNav.settingsLocation" : {
+      "comment" : "Navigation link to Settings → Location (TW-08). Shown to the Owner only.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locatie"
           }
         }
       }

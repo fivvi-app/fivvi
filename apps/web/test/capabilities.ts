@@ -10,6 +10,13 @@ export const OWNER: Capabilities = [
   'trainers.view',
   'clients.view',
   'clients.manage',
+  'location.read',
+  'settings.manage',
 ];
 
-export const TRAINER: Capabilities = ['trainers.view', 'clients.view', 'clients.manage'];
+export const TRAINER: Capabilities = [
+  'trainers.view',
+  'clients.view',
+  'clients.manage',
+  'location.read',
+];

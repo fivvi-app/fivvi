@@ -110,6 +110,44 @@
       "generic": "Er ging iets mis. Probeer het opnieuw."
     }
   },
+  "settingsLocation": {
+    "title": "Locatie",
+    "help": "Alle sessies en lessen vinden hier plaats.",
+    "nameLabel": "Naam",
+    "typeLabel": "Soort",
+    "addressLegend": "Adres",
+    "postcodeLabel": "Postcode",
+    "houseNumberLabel": "Huisnummer",
+    "additionLabel": "Toevoeging",
+    "streetLabel": "Straat",
+    "cityLabel": "Plaats",
+    "save": "Opslaan",
+    "saved": "Locatie opgeslagen.",
+    "lookup": {
+      "busy": "Adres opzoeken…",
+      "filled": "Ingevuld op basis van postcode en huisnummer.",
+      "notFound": "We vinden geen adres bij deze postcode en dit huisnummer. Vul straat en plaats zelf in.",
+      "unavailable": "Het adres opzoeken lukt nu niet. Vul straat en plaats zelf in."
+    },
+    "types": {
+      "organizationLocation": "Eigen locatie",
+      "externalGym": "Externe sportschool",
+      "clientHome": "Bij de klant thuis",
+      "outdoor": "Buiten",
+      "online": "Online",
+      "other": "Anders"
+    },
+    "errors": {
+      "nameRequired": "Vul een naam in.",
+      "nameTooLong": "Deze naam is te lang. Gebruik een kortere naam.",
+      "postcodeInvalid": "Vul een postcode in zoals 1234 AB.",
+      "houseNumberInvalid": "Vul een huisnummer in van 1 tot 5 cijfers.",
+      "tooLong": "Deze tekst is te lang. Gebruik een kortere tekst.",
+      "addressIncomplete": "Vul het hele adres in, of laat het leeg.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
+    }
+  },
   "noPermission": {
     "title": "Geen toegang",
     "body": "Je hebt geen toegang tot deze pagina. Vraag de eigenaar van {workspace}."
@@ -119,6 +157,7 @@
     "settings": "Instellingen",
     "settingsGeneral": "Algemeen",
     "settingsLanguage": "Taal",
+    "settingsLocation": "Locatie",
     "workspaceWithRole": "{name} · {role}",
     "trainers": "Trainers",
     "clients": "Klanten",
