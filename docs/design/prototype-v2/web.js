@@ -750,9 +750,9 @@
     var ds = it.type === "group" ? desc(it.title) : null, sp = spots ? '<span class="c-spots' + (spotsLeft(it) <= 2 || spots === "Vol" ? " low" : "") + '">' + spots + "</span>" : "";
     /* Android: the shaped avatar per session type, as in Fivvi Pro; the time moves into the line */
     if (F.PREF.plat === "android") return K.row({ a: "c-open", d: { id: it.id }, style: "--c:" + F.CV[it.type], lead: K.shape(K.SHAPE[it.type], F.CV[it.type], it.type === "priv" ? F.initials(cwho(it)) : it.type === "gym" ? "OG" : it.title[0]),
-      title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title), sub: it.s + "–" + it.e + " · " + (it.type === "priv" ? "met " + esc(cwho(it).split(" ")[0]) : esc(cwho(it))), small: sp + (sp && F.level(it) ? " · " : "") + (F.level(it) ? F.lvlTag(it) : ""), tr: tr, cls: "c-row" + (spots != null ? " c-act" : "") });
+      title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title) + F.lvlTag(it, true), sub: it.s + "–" + it.e + " · " + (it.type === "priv" ? "met " + esc(cwho(it).split(" ")[0]) : esc(cwho(it))), small: sp, tr: tr, cls: "c-row" + (spots != null ? " c-act" : "") });
     return K.row({ a: "c-open", d: { id: it.id }, style: "--c:" + F.CV[it.type], lead: '<div class="t"><b>' + it.s + "</b><span>" + it.e + '</span></div><i class="bar"></i>',
-      title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title), sub: F.level(it) ? F.lvlTag(it) + '<span class="lvl-sep"> · </span>' + esc(cwho(it)) : it.type === "priv" ? "Met " + esc(cwho(it).split(" ")[0]) + (it.duo ? " · samen met " + esc(F.CLIENT[mate(it)].name.split(" ")[0]) : " · " + esc(shortLoc(it.loc))) : esc(cwho(it)),
+      title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title) + F.lvlTag(it, true), sub: it.type === "priv" ? "Met " + esc(cwho(it).split(" ")[0]) + (it.duo ? " · samen met " + esc(F.CLIENT[mate(it)].name.split(" ")[0]) : " · " + esc(shortLoc(it.loc))) : esc(cwho(it)),
       small: sp + (sp && ds ? " · " : "") + (ds ? '<span translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</span>" : ""), tr: tr, cls: "c-row" + (spots != null ? " c-act" : ""), chev: spots == null });
   }
   function mate(it) { return it.client === C().who ? it.duo : it.client; }

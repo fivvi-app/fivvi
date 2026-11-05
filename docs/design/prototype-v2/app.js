@@ -87,7 +87,9 @@
   function title(it) { return it.type === "priv" ? (it.duo ? CLIENT[it.client].name.split(" ")[0] + " & " + CLIENT[it.duo].name.split(" ")[0] : CLIENT[it.client].name) : it.title; }
   /* a class's level: its own field, else the level the class (by name) usually has */
   function level(it) { return it.type !== "group" ? "" : it.level != null ? it.level : D.levels[it.title] || ""; }
-  function lvlTag(it) { var l = level(it), n = D.LEVELS.indexOf(l); return l ? '<span class="lvl l' + n + '" role="img" aria-label="Niveau: ' + l + '"><i></i><i></i><i></i><span>' + l + "</span></span>" : ""; }
+  /* compact (lists): the three bars only, after the class name, with the word as accessible name and tooltip;
+     "Alle niveaus" shows nothing in a list (anyone can join). Full (one class): bars and the word. Owner, 5 Nov 2026. */
+  function lvlTag(it, compact) { var l = level(it), n = D.LEVELS.indexOf(l); if (!l || (compact && n === 0)) return ""; return '<span class="lvl l' + n + (compact ? " c" : "") + '" role="img" aria-label="Niveau: ' + l + '" title="' + l + '"><i></i><i></i><i></i>' + (compact ? "" : "<span>" + l + "</span>") + "</span>"; }
   function pair(it) { return it.duo ? [it.client, it.duo] : [it.client]; }
   function person(id) { return CLIENT[id] ? CLIENT[id].name : ["Ruben Vos", "Kim de Graaf", "Jasper Kok", "Mila Bos", "Sem Dekker", "Lotte Prins", "Finn Smits", "Zoë Meijer"][(+String(id).replace(/\D/g, "") || 0) % 8]; }
   function isPast(it, k) { return k < TODAY || (k === TODAY && mins(it.e) <= mins(NOWT)); }
@@ -215,7 +217,6 @@
     /* iOS shows the booked count as a pill, so the line stays short; Android has no pill and keeps it in the line. */
     var tl = MIXED() ? TYPE[it.type] : "";
     var sub = it.type === "priv" ? (it.duo ? "Duosessie · " : tl ? tl + " · " : "") + esc(it.loc) : PREF.plat === "ios" || it.cancelled ? (tl || esc(it.loc.split(",")[0])) : (tl ? tl + " · " : "") + (full ? "Vol" : booked + "/" + it.cap + " geboekt");
-    if (level(it)) sub = lvlTag(it) + '<span class="lvl-sep"> · </span>' + sub;
     var smalls = [];
     if (opt.multi !== false && !opt.hideWs && !SOLO()) smalls.push(wsLine(it.ws));
     if (opt.who) smalls.push(it.trainer ? esc(it.trainer) : "Jij"); else if (it.trainer) smalls.push(esc(it.trainer));
@@ -226,7 +227,7 @@
       extra = '<small class="nudge">' + ic("warn") + "Aanwezigheid nog invullen</small><div class=\"att\">" + btn("Aanwezig", { k: "sec", a: "att", d: { id: it.id, v: "yes" } }) + btn("Niet verschenen", { k: "sec", a: "att", d: { id: it.id, v: "no" } }) + "</div>";
     }
     var pill = it.cancelled ? '<span class="pill">Geannuleerd</span>' : full ? '<span class="pill strong">Vol</span>' : it.cap ? '<span class="pill">' + booked + "/" + it.cap + "</span>" : "";
-    var o = { a: it.type === "priv" ? "open-session" : "open-class", d: { id: it.id }, title: esc(title(it)), sub: sub, small: smalls.join(" · "), extra: extra,
+    var o = { a: it.type === "priv" ? "open-session" : "open-class", d: { id: it.id }, title: esc(title(it)) + lvlTag(it, true), sub: sub, small: smalls.join(" · "), extra: extra,
       cls: (past && !extra ? "past " : "") + (it.cancelled ? "cx" : ""), style: "--c:" + c };
     if (PREF.plat === "ios") {
       o.lead = '<div class="t"><b>' + it.s + "</b><span>" + it.e + '</span></div><i class="bar"></i>';
