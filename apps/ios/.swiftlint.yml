@@ -1,10 +1,12 @@
-# SwiftLint for the iOS app (E008). scripts/test-ios.sh (`pnpm test:ios`, CI) runs it with --strict.
+# SwiftLint for the iOS apps and the packages they share (E008, E017). scripts/test-ios.sh (`pnpm test:ios`, CI) runs it with --strict.
 included:
   - FivviPro
+  - Packages
   - FivviProTests
   - FivviProUITests
 excluded:
   - .build
+  - Packages/*/.build
   - lint
 
 line_length:
@@ -48,8 +50,8 @@ custom_rules:
   # Fixture: lint/fixtures/DirectSentry.swift.
   no_direct_sentry:
     name: No direct Sentry
-    message: Only FivviPro/Observability/ talks to Sentry (sentry-cocoa); report through ErrorReporting
-    excluded: '/FivviPro/Observability/|/FivviProTests/(Support/)?Observability\w*\.swift$'
+    message: Only Packages/FivviShared/Sources/FivviObservability/ talks to Sentry (sentry-cocoa); report through ErrorReporting
+    excluded: '/Packages/FivviShared/Sources/FivviObservability/|/FivviProTests/(Support/)?Observability\w*\.swift$'
     regex: '\bimport\s+(@\w+\s+)*((struct|class|enum|protocol|typealias|func|let|var)\s+)?Sentry\w*\b|\bSentrySDK\b'
     excluded_match_kinds:
       - comment

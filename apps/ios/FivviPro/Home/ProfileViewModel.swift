@@ -3,6 +3,7 @@ import Observation
 import SwiftUI
 import FivviAPI
 import OpenAPIRuntime
+import FivviStrings
 
 /// *Profiel* (TM-04): the person's name (editable) and email address from `GET /api/v1/me` (F005), and the workspaces
 /// they are on the team of, each with their role, from `GET /api/v1/me/workspaces` (F003 AC9), all through the generated

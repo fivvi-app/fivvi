@@ -2,6 +2,7 @@ import Sentry
 import XCTest
 
 @testable import FivviPro
+@testable import FivviObservability
 
 /// E009 AC8: what the app would send to Sentry. The tests feed synthetic personal data (`Synthetic`) through the
 /// scrubber and check the serialized event, which is what leaves the process (docs/engineering/OBSERVABILITY.md §1 "iOS").

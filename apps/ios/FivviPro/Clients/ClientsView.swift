@@ -1,6 +1,9 @@
 import SwiftUI
 import FivviAPI
 import FivviDesignTokens
+import FivviStrings
+import FivviLanguage
+import FivviUI
 
 /// A client to open on TM-03: from a row, from a client just added, or by ID (*Anna de Vries openen* on a duplicate).
 struct ClientRoute: Hashable, Identifiable {
@@ -127,17 +130,17 @@ struct ClientsView: View {
     @ViewBuilder private var content: some View {
         switch model.state {
         case .loading:
-            ClientSkeletonRows(label: catalog[.commonLoading], id: "clients.loading")
+            SkeletonRows(label: catalog[.commonLoading], id: "clients.loading")
                 .listRowSeparator(.hidden)
             if model.loadingSlow {
-                ClientMessage(text: catalog[.commonLoadingSlow], kind: .info, id: "clients.loadingSlow")
+                StatusMessage(text: catalog[.commonLoadingSlow], kind: .info, id: "clients.loadingSlow")
             }
         case .failed:
             failure
         case .noPermission:
-            ClientMessage(text: catalog[.noPermissionTitle], kind: .info, id: "clients.noPermissionTitle")
+            StatusMessage(text: catalog[.noPermissionTitle], kind: .info, id: "clients.noPermissionTitle")
                 .accessibilityAddTraits(.isHeader)
-            ClientMessage(text: model.noPermissionText, kind: .info, id: "clients.noPermission")
+            StatusMessage(text: model.noPermissionText, kind: .info, id: "clients.noPermission")
         case .loaded:
             loaded
         }
@@ -145,7 +148,7 @@ struct ClientsView: View {
 
     @ViewBuilder private var loaded: some View {
         if let offline = model.offlineText {
-            ClientMessage(text: offline, kind: .info, id: "clients.offline")
+            StatusMessage(text: offline, kind: .info, id: "clients.offline")
         }
         if model.loadFailed { failure }
         if model.clients.isEmpty {
@@ -166,7 +169,7 @@ struct ClientsView: View {
 
     private var failure: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space4) {
-            ClientMessage(text: catalog[.clientsLoadError], kind: .error, id: "clients.error")
+            StatusMessage(text: catalog[.clientsLoadError], kind: .error, id: "clients.error")
             Button {
                 Task { await model.load() }
             } label: {

@@ -2,6 +2,7 @@ import SwiftUI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviUI
 
 /// The app's light or dark mode: the system's, unless a Debug UI test sets it at launch.
 final class LaunchAppearanceTests: XCTestCase {

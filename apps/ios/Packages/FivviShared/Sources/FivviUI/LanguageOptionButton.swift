@@ -1,10 +1,11 @@
 import SwiftUI
 import FivviAPI
 import FivviDesignTokens
+import FivviStrings
 
 extension Components.Schemas.Locale {
     /// The key of the language's own name ("Nederlands", "English"), the same in both catalogs.
-    var languageNameKey: StringKey {
+    public var languageNameKey: StringKey {
         switch self {
         case .nlNL: .signInLanguageNl
         case .en: .signInLanguageEn
@@ -14,13 +15,20 @@ extension Components.Schemas.Locale {
 
 /// One language of the switch on TM-01: its own name, bold with an underline when it is the one shown, and a 44 pt
 /// touch target. A screen reader hears it as selected.
-struct LanguageOptionButton: View {
+public struct LanguageOptionButton: View {
     let title: String
     let isSelected: Bool
     let id: String
     let action: () -> Void
 
-    var body: some View {
+    public init(title: String, isSelected: Bool, id: String, action: @escaping () -> Void) {
+        self.title = title
+        self.isSelected = isSelected
+        self.id = id
+        self.action = action
+    }
+
+    public var body: some View {
         Button(action: action) {
             Text(title)
                 .font(.system(Tokens.TextStyle.label, weight: isSelected ? .bold : .regular))

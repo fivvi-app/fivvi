@@ -1,5 +1,6 @@
 import SwiftUI
 import FivviDesignTokens
+import FivviStrings
 
 /// The *Mijn werkruimtes* section of `ProfileView` (TM-04): a row for each workspace the person is on the team of, with
 /// the switch *Ik geef zelf ook trainingen in …* where the API lists `team.manage` (F005), and, with more than one

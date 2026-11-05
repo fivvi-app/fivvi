@@ -1,6 +1,12 @@
 import Foundation
 import Observation
 import FivviAPI
+import FivviSession
+import FivviStringCatalogs
+import FivviStrings
+
+/// Takes the stored preference a `GET /api/v1/me` answered (`AppLanguage.startRead()`).
+public typealias StoredLocaleHandler = (_ stored: Components.Schemas.Locale?) -> Void
 
 /// The language the app shows right now (F010, ADR-017): it re-renders at once when the person chooses another, and the
 /// choice is the account's stored preference, which the web and the other devices follow.
@@ -14,15 +20,15 @@ import FivviAPI
 ///   older local choice is replaced (`adopt(stored:)`).
 @MainActor
 @Observable
-final class AppLanguage {
+public final class AppLanguage {
     /// Where the local choice, whether it is saved and the last per-app language seen are kept (`UserDefaults`).
-    nonisolated static let choiceKey = "FivviLanguageChoice"
-    nonisolated static let unsavedKey = "FivviLanguageChoiceUnsaved"
-    nonisolated static let lastPerAppKey = "FivviLastPerAppLanguage"
+    public nonisolated static let choiceKey = "FivviLanguageChoice"
+    public nonisolated static let unsavedKey = "FivviLanguageChoiceUnsaved"
+    public nonisolated static let lastPerAppKey = "FivviLastPerAppLanguage"
 
-    private(set) var catalog: Catalog
+    public private(set) var catalog: Catalog
     /// The last save failed: *Profiel* says so until the next one succeeds.
-    private(set) var saveFailed = false
+    public private(set) var saveFailed = false
     private let api: any APIProtocol
     private let store: any SessionStore
     private let defaults: UserDefaults
@@ -38,12 +44,12 @@ final class AppLanguage {
 
     /// `sources` are what iOS tells at launch. A per-app language that differs from the one seen at the last launch is
     /// a new explicit choice: it becomes the local choice and is saved like one.
-    init(
+    public init(
         api: any APIProtocol,
         store: any SessionStore,
         defaults: UserDefaults = .standard,
         sources: LanguageSources = .forLaunch(),
-        bundle: Bundle = .main
+        bundle: Bundle = FivviStringCatalogs.bundle
     ) {
         self.api = api
         self.store = store
@@ -71,7 +77,7 @@ final class AppLanguage {
 
     /// The person chose `locale` here: the screen re-renders in it now. Saving it is `save()`'s job, which the caller
     /// starts when the person is signed in.
-    func choose(_ locale: Components.Schemas.Locale) {
+    public func choose(_ locale: Components.Schemas.Locale) {
         revision += 1
         choice = locale
         unsaved = true
@@ -82,7 +88,7 @@ final class AppLanguage {
 
     /// Stores the unsaved choice on the account, if one is signed in; the choice stays unsaved when the API doesn't
     /// take it, so the next call tries again. A choice made while a request is under way is saved after it.
-    func save() async {
+    public func save() async {
         guard store.token != nil, !saving else { return }
         saving = true
         defer { saving = false }
@@ -114,7 +120,7 @@ final class AppLanguage {
 
     /// Call when a `GET /api/v1/me` goes out; the handler it returns adopts the answer unless a choice or a save came
     /// in between, because that answer may predate it and would put the screen back.
-    func startRead() -> StoredLocaleHandler {
+    public func startRead() -> StoredLocaleHandler {
         let mark = revision
         return { [weak self] stored in
             guard let self, self.revision == mark else { return }
@@ -125,7 +131,7 @@ final class AppLanguage {
     /// The account's stored preference, as `GET /api/v1/me` tells it. When it is another language than the one shown
     /// the app adopts it (AC2) and it replaces the older local choice, unless a choice of this device is still waiting
     /// to be saved: that one is newer.
-    func adopt(stored preferred: Components.Schemas.Locale?) {
+    public func adopt(stored preferred: Components.Schemas.Locale?) {
         guard !saving else { return }
         stored = preferred
         guard !unsaved, let preferred else { return }
@@ -137,7 +143,7 @@ final class AppLanguage {
     }
 
     /// Forgets the local choice and the per-app language seen, for UI tests that start from a clean phone.
-    nonisolated static func forgetChoice(defaults: UserDefaults = .standard) {
+    public nonisolated static func forgetChoice(defaults: UserDefaults = .standard) {
         for key in [choiceKey, unsavedKey, lastPerAppKey] { defaults.removeObject(forKey: key) }
     }
 

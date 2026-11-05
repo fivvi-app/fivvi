@@ -3,6 +3,7 @@ import Sentry
 import XCTest
 
 @testable import FivviPro
+@testable import FivviObservability
 
 /// Synthetic personal data for the E009 tests (AGENTS.md, D8). The client name, email address, IP address and UUIDs
 /// are the same as in the Android `ObservabilityTest`.

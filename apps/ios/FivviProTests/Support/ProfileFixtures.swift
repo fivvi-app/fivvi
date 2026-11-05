@@ -1,6 +1,8 @@
 import FivviAPI
 
 @testable import FivviPro
+@testable import FivviStrings
+@testable import FivviLanguage
 
 /// Sarah (synthetic): Trainer of John's Gym, Owner of Sarah Personal Training; what `Profiel` tests share.
 enum ProfileFixtures {

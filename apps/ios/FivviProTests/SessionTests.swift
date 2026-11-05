@@ -2,6 +2,7 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviSession
 
 /// Which screen the app opens on, and what turns a rejected token into the sign-in screen.
 @MainActor

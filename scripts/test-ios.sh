@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The iOS app's checks, the same steps as the `iOS` CI job (E008). `pnpm test:ios` runs this.
 #
-#   test-ios.sh   SwiftLint and its fixtures (literal text, colours, direct Sentry calls), the Debug and Release
+#   test-ios.sh   SwiftLint and its fixtures (literal text, colours, direct Sentry calls, also in apps/ios/Packages, the
+#                 code both apps share), the Debug and Release
 #                 configurations (Release's API address over HTTPS and not a placeholder, its Sentry DSN in the EU
 #                 region, no export compliance question, the version both apps share, the final bundle ID, Info.plists
 #                 in Xcode's form), the Swift package
@@ -83,6 +84,33 @@ lint_fixture() {
   echo "$fixture: expected $rule on lines $(echo "$expected" | xargs), got $(echo "$actual" | xargs):"
   echo "$out"
   return 1
+}
+
+# E017 #500: the lint rules apply to the code both apps share (apps/ios/Packages), not only to the app target. Each fixture
+# is copied into a package target folder as a throwaway probe and linted there: the literal-text, colour and Sentry rules
+# must flag it, and the Observability target, the one place that talks to Sentry, must not be flagged for the Sentry
+# fixture. The probes and the folders that held only them are removed again.
+lint_packages() {
+  local sources=Packages/FivviShared/Sources ui observability out rc=0
+  ui="$sources/FivviUI"
+  observability="$sources/FivviObservability"
+  mkdir -p "$ui" "$observability"
+  cp lint/fixtures/LiteralText.swift "$ui/ZzProbeLiteralText.swift"
+  cp lint/fixtures/ColourLiteral.swift "$ui/ZzProbeColourLiteral.swift"
+  cp lint/fixtures/DirectSentry.swift "$ui/ZzProbeDirectSentry.swift"
+  sed 's# // expect: .*$##' lint/fixtures/DirectSentry.swift >"$observability/ZzProbeSentry.swift"
+  lint_fixture "$ui/ZzProbeLiteralText.swift" no_literal_text || rc=1
+  lint_fixture "$ui/ZzProbeColourLiteral.swift" no_colour_literal || rc=1
+  lint_fixture "$ui/ZzProbeDirectSentry.swift" no_direct_sentry || rc=1
+  out="$("$SWIFTLINT" lint --strict --quiet "$observability/ZzProbeSentry.swift" 2>&1 || true)"
+  if grep -q "(no_direct_sentry)" <<<"$out"; then
+    echo "SwiftLint flags the Sentry import in FivviObservability, the one target that may have it:"
+    echo "$out"
+    rc=1
+  fi
+  rm -f "$ui"/ZzProbe*.swift "$observability"/ZzProbe*.swift
+  rmdir "$ui" "$observability" "$sources" Packages/FivviShared Packages 2>/dev/null || true
+  return "$rc"
 }
 
 # Debug's committed defaults are the local dev server and no Sentry DSN, so Debug builds, tests and CI send nothing to
@@ -312,6 +340,8 @@ if [ "$MODE" != test ]; then
   lint_fixture lint/fixtures/LiteralText.swift no_literal_text
   lint_fixture lint/fixtures/ColourLiteral.swift no_colour_literal
   lint_fixture lint/fixtures/DirectSentry.swift no_direct_sentry
+  step "SwiftLint's rules cover the shared packages (apps/ios/Packages)"
+  lint_packages
   step "Every UI test runs in at least one test-plan configuration"
   test_plan_coverage
   step "Debug and Release configurations"

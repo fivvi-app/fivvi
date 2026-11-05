@@ -1,6 +1,9 @@
 import SwiftUI
 import FivviAPI
 import FivviDesignTokens
+import FivviStrings
+import FivviLanguage
+import FivviUI
 
 /// *Profiel* / *Profile* (TM-04): the section *Jouw gegevens* / *Your details* has the name, which opens the sheet
 /// `NameEditorView` when tapped, and the email address (read-only; F005). The section *Mijn werkruimtes* / *My

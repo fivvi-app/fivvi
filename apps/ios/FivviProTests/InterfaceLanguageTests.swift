@@ -2,6 +2,7 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviLanguage
 
 /// ADR-017's interface language, mirroring `E008 AC3 interface language` in packages/i18n/src/locale.test.ts.
 final class InterfaceLanguageTests: XCTestCase {

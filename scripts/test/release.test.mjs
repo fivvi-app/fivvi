@@ -750,7 +750,7 @@ describe('E017 AC4: one build number per run, from the run', () => {
 describe('E017 AC6: the release name the app sends', () => {
   it('E017 AC6: the lane builds it the way ErrorReporting.swift does: <bundle ID>@<version>+<build>', () => {
     const swift = readFileSync(
-      join(ROOT, 'apps/ios/FivviPro/Observability/ErrorReporting.swift'),
+      join(ROOT, 'apps/ios/Packages/FivviShared/Sources/FivviObservability/ErrorReporting.swift'),
       'utf8',
     );
     assert.match(swift, /release = "\\\(bundleID\)@\\\(version\)\+\\\(build\)"/);

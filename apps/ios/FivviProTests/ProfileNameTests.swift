@@ -2,6 +2,8 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
+@testable import FivviLanguage
 
 /// *Profiel* (TM-04), the name (F005 AC1): read from `GET /api/v1/me`, changed in a sheet with `PATCH /api/v1/me`. The API
 /// words the refusal; the app checks nothing. The test plan runs every test in nl and en.

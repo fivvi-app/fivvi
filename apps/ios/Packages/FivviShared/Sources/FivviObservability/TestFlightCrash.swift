@@ -5,7 +5,7 @@ import SwiftUI
 /// A long press on the home greeting calls it. Nothing else shows it: no string, no control, no accessibility element.
 /// App Store builds (production receipt), Debug, simulator and Xcode or ad hoc builds never arm it, and then the
 /// gesture isn't even attached to the view.
-enum TestFlightCrash {
+public enum TestFlightCrash {
     /// How long the greeting is held down; long enough that nobody triggers it by accident.
     static let holdDuration: TimeInterval = 5
 
@@ -15,7 +15,7 @@ enum TestFlightCrash {
     }
 
     /// Whether this build is a Release configuration: a Debug build installed from Xcode has a sandbox receipt too.
-    static var isReleaseBuild: Bool {
+    public static var isReleaseBuild: Bool {
         #if DEBUG
         false
         #else
@@ -24,7 +24,7 @@ enum TestFlightCrash {
     }
 
     /// A simulator runs local builds only, whatever the configuration (a Release build has a sandbox receipt there).
-    static var isSimulator: Bool {
+    public static var isSimulator: Bool {
         #if targetEnvironment(simulator)
         true
         #else
@@ -33,13 +33,13 @@ enum TestFlightCrash {
     }
 
     /// Xcode and ad hoc builds always embed `embedded.mobileprovision`; TestFlight and App Store builds have none.
-    static var hasProvisioningProfile: Bool {
+    public static var hasProvisioningProfile: Bool {
         Bundle.main.path(forResource: "embedded", ofType: "mobileprovision") != nil
     }
 
     /// Armed only in a build from the Release workflow installed through TestFlight: a Release configuration, on a
     /// device, signed for distribution (no embedded profile), with a sandbox receipt.
-    static func isArmed(
+    public static func isArmed(
         receiptURL: URL? = Bundle.main.appStoreReceiptURL, releaseBuild: Bool = isReleaseBuild,
         simulator: Bool = isSimulator, provisioningProfile: Bool = hasProvisioningProfile
     ) -> Bool {
@@ -47,7 +47,7 @@ enum TestFlightCrash {
     }
 
     /// Calls `crash` when this is a TestFlight build, and never otherwise.
-    static func trigger(
+    public static func trigger(
         receiptURL: URL? = Bundle.main.appStoreReceiptURL, releaseBuild: Bool = isReleaseBuild,
         simulator: Bool = isSimulator, provisioningProfile: Bool = hasProvisioningProfile,
         crash: () -> Void = ErrorReporting.crashForTesting
@@ -64,7 +64,7 @@ enum TestFlightCrash {
 extension View {
     /// Crashes the app on purpose after a long press, in a TestFlight build only; any other build gets the view
     /// unchanged. A plain gesture adds no accessibility action or trait.
-    @ViewBuilder func testFlightCrashTrigger() -> some View {
+    @ViewBuilder public func testFlightCrashTrigger() -> some View {
         if TestFlightCrash.isArmed() {
             gesture(
                 LongPressGesture(minimumDuration: TestFlightCrash.holdDuration).onEnded { _ in

@@ -2,6 +2,7 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
 
 final class CatalogTests: XCTestCase {
     func test_E008_AC1_readsTheCatalogOfTheInterfaceLanguage() {

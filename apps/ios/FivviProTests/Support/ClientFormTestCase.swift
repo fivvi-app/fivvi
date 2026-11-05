@@ -2,6 +2,8 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
+@testable import FivviLanguage
 
 /// What the tests of the client form share: John's Gym (synthetic), a form on it and an edit form of one of its
 /// clients.

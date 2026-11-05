@@ -2,6 +2,9 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
+@testable import FivviSession
+@testable import FivviSignIn
 
 /// TM-01's states against a stub of the generated client's `APIProtocol`. The test plan runs every test in nl and en.
 @MainActor

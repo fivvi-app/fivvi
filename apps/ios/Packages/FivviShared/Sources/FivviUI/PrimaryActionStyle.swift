@@ -4,10 +4,10 @@ import FivviDesignTokens
 /// The screen's one primary action: a filled pill in the design tokens' primary colours, the `label` text style and
 /// at least a 44 pt touch target (HIG). At accessibility text sizes the label wraps onto more lines, so the pill
 /// becomes a rounded rectangle that keeps every line inside the fill.
-struct PrimaryActionStyle: ButtonStyle {
+public struct PrimaryActionStyle: ButtonStyle {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    func makeBody(configuration: Configuration) -> some View {
+    public func makeBody(configuration: Configuration) -> some View {
         let shape = dynamicTypeSize.isAccessibilitySize
             ? AnyShape(RoundedRectangle(cornerRadius: Tokens.Radius.lg, style: .continuous))
             : AnyShape(Capsule(style: .continuous))
@@ -27,5 +27,5 @@ struct PrimaryActionStyle: ButtonStyle {
 
 extension ButtonStyle where Self == PrimaryActionStyle {
     /// The screen's one primary action, in the design tokens' colours.
-    static var primaryAction: PrimaryActionStyle { PrimaryActionStyle() }
+    public static var primaryAction: PrimaryActionStyle { PrimaryActionStyle() }
 }

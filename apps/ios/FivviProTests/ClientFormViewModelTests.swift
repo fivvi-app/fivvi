@@ -2,6 +2,7 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
 
 /// *+ Nieuwe klant* (F006 AC1 to AC3, AC12) and *Bewerken* (AC7): the form's rules and messages are the web's. The test
 /// plan runs every test in nl and en (FivviPro.xctestplan).

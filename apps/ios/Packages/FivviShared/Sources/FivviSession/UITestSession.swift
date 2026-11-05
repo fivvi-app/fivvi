@@ -2,19 +2,20 @@ import Foundation
 
 /// The session a UI test starts with. The Keychain outlives the app's launches, so a UI test says whether the app
 /// starts signed in or out instead of inheriting what an earlier test left.
-enum UITestSession {
+public enum UITestSession {
     /// Debug-only launch argument: `-UITestSession none` starts signed out, any other value starts signed in with
     /// that value as the token.
-    static let key = "UITestSession"
-    static let signedOut = "none"
+    public static let key = "UITestSession"
+    public static let signedOut = "none"
 
-    static func apply(to store: any SessionStore, defaults: UserDefaults = .standard) {
+    /// Applies the launch argument, in Debug builds only. `reset` forgets what else the app keeps on the phone between
+    /// launches (the language choice, the last workspace): a test starts from a clean phone.
+    public static func apply(
+        to store: any SessionStore, defaults: UserDefaults = .standard, reset: (UserDefaults) -> Void = { _ in }
+    ) {
         #if DEBUG
             guard let value = defaults.string(forKey: key) else { return }
-            // A test starts from a phone with no language choice either (F010).
-            AppLanguage.forgetChoice(defaults: defaults)
-            // A test starts from a phone that remembers no workspace either (F012).
-            CurrentWorkspaceStore.forget(defaults: defaults)
+            reset(defaults)
             if value == signedOut {
                 store.deleteToken()
             } else {
