@@ -35,15 +35,31 @@ window.FIVVI_DATA = (function () {
   /* Workout history per client, newest first. */
   var history = {
     anna: [
-      { name: "Upper A", d: "do 29 okt", n: 5, by: "Sarah", sets: [["Bankdrukken", "60 kg × 8, 8, 7"], ["Kabel roeien", "45 kg × 10, 10, 10"], ["Dumbbell schouderdrukken", "14 kg × 10, 10"]] },
-      { name: "Lower A", d: "do 22 okt", n: 4, by: "Sarah" },
+      { name: "Upper A", d: "do 29 okt", n: 5, by: "Sarah", dur: "52 min", note: "Bankdrukken laatste set zwaar. Volgende keer zelfde gewicht, eerst 8 × 3 halen.",
+        sets: [["Bankdrukken", "60 kg × 8, 8, 7", "h"], ["Kabel roeien", "45 kg × 10, 10, 10", "n"], ["Dumbbell schouderdrukken", "14 kg × 10, 10", "e"], ["Plank", "0:45 × 2, 0:40", "n"], ["Roeien", "500 m · 1:52", "n"]] },
+      { name: "Lower A", d: "do 22 okt", n: 4, by: "Sarah", dur: "48 min", note: "Deadlift goed, rug stabiel.",
+        sets: [["Squat", "70 kg × 8, 8, 8", "n"], ["Deadlift", "80 kg × 5, 5, 5", "h"], ["Lunges", "12 kg × 10, 10, 10", "n"], ["Plank", "0:45 × 2", "e"]] },
       { name: "Training zonder schema", d: "do 15 okt", n: 3, by: "Sarah" },
       { name: "Upper A", d: "do 8 okt", n: 5, by: "Mike" }
     ],
-    mark: [{ name: "Full body", d: "ma 2 nov", n: 6, by: "Sarah" }, { name: "Full body", d: "do 29 okt", n: 6, by: "Sarah" }]
+    mark: [{ name: "Full body", d: "ma 2 nov", n: 4, by: "Sarah", dur: "55 min", note: "Knie hield zich goed bij squat tot parallel.",
+      sets: [["Squat", "90 kg × 10, 10, 9", "h"], ["Bankdrukken", "70 kg × 10, 10, 10", "n"], ["Kabel roeien", "55 kg × 10, 10, 10", "e"], ["Plank", "0:30 × 3", "e"]] }, { name: "Full body", d: "do 29 okt", n: 4, by: "Sarah" }]
   };
   /* Bench press heaviest set per week for Anna, for the Health-style chart. */
   var progress = { anna: [52.5, 52.5, 55, 55, 57.5, 57.5, 60, 60] };
+  /* progress per main exercise: heaviest set each week for the last 8 weeks; and whether they trained each week */
+  var lifts = {
+    anna: [["Bankdrukken", [52.5, 52.5, 55, 55, 57.5, 57.5, 60, 60]], ["Kabel roeien", [37.5, 40, 40, 42.5, 42.5, 45, 45, 45]], ["Squat", [55, 57.5, 60, 62.5, 62.5, 65, 67.5, 70]]],
+    mark: [["Squat", [75, 77.5, 80, 82.5, 85, 85, 87.5, 90]], ["Bankdrukken", [60, 62.5, 62.5, 65, 65, 67.5, 70, 70]]]
+  };
+  var weeks = { anna: [1, 1, 1, 0, 1, 1, 1, 1], mark: [1, 1, 1, 1, 1, 1, 1, 1] };
+  var DIFF = { e: ["😌", "Makkelijk"], n: ["🙂", "Normaal"], h: ["🥵", "Zwaar"] };
+  /* a tiny line for a list row */
+  function spark(v, color, w, h) {
+    w = w || 64; h = h || 22; var mn = Math.min.apply(null, v), mx = Math.max.apply(null, v), r = mx - mn || 1;
+    var pts = v.map(function (x, i) { return [(i / (v.length - 1) * (w - 4) + 2).toFixed(1), (h - 3 - (x - mn) / r * (h - 6)).toFixed(1)]; });
+    return '<svg class="spark" viewBox="0 0 ' + w + " " + h + '" width="' + w + '" height="' + h + '" aria-hidden="true"><path d="M' + pts.map(function (p) { return p.join(" "); }).join("L") + '" fill="none" style="stroke:' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="' + pts[pts.length - 1][0] + '" cy="' + pts[pts.length - 1][1] + '" r="2.6" style="fill:' + color + '"/></svg>';
+  }
 
   /* Today, explicit. Times are local. */
   var today = [
@@ -260,6 +276,6 @@ window.FIVVI_DATA = (function () {
     return { b: b, balances: balances, abos: abos, flags: flags, short: short, open: b.agreements.filter(function (a) { return a.status === "open"; }) };
   }
 
-  return { bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history,
+  return { lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history,
     progress: progress, tpl: tpl, descriptions: descriptions, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
 })();

@@ -41,6 +41,25 @@
   function aboLine(a) { return "Deze week " + a.usedWeek + " van " + a.perWeek + " gebruikt" + (a.makeups ? " · " + a.makeups + (a.makeups === 1 ? " inhaalles" : " inhaallessen") : ""); }
   function statusBadge(a) { var st = STATUS[a.status]; return badge(a.status === "ending" ? cap1(a.period) : st[0], st[1], st[1] ? "" : "outline"); }
   function flagList(sum, c) { return sum.flags.filter(function (f) { return f[0] !== "danger" || money(c); }).map(function (f) { return '<p class="w-flag ' + f[0] + '">' + ic(f[0] === "none" ? "info" : "warn") + esc(f[1]) + "</p>"; }).join(""); }
+  /* ---------- last time and progress ---------- */
+  function nl(x) { return String(x).replace(".", ","); }
+  function dtag(d) { return d ? '<span class="w-diff" role="img" aria-label="' + D.DIFF[d][1] + '" title="' + D.DIFF[d][1] + '">' + D.DIFF[d][0] + "</span>" : ""; }
+  function lastCard(cid, compact) {
+    var h = (D.history[cid] || [])[0];
+    if (!h || !h.sets) return compact ? '<p class="w-muted">Nog geen eerdere training.</p>' : card("Laatste training", '<p class="w-muted">Nog geen eerdere training.</p>');
+    var hard = h.sets.filter(function (x) { return x[2] === "h"; }).map(function (x) { return x[0]; });
+    var body = '<p class="w-muted">' + esc(h.d) + " · " + esc(h.name) + (h.dur ? " · " + h.dur : "") + " · " + esc(h.by) + "</p>" +
+      (hard.length ? '<p class="w-hard">' + dtag("h") + "<span>Zwaar: " + hard.map(esc).join(", ") + "</span></p>" : "") +
+      '<ul class="w-last">' + h.sets.map(function (x) { return "<li><b>" + esc(x[0]) + '</b><span class="w-tnum">' + esc(x[1]) + "</span>" + dtag(x[2]) + "</li>"; }).join("") + "</ul>" +
+      (h.note ? '<p class="w-note" translate="no">' + ic("note") + "<span>" + esc(h.note) + "</span></p>" : "");
+    return compact ? body : card("Laatste training", body, { desc: "Hoe het ging, per oefening" });
+  }
+  function progressCard(cid) {
+    var L = D.lifts[cid], wk = D.weeks[cid]; if (!L && !wk) return "";
+    var body = (L || []).map(function (l) { var v = l[1], d = v[v.length - 1] - v[0]; return '<div class="w-lift"><b>' + esc(l[0]) + "</b>" + D.spark(v, "var(--accent)", 120, 30) + '<span class="w-liftv">' + nl(v[v.length - 1]) + ' kg</span><span class="w-up">' + (d > 0 ? "+" : "") + nl(d) + " kg</span></div>"; }).join("") +
+      (wk ? '<div class="w-lift"><b>Getraind</b><span class="w-wk">' + wk.map(function (x) { return '<i class="' + (x ? "on" : "") + '"></i>'; }).join("") + '</span><span class="w-liftv">' + wk.filter(function (x) { return x; }).length + "/8</span><span class=\"w-muted\">weken</span></div>" : "");
+    return card("Voortgang", body, { desc: "Zwaarste set per week, laatste 8 weken" });
+  }
   if (!D.requests) D.requests = [{ id: "rq1", name: "Kim de Graaf", email: "kim@example.com", when: "vandaag 09:12" }, { id: "rq2", name: "Ruben Vos", email: "ruben@example.com", when: "gisteren 21:40" }];
 
   /* ================= Trainer web ================= */
@@ -228,7 +247,8 @@
         card("Gegevens", '<dl class="w-dl"><dt>E-mail</dt><dd>' + esc(c.email) + "</dd><dt>Taal voor e-mails</dt><dd>" + esc(c.lang) + "</dd><dt>Werkruimte</dt><dd>" + esc(D.workspaces[c.ws].name) + "</dd></dl>") +
         card("Notities", notes.length ? '<p translate="no">' + esc(notes[0].t) + '</p><p class="w-muted">' + esc(notes[0].d) + " · " + esc(notes[0].by) + "</p>" : '<p class="w-muted">Nog geen notities.</p>', { desc: "Alleen voor trainers" }) + "</div>";
       if (c.ws === "sf") h += card("Tegoed", (sum.abos.map(function (a) { return '<div class="w-abo"><b>' + esc(a.name) + "</b> " + statusBadge(a) + "<p>" + aboLine(a) + "</p></div>"; }).join("") + sum.balances.map(balBlock).join("") + flagList(sum, c)) || '<p class="w-muted">Geen abonnement of credits.</p>', { act: btn("Alles bekijken", "w-tab", { k: "outline sm", d: { v: "billing" } }) });
-      if (prog) {
+      h += '<div class="w-grid2">' + lastCard(c.id) + progressCard(c.id) + "</div>";
+      if (prog && false) {
         var W_ = 600, H_ = 140, mn = Math.min.apply(null, prog) - 5, mx = Math.max.apply(null, prog) + 2.5;
         var pts = prog.map(function (v, j) { return [j / (prog.length - 1) * (W_ - 20) + 10, H_ - 10 - (v - mn) / (mx - mn) * (H_ - 30)]; }), line = pts.map(function (p, j) { return (j ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(""), lp = pts[pts.length - 1];
         h += card("Bankdrukken · zwaarste set", '<div class="w-big">' + String(prog[prog.length - 1]).replace(".", ",") + ' kg <span class="w-up">+' + String(prog[prog.length - 1] - prog[0]).replace(".", ",") + " kg</span></div>" +
@@ -252,7 +272,7 @@
     } else if (w.tab === "sessions") {
       h += card("", sess.length ? table(["Datum", "Tijd", "Locatie", "Trainer", "Aanwezigheid"], sess.map(function (x) { return [F.shortDate(F.parse(x[0])), '<span class="w-tnum">' + x[1].s + "–" + x[1].e + "</span>", esc(shortLoc(x[1].loc)), esc(who(x[1]) === ME() ? "Jij" : who(x[1])), x[1].att === "yes" ? badge("Aanwezig", "var(--ok)") : x[1].att === "no" ? badge("Niet verschenen", "var(--danger)") : badge(F.isPast(x[1], x[0]) ? "Nog invullen" : "Gepland", "", "secondary")]; })) : '<p class="w-muted">Geen privésessies in deze periode.</p>');
     } else if (w.tab === "workouts") {
-      h += card("", hist.length ? '<ul class="w-list plain">' + hist.map(function (x) { return "<li><div><b>" + esc(x.name) + "</b><p>" + esc(x.d) + " · " + x.n + " oefeningen · " + esc(x.by) + "</p>" + (x.sets ? '<p class="w-muted">' + x.sets.map(function (st) { return esc(st[0]) + " " + esc(st[1]); }).join(" · ") + "</p>" : "") + "</div>" + btn("Delen", "w-toast", { k: "outline sm", d: { m: "Gedeeld met " + c.name.split(" ")[0] } }) + "</li>"; }).join("") + "</ul>" : '<p class="w-muted">Nog geen trainingen.</p>');
+      h += card("", hist.length ? '<ul class="w-list plain">' + hist.map(function (x) { return "<li><div><b>" + esc(x.name) + "</b><p>" + esc(x.d) + " · " + x.n + " oefeningen · " + esc(x.by) + "</p>" + (x.sets ? '<p class="w-muted">' + x.sets.map(function (st) { return esc(st[0]) + " " + esc(st[1]) + " " + dtag(st[2]); }).join(" · ") + "</p>" : "") + (x.note ? '<p class="w-note" translate="no">' + ic("note") + "<span>" + esc(x.note) + "</span></p>" : "") + "</div>" + btn("Delen", "w-toast", { k: "outline sm", d: { m: "Gedeeld met " + c.name.split(" ")[0] } }) + "</li>"; }).join("") + "</ul>" : '<p class="w-muted">Nog geen trainingen.</p>');
     } else if (w.tab === "bookings") {
       h += card("", book.length ? table(["Datum", "Tijd", "Les", "Status"], book.map(function (x) { return [F.shortDate(F.parse(x[0])), '<span class="w-tnum">' + x[1].s + "</span>", esc(itemTitle(x[1])), badge(F.isPast(x[1], x[0]) ? "Geweest" : "Geboekt", "", "secondary")]; })) : '<p class="w-muted">Nog geen boekingen van groepslessen of Open Gym.</p>');
     } else if (w.tab === "notes") {
@@ -376,6 +396,7 @@
     h += '<dl class="w-dl">' + "<dt>Locatie</dt><dd>" + esc(it.loc) + "</dd>" + (it.type !== "gym" ? "<dt>Trainer</dt><dd>" + esc(who(it) === ME() ? "Jij" : who(it)) + "</dd>" : "") + (it.cap ? "<dt>Geboekt</dt><dd>" + it.people.length + "/" + it.cap + (it.waitlist ? " · " + it.waitlist + " op de wachtlijst" : "") + "</dd>" : "") + (it.type === "priv" ? "<dt>Aanwezigheid</dt><dd>" + (it.att === "yes" ? "Aanwezig" : it.att === "no" ? "Niet verschenen" : "Nog niet ingevuld") + "</dd>" : "") + "</dl>";
     var ds = it.type === "group" ? desc(it.title) : null;
     if (ds) h += '<p class="w-desc" translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</p>";
+    if (it.type === "priv") h += '<div class="w-sheet-sec"><h4>Vorige keer</h4>' + lastCard(it.client, true) + "</div>";
     h += '<div class="w-sheet-f">' + (it.type === "priv" ? btn("Klantprofiel", "w-client", { k: "outline", d: { id: it.client } }) + btn("Training bijhouden", "w-toast", { k: "outline", d: { m: "Opent het bijhouden van de training (WL-06)" } }) : btn("Les openen", "w-open-class", { k: "outline", d: { id: it.id } })) +
       (it.cancelled ? "" : btn("Verplaatsen", "w-dlg", { k: "outline", d: { n: "move" } }) + btn(it.type === "priv" ? "Sessie annuleren" : "Les annuleren", "w-dlg", { k: "dng", d: { n: it.type === "priv" ? "cancelpriv" : "cancelclass" } })) + "</div>";
     return '<div class="w-scrim" data-a="w-close"></div><aside class="w-sheet" role="dialog" aria-label="' + esc(itemTitle(it)) + '">' + h + "</aside>";

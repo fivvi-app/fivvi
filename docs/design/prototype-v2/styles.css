@@ -630,3 +630,14 @@ input:focus,select:focus,textarea:focus{outline:none}
 .android .fld .err{position:absolute;left:14px;bottom:-20px;font-weight:500;font-size:12px;color:#BA1A1A}
 .mk[data-mode="dark"] .android .fld .err{color:#FFB4AB}
 .android .fld.invalid{margin-bottom:22px}
+/* last time and progress */
+.diff-e{font-size:20px;line-height:1}
+.lastsum{margin:0 4px 8px;font-size:14px;color:var(--label2);display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
+.lastsum .hard{display:inline-flex;align-items:center;gap:4px;color:color-mix(in oklab,var(--gym) 55%,var(--ev-ink));font-weight:600}
+.lastsum .hard .diff-e{font-size:15px}
+.spark{display:block;flex:none}
+.lift-n{font-size:20px;min-width:64px;text-align:right;color:var(--label)}
+.lift-n small{font-size:13px;color:var(--label2)}
+.wkdots{display:flex;gap:4px}
+.wkdots i{width:10px;height:10px;border-radius:3px;background:var(--fill2)}
+.wkdots i.on{background:var(--ok)}

@@ -106,6 +106,11 @@ window.FIVVI_I18N = (function () {
     [/^(.+) kun je daarna niet meer toevoegen\. Trainingen waarin hij al zit, blijven zoals ze zijn\.$/, "You can't add $1 any more after this. Workouts it's already in stay as they are."],
     [/^(.+) kun je daarna niet meer kiezen bij een training\. Trainingen die al met dit schema zijn gelogd, blijven bewaard\.$/, "You can't choose $1 for a workout any more. Workouts already logged with this template are kept."],
     [/^(.+) is verwijderd$/, "$1 has been deleted"],
+    [/^Notitie van (\S+) · alleen voor trainers$/, "Note from $1 · trainers only"],
+    [/^(\S+) · alleen voor trainers$/, "$1 · trainers only"],
+    [/^Zwaar: (.+)$/, function (m, a) { return "Hard: " + P(a); }],
+    [/^(\d+) van de 8 weken$/, "$1 of the 8 weeks"],
+    [/^([+−-]?[\d,]+) kg in 8 weken$/, function (m, a) { return a.replace(",", ".") + " kg in 8 weeks"; }],
     [/^Drukst (.+) · (\d+) tegelijk$/, "Busiest $1 · $2 at once"],
     [/^Vrij (.+)$/, "Free $1"],
     [/^Week (\d+) · (.+)$/, function (m, n, r) { return "Week " + n + " · " + P(r); }],
@@ -115,6 +120,8 @@ window.FIVVI_I18N = (function () {
   /* Phrases and words, replaced on letter boundaries, longest first. */
   var PH = {
     /* app frame */
+    "Details": "Details", "Voortgang": "Progress", "Getraind": "Trained", "Laatste training": "Last workout", "Hoe het ging, per oefening": "How it went, per exercise",
+    "Zwaarste set per week, laatste 8 weken": "Heaviest set per week, last 8 weeks", "weken": "weeks", "vorige keer": "last time", "Vorige keer": "Last time", "Nog geen eerdere training.": "No previous workout yet.",
     "Eigen oefeningen": "Your exercises", "Bibliotheek": "Library", "Gemaakt door": "Made by", "Nieuw schema": "New template", "Oefening wijzigen": "Edit exercise", "Oefening verwijderen?": "Delete exercise?",
     "Bepaalt wat je per set invult.": "Decides what you fill in per set.", "Je eigen oefening wordt niet vertaald. Trainers zien hem bij het toevoegen van een oefening.": "Your own exercise isn't translated. Trainers see it when adding an exercise.",
     "Bijvoorbeeld Sled push": "For example Sled push", "Schema wijzigen": "Edit template", "Schema verwijderen?": "Delete template?", "Herstellen": "Restore", "Oefening toegevoegd": "Exercise added", "Oefening opgeslagen": "Exercise saved",

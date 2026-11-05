@@ -229,6 +229,25 @@
     return row(o);
   }
 
+  function nl(x) { return String(x).replace(".", ","); }
+  function diffTag(d) { return d ? '<span class="diff-e" role="img" aria-label="' + D.DIFF[d][1] + '" title="' + D.DIFF[d][1] + '">' + D.DIFF[d][0] + "</span>" : ""; }
+  function lastTime(cid) {
+    var h = (D.history[cid] || [])[0];
+    if (!h || !h.sets) return sh("Vorige keer", "", "small") + '<div class="pad"><div class="grp"><div class="row"><div class="m"><span>Nog geen eerdere training</span></div></div></div></div>';
+    var hard = h.sets.filter(function (x) { return x[2] === "h"; }).map(function (x) { return x[0]; });
+    var rows = h.sets.map(function (x) { return row({ title: esc(x[0]), sub: esc(x[1]), tr: diffTag(x[2]), cls: "kv" }); });
+    if (h.note) rows.push(row({ lead: '<span class="dc-ic" style="--c:#8E8E93">' + ic("note") + "</span>", title: '<span translate="no">' + esc(h.note) + "</span>", small: "Notitie van " + esc(h.by) + " · alleen voor trainers", cls: "wrap dc" }));
+    return sh("Vorige keer · " + h.d, '<button data-a="open-workout" data-id="' + cid + '" data-i="0">Details</button>', "small") +
+      '<div class="pad"><p class="lastsum">' + esc(h.name) + (h.dur ? " · " + h.dur : "") + " · " + h.n + " oefeningen" + (hard.length ? ' · <span class="hard">' + diffTag("h") + "<span>Zwaar: " + hard.map(esc).join(", ") + "</span></span>" : "") + "</p>" + grp(rows) + "</div>";
+  }
+  function progressList(cid) {
+    var L = D.lifts[cid], wk = D.weeks[cid]; if (!L && !wk) return "";
+    var rows = (L || []).map(function (l) { var v = l[1], d = v[v.length - 1] - v[0]; return row({ title: esc(l[0]), sub: (d > 0 ? "+" : "") + nl(d) + " kg in 8 weken", tr: D.spark(v, "var(--accent)") + '<b class="num lift-n">' + nl(v[v.length - 1]) + "<small> kg</small></b>", cls: "kv" }); });
+    if (wk) rows.push(row({ title: "Getraind", sub: wk.filter(function (x) { return x; }).length + " van de 8 weken", tr: '<span class="wkdots" aria-hidden="true">' + wk.map(function (x) { return '<i class="' + (x ? "on" : "") + '"></i>'; }).join("") + "</span>", cls: "kv" }));
+    return sh("Voortgang", "", "small") + '<div class="pad">' + grp(rows) + "</div>";
+  }
+  function lastDiff(cid, name) { var h = (D.history[cid] || [])[0], x = h && h.sets && h.sets.filter(function (y) { return y[0] === name; })[0]; return x && x[2] ? " · vorige keer " + D.DIFF[x[2]][0] : ""; }
+
   /* ---------- Screens (each returns a page description) ---------- */
   var SCREENS = {};
 
@@ -426,6 +445,7 @@
       if (!brows.length) brows.push(row({ title: "Geen abonnement of credits", sub: OWNER() ? "Stuur een aanbod vanaf het web." : "" }));
       body += sh("Tegoed", "", "small") + '<div class="pad">' + grp(brows, "--inset:60px") + "</div>" + (OWNER() ? foot("Betalingen en facturen vind je op het web.") : "");
     }
+    body += lastTime(c.id) + progressList(c.id);
     body += sh("Gegevens", "", "small") + '<div class="pad">' + grp([row({ title: "E-mail", tr: c.email ? esc(c.email) : "Nog niet ingevuld", cls: "kv" }), row({ title: "Taal voor e-mails", tr: esc(c.lang), cls: "kv" }), row({ title: "Werkruimte", tr: wsLine(c.ws), cls: "kv" })]) + "</div>";
     body += sh("Notities", '<button data-a="note" data-id="' + c.id + '">+ Notitie</button>', "small");
     body += '<div class="pad">' + (notes.length ? grp(notes.map(function (n) { return row({ title: '<span translate="no">' + esc(n.t) + "</span>", small: n.d + " · " + esc(n.by), cls: "wrap" }); })) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen notities.</span></div></div></div>') + "</div>" + foot("Alleen trainers van " + D.workspaces[c.ws].name + " zien notities.");
@@ -438,7 +458,8 @@
     var c = CLIENT[r.id], h = D.history[r.id][r.i];
     var sets = h.sets || [["Squat", "60 kg × 8, 8, 8"], ["Bankdrukken", "57,5 kg × 8, 8, 6"], ["Plank", "0:45 × 3"]];
     var body = lt(h.d + " · " + esc(h.by), esc(h.name), esc(c.name));
-    body += '<div class="pad">' + grp(sets.map(function (s) { return row({ title: esc(s[0]), sub: esc(s[1]) }); })) + "</div>";
+    body += '<div class="pad">' + grp(sets.map(function (s) { return row({ title: esc(s[0]), sub: esc(s[1]), tr: diffTag(s[2]) }); })) + "</div>";
+    if (h.note) body += sh("Notitie", "", "small") + '<div class="pad">' + grp([row({ title: '<span translate="no">' + esc(h.note) + "</span>", small: esc(h.by) + " · alleen voor trainers", cls: "wrap" })]) + "</div>";
     body += '<div class="pad" style="margin-top:16px">' + btn("Delen met " + c.name.split(" ")[0], { k: "sec", blk: true, a: "toast", d: { m: "Gedeeld met " + c.name.split(" ")[0] }, i: "share" }) + "</div>";
     return { title: h.name, body: body };
   };
@@ -461,9 +482,7 @@
     var tcard = '<div class="card"><div style="display:flex;gap:12px;align-items:center;margin-bottom:14px"><span class="av" style="--c:var(--priv);border-radius:14px">' + ic("dumb") + '</span><div><b style="display:block">' + (tpl ? esc(tpl) : "Nog geen schema") + '</b><span style="font-size:15px;color:var(--label2)">' + (ws === "done" ? "Afgerond · 6 oefeningen · 52 min" : ws === "running" ? "Bezig · gestart om " + it.s : tpl ? "5 oefeningen" : "Kies een schema of begin leeg") + "</span></div></div>" +
       (ws === "done" ? '<div class="btns">' + btn("Bekijken", { k: "sec", a: "open-workout", d: { id: it.client, i: 0 } }) + (it.shared ? btn("Gedeeld", { k: "sec", dis: true, i: "check" }) : btn("Delen met " + esc(c.name.split(" ")[0]), { a: "share-item", d: { id: it.id }, i: "share" })) + "</div>" : btn(ws === "running" ? "Doorgaan met training" : "Training starten", { blk: true, a: "start-workout", d: { id: it.id }, i: "play", dis: it.cancelled })) + "</div>";
     body += sh("Training", "", "small") + tcard + "</div>";
-    var h = (D.history[it.client] || [])[0];
-    body += sh("Vorige keer" + (h ? " · " + h.d : ""), h ? '<button data-a="open-client" data-id="' + c.id + '">Alles</button>' : "", "small");
-    body += '<div class="pad">' + (h && h.sets ? grp(h.sets.map(function (s) { return row({ title: esc(s[0]), tr: esc(s[1]), cls: "kv" }); })) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen eerdere training</span></div></div></div>') + "</div>";
+    body += lastTime(it.client) + progressList(it.client);
     var notes = D.notes[it.client] || [];
     body += sh("Notities", '<button data-a="note" data-id="' + c.id + '">+ Notitie</button>', "small");
     body += '<div class="pad">' + (notes.length ? grp(notes.slice(0, 3).map(function (n) { return row({ title: '<span translate="no">' + esc(n.t) + "</span>", small: n.d + " · " + esc(n.by), cls: "wrap" }); })) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen notities.</span></div></div></div>') + "</div>" + foot("Alleen voor trainers. Notities zie je nooit in meldingen of widgets.");
@@ -676,7 +695,7 @@
       if (!L.ex.length) body += '<div class="pad"><div class="card" style="text-align:center;padding:28px 20px"><b style="display:block;font-size:19px;margin-bottom:6px">Nog geen oefeningen</b><span style="color:var(--label2);font-size:15px">Voeg de eerste oefening toe. Wat ' + esc(first) + " eerder deed, staat bovenaan.</span></div></div>";
       body += '<div class="pad stack">' + L.ex.map(function (e, ei) {
         var d = e.sets.filter(function (s) { return s.done; }).length, all = d === e.sets.length;
-        var h = '<div class="lg-ex"><div class="lg-h"><span class="no ' + (all ? "done" : "") + '">' + (all ? ic("check") : ei + 1) + '</span><div class="m" style="flex:1;min-width:0"><b>' + esc(e.name) + "</b><span>" + (e.target ? esc(e.target) + " · " : "") + (e.prev.length ? "Vorige: 29 okt" : "Nog geen eerdere training") + '</span></div><span class="pr">' + d + "/" + e.sets.length + '</span><button class="x" data-a="ex-menu" data-e="' + ei + '" aria-label="Opties voor ' + esc(e.name) + '">' + ic("more") + "</button></div>";
+        var h = '<div class="lg-ex"><div class="lg-h"><span class="no ' + (all ? "done" : "") + '">' + (all ? ic("check") : ei + 1) + '</span><div class="m" style="flex:1;min-width:0"><b>' + esc(e.name) + "</b><span>" + (e.target ? esc(e.target) + " · " : "") + (e.prev.length ? "Vorige: 29 okt" + lastDiff(L.client, e.name) : "Nog geen eerdere training") + '</span></div><span class="pr">' + d + "/" + e.sets.length + '</span><button class="x" data-a="ex-menu" data-e="' + ei + '" aria-label="Opties voor ' + esc(e.name) + '">' + ic("more") + "</button></div>";
         /* one compact row per set: Set | Vorige | today's fields | tick; column labels once per exercise */
         var lay = LAYOUT[e.ty];
         h += '<div class="lg-cols" aria-hidden="true"><span>Set</span><span>Vorige</span><span class="vals">' + lay.head.map(function (x) { return '<span class="' + x[1] + '">' + x[0] + "</span>"; }).join("") + "</span><span></span></div>";
