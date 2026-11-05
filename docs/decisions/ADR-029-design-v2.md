@@ -35,7 +35,7 @@ The latest iOS design, Liquid Glass, needs **iOS 26**. ADR-003 set the minimum a
   - Contrast: text 4.5:1, icons 3:1, in light and dark.
   - The values go into `packages/design-tokens` and reach all platforms through it, as ADR-015 already says.
 - **The client web** uses the same design language as Fivvi Pro, as a mobile website (ADR-026).
-- **Design first:** UI decisions are made in the clickable prototype with the owner before a spec is written ([`docs/agents/design.md`](../agents/design.md)).
+- **Design first, where design matters:** a new screen or flow, a visible change to one, or a product question a screen makes concrete is decided in the clickable prototype with the owner before a spec is written. Work without a screen, and small changes that follow an existing pattern, skip it ([`docs/agents/design.md`](../agents/design.md)).
 
 ## Consequences
 

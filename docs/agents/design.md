@@ -1,10 +1,22 @@
-# Design first: decide UI in the prototype with the owner
+# Design first, where design matters
 
-The owner decides UI and product questions by **talking them over in the clickable prototype**, not in text (owner, 5 November 2026). This keeps what gets built exactly what was agreed.
+Where the design matters, the owner decides by **talking it over in the clickable prototype**, not in text (owner, 5 November 2026). This keeps what gets built exactly what was agreed.
 
 ## When
 
-Before a spec is written for anything with a screen on any surface: Fivvi Pro on iOS and Android, the trainer web, the client web, or the client app. That includes new features, changes to existing screens and open product questions that a screen would make concrete (a duo session, a renewal, a level). Pure back-end, infrastructure and agent-tooling work skip this.
+**Only where the design decides something** (owner, 5 November 2026). Before the spec, prototype:
+
+- **A new screen or flow**, or a new state the user sees: an empty state, an error, a confirmation.
+- **A visible change** to how a screen looks or works: layout, hierarchy, navigation, what is shown or hidden for a role or a setup.
+- **A product question a screen makes concrete**, such as how a duo session, a renewal or a class level looks to the trainer and the client.
+
+**Skip it** for work where design doesn't matter:
+
+- work without a screen: the API, data and migrations, jobs, infrastructure, security, tooling, agent rules;
+- a bug fix or a small change that follows a pattern already in the prototype and `DECISIONS.md`, such as another field in an existing form or another row in an existing list;
+- copy and translation fixes, and a token value that `visual-direction.md` already fixes.
+
+**When in doubt, ask the owner** whether it needs a design round.
 
 ## How
 

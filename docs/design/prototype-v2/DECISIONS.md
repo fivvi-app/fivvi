@@ -11,7 +11,7 @@ This is the record of what the owner and the agent decided while clicking throug
 
 ## 1. How we decide UI
 
-- **Design first.** UI and product decisions are talked over in the clickable prototype before a spec is written (owner, 5 November 2026). The agent builds the proposal in the prototype, the owner clicks through it and comments, and the result is recorded here. Then the spec follows. See [`docs/agents/design.md`](../../agents/design.md).
+- **Design first, where design matters.** A new screen or flow, a visible change to one, or a product question a screen makes concrete is talked over in the clickable prototype before a spec is written (owner, 5 November 2026). Work without a screen, and small changes that follow a pattern already here, skip it. The agent builds the proposal in the prototype, the owner clicks through it and comments, and the result is recorded here. Then the spec follows. See [`docs/agents/design.md`](../../agents/design.md).
 - The prototype is throwaway code. It shows the look and the flow, not the architecture.
 
 ## 2. Platforms and visual direction
