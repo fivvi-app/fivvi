@@ -219,7 +219,8 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 - **Joining:** link → email → 6-digit code → request (name) → waiting → approved.
 - **Rooster:**
   - the date, and the gradient **next booking** card;
-  - the week strip, where a booked day shows a green dot;
+  - the week strip: **one dot per class you can still book** (not past, not cancelled, not full; owner, 5 November 2026), green when you're booked;
+  - a cancelled class never shows in the client timetable;
   - a filter, only when both groups and Open Gym exist;
   - rows with the **level**;
   - state pills: *Geboekt ✓*, *Wachtlijst #n*, *Vol*, *Nog n plekken* (accent at 2 or fewer);

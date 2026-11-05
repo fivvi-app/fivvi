@@ -13,6 +13,7 @@ window.FIVVI_I18N = (function () {
 
   /* Sentence-level rules first: these change word order or need a captured value. */
   var RULES = [
+[/^(.+), (\d+) (les|lessen) te boeken$/, function (m, d, n, l) { return P(d) + ", " + n + (l === "les" ? " class" : " classes") + " to book"; }],
 [/^nog (\d+) gepland$/, "$1 more planned"],
 [/^Tegoed: (.+) over$/, function (m, x) { return "Balance: " + x.replace(/(\d+) (groepscredits?|privécredits?|Open Gym-credits?)/g, function (y, n, k) { return n + " " + CRED[k]; }) + " left"; }],
 [/^\+(\S+) kg in 8 weken$/, function (m, v) { return "+" + v.replace(",", ".") + " kg in 8 weeks"; }],

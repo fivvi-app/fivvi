@@ -723,7 +723,8 @@
     return intro('<span class="c-wait">' + ic("clock") + "</span>", "Wachten op " + esc(wsName()), "Je verzoek is verstuurd. Je krijgt een e-mail zodra de studio je heeft goedgekeurd.") +
       '<div class="pad"><div class="card c-proto"><b>Prototype</b><span>Doe alsof de eigenaar je verzoek goedkeurt:</span>' + cbtn("Eigenaar keurt goed", "c-approved", { k: "sec" }) + "</div></div>";
   };
-  function timetable(k) { var its = F.dayItems(k).filter(function (i) { return i.ws === "sf" && i.type !== "priv"; }); if (k === F.TODAY && !F.SOLO()) its = its.concat(F.extra().filter(function (i) { return i.type !== "priv"; })); return its.sort(function (a, b) { return F.mins(a.s) - F.mins(b.s); }); }
+  /* the client timetable: the studio's classes and Open Gym, never a cancelled one */
+  function timetable(k) { var its = F.dayItems(k).filter(function (i) { return i.ws === "sf" && i.type !== "priv" && !i.cancelled; }); if (k === F.TODAY && !F.SOLO()) its = its.concat(F.extra().filter(function (i) { return i.type !== "priv"; })); return its.sort(function (a, b) { return F.mins(a.s) - F.mins(b.s); }); }
   function cState(it) { var c = C(); if (!it.people) return "priv"; if (c.booked[it.id]) return "booked"; if (c.wl[it.id]) return "wl"; return it.people.length >= it.cap ? "full" : "open"; }
   function spotsLeft(it) { return it.people ? it.cap - it.people.length - (C().booked[it.id] ? 1 : 0) : 0; }
   function statePill(it) {
@@ -767,8 +768,9 @@
       if (nx && !APP) b += nextHero(nx, "Je volgende les");
       /* the week strip from Agenda: one dot per class that day */
       b += '<div class="wk c-wk">' + [0, 1, 2, 3, 4, 5, 6].map(function (i) {
-        var d = F.add(F.NOW, i), k = F.key(d), its = timetable(k);
-        return '<div><div class="d">' + F.DS[d.getDay()] + '</div><button class="n ' + (k === F.TODAY ? "today " : "") + (k === c.day ? "sel" : "") + '" data-a="c-day" data-v="' + k + '" aria-label="' + F.longDate(d) + '">' + d.getDate() + '</button><div class="dots">' + its.slice(0, 3).map(function (x) { return '<i style="--c:' + (c.booked[x.id] ? "var(--ok)" : F.CV[x.type]) + '"></i>'; }).join("") + "</div></div>";
+        /* one dot per class you can still book (green: you're booked); not past, not cancelled, not full (owner, 5 Nov 2026) */
+        var d = F.add(F.NOW, i), k = F.key(d), its = timetable(k).filter(function (x) { return !(k === F.TODAY && F.isPast(x, k)) && (c.booked[x.id] || x.people.length < x.cap); });
+        return '<div><div class="d">' + F.DS[d.getDay()] + '</div><button class="n ' + (k === F.TODAY ? "today " : "") + (k === c.day ? "sel" : "") + '" data-a="c-day" data-v="' + k + '" aria-label="' + F.longDate(d) + (its.length ? ", " + its.length + (its.length === 1 ? " les te boeken" : " lessen te boeken") : "") + '">' + d.getDate() + '</button><div class="dots">' + its.slice(0, 5).map(function (x) { return '<i style="--c:' + (c.booked[x.id] ? "var(--ok)" : F.CV[x.type]) + '"></i>'; }).join("") + "</div></div>";
       }).join("") + "</div>";
       if (types.length > 1) b += '<div class="pad" style="margin-top:10px">' + K.seg([["all", "Alles"]].concat(types), c.filter, "c-filter") + "</div>";
       var its = timetable(c.day).filter(function (i) { return (c.filter === "all" || i.type === c.filter) && !(c.day === F.TODAY && F.isPast(i, c.day)); });
