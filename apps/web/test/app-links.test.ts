@@ -1,14 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GET as getAppleAssociation } from '../app/.well-known/apple-app-site-association/route';
 import { GET as getAssetLinks } from '../app/.well-known/assetlinks.json/route';
-import { isPublicPath } from '../server/route-guard';
-
-// Synthetic values in the real formats: a 10-character Apple team ID and the 32 bytes of a SHA-256
-// certificate fingerprint. Neither belongs to a real account or key.
-const TEAM_ID = 'ABCDE12345';
-const FINGERPRINT = Array.from({ length: 32 }, (_, i) => (i * 7 + 3).toString(16).padStart(2, '0'))
-  .join(':')
-  .toUpperCase();
+import {
+  TEST_ANDROID_CERT_SHA256 as FINGERPRINT,
+  TEST_APPLE_TEAM_ID as TEAM_ID,
+} from '../e2e/servers';
 
 function configure(env: { APPLE_TEAM_ID?: string; ANDROID_CERT_SHA256?: string }) {
   vi.stubEnv('APPLE_TEAM_ID', env.APPLE_TEAM_ID ?? '');
@@ -107,13 +103,5 @@ describe('E017 AC5: association files for /j and /i only, none on previews', () 
         expect(() => get()).not.toThrow(/not a team id|AB:CD/);
       }
     });
-  });
-
-  it('is open to anyone: the route guard lets /.well-known/ through without sign-in', () => {
-    expect(isPublicPath('/.well-known/apple-app-site-association')).toBe(true);
-    expect(isPublicPath('/.well-known/assetlinks.json')).toBe(true);
-    expect(isPublicPath('/.well-known')).toBe(false);
-    expect(isPublicPath('/.well-known/other.json')).toBe(false);
-    expect(isPublicPath('/.well-knownx/assetlinks.json')).toBe(false);
   });
 });

@@ -1,11 +1,8 @@
 import { expect, test } from './fixtures';
 import { analyticsServer, TEST_ANDROID_CERT_SHA256, TEST_APPLE_TEAM_ID } from './servers';
 
-// The real server and its route guard, with no session (E017 AC5). Locale does not matter, so
-// the files are checked in one project only.
+// The real server and its route guard, with no session (E017 AC5).
 test.describe('E017 AC5 app-link files', () => {
-  test.skip(({ appLocale }) => appLocale !== 'nl-NL', 'the files do not depend on the language');
-
   test('are served to anyone, as JSON and without a redirect, where they are configured', async ({
     request,
   }) => {

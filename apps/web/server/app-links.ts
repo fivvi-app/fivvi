@@ -11,13 +11,18 @@
  */
 
 /** The client app's bundle ID on iOS and application ID on Android. */
-export const CLIENT_APP_ID = 'app.fivvi';
+const CLIENT_APP_ID = 'app.fivvi';
 
 /** The only paths the client app claims. */
 const LINK_PATHS = ['/j/*', '/i/*'] as const;
 
 const TEAM_ID = /^[A-Z0-9]{10}$/;
 const SHA256_HEX = /^[0-9A-F]{64}$/;
+
+/** Hex bytes written as pairs separated by colons: `AB12` becomes `AB:12`. */
+function colonSeparated(hex: string): string {
+  return (hex.match(/../g) ?? []).join(':');
+}
 
 /** The value of `name`, trimmed; `undefined` when it is unset, empty or blank. */
 function readVariable(env: NodeJS.ProcessEnv, name: string): string | undefined {
@@ -62,7 +67,7 @@ export function androidAssetLinks(env: NodeJS.ProcessEnv = process.env) {
       target: {
         namespace: 'android_app',
         package_name: CLIENT_APP_ID,
-        sha256_cert_fingerprints: [hex.match(/../g)?.join(':')],
+        sha256_cert_fingerprints: [colonSeparated(hex)],
       },
     },
   ];
@@ -70,12 +75,5 @@ export function androidAssetLinks(env: NodeJS.ProcessEnv = process.env) {
 
 /** The answer for a file: 200 JSON, or 404 without its configuration. */
 export function associationResponse(file: object | undefined): Response {
-  // Not `Response.json`, whose content type has no charset; plain `application/json` is what
-  // Apple's and Google's fetchers expect, and they follow no redirect.
-  return file === undefined
-    ? new Response(null, { status: 404 })
-    : new Response(JSON.stringify(file), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
+  return file === undefined ? new Response(null, { status: 404 }) : Response.json(file);
 }
