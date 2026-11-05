@@ -33,6 +33,12 @@ window.FIVVI_DATA = (function () {
   };
 
   /* Workout history per client, newest first. */
+  /* Workouts a client did on their own from a workout the trainer shared (owner, 5 Nov 2026: MVP, with M7).
+     Each set: exercise, what the client did, what the trainer's workout said. */
+  var selfLog = {
+    anna: [{ name: "Upper A", d: "di 3 nov", n: 5, from: "29 okt", by: "Sarah",
+      sets: [["Bankdrukken", "62,5 kg × 8, 8, 6", "60 kg × 8, 8, 7"], ["Kabel roeien", "45 kg × 10, 10, 10", "45 kg × 10, 10, 10"], ["Dumbbell schouderdrukken", "14 kg × 10, 8", "14 kg × 10, 10"], ["Plank", "0:45 × 2", "0:45 × 2, 0:40"], ["Roeien", "500 m · 1:58", "500 m · 1:52"]] }]
+  };
   var history = {
     anna: [
       { name: "Upper A", d: "do 29 okt", n: 5, by: "Sarah", dur: "52 min", note: "Bankdrukken laatste set zwaar. Volgende keer zelfde gewicht, eerst 8 × 3 halen.",
@@ -321,6 +327,6 @@ window.FIVVI_DATA = (function () {
   /* What a workspace calls its trainers (owner decision, 5 Nov 2026): one word, used everywhere in that workspace */
   var TERMS = { trainer: { nl: ["trainer", "trainers"], en: ["trainer", "trainers"] }, instructeur: { nl: ["instructeur", "instructeurs"], en: ["instructor", "instructors"] },
     docent: { nl: ["docent", "docenten"], en: ["teacher", "teachers"] }, coach: { nl: ["coach", "coaches"], en: ["coach", "coaches"] } };
-  return { RENEW_DAYS: RENEW_DAYS, offerList: offerList, offerNames: offerNames, TERMS: TERMS, LEVELS: LEVELS, levels: levels, lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history,
+  return { RENEW_DAYS: RENEW_DAYS, offerList: offerList, offerNames: offerNames, TERMS: TERMS, LEVELS: LEVELS, levels: levels, lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history, selfLog: selfLog,
     progress: progress, tpl: tpl, descriptions: descriptions, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
 })();

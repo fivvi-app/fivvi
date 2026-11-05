@@ -502,3 +502,4 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .c-set.on .c-in{background:color-mix(in oklab,var(--ok) 14%,var(--fill))}
 .c-prog{height:6px;border-radius:3px;background:var(--fill);overflow:hidden;margin:2px 0 6px}
 .c-prog i{display:block;height:100%;background:color-mix(in oklab,var(--ok) 85%,#000);border-radius:3px}
+.w-self{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 0;font-size:13px;color:var(--w-muted-fg)}
