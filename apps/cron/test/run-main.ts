@@ -12,6 +12,17 @@ const FAKE_DATE = fileURLToPath(new URL('./fake-date.ts', import.meta.url));
 const MAIN_TIMEOUT_MS = 20_000;
 export const SPAWN_TEST_TIMEOUT_MS = 30_000;
 
+/**
+ * How long the run took, in milliseconds, as the process reports it on its finish line. The
+ * clock starts after Node has started and the modules are loaded, so it measures the run (ping,
+ * tasks, close) and not the start-up, which a busy CI runner stretches to 3-10 s (#593).
+ */
+export function reportedRunMs(stdout: string): number {
+  const match = /^Cron finished in (\d+) ms\.$/m.exec(stdout);
+  if (!match) throw new Error(`No finish line in the output of the run:\n${stdout}`);
+  return Number(match[1]);
+}
+
 export interface RunMainOptions {
   /** An ISO instant the process takes for "now" (`test/fake-date.ts`). Default: the real time. */
   now?: string;
