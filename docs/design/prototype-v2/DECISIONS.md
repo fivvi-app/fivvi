@@ -103,6 +103,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 - **Header:** the level in the eyebrow ("Groepsles · Gevorderd").
 - **Description** with *Meer / Minder*.
 - **Booked:** n of capacity, with a bar.
+- **Attendance** per participant. *Iedereen aanwezig* in the prototype is a preview: bulk attendance is a `§53` exclusion.
 - **Below:** participants, then attendance.
 - **Owner ⋯ menu:** *Boekingslink delen*; *Trainer vervangen* and *Les wijzigen* (both point to the web); *Les annuleren*.
 
@@ -111,8 +112,9 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 - **Compact:** one row per set, *Set | Vorige | values | tick*, with a column layout per exercise type.
 - **Sets:**
   - swipe left to delete, on iOS **and Android**;
-  - the set number is the drag handle and opens a menu (up, down, remove).
-- **Exercises:** a ⋯ menu and a reorder mode.
+  - the set number opens a menu (remove).
+- **Exercises:** a ⋯ menu.
+- **Reordering sets and exercises is not in the MVP:** "workout reordering" is a `PRODUCT.md §53` exclusion. The prototype shows the drag handle and the reorder mode as a preview for after go-live.
 - **Every removal asks for confirmation** (owner rule, everywhere in the product).
 - **Difficulty per exercise:**
   - shown as an **emoji only**: 😌 makkelijk, 🙂 normaal, 🥵 zwaar;
@@ -275,7 +277,7 @@ The prototype had to choose something for these. They are **not decided**; each 
 8. **Trainers page:**
    - a workspace may have more than one owner;
    - the handover covers the next 2 weeks.
-9. **Exercise reordering in the logger:** flow 05 planned it for 1.1, and the prototype has it now. In the MVP or not?
+9. **Reordering and bulk attendance:** the prototype shows reordering sets and exercises, and *Iedereen aanwezig* on class attendance. Both are `PRODUCT.md §53` exclusions ("workout reordering", "bulk attendance"), so the MVP builds without them unless the owner moves them into the MVP.
 
 ## 8. What this changes in existing documents
 
@@ -284,7 +286,7 @@ The prototype had to choose something for these. They are **not decided**; each 
 | [ADR-003](../../decisions/ADR-003-native-mobile-apps.md) | iOS minimum 17.0 → **26** | [ADR-029](../../decisions/ADR-029-design-v2.md) (this PR) |
 | [ADR-015](../../decisions/ADR-015-ui-foundation.md), [`visual-direction.md`](../visual-direction.md), [`packages/design-tokens`](../../../packages/design-tokens/README.md) | The v1 palette (muted violet) and look are replaced by [§2](#2-platforms-and-visual-direction). The token values change in the package | ADR-029; `visual-direction.md` (this PR); the token change is the Design v2 foundation spec [#590](https://github.com/fivvi-app/fivvi/issues/590) |
 | [Flow 02](../flows/02-trainer-today.md), Vandaag | Summary and layout as in [§3](#3-fivvi-pro-ios-and-android): no rings, the *Mijn dag* card, lanes for the whole studio | F013 [#457](https://github.com/fivvi-app/fivvi/issues/457) |
-| [Flow 05](../flows/05-live-workout-logging.md), WL-02 | Difficulty as an emoji with (i), not "the word is the answer". Compact set rows. Swipe to delete sets. Exercise reordering (see [§7](#7-assumptions-still-to-confirm) 9) | F043, F044 specs (to write) |
+| [Flow 05](../flows/05-live-workout-logging.md), WL-02 | Difficulty as an emoji with (i), not "the word is the answer". Compact set rows. Swipe to delete sets. Reordering stays post-MVP (`§53`) | F043, F044 specs (to write) |
 | [IA §5.2](../information-architecture.md#52-platform-conventions-both-apps) | Android "no swipe actions by default" now has one exception: swipe to delete a set in the logger (with confirmation) | F043 spec (to write) |
 | TD-05, class descriptions | Descriptions can be entered in the app's new-class form, not only on the web | F021 [#427](https://github.com/fivvi-app/fivvi/issues/427) |
 | [IA §3.2](../information-architecture.md#32-role--navigation) | New owner page *Aanbod*. Trainers page: change role, remove with a handover, withdraw an invitation | F052 [#468](https://github.com/fivvi-app/fivvi/issues/468); F003/F004 follow-up in [#590](https://github.com/fivvi-app/fivvi/issues/590) |
