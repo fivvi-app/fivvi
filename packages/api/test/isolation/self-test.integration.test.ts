@@ -252,3 +252,35 @@ describe('E011 the suite cannot go quiet', () => {
     );
   });
 });
+
+describe('F015 the suite and a read that reads no record', () => {
+  let world: World;
+
+  beforeAll(async () => {
+    world = await createWorld();
+  });
+
+  afterAll(async () => {
+    await world?.close();
+  });
+
+  it('`readsNoRecords` excuses a read with no seed from showing a record, and nothing else', async () => {
+    const result = await runIsolationSuite(world, {
+      ...ISOLATION_CASES,
+      // Unseeded and flagged: no failure for the missing record...
+      probeOwner: { readsNoRecords: true },
+      // ...but a flagged case that does seed records is reported, not excused.
+      probeTeam: { readsNoRecords: true, seed: seedWorkspace },
+      // ...and an unflagged read with no seed is still a failure.
+      getWorkspace: {},
+    });
+
+    expect(result.failures.filter((f) => f.startsWith('probeOwner'))).toEqual([]);
+    expect(result.failures.filter((f) => f.startsWith('probeTeam'))).toEqual([
+      'probeTeam: marked `readsNoRecords` but its seed returns records; a route that reads records is checked by them, so drop the flag.',
+    ]);
+    expect(result.failures).toContain(
+      'getWorkspace: a read of a workspace whose seed returns no record the suite can look for, so a policy that is too strict would pass; seed an id or a marker.',
+    );
+  });
+});

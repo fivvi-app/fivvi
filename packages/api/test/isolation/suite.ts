@@ -332,9 +332,15 @@ export async function runIsolationSuite(
         `${operation.name}: its seed returns ${value}, which is no id or marker of a stored record; return the id of a row it made, or a \`uniqueMarker\` in one.`,
       );
     }
+    if (isolationCase.readsNoRecords && seedValues.length > 0) {
+      failures.push(
+        `${operation.name}: marked \`readsNoRecords\` but its seed returns records; a route that reads records is checked by them, so drop the flag.`,
+      );
+    }
     if (
       access.type === 'workspace' &&
       operation.method.toUpperCase() === 'GET' &&
+      !isolationCase.readsNoRecords &&
       !seedValues.some((v) => known.has(v))
     ) {
       failures.push(

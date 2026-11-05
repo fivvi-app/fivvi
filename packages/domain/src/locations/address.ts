@@ -19,6 +19,26 @@ export function normalizePostcode(input: string): string | undefined {
   return match ? `${match[1]} ${match[2]?.toUpperCase()}` : undefined;
 }
 
+/**
+ * The issues of a typed postcode and house number (both trimmed already), and the normalized
+ * postcode when it is one: each must be filled and in format. One check for the address and for the
+ * lookup of one, in field order.
+ */
+export function checkPostcodeAndHouseNumber(
+  postcode: string,
+  houseNumber: string,
+): { readonly postcode: string | undefined; readonly issues: AddressIssue[] } {
+  const issues: AddressIssue[] = [];
+  const normalized = postcode ? normalizePostcode(postcode) : undefined;
+  if (!postcode) issues.push({ field: 'postcode', problem: 'missing' });
+  else if (!normalized) issues.push({ field: 'postcode', problem: 'invalid' });
+  if (!houseNumber) issues.push({ field: 'houseNumber', problem: 'missing' });
+  else if (!HOUSE_NUMBER.test(houseNumber)) {
+    issues.push({ field: 'houseNumber', problem: 'invalid' });
+  }
+  return { postcode: normalized, issues };
+}
+
 /** The fields of an address as typed; every one may be empty. */
 export interface AddressInput {
   readonly postcode: string;
@@ -66,13 +86,7 @@ export function decideAddress(input: AddressInput | null | undefined): AddressDe
     return { ok: true, address: null };
   }
 
-  const issues: AddressIssue[] = [];
-  const normalized = postcode ? normalizePostcode(postcode) : undefined;
-  if (!postcode) issues.push({ field: 'postcode', problem: 'missing' });
-  else if (!normalized) issues.push({ field: 'postcode', problem: 'invalid' });
-  if (!houseNumber) issues.push({ field: 'houseNumber', problem: 'missing' });
-  else if (!HOUSE_NUMBER.test(houseNumber))
-    issues.push({ field: 'houseNumber', problem: 'invalid' });
+  const { postcode: normalized, issues } = checkPostcodeAndHouseNumber(postcode, houseNumber);
   if (addition.length > ADDRESS_ADDITION_MAX_LENGTH) {
     issues.push({ field: 'houseNumberAddition', problem: 'too-long' });
   }
