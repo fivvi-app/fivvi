@@ -33,6 +33,7 @@ window.FIVVI_I18N = (function () {
 [/^Zelf gedaan · (\d+) sets$/, "On your own · $1 sets"],
 [/^(Gewicht|Herhalingen|Tijd|Waarde) set (\d+)$/, function (m, k, n) { return { Gewicht: "Weight", Herhalingen: "Reps", Tijd: "Time", Waarde: "Value" }[k] + " set " + n; }],
 [/^Set (\d+) gedaan$/, "Set $1 done"],
+[/^Je bent nog bezig met (.+)\. Wat je daar hebt ingevuld, gaat verloren\.$/, "You're still doing $1. What you filled in there will be lost."],
 [/^Zelf gedaan · (\d+) (oefening|oefeningen)$/, function (m, n, w) { return "On your own · " + n + (w === "oefening" ? " exercise" : " exercises"); }],
 [/^(.+) van (.+) verdwijnt uit Activiteit\. Dit kun je niet ongedaan maken\.$/, function (m, x, d) { return P(x) + " of " + P(d) + " disappears from Activity. You can't undo this."; }],
 [/^Kies een aanbod van (.+); daarna kun je hier boeken\.$/, "Choose an offer from $1; then you can book here."],
@@ -457,6 +458,7 @@ window.FIVVI_I18N = (function () {
     "Wijzigingen opslaan": "Save changes", "Niet opslaan": "Don't save", "Wijzigingen niet opslaan?": "Discard changes?", "De training blijft zoals hij was.": "The workout stays as it was.",
     "Wijzigingen opgeslagen": "Changes saved", "Training verwijderen?": "Delete workout?", "Training verwijderd": "Workout deleted", "Zelf gedane training bewerken": "Edit a workout done on your own",
     "Alleen jij ziet deze training. Je kunt hem altijd aanpassen of verwijderen.": "Only you see this workout. You can change or delete it any time.",
+    "Vul eerst in wat je hebt gedaan": "First fill in what you did", "Andere training starten?": "Start another workout?", "Andere training starten": "Start another workout", "Toch starten": "Start anyway",
     "Training zelf doen": "Do a workout yourself",
 "Zelf gedane training": "Workout done on your own",
     /* more than one studio (owner, 5 Nov 2026) */

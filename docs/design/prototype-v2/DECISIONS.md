@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Decided with the owner, 5 November 2026 |
 | **Reference** | The clickable prototype in this folder ([README](README.md)), published as the "Fivvi Prototype" artifact. Fictional data only |
-| **Scope** | Fivvi Pro (iOS and Android), trainer web, client web |
+| **Scope** | Fivvi Pro and the client app Fivvi (iOS and Android), trainer web, client web |
 | **Replaces** | [`visual-direction.md`](../visual-direction.md) v1 (muted violet), and the parts of the flows and the IA listed in [§8](#8-what-this-changes-in-existing-documents) |
 
 This is the record of what the owner and the agent decided while clicking through the prototype. The prototype shows how each decision looks and behaves; this file says it in words. A spec or ticket with a UI follows this file and names the prototype screen it implements. Where an older document disagrees, [§8](#8-what-this-changes-in-existing-documents) lists the conflict and where it gets resolved. Open points are in [§7](#7-assumptions-still-to-confirm): they are **not** decided.
@@ -103,7 +103,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 - **Header:** the level in the eyebrow ("Groepsles · Gevorderd").
 - **Description** with *Meer / Minder*.
 - **Booked:** n of capacity, with a bar.
-- **Attendance** per participant. *Iedereen aanwezig* in the prototype is a preview: bulk attendance is a `§53` exclusion.
+- **Attendance** per participant. *Iedereen aanwezig* in the prototype is a preview: bulk attendance is planned for Release 1.1 (`§54`), not the MVP.
 - **Below:** participants, then attendance.
 - **Owner ⋯ menu:** *Boekingslink delen*; *Trainer vervangen* and *Les wijzigen* (both point to the web); *Les annuleren*.
 
@@ -114,7 +114,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
   - swipe left to delete, on iOS **and Android**;
   - the set number opens a menu (remove).
 - **Exercises:** a ⋯ menu.
-- **Reordering sets and exercises is not in the MVP:** "workout reordering" is a `PRODUCT.md §53` exclusion. The prototype shows the drag handle and the reorder mode as a preview for after go-live.
+- **Reordering sets and exercises is not in the MVP:** "workout reordering" is planned for Release 1.1 (`PRODUCT.md §54`). The prototype shows the drag handle and the reorder mode as a preview for after go-live.
 - **Every removal asks for confirmation** (owner rule, everywhere in the product).
 - **Difficulty per exercise:**
   - shown as an **emoji only**: 😌 makkelijk, 🙂 normaal, 🥵 zwaar;
@@ -226,7 +226,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
   - **nothing in a list is cut off with "…"** (owner, 5 November 2026): no description in list rows (the class page shows it whole), and long names wrap to a second line;
   - **book straight from the list** (owner, 5 November 2026): each row has *Boeken*, or *Wachtlijst* on a full class, and keeps *Geboekt ✓* or *Wachtlijst #n* once done. Without a matching credit the button opens the class page, which explains. The free spots lead the small line (accent at 2 or fewer). **Booking and joining the waitlist always ask for confirmation** (owner, 5 November 2026), from the list and from the class page: class, day and time, trainer, which credit it uses and how many are left, and the free-cancellation rule. A booking plans one credit; cancelling in time gives it back. Cancelling stays on the class page, with its confirmation;
   - the cancellation rule as a footnote;
-  - the studio switcher in the header, for a client of more than one studio ([§5b](#5b-client-app-fivvi)).
+  - the studio switcher in the header ([§5b](#5b-client-app-fivvi)): it switches between a client's studios and is also where they add one.
 - **Class page:**
   - description;
   - a spots card with a bar;
@@ -254,7 +254,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
     - the days of this week, visited ✓ and booked ○ in the session type's colour;
     - how often so far and what's still planned; with no visit yet, what's planned and when the first one is;
     - weeks in a row;
-    - one highlight: a lift the trainer logged (PT), or the month's count (pilates, yoga).
+    - one highlight: a lift from a shared workout (PT, from M7), or the month's count (pilates, yoga, and everyone before M7).
     - It sets no goals Fivvi doesn't have;
     - The *Tegoed* line opens a **Tegoed screen on top of Home, with a back button** (owner, 5 November 2026): balance tiles, agreements, *Aanbod bekijken*. A shortcut never drops the client in another tab without a way back;
   - *Boeken*: the timetable;
@@ -263,7 +263,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
     - a monthly count and weeks in a row;
     - a workout the trainer shared opens with all its details;
     - it fits every setup: a yoga client sees only classes, and logged workouts appear only where private sessions exist;
-    - the shared workouts arrive with M7;
+    - the tab arrives with M7 (`PRODUCT.md §55`);
   - *Profiel*.
 - **Platform look:**
   - iOS uses the glass tab bar and large titles;
@@ -284,7 +284,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 - **Doing a shared workout on your own** (owner, 5 November 2026: "let the client redo the workout the trainer sent, like in their own gym"). **Decided: MVP, with M7** ([#602](https://github.com/fivvi-app/fivvi/issues/602)).
   - A shared workout has ***Deze training zelf doen***. It opens a simple logger in the client app: each exercise with *Vorige keer met Sarah: 60 kg × 8, 8, 7*, one row per set with the trainer's weight and reps filled in, a field to change them and a check per set.
   - *Training afronden* asks for confirmation ("2 van 12 sets gedaan"). *Stoppen zonder opslaan* asks too. Back keeps the progress.
-  - The finished workout appears in *Activiteit* as *Zelf gedaan* and ticks the day in *Deze week*.
+  - The finished workout appears in *Activiteit* as *Zelf gedaan* and ticks the day in *Deze week* (the second part is an assumption, §7 item 11).
   - No booking, no credit, no attendance: it isn't a session.
   - **The client can add and remove exercises** (owner, 5 November 2026): *Oefening toevoegen* opens the exercise library (search in Dutch or English); a trash button per exercise asks *Plank weghalen?* first. *Set toevoegen* copies the last set.
   - **The client can edit or delete a finished one at any time** (owner, 5 November 2026): it opens from *Activiteit*, with *Bewerken* (the logger with what they did) and *Verwijderen*, which asks for confirmation first.
@@ -340,10 +340,10 @@ The prototype had to choose something for these. They are **not decided**; each 
 8. **Trainers page:**
    - a workspace may have more than one owner;
    - the handover covers the next 2 weeks.
-9. **Reordering and bulk attendance:** the prototype shows reordering sets and exercises, and *Iedereen aanwezig* on class attendance. Both are `PRODUCT.md §53` exclusions ("workout reordering", "bulk attendance"), so the MVP builds without them unless the owner moves them into the MVP.
+9. **Reordering and bulk attendance:** the prototype shows reordering sets and exercises, and *Iedereen aanwezig* on class attendance. Both are planned for Release 1.1 (`PRODUCT.md §54`: "workout reordering", "bulk attendance"), so the MVP builds without them unless the owner moves them into the MVP.
 10. **More than one studio:** *Home* and *Mijn agenda* combine every studio. QE05 leaves this to the F033 spec; the prototype assumes it.
 11. **Doing a shared workout on your own** (#602):
-    - it is stored under the workspace whose trainer shared the workout (`organization_id`), but only the client can read it: not the trainers and not the owner;
+    - it is stored under the workspace whose trainer shared the workout (`organization_id`); that only the client can read it is decided (§5b);
     - it counts in *Deze week*, *Activiteit* and the weeks in a row;
     - the client starts only from a workout the trainer shared, not from an empty one (`PRODUCT.md §40`: the trainer assigns workouts); within it they add and remove exercises;
     - the client adds exercises from the library only and can't create new ones.
@@ -355,7 +355,7 @@ The prototype had to choose something for these. They are **not decided**; each 
 | [ADR-003](../../decisions/ADR-003-native-mobile-apps.md) | iOS minimum 17.0 → **26** | [ADR-029](../../decisions/ADR-029-design-v2.md) (this PR) |
 | [ADR-015](../../decisions/ADR-015-ui-foundation.md), [`visual-direction.md`](../visual-direction.md), [`packages/design-tokens`](../../../packages/design-tokens/README.md) | The v1 palette (muted violet) and look are replaced by [§2](#2-platforms-and-visual-direction). The token values change in the package | ADR-029; `visual-direction.md` (this PR); the token change is the Design v2 foundation spec [#590](https://github.com/fivvi-app/fivvi/issues/590) |
 | [Flow 02](../flows/02-trainer-today.md), Vandaag | Summary and layout as in [§3](#3-fivvi-pro-ios-and-android): no rings, the *Mijn dag* card, lanes for the whole studio | F013 [#457](https://github.com/fivvi-app/fivvi/issues/457) |
-| [Flow 05](../flows/05-live-workout-logging.md), WL-02 | Difficulty as an emoji with (i), not "the word is the answer". Compact set rows. Swipe to delete sets. Reordering stays post-MVP (`§53`) | F043, F044 specs (to write) |
+| [Flow 05](../flows/05-live-workout-logging.md), WL-02 | Difficulty as an emoji with (i), not "the word is the answer". Compact set rows. Swipe to delete sets. Reordering stays post-MVP (`§54`) | F043, F044 specs (to write) |
 | [IA §5.2](../information-architecture.md#52-platform-conventions-both-apps) | Android "no swipe actions by default" now has one exception: swipe to delete a set in the logger (with confirmation) | F043 spec (to write) |
 | TD-05, class descriptions | Descriptions can be entered in the app's new-class form, not only on the web | F021 [#427](https://github.com/fivvi-app/fivvi/issues/427) |
 | [IA §3.2](../information-architecture.md#32-role--navigation) | New owner page *Aanbod*. Trainers page: change role, remove with a handover, withdraw an invitation | F052 [#468](https://github.com/fivvi-app/fivvi/issues/468); F003/F004 follow-up in [#590](https://github.com/fivvi-app/fivvi/issues/590) |

@@ -883,11 +883,11 @@
       '<div class="c-cap" style="--c:' + F.CV[it.type] + '"><i style="width:' + pct + '%"></i></div></div>';
     b += K.grp((it.type === "gym" ? [] : [kv("Trainer", esc(cwho(it)))]).concat(F.level(it) ? [kv("Niveau", F.lvlTag(it))] : []).concat([kv("Locatie", esc(shortLoc(it.loc)))]));
     /* credit kinds never mix (PRODUCT §91): a class uses a groepscredit, Open Gym an Open Gym-credit */
-    var ck = it.type === "gym" ? "gym" : "groep", bal = c.who === "anna" ? D.bsum("anna").balances.filter(function (x) { return x.credit === ck; })[0] : null, noCredit = c.who === "anna" && (!bal || bal.left <= 0);
+    var cr = creditFor(it), ck = cr.ck, bal = cr.bal, noCredit = cr.no;
     if (st === "booked") b += '<div class="banner" style="--c:var(--ok)">' + ic("check") + "<span><b>Je bent erbij.</b> Gratis annuleren tot 12 uur voor de start. Daarna telt de les als gebruikt.</span></div>" + cbtn("Annuleren", "c-cancel", { k: "dng" });
     else if (st === "wl") b += '<div class="banner" style="--c:var(--gym)">' + ic("clock") + "<span><b>Wachtlijst: nummer " + c.wl[it.id] + ".</b> Komt er een plek vrij, dan word je automatisch geboekt en krijg je een e-mail. De wachtlijst sluit 30 minuten voor de start.</span></div>" + cbtn("Van de wachtlijst af", "c-wl-leave", { k: "sec" });
     else if (st === "full") b += '<div class="banner" style="--c:var(--label2)">' + ic("people") + "<span><b>Deze les is vol.</b> " + (it.waitlist || 0) + " mensen staan op de wachtlijst.</span></div>" + (it.type === "group" ? cbtn("Op de wachtlijst", "c-wl", { i: "clock" }) : "");
-    else if (noCredit) b += '<div class="banner" style="--c:var(--gym)">' + ic("warn") + "<span><b>Je hebt geen " + D.CREDIT[ck][1] + ".</b> Kies een aanbod van " + esc(wsName()) + "; daarna kun je hier boeken.</span></div>" + cbtn("Aanbod bekijken", "c-offers", { k: "sec" }) + cbtn("Boeken", "c-book", { i: "check", dis: true });
+    else if (noCredit) b += '<div class="banner" style="--c:var(--gym)">' + ic("warn") + "<span><b>Je hebt geen " + D.CREDIT[ck][1] + ".</b> Kies een aanbod van " + esc(sName(it.ws === "yl" ? "yl" : "sf")) + "; daarna kun je hier boeken.</span></div>" + cbtn("Aanbod bekijken", "c-offers", { k: "sec" }) + cbtn("Boeken", "c-book", { i: "check", dis: true });
     else b += cbtn("Boeken", "c-book", { i: "check" });
     b += "</div>";
     if (st === "open" && bal && !noCredit) b += K.foot("Je gebruikt 1 " + D.CREDIT[ck][0] + "; je hebt er nog " + bal.left + ". Gratis annuleren tot 12 uur voor de start.");
@@ -921,8 +921,15 @@
   /* editing a finished one (owner, 5 Nov 2026: the client can edit or delete it any time): the logger with what they did, all sets ticked */
   function selfFromLog(i) {
     var l = D.selfLog.anna[i], done = {};
-    var ex = l.sets.map(function (s, e) { var ps = parseSets(s[1]); ps.forEach(function (p, k) { done["x" + e + "-" + k] = true; }); return { id: "x" + e, name: s[0], prev: s[2] || null, kind: ps[0].w != null ? "w" : ps[0].tm != null ? "tm" : "t", sets: ps }; });
+    var ex = l.sets.map(function (s, e) { var ps = s[3] ? s[3].sets.map(function (o) { return JSON.parse(JSON.stringify(o)); }) : parseSets(s[1]); ps.forEach(function (p, k) { done["x" + e + "-" + k] = true; }); return { id: "x" + e, name: s[0], prev: s[2] || null, kind: s[3] ? s[3].kind : ps[0].w != null ? "w" : ps[0].tm != null ? "tm" : "t", sets: ps }; });
     return { edit: i, name: l.name, by: l.by, from: l.from, day: l.d, done: done, v: {}, nx: ex.length, ex: ex };
+  }
+  /* the sets in words: "60 kg × 8, 8 · 70 kg × 6"; each weight once, in the order they were done */
+  function setsText(kind, ss) {
+    if (kind === "r") return ss.map(function (x) { return x.r; }).join(", ") + " herh.";
+    if (kind !== "w") return ss.map(function (x) { return x.tm != null ? x.tm : x.t; }).join(", ");
+    var parts = []; ss.forEach(function (x) { var l = parts[parts.length - 1]; if (l && l[0] === x.w) l[1].push(x.r || "–"); else parts.push([x.w, [x.r || "–"]]); });
+    return parts.map(function (p) { return (p[0] ? p[0] + " kg × " : "") + p[1].join(", "); }).join(" · ");
   }
   /* a finished solo workout: what the client did, with Bewerken and Verwijderen */
   /* the demo entries start from the sample again, also after the client deleted it */
@@ -982,6 +989,7 @@
     }
     if (cd === "selfdone") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Training afronden"><h3>Training afronden?</h3><p>' + C().self.n + " van " + C().self.total + " sets gedaan.</p><p>Je vindt hem terug in Activiteit. Alleen jij ziet hem.</p><div class=\"btns\">" + K.btn("Afronden", { a: "c-selfok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
     if (cd === "exrm") { var ex = exById(C().dlgId); return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Oefening weghalen"><h3>' + esc(ex.name) + " weghalen?</h3><p>Wat je bij deze oefening hebt ingevuld, gaat verloren." + "" + '</p><div class="btns">' + K.btn("Weghalen", { k: "dng", a: "c-exrmok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>"; }
+    if (cd === "selfswitch") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Andere training starten"><h3>Andere training starten?</h3><p>Je bent nog bezig met ' + esc(C().self.name) + '. Wat je daar hebt ingevuld, gaat verloren.</p><div class="btns">' + K.btn("Toch starten", { k: "dng", a: "c-selfswitch" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
     if (cd === "solodel") { var sl = D.selfLog.anna[C().solo]; return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Training verwijderen"><h3>Training verwijderen?</h3><p>' + esc(sl.name) + " van " + esc(sl.d) + ' verdwijnt uit Activiteit. Dit kun je niet ongedaan maken.</p><div class="btns">' + K.btn("Verwijderen", { k: "dng", a: "c-solodelok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>"; }
     if (cd === "selfstop" && C().self && C().self.edit != null) return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Niet opslaan"><h3>Wijzigingen niet opslaan?</h3><p>De training blijft zoals hij was.</p><div class="btns">' + K.btn("Niet opslaan", { k: "dng", a: "c-selfundo" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
     if (cd === "selfstop") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Stoppen"><h3>Stoppen zonder opslaan?</h3><p>Wat je hebt ingevuld, gaat verloren.</p><div class="btns">' + K.btn("Stoppen", { k: "dng", a: "c-selfdrop" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
@@ -990,7 +998,7 @@
     return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Annuleren"><h3>' + esc(it.title) + " annuleren?</h3><p>Het is meer dan 12 uur voor de start, dus de les telt niet als gebruikt.</p><div class=\"btns\">" + K.btn("Ja, annuleren", { k: "dng", a: "c-cancel-ok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
   }
   /* ================= Client app Fivvi (PRODUCT §55) =================
-     The client web's scope as a native app: Home, Boeken, Training (from M7), Profiel. Signs in with the emailed
+     The client web's scope as a native app: Home, Boeken, Activiteit (from M7), Profiel. Signs in with the emailed
      code; joins through the join link, which opens the app (no QR scanner); paying opens the web page in a browser
      sheet; account deletion in the app (§79). Push notifications come in Release 1.1, so none here. */
   var APP = false;
@@ -1000,7 +1008,6 @@
     var c = C(); APP = true;
     try {
       if (!c.astep) c.astep = c.step === "app" ? "app" : "welcome";
-      var lang = '<div class="gb glass c-lng" translate="no">' + ["nl", "en"].map(function (l) { return '<button class="' + (F.PREF.lang === l ? "on" : "") + '" data-a="c-lang" data-v="' + l + '">' + l.toUpperCase() + "</button>"; }).join("") + "</div>";
       if (c.astep !== "app") {
         var body = ASTEP[c.astep]();
         return '<div class="screen"><div class="content c-body" style="padding-top:calc(var(--top) + 20px)">' + body + "</div></div>" + (c.dialog ? cdialog() : "");
@@ -1093,18 +1100,21 @@
     return { title: "Tegoed", body: K.lt("", "Tegoed", "") + sw + (cws() === "yl" ? ylTegoed() : tegoedParts().replace(K.sh("Tegoed", "", "small"), "")) + '<div class="pad" style="margin-top:16px">' + K.btn("Aanbod bekijken", { k: "sec", blk: true, a: "c-offers" }) + "</div>" + K.foot("Betalingen en facturen staan in Profiel.") };
   }
   ATAB.boeken = function () { var c = C(), t = c.tab; c.tab = "rooster"; var p = CSTEP.app(); c.tab = t; return p; };
-  /* Training: the workouts the trainer shared (F045, arrives with M7) */
   /* Activiteit (owner, 5 Nov 2026: not every studio calls it training): what the client did, for every kind of studio.
      Classes and sessions attended, a monthly count and weeks in a row; a workout the trainer shared opens with its details. */
   function attended() {
     var c = C(), out = [], hist = c.who === "anna" && F.HAS("priv") ? D.history.anna || [] : [];
     var pn = F.PREF.setup === "pilates" ? "Reformer privé" : null;
-    hist.forEach(function (x, i) { out.push({ d: x.d, title: pn || x.name, sub: "met " + x.by, type: "priv", w: i }); });
-    if (c.who === "anna" && F.HAS("priv")) (D.selfLog.anna || []).forEach(function (x, i) { out.push({ d: x.d, title: x.name, sub: x.n + (x.n === 1 ? " oefening" : " oefeningen"), type: "self", self: true, sl: i }); });
-    if (c.who === "anna" && (F.HAS("group") || F.HAS("gym"))) for (var i = 1, n = 0; i <= 21 && n < 4; i += 2) {
-      var k = F.key(F.add(F.NOW, -i)), it = timetable(k).filter(function (x) { return x.type !== "priv" && !x.cancelled; })[n % 2];
-      if (it) { out.push({ d: F.DS[F.parse(k).getDay()] + " " + F.parse(k).getDate() + " " + F.MS[F.parse(k).getMonth()], title: it.title, sub: it.type === "gym" ? "Zelf trainen" : cwho(it), type: it.type, k: k }); n++; }
-    }
+    function at(ws) { return multi() ? " · " + sName(ws) : ""; }
+    hist.forEach(function (x, i) { out.push({ d: x.d, title: pn || x.name, sub: "met " + x.by + at("sf"), type: "priv", w: i }); });
+    if (c.who === "anna" && F.HAS("priv")) (D.selfLog.anna || []).forEach(function (x, i) { out.push({ d: x.d, title: x.name, sub: x.n + (x.n === 1 ? " oefening" : " oefeningen") + at("sf"), type: "self", self: true, sl: i }); });
+    if (c.who === "anna") studios().forEach(function (ws) {
+      if (ws === "sf" && !F.HAS("group") && !F.HAS("gym")) return;
+      for (var i = ws === "yl" ? 2 : 1, n = 0; i <= 21 && n < (ws === "yl" ? 2 : 4); i += 2) {
+        var k = F.key(F.add(F.NOW, -i)), it = timetable(k, ws).filter(function (x) { return x.type !== "priv" && !x.cancelled; })[n % 2];
+        if (it) { out.push({ d: F.DS[F.parse(k).getDay()] + " " + F.parse(k).getDate() + " " + F.MS[F.parse(k).getMonth()], title: it.title, sub: (it.type === "gym" ? "Zelf trainen" : cwho(it)) + at(ws), type: it.type, k: k }); n++; }
+      }
+    });
     /* newest first: "do 29 okt" and "29 okt" both sort by month and day */
     function when(x) { var m = /(\d+) (\w+)/.exec(x.d) || [0, 0, ""], mi = F.MS.indexOf(m[2]); return (mi < 0 ? 0 : mi) * 100 + +m[1]; }
     return out.sort(function (a, b) { return when(b) - when(a); });
@@ -1143,8 +1153,8 @@
   }
   A["c-qbook"] = function (d) { var c = C(); c.dialog = "book"; c.dlgId = d.id; R(); };
   A["c-qwl"] = function (d) { var c = C(); c.dialog = "wl"; c.dlgId = d.id; R(); };
-  A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.selfOn = false; c.solo = null; if (c.self && c.self.edit != null) c.self = null; c.web = null; c.page = null; R(); };
-  A["c-offers"] = function () { C().web = "offers"; R(); };
+  A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.selfOn = false; c.solo = null; leaveEdit(c); c.web = null; c.page = null; R(); };
+  A["c-offers"] = function () { var cf = C().detail && cfind(C().detail); if (cf) C().cws = cf.it.ws === "yl" ? "yl" : "sf"; C().web = "offers"; R(); };
   A["c-webclose"] = function () { C().web = null; R(); };
   A["c-buy"] = function (d) { C().web = null; F.toast("Betaalpagina geopend: " + d.v + " met iDEAL"); };
   A["a-next"] = function () { var c = C(); if (!/.+@.+\..+/.test(c.email)) { c.err = { email: "Vul een geldig e-mailadres in" }; F.toast(c.err.email, "err"); return; } c.astep = "code"; c.code = ""; R(); };
@@ -1167,7 +1177,10 @@
   A["c-filter"] = function (d) { C().filter = d.v; R(); };
   A["c-tfilter"] = function (d) { C().typeFilter = d.v; R(); };
   A["c-open"] = function (d) { C().detail = d.id; R(); };
-  A["c-self"] = function () { var c = C(); if (!c.self || c.self.w !== c.workout) c.self = selfStart(c.workout); c.selfOn = true; R(); };
+  A["c-self"] = function () { var c = C(); if (c.self && c.self.w !== c.workout) { c.dialog = "selfswitch"; R(); return; } if (!c.self) c.self = selfStart(c.workout); c.selfOn = true; R(); };
+  A["c-selfswitch"] = function () { var c = C(); c.self = selfStart(c.workout); c.selfOn = true; c.dialog = null; R(); };
+  /* leaving an edit brings back the workout in progress, if there is one */
+  function leaveEdit(c) { if (c.self && c.self.edit != null) { c.self = c.selfKeep || null; c.selfKeep = null; } }
   function exById(id) { return C().self.ex.filter(function (e) { return e.id === id; })[0]; }
   A["c-addset"] = function (d) { var ex = exById(d.v), last = ex.sets[ex.sets.length - 1], v = C().self.v, li = ex.id + "-" + (ex.sets.length - 1), n = {};
     /* a new set starts from the last one, with what the client typed there */
@@ -1185,22 +1198,28 @@
     var c = C(), v = c.self.v, sets = [];
     /* what the client did, per exercise: the ticked sets with the values they typed */
     c.self.ex.forEach(function (ex) {
-      var done = ex.sets.map(function (p, i) { var id = ex.id + "-" + i; if (!c.self.done[id]) return null; function g(k) { return v[id + "-" + k] != null ? v[id + "-" + k] : p[k]; } return ex.kind === "w" ? [g("w"), g("r")] : [g(ex.kind === "r" ? "r" : ex.kind === "tm" ? "tm" : "t")]; }).filter(Boolean);
-      if (done.length) sets.push([ex.name, ex.kind === "w" ? done[0][0] + " kg × " + done.map(function (z) { return z[1]; }).join(", ") : done.map(function (z) { return z[0]; }).join(", ") + (ex.kind === "r" ? " herh." : ""), ex.prev]);
+      var done = [];
+      ex.sets.forEach(function (p, i) {
+        var id = ex.id + "-" + i, o = {}, any = false; if (!c.self.done[id]) return;
+        for (var k in p) { o[k] = String(v[id + "-" + k] != null ? v[id + "-" + k] : p[k]).trim(); if (o[k]) any = true; }
+        if (any) done.push(o);
+      });
+      if (done.length) sets.push([ex.name, setsText(ex.kind, done), ex.prev, { kind: ex.kind, sets: done }]);
     });
-    if (c.self.edit != null) { var l = D.selfLog.anna[c.self.edit]; l.sets = sets; l.n = sets.length; c.solo = c.self.edit; c.self = null; c.selfOn = false; c.dialog = null; F.toast("Wijzigingen opgeslagen"); return; }
+    if (!sets.length) { c.dialog = null; F.toast("Vul eerst in wat je hebt gedaan"); return; }
+    if (c.self.edit != null) { var l = D.selfLog.anna[c.self.edit]; l.sets = sets; l.n = sets.length; c.solo = c.self.edit; leaveEdit(c); c.selfOn = false; c.dialog = null; F.toast("Wijzigingen opgeslagen"); return; }
     D.selfLog.anna.unshift({ name: c.self.name, d: F.DS[F.NOW.getDay()] + " " + F.NOW.getDate() + " " + F.MS[F.NOW.getMonth()], n: sets.length, from: c.self.from, by: c.self.by, sets: sets });
     c.self = null; c.selfOn = false; c.workout = null; c.dialog = null; c.atab = "training"; F.toast("Opgeslagen in Activiteit"); };
-  A["c-selfundo"] = function () { var c = C(); c.self = null; c.selfOn = false; c.dialog = null; R(); };
+  A["c-selfundo"] = function () { var c = C(); leaveEdit(c); c.selfOn = false; c.dialog = null; R(); };
   A["c-solo"] = function (d) { C().solo = +d.v; R(); };
-  A["c-soloedit"] = function () { var c = C(); c.self = selfFromLog(c.solo); c.selfOn = true; R(); };
+  A["c-soloedit"] = function () { var c = C(); c.selfKeep = c.self; c.self = selfFromLog(c.solo); c.selfOn = true; R(); };
   A["c-solodel"] = function () { C().dialog = "solodel"; R(); };
   A["c-solodelok"] = function () { var c = C(); D.selfLog.anna.splice(c.solo, 1); c.solo = null; c.dialog = null; F.toast("Training verwijderd"); };
-  A["c-back"] = function () { var c = C(); if (c.selfOn) { c.selfOn = false; if (c.self && c.self.edit != null) c.self = null; R(); return; } if (c.solo != null) { c.solo = null; R(); return; } if (c.detail || c.workout != null) { c.detail = null; c.workout = null; } else c.page = null; R(); };
+  A["c-back"] = function () { var c = C(); if (c.selfOn) { c.selfOn = false; leaveEdit(c); R(); return; } if (c.solo != null) { c.solo = null; R(); return; } if (c.detail || c.workout != null) { c.detail = null; c.workout = null; } else c.page = null; R(); };
   A["c-page"] = function (d) { var c = C(); c.page = d.v; if (d.ws) c.cws = d.ws; R(); };
   A["c-wsheet"] = function (d) { C().wsheet = d.v || "list"; R(); };
   A["c-wsclose"] = function () { C().wsheet = null; R(); };
-  A["c-ws"] = function (d) { var c = C(); c.cws = d.v; c.wsheet = null; c.detail = null; R(); };
+  A["c-ws"] = function (d) { var c = C(); c.cws = d.v; c.wsheet = null; c.detail = null; c.filter = "all"; R(); };
   A["c-wsjoin"] = function () { var c = C(); c.studios = studios().concat(["yl"]); c.cws = "yl"; c.wsheet = null; F.toast("Yoga Loft heeft je goedgekeurd"); };
   /* booking and joining the waitlist always ask first (owner, 5 Nov 2026), from the list and from the class page */
   A["c-book"] = function () { var c = C(); c.dialog = "book"; c.dlgId = c.detail; R(); };
@@ -1232,8 +1251,10 @@
     }
     return false;
   }
-  function scrollSave(dev) { var el = dev.querySelector(".w-scroll,.c-body"); return el ? [el.className, el.scrollTop, W().page + (C().tab || "") + (C().detail || "")] : null; }
-  function scrollRestore(dev, keep) { if (!keep) return; var el = dev.querySelector(".w-scroll,.c-body"); if (el && el.className === keep[0] && keep[2] === W().page + (C().tab || "") + (C().detail || "")) el.scrollTop = keep[1]; }
+  function scrollKey() { var c = C(); return W().page + (c.tab || "") + (c.detail || "") + "|" + (c.atab || "") + (c.page || "") + (c.workout != null ? "w" + c.workout : "") + (c.solo != null ? "s" + c.solo : "") + (c.selfOn ? "l" : ""); }
+  /* the key of the screen on display is kept from the last render: by the next render the state already has the new screen */
+  function scrollSave(dev) { var el = dev.querySelector(".w-scroll,.c-body"); return el ? [el.className, el.scrollTop, dev.dataset.ck || ""] : null; }
+  function scrollRestore(dev, keep) { var k = scrollKey(), el = keep && dev.querySelector(".w-scroll,.c-body"); if (el && el.className === keep[0] && keep[2] === k) el.scrollTop = keep[1]; dev.dataset.ck = k; }
   window.FVW = { web: web, client: client, capp: capp, onInput: onInput, scrollSave: scrollSave, scrollRestore: scrollRestore };
 
   /* panel entries for rounds 2 and 3 */
@@ -1244,7 +1265,7 @@
       /* Anna, an approved client, already has two classes booked in the coming days */
       /* and one of her private sessions this week is a duo with Noor */
       if (c.who === "anna") for (var j = 1, dd = false; j <= 7 && !dd; j++) F.dayItems(F.key(F.add(F.NOW, j))).forEach(function (it) { if (!dd && it.type === "priv" && it.client === "anna") { it.duo = "noor"; dd = true; } });
-      if (c.who === "anna") { var n = 0; for (var i = 1; i <= 4 && n < 2; i++) timetable(F.key(F.add(F.NOW, i))).forEach(function (it) { if (n < 2 && it.type === "group" && it.people.length < it.cap) { c.booked[it.id] = true; n++; } }); }
+      if (c.who === "anna") { var n = 0; for (var i = 1; i <= 4 && n < 2; i++) timetable(F.key(F.add(F.NOW, i)), "sf").forEach(function (it) { if (n < 2 && it.type === "group" && it.people.length < it.cap) { c.booked[it.id] = true; n++; } }); }
     };
   }
   F.INDEX.push(["Trainer web", [
@@ -1271,7 +1292,7 @@
       F.fresh(); F.PREF.app = "client"; if (F.PREF.plat !== "android") F.PREF.plat = "ios";
       var c = C(); c.astep = astep; for (var k in extra || {}) c[k] = extra[k];
       if (astep === "app") c.step = "app";
-      if (c.who === "anna") { var n = 0; for (var i = 1; i <= 4 && n < 2; i++) timetable(F.key(F.add(F.NOW, i))).forEach(function (it) { if (n < 2 && it.type === "group" && it.people.length < it.cap) { c.booked[it.id] = true; n++; } }); }
+      if (c.who === "anna") { var n = 0; for (var i = 1; i <= 4 && n < 2; i++) timetable(F.key(F.add(F.NOW, i)), "sf").forEach(function (it) { if (n < 2 && it.type === "group" && it.people.length < it.cap) { c.booked[it.id] = true; n++; } }); }
       if (setup) setup(c);
     };
   }

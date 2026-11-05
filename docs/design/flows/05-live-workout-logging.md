@@ -6,7 +6,7 @@
 > - **Compact rows:** one row per set, *Set | Vorige | values | tick*.
 > - **Difficulty** is an **emoji with an (i)**, not "the word is the answer"; the words stay as accessible names.
 > - **Sets:** swipe left to delete, also on Android, with confirmation.
-> - **Exercises:** a ⋯ menu. Reordering sets and exercises stays post-MVP (`PRODUCT.md §53`); the prototype only previews it.
+> - **Exercises:** a ⋯ menu. Reordering sets and exercises stays post-MVP (Release 1.1, `PRODUCT.md §54`); the prototype only previews it.
 > - **Duo sessions** log one workout per client.
 
 > **Updated 23 September 2026 (prototype feedback, `ROADMAP` v1.11).** A workout never needs a prior plan. WL-01 puts *Lege training* first and adds *Vorige training herhalen* (F051, moved from Release 1.1). Sets are prefilled and logged with one tap on their check. WL-05 can save the workout as a template. A workout can also start from a client profile without a planned session.
