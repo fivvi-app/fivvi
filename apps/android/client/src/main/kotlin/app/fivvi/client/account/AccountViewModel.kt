@@ -93,8 +93,10 @@ class AccountViewModel(
         loading = viewModelScope.launch { _state.value = fetch(opening = true) }
     }
 
-    // [opening]: the read of opening the tabs or of a retry, whose stored language is taken (F010 AC2, AC5). A read on foreground
-    // leaves the language to LanguageViewModel.refresh, which does not undo a choice made while it was under way (F010 AC3).
+    // [opening]: the read of opening the tabs or of a retry, whose stored language is taken (F010 AC2, AC5). Nothing can be
+    // chosen while it is out: Profiel offers Taal only once the account has loaded, so the answer cannot undo a choice. A
+    // read on foreground leaves the language to LanguageViewModel.refresh, which does not undo a choice made while it was
+    // under way (F010 AC3).
     private suspend fun fetch(opening: Boolean): AccountState {
         val response = try {
             api.getMe()

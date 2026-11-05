@@ -208,7 +208,7 @@ class ClientAppTest(@Suppress("UNUSED_PARAMETER") tag: String, private val phone
             }
         }
         app.backgroundAndForeground()
-        compose.waitUntil(UI_TIMEOUT_MILLIS) { me.calls >= 2 }
+        compose.waitUntil(UI_TIMEOUT_MILLIS) { me.calls >= 3 }
 
         compose.onNodeWithTag("${ProfileTags.LANGUAGE}.${other.tag}").performClick()
         compose.waitUntil(UI_TIMEOUT_MILLIS) { me.updates.isNotEmpty() }
@@ -219,6 +219,28 @@ class ClientAppTest(@Suppress("UNUSED_PARAMETER") tag: String, private val phone
 
         compose.onNodeWithTag("${ProfileTags.LANGUAGE}.${other.tag}").assertIsSelected()
         compose.onNodeWithTag(ProfileTags.SIGN_OUT).assertTextEquals(string(other, R.string.sign_out_label))
+    }
+
+    // F010 AC3: Taal is offered once the account has loaded, so no choice can be made while the opening read is out: its
+    // answer, taken as the stored language, would undo a choice whose PATCH answered first.
+    @Test
+    fun E017_AC2_taalIsOfferedOnlyOnceTheAccountHasLoaded() {
+        val answered = CompletableDeferred<Unit>()
+        me.answers += {
+            answered.await()
+            Response.success(account(phone))
+        }
+        app.launch(device = listOf(phone.tag), meApi = me)
+        compose.onNodeWithTag(Tab.PROFILE.tag).performClick()
+        compose.waitUntilTagExists(ProfileTags.LOADING)
+
+        AppLanguage.entries.forEach { compose.onNodeWithTag("${ProfileTags.LANGUAGE}.${it.tag}").assertDoesNotExist() }
+        compose.onNodeWithTag(ProfileTags.LANGUAGE).assertDoesNotExist()
+        answered.complete(Unit)
+
+        compose.waitUntilTagExists(ProfileTags.EMAIL)
+        compose.onNodeWithTag("${ProfileTags.LANGUAGE}.${phone.tag}").assertIsSelected()
+        compose.onNodeWithTag(ProfileTags.LANGUAGE).assertTextEquals(string(phone, R.string.profile_language))
     }
 
     private fun account(language: AppLanguage) = MeResponse(

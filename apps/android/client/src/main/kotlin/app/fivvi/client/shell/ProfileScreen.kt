@@ -64,8 +64,9 @@ class ProfileActions(
 )
 
 /**
- * *Profiel* / *Profile*: the name and the email address (read-only; editing is F033), *Taal* (Nederlands · English,
- * saved on the account, F010), *Uitloggen* and the app's [version]. Scrolls, so text at the largest font scale wraps.
+ * *Profiel* / *Profile*: the name and the email address (read-only; editing is F033), *Taal* (Nederlands · English, saved
+ * on the account, F010; offered once the account has loaded), *Uitloggen* and the app's [version]. Scrolls, so text at the
+ * largest font scale wraps.
  */
 @Composable
 fun ProfileScreen(state: AccountState, actions: ProfileActions, version: String) {
@@ -90,12 +91,16 @@ fun ProfileScreen(state: AccountState, actions: ProfileActions, version: String)
 
             else -> Loading()
         }
-        Text(
-            text = stringResource(R.string.profile_language),
-            modifier = Modifier.testTag(ProfileTags.LANGUAGE).semantics { heading() },
-            style = MaterialTheme.typography.title2,
-        )
-        LanguageList(ProfileTags.LANGUAGE, actions.language, actions.onChooseLanguage)
+        // Taal is offered once the account has loaded (F010 AC3): the stored language of the opening read is adopted when it
+        // answers, which would undo a choice made while it was out.
+        if (state is AccountState.Loaded) {
+            Text(
+                text = stringResource(R.string.profile_language),
+                modifier = Modifier.testTag(ProfileTags.LANGUAGE).semantics { heading() },
+                style = MaterialTheme.typography.title2,
+            )
+            LanguageList(ProfileTags.LANGUAGE, actions.language, actions.onChooseLanguage)
+        }
         if (actions.languageSaveFailed) {
             Text(
                 text = stringResource(R.string.user_menu_error),
