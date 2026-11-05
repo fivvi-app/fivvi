@@ -132,8 +132,20 @@ describe('F020 plan a private session', () => {
       });
     });
 
-    it('the duration is elapsed time: 00:30 for 90 minutes on the night the clocks go back ends at 01:00 local by the clock', () => {
-      // 00:30 CEST (22:30 UTC) + 90 minutes = 00:00 UTC = 01:00 CET (the clocks went back at 01:00 UTC).
+    it('the duration is elapsed time: 02:00 (the first) for 90 minutes on the night the clocks go back ends at 02:30 by the clock', () => {
+      // 02:00 CEST is 00:00 UTC; the clocks go back at 01:00 UTC, so 90 elapsed minutes end at 01:30 UTC,
+      // which is 02:30 CET. Wall-clock arithmetic (02:00 + 90 minutes = 03:30) would end at 02:30 UTC.
+      const planned = planPrivateSession(
+        facts({ localDate: '2026-10-25', localStart: '02:00', durationMinutes: 90 }),
+      );
+      expect(planned).toMatchObject({
+        startsAt: new Date('2026-10-25T00:00:00.000Z'),
+        endsAt: new Date('2026-10-25T01:30:00.000Z'),
+      });
+    });
+
+    it('the duration is elapsed time: 00:30 for 90 minutes the night the clocks go back ends at 02:00 CEST, before the change', () => {
+      // 00:30 CEST is 22:30 UTC; 90 minutes later is 00:00 UTC, still before the change at 01:00 UTC.
       const planned = planPrivateSession(
         facts({ localDate: '2026-10-25', localStart: '00:30', durationMinutes: 90 }),
       );
