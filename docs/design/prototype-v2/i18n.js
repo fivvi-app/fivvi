@@ -61,6 +61,7 @@ window.FIVVI_I18N = (function () {
   /* Phrases and words, replaced on letter boundaries, longest first. */
   var PH = {
     /* app frame */
+    "Zwart-wit": "Black and white",
     "Omhoog": "Move up", "Omlaag": "Move down", "Volgorde wijzigen": "Reorder", "Volgorde": "Order", "Klaar": "Done",
     "Sleep aan ≡ om de volgorde te wijzigen.": "Drag ≡ to change the order.", "Zet de set eerst weer open": "Reopen the set first", "Dit is de enige set": "This is the only set",
     "Beschrijving in het Engels": "Description in English", "Beschrijving": "Description", "Minder": "Less",

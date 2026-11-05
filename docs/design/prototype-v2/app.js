@@ -104,6 +104,7 @@
   /* ---------- State ---------- */
   var ACC = [
     { k: "pink", n: "Move pink", fill: "#E6164A", on: "#FFFFFF", tl: "#C8103D", td: "#FF6482" },
+    { k: "mono", n: "Zwart-wit", fill: "#18181B", on: "#FFFFFF", tl: "#18181B", td: "#FAFAFA", fillD: "#FAFAFA", onD: "#18181B" },
     { k: "indigo", n: "Indigo", fill: "#6155F5", on: "#FFFFFF", tl: "#5146E0", td: "#9D97FF" },
     { k: "blue", n: "Calendar blue", fill: "#0071E3", on: "#FFFFFF", tl: "#0066CC", td: "#4AA3FF" },
     { k: "green", n: "Exercise green", fill: "#30D158", on: "#000000", tl: "#1A7F37", td: "#4CD964" },
@@ -1028,7 +1029,8 @@
   function save() { try { localStorage.setItem("fivvi-proto-v2", JSON.stringify(PREF)); } catch (e) { /* ignore */ } }
   function applyPrefs() {
     var a = ACC.filter(function (x) { return x.k === PREF.accent; })[0] || ACC[0];
-    mk.style.setProperty("--accent", a.fill); mk.style.setProperty("--on-accent", a.on); mk.style.setProperty("--at-l", a.tl); mk.style.setProperty("--at-d", a.td);
+    var dark = PREF.mode === "dark" && a.fillD;
+    mk.style.setProperty("--accent", dark ? a.fillD : a.fill); mk.style.setProperty("--on-accent", dark ? a.onD : a.on); mk.style.setProperty("--at-l", a.tl); mk.style.setProperty("--at-d", a.td);
     mk.dataset.mode = PREF.mode;
     mk.style.setProperty("--ga", { clear: PREF.mode === "dark" ? 0.22 : 0.25, regular: PREF.mode === "dark" ? 0.55 : 0.6, tinted: PREF.mode === "dark" ? 0.85 : 0.88 }[PREF.glass]);
     mk.style.setProperty("--gb", { clear: "6px", regular: "14px", tinted: "24px" }[PREF.glass]);
