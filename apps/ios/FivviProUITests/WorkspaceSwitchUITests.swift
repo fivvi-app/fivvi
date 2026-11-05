@@ -27,8 +27,7 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
     private func openProfile(_ screen: SignInScreen) {
         let open = screen.app.buttons["home.openProfile"]
         XCTAssertTrue(open.waitUntilExists(timeout: timeout))
-        open.tap()
-        XCTAssertTrue(screen.app.staticTexts["profile.workspacesTitle"].waitUntilExists(timeout: timeout))
+        XCTAssertTrue(open.tap(until: screen.app.staticTexts["profile.workspacesTitle"], timeout: timeout))
     }
 
     private func workspaceName(_ screen: SignInScreen) -> XCUIElement { screen.app.staticTexts["home.workspaceName"] }
@@ -61,8 +60,7 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
         XCTAssertFalse(app.staticTexts["profile.workspacesTitle"].exists, "the stack is back at the first tab")
         let clients = app.buttons["home.openClients"]
         XCTAssertTrue(clients.waitUntilExists(timeout: timeout))
-        clients.tap()
-        XCTAssertTrue(clientRow("Eva Visser", in: app).waitUntilExists(timeout: timeout))
+        XCTAssertTrue(clients.tap(until: clientRow("Eva Visser", in: app), timeout: timeout))
         XCTAssertTrue(clientRow("Daan Mulder", in: app).exists)
         XCTAssertFalse(clientRow("Anna de Vries", in: app).exists, "John's Gym's clients are not shown")
 
@@ -84,8 +82,7 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
         app.buttons[johns].tap()
 
         XCTAssertTrue(waitForWorkspace("John's Gym", in: screen))
-        app.buttons["home.openClients"].tap()
-        XCTAssertTrue(clientRow("Anna de Vries", in: app).waitUntilExists(timeout: timeout))
+        XCTAssertTrue(app.buttons["home.openClients"].tap(until: clientRow("Anna de Vries", in: app), timeout: timeout))
         XCTAssertFalse(clientRow("Eva Visser", in: app).exists)
     }
 
@@ -167,8 +164,7 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
         XCTAssertTrue(waitForWorkspace("John's Gym", in: screen))
         let open = app.buttons["home.openProfile"]
         XCTAssertEqual(open.label, catalog["profile.title"])
-        open.tap()
-        XCTAssertTrue(app.buttons[own].waitUntilExists(timeout: timeout))
+        XCTAssertTrue(open.tap(until: app.buttons[own], timeout: timeout))
 
         app.buttons[own].tap()
 
@@ -194,7 +190,6 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
         // The new-client action follows the role of the workspace on screen: both roles may manage clients.
         app.buttons[own].tap()
         XCTAssertTrue(waitForWorkspace("Sarah Personal Training", in: screen))
-        app.buttons["home.openClients"].tap()
-        XCTAssertTrue(app.buttons["clients.add"].waitUntilExists(timeout: timeout))
+        XCTAssertTrue(app.buttons["home.openClients"].tap(until: app.buttons["clients.add"], timeout: timeout))
     }
 }

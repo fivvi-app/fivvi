@@ -23,13 +23,17 @@ final class ClientProfileBackUITests: SignInUITestCase {
         let app = screen.app
         let open = app.buttons["home.openClients"]
         XCTAssertTrue(open.waitUntilExists(timeout: timeout))
-        open.tap()
+        XCTAssertTrue(open.tap(until: row("Mark Jansen"), timeout: timeout))
 
         for _ in 1...2 {
             row("Mark Jansen").tap()
             XCTAssertTrue(app.staticTexts["clientProfile.name"].waitUntilExists(timeout: timeout))
+            // The title and the back button of the navigation bar come with the push, a moment after the screen's own
+            // text on a slow simulator (#596): wait for the button, as for any other element.
             let back = app.buttons["clientProfile.back"]
-            XCTAssertTrue(back.exists, "the system's back button has the id Maestro looks for")
+            XCTAssertTrue(
+                back.waitUntilExists(timeout: timeout), "the system's back button has the id Maestro looks for"
+            )
             XCTAssertEqual(back.label, catalog["clients.title"], "and the title of the screen before")
 
             // The swipe from the left edge.
@@ -51,8 +55,7 @@ final class ClientProfileBackUITests: SignInUITestCase {
         let edge = app.coordinate(withNormalizedOffset: CGVector(dx: 0.0, dy: 0.5))
         edge.press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)))
         XCTAssertTrue(app.buttons["home.openClients"].exists, "Home is still there")
-        app.buttons["home.openClients"].tap()
-        XCTAssertTrue(row("Mark Jansen").waitUntilExists(timeout: timeout))
+        XCTAssertTrue(app.buttons["home.openClients"].tap(until: row("Mark Jansen"), timeout: timeout))
         row("Mark Jansen").tap()
         XCTAssertTrue(app.staticTexts["clientProfile.name"].waitUntilExists(timeout: timeout))
     }
