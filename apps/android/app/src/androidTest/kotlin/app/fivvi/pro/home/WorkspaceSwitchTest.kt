@@ -234,7 +234,7 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
         headerShows(SARAH_PT)
         compose.waitUntilTagExists(HomeTags.SIGN_OUT)
         compose.onNodeWithTag(HomeTags.SIGN_OUT).assertTextEquals(string(R.string.sign_out_label))
-        compose.onNodeWithTag(HomeTags.OPEN_PROFILE).assertTextEquals(string(R.string.my_profile_title))
+        compose.onNodeWithTag(HomeTags.OPEN_PROFILE).assertTextEquals(string(R.string.profile_title))
         assertEquals(emptyList<Any>(), me.updates)
     }
 

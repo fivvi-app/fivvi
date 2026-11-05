@@ -71,6 +71,14 @@ export {
   listLocations,
   updateLocation,
 } from './repositories/locations.ts';
+export {
+  findMyNextSessionStart,
+  hasMySession,
+  listMySessions,
+  listMyTrainingWorkspaces,
+  type PersonalSessionRow,
+  type PersonalWorkspace,
+} from './repositories/personal-sessions.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
 export {
   type AttendanceStatus,
@@ -141,6 +149,7 @@ export {
   type InvitationEntry,
   type InvitationScopeFacts,
   type InvitationScopeInput,
+  inEachWorkspace,
   type Place,
   type TeamRole,
   type TenantContext,

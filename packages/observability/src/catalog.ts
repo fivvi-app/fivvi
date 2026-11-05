@@ -88,6 +88,17 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F013: a trainer opened their day (*Vandaag* / *Mijn dag*) or their calendar (*Agenda* /
+  // *Mijn agenda*). The surface and how many workspaces the view spans only (the trainer's account
+  // UUID is the distinct ID): no client name, class name, workspace, time or session.
+  my_day_viewed: {
+    surface: property.enum(['web', 'ios', 'android']),
+    workspace_count: property.number(),
+  },
+  my_calendar_viewed: {
+    surface: property.enum(['web', 'ios', 'android']),
+    workspace_count: property.number(),
+  },
   // F010: someone chose their interface language. The language and the surface only: the distinct
   // ID is random for each event (`anonymousDistinctId()`), so nothing leads to the account, and no
   // name or email address is recorded.

@@ -258,6 +258,14 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     updateGroupClass: 'repository of the group classes, takes the workspace scope (F021)',
     createClassDate: 'repository of the group classes, takes the workspace scope (F021)',
     updateClassDate: 'repository of the group classes, takes the workspace scope (F021)',
+    listMyTrainingWorkspaces:
+      'repository of the personal sessions, takes the account scope; the workspaces the account trains in (F013)',
+    listMySessions:
+      'repository of the personal sessions, takes the workspace scope; the account’s own sessions (F013)',
+    findMyNextSessionStart:
+      'repository of the personal sessions, takes the workspace scope; answers a time (F013)',
+    hasMySession:
+      'repository of the personal sessions, takes the workspace scope; answers yes or no (F013)',
     findInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     lockInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     closeInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
@@ -286,6 +294,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
       'type of the report the startup check receives (a role name and sentences); no handle',
     // The tenant scope: the one way to the repositories.
     createTenantScopes: 'builds the scopes around an executor it is given; opens no connection',
+    inEachWorkspace:
+      'takes the account scope and sets the request transaction’s context to one of its workspaces at a time (F013, ADR-006); the workspace must be in the scope and the account a team member there; opens no connection',
     // Constants and types.
     HELLO_GREETING: 'a constant of the system data',
     RateLimitRule: 'type',
@@ -305,6 +315,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     LocationAddress: 'type of the location repository (F015)',
     LocationChanges: 'type of the location repository (F015)',
     LocationView: 'type of the location repository (F015)',
+    PersonalSessionRow: 'type of the personal-sessions repository (F013)',
+    PersonalWorkspace: 'type of the personal-sessions repository (F013)',
     TrainerWithProfile: 'type of the trainer-profile repository (F020)',
     AttendanceStatus: 'type of the session repository (F020)',
     NewPrivateSession: 'type of the session repository (F020)',

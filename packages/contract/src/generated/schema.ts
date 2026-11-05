@@ -88,6 +88,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/day": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My day: the sessions of one day across my workspaces
+         * @description Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.
+         */
+        get: operations["getMyDay"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My sessions: a range of days across my workspaces
+         * @description The sessions the signed-in account is the current trainer of from the start of `from` to the end of `to` (at most 42 days, days in Dutch time), in all the workspaces it trains in, in time order: for the week and month views. Cancelled sessions stay. An account that trains nowhere gets an empty list, not `403`.
+         */
+        get: operations["listMySessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/sign-in/request": {
         parameters: {
             query?: never;
@@ -778,6 +818,161 @@ export interface components {
              */
             surface?: "ios" | "android";
         };
+        /** @description The personal day of a trainer across all their workspaces. */
+        MyDay: {
+            /** @description The day shown: `YYYY-MM-DD`, in `timeZone`. */
+            date: string;
+            /** @description The zone of the personal scope: `Europe/Amsterdam`. The day starts and ends on its wall clock. */
+            timeZone: string;
+            /** @description The workspaces the account trains in and the view spans. The apps show a workspace name on a row only when it is more than one. */
+            workspaceCount: number;
+            /** @description The day’s items in time order, cancelled ones included. */
+            items: components["schemas"]["PersonalSession"][];
+            summary: components["schemas"]["MyDaySummary"];
+            next?: components["schemas"]["MyDayNext"];
+            tomorrow?: components["schemas"]["MyDayTomorrow"];
+            /** @description The date of the next session that takes place after this day, `YYYY-MM-DD`. Only given when the day has no items; left out when there is none. */
+            nextSessionDate?: string;
+            /** @description Whether the account is the current trainer of any session at all, past or future. Only computed when the day is empty and no session follows, to tell a new trainer (*Je hebt nog geen sessies*) from one with nothing planned; true otherwise. */
+            hasSessions: boolean;
+        };
+        /** @description A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. */
+        PersonalSession: {
+            /**
+             * Format: uuid
+             * @description The session ID. It opens in its own workspace: `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}` with the item’s `workspace.id`.
+             */
+            sessionId: string;
+            workspace: components["schemas"]["PersonalWorkspace"];
+            /**
+             * @description The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*).
+             * @enum {string}
+             */
+            type: "private" | "group" | "open_gym";
+            /**
+             * @description Whether the session still takes place. A cancelled one stays in the list.
+             * @enum {string}
+             */
+            status: "scheduled" | "cancelled";
+            /**
+             * Format: date-time
+             * @description The start, a UTC instant.
+             */
+            startsAt: string;
+            /**
+             * Format: date-time
+             * @description The end, a UTC instant.
+             */
+            endsAt: string;
+            /** @description The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012). */
+            timeZone: string;
+            /** @description 1 for a private session. */
+            capacity: number;
+            /** @description The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session. */
+            booked?: number;
+            /** @description The class name in the viewer’s language, for a group class. Left out until classes exist (F021 adds it). */
+            className?: string;
+            location?: components["schemas"]["Location"];
+            /** @description The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. */
+            clientName?: string;
+        };
+        /** @description The workspace an item of the personal view is in. */
+        PersonalWorkspace: {
+            /**
+             * Format: uuid
+             * @description The workspace ID.
+             */
+            id: string;
+            /** @description The URL name: `/w/{slug}` on the web. */
+            slug: string;
+            /** @description The name shown in the product. */
+            name: string;
+        };
+        /** @description A place where sessions of the workspace take place. */
+        Location: {
+            /**
+             * Format: uuid
+             * @description The location ID.
+             */
+            id: string;
+            /** @description The name sessions show, up to 120 characters. */
+            name: string;
+            type: components["schemas"]["LocationType"];
+            address: components["schemas"]["LocationAddress"];
+            /** @description Whether this is the workspace’s default location, the one every new session takes. */
+            isDefault: boolean;
+        };
+        /**
+         * @description The kind of location. Every workspace has one `organization_location` (its own) at go-live; the other kinds exist in the model for later and are not written yet.
+         * @enum {string}
+         */
+        LocationType: "organization_location" | "external_gym" | "client_home" | "outdoor" | "online" | "other";
+        /** @description The address, or `null` when the location has none. */
+        LocationAddress: {
+            /** @description A Dutch postcode, stored as `1234 AB`. */
+            postcode: string;
+            /** @description One to five digits. */
+            houseNumber: string;
+            /** @description For example `A` or `2 hoog`; `null` when there is none. */
+            houseNumberAddition: string | null;
+            street: string;
+            city: string;
+        } | null;
+        /** @description *4 sessies · 09:00–19:00*. */
+        MyDaySummary: {
+            /** @description The items of the day, cancelled ones counted. */
+            count: number;
+            /**
+             * Format: date-time
+             * @description The start of the first item; left out for an empty day.
+             */
+            firstStartsAt?: string;
+            /**
+             * Format: date-time
+             * @description The end of the last item; left out for an empty day.
+             */
+            lastEndsAt?: string;
+        };
+        /** @description *Straks* / *Nu bezig*: the first item of today that has not ended and is not cancelled. Left out when nothing is left today, and for any day but today. */
+        MyDayNext: {
+            /**
+             * Format: uuid
+             * @description The item in `items`.
+             */
+            sessionId: string;
+            /**
+             * @description `upcoming` is *Straks*, `in_progress` is *Nu bezig*.
+             * @enum {string}
+             */
+            state: "upcoming" | "in_progress";
+            /** @description Minutes to the start, rounded up; 0 while it runs. */
+            startsInMinutes: number;
+        };
+        /** @description The footer *Morgen: 3 sessies, eerste om 07:00*. Cancelled sessions are not counted; left out when the next day has none. */
+        MyDayTomorrow: {
+            /** @description The next day: `YYYY-MM-DD`. */
+            date: string;
+            /** @description The sessions that day that take place. */
+            count: number;
+            /**
+             * Format: date-time
+             * @description The start of the first one.
+             */
+            firstStartsAt: string;
+        };
+        /** @description The personal sessions of a trainer across all their workspaces, for a range of days. */
+        MySessions: {
+            /** @description The first day: `YYYY-MM-DD`. */
+            from: string;
+            /** @description The last day, included: `YYYY-MM-DD`. */
+            to: string;
+            /** @description The zone of the personal scope: `Europe/Amsterdam`. The days follow its wall clock. */
+            timeZone: string;
+            /** @description The workspaces the account trains in and the view spans. */
+            workspaceCount: number;
+            /** @description The sessions from the start of `from` to the end of `to`, in time order. */
+            items: components["schemas"]["PersonalSession"][];
+        };
         /** @description Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019. */
         SignInRequest: {
             /**
@@ -966,36 +1161,6 @@ export interface components {
              */
             trainsHere: true;
         };
-        /** @description A place where sessions of the workspace take place. */
-        Location: {
-            /**
-             * Format: uuid
-             * @description The location ID.
-             */
-            id: string;
-            /** @description The name sessions show, up to 120 characters. */
-            name: string;
-            type: components["schemas"]["LocationType"];
-            address: components["schemas"]["LocationAddress"];
-            /** @description Whether this is the workspace’s default location, the one every new session takes. */
-            isDefault: boolean;
-        };
-        /**
-         * @description The kind of location. Every workspace has one `organization_location` (its own) at go-live; the other kinds exist in the model for later and are not written yet.
-         * @enum {string}
-         */
-        LocationType: "organization_location" | "external_gym" | "client_home" | "outdoor" | "online" | "other";
-        /** @description The address, or `null` when the location has none. */
-        LocationAddress: {
-            /** @description A Dutch postcode, stored as `1234 AB`. */
-            postcode: string;
-            /** @description One to five digits. */
-            houseNumber: string;
-            /** @description For example `A` or `2 hoog`; `null` when there is none. */
-            houseNumberAddition: string | null;
-            street: string;
-            city: string;
-        } | null;
         /** @description Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. `address: null` removes the address; leave `address` out to keep it as it is. The type and which location is the default never change. Other fields are ignored. */
         UpdateLocationRequest: {
             /** @description The new name: trimmed, not blank, at most 120 characters. */
@@ -1517,6 +1682,112 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MyWorkspace"][];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getMyDay: {
+        parameters: {
+            query: {
+                /** @description The day to show: `YYYY-MM-DD`, in Dutch time (Europe/Amsterdam). A date that is none (30 February) answers `400` on `date`. */
+                date: string;
+                /** @description The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. */
+                surface?: "ios" | "android";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The day. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyDay"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listMySessions: {
+        parameters: {
+            query: {
+                /** @description The first day: `YYYY-MM-DD`, in Dutch time. A date that is none answers `400` on `from`. */
+                from: string;
+                /** @description The last day, included: `YYYY-MM-DD`, in Dutch time. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`. */
+                to: string;
+                /** @description The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. */
+                surface?: "ios" | "android";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sessions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MySessions"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
                 };
             };
             /** @description Nobody is signed in: no valid sign-in session or bearer token. */

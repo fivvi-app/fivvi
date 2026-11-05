@@ -46,7 +46,7 @@ The single source of truth for feature status. A status changes **in the same PR
 |---|---|---|---|---|---|---|---|---|
 | F011 | Trainer Invitations | IN PROGRESS | Must | M3 | F003, F004, E006 | ⬜ | ⬜ | §49 |
 | [F012](https://github.com/fivvi-app/fivvi/issues/423) | Multi-Workspace Trainer: a scope switcher on the web (sidebar header) and in the iOS and Android apps (Profiel → Mijn werkruimtes), each opening that workspace's role home; the last workspace is remembered per device; an allowlisted account can create another workspace | IMPLEMENTED | Must | M3 (+ iOS/Android: workspace switch in the profile) | F003, F005 | ✅ | ✅ | §4, §6 |
-| F013 | Personal Trainer Calendar | PLANNED | Must | M4 (+ iOS/Android) | F012, F020 | ⬜ | ⬜ | §45–§48, §78 (type labels and filters) |
+| F013 | Personal Trainer Calendar | IN PROGRESS | Must | M4 (+ iOS/Android) | F012, F020 | ⬜ | ⬜ | §45–§48, §78 (type labels and filters) |
 | F014 | Workspace Calendar | PLANNED | Must | M4 | F020 | ⬜ | ⬜ | §45, §48, §78 (type and trainer filters) |
 
 ### Locations

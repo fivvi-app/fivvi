@@ -54,6 +54,16 @@ export {
   scheduleClassOnDate,
 } from './scheduling/group-class.ts';
 export {
+  decidePersonalRange,
+  mergePersonalDay,
+  orderPersonalSessions,
+  PERSONAL_RANGE_MAX_DAYS,
+  PERSONAL_TIME_ZONE,
+  type PersonalDay,
+  type PersonalRangeDecision,
+  type PersonalSessionTimes,
+} from './scheduling/personal-day.ts';
+export {
   confirmationLanguage,
   type PlanPrivateSessionDecision,
   type PlanPrivateSessionFacts,
@@ -63,7 +73,10 @@ export {
   sendsConfirmation,
 } from './scheduling/private-session.ts';
 export {
+  addDays,
   instantToWallClock,
+  localDateOf,
+  localDayBounds,
   type WallClockInstant,
   wallClockToInstant,
 } from './scheduling/zoned-time.ts';

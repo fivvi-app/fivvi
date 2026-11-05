@@ -48,6 +48,16 @@ extension StubAPI {
         fatalError("The app doesn't call updateLocation yet")
     }
 
+    func getMyDay(_ input: Operations.GetMyDay.Input) async throws -> Operations.GetMyDay.Output {
+        fatalError("The app doesn't call getMyDay yet")
+    }
+
+    func listMySessions(
+        _ input: Operations.ListMySessions.Input
+    ) async throws -> Operations.ListMySessions.Output {
+        fatalError("The app doesn't call listMySessions yet")
+    }
+
     func lookupAddress(_ input: Operations.LookupAddress.Input) async throws -> Operations.LookupAddress.Output {
         fatalError("The app doesn't call lookupAddress yet")
     }
