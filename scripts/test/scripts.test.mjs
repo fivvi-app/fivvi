@@ -15,7 +15,7 @@ import {
 } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 import { SOURCE_PATHS } from '../ios-mtimes.mjs';
@@ -2078,7 +2078,9 @@ exit 0`,
       `case "$1" in
   -list-avds) echo fivvi ;;
   -accel-check) ;;
-  *) echo "$*" >>"${state}/emulator.log"; echo $$ >"${state}/pid"; touch "${state}/booted"; exec /bin/sleep 60 ;;
+  *) echo "$*" >>"${state}/emulator.log"; echo $$ >"${state}/pid";
+     # FAKE_STALE_PID (#584): whether that process, an emulator of another start, is gone by the time this one launches.
+     [ -z "$FAKE_STALE_PID" ] || { kill -0 "$FAKE_STALE_PID" 2>/dev/null && echo alive || echo gone; } >>"${state}/stale.log"; touch "${state}/booted"; exec /bin/sleep 60 ;;
 esac`,
     );
     mkdirSync(join(base, 'jdk'));
@@ -4022,6 +4024,82 @@ esac`,
       assert.deepEqual(flows(fake), ['nl-NL', 'en']);
       const { pid, booted } = fake.emulator();
       assert.ok(!booted && !running(pid), 'the relaunched emulator is stopped at the end');
+    });
+
+    it('ends the hung emulator of another process through its pid file before it relaunches, and removes the file', async () => {
+      const fake = checkout({ emulatorRunning: true });
+      const pidFile = join(dirname(fake.repo), 'other-emulator.pid');
+      // What `android.sh emulator` leaves: a process of its own whose pid is in the pid file. It is named as an emulator.
+      const other = spawn('/bin/bash', ['-c', 'exec -a emulator-other /bin/sleep 60'], {
+        detached: true,
+        stdio: 'ignore',
+      });
+      other.unref();
+      pids.push(other.pid);
+      writeFileSync(pidFile, `${other.pid}\n`);
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        ...lost('hung', '2'),
+        EMULATOR_PID_FILE: pidFile,
+        FAKE_STALE_PID: String(other.pid),
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.ok(!running(other.pid), 'the hung emulator is gone');
+      assert.deepEqual(fake.log('stale'), ['gone'], 'it was gone before the relaunch started');
+      assert.deepEqual(flows(fake), ['nl-NL', 'en']);
+      assert.ok(
+        !existsSync(pidFile) || readFileSync(pidFile, 'utf8').trim() !== String(other.pid),
+        'the pid file no longer names it',
+      );
+    });
+
+    it('leaves a process alone that a stale pid file names when it is not an emulator', async () => {
+      const fake = checkout({ emulatorRunning: true });
+      const pidFile = join(dirname(fake.repo), 'other-emulator.pid');
+      const bystander = spawn('/bin/sleep', ['60'], { detached: true, stdio: 'ignore' });
+      bystander.unref();
+      pids.push(bystander.pid);
+      writeFileSync(pidFile, `${bystander.pid}\n`);
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        ...lost('hung', '2'),
+        EMULATOR_PID_FILE: pidFile,
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.ok(running(bystander.pid), 'a pid that was reused is not killed');
+      assert.deepEqual(flows(fake), ['nl-NL', 'en']);
+    });
+
+    it('restores the language and the error dialog setting on the relaunched emulator it did not boot first, then stops it', async () => {
+      const fake = checkout({ emulatorRunning: true });
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], lost('hung', '2'));
+
+      assert.equal(run.status, 0, run.output);
+      const all = calls(fake);
+      const lastFlow = all.findLastIndex(isFlow);
+      const ownLanguage = all.findIndex((call) =>
+        call.includes('setprop persist.sys.locale en-US;'),
+      );
+      const restored = all.lastIndexOf('adb shell settings delete global hide_error_dialogs');
+      const stopped = all.lastIndexOf('adb emu kill');
+      assert.ok(
+        lastFlow >= 0 && ownLanguage > lastFlow && restored > ownLanguage && stopped > restored,
+        `language and setting back on the relaunched emulator, then it is stopped:\n${all.join('\n')}`,
+      );
+      assert.equal(launches(fake).length, 1);
+    });
+
+    it('does not restore anything on a relaunched emulator the script booted itself', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], lost('died', '2'));
+
+      assert.equal(run.status, 0, run.output);
+      assert.ok(!calls(fake).some((call) => call.startsWith('adb shell settings delete')));
+      assert.ok(!calls(fake).some((call) => call.includes('setprop persist.sys.locale en-US;')));
     });
 
     it('recovers at the switch to nl-NL, before the first flow, as well', async () => {

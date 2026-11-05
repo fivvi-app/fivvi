@@ -24,7 +24,7 @@
 # Before the first flow, the web server has answered GET /api/v1/hello, the app's first request, in both locales.
 # When it ends, also on failure or Ctrl-C, it stops the emulator or simulator it booted and its Gradle daemons;
 # KEEP_DEVICE=1 leaves them running for the next run. On an emulator it didn't boot, it restores the language and the
-# error dialog setting.
+# error dialog setting, also when it had to relaunch that emulator (#584) and stops the relaunched one.
 #
 # CI's emulator now and then lost its adb connection (#373): the host's adb server dropped it for about half a second
 # ("device offline", then "device 'emulator-5554' not found"), which fails the flow that happens to start in that window,
@@ -54,6 +54,9 @@ CLEAR_EVERY="${MAESTRO_CLEAR_EVERY:-20}"
 CLEARER_PID=""
 CLEARER_LOG=""
 DEVICE_LOCALE=""
+# Whether this run booted the emulator it started with (EMULATOR_STARTED is also true after a relaunch of one it did not
+# boot, #584): cleanup restores the language and the error dialog setting on an emulator it did not boot.
+DEVICE_BOOTED_BY_US=false
 # Seconds to wait for the device to be usable again, and the number of probes (one a second) in a row it must answer.
 DEVICE_READY_TIMEOUT="${DEVICE_READY_TIMEOUT:-120}"
 DEVICE_STABLE_PROBES="${DEVICE_STABLE_PROBES:-5}"
@@ -244,7 +247,12 @@ set_device_locale() {
 STALE_EMULATOR_WAIT="${STALE_EMULATOR_WAIT:-10}"
 stop_stale_emulator() {
   local pid="$EMULATOR_PID" signal started
-  [ -n "$pid" ] || pid="$(cat "$EMULATOR_PID_FILE" 2>/dev/null || true)"
+  # Only the pid file of an emulator another process started (CI's step of its own), and only while the pid is still an
+  # emulator: a pid left over from an earlier run may belong to any process by now.
+  if [ -z "$pid" ]; then
+    pid="$(cat "$EMULATOR_PID_FILE" 2>/dev/null || true)"
+    case "$(ps -p "${pid:-0}" -o command= 2>/dev/null || true)" in *emulator*|*qemu*) ;; *) pid="" ;; esac
+  fi
   adb emu kill >/dev/null 2>&1 || true
   for signal in "" TERM KILL; do
     if [ -z "$pid" ] || ! kill -0 "$pid" 2>/dev/null; then break; fi
@@ -273,7 +281,7 @@ recover_emulator() {
   echo "maestro.sh: the emulator did not come back after the language switch; relaunching it once, cold"
   stop_stale_emulator
   mkdir -p "$(dirname "$EMULATOR_LOG")"
-  if [ "$AVD_SNAPSHOT" = 1 ]; then launch_emulator -no-snapshot-load -no-snapshot-save; else launch_emulator -no-snapshot; fi
+  launch_cold
   wait_for_boot
   adb shell input keyevent 82
   root_device
@@ -448,7 +456,8 @@ run_locale() {
 cleanup() {
   stop_clearing || true
   stop_stack
-  if [ "$EMULATOR_STARTED" = false ]; then
+  # Also on an emulator relaunched by recover_emulator, which stop_android then stops: the AVD keeps its userdata.
+  if [ "$DEVICE_BOOTED_BY_US" = false ]; then
     # In this order: Android writes settings to disk a moment later, and the framework restart would lose the write.
     [ -z "$DEVICE_LOCALE" ] || set_device_locale "$DEVICE_LOCALE" || true
     restore_error_dialogs || true
@@ -472,6 +481,7 @@ cmd_android() {
   on_exit cleanup
   start_stack
   start_emulator
+  DEVICE_BOOTED_BY_US=$EMULATOR_STARTED
   root_device
   wait_for_boot
   DEVICE_LOCALE="$(adb shell getprop persist.sys.locale | tr -d '\r')"

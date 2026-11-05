@@ -211,6 +211,11 @@ boot_from_snapshot() {
   return 1
 }
 
+# Boots the AVD from scratch: no snapshot is loaded, and with snapshots on none is saved either.
+launch_cold() {
+  if [ "$AVD_SNAPSHOT" = 1 ]; then launch_emulator -no-snapshot-load -no-snapshot-save; else launch_emulator -no-snapshot; fi
+}
+
 start_emulator() {
   if device_ready; then return; fi
   avd_exists || die "no emulator '$AVD_NAME' in $ANDROID_AVD_HOME (emulator -list-avds: $(avd_list)) — run scripts/bootstrap.sh --mobile"
@@ -221,7 +226,7 @@ start_emulator() {
   else
     how="cold"
     echo "Starting emulator $AVD_NAME (log: $EMULATOR_LOG, boot timeout ${EMULATOR_BOOT_TIMEOUT}s)"
-    if [ "$AVD_SNAPSHOT" = 1 ]; then launch_emulator -no-snapshot-load -no-snapshot-save; else launch_emulator -no-snapshot; fi
+    launch_cold
     wait_for_boot
   fi
   local booted=$((SECONDS - started))
