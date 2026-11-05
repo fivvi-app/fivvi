@@ -280,6 +280,11 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
   - *Uitloggen*;
   - **Account verwijderen**, with a confirmation that says invoices stay with the studio as long as the law requires (`§79`).
 - **No push notifications:** they come in Release 1.1 (`§54`).
+- **Doing a shared workout on your own** (owner, 5 November 2026: "let the client redo the workout the trainer sent, like in their own gym"). A proposal; see §6.
+  - A shared workout has ***Deze training zelf doen***. It opens a simple logger in the client app: each exercise with *Vorige keer met Sarah: 60 kg × 8, 8, 7*, one row per set with the trainer's weight and reps filled in, a field to change them and a check per set.
+  - *Training afronden* asks for confirmation ("2 van 12 sets gedaan"). *Stoppen zonder opslaan* asks too. Back keeps the progress.
+  - The finished workout appears in *Activiteit* as *Zelf gedaan* and ticks the day in *Deze week*.
+  - No booking, no credit, no attendance: it isn't a session.
 - **The header** (owner, 5 November 2026: "this header can be better"):
   - *Home*, *Activiteit* and *Profiel* show only the large title with the date above it, without a studio badge.
   - *Boeken* shows the **studio switcher**: on iOS a glass button in the navigation bar (the studio's mark, its name, ⌃⌄); on Android a tonal dropdown chip under the app bar.
@@ -307,6 +312,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 | **Offers are made on the Aanbod page** | Web, owner only, also from *+ Nieuw* | [#468](https://github.com/fivvi-app/fivvi/issues/468) |
 | **Add, change, remove everything** | Every list (class series, own exercises, templates, offers, trainers) can be added to, changed and removed from. Every removal asks for confirmation | All specs |
 | **Trainers see the client's last workout and progress** | In the app and on the web. AI help is post-MVP (`§53`) | F044, F045 |
+| **Clients redo a shared workout on their own** | Proposed 5 November 2026, not in `PRODUCT.md` yet. The client logs a workout the trainer shared (F045), for example in their own gym. **Open: MVP with M7 next to F045, or later?** | [§5b](#5b-client-app-fivvi-proposal-awaiting-the-owners-review); needs a placeholder spec once the owner decides |
 | **Fixed groups** | Still open: should a client be enrolled in a weekly series? | [SCENARIOS.md](SCENARIOS.md) |
 
 ## 7. Assumptions still to confirm
@@ -331,6 +337,11 @@ The prototype had to choose something for these. They are **not decided**; each 
    - the handover covers the next 2 weeks.
 9. **Reordering and bulk attendance:** the prototype shows reordering sets and exercises, and *Iedereen aanwezig* on class attendance. Both are `PRODUCT.md §53` exclusions ("workout reordering", "bulk attendance"), so the MVP builds without them unless the owner moves them into the MVP.
 10. **More than one studio:** *Home* and *Mijn agenda* combine every studio. QE05 leaves this to the F033 spec; the prototype assumes it.
+11. **Doing a shared workout on your own:**
+    - the trainer sees it on the client's profile, marked *zelf gedaan*;
+    - it belongs to the workspace whose trainer shared the workout;
+    - it counts in *Deze week*, *Activiteit* and the weeks in a row;
+    - the client can only redo workouts the trainer shared, not build their own (`PRODUCT.md §40`: the trainer assigns workouts).
 
 ## 8. What this changes in existing documents
 

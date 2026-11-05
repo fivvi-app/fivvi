@@ -482,3 +482,23 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .c-row .m small{white-space:normal}
 .c-row .m small{display:block;-webkit-line-clamp:unset;overflow:visible}
 .c-wsheet .row .m > span{white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:unset;display:block}
+
+/* the client's own logger (owner, 5 Nov 2026; proposal) */
+.c-exs{gap:12px}
+.c-ex{padding:14px 14px 8px}
+.c-exh{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}
+.c-exh b{font-size:17px}
+.c-exh small{color:var(--label2);font-size:13px}
+.c-seth,.c-set{display:grid;grid-template-columns:28px 1fr 18px 1fr 44px;align-items:center;gap:8px}
+.c-set.k-tm,.c-set.k-t{grid-template-columns:28px 1fr 44px}
+.c-seth{font-size:12px;font-weight:600;color:var(--label2);text-transform:uppercase;letter-spacing:.02em;padding:0 0 4px}
+.c-set{padding:6px 0;border-top:.5px solid var(--sep)}
+.c-sn{color:var(--label2);font-weight:700;text-align:center}
+.c-x{color:var(--label3);text-align:center}
+.c-in{width:100%;min-width:0;height:40px;border:0;border-radius:10px;background:var(--fill);color:var(--label);font:inherit;font-family:var(--f-num);font-size:17px;font-weight:600;text-align:center;font-variant-numeric:tabular-nums}
+.c-chk{width:44px;height:44px;border-radius:50%;border:2px solid var(--label3);background:none;color:transparent;display:grid;place-items:center;cursor:pointer}
+.c-chk svg{width:20px;height:20px}
+.c-set.on .c-chk{background:color-mix(in oklab,var(--ok) 85%,#000);border-color:transparent;color:#fff}
+.c-set.on .c-in{background:color-mix(in oklab,var(--ok) 14%,var(--fill))}
+.c-prog{height:6px;border-radius:3px;background:var(--fill);overflow:hidden;margin:2px 0 6px}
+.c-prog i{display:block;height:100%;background:color-mix(in oklab,var(--ok) 85%,#000);border-radius:3px}
