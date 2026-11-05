@@ -1,14 +1,16 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import {
   chmodSync,
   copyFileSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -345,6 +347,7 @@ describe('E002 #112 check.sh prints and writes the test summary', () => {
     write(
       join(bin(), 'pnpm'),
       `#!/usr/bin/env bash
+printf '%s\\n' "\${TURBO_FORCE:-}" >> "$FAKE_RUNS/turbo-force"
 case "$*" in
   *"run lint"*) name=unit ;;
   *"test:integration"*) name=integration ;;
@@ -415,7 +418,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     execFileSync('git', ['-C', repo(), ...args], { encoding: 'utf8', env: gitEnv() });
 
   let n = 0;
-  const check = (runs, args = ['--all'], setup = () => {}) => {
+  const check = (runs, args = ['--all'], setup = () => {}, extraEnv = {}) => {
     const dir = join(base, `runs-${n++}`);
     mkdirSync(dir);
     for (const [name, { lines, exit = 0 }] of Object.entries(runs)) {
@@ -427,10 +430,17 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     const result = spawnSync(join(repo(), 'scripts/check.sh'), args, {
       encoding: 'utf8',
       cwd: repo(),
-      env: { ...gitEnv(), PATH: `${bin()}:${process.env.PATH}`, FAKE_RUNS: dir },
+      env: { ...gitEnv(), PATH: `${bin()}:${process.env.PATH}`, FAKE_RUNS: dir, ...extraEnv },
     });
     const file = join(repo(), '.work/check-summary.json');
-    return { ...result, summary: existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null };
+    const forced = join(dir, 'turbo-force');
+    return {
+      ...result,
+      turboForce: existsSync(forced)
+        ? readFileSync(forced, 'utf8').split('\n').filter(Boolean)
+        : [],
+      summary: existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null,
+    };
   };
 
   const unit = () => ({
@@ -514,10 +524,13 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     assert.match(result.stdout, /pnpm turbo run \/\/#test:root --force/);
   });
 
-  it('E002 #570 AC1: the rerun command of a failed package suite is its own task, filtered and forced', () => {
-    const e2eFails = { lines: playwright('  14 passed (3.2s)', '  1 failed'), exit: 0 };
-    const result = check({ unit: unit(), integration, e2e: e2eFails });
-    assert.match(result.stdout, /pnpm turbo run test:e2e --filter=@fivvi\/web --force/);
+  it('E002 #570 AC1: the rerun command of a failed package unit suite is its task, filtered and forced', () => {
+    const uiFails = {
+      lines: [...node(260, 0, 0), ...vitest('ui', 'test', '1 failed | 32 passed (33)')],
+      exit: 0,
+    };
+    const result = check({ unit: uiFails, integration, e2e });
+    assert.match(result.stdout, /pnpm turbo run test --filter=@fivvi\/ui --force/);
   });
 
   it('E002 #570 AC1: a failure turbo reported itself gets no cache hint', () => {
@@ -527,37 +540,81 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
   });
 
   describe('E002 #570: one check.sh per worktree', () => {
+    // The lock is a symbolic link to the pid of its owner: creating it fails when it exists, in one step.
     const lock = () => join(repo(), '.work/check.lock');
+    const lockExists = () => {
+      try {
+        lstatSync(lock());
+        return true;
+      } catch {
+        return false;
+      }
+    };
     const holdLock = (pid) => () => {
-      mkdirSync(lock(), { recursive: true });
-      writeFileSync(join(lock(), 'pid'), `${pid}\n`);
+      mkdirSync(join(repo(), '.work'), { recursive: true });
+      symlinkSync(String(pid), lock());
     };
     const deadPid = () => spawnSync('true').pid;
+    // A live process whose command line names check.sh, like a check.sh run, for as long as the test needs it.
+    const runningCheck = () =>
+      spawn('bash', ['-c', 'sleep 20; :', 'scripts/check.sh'], { stdio: 'ignore' });
 
     it('stops when another check.sh holds the lock, runs nothing, and leaves the lock to its holder', () => {
-      const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(process.pid));
-      assert.equal(result.status, 1, result.stdout);
-      assert.match(
-        result.stdout,
-        new RegExp(`another scripts/check\\.sh runs in this worktree \\(pid ${process.pid}\\)`),
-      );
-      assert.doesNotMatch(result.stdout, /✓/);
-      assert.equal(result.summary, null);
-      assert.ok(existsSync(lock()), 'the holder keeps its lock');
+      const holder = runningCheck();
+      try {
+        const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(holder.pid));
+        assert.equal(result.status, 1, result.stdout);
+        assert.match(
+          result.stdout,
+          new RegExp(`another scripts/check\\.sh runs in this worktree \\(pid ${holder.pid}\\)`),
+        );
+        assert.match(result.stdout, /delete \.work\/check\.lock/);
+        assert.doesNotMatch(result.stdout, /✓/);
+        assert.equal(result.summary, null);
+        assert.ok(lockExists(), 'the holder keeps its lock');
+      } finally {
+        holder.kill();
+      }
     });
 
     it('takes over the lock of a check.sh that is gone', () => {
       const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(deadPid()));
       assert.equal(result.status, 0, result.stdout);
-      assert.ok(!existsSync(lock()), 'released at the end');
+      assert.ok(!lockExists(), 'released at the end');
+    });
+
+    it('takes over a lock whose pid now belongs to a process that is not a check.sh', () => {
+      // After a kill -9 the pid can be reused: this test process is alive and is not a check.sh.
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(process.pid));
+      assert.equal(result.status, 0, result.stdout);
+      assert.ok(!lockExists(), 'released at the end');
     });
 
     it('releases the lock when the run passes and when it fails', () => {
       assert.equal(check({ unit: unit(), integration, e2e }).status, 0);
-      assert.ok(!existsSync(lock()));
+      assert.ok(!lockExists());
       assert.equal(check({ unit: failingUnit, integration, e2e }).status, 1);
-      assert.ok(!existsSync(lock()));
+      assert.ok(!lockExists());
     });
+  });
+
+  it('E002 #570 AC1: the rerun of a failed e2e suite is check.sh itself, forced, which sets the e2e port', () => {
+    const e2eFails = { lines: playwright('  14 passed (3.2s)', '  1 failed'), exit: 0 };
+    const result = check({ unit: unit(), integration, e2e: e2eFails });
+    assert.match(result.stdout, /TURBO_FORCE=1 scripts\/check\.sh/);
+    assert.doesNotMatch(result.stdout, /turbo run test:e2e/);
+  });
+
+  it('E002 #570 AC1: TURBO_FORCE=1 reaches every turbo run of check.sh', () => {
+    const result = check({ unit: unit(), integration, e2e }, ['--all'], () => {}, {
+      TURBO_FORCE: '1',
+    });
+    assert.equal(result.status, 0, result.stdout);
+    assert.ok(result.turboForce.length > 0);
+    assert.ok(
+      result.turboForce.every((value) => value === '1'),
+      result.turboForce.join(','),
+    );
   });
 
   it('E002 #570 AC1: a failed integration or e2e suite fails check.sh the same way', () => {

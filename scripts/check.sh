@@ -42,29 +42,33 @@ SUMMARY_JSON="$ROOT/.work/check-summary.json"
 LOG_DIR="$(mktemp -d)"
 # One check.sh per worktree (#570): two runs write the same turbo task logs (node_modules/.cache/turbo, .turbo), and a
 # passing run caches whatever is in the log then. Such a mixed log (three node:test summaries, one with "fail 1") was
-# replayed by every cache hit of every worktree while turbo exited 0. The lock is a directory holding the pid of its
-# owner; one whose owner is gone is taken over.
-LOCK_DIR="$ROOT/.work/check.lock"
+# replayed by every cache hit of every worktree while turbo exited 0. The lock is a symbolic link to the pid of its owner:
+# `ln -s` fails when the link exists, in one step, so two runs can't both take it. A lock whose pid is gone, or now belongs
+# to a process that is not a check.sh (after a kill -9 the pid can be reused), is stale and taken over; the one race left
+# is two runs taking over the same stale lock at once, and each only removes the lock it read.
+LOCK="$ROOT/.work/check.lock"
 OWN_LOCK=false
+is_check_sh() { case "$(ps -p "$1" -o command= 2>/dev/null)" in *check.sh*) return 0 ;; *) return 1 ;; esac; }
 acquire_lock() {
-  local holder
+  local holder attempt
   mkdir -p "$ROOT/.work"
-  if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-    holder="$(cat "$LOCK_DIR/pid" 2>/dev/null || true)"
-    if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then
+  [ ! -e "$LOCK" ] || [ -L "$LOCK" ] || rm -rf "$LOCK"
+  for attempt in 1 2 3; do
+    if ln -sn "$$" "$LOCK" 2>/dev/null; then OWN_LOCK=true; return 0; fi
+    holder="$(readlink "$LOCK" 2>/dev/null || true)"
+    if [ -n "$holder" ] && is_check_sh "$holder"; then
       echo "✗ another scripts/check.sh runs in this worktree (pid $holder): two runs write the same turbo logs, and the"
-      echo "  cache then replays a log of both. Wait for it, or stop it, and run this again."
+      echo "  cache then replays a log of both. Wait for it, or stop it, and run this again. If none runs, delete .work/check.lock."
       exit 1
     fi
-    rm -rf "$LOCK_DIR"
-    mkdir "$LOCK_DIR" 2>/dev/null || { echo "✗ could not take the lock ${LOCK_DIR#"$ROOT"/}: another scripts/check.sh started at the same time"; exit 1; }
-  fi
-  OWN_LOCK=true
-  echo "$$" >"$LOCK_DIR/pid"
+    [ "$(readlink "$LOCK" 2>/dev/null || true)" != "$holder" ] || rm -f "$LOCK"
+  done
+  echo "✗ could not take the lock ${LOCK#"$ROOT"/}: another scripts/check.sh started at the same time. Run this again."
+  exit 1
 }
 release() {
   rm -rf "$LOG_DIR"
-  ! $OWN_LOCK || rm -rf "$LOCK_DIR"
+  ! $OWN_LOCK || [ "$(readlink "$LOCK" 2>/dev/null || true)" != "$$" ] || rm -f "$LOCK"
 }
 on_exit release
 acquire_lock
@@ -338,8 +342,10 @@ if [ -f "$SUMMARY_JSON" ]; then
       echo "  Every check passed, so the log may be replayed from the turbo cache (\"cache hit, replaying logs\"). Run the task"
       echo "  again without the cache, which also replaces the entry:"
       jq -r '.suites[] | select(.status == "fail")
-        | "    pnpm turbo run " + (if .name == "root" then "//#test:root"
-            else (if .kind == "unit" then "test" else "test:" + .kind end) + " --filter=@fivvi/" + (.name | split(" ")[0]) end) + " --force"' "$SUMMARY_JSON"
+        | if .kind == "unit"
+          then "    pnpm turbo run " + (if .name == "root" then "//#test:root" else "test --filter=@fivvi/" + .name end) + " --force"
+          else "    TURBO_FORCE=1 scripts/check.sh" end' "$SUMMARY_JSON" | sort -u
+      echo "  (An integration or e2e suite needs the database and E2E_PORT, which check.sh sets: TURBO_FORCE=1 makes it run every turbo task without the cache.)"
     fi
   fi
 fi
