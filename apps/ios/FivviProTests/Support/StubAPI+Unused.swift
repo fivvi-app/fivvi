@@ -48,6 +48,10 @@ extension StubAPI {
         fatalError("The app doesn't call updateLocation yet")
     }
 
+    func lookupAddress(_ input: Operations.LookupAddress.Input) async throws -> Operations.LookupAddress.Output {
+        fatalError("The app doesn't call lookupAddress yet")
+    }
+
     func createTrainerInvitation(
         _ input: Operations.CreateTrainerInvitation.Input
     ) async throws -> Operations.CreateTrainerInvitation.Output {

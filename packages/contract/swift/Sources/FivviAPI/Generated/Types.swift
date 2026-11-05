@@ -200,6 +200,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/locations/{locationId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/locations/{locationId}/patch(updateLocation)`.
     func updateLocation(_ input: Operations.UpdateLocation.Input) async throws -> Operations.UpdateLocation.Output
+    /// The street and city of a postcode and house number
+    ///
+    /// Looks up a Dutch address by postcode, house number and optional addition and answers its street and city (the Owner only; a Trainer gets `403`). `404` when no address has that postcode, number and addition; `503` when the address service does not answer within 3 seconds or fails (the person fills the address in by hand); `422` for a postcode that is not Dutch, a house number that is not one to five digits or an addition that is too long or holds anything but letters, digits, spaces and hyphens (the service is not called); `429` after 60 lookups per workspace in an hour. The service receives the postcode, the house number and the addition only; nothing is logged.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/address-lookup`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/address-lookup/get(lookupAddress)`.
+    func lookupAddress(_ input: Operations.LookupAddress.Input) async throws -> Operations.LookupAddress.Output
     /// Plan a private session
     ///
     /// Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default.
@@ -649,6 +656,23 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// The street and city of a postcode and house number
+    ///
+    /// Looks up a Dutch address by postcode, house number and optional addition and answers its street and city (the Owner only; a Trainer gets `403`). `404` when no address has that postcode, number and addition; `503` when the address service does not answer within 3 seconds or fails (the person fills the address in by hand); `422` for a postcode that is not Dutch, a house number that is not one to five digits or an addition that is too long or holds anything but letters, digits, spaces and hyphens (the service is not called); `429` after 60 lookups per workspace in an hour. The service receives the postcode, the house number and the addition only; nothing is logged.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/address-lookup`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/address-lookup/get(lookupAddress)`.
+    public func lookupAddress(
+        path: Operations.LookupAddress.Input.Path,
+        query: Operations.LookupAddress.Input.Query,
+        headers: Operations.LookupAddress.Input.Headers = .init()
+    ) async throws -> Operations.LookupAddress.Output {
+        try await lookupAddress(Operations.LookupAddress.Input(
+            path: path,
+            query: query,
+            headers: headers
         ))
     }
     /// Plan a private session

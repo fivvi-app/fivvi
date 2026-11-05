@@ -1,7 +1,12 @@
 import { drizzle, type NodePgDatabase, type NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import pg from 'pg';
-import { APP_DATABASE_URL_VARIABLE, type DatabaseConfig, readDatabaseConfig } from './env.ts';
+import {
+  APP_DATABASE_URL_VARIABLE,
+  CRON_DATABASE_URL_VARIABLE,
+  type DatabaseConfig,
+  readDatabaseConfig,
+} from './env.ts';
 import * as schema from './schema/index.ts';
 
 export type Database = NodePgDatabase<typeof schema>;
@@ -46,6 +51,23 @@ export function createAppDatabaseFromEnv(
 ): DatabaseClient {
   return createDatabase({
     ...readDatabaseConfig(env, APP_DATABASE_URL_VARIABLE),
+    maxConnections: options.maxConnections,
+  });
+}
+
+/**
+ * The database as the cron role `fivvi_cron`, from `CRON_DATABASE_URL` (E012): what the cron's
+ * tasks use. It sets no tenant context, and the role can use only the tables a task declares
+ * (`CRON_TABLE_PRIVILEGES`), so a task has no more reach than it asked for. Never falls back to
+ * `DATABASE_URL`. Only `apps/cron` calls it; `packages/api` cannot import it (the Biome rule
+ * `packages/api/lint/repository-only-imports.grit` forbids it).
+ */
+export function createCronDatabase(
+  env: NodeJS.ProcessEnv = process.env,
+  options: { maxConnections?: number } = {},
+): DatabaseClient {
+  return createDatabase({
+    ...readDatabaseConfig(env, CRON_DATABASE_URL_VARIABLE),
     maxConnections: options.maxConnections,
   });
 }

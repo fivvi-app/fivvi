@@ -186,6 +186,7 @@ describe('F004 roles on every workspace route', () => {
       'deleteTrainerProfile',
       'listTeamMembers',
       'listTrainerInvitations',
+      'lookupAddress',
       'putTrainerProfile',
       'removeTeamMember',
       'renameWorkspace',
@@ -267,12 +268,14 @@ describe('F004 roles on every workspace route', () => {
           })
         : undefined;
       const url = invitation ? route.url.replace(INVITATION_ID, invitation.id) : route.url;
-      // 400 for the body the probe sends is fine: the Owner got past the access check.
-      // The read of a session answers 404 for the ID the probe invented: the Owner got past access.
-      expect(
-        [200, 201, 204, 400, ...(route.name === 'getSession' ? [404] : [])],
-        route.name,
-      ).toContain((await call({ ...route, url }, john)).status);
+      // 400 for the body the probe sends is fine: the Owner got past the access check. So is the
+      // 422 of the address lookup alone, which the probe calls without its query (F015), and the
+      // 404 of the read of a session for the ID the probe invented.
+      const allowed =
+        route.name === 'lookupAddress'
+          ? [422]
+          : [200, 201, 204, 400, ...(route.name === 'getSession' ? [404] : [])];
+      expect(allowed, route.name).toContain((await call({ ...route, url }, john)).status);
     }
   });
 

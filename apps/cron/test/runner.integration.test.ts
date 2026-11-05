@@ -1,4 +1,4 @@
-import { createDatabase, type Database, jobRuns, systemGreetings } from '@fivvi/database';
+import { createCronDatabase, createDatabase, type Database, jobRuns } from '@fivvi/database';
 import { manualClock } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase } from '@fivvi/testing/database';
 import { asc, eq, sql } from 'drizzle-orm';
@@ -18,7 +18,10 @@ beforeEach(async () => {
   database = await cloneTemplateDatabase();
   // Five connections: a run that holds a daily task's transaction, a second run, a read, and room
   // for the pool's own overhead.
-  ({ db, close } = createDatabase({ url: database.url, maxConnections: 5 }));
+  ({ db, close } = createCronDatabase(
+    { CRON_DATABASE_URL: database.cronUrl },
+    { maxConnections: 5 },
+  ));
 });
 
 afterEach(async () => {
@@ -253,16 +256,23 @@ describe('E012 cron runner', () => {
     const { cron, clock } = setup('2026-11-04T09:00:00Z');
     const calls: string[] = [];
     let attempt = 0;
-    const flaky = task('daily-one', 'daily', calls, async ({ db: executor }) => {
+    const flaky = task('daily-one', 'daily', calls, async (ctx) => {
+      const executor = ctx.db;
       attempt += 1;
-      await executor.insert(systemGreetings).values({ slug: `try-${attempt}`, i18nKey: 'a.b' });
+      await executor.insert(jobRuns).values({
+        runId: RUN_A,
+        taskName: `try-${attempt}`,
+        startedAt: ctx.now,
+        finishedAt: ctx.now,
+        outcome: 'succeeded',
+      });
       if (attempt === 1) throw new Error('first try fails');
     });
 
     const tries = async () =>
-      (await db.select().from(systemGreetings))
-        .map((row) => row.slug)
-        .filter((slug) => slug.startsWith('try-'));
+      (await db.select().from(jobRuns))
+        .map((row) => row.taskName)
+        .filter((name) => name.startsWith('try-'));
 
     await cron([flaky]);
     expect(await tries()).toEqual([]);

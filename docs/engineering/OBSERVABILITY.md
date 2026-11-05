@@ -1,6 +1,6 @@
 # Observability
 
-What Fivvi reports about itself, and what it never sends ([ADR-013](../decisions/ADR-013-observability.md), spec [#32](https://github.com/fivvi-app/fivvi/issues/32)). Errors go to **Sentry (EU region)**, product events and page views to **PostHog (EU Cloud)**. This document covers error reporting for the API, the cron job and the web app (server and browser), server product events (§4) and the web app's page views (§5). Per native app:
+What Fivvi reports about itself, and what it never sends ([ADR-013](../decisions/ADR-013-observability.md), spec [#32](https://github.com/fivvi-app/fivvi/issues/32)). Errors go to **Sentry (EU region)**, product events and page views to **PostHog (EU Cloud)**. This document covers error reporting for the API, the cron job and the web app (server and browser), server product events (§4), the web app's page views (§5) and how to tell that the cron runs and what it did (§6). Per native app:
 
 - Android: crash reporting, §1 "Android".
 - iOS: crash reporting, §1 "iOS".
@@ -14,7 +14,7 @@ What Fivvi reports about itself, and what it never sends ([ADR-013](../decisions
 | API (`packages/api`, inside the Next.js server) | Every unhandled error in a route. The caller gets the generic `500 Internal Server Error` text, with no stack trace or internal message. `HTTPException`s that a route throws on purpose are not reported | `web` |
 | Web server (`apps/web/instrumentation.ts`) | Every error thrown while rendering a page: server components, server actions, and route handlers outside the API (Next.js's `onRequestError`). The visitor gets the error page | `web` |
 | Web browser (`apps/web/instrumentation-client.ts`) | Every uncaught error and unhandled promise rejection in the browser, including a component that throws while rendering. A future error boundary (`error.tsx`) that catches an error itself reports it with `captureError` | `web` |
-| Cron (`apps/cron`) | A failed run. The error is sent and flushed (at most 2 s) before the process exits with code 1. Also, from the Lettermint usage check (ADR-028, R14): a `warning` when this month's email usage is 70% or more of the plan's included volume, and an `error` when the Team API call fails (the run goes on and exits 0) | `cron` |
+| Cron (`apps/cron`) | A failed run or a failed task, with the tags `cron.task` and `cron.run_id` (§6). The error is sent and flushed (at most 2 s) before the process exits with code 1; a run also checks in to a Sentry cron monitor (§6). Also, from the Lettermint usage check (ADR-028, R14): a `warning` when this month's email usage is 70% or more of the plan's included volume, and an `error` when the Team API call fails (the run goes on and exits 0) | `cron` |
 | Android (`apps/android`) | Every crash (uncaught exception) and ANR (app not responding), and errors the app catches and reports with `Observability.captureError()`; sessions for the crash-free rate. Details in "Android" below | `android` |
 | iOS (`apps/ios`) | Every crash, app hang and watchdog termination, and errors the app reports with `ErrorReporting.capture(_:)`; sessions for the crash-free rate. Details in "iOS" below | `ios` |
 
@@ -101,7 +101,7 @@ UUIDs, route templates, HTTP methods and status codes stay, so an error can stil
 
 - Tests check what would leave the process, never how the SDK is called. `createCaptureTransport()` keeps the events that would be sent, after scrubbing; pass it to `createErrorReporter({ env, transport })` with a fake DSN such as `https://public@o0.ingest.de.sentry.io/1`.
 - The API is tested through `createApp({ ...NO_DEPENDENCIES, errorReporter })` (`packages/api/test/observability.test.ts`).
-- The cron job runs as its own process against a fake Sentry endpoint on `127.0.0.1` (`apps/cron/test/fake-sentry.ts`), which proves the event arrives before the process exits.
+- The cron job runs as its own process against a fake Sentry endpoint on `127.0.0.1` (`apps/cron/test/fake-sentry.ts`), which proves the event and the monitor's check-ins arrive before the process exits (`apps/cron/test/main.integration.test.ts`, `main.test.ts`). `createCaptureTransport()` also keeps the check-ins (`checkIns`).
 - Web: `packages/observability/src/web.test.ts` feeds a server component error through `createRequestErrorHandler()`, and simulates the browser calling `window.onerror` and `window.onunhandledrejection` after `initBrowserErrorReporting()`. `source-maps.test.ts` runs `publishSourceMaps()` on a fake build output with a fake `sentry-cli`. The e2e tests (`apps/web/e2e/error-reporting.spec.ts`) check that every map a bundle points at answers `404`, and that the browser makes no request outside the app's origin.
 - Not automated: a real event with a source-mapped stack. After the owner setup (#47), throw a synthetic error on a preview or in production and check the stack in Sentry.
 - Android: `ObservabilityTest` (`apps/android/core/src/test`, nl-NL and en) starts reporting with a production configuration on the plain JVM SDK, with `CaptureTransport` instead of the network, and checks what would be sent: synthetic personal data in the user, request, message, stack frame, contexts, extras, tags and breadcrumbs is gone, UUIDs stay, events carry `environment` and `release`, session tracking is on; without a DSN the SDK never starts. `ObservabilityUserTest` checks the account ID after `setUser()`, the user gone after `clearUser()`, and that both do nothing without a DSN; `ObservabilityTest` also checks that the dashless installation ID is kept as written and that a hex string of another length, a name or an email address is dropped; `HomeViewModelTest` and `SessionTest` check that the account ID is passed on once `/me` answers (and not when the answer comes after a sign-out) and that every sign-out clears the user. `ObservabilityAppTest` (`app/src/androidTest`, on the emulator) checks that the debug app has no Sentry SDK running and none of its providers. `NoSentryOutsideObservabilityRuleTest` and `ktlintFixtures` prove the lint rule on `lint/fixtures`. Not automated: a real crash reaching Sentry. After the owner setup (#47), install a debug build with `./gradlew installDebug -Pfivvi.sentryDsn=<the android DSN>`, open the app, crash it with `adb shell am crash app.fivvi.pro`, reopen it, and check the event and the session in the `android` project.
@@ -213,3 +213,58 @@ The web app sends a page view to **PostHog EU** (EU Cloud, Frankfurt), at the ho
 - `packages/observability/src/page-views.test.ts` feeds a page view with synthetic personal data in the URL, title, referrer and person properties through `scrubPageView()`, and checks that only the path and the allowlisted properties remain and that every other event is dropped. With the SDK mocked, it checks that `capturePageView()` starts `posthog-js` once, cookieless, for the given host, with autocapture, session recording and surveys off and `scrubPageView()` as `before_send`. `config.test.ts` checks that page views are off without `NEXT_PUBLIC_POSTHOG_KEY`, and off with a configuration error for a key without a valid `POSTHOG_HOST`; `posthog-config-errors.test.ts` checks that `checkPageViewsConfig()` logs that error and reports it to Sentry, and `apps/web/instrumentation.test.ts` that the web server runs it when it starts.
 - `apps/web/e2e/analytics.spec.ts` runs in nl-NL and en against the production build, on a second server on `E2E_PORT + 1000` with a synthetic key and a synthetic `POSTHOG_HOST` (`apps/web/e2e/servers.ts`). It intercepts that host with `page.route` and aborts every other external request, PostHog's real hosts included, so nothing reaches the real network. It loads a page with personal data in the query string and fragment, fills in and submits the form, and checks that exactly one `$pageview` per page load reaches PostHog with the path only and nothing else; that no other request goes to PostHog or anywhere outside the app; and that no cookie or storage entry is written, apart from the start-up check above. The test browser poses as a visitor's, because `posthog-js` drops events from automated browsers. Without a key, it checks that no loaded script contains `posthog-js` and that no request leaves the app.
 - Not automated: a page view arriving in PostHog. After the owner setup (#47), open a production page and check the event in PostHog's activity view.
+
+## 6. The cron: tags, run records and the monitor
+
+The `cron` service runs every 5 minutes ([ENVIRONMENTS.md §2](ENVIRONMENTS.md#2-services), [ADR-027](../decisions/ADR-027-a-cron-every-5-minutes.md), E012) and reports to the Sentry project `cron`. Three things tell you whether it works and what it did.
+
+### 6.1 Sentry tags
+
+A task that throws is reported with two tags, and a crash of the run itself (the database is unreachable, the cron role has no password yet) with `cron.run_id` only:
+
+| Tag | Value |
+|---|---|
+| `cron.task` | The task's name, lowercase words with hyphens (`lettermint-usage`, `job-runs-retention`). Never a record or a person |
+| `cron.run_id` | The UUID of the run (one start of the cron). It is the `run_id` of that run's rows in `job_runs` and in the log line `Cron started: run <uuid>.` |
+
+The scrubber allows only these two tags and `route` (§2): any other tag is dropped, so a tag can never carry personal data. The message of a failed task is not stored in `job_runs` (it could hold personal data); the run record only has the type of the error.
+
+### 6.2 Reading `job_runs`
+
+Every task that ran, and every daily task that was skipped because another run held its lock, leaves a row in `job_runs` (a platform table with no workspace; the cron role is the only role that can read it, plus the privileged user). Rows older than 90 days are removed by the daily task `job-runs-retention`.
+
+| Column | Meaning |
+|---|---|
+| `run_id` | The run, as in the Sentry tag and the log |
+| `task_name` | The task, as in the Sentry tag |
+| `started_at`, `finished_at` | UTC |
+| `outcome` | `succeeded`, `failed` or `skipped` |
+| `message` | A short note without personal data: `failed with TypeError`, or why a task was skipped. Empty on success |
+
+Read it in the Railway dashboard (the `postgres` service of the environment, its *Data* tab; Postgres has no public address, so there is no `psql` from a laptop), or locally with `psql` on the development database. Examples:
+
+```sql
+-- When did each task last succeed? A daily task should be less than a day old, after 03:00 UTC.
+select task_name, max(started_at) as last_success
+from job_runs where outcome = 'succeeded' group by task_name order by task_name;
+
+-- What went wrong in the last two days?
+select started_at, task_name, outcome, message, run_id
+from job_runs where outcome <> 'succeeded' and started_at > now() - interval '2 days'
+order by started_at desc;
+
+-- Everything one run did (take the run ID from the Sentry event's tag).
+select task_name, outcome, message from job_runs where run_id = '<uuid>' order by started_at;
+```
+
+A frequent task has a row on every run (288 a day); a daily task has one row a day, plus one for each failed attempt (it is retried by the next run) and each skipped overlap. A day without a `succeeded` row of a daily task is a missed day: check the monitor (§6.3) and the Railway logs of the `cron` service.
+
+### 6.3 The Sentry cron monitor
+
+Every run checks in to one Sentry cron monitor, `cron` (`apps/cron/src/monitor.ts`, `reporter.startCheckIn()` in `packages/observability`): `in_progress` when it starts, then `ok`, or `error` when the run or any task failed. The first check-in creates the monitor from the schedule it carries (`*/5 * * * *`, UTC, a margin of 5 minutes, a maximum run time of 4 minutes). **Only `production` checks in**: `development` runs the same schedule and reports errors, but checks in nothing, and a PR environment skips the run altogether. So the one monitor the plan includes is production's, and no development run can add another. Sentry then raises an issue, and alerts per its alert rules, when a run **fails**, is **missed** (no check-in within the margin: Railway did not start the job, the image does not start, or the process hangs before the first check-in) or **times out** (still `in_progress` after 4 minutes). The check-in carries the environment and the release and nothing else: no tags, no data.
+
+Sentry's documentation says that every plan includes one cron monitor ([docs.sentry.io/pricing/quotas/manage-cron-monitors](https://docs.sentry.io/pricing/quotas/manage-cron-monitors/), checked 2026-11-04), the free Developer plan too, so this uses the one the free tier has. The monitor covers production only. A second monitor would need a pay-as-you-go budget, which the free plan does not have; don't add one.
+
+Owner setup, once, in Sentry (project `cron`): open the monitor `cron` after its first check-in and make sure an alert goes to the owner (its issue alerts follow the project's alert rules). Until then the **failed-run alert** is the signal: an `error` event with the tag `cron.task` or `cron.run_id` for every failed task or run. A missed run produces no event, which is what the monitor adds; without its alert, read `job_runs` (§6.2) when something seems off.
+
+What the monitor does not see: a run that checks in `ok` while a daily task was skipped, or a task that does nothing. `job_runs` shows those.

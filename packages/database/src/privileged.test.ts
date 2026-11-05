@@ -156,6 +156,33 @@ describe('E011 privileged database path', () => {
     expect(privilegedViolations(applicationFiles(), PRIVILEGED_ALLOW_LIST, reasons)).toEqual([]);
   });
 
+  describe('E012 the cron handle', () => {
+    const CRON_VARIABLE = /(?<![A-Za-z0-9_])CRON_DATABASE_URL(?![A-Za-z0-9_])/;
+    const CRON_CONSTANT = /(?<![A-Za-z0-9_$])CRON_DATABASE_URL_VARIABLE(?![A-Za-z0-9_$])/;
+    const CRON_HANDLE = /(?<![A-Za-z0-9_$])createCronDatabase\s*\(/;
+    /** Where the cron handle is defined, re-exported and read: not uses of it. */
+    const CRON_READERS = new Set([
+      'packages/database/src/env.ts',
+      'packages/database/src/client.ts',
+      'packages/database/src/index.ts',
+    ]);
+
+    it('AC7: only apps/cron/src/main.ts opens the cron connection, and only the database package reads its variable', () => {
+      const violations: string[] = [];
+      for (const { path, content } of applicationFiles()) {
+        const code = withoutComments(content);
+        if (!CRON_READERS.has(path) && (CRON_VARIABLE.test(code) || CRON_CONSTANT.test(code))) {
+          violations.push(`${path}: reads CRON_DATABASE_URL, the cron connection`);
+        }
+        if (!CRON_READERS.has(path) && CRON_HANDLE.test(code) && path !== 'apps/cron/src/main.ts') {
+          violations.push(`${path}: calls createCronDatabase`);
+        }
+      }
+
+      expect(violations).toEqual([]);
+    });
+  });
+
   describe('the walk', () => {
     const roots: string[] = [];
     afterEach(() => {

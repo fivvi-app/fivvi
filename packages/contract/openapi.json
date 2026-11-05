@@ -897,6 +897,54 @@
         ],
         "description": "An address as typed. All or nothing: with any field filled, the postcode, house number, street and city are required."
       },
+      "AddressLookupResult": {
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": "string",
+            "description": "The street, as the BAG writes it."
+          },
+          "city": {
+            "type": "string",
+            "description": "The city, as the BAG writes it."
+          }
+        },
+        "required": [
+          "street",
+          "city"
+        ],
+        "description": "The street and the city of an address."
+      },
+      "RateLimited": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "rate_limited"
+            ]
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "Too many requests for this workspace in the last hour. Contains no user-facing text."
+      },
+      "Unavailable": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "unavailable"
+            ]
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "The address service did not answer in time or answered with an error. Try again later. Contains no user-facing text."
+      },
       "PlannedPrivateSession": {
         "type": "object",
         "properties": {
@@ -3850,6 +3898,158 @@
                 "schema": {
                   "type": "string",
                   "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/address-lookup": {
+      "get": {
+        "operationId": "lookupAddress",
+        "tags": [
+          "locations"
+        ],
+        "summary": "The street and city of a postcode and house number",
+        "description": "Looks up a Dutch address by postcode, house number and optional addition and answers its street and city (the Owner only; a Trainer gets `403`). `404` when no address has that postcode, number and addition; `503` when the address service does not answer within 3 seconds or fails (the person fills the address in by hand); `422` for a postcode that is not Dutch, a house number that is not one to five digits or an addition that is too long or holds anything but letters, digits, spaces and hyphens (the service is not called); `429` after 60 lookups per workspace in an hour. The service receives the postcode, the house number and the addition only; nothing is logged.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "settings.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "A Dutch postcode: four digits, an optional space, two letters."
+            },
+            "required": true,
+            "description": "A Dutch postcode: four digits, an optional space, two letters.",
+            "name": "postcode",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "One to five digits."
+            },
+            "required": true,
+            "description": "One to five digits.",
+            "name": "houseNumber",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The house number addition, for example `A` or `2 hoog`: at most 10 letters, digits, spaces and hyphens. Optional."
+            },
+            "required": false,
+            "description": "The house number addition, for example `A` or `2 hoog`: at most 10 letters, digits, spaces and hyphens. Optional.",
+            "name": "addition",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The street and the city.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressLookupResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The postcode, house number or addition is not valid. The service is not called.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "More than 60 lookups for this workspace in the last hour.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimited"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The address service did not answer in time, or failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unavailable"
                 }
               }
             }

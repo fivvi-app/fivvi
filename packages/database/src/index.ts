@@ -1,5 +1,6 @@
 export {
   createAppDatabaseFromEnv,
+  createCronDatabase,
   createDatabase,
   type Database,
   type DatabaseClient,

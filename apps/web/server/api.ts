@@ -1,5 +1,10 @@
-import { createApiHandler } from '@fivvi/api';
-import { createTenantScopes, findSystemGreeting, pingDatabase } from '@fivvi/database';
+import { createAddressLookup, createApiHandler } from '@fivvi/api';
+import {
+  consumeRateLimit,
+  createTenantScopes,
+  findSystemGreeting,
+  pingDatabase,
+} from '@fivvi/database';
 import {
   createEnvironmentSendEmail,
   createPrivateSessionSender,
@@ -64,6 +69,11 @@ export const apiHandler = createApiHandler({
   clock: { now: () => new Date() },
   // The request transaction of workspace and account routes, with its tenant context (E011).
   tenantScopes: createTenantScopes(database),
+  // Fixed-window counters in Postgres (the sign-in's), outside the request transaction.
+  consumeRateLimit: (key, rule) => consumeRateLimit(database(), key, rule, new Date()),
+  // PDOK in the production environment, the in-memory fake elsewhere; ADDRESS_LOOKUP overrides
+  // (ENVIRONMENTS.md §7). Created here, once, so its cache lives as long as the process (F015).
+  addressLookup: createAddressLookup(process.env),
   errorReporter,
   // Sends product events to PostHog, at POSTHOG_HOST, when POSTHOG_KEY is set (E009).
   productEvents,

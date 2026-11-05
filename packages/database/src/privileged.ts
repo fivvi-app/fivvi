@@ -10,7 +10,6 @@ import { PRIVILEGED_DATABASE_URL_VARIABLE, readDatabaseConfig } from './env.ts';
 export const PRIVILEGED_USES = {
   release: 'the release step: migrations, the app role and the seed',
   'local-setup': 'local development setup: db:migrate and db:seed',
-  'daily-cron': 'the cron job: its tasks and the record of their runs (E012)',
 } as const;
 
 export type PrivilegedReason = keyof typeof PRIVILEGED_USES;
@@ -26,7 +25,6 @@ export const PRIVILEGED_ALLOW_LIST: Readonly<Record<string, PrivilegedReason>> =
   'packages/database/src/scripts/release.ts': 'release',
   'packages/database/src/scripts/migrate.ts': 'local-setup',
   'packages/database/src/scripts/seed.ts': 'local-setup',
-  'apps/cron/src/main.ts': 'daily-cron',
 };
 
 export interface PrivilegedOptions {

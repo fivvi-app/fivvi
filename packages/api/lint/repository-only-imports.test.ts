@@ -76,6 +76,13 @@ const FORBIDDEN: Record<string, string> = {
   // The handles and the privileged connection of #264 in @fivvi/database.
   createAppDatabaseFromEnv: "import { createAppDatabaseFromEnv } from '@fivvi/database';",
   openPrivilegedDatabase: "import { openPrivilegedDatabase } from '@fivvi/database';",
+  // The cron's handle of E012: the role of the cron's tasks, which the API must never reach.
+  'AC7: the API cannot import the cron database handle':
+    "import { createCronDatabase } from '@fivvi/database';",
+  'AC7: the cron database handle renamed':
+    "import { createCronDatabase as cron } from '@fivvi/database';",
+  'AC7: the cron database handle re-exported':
+    "export { createCronDatabase } from '@fivvi/database';",
   inspectConnectionRole: "import { inspectConnectionRole } from '@fivvi/database';",
   readDatabaseConfig: "import { readDatabaseConfig } from '@fivvi/database';",
   // A dynamic import or a require gets the same rule as a static import.
@@ -376,11 +383,12 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     expect(Object.keys(ALLOWED_EXPORTS).filter((name) => !exported.includes(name))).toEqual([]);
   });
 
-  it('still forbids the connection handles, those of the app-role work (#264) included', () => {
+  it('still forbids the connection handles, those of the app-role work (#264) and the cron (E012) included', () => {
     for (const name of [
       'createDatabase',
       'createDatabaseFromEnv',
       'createAppDatabaseFromEnv',
+      'createCronDatabase',
       'openPrivilegedDatabase',
       'inspectConnectionRole',
       'readDatabaseConfig',

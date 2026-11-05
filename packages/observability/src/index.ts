@@ -1,5 +1,9 @@
 export { type CaptureTransport, createCaptureTransport } from './capture.ts';
-export type { EnvironmentVariables } from './config.ts';
+export {
+  type EnvironmentVariables,
+  type ReportingEnvironment,
+  readReportingEnvironment,
+} from './config.ts';
 export { checkPageViewsConfig, PostHogConfigError } from './posthog-config-errors.ts';
 export {
   createProductEventCaptureTransport,
@@ -17,11 +21,14 @@ export {
   type ProductEventTransport,
 } from './product-events.ts';
 export {
+  type CronCheckIn,
+  type CronMonitor,
   createErrorReporter,
   type ErrorContext,
   type ErrorReporter,
   type ErrorReporterOptions,
   type RequestDetails,
+  type ServerErrorReporter,
 } from './reporter.ts';
 export {
   createRequestErrorHandler,

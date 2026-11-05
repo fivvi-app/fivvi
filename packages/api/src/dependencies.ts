@@ -1,4 +1,9 @@
-import type { SignedInAccount, SystemGreetingView, TenantScopes } from '@fivvi/database';
+import type {
+  RateLimitRule,
+  SignedInAccount,
+  SystemGreetingView,
+  TenantScopes,
+} from '@fivvi/database';
 import type { SignUpAllowlist } from '@fivvi/domain';
 import type { PrivateSessionMail } from '@fivvi/email/private-session-mail';
 import type { TrainerInvitationMail } from '@fivvi/email/trainer-invitation-mail';
@@ -9,6 +14,7 @@ import {
   type ErrorReporter,
   type ProductEvents,
 } from '@fivvi/observability';
+import { type AddressLookup, createFakeAddressLookup } from './address-lookup/index.ts';
 
 /** What the API needs from the outside world. apps/web wires the real ones; tests pass fakes. */
 export interface ApiDependencies {
@@ -46,6 +52,17 @@ export interface ApiDependencies {
    * business data. apps/web wires it over the app's database connection.
    */
   tenantScopes: TenantScopes;
+  /**
+   * Counts one request under `key` in the rate limits (Postgres, outside the request's
+   * transaction, so a refused request still counts) and says whether it is within `rule`.
+   * apps/web wires `consumeRateLimit` of `@fivvi/database` over the app's connection.
+   */
+  consumeRateLimit(key: string, rule: RateLimitRule): Promise<{ allowed: boolean }>;
+  /**
+   * The address lookup by postcode and house number (F015, spec #424): PDOK in production, an
+   * in-memory fake elsewhere (`createAddressLookup`, from `ADDRESS_LOOKUP`).
+   */
+  addressLookup: AddressLookup;
   /**
    * Emails EM-09 to the person invited (F011): the template, the sending and the link are the
    * email package's (`createTrainerInvitationSender`, wired by apps/web); the route decides who,
@@ -93,6 +110,9 @@ export const NO_DEPENDENCIES: ApiDependencies = {
     inWorkspaceScope: () => Promise.reject(new Error('No database configured.')),
     inInvitationScope: () => Promise.reject(new Error('No database configured.')),
   },
+  consumeRateLimit: () => Promise.reject(new Error('No database configured.')),
+  // The fake: no test or document build reaches PDOK.
+  addressLookup: createFakeAddressLookup(),
   errorReporter,
   productEvents: createProductEvents({ env: {}, errorReporter }),
 };
