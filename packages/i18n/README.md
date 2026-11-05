@@ -9,7 +9,7 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 | `generated/ios/Localizable.xcstrings` | iOS String Catalog. **Generated, never edit** |
 | `generated/ios/InfoPlist.xcstrings` | iOS Info.plist strings: `CFBundleDisplayName` and `CFBundleName` from `app.name`, in nl and en. **Generated, never edit** |
 | `generated/android/values*/strings.xml` | Android resources (`values/` = nl-NL, `values-en/` = en). **Generated, never edit** |
-| `src/index.ts` | Runtime exports: `locales`, `defaultLocale`, `messages`, `MessageKey`, `formattingLocales`, `dateTimeFormats`, `resolveInterfaceLanguage`, `resolveCommunicationLanguage`, `resolveSignInCommunicationLanguage` |
+| `src/index.ts` | Runtime exports: `locales`, `defaultLocale`, `messages`, `MessageKey`, `formattingLocales`, `dateTimeFormats`, `resolveInterfaceLanguage`, `resolveCommunicationLanguage`, `resolveSignInCommunicationLanguage`, `pickContentLanguage` (F021: a class's name or description in the viewer's language, else Dutch; never translated) |
 | `src/tools/` | Checks and exporters (Node only) |
 | `lint/no-hard-coded-jsx-text.grit` | Biome plugin that fails on literal text in JSX |
 

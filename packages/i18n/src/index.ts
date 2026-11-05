@@ -2,7 +2,6 @@ import en from '../en.json' with { type: 'json' };
 import nlNL from '../nl-NL.json' with { type: 'json' };
 import type { Locale } from './config.ts';
 
-export { pickContentLanguage } from './content-language.ts';
 export {
   type DateTimeFormatName,
   dateTimeFormats,
@@ -13,6 +12,7 @@ export {
   type Locale,
   locales,
 } from './config.ts';
+export { pickContentLanguage } from './content-language.ts';
 export {
   type ClientCommunicationLanguageSources,
   type CommunicationLanguageSources,

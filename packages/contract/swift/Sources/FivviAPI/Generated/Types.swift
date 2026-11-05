@@ -221,6 +221,48 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/get(getSession)`.
     func getSession(_ input: Operations.GetSession.Input) async throws -> Operations.GetSession.Output
+    /// Change one date of a class
+    ///
+    /// Changes the date, start, end and/or capacity of one group session (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a group session of the workspace (a private session too) answers `404`.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/sessions/{sessionId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/patch(updateGroupClassDate)`.
+    func updateGroupClassDate(_ input: Operations.UpdateGroupClassDate.Input) async throws -> Operations.UpdateGroupClassDate.Output
+    /// The classes of a workspace
+    ///
+    /// The workspace’s classes, sorted by Dutch name. Every team member may read them; a client of the workspace gets `403`, a person with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/group-classes`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/get(listGroupClasses)`.
+    func listGroupClasses(_ input: Operations.ListGroupClasses.Input) async throws -> Operations.ListGroupClasses.Output
+    /// Create a class
+    ///
+    /// Creates a class (the Owner only; a Trainer gets `403`). Empty or too long texts, a capacity outside 1 to 100 and a duration outside 15 to 240 minutes in steps of 5 answer `400` with the field in `issues`. With a `firstDate` the class is also put on that date (the apps’ quick create), both in one transaction: a refused date answers `400` and leaves no class. A trainer who does not train in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/group-classes`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/post(createGroupClass)`.
+    func createGroupClass(_ input: Operations.CreateGroupClass.Input) async throws -> Operations.CreateGroupClass.Output
+    /// One class
+    ///
+    /// A class of the workspace, for any team member. A class that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/group-classes/{classId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/get(getGroupClass)`.
+    func getGroupClass(_ input: Operations.GetGroupClass.Input) async throws -> Operations.GetGroupClass.Output
+    /// Change a class
+    ///
+    /// Changes the fields given of a class (the Owner only). The same limits as creating apply. Dates already planned keep what they copied. A class or trainer that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/group-classes/{classId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/patch(updateGroupClass)`.
+    func updateGroupClass(_ input: Operations.UpdateGroupClass.Input) async throws -> Operations.UpdateGroupClass.Output
+    /// Put a class on a date
+    ///
+    /// Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. A class or trainer that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/group-classes/{classId}/dates`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/dates/post(scheduleGroupClassDate)`.
+    func scheduleGroupClassDate(_ input: Operations.ScheduleGroupClassDate.Input) async throws -> Operations.ScheduleGroupClassDate.Output
     /// The clients of a workspace
     ///
     /// The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. `search` matches part of a name or an email address in the server, ignoring case and accents.
@@ -691,6 +733,104 @@ extension APIProtocol {
         try await getSession(Operations.GetSession.Input(
             path: path,
             headers: headers
+        ))
+    }
+    /// Change one date of a class
+    ///
+    /// Changes the date, start, end and/or capacity of one group session (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a group session of the workspace (a private session too) answers `404`.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/sessions/{sessionId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/patch(updateGroupClassDate)`.
+    public func updateGroupClassDate(
+        path: Operations.UpdateGroupClassDate.Input.Path,
+        headers: Operations.UpdateGroupClassDate.Input.Headers = .init(),
+        body: Operations.UpdateGroupClassDate.Input.Body
+    ) async throws -> Operations.UpdateGroupClassDate.Output {
+        try await updateGroupClassDate(Operations.UpdateGroupClassDate.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// The classes of a workspace
+    ///
+    /// The workspace’s classes, sorted by Dutch name. Every team member may read them; a client of the workspace gets `403`, a person with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/group-classes`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/get(listGroupClasses)`.
+    public func listGroupClasses(
+        path: Operations.ListGroupClasses.Input.Path,
+        headers: Operations.ListGroupClasses.Input.Headers = .init()
+    ) async throws -> Operations.ListGroupClasses.Output {
+        try await listGroupClasses(Operations.ListGroupClasses.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Create a class
+    ///
+    /// Creates a class (the Owner only; a Trainer gets `403`). Empty or too long texts, a capacity outside 1 to 100 and a duration outside 15 to 240 minutes in steps of 5 answer `400` with the field in `issues`. With a `firstDate` the class is also put on that date (the apps’ quick create), both in one transaction: a refused date answers `400` and leaves no class. A trainer who does not train in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/group-classes`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/post(createGroupClass)`.
+    public func createGroupClass(
+        path: Operations.CreateGroupClass.Input.Path,
+        headers: Operations.CreateGroupClass.Input.Headers = .init(),
+        body: Operations.CreateGroupClass.Input.Body
+    ) async throws -> Operations.CreateGroupClass.Output {
+        try await createGroupClass(Operations.CreateGroupClass.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// One class
+    ///
+    /// A class of the workspace, for any team member. A class that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/group-classes/{classId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/get(getGroupClass)`.
+    public func getGroupClass(
+        path: Operations.GetGroupClass.Input.Path,
+        headers: Operations.GetGroupClass.Input.Headers = .init()
+    ) async throws -> Operations.GetGroupClass.Output {
+        try await getGroupClass(Operations.GetGroupClass.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Change a class
+    ///
+    /// Changes the fields given of a class (the Owner only). The same limits as creating apply. Dates already planned keep what they copied. A class or trainer that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/group-classes/{classId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/patch(updateGroupClass)`.
+    public func updateGroupClass(
+        path: Operations.UpdateGroupClass.Input.Path,
+        headers: Operations.UpdateGroupClass.Input.Headers = .init(),
+        body: Operations.UpdateGroupClass.Input.Body
+    ) async throws -> Operations.UpdateGroupClass.Output {
+        try await updateGroupClass(Operations.UpdateGroupClass.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Put a class on a date
+    ///
+    /// Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. A class or trainer that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/group-classes/{classId}/dates`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/dates/post(scheduleGroupClassDate)`.
+    public func scheduleGroupClassDate(
+        path: Operations.ScheduleGroupClassDate.Input.Path,
+        headers: Operations.ScheduleGroupClassDate.Input.Headers = .init(),
+        body: Operations.ScheduleGroupClassDate.Input.Body
+    ) async throws -> Operations.ScheduleGroupClassDate.Output {
+        try await scheduleGroupClassDate(Operations.ScheduleGroupClassDate.Input(
+            path: path,
+            headers: headers,
+            body: body
         ))
     }
     /// The clients of a workspace

@@ -24,6 +24,7 @@
 package app.fivvi.api.models
 
 import app.fivvi.api.models.Location
+import app.fivvi.api.models.SessionGroupClass
 import app.fivvi.api.models.SessionParticipant
 import app.fivvi.api.models.SessionTrainer
 
@@ -35,16 +36,17 @@ import kotlinx.serialization.Contextual
  * A session of the workspace as the team sees it. It holds no email address or other contact detail of a client.
  *
  * @param id The session ID.
- * @param type The kind of session. Private sessions are planned here; the others come later.
+ * @param type The kind of session. Private sessions are planned here, group sessions are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
  * @param status Whether the session still takes place. A session is never deleted.
  * @param startsAt The start, a UTC instant.
  * @param endsAt The end, a UTC instant.
  * @param timeZone The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012).
- * @param capacity 1 for a private session.
+ * @param capacity 1 for a private session; the date’s own capacity for a group session.
  * @param version Raised by every change; a change says the version it read. Starts at 1.
  * @param location 
- * @param participants The clients in the session, in the order they were added. One for a private session.
+ * @param participants The clients in the session, in the order they were added. One for a private session; none for a group session until bookings exist (M5).
  * @param trainer 
+ * @param groupClass 
  */
 @Serializable
 
@@ -54,7 +56,7 @@ data class Session (
     @Contextual @SerialName(value = "id")
     val id: java.util.UUID,
 
-    /* The kind of session. Private sessions are planned here; the others come later. */
+    /* The kind of session. Private sessions are planned here, group sessions are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later. */
     @SerialName(value = "type")
     val type: Session.Type,
 
@@ -74,7 +76,7 @@ data class Session (
     @SerialName(value = "timeZone")
     val timeZone: kotlin.String,
 
-    /* 1 for a private session. */
+    /* 1 for a private session; the date’s own capacity for a group session. */
     @SerialName(value = "capacity")
     val capacity: kotlin.Int,
 
@@ -85,17 +87,20 @@ data class Session (
     @SerialName(value = "location")
     val location: Location,
 
-    /* The clients in the session, in the order they were added. One for a private session. */
+    /* The clients in the session, in the order they were added. One for a private session; none for a group session until bookings exist (M5). */
     @SerialName(value = "participants")
     val participants: kotlin.collections.List<SessionParticipant>,
 
     @SerialName(value = "trainer")
-    val trainer: SessionTrainer? = null
+    val trainer: SessionTrainer? = null,
+
+    @SerialName(value = "groupClass")
+    val groupClass: SessionGroupClass? = null
 
 ) {
 
     /**
-     * The kind of session. Private sessions are planned here; the others come later.
+     * The kind of session. Private sessions are planned here, group sessions are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
      *
      * Values: PRIVATE,GROUP,OPEN_GYM
      */
