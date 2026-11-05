@@ -1102,7 +1102,7 @@
   }
   A["c-qbook"] = function (d) { var c = C(); c.dialog = "book"; c.dlgId = d.id; R(); };
   A["c-qwl"] = function (d) { var c = C(); c.dialog = "wl"; c.dlgId = d.id; R(); };
-  A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.web = null; c.page = null; R(); };
+  A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.selfOn = false; c.web = null; c.page = null; R(); };
   A["c-offers"] = function () { C().web = "offers"; R(); };
   A["c-webclose"] = function () { C().web = null; R(); };
   A["c-buy"] = function (d) { C().web = null; F.toast("Betaalpagina geopend: " + d.v + " met iDEAL"); };
