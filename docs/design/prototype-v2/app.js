@@ -351,7 +351,8 @@
     } else rows.push(row({ lead: '<span class="dc-ic" style="--c:var(--ok)">' + ic("clock") + "</span>", title: "Geen vrije tijd meer vandaag", cls: "dc" }));
     /* the places still ahead, in order, each once in a row */
     var locs = []; act.filter(function (i) { return i.type !== "gym" && mins(i.e) > mins(NOWT); }).forEach(function (i) { var l = i.loc.split(",")[0]; if (locs[locs.length - 1] !== l) locs.push(l); });
-    if (locs.length) rows.push(row({ lead: '<span class="dc-ic" style="--c:var(--priv)">' + ic("pin") + "</span>", title: locs.length > 1 ? "Route vandaag" : "Locatie vandaag", sub: locs.map(esc).join(" → "), cls: "dc wrap" }));
+    /* only worth showing when you still have to move between places today */
+    if (locs.length > 1) rows.push(row({ lead: '<span class="dc-ic" style="--c:var(--priv)">' + ic("pin") + "</span>", title: "Route vandaag", sub: locs.map(esc).join(" → "), cls: "dc wrap" }));
     return grp(rows, "--inset:60px");
   }
 
