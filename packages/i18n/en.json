@@ -126,6 +126,9 @@
     "newMenu": "Create new",
     "newClient": "Client"
   },
+  "workspaceSwitcher": {
+    "newWorkspace": "+ New workspace"
+  },
   "signOut": {
     "label": "Sign out",
     "error": "Signing out didn't work. Try again."

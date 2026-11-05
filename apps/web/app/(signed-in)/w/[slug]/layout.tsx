@@ -27,6 +27,8 @@ export default async function WorkspaceLayout({
       name={name}
       slug={slug}
       teamRole={role}
+      workspaces={me.workspaces}
+      canCreateWorkspace={me.canCreateWorkspace}
       capabilities={capabilities}
       personName={me.name}
       quickAdd={quickAdd}

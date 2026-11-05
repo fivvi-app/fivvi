@@ -3,16 +3,17 @@ import type { Locale } from '@fivvi/i18n';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { AddClientProvider } from './clients/add-client-dialog';
 import { NewMenu } from './new-menu';
 import { UserMenu } from './user-menu';
+import { WorkspaceSwitcher } from './workspace-switcher';
 
 /**
  * The frame of every page of a workspace (`information-architecture.md §4.1`): a sidebar whose
- * header shows the workspace name and the person's role in it (F003; a plain label, switching
- * comes with F012), and the navigation. A section is in it only when the API lists its
- * capability for this person in this workspace (F004, `information-architecture.md §3.2`): Clients
+ * header shows the workspace name and the person's role in it (F003) as the scope switcher (F012):
+ * a plain label with one workspace, otherwise a menu of the person's workspaces, and the
+ * navigation. A section is in it only when the API lists its capability for this person in this workspace (F004, `information-architecture.md §3.2`): Clients
  * (F006) with `clients.view`, Trainers (F003) with `team.view`, Settings with `workspace.manage` and its pages General and Language
  * (F010). A section a person can't use is absent, not greyed out, and nothing here decides from the
  * role name: the role is only the label in the header. The user menu with
@@ -25,6 +26,8 @@ export function WorkspaceFrame({
   name,
   slug,
   teamRole,
+  workspaces,
+  canCreateWorkspace,
   capabilities,
   personName,
   quickAdd,
@@ -33,6 +36,10 @@ export function WorkspaceFrame({
   name: string;
   slug: string;
   teamRole: Schemas['MyWorkspace']['role'];
+  /** Every workspace the person is on the team of, by name: the scope switcher lists them (F012). */
+  workspaces: ComponentProps<typeof WorkspaceSwitcher>['workspaces'];
+  /** On the sign-up allowlist: the scope switcher ends with *Nieuwe werkruimte* (F012). */
+  canCreateWorkspace: boolean;
   /** What the API lists for this person in this workspace; the navigation follows it. */
   capabilities: Schemas['MyWorkspace']['capabilities'];
   /** The person's own name as entered; null until they have one. */
@@ -42,13 +49,16 @@ export function WorkspaceFrame({
   children: ReactNode;
 }) {
   const t = useTranslations('workspaceNav');
-  const roles = useTranslations('roles');
   return (
     <div className="flex flex-1 flex-col md:flex-row">
       <aside className="grid content-start gap-4 border-b p-4 md:w-56 md:border-r md:border-b-0">
-        <p className="font-display text-lg font-semibold">
-          {t('workspaceWithRole', { name, role: roles(teamRole) })}
-        </p>
+        <WorkspaceSwitcher
+          name={name}
+          slug={slug}
+          teamRole={teamRole}
+          workspaces={workspaces}
+          canCreateWorkspace={canCreateWorkspace}
+        />
         <nav aria-label={t('label')}>
           <div className="grid gap-1">
             {capabilities.includes('clients.view') ? (

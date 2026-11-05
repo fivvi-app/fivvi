@@ -45,10 +45,16 @@ describe('F002 where the signed-in home sends a person', () => {
     });
   });
 
-  it('with several workspaces it goes to the first, until F012 remembers the last one used', () => {
+  it('with several workspaces it goes to the first by name', () => {
     expect(destinationOf({ canCreateWorkspace: false, workspaces: [gym, studio] })).toEqual({
       to: 'workspace',
       slug: 'johns-gym',
     });
+  });
+
+  it('F012 AC4: with several workspaces it goes to the remembered one (the rule itself is tested in start-workspace.test.ts)', () => {
+    expect(
+      destinationOf({ canCreateWorkspace: false, workspaces: [gym, studio] }, 'studio-zuid'),
+    ).toEqual({ to: 'workspace', slug: 'studio-zuid' });
   });
 });

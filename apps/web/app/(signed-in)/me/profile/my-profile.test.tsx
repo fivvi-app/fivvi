@@ -40,13 +40,17 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
 
     expect(html).toMatch(new RegExp(`<h1[^>]*>${escapeHtml(copy.myProfile.title)}</h1>`));
     expect(html).toContain(escapeHtml(copy.myProfile.workspacesTitle));
+    // F012: each row links to its workspace (a link, not a button: the page changes).
     expect(html).toMatch(
-      new RegExp(`John&#x27;s Gym</span><span[^>]*>${escapeHtml(copy.roles.trainer)}<`),
+      new RegExp(
+        `<a[^>]*href="/w/johns-gym"[^>]*>John&#x27;s Gym</a><span[^>]*>${escapeHtml(copy.roles.trainer)}<`,
+      ),
     );
     expect(html).toMatch(
-      new RegExp(`Sarah Personal Training</span><span[^>]*>${escapeHtml(copy.roles.owner)}<`),
+      new RegExp(
+        `<a[^>]*href="/w/sarah"[^>]*>Sarah Personal Training</a><span[^>]*>${escapeHtml(copy.roles.owner)}<`,
+      ),
     );
-    // No switching (F012): the workspaces section holds no button.
     expect(html.split(copy.myProfile.workspacesTitle)[1]).not.toContain('<button');
   });
 
