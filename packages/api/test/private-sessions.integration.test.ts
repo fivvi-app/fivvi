@@ -1335,9 +1335,12 @@ describe('F020 plan a private session', () => {
       const { server, transport } = setup();
       const session = await sarahsSession(people);
       let answer: Promise<Response> | undefined;
+      let waited = false;
 
       // Another transaction cancels the session (F026 will) and holds its row; the save reads
-      // version 1, waits on that row's lock, and matches nothing once the cancel has committed.
+      // version 1 (the cancel is not committed, so it sees a scheduled session), waits on the
+      // row's lock, and matches nothing once the cancel has committed. The wait is proved by a
+      // backend that this very transaction blocks, so no other test's locks count.
       await admin.db.transaction(async (tx) => {
         await tx
           .update(sessions)
@@ -1346,13 +1349,19 @@ describe('F020 plan a private session', () => {
         answer = Promise.resolve(
           reschedule(server, people.gym.id, session.id, people.sarah, move()),
         );
-        for (let tries = 0; tries < 200; tries++) {
-          const { rows } = await tx.execute(sql`select 1 from pg_locks where not granted`);
-          if (rows.length > 0) break;
-          await new Promise((resolve) => setTimeout(resolve, 25));
+        for (let tries = 0; tries < 200 && !waited; tries++) {
+          const { rows } = await tx.execute(
+            sql`select 1 from pg_stat_activity where pg_backend_pid() = any(pg_blocking_pids(pid))`,
+          );
+          waited = rows.length > 0;
+          if (!waited) await new Promise((resolve) => setTimeout(resolve, 25));
         }
       });
       const response = await answer;
+
+      // Without the wait, the save would have read the cancelled session and been refused by the
+      // rules, never reaching the re-read after the lost update.
+      expect(waited).toBe(true);
 
       expect(response?.status).toBe(409);
       expect(await response?.json()).toMatchObject({
