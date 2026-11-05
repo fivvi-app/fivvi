@@ -1,9 +1,19 @@
 import type { Locale } from '@fivvi/i18n';
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, pgEnum, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  foreignKey,
+  index,
+  pgEnum,
+  pgPolicy,
+  text,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { businessTable } from './business-table.ts';
 import { instant, timestamps } from './columns.ts';
 import { teamMembers } from './tenancy.ts';
+import { APP_ROLE } from './tenant-policies.ts';
 
 /** Where an invitation stands: `pending` until the person accepts or declines or the Owner withdraws it. */
 export const invitationStatus = pgEnum('invitation_status', [
@@ -58,6 +68,23 @@ export const trainerInvitations = businessTable(
       'trainer_invitations_name_valid',
       sql`btrim(${table.name}) <> '' AND char_length(${table.name}) <= 120`,
     ),
+    // Two narrow doors for a person who is not on the team (F011), each opened by a setting that
+    // only the repositories of this table make, in their own transaction (`app_invitation_*()`,
+    // migration 0020). By token: the invitation whose token hash the context names, to read and
+    // lock it. By address: the sign-in gate asks whether an address has a pending invitation.
+    // Read-only; closing an invitation happens in the workspace's context, after the door found it.
+    pgPolicy('trainer_invitations_by_token', {
+      as: 'permissive',
+      for: 'select',
+      to: APP_ROLE,
+      using: sql`${table.tokenHash} = app_invitation_token_hash()`,
+    }),
+    pgPolicy('trainer_invitations_by_email', {
+      as: 'permissive',
+      for: 'select',
+      to: APP_ROLE,
+      using: sql`${table.email} = app_invitation_email()`,
+    }),
     check('trainer_invitations_email_lowercase', sql`${table.email} = lower(${table.email})`),
     check(
       'trainer_invitations_email_locale_supported',

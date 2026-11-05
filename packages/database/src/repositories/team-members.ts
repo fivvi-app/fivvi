@@ -124,3 +124,56 @@ export async function isOnTeam(scope: WorkspaceScope, email: string): Promise<bo
     .limit(1);
   return row !== undefined;
 }
+
+/**
+ * Adds the scope's account to the scope's workspace as a Trainer (F011), unless it is on the team
+ * already: then the existing record stays as it is, an Owner remaining an Owner. `added` tells
+ * which. A parallel add of the same account lands on the same record (the unique key decides), so
+ * a person never has two. The caller has decided the account may join, and gives the trainer
+ * profile (`setTrainerProfile`) to a record that was added.
+ */
+export async function addTrainerToTeam(
+  scope: WorkspaceScope,
+): Promise<{ id: string; role: TeamRole; added: boolean }> {
+  const db = executorOf(scope);
+  const [created] = await db
+    .insert(teamMembers)
+    .values({
+      organizationId: scope.workspaceId,
+      accountId: scope.context.accountId,
+      role: 'trainer',
+    })
+    .onConflictDoNothing({ target: [teamMembers.organizationId, teamMembers.accountId] })
+    .returning({ id: teamMembers.id, role: teamMembers.role });
+  if (created) return { ...created, added: true };
+  const [existing] = await db
+    .select({ id: teamMembers.id, role: teamMembers.role })
+    .from(teamMembers)
+    .where(
+      and(
+        eq(teamMembers.organizationId, scope.workspaceId),
+        eq(teamMembers.accountId, scope.context.accountId),
+      ),
+    )
+    .limit(1);
+  if (!existing) throw new Error('The team-member record was neither added nor found.');
+  return { ...existing, added: false };
+}
+
+/**
+ * The name of the account behind a team member of the scope's workspace, `''` while the person has
+ * given none; `undefined` when no such team member is in the workspace. Only the name is read:
+ * it is what an invitation says about who invited.
+ */
+export async function findTeamMemberName(
+  scope: WorkspaceScope,
+  teamMemberId: string,
+): Promise<string | undefined> {
+  const [row] = await executorOf(scope)
+    .select({ name: authUsers.name })
+    .from(teamMembers)
+    .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+    .where(and(eq(teamMembers.organizationId, scope.workspaceId), eq(teamMembers.id, teamMemberId)))
+    .limit(1);
+  return row?.name;
+}
