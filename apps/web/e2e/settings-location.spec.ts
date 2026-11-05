@@ -45,6 +45,37 @@ async function locationsOf(page: Page, slug: string): Promise<ApiLocation[]> {
   return (await response.json()) as ApiLocation[];
 }
 
+/**
+ * Holds back the answers of the address lookup whose URL ends in `urlEnd` until `release()` is
+ * called, so a spec decides when a slow answer arrives instead of waiting for a timer.
+ * `held` resolves once a request is on hold.
+ */
+async function holdLookups(page: Page, urlEnd: string) {
+  let release: () => void = () => {};
+  const open = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let onHold: () => void = () => {};
+  const held = new Promise<void>((resolve) => {
+    onHold = resolve;
+  });
+  await page.route(`**/address-lookup**${urlEnd}`, async (route) => {
+    onHold();
+    await open;
+    await route.continue();
+  });
+  return { held, release };
+}
+
+/** Two animation frames: what the page does with an answer it has just received is done by then. */
+const settle = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+
 test.describe('F015 Settings → Location (TW-08)', () => {
   test.beforeEach(async ({ context }) => {
     await context.setExtraHTTPHeaders(clientIpHeaders());
@@ -314,29 +345,39 @@ test.describe('F015 Settings → Location (TW-08)', () => {
   }) => {
     await johnOnLocationPage(page, context);
     const text = copy.settingsLocation;
-    // The first query is answered late, after the Owner has already changed it.
-    await page.route('**/address-lookup**postcode=1234+AB&houseNumber=1', async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      await route.continue();
-    });
-    const postcode = page.getByLabel(text.postcodeLabel, { exact: true });
+    const street = page.getByLabel(text.streetLabel);
+    const city = page.getByLabel(text.cityLabel);
     const houseNumber = page.getByLabel(text.houseNumberLabel);
+    // The answer for number 1 is held until the Owner has changed the number.
+    const hold = await holdLookups(page, 'postcode=1234+AB&houseNumber=1');
 
-    await postcode.fill('1234 AB');
+    await page.getByLabel(text.postcodeLabel, { exact: true }).fill('1234 AB');
     await houseNumber.fill('1');
+    await hold.held;
     await expect(page.getByText(text.lookup.busy)).toBeVisible();
     await houseNumber.fill('12');
+    // The old answer arrives right after the change, before the new query is looked up.
+    const answered = page.waitForResponse(
+      (response) =>
+        response.url().includes('/address-lookup') &&
+        new URL(response.url()).searchParams.get('houseNumber') === '1',
+    );
+    hold.release();
+    expect((await answered).status()).toBe(200);
+    await settle(page);
 
-    // The late answer for number 1 arrives; number 12 is no address, so nothing is filled.
+    // It was for number 1, not 12: nothing is filled in from it. Read at once, not retried: a
+    // retrying check would wait for the lookup of number 12 to empty a wrong fill again.
+    expect(await street.inputValue()).toBe('');
+    expect(await city.inputValue()).toBe('');
+    expect(await page.getByText(text.lookup.filled).count()).toBe(0);
+    // Number 12 is looked up on its own: no address.
     await expect(page.getByText(text.lookup.notFound)).toBeVisible();
-    await page.waitForTimeout(2000);
-    await expect(page.getByLabel(text.streetLabel)).toHaveValue('');
-    await expect(page.getByLabel(text.cityLabel)).toHaveValue('');
-    await expect(page.getByText(text.lookup.filled)).toHaveCount(0);
+    await expect(street).toHaveValue('');
 
     // Changed back to number 1, the query is looked up again and fills in.
     await houseNumber.fill('1');
-    await expect(page.getByLabel(text.streetLabel)).toHaveValue('Voorbeeldstraat');
+    await expect(street).toHaveValue('Voorbeeldstraat');
   });
 
   test('AC13: the form stays usable while the lookup runs', async ({
@@ -346,21 +387,24 @@ test.describe('F015 Settings → Location (TW-08)', () => {
   }) => {
     await johnOnLocationPage(page, context);
     const text = copy.settingsLocation;
-    await page.route('**/address-lookup**', async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      await route.continue();
-    });
+    const hold = await holdLookups(page, 'houseNumber=1');
 
     await page.getByLabel(text.postcodeLabel, { exact: true }).fill('1234 AB');
     await page.getByLabel(text.houseNumberLabel).fill('1');
+    await hold.held;
 
     await expect(page.getByText(text.lookup.busy)).toBeVisible();
     await expect(page.getByLabel(text.streetLabel)).toHaveAttribute('aria-busy', 'true');
     // Nothing blocks: the Owner can keep typing and saving while the answer is on its way.
     await expect(page.getByLabel(text.nameLabel)).toBeEnabled();
     await expect(page.getByRole('button', { name: text.save })).toBeEnabled();
+    await page.getByLabel(text.nameLabel).fill('Typed while looking up');
+    await expect(page.getByLabel(text.nameLabel)).toHaveValue('Typed while looking up');
+
+    hold.release();
     await expect(page.getByLabel(text.streetLabel)).toHaveValue('Voorbeeldstraat');
     await expect(page.getByText(text.lookup.busy)).toHaveCount(0);
+    await expect(page.getByLabel(text.nameLabel)).toHaveValue('Typed while looking up');
   });
 
   test('AC14: no-match and unavailable texts; saving by hand works', async ({
@@ -384,10 +428,18 @@ test.describe('F015 Settings → Location (TW-08)', () => {
     await expect(city).toHaveValue('');
     await expectNoAxeViolations(page, `TW-08 Location with no match in ${appLocale}`);
 
-    // Unavailable: the fake does not answer for 1000 AA (timeout and failure alike).
+    // Unavailable: the fake does not answer for 1000 AA (timeout and failure alike). An address an
+    // earlier lookup filled in is not kept for a postcode that could not be looked up.
+    await postcode.fill('1234 AB');
+    await houseNumber.fill('1');
+    await expect(street).toHaveValue('Voorbeeldstraat');
+    await expect(city).toHaveValue('Amsterdam');
     await postcode.fill('1000 AA');
     await expect(page.getByText(text.lookup.unavailable)).toBeVisible();
     await expect(page.getByText(text.lookup.notFound)).toHaveCount(0);
+    await expect(street).toHaveValue('');
+    await expect(city).toHaveValue('');
+    await expect(page.getByText(text.lookup.filled)).toHaveCount(0);
     await expectNoAxeViolations(page, `TW-08 Location with the lookup unavailable in ${appLocale}`);
 
     // The Owner fills in the address herself, and saving works.
@@ -397,7 +449,7 @@ test.describe('F015 Settings → Location (TW-08)', () => {
     await expect(page.getByText(text.saved)).toBeVisible();
     expect((await locationsOf(page, slug))[0]?.address).toEqual({
       postcode: '1000 AA',
-      houseNumber: '9',
+      houseNumber: '1',
       houseNumberAddition: null,
       street: 'Handgetypte straat',
       city: 'Ons dorp',
