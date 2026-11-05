@@ -31,7 +31,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * A session the signed-in account is the current trainer of, in one of its workspaces.
+ * A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds.
  *
  * @param sessionId The session ID. It opens in its own workspace: `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}` with the item’s `workspace.id`.
  * @param workspace 
@@ -43,7 +43,7 @@ import kotlinx.serialization.Contextual
  * @param capacity 1 for a private session.
  * @param booked The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session.
  * @param className The class name in the viewer’s language, for a group class. Left out until classes exist (F021 adds it).
- * @param location Where a private session takes place; left out for the other kinds.
+ * @param location 
  * @param clientName The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail.
  */
 @Serializable
@@ -89,7 +89,6 @@ data class PersonalSession (
     @SerialName(value = "className")
     val className: kotlin.String? = null,
 
-    /* Where a private session takes place; left out for the other kinds. */
     @SerialName(value = "location")
     val location: Location? = null,
 

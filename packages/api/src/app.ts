@@ -68,6 +68,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerHealth(app, dependencies);
   registerHello(app, dependencies);
   registerMe(app);
+  registerPersonal(app);
   registerSignIn(app, dependencies);
   registerWorkspaces(app);
   registerTeamMembers(app);
@@ -77,9 +78,6 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerLocations(app);
   registerSessions(app);
   registerClients(app);
-  // After the routes that define the location schemas, which the personal view reuses: components take
-  // their shape from their first use, so an earlier registration would change the contract of `Location`.
-  registerPersonal(app);
   return app;
 }
 

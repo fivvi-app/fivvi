@@ -143,9 +143,7 @@ export const PersonalSessionSchema = z
           'The class name in the viewer’s language, for a group class. Left out until classes ' +
           'exist (F021 adds it).',
       }),
-    location: LocationSchema.optional().openapi({
-      description: 'Where a private session takes place; left out for the other kinds.',
-    }),
+    location: LocationSchema.optional(),
     clientName: z
       .string()
       .optional()
@@ -157,7 +155,8 @@ export const PersonalSessionSchema = z
   })
   .openapi('PersonalSession', {
     description:
-      'A session the signed-in account is the current trainer of, in one of its workspaces.',
+      'A session the signed-in account is the current trainer of, in one of its workspaces. ' +
+      '`location` is where a private session takes place and is left out for the other kinds.',
   });
 
 export const MyDaySchema = z
