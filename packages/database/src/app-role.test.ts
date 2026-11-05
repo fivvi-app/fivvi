@@ -3,6 +3,7 @@ import pg from 'pg';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { APP_ROLE_LOCK_KEY, ensureAppRole, isRoleRace, ROLE_RACE_ATTEMPTS } from './app-role.ts';
 import type { DatabaseExecutor } from './client.ts';
+import { ensureCronRole } from './cron-role.ts';
 
 describe('the lock that serialises changes to the app role', () => {
   it('is the same key in ensureAppRole and in the test setup (ensureTestRoles)', () => {
@@ -91,7 +92,9 @@ describe('the retry of a change that lost the race', () => {
     // The first statement of a try fails, so one statement is one try.
     expect(calls.count).toBe(ROLE_RACE_ATTEMPTS);
     expect(error).toBeInstanceOf(Error);
-    expect((error as Error).message).toBe('The app role could not be set up (SQLSTATE XX000).');
+    expect((error as Error).message).toBe(
+      'The role fivvi_probe_retry could not be set up (SQLSTATE XX000).',
+    );
   });
 
   it('tries a change that fails with anything else exactly once', async () => {
@@ -103,6 +106,32 @@ describe('the retry of a change that lost the race', () => {
     );
 
     expect(calls.count).toBe(1);
-    expect((error as Error).message).toBe('The app role could not be set up (SQLSTATE 42501).');
+    expect((error as Error).message).toBe(
+      'The role fivvi_probe_retry could not be set up (SQLSTATE 42501).',
+    );
+  });
+});
+
+describe('the errors name the role they are about', () => {
+  const unused = {} as unknown as DatabaseExecutor;
+
+  it('a password that is not printable ASCII, for the cron role', async () => {
+    const error = await ensureCronRole(unused, { password: 'wachtwoord-\u00e9-long-enough' }).catch(
+      (caught: unknown) => caught,
+    );
+
+    expect((error as Error).message).toBe(
+      'The role fivvi_cron password may only contain printable ASCII (the value is not shown).',
+    );
+  });
+
+  it('a password that is too short, for the app role', async () => {
+    const error = await ensureAppRole(unused, { password: 'short' }).catch(
+      (caught: unknown) => caught,
+    );
+
+    expect((error as Error).message).toMatch(
+      /^The role fivvi_app password must be at least \d+ characters \(the value is not shown\)\.$/,
+    );
   });
 });

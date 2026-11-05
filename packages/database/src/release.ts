@@ -1,6 +1,7 @@
 import { ensureAppRole } from './app-role.ts';
 import type { Database } from './client.ts';
-import { APP_ROLE_PASSWORD_VARIABLE } from './env.ts';
+import { CRON_ROLE, ensureCronRole } from './cron-role.ts';
+import { APP_ROLE_PASSWORD_VARIABLE, CRON_ROLE_PASSWORD_VARIABLE } from './env.ts';
 import { runMigrations } from './migrate.ts';
 import { APP_ROLE } from './schema/tenant-policies.ts';
 import { seed } from './seed.ts';
@@ -16,12 +17,17 @@ export interface ReleaseOptions {
    * deploys before the owner has set the secret.
    */
   appRolePassword?: string;
+  /**
+   * The environment's secret for the cron role (`CRON_DATABASE_PASSWORD`, E012). Unset: the role's
+   * login and password stay as they are; the cron cannot connect until the owner sets it.
+   */
+  cronRolePassword?: string;
 }
 
 /**
  * The release step that runs once before each deploy (Railway pre-deploy command, E003):
  * apply pending migrations, forward-only (which also resets the app role's table privileges),
- * create or update the app role with its password, then seed if asked. The new deployment only
+ * create or update the app role and the cron role with their passwords, then seed if asked. The new deployment only
  * starts when this succeeds.
  */
 export async function release(
@@ -36,6 +42,12 @@ export async function release(
     role.passwordSet
       ? `App role ${APP_ROLE}: login enabled, password set from ${APP_ROLE_PASSWORD_VARIABLE}.`
       : `App role ${APP_ROLE}: ${APP_ROLE_PASSWORD_VARIABLE} is not set, so its login and password are left as they are${role.login ? '' : ' (it cannot log in yet)'}.`,
+  );
+  const cron = await ensureCronRole(db, { password: options.cronRolePassword });
+  log(
+    cron.passwordSet
+      ? `Cron role ${CRON_ROLE}: login enabled, password set from ${CRON_ROLE_PASSWORD_VARIABLE}.`
+      : `Cron role ${CRON_ROLE}: ${CRON_ROLE_PASSWORD_VARIABLE} is not set, so its login and password are left as they are${cron.login ? '' : ' (it cannot log in yet)'}.`,
   );
   if (options.seed) {
     await seed(db, { production: options.production });

@@ -69,6 +69,12 @@ export default defineRailway((ctx) => {
       // production's (E011, ENVIRONMENTS.md §7). Unset: the role cannot log in and the web
       // refuses to start, so the previous deployment keeps serving.
       APP_DATABASE_PASSWORD: preserve(),
+      // The password of the database role `fivvi_cron`, set by the owner like the app role's:
+      // a distinct value per environment, letters and digits only (the cron's URL carries it).
+      // The release step gives the role this password; `cron` reads it from here, so it is set
+      // once, on `web` (E012, ENVIRONMENTS.md §7). Unset: the role cannot log in and the cron's
+      // runs fail until it is set.
+      CRON_DATABASE_PASSWORD: preserve(),
       // What the web runtime connects with: the app role on this environment's own Postgres,
       // over the private network. RLS applies to it, so workspaces stay apart in the database.
       APP_DATABASE_URL:
@@ -139,16 +145,24 @@ export default defineRailway((ctx) => {
     regions: { [REGION]: 1 },
     start: CRON,
     deploy: {
-      // Daily, in UTC (ADR-010). Railway starts the job and expects it to exit.
-      cronSchedule: '0 3 * * *',
+      // Every 5 minutes, in UTC (ADR-027; Railway's shortest interval). Railway starts the job
+      // and expects it to exit. This file is applied to `production` and `development` only. A
+      // PR environment is copied from `development` and so has the schedule too, but the job
+      // exits at once there (apps/cron/src/monitor.ts): previews run no tasks and need no hours.
+      cronSchedule: '*/5 * * * *',
       restartPolicyType: 'NEVER',
     },
     env: {
-      DATABASE_URL: db.env.DATABASE_URL,
+      // What the tasks connect with: the cron role on this environment's own Postgres, over the
+      // private network. It owns nothing and can use only the tables the tasks declare. The
+      // password is `web`'s `CRON_DATABASE_PASSWORD`, set there once; the release step applies it
+      // to the role. The privileged `DATABASE_URL` is not given to the cron any more (E012, ADR-006).
+      CRON_DATABASE_URL:
+        'postgresql://fivvi_cron:${{web.CRON_DATABASE_PASSWORD}}@${{postgres.RAILWAY_PRIVATE_DOMAIN}}:${{postgres.PGPORT}}/${{postgres.PGDATABASE}}',
       // The DSN of the Sentry `cron` project (E009), set in the dashboard. Empty turns it off.
       SENTRY_DSN: preserve(),
       // A read-only Lettermint Team API token (`read:team`, ADR-028), set in the dashboard in
-      // production only. The daily job warns at 70% of the plan's monthly email volume (R14).
+      // production only. The daily task warns at 70% of the plan's monthly email volume (R14).
       // Empty skips the check.
       LETTERMINT_TEAM_TOKEN: preserve(),
     },
