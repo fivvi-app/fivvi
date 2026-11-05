@@ -228,7 +228,7 @@ describe('F001N native sign-in through the API', () => {
     await client.db.delete(authVerifications);
     await client.db.delete(authRateLimits);
     await client.db.delete(authSessions);
-    // Only the seeded accounts stay (John, Sarah and Tom, F003, F020).
+    // Only the seeded accounts stay (John, Sarah, Tom, Lisa and Mike, F003, F020, F013).
     await client.db
       .delete(authUsers)
       .where(
@@ -236,6 +236,8 @@ describe('F001N native sign-in through the API', () => {
           'owner@example.com',
           'trainer@example.com',
           'tom@example.com',
+          'lisa@example.com',
+          'mike@example.com',
         ]),
       );
   });
