@@ -127,5 +127,14 @@
   "email.trainerInvitation.intro": "The one sentence of EM-09. {inviter} is the name of the Owner who invites, {workspace} the name of the workspace; the person is invited to join its team as a trainer.",
   "email.trainerInvitation.button": "Label of the button that opens the invitation page, where the person accepts or declines.",
   "email.trainerInvitation.validity": "{date} is the last day the invitation works, a weekday and date with year, e.g. 'vrijdag 13 november 2026', in the workspace's time zone.",
-  "email.trainerInvitation.ignore": "Last line of EM-09: the person can ignore the email when it is unexpected."
+  "email.trainerInvitation.ignore": "Last line of EM-09: the person can ignore the email when it is unexpected.",
+  "common.offline": "Banner at the top of the client app while the phone has no connection. Not tied to one list, so it has no time (clients.offline names the time of a cached list).",
+  "profile.version": "Line at the end of the client app's Profiel with the app's version. {version} is the version number, e.g. '0.1.0'.",
+  "clientNav.label": "Accessibility label of the client app's tab bar (TalkBack).",
+  "clientNav.home": "First tab of the client app. The same word in both languages (GLOSSARY: Home).",
+  "clientNav.book": "Second tab of the client app: where a client books a class. A verb in the tab bar (GLOSSARY: Book / Boeken).",
+  "clientNav.profile": "Third tab of the client app: the client's name, email address, language and sign-out.",
+  "noWorkspace.title": "Client app, Home and Boeken while the client belongs to no workspace: tells them to ask their studio for the join link. The wording is marked in GLOSSARY.md until the pilot gym owner confirms.",
+  "noWorkspace.haveLink": "Second line of the no-workspace state in the client app: the join link opens in the app when it is tapped on this phone.",
+  "noWorkspace.teamHint": "Third line of the no-workspace state, only for an account that is Owner or Trainer of a workspace: points to the trainer app (Fivvi Pro)."
 }

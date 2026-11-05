@@ -182,8 +182,10 @@ BUILD_TASKS="ktlintCheck :lint-rules:test checkReleaseApiBaseUrl checkReleaseSen
 # What follows the unit tests in test and verify.
 after_unit_tests() {
   # E017 AC4: a build number passed from outside (-Pfivvi.buildNumber, as a release run does) becomes the versionCode.
-  # :app only: BuildInfoTest is the app's, and a task of :core that matches no test would fail the filter.
-  gradle :app:testDebugUnitTest --tests app.fivvi.pro.BuildInfoTest -Pfivvi.buildNumber=42
+  # Each application module has its own BuildInfoTest (:app, :client): a task of :core that matches no test would fail the
+  # filter.
+  gradle :app:testDebugUnitTest --tests app.fivvi.pro.BuildInfoTest \
+    :client:testDebugUnitTest --tests app.fivvi.client.BuildInfoTest -Pfivvi.buildNumber=42
   release_bundle_is_signed_with_the_upload_key
   start_emulator
   gradle connectedDebugAndroidTest

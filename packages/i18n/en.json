@@ -7,7 +7,8 @@
     "loading": "Loading…",
     "retry": "Try again",
     "loadingSlow": "This is taking longer than usual…",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "offline": "You're offline. Some information may be out of date."
   },
   "hello": {
     "title": "Welcome to Fivvi",
@@ -199,7 +200,8 @@
         "noConnection": "No connection. Check your internet and try again.",
         "generic": "Something went wrong. Try again."
       }
-    }
+    },
+    "version": "Version {version}"
   },
   "team": {
     "title": "Trainers",
@@ -293,5 +295,16 @@
     },
     "newClient": "New client",
     "offline": "You're offline. Last updated at {time}."
+  },
+  "clientNav": {
+    "label": "Main navigation",
+    "home": "Home",
+    "book": "Book",
+    "profile": "Profile"
+  },
+  "noWorkspace": {
+    "title": "Ask your studio for its link.",
+    "haveLink": "Got the link? Open it on this phone.",
+    "teamHint": "Are you a trainer or owner? Use the Fivvi Pro app."
   }
 }

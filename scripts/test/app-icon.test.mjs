@@ -17,6 +17,8 @@ const text = (path) => read(path).toString('utf8');
 const IOS_ICON = 'apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset/AppIcon.png';
 const PLAY_ICON = 'apps/android/app/src/main/ic_launcher-playstore.png';
 const RES = 'apps/android/app/src/main/res';
+const CLIENT_PLAY_ICON = 'apps/android/client/src/main/ic_launcher-playstore.png';
+const CLIENT_RES = 'apps/android/client/src/main/res';
 
 // The colours the icon takes from the design tokens (light values, packages/design-tokens/tokens).
 const tokenColour = (name) =>
@@ -124,6 +126,50 @@ describe('E017 AC8: the app icon is generated from the design tokens', () => {
         );
       }
     }
+  });
+});
+
+describe('E017 #504: the Fivvi client app has its own icon, from the same source', () => {
+  const background = (res) =>
+    text(`${res}/drawable/ic_launcher_background.xml`).match(
+      /android:fillColor="(#[0-9A-F]{8})"/,
+    )[1];
+  const argb = (hex) => `#FF${hex.slice(1).toUpperCase()}`;
+
+  it('is the same mark on the inverse background of the tokens, so the two apps differ on a home screen', () => {
+    assert.equal(background(CLIENT_RES), argb(tokenColour('bg-inverse')));
+    assert.equal(background(RES), argb(tokenColour('action-primary-bg')));
+    assert.notEqual(background(CLIENT_RES), background(RES));
+    for (const layer of ['foreground', 'monochrome']) {
+      assert.equal(
+        text(`${CLIENT_RES}/drawable/ic_launcher_${layer}.xml`).match(/pathData="([^"]+)"/)[1],
+        text(`${RES}/drawable/ic_launcher_${layer}.xml`).match(/pathData="([^"]+)"/)[1],
+        `${layer}: the mark is the same`,
+      );
+    }
+    assert.equal(
+      text(`${CLIENT_RES}/drawable/ic_launcher_foreground.xml`).match(/fillColor="([^"]+)"/)[1],
+      argb(tokenColour('text-inverse')),
+    );
+  });
+
+  it('is an adaptive icon with a monochrome layer, and the manifest uses it', () => {
+    const icon = text(`${CLIENT_RES}/mipmap-anydpi-v26/ic_launcher.xml`);
+    for (const layer of ['background', 'foreground', 'monochrome']) {
+      assert.match(icon, new RegExp(`<${layer} android:drawable="@drawable/ic_launcher_${layer}"`));
+    }
+    assert.match(
+      text('apps/android/client/src/main/AndroidManifest.xml'),
+      /android:icon="@mipmap\/ic_launcher"/,
+    );
+  });
+
+  it('the Play Store icon is 512 px square in the same colours', () => {
+    const png = decodePng(read(CLIENT_PLAY_ICON));
+
+    assert.deepEqual([png.width, png.height, png.colorType], [512, 512, 2]);
+    assert.deepEqual(pixel(png, 2, 2), rgb(tokenColour('bg-inverse')));
+    assert.deepEqual(pixel(png, 256, 256), rgb(tokenColour('text-inverse')));
   });
 });
 

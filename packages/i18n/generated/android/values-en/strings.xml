@@ -3,6 +3,10 @@
 <resources>
     <string name="app_name">Fivvi Pro</string>
     <string name="app_title">Fivvi</string>
+    <string name="client_nav_book">Book</string>
+    <string name="client_nav_home">Home</string>
+    <string name="client_nav_label">Main navigation</string>
+    <string name="client_nav_profile">Profile</string>
     <string name="clients_add">Add client</string>
     <string name="clients_add_dialog_cancel">Cancel</string>
     <string name="clients_add_dialog_close">Close</string>
@@ -49,6 +53,7 @@
     <string name="common_cancel">Cancel</string>
     <string name="common_loading">Loading…</string>
     <string name="common_loading_slow">This is taking longer than usual…</string>
+    <string name="common_offline">You\'re offline. Some information may be out of date.</string>
     <string name="common_retry">Try again</string>
     <string name="hello_continue">Continue</string>
     <string name="hello_description">Enter your first name and we\'ll greet you.</string>
@@ -82,6 +87,9 @@
     <string name="no_access_title">No access yet</string>
     <string name="no_permission_body">You don\'t have access to this page. Ask the owner of %1$s.</string>
     <string name="no_permission_title">No access</string>
+    <string name="no_workspace_have_link">Got the link? Open it on this phone.</string>
+    <string name="no_workspace_team_hint">Are you a trainer or owner? Use the Fivvi Pro app.</string>
+    <string name="no_workspace_title">Ask your studio for its link.</string>
     <string name="not_found_body">We can\'t find this page. Check the link and try again.</string>
     <string name="not_found_title">Page not found</string>
     <string name="profile_error">Your workspaces couldn\'t be loaded.</string>
@@ -91,6 +99,7 @@
     <string name="profile_trains_here_errors_no_connection">No connection. Check your internet and try again.</string>
     <string name="profile_trains_here_label">I also train at %1$s</string>
     <string name="profile_trains_here_saved">Saved.</string>
+    <string name="profile_version">Version %1$s</string>
     <string name="roles_owner">Owner</string>
     <string name="roles_trainer">Trainer</string>
     <string name="settings_general_errors_generic">Something went wrong. Try again.</string>

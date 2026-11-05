@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-// The app icon of Fivvi Pro on both platforms, generated from one source (E017 AC8, decision 6: a placeholder until a
-// designed icon exists). The source is the mark below (an "F" on a 108 x 108 grid, the size of an Android adaptive
-// icon layer) and the colours of the primary action in packages/design-tokens (`color.action.primary.bg` and `.fg`).
+// The app icons of Fivvi Pro on both platforms and of Fivvi, the client app, on Android, generated from one source
+// (E017 AC8, decision 6: a placeholder until a designed icon exists). The source is the mark below (an "F" on a 108 x 108
+// grid, the size of an Android adaptive icon layer) and colours in packages/design-tokens: Fivvi Pro takes the primary
+// action's (`color.action.primary.bg` and `.fg`), Fivvi the same mark on the inverse background (`color.bg.inverse` and
+// `color.text.inverse`), so the two apps are told apart on a home screen (#469 open question 4).
 //
 //   node scripts/app-icon.mjs            write every icon file (pnpm app-icon); scripts/test/app-icon.test.mjs fails when a
 //                                        committed file differs from what the source generates
@@ -11,6 +13,7 @@
 //   apps/android/app/src/main/res/drawable/ic_launcher_{background,foreground,monochrome}.xml, vector layers
 //   apps/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml   the adaptive icon with its monochrome layer
 //   apps/android/app/src/main/ic_launcher-playstore.png                512 px, RGB (Google Play listing)
+//   apps/android/client/src/main/res/..., ic_launcher-playstore.png    the same four files for Fivvi
 //
 // A designed icon replaces the placeholder by changing MARK and the tokens here, or this script. No dependency: the PNG
 // is rasterised and encoded with Node's zlib.
@@ -175,36 +178,12 @@ const vector = (name, fill, shape) => `<?xml version="1.0" encoding="utf-8"?>
 </vector>
 `;
 
-/** Every icon file as a map from its path in the repo to its content (a string or a Buffer). */
-export async function renderIcons(root = ROOT) {
-  const { light } = await readTokenSource(join(root, 'packages/design-tokens'));
-  const background = colour(light, 'color.action.primary.bg');
-  const foreground = colour(light, 'color.action.primary.fg');
-  const res = 'apps/android/app/src/main/res';
-  return new Map([
+/** The files of an Android app's launcher icon (`module` is `app` or `client`) in the two colours. */
+function androidIcon(module, background, foreground) {
+  const res = `apps/android/${module}/src/main/res`;
+  return [
     [
-      'apps/ios/FivviPro/Assets.xcassets/Contents.json',
-      '{\n  "info" : {\n    "author" : "xcode",\n    "version" : 1\n  }\n}\n',
-    ],
-    [
-      'apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset/Contents.json',
-      `${JSON.stringify(
-        {
-          images: [
-            { filename: 'AppIcon.png', idiom: 'universal', platform: 'ios', size: '1024x1024' },
-          ],
-          info: { author: 'xcode', version: 1 },
-        },
-        null,
-        2,
-      )}\n`,
-    ],
-    [
-      'apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset/AppIcon.png',
-      encodePng(1024, raster(1024, background, foreground)),
-    ],
-    [
-      'apps/android/app/src/main/ic_launcher-playstore.png',
+      `apps/android/${module}/src/main/ic_launcher-playstore.png`,
       encodePng(512, raster(512, background, foreground)),
     ],
     [
@@ -227,6 +206,42 @@ export async function renderIcons(root = ROOT) {
 </adaptive-icon>
 `,
     ],
+  ];
+}
+
+/** Every icon file as a map from its path in the repo to its content (a string or a Buffer). */
+export async function renderIcons(root = ROOT) {
+  const { light } = await readTokenSource(join(root, 'packages/design-tokens'));
+  const background = colour(light, 'color.action.primary.bg');
+  const foreground = colour(light, 'color.action.primary.fg');
+  return new Map([
+    [
+      'apps/ios/FivviPro/Assets.xcassets/Contents.json',
+      '{\n  "info" : {\n    "author" : "xcode",\n    "version" : 1\n  }\n}\n',
+    ],
+    [
+      'apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset/Contents.json',
+      `${JSON.stringify(
+        {
+          images: [
+            { filename: 'AppIcon.png', idiom: 'universal', platform: 'ios', size: '1024x1024' },
+          ],
+          info: { author: 'xcode', version: 1 },
+        },
+        null,
+        2,
+      )}\n`,
+    ],
+    [
+      'apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset/AppIcon.png',
+      encodePng(1024, raster(1024, background, foreground)),
+    ],
+    ...androidIcon('app', background, foreground),
+    ...androidIcon(
+      'client',
+      colour(light, 'color.bg.inverse'),
+      colour(light, 'color.text.inverse'),
+    ),
   ]);
 }
 
