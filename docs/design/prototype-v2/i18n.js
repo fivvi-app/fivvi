@@ -13,6 +13,11 @@ window.FIVVI_I18N = (function () {
 
   /* Sentence-level rules first: these change word order or need a captured value. */
   var RULES = [
+[/^(.+) boeken\?$/, function (m, t) { return "Book " + P(t) + "?"; }],
+[/^Op de wachtlijst voor (.+)\?$/, function (m, t) { return "Join the waitlist for " + P(t) + "?"; }],
+[/^Je wordt nummer (\d+)\. Komt er een plek vrij, dan word je automatisch geboekt en krijg je een e-mail\.$/, "You'll be number $1. If a spot frees up, you're booked automatically and get an email."],
+[/^Je gebruikt 1 (groepscredit|privécredit|Open Gym-credit); je hebt er nog (\d+)\.$/, function (m, k, n) { return "This uses 1 " + ({ "groepscredit": "group credit", "privécredit": "private credit", "Open Gym-credit": "Open Gym credit" })[k] + "; you have " + n + " left."; }],
+[/^Geboekt: (.+) (\d\d:\d\d)\. Je krijgt een bevestiging per e-mail\.$/, function (m, t, h) { return "Booked: " + P(t) + " " + h + ". You'll get a confirmation by email."; }],
 [/^nog (\d+) plekken$/, "$1 spots left"],
 [/^nog 1 plek$/, "1 spot left"],
 [/^Geboekt: (.+) (\d\d:\d\d)$/, function (m, t, h) { return "Booked: " + P(t) + " " + h; }],

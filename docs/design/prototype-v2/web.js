@@ -856,6 +856,15 @@
       K.sh("Oefeningen · " + sets.length, "", "small") + '<div class="pad">' + K.grp(sets.map(function (s) { return K.row({ title: esc(s[0]), sub: esc(s[1]), tr: s[2] ? '<span class="diff-e" role="img" aria-label="' + D.DIFF[s[2]][1] + '">' + D.DIFF[s[2]][0] + "</span>" : "", cls: "kv" }); })) + "</div>" };
   }
   function cdialog() {
+    var cd = C().dialog;
+    if (cd === "book" || cd === "wl") {
+      var f = F.findItem(C().dlgId), it = f.it, cr = creditFor(it), lines = [dayName(f.day) + " · " + it.s + "–" + it.e + (it.type === "gym" ? "" : " · " + cwho(it))];
+      if (cd === "wl") lines.push("Je wordt nummer " + ((it.waitlist || 0) + 1) + ". Komt er een plek vrij, dan word je automatisch geboekt en krijg je een e-mail.");
+      if (cr.bal) lines.push("Je gebruikt 1 " + D.CREDIT[cr.ck][0] + "; je hebt er nog " + cr.bal.left + ".");
+      lines.push("Gratis annuleren tot 12 uur voor de start.");
+      return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="' + esc(it.title) + '"><h3>' + (cd === "book" ? esc(it.title) + " boeken?" : "Op de wachtlijst voor " + esc(it.title) + "?") + "</h3>" + lines.map(function (l) { return "<p>" + l + "</p>"; }).join("") +
+        '<div class="btns">' + K.btn(cd === "book" ? "Boeken" : "Op de wachtlijst", { a: cd === "book" ? "c-bookok" : "c-wlok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
+    }
     if (C().dialog === "delete") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Account verwijderen"><h3>Account verwijderen?</h3><p>Je account en je gegevens worden verwijderd en je wordt uitgelogd. Facturen bewaart de studio zo lang als de wet vraagt.</p><div class="btns">' + K.btn("Account verwijderen", { k: "dng", a: "a-delete" }) + K.btn("Annuleren", { k: "sec", a: "c-dclose" }) + "</div></div>";
     var it = F.findItem(C().detail).it;
     return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Annuleren"><h3>' + esc(it.title) + " annuleren?</h3><p>Het is meer dan 12 uur voor de start, dus de les telt niet als gebruikt.</p><div class=\"btns\">" + K.btn("Ja, annuleren", { k: "dng", a: "c-cancel-ok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
@@ -994,8 +1003,8 @@
       }).join("") + "</div>" + K.foot("Na de betaling krijg je de factuur per e-mail en kun je meteen boeken.") + "</div></div>";
   }
 
-  A["c-qbook"] = function (d) { var c = C(), it = F.findItem(d.id).it; c.booked[d.id] = true; F.toast("Geboekt: " + it.title + " " + it.s); };
-  A["c-qwl"] = function (d) { var c = C(), it = F.findItem(d.id).it; it.waitlist = (it.waitlist || 0) + 1; c.wl[d.id] = it.waitlist; F.toast("Je staat op de wachtlijst: nummer " + it.waitlist); };
+  A["c-qbook"] = function (d) { var c = C(); c.dialog = "book"; c.dlgId = d.id; R(); };
+  A["c-qwl"] = function (d) { var c = C(); c.dialog = "wl"; c.dlgId = d.id; R(); };
   A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.web = null; c.page = null; R(); };
   A["c-offers"] = function () { C().web = "offers"; R(); };
   A["c-webclose"] = function () { C().web = null; R(); };
@@ -1022,12 +1031,17 @@
   A["c-open"] = function (d) { C().detail = d.id; R(); };
   A["c-back"] = function () { var c = C(); if (c.detail || c.workout != null) { c.detail = null; c.workout = null; } else c.page = null; R(); };
   A["c-page"] = function (d) { C().page = d.v; R(); };
-  A["c-book"] = function () { var c = C(); c.booked[c.detail] = true; F.toast("Geboekt. Je krijgt een bevestiging per e-mail."); };
-  A["c-wl"] = function () { var c = C(), it = F.findItem(c.detail).it; it.waitlist = (it.waitlist || 0) + 1; c.wl[c.detail] = it.waitlist; F.toast("Je staat op de wachtlijst: nummer " + it.waitlist); };
+  /* booking and joining the waitlist always ask first (owner, 5 Nov 2026), from the list and from the class page */
+  A["c-book"] = function () { var c = C(); c.dialog = "book"; c.dlgId = c.detail; R(); };
+  A["c-wl"] = function () { var c = C(); c.dialog = "wl"; c.dlgId = c.detail; R(); };
+  /* a booking plans one credit of its kind; cancelling in time gives it back (§92) */
+  function planCredit(it, n) { if (C().who !== "anna") return; var ck = creditFor(it).ck, a = D.billing.anna.agreements.filter(function (x) { return x.credit === ck && x.status !== "expired" && x.total - x.used - x.planned >= (n > 0 ? 1 : -99); })[0]; if (a) a.planned = Math.max(0, a.planned + n); }
+  A["c-bookok"] = function () { var c = C(), it = F.findItem(c.dlgId).it; c.booked[c.dlgId] = true; planCredit(it, 1); c.dialog = null; F.toast("Geboekt: " + it.title + " " + it.s + ". Je krijgt een bevestiging per e-mail."); };
+  A["c-wlok"] = function () { var c = C(), it = F.findItem(c.dlgId).it; it.waitlist = (it.waitlist || 0) + 1; c.wl[c.dlgId] = it.waitlist; c.dialog = null; F.toast("Je staat op de wachtlijst: nummer " + it.waitlist); };
   A["c-wl-leave"] = function () { var c = C(), it = F.findItem(c.detail).it; it.waitlist = Math.max(0, (it.waitlist || 1) - 1); delete c.wl[c.detail]; F.toast("Je staat niet meer op de wachtlijst"); };
   A["c-cancel"] = function () { C().dialog = true; R(); };
   A["c-dclose"] = function () { C().dialog = null; R(); };
-  A["c-cancel-ok"] = function () { var c = C(); delete c.booked[c.detail]; c.dialog = null; F.toast("Geannuleerd"); };
+  A["c-cancel-ok"] = function () { var c = C(); if (c.booked[c.detail]) planCredit(F.findItem(c.detail).it, -1); delete c.booked[c.detail]; c.dialog = null; F.toast("Geannuleerd"); };
   A["c-workout"] = function (d) { C().workout = +d.v; R(); };
   A["c-signout"] = function () { var s = S(); s.c = null; C().step = "link"; R(); };
 

@@ -224,7 +224,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
   - a filter, only when both groups and Open Gym exist;
   - rows with the **level** icon;
   - **nothing in a list is cut off with "…"** (owner, 5 November 2026): no description in list rows (the class page shows it whole), and long names wrap to a second line;
-  - **book straight from the list** (owner, 5 November 2026): each row has *Boeken*, or *Wachtlijst* on a full class, and keeps *Geboekt ✓* or *Wachtlijst #n* once done. Without a matching credit the button opens the class page, which explains. The free spots lead the small line (accent at 2 or fewer). Cancelling stays on the class page, with its confirmation;
+  - **book straight from the list** (owner, 5 November 2026): each row has *Boeken*, or *Wachtlijst* on a full class, and keeps *Geboekt ✓* or *Wachtlijst #n* once done. Without a matching credit the button opens the class page, which explains. The free spots lead the small line (accent at 2 or fewer). **Booking and joining the waitlist always ask for confirmation** (owner, 5 November 2026), from the list and from the class page: class, day and time, trainer, which credit it uses and how many are left, and the free-cancellation rule. A booking plans one credit; cancelling in time gives it back. Cancelling stays on the class page, with its confirmation;
   - the cancellation rule as a footnote.
 - **Class page:**
   - description;
