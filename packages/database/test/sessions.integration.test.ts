@@ -4,12 +4,15 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   createDatabase,
   createPrivateSession,
+  authUsers,
   createTenantScopes,
   type DatabaseClient,
   type DatabaseExecutor,
   findSession,
   findTrainer,
+  listUpcomingSessionsOfClient,
   locations,
+  rescheduleSession,
   sessionParticipants,
   sessions,
   teamMembers,
@@ -419,6 +422,228 @@ describe('F020 sessions and session participants tables', () => {
       const found = await asTeam(john.id, gym.id, (scope) => findSession(scope, session.id));
 
       expect(found).toMatchObject({ trainer: null, participants: [expect.anything()] });
+    });
+  });
+  describe('rescheduling and upcoming sessions, as the app role', () => {
+    async function gymWithJohnAndSarah() {
+      const { gym, sarah, profileId } = await gymWithSarah();
+      const john = await createAccount(admin.db, { label: 'john' });
+      await admin.db.update(authUsers).set({ name: 'John' }).where(eq(authUsers.id, john.id));
+      const johnRole = await addTeamRole(admin.db, {
+        workspaceId: gym.id,
+        accountId: john.id,
+        role: 'owner',
+      });
+      const anna = await addClient(admin.db, { workspaceId: gym.id, name: 'Anna de Vries' });
+      return { gym, sarah, profileId, john, johnRole, anna };
+    }
+
+    const FRIDAY = {
+      startsAt: new Date('2026-09-25T08:00:00.000Z'),
+      endsAt: new Date('2026-09-25T09:00:00.000Z'),
+    };
+
+    it('AC6: moves the session, raises the version, keeps the location, trainer and client, and records who did it', async () => {
+      const { gym, profileId, john, johnRole, anna, sarah } = await gymWithJohnAndSarah();
+      const session = await addSession(admin.db, {
+        workspaceId: gym.id,
+        clientId: anna.id,
+        trainerProfileId: profileId,
+        startsAt: new Date('2026-09-24T07:00:00.000Z'),
+        createdByTeamMemberId: sarah.id,
+      });
+
+      const moved = await asTeam(john.id, gym.id, (scope) =>
+        rescheduleSession(scope, {
+          sessionId: session.id,
+          expectedVersion: 1,
+          ...FRIDAY,
+          changedByTeamMemberId: johnRole.id,
+        }),
+      );
+
+      expect(moved).toMatchObject({
+        id: session.id,
+        ...FRIDAY,
+        version: 2,
+        status: 'scheduled',
+        location: { id: session.locationId },
+        trainer: { id: sarah.id },
+        participants: [{ clientId: anna.id, attendanceStatus: 'booked' }],
+        lastChangedBy: { id: johnRole.id, name: 'John' },
+      });
+      const found = await asTeam(john.id, gym.id, (scope) => findSession(scope, session.id));
+      expect(found).toEqual(moved);
+    });
+
+    it('AC8: a stale version changes nothing and answers undefined; a session of another workspace too', async () => {
+      const { gym, profileId, john, johnRole, anna } = await gymWithJohnAndSarah();
+      const { gym: other } = await gymWithSarah();
+      const session = await addSession(admin.db, {
+        workspaceId: gym.id,
+        clientId: anna.id,
+        trainerProfileId: profileId,
+        version: 3,
+      });
+      const foreign = await addSession(admin.db, { workspaceId: other.id });
+      const change = (sessionId: string, expectedVersion: number) =>
+        asTeam(john.id, gym.id, (scope) =>
+          rescheduleSession(scope, {
+            sessionId,
+            expectedVersion,
+            ...FRIDAY,
+            changedByTeamMemberId: johnRole.id,
+          }),
+        );
+
+      expect(await change(session.id, 2)).toBeUndefined();
+      expect(await change(foreign.id, 1)).toBeUndefined();
+
+      const rows = await admin.db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.organizationId, gym.id));
+      expect(rows).toEqual([expect.objectContaining({ startsAt: session.startsAt, version: 3 })]);
+      const [foreignRow] = await admin.db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.id, foreign.id));
+      expect(foreignRow).toMatchObject({ startsAt: foreign.startsAt, version: 1 });
+    });
+
+    it('AC8: of two changes from the same version at the same time, one wins and the other changes nothing', async () => {
+      const { gym, profileId, john, johnRole, anna } = await gymWithJohnAndSarah();
+      const session = await addSession(admin.db, {
+        workspaceId: gym.id,
+        clientId: anna.id,
+        trainerProfileId: profileId,
+      });
+      const change = (hours: number) =>
+        asTeam(john.id, gym.id, (scope) =>
+          rescheduleSession(scope, {
+            sessionId: session.id,
+            expectedVersion: 1,
+            startsAt: new Date(FRIDAY.startsAt.getTime() + hours * 3_600_000),
+            endsAt: new Date(FRIDAY.endsAt.getTime() + hours * 3_600_000),
+            changedByTeamMemberId: johnRole.id,
+          }),
+        );
+
+      const results = await Promise.all([change(0), change(1)]);
+
+      expect(results.filter((result) => result !== undefined)).toHaveLength(1);
+      const [row] = await admin.db.select().from(sessions).where(eq(sessions.id, session.id));
+      expect(row?.version).toBe(2);
+    });
+
+    it('names who planned the session until someone else changes it, and no one once they are gone', async () => {
+      const { gym, john, johnRole, anna, sarah, profileId } = await gymWithJohnAndSarah();
+      const [location] = await admin.db
+        .select({ id: locations.id })
+        .from(locations)
+        .where(eq(locations.organizationId, gym.id));
+      const planned = await asTeam(john.id, gym.id, (scope) =>
+        createPrivateSession(scope, {
+          trainerProfileId: profileId,
+          locationId: location?.id ?? '',
+          startsAt: new Date('2026-09-24T07:00:00.000Z'),
+          endsAt: new Date('2026-09-24T08:00:00.000Z'),
+          capacity: 1,
+          clientId: anna.id,
+          createdByTeamMemberId: sarah.id,
+        }),
+      );
+      expect(planned.lastChangedBy).toMatchObject({ id: sarah.id });
+
+      const moved = await asTeam(john.id, gym.id, (scope) =>
+        rescheduleSession(scope, {
+          sessionId: planned.id,
+          expectedVersion: 1,
+          ...FRIDAY,
+          changedByTeamMemberId: johnRole.id,
+        }),
+      );
+      expect(moved?.lastChangedBy).toEqual({ id: johnRole.id, name: 'John' });
+
+      await admin.db.delete(teamMembers).where(eq(teamMembers.id, johnRole.id));
+      const gone = await admin.db.select().from(sessions).where(eq(sessions.id, planned.id));
+      expect(gone[0]).toMatchObject({ updatedByTeamMemberId: null, version: 2 });
+    });
+
+    it('AC9: lists the next sessions of a client in order, from now, private and scheduled only', async () => {
+      const { gym, profileId, john, anna } = await gymWithJohnAndSarah();
+      const mark = await addClient(admin.db, { workspaceId: gym.id });
+      const now = new Date('2026-09-17T10:00:00.000Z');
+      const at = (days: number, hours = 0) =>
+        new Date(now.getTime() + days * 86_400_000 + hours * 3_600_000);
+      const plan = (clientId: string, startsAt: Date, extra: Record<string, unknown> = {}) =>
+        addSession(admin.db, {
+          workspaceId: gym.id,
+          clientId,
+          trainerProfileId: profileId,
+          startsAt,
+          ...extra,
+        });
+      const third = await plan(anna.id, at(9));
+      const first = await plan(anna.id, at(2));
+      const second = await plan(anna.id, at(5));
+      await plan(anna.id, at(-1)); // past
+      await plan(anna.id, at(3), { status: 'cancelled' });
+      await plan(anna.id, at(4), { type: 'group' });
+      await plan(mark.id, at(1)); // another client's
+      const startsNow = await plan(anna.id, now);
+
+      const upcoming = await asTeam(john.id, gym.id, (scope) =>
+        listUpcomingSessionsOfClient(scope, anna.id, { now, limit: 5 }),
+      );
+
+      expect(upcoming.map(({ id }) => id)).toEqual([startsNow.id, first.id, second.id, third.id]);
+      expect(upcoming[1]).toMatchObject({
+        startsAt: first.startsAt,
+        endsAt: first.endsAt,
+        trainer: { name: expect.any(String) },
+      });
+    });
+
+    it('lists at most the limit, and an empty list for a client without sessions', async () => {
+      const { gym, profileId, john, anna } = await gymWithJohnAndSarah();
+      const lonely = await addClient(admin.db, { workspaceId: gym.id });
+      const now = new Date('2026-09-17T10:00:00.000Z');
+      for (const days of [1, 2, 3, 4, 5, 6, 7]) {
+        await addSession(admin.db, {
+          workspaceId: gym.id,
+          clientId: anna.id,
+          trainerProfileId: profileId,
+          startsAt: new Date(now.getTime() + days * 86_400_000),
+        });
+      }
+
+      await asTeam(john.id, gym.id, async (scope) => {
+        expect(await listUpcomingSessionsOfClient(scope, anna.id, { now, limit: 5 })).toHaveLength(
+          5,
+        );
+        expect(await listUpcomingSessionsOfClient(scope, lonely.id, { now, limit: 5 })).toEqual([]);
+      });
+    });
+
+    it('does not list the sessions of a client of another workspace', async () => {
+      const { gym, john } = await gymWithJohnAndSarah();
+      const { gym: other } = await gymWithSarah();
+      const foreignClient = await addClient(admin.db, { workspaceId: other.id });
+      await addSession(admin.db, {
+        workspaceId: other.id,
+        clientId: foreignClient.id,
+        startsAt: new Date('2026-09-20T10:00:00.000Z'),
+      });
+
+      const upcoming = await asTeam(john.id, gym.id, (scope) =>
+        listUpcomingSessionsOfClient(scope, foreignClient.id, {
+          now: new Date('2026-09-17T10:00:00.000Z'),
+          limit: 5,
+        }),
+      );
+
+      expect(upcoming).toEqual([]);
     });
   });
 });

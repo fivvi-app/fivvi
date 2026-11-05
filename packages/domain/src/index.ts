@@ -43,6 +43,11 @@ export {
   type PlanPrivateSessionRefusal,
   PRIVATE_SESSION_DURATIONS,
   planPrivateSession,
+  type ReschedulePrivateSessionDecision,
+  type ReschedulePrivateSessionFacts,
+  type ReschedulePrivateSessionRefusal,
+  reschedulePrivateSession,
+  sendsChangeNotice,
   sendsConfirmation,
 } from './scheduling/private-session.ts';
 export { type WallClockInstant, wallClockToInstant } from './scheduling/zoned-time.ts';

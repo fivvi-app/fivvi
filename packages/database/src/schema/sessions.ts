@@ -41,6 +41,9 @@ export const attendanceStatus = pgEnum('attendance_status', [
  *   blocked by their sessions. Reassigning is the Owner's call (F026 follow-up).
  * - `created_by_team_member_id` is who planned it, cleared the same way when that team member is
  *   removed.
+ * - `updated_by_team_member_id` is who changed it last: the planner at first, then whoever
+ *   reschedules it (AC8: a stale save is told who changed the session meanwhile). Cleared the same
+ *   way when that team member is removed.
  * - `series_id` is empty here; recurring series (F022) point it at their series without a
  *   migration of existing rows.
  * - `version` starts at 1 and is raised by every change, for optimistic concurrency (reschedule,
@@ -62,6 +65,7 @@ export const sessions = businessTable(
     seriesId: uuid('series_id'),
     version: integer('version').notNull().default(1),
     createdByTeamMemberId: uuid('created_by_team_member_id'),
+    updatedByTeamMemberId: uuid('updated_by_team_member_id'),
     ...timestamps(),
   },
   (table) => [
@@ -86,6 +90,11 @@ export const sessions = businessTable(
     foreignKey({
       name: 'sessions_created_by_fk',
       columns: [table.organizationId, table.createdByTeamMemberId],
+      foreignColumns: [teamMembers.organizationId, teamMembers.id],
+    }),
+    foreignKey({
+      name: 'sessions_updated_by_fk',
+      columns: [table.organizationId, table.updatedByTeamMemberId],
       foreignColumns: [teamMembers.organizationId, teamMembers.id],
     }),
     check('sessions_ends_after_starts', sql`${table.endsAt} > ${table.startsAt}`),
@@ -119,7 +128,7 @@ export const sessionParticipants = businessTable(
   },
   (table) => [
     unique('session_participants_session_id_client_id_unique').on(table.sessionId, table.clientId),
-    // A client's upcoming sessions (F020 later ticket, TW-02 / TM-03).
+    // A client's upcoming sessions (F020, TW-02 / TM-03).
     index('session_participants_organization_id_client_id_idx').on(
       table.organizationId,
       table.clientId,

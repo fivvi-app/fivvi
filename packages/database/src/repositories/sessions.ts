@@ -1,4 +1,4 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, gte, ne, sql } from 'drizzle-orm';
 import {
   authUsers,
   clients,
@@ -53,6 +53,21 @@ export interface SessionView {
   readonly trainer: SessionTrainerView | null;
   /** In the order they were added. */
   readonly participants: SessionParticipantView[];
+  /**
+   * Who changed the session last: its planner, then whoever rescheduled it (AC8). `null` when
+   * that team member has been removed. Not part of what the API shows of a session; it names the
+   * person when a stale change is refused.
+   */
+  readonly lastChangedBy: SessionTrainerView | null;
+}
+
+/** A session in a client's list of upcoming sessions (TW-02, TM-03): when, and with whom. */
+export interface UpcomingSessionView {
+  readonly id: string;
+  readonly startsAt: Date;
+  readonly endsAt: Date;
+  /** `null` when the trainer's profile ended. */
+  readonly trainer: SessionTrainerView | null;
 }
 
 /** What a new private session is made of: the decisions of `planPrivateSession`, and the client. */
@@ -88,12 +103,13 @@ export async function findSession(
       version: sessions.version,
       locationId: sessions.locationId,
       trainerProfileId: sessions.trainerProfileId,
+      updatedByTeamMemberId: sessions.updatedByTeamMemberId,
     })
     .from(sessions)
     .where(and(eq(sessions.organizationId, scope.workspaceId), eq(sessions.id, sessionId)))
     .limit(1);
   if (!row) return undefined;
-  const { locationId, trainerProfileId, ...session } = row;
+  const { locationId, trainerProfileId, updatedByTeamMemberId, ...session } = row;
   const location = await findLocation(scope, locationId);
   // The composite foreign key keeps the location in the workspace and not null: it is there.
   if (!location) throw new Error('The location of a session was not found.');
@@ -113,6 +129,18 @@ export async function findSession(
           and(
             eq(trainerProfiles.organizationId, scope.workspaceId),
             eq(trainerProfiles.id, trainerProfileId),
+          ),
+        )
+    : [];
+  const [lastChangedBy] = updatedByTeamMemberId
+    ? await db
+        .select({ id: teamMembers.id, name: authUsers.name })
+        .from(teamMembers)
+        .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+        .where(
+          and(
+            eq(teamMembers.organizationId, scope.workspaceId),
+            eq(teamMembers.id, updatedByTeamMemberId),
           ),
         )
     : [];
@@ -137,7 +165,13 @@ export async function findSession(
       ),
     )
     .orderBy(asc(sessionParticipants.createdAt), asc(sessionParticipants.id));
-  return { ...session, location, trainer: trainer ?? null, participants };
+  return {
+    ...session,
+    location,
+    trainer: trainer ?? null,
+    participants,
+    lastChangedBy: lastChangedBy ?? null,
+  };
 }
 
 /**
@@ -162,6 +196,8 @@ export async function createPrivateSession(
       endsAt: input.endsAt,
       capacity: input.capacity,
       createdByTeamMemberId: input.createdByTeamMemberId,
+      // The planner is the first to have changed it.
+      updatedByTeamMemberId: input.createdByTeamMemberId,
     })
     .returning({ id: sessions.id });
   if (!created) throw new Error('The session was not stored.');
@@ -173,4 +209,109 @@ export async function createPrivateSession(
   const session = await findSession(scope, created.id);
   if (!session) throw new Error('The session was not found after it was stored.');
   return session;
+}
+
+/** What a reschedule changes: the new instants, the version the person saw, and who changes it. */
+export interface SessionReschedule {
+  readonly sessionId: string;
+  /** The version the person read. The session is changed only if it still has it. */
+  readonly expectedVersion: number;
+  readonly startsAt: Date;
+  readonly endsAt: Date;
+  /** The team-member record of the person who reschedules. */
+  readonly changedByTeamMemberId: string;
+}
+
+/**
+ * Moves a session of the scope's workspace to the new instants, raises its version and records who
+ * did it, and returns it as `findSession` shows it. The location, the trainer and the places stay.
+ * The caller has decided it is allowed (`reschedulePrivateSession`). The change is one statement
+ * that matches the version, so of two changes from the same version exactly one is stored: the
+ * second waits for the first's row lock and then matches nothing. `undefined` when the version is
+ * no longer the session's (or the workspace has no such session): nothing changed, and the caller
+ * reads the session to tell which.
+ */
+export async function rescheduleSession(
+  scope: WorkspaceScope,
+  input: SessionReschedule,
+): Promise<SessionView | undefined> {
+  const db = executorOf(scope);
+  const [changed] = await db
+    .update(sessions)
+    .set({
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
+      version: sql`${sessions.version} + 1`,
+      updatedByTeamMemberId: input.changedByTeamMemberId,
+    })
+    .where(
+      and(
+        eq(sessions.organizationId, scope.workspaceId),
+        eq(sessions.id, input.sessionId),
+        eq(sessions.version, input.expectedVersion),
+      ),
+    )
+    .returning({ id: sessions.id });
+  if (!changed) return undefined;
+  return findSession(scope, changed.id);
+}
+
+/**
+ * The next sessions of a client of the scope's workspace, soonest first: private sessions that are
+ * still scheduled and start at `now` or later, where the client's place is not cancelled. Empty for
+ * a client without any, and for a client of another workspace (RLS shows none of its rows).
+ */
+export async function listUpcomingSessionsOfClient(
+  scope: WorkspaceScope,
+  clientId: string,
+  options: { now: Date; limit: number },
+): Promise<UpcomingSessionView[]> {
+  const db = executorOf(scope);
+  const rows = await db
+    .select({
+      id: sessions.id,
+      startsAt: sessions.startsAt,
+      endsAt: sessions.endsAt,
+      trainerId: teamMembers.id,
+      trainerName: authUsers.name,
+    })
+    .from(sessionParticipants)
+    .innerJoin(
+      sessions,
+      and(
+        eq(sessions.organizationId, sessionParticipants.organizationId),
+        eq(sessions.id, sessionParticipants.sessionId),
+      ),
+    )
+    .leftJoin(
+      trainerProfiles,
+      and(
+        eq(trainerProfiles.organizationId, sessions.organizationId),
+        eq(trainerProfiles.id, sessions.trainerProfileId),
+      ),
+    )
+    .leftJoin(
+      teamMembers,
+      and(
+        eq(teamMembers.organizationId, trainerProfiles.organizationId),
+        eq(teamMembers.id, trainerProfiles.teamMemberId),
+      ),
+    )
+    .leftJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+    .where(
+      and(
+        eq(sessionParticipants.organizationId, scope.workspaceId),
+        eq(sessionParticipants.clientId, clientId),
+        ne(sessionParticipants.attendanceStatus, 'cancelled'),
+        eq(sessions.type, 'private'),
+        eq(sessions.status, 'scheduled'),
+        gte(sessions.startsAt, options.now),
+      ),
+    )
+    .orderBy(asc(sessions.startsAt), asc(sessions.id))
+    .limit(options.limit);
+  return rows.map(({ trainerId, trainerName, ...session }) => ({
+    ...session,
+    trainer: trainerId ? { id: trainerId, name: trainerName ?? '' } : null,
+  }));
 }

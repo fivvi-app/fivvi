@@ -115,6 +115,89 @@ export function planPrivateSession(facts: PlanPrivateSessionFacts): PlanPrivateS
   };
 }
 
+/** What the rules need to know to move a private session, all read by the caller: no I/O in here. */
+export interface ReschedulePrivateSessionFacts {
+  /** Who reschedules: their role and their own team-member ID in the workspace. */
+  readonly actor: { readonly role: Role; readonly teamMemberId: string };
+  /** The session as it is now. */
+  readonly session: {
+    /** `null` when the trainer's profile ended: only the Owner reschedules such a session. */
+    readonly trainerTeamMemberId: string | null;
+    readonly status: 'scheduled' | 'cancelled';
+    readonly version: number;
+    readonly startsAt: Date;
+    readonly endsAt: Date;
+  };
+  /** The version the person saw when they opened the session. */
+  readonly expectedVersion: number;
+  /** The new date, start and duration, as in planning. */
+  readonly localDate: string;
+  readonly localStart: string;
+  readonly durationMinutes: number;
+  readonly timeZone: string;
+  readonly now: Date;
+}
+
+export type ReschedulePrivateSessionRefusal =
+  | PlanPrivateSessionRefusal
+  /** The session was cancelled (F026): a cancelled session stays as it is. */
+  | 'not-scheduled'
+  /** Someone changed the session after the version the person saw (AC8). */
+  | 'stale-version';
+
+export type ReschedulePrivateSessionDecision =
+  | {
+      readonly outcome: 'rescheduled';
+      readonly startsAt: Date;
+      readonly endsAt: Date;
+      /** The new start is before `now`: it is saved, with a warning, and never emailed. */
+      readonly past: boolean;
+      /** The new start happens twice (the clocks went back); the first one was taken. */
+      readonly repeatedStart: boolean;
+    }
+  | { readonly outcome: 'refused'; readonly reason: ReschedulePrivateSessionRefusal };
+
+/**
+ * Moves a private session (F020, PS-05): the Owner may move any session
+ * (`session.private.manage.any`), a Trainer only their own (`session.private.manage.own`, F004's
+ * matrix); the new date, start and duration follow the rules of planning, and the location stays.
+ * The refusal for a right comes first, so a caller who may not move the session learns nothing
+ * else about it. A stale version is refused last: the person is told the session changed, with
+ * the values it has now (the caller adds them).
+ */
+export function reschedulePrivateSession(
+  facts: ReschedulePrivateSessionFacts,
+): ReschedulePrivateSessionDecision {
+  const { actor, session } = facts;
+  const mayMoveAny = hasCapability(actor.role, 'session.private.manage.any');
+  const mayMoveOwn =
+    hasCapability(actor.role, 'session.private.manage.own') &&
+    session.trainerTeamMemberId !== null &&
+    session.trainerTeamMemberId === actor.teamMemberId;
+  if (!mayMoveAny && !mayMoveOwn) return { outcome: 'refused', reason: 'not-allowed' };
+  if (!validDuration(facts.durationMinutes)) {
+    return { outcome: 'refused', reason: 'invalid-duration' };
+  }
+  const start = wallClockToInstant(facts.localDate, facts.localStart, facts.timeZone);
+  if (start.outcome === 'invalid') {
+    return { outcome: 'refused', reason: start.field === 'date' ? 'invalid-date' : 'invalid-time' };
+  }
+  if (start.outcome === 'does-not-exist') {
+    return { outcome: 'refused', reason: 'time-does-not-exist' };
+  }
+  if (session.status !== 'scheduled') return { outcome: 'refused', reason: 'not-scheduled' };
+  if (facts.expectedVersion !== session.version) {
+    return { outcome: 'refused', reason: 'stale-version' };
+  }
+  return {
+    outcome: 'rescheduled',
+    startsAt: start.instant,
+    endsAt: new Date(start.instant.getTime() + facts.durationMinutes * MINUTE_MS),
+    past: start.instant.getTime() < facts.now.getTime(),
+    repeatedStart: start.repeated,
+  };
+}
+
 /**
  * Whether EM-11 goes to the client: the trainer asked for it (`notify`) and the session is not in
  * the past (AC5): a session entered afterwards never emails, even when the box was checked.
@@ -135,4 +218,12 @@ export function confirmationLanguage(sources: {
     recipientPreference: matchLocale(sources.clientEmailLocale),
     workspaceDefault: sources.workspaceDefault,
   });
+}
+
+/**
+ * Whether EM-04 goes to the client after a reschedule: the trainer asked for it (`notify`) and the
+ * new time is not in the past, so a session moved afterwards never emails (as for EM-11).
+ */
+export function sendsChangeNotice(input: { notify: boolean; past: boolean }): boolean {
+  return input.notify && !input.past;
 }
