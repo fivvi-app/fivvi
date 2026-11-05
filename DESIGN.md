@@ -18,7 +18,7 @@ The locked design system, and how design decisions are made. Design tools and sk
 **Calendar calm, Fitness pops.** Fivvi looks like it belongs next to Apple Calendar, Fitness and Health, and reads clearly in a busy gym: time, client, location, capacity and the next action come first.
 
 - **Calm:** a grouped grey canvas, white cards, inset lists, true black in dark mode.
-- **Energy:** gradient cards in one hue, rounded numbers, sharp colour in small doses, with **Move pink** as the accent.
+- **Energy:** gradient cards in one hue, rounded numbers, sharp colour in small doses, with **Move pink** as the accent and a black-and-white accent as the alternative.
 - The session type is shown in words, never by colour alone. Light and dark follow the system setting.
 - The UI only shows what exists: a solo PT never sees group classes or Open Gym. Every list can be added to, changed and removed from, and every removal asks for confirmation.
 
@@ -56,9 +56,9 @@ Where the design matters, the owner decides by **talking it over in the clickabl
 
 ## Web (`apps/web`, `packages/ui`)
 
-- shadcn/ui with zinc neutrals on Tailwind v4, themed only by the tokens: import `@fivvi/ui/globals.css` and use shadcn's theme classes plus `session-*` and `status-*` ([`packages/ui`](packages/ui/README.md)). Tailwind's default palette is removed; no literal colours, no `--th-*` variables or palette in app code.
+- shadcn/ui on Tailwind v4, themed only by the tokens (zinc neutrals and the accent once #590 lands): import `@fivvi/ui/globals.css` and use shadcn's theme classes plus `session-*` and `status-*` ([`packages/ui`](packages/ui/README.md)). Tailwind's default palette is removed; no literal colours, no `--th-*` variables or palette in app code.
 - Two densities by `data-density`: `compact` for Trainer Web on a desktop pointer, `touch` for public and client pages. The client web is a mobile website in the same design language as Fivvi Pro.
-- The system font for text, forms and data. Until #590 lands, `font-display` (Bricolage Grotesque) stays in `packages/ui`; don't use it on new screens.
+- The system font for text and forms; numbers use a rounded face with tabular digits. Until #590 lands, `font-display` (Bricolage Grotesque) stays in `packages/ui`; don't use it on new screens.
 - A new colour pair on screen is a new entry in `packages/design-tokens/tokens/contrast-pairs.json` (AA in light and dark).
 
 ## iOS (`apps/ios`) and Android (`apps/android`)
@@ -66,9 +66,9 @@ Where the design matters, the owner decides by **talking it over in the clickabl
 The tokens are shared; the look is native. Same flows, content and capability on both, not the same layout ([ADR-029](docs/decisions/ADR-029-design-v2.md), [visual direction](docs/design/visual-direction.md#platforms)).
 
 - **iOS 26 with Liquid Glass:** SwiftUI with native controls, following the HIG: glass navigation buttons, a floating glass tab bar that shrinks while scrolling, glass sheets and alerts, large titles. Colours from `Tokens.Colors`, spacing and corners from `Tokens.Spacing` and `Tokens.Radius` (continuous corners), text in the token's Dynamic Type style, never a size ([`apps/ios`](apps/ios/README.md#theme)). The deployment target moves from 17.0 to 26.0 with #590.
-- **Android with Material 3 Expressive:** Compose with Material 3 and Google Sans Flex. Screens sit in `FivviTheme` (the token colour schemes and `TokenShapes`). Colours from `MaterialTheme.colorScheme`, and, where Material has no role, from `LightTokenColors` or `DarkTokenColors` for the same mode, added through `FivviTheme` so screens don't each pick the mode; spacing from `Spacing`; text in `MaterialTheme.typography` roles, never a size; no dynamic colour ([`apps/android`](apps/android/README.md)). Single-choice toggles use the M3 segmented button, not the Expressive connected button group.
+- **Android with Material 3 Expressive:** Compose with Material 3; Expressive (`material3` 1.5) and Google Sans Flex come with #590. Screens sit in `FivviTheme` (the token colour schemes and `TokenShapes`). Colours from `MaterialTheme.colorScheme`, and, where Material has no role, from `LightTokenColors` or `DarkTokenColors` for the same mode, added through `FivviTheme` so screens don't each pick the mode; spacing from `Spacing`; text in `MaterialTheme.typography` roles, never a size; no dynamic colour ([`apps/android`](apps/android/README.md)). Single-choice toggles use the M3 segmented button, not the Expressive connected button group.
 - Structure differs per platform on purpose: large titles and inset grouped lists on iOS; a top app bar, a selected navigation indicator, shaped avatars per session type and segmented buttons on Android.
-- Densities, type, shape and touch targets: see the [visual direction](docs/design/visual-direction.md#type-shape-and-spacing). Sheets, tab bars and pickers follow each platform's native controls.
+- Densities, type and shape: see the [visual direction](docs/design/visual-direction.md#type-shape-and-spacing). The minimum touch target is `size.touch-min` in [`tokens/layout.json`](packages/design-tokens/tokens/layout.json). Sheets, tab bars and pickers follow each platform's native controls.
 
 ## Not for design tools to decide
 
