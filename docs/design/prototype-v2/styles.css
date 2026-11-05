@@ -183,7 +183,7 @@ button{cursor:pointer}
 
 .card{background:var(--card);border-radius:26px;padding:16px}
 .hero{border-radius:26px;padding:18px;color:#fff;position:relative;overflow:hidden;
-  background:radial-gradient(110% 130% at 100% 0%,color-mix(in oklab,var(--c) 78%,#fff) 0%,transparent 60%),linear-gradient(160deg,color-mix(in oklab,var(--c) 78%,#000) 0%,var(--c) 100%)}
+  background:radial-gradient(110% 130% at 100% 0%,color-mix(in oklab,var(--c) 80%,#fff) 0%,transparent 55%),linear-gradient(160deg,color-mix(in oklab,var(--c) 72%,#000) 0%,color-mix(in oklab,var(--c) 88%,#000) 100%)}
 .hero .cap{font-size:13px;font-weight:600;opacity:.88;text-transform:uppercase;letter-spacing:.03em}
 .hero h3{font-size:24px;line-height:29px;margin:4px 0 2px;font-weight:700}
 .hero p{margin:0;font-size:15px;opacity:.92}
@@ -652,3 +652,10 @@ input:focus,select:focus,textarea:focus{outline:none}
 .row .m span .lvl-sep{display:inline}
 .w-sheet-h .lvl{margin-left:8px;font-size:12px;color:var(--w-mfg)}
 .row .m b span{display:inline;font-size:inherit;color:inherit;white-space:inherit}
+/* Icon contrast (owner, 5 Nov 2026: icons must be visible on every background, light and dark).
+   White glyphs sit on the colour mixed with black (85% → 75%): at least 3.4:1 for every type colour.
+   Coloured glyphs on tints and cards use the colour mixed with the mode's ink (78%): at least 3.7:1. */
+.dc-ic,.av:has(> svg),.row .seg button.on[data-v="yes"],.row .seg button.on[data-v="no"]{background:linear-gradient(160deg,color-mix(in oklab,var(--c) 85%,#000),color-mix(in oklab,var(--c) 75%,#000))}
+.row .seg button.on[data-v="yes"]{--c:var(--ok)}
+.row .seg button.on[data-v="no"]{--c:var(--danger)}
+.banner svg{color:color-mix(in oklab,var(--c,var(--gym)) 78%,var(--ev-ink))}

@@ -381,13 +381,16 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-sec{font-size:13px;font-weight:600;color:var(--w-mfg);text-transform:uppercase;letter-spacing:.03em;margin:22px 0 10px}
 .w-offers{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
 .w-offer{background:var(--w-card);border:1px solid var(--w-border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-.w-offer.off .w-offer-ic,.w-offer.off .w-offer-p b{filter:grayscale(1);opacity:.55}
+.w-offer.off .w-offer-ic{filter:grayscale(1) brightness(.85)}
+.w-offer.off .w-offer-p b{opacity:.55}
 .w-offer-h{display:flex;align-items:center;gap:10px}
 .w-offer-h>div{flex:1;min-width:0}
 .w-offer-h b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.w-offer-h span{font-size:12px;color:var(--w-mfg)}
-.w-offer-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;color:#fff;background:linear-gradient(160deg,color-mix(in oklab,var(--c) 70%,#fff),var(--c))}
-.w-offer-ic svg{width:18px;height:18px}
+.w-offer-h>div>span{font-size:12px;color:var(--w-mfg)}
+/* white glyph on a single-hue gradient that is darker at the bottom, so it reads on every type colour in light and dark */
+.w-offer .w-offer-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;color:#fff;
+  background:linear-gradient(160deg,color-mix(in oklab,var(--c) 86%,#000),color-mix(in oklab,var(--c) 70%,#000));box-shadow:inset 0 0 0 .5px rgba(255,255,255,.25)}
+.w-offer .w-offer-ic svg{width:18px;height:18px;flex:none;stroke-width:2.2}
 .w-offer-p b{font-size:22px;font-family:var(--f-num);font-weight:800;letter-spacing:-.01em}
 .w-offer-p span{font-size:12px;color:var(--w-mfg)}
 .w-need{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:color-mix(in oklab,var(--gym) 70%,var(--w-fg))}
@@ -402,3 +405,5 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-switch.on i{transform:translateX(16px)}
 .w-starts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px}
 .w-starts .w-muted{width:100%;font-size:12px}
+.w-av:has(> svg){background:linear-gradient(160deg,color-mix(in oklab,var(--c) 85%,#000),color-mix(in oklab,var(--c) 75%,#000))}
+.w-list li>button svg:first-child,.w-warn,.c-wait{color:color-mix(in oklab,var(--gym) 78%,var(--ev-ink))}
