@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from './client.ts';
+import { FIXTURE_INVITATION_VALIDITY_MS } from './invitation-validity.ts';
 import {
   authUsers,
   clients,
@@ -171,7 +172,7 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
       inviterTeamMemberId: johnInGym.id,
       ...SEED_INVITATION,
       tokenHash: SEED_INVITATION_TOKEN_HASH,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + FIXTURE_INVITATION_VALIDITY_MS),
     });
   }
   // Idempotent without fixed IDs: a client is there already when its email address is used in

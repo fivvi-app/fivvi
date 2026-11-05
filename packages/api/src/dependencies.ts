@@ -1,5 +1,6 @@
 import type { SignedInAccount, SystemGreetingView, TenantScopes } from '@fivvi/database';
 import type { SignUpAllowlist } from '@fivvi/domain';
+import type { TrainerInvitationMail } from '@fivvi/email/trainer-invitation-mail';
 import type { Locale } from '@fivvi/i18n';
 import {
   createErrorReporter,
@@ -7,23 +8,6 @@ import {
   type ErrorReporter,
   type ProductEvents,
 } from '@fivvi/observability';
-
-/** What EM-09 needs, decided by the invitation routes (F011). */
-export interface TrainerInvitationMail {
-  to: { email: string; name: string };
-  /** The language of the email: the chosen one, the address's account's, the workspace's default. */
-  locale: Locale;
-  /** The Owner's name; their address when the account has no name. */
-  inviterName: string;
-  workspaceName: string;
-  /** The workspace's time zone: the expiry date is shown in it. */
-  timeZone: string;
-  /** The token for the link: it is in the email and nowhere else. */
-  token: string;
-  expiresAt: Date;
-  /** One key per invitation and token, so the same send repeated goes out once. */
-  idempotencyKey: string;
-}
 
 /** What the API needs from the outside world. apps/web wires the real ones; tests pass fakes. */
 export interface ApiDependencies {

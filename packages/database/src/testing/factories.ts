@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
+import { FIXTURE_INVITATION_VALIDITY_MS } from '../invitation-validity.ts';
 import {
   authUsers,
   clients,
@@ -205,7 +206,7 @@ export async function addTrainerInvitation(
         emailLocale: options.emailLocale ?? null,
         status: options.status ?? 'pending',
         tokenHash: options.tokenHash ?? uniqueMarker('token-hash'),
-        expiresAt: options.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: options.expiresAt ?? new Date(Date.now() + FIXTURE_INVITATION_VALIDITY_MS),
         ...(options.createdAt ? { createdAt: options.createdAt } : {}),
       })
       .returning({

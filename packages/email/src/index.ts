@@ -45,9 +45,9 @@ export {
   templates,
   trainerInvitationEmail,
 } from './templates/index.ts';
+export type { TrainerInvitationMail } from './trainer-invitation-mail.ts';
 export {
   createTrainerInvitationSender,
-  type TrainerInvitationMail,
   type TrainerInvitationSenderOptions,
 } from './trainer-invitation-sender.ts';
 export {

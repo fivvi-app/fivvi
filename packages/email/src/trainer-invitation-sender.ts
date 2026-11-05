@@ -1,22 +1,6 @@
-import type { Locale } from '@fivvi/i18n';
 import type { SendEmail } from './send.ts';
 import { trainerInvitationEmail } from './templates/trainer-invitation.tsx';
-
-/** What EM-09 needs; the invitation routes of `packages/api` decide every field (F011). */
-export interface TrainerInvitationMail {
-  to: { email: string; name: string };
-  /** The language of the email, decided by the route (`invitationLanguage` in `@fivvi/domain`). */
-  locale: Locale;
-  inviterName: string;
-  workspaceName: string;
-  /** The workspace's IANA time zone: the expiry date is shown in it. */
-  timeZone: string;
-  /** The token for the link. It is in the email and nowhere else. */
-  token: string;
-  expiresAt: Date;
-  /** One key per invitation and token, so the same send repeated goes out once. */
-  idempotencyKey: string;
-}
+import type { TrainerInvitationMail } from './trainer-invitation-mail.ts';
 
 export interface TrainerInvitationSenderOptions {
   sendEmail: SendEmail;
