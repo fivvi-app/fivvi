@@ -19,6 +19,7 @@ import {
 import * as schema from '../src/schema/index.ts';
 import {
   addClient,
+  addGroupClass,
   addSession,
   addTeamRole,
   addTrainerProfile,
@@ -277,6 +278,8 @@ describe('F013 the personal read model', () => {
         capacity: 1,
         location: expect.objectContaining({ name: w.gym.marker, address: null }),
         clientName: 'Anna de Vries',
+        classNameNl: null,
+        classNameEn: null,
         booked: 1,
       });
     });
@@ -381,6 +384,51 @@ describe('F013 the personal read model', () => {
         { id: cancelled.id, status: 'cancelled', clientName: 'Anna de Vries' },
         // A class names no client; a cancelled place does not count as booked.
         { id: kracht.id, type: 'group', capacity: 8, booked: 2, clientName: null },
+      ]);
+    });
+
+    it('names the class of a group session in both languages, and a private session no class', async () => {
+      const w = await world();
+      const kracht = await addGroupClass(admin.db, {
+        workspaceId: w.gym.id,
+        nameNl: 'Kracht',
+        nameEn: 'Strength',
+      });
+      const dutchOnly = await addGroupClass(admin.db, { workspaceId: w.gym.id, nameNl: 'Yoga' });
+      const [privateSession, strength, yoga] = [
+        await addSession(admin.db, {
+          workspaceId: w.gym.id,
+          trainerProfileId: w.profiles.sarahGym,
+          startsAt: at('2026-09-22T07:00:00Z'),
+        }),
+        await addSession(admin.db, {
+          workspaceId: w.gym.id,
+          trainerProfileId: w.profiles.sarahGym,
+          type: 'group',
+          groupClassId: kracht.id,
+          participant: false,
+          startsAt: at('2026-09-22T08:00:00Z'),
+        }),
+        await addSession(admin.db, {
+          workspaceId: w.gym.id,
+          trainerProfileId: w.profiles.sarahGym,
+          type: 'group',
+          groupClassId: dutchOnly.id,
+          participant: false,
+          startsAt: at('2026-09-22T09:00:00Z'),
+        }),
+      ];
+
+      const [rows] = await inAccountScope(w.sarah.id, (scope) =>
+        inEachWorkspace(scope, [{ id: w.gym.id }], (workspaceScope) =>
+          listMySessions(workspaceScope, DAY),
+        ),
+      );
+
+      expect(rows).toMatchObject([
+        { id: privateSession.id, classNameNl: null, classNameEn: null },
+        { id: strength.id, classNameNl: 'Kracht', classNameEn: 'Strength' },
+        { id: yoga.id, classNameNl: 'Yoga', classNameEn: null },
       ]);
     });
 
