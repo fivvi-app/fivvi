@@ -100,6 +100,8 @@ window.FIVVI_I18N = (function () {
     [/^(\S+) heeft nog geen abonnement of credits\.$/, "$1 has no membership or credits yet."],
     [/^Openstaande betaling (.+)$/, function (m, a) { return "Outstanding payment " + P(a); }],
     [/^Open (€ .+)$/, "Open $1"],
+    [/^Er komen geen nieuwe lessen meer bij\. De (\d+) komende lessen gaan niet door\.(?: (\d+) boekingen vervallen: die klanten krijgen een e-mail en hun credit terug\.)?$/, function (m, n, b) { return "No new classes are added. The " + n + " coming classes are cancelled." + (b ? " " + b + " bookings lapse: those clients get an email and their credit back." : ""); }],
+    [/^Op een komende datum zijn al (\d+) boekingen\. Kies minstens (\d+) plekken\.$/, "A coming date already has $1 bookings. Choose at least $2 spots."],
     [/^Drukst (.+) · (\d+) tegelijk$/, "Busiest $1 · $2 at once"],
     [/^Vrij (.+)$/, "Free $1"],
     [/^Week (\d+) · (.+)$/, function (m, n, r) { return "Week " + n + " · " + P(r); }],
@@ -109,6 +111,10 @@ window.FIVVI_I18N = (function () {
   /* Phrases and words, replaced on letter boundaries, longest first. */
   var PH = {
     /* app frame */
+    "Reeks wijzigen": "Edit series", "Reeks stoppen?": "Stop series?", "Reeks stoppen": "Stop series", "Stoppen": "Stop", "Gestopt": "Stopped",
+    "Een reeks herhaalt elke week. Hier wijzig of stop je de hele reeks; één datum wijzig je bij die les.": "A series repeats every week. Here you edit or stop the whole series; one date you change on that class.",
+    "Geldt voor alle komende lessen van deze reeks. Verandert de tijd, dan krijgen klanten met een boeking een e-mail.": "Applies to all coming classes in this series. If the time changes, clients with a booking get an email.",
+    "Reeks bijgewerkt voor alle komende lessen": "Series updated for all coming classes", "Reeks gestopt. Klanten met een boeking krijgen een e-mail.": "Series stopped. Clients with a booking get an email.",
     /* billing (GLOSSARY: abonnement = membership, creditpakket = credit pack, creditabonnement = credit plan, tegoed = balance) */
     "Abonnement en tegoed": "Membership and balance", "Tegoed en betalingen": "Balance and payments", "Tegoed": "Balance", "Betaling": "Payment", "Alles bekijken": "View all",
     "Abonnementen en credits": "Memberships and credits", "Elke credit telt alleen voor zijn eigen soort: groep, privé of Open Gym.": "Each credit only counts for its own kind: group, private or Open Gym.",

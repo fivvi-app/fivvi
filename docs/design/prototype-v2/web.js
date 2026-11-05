@@ -264,15 +264,27 @@
   };
 
   /* Classes: the series, and one class on a date with attendance, the waitlist (F062) and its actions */
+  /* a series = the coming dates of one weekly class (next two weeks in the prototype) */
+  if (!D.seriesStopped) D.seriesStopped = {};
+  function seriesItems(title) { var out = []; for (var i = 0; i <= 13; i++) { var k = F.key(F.add(F.NOW, i)); studioItems(k).forEach(function (it) { if (it.type === "group" && it.title === title && !F.isPast(it, k)) out.push([k, it]); }); } return out; }
   function classSeries() {
     var map = {};
-    for (var i = -3; i <= 6; i++) { var k = F.key(F.add(F.NOW, i)); studioItems(k).forEach(function (it) { if (it.type !== "group") return; var m = map[it.title] || (map[it.title] = { title: it.title, days: [], cap: it.cap, trainer: who(it), next: null }); var d = F.DS[F.parse(k).getDay()] + " " + it.s; if (m.days.indexOf(d) < 0) m.days.push(d); if (!m.next && (k > F.TODAY || (k === F.TODAY && !F.isPast(it, k)))) m.next = [k, it]; }); }
+    for (var i = 0; i <= 13; i++) { var k = F.key(F.add(F.NOW, i)); studioItems(k).forEach(function (it) {
+      if (it.type !== "group" || F.isPast(it, k)) return;
+      var m = map[it.title] || (map[it.title] = { title: it.title, days: [], cap: it.cap, trainer: who(it), next: null, future: 0, booked: 0, stopped: !!D.seriesStopped[it.title] });
+      var d = F.DS[F.parse(k).getDay()] + " " + it.s; if (m.days.indexOf(d) < 0) m.days.push(d);
+      if (!it.cancelled) { m.future++; m.booked += it.people.length; if (!m.next) m.next = [k, it]; }
+    }); }
     return Object.keys(map).map(function (k) { return map[k]; });
   }
   PAGES.classes = function () {
     var ser = classSeries();
-    return '<div class="w-row-between"><p class="w-muted">Een reeks herhaalt elke week. Een les op een datum wijzig je los.</p>' + btn("Nieuwe les", "w-new-class", { i: "plus" }) + "</div>" +
-      card("", table(["Les", "Wanneer", "Trainer", "Plekken", "Volgende"], ser.map(function (m) { return ["<b>" + esc(m.title) + "</b>", esc(m.days.slice(0, 3).join(", ")), esc(m.trainer === ME() ? "Jij" : m.trainer), String(m.cap), m.next ? '<button class="w-link" data-a="w-open-class" data-id="' + m.next[1].id + '">' + F.shortDate(F.parse(m.next[0])) + " " + m.next[1].s + " · " + m.next[1].people.length + "/" + m.next[1].cap + "</button>" : "—"]; })));
+    return '<div class="w-row-between"><p class="w-muted">Een reeks herhaalt elke week. Hier wijzig of stop je de hele reeks; één datum wijzig je bij die les.</p>' + btn("Nieuwe les", "w-new-class", { i: "plus" }) + "</div>" +
+      card("", table(["Les", "Wanneer", "Trainer", "Plekken", "Volgende", ""], ser.map(function (m) {
+        return ["<b>" + esc(m.title) + "</b>" + (m.stopped ? " " + badge("Gestopt", "", "outline") : ""), esc(m.days.slice(0, 3).join(", ")), esc(m.trainer === ME() ? "Jij" : m.trainer), String(m.cap),
+          m.next ? '<button class="w-link" data-a="w-open-class" data-id="' + m.next[1].id + '">' + F.shortDate(F.parse(m.next[0])) + " " + m.next[1].s + " · " + m.next[1].people.length + "/" + m.next[1].cap + "</button>" : "—",
+          m.stopped ? "" : '<div class="w-hgroup end">' + btn("Wijzigen", "w-dlg", { k: "outline sm", d: { n: "editseries", t: m.title } }) + btn("Stoppen", "w-dlg", { k: "ghost sm", d: { n: "stopseries", t: m.title } }) + "</div>"];
+      })));
   };
   function waitNames(it) { var n = it.waitlist || 0, out = []; for (var i = 0; i < n; i++) out.push(["Kim de Graaf", "Ruben Vos", "Lotte Prins", "Sem Dekker"][i % 4]); return out; }
   PAGES.klass = function () {
@@ -357,6 +369,10 @@
     else if (d.n === "renew") { t = "Link vernieuwen?"; b = "<p>De oude link en QR-code werken daarna niet meer. Hangt de QR-code ergens, vervang die dan ook.</p>"; ok = "Vernieuwen"; kind = "dng"; }
     else if (d.n === "decline") { var r = D.requests.filter(function (x) { return x.id === d.id; })[0]; t = "Verzoek afwijzen?"; b = "<p>" + esc(r.name) + " krijgt een korte e-mail en ziet niets van " + esc(wsName()) + ". Later opnieuw vragen kan.</p>"; ok = "Afwijzen"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "refund") { var pay = D.billing[W().cid].payments[d.i]; t = "Terugbetalen"; b = "<p>" + esc(pay[1]) + " · " + esc(pay[0]) + " · " + esc(pay[2]) + "</p>" + fld("Bedrag", inp("amount", "text"), "Een deel kan ook. De klant krijgt een creditfactuur."); ok = "Terugbetalen"; kind = "dng"; cancel = "Terug"; }
+    else if (d.n === "editseries") { t = "Reeks wijzigen"; b = fld("Naam", inp("name")) + '<div class="w-inline2">' + fld("Begin", inp("start", "time")) + fld("Eind", inp("end", "time")) + fld("Plekken", inp("cap", "number")) + "</div>" + fld("Trainer", selF("trainer", D.trainers.sf.concat(["Trainer nodig"]))) +
+      fld("Beschrijving", '<textarea class="w-input" data-wf="desc" rows="2">' + esc(w.form.desc) + "</textarea>") + fld("Beschrijving in het Engels", '<textarea class="w-input" data-wf="descEn" rows="2" placeholder="Optioneel">' + esc(w.form.descEn) + "</textarea>") +
+      '<p class="w-muted">Geldt voor alle komende lessen van deze reeks. Verandert de tijd, dan krijgen klanten met een boeking een e-mail.</p>'; ok = "Opslaan"; }
+    else if (d.n === "stopseries") { t = "Reeks stoppen?"; b = "<p>Er komen geen nieuwe lessen meer bij. De " + d.future + " komende lessen gaan niet door." + (d.booked ? " " + d.booked + " boekingen vervallen: die klanten krijgen een e-mail en hun credit terug." : "") + "</p>" + fld("Bericht voor de klanten (optioneel)", '<textarea class="w-input" data-wf="msg" rows="3" placeholder="Bijvoorbeeld de reden"></textarea>', "Komt letterlijk in de e-mail, niet vertaald."); ok = "Reeks stoppen"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "invite") { t = "Trainer uitnodigen"; b = fld("E-mail", inp("email", "email", "naam@voorbeeld.nl")) + fld("Taal van de uitnodiging", selF("lang", ["Nederlands", "English"])); ok = "Uitnodiging versturen"; }
     else if (d.n === "newpriv") { t = "Nieuwe privésessie"; b = fld("Klant", selF("client", D.clients.filter(function (c) { return F.WSS().indexOf(c.ws) >= 0; }).map(function (c) { return [c.id, c.name]; }))) + '<div class="w-inline2">' + fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + fld("Duur", selF("dur", [["60", "1 uur"], ["45", "45 min"], ["30", "30 min"], ["90", "1,5 uur"]])) + "</div>" + fld("Locatie", selF("loc", D.locations)); ok = "Plannen"; }
     else if (d.n === "newclient") { t = "Klant toevoegen"; b = fld("Naam", inp("name", "text", "Voor- en achternaam")) + fld("E-mail", inp("email", "email", "naam@voorbeeld.nl")) + fld("Taal voor e-mails", selF("lang", ["Nederlands", "English"])) + '<p class="w-muted">De klant krijgt een e-mail met een uitnodiging om in te loggen.</p>'; ok = "Toevoegen"; }
@@ -391,7 +407,13 @@
   A["w-dclose"] = function () { W().dialog = null; R(); };
   A["w-toast"] = function (d) { F.toast(d.m); };
   function openDlg(n, form, extra) { var w = W(); w.menu = null; w.form = Object.assign(today5(), form || {}); w.dialog = Object.assign({ n: n }, extra || {}); R(); }
-  A["w-dlg"] = function (d) { if (d.n === "refund") { var pay = D.billing[W().cid].payments[+d.i]; openDlg("refund", { amount: pay[2] }, { i: +d.i }); return; } var w = W(), it = w.sheet ? F.findItem(w.sheet).it : w.kid ? (F.findItem(w.kid) || {}).it : null; openDlg(d.n, it ? { start: it.s, end: it.e, cap: String(it.cap || ""), date: w.sheet ? F.findItem(w.sheet).day : F.TODAY, trainer: D.trainers.sf.filter(function (x) { return !it || x !== who(it); })[0] } : {}, { i: d.i }); };
+  A["w-dlg"] = function (d) {
+    if (d.n === "editseries" || d.n === "stopseries") {
+      var m = classSeries().filter(function (x) { return x.title === d.t; })[0], ds = D.descriptions[d.t] || {};
+      openDlg(d.n, { name: m.title, start: m.next ? m.next[1].s : "", end: m.next ? m.next[1].e : "", cap: String(m.cap), trainer: m.trainer, desc: ds.nl || "", descEn: ds.en || "" }, { t: d.t, future: m.future, booked: m.booked });
+      return;
+    }
+    if (d.n === "refund") { var pay = D.billing[W().cid].payments[+d.i]; openDlg("refund", { amount: pay[2] }, { i: +d.i }); return; } var w = W(), it = w.sheet ? F.findItem(w.sheet).it : w.kid ? (F.findItem(w.kid) || {}).it : null; openDlg(d.n, it ? { start: it.s, end: it.e, cap: String(it.cap || ""), date: w.sheet ? F.findItem(w.sheet).day : F.TODAY, trainer: D.trainers.sf.filter(function (x) { return !it || x !== who(it); })[0] } : {}, { i: d.i }); };
   A["w-decline"] = function (d) { openDlg("decline", {}, { id: d.id }); };
   A["w-new-priv"] = function () { openDlg("newpriv", { client: "anna", loc: D.locations[0] }); };
   A["w-plan"] = function (d) { openDlg("newpriv", { client: d.id, date: F.key(F.add(F.NOW, 1)), start: "10:30", loc: D.locations[0] }); };
@@ -415,6 +437,14 @@
     else if (d.n === "editclass") { it.s = f.start; it.e = f.end; it.cap = +f.cap || it.cap; }
     else if (d.n === "wlremove") { it.waitlist = Math.max(0, (it.waitlist || 0) - 1); msg = "Van de wachtlijst gehaald"; }
     else if (d.n === "refund") { var pay = D.billing[w.cid].payments[d.i]; pay[4] = "refund"; pay[5] = (pay[5] ? pay[5] + " · " : "") + "creditfactuur F-2026-0430"; msg = "Terugbetaling van " + f.amount + " aangemaakt. De klant krijgt een creditfactuur."; }
+    else if (d.n === "editseries") {
+      if (!(f.name || "").trim()) { F.toast("Vul een naam in"); return; }
+      var most = Math.max.apply(null, [0].concat(seriesItems(d.t).filter(function (x) { return !x[1].cancelled; }).map(function (x) { return x[1].people.length; })));
+      if ((+f.cap || 0) < most) { F.toast("Op een komende datum zijn al " + most + " boekingen. Kies minstens " + most + " plekken."); return; }
+      seriesItems(d.t).forEach(function (x) { var it = x[1]; it.s = f.start; it.e = f.end; it.cap = +f.cap || it.cap; it.title = f.name.trim(); if (it.trainer || f.trainer !== ME()) it.trainer = f.trainer === "Trainer nodig" ? "" : f.trainer; });
+      D.descriptions[f.name.trim()] = { nl: f.desc || "", en: f.descEn || "" }; msg = "Reeks bijgewerkt voor alle komende lessen";
+    }
+    else if (d.n === "stopseries") { seriesItems(d.t).forEach(function (x) { x[1].cancelled = true; }); D.seriesStopped[d.t] = true; msg = "Reeks gestopt. Klanten met een boeking krijgen een e-mail."; }
     else if (d.n === "renew") { w.linkCode = ["9XP4", "3MV8", "6TR1"][Math.floor(Math.random() * 3)]; msg = "Nieuwe link gemaakt. De oude werkt niet meer."; }
     else if (d.n === "decline") { D.requests = D.requests.filter(function (x) { return x.id !== d.id; }); msg = "Verzoek afgewezen"; }
     else if (d.n === "invite") { if (!/.+@.+\..+/.test(f.email || "")) { F.toast("Vul een geldig e-mailadres in"); return; } msg = "Uitnodiging verstuurd naar " + f.email; }
