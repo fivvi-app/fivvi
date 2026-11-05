@@ -505,7 +505,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-24.04
-    # Measured 1 to 2 minutes in the last 12 green runs; 12 keeps the Android chain under the merge queue's 60 (#519).
+    # Measured 0.8 to 4.6 minutes in the last 46 runs (the slowest: run 41674310293): 12 is
+    # 2.6 x that and keeps the Android chain under the merge queue's 60 (#519).
     timeout-minutes: 12
     permissions:
       contents: read
@@ -760,8 +761,8 @@ jobs:
       # Postgres (migrated and seeded), the fake Brevo server and the web server, then every flow in nl-NL and en, with the
       # app of "Android build" (nothing is built here).
       # Both locales run one after the other: run 41938461253 (10 flows) took 19 min 47 s on a slow runner, 14 to 18
-      # minutes on main. The 30 minutes are 1.5 x the slowest run (#519); the "Step durations" table shows how close a
-      # run came.
+      # minutes on main. The 30 minutes are 1.5 x the slowest run (#519); the "Step durations" step shows how close a run
+      # came and warns above 20 minutes (two thirds of the budget).
       - name: Maestro flows (sign-in, anonymous and hello; nl-NL and en)
         timeout-minutes: 30
         run: scripts/maestro.sh android --apk
@@ -788,7 +789,7 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
-        run: scripts/step-timings.sh
+        run: scripts/step-timings.sh "Maestro flows (sign-in, anonymous and hello; nl-NL and en)=30"
 
   # The required check "Android": the combined result of the build, the tests and Maestro (AC17); skipped, and so passing,
   # when the native decision says the app's inputs didn't change.
