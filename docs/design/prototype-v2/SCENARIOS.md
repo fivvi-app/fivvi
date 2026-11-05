@@ -8,7 +8,7 @@ The prototype's panel has five setups (⚙ → **Opzet**). Each is a fictional b
 | Zelfstandige PT | Sarah Personal Training | Private sessions only, at several gyms, outdoors and at clients' homes |
 | PT met small groups | Fit met Sarah | Private sessions plus groups of 3–4 in the park and at a gym |
 | Pilatesstudio | Studio Kern, 3 instructors | Reformer classes of 6 (6 reformers), mat classes of 12, private reformer sessions |
-| Yogastudio | Yoga Loft, 3 teachers | Classes only (16–20 mats), an occasional workshop |
+| Yogastudio | Yoga Huis, 3 teachers | Classes only (16–20 mats), an occasional workshop |
 
 **Legend:** ✅ covered by the spec · 🟡 partly, with a workaround · ❌ not covered · 📌 the owner decided to build it (5 November 2026), spec to write
 

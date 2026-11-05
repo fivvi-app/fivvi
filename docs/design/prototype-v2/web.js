@@ -817,6 +817,7 @@
     if (c.detail) return detailView();
     if (c.tab === "rooster") {
       var types = []; if (cws() === "yl") types.push(["group", "Groepslessen"]); else { if (F.HAS("group")) types.push(["group", "Groepslessen"]); if (F.HAS("gym")) types.push(["gym", "Open Gym"]); }
+      var flt = types.some(function (t) { return t[0] === c.filter; }) ? c.filter : "all";
       var tt = APP ? "Boeken" : "Rooster", b = K.lt(F.longDate(F.NOW), tt, "");
       if (APP && andr()) b += wsSwitch(true);
       if (!types.length) return { title: tt, body: b + '<div class="pad"><div class="card empty">' + esc(sName(cws())) + " heeft geen lessen om te boeken. Je trainer plant je privésessies; die zie je in Mijn agenda.</div></div>" };
@@ -828,8 +829,8 @@
         var d = F.add(F.NOW, i), k = F.key(d), its = timetable(k).filter(function (x) { return !(k === F.TODAY && F.isPast(x, k)) && (c.booked[x.id] || x.people.length < x.cap); });
         return '<div><div class="d">' + F.DS[d.getDay()] + '</div><button class="n ' + (k === F.TODAY ? "today " : "") + (k === c.day ? "sel" : "") + '" data-a="c-day" data-v="' + k + '" aria-label="' + F.longDate(d) + (its.length ? ", " + its.length + (its.length === 1 ? " les te boeken" : " lessen te boeken") : "") + '">' + d.getDate() + '</button><div class="dots">' + its.slice(0, 5).map(function (x) { return '<i style="--c:' + (c.booked[x.id] ? "var(--ok)" : F.CV[x.type]) + '"></i>'; }).join("") + "</div></div>";
       }).join("") + "</div>";
-      if (types.length > 1) b += '<div class="pad" style="margin-top:10px">' + K.seg([["all", "Alles"]].concat(types), c.filter, "c-filter") + "</div>";
-      var its = timetable(c.day).filter(function (i) { return (c.filter === "all" || i.type === c.filter) && !(c.day === F.TODAY && F.isPast(i, c.day)); });
+      if (types.length > 1) b += '<div class="pad" style="margin-top:10px">' + K.seg([["all", "Alles"]].concat(types), flt, "c-filter") + "</div>";
+      var its = timetable(c.day).filter(function (i) { return (flt === "all" || i.type === flt) && !(c.day === F.TODAY && F.isPast(i, c.day)); });
       b += K.sh(dayName(c.day) + (its.length ? " · " + its.length + (its.length === 1 ? " les" : " lessen") : ""), "", "small");
       b += '<div class="pad">' + (its.length ? K.grp(its.map(function (it) { return crow(it, c.day, rowAction(it), spotsText(it)); })) : '<div class="card empty">Geen lessen meer op deze dag.</div>') + "</div>";
       b += K.foot("Gratis annuleren tot 12 uur voor de start.");
@@ -1075,7 +1076,7 @@
   };
   /* "Deze week" (owner, 5 Nov 2026: make this place motivating): only facts Fivvi has, no invented goals.
      The days of this week (went ✓, booked ○), how often so far and what's still planned, weeks in a row,
-     and one highlight: a lift the trainer logged, or the month's count where nothing is logged. */
+     and one highlight: a lift from a shared workout (from M7), or the month's count where nothing is logged. */
   function cvx(t) { return t === "self" ? "var(--ok)" : F.CV[t]; }
   function weekCard(up) {
     var mon = F.monday(F.NOW), went = {}, planned = {};
@@ -1134,7 +1135,7 @@
   ATAB.profiel = function () { return { title: "Profiel", body: profile() }; };
   /* Paying happens on the web (§53, QC16): the app opens the studio's offer page in a browser sheet */
   function browser() {
-    if (cws() === "yl") return ylBrowser();
+    if ((C().webws || cws()) === "yl") return ylBrowser();
     var url = "fivvi.app/" + slug() + "/aanbod", offers = D.offerList.filter(function (o) { return o.on && offerFits(o) && o.kind !== "single" && !o.intro; });
     var bar = andr() ? '<div class="c-brbar"><button class="ib" data-a="c-webclose" aria-label="Sluiten">' + ic("x") + '</button><div><b>Aanbod</b><span translate="no">' + url + "</span></div></div>"
       : '<div class="c-brbar ios"><button class="c-done" data-a="c-webclose">Klaar</button><div class="c-url glass"><i>🔒</i><span translate="no">' + url + "</span></div></div>";
@@ -1154,7 +1155,7 @@
   A["c-qbook"] = function (d) { var c = C(); c.dialog = "book"; c.dlgId = d.id; R(); };
   A["c-qwl"] = function (d) { var c = C(); c.dialog = "wl"; c.dlgId = d.id; R(); };
   A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.selfOn = false; c.solo = null; leaveEdit(c); c.web = null; c.page = null; R(); };
-  A["c-offers"] = function () { var cf = C().detail && cfind(C().detail); if (cf) C().cws = cf.it.ws === "yl" ? "yl" : "sf"; C().web = "offers"; R(); };
+  A["c-offers"] = function () { var cf = C().detail && cfind(C().detail); C().webws = cf ? (cf.it.ws === "yl" ? "yl" : "sf") : cws(); C().web = "offers"; R(); };
   A["c-webclose"] = function () { C().web = null; R(); };
   A["c-buy"] = function (d) { C().web = null; F.toast("Betaalpagina geopend: " + d.v + " met iDEAL"); };
   A["a-next"] = function () { var c = C(); if (!/.+@.+\..+/.test(c.email)) { c.err = { email: "Vul een geldig e-mailadres in" }; F.toast(c.err.email, "err"); return; } c.astep = "code"; c.code = ""; R(); };
@@ -1219,7 +1220,7 @@
   A["c-page"] = function (d) { var c = C(); c.page = d.v; if (d.ws) c.cws = d.ws; R(); };
   A["c-wsheet"] = function (d) { C().wsheet = d.v || "list"; R(); };
   A["c-wsclose"] = function () { C().wsheet = null; R(); };
-  A["c-ws"] = function (d) { var c = C(); c.cws = d.v; c.wsheet = null; c.detail = null; c.filter = "all"; R(); };
+  A["c-ws"] = function (d) { var c = C(); c.cws = d.v; c.wsheet = null; c.detail = null; R(); };
   A["c-wsjoin"] = function () { var c = C(); c.studios = studios().concat(["yl"]); c.cws = "yl"; c.wsheet = null; F.toast("Yoga Loft heeft je goedgekeurd"); };
   /* booking and joining the waitlist always ask first (owner, 5 Nov 2026), from the list and from the class page */
   A["c-book"] = function () { var c = C(); c.dialog = "book"; c.dlgId = c.detail; R(); };
@@ -1251,10 +1252,10 @@
     }
     return false;
   }
-  function scrollKey() { var c = C(); return W().page + (c.tab || "") + (c.detail || "") + "|" + (c.atab || "") + (c.page || "") + (c.workout != null ? "w" + c.workout : "") + (c.solo != null ? "s" + c.solo : "") + (c.selfOn ? "l" : ""); }
+  function scrollKey() { var c = C(), w = W(); return w.page + (w.cid || "") + (w.kid || "") + (c.tab || "") + (c.detail || "") + "|" + (c.atab || "") + (c.page || "") + (c.cws || "") + (c.workout != null ? "w" + c.workout : "") + (c.solo != null ? "s" + c.solo : "") + (c.selfOn ? "l" : ""); }
   /* the key of the screen on display is kept from the last render: by the next render the state already has the new screen */
-  function scrollSave(dev) { var el = dev.querySelector(".w-scroll,.c-body"); return el ? [el.className, el.scrollTop, dev.dataset.ck || ""] : null; }
-  function scrollRestore(dev, keep) { var k = scrollKey(), el = keep && dev.querySelector(".w-scroll,.c-body"); if (el && el.className === keep[0] && keep[2] === k) el.scrollTop = keep[1]; dev.dataset.ck = k; }
+  function scrollSave(dev) { var el = dev.querySelector(".w-scroll,.c-body"), s = S(); if (!el || dev.fivviS !== s) return null; (s.sm = s.sm || {})[dev.dataset.ck] = el.scrollTop; return [el.className, el.scrollTop, dev.dataset.ck || ""]; }
+  function scrollRestore(dev, keep) { var k = scrollKey(), s = S(), el = keep && dev.querySelector(".w-scroll,.c-body"), m = (s.sm || {})[k]; if (el && el.className === keep[0] && m != null) el.scrollTop = m; dev.dataset.ck = k; dev.fivviS = s; }
   window.FVW = { web: web, client: client, capp: capp, onInput: onInput, scrollSave: scrollSave, scrollRestore: scrollRestore };
 
   /* panel entries for rounds 2 and 3 */

@@ -182,17 +182,17 @@ window.FIVVI_DATA = (function () {
       }
     },
     yoga: {
-      name: "Yoga Loft", term: "docent", loc: "Yoga Loft, Prinsengracht 210", team: true, multiWs: false, types: ["group"],
+      name: "Yoga Huis", term: "docent", loc: "Yoga Huis, Prinsengracht 210", team: true, multiWs: false, types: ["group"],
       trainers: ["Sarah Jansen", "Mila Bos", "Jasper Kok"],
       today: [
-        G("y1", "07:00", "08:15", "Vinyasa Flow", 18, 12, { loc: "Yoga Loft, Prinsengracht 210" }),
-        G("y2", "12:30", "13:30", "Yin Yoga", 16, 9, { loc: "Yoga Loft, Prinsengracht 210" }),
-        G("y3", "18:00", "19:15", "Hatha", 18, 18, { loc: "Yoga Loft, Prinsengracht 210", waitlist: 3 })
+        G("y1", "07:00", "08:15", "Vinyasa Flow", 18, 12, { loc: "Yoga Huis, Prinsengracht 210" }),
+        G("y2", "12:30", "13:30", "Yin Yoga", 16, 9, { loc: "Yoga Huis, Prinsengracht 210" }),
+        G("y3", "18:00", "19:15", "Hatha", 18, 18, { loc: "Yoga Huis, Prinsengracht 210", waitlist: 3 })
       ],
       extra: [
-        G("ye1", "09:30", "10:45", "Vinyasa Flow", 18, 15, { loc: "Yoga Loft, Prinsengracht 210", trainer: "Mila Bos" }),
-        G("ye2", "19:30", "20:30", "Power Yoga", 16, 10, { loc: "Yoga Loft, Prinsengracht 210", trainer: "Jasper Kok" }),
-        G("ye3", "20:45", "21:45", "Yin Yoga", 16, 6, { loc: "Yoga Loft, Prinsengracht 210", trainer: "Mila Bos" })
+        G("ye1", "09:30", "10:45", "Vinyasa Flow", 18, 15, { loc: "Yoga Huis, Prinsengracht 210", trainer: "Mila Bos" }),
+        G("ye2", "19:30", "20:30", "Power Yoga", 16, 10, { loc: "Yoga Huis, Prinsengracht 210", trainer: "Jasper Kok" }),
+        G("ye3", "20:45", "21:45", "Yin Yoga", 16, 6, { loc: "Yoga Huis, Prinsengracht 210", trainer: "Mila Bos" })
       ],
       pattern: [[["group", "07:00", "08:15", "Vinyasa Flow", 18, 14], ["group", "18:00", "19:15", "Hatha", 18, 16]], [["group", "12:30", "13:30", "Yin Yoga", 16, 8]], [["group", "07:00", "08:15", "Vinyasa Flow", 18, 18], ["group", "19:30", "20:30", "Power Yoga", 16, 12]], null, [["group", "18:00", "19:15", "Hatha", 18, 13]], [["group", "09:30", "10:45", "Vinyasa Flow", 18, 18]], [["group", "10:00", "11:30", "Workshop Ademwerk", 20, 11]]],
       descriptions: {
