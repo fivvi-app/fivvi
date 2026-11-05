@@ -780,6 +780,15 @@
   var dev, mk, scrollMem = {};
   function routeKey() { return S.tab + ":" + S.stacks[S.tab].map(function (r) { return r.n + (r.id || "") + (r.i || ""); }).join("/"); }
   function render() {
+    if ((PREF.plat === "web" || PREF.plat === "client") && window.FVW) {
+      var keep = window.FVW.scrollSave(dev);
+      dev.className = "dev " + PREF.plat;
+      dev.innerHTML = window.FVW[PREF.plat]() + (S.toast ? '<div class="toast glass anim-fade" role="status">' + ic("check") + esc(S.toast) + "</div>" : "");
+      dev.dataset.rk = "";
+      S.anim = null; syncPanel(); tr(dev); window.FVW.scrollRestore(dev, keep); fitDev();
+      return;
+    }
+    dev.style.zoom = "";
     var c = dev.querySelector(".screen .content"), sb = dev.querySelector(".sbody"), fc = dev.querySelector(".full .content");
     if (c && dev.dataset.rk) scrollMem[dev.dataset.rk] = c.scrollTop;
     var sbTop = sb ? sb.scrollTop : 0, fcTop = fc ? fc.scrollTop : 0;
@@ -980,6 +989,7 @@
   }
   function onInput(e) {
     var t = e.target;
+    if (window.FVW && window.FVW.onInput(t)) return;
     if (t.dataset.f) { S.form[t.dataset.f] = t.value; return; }
     var k = t.dataset.in;
     if (k === "q") { S.q = t.value; dev.querySelector("#clist").innerHTML = clientList(); tr(dev.querySelector("#clist")); }
@@ -1095,8 +1105,7 @@
       ["Training delen", "WL-08", function () { fresh(); S.stacks.today = [{ n: "session", id: "s3" }]; A["start-workout"]({ id: "s3" }); S.log.ex[0].sets.forEach(function (s) { s.done = true; }); S.log.step = "share"; }, true],
       ["Profiel", "TM-04", function () { fresh(); S.tab = "profile"; }],
       ["Taal", "F010", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "language" }]; }]
-    ]],
-    ["Volgt in de volgende rondes", [["Trainer web", "", null], ["Boekingspagina", "", null], ["Klantweb", "", null]]]
+    ]]
   ];
   function buildPanel() {
     var sw = document.getElementById("sw");
@@ -1110,6 +1119,7 @@
       if (b.dataset.reset != null) { fresh(); scrollMem = {}; DAYCACHE = {}; DAYCACHE[TODAY] = D.today; render(); return; }
       var p = b.dataset.go.split(","), x = INDEX[+p[0]][1][+p[1]]; if (!x[2]) return;
       if (x[3]) { PREF.setup = "team"; applyPrefs(); }
+      if (+p[0] === 0 && (PREF.plat === "web" || PREF.plat === "client")) PREF.plat = "ios";
       if (S.log && S.log.timer) clearInterval(S.log.timer);
       scrollMem = {}; x[2](); save(); applyPrefs(); S.anim = null; render();
       if (window.innerWidth <= 640) document.getElementById("panel").classList.remove("open");
@@ -1137,6 +1147,20 @@
   function syncPanel() {
     document.querySelectorAll("[data-pref]").forEach(function (b) { b.setAttribute("aria-pressed", PREF[b.dataset.pref] === b.dataset.v); });
   }
+
+  /* the trainer web is a 1280 × 800 page, scaled down to fit the stage */
+  function fitDev() {
+    if (PREF.plat !== "web") { dev.style.zoom = ""; return; }
+    var st = dev.parentNode, z = Math.min(1, (st.clientWidth - 32) / 1280, (st.clientHeight - 32) / 800);
+    dev.style.zoom = Math.max(0.42, z).toFixed(3);
+  }
+  window.addEventListener("resize", function () { if (dev) fitDev(); });
+  function addClient(c) { D.clients.push(c); CLIENT[c.id] = c; }
+  function addItem(k, it) { dayItems(k); DAYCACHE[k].push(it); }
+  window.FV = { get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
+    CV: CV, TYPE: TYPE, title: title, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
+    isoWeek: isoWeek, DAYS: DAYS, DS: DS, MONTHS: MONTHS, MS: MS, TODAY: TODAY, NOW: NOW, NOWT: NOWT, isPast: isPast, initials: initials, toast: toast, render: function () { render(); },
+    OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };
 
   /* ---------- Boot ---------- */
   document.addEventListener("DOMContentLoaded", function () {

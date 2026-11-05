@@ -8,14 +8,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,400..800&family=Nunito:wght@700..900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="web.css">
 </head>
 <body>
 <div class="board">
   <aside class="panel" id="panel" aria-label="Prototype-instellingen">
-    <div class="brand">Fivvi prototype<small>Ronde 1: de Fivvi Pro-app · fictieve gegevens · nu is do 5 nov, 10:05</small></div>
+    <div class="brand">Fivvi prototype<small>App, trainer web en klantweb · fictieve gegevens · nu is do 5 nov, 10:05</small></div>
     <div class="ctl"><span>Taal</span><div class="bseg"><button data-pref="lang" data-v="nl" translate="no">Nederlands</button><button data-pref="lang" data-v="en" translate="no">English</button></div></div>
     <div class="ctl"><span>Opzet</span><div class="bseg"><button data-pref="setup" data-v="team">Gym met team</button><button data-pref="setup" data-v="solo">Zelfstandige PT</button><button data-pref="setup" data-v="small">PT met small groups</button><button data-pref="setup" data-v="pilates">Pilatesstudio</button><button data-pref="setup" data-v="yoga">Yogastudio</button></div></div>
-    <div class="ctl"><span>Platform</span><div class="bseg"><button data-pref="plat" data-v="ios">iOS</button><button data-pref="plat" data-v="android">Android</button></div></div>
+    <div class="ctl"><span>Scherm</span><div class="bseg"><button data-pref="plat" data-v="ios">iOS</button><button data-pref="plat" data-v="android">Android</button><button data-pref="plat" data-v="web">Trainer web</button><button data-pref="plat" data-v="client">Klantweb</button></div></div>
     <div class="ctl"><span>Accent</span><div class="sw" id="sw"></div></div>
     <div class="ctl"><span>Weergave</span><div class="bseg"><button data-pref="mode" data-v="light">Licht</button><button data-pref="mode" data-v="dark">Donker</button></div></div>
     <div class="ctl"><span>Glas (iOS)</span><div class="bseg"><button data-pref="glass" data-v="clear">Helder</button><button data-pref="glass" data-v="regular">Normaal</button><button data-pref="glass" data-v="tinted">Getint</button></div></div>
@@ -30,5 +31,6 @@
 <script src="data.js"></script>
 <script src="i18n.js"></script>
 <script src="app.js"></script>
+<script src="web.js"></script>
 </body>
 </html>
