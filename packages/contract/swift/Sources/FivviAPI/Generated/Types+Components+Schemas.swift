@@ -346,6 +346,7 @@ extension Components {
                 case clients_manage = "clients.manage"
                 case location_read = "location.read"
                 case settings_manage = "settings.manage"
+                case team_invite = "team.invite"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -421,6 +422,7 @@ extension Components {
                 case clients_manage = "clients.manage"
                 case location_read = "location.read"
                 case settings_manage = "settings.manage"
+                case team_invite = "team.invite"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -840,6 +842,173 @@ extension Components {
             }
             public enum CodingKeys: String, CodingKey {
                 case role
+            }
+        }
+        /// A pending invitation to join the team as a Trainer. The link’s token is only in the email; it is never part of an answer.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TrainerInvitation`.
+        public struct TrainerInvitation: Codable, Hashable, Sendable {
+            /// The invitation ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/id`.
+            public var id: Swift.String
+            /// The name the Owner typed for the person.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/name`.
+            public var name: Swift.String
+            /// The address the invitation went to, lower case.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/email`.
+            public var email: Swift.String
+            /// The language the Owner chose for the email: `nl-NL` or `en`. `null` follows the language of the account with that address, then the workspace’s default.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/emailLocale`.
+            @frozen public enum EmailLocalePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case nlNL = "nl-NL"
+                case en = "en"
+                case _empty_ = ""
+            }
+            /// The language the Owner chose for the email: `nl-NL` or `en`. `null` follows the language of the account with that address, then the workspace’s default.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/emailLocale`.
+            public var emailLocale: Components.Schemas.TrainerInvitation.EmailLocalePayload?
+            /// When the invitation was last sent: it moves forward when it is sent again.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/sentAt`.
+            public var sentAt: Foundation.Date
+            /// When the link stops working: seven days after it was sent. A pending invitation can be past it; the Owner then sends it again.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/expiresAt`.
+            public var expiresAt: Foundation.Date
+            /// Creates a new `TrainerInvitation`.
+            ///
+            /// - Parameters:
+            ///   - id: The invitation ID.
+            ///   - name: The name the Owner typed for the person.
+            ///   - email: The address the invitation went to, lower case.
+            ///   - emailLocale: The language the Owner chose for the email: `nl-NL` or `en`. `null` follows the language of the account with that address, then the workspace’s default.
+            ///   - sentAt: When the invitation was last sent: it moves forward when it is sent again.
+            ///   - expiresAt: When the link stops working: seven days after it was sent. A pending invitation can be past it; the Owner then sends it again.
+            public init(
+                id: Swift.String,
+                name: Swift.String,
+                email: Swift.String,
+                emailLocale: Components.Schemas.TrainerInvitation.EmailLocalePayload? = nil,
+                sentAt: Foundation.Date,
+                expiresAt: Foundation.Date
+            ) {
+                self.id = id
+                self.name = name
+                self.email = email
+                self.emailLocale = emailLocale
+                self.sentAt = sentAt
+                self.expiresAt = expiresAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case email
+                case emailLocale
+                case sentAt
+                case expiresAt
+            }
+        }
+        /// Nothing was sent. `already_on_team`: an account with the address has a team role in the workspace. `invitation_pending`: the address has a pending invitation. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TrainerInvitationConflict`.
+        public struct TrainerInvitationConflict: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitationConflict/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case alreadyOnTeam = "already_on_team"
+                case invitationPending = "invitation_pending"
+            }
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitationConflict/code`.
+            public var code: Components.Schemas.TrainerInvitationConflict.CodePayload
+            /// With `invitation_pending`: the ID of the invitation that exists, which the Owner can send again.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitationConflict/invitationId`.
+            public var invitationId: Swift.String?
+            /// Creates a new `TrainerInvitationConflict`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            ///   - invitationId: With `invitation_pending`: the ID of the invitation that exists, which the Owner can send again.
+            public init(
+                code: Components.Schemas.TrainerInvitationConflict.CodePayload,
+                invitationId: Swift.String? = nil
+            ) {
+                self.code = code
+                self.invitationId = invitationId
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case invitationId
+            }
+        }
+        /// The workspace made 20 invitations in the last 24 hours; nothing was sent. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TooManyInvitations`.
+        public struct TooManyInvitations: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/TooManyInvitations/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case tooManyInvitations = "too_many_invitations"
+            }
+            /// - Remark: Generated from `#/components/schemas/TooManyInvitations/code`.
+            public var code: Components.Schemas.TooManyInvitations.CodePayload
+            /// Creates a new `TooManyInvitations`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.TooManyInvitations.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
+        /// The person to invite to the team as a Trainer.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CreateTrainerInvitationRequest`.
+        public struct CreateTrainerInvitationRequest: Codable, Hashable, Sendable {
+            /// The person’s name: trimmed, at least one and at most 120 characters. It becomes the account’s name only when the account has none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateTrainerInvitationRequest/name`.
+            public var name: Swift.String
+            /// The person’s email address, stored lower case. Invalid answers `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateTrainerInvitationRequest/email`.
+            public var email: Swift.String
+            /// The language of the email: `nl-NL` or `en`. Leave it out, or send `null`, to follow the language of the account with that address, then the workspace’s default. Any other value answers `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateTrainerInvitationRequest/emailLocale`.
+            @frozen public enum EmailLocalePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case nlNL = "nl-NL"
+                case en = "en"
+                case _empty_ = ""
+            }
+            /// The language of the email: `nl-NL` or `en`. Leave it out, or send `null`, to follow the language of the account with that address, then the workspace’s default. Any other value answers `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateTrainerInvitationRequest/emailLocale`.
+            public var emailLocale: Components.Schemas.CreateTrainerInvitationRequest.EmailLocalePayload?
+            /// Creates a new `CreateTrainerInvitationRequest`.
+            ///
+            /// - Parameters:
+            ///   - name: The person’s name: trimmed, at least one and at most 120 characters. It becomes the account’s name only when the account has none.
+            ///   - email: The person’s email address, stored lower case. Invalid answers `400`.
+            ///   - emailLocale: The language of the email: `nl-NL` or `en`. Leave it out, or send `null`, to follow the language of the account with that address, then the workspace’s default. Any other value answers `400`.
+            public init(
+                name: Swift.String,
+                email: Swift.String,
+                emailLocale: Components.Schemas.CreateTrainerInvitationRequest.EmailLocalePayload? = nil
+            ) {
+                self.name = name
+                self.email = email
+                self.emailLocale = emailLocale
+            }
+            public enum CodingKeys: String, CodingKey {
+                case name
+                case email
+                case emailLocale
             }
         }
         /// A team member who trains in the workspace.

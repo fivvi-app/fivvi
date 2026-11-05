@@ -44,6 +44,18 @@ export {
   type TeamRole,
 } from './team/last-owner.ts';
 export {
+  decideNewInvitation,
+  INVITATION_NAME_MAX_LENGTH,
+  INVITATION_VALIDITY_DAYS,
+  INVITATIONS_PER_DAY,
+  type InvitationLanguageSources,
+  invitationExpiry,
+  invitationLanguage,
+  invitationQuotaSince,
+  type NewInvitationDecision,
+  type NewInvitationFacts,
+} from './team/trainer-invitation.ts';
+export {
   decideTrainerProfileSwitch,
   startsWithTrainerProfile,
   type TrainerProfileSwitchDecision,

@@ -1,5 +1,6 @@
 import type { SignedInAccount, SystemGreetingView, TenantScopes } from '@fivvi/database';
 import type { SignUpAllowlist } from '@fivvi/domain';
+import type { TrainerInvitationMail } from '@fivvi/email/trainer-invitation-mail';
 import type { Locale } from '@fivvi/i18n';
 import {
   createErrorReporter,
@@ -44,6 +45,15 @@ export interface ApiDependencies {
    * business data. apps/web wires it over the app's database connection.
    */
   tenantScopes: TenantScopes;
+  /**
+   * Emails EM-09 to the person invited (F011): the template, the sending and the link are the
+   * email package's (`createTrainerInvitationSender`, wired by apps/web); the route decides who,
+   * in which language and with which token. A failed send throws, and the request fails with
+   * nothing stored.
+   */
+  sendTrainerInvitation(mail: TrainerInvitationMail): Promise<void>;
+  /** Where "now" comes from: the expiry and the daily limit of an invitation (F011). Tests pass a manual clock. */
+  clock: { now(): Date };
   /** Reports unhandled route errors to Sentry (E009). Off without a DSN. */
   errorReporter: ErrorReporter;
   /** Sends product events to PostHog EU (E009); flushed after every request. Off without a key. */
@@ -66,6 +76,9 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   requestSignIn: () => Promise.resolve(),
   exchangeSignInCode: () => Promise.resolve(undefined),
   signOutBearer: () => Promise.resolve(false),
+  // Nothing is sent.
+  sendTrainerInvitation: () => Promise.reject(new Error('No email configured.')),
+  clock: { now: () => new Date() },
   tenantScopes: {
     inAccountScope: () => Promise.reject(new Error('No database configured.')),
     inWorkspaceScope: () => Promise.reject(new Error('No database configured.')),

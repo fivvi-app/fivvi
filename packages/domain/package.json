@@ -12,6 +12,9 @@
     "test": "vitest run",
     "format:check": "biome format ."
   },
+  "dependencies": {
+    "@fivvi/i18n": "workspace:*"
+  },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@fivvi/testing": "workspace:*",

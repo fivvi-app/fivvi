@@ -27,6 +27,7 @@ describe('F004 permission matrix', () => {
       'clients.manage',
       'location.read',
       'settings.manage',
+      'team.invite',
     ]);
     expect(capabilitiesOf('owner')).toEqual(CAPABILITIES);
     expect(capabilitiesOf('trainer')).toEqual(TRAINER_CAPABILITIES);
@@ -47,6 +48,8 @@ describe('F004 permission matrix', () => {
     // F015: every team member reads the workspace's location, only the Owner changes it.
     expect(rolesWith('location.read')).toEqual(['owner', 'trainer']);
     expect(rolesWith('settings.manage')).toEqual(['owner']);
+    // F011: only the Owner invites a trainer, sends the invitation again or withdraws it.
+    expect(rolesWith('team.invite')).toEqual(['owner']);
   });
 
   it('AC9: has no admin role', () => {

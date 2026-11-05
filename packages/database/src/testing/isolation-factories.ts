@@ -3,6 +3,7 @@ import { locations, organizations } from '../schema/index.ts';
 import {
   addClient,
   addTeamRole,
+  addTrainerInvitation,
   addTrainerProfile,
   createAccount,
   uniqueMarker,
@@ -77,6 +78,18 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
         .returning({ id: locations.id });
       if (!row) throw new Error('location was not created.');
       return row;
+    },
+  },
+  // Sent by an Owner of the same workspace, who is made for it.
+  trainer_invitations: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const inviter = await addTeamRole(db, {
+        workspaceId,
+        accountId: (await createAccount(db, { label: 'inviter' })).id,
+        role: 'owner',
+      });
+      return addTrainerInvitation(db, { workspaceId, inviterTeamMemberId: inviter.id });
     },
   },
 };

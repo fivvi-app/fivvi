@@ -29,6 +29,7 @@ export { findSystemGreeting, type SystemGreetingView } from './queries/system-gr
 export { recordWrongSignInCode } from './queries/verifications.ts';
 export {
   findAccountIdByEmail,
+  findPreferredLocaleByEmail,
   setAccountName,
   setPreferredLocale,
 } from './repositories/accounts.ts';
@@ -57,11 +58,24 @@ export {
   changeTeamMemberRole,
   deleteTeamMember,
   findTeamMember,
+  isOnTeam,
   listTeamMembers,
   lockOwners,
   type TeamMemberRole,
   type TeamMemberView,
 } from './repositories/team-members.ts';
+export {
+  countInvitationsSince,
+  createTrainerInvitation,
+  findPendingInvitation,
+  findPendingInvitationByEmail,
+  listPendingInvitations,
+  lockInvitationQuota,
+  type NewTrainerInvitation,
+  resendInvitation,
+  type TrainerInvitationView,
+  withdrawInvitation,
+} from './repositories/trainer-invitations.ts';
 export {
   findOwnTeamMember,
   listTrainers,

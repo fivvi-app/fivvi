@@ -1,11 +1,13 @@
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from './client.ts';
+import { FIXTURE_INVITATION_VALIDITY_MS } from './invitation-validity.ts';
 import {
   authUsers,
   clients,
   locations,
   organizations,
   teamMembers,
+  trainerInvitations,
   trainerProfiles,
 } from './schema/index.ts';
 
@@ -36,7 +38,10 @@ export function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env): b
  * Gym and Owner of a second workspace, "Sarah Personal Training" (`sarah-personal-training`),
  * so previews and tests have the multi-workspace and two-role cases of `PRODUCT.md §9`. John and
  * Sarah train in John's Gym and Sarah in her own workspace (trainer profiles, F005). Each
- * workspace has its one location (F015), John's Gym's with a synthetic address. Rows that
+ * workspace has its one location (F015), John's Gym's with a synthetic address. And a pending
+ * trainer invitation of John's Gym for `invitee@example.com` (F011), so previews show the pending
+ * row of *Trainers*; nobody knows its token (see `SEED_INVITATION_TOKEN_HASH`), an Owner sends it
+ * again to get a link. Rows that
  * every environment needs, like the `hello` greeting, are data migrations instead
  * (`src/system-data.ts`).
  */
@@ -145,6 +150,31 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
         isNull(locations.postcode),
       ),
     );
+  // The pending trainer invitation of John's Gym (F011 AC14), sent by John. Made once per address:
+  // one an Owner withdrew or sent again since stays as it is.
+  const [johnInGym] = await db
+    .select({ id: teamMembers.id })
+    .from(teamMembers)
+    .where(and(eq(teamMembers.organizationId, gym), eq(teamMembers.accountId, owner)));
+  if (!johnInGym) throw new Error('The seed did not find its Owner.');
+  const [alreadyInvited] = await db
+    .select({ id: trainerInvitations.id })
+    .from(trainerInvitations)
+    .where(
+      and(
+        eq(trainerInvitations.organizationId, gym),
+        eq(trainerInvitations.email, SEED_INVITATION.email),
+      ),
+    );
+  if (!alreadyInvited) {
+    await db.insert(trainerInvitations).values({
+      organizationId: gym,
+      inviterTeamMemberId: johnInGym.id,
+      ...SEED_INVITATION,
+      tokenHash: SEED_INVITATION_TOKEN_HASH,
+      expiresAt: new Date(Date.now() + FIXTURE_INVITATION_VALIDITY_MS),
+    });
+  }
   // Idempotent without fixed IDs: a client is there already when its email address is used in
   // the workspace.
   const existing = await db
@@ -168,3 +198,13 @@ const SEED_CLIENTS = [
   { name: 'Mark Jansen', email: 'mark@example.com', emailLocale: null },
   { name: 'Sophie Bakker', email: 'sophie.bakker@example.com', emailLocale: null },
 ];
+
+/** The synthetic pending invitation of John's Gym (F011 AC14): an `@example.com` address. */
+const SEED_INVITATION = { name: 'Invitee', email: 'invitee@example.com' } as const;
+
+/**
+ * The hash stored for the seeded invitation. It is the hash of no token anyone could hold (the
+ * API's hash of a token is SHA-256 of 256 random bits; no token hashes to all zeros), so the
+ * seeded link opens nothing until an Owner sends the invitation again, which rotates it.
+ */
+const SEED_INVITATION_TOKEN_HASH = '0'.repeat(64);

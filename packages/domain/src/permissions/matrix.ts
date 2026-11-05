@@ -18,6 +18,7 @@ export const CAPABILITIES = [
   'clients.manage',
   'location.read',
   'settings.manage',
+  'team.invite',
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 

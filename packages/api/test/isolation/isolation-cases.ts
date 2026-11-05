@@ -1,5 +1,5 @@
 import { type DatabaseExecutor, locations } from '@fivvi/database';
-import { addTeamRole, createAccount } from '@fivvi/database/testing';
+import { addTeamRole, addTrainerInvitation, createAccount } from '@fivvi/database/testing';
 import { eq } from 'drizzle-orm';
 
 // The isolation cases (E011, AC11, AC14): one per workspace and account operation, by operation
@@ -70,6 +70,17 @@ const aTeamMember: IsolationCase['seed'] = async (db, { workspaceId }) => {
   return { teamMember: id };
 };
 
+/** A pending invitation of the workspace the seed was called for, sent by an Owner of it: what the invitation routes list, send again and withdraw (F011). */
+const anInvitation: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  const inviter = await addTeamRole(db, {
+    workspaceId,
+    accountId: (await createAccount(db, { label: 'inviter' })).id,
+    role: 'owner',
+  });
+  const { id } = await addTrainerInvitation(db, { workspaceId, inviterTeamMemberId: inviter.id });
+  return { invitation: id };
+};
+
 export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // Account routes.
   getMe: {},
@@ -94,6 +105,26 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     body: { role: 'trainer' },
   },
   removeTeamMember: { seed: aTeamMember, params: { teamMemberId: 'teamMember' } },
+
+  // The trainer invitations of a workspace (F011): the list shows the seeded pending invitation, the
+  // other two name it, and the invite takes a name and an address of its own each time it is written.
+  listTrainerInvitations: { seed: anInvitation },
+  createTrainerInvitation: {
+    body: {
+      name: 'Lisa',
+      get email() {
+        return `${crypto.randomUUID()}@example.com`;
+      },
+    },
+  },
+  resendTrainerInvitation: {
+    seed: anInvitation,
+    params: { invitationId: 'invitation' },
+  },
+  withdrawTrainerInvitation: {
+    seed: anInvitation,
+    params: { invitationId: 'invitation' },
+  },
 
   // The trainers of a workspace (F005): the list shows the seeded Trainer. The two switch routes
   // act on the caller's own trainer profile, so they name no record.
