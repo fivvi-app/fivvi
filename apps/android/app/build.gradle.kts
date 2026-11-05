@@ -87,11 +87,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // Strings come only from packages/i18n (generated, never copied): values/ is nl-NL, values-en/ English.
-    sourceSets.getByName("main").res.directories.add(rootDir.resolve("../../packages/i18n/generated/android").path)
-    // The fake API client, shared by the unit and the instrumented tests.
-    sourceSets.getByName("test").kotlin.directories.add("src/testShared/kotlin")
-    sourceSets.getByName("androidTest").kotlin.directories.add("src/testShared/kotlin")
+    // The strings (packages/i18n, generated: values/ is nl-NL, values-en/ English) live in :core, with everything both
+    // apps share. The fake API clients, shared by the unit and the instrumented tests: the app's own and :core's.
+    val sharedFakes = listOf("src/testShared/kotlin", "../core/src/testShared/kotlin")
+    sourceSets.getByName("test").kotlin.directories.addAll(sharedFakes)
+    sourceSets.getByName("androidTest").kotlin.directories.addAll(sharedFakes)
     androidResources {
         localeFilters += listOf("nl", "en")
     }
@@ -174,15 +174,13 @@ val checkNoAnalyticsSdk = tasks.register("checkNoAnalyticsSdk") {
 tasks.matching { it.name == "preBuild" }.configureEach { dependsOn(checkNoAnalyticsSdk) }
 
 dependencies {
-    implementation(project(":api"))
-    implementation(project(":design-tokens"))
+    implementation(project(":core"))
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.material3)
     implementation(libs.compose.ui)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.sentry.android.core)
     debugImplementation(libs.compose.ui.test.manifest)
 
     testImplementation(libs.junit)
@@ -192,4 +190,5 @@ dependencies {
     androidTestImplementation(libs.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.sentry.android.core)
 }

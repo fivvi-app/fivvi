@@ -1,0 +1,86 @@
+// Wall-clock time in a time zone to an instant (ADR-012). Pure: it uses the time zone database
+// of the runtime through `Intl`, and no clock. Stored instants are UTC; people type local times.
+
+export type WallClockInstant =
+  /** The time exists. `repeated`: it happens twice (the clocks went back); the earlier instant is taken. */
+  | { readonly outcome: 'instant'; readonly instant: Date; readonly repeated: boolean }
+  /** The time is skipped when the clocks go forward (02:30 on 28 March 2027 in Amsterdam). */
+  | { readonly outcome: 'does-not-exist' }
+  /** The date is no calendar date (`YYYY-MM-DD`), or the time no time of day (`HH:mm`); `field` says which. */
+  | { readonly outcome: 'invalid'; readonly field: 'date' | 'time' };
+
+const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const TIME = /^(\d{2}):(\d{2})$/;
+const DAY_MS = 86_400_000;
+
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+function formatterFor(timeZone: string): Intl.DateTimeFormat {
+  let format = formatters.get(timeZone);
+  if (!format) {
+    format = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+    });
+    formatters.set(timeZone, format);
+  }
+  return format;
+}
+
+/** The wall-clock fields of `time` in `timeZone`, read as if they were UTC (milliseconds dropped). */
+function wallAsUtc(time: number, timeZone: string): number {
+  const parts: Record<string, number> = {};
+  for (const { type, value } of formatterFor(timeZone).formatToParts(time)) {
+    if (type !== 'literal') parts[type] = Number(value);
+  }
+  const { year = 0, month = 1, day = 1, hour = 0, minute = 0, second = 0 } = parts;
+  return Date.UTC(year, month - 1, day, hour, minute, second);
+}
+
+/** The UTC offset of `timeZone` at `time`, in milliseconds (Amsterdam summer time: +7_200_000). */
+function offsetAt(time: number, timeZone: string): number {
+  const whole = time - (((time % 1000) + 1000) % 1000);
+  return wallAsUtc(whole, timeZone) - whole;
+}
+
+/**
+ * The instant at which the wall clock in `timeZone` reads `date` (`YYYY-MM-DD`) at `time`
+ * (`HH:mm`, 24 hours). A time the clocks skip does not exist; a time they repeat takes the earlier
+ * instant (summer time in Amsterdam) and is reported as `repeated`, so the person can be told.
+ */
+export function wallClockToInstant(date: string, time: string, timeZone: string): WallClockInstant {
+  const day = DATE.exec(date);
+  if (!day) return { outcome: 'invalid', field: 'date' };
+  const [year, month, dayOfMonth] = [Number(day[1]), Number(day[2]), Number(day[3])];
+  // `Date.UTC` rolls 30 February over to March; the round trip catches it.
+  const rolled = new Date(Date.UTC(year, month - 1, dayOfMonth));
+  if (
+    rolled.getUTCFullYear() !== year ||
+    rolled.getUTCMonth() !== month - 1 ||
+    rolled.getUTCDate() !== dayOfMonth
+  ) {
+    return { outcome: 'invalid', field: 'date' };
+  }
+  const clock = TIME.exec(time);
+  const [hour, minute] = [Number(clock?.[1]), Number(clock?.[2])];
+  if (!clock || hour > 23 || minute > 59) return { outcome: 'invalid', field: 'time' };
+  const asUtc = Date.UTC(year, month - 1, dayOfMonth, hour, minute);
+
+  // The offsets a day either side cover any single transition near this time.
+  const offsets = [
+    ...new Set([offsetAt(asUtc - DAY_MS, timeZone), offsetAt(asUtc + DAY_MS, timeZone)]),
+  ];
+  const matches = offsets
+    .map((offset) => asUtc - offset)
+    .filter((candidate) => wallAsUtc(candidate, timeZone) === asUtc)
+    .sort((a, b) => a - b);
+  const [earlier] = matches;
+  if (earlier === undefined) return { outcome: 'does-not-exist' };
+  return { outcome: 'instant', instant: new Date(earlier), repeated: matches.length > 1 };
+}

@@ -6,7 +6,7 @@ import type { DatabaseExecutor } from './client.ts';
  * The database role of the cron's tasks (E012, ADR-006, ADR-027). It is the privileged path the
  * tasks use instead of the connection that owns the tables: it owns nothing, cannot bypass RLS,
  * sets no tenant context, and can use only the tables listed in `CRON_TABLE_PRIVILEGES`. The role
- * is created by migration `0017` (without a login) and finished by the release step (login and
+ * is created by migration `0022` (without a login) and finished by the release step (login and
  * password, `ensureCronRole`), like the app role.
  */
 export const CRON_ROLE = 'fivvi_cron';

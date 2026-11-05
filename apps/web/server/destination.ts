@@ -1,5 +1,6 @@
 import { SIGNED_IN_HOME } from '@fivvi/auth/return-path';
 import type { Schemas } from '@fivvi/contract';
+import { startWorkspace } from './start-workspace';
 
 /** What `GET /v1/me` tells that decides where a person goes (F002). */
 export type Me = Schemas['MeResponse'];
@@ -13,15 +14,17 @@ export type Destination =
 /**
  * The signed-in home's decision (F002, spec #170), from what the API says and nothing else: the
  * rule who may create a workspace lives in `packages/domain`, behind `canCreateWorkspace`. A
- * workspace first; none and allowed to create one: TW-11; neither: the no-access page. The
- * first workspace by name stands in for "the last one used", which F012 adds with the switcher.
+ * workspace first (an account that may create another one, F012, still goes to its workspace);
+ * none and allowed to create one: TW-11; neither: the no-access page. Which workspace is
+ * `startWorkspace`'s rule (F012): the one remembered in this browser (`rememberedSlug`, from the
+ * `fivvi_last_workspace` cookie) while the account is on its team, else the first by name.
  */
-export function destinationOf({
-  canCreateWorkspace,
-  workspaces,
-}: Pick<Me, 'canCreateWorkspace' | 'workspaces'>): Destination {
-  const [first] = workspaces;
-  if (first) return { to: 'workspace', slug: first.slug };
+export function destinationOf(
+  { canCreateWorkspace, workspaces }: Pick<Me, 'canCreateWorkspace' | 'workspaces'>,
+  rememberedSlug?: string,
+): Destination {
+  const start = startWorkspace(workspaces, rememberedSlug);
+  if (start) return { to: 'workspace', slug: start.slug };
   return canCreateWorkspace ? { to: 'welcome' } : { to: 'no-access' };
 }
 

@@ -122,6 +122,12 @@ export default defineRailway((ctx) => {
       // the dashboard. Read at runtime. Empty where the keys are; a key without it turns
       // analytics off with a configuration error.
       POSTHOG_HOST: preserve(),
+      // App links for the client app Fivvi (E017, apps/web/server/app-links.ts): the web serves
+      // /.well-known/apple-app-site-association and /.well-known/assetlinks.json only where these
+      // are set, so production only; links on previews and development open the web. Set by the
+      // owner once the apps are registered: the Apple team ID and the SHA-256 fingerprint of the
+      // Play app-signing certificate. Neither is secret, and neither is committed here.
+      ...(production ? { APPLE_TEAM_ID: preserve(), ANDROID_CERT_SHA256: preserve() } : {}),
     },
   });
 

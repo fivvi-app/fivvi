@@ -2,6 +2,10 @@ package app.fivvi.pro.home
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,34 +14,43 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.LanguageList
+import app.fivvi.core.R
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.subhead
 import app.fivvi.designtokens.title1
 import app.fivvi.designtokens.title2
-import app.fivvi.pro.AppLanguage
-import app.fivvi.pro.LanguageList
-import app.fivvi.pro.R
 import java.util.UUID
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
@@ -73,7 +86,11 @@ object ProfileTags {
     const val LANGUAGE = "profile.language"
     const val LANGUAGE_ERROR = "profile.language.error"
 
-    /** Row tags end in the workspace's slug: `profile.workspaceName.<slug>` and `profile.workspaceRole.<slug>`. */
+    /**
+     * Row tags end in the workspace's slug: `profile.workspace.<slug>` is the row (with more than one workspace a button,
+     * selected on the current one), `profile.workspaceName.<slug>` and `profile.workspaceRole.<slug>` its two lines.
+     */
+    const val WORKSPACE = "profile.workspace"
     const val WORKSPACE_NAME = "profile.workspaceName"
     const val WORKSPACE_ROLE = "profile.workspaceRole"
 }
@@ -89,6 +106,10 @@ class ProfileActions(
     val language: AppLanguage,
     val languageSaveFailed: Boolean,
     val onChooseLanguage: (AppLanguage) -> Unit,
+    /** The workspace the app is in (F012): the row with the check. */
+    val currentWorkspace: UUID?,
+    /** A tap on a workspace's row: with more than one workspace it switches to it; on the current one it only leaves Profiel. */
+    val onSelectWorkspace: (UUID) -> Unit,
 )
 
 /**
@@ -96,7 +117,7 @@ class ProfileActions(
  * dialog [NameEditorScreen] when tapped, and the email address (read-only, F005); the section *Mijn werkruimtes* /
  * *My workspaces* lists each workspace with the role label of the account on its team and, for an account that may manage the team (an Owner), the switch
  * *Ik geef zelf ook trainingen in …* (F003 AC9, F005 AC4, AC5). Back is the system's back (it closes the dialog first, and does nothing while a save is under way).
- * No switching of workspaces (F012); F010 adds *Taal* (the language list, saved on the account).
+ * With more than one workspace each row switches to it, and the current one has the check (F012); F010 adds *Taal* (the language list, saved on the account).
  */
 @Composable
 fun ProfileScreen(state: ProfileState, editor: NameEditor?, actions: ProfileActions, modifier: Modifier = Modifier) {
@@ -135,7 +156,14 @@ fun ProfileScreen(state: ProfileState, editor: NameEditor?, actions: ProfileActi
                 )
             }
 
-            is ProfileState.Loaded -> state.workspaces.forEach { Workspace(it, actions.onSetTrainsHere) }
+            is ProfileState.Loaded -> state.workspaces.forEach {
+                Workspace(
+                    it,
+                    selected = it.id == actions.currentWorkspace,
+                    onSelect = if (state.workspaces.size > 1) ({ actions.onSelectWorkspace(it.id) }) else null,
+                    onSetTrainsHere = actions.onSetTrainsHere,
+                )
+            }
 
             ProfileState.Failed -> {
                 Text(
@@ -208,7 +236,12 @@ private fun Details(state: ProfileState.Loaded, onEditName: () -> Unit) {
 }
 
 @Composable
-private fun Workspace(workspace: ProfileWorkspace, onSetTrainsHere: (UUID, Boolean) -> Unit) {
+private fun Workspace(
+    workspace: ProfileWorkspace,
+    selected: Boolean,
+    onSelect: (() -> Unit)?,
+    onSetTrainsHere: (UUID, Boolean) -> Unit,
+) {
     val role = stringResource(
         when (workspace.role) {
             ProfileRole.Owner -> R.string.roles_owner
@@ -219,17 +252,78 @@ private fun Workspace(workspace: ProfileWorkspace, onSetTrainsHere: (UUID, Boole
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.space1),
     ) {
-        Text(
-            text = workspace.name,
-            modifier = Modifier.testTag("${ProfileTags.WORKSPACE_NAME}.${workspace.slug}"),
-            style = MaterialTheme.typography.body,
-        )
-        Text(
-            text = role,
-            modifier = Modifier.testTag("${ProfileTags.WORKSPACE_ROLE}.${workspace.slug}"),
-            style = MaterialTheme.typography.body,
-        )
+        WorkspaceRow(workspace, role, selected, onSelect)
         if (workspace.canSwitchTrainsHere) TrainsHere(workspace, onSetTrainsHere)
+    }
+}
+
+// The name and the role; with more than one workspace the whole row is the button (`profile.workspace.<slug>`), with a
+// check and the selected state on the current one. The row does not merge its two lines into itself (unlike a Material
+// button), so they keep their own tags for the flows that read them. Its role is a tab, as a Material navigation item's
+// is: only then does Compose report the selected state as the accessibility node's `selected`, which is what the shared
+// Maestro flow and the iOS `isSelected` trait look at (any other role reports it as `checked`).
+@Composable
+private fun WorkspaceRow(workspace: ProfileWorkspace, roleLabel: String, isCurrent: Boolean, onSelect: (() -> Unit)?) {
+    val press = remember { MutableInteractionSource() }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = Spacing.space12)
+            .testTag("${ProfileTags.WORKSPACE}.${workspace.slug}")
+            .then(
+                if (onSelect == null) {
+                    Modifier
+                } else {
+                    Modifier
+                        .semantics {
+                            // What TalkBack reads on the row itself, as the merged row of a button would.
+                            this.contentDescription = "${workspace.name}, $roleLabel"
+                            this.role = Role.Tab
+                            this.selected = isCurrent
+                            onClick {
+                                onSelect()
+                                true
+                            }
+                        }
+                        .indication(press, ripple())
+                        .pointerInput(onSelect) {
+                            detectTapGestures(
+                                onPress = { offset ->
+                                    val pressed = PressInteraction.Press(offset)
+                                    press.emit(pressed)
+                                    val ended = if (tryAwaitRelease()) {
+                                        PressInteraction.Release(pressed)
+                                    } else {
+                                        PressInteraction.Cancel(pressed)
+                                    }
+                                    press.emit(ended)
+                                },
+                                onTap = { onSelect() },
+                            )
+                        }
+                },
+            ),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(Spacing.space1),
+        ) {
+            Text(
+                text = workspace.name,
+                modifier = Modifier.testTag("${ProfileTags.WORKSPACE_NAME}.${workspace.slug}"),
+                style = MaterialTheme.typography.body,
+            )
+            Text(
+                text = roleLabel,
+                modifier = Modifier.testTag("${ProfileTags.WORKSPACE_ROLE}.${workspace.slug}"),
+                style = MaterialTheme.typography.body,
+            )
+        }
+        if (onSelect != null && isCurrent) {
+            Icon(painterResource(R.drawable.ic_check), contentDescription = null, Modifier.size(Spacing.space6))
+        }
     }
 }
 

@@ -60,10 +60,11 @@ test.describe('F002 first run and the signed-in home', () => {
     await expect(page).toHaveURL(SLUG_OF_NEW_GYM);
     await expect(page.getByRole('heading', { level: 1, name: "John's Gym" })).toBeVisible();
     await expect(page).toHaveTitle("John's Gym");
-    // The data path: the account is Sarah, owns the new workspace, and may not set up another.
+    // The data path: the account is Sarah, owns the new workspace, and, being on the sign-up
+    // allowlist, may set up another (F012 AC8).
     const me = (await (await page.request.get('/api/v1/me')).json()) as Me;
     expect(me.name).toBe('Sarah');
-    expect(me.canCreateWorkspace).toBe(false);
+    expect(me.canCreateWorkspace).toBe(true);
     expect(me.workspaces).toEqual([
       {
         id: expect.any(String),
@@ -73,11 +74,14 @@ test.describe('F002 first run and the signed-in home', () => {
         capabilities: expect.arrayContaining(['workspace.manage', 'team.manage']),
       },
     ]);
-    // Opening TW-11 again, or the signed-in home, now leads to the workspace (AC4) ...
-    for (const path of ['/welcome', '/home']) {
-      await page.goto(path);
-      await expect(page).toHaveURL(SLUG_OF_NEW_GYM);
-    }
+    // The signed-in home now leads to the workspace (AC4), although the account may create another:
+    // the first-run screen is for an account with no workspace. TW-11 itself stays open to the
+    // allowlisted account, as the way to another workspace (F012 AC8, e2e/workspace-switcher.spec.ts) ...
+    await page.goto('/home');
+    await expect(page).toHaveURL(SLUG_OF_NEW_GYM);
+    await page.goto('/welcome');
+    await expect(page).toHaveURL(/\/welcome$/);
+    await expect(page.getByLabel(copy.welcome.workspaceNameLabel)).toBeVisible();
     // ... and a slug that is not one of its workspaces leads there too, showing nothing of it.
     await page.goto('/w/no-such-gym');
     await expect(page).toHaveURL(SLUG_OF_NEW_GYM);

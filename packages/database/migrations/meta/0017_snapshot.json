@@ -1,5 +1,5 @@
 {
-  "id": "81b65841-f105-430f-9729-48321d37d9a4",
+  "id": "f84337b7-28b0-46ef-8c35-8dcceec68073",
   "prevId": "f5324b0a-b3f0-48b0-9bb4-7ffa751d6535",
   "version": "7",
   "dialect": "postgresql",
@@ -60,24 +60,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "auth_identities_user_id_auth_users_id_fk": {
           "name": "auth_identities_user_id_auth_users_id_fk",
           "tableFrom": "auth_identities",
+          "tableTo": "auth_users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "auth_users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -142,9 +142,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -152,10 +152,10 @@
       "uniqueConstraints": {
         "auth_rate_limits_key_unique": {
           "name": "auth_rate_limits_key_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "key"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -230,34 +230,34 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "auth_sessions_user_id_auth_users_id_fk": {
           "name": "auth_sessions_user_id_auth_users_id_fk",
           "tableFrom": "auth_sessions",
+          "tableTo": "auth_users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "auth_users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "auth_sessions_token_unique": {
           "name": "auth_sessions_token_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "token"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -322,10 +322,10 @@
       "uniqueConstraints": {
         "auth_users_email_unique": {
           "name": "auth_users_email_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -416,9 +416,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -500,9 +500,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "job_runs_started_at_idx": {
           "name": "job_runs_started_at_idx",
@@ -515,9 +515,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -528,6 +528,168 @@
         "job_runs_message_length": {
           "name": "job_runs_message_length",
           "value": "\"job_runs\".\"message\" is null or char_length(\"job_runs\".\"message\") <= 200"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.locations": {
+      "name": "locations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "location_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "postcode": {
+          "name": "postcode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "house_number": {
+          "name": "house_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "house_number_addition": {
+          "name": "house_number_addition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "street": {
+          "name": "street",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "locations_organization_id_default_unique": {
+          "name": "locations_organization_id_default_unique",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"locations\".\"is_default\"",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "locations_organization_id_organizations_id_fk": {
+          "name": "locations_organization_id_organizations_id_fk",
+          "tableFrom": "locations",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "locations_organization_id_id_unique": {
+          "name": "locations_organization_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "locations_workspace": {
+          "name": "locations_workspace",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "fivvi_app"
+          ],
+          "using": "\"locations\".\"organization_id\" = ANY (app_workspace_ids())",
+          "withCheck": "\"locations\".\"organization_id\" = ANY (app_workspace_ids())"
+        }
+      },
+      "checkConstraints": {
+        "locations_name_valid": {
+          "name": "locations_name_valid",
+          "value": "btrim(\"locations\".\"name\") <> '' AND char_length(\"locations\".\"name\") <= 120"
+        },
+        "locations_postcode_format": {
+          "name": "locations_postcode_format",
+          "value": "\"locations\".\"postcode\" IS NULL OR \"locations\".\"postcode\" ~ '^[1-9][0-9]{3} [A-Z]{2}$'"
+        },
+        "locations_house_number_format": {
+          "name": "locations_house_number_format",
+          "value": "\"locations\".\"house_number\" IS NULL OR \"locations\".\"house_number\" ~ '^[0-9]{1,5}$'"
+        },
+        "locations_address_all_or_nothing": {
+          "name": "locations_address_all_or_nothing",
+          "value": "(\"locations\".\"postcode\" IS NULL AND \"locations\".\"house_number\" IS NULL AND \"locations\".\"street\" IS NULL AND \"locations\".\"city\" IS NULL AND \"locations\".\"house_number_addition\" IS NULL)\n        OR (\"locations\".\"postcode\" IS NOT NULL AND \"locations\".\"house_number\" IS NOT NULL AND \"locations\".\"street\" IS NOT NULL AND \"locations\".\"city\" IS NOT NULL)"
+        },
+        "locations_address_text_valid": {
+          "name": "locations_address_text_valid",
+          "value": "(\"locations\".\"street\" IS NULL OR (btrim(\"locations\".\"street\") <> '' AND char_length(\"locations\".\"street\") <= 120))\n        AND (\"locations\".\"city\" IS NULL OR (btrim(\"locations\".\"city\") <> '' AND char_length(\"locations\".\"city\") <= 120))\n        AND (\"locations\".\"house_number_addition\" IS NULL OR (btrim(\"locations\".\"house_number_addition\") <> '' AND char_length(\"locations\".\"house_number_addition\") <= 10))"
         }
       },
       "isRLSEnabled": false
@@ -588,10 +750,10 @@
       "uniqueConstraints": {
         "organizations_slug_unique": {
           "name": "organizations_slug_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "slug"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -666,10 +828,10 @@
       "uniqueConstraints": {
         "system_greetings_slug_unique": {
           "name": "system_greetings_slug_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "slug"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -759,9 +921,9 @@
             }
           ],
           "isUnique": true,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "clients_account_id_idx": {
           "name": "clients_account_id_idx",
@@ -774,56 +936,56 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "clients_organization_id_organizations_id_fk": {
           "name": "clients_organization_id_organizations_id_fk",
           "tableFrom": "clients",
+          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "clients_account_id_auth_users_id_fk": {
           "name": "clients_account_id_auth_users_id_fk",
           "tableFrom": "clients",
+          "tableTo": "auth_users",
           "columnsFrom": [
             "account_id"
           ],
-          "tableTo": "auth_users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "clients_organization_id_id_unique": {
           "name": "clients_organization_id_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "id"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "clients_organization_id_account_id_unique": {
           "name": "clients_organization_id_account_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "account_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -930,56 +1092,56 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "team_members_organization_id_organizations_id_fk": {
           "name": "team_members_organization_id_organizations_id_fk",
           "tableFrom": "team_members",
+          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "team_members_account_id_auth_users_id_fk": {
           "name": "team_members_account_id_auth_users_id_fk",
           "tableFrom": "team_members",
+          "tableTo": "auth_users",
           "columnsFrom": [
             "account_id"
           ],
-          "tableTo": "auth_users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "team_members_organization_id_id_unique": {
           "name": "team_members_organization_id_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "id"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "team_members_organization_id_account_id_unique": {
           "name": "team_members_organization_id_account_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "account_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1049,48 +1211,48 @@
         "trainer_profiles_organization_id_organizations_id_fk": {
           "name": "trainer_profiles_organization_id_organizations_id_fk",
           "tableFrom": "trainer_profiles",
+          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "trainer_profiles_team_member_fk": {
           "name": "trainer_profiles_team_member_fk",
           "tableFrom": "trainer_profiles",
+          "tableTo": "team_members",
           "columnsFrom": [
             "organization_id",
             "team_member_id"
           ],
-          "tableTo": "team_members",
           "columnsTo": [
             "organization_id",
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "trainer_profiles_organization_id_id_unique": {
           "name": "trainer_profiles_organization_id_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "id"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "trainer_profiles_team_member_id_unique": {
           "name": "trainer_profiles_team_member_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "team_member_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1119,6 +1281,18 @@
         "skipped"
       ]
     },
+    "public.location_type": {
+      "name": "location_type",
+      "schema": "public",
+      "values": [
+        "organization_location",
+        "external_gym",
+        "client_home",
+        "outdoor",
+        "online",
+        "other"
+      ]
+    },
     "public.team_role": {
       "name": "team_role",
       "schema": "public",
@@ -1129,10 +1303,10 @@
     }
   },
   "schemas": {},
-  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

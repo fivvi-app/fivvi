@@ -10,19 +10,29 @@ import app.fivvi.api.apis.SignInApi
 import app.fivvi.api.apis.TrainersApi
 import app.fivvi.api.apis.WorkspacesApi
 import app.fivvi.api.models.MeResponse
-import app.fivvi.pro.auth.InMemorySessionStore
-import app.fivvi.pro.auth.Session
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.FakeLanguageSettings
+import app.fivvi.core.InMemoryLanguageStore
+import app.fivvi.core.LanguagePreference
+import app.fivvi.core.LanguageSettings
+import app.fivvi.core.LanguageStore
+import app.fivvi.core.auth.InMemorySessionStore
+import app.fivvi.core.auth.Session
+import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.pro.clients.FakeClientsApi
-import app.fivvi.pro.home.FakeMeApi
 import app.fivvi.pro.home.FakeTrainersApi
 import app.fivvi.pro.home.FakeWorkspacesApi
-import app.fivvi.pro.signin.FakeSignInApi
+import app.fivvi.pro.workspace.CurrentWorkspace
+import app.fivvi.pro.workspace.InMemoryLastWorkspaceStore
+import app.fivvi.pro.workspace.LastWorkspaceStore
 import org.junit.rules.ExternalResource
 
 /**
  * Starts [MainActivity] with fake API clients and fake OS language settings, and puts the real ones back after. The
  * session defaults to a signed-in one (the home, as E008's hello tests expect); pass `Session(InMemorySessionStore())`
- * for an app that starts signed out.
+ * for an app that starts signed out. [lastWorkspace] is the device's memory of the workspace used last; pass the same one
+ * to a second launch to keep it across a restart.
  */
 class AppRule : ExternalResource() {
     private val app = ApplicationProvider.getApplicationContext<FivviApplication>()
@@ -41,6 +51,7 @@ class AppRule : ExternalResource() {
         signOutApi: (String) -> SignInApi = { signInApi },
         languageStore: LanguageStore = InMemoryLanguageStore(),
         languageSettings: FakeLanguageSettings = FakeLanguageSettings(perApp, device),
+        lastWorkspace: LastWorkspaceStore = InMemoryLastWorkspaceStore(),
     ) {
         // The account stores the language of the phone, so the stored preference changes nothing unless a test says so.
         (meApi as? FakeMeApi)?.defaultPreferredLocale = storedOf(perApp + device)
@@ -57,6 +68,7 @@ class AppRule : ExternalResource() {
 
             override val languageSettings: LanguageSettings = languageSettings
             override val languagePreference = LanguagePreference(languageStore, languageSettings)
+            override val currentWorkspace = CurrentWorkspace(lastWorkspace)
         }
         scenario = ActivityScenario.launch(MainActivity::class.java)
     }

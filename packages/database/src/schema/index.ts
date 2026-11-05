@@ -1,7 +1,10 @@
 export * from './auth.ts';
 export * from './business-table.ts';
 export * from './job-runs.ts';
+export * from './locations.ts';
 export * from './organizations.ts';
+export * from './sessions.ts';
 export * from './system-greetings.ts';
 export * from './tenancy.ts';
 export { APP_ROLE } from './tenant-policies.ts';
+export * from './trainer-invitations.ts';

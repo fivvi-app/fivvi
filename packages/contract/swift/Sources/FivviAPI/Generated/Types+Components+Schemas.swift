@@ -268,7 +268,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/preferredLocale`.
             public var preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload?
-            /// Whether the account may set up a workspace: it is on the sign-up allowlist and has no team role in any workspace yet. The web and the apps show the first-run screen or the no-access page from this, never from rules of their own.
+            /// Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own.
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/canCreateWorkspace`.
             public var canCreateWorkspace: Swift.Bool
@@ -283,7 +283,7 @@ extension Components {
             ///   - email: The address the account signs in with.
             ///   - name: The person’s own name; null until one is given (TW-11 asks for it).
             ///   - preferredLocale: The language stored on the account; null until one is stored.
-            ///   - canCreateWorkspace: Whether the account may set up a workspace: it is on the sign-up allowlist and has no team role in any workspace yet. The web and the apps show the first-run screen or the no-access page from this, never from rules of their own.
+            ///   - canCreateWorkspace: Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own.
             ///   - workspaces: The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed.
             public init(
                 id: Swift.String,
@@ -344,6 +344,11 @@ extension Components {
                 case trainers_view = "trainers.view"
                 case clients_view = "clients.view"
                 case clients_manage = "clients.manage"
+                case location_read = "location.read"
+                case settings_manage = "settings.manage"
+                case team_invite = "team.invite"
+                case session_private_manage_own = "session.private.manage.own"
+                case session_private_manage_any = "session.private.manage.any"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -417,6 +422,11 @@ extension Components {
                 case trainers_view = "trainers.view"
                 case clients_view = "clients.view"
                 case clients_manage = "clients.manage"
+                case location_read = "location.read"
+                case settings_manage = "settings.manage"
+                case team_invite = "team.invite"
+                case session_private_manage_own = "session.private.manage.own"
+                case session_private_manage_any = "session.private.manage.any"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -713,6 +723,32 @@ extension Components {
                 case defaultLocale
             }
         }
+        /// Who sent the report that the person switched workspace.
+        ///
+        /// - Remark: Generated from `#/components/schemas/WorkspaceSwitchedRequest`.
+        public struct WorkspaceSwitchedRequest: Codable, Hashable, Sendable {
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `workspace_switched` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceSwitchedRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `workspace_switched` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WorkspaceSwitchedRequest/surface`.
+            public var surface: Components.Schemas.WorkspaceSwitchedRequest.SurfacePayload?
+            /// Creates a new `WorkspaceSwitchedRequest`.
+            ///
+            /// - Parameters:
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `workspace_switched` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(surface: Components.Schemas.WorkspaceSwitchedRequest.SurfacePayload? = nil) {
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case surface
+            }
+        }
         /// A person on the team of a workspace.
         ///
         /// - Remark: Generated from `#/components/schemas/TeamMember`.
@@ -812,6 +848,210 @@ extension Components {
                 case role
             }
         }
+        /// A pending invitation to join the team as a Trainer. The link’s token is only in the email; it is never part of an answer.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TrainerInvitation`.
+        public struct TrainerInvitation: Codable, Hashable, Sendable {
+            /// The invitation ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/id`.
+            public var id: Swift.String
+            /// The name the Owner typed for the person.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/name`.
+            public var name: Swift.String
+            /// The address the invitation went to, lower case.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/email`.
+            public var email: Swift.String
+            /// The language the Owner chose for the email: `nl-NL` or `en`. `null` follows the language of the account with that address, then the workspace’s default.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/emailLocale`.
+            @frozen public enum EmailLocalePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case nlNL = "nl-NL"
+                case en = "en"
+                case _empty_ = ""
+            }
+            /// The language the Owner chose for the email: `nl-NL` or `en`. `null` follows the language of the account with that address, then the workspace’s default.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/emailLocale`.
+            public var emailLocale: Components.Schemas.TrainerInvitation.EmailLocalePayload?
+            /// When the invitation was last sent: it moves forward when it is sent again.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/sentAt`.
+            public var sentAt: Foundation.Date
+            /// When the link stops working: seven days after it was sent. A pending invitation can be past it; the Owner then sends it again.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitation/expiresAt`.
+            public var expiresAt: Foundation.Date
+            /// Creates a new `TrainerInvitation`.
+            ///
+            /// - Parameters:
+            ///   - id: The invitation ID.
+            ///   - name: The name the Owner typed for the person.
+            ///   - email: The address the invitation went to, lower case.
+            ///   - emailLocale: The language the Owner chose for the email: `nl-NL` or `en`. `null` follows the language of the account with that address, then the workspace’s default.
+            ///   - sentAt: When the invitation was last sent: it moves forward when it is sent again.
+            ///   - expiresAt: When the link stops working: seven days after it was sent. A pending invitation can be past it; the Owner then sends it again.
+            public init(
+                id: Swift.String,
+                name: Swift.String,
+                email: Swift.String,
+                emailLocale: Components.Schemas.TrainerInvitation.EmailLocalePayload? = nil,
+                sentAt: Foundation.Date,
+                expiresAt: Foundation.Date
+            ) {
+                self.id = id
+                self.name = name
+                self.email = email
+                self.emailLocale = emailLocale
+                self.sentAt = sentAt
+                self.expiresAt = expiresAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case email
+                case emailLocale
+                case sentAt
+                case expiresAt
+            }
+        }
+        /// Nothing was sent. `already_on_team`: an account with the address has a team role in the workspace. `invitation_pending`: the address has a pending invitation. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TrainerInvitationConflict`.
+        public struct TrainerInvitationConflict: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitationConflict/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case alreadyOnTeam = "already_on_team"
+                case invitationPending = "invitation_pending"
+            }
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitationConflict/code`.
+            public var code: Components.Schemas.TrainerInvitationConflict.CodePayload
+            /// With `invitation_pending`: the ID of the invitation that exists, which the Owner can send again.
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerInvitationConflict/invitationId`.
+            public var invitationId: Swift.String?
+            /// Creates a new `TrainerInvitationConflict`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            ///   - invitationId: With `invitation_pending`: the ID of the invitation that exists, which the Owner can send again.
+            public init(
+                code: Components.Schemas.TrainerInvitationConflict.CodePayload,
+                invitationId: Swift.String? = nil
+            ) {
+                self.code = code
+                self.invitationId = invitationId
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case invitationId
+            }
+        }
+        /// The workspace made 20 invitations in the last 24 hours; nothing was sent. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TooManyInvitations`.
+        public struct TooManyInvitations: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/TooManyInvitations/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case tooManyInvitations = "too_many_invitations"
+            }
+            /// - Remark: Generated from `#/components/schemas/TooManyInvitations/code`.
+            public var code: Components.Schemas.TooManyInvitations.CodePayload
+            /// Creates a new `TooManyInvitations`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.TooManyInvitations.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
+        /// The person to invite to the team as a Trainer.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CreateTrainerInvitationRequest`.
+        public struct CreateTrainerInvitationRequest: Codable, Hashable, Sendable {
+            /// The person’s name: trimmed, at least one and at most 120 characters. It becomes the account’s name only when the account has none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateTrainerInvitationRequest/name`.
+            public var name: Swift.String
+            /// The person’s email address, stored lower case. Invalid answers `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateTrainerInvitationRequest/email`.
+            public var email: Swift.String
+            /// The language of the email: `nl-NL` or `en`. Leave it out, or send `null`, to follow the language of the account with that address, then the workspace’s default. Any other value answers `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateTrainerInvitationRequest/emailLocale`.
+            @frozen public enum EmailLocalePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case nlNL = "nl-NL"
+                case en = "en"
+                case _empty_ = ""
+            }
+            /// The language of the email: `nl-NL` or `en`. Leave it out, or send `null`, to follow the language of the account with that address, then the workspace’s default. Any other value answers `400`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateTrainerInvitationRequest/emailLocale`.
+            public var emailLocale: Components.Schemas.CreateTrainerInvitationRequest.EmailLocalePayload?
+            /// Creates a new `CreateTrainerInvitationRequest`.
+            ///
+            /// - Parameters:
+            ///   - name: The person’s name: trimmed, at least one and at most 120 characters. It becomes the account’s name only when the account has none.
+            ///   - email: The person’s email address, stored lower case. Invalid answers `400`.
+            ///   - emailLocale: The language of the email: `nl-NL` or `en`. Leave it out, or send `null`, to follow the language of the account with that address, then the workspace’s default. Any other value answers `400`.
+            public init(
+                name: Swift.String,
+                email: Swift.String,
+                emailLocale: Components.Schemas.CreateTrainerInvitationRequest.EmailLocalePayload? = nil
+            ) {
+                self.name = name
+                self.email = email
+                self.emailLocale = emailLocale
+            }
+            public enum CodingKeys: String, CodingKey {
+                case name
+                case email
+                case emailLocale
+            }
+        }
+        /// What the link of a valid invitation shows to anyone who holds it, signed in or not.
+        ///
+        /// - Remark: Generated from `#/components/schemas/InvitationPreview`.
+        public struct InvitationPreview: Codable, Hashable, Sendable {
+            /// The name of the workspace that invites.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/workspaceName`.
+            public var workspaceName: Swift.String
+            /// The name of the Owner who invited, `null` while they have given none. Never their address.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/inviterName`.
+            public var inviterName: Swift.String?
+            /// The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/maskedEmail`.
+            public var maskedEmail: Swift.String
+            /// Creates a new `InvitationPreview`.
+            ///
+            /// - Parameters:
+            ///   - workspaceName: The name of the workspace that invites.
+            ///   - inviterName: The name of the Owner who invited, `null` while they have given none. Never their address.
+            ///   - maskedEmail: The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
+            public init(
+                workspaceName: Swift.String,
+                inviterName: Swift.String? = nil,
+                maskedEmail: Swift.String
+            ) {
+                self.workspaceName = workspaceName
+                self.inviterName = inviterName
+                self.maskedEmail = maskedEmail
+            }
+            public enum CodingKeys: String, CodingKey {
+                case workspaceName
+                case inviterName
+                case maskedEmail
+            }
+        }
         /// A team member who trains in the workspace.
         ///
         /// - Remark: Generated from `#/components/schemas/Trainer`.
@@ -868,6 +1108,501 @@ extension Components {
             public enum CodingKeys: String, CodingKey {
                 case teamMemberId
                 case trainsHere
+            }
+        }
+        /// A place where sessions of the workspace take place.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Location`.
+        public struct Location: Codable, Hashable, Sendable {
+            /// The location ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Location/id`.
+            public var id: Swift.String
+            /// The name sessions show, up to 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Location/name`.
+            public var name: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Location/type`.
+            public var _type: Components.Schemas.LocationType
+            /// - Remark: Generated from `#/components/schemas/Location/address`.
+            public var address: Components.Schemas.LocationAddress?
+            /// Whether this is the workspace’s default location, the one every new session takes.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Location/isDefault`.
+            public var isDefault: Swift.Bool
+            /// Creates a new `Location`.
+            ///
+            /// - Parameters:
+            ///   - id: The location ID.
+            ///   - name: The name sessions show, up to 120 characters.
+            ///   - _type:
+            ///   - address:
+            ///   - isDefault: Whether this is the workspace’s default location, the one every new session takes.
+            public init(
+                id: Swift.String,
+                name: Swift.String,
+                _type: Components.Schemas.LocationType,
+                address: Components.Schemas.LocationAddress? = nil,
+                isDefault: Swift.Bool
+            ) {
+                self.id = id
+                self.name = name
+                self._type = _type
+                self.address = address
+                self.isDefault = isDefault
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case _type = "type"
+                case address
+                case isDefault
+            }
+        }
+        /// The kind of location. Every workspace has one `organization_location` (its own) at go-live; the other kinds exist in the model for later and are not written yet.
+        ///
+        /// - Remark: Generated from `#/components/schemas/LocationType`.
+        @frozen public enum LocationType: String, Codable, Hashable, Sendable, CaseIterable {
+            case organizationLocation = "organization_location"
+            case externalGym = "external_gym"
+            case clientHome = "client_home"
+            case outdoor = "outdoor"
+            case online = "online"
+            case other = "other"
+        }
+        /// The address, or `null` when the location has none.
+        ///
+        /// - Remark: Generated from `#/components/schemas/LocationAddress`.
+        public struct LocationAddress: Codable, Hashable, Sendable {
+            /// A Dutch postcode, stored as `1234 AB`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/postcode`.
+            public var postcode: Swift.String
+            /// One to five digits.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/houseNumber`.
+            public var houseNumber: Swift.String
+            /// For example `A` or `2 hoog`; `null` when there is none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/houseNumberAddition`.
+            public var houseNumberAddition: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/street`.
+            public var street: Swift.String
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/city`.
+            public var city: Swift.String
+            /// Creates a new `LocationAddress`.
+            ///
+            /// - Parameters:
+            ///   - postcode: A Dutch postcode, stored as `1234 AB`.
+            ///   - houseNumber: One to five digits.
+            ///   - houseNumberAddition: For example `A` or `2 hoog`; `null` when there is none.
+            ///   - street:
+            ///   - city:
+            public init(
+                postcode: Swift.String,
+                houseNumber: Swift.String,
+                houseNumberAddition: Swift.String? = nil,
+                street: Swift.String,
+                city: Swift.String
+            ) {
+                self.postcode = postcode
+                self.houseNumber = houseNumber
+                self.houseNumberAddition = houseNumberAddition
+                self.street = street
+                self.city = city
+            }
+            public enum CodingKeys: String, CodingKey {
+                case postcode
+                case houseNumber
+                case houseNumberAddition
+                case street
+                case city
+            }
+        }
+        /// Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. `address: null` removes the address; leave `address` out to keep it as it is. The type and which location is the default never change. Other fields are ignored.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest`.
+        public struct UpdateLocationRequest: Codable, Hashable, Sendable {
+            /// The new name: trimmed, not blank, at most 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/name`.
+            public var name: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest/address`.
+            public var address: Components.Schemas.LocationAddressInput?
+            /// Creates a new `UpdateLocationRequest`.
+            ///
+            /// - Parameters:
+            ///   - name: The new name: trimmed, not blank, at most 120 characters.
+            ///   - address:
+            public init(
+                name: Swift.String? = nil,
+                address: Components.Schemas.LocationAddressInput? = nil
+            ) {
+                self.name = name
+                self.address = address
+            }
+            public enum CodingKeys: String, CodingKey {
+                case name
+                case address
+            }
+        }
+        /// An address as typed. All or nothing: with any field filled, the postcode, house number, street and city are required.
+        ///
+        /// - Remark: Generated from `#/components/schemas/LocationAddressInput`.
+        public struct LocationAddressInput: Codable, Hashable, Sendable {
+            /// A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddressInput/postcode`.
+            public var postcode: Swift.String
+            /// One to five digits.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddressInput/houseNumber`.
+            public var houseNumber: Swift.String
+            /// For example `A` or `2 hoog`; optional, at most 10 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddressInput/houseNumberAddition`.
+            public var houseNumberAddition: Swift.String?
+            /// At most 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddressInput/street`.
+            public var street: Swift.String
+            /// At most 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddressInput/city`.
+            public var city: Swift.String
+            /// Creates a new `LocationAddressInput`.
+            ///
+            /// - Parameters:
+            ///   - postcode: A Dutch postcode: four digits, an optional space, two letters. Stored as `1234 AB`.
+            ///   - houseNumber: One to five digits.
+            ///   - houseNumberAddition: For example `A` or `2 hoog`; optional, at most 10 characters.
+            ///   - street: At most 120 characters.
+            ///   - city: At most 120 characters.
+            public init(
+                postcode: Swift.String,
+                houseNumber: Swift.String,
+                houseNumberAddition: Swift.String? = nil,
+                street: Swift.String,
+                city: Swift.String
+            ) {
+                self.postcode = postcode
+                self.houseNumber = houseNumber
+                self.houseNumberAddition = houseNumberAddition
+                self.street = street
+                self.city = city
+            }
+            public enum CodingKeys: String, CodingKey {
+                case postcode
+                case houseNumber
+                case houseNumberAddition
+                case street
+                case city
+            }
+        }
+        /// The private session that was planned, with what the trainer should be told.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PlannedPrivateSession`.
+        public struct PlannedPrivateSession: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/PlannedPrivateSession/session`.
+            public var session: Components.Schemas.Session
+            /// The session starts before now: it was saved, and no email goes out.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlannedPrivateSession/past`.
+            public var past: Swift.Bool
+            /// The start happens twice because the clocks went back; the first (summer time) was taken.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlannedPrivateSession/repeatedStart`.
+            public var repeatedStart: Swift.Bool
+            /// Whether the confirmation (EM-11) goes to the client: it was asked for and the session is not in the past. It is sent after the answer is decided; a failure is reported to error tracking and does not undo the session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlannedPrivateSession/confirmationEmail`.
+            public var confirmationEmail: Swift.Bool
+            /// Creates a new `PlannedPrivateSession`.
+            ///
+            /// - Parameters:
+            ///   - session:
+            ///   - past: The session starts before now: it was saved, and no email goes out.
+            ///   - repeatedStart: The start happens twice because the clocks went back; the first (summer time) was taken.
+            ///   - confirmationEmail: Whether the confirmation (EM-11) goes to the client: it was asked for and the session is not in the past. It is sent after the answer is decided; a failure is reported to error tracking and does not undo the session.
+            public init(
+                session: Components.Schemas.Session,
+                past: Swift.Bool,
+                repeatedStart: Swift.Bool,
+                confirmationEmail: Swift.Bool
+            ) {
+                self.session = session
+                self.past = past
+                self.repeatedStart = repeatedStart
+                self.confirmationEmail = confirmationEmail
+            }
+            public enum CodingKeys: String, CodingKey {
+                case session
+                case past
+                case repeatedStart
+                case confirmationEmail
+            }
+        }
+        /// A session of the workspace as the team sees it. It holds no email address or other contact detail of a client.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Session`.
+        public struct Session: Codable, Hashable, Sendable {
+            /// The session ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/id`.
+            public var id: Swift.String
+            /// The kind of session. Private sessions are planned here; the others come later.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/type`.
+            @frozen public enum _TypePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case _private = "private"
+                case group = "group"
+                case openGym = "open_gym"
+            }
+            /// The kind of session. Private sessions are planned here; the others come later.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/type`.
+            public var _type: Components.Schemas.Session._TypePayload
+            /// Whether the session still takes place. A session is never deleted.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/status`.
+            @frozen public enum StatusPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case scheduled = "scheduled"
+                case cancelled = "cancelled"
+            }
+            /// Whether the session still takes place. A session is never deleted.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/status`.
+            public var status: Components.Schemas.Session.StatusPayload
+            /// The start, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/startsAt`.
+            public var startsAt: Foundation.Date
+            /// The end, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/endsAt`.
+            public var endsAt: Foundation.Date
+            /// The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012).
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/timeZone`.
+            public var timeZone: Swift.String
+            /// 1 for a private session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/capacity`.
+            public var capacity: Swift.Int
+            /// Raised by every change; a change says the version it read. Starts at 1.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/version`.
+            public var version: Swift.Int
+            /// - Remark: Generated from `#/components/schemas/Session/location`.
+            public var location: Components.Schemas.Location
+            /// - Remark: Generated from `#/components/schemas/Session/trainer`.
+            public var trainer: Components.Schemas.SessionTrainer?
+            /// The clients in the session, in the order they were added. One for a private session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Session/participants`.
+            public var participants: [Components.Schemas.SessionParticipant]
+            /// Creates a new `Session`.
+            ///
+            /// - Parameters:
+            ///   - id: The session ID.
+            ///   - _type: The kind of session. Private sessions are planned here; the others come later.
+            ///   - status: Whether the session still takes place. A session is never deleted.
+            ///   - startsAt: The start, a UTC instant.
+            ///   - endsAt: The end, a UTC instant.
+            ///   - timeZone: The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012).
+            ///   - capacity: 1 for a private session.
+            ///   - version: Raised by every change; a change says the version it read. Starts at 1.
+            ///   - location:
+            ///   - trainer:
+            ///   - participants: The clients in the session, in the order they were added. One for a private session.
+            public init(
+                id: Swift.String,
+                _type: Components.Schemas.Session._TypePayload,
+                status: Components.Schemas.Session.StatusPayload,
+                startsAt: Foundation.Date,
+                endsAt: Foundation.Date,
+                timeZone: Swift.String,
+                capacity: Swift.Int,
+                version: Swift.Int,
+                location: Components.Schemas.Location,
+                trainer: Components.Schemas.SessionTrainer? = nil,
+                participants: [Components.Schemas.SessionParticipant]
+            ) {
+                self.id = id
+                self._type = _type
+                self.status = status
+                self.startsAt = startsAt
+                self.endsAt = endsAt
+                self.timeZone = timeZone
+                self.capacity = capacity
+                self.version = version
+                self.location = location
+                self.trainer = trainer
+                self.participants = participants
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case _type = "type"
+                case status
+                case startsAt
+                case endsAt
+                case timeZone
+                case capacity
+                case version
+                case location
+                case trainer
+                case participants
+            }
+        }
+        /// Left out when the session has no trainer (the trainer’s profile ended).
+        ///
+        /// - Remark: Generated from `#/components/schemas/SessionTrainer`.
+        public struct SessionTrainer: Codable, Hashable, Sendable {
+            /// The trainer’s team-member ID, as in `GET …/trainers`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionTrainer/id`.
+            public var id: Swift.String
+            /// The account’s name; empty when it has none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionTrainer/name`.
+            public var name: Swift.String
+            /// Creates a new `SessionTrainer`.
+            ///
+            /// - Parameters:
+            ///   - id: The trainer’s team-member ID, as in `GET …/trainers`.
+            ///   - name: The account’s name; empty when it has none.
+            public init(
+                id: Swift.String,
+                name: Swift.String
+            ) {
+                self.id = id
+                self.name = name
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+            }
+        }
+        /// A client’s place in a session.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SessionParticipant`.
+        public struct SessionParticipant: Codable, Hashable, Sendable {
+            /// The client ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionParticipant/clientId`.
+            public var clientId: Swift.String
+            /// The client’s name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionParticipant/name`.
+            public var name: Swift.String
+            /// What became of the client’s place: `booked` from the start; attendance and cancellations change it in later features.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionParticipant/attendanceStatus`.
+            @frozen public enum AttendanceStatusPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case booked = "booked"
+                case attended = "attended"
+                case cancelled = "cancelled"
+                case noShow = "no_show"
+            }
+            /// What became of the client’s place: `booked` from the start; attendance and cancellations change it in later features.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionParticipant/attendanceStatus`.
+            public var attendanceStatus: Components.Schemas.SessionParticipant.AttendanceStatusPayload
+            /// Creates a new `SessionParticipant`.
+            ///
+            /// - Parameters:
+            ///   - clientId: The client ID.
+            ///   - name: The client’s name.
+            ///   - attendanceStatus: What became of the client’s place: `booked` from the start; attendance and cancellations change it in later features.
+            public init(
+                clientId: Swift.String,
+                name: Swift.String,
+                attendanceStatus: Components.Schemas.SessionParticipant.AttendanceStatusPayload
+            ) {
+                self.clientId = clientId
+                self.name = name
+                self.attendanceStatus = attendanceStatus
+            }
+            public enum CodingKeys: String, CodingKey {
+                case clientId
+                case name
+                case attendanceStatus
+            }
+        }
+        /// A private session to plan: one client, one trainer, a local date, start and length.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest`.
+        public struct PlanPrivateSessionRequest: Codable, Hashable, Sendable {
+            /// The client of the workspace the session is for.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/clientId`.
+            public var clientId: Swift.String
+            /// The trainer’s team-member ID, from `GET …/trainers`. Leave it out to plan for yourself (the caller must train in the workspace). An Owner may plan for any trainer of the workspace, a Trainer only for themself (`403` otherwise).
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/trainerId`.
+            public var trainerId: Swift.String?
+            /// The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/localDate`.
+            public var localDate: Swift.String
+            /// The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/localStart`.
+            public var localStart: Swift.String
+            /// The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/durationMinutes`.
+            public var durationMinutes: Swift.Int
+            /// Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/notify`.
+            public var notify: Swift.Bool
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PlanPrivateSessionRequest/surface`.
+            public var surface: Components.Schemas.PlanPrivateSessionRequest.SurfacePayload?
+            /// Creates a new `PlanPrivateSessionRequest`.
+            ///
+            /// - Parameters:
+            ///   - clientId: The client of the workspace the session is for.
+            ///   - trainerId: The trainer’s team-member ID, from `GET …/trainers`. Leave it out to plan for yourself (the caller must train in the workspace). An Owner may plan for any trainer of the workspace, a Trainer only for themself (`403` otherwise).
+            ///   - localDate: The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`.
+            ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
+            ///   - durationMinutes: The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`.
+            ///   - notify: Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                clientId: Swift.String,
+                trainerId: Swift.String? = nil,
+                localDate: Swift.String,
+                localStart: Swift.String,
+                durationMinutes: Swift.Int,
+                notify: Swift.Bool,
+                surface: Components.Schemas.PlanPrivateSessionRequest.SurfacePayload? = nil
+            ) {
+                self.clientId = clientId
+                self.trainerId = trainerId
+                self.localDate = localDate
+                self.localStart = localStart
+                self.durationMinutes = durationMinutes
+                self.notify = notify
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case clientId
+                case trainerId
+                case localDate
+                case localStart
+                case durationMinutes
+                case notify
+                case surface
             }
         }
         /// One page of the clients of a workspace.

@@ -5,6 +5,7 @@ import app.fivvi.api.models.CreateWorkspaceRequest
 import app.fivvi.api.models.Locale
 import app.fivvi.api.models.UpdateWorkspaceRequest
 import app.fivvi.api.models.Workspace
+import app.fivvi.api.models.WorkspaceSwitchedRequest
 import java.util.UUID
 import okhttp3.ResponseBody.Companion.toResponseBody
 import retrofit2.Response
@@ -40,4 +41,9 @@ class FakeWorkspacesApi : WorkspacesApi {
         workspaceId: UUID,
         updateWorkspaceRequest: UpdateWorkspaceRequest,
     ): Response<Workspace> = error("FakeWorkspacesApi.renameWorkspace is not expected in this test")
+
+    override suspend fun recordWorkspaceSwitch(
+        workspaceId: UUID,
+        workspaceSwitchedRequest: WorkspaceSwitchedRequest?,
+    ): Response<Unit> = error("FakeWorkspacesApi.recordWorkspaceSwitch is not expected in this test")
 }

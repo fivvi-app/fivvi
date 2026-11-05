@@ -19,10 +19,14 @@ import {
   type DatabaseExecutor,
   findSystemGreeting,
   HELLO_GREETING,
+  locations,
   organizations,
   pingDatabase,
+  sessionParticipants,
+  sessions,
   systemGreetings,
   teamMembers,
+  trainerInvitations,
   trainerProfiles,
 } from '../src/index.ts';
 import { migrationsFolder, runMigrations } from '../src/migrate.ts';
@@ -415,6 +419,142 @@ describe('E004 database', () => {
     db = client.db;
   });
 
+  describe('F015 seed locations', () => {
+    const ADDRESS = {
+      postcode: '1234 AB',
+      houseNumber: '1',
+      houseNumberAddition: null,
+      street: 'Voorbeeldstraat',
+      city: 'Amsterdam',
+    };
+
+    it('AC12: gives every seeded workspace its one location and John’s Gym a synthetic address, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
+
+        const seeded = await tx
+          .select({
+            workspace: organizations.slug,
+            name: locations.name,
+            type: locations.type,
+            isDefault: locations.isDefault,
+            postcode: locations.postcode,
+            houseNumber: locations.houseNumber,
+            houseNumberAddition: locations.houseNumberAddition,
+            street: locations.street,
+            city: locations.city,
+          })
+          .from(locations)
+          .innerJoin(organizations, eq(organizations.id, locations.organizationId))
+          .orderBy(organizations.slug);
+        expect(seeded).toEqual([
+          {
+            workspace: 'johns-gym',
+            name: "John's Gym",
+            type: 'organization_location',
+            isDefault: true,
+            ...ADDRESS,
+          },
+          {
+            workspace: 'sarah-personal-training',
+            name: 'Sarah Personal Training',
+            type: 'organization_location',
+            isDefault: true,
+            postcode: null,
+            houseNumber: null,
+            houseNumberAddition: null,
+            street: null,
+            city: null,
+          },
+        ]);
+      });
+    });
+
+    it('AC12: gives the location the backfill made (no address) its synthetic address, and keeps a name changed since', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await tx
+          .update(locations)
+          .set({ name: 'Renamed', postcode: null, houseNumber: null, street: null, city: null })
+          .where(eq(locations.name, "John's Gym"));
+
+        await seed(tx);
+
+        const [gym] = await tx.select().from(locations).where(eq(locations.name, 'Renamed'));
+        expect(gym).toMatchObject(ADDRESS);
+        expect(await tx.$count(locations)).toBe(2);
+      });
+    });
+
+    it('AC12: seeds no location in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true });
+
+        expect(await tx.$count(locations)).toBe(0);
+      });
+    });
+  });
+
+  describe('F011 seed trainer invitation', () => {
+    it('AC14: gives John’s Gym a pending invitation for invitee@example.com, from John, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
+
+        const invitations = await tx
+          .select({
+            workspace: organizations.slug,
+            name: trainerInvitations.name,
+            email: trainerInvitations.email,
+            status: trainerInvitations.status,
+            inviter: authUsers.email,
+            expiresAt: trainerInvitations.expiresAt,
+            tokenHash: trainerInvitations.tokenHash,
+          })
+          .from(trainerInvitations)
+          .innerJoin(organizations, eq(organizations.id, trainerInvitations.organizationId))
+          .innerJoin(teamMembers, eq(teamMembers.id, trainerInvitations.inviterTeamMemberId))
+          .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId));
+        expect(invitations).toEqual([
+          {
+            workspace: 'johns-gym',
+            name: 'Invitee',
+            email: 'invitee@example.com',
+            status: 'pending',
+            inviter: 'owner@example.com',
+            expiresAt: expect.any(Date),
+            tokenHash: expect.stringMatching(/^[0-9a-f]{64}$/),
+          },
+        ]);
+        expect(invitations[0]?.expiresAt.getTime()).toBeGreaterThan(Date.now());
+      });
+    });
+
+    it('AC14: leaves an invitation the Owner has since sent again, or withdrawn, alone', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await tx.update(trainerInvitations).set({ status: 'withdrawn' });
+
+        await seed(tx);
+
+        // A withdrawn seed invitation is not made pending again behind the Owner's back.
+        const rows = await tx
+          .select({ status: trainerInvitations.status })
+          .from(trainerInvitations);
+        expect(rows).toEqual([{ status: 'withdrawn' }]);
+      });
+    });
+
+    it('AC14: seeds no invitation in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true });
+
+        expect(await tx.$count(trainerInvitations)).toBe(0);
+      });
+    });
+  });
+
   describe('F006 seed clients', () => {
     it('AC15: gives John’s Gym a few synthetic clients, every one with an @example.com email address, once', async () => {
       await withRollback(db, async (tx) => {
@@ -453,6 +593,144 @@ describe('E004 database', () => {
     });
   });
 
+  describe('F020 seed private sessions', () => {
+    // Wednesday 4 November 2026: the week of Monday 2 November, in Amsterdam (CET, UTC+1).
+    const WEDNESDAY = new Date('2026-11-04T12:00:00Z');
+
+    /** The seeded sessions of John's Gym as the calendar reads them: local day and time, trainer, client. */
+    function seededWeek(tx: DatabaseExecutor) {
+      return rows<{
+        day: string;
+        time: string;
+        minutes: number;
+        trainer: string;
+        client: string;
+        status: string;
+        type: string;
+        capacity: number;
+        location: string;
+      }>(
+        tx,
+        sql`select to_char(s.starts_at at time zone 'Europe/Amsterdam', 'YYYY-MM-DD') as day,
+                   to_char(s.starts_at at time zone 'Europe/Amsterdam', 'HH24:MI') as time,
+                   (extract(epoch from s.ends_at - s.starts_at) / 60)::int as minutes,
+                   u.name as trainer, c.name as client, s.status, s.type, s.capacity, l.name as location
+            from sessions s
+            join organizations o on o.id = s.organization_id and o.slug = 'johns-gym'
+            join trainer_profiles tp on tp.id = s.trainer_profile_id
+            join team_members tm on tm.id = tp.team_member_id
+            join auth_users u on u.id = tm.account_id
+            join session_participants sp on sp.session_id = s.id
+            join clients c on c.id = sp.client_id
+            join locations l on l.id = s.location_id and l.is_default
+            order by s.starts_at`,
+      );
+    }
+
+    it('AC15: gives John’s Gym a synthetic week of private sessions for John, Sarah and Tom with the seeded clients, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+        await seed(tx, { now: WEDNESDAY });
+
+        const week = await seededWeek(tx);
+        expect(week.length).toBeGreaterThanOrEqual(6);
+        expect(new Set(week.map(({ trainer }) => trainer))).toEqual(
+          new Set(['Owner', 'Sarah', 'Tom']),
+        );
+        expect(new Set(week.map(({ client }) => client))).toEqual(
+          new Set(['Anna de Vries', 'Mark Jansen', 'Sophie Bakker']),
+        );
+        // Monday to Friday of that week, local days; every one a one-to-one session at the gym.
+        const days = [...new Set(week.map(({ day }) => day))];
+        expect(days).toEqual([
+          '2026-11-02',
+          '2026-11-03',
+          '2026-11-04',
+          '2026-11-05',
+          '2026-11-06',
+        ]);
+        for (const session of week) {
+          expect(session).toMatchObject({
+            status: 'scheduled',
+            type: 'private',
+            capacity: 1,
+            location: "John's Gym",
+          });
+          expect(session.minutes % 5).toBe(0);
+        }
+        expect(await tx.$count(sessions)).toBe(week.length);
+        expect(await tx.$count(sessionParticipants)).toBe(week.length);
+      });
+    });
+
+    it('AC15: keeps the wall-clock times in summer time and in winter time (07:00 UTC and 08:00 UTC for 09:00)', async () => {
+      await withRollback(db, async (tx) => {
+        // The week of Monday 21 September 2026 is summer time, that of Monday 2 November winter time.
+        await seed(tx, { now: new Date('2026-09-23T12:00:00Z') });
+        await seed(tx, { now: WEDNESDAY });
+
+        const mondays = await rows<{ day: string; time: string; utc: string }>(
+          tx,
+          sql`select to_char(starts_at at time zone 'Europe/Amsterdam', 'YYYY-MM-DD') as day,
+                     to_char(starts_at at time zone 'Europe/Amsterdam', 'HH24:MI') as time,
+                     to_char(starts_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI') as utc
+              from sessions
+              where to_char(starts_at at time zone 'Europe/Amsterdam', 'HH24:MI') = '09:00'
+                and to_char(starts_at at time zone 'Europe/Amsterdam', 'YYYY-MM-DD') in ('2026-09-21', '2026-11-02')
+              order by starts_at`,
+        );
+        expect(mondays).toEqual([
+          { day: '2026-09-21', time: '09:00', utc: '2026-09-21T07:00' },
+          { day: '2026-11-02', time: '09:00', utc: '2026-11-02T08:00' },
+        ]);
+      });
+    });
+
+    it('AC15: adds the next week when the seed runs in it, and leaves a week alone that it has seeded', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+        const first = (await seededWeek(tx)).length;
+        await tx.update(sessions).set({ status: 'cancelled' });
+
+        await seed(tx, { now: WEDNESDAY });
+        expect((await seededWeek(tx)).length).toBe(first);
+        expect((await seededWeek(tx)).every(({ status }) => status === 'cancelled')).toBe(true);
+
+        await seed(tx, { now: new Date('2026-11-11T12:00:00Z') });
+        expect((await seededWeek(tx)).length).toBe(first * 2);
+      });
+    });
+
+    it('AC15: gives Tom an account and a trainer profile in John’s Gym', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+
+        const [tom] = await tx
+          .select()
+          .from(authUsers)
+          .where(eq(authUsers.email, 'tom@example.com'));
+        expect(tom).toMatchObject({ name: 'Tom' });
+        const [role] = await tx
+          .select({ id: teamMembers.id, role: teamMembers.role })
+          .from(teamMembers)
+          .where(eq(teamMembers.accountId, tom?.id ?? ''));
+        expect(role?.role).toBe('trainer');
+        expect(
+          await tx.$count(trainerProfiles, eq(trainerProfiles.teamMemberId, role?.id ?? '')),
+        ).toBe(1);
+      });
+    });
+
+    it('AC15: seeds no session in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true, now: WEDNESDAY });
+
+        expect(await tx.$count(sessions)).toBe(0);
+        expect(await tx.$count(sessionParticipants)).toBe(0);
+      });
+    });
+  });
+
   afterAll(async () => {
     await client?.close();
     await database?.drop();
@@ -483,7 +761,8 @@ describe('E004 database', () => {
         await resetRateLimits(tx);
 
         expect(await tx.$count(authRateLimits)).toBe(0);
-        expect(await tx.$count(authUsers)).toBe(2);
+        // The seeded accounts: John, Sarah and Tom.
+        expect(await tx.$count(authUsers)).toBe(3);
       });
     });
   });
@@ -522,7 +801,8 @@ describe('E004 database', () => {
         expect(await client.db.$count(authUsers)).toBe(0);
 
         await release(client.db, { seed: true }, () => {});
-        expect(await client.db.$count(authUsers)).toBe(2);
+        // John, Sarah and Tom.
+        expect(await client.db.$count(authUsers)).toBe(3);
       });
     });
   });
@@ -554,7 +834,7 @@ describe('E004 database', () => {
       });
     });
 
-    it('F005: John and Sarah train in John’s Gym and Sarah in her own workspace, once', async () => {
+    it('F005: John, Sarah and Tom train in John’s Gym and Sarah in her own workspace, once', async () => {
       await withRollback(db, async (tx) => {
         await seed(tx);
         await seed(tx);
@@ -569,6 +849,7 @@ describe('E004 database', () => {
           training.toSorted((a, b) => `${a.slug}${a.email}`.localeCompare(`${b.slug}${b.email}`)),
         ).toEqual([
           { slug: 'johns-gym', email: 'owner@example.com', role: 'owner' },
+          { slug: 'johns-gym', email: 'tom@example.com', role: 'trainer' },
           { slug: 'johns-gym', email: 'trainer@example.com', role: 'trainer' },
           { slug: 'sarah-personal-training', email: 'trainer@example.com', role: 'owner' },
         ]);
@@ -600,7 +881,8 @@ describe('E004 database', () => {
             timeZone: 'Europe/Amsterdam',
           }),
         );
-        expect(await tx.$count(teamMembers)).toBe(3);
+        // John, Sarah and Tom in John's Gym, and Sarah in her own workspace.
+        expect(await tx.$count(teamMembers)).toBe(4);
       });
     });
 

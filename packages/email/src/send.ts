@@ -21,6 +21,12 @@ export interface SendEmailOptions<Props> {
   locale: Locale;
   /** The workspace or user time zone. Default: Europe/Amsterdam. */
   timeZone?: string;
+  /**
+   * A key the caller chooses for this email, so sending the same thing twice (the same invitation
+   * with the same link) reaches the provider with one key and goes out once. Without one, every
+   * send gets a random key. A UUID.
+   */
+  idempotencyKey?: string;
 }
 
 export interface SendEmailResult {
@@ -67,7 +73,7 @@ export function createSendEmail(options: CreateSendEmailOptions): SendEmail {
     idempotencyKey = randomUUID,
   } = options;
 
-  return async ({ template, props, to, locale, timeZone }) => {
+  return async ({ template, props, to, locale, timeZone, idempotencyKey: key }) => {
     const rendered = await renderEmail(template, props, { locale, timeZone });
     const email: OutgoingEmail = {
       from: sender,
@@ -75,7 +81,7 @@ export function createSendEmail(options: CreateSendEmailOptions): SendEmail {
       ...rendered,
       locale,
       template: template.id,
-      idempotencyKey: idempotencyKey(),
+      idempotencyKey: key ?? idempotencyKey(),
     };
 
     for (let attempt = 1; ; attempt++) {

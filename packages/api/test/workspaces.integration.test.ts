@@ -5,12 +5,13 @@ import {
   createDatabase,
   createTenantScopes,
   type DatabaseClient,
+  locations,
   organizations,
   type SignedInAccount,
   teamMembers,
   trainerProfiles,
 } from '@fivvi/database';
-import { addClient, addTeamRole } from '@fivvi/database/testing';
+import { addClient, addTeamRole, createWorkspace } from '@fivvi/database/testing';
 import { capabilitiesOf } from '@fivvi/domain';
 import { resolveCommunicationLanguage } from '@fivvi/i18n';
 import {
@@ -25,8 +26,8 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
 
-// POST /v1/workspaces (F002, #277): an allowlisted account with no team role creates its
-// workspace and becomes its Owner. The API runs as the app role, so RLS applies; the data is
+// POST /v1/workspaces (F002, #277; F012, #432): an allowlisted account creates a workspace, also
+// when it has one already, and becomes its Owner. The API runs as the app role, so RLS applies; the data is
 // read back through the privileged connection.
 
 const contract = JSON.parse(
@@ -194,6 +195,81 @@ describe('F002 POST /v1/workspaces', () => {
     expect(await admin.db.$count(trainerProfiles)).toBe(before);
   });
 
+  it('AC2 (F015): creating a workspace ("Pilot Two Studio") creates its one location, named like it, with no address', async () => {
+    const pilot = await account();
+
+    const response = await create(pilot, { name: 'Pilot Two Studio' });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as WorkspaceBody;
+    expect(
+      await admin.db.select().from(locations).where(eq(locations.organizationId, body.id)),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'Pilot Two Studio',
+        type: 'organization_location',
+        isDefault: true,
+        postcode: null,
+        houseNumber: null,
+        houseNumberAddition: null,
+        street: null,
+        city: null,
+      }),
+    ]);
+    // The first read of the new workspace's locations shows it.
+    const listed = await api().request(`/v1/workspaces/${body.id}/locations`, {
+      headers: { 'x-test-account': pilot.id },
+    });
+    expect(await listed.json()).toEqual([
+      expect.objectContaining({ name: 'Pilot Two Studio', address: null, isDefault: true }),
+    ]);
+  });
+
+  it('AC1 (F015): a failure in the request leaves no workspace and no location behind', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const unlucky = await account();
+    const before = {
+      workspaces: await admin.db.$count(organizations),
+      locations: await admin.db.$count(locations),
+    };
+    const failing: ProductEvents = {
+      enabled: true,
+      track: () => {
+        throw new Error('the event failed');
+      },
+      flush: () => Promise.resolve(),
+    };
+
+    const response = await create(
+      unlucky,
+      { name: 'Unlucky Gym 3' },
+      api({ productEvents: failing }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(await admin.db.$count(organizations)).toBe(before.workspaces);
+    expect(await admin.db.$count(locations)).toBe(before.locations);
+  });
+
+  it('AC9 (F015): renaming the workspace keeps the location’s name', async () => {
+    const owner = await account();
+    const created = (await (await create(owner, { name: "John's Gym" })).json()) as WorkspaceBody;
+
+    const renamed = await api().request(`/v1/workspaces/${created.id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', 'x-test-account': owner.id },
+      body: JSON.stringify({ name: "John's Gym Centrum" }),
+    });
+
+    expect(renamed.status).toBe(200);
+    expect(await renamed.json()).toMatchObject({ name: "John's Gym Centrum" });
+    const [location] = await admin.db
+      .select({ name: locations.name })
+      .from(locations)
+      .where(eq(locations.organizationId, created.id));
+    expect(location?.name).toBe("John's Gym");
+  });
+
   it('AC2: defaults nl-NL and Europe/Amsterdam', async () => {
     const response = await create(await account(), { name: "John's Gym" });
 
@@ -300,20 +376,30 @@ describe('F002 POST /v1/workspaces', () => {
     expect(await nameOf(who.id)).toBe('Sarah de Vries');
   });
 
-  it('AC4: an account that already has a workspace gets 403 and nothing is created', async () => {
-    const owner = await account();
-    expect((await create(owner, { name: 'First Gym' })).status).toBe(201);
+  it('F012 AC8: an allowlisted account that owns a workspace creates another and is its Owner', async () => {
+    const pilot = await account({ name: 'Pilot' });
+    const first = (await (await create(pilot, { name: 'Pilot One' })).json()) as WorkspaceBody;
     const before = await counts();
 
-    const response = await create(owner, { name: 'Second Gym', personName: 'Changed' });
+    const response = await create(pilot, { name: 'Pilot Two' });
 
-    expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ code: 'forbidden' });
-    expect(await counts()).toEqual(before);
-    expect(await nameOf(owner.id)).not.toBe('Changed');
+    expect(response.status).toBe(201);
+    const second = (await response.json()) as WorkspaceBody;
+    expect(second).toMatchObject({ name: 'Pilot Two', slug: 'pilot-two' });
+    expect(await counts()).toEqual({ workspaces: before.workspaces + 1, roles: before.roles + 1 });
+    const roles = await admin.db
+      .select({ organizationId: teamMembers.organizationId, role: teamMembers.role })
+      .from(teamMembers)
+      .where(eq(teamMembers.accountId, pilot.id));
+    expect(roles.toSorted((a, b) => a.organizationId.localeCompare(b.organizationId))).toEqual(
+      [
+        { organizationId: first.id, role: 'owner' },
+        { organizationId: second.id, role: 'owner' },
+      ].toSorted((a, b) => a.organizationId.localeCompare(b.organizationId)),
+    );
   });
 
-  it('AC4: an account with a team role as a Trainer gets 403 too', async () => {
+  it('F012 AC8: an allowlisted Trainer of someone else’s workspace creates their own and stays a Trainer there', async () => {
     const trainer = await account();
     const someoneElses = await create(await account(), { name: 'Trainers Gym' });
     const workspaceId = ((await someoneElses.json()) as { id: string }).id;
@@ -322,8 +408,30 @@ describe('F002 POST /v1/workspaces', () => {
 
     const response = await create(trainer, { name: 'Own Gym' });
 
+    expect(response.status).toBe(201);
+    const { id } = (await response.json()) as { id: string };
+    expect(await counts()).toEqual({ workspaces: before.workspaces + 1, roles: before.roles + 1 });
+    const roles = await admin.db
+      .select({ organizationId: teamMembers.organizationId, role: teamMembers.role })
+      .from(teamMembers)
+      .where(eq(teamMembers.accountId, trainer.id));
+    expect(roles).toHaveLength(2);
+    expect(roles).toContainEqual({ organizationId: workspaceId, role: 'trainer' });
+    expect(roles).toContainEqual({ organizationId: id, role: 'owner' });
+  });
+
+  it('AC9: a non-allowlisted account cannot create a workspace', async () => {
+    const john = await account({ allowed: false, name: 'John' });
+    const gym = await createWorkspace(admin.db, { label: 'johns-own-gym' });
+    await addTeamRole(admin.db, { workspaceId: gym.id, accountId: john.id, role: 'owner' });
+    const before = await counts();
+
+    const response = await create(john, { name: 'Johns Second Gym', personName: 'Changed' });
+
     expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ code: 'forbidden' });
     expect(await counts()).toEqual(before);
+    expect(await nameOf(john.id)).toBe('John');
   });
 
   it('AC4: being a client of a workspace is not a team role', async () => {
@@ -337,7 +445,7 @@ describe('F002 POST /v1/workspaces', () => {
     expect(response.status).toBe(201);
   });
 
-  it('AC4: two requests of one account at once create one workspace', async () => {
+  it('F012: two requests of one allowlisted account at once create two workspaces', async () => {
     const eager = await account();
     const before = await counts();
 
@@ -346,8 +454,11 @@ describe('F002 POST /v1/workspaces', () => {
       create(eager, { name: 'Double Two' }),
     ]);
 
-    expect(responses.map((response) => response.status).toSorted()).toEqual([201, 403]);
-    expect(await counts()).toEqual({ workspaces: before.workspaces + 1, roles: before.roles + 1 });
+    expect(responses.map((response) => response.status)).toEqual([201, 201]);
+    expect(await counts()).toEqual({
+      workspaces: before.workspaces + 2,
+      roles: before.roles + 2,
+    });
   });
 
   it('AC5: an account that is not on the allowlist gets 403, before its body is looked at', async () => {

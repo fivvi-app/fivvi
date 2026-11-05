@@ -2,8 +2,8 @@ package app.fivvi.pro.clients
 
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.Locale
+import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.home.FakeWorkspacesApi
-import app.fivvi.pro.home.workspaceIdOf
 import java.io.IOException
 import java.time.Instant
 import java.time.ZoneId

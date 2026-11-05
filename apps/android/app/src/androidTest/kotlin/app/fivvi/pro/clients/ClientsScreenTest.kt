@@ -16,13 +16,13 @@ import app.fivvi.api.models.Client
 import app.fivvi.api.models.Locale
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.api.models.Workspace
-import app.fivvi.pro.AppLanguage
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.R
+import app.fivvi.core.appLanguageParameters
+import app.fivvi.core.me.FakeMeApi
 import app.fivvi.pro.AppRule
-import app.fivvi.pro.R
 import app.fivvi.pro.UI_TIMEOUT_MILLIS
-import app.fivvi.pro.appLanguageParameters
 import app.fivvi.pro.hello.FakeHelloApi
-import app.fivvi.pro.home.FakeMeApi
 import app.fivvi.pro.home.FakeWorkspacesApi
 import app.fivvi.pro.home.HomeTags
 import app.fivvi.pro.localizedString

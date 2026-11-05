@@ -202,14 +202,14 @@ describe('GET /v1/me', () => {
     expect(me).toMatchObject({ name: 'Cleo', canCreateWorkspace: false, workspaces: [] });
   });
 
-  it('AC11: an allowlisted account with a team role may not create another, and lists its workspace', async () => {
+  it('AC8: allowlisted accounts can create a workspace whether or not they have one', async () => {
     const { id, cookie } = await accountSignedIn('second@allowed.test', 'Sam');
     const workspace = await createWorkspace(client.db, { label: 'sam-gym' });
     await addTeamRole(client.db, { workspaceId: workspace.id, accountId: id });
 
     const me = await meOf(cookie);
 
-    expect(me.canCreateWorkspace).toBe(false);
+    expect(me.canCreateWorkspace).toBe(true);
     expect(me.workspaces).toEqual([
       {
         id: workspace.id,
@@ -219,6 +219,17 @@ describe('GET /v1/me', () => {
         capabilities: capabilitiesOf('trainer'),
       },
     ]);
+  });
+
+  it('F012 AC9: an account that is not on the allowlist and has a workspace may not create another', async () => {
+    const { id, cookie } = await accountSignedIn('john@gym.test', 'John');
+    const workspace = await createWorkspace(client.db, { label: 'john-own-gym' });
+    await addTeamRole(client.db, { workspaceId: workspace.id, accountId: id, role: 'owner' });
+
+    const me = await meOf(cookie);
+
+    expect(me.canCreateWorkspace).toBe(false);
+    expect(me.workspaces).toHaveLength(1);
   });
 
   it('AC11: lists only the workspaces the account has a team role in', async () => {

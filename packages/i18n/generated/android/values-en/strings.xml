@@ -195,4 +195,5 @@
     <string name="workspace_nav_settings_language">Language</string>
     <string name="workspace_nav_trainers">Trainers</string>
     <string name="workspace_nav_workspace_with_role">%1$s · %2$s</string>
+    <string name="workspace_switcher_new_workspace">+ New workspace</string>
 </resources>

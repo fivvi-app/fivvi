@@ -390,9 +390,9 @@ describe('E017 AC6: the R8 mapping to Sentry under the release name the app send
     assert.ok(!calls().some((c) => c.startsWith('sentry-cli ')));
   });
 
-  it('E017 AC6: the release name is the one Observability.kt sends: <application ID>@<version>+<version code>', () => {
+  it('E017 AC6: the release name is the one the app sends to Sentry: <application ID>@<version>+<version code>', () => {
     const kotlin = readFileSync(
-      join(ROOT, 'apps/android/app/src/main/kotlin/app/fivvi/pro/observability/Observability.kt'),
+      join(ROOT, 'apps/android/app/src/main/kotlin/app/fivvi/pro/BuildObservabilityConfig.kt'),
       'utf8',
     );
     assert.ok(

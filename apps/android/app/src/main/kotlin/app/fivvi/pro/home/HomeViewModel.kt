@@ -7,7 +7,9 @@ import app.fivvi.api.apis.SignInApi
 import app.fivvi.api.apis.WorkspacesApi
 import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.MeWorkspace
-import app.fivvi.pro.auth.Session
+import app.fivvi.core.auth.Session
+import app.fivvi.pro.workspace.CurrentWorkspace
+import app.fivvi.pro.workspace.StartWorkspace
 import java.io.IOException
 import java.net.HttpURLConnection.HTTP_NOT_FOUND
 import java.net.HttpURLConnection.HTTP_UNAUTHORIZED
@@ -65,11 +67,15 @@ sealed interface HomeDestination {
  * user (F001 AC2, #266) unless the sign-in has ended meanwhile; [Session] clears it again on sign-out.
  * [onPreferredLocale] is told the account's stored language at the same time (F010 AC2, AC5), and [onWorkspaces] its
  * workspaces with their capabilities (F004 AC10: the app's one helper for which actions show).
+ *
+ * The workspace shown is the one used last on this device while the person is still on its team, otherwise the first the
+ * API lists ([StartWorkspace], F012 AC5, AC7); whichever it opens, it remembers in [current]; [switchWorkspace] changes it (AC6).
  */
 class HomeViewModel(
     private val api: MeApi,
     private val workspaceApi: WorkspacesApi,
     private val session: Session,
+    private val current: CurrentWorkspace,
     private val signOutApi: (token: String) -> SignInApi,
     private val onAccount: (id: String) -> Unit,
     private val io: CoroutineDispatcher = Dispatchers.IO,
@@ -85,6 +91,9 @@ class HomeViewModel(
     val signingOut: StateFlow<Boolean> = _signingOut.asStateFlow()
     private var loading: Job? = null
 
+    // The workspaces the last answer of `GET /v1/me` listed: a switch goes only to one of them.
+    private var listed: List<MeWorkspace> = emptyList()
+
     // The sign-in this screen belongs to (see MainActivity: one view model per generation).
     private val generation = session.state.value.generation
 
@@ -93,6 +102,18 @@ class HomeViewModel(
     }
 
     fun retry() = load()
+
+    /**
+     * Profiel's switch (F012 AC6): [id] becomes the workspace shown and the one remembered on this device, and the account
+     * is read again, so the capabilities are those of the API's latest answer. A workspace the last answer didn't list,
+     * and the one already shown, change nothing. Nothing goes to the server.
+     */
+    fun switchWorkspace(id: UUID) {
+        val shown = (_state.value as? MeState.Loaded)?.destination as? HomeDestination.Workspace
+        if (shown?.id == id || listed.none { it.id == id }) return
+        current.remember(id)
+        load()
+    }
 
     /**
      * The app is in the foreground again. A 404 for the workspace being shown means the person is no longer on its team
@@ -147,6 +168,7 @@ class HomeViewModel(
         }
         val account = response.body()?.takeIf { response.isSuccessful }
         return account?.let {
+            listed = it.workspaces
             onWorkspaces(it.workspaces)
             if (stillSignedIn()) {
                 onAccount(it.id.toString())
@@ -156,11 +178,15 @@ class HomeViewModel(
         } ?: MeState.Failed
     }
 
-    // The first workspace for now; "last workspace used" comes with F012.
-    private fun destination(account: MeResponse): HomeDestination = when {
-        account.workspaces.isNotEmpty() -> account.workspaces.first().let { HomeDestination.Workspace(it.name, it.id) }
-        account.canCreateWorkspace -> HomeDestination.SetUpOnWeb
-        else -> HomeDestination.NoAccess
+    private fun destination(account: MeResponse): HomeDestination {
+        val start = StartWorkspace.pick(account.workspaces, current.remembered.value)
+        // Every workspace the app opens is the one reopened next time, also the one it fell back to after a removal (AC7).
+        if (start != null && current.remembered.value != start.id) current.remember(start.id)
+        return when {
+            start != null -> HomeDestination.Workspace(start.name, start.id)
+            account.canCreateWorkspace -> HomeDestination.SetUpOnWeb
+            else -> HomeDestination.NoAccess
+        }
     }
 
     // An answer that arrives after the sign-out must not set the account that has just been cleared as the error-reporting

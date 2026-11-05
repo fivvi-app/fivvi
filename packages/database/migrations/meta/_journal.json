@@ -124,8 +124,43 @@
     {
       "idx": 17,
       "version": "7",
-      "when": 1793819876052,
-      "tag": "0017_cron_role",
+      "when": 1793824600826,
+      "tag": "0017_locations",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793824660941,
+      "tag": "0018_locations_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793833793610,
+      "tag": "0019_trainer_invitations",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793848743845,
+      "tag": "0020_invitation_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793863827582,
+      "tag": "0021_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793869137898,
+      "tag": "0022_cron_role",
       "breakpoints": true
     }
   ]

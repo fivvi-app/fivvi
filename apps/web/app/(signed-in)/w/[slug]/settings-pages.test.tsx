@@ -21,6 +21,8 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
         name="John's Gym Utrecht"
         slug="johns-gym"
         teamRole="owner"
+        workspaces={[]}
+        canCreateWorkspace={false}
         capabilities={OWNER}
         personName={null}
       >
@@ -39,6 +41,8 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
         name="John's Gym"
         slug="johns-gym"
         teamRole="owner"
+        workspaces={[]}
+        canCreateWorkspace={false}
         capabilities={OWNER}
         personName={null}
       >
@@ -51,6 +55,8 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
+        workspaces={[]}
+        canCreateWorkspace={false}
         capabilities={TRAINER}
         personName={null}
       >
@@ -70,6 +76,8 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
         name="John's Gym"
         slug="johns-gym"
         teamRole="owner"
+        workspaces={[]}
+        canCreateWorkspace={false}
         capabilities={OWNER}
         personName={null}
       >
@@ -91,6 +99,8 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
+        workspaces={[]}
+        canCreateWorkspace={false}
         capabilities={TRAINER}
         personName={null}
       >
@@ -108,6 +118,8 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
         name="John's Gym"
         slug="johns-gym"
         teamRole="owner"
+        workspaces={[]}
+        canCreateWorkspace={false}
         capabilities={[]}
         personName={null}
       >
@@ -120,6 +132,8 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
+        workspaces={[]}
+        canCreateWorkspace={false}
         capabilities={OWNER}
         personName={null}
       >
@@ -143,6 +157,8 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
           name="John's Gym"
           slug="johns-gym"
           teamRole="trainer"
+          workspaces={[]}
+          canCreateWorkspace={false}
           capabilities={capabilities}
           personName={null}
         >
@@ -165,6 +181,8 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
         name="John's Gym"
         slug="johns-gym"
         teamRole="owner"
+        workspaces={[]}
+        canCreateWorkspace={false}
         capabilities={OWNER}
         personName={null}
       >
@@ -187,6 +205,8 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
         name="John's Gym"
         slug="johns-gym"
         teamRole="owner"
+        workspaces={[]}
+        canCreateWorkspace={false}
         capabilities={OWNER}
         personName={null}
       >
@@ -213,6 +233,8 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
+        workspaces={[]}
+        canCreateWorkspace={false}
         capabilities={TRAINER}
         personName={null}
       >
@@ -256,6 +278,8 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
         name="John's Gym"
         slug="johns-gym"
         teamRole="trainer"
+        workspaces={[]}
+        canCreateWorkspace={false}
         capabilities={TRAINER}
         personName={null}
       >

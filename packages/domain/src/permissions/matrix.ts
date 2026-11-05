@@ -16,12 +16,23 @@ export const CAPABILITIES = [
   'trainers.view',
   'clients.view',
   'clients.manage',
+  'location.read',
+  'settings.manage',
+  'team.invite',
+  'session.private.manage.own',
+  'session.private.manage.any',
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
 const MATRIX: Readonly<Record<Role, readonly Capability[]>> = {
   owner: CAPABILITIES,
-  trainer: ['trainers.view', 'clients.view', 'clients.manage'],
+  trainer: [
+    'trainers.view',
+    'clients.view',
+    'clients.manage',
+    'location.read',
+    'session.private.manage.own',
+  ],
 };
 
 /** The capabilities of a role, in the order of `CAPABILITIES`. */

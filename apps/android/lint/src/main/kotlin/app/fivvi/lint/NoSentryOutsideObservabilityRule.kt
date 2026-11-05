@@ -14,7 +14,7 @@ import org.jetbrains.kotlin.psi.KtImportDirective
 /**
  * Only the observability module calls the Sentry SDK (E009, OBSERVABILITY.md §1 "Android"), as Biome's
  * `noRestrictedImports` does for the `@sentry` packages in TypeScript: the scrubbing and the off-without-DSN rule live in one place.
- * Rejects an `io.sentry` import and a fully qualified `io.sentry.…` call outside `app.fivvi.pro.observability`.
+ * Rejects an `io.sentry` import and a fully qualified `io.sentry.…` call outside `app.fivvi.core.observability`.
  */
 class NoSentryOutsideObservabilityRule :
     Rule(
@@ -43,6 +43,6 @@ class NoSentryOutsideObservabilityRule :
 
     private companion object {
         const val SENTRY_PACKAGE = "io.sentry"
-        const val OBSERVABILITY_PACKAGE = "app.fivvi.pro.observability"
+        const val OBSERVABILITY_PACKAGE = "app.fivvi.core.observability"
     }
 }

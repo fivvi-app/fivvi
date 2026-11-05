@@ -1,9 +1,4 @@
-import {
-  claimWorkspaceCreation,
-  createWorkspaceWithOwner,
-  findWorkspace,
-  updateWorkspace,
-} from '@fivvi/database';
+import { createWorkspaceWithOwner, findWorkspace, updateWorkspace } from '@fivvi/database';
 import {
   canCreateWorkspace,
   NAME_MAX_LENGTH,
@@ -87,7 +82,7 @@ const createWorkspaceRoute = defineRoute(
       '(Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a ' +
       'number added when taken), the Owner’s team role with a trainer profile (the creator ' +
       'trains in the workspace they set up) and, when given, the account’s name. ' +
-      'Only an account on the sign-up allowlist with no team role in any workspace may: ' +
+      'Only an account on the sign-up allowlist may, also when it has a workspace already: ' +
       'anyone else gets `403` and nothing is created.',
     security: SIGNED_IN,
     request: {
@@ -103,9 +98,7 @@ const createWorkspaceRoute = defineRoute(
       },
       400: validationErrorResponse,
       403: {
-        description:
-          'The account may not create a workspace: it is not on the sign-up allowlist, or it ' +
-          'already has a team role in a workspace.',
+        description: 'The account may not create a workspace: it is not on the sign-up allowlist.',
         content: { 'application/json': { schema: ForbiddenSchema } },
       },
       500: internalServerErrorResponse,
@@ -167,6 +160,55 @@ const getWorkspaceRoute = defineRoute(
   { type: 'workspace', capability: 'clients.view', client: 'none' },
 );
 
+const SwitchedRequestSchema = z
+  .object({
+    surface: z
+      .enum(['ios', 'android'])
+      .optional()
+      .openapi({
+        description:
+          'The app that sends the request: `ios` or `android`. A request with a bearer token ' +
+          'records the `workspace_switched` event with this surface; without it nothing is ' +
+          'recorded. The web does not send it, and a request without a bearer token ignores it.',
+      }),
+  })
+  .openapi('WorkspaceSwitchedRequest', {
+    description: 'Who sent the report that the person switched workspace.',
+  });
+
+const recordWorkspaceSwitchRoute = defineRoute(
+  {
+    method: 'post',
+    path: '/v1/workspaces/{workspaceId}/switched',
+    operationId: 'recordWorkspaceSwitch',
+    tags: ['workspaces'],
+    summary: 'Report that the caller switched to this workspace',
+    description:
+      'Records the product event `workspace_switched` with the workspace ID and the surface ' +
+      '(`web`, `ios` or `android`) and nothing else, so that the use of more than one workspace ' +
+      'can be counted without personal data (F012). Nothing about the current workspace is ' +
+      'stored: the choice stays on the device. The body is optional; the web sends none and is ' +
+      'recorded as `web`. A request with a bearer token records the `surface` it names in the ' +
+      'body and, naming none, records nothing. Any team member of the workspace may call it.',
+    security: SIGNED_IN,
+    request: {
+      params: WorkspaceParamsSchema,
+      body: {
+        required: false,
+        content: { 'application/json': { schema: SwitchedRequestSchema } },
+      },
+    },
+    responses: {
+      204: { description: 'Recorded, or nothing to record. The body is empty.' },
+      400: validationErrorResponse,
+      500: internalServerErrorResponse,
+    },
+  },
+  // Any team member may report a switch to a workspace they are on: the lowest capability both
+  // roles have, as for reading the workspace.
+  { type: 'workspace', capability: 'clients.view', client: 'none' },
+);
+
 const renameWorkspaceRoute = defineRoute(
   {
     method: 'patch',
@@ -200,20 +242,18 @@ const renameWorkspaceRoute = defineRoute(
 );
 
 /**
- * Claims the right to create (the account's lock, its team roles as of now) and asks the rule of
- * `packages/domain`. A refusal is a 403 and the transaction rolls back.
+ * Asks the rule of `packages/domain` (the sign-up allowlist; an account that has a workspace may
+ * create another, F012). A refusal is a 403 and nothing is created.
  */
 function mayCreateWorkspace(): MiddlewareHandler {
-  return async (context, next) => {
+  return (context, next) => {
     // The access middleware ran first and set what `AccessEnv` names.
     const c = context as unknown as Context<AccessEnv>;
-    const { hasTeamRole } = await claimWorkspaceCreation(c.get('scope'));
     const allowed = canCreateWorkspace({
       email: c.get('account').email,
       signUpAllowlist: c.get('dependencies').signUpAllowlist,
-      hasTeamRole,
     });
-    if (!allowed) return c.json(FORBIDDEN, 403);
+    if (!allowed) return Promise.resolve(c.json(FORBIDDEN, 403));
     return next();
   };
 }
@@ -259,6 +299,21 @@ export function registerWorkspaces(app: OpenAPIHono) {
   inWorkspace.openapi(renameWorkspaceRoute, async (c) => {
     const workspace = await updateWorkspace(c.get('scope'), c.req.valid('json'));
     return workspace ? c.json(workspace, 200) : c.json(NOT_FOUND, 404);
+  });
+  inWorkspace.openapi(recordWorkspaceSwitchRoute, (c) => {
+    // The body is optional: the web sends none.
+    const surface = c.req.valid('json')?.surface;
+    // The workspace ID and the surface only (OBSERVABILITY.md §4). The web sends no bearer token;
+    // an app names its surface, and one that names none records nothing (as for `client_added`).
+    const appSurface = c.req.header('authorization') ? surface : 'web';
+    if (appSurface !== undefined) {
+      c.get('dependencies').productEvents.track({
+        event: 'workspace_switched',
+        distinctId: c.get('account').id,
+        properties: { workspace_id: c.get('scope').workspaceId, surface: appSurface },
+      });
+    }
+    return c.body(null, 204);
   });
   app.route('/', inWorkspace);
 }

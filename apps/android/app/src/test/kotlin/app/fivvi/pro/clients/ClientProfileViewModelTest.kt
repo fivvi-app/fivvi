@@ -2,7 +2,7 @@ package app.fivvi.pro.clients
 
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.UpdateClientRequest
-import app.fivvi.pro.home.workspaceIdOf
+import app.fivvi.core.me.workspaceIdOf
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

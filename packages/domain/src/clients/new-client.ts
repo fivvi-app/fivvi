@@ -1,11 +1,6 @@
 /** The longest client name, in characters (F006 AC2). */
 export const CLIENT_NAME_MAX_LENGTH = 120;
 
-/** An email address as the workspace compares and stores it: no spaces around it, lower case. */
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
 /** What the database says about the email address of a client being added (F006). */
 export interface NewClientFacts {
   /** The normalized email address: every client has one. */

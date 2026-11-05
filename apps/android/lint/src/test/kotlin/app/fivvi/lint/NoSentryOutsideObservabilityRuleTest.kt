@@ -26,7 +26,7 @@ class NoSentryOutsideObservabilityRuleTest {
         errors.forEach {
             assertEquals(false, it.canBeAutoCorrected)
             assertEquals(
-                "Sentry is called only in app.fivvi.pro.observability: use Observability instead",
+                "Sentry is called only in app.fivvi.core.observability: use Observability instead",
                 it.detail,
             )
         }

@@ -1,5 +1,5 @@
 import type { Locale } from '@fivvi/i18n';
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { authUsers } from '../schema/index.ts';
 import { executorOf, type TenantScope } from '../tenant-scope.ts';
 
@@ -42,4 +42,49 @@ export async function findAccountIdByEmail(
     .where(eq(authUsers.email, email))
     .limit(1);
   return row?.id;
+}
+
+/**
+ * The language the account with the email address (lower case) chose for its emails, if there is
+ * such an account and it chose one (F011 AC2). Only the language is read, and only to pick the
+ * language of an email: nothing else of the account is read, so nothing of it can reach an answer.
+ */
+export async function findPreferredLocaleByEmail(
+  scope: TenantScope,
+  email: string,
+): Promise<Locale | undefined> {
+  const [row] = await executorOf(scope)
+    .select({ preferredLocale: authUsers.preferredLocale })
+    .from(authUsers)
+    .where(eq(authUsers.email, email))
+    .limit(1);
+  return row?.preferredLocale ?? undefined;
+}
+
+/**
+ * Gives the scope's account a name, but only when it has none (F011 AC3): an invitation's name
+ * never replaces the one a person gave themselves. Returns whether the name was set.
+ */
+export async function nameAccountIfEmpty(scope: TenantScope, name: string): Promise<boolean> {
+  const rows = await executorOf(scope)
+    .update(authUsers)
+    .set({ name })
+    .where(and(eq(authUsers.id, scope.context.accountId), sql`btrim(${authUsers.name}) = ''`))
+    .returning({ id: authUsers.id });
+  return rows.length > 0;
+}
+
+/**
+ * The address of the scope's account and whether it is verified: what an invitation is accepted
+ * with (F011). Nothing else of the account is read.
+ */
+export async function findAccountForInvitation(
+  scope: TenantScope,
+): Promise<{ email: string; emailVerified: boolean } | undefined> {
+  const [row] = await executorOf(scope)
+    .select({ email: authUsers.email, emailVerified: authUsers.emailVerified })
+    .from(authUsers)
+    .where(eq(authUsers.id, scope.context.accountId))
+    .limit(1);
+  return row;
 }

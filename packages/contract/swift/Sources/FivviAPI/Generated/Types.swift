@@ -27,7 +27,7 @@ public protocol APIProtocol: Sendable {
     func getHello(_ input: Operations.GetHello.Input) async throws -> Operations.GetHello.Output
     /// The signed-in account
     ///
-    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`).
+    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already).
     ///
     /// - Remark: HTTP `GET /v1/me`.
     /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
@@ -69,7 +69,7 @@ public protocol APIProtocol: Sendable {
     func signOut(_ input: Operations.SignOut.Input) async throws -> Operations.SignOut.Output
     /// Create the caller’s workspace
     ///
-    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.
+    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist may, also when it has a workspace already: anyone else gets `403` and nothing is created.
     ///
     /// - Remark: HTTP `POST /v1/workspaces`.
     /// - Remark: Generated from `#/paths//v1/workspaces/post(createWorkspace)`.
@@ -88,6 +88,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/patch(renameWorkspace)`.
     func renameWorkspace(_ input: Operations.RenameWorkspace.Input) async throws -> Operations.RenameWorkspace.Output
+    /// Report that the caller switched to this workspace
+    ///
+    /// Records the product event `workspace_switched` with the workspace ID and the surface (`web`, `ios` or `android`) and nothing else, so that the use of more than one workspace can be counted without personal data (F012). Nothing about the current workspace is stored: the choice stays on the device. The body is optional; the web sends none and is recorded as `web`. A request with a bearer token records the `surface` it names in the body and, naming none, records nothing. Any team member of the workspace may call it.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/switched`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/switched/post(recordWorkspaceSwitch)`.
+    func recordWorkspaceSwitch(_ input: Operations.RecordWorkspaceSwitch.Input) async throws -> Operations.RecordWorkspaceSwitch.Output
     /// The team of a workspace
     ///
     /// The people on the team of the workspace (the Owner only), sorted by name: team-member ID, name, email address and role. Clients of the workspace are not on the team.
@@ -109,6 +116,55 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)`.
     func removeTeamMember(_ input: Operations.RemoveTeamMember.Input) async throws -> Operations.RemoveTeamMember.Output
+    /// The pending invitations of a workspace
+    ///
+    /// The invitations that are still pending (the Owner only), the latest sent first. One whose `expiresAt` has passed is still listed, so the Owner can send it again. Accepted, declined and withdrawn invitations are not listed.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/trainer-invitations`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/get(listTrainerInvitations)`.
+    func listTrainerInvitations(_ input: Operations.ListTrainerInvitations.Input) async throws -> Operations.ListTrainerInvitations.Output
+    /// Invite a trainer
+    ///
+    /// Invites a person to join the team as a Trainer (the Owner only) and emails them the invitation (EM-09) in the chosen language, else the language of the account with that address, else the workspace’s default. The invitation works for seven days. An address that is on the team answers `409` `already_on_team`; one with a pending invitation `409` `invitation_pending` with that invitation’s ID, and no second one is made. A workspace makes at most 20 invitations in 24 hours: the next answers `429`. If the email can not be sent the answer is `500` and nothing is stored.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/trainer-invitations`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/post(createTrainerInvitation)`.
+    func createTrainerInvitation(_ input: Operations.CreateTrainerInvitation.Input) async throws -> Operations.CreateTrainerInvitation.Output
+    /// Send an invitation again
+    ///
+    /// Emails a pending invitation again (the Owner only) with a new link and a new seven-day expiry; the old link stops working. An invitation that is not pending, or not found in the workspace, answers `404`. If the email can not be sent the answer is `500` and the old link keeps working.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend/post(resendTrainerInvitation)`.
+    func resendTrainerInvitation(_ input: Operations.ResendTrainerInvitation.Input) async throws -> Operations.ResendTrainerInvitation.Output
+    /// Withdraw an invitation
+    ///
+    /// Withdraws a pending invitation (the Owner only): its link stops working and it leaves the list. An invitation that is not pending, or not found in the workspace, answers `404`. The address can be invited again.
+    ///
+    /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/delete(withdrawTrainerInvitation)`.
+    func withdrawTrainerInvitation(_ input: Operations.WithdrawTrainerInvitation.Input) async throws -> Operations.WithdrawTrainerInvitation.Output
+    /// What an invitation link is for
+    ///
+    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter and the masked address the invitation is for, and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/invitations/{token}`.
+    /// - Remark: Generated from `#/paths//v1/invitations/{token}/get(getInvitation)`.
+    func getInvitation(_ input: Operations.GetInvitation.Input) async throws -> Operations.GetInvitation.Output
+    /// Accept an invitation
+    ///
+    /// The signed-in account whose verified address is the invitation’s joins the workspace as a Trainer, with a trainer profile: on the account it has, a client’s included, which stays as it is. The account’s name becomes the invitation’s name only when it has none. The invitation is used. Someone who is on the team already just gets the workspace back, with the role they have. Two accepts at once make one team-member record: the second answers `404`, as for any used invitation. An invitation that is no longer valid answers the neutral `404`; an account with another address `403`.
+    ///
+    /// - Remark: HTTP `POST /v1/invitations/{token}/accept`.
+    /// - Remark: Generated from `#/paths//v1/invitations/{token}/accept/post(acceptInvitation)`.
+    func acceptInvitation(_ input: Operations.AcceptInvitation.Input) async throws -> Operations.AcceptInvitation.Output
+    /// Decline an invitation
+    ///
+    /// The signed-in account whose verified address is the invitation’s declines it: no role is created, the invitation is closed and leaves the Owner’s list. An invitation that is no longer valid answers the neutral `404`; an account with another address `403`.
+    ///
+    /// - Remark: HTTP `POST /v1/invitations/{token}/decline`.
+    /// - Remark: Generated from `#/paths//v1/invitations/{token}/decline/post(declineInvitation)`.
+    func declineInvitation(_ input: Operations.DeclineInvitation.Input) async throws -> Operations.DeclineInvitation.Output
     /// The trainers of a workspace
     ///
     /// The team members who train in the workspace, by name: every Trainer, and each Owner who also trains. Each has the team-member ID and the name. Both roles may read it; a client of the workspace gets `403`, a person with no place in it `404`.
@@ -130,6 +186,34 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/trainer-profile`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-profile/delete(deleteTrainerProfile)`.
     func deleteTrainerProfile(_ input: Operations.DeleteTrainerProfile.Input) async throws -> Operations.DeleteTrainerProfile.Output
+    /// The locations of a workspace
+    ///
+    /// The workspace’s locations, the default first. At go-live that is the one location of the gym, marked `isDefault`. Every team member may read it (sessions show it); a client of the workspace gets `403`, a person with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/locations`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/locations/get(listLocations)`.
+    func listLocations(_ input: Operations.ListLocations.Input) async throws -> Operations.ListLocations.Output
+    /// Change a location’s name or address
+    ///
+    /// Changes the name and/or the address of one location of the workspace (the Owner only; a Trainer gets `403`). The name is trimmed, not blank and at most 120 characters. The address is Dutch and all or nothing: a half-filled one, or a postcode that is not Dutch, answers `400` and nothing changes; `"1234ab"` is stored as `"1234 AB"`; `null` removes the address. A location of another workspace answers `404`.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/locations/{locationId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/locations/{locationId}/patch(updateLocation)`.
+    func updateLocation(_ input: Operations.UpdateLocation.Input) async throws -> Operations.UpdateLocation.Output
+    /// Plan a private session
+    ///
+    /// Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/private`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/private/post(createPrivateSession)`.
+    func createPrivateSession(_ input: Operations.CreatePrivateSession.Input) async throws -> Operations.CreatePrivateSession.Output
+    /// One session
+    ///
+    /// A session of the workspace with its location, trainer and participants, for any team member who may see the workspace’s clients. A session that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/get(getSession)`.
+    func getSession(_ input: Operations.GetSession.Input) async throws -> Operations.GetSession.Output
     /// The clients of a workspace
     ///
     /// The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. `search` matches part of a name or an email address in the server, ignoring case and accents.
@@ -188,7 +272,7 @@ extension APIProtocol {
     }
     /// The signed-in account
     ///
-    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`).
+    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already).
     ///
     /// - Remark: HTTP `GET /v1/me`.
     /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
@@ -260,7 +344,7 @@ extension APIProtocol {
     }
     /// Create the caller’s workspace
     ///
-    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist with no team role in any workspace may: anyone else gets `403` and nothing is created.
+    /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist may, also when it has a workspace already: anyone else gets `403` and nothing is created.
     ///
     /// - Remark: HTTP `POST /v1/workspaces`.
     /// - Remark: Generated from `#/paths//v1/workspaces/post(createWorkspace)`.
@@ -300,6 +384,23 @@ extension APIProtocol {
         body: Operations.RenameWorkspace.Input.Body
     ) async throws -> Operations.RenameWorkspace.Output {
         try await renameWorkspace(Operations.RenameWorkspace.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Report that the caller switched to this workspace
+    ///
+    /// Records the product event `workspace_switched` with the workspace ID and the surface (`web`, `ios` or `android`) and nothing else, so that the use of more than one workspace can be counted without personal data (F012). Nothing about the current workspace is stored: the choice stays on the device. The body is optional; the web sends none and is recorded as `web`. A request with a bearer token records the `surface` it names in the body and, naming none, records nothing. Any team member of the workspace may call it.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/switched`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/switched/post(recordWorkspaceSwitch)`.
+    public func recordWorkspaceSwitch(
+        path: Operations.RecordWorkspaceSwitch.Input.Path,
+        headers: Operations.RecordWorkspaceSwitch.Input.Headers = .init(),
+        body: Operations.RecordWorkspaceSwitch.Input.Body? = nil
+    ) async throws -> Operations.RecordWorkspaceSwitch.Output {
+        try await recordWorkspaceSwitch(Operations.RecordWorkspaceSwitch.Input(
             path: path,
             headers: headers,
             body: body
@@ -352,6 +453,113 @@ extension APIProtocol {
             headers: headers
         ))
     }
+    /// The pending invitations of a workspace
+    ///
+    /// The invitations that are still pending (the Owner only), the latest sent first. One whose `expiresAt` has passed is still listed, so the Owner can send it again. Accepted, declined and withdrawn invitations are not listed.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/trainer-invitations`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/get(listTrainerInvitations)`.
+    public func listTrainerInvitations(
+        path: Operations.ListTrainerInvitations.Input.Path,
+        headers: Operations.ListTrainerInvitations.Input.Headers = .init()
+    ) async throws -> Operations.ListTrainerInvitations.Output {
+        try await listTrainerInvitations(Operations.ListTrainerInvitations.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Invite a trainer
+    ///
+    /// Invites a person to join the team as a Trainer (the Owner only) and emails them the invitation (EM-09) in the chosen language, else the language of the account with that address, else the workspace’s default. The invitation works for seven days. An address that is on the team answers `409` `already_on_team`; one with a pending invitation `409` `invitation_pending` with that invitation’s ID, and no second one is made. A workspace makes at most 20 invitations in 24 hours: the next answers `429`. If the email can not be sent the answer is `500` and nothing is stored.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/trainer-invitations`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/post(createTrainerInvitation)`.
+    public func createTrainerInvitation(
+        path: Operations.CreateTrainerInvitation.Input.Path,
+        headers: Operations.CreateTrainerInvitation.Input.Headers = .init(),
+        body: Operations.CreateTrainerInvitation.Input.Body
+    ) async throws -> Operations.CreateTrainerInvitation.Output {
+        try await createTrainerInvitation(Operations.CreateTrainerInvitation.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Send an invitation again
+    ///
+    /// Emails a pending invitation again (the Owner only) with a new link and a new seven-day expiry; the old link stops working. An invitation that is not pending, or not found in the workspace, answers `404`. If the email can not be sent the answer is `500` and the old link keeps working.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend/post(resendTrainerInvitation)`.
+    public func resendTrainerInvitation(
+        path: Operations.ResendTrainerInvitation.Input.Path,
+        headers: Operations.ResendTrainerInvitation.Input.Headers = .init()
+    ) async throws -> Operations.ResendTrainerInvitation.Output {
+        try await resendTrainerInvitation(Operations.ResendTrainerInvitation.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Withdraw an invitation
+    ///
+    /// Withdraws a pending invitation (the Owner only): its link stops working and it leaves the list. An invitation that is not pending, or not found in the workspace, answers `404`. The address can be invited again.
+    ///
+    /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/delete(withdrawTrainerInvitation)`.
+    public func withdrawTrainerInvitation(
+        path: Operations.WithdrawTrainerInvitation.Input.Path,
+        headers: Operations.WithdrawTrainerInvitation.Input.Headers = .init()
+    ) async throws -> Operations.WithdrawTrainerInvitation.Output {
+        try await withdrawTrainerInvitation(Operations.WithdrawTrainerInvitation.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// What an invitation link is for
+    ///
+    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter and the masked address the invitation is for, and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/invitations/{token}`.
+    /// - Remark: Generated from `#/paths//v1/invitations/{token}/get(getInvitation)`.
+    public func getInvitation(
+        path: Operations.GetInvitation.Input.Path,
+        headers: Operations.GetInvitation.Input.Headers = .init()
+    ) async throws -> Operations.GetInvitation.Output {
+        try await getInvitation(Operations.GetInvitation.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Accept an invitation
+    ///
+    /// The signed-in account whose verified address is the invitation’s joins the workspace as a Trainer, with a trainer profile: on the account it has, a client’s included, which stays as it is. The account’s name becomes the invitation’s name only when it has none. The invitation is used. Someone who is on the team already just gets the workspace back, with the role they have. Two accepts at once make one team-member record: the second answers `404`, as for any used invitation. An invitation that is no longer valid answers the neutral `404`; an account with another address `403`.
+    ///
+    /// - Remark: HTTP `POST /v1/invitations/{token}/accept`.
+    /// - Remark: Generated from `#/paths//v1/invitations/{token}/accept/post(acceptInvitation)`.
+    public func acceptInvitation(
+        path: Operations.AcceptInvitation.Input.Path,
+        headers: Operations.AcceptInvitation.Input.Headers = .init()
+    ) async throws -> Operations.AcceptInvitation.Output {
+        try await acceptInvitation(Operations.AcceptInvitation.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Decline an invitation
+    ///
+    /// The signed-in account whose verified address is the invitation’s declines it: no role is created, the invitation is closed and leaves the Owner’s list. An invitation that is no longer valid answers the neutral `404`; an account with another address `403`.
+    ///
+    /// - Remark: HTTP `POST /v1/invitations/{token}/decline`.
+    /// - Remark: Generated from `#/paths//v1/invitations/{token}/decline/post(declineInvitation)`.
+    public func declineInvitation(
+        path: Operations.DeclineInvitation.Input.Path,
+        headers: Operations.DeclineInvitation.Input.Headers = .init()
+    ) async throws -> Operations.DeclineInvitation.Output {
+        try await declineInvitation(Operations.DeclineInvitation.Input(
+            path: path,
+            headers: headers
+        ))
+    }
     /// The trainers of a workspace
     ///
     /// The team members who train in the workspace, by name: every Trainer, and each Owner who also trains. Each has the team-member ID and the name. Both roles may read it; a client of the workspace gets `403`, a person with no place in it `404`.
@@ -393,6 +601,70 @@ extension APIProtocol {
         headers: Operations.DeleteTrainerProfile.Input.Headers = .init()
     ) async throws -> Operations.DeleteTrainerProfile.Output {
         try await deleteTrainerProfile(Operations.DeleteTrainerProfile.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// The locations of a workspace
+    ///
+    /// The workspace’s locations, the default first. At go-live that is the one location of the gym, marked `isDefault`. Every team member may read it (sessions show it); a client of the workspace gets `403`, a person with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/locations`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/locations/get(listLocations)`.
+    public func listLocations(
+        path: Operations.ListLocations.Input.Path,
+        headers: Operations.ListLocations.Input.Headers = .init()
+    ) async throws -> Operations.ListLocations.Output {
+        try await listLocations(Operations.ListLocations.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Change a location’s name or address
+    ///
+    /// Changes the name and/or the address of one location of the workspace (the Owner only; a Trainer gets `403`). The name is trimmed, not blank and at most 120 characters. The address is Dutch and all or nothing: a half-filled one, or a postcode that is not Dutch, answers `400` and nothing changes; `"1234ab"` is stored as `"1234 AB"`; `null` removes the address. A location of another workspace answers `404`.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/locations/{locationId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/locations/{locationId}/patch(updateLocation)`.
+    public func updateLocation(
+        path: Operations.UpdateLocation.Input.Path,
+        headers: Operations.UpdateLocation.Input.Headers = .init(),
+        body: Operations.UpdateLocation.Input.Body
+    ) async throws -> Operations.UpdateLocation.Output {
+        try await updateLocation(Operations.UpdateLocation.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Plan a private session
+    ///
+    /// Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/private`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/private/post(createPrivateSession)`.
+    public func createPrivateSession(
+        path: Operations.CreatePrivateSession.Input.Path,
+        headers: Operations.CreatePrivateSession.Input.Headers = .init(),
+        body: Operations.CreatePrivateSession.Input.Body
+    ) async throws -> Operations.CreatePrivateSession.Output {
+        try await createPrivateSession(Operations.CreatePrivateSession.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// One session
+    ///
+    /// A session of the workspace with its location, trainer and participants, for any team member who may see the workspace’s clients. A session that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/get(getSession)`.
+    public func getSession(
+        path: Operations.GetSession.Input.Path,
+        headers: Operations.GetSession.Input.Headers = .init()
+    ) async throws -> Operations.GetSession.Output {
+        try await getSession(Operations.GetSession.Input(
             path: path,
             headers: headers
         ))

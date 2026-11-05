@@ -14,6 +14,12 @@ extension StubAPI {
         fatalError("The app doesn't call renameWorkspace yet")
     }
 
+    func recordWorkspaceSwitch(
+        _ input: Operations.RecordWorkspaceSwitch.Input
+    ) async throws -> Operations.RecordWorkspaceSwitch.Output {
+        fatalError("The app doesn't call recordWorkspaceSwitch yet")
+    }
+
     func listTeamMembers(_ input: Operations.ListTeamMembers.Input) async throws -> Operations.ListTeamMembers.Output {
         fatalError("The app doesn't call listTeamMembers yet")
     }
@@ -32,5 +38,67 @@ extension StubAPI {
 
     func listTrainers(_ input: Operations.ListTrainers.Input) async throws -> Operations.ListTrainers.Output {
         fatalError("The app doesn't call listTrainers yet")
+    }
+
+    func listLocations(_ input: Operations.ListLocations.Input) async throws -> Operations.ListLocations.Output {
+        fatalError("The app doesn't call listLocations yet")
+    }
+
+    func updateLocation(_ input: Operations.UpdateLocation.Input) async throws -> Operations.UpdateLocation.Output {
+        fatalError("The app doesn't call updateLocation yet")
+    }
+
+    func createTrainerInvitation(
+        _ input: Operations.CreateTrainerInvitation.Input
+    ) async throws -> Operations.CreateTrainerInvitation.Output {
+        fatalError("The app doesn't call createTrainerInvitation yet")
+    }
+
+    func listTrainerInvitations(
+        _ input: Operations.ListTrainerInvitations.Input
+    ) async throws -> Operations.ListTrainerInvitations.Output {
+        fatalError("The app doesn't call listTrainerInvitations yet")
+    }
+
+    func resendTrainerInvitation(
+        _ input: Operations.ResendTrainerInvitation.Input
+    ) async throws -> Operations.ResendTrainerInvitation.Output {
+        fatalError("The app doesn't call resendTrainerInvitation yet")
+    }
+
+    func withdrawTrainerInvitation(
+        _ input: Operations.WithdrawTrainerInvitation.Input
+    ) async throws -> Operations.WithdrawTrainerInvitation.Output {
+        fatalError("The app doesn't call withdrawTrainerInvitation yet")
+    }
+
+    func createPrivateSession(
+        _ input: Operations.CreatePrivateSession.Input
+    ) async throws -> Operations.CreatePrivateSession.Output {
+        fatalError("The app doesn't call createPrivateSession yet")
+    }
+
+    func getSession(
+        _ input: Operations.GetSession.Input
+    ) async throws -> Operations.GetSession.Output {
+        fatalError("The app doesn't call getSession yet")
+    }
+
+    func getInvitation(
+        _ input: Operations.GetInvitation.Input
+    ) async throws -> Operations.GetInvitation.Output {
+        fatalError("The app doesn't call getInvitation yet")
+    }
+
+    func acceptInvitation(
+        _ input: Operations.AcceptInvitation.Input
+    ) async throws -> Operations.AcceptInvitation.Output {
+        fatalError("The app doesn't call acceptInvitation yet")
+    }
+
+    func declineInvitation(
+        _ input: Operations.DeclineInvitation.Input
+    ) async throws -> Operations.DeclineInvitation.Output {
+        fatalError("The app doesn't call declineInvitation yet")
     }
 }

@@ -44,8 +44,8 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F011 | Trainer Invitations | PLANNED | Must | M3 | F003, F004, E006 | ⬜ | ⬜ | §49 |
-| F012 | Multi-Workspace Trainer | PLANNED | Must | M3 (+ iOS/Android: workspace switch in the profile) | F003, F005 | ⬜ | ⬜ | §4, §6 |
+| F011 | Trainer Invitations | IN PROGRESS | Must | M3 | F003, F004, E006 | ⬜ | ⬜ | §49 |
+| F012 | Multi-Workspace Trainer | IN PROGRESS | Must | M3 (+ iOS/Android: workspace switch in the profile) | F003, F005 | ⬜ | ⬜ | §4, §6 |
 | F013 | Personal Trainer Calendar | PLANNED | Must | M4 (+ iOS/Android) | F012, F020 | ⬜ | ⬜ | §45–§48, §78 (type labels and filters) |
 | F014 | Workspace Calendar | PLANNED | Must | M4 | F020 | ⬜ | ⬜ | §45, §48, §78 (type and trainer filters) |
 
@@ -53,7 +53,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F015 | Locations | PLANNED | Must | M3 (one location; more after G4) (+ iOS/Android: shown) | F002 | ⬜ | ⬜ | §12 (go-live: one location per workspace; after go-live: more locations and the other types) |
+| F015 | Locations | IN PROGRESS | Must | M3 (one location; more after G4) (+ iOS/Android: shown) | F002 | ⬜ | ⬜ | §12 (go-live: one location per workspace; after go-live: more locations and the other types) |
 | F016 | Organization Default Location | PLANNED | Must | M3 (+ iOS/Android: shown) | F015 | ⬜ | ⬜ | §13 (the workspace's one location) |
 | F017 | Trainer Locations | PLANNED | Must | After G4, with M7 (+ iOS/Android) | F005, F015 | ⬜ | ⬜ | §13 |
 | F018 | Client Preferred Location | PLANNED | Must | After G4, with M7 (+ iOS/Android) | F006, F015 | ⬜ | ⬜ | §14 |
@@ -63,7 +63,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F020 | Private Sessions | PLANNED | Must | M4 (+ iOS/Android) | F005, F006, F015 | ⬜ | ⬜ | §17 |
+| F020 | Private Sessions | IN PROGRESS | Must | M4 (+ iOS/Android) | F005, F006, F015 | ⬜ | ⬜ | §17 |
 | F021 | Group Class Templates | PLANNED | Must | M4 (+ iOS/Android: create a class) | F005, F015 | ⬜ | ⬜ | §15, §18, §19 |
 | F022 | Recurring Classes | PLANNED | Must | M4 (+ iOS/Android: weekly repeat) | F021, E012 | ⬜ | ⬜ | §15, §20 |
 | F023 | Trainer Assignment | PLANNED | Must | M4 (+ iOS/Android: double-booking check) | F020, F021 | ⬜ | ⬜ | §17, §19 |
@@ -168,7 +168,7 @@ These are not user-facing, so they don't need NL/EN columns. They still go throu
 | E014 | Privacy tooling | PLANNED | M9 | Data export, deletion, retention jobs, note-access audit log (§79) |
 | E015 | Data import tooling | PLANNED | M9 | Pilot data from the old app export or a CSV template → clients, timetable, sessions, active agreements, credit balances, next due dates, billing details; reconciliation report |
 | E016 | Backups, restore drill & runbooks | PLANNED | M9 | A verified restore, incident/rollback runbooks |
-| E017 | App distribution | IMPLEMENTED | M2 | The hand-started Release workflow runs in the `release` environment (the owner approves, `main` only): the full iOS and Android suites in nl and en first, one version for both apps and build number = run number + a fixed offset; iOS is signed and uploaded to TestFlight, with its dSYMs to Sentry; Android's App Bundle goes to Play internal testing (the first upload by hand, as Google's API can't make an app's first release), and its R8 mapping will go to Sentry once the release build is minified. App ID `app.fivvi.pro` (*Fivvi Pro*), the icon from one source. `docs/engineering/RELEASE.md` is the runbook, the owner checklist and the store requirements for the public release (§9); the client app `app.fivvi` gets its own release lane in M5 (`ROADMAP.md` v1.31) |
+| E017 | App distribution | IN PROGRESS | M2 | The hand-started Release workflow runs in the `release` environment (the owner approves, `main` only): the full iOS and Android suites in nl and en first, one version for both apps and build number = run number + a fixed offset; iOS is signed and uploaded to TestFlight, with its dSYMs to Sentry; Android's App Bundle goes to Play internal testing (the first upload by hand, as Google's API can't make an app's first release), and its R8 mapping will go to Sentry once the release build is minified. App ID `app.fivvi.pro` (*Fivvi Pro*), the icon from one source. `docs/engineering/RELEASE.md` is the runbook, the owner checklist and the store requirements for the public release (§9); the client app `app.fivvi` gets its own release lane in M5 (`ROADMAP.md` v1.31) |
 | E018 | API contract & client generation | IMPLEMENTED | M1 | `packages/api`: Hono + zod-openapi, mounted in `apps/web` under `/api`; `GET /api/v1/hello` reads `system_greetings` (#93). `packages/contract`: committed `openapi.json` (3.1) → TS (openapi-typescript + openapi-fetch), Swift (swift-openapi-generator), Kotlin (openapi-generator, retrofit2 + kotlinx.serialization); generators pinned. Drift check: `pnpm check` (Turborepo `check` task); E002 makes it a required CI check (ADR-004) |
 | E019 | Payment provider integration | PLANNED | M11 | ADR-020 (Accepted 21 October 2026: Mollie Connect for Platforms, the gym as merchant on its own Mollie account; Stripe Connect as fallback) and the questions for Mollie it lists; one guided connection step for the Owner (Mollie Client Links), test mode for previews, idempotent requests, stored webhook events processed once, replay tests |
 

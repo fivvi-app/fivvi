@@ -1,7 +1,10 @@
+export { FIXTURE_INVITATION_VALIDITY_MS } from '../invitation-validity.ts';
 export { readTenantContext, type StoredContext, selectEverythingInScope } from './context.ts';
 export {
   addClient,
+  addSession,
   addTeamRole,
+  addTrainerInvitation,
   addTrainerProfile,
   createAccount,
   createWorkspace,

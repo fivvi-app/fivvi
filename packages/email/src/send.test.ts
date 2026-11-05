@@ -56,6 +56,28 @@ describe('E006 sendEmail', () => {
     expect(transport.sent.map((e) => e.idempotencyKey)).toEqual(['key-1', 'key-2']);
   });
 
+  it('F011: uses the key the caller gives, on every attempt, instead of making one', async () => {
+    const { transport, sendEmail } = setup();
+    const send = () =>
+      sendEmail({
+        template: helloEmail,
+        props,
+        to: { email: 'a@example.com' },
+        locale: 'nl-NL',
+        idempotencyKey: 'invitation-1-token-1',
+      });
+
+    transport.failNext(new EmailSendError('memory: down', { retryable: true }));
+    await send();
+    await send();
+
+    // The same key for the same invitation and token: the provider drops the repeat.
+    expect(transport.sent.map((e) => e.idempotencyKey)).toEqual([
+      'invitation-1-token-1',
+      'invitation-1-token-1',
+    ]);
+  });
+
   it('retries a retryable failure and gives up on the others', async () => {
     const { transport, sendEmail } = setup();
     const send = () =>
