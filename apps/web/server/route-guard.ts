@@ -14,10 +14,17 @@ import { localeCookie, localeCookieMaxAge } from '../i18n/config';
  */
 const PUBLIC_PREFIXES = [SIGN_IN_PAGE, '/book', '/api'];
 
+/**
+ * The app-link association files (E017 AC5): the phone's operating system fetches them without a
+ * session and follows no redirect. Exactly these two, not the whole `/.well-known/` folder.
+ */
+const PUBLIC_FILES = ['/.well-known/apple-app-site-association', '/.well-known/assetlinks.json'];
+
 /** Whether `pathname` is open to anyone. Whole path segments only: `/booking` is not `/book`. */
 export function isPublicPath(pathname: string): boolean {
   return (
     pathname === '/' ||
+    PUBLIC_FILES.includes(pathname) ||
     PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
   );
 }

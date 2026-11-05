@@ -13,7 +13,18 @@ export const UNLISTED_SIGN_UP_DOMAIN = 'fivvi.e2e.test';
 /** The secret of the e2e servers (`BETTER_AUTH_SECRET`): synthetic, and known to `signInWithSession`. */
 export const E2E_AUTH_SECRET = 'e2e-secret-that-is-at-least-thirty-two-characters-long';
 
-/** The app as in CI and local development: no Sentry DSN and no PostHog key. */
+/** Synthetic app-link values in the real formats (E017 AC5): neither belongs to a real account or key. */
+export const TEST_APPLE_TEAM_ID = 'ABCDE12345';
+export const TEST_ANDROID_CERT_SHA256 = Array.from({ length: 32 }, (_, i) =>
+  (i * 7 + 3).toString(16).padStart(2, '0'),
+)
+  .join(':')
+  .toUpperCase();
+
+/**
+ * The app as in CI and local development: no Sentry DSN and no PostHog key. It is the one server
+ * with the app-link values, as production has; the others have none, as previews do.
+ */
 export const appServer = server(port);
 
 /** A synthetic PostHog project key: the page view tests (E009) never reach PostHog. */
