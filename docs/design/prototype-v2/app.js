@@ -94,6 +94,9 @@
     pencil: '<path d="M4 20l1-4.5L16 4.5l3.5 3.5-11 11z"/>',
     dumb: '<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5" stroke-width="2.2"/><circle cx="12" cy="7.8" r="1.2" fill="currentColor" stroke="none"/>',
+    up: '<path d="M12 19V5M6 11l6-6 6 6"/>',
+    down: '<path d="M12 5v14M6 13l6 6 6-6"/>',
+    grip: '<path d="M5 8h14M5 12h14M5 16h14"/>',
     today: '<rect x="3.5" y="5" width="17" height="15" rx="3.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><rect x="8" y="13" width="4" height="4" rx="1" fill="currentColor" stroke="none"/>'
   };
   function ic(n, cls) { return '<svg class="' + (cls || "") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[n] + "</svg>"; }
@@ -552,6 +555,11 @@
       ], "--inset:68px") + "</div>";
       body += sh("Schema's van " + first, "", "small") + '<div class="pad">' + grp((D.templates[c.id] || []).map(function (t) { return row({ a: "log-pick", d: { t: t }, title: t }); })) + "</div>";
       body += sh("Andere schema's", "", "small") + '<div class="pad">' + grp(D.templates.other.map(function (t) { return row({ a: "log-pick", d: { t: t }, title: t }); })) + "</div>";
+    } else if ((L.step === "log" || L.step === "add") && L.reorder) {
+      nav = barHTML("Volgorde", { right: { t: "Klaar", a: "ex-reorder-done", prom: true } });
+      body += '<div class="pad"><p class="ro-hint">Sleep aan ≡ om de volgorde te wijzigen.</p><div class="grp ro">' + L.ex.map(function (e, i) {
+        return '<div class="row ro-row"><span class="ro-no">' + (i + 1) + '</span><div class="m"><b>' + esc(e.name) + "</b><span>" + e.sets.length + (e.sets.length === 1 ? " set" : " sets") + '</span></div><button class="grip" data-drag="ex" data-i="' + i + '" aria-label="' + esc(e.name) + ' verplaatsen">' + ic("grip") + "</button></div>";
+      }).join("") + "</div></div>";
     } else if (L.step === "log" || L.step === "add") {
       nav = barHTML(first + " · " + (L.tpl || "Training"), { left: { t: "Sluiten", a: "log-close" }, right: { t: "Afronden", a: "log-finish", prom: true }, timer: true });
       var doneSets = 0; L.ex.forEach(function (e) { e.sets.forEach(function (s) { if (s.done) doneSets++; }); });
@@ -559,15 +567,15 @@
       if (!L.ex.length) body += '<div class="pad"><div class="card" style="text-align:center;padding:28px 20px"><b style="display:block;font-size:19px;margin-bottom:6px">Nog geen oefeningen</b><span style="color:var(--label2);font-size:15px">Voeg de eerste oefening toe. Wat ' + esc(first) + " eerder deed, staat bovenaan.</span></div></div>";
       body += '<div class="pad stack">' + L.ex.map(function (e, ei) {
         var d = e.sets.filter(function (s) { return s.done; }).length, all = d === e.sets.length;
-        var h = '<div class="lg-ex"><div class="lg-h"><span class="no ' + (all ? "done" : "") + '">' + (all ? ic("check") : ei + 1) + '</span><div class="m" style="flex:1;min-width:0"><b>' + esc(e.name) + "</b><span>" + (e.target ? esc(e.target) + " · " : "") + (e.prev.length ? "Vorige: 29 okt" : "Nog geen eerdere training") + '</span></div><span class="pr">' + d + "/" + e.sets.length + '</span><button class="x" data-a="ex-remove" data-e="' + ei + '" aria-label="' + esc(e.name) + ' verwijderen">' + ic("x") + "</button></div>";
+        var h = '<div class="lg-ex"><div class="lg-h"><span class="no ' + (all ? "done" : "") + '">' + (all ? ic("check") : ei + 1) + '</span><div class="m" style="flex:1;min-width:0"><b>' + esc(e.name) + "</b><span>" + (e.target ? esc(e.target) + " · " : "") + (e.prev.length ? "Vorige: 29 okt" : "Nog geen eerdere training") + '</span></div><span class="pr">' + d + "/" + e.sets.length + '</span><button class="x" data-a="ex-menu" data-e="' + ei + '" aria-label="Opties voor ' + esc(e.name) + '">' + ic("more") + "</button></div>";
         /* one compact row per set: Set | Vorige | today's fields | tick; column labels once per exercise */
         var lay = LAYOUT[e.ty];
         h += '<div class="lg-cols" aria-hidden="true"><span>Set</span><span>Vorige</span><span class="vals">' + lay.head.map(function (x) { return '<span class="' + x[1] + '">' + x[0] + "</span>"; }).join("") + "</span><span></span></div>";
         h += e.sets.map(function (s, si) {
           var vals = lay.inp.map(function (fd) { return '<input class="' + fd[2] + '" inputmode="' + fd[1] + '" value="' + esc(s.v[fd[0]]) + '" data-ls="' + ei + "," + si + "," + fd[0] + '" aria-label="' + esc(e.name) + ", set " + (si + 1) + ", " + fd[4] + '"' + (s.done ? " readonly" : "") + ">" + (fd[3] ? '<span class="sep">' + fd[3] + "</span>" : ""); }).join("");
           var canRemove = !s.done && e.sets.length > 1;
-          return '<div class="sw-row' + (canRemove ? " can" : "") + '" data-e="' + ei + '" data-s="' + si + '">' + (canRemove ? '<button class="sw-del" data-a="do-remove-set-now" data-e="' + ei + '" data-s="' + si + '" tabindex="-1">Verwijderen</button>' : "") +
-            '<div class="set c ' + (s.done ? "done" : "") + '">' + (canRemove ? '<button class="sn" data-a="set-remove-ask" data-e="' + ei + '" data-s="' + si + '" aria-label="Set ' + (si + 1) + ' verwijderen">' + (si + 1) + "</button>" : '<span class="sn">' + (si + 1) + "</span>") +
+          return '<div class="sw-row' + (canRemove ? " can" : "") + '" data-e="' + ei + '" data-s="' + si + '">' + (canRemove ? '<button class="sw-del" data-a="set-remove-ask" data-e="' + ei + '" data-s="' + si + '" tabindex="-1">Verwijderen</button>' : "") +
+            '<div class="set c ' + (s.done ? "done" : "") + '">' + '<button class="sn" data-a="set-menu" data-drag="set" data-e="' + ei + '" data-s="' + si + '" aria-label="Set ' + (si + 1) + ': verplaatsen of verwijderen">' + (si + 1) + "</button>" +
             '<span class="pv">' + (e.prev[si] ? esc(e.prev[si]) : "–") + '</span><span class="vals">' + vals + '</span><button class="tick ' + (s.done ? "on" : "") + '" data-a="tick" data-e="' + ei + '" data-s="' + si + '" aria-label="' + esc(e.name) + ", set " + (si + 1) + (s.done ? " weer openzetten" : " klaar") + '">' + ic("check") + "</button></div></div>";
         }).join("");
         h += '<div class="lg-f">' + btn("Set", { k: "ghost", sm: true, a: "set-add", d: { e: ei }, i: "plus" }) + '<div class="diff" role="group" aria-label="Hoe ging het?">' + [["e", "😌", "Makkelijk"], ["n", "🙂", "Normaal"], ["h", "🥵", "Zwaar"]].map(function (x) { return '<button class="' + (e.diff === x[0] ? "on" : "") + '" data-a="diff" data-e="' + ei + '" data-v="' + x[0] + '" aria-label="' + x[2] + '" aria-pressed="' + (e.diff === x[0]) + '" title="' + x[2] + '"><span aria-hidden="true">' + x[1] + "</span></button>"; }).join("") + '<button class="info" data-a="info" data-n="diff" aria-label="Wat betekent dit?">' + ic("info") + "</button></div></div></div>";
@@ -653,7 +661,7 @@
     "delete": function () { return { t: "Account verwijderen?", p: "Je account en je gegevens worden verwijderd. Werkruimtes waar je eigenaar bent, draag je eerst over op het web.", b: [["Verwijderen", "do-delete", "dng"], ["Annuleren", "close-alert", "sec"]] }; },
     cancelSession: function (d) { var it = findItem(d.id).it; return { t: "Sessie annuleren?", p: CLIENT[it.client].name.split(" ")[0] + " krijgt een e-mail dat de sessie van " + it.s + " niet doorgaat.", b: [["Sessie annuleren", "do-cancel", "dng"], ["Terug", "close-alert", "sec"]] }; },
     cancelClass: function (d) { var it = findItem(d.id).it; return { t: "Les annuleren?", p: "De " + it.people.length + " geboekte klanten krijgen een e-mail. Je kunt er een bericht bij zetten op het web.", b: [["Les annuleren", "do-cancel", "dng"], ["Terug", "close-alert", "sec"]] }; },
-    removeEx: function (d) { var e = S.log.ex[d.e], n = e.sets.filter(function (s) { return s.done; }).length; return { t: e.name + " verwijderen?", p: e.name + " heeft " + n + (n === 1 ? " gelogde set" : " gelogde sets") + ". Toch verwijderen?", b: [["Verwijderen", "do-remove-ex", "dng"], ["Terug", "close-alert", "sec"]] }; },
+    removeEx: function (d) { var e = S.log.ex[d.e], n = e.sets.filter(function (s) { return s.done; }).length; return { t: e.name + " verwijderen?", p: n ? e.name + " heeft " + n + (n === 1 ? " gelogde set" : " gelogde sets") + ". Toch verwijderen?" : (e.sets.length === 1 ? "De enige set van " + e.name + " gaat uit deze training." : (e.sets.length === 2 ? "Beide" : "Alle " + e.sets.length) + " sets van " + e.name + " gaan uit deze training."), b: [["Verwijderen", "do-remove-ex", "dng"], ["Terug", "close-alert", "sec"]] }; },
     removeSet: function (d) { var e = S.log.ex[d.e]; return { t: "Set " + (+d.s + 1) + " verwijderen?", p: e.name + " houdt " + (e.sets.length - 1) + (e.sets.length - 1 === 1 ? " set" : " sets") + ".", b: [["Verwijderen", "do-remove-set", "dng"], ["Terug", "close-alert", "sec"]] }; },
     zero: function () { return { t: "Nog niets bijgehouden", p: "Je hebt nog geen sets afgevinkt. Toch afronden?", b: [["Afronden", "do-zero", "pri"], ["Terug", "close-alert", "sec"]] }; },
     rings: function () {
@@ -677,7 +685,8 @@
   }
   function menuHTML() {
     var m = S.menu, items = m.items;
-    return '<div class="scrim" style="background:transparent" data-a="close-menu"></div><div class="menu anim-fade" role="menu" style="top:calc(var(--top) + 54px);right:12px">' + items.map(function (x) { return x === "-" ? "<hr>" : '<button role="menuitem" class="' + (x.dng ? "d" : "") + '" data-a="' + x.a + '"' + dattrs(x.d) + ">" + x.t + ic(x.i) + "</button>"; }).join("") + "</div>";
+    var pos = m.pos ? "top:" + m.pos.top + "px;" + (m.pos.left != null ? "left:" + m.pos.left + "px" : "right:" + m.pos.right + "px") : "top:calc(var(--top) + 54px);right:12px";
+    return '<div class="scrim" style="background:transparent" data-a="close-menu"></div><div class="menu anim-fade" role="menu" style="' + pos + '">' + items.map(function (x) { return x === "-" ? "<hr>" : '<button role="menuitem" class="' + (x.dng ? "d" : "") + '" data-a="' + x.a + '"' + dattrs(x.d) + ">" + x.t + ic(x.i) + "</button>"; }).join("") + "</div>";
   }
 
   /* ---------- Render ---------- */
@@ -829,11 +838,31 @@
       render();
     },
     "set-add": function (d) { var e = S.log.ex[d.e], last = e.sets[e.sets.length - 1]; e.sets.push({ v: last.v.slice(), done: false }); if (S.log.tpl) S.log.changed = true; render(); },
-    "set-remove-ask": function (d) { S.alert = { n: "removeSet", e: d.e, s: d.s }; render(); },
+    "set-remove-ask": function (d) { S.menu = null; S.alert = { n: "removeSet", e: d.e, s: d.s }; render(); },
     "do-remove-set-now": function (d) { removeSet(d.e, d.s); },
+    "set-menu": function (d, el) {
+      var e = S.log.ex[d.e], si = +d.s, set = e.sets[si], items = [];
+      if (si > 0) items.push({ t: "Omhoog", i: "up", a: "set-move", d: { e: d.e, s: si, v: -1 } });
+      if (si < e.sets.length - 1) items.push({ t: "Omlaag", i: "down", a: "set-move", d: { e: d.e, s: si, v: 1 } });
+      if (!set.done && e.sets.length > 1) { if (items.length) items.push("-"); items.push({ t: "Verwijderen", i: "trash", a: "set-remove-ask", d: { e: d.e, s: si }, dng: true }); }
+      if (!items.length) { toast(set.done ? "Zet de set eerst weer open" : "Dit is de enige set"); return; }
+      S.menu = { items: items, pos: menuAt(el, items.length, true) }; render();
+    },
+    "set-move": function (d) { moveSet(+d.e, +d.s, +d.s + +d.v); },
+    "ex-menu": function (d, el) {
+      var i = +d.e, items = [];
+      if (i > 0) items.push({ t: "Omhoog", i: "up", a: "ex-move", d: { e: i, v: -1 } });
+      if (i < S.log.ex.length - 1) items.push({ t: "Omlaag", i: "down", a: "ex-move", d: { e: i, v: 1 } });
+      if (S.log.ex.length > 1) items.push({ t: "Volgorde wijzigen", i: "grip", a: "ex-reorder" });
+      items.push("-", { t: "Verwijderen", i: "trash", a: "ex-remove", d: { e: i }, dng: true });
+      S.menu = { items: items, pos: menuAt(el, items.length, false) }; render();
+    },
+    "ex-move": function (d) { moveEx(+d.e, +d.e + +d.v); },
+    "ex-reorder": function () { S.menu = null; S.log.reorder = true; render(); },
+    "ex-reorder-done": function () { S.log.reorder = false; render(); },
     "do-remove-set": function () { S.log.ex[S.alert.e].sets.splice(+S.alert.s, 1); if (S.log.tpl) S.log.changed = true; S.alert = null; render(); },
     "set-remove": function (d) { S.log.ex[d.e].sets.splice(+d.s, 1); if (S.log.tpl) S.log.changed = true; render(); },
-    "ex-remove": function (d) { var e = S.log.ex[d.e]; if (e.sets.some(function (s) { return s.done; })) { S.alert = { n: "removeEx", e: d.e }; render(); return; } S.log.ex.splice(+d.e, 1); if (S.log.tpl) S.log.changed = true; render(); },
+    "ex-remove": function (d) { S.menu = null; S.alert = { n: "removeEx", e: d.e }; render(); },
     "do-remove-ex": function () { S.log.ex.splice(+S.alert.e, 1); if (S.log.tpl) S.log.changed = true; S.alert = null; render(); },
     diff: function (d) { S.log.ex[d.e].diff = d.v; render(); },
     "ex-add": function () { S.exq = ""; S.log.step = "add"; S.anim = "sheet"; render(); },
@@ -841,6 +870,13 @@
     "add-ex": function (d) { var e = D.library.filter(function (l) { return l.n === d.n; })[0]; S.log.ex.push(mkEx(e)); if (S.log.tpl) S.log.changed = true; S.log.step = "log"; S.scrollBottom = true; render(); },
     "add-ex-new": function () { var n = S.exq.trim() || "Nieuwe oefening"; S.log.ex.push(mkEx({ n: n.charAt(0).toUpperCase() + n.slice(1), ty: "wr" })); if (S.log.tpl) S.log.changed = true; S.log.step = "log"; S.scrollBottom = true; toast("Oefening aangemaakt. Je vindt hem voortaan onder Jouw oefeningen."); }
   };
+  function menuAt(el, n, alignLeft) {
+    var d = dev.getBoundingClientRect(), r = el.getBoundingClientRect(), z = parseFloat(getComputedStyle(dev).zoom) || 1, h = n * 46 + 16;
+    var top = (r.bottom - d.top) / z + 4; if (top + h > d.height / z - 20) top = (r.top - d.top) / z - h - 4;
+    return alignLeft ? { top: top, left: (r.left - d.left) / z } : { top: top, right: (d.right - r.right) / z };
+  }
+  function moveSet(e, from, to) { var a = S.log.ex[e].sets; a.splice(to, 0, a.splice(from, 1)[0]); if (S.log.tpl) S.log.changed = true; S.menu = null; render(); }
+  function moveEx(from, to) { var a = S.log.ex; a.splice(to, 0, a.splice(from, 1)[0]); if (S.log.tpl) S.log.changed = true; S.menu = null; render(); }
   function removeSet(e, s) { S.log.ex[e].sets.splice(+s, 1); if (S.log.tpl) S.log.changed = true; render(); }
   function finishLog() { var L = S.log, it = findItem(L.item).it; it.wstate = "done"; it.att = "yes"; delete S.logs[L.item]; L.step = "share"; S.anim = null; render(); if (L.saveTpl) toast("Training opgeslagen. Schema " + (L.tplName || "nieuw") + " staat klaar."); }
 
@@ -851,7 +887,7 @@
     if (!el || el.disabled) return;
     if (el.closest(".panel")) return;
     var fn = A[el.dataset.a];
-    if (fn) { e.preventDefault(); fn(Object.assign({}, el.dataset)); if (window.innerWidth <= 640) document.getElementById("panel").classList.remove("open"); }
+    if (fn) { e.preventDefault(); fn(Object.assign({}, el.dataset), el); if (window.innerWidth <= 640) document.getElementById("panel").classList.remove("open"); }
   }
   function onInput(e) {
     var t = e.target;
@@ -879,7 +915,7 @@
   function swClose(except) { dev.querySelectorAll(".sw-row.open").forEach(function (o) { if (o !== except) { o.classList.remove("open"); o.querySelector(".set").style.transform = ""; } }); }
   function onSwDown(e) {
     var r = e.target.closest(".sw-row"); swClose(r);
-    if (!r || !r.classList.contains("can") || e.target.closest(".sw-del")) return;
+    if (!r || !r.classList.contains("can") || e.target.closest(".sw-del,[data-drag]")) return;
     sw = { r: r, x: e.clientX, y: e.clientY, base: r.classList.contains("open") ? -SW_OPEN : 0, dx: 0, on: false, id: e.pointerId };
   }
   function onSwMove(e) {
@@ -900,11 +936,33 @@
     r.classList.remove("dragging", "full-swipe");
     if (sw.on) {
       swDragged = true; setTimeout(function () { swDragged = false; }, 60);
-      if (sw.dx < -r.offsetWidth * 0.6) removeSet(r.dataset.e, r.dataset.s);
+      if (sw.dx < -r.offsetWidth * 0.6) { row.style.transform = ""; r.classList.remove("open"); S.alert = { n: "removeSet", e: r.dataset.e, s: r.dataset.s }; render(); }
       else if (sw.dx < -48) { r.classList.add("open"); row.style.transform = "translateX(" + -SW_OPEN + "px)"; }
       else { r.classList.remove("open"); row.style.transform = ""; }
     }
     sw = null;
+  }
+  var dg = null;
+  function onDgDown(e) {
+    var h = e.target.closest("[data-drag]"); if (!h) return;
+    var set = h.dataset.drag === "set", row = h.closest(set ? ".sw-row" : ".ro-row");
+    var rows = [].slice.call(row.parentNode.children).filter(function (x) { return x.classList.contains(set ? "sw-row" : "ro-row"); });
+    dg = { set: set, e: +h.dataset.e, from: rows.indexOf(row), rows: rows, row: row, y: e.clientY, h: row.offsetHeight, on: false, id: e.pointerId, to: null };
+  }
+  function onDgMove(e) {
+    if (!dg) return;
+    var dy = e.clientY - dg.y;
+    if (!dg.on) { if (Math.abs(dy) < 6) return; dg.on = true; dg.row.classList.add("lifting"); try { dg.row.setPointerCapture(dg.id); } catch (x) { /* not capturable */ } }
+    e.preventDefault();
+    var to = Math.max(0, Math.min(dg.rows.length - 1, dg.from + Math.round(dy / dg.h))); dg.to = to;
+    dg.row.style.transform = "translateY(" + dy + "px)";
+    dg.rows.forEach(function (r, i) { if (r === dg.row) return; var sh = dg.from < to && i > dg.from && i <= to ? -dg.h : dg.from > to && i < dg.from && i >= to ? dg.h : 0; r.style.transform = sh ? "translateY(" + sh + "px)" : ""; });
+  }
+  function onDgUp() {
+    if (!dg) return; var d = dg; dg = null;
+    if (!d.on) return;
+    swDragged = true; setTimeout(function () { swDragged = false; }, 60);
+    if (d.to != null && d.to !== d.from) { if (d.set) moveSet(d.e, d.from, d.to); else moveEx(d.from, d.to); } else render();
   }
   var lastY = 0;
   function onScroll(e) {
@@ -990,6 +1048,10 @@
     dev.addEventListener("input", onInput);
     dev.addEventListener("change", onChange);
     dev.addEventListener("scroll", onScroll, true);
+    dev.addEventListener("pointerdown", onDgDown);
+    dev.addEventListener("pointermove", onDgMove);
+    dev.addEventListener("pointerup", onDgUp);
+    dev.addEventListener("pointercancel", onDgUp);
     dev.addEventListener("pointerdown", onSwDown);
     dev.addEventListener("pointermove", onSwMove);
     dev.addEventListener("pointerup", onSwUp);

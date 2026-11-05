@@ -15,6 +15,12 @@ window.FIVVI_I18N = (function () {
     [/^De (\d+) geboekte klanten krijgen een e-mail\. Je kunt er een bericht bij zetten op het web\.$/, "The $1 booked clients will get an email. You can add a message on the web."],
     [/^(.+) heeft (\d+) gelogde sets?\. Toch verwijderen\?$/, function (m, a, n) { return P(a) + " has " + n + (n === "1" ? " logged set" : " logged sets") + ". Remove it anyway?"; }],
     [/^Set (\d+) verwijderen\?$/, "Remove set $1?"],
+    [/^Set (\d+): verplaatsen of verwijderen$/, "Set $1: move or remove"],
+    [/^Opties voor (.+)$/, function (m, a) { return "Options for " + P(a); }],
+    [/^(.+) verplaatsen$/, function (m, a) { return "Move " + P(a); }],
+    [/^De enige set van (.+) gaat uit deze training\.$/, function (m, a) { return "The only set of " + P(a) + " leaves this workout."; }],
+    [/^Beide sets van (.+) gaan uit deze training\.$/, function (m, a) { return "Both sets of " + P(a) + " leave this workout."; }],
+    [/^Alle (\d+) sets van (.+) gaan uit deze training\.$/, function (m, n, a) { return "All " + n + " sets of " + P(a) + " leave this workout."; }],
     [/^(.+) houdt (\d+) sets?\.$/, function (m, a, n) { return P(a) + " keeps " + n + (n === "1" ? " set." : " sets."); }],
     [/^(.+) verwijderen\?$/, function (m, a) { return "Remove " + P(a) + "?"; }],
     [/^(.+) verwijderen$/, function (m, a) { return "Remove " + P(a); }],
@@ -55,6 +61,8 @@ window.FIVVI_I18N = (function () {
   /* Phrases and words, replaced on letter boundaries, longest first. */
   var PH = {
     /* app frame */
+    "Omhoog": "Move up", "Omlaag": "Move down", "Volgorde wijzigen": "Reorder", "Volgorde": "Order", "Klaar": "Done",
+    "Sleep aan ≡ om de volgorde te wijzigen.": "Drag ≡ to change the order.", "Zet de set eerst weer open": "Reopen the set first", "Dit is de enige set": "This is the only set",
     "Beschrijving in het Engels": "Description in English", "Beschrijving": "Description", "Minder": "Less",
     "Wat doe je in deze les? Dit zien klanten op je boekingspagina.": "What happens in this class? Clients see this on your booking page.",
     "Zonder Engelse tekst zien Engelstalige klanten de Nederlandse. Studio Fit, Kerkstraat 12. Een vaste reeks beheer je op het web.": "Without English text, English-speaking clients see the Dutch. Studio Fit, Kerkstraat 12. A series is managed on the web.",

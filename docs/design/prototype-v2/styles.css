@@ -536,3 +536,13 @@ input:focus,select:focus,textarea:focus{outline:none}
 .sw-del{position:absolute;top:4px;bottom:4px;right:8px;width:92px;border:0;border-radius:14px;background:var(--danger);color:#fff;font-weight:600;font-size:14px;transition:width .15s}
 .sw-row.full-swipe .sw-del{width:calc(100% - 16px)}
 .android .sw-del{border-radius:12px;background:#BA1A1A}
+/* Reordering: drag a set by its number, or exercises by ≡ in reorder mode */
+.sw-row,.ro-row{transition:transform .18s cubic-bezier(.2,.8,.2,1)}
+.lifting{transition:none!important;position:relative;z-index:5;box-shadow:0 12px 30px rgba(0,0,0,.2);border-radius:14px;background:var(--card)}
+.android .lifting{background:var(--m-c-high)}
+.set.c .sn{touch-action:none;cursor:grab}
+.grip{border:0;background:none;color:var(--label3);width:44px;height:44px;display:grid;place-items:center;touch-action:none;cursor:grab;flex:none}
+.grip svg{width:22px;height:22px}
+.ro-no{width:26px;height:26px;border-radius:50%;background:var(--fill);display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.ro-hint{font-size:13px;color:var(--label2);margin:0 4px 10px}
+.menu{max-width:260px}
