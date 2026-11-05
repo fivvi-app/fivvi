@@ -554,3 +554,6 @@ input:focus,select:focus,textarea:focus{outline:none}
 .sw button[data-v="mono"]{box-shadow:inset 0 0 0 1px rgba(255,255,255,.25),inset 0 0 0 1px rgba(0,0,0,.1)}
 /* On a phone the device fills the screen: no fake status bar, so only a small top inset (this must come after .dev{--top}) */
 @media (max-width:640px){.dev,.dev.android{--top:14px}}
+/* Icon tiles (New sheet, training card, start-workout list): the glyph sits inside the tile, about half its size */
+.av svg{width:22px;height:22px;flex:none}
+.av.lg svg{width:40px;height:40px}

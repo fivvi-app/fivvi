@@ -455,7 +455,7 @@
     if (PREF.role === "owner") items.push(["new-class", "group", "Groepsles", "Bij Studio Fit"], ["new-gym", "gym", "Open Gym", "Bij Studio Fit"]);
     items.push(["new-client", "", "Klant", "Een naam is genoeg. Het e-mailadres kan later."]);
     var icons = { priv: "me", group: "group", gym: "door", "": "personPlus" };
-    var body = grp(items.map(function (x) { return row({ a: x[0], lead: '<span class="av" style="--c:' + (x[1] ? CV[x[1]] : "var(--accent)") + ';border-radius:14px">' + ic(icons[x[1]]) + "</span>", title: x[2], sub: x[3] }); }), "--inset:68px");
+    var body = grp(items.map(function (x) { return row({ a: x[0], lead: '<span class="av" style="--c:' + (x[1] ? CV[x[1]] : "var(--accent)") + ';border-radius:14px">' + ic(icons[x[1]]) + "</span>", title: x[2], sub: x[3], cls: "wrap" }); }), "--inset:68px");
     if (PREF.role !== "owner") body += foot("Groepslessen en Open Gym van Studio Fit en John's Gym plant de eigenaar.");
     else body += foot("Groepslessen en Open Gym van John's Gym plant de eigenaar.");
     return { title: "Nieuw", small: true, body: body };
