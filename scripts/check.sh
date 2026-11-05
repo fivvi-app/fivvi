@@ -50,10 +50,10 @@ LOCK="$ROOT/.work/check.lock"
 OWN_LOCK=false
 is_check_sh() { case "$(ps -p "$1" -o command= 2>/dev/null)" in *check.sh*) return 0 ;; *) return 1 ;; esac; }
 acquire_lock() {
-  local holder attempt
+  local holder _
   mkdir -p "$ROOT/.work"
   [ ! -e "$LOCK" ] || [ -L "$LOCK" ] || rm -rf "$LOCK"
-  for attempt in 1 2 3; do
+  for _ in 1 2 3; do
     if ln -sn "$$" "$LOCK" 2>/dev/null; then OWN_LOCK=true; return 0; fi
     holder="$(readlink "$LOCK" 2>/dev/null || true)"
     if [ -n "$holder" ] && is_check_sh "$holder"; then
