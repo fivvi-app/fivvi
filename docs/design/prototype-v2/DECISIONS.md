@@ -249,7 +249,12 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 - **Tabs as in §55:**
   - *Home*: hello, the next session or class, *Tegoed* at a glance, and what's coming up;
   - *Boeken*: the timetable;
-  - *Training*: shared workouts, arriving with M7;
+  - ***Activiteit*** instead of *Training* (owner, 5 November 2026: not every studio calls it training; a yoga or pilates studio doesn't log workouts):
+    - what the client did: classes and sessions attended, newest first;
+    - a monthly count and weeks in a row;
+    - a workout the trainer shared opens with all its details;
+    - it fits every setup: a yoga client sees only classes, and logged workouts appear only where private sessions exist;
+    - the shared workouts arrive with M7;
   - *Profiel*.
 - **Platform look:**
   - iOS uses the glass tab bar and large titles;
@@ -319,4 +324,5 @@ The prototype had to choose something for these. They are **not decided**; each 
 | TD-05, class descriptions | Descriptions can be entered in the app's new-class form, not only on the web | F021 [#427](https://github.com/fivvi-app/fivvi/issues/427) |
 | [IA §3.2](../information-architecture.md#32-role--navigation) | New owner page *Aanbod*. Trainers page: change role, remove with a handover, withdraw an invitation | F052 [#468](https://github.com/fivvi-app/fivvi/issues/468); F003/F004 follow-up in [#590](https://github.com/fivvi-app/fivvi/issues/590) |
 | [`GLOSSARY.md`](../../../GLOSSARY.md), [`packages/i18n/GLOSSARY.md`](../../../packages/i18n/GLOSSARY.md) | "Always *trainer*" becomes the workspace's chosen word | [#588](https://github.com/fivvi-app/fivvi/issues/588) |
+| [`PRODUCT.md §55`](../../product/PRODUCT.md#55-client-app-at-go-live), client app navigation | *Home, Boeken, Training, Profiel* becomes *Home, Boeken, Activiteit, Profiel* (once the owner confirms the client app proposal, §5b) | [#469](https://github.com/fivvi-app/fivvi/issues/469) and the F033 / F045 specs |
 | [IA §7](../information-architecture.md#7-client-web), client web | The client web uses the app's design language ([§5](#5-client-web-adr-026)) | F027 [#489](https://github.com/fivvi-app/fivvi/issues/489), F033 [#497](https://github.com/fivvi-app/fivvi/issues/497) |

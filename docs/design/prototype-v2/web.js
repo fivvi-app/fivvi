@@ -846,7 +846,7 @@
      sheet; account deletion in the app (§79). Push notifications come in Release 1.1, so none here. */
   var APP = false;
   function andr() { return F.PREF.plat === "android"; }
-  var ATABS = [["home", "Home", "home"], ["boeken", "Boeken", "cal"], ["training", "Training", "dumb"], ["profiel", "Profiel", "me"]];
+  var ATABS = [["home", "Home", "home"], ["boeken", "Boeken", "cal"], ["training", "Activiteit", "pulse"], ["profiel", "Profiel", "me"]];
   function capp() {
     var c = C(); APP = true;
     try {
@@ -917,12 +917,31 @@
   };
   ATAB.boeken = function () { var c = C(), t = c.tab; c.tab = "rooster"; var p = CSTEP.app(); c.tab = t; return p; };
   /* Training: the workouts the trainer shared (F045, arrives with M7) */
+  /* Activiteit (owner, 5 Nov 2026: not every studio calls it training): what the client did, for every kind of studio.
+     Classes and sessions attended, a monthly count and weeks in a row; a workout the trainer shared opens with its details. */
+  function attended() {
+    var c = C(), out = [], hist = c.who === "anna" && F.HAS("priv") ? D.history.anna || [] : [];
+    var pn = F.PREF.setup === "pilates" ? "Reformer privé" : null;
+    hist.forEach(function (x, i) { out.push({ d: x.d, title: pn || x.name, sub: "met " + x.by, type: "priv", w: i }); });
+    if (c.who === "anna" && (F.HAS("group") || F.HAS("gym"))) for (var i = 1, n = 0; i <= 21 && n < 4; i += 2) {
+      var k = F.key(F.add(F.NOW, -i)), it = timetable(k).filter(function (x) { return x.type !== "priv" && !x.cancelled; })[n % 2];
+      if (it) { out.push({ d: F.DS[F.parse(k).getDay()] + " " + F.parse(k).getDate() + " " + F.MS[F.parse(k).getMonth()], title: it.title, sub: it.type === "gym" ? "Zelf trainen" : cwho(it), type: it.type, k: k }); n++; }
+    }
+    /* newest first: "do 29 okt" and "29 okt" both sort by month and day */
+    function when(x) { var m = /(\d+) (\w+)/.exec(x.d) || [0, 0, ""], mi = F.MS.indexOf(m[2]); return (mi < 0 ? 0 : mi) * 100 + +m[1]; }
+    return out.sort(function (a, b) { return when(b) - when(a); });
+  }
   ATAB.training = function () {
-    var c = C(), xs = c.who === "anna" ? D.history.anna || [] : [];
-    var b = K.lt("", "Training", xs.length ? xs.length + " gedeelde trainingen" : "");
-    b += xs.length ? '<div class="pad">' + K.grp(xs.map(function (x, i) { return K.row({ a: "c-workout", d: { v: i }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("dumb") + "</span>", title: esc(x.name), sub: esc(x.d) + " · met " + esc(x.by), cls: "dc" }); }), "--inset:60px") + "</div>"
-      : '<div class="pad"><div class="card empty">Als je trainer een training met je deelt, staat die hier.</div></div>';
-    return { title: "Training", body: b };
+    var c = C(), xs = attended(), b = K.lt("", "Activiteit", "");
+    if (!xs.length) return { title: "Activiteit", body: b + '<div class="pad"><div class="card empty">Hier zie je de lessen en sessies waar je bent geweest.</div></div>' };
+    var wk = [1, 1, 0, 1, 1, 1, 1, 1];
+    b += '<div class="pad"><div class="tiles two"><div class="tile c-tile" style="--c:var(--accent)"><span class="ink">November</span><b class="num">' + (xs.length + 3) + "</b><em>keer geweest</em></div>" +
+      '<div class="tile c-tile" style="--c:var(--ok)"><span class="ink">Op rij</span><b class="num">5</b><em>weken achter elkaar</em><span class="wkdots" aria-hidden="true">' + wk.map(function (x) { return '<i class="' + (x ? "on" : "") + '"></i>'; }).join("") + "</span></div></div></div>";
+    b += K.sh("Recent", "", "small") + '<div class="pad">' + K.grp(xs.map(function (x) {
+      return K.row({ a: x.w != null ? "c-workout" : null, d: x.w != null ? { v: x.w } : null, lead: '<span class="dc-ic" style="--c:' + F.CV[x.type] + '">' + ic(x.w != null ? "dumb" : x.type === "gym" ? "door" : "group") + "</span>",
+        title: esc(x.title), sub: esc(x.d) + " · " + esc(x.sub), tr: x.w != null ? '<span class="pill tint" style="--c:var(--accent)">Details</span>' : "", cls: "dc" });
+    }), "--inset:60px") + "</div>" + K.foot("Wat je trainer met je deelt, open je hier met alle details.");
+    return { title: "Activiteit", body: b };
   };
   ATAB.profiel = function () { return { title: "Profiel", body: profile() }; };
   /* Paying happens on the web (§53, QC16): the app opens the studio's offer page in a browser sheet */
@@ -1036,7 +1055,7 @@
     ["Boeken", "F027", goApp("app", { who: "anna", atab: "boeken" })],
     ["Les boeken", "F031", goApp("app", { who: "anna", atab: "boeken" }, function (c) { var t = F.dayItems(F.key(F.add(F.NOW, 1))).filter(function (i) { return i.type !== "priv" && i.people.length < i.cap && !c.booked[i.id]; })[0]; c.detail = t ? t.id : null; c.day = F.key(F.add(F.NOW, 1)); })],
     ["Geen credits: aanbod op het web", "F052", goApp("app", { who: "anna", atab: "boeken" }, function (c) { var t = timetable(F.key(F.add(F.NOW, 1))).filter(function (i) { return i.type === "gym"; })[0] || timetable(F.TODAY).filter(function (i) { return i.type === "gym"; })[0]; if (t) c.detail = t.id; else c.web = "offers"; })],
-    ["Training", "F045", goApp("app", { who: "anna", atab: "training" })],
+    ["Activiteit", "F045", goApp("app", { who: "anna", atab: "training" })],
     ["Gedeelde training", "F045", goApp("app", { who: "anna", atab: "training", workout: 0 })],
     ["Profiel en tegoed", "F033", goApp("app", { who: "anna", atab: "profiel" })],
     ["Account verwijderen", "§79", goApp("app", { who: "anna", atab: "profiel", dialog: "delete" })],
